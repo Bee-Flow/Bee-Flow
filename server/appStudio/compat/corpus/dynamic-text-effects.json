@@ -1,0 +1,192 @@
+{
+  "about": {
+    "source": "hand-made for package L6 (dynamic text and effects): messageExpr/titleExpr/confirmLabelExpr, switch case whenExpr, open_url urlExpr, navigate screenExpr, a sequence with onSuccess/onError, allowedLinkHosts",
+    "captured": "2026-11-10"
+  },
+  "definition": {
+    "schemaVersion": 3,
+    "meta": {
+      "name": "Dynamic text",
+      "description": "Messages, screens and links worked out by formulas, a switch picked by a formula, and effects after a sequence.",
+      "icon": "Zap"
+    },
+    "theme": {
+      "primary": "#0F766E",
+      "radius": "md",
+      "density": "comfortable",
+      "fontScale": "md",
+      "appearance": "auto"
+    },
+    "roles": [],
+    "variables": [
+      {
+        "name": "total",
+        "label": "total",
+        "type": "number",
+        "default": 120,
+        "description": ""
+      },
+      {
+        "name": "target",
+        "label": "target",
+        "type": "text",
+        "default": "scr_done001",
+        "description": ""
+      }
+    ],
+    "screens": [
+      {
+        "id": "scr_dyn00001",
+        "name": "Start",
+        "icon": null,
+        "showInNav": true,
+        "maxWidth": "medium",
+        "sections": [
+          {
+            "id": "sec_dyn00001",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_dynhead1",
+                "type": "heading",
+                "props": {
+                  "text": "Dynamic text",
+                  "level": 2,
+                  "accent": "none"
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_dynbtn01",
+                "type": "button",
+                "props": {
+                  "label": "Run",
+                  "variant": "primary",
+                  "iconLeft": null,
+                  "role": "button",
+                  "disabledWhen": null
+                },
+                "style": {
+                  "span": 4
+                },
+                "visible": true,
+                "onClick": "act_dynseq01"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "scr_done001",
+        "name": "Done",
+        "icon": null,
+        "showInNav": false,
+        "maxWidth": "medium",
+        "sections": [
+          {
+            "id": "sec_done0001",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_donehead",
+                "type": "heading",
+                "props": {
+                  "text": "Done",
+                  "level": 2,
+                  "accent": "none"
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "actions": {
+      "act_dynseq01": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "confirm",
+            "messageExpr": "concat('Run for ', vars.total, ' items?')",
+            "titleExpr": "'Please confirm'",
+            "confirmLabelExpr": "'Run it'"
+          },
+          {
+            "kind": "switch",
+            "expr": "vars.total",
+            "cases": [
+              {
+                "whenExpr": "vars.total >= 100",
+                "steps": [
+                  {
+                    "kind": "toast",
+                    "tone": "warning",
+                    "messageExpr": "concat('Big batch of ', vars.total)"
+                  }
+                ]
+              },
+              {
+                "value": 1,
+                "steps": [
+                  {
+                    "kind": "toast",
+                    "message": "Just one",
+                    "tone": "info"
+                  }
+                ]
+              }
+            ],
+            "default": [
+              {
+                "kind": "toast",
+                "message": "Small batch",
+                "tone": "info"
+              }
+            ]
+          },
+          {
+            "kind": "open_url",
+            "newTab": true,
+            "urlExpr": "concat('https://example.com/orders/', vars.total)"
+          },
+          {
+            "kind": "navigate",
+            "screenExpr": "vars.target"
+          }
+        ],
+        "onSuccess": {
+          "toast": {
+            "message": "All done",
+            "tone": "success"
+          },
+          "navigateTo": "scr_done001"
+        },
+        "onError": {
+          "toast": {
+            "message": "Something went wrong",
+            "tone": "danger"
+          }
+        }
+      }
+    },
+    "homeScreenId": "scr_dyn00001",
+    "allowedLinkHosts": [
+      "example.com"
+    ]
+  }
+}

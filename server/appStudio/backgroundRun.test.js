@@ -313,3 +313,18 @@ test('usage: the owner pays, the viewer is the actor and the job is the run, als
     // What aiRuntime's usage entry reads while the step runs.
     assert.deepEqual(inside, [{ actor_user_id: 'viewer1', run_id: row.id }]);
 });
+
+test('a deferred toast with a messageExpr is worked out in the run scope; an empty result falls back to the literal', async () => {
+    execute = async () => ({ ok: true, result: null });
+    const action = { kind: 'sequence', background: true, steps: [
+        status('five'),
+        { kind: 'toast', message: 'fallback', messageExpr: 'vars.status', tone: 'success' },
+        { kind: 'toast', message: 'literal wins when the formula is empty', messageExpr: 'vars.nothing_here', tone: 'info' },
+    ] };
+    const row = await startAndSettle(action);
+    assert.equal(row.status, 'success');
+    assert.deepEqual(row.effects, [
+        { kind: 'toast', message: 'five', tone: 'success' },
+        { kind: 'toast', message: 'literal wins when the formula is empty', tone: 'info' },
+    ]);
+});

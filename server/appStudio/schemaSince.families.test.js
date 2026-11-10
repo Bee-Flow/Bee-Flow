@@ -136,7 +136,7 @@ test('with every fixture in the catalogue, no corpus app needs another version t
 test('the index lists only what is marked: an unmarked catalogue has an empty one', () => {
     assert.equal(shared.sinceIndexIsEmpty(since.buildSinceIndex({})), true);
     const index = since.buildSinceIndex({
-        stepSpecs: { toast: { fields: { seconds: { since: 3 }, tone: { valuesSince: { loud: 3, info: 2 } }, message: {} } } },
+        stepSpecs: { toast: { fields: { seconds: { since: 3 }, tone: { valuesSince: { loud: 3, info: 2 } }, message: {} } }, switch: { fields: { cases: { itemSince: { whenExpr: 3, value: 2 } } } } },
         actionSpecs: { toast: { fields: { sticky: { since: 4 } } } },
         componentSpecs: {
             table: { props: { columns: { itemShape: { note: { since: 3 }, align: { valuesSince: { justify: 3 } }, tones: { itemShape: { icon: { since: 3 } } }, key: {} } }, title: {} } },
@@ -151,6 +151,7 @@ test('the index lists only what is marked: an unmarked catalogue has an empty on
         stepFieldValues: { toast: { tone: { loud: 3 } } },
         actionFields: { toast: { sticky: 4 } },
         actionFieldValues: {},
+        stepItemKeys: { switch: { cases: { whenExpr: 3 } } },
         itemShapes: { table: { columns: { keys: { note: 3 }, values: { align: { justify: 3 } }, items: { tones: { keys: { icon: 3 } } } } } },
         typeNodeKeys: { heading: { onClick: 3 } },
         keys: { screen: { layout: 3 } },

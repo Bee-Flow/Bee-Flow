@@ -14,6 +14,8 @@
  *   definitionKeys/<key>.js `since`                a top-level key
  *   STEP_SPECS[kind].fields[name].since / .valuesSince    a field added to an existing step kind
  *   ACTION_SPECS[kind].fields[name].since / .valuesSince  the same for an action kind
+ *   STEP_SPECS[kind].fields[name].itemSince                { [key]: n }, a key added to the items of a list field
+ *                                                  of a base step (a switch case's `when`)
  *   …props[name].itemShape[key].since / .valuesSince      a key of the items of a list prop
  *                                                  (and of a list nested in those items)
  *   COMPONENT_SPECS[type].eventsSince              { [event]: n }, an event an existing type newly fires
@@ -158,11 +160,23 @@ function readComponents(table: SpecTable | undefined, index: SinceIndex): void {
     }
 }
 
+/** The keys added to the items of a list field of a base step (`itemSince: { when: 3 }` on the field), per field. */
+function readItemKeys(kind: string, fields: Record<string, Spec> | undefined, into: Record<string, Record<string, SinceMap>>): void {
+    const perField: Record<string, SinceMap> = Object.create(null);
+    for (const [name, spec] of Object.entries(fields || {})) {
+        const keys = spec && typeof spec === 'object' ? valuesAbove((spec as { itemSince?: unknown }).itemSince) : null;
+        if (keys) perField[name] = keys;
+    }
+    if (Object.keys(perField).length) into[kind] = perField;
+}
+
 /** Step or action kinds: the kind itself, and the fields added to a kind. */
-function readKinds(table: SpecTable | undefined, kinds: SinceMap, fields: Record<string, SinceMap>, fieldValues: Record<string, Record<string, SinceMap>>): void {
+function readKinds(table: SpecTable | undefined, kinds: SinceMap, fields: Record<string, SinceMap>, fieldValues: Record<string, Record<string, SinceMap>>, itemKeys?: Record<string, Record<string, SinceMap>>): void {
     readTable(table, kinds, Object.create(null));
     for (const [kind, spec] of Object.entries(table || {})) {
-        if (spec && typeof spec === 'object') readOwned(kind, spec.fields, fields, fieldValues);
+        if (!spec || typeof spec !== 'object') continue;
+        readOwned(kind, spec.fields, fields, fieldValues);
+        if (itemKeys) readItemKeys(kind, spec.fields, itemKeys);
     }
 }
 
@@ -171,7 +185,7 @@ export function buildSinceIndex(catalogue: Catalogue): SinceIndex {
     const index = emptySinceIndex();
     readComponents(catalogue.componentSpecs, index);
     readTable(catalogue.styleKnobs, index.styleKnobs, index.styleValues);
-    readKinds(catalogue.stepSpecs, index.stepKinds, index.stepFields, index.stepFieldValues);
+    readKinds(catalogue.stepSpecs, index.stepKinds, index.stepFields, index.stepFieldValues, index.stepItemKeys);
     readKinds(catalogue.actionSpecs, index.actionKinds, index.actionFields, index.actionFieldValues);
     for (const [kind, since] of Object.entries(catalogue.bindingKindSince || {})) {
         if (above(since)) index.bindingKinds[kind] = above(since);

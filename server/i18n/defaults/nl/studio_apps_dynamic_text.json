@@ -1,0 +1,27 @@
+{
+  "translations": {
+    "studio_apps_dynamic_text.case_when_aria": "Formule van geval {n}",
+    "studio_apps_dynamic_text.case_when_placeholder": "Of een formule, bijv. vars.total >= 100",
+    "studio_apps_dynamic_text.cases_when_help": "Een geval met een formule wordt uitgevoerd als de formule waar is; gebruik dit voor bereiken.",
+    "studio_apps_dynamic_text.effects_title": "Als het klaar is",
+    "studio_apps_dynamic_text.field_cancel_label_expr": "Knop Annuleren (formule)",
+    "studio_apps_dynamic_text.field_confirm_label_expr": "Knop Bevestigen (formule)",
+    "studio_apps_dynamic_text.field_message_expr": "Bericht (formule)",
+    "studio_apps_dynamic_text.field_screen_expr": "Scherm (formule)",
+    "studio_apps_dynamic_text.field_title_expr": "Titel (formule)",
+    "studio_apps_dynamic_text.field_url_expr": "Adres (formule)",
+    "studio_apps_dynamic_text.hint_screen_expr": "Geeft de id van een scherm van deze app. Wordt gebruikt in plaats van het scherm hierboven.",
+    "studio_apps_dynamic_text.hint_text_expr": "Wordt gebruikt in plaats van de tekst hierboven als de formule een uitkomst geeft.",
+    "studio_apps_dynamic_text.hint_url_expr": "Opent alleen https-adressen op de hosts uit de app-instellingen onder “Links uit formules”.",
+    "studio_apps_dynamic_text.hosts_hint": "Eén host per regel, bijvoorbeeld example.com. Een stap “Open een webpagina” die zijn adres met een formule opbouwt, opent alleen https-adressen op deze hosts. Alleen jij kunt deze lijst wijzigen, de app-bouwer niet.",
+    "studio_apps_dynamic_text.hosts_label": "Hosts die een link mag openen",
+    "studio_apps_dynamic_text.hosts_refused": "Weggelaten: {hosts}. Schrijf alleen de hostnaam, bijvoorbeeld example.com.",
+    "studio_apps_dynamic_text.hosts_title": "Links uit formules",
+    "studio_apps_dynamic_text.screen_empty": "De formule voor het te openen scherm gaf geen scherm.",
+    "studio_apps_dynamic_text.screen_unknown": "Deze stap opent het scherm “{screen}”, dat niet bij deze app hoort.",
+    "studio_apps_dynamic_text.url_empty": "De formule voor het te openen adres gaf geen adres.",
+    "studio_apps_dynamic_text.url_host_not_allowed": "Het adres is niet geopend: de host “{host}” staat niet op de lijst met toegestane hosts van de app.",
+    "studio_apps_dynamic_text.url_invalid": "De formule voor het te openen adres gaf geen webadres.",
+    "studio_apps_dynamic_text.url_not_https": "Vanuit een app kunnen alleen gewone https-adressen worden geopend."
+  }
+}

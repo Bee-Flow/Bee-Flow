@@ -120,6 +120,14 @@ const ACTION_SPECS = {
             background: { type: 'boolean' },
             lockKey: { type: 'binding' },
             progressVar: { type: 'string', maxLen: 60 },
+            onSuccess: {
+                type: 'effects', since: 3,
+                description: 'A toast and/or a screen to open after the sequence ends well. Effects are applied once and never chain, so use steps for anything longer. Same shape as on run_automation.',
+            },
+            onError: {
+                type: 'effects', since: 3,
+                description: 'A toast and/or a screen to open after the sequence failed. The failure is toasted either way. Effects are applied once and never chain.',
+            },
         },
     },
 };
@@ -141,6 +149,10 @@ const STEP_SPECS = {
         fields: {
             screenId: { type: 'string', required: true },
             params: { type: 'navParams' },
+            screenExpr: {
+                type: 'formula', since: 3,
+                description: 'A formula that gives the id of the screen to open, instead of screenId. It must return the id of one of this app\'s own screens, any other result stops the sequence with an error. Leave screenId out when you use it.',
+            },
         },
     },
     toast: {
@@ -148,11 +160,22 @@ const STEP_SPECS = {
         fields: {
             message: { type: 'string', required: true, maxLen: 500 },
             tone: { type: 'enum', values: TOAST_TONES, default: 'info' },
+            messageExpr: {
+                type: 'formula', since: 3,
+                description: 'A formula that gives the message text, instead of message. Build the text with concat, for example concat(\'Saved \', vars.count, \' rows\'). When it returns nothing, message is shown if there is one. Leave message out when you use it.',
+            },
         },
     },
     open_url: {
         mutatesData: false,
-        fields: { url: { type: 'url', required: true }, newTab: { type: 'boolean', default: true } },
+        fields: {
+            url: { type: 'url', required: true },
+            newTab: { type: 'boolean', default: true },
+            urlExpr: {
+                type: 'formula', since: 3,
+                description: 'A formula that gives the web address to open, instead of url. Only https addresses on a host listed in the app\'s allowedLinkHosts open, anything else stops the sequence with an error. Leave url out when you use it.',
+            },
+        },
     },
     open_modal: { mutatesData: false, fields: { modalId: { type: 'string', required: true } } },
     close_modal: { mutatesData: false, fields: { modalId: { type: 'string', required: true } } },
@@ -189,6 +212,22 @@ const STEP_SPECS = {
             title: { type: 'string', maxLen: 120 },
             confirmLabel: { type: 'string', maxLen: 80 },
             cancelLabel: { type: 'string', maxLen: 80 },
+            messageExpr: {
+                type: 'formula', since: 3,
+                description: 'A formula that gives the question text, instead of message. When it returns nothing, message is shown if there is one. Leave message out when you use it.',
+            },
+            titleExpr: {
+                type: 'formula', since: 3,
+                description: 'A formula that gives the dialog title, instead of title. When it returns nothing, title is used if there is one.',
+            },
+            confirmLabelExpr: {
+                type: 'formula', since: 3,
+                description: 'A formula for the confirm button text, instead of confirmLabel. When it returns nothing, confirmLabel is used if there is one.',
+            },
+            cancelLabelExpr: {
+                type: 'formula', since: 3,
+                description: 'A formula for the cancel button text, instead of cancelLabel. When it returns nothing, cancelLabel is used if there is one.',
+            },
         },
     },
     set_variable: {
@@ -357,7 +396,10 @@ const STEP_SPECS = {
         mutatesData: false,
         fields: {
             expr: { type: 'formula', required: true },
-            cases: { type: 'switchCases', required: true },
+            // A case is { value, steps } or, since 3, { whenExpr, steps }: `whenExpr` is a formula that picks the
+            // case when it is truthy (used only by a case with no value). The key has no itemShape because a base
+            // field's item shape is part of the frozen pin, so its mark lives in itemSince (schemaSince.mts).
+            cases: { type: 'switchCases', required: true, itemSince: { whenExpr: 3 } },
             default: { type: 'steps' },
         },
     },

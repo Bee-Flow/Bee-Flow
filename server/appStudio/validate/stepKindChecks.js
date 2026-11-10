@@ -11,6 +11,7 @@ const { checkCallAction } = require('./callChecks.mts');
 const { someStepThroughCalls } = require('../actionCalls.mts');
 const { TRANSACTION_CHILD_KINDS, MAX_TRANSACTION_STEPS } = require('../../shared/appDefinition/stepFlow.mjs');
 const { STEP_META, EXTENSION_STEP_ENTRIES } = require('../componentSpecs/stepRegistry');
+const { checkOpenUrl, checkSwitchCases } = require('./dynamicChecks.mts');
 
 // The base kinds are told in this order (the order the warnings have always come in); registry kinds follow.
 const LOOP_FINDING_ORDER = ['generate_presentation', 'generate_file', 'fill_document'];
@@ -364,6 +365,8 @@ const KIND_CHECKS = {
     ai_browse: checkAiBrowse,
     copy_document: checkCopyDocument,
     call_action: checkCallAction,
+    open_url: checkOpenUrl,
+    switch: checkSwitchCases,
 };
 
 module.exports = { containsSendEmail, KIND_CHECKS };

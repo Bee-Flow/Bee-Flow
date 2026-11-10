@@ -179,6 +179,7 @@ function validateAction(id, action, path, ctx) {
     if (action.kind === 'sequence') {
         validateActionSteps(action.steps, `${path}.steps`, 1, { n: 0, reported: false, top: action.steps }, ctx);
         if (action.background !== undefined || action.lockKey !== undefined || action.progressVar !== undefined) require('./backgroundChecks.mts').checkRunOptions(action, id, path, ctx);
+        require('./dynamicChecks.mts').checkSequenceEffects(action, path, ctx, validateEffects);
     }
 
     // Native AI actions (ai_extract / ai_generate / kb_query) share their field
@@ -650,7 +651,7 @@ function validateStep(step, path, depth, counter, ctx) {
     }
     const spec = STEP_SPECS[step.kind];
     for (const [field, fs] of Object.entries(spec.fields)) {
-        validateStepField(step.kind, field, fs, step[field], `${path}.${field}`, depth, counter, ctx);
+        if (!require('./dynamicChecks.mts').coveredByExpr(step, field)) validateStepField(step.kind, field, fs, step[field], `${path}.${field}`, depth, counter, ctx);
     }
 
     // A send_email inside a loop is a spam cannon: one click over a 500-row

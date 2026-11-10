@@ -99,6 +99,7 @@ const LIMITS = {
     MAX_VARIABLE_DEFAULT_BYTES: 2048,  // one seeded record/list. Exists so the
                                        // error can name the variable instead of
                                        // "your app is too big" at 512KB.
+    MAX_ALLOWED_LINK_HOSTS: 50,        // definition.allowedLinkHosts entries (hosts an open_url formula may open)
 };
 
 module.exports = {

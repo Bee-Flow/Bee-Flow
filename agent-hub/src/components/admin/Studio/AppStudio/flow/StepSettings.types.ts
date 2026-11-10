@@ -32,7 +32,7 @@ export type StepReferences = ReturnType<typeof useStepReferences>;
 /** A binding row's value, as the keyed-row editors read it. */
 export type RowBinding = { kind?: string; expr?: string; value?: string; name?: string } | null | undefined;
 
-export interface SwitchCase { value?: string | null; steps?: unknown[] }
+export interface SwitchCase { value?: string | null; whenExpr?: string; steps?: unknown[] }
 
 export interface Placeholder { key: string; kind?: string; fields?: string[] }
 
@@ -124,6 +124,8 @@ export interface SwitchCasesFieldProps {
     value: SwitchCase[] | undefined;
     onChange: (next: unknown) => void;
     disabled: boolean;
+    definition?: AppDefinition | null;
+    node?: AppNode | null;
 }
 
 /**

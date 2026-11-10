@@ -272,8 +272,11 @@ async function walkControl(fr: Frame, step: Step, ev: StepEvent, startedAt: numb
     }
     if (step.kind === 'switch') {
         const value = host.evaluate(String(step.expr ?? ''), scope);
-        const cases = Array.isArray(step.cases) ? step.cases as Array<{ value?: unknown } | null> : [];
-        const at = cases.findIndex((c) => !!c && same(c.value, value));
+        const cases = Array.isArray(step.cases) ? step.cases as Array<{ value?: unknown; whenExpr?: unknown } | null> : [];
+        // A case without a `value` but with a `whenExpr` formula (since 3) is picked when that formula is true.
+        const picks = (c: { value?: unknown; whenExpr?: unknown }): boolean => (c.value === undefined && typeof c.whenExpr === 'string' && c.whenExpr !== ''
+            ? !!host.evaluate(c.whenExpr, scope) : same(c.value, value));
+        const at = cases.findIndex((c) => !!c && picks(c));
         await record(fr, ev, { status: 'ok', result: { case: at >= 0 ? at : 'default' } }, startedAt);
         const slot = slots[at >= 0 ? at : slots.length - 1];
         return walkList(inner, slot.steps, `${ev.path}${slot.suffix}`);

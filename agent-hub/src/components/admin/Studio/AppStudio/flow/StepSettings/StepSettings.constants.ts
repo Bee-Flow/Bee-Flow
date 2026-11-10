@@ -48,9 +48,21 @@ export const FIELD_LABELS: Record<string, string[]> = {
     documentMode: ['studio_apps_edit.step_settings.field_document_mode', 'Read documents as'],
     retry: ['studio_apps_edit.step_settings.field_retry', 'If it fails, try again'],
     onError: ['studio_apps_edit.step_settings.field_on_error', 'If it still fails'],
+    messageExpr: ['studio_apps_dynamic_text.field_message_expr', 'Message (formula)'],
+    titleExpr: ['studio_apps_dynamic_text.field_title_expr', 'Title (formula)'],
+    confirmLabelExpr: ['studio_apps_dynamic_text.field_confirm_label_expr', 'Confirm button (formula)'],
+    cancelLabelExpr: ['studio_apps_dynamic_text.field_cancel_label_expr', 'Cancel button (formula)'],
+    screenExpr: ['studio_apps_dynamic_text.field_screen_expr', 'Screen (formula)'],
+    urlExpr: ['studio_apps_dynamic_text.field_url_expr', 'Address (formula)'],
 };
 
 export const HINTS: Record<string, string[]> = {
+    messageExpr: ['studio_apps_dynamic_text.hint_text_expr', 'Used instead of the text above when it gives a result.'],
+    titleExpr: ['studio_apps_dynamic_text.hint_text_expr', 'Used instead of the text above when it gives a result.'],
+    confirmLabelExpr: ['studio_apps_dynamic_text.hint_text_expr', 'Used instead of the text above when it gives a result.'],
+    cancelLabelExpr: ['studio_apps_dynamic_text.hint_text_expr', 'Used instead of the text above when it gives a result.'],
+    screenExpr: ['studio_apps_dynamic_text.hint_screen_expr', 'Gives the id of one of this app’s screens. Used instead of the screen above.'],
+    urlExpr: ['studio_apps_dynamic_text.hint_url_expr', 'Opens only https addresses on the hosts listed in the app settings under “Links from formulas”.'],
     resultVar: ['studio_apps_edit.step_settings.hint_result_var', 'The variable this step’s result lands in — formulas read it as vars.<name>.'],
     itemVar: ['studio_apps_edit.step_settings.hint_item_var', 'What each row is called inside the loop.'],
     indexVar: ['studio_apps_edit.step_settings.hint_index_var', 'What the position in the list is called (0, 1, 2…).'],

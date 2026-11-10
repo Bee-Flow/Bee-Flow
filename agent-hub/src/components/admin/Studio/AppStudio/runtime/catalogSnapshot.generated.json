@@ -48,7 +48,8 @@
         "MAX_FILTER_BAR_FIELDS": 8,
         "MAX_STEPPER_STEPS": 10,
         "MAX_VARIABLES": 30,
-        "MAX_VARIABLE_DEFAULT_BYTES": 2048
+        "MAX_VARIABLE_DEFAULT_BYTES": 2048,
+        "MAX_ALLOWED_LINK_HOSTS": 50
     },
     "colorRoles": [
         "primary",

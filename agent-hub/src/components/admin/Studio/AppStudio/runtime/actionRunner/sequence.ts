@@ -172,6 +172,15 @@ async function runLoop(env: SeqEnv, step: RunStep, st: SeqState): Promise<void> 
     }
 }
 
+type SwitchCase = { value?: unknown; whenExpr?: unknown };
+
+// A case with a `value` matches what the switch formula gave; a case with only a `whenExpr` formula (since 3)
+// matches when that formula is true. `value` wins when a case has both.
+function caseHits(c: SwitchCase, switched: unknown, scope: unknown): boolean {
+    if (c.value !== undefined || typeof c.whenExpr !== 'string' || !c.whenExpr) return caseMatches(c.value, switched);
+    return !!tryEvaluate(c.whenExpr, scope).value;
+}
+
 async function runControlStep(env: SeqEnv, step: RunStep, st: SeqState): Promise<void> {
     switch (step.kind) {
         case 'condition': {
@@ -182,7 +191,8 @@ async function runControlStep(env: SeqEnv, step: RunStep, st: SeqState): Promise
         case 'switch': {
             const { value } = tryEvaluate(step.expr, env.liveBag(st).scope);
             const cases: unknown[] = Array.isArray(step.cases) ? step.cases : [];
-            const hit = cases.find((c) => c && caseMatches((c as { value?: unknown }).value, value)) as { steps?: unknown } | undefined;
+            const scope = env.liveBag(st).scope;
+            const hit = cases.find((c) => c && caseHits(c as SwitchCase, value, scope)) as { steps?: unknown } | undefined;
             await execSteps(env, hit ? hit.steps : step.default, st);
             return;
         }

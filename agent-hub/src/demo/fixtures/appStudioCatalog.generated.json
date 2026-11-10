@@ -52,7 +52,8 @@
         "MAX_FILTER_BAR_FIELDS": 8,
         "MAX_STEPPER_STEPS": 10,
         "MAX_VARIABLES": 30,
-        "MAX_VARIABLE_DEFAULT_BYTES": 2048
+        "MAX_VARIABLE_DEFAULT_BYTES": 2048,
+        "MAX_ALLOWED_LINK_HOSTS": 50
     },
     "theme": {
         "primary": {
@@ -2617,6 +2618,16 @@
                     "progressVar": {
                         "type": "string",
                         "maxLen": 60
+                    },
+                    "onSuccess": {
+                        "type": "effects",
+                        "since": 3,
+                        "description": "What happens after the sequence ends well, a toast and/or a screen to open. Effects are applied once and never chain, so use steps for anything longer. Same shape as on run_automation."
+                    },
+                    "onError": {
+                        "type": "effects",
+                        "since": 3,
+                        "description": "What happens after the sequence failed, a toast and/or a screen to open. The failure is toasted either way. Effects are applied once and never chain."
                     }
                 }
             }
@@ -2673,6 +2684,11 @@
                     },
                     "params": {
                         "type": "navParams"
+                    },
+                    "screenExpr": {
+                        "type": "formula",
+                        "since": 3,
+                        "description": "A formula that gives the id of the screen to open, instead of screenId. It must return the id of one of this app's own screens, any other result stops the sequence with an error. Leave screenId out when you use it."
                     }
                 }
             },
@@ -2693,6 +2709,11 @@
                             "danger"
                         ],
                         "default": "info"
+                    },
+                    "messageExpr": {
+                        "type": "formula",
+                        "since": 3,
+                        "description": "A formula that gives the message text, instead of message. Build the text with concat, for example concat('Saved ', vars.count, ' rows'). When it returns nothing, message is shown if there is one. Leave message out when you use it."
                     }
                 }
             },
@@ -2706,6 +2727,11 @@
                     "newTab": {
                         "type": "boolean",
                         "default": true
+                    },
+                    "urlExpr": {
+                        "type": "formula",
+                        "since": 3,
+                        "description": "A formula that gives the web address to open, instead of url. Only https addresses on a host listed in the app's allowedLinkHosts open, anything else stops the sequence with an error. Leave url out when you use it."
                     }
                 }
             },
@@ -2768,6 +2794,26 @@
                     "cancelLabel": {
                         "type": "string",
                         "maxLen": 80
+                    },
+                    "messageExpr": {
+                        "type": "formula",
+                        "since": 3,
+                        "description": "A formula that gives the question text, instead of message. When it returns nothing, message is shown if there is one. Leave message out when you use it."
+                    },
+                    "titleExpr": {
+                        "type": "formula",
+                        "since": 3,
+                        "description": "A formula that gives the dialog title, instead of title. When it returns nothing, title is used if there is one."
+                    },
+                    "confirmLabelExpr": {
+                        "type": "formula",
+                        "since": 3,
+                        "description": "A formula that gives the text of the confirm button, instead of confirmLabel. When it returns nothing, confirmLabel is used if there is one."
+                    },
+                    "cancelLabelExpr": {
+                        "type": "formula",
+                        "since": 3,
+                        "description": "A formula that gives the text of the cancel button, instead of cancelLabel. When it returns nothing, cancelLabel is used if there is one."
                     }
                 }
             },
@@ -3792,7 +3838,10 @@
                     },
                     "cases": {
                         "type": "switchCases",
-                        "required": true
+                        "required": true,
+                        "itemSince": {
+                            "when": 3
+                        }
                     },
                     "default": {
                         "type": "steps"

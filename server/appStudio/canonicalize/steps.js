@@ -65,6 +65,11 @@ function cleanSwitchCases(raw, path, depth, push) {
         }
         const out = {};
         if (c.value !== undefined) out.value = deepCopy(c.value);
+        // since 3: a formula that picks the case when truthy; emitted only when the case carries one. NOT named
+        // `when`: stored apps hold cases with a stray `when` that has always been dropped here, and honouring
+        // it would change them (compat corpus: lockstep-sample).
+        if (typeof c.whenExpr === 'string') out.whenExpr = truncate(c.whenExpr, LIMITS.MAX_FORMULA_LEN, `${cp}.whenExpr`, push);
+        else if (c.whenExpr !== undefined) push('step.field_invalid', `${cp}.whenExpr`, 'A case `whenExpr` must be a formula string — dropped.');
         out.steps = cleanSteps(c.steps, `${cp}.steps`, depth, push);
         return out;
     });
