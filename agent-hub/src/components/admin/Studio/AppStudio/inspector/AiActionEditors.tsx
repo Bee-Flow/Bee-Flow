@@ -9,6 +9,7 @@ import { bindingForField, fieldNameFromBinding, type SchemaField } from './aiFie
 import { schemaEditPatch } from './aiSchemaEdits';
 import type { AiAction, SchemaMeta, AiExtractEditorProps, KbQueryEditorProps, AiActionEditorProps } from './AiActionEditors.types';
 import WriteToEditor from './WriteToEditor';
+import { AiReliabilityFields } from './AiChecksField';
 import { ModelTierRow, FieldSourcePicker, SchemaFieldsEditor, KbMultiSelect, ResultVarField, AiGenerateEditor } from './AiGenerateEditor';
 
 /**
@@ -97,6 +98,7 @@ function AiExtractEditor({ action, commit, formFields, disabled }: AiExtractEdit
                 }}
                 disabled={disabled}
             />
+            <AiReliabilityFields action={action} set={set} disabled={disabled} />
             <ResultVarField value={action.resultVar} onChange={(v) => set({ resultVar: v })} disabled={disabled} />
         </>
     );

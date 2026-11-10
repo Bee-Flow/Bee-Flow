@@ -140,7 +140,8 @@ export function StepField({
                         value={(value ?? '') as number | string}
                         min={fs.min}
                         max={fs.max}
-                        onChange={(e) => onChange(e.target.value === '' ? null : Number(e.target.value))}
+                        // A v3 field (repairRounds) left blank is no field at all, never a stored null.
+                        onChange={(e) => onChange(e.target.value === '' ? (fs.since ? undefined : null) : Number(e.target.value))}
                         disabled={disabled}
                         aria-label={label}
                     />

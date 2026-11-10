@@ -78,6 +78,7 @@ const LIMITS = {
     MAX_AI_SCHEMA_FIELD_DESC: 2000,    // one schema field description (was 500); for ai_extract it IS the instruction
     MAX_CONTEXT_SOURCES: 12,           // contextSources entries per AI step (was 4)
     MAX_CONTEXT_SOURCE_LABEL: 120,     // one contextSource label (was 60)
+    MAX_AI_REPAIR_ROUNDS: 3,           // ai_generate / ai_extract repairRounds: extra model calls after failed checks
     MAX_CHART_SERIES: 12,              // chart series entries
     MAX_CHART_REFERENCES: 8,           // chart referenceLines / referenceBands entries —
                                        // a clinical range is one or two bands; past

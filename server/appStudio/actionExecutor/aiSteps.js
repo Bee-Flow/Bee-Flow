@@ -15,6 +15,7 @@ const { writeRecord, writeRecordBatch } = require('./records');
 // and this .mts module imports its siblings with their .mts extension.
 const WRITE_TO_ROWS = './writeToRows.mts';
 const REPLACE_RECORDS = './replaceRecords.mts';
+const AI_DATASET_TOOLS = './aiDatasetTools.mts';
 /**
  * What this file uses of writeToRows.mts and replaceRecords.mts, spelled out (a type import would
  * pull the .mts files into agent-hub's typecheck).
@@ -37,7 +38,9 @@ const log = require('../../telemetry/log');
 const { redeemEach, newReport, assertSomethingRead } = require('../aiDocumentRead.mts');
 const { viewerAttributesOf } = require('../viewerAttributes.mts');
 const { resolveStepModel, notesWith } = require('./modelTierChoice.mts');
-const { replaceTemplate, parsePath, walkTokens } = require('../../shared/expr/index.mjs');
+const { replaceTemplate, parsePath, walkTokens, tryEvaluate } = require('../../shared/expr/index.mjs');
+const { readAppReliability, withStepTemperature } = require('../aiReliability.mts');
+const { answerStructured, answerText, checkExtractRows } = require('./aiChecks.mts');
 const { handleOf, trackAnswer } = require('../../core/kb/queryLog/hook.mts');
 
 // ── Native AI steps (acts-as-owner via appStudio/aiRuntime) ─────────
@@ -147,15 +150,22 @@ async function redeemPendingDescriptors(app, model, descriptors, ctx, report = n
  * path grammar (shared/expr/path.mjs), like the placeholders themselves
  * (quote-aware): `form["Cost center"]`, `form.e-mail`, `vars.lines[0].sku`,
  * own fields only — never the prototype chain.
+ *
+ * A placeholder that is NOT a plain path (`{{ upper(form.name) }}`, `{{ vars.n + 1 }}`) is a
+ * formula: evaluated with the shared engine against the server step scope (buildServerScope, the
+ * same roots a `formula` binding reads). A formula that does not parse, fails, or gives nothing
+ * stays verbatim, like an unresolved path. Plain paths keep the code path above.
  */
 function interpolatePrompt(text, ctx) {
     if (typeof text !== 'string') return '';
     const form = (ctx.formValues && typeof ctx.formValues === 'object') ? ctx.formValues : {};
     const vars = (ctx.vars && typeof ctx.vars === 'object') ? ctx.vars : {};
     const ROOTS = { form, vars, item: ctx.item };
+    /** @type {Record<string, unknown> | null} */
+    let formulaScope = null;
     return replaceTemplate(text, (inner, raw) => {
         const tokens = parsePath(inner);
-        if (!tokens) return raw;
+        if (!tokens) return formulaPlaceholder(inner, raw, () => (formulaScope ??= buildServerScope(ctx)));
         const head = tokens[0].key;
         const cur = Object.prototype.hasOwnProperty.call(ROOTS, head)
             ? walkTokens(tokens.slice(1), ROOTS[head])
@@ -163,6 +173,18 @@ function interpolatePrompt(text, ctx) {
         if (cur === undefined || cur === null) return raw;
         return typeof cur === 'object' ? JSON.stringify(cur) : String(cur);
     });
+}
+
+/**
+ * One non-path placeholder as a formula: its value as prompt text, or the placeholder verbatim.
+ * @param {string} inner
+ * @param {string} raw
+ * @param {() => Record<string, unknown>} scopeOf
+ */
+function formulaPlaceholder(inner, raw, scopeOf) {
+    const { value, error } = tryEvaluate(inner, scopeOf());
+    if (error || value === undefined || value === null) return raw;
+    return typeof value === 'object' ? JSON.stringify(value) : String(value);
 }
 
 /**
@@ -214,85 +236,8 @@ function resolveWriteConstants(constants, table, ctx, scope) {
     return out;
 }
 
-// ── AI-step dataset tools ─────────────────────────────────────────────────────
-//
-// When an AI step's `datasets` binding names LARGE datasets (genome files),
-// the model gets ONE closed-over tool that queries bounded slices of exactly
-// those datasets — pre-authorized here: owner-scoped in the store, and
-// uploader-scoped against the person the step runs as (ctx.viewerId), so a
-// member's step can only hand the model her own file (appStudio/
-// datasetAccess.js). No dispatcher, no catalog: the closure IS the
-// authorization. The file itself never enters the prompt.
-const MAX_AI_STEP_DATASETS = 4;
-
-async function buildDatasetTools(app, step, ctx, scope) {
-    if (step.datasets === undefined || step.datasets === null) return { tools: [], promptLine: '' };
-    const { resolveReadyDataset, datasetAdapter } = require('../datasetQueryStep');
-    const { queryRegion, DatasetQueryError } = require('../../core/datasets/query');
-
-    const raw = resolveBinding(step.datasets, ctx, scope);
-    const list = (Array.isArray(raw) ? raw : (raw ? [raw] : [])).slice(0, MAX_AI_STEP_DATASETS);
-    if (!list.length) return { tools: [], promptLine: '' };
-
-    const manifests = [];
-    for (const entry of list) manifests.push(await resolveReadyDataset(app, entry, ctx.viewerId));
-
-    const byKey = new Map();
-    for (const ds of manifests) {
-        byKey.set(ds.id, ds);
-        if (!byKey.has(ds.name)) byKey.set(ds.name, ds);
-    }
-    const describe = manifests
-        .map((ds) => `"${ds.name}" (${ds.metadata?.build || 'unknown build'}, ${ds.variantCount ?? '?'} variants)`)
-        .join('; ');
-
-    const def = {
-        type: 'function',
-        function: {
-            name: 'query_genome_dataset',
-            description: `Read a bounded slice of the user's genome dataset(s): ${describe}. Exactly ONE of gene, region or rsid selects the slice. Results are capped — narrow the span rather than paging.`,
-            parameters: {
-                type: 'object',
-                properties: {
-                    dataset: { type: 'string', description: 'Dataset name or id. Optional when only one dataset is available.' },
-                    gene: { type: 'string', description: 'Gene symbol, e.g. "BRCA1".' },
-                    region: { type: 'string', description: 'Region "chrom:start-end", e.g. "chr17:43044295-43125364".' },
-                    rsid: { type: 'string', description: 'dbSNP id, e.g. "rs1801133".' },
-                    filterPass: { type: 'boolean', description: 'Only rows with FILTER=PASS.' },
-                    minQual: { type: 'number', description: 'Minimum QUAL.' },
-                    limit: { type: 'number', description: 'Max rows (≤200, default 50).' },
-                },
-                additionalProperties: false,
-            },
-        },
-    };
-    const execute = async (args = {}) => {
-        const ds = args.dataset ? byKey.get(String(args.dataset)) : manifests[0];
-        if (!ds) return { error: `Unknown dataset "${args.dataset}". Available: ${manifests.map((m) => m.name).join(', ')}` };
-        try {
-            const r = await queryRegion(datasetAdapter(ds), {
-                gene: args.gene || undefined,
-                region: args.region || undefined,
-                rsid: args.rsid || undefined,
-                filterPass: args.filterPass === true,
-                minQual: typeof args.minQual === 'number' ? args.minQual : undefined,
-                limit: typeof args.limit === 'number' ? args.limit : undefined,
-            });
-            return {
-                rows: r.rows, rowCount: r.rowCount, truncated: r.truncated, notes: r.notes,
-                gene: r.gene, region: r.region, build: r.build,
-            };
-        } catch (e) {
-            if (e instanceof DatasetQueryError || e.status === 400) return { error: /** @type {Error} */ (e).message };
-            throw e;
-        }
-    };
-
-    return {
-        tools: [{ def, execute }],
-        promptLine: `\n\nGenome datasets available through the query_genome_dataset tool: ${describe}. Query only the slices you need.`,
-    };
-}
+// ── AI-step dataset tools: aiDatasetTools.mts ─────────────────────────────────
+const buildDatasetTools = (app, step, ctx, scope) => require(AI_DATASET_TOOLS).buildDatasetTools(app, step, ctx, (b) => resolveBinding(b, ctx, scope));
 
 /**
  * The query-log option of a Studio step: the person asking is the viewer, not the app's owner.
@@ -305,6 +250,16 @@ async function buildDatasetTools(app, step, ctx, scope) {
 function queryLogFor(channel, app, ctx) {
     if (ctx.dryRun === true) return null;
     return { channel, channelRef: { appId: app.id, actionId: ctx.actionId ?? null }, orgId: app.organizationId || null, userId: ctx.viewerId ?? null };
+}
+
+/**
+ * ai_extract's answer had no `rows` list, also after its one retry.
+ * @param {{ modelId: string, tierName: string }} aiModel
+ */
+function noRowsError(aiModel) {
+    const e = new Error(`The AI returned no records for this document (model ${aiModel.modelId}, tier ${aiModel.tierName}). Try a more capable tier or a simpler schema.`);
+    Object.assign(e, { status: 422, code: 'ai_no_output' }); // ai_no_output: a step retry may try again
+    return e;
 }
 
 async function aiExtractStep(app, model, step, ctx) {
@@ -366,10 +321,11 @@ async function aiExtractStep(app, model, step, ctx) {
         : 'Extract the records from the attached document(s).';
     const user = [{ type: 'text', text: instruction }, ...docBlocks];
 
-    const run = () => aiRuntime.runStructuredWithTools(app, aiModel, {
-        system, user, parameters, tools: datasetTools.tools,
-        toolName: 'record_output', toolDescription: 'Return the extracted records as rows.',
-    });
+    // temperature / checks / repairRounds (aiReliability.mts): absent, the model and the call are as before.
+    const rel = readAppReliability(step);
+    const base = { system, user, parameters, toolName: 'record_output', toolDescription: 'Return the extracted records as rows.' };
+    const call = { rt: aiRuntime, app, model: withStepTemperature(aiModel, rel), rel, scope };
+    const run = () => aiRuntime.runStructuredWithTools(app, call.model, { ...base, tools: datasetTools.tools });
 
     // A model that answers without `rows` must not look like a
     // document with nothing in it: ok:true, written:0, green toast. That is the
@@ -385,15 +341,14 @@ async function aiExtractStep(app, model, step, ctx) {
     if (!Array.isArray(structured.rows)) {
         log.warn(`[StudioAppAI] app ${app.id}: ${aiModel.modelId} (tier ${aiModel.tierName}) returned no rows array — retrying once`);
         structured = (await run()).structured;
-        if (!Array.isArray(structured.rows)) {
-            const e = new Error(`The AI returned no records for this document (model ${aiModel.modelId}, tier ${aiModel.tierName}). Try a more capable tier or a simpler schema.`);
-            Object.assign(e, { status: 422, code: 'ai_no_output' }); // ai_no_output: a step retry may try again
-            throw e;
-        }
+        if (!Array.isArray(structured.rows)) throw noRowsError(aiModel);
     }
     let rows = structured.rows
         .slice(0, aiRuntime.MAX_EXTRACT_ROWS)
         .map((r) => aiRuntime.coerceRowToFields(r, fields));
+    // The step's checks, with repair rounds: the rows are checked as { rows } (aiChecks.mts).
+    const checked = rel.active ? await checkExtractRows(call, base, fields, structured, () => noRowsError(aiModel)) : null;
+    if (checked) rows = checked.rows;
 
     // `required` in the schema is advisory to the provider and never re-checked:
     // coerceRowToFields fills a missing field with null. Counting them is what
@@ -457,6 +412,8 @@ async function aiExtractStep(app, model, step, ctx) {
             model: aiModel.modelId,
             tier: aiModel.tierName,
         },
+        // Only for a step with checks: whether they passed first time or after a repair round.
+        ...(checked ? { checkReport: checked.checkReport } : {}),
     };
 }
 
@@ -558,20 +515,22 @@ async function aiGenerateStep(app, model, step, ctx) {
     const notes = notesWith(report.notes, tierNote);
     const user = docBlocks.length ? [{ type: 'text', text: fullPrompt }, ...docBlocks] : fullPrompt;
 
+    // temperature / checks / repairRounds (aiReliability.mts, aiChecks.mts): absent, the one call the
+    // step always made, with the same model and arguments, and its output.
+    const rel = readAppReliability(step);
+    const call = { rt: aiRuntime, app, model: withStepTemperature(aiModel, rel), rel, scope };
+    const tracked = { model: aiModel.modelId, citationsOf: () => ground.chunks };
     if (step.output === 'structured') {
         const fields = aiRuntime.normalizeSchemaFields(step.schema);
         if (!fields.length) { const e = new Error('Structured output needs at least one field'); e.status = 400; throw e; }
         const parameters = aiRuntime.fieldsToObjectSchema(fields);
-        const { structured } = await trackAnswer(queryLogHandle, {
-            model: aiModel.modelId,
-            answerOf: (r) => JSON.stringify(r.structured ?? null),
-            citationsOf: () => ground.chunks,
-        }, () => aiRuntime.runStructuredWithTools(app, aiModel, { system, user, parameters, tools: datasetTools.tools }));
-        return { ok: true, ...notes, result: aiRuntime.coerceRowToFields(structured, fields) };
+        const { output, checkReport } = await trackAnswer(queryLogHandle, { ...tracked, answerOf: (r) => JSON.stringify(r.answer.structured ?? null) },
+            () => answerStructured(call, { system, user, parameters }, datasetTools.tools, fields));
+        return { ok: true, ...notes, result: output, ...(checkReport ? { checkReport } : {}) };
     }
-    const { text } = await trackAnswer(queryLogHandle, {
-        model: aiModel.modelId, answerOf: (r) => r.text, citationsOf: () => ground.chunks,
-    }, () => aiRuntime.runTextWithTools(app, aiModel, { system, user, tools: datasetTools.tools }));
+    const { output, checkReport } = await trackAnswer(queryLogHandle, { ...tracked, answerOf: (r) => /** @type {{ text: string }} */ (r.output).text },
+        () => answerText(call, { system, user }, datasetTools.tools));
+    const { text } = /** @type {{ text: string }} */ (output);
     // Citations travel as titles/scores only. The chunk BODIES are already in
     // the prompt; echoing them into a client-visible result would hand KB
     // content to a viewer who may have no access to that knowledge base.
@@ -590,7 +549,7 @@ async function aiGenerateStep(app, model, step, ctx) {
     const body = step.markdownToHtml === true
         ? require('../../services/email/send').markdownToHtml(text)
         : text;
-    return { ok: true, ...notes, result: { text: body, citations, ...notes } };
+    return { ok: true, ...notes, result: { text: body, citations, ...notes }, ...(checkReport ? { checkReport } : {}) };
 }
 
 // The prompt-context cap. Generous enough for a ticket thread, small enough that

@@ -82,10 +82,25 @@ function canonicalEnum(entry, fill) {
     return canonicalEntry(entry, ENUM_KEYS, ENUM_DEFAULTS, fill);
 }
 
-/** @returns {Record<string, any> | null} */
-function canonicalCheck(entry, fill) {
-    if (hasError(checkEntryProblems(entry, 'c'))) return null;
+/**
+ * @param {import('./aiStepReliabilityProblems').PathOptions} [paths]
+ * @returns {Record<string, any> | null}
+ */
+function canonicalCheck(entry, fill, paths) {
+    if (hasError(checkEntryProblems(entry, 'c', paths))) return null;
     return canonicalEntry(entry, CHECK_KEYS[entry.kind], CHECK_DEFAULTS[entry.kind], fill);
+}
+
+/**
+ * The runner's view of a `checks` list alone (lenient: unreadable entries are
+ * dropped, defaults filled, the list capped), for a step that reads its paths
+ * from another scope than an automation run: an App Studio AI step.
+ * @param {unknown} list
+ * @param {import('./aiStepReliabilityProblems').PathOptions} paths
+ * @returns {any[]}
+ */
+function normalizeAiChecks(list, paths) {
+    return (Array.isArray(list) ? list : []).map((c) => canonicalCheck(c, true, paths)).filter(Boolean).slice(0, MAX_CHECKS);
 }
 
 /** @returns {Record<string, any> | null} null when the fallback is not a usable object. */
@@ -174,6 +189,7 @@ module.exports = {
     FOREACH_CONCURRENCY_MAX,
     parseFieldPath,
     normalizeAiStepReliability,
+    normalizeAiChecks,
     sanitizeAiStepReliabilityArgs,
     reliabilityProblems,
     aiStepCanCallTools,

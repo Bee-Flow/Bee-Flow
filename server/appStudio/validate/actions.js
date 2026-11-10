@@ -372,8 +372,8 @@ function validateStepField(kind, field, fs, value, path, depth, counter, ctx, la
         case 'callParams': validateCallParams(field, value, path, ctx); return;
         case 'tierChoice': validateTierChoice(field, fs, value, path, ctx); return;
         case 'errorHandler': case 'retry': validateEnvelopeField(fs.type, value, path, { depth, counter, ctx, validateActionSteps }); return;
-        default:
-            return;
+        // temperature and an AI step's answer checks (schema v3): aiReliability.mts, the automation ai_step's rules.
+        default: require('../aiReliability.mts').validateReliabilityField(field, fs, value, path, ctx);
     }
 }
 

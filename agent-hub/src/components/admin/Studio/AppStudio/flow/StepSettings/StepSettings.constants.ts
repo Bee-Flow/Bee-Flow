@@ -68,4 +68,7 @@ export const HINTS: Record<string, string[]> = {
     poPattern: ['studio_apps_edit.step_settings.hint_po_pattern', 'Filenames matching this (regex) count as the purchase order.'],
     documentMode: ['studio_apps_edit.step_settings.hint_document_mode', '“Images” forces page pictures — use it for technical drawings, whose text layer alone misleads.'],
     promptContext: ['studio_apps_edit.step_settings.hint_prompt_context', 'Live rows added to the prompt — the purchase-order lines, the open record, the vocabulary table.'],
+    // AI step answer reliability (schema v3).
+    temperature: ['studio_apps_aichecks.hint_temperature', 'From 0 to 2. Lower answers vary less between runs. Leave it empty to use the model tier’s setting.'],
+    repairRounds: ['studio_apps_aichecks.hint_repair_rounds', 'How often an answer that fails its checks goes back to the AI before the step fails (0 to 3, empty = 1). Each round is one more AI call.'],
 };

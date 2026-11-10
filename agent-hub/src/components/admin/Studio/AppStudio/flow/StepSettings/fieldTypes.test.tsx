@@ -41,7 +41,7 @@ describe('step field types: a control is one file', () => {
     it('ships a control for each structured step field type, and none that takes over a built-in', () => {
         expect(fieldControlFor('zzShout')).toBe(null);
         for (const type of BUILT_IN_FIELD_TYPES) expect(fieldControlFor(type)).toBe(null);
-        for (const type of ['aiSchema', 'aiWriteTo', 'contextSources', 'stringList', 'approvalStages', 'approvalQuestions', 'approvalOnDecided']) {
+        for (const type of ['aiSchema', 'aiWriteTo', 'contextSources', 'stringList', 'approvalStages', 'approvalQuestions', 'approvalOnDecided', 'number', 'aiChecks']) {
             expect(typeof fieldControlFor(type)).toBe('function');
         }
     });

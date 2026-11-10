@@ -76,7 +76,7 @@ const AI_SCHEMA_FIELD_TYPES = ['string', 'number', 'boolean', 'date', 'array', '
 //              this mode exists for exactly that document.
 const AI_DOCUMENT_MODES = ['auto', 'text', 'images'];
 
-const AI_EXTRACT_FIELDS = {
+const AI_EXTRACT_FIELDS = require('./aiReliabilityFields').withAiReliability({ // + temperature, checks, repairRounds (v3)
     source: { type: 'binding', required: true },     // a File-upload input's value (descriptor or array)
     schema: { type: 'aiSchema', required: true },    // fields to extract per record/row
     // Live rows appended to the extraction prompt. This is what lets one step
@@ -104,9 +104,9 @@ const AI_EXTRACT_FIELDS = {
     // body cap — and the caller already has them, in the table.
     resultDetail: { type: 'enum', values: ['full', 'summary'], default: 'full' },
     resultVar: { type: 'string', maxLen: 60 },
-};
+});
 
-const AI_GENERATE_FIELDS = {
+const AI_GENERATE_FIELDS = require('./aiReliabilityFields').withAiReliability({ // + temperature, checks, repairRounds (v3)
     prompt: { type: 'string', required: true, maxLen: LIMITS.MAX_AI_PROMPT_LEN },
     // Live data appended to the prompt as context. Without it `prompt` is a
     // fixed string, so an "AI draft" button has no ticket to draft ABOUT — point
@@ -131,7 +131,7 @@ const AI_GENERATE_FIELDS = {
     // Same contract as ai_extract.datasets — bounded genome-slice tool access.
     datasets: { type: 'binding' },
     resultVar: { type: 'string', required: true, maxLen: 60 },
-};
+});
 
 const KB_QUERY_FIELDS = {
     query: { type: 'binding', required: true },
