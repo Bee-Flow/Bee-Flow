@@ -69,7 +69,15 @@ describe('OrgIntegrationsScreen', () => {
         expect(api.get).not.toHaveBeenCalledWith('/ai/config', expect.anything());
     });
 
+    it('offers the instance-wide Google Maps key to a platform admin only', async () => {
+        await renderScreen(<OrgIntegrationsScreen />);
+        expect(screen.getByTestId('integrations-n8n')).toBeTruthy();
+        expect(screen.queryByTestId('integrations-maps')).toBeNull();
+        expect(api.get).not.toHaveBeenCalledWith('/ai/config', expect.anything());
+    });
+
     it('saves a Google Maps key, and never reads one back', async () => {
+        mockAccess.isSuperAdmin = true;
         answers['/ai/config'] = { hasGoogleMapsKey: false };
         await renderScreen(<OrgIntegrationsScreen />);
         await fireEvent.press(await screen.findByTestId('integrations-maps'));

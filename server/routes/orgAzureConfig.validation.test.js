@@ -63,6 +63,7 @@ const MOCKS = {
         getSyncSettings: async () => ({}),
         setSyncSettings: async (orgId, updates) => { touched.push({ what: 'setSyncSettings', args: [orgId, updates] }); return updates; },
         getSyncStatus: async () => ({}),
+        getSyncBinding: async () => ({ syncOrganizationId: 'org1', syncTenantId: '11111111-1111-1111-1111-111111111111' }),
     },
 };
 

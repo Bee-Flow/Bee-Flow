@@ -181,6 +181,19 @@ describe('OrgInfoScreen for a Nextcloud organisation', () => {
 });
 
 describe('OrgThemeScreen', () => {
+    // The default theme is the instance's: /api/branding/admin answers a platform admin only.
+    beforeEach(() => {
+        (useOrgContext as jest.Mock).mockReturnValue({ orgId: 'o1', isNcOrg: false, isOrgAdmin: true, isSelfHosted: false, isSuperAdmin: true });
+    });
+
+    it('turns an org admin who is not a platform admin away without asking the server', async () => {
+        (useOrgContext as jest.Mock).mockReturnValue({ orgId: 'o1', isNcOrg: false, isOrgAdmin: true, isSelfHosted: true, isSuperAdmin: false });
+        await mounted(<OrgThemeScreen />);
+        expect(await screen.findByText('For the platform administrator')).toBeTruthy();
+        expect(api.get).not.toHaveBeenCalledWith('/api/branding/admin', expect.anything());
+        expect(screen.queryByTestId('icon-pack-row')).toBeNull();
+    });
+
     it('sends only the changed knobs and repaints the app', async () => {
         const queryClient = testQueryClient();
         const invalidate = jest.spyOn(queryClient, 'invalidateQueries');

@@ -1,9 +1,10 @@
 import { Building, ChevronDown, Image, Smile } from 'lucide-react';
-import type { Dispatch, SetStateAction } from 'react';
+import type { Dispatch, ReactNode, SetStateAction } from 'react';
 import { ORG_ROLES } from '@/config/orgRoles';
 import type { TranslateFn, TranslateParams } from '@/hooks/useTranslation';
 import { API_BASE } from '@/utils/helpers';
 import Modal from '@/components/shared/Modal';
+import PlatformAdminField from './PlatformAdminField';
 import type { AdminGroup, AdminOrganization, UserFormData } from './types';
 
 const EMOJI_CHOICES = ['😀', '😎', '🤖', '👨', '👩', '👤', '🧑‍💻', '👨‍💼', '👩‍💼', '🦸', '🧙', '👷', '🎅', '🐝', '🦊', '🐱', '🐶', '🐻', '🦁', '🐸', '🌟', '⭐', '🔥', '💡', '🎯', '🚀', '💻', '🛡️', '🎨', '📊', '🔧', '⚡'];
@@ -21,6 +22,12 @@ export interface UserModalProps {
     isPlatformAdmin: boolean;
     /** Self-hosted server: the monthly AI budget field is shown. */
     isSelfHosted?: boolean;
+    /** The signed-in account, to tell editing yourself apart. */
+    currentUserId?: string;
+    /** The platform role the account had when the form opened ('' for a new account). */
+    storedRole?: string;
+    /** The server's reason for refusing the platform role change, if it did. */
+    platformRoleRefusal?: string | null;
     onSubmitAdd: () => void;
     onSubmitUpdate: () => void;
     onUploadAvatar: (file: File) => void;
@@ -30,9 +37,22 @@ export interface UserModalProps {
 
 export default function UserModal({
     open, onClose, showEditUser, userData, setUserData, showEmojiPicker, setShowEmojiPicker,
-    groups, organizations, isPlatformAdmin, isSelfHosted = false, onSubmitAdd, onSubmitUpdate, onUploadAvatar, onRemoveAvatar, t,
+    groups, organizations, isPlatformAdmin, isSelfHosted = false, currentUserId, storedRole = '', platformRoleRefusal = null,
+    onSubmitAdd, onSubmitUpdate, onUploadAvatar, onRemoveAvatar, t,
 }: UserModalProps) {
     const canSubmit = showEditUser || (userData.username && userData.displayName && userData.password);
+    // Only a platform admin may set or clear the platform role (the server refuses anyone else).
+    const platformAdminField = isPlatformAdmin ? (
+        <PlatformAdminField
+            role={userData.role}
+            storedRole={storedRole}
+            personName={userData.displayName || userData.username}
+            isSelf={showEditUser && !!currentUserId && userData.id === currentUserId}
+            refusal={platformRoleRefusal}
+            onChange={(role) => setUserData(p => ({ ...p, role }))}
+            t={t}
+        />
+    ) : null;
     return (
         <Modal
             open={open}
@@ -58,12 +78,12 @@ export default function UserModal({
                 </>
             }
         >
-            <UserModalSection t={t} userData={userData} setShowEmojiPicker={setShowEmojiPicker} showEmojiPicker={showEmojiPicker} onUploadAvatar={onUploadAvatar} onRemoveAvatar={onRemoveAvatar} setUserData={setUserData} showEditUser={showEditUser} isPlatformAdmin={isPlatformAdmin} isSelfHosted={isSelfHosted} organizations={organizations} groups={groups} />
+            <UserModalSection t={t} userData={userData} setShowEmojiPicker={setShowEmojiPicker} showEmojiPicker={showEmojiPicker} onUploadAvatar={onUploadAvatar} onRemoveAvatar={onRemoveAvatar} setUserData={setUserData} showEditUser={showEditUser} isPlatformAdmin={isPlatformAdmin} isSelfHosted={isSelfHosted} organizations={organizations} groups={groups} platformAdminField={platformAdminField} />
         </Modal>
     );
 }
 
-function UserModalSection({ t, userData, setShowEmojiPicker, showEmojiPicker, onUploadAvatar, onRemoveAvatar, setUserData, showEditUser, isPlatformAdmin, isSelfHosted, organizations, groups }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; userData: UserFormData; setShowEmojiPicker: Dispatch<SetStateAction<boolean>>; showEmojiPicker: boolean; onUploadAvatar: (file: File) => void; onRemoveAvatar: () => void; setUserData: Dispatch<SetStateAction<UserFormData>>; showEditUser: boolean; isPlatformAdmin: boolean; isSelfHosted: boolean; organizations: AdminOrganization[]; groups: AdminGroup[]; }) {
+function UserModalSection({ t, userData, setShowEmojiPicker, showEmojiPicker, onUploadAvatar, onRemoveAvatar, setUserData, showEditUser, isPlatformAdmin, isSelfHosted, organizations, groups, platformAdminField }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; userData: UserFormData; setShowEmojiPicker: Dispatch<SetStateAction<boolean>>; showEmojiPicker: boolean; onUploadAvatar: (file: File) => void; onRemoveAvatar: () => void; setUserData: Dispatch<SetStateAction<UserFormData>>; showEditUser: boolean; isPlatformAdmin: boolean; isSelfHosted: boolean; organizations: AdminOrganization[]; groups: AdminGroup[]; platformAdminField: ReactNode; }) {
     return <div className="space-y-4">
         {/* Avatar Picker */}
         <div>
@@ -199,6 +219,9 @@ function UserModalSection({ t, userData, setShowEmojiPicker, showEmojiPicker, on
                 <p className="text-xs text-[var(--text-muted)]">{t('admin_org.user_modal_select_org', 'Select an organisation to assign this user and set their role.')}</p>
             )}
         </div>
+
+        {/* ── Whole server: the platform role, apart from the organisation role above ── */}
+        {platformAdminField}
 
         {/* ── Groups ── */}
         <div>

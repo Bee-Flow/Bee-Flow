@@ -68,6 +68,11 @@ beforeEach(() => {
 });
 
 describe('Azure', () => {
+    // GET/PUT /api/org-azure-config/:orgId answer a platform admin only.
+    beforeEach(() => {
+        mockAccess.isSuperAdmin = true;
+    });
+
     it('lists the four sections, each opening its own screen', async () => {
         await renderScreen(<AzureScreen />);
         await fireEvent.press(await screen.findByTestId('azure-sso'));
@@ -81,9 +86,12 @@ describe('Azure', () => {
         expect(api.get).not.toHaveBeenCalled();
     });
 
-    it('turns the legacy admin role away, as the route does', async () => {
-        mockAccess.orgRole = 'admin';
+    it('turns an org admin who is not a platform admin away on self-hosted, and asks nothing', async () => {
+        mockAccess.isSuperAdmin = false;
         await renderScreen(<AzureScreen />);
+        expect(screen.getByText('Azure Configuration is for the platform administrator')).toBeTruthy();
+        expect(api.get).not.toHaveBeenCalled();
+        await renderScreen(<AzureSsoScreen />);
         expect(api.get).not.toHaveBeenCalled();
     });
 

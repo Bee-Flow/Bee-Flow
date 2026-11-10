@@ -7,8 +7,11 @@
  * - GitHub Sync: also `manage_agents` (every route requirePermission);
  * - pairing codes: an NC-bound org, or the platform operator;
  * - the meeting-notes settings and templates: the `meeting_notes` licence;
- * - Azure: self-hosted, and the STRICT org admin (orgRole org_admin — the
- *   route refuses the legacy 'admin' variant) or the platform operator.
+ * - Azure: self-hosted, and the platform admin. GET/PUT
+ *   /api/org-azure-config/:orgId read and write the instance-wide Azure setup
+ *   and refuse everyone else (403 platform_managed) in every deployment mode;
+ * - the Google Maps key: the platform admin (POST /ai/config is platform-only;
+ *   the key is instance-wide).
  */
 
 import { hasLicenseFeature, holds, useAccess } from '@/core/access';
@@ -25,6 +28,8 @@ export interface IntegrationAccess {
     manageAgents: boolean;
     meetingNotes: boolean;
     azure: boolean;
+    /** May set the instance-wide Google Maps key: the platform admin. */
+    maps: boolean;
     /** The org's integration allow-list; undefined is all of them. */
     enabledIntegrations: string[] | undefined;
 }
@@ -43,7 +48,8 @@ export function useIntegrationAccess(): IntegrationAccess {
         isSuperAdmin,
         manageAgents: admin && holds(access, 'manage_agents'),
         meetingNotes: admin && hasLicenseFeature(access, 'meeting_notes'),
-        azure: isSelfHosted && Boolean(orgId) && (isSuperAdmin || access.orgRole === 'org_admin'),
+        azure: isSelfHosted && Boolean(orgId) && isSuperAdmin,
+        maps: isSuperAdmin,
         enabledIntegrations: user?.enabledIntegrations,
     };
 }

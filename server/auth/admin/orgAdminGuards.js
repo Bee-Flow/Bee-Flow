@@ -33,6 +33,7 @@
 const userStore = require('../../stores/userStore');
 const { _evalOrgAdmin, isOrgAdminRole, invalidatePermissionCache } = require('../permissions');
 const { tagGate } = require('../gateMeta');
+const { isPlatformOperator } = require('../platformOperator');
 const log = require('../../telemetry/log');
 const {
     orgsAdministeredBy, normaliseOrgId, groupsOutsideCallerOrg, globalGroupWithinCaller, defaultGroupsRefused,
@@ -236,7 +237,8 @@ function requireOrgAdmin(paramName = 'id') {
  * Middleware: require org admin access for the user specified by :id param.
  * Looks up the target user's org and checks if the requestor is an org admin for it.
  * For POST (create user), uses req.body.organizationId since no user exists yet.
- * Also blocks org admins from setting role='admin' (super admin escalation).
+ * Also blocks org admins from setting role='admin' (super admin escalation),
+ * and from acting on an account that is a platform admin (403 platform_admin_target).
  * @param {import('express').Request<{ id?: string }>} req
  * @param {Response} res
  * @param {NextFunction} next
@@ -260,6 +262,16 @@ async function _requireOrgAdminForUser(req, res, next) {
     if (targetUserId) {
         targetUser = await userStore.getUser(targetUserId);
         if (!targetUser) return res.status(404).json({ error: 'User not found' });
+        // A platform admin's account (password, two-factor, status, deletion,
+        // avatar) is managed by a platform admin only, also when that account
+        // is a member of the caller's organisation: whoever controls it holds
+        // every instance-wide setting and every organisation.
+        if (targetUser.role === 'admin' || isPlatformOperator(targetUser)) {
+            return res.status(403).json({
+                error: 'Only a platform administrator can manage a platform administrator',
+                code: 'platform_admin_target',
+            });
+        }
         targetOrgId = targetUser.organizationId;
     } else {
         // POST /users — use the org from the body
@@ -344,7 +356,7 @@ const requireOrgAdminForUser = tagGate(_requireOrgAdminForUser, {
     axis: 'scope',
     kind: 'orgAdminOfTargetUser',
     paramDependent: true,
-    note: 'Resolves the target user\'s org from req.params.id (or req.body.organizationId on create), then requires org-admin over it. Also blocks org admins from assigning role=admin. BOTH ENDS are checked: for a non-super-admin the body may not change organizationId (403 cross_org_move_denied) and may not assign a group belonging to another org, nor a global group granting more than the caller holds or the all wildcard (403 cross_org_group_denied) — the source-only check let an org_admin walk their own account into another tenant.',
+    note: 'Resolves the target user\'s org from req.params.id (or req.body.organizationId on create), then requires org-admin over it. Also blocks org admins from assigning role=admin, and from acting on a target that is a platform admin (403 platform_admin_target). BOTH ENDS are checked: for a non-super-admin the body may not change organizationId (403 cross_org_move_denied) and may not assign a group belonging to another org, nor a global group granting more than the caller holds or the all wildcard (403 cross_org_group_denied) — the source-only check let an org_admin walk their own account into another tenant.',
 });
 
 module.exports = {

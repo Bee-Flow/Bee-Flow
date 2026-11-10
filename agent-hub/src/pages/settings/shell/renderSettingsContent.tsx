@@ -1,6 +1,7 @@
 import React from 'react';
 import type { ReactNode } from 'react';
 import OrgAzureConfigPanel from '@/components/integrations/azure/index';
+import GroupSyncPanel from '@/components/integrations/azure/GroupSyncPanel';
 import { RequireTier } from '@/components/licensing/LicenseContext';
 import AppearanceSection from '../AppearanceSection';
 import ConsumerBetaFeaturesSection from '../ConsumerBetaFeaturesSection';
@@ -90,8 +91,12 @@ export function renderSettingsContent(ctx: SettingsContentContext): React.ReactN
                 </RequireTier>
             );
         }
-        // The instance-wide Azure setup: a platform admin's, like its API.
-        if (activeTab === 'org_azure') return isPlatformAdmin ? <OrgAzureConfigPanel user={user} /> : null;
+        // The instance-wide Azure setup: a platform admin's, like its API. An
+        // organisation admin on a self-hosted install gets the org's own group sync there.
+        if (activeTab === 'org_azure') {
+            if (isPlatformAdmin) return <OrgAzureConfigPanel user={user} />;
+            return isSelfHosted && canSeeOrg ? <GroupSyncPanel user={user} /> : null;
+        }
         if (isOrgSubTab && canSeeOrg) return <OrganisationSection user={user} activeSection={orgActiveSection} usageInitialReport={activeTab === 'org_usage' ? (orgDeepSegs.seg1 || '') : ''} />;
         // Consumer account tabs
         if (activeTab === 'consumer_license' && isConsumerAccount) return <ConsumerLicenseSection user={user} />;

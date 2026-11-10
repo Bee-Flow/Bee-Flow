@@ -120,6 +120,7 @@ const UserManagement = ({ activeSection: activeSectionProp = '', onNavigate, use
                                 groups={groups}
                                 organizations={organizations}
                                 canManageUsers={canManageUsers}
+                                viewerIsPlatformAdmin={!!isPlatformAdmin}
                                 onAddUser={userActions.openAddUser}
                                 onEditUser={userActions.openEditUser}
                                 onResetMfa={userActions.handleResetMfa}
@@ -252,6 +253,9 @@ function UserManagementModals({
             organizations={organizations}
             isPlatformAdmin={isPlatformAdmin}
             isSelfHosted={isSelfHosted}
+            currentUserId={currentUser?.id}
+            storedRole={userActions.storedRole}
+            platformRoleRefusal={userActions.platformRoleRefusal}
             onSubmitAdd={userActions.handleAddUser}
             onSubmitUpdate={userActions.handleUpdateUser}
             onUploadAvatar={userActions.handleAvatarUpload}

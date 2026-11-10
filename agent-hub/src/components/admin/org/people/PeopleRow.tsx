@@ -1,7 +1,8 @@
-import { Edit2, Shield, Trash2 } from 'lucide-react';
+import { Edit2, ServerCog, Shield, Trash2 } from 'lucide-react';
 import React from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import RoleBadge from '@/components/shared/RoleBadge';
+import { PLATFORM_ADMIN_ROLE } from '../userManagement/PlatformAdminField';
 import type { AdminUser } from '../userManagement/types';
 
 export type PeopleUser = AdminUser;
@@ -13,6 +14,8 @@ export interface PeopleRowProps {
     onResetMfa?: (user: PeopleUser) => void;
     onDelete?: (user: PeopleUser) => void;
     canManage?: boolean;
+    /** The viewer is a platform admin: only then may a platform admin's row be edited, reset or deleted (the server refuses anyone else). */
+    viewerIsPlatformAdmin?: boolean;
 }
 
 /**
@@ -31,9 +34,11 @@ export interface PeopleRowProps {
  *     cannot execute is worse than not having it; real avatars need
  *     getAllUserAvatars and a second round-trip.
  */
-export default function PeopleRow({ user, orgChips = [], onEdit, onResetMfa, onDelete, canManage = false }: PeopleRowProps) {
+export default function PeopleRow({ user, orgChips = [], onEdit, onResetMfa, onDelete, canManage = false, viewerIsPlatformAdmin = false }: PeopleRowProps) {
     const { t } = useTranslation();
     const isSystem = user.isSystem || user.id === 'admin';
+    const isPlatformAdmin = user.role === PLATFORM_ADMIN_ROLE;
+    const showActions = canManage && !isSystem && (!isPlatformAdmin || viewerIsPlatformAdmin);
     const initial = (user.displayName?.[0] || user.username?.[0] || '?').toUpperCase();
 
     return (
@@ -53,7 +58,16 @@ export default function PeopleRow({ user, orgChips = [], onEdit, onResetMfa, onD
                     <span className="text-sm font-medium text-[var(--text-primary)] truncate">
                         {user.displayName || user.username}
                     </span>
-                    <RoleBadge role={user.orgRole || user.role} tone="neutral" />
+                    {/* The organisation role (its organisation is the section
+                        header, or a chip in the flat view) and, apart from it,
+                        the platform role: two kinds of admin, told apart. */}
+                    {(user.orgRole || !isPlatformAdmin) && <RoleBadge role={user.orgRole || user.role} tone="neutral" />}
+                    {isPlatformAdmin && (
+                        <span className="inline-flex items-center gap-1 whitespace-nowrap rounded-full border border-[var(--accent-primary)] px-2 py-0.5 text-[10px] font-medium text-[var(--accent-primary)]">
+                            <ServerCog className="h-3 w-3" aria-hidden="true" />
+                            {t('admin_org.platform_admin_badge', 'Platform admin')}
+                        </span>
+                    )}
                     {orgChips.map((chip) => (
                         <span
                             key={chip}
@@ -69,7 +83,7 @@ export default function PeopleRow({ user, orgChips = [], onEdit, onResetMfa, onD
                 </div>
             </div>
 
-            {canManage && !isSystem && (
+            {showActions && (
                 <div className="flex items-center gap-1 flex-shrink-0">
                     <button
                         onClick={() => onEdit?.(user)}

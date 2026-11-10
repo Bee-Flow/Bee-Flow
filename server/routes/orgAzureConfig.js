@@ -9,7 +9,8 @@
  * deployment mode (platformConfigGate). The org's own `autoApproveSSO` flag rides
  * along in the `sso` section; an org admin sets it in the organisation settings
  * (auth/admin/orgRoutes.js). The group-sync routes are org-scoped and keep the
- * strict org-admin check for the organisation in the path (isOrgAdmin).
+ * strict org-admin check for the organisation in the path (isOrgAdmin); their
+ * status read answers through orgAzureSyncView.js, without configuration values.
  */
 
 const express = require('express');
@@ -21,23 +22,18 @@ const { resolveUserOrgIds } = require('../auth');
 const { loadConfig, saveConfig, isSuperAdmin } = require('../auth/permissions');
 const { tagGate } = require('../auth/gateMeta');
 const { PLATFORM_GATE } = require('../auth/requirePlatformAdmin');
-const { syncAzureGroupsToOrg, getSyncSettings, setSyncSettings, getSyncStatus, assertSyncBinding } = require('../integrations/azureGroupSync');
+const { syncAzureGroupsToOrg, getSyncSettings, setSyncSettings, getSyncStatus, getSyncBinding, assertSyncBinding } = require('../integrations/azureGroupSync');
+const { groupSyncView } = require('./orgAzureSyncView');
 const { validate } = require('../core/http/validate');
 const { forbidden } = require('../core/http/errors');
 const { z, typeError } = require('../utils/zod');
 const { worded, choice } = require('../core/http/schemaParts');
 
-// requireAuth is the canonical gate from auth/permissions (verifies the
-// user still exists in the DB, cached 5s, and destroys deleted-user sessions).
-const { requireAuth } = require('../auth/permissions');
-
-/**
- * Check if the current user is an admin for the given org.
- * Platform super admins can manage any org.
- */
-const { isOrgAdminForOrg } = require('../auth/permissions');
-// orgAzureConfig historically required the exact ORG_ADMIN orgRole (it does
-// not accept the legacy 'admin' orgRole variant) — preserve that strictness.
+// requireAuth is the canonical gate (verifies the user still exists in the DB,
+// cached 5s, and destroys deleted-user sessions). isOrgAdminForOrg: platform
+// admins pass for any org; otherwise the exact ORG_ADMIN orgRole of that org
+// (not the legacy 'admin' orgRole variant) or an admin-carrying group of it.
+const { requireAuth, isOrgAdminForOrg } = require('../auth/permissions');
 /** @param {import('express').Request} req @param {string} orgId */
 const isOrgAdmin = (req, orgId) => isOrgAdminForOrg(req, orgId, { strictOrgRole: true });
 
@@ -392,7 +388,8 @@ router.post('/:orgId/sync-groups', requireAuth, /** @param {import('express').Re
     res.json(result);
 });
 
-// GET /:orgId/sync-groups/status — get last sync status
+// GET /:orgId/sync-groups/status — the last run, the settings and whether a
+// directory is connected for this org; no configuration value (orgAzureSyncView.js).
 router.get('/:orgId/sync-groups/status', requireAuth, /** @param {import('express').Request<{ orgId: string }>} req */ async (req, res) => {
     const { orgId } = req.params;
     const admin = await isOrgAdmin(req, orgId);
@@ -400,9 +397,10 @@ router.get('/:orgId/sync-groups/status', requireAuth, /** @param {import('expres
         return res.status(403).json({ error: 'Only organization admins can view sync status' });
     }
 
-    const status = await getSyncStatus(orgId);
-    const settings = await getSyncSettings(orgId);
-    res.json({ status, settings });
+    const microsoft = (await loadConfig()).providers?.microsoft;
+    res.json(groupSyncView({
+        orgId, status: await getSyncStatus(orgId), settings: await getSyncSettings(orgId), binding: await getSyncBinding(), microsoft,
+    }));
 });
 
 // PUT /:orgId/sync-groups/settings — update sync settings

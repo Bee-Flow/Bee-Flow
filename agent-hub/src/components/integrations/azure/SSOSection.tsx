@@ -1,95 +1,13 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { TranslateParams, useTranslation } from '@/hooks/useTranslation';
-import { API_BASE, authFetch } from '@/utils/helpers';
 import { Input, Toggle, SectionCard, StatusBadge } from './components';
-import type { SyncResult, SSOSectionProps } from './SSOSection.types';
-import { SSOSectionSection } from './SSOSectionSection';
+import type { SSOSectionProps } from './SSOSection.types';
+import GroupSyncBlock from './GroupSyncBlock';
 
 export default function SSOSection({ ssoClientId, setSsoClientId, ssoClientSecret, setSsoClientSecret, hasSsoClientSecret, ssoTenantId, setSsoTenantId, autoApproveSSO, setAutoApproveSSO, handleSave, saving, saved, orgId, groupSyncSettings, groupSyncStatus, onSyncSettingsChange, onSyncStatusChange }: SSOSectionProps) {
     const { t } = useTranslation();
     const ssoConfigured = !!(ssoClientId && hasSsoClientSecret);
-
-    // ── Group Sync local state ──
-    const [syncing, setSyncing] = useState(false);
-    const [syncResult, setSyncResult] = useState<SyncResult | null>(null);
-    const [syncError, setSyncError] = useState<string | null>(null);
-    const [showDetails, setShowDetails] = useState(false);
-    const [savingSettings, setSavingSettings] = useState(false);
-    const settings = groupSyncSettings || {
-        destructiveSync: false,
-        autoActivateUsers: true,
-        periodicSync: false,
-        syncIntervalHours: 6,
-    };
-    const status = groupSyncStatus || {};
-
-    // ── Sync trigger ──
-    const handleSync = async () => {
-        if (!orgId || syncing) return;
-        setSyncing(true);
-        setSyncResult(null);
-        setSyncError(null);
-        try {
-            const res = await authFetch(`${API_BASE}/api/org-azure-config/${orgId}/sync-groups`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-            });
-            const data = await res.json();
-            if (data.ok) {
-                setSyncResult(data);
-                if (onSyncStatusChange) {
-                    onSyncStatusChange({
-                        lastSyncAt: new Date().toISOString(),
-                        lastSyncResult: data.errors?.length > 0 ? 'partial' : 'success',
-                        syncedGroups: data.synced?.groups || 0,
-                        syncedUsers: data.synced?.users || 0,
-                        errors: data.errors || [],
-                    });
-                }
-            } else {
-                setSyncError(data.error || 'Sync failed');
-            }
-        } catch (err) {
-            setSyncError((err as Error).message);
-        }
-        setSyncing(false);
-    };
-
-    // ── Save sync setting ──
-    const handleSyncSetting = async (key: string, value: number | boolean) => {
-        if (!orgId) return;
-        setSavingSettings(true);
-        try {
-            const res = await authFetch(`${API_BASE}/api/org-azure-config/${orgId}/sync-groups/settings`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ [key]: value }),
-            });
-            const data = await res.json();
-            if (data.ok && onSyncSettingsChange) {
-                onSyncSettingsChange(data.settings);
-            }
-        } catch (err) {
-            console.error('Failed to update sync setting:', err);
-        }
-        setSavingSettings(false);
-    };
-
-    // ── Format relative time ──
-    const formatTimeAgo = (isoString: string | number | Date) => {
-        if (!isoString) return 'Never';
-        const dt = new Date(isoString);
-        const now = new Date();
-        const diffMs = now.getTime() - dt.getTime();
-        const diffMin = Math.floor(diffMs / 60000);
-        const diffHr = Math.floor(diffMin / 60);
-        const diffDay = Math.floor(diffHr / 24);
-        if (diffMin < 1) return 'Just now';
-        if (diffMin < 60) return `${diffMin}m ago`;
-        if (diffHr < 24) return `${diffHr}h ago`;
-        return `${diffDay}d ago`;
-    };
 
     return (
         <SectionCard
@@ -180,7 +98,7 @@ export default function SSOSection({ ssoClientId, setSsoClientId, ssoClientSecre
             <div className="h-px my-1 bg-[var(--border-subtle)]" />
 
             {/* ═══════════════ AZURE AD GROUP SYNC ═══════════════ */}
-            <SSOSectionSection t={t} status={status} formatTimeAgo={formatTimeAgo} settings={settings} handleSync={handleSync} syncing={syncing} ssoConfigured={ssoConfigured} syncResult={syncResult} setShowDetails={setShowDetails} showDetails={showDetails} syncError={syncError} handleSyncSetting={handleSyncSetting} />
+            <GroupSyncBlock orgId={orgId} connected={ssoConfigured} groupSyncSettings={groupSyncSettings} groupSyncStatus={groupSyncStatus} onSyncSettingsChange={onSyncSettingsChange} onSyncStatusChange={onSyncStatusChange} />
 
             <div className="h-px my-1 bg-[var(--border-subtle)]" />
 
