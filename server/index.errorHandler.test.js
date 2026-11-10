@@ -301,7 +301,9 @@ test('a 5xx that declares its own status still gets a generic body', () => {
     api.terminalErrorHandler(err, REQ, res, () => assert.fail('next() must not be called'));
     assert.equal(res.statusCode, 502);
     assert.equal(res.body.error, 'Internal server error');
-    assert.ok(!JSON.stringify(res.body).includes('abcd1234'));
+    // Without the correlationId: a random UUID can hold any eight hex characters.
+    const { correlationId: _correlationId, ...rest } = res.body;
+    assert.ok(!JSON.stringify(rest).includes('abcd1234'));
 });
 
 test('a deliberate 4xx keeps its status and message, plus a correlation id', () => {
