@@ -24,7 +24,7 @@ Fix: open **Bee Flow** from the top bar as a Nextcloud administrator and choose 
 
 ## "Your Nextcloud account has no e-mail address"
 
-Bee Flow needs an e-mail address for every user. An account without one gets this page instead of the app (calls of the web app answer `403` with the code `no_email`). Add an address under **Personal settings** in Nextcloud, or have an administrator set one. Setup, diagnostics and the administrator pages work without an address.
+Bee Flow needs an e-mail address for every user. Once the connector is connected, an account without one gets this page instead of the app (calls of the web app answer `403` with the code `no_email`). While a server is chosen but the connection is not made yet, every account gets the web app, which then shows that Bee Flow is still being set up. Add an address under **Personal settings** in Nextcloud, or have an administrator set one. Setup, diagnostics and the administrator pages work without an address.
 
 ## Some API calls intermittently stall or fail (only under load)
 
@@ -153,6 +153,23 @@ The server container must also be able to resolve the Nextcloud's hostname and r
 
 **Linking the two.** A self-hosted server links a Nextcloud by pairing code: generate one in Bee Flow (**Settings → Organisation → Pair a new Nextcloud**) and enter it on the setup page.
 
+## Nextcloud with its own certificate {#nextcloud-certificate}
+
+A Nextcloud whose certificate is self-signed, or issued by your own certificate authority, has to be trusted twice: by the connector, and by the Bee Flow server that calls your Nextcloud back.
+
+**The connector.** At its start the connector looks at the certificate of `NEXTCLOUD_URL`:
+
+| Certificate | What the connector does |
+|---|---|
+| From a public authority | Verifies it as usual. |
+| From your own authority | Give that authority's certificate as PEM text in the install-time value `BEEFLOW_NC_CA_CERT`. Verification stays on. |
+| Self-signed, `BEEFLOW_NC_TLS_PIN` at `auto` (the default) | Keeps to the certificate it saw first, for the Nextcloud address only. A certificate that changes later is refused until an administrator accepts it on the setup page. |
+| Self-signed, `BEEFLOW_NC_TLS_PIN=off` | Refuses it. |
+
+When the connector does not trust the certificate (`BEEFLOW_NC_TLS_PIN=off` with a self-signed certificate, or a `BEEFLOW_NC_CA_CERT` that is not the authority that issued it), connecting fails with the category `nc_cert_untrusted`, the error names the certificate problem, and nothing is sent to the Bee Flow server. `GET setup/diagnostics` answers `502` (`User lookup failed`) in that state, because the connector cannot ask Nextcloud who you are; read the cause in the connector log (`[Bootstrap] nc_cert_untrusted …`). Fix the value by [registering the app again](setup-picker.md#fixing-the-server-at-install-time).
+
+**The Bee Flow server.** The server verifies the certificate itself when it calls your Nextcloud. Bee Flow Cloud accepts certificates from public authorities only. On your own server, add your authority (or the self-signed certificate) to what the server trusts: for the server container, the environment variable `NODE_EXTRA_CA_CERTS` with the location of a PEM file in that container. We have not tested this setup ourselves. Without it connecting fails with `nc_not_publicly_reachable`.
+
 ## Nextcloud behind Cloudflare (proxy or Tunnel) {#cloudflare}
 
 The connector works behind Cloudflare; we have not tested this setup ourselves. Cloudflare terminates TLS on its side, so it sees the traffic between your users, your Nextcloud and Bee Flow in the clear; Nextcloud's own [notes on Cloudflare](https://github.com/nextcloud/all-in-one#notes-on-cloudflare-proxytunnel) list this and its other limits. What to set:
@@ -186,7 +203,9 @@ With HaRP's tunnel the connector listens on a Unix socket and has no TCP port, s
 |---|---|---|
 | `saas_unreachable` | Connector can't reach the Bee Flow server that was chosen | Test `curl <your Bee Flow server>/api/health` from inside the container (the remediation text names the address). Allow that hostname in your egress firewall; behind a forward proxy, register the app with `--env HTTPS_PROXY=…`. |
 | `saas_cert_untrusted` | The certificate of the Bee Flow server does not verify | A certificate from a public certificate authority, or the install-time value `BEEFLOW_SERVER_CA_CERT` with your own authority's PEM certificate. |
-| `nc_not_publicly_reachable` | The Bee Flow server couldn't reach your Nextcloud (also shown for the server answer `invalid_callback_url`) | Set the public Nextcloud URL (see section above). A Nextcloud on a private network needs a self-hosted Bee Flow server that can reach it and is allowed to: see [Nextcloud is not reachable from the internet](#not-reachable). |
+| `nc_not_publicly_reachable` | The Bee Flow server couldn't reach your Nextcloud (also shown for the server answer `invalid_callback_url`) | With Bee Flow Cloud: set the public Nextcloud URL (see section above). With your own server: check that it can reach the address the message names, and for an address on a private network set `NEXTCLOUD_ALLOW_PRIVATE_HOSTS=1` on that server: see [Nextcloud is not reachable from the internet](#not-reachable). The server verifies the certificate of your Nextcloud itself: see [Nextcloud with its own certificate](#nextcloud-certificate). |
+| `nc_cert_untrusted` | The connector itself does not trust the certificate of your Nextcloud. Nothing was sent to the Bee Flow server | See [Nextcloud with its own certificate](#nextcloud-certificate). |
+| `nc_unreachable` | The connector itself cannot read your Nextcloud at `NEXTCLOUD_URL`. Nothing was sent to the Bee Flow server | The error names the cause (connection refused, name not found, timeout). Check that the address answers from inside the connector container. |
 | `pairing_required` | The server does not create an organisation by itself | Generate a pairing code in Bee Flow (**Settings → Organisation → Pair a new Nextcloud**) and enter it on the setup page. |
 | `version_mismatch` | The server and the connector do not work together in these versions, or the address is the web app's instead of the server's | Update both; check the address. |
 | `admin_lookup_failed` | No admin user found in NC's `admin` group | `occ user:add --group admin <uid>`, then restart the connector container. |
@@ -224,9 +243,10 @@ docker logs nc_app_bee_flow --tail 50
 
 | Symptom in `docker logs nc_app_bee_flow` | Cause | Fix |
 |------------------------------------------|-------|-----|
-| `[Bootstrap] capabilities fetch timeout` | Connector can't reach NC | Check `NEXTCLOUD_URL` env. Ping it from inside the container: `docker exec nc_app_bee_flow curl $NEXTCLOUD_URL/status.php`. |
-| `[Bootstrap] admin discovery: no admin found` | NC has no user in the `admin` group | Create one: `occ user:add --group admin alice`. |
-| `[Bootstrap] SaaS responded 401` | Bee Flow service rejected the AppAPI signature | Check clocks (NTP) on both hosts. Verify `BEEFLOW_API_BASE_URL` is reachable. |
+| `[Bootstrap] nc_unreachable (capabilities): …` | The connector can't reach Nextcloud; the line names the cause | Check `NEXTCLOUD_URL`. Ask it from inside the container: `docker exec nc_app_bee_flow curl $NEXTCLOUD_URL/status.php`. |
+| `[Bootstrap] nc_cert_untrusted (capabilities): …` | The connector does not trust the certificate of Nextcloud | See [Nextcloud with its own certificate](#nextcloud-certificate). |
+| `[Bootstrap] admin_lookup_failed (admin): …` | Nextcloud has no user in the `admin` group | Create one: `occ user:add --group admin alice`. |
+| `[Bootstrap] … (saas_post): The Bee Flow server refused the connection (HTTP …): …` | The Bee Flow server answered and said no; the category before it and the text after it say why | The matching row under [Bootstrap "failed" state in heartbeat](#bootstrap-failed-state-in-heartbeat). |
 | The setup page shows `pairing_required` on a Nextcloud that was connected before | The connector no longer holds the key of its organisation, and the server does not hand it out again without one | Ask a Bee Flow organisation admin to generate a pairing code (**Settings → Organisation → Pair a new Nextcloud**) and enter it on the setup page under **Bind to existing organisation**. |
 
 The connector keeps its key in `${APP_PERSISTENT_STORAGE}/tenant-key.json`. Leave that file in place: the key in it is what proves to the Bee Flow server that this is the same Nextcloud. To connect again:
@@ -268,7 +288,7 @@ File, tag, calendar, Forms, Tables and Deck triggers are delivered by Nextcloud'
 
 Fix: `occ app:enable webhook_listeners`. The connector retries the registration every minute, so no restart is needed. A healthy registration logs `[Webhooks] N registered, M skipped (optional apps), 0 failed`; "skipped" rows belong to apps that are not installed (Forms, Tables, Deck).
 
-Nextcloud delivers these events to the connector through AppAPI, so it does not have to reach its own public address and `allow_local_remote_servers` is not needed for them. A delivery that fails shows in `nextcloud.log` as `Webhook(<id>) call failed`. `GET setup/diagnostics` reports under `webhooks` whether the rows are registered and when the last delivery arrived (counted since the connector started).
+Nextcloud delivers these events to the connector through AppAPI, so it does not have to reach its own public address and `allow_local_remote_servers` is not needed for them. A delivery that gets no answer shows in `nextcloud.log` as `Webhook(<id>) call failed`; one the connector answers with an error shows as `Webhook(<id>) returned unexpected status code <code>` (`503` while the connector has no tenant key yet). `GET setup/diagnostics` reports under `webhooks` whether the rows are registered and when the last delivery arrived (counted since the connector started). The count is of deliveries that reached the connector, also those it answered with an error; what happened to one is in the connector log (`[AutomationEvents]`).
 
 If automations fire twice after going back to connector 1.7.0: that version does not recognise the rows 2.0.0 registered and adds a second set. Update the connector again.
 

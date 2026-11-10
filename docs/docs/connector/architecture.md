@@ -146,7 +146,7 @@ While none is chosen, the connector's own embed script and menu icon are served,
 
 Runs once a server is chosen: when an administrator chooses it, and at every start after that until the connector holds a key.
 
-1. **Skip if explicit** — if `BEEFLOW_TENANT_KEY` is not `auto`, that key is taken into use directly; no request is made.
+1. **Skip if explicit** — if `BEEFLOW_TENANT_KEY` is not `auto`, that key is taken into use directly; no request is made to the Bee Flow server. The instance id that goes with the key is read from Nextcloud as in step 3.
 2. **Cache check** — read the persistent file at `APP_PERSISTENT_STORAGE/tenant-key.json`.
 3. **Gather metadata** — anonymous OCS call to fetch the NC version and theming name. Nextcloud publishes no instance id in its capabilities, so the connector derives one from the host of the public Nextcloud URL (`nc-host:<host>`) and keeps it in the tenant-key cache.
 4. **Discover admin**:
@@ -156,7 +156,7 @@ Runs once a server is chosen: when an administrator chooses it, and at every sta
 6. **Anti-spoofing** — the server independently re-fetches the Nextcloud's capabilities to confirm the metadata matches.
 7. **Persist** — store the returned `{tenantKey, organizationId, organizationName}` in the cache file, with the server that issued it (`boundApiBaseUrl`).
 
-If a step fails, the connector records the failure with a category and a remediation text; `/heartbeat`, `GET setup/diagnostics` and the setup page show it.
+If a step fails, the connector records the failure with a category and a remediation text; `/heartbeat`, `GET setup/diagnostics` and the setup page show it. A failure of step 3 or 4 is the connector's own read of Nextcloud (`nc_cert_untrusted`, `nc_unreachable`, `admin_lookup_failed`): nothing has been sent to the Bee Flow server at that point.
 
 ## Event subscriptions
 
@@ -205,17 +205,17 @@ Install-time values, declared in `appinfo/info.xml`. Give them in the advanced d
 |-----|---------|---------|
 | `BEEFLOW_TENANT_KEY` | `auto` | Tenant key, or literal `auto`: the chosen server issues one |
 | `BEEFLOW_API_BASE_URL` | (none) | Empty: an administrator chooses after installing. The word `cloud` or a server URL fixes the server |
-| `BEEFLOW_EMBED_BASE_URL` | (none) | Empty: the web app follows the chosen server. A URL forces one web app host |
+| `BEEFLOW_EMBED_BASE_URL` | (none) | Empty: the web app follows the chosen server. A URL forces one web app host. A value that is not a URL is logged and ignored |
 | `BEEFLOW_NC_PUBLIC_URL` | (none) | Address at which the Bee Flow server reaches this Nextcloud, when that is not its main URL |
 | `BEEFLOW_PAIRING_CODE` | (none) | One-time code that joins this Nextcloud to an existing organisation |
 | `BEEFLOW_TRUSTED_EMBED_ORIGINS` | (none) | Extra origins that may frame the app |
-| `BEEFLOW_NC_CA_CERT`, `BEEFLOW_NC_TLS_PIN` | (none), `auto` | Trust for a Nextcloud certificate that is self-signed or from an internal CA |
+| `BEEFLOW_NC_CA_CERT`, `BEEFLOW_NC_TLS_PIN` | (none), `auto` | Trust for a Nextcloud certificate that is self-signed or from an internal CA. `BEEFLOW_NC_CA_CERT` takes the PEM text of the authority's certificate (not a path). `BEEFLOW_NC_TLS_PIN=off` keeps a self-signed certificate refused |
 | `BEEFLOW_SERVER_CA_CERT` | (none) | PEM certificate (or a path to one in the container) of the certificate authority of a self-hosted Bee Flow server. Added to the default authorities, used for the Bee Flow server only; verification stays on |
 | `HTTPS_PROXY`, `NO_PROXY` | (none) | Outbound forward proxy for https connections to the Bee Flow server, and the hosts reached without it. Nextcloud is always reached directly |
 | `BEEFLOW_NC_PROXY_MAX_BODY_MB` | `100` | Largest body of one request from the Bee Flow server into Nextcloud. 0 = no cap |
 | `BEEFLOW_NC_PROXY_MAX_INFLIGHT_MB` | `512` | Upload data all such requests together may hold in memory. 0 = no cap |
 | `BEEFLOW_UPSTREAM_HEADERS_TIMEOUT_MS` | `60000` | How long the Bee Flow server may take to start answering. 0 = off |
-| `LOG_LEVEL` | `info` | `debug`, `info`, `warn` or `error` |
+| `LOG_LEVEL` | `info` | `debug`, `info`, `warn` or `error`: the least severe level that is written to the container log |
 | `BEEFLOW_SIG_SKEW_SECONDS` | `300` | HMAC clock-skew tolerance, between 30 and 900 |
 
 Not declared in `info.xml`, so settable only where you start the container yourself (a `manual-install` daemon or `docker run`): `BEEFLOW_RUN_AS`, `BEEFLOW_NC_TLS_PROBE_BUDGET_MS`, `BEEFLOW_UPSTREAM_MAX_SOCKETS`, `BEEFLOW_BOOTSTRAP_RETRY_MS`, `BEEFLOW_STUDIO_MENU_SYNC_SECONDS` and `BEEFLOW_JWT_TTL_SECONDS` (default 300, kept between 30 and 900).

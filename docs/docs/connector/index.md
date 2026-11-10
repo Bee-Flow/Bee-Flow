@@ -114,7 +114,7 @@ The full table per install method, with what you add yourself, is in [Deploy dae
 | Configuration | Status | Note |
 |---|---|---|
 | Nextcloud behind a reverse proxy, with a public name that differs from its internal one | Supported | Enter the public address as **Public Nextcloud URL** on the setup page. |
-| Nextcloud with a self-signed certificate or one from your own certificate authority | Supported | The connector trusts it for the Nextcloud address only (`BEEFLOW_NC_CA_CERT`, `BEEFLOW_NC_TLS_PIN`). |
+| Nextcloud with a self-signed certificate or one from your own certificate authority | Works with your own Bee Flow server, not tested by us end to end; not possible with Bee Flow Cloud | The connector trusts it for the Nextcloud address only (`BEEFLOW_NC_CA_CERT`, `BEEFLOW_NC_TLS_PIN`). The Bee Flow server calls your Nextcloud too and has to trust the certificate as well: see [Nextcloud with its own certificate](troubleshooting.md#nextcloud-certificate). |
 | Your own Bee Flow server with a certificate from your own certificate authority | Supported | `BEEFLOW_SERVER_CA_CERT` at install time. Verification stays on. |
 | An outbound proxy between the connector and the Bee Flow server | Supported | `HTTPS_PROXY` and `NO_PROXY` at install time. |
 | Nextcloud that cannot call its own public address (hairpin NAT, tunnel) | Supported | Nextcloud delivers events to the connector through AppAPI, not through its public address. |

@@ -60,7 +60,8 @@ What happens on Connect:
 
 A first choice whose check passed stays chosen when connecting then fails, for example because the
 server asks for a pairing code. The connector is then on that server without a key and shows the
-failure; enter the pairing code or fix the cause and connect again.
+failure on the setup page and in `GET setup/diagnostics`; enter the pairing code or fix the cause
+and connect again.
 
 Named failures, shown in the administrator's Nextcloud language (English and Dutch):
 
@@ -156,7 +157,11 @@ It uses the same network the connector itself uses.
 The setup page stays available. A switch from one server to another:
 
 - drops the tenant key of the previous server and connects to the new one;
-- goes back to the previous server when the new one does not connect;
+- goes back to the previous server when the new one does not connect. Saving answers at once
+  (`200`, with the server you asked for under `saved`) and the connection is made afterwards: the
+  page then says that connecting failed and that the previous server is still in use.
+  `GET setup/diagnostics` keeps that failure under `rejectedSwitch`, with the server it is about;
+  `lastError` there is always about the server in use;
 - does not move data: chats, agents and knowledge bases stay with the organisation on the server
   they were made on.
 
@@ -170,7 +175,10 @@ the server it was created on until it is deleted there (**Settings → Organisat
 connects. A key given at install is taken into use as it is once a server is known: next to
 `BEEFLOW_API_BASE_URL` that server is known at once, and without a server address it is taken into
 use when an administrator chooses the server on the setup page. No organisation is created in that
-case and the administrator list is not read. See
+case and the administrator list is not read. The connector reads the instance id of this Nextcloud
+from Nextcloud itself, the way it does when a server issues the key, so the key has to be the one
+issued for this Nextcloud at this address; push triggers, the Talk bot, Assistant tasks and app
+menu entries are signed with both. See
 [Connector → Architecture](architecture.md#bootstrap-flow).
 
 ## OAuth callback URL — `connectorCallbackUrl`
