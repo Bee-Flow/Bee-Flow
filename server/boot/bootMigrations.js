@@ -284,7 +284,7 @@ const NL_TRANSLATIONS = [
     'update-nl-settings-nav-2026-10',
     'update-nl-nc-trigger-scope-calendar-2026-10', // The colleagues switch covers calendar events: its Dutch hint says so (old shipped text only)
     'update-nl-automation-wording-2026-11', // Automation wording round: six reworded English texts get their Dutch (old shipped text only)
-    // Last, after every catalogue: stored translations follow the routine → automation keys, and shipped Dutch "routine" becomes "automatisering".
+    // After every catalogue file above: stored translations follow the routine → automation keys, and shipped Dutch "routine" becomes "automatisering".
     'rename-routine-i18n-2026-10',
     // Dutch for new namespaces, one data file per namespace (i18n/defaults/nl/<namespace>.json): a new
     // namespace adds a file there and no line here. Its checksum covers those files (migrationChecksum.js).
