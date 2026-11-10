@@ -11,22 +11,26 @@
 const { readTimeComputedError } = require('../../core/dataEngine/queryCompilerComputed.mts');
 
 /**
+ * @typedef {{ key?: string, type?: string, computed?: { stored?: boolean, type?: string, expr?: string } | null }} DataField
+ */
+
+/**
  * How a computed field is kept. A read-time one says whether the record reads
  * evaluate it (queryCompilerComputed.mts), and why not when they do not.
  * @param {{ stored?: boolean, expr?: string }} c
- * @param {any} f
- * @param {unknown[]} tableFields  the other fields of its table
+ * @param {DataField} f
+ * @param {DataField[]} tableFields  the fields of its table
  */
 function keptAs(c, f, tableFields) {
     if (c.stored === true) return 'stored';
-    const refused = readTimeComputedError(f, { fields: /** @type {any} */ (tableFields) });
+    const refused = readTimeComputedError(f, { fields: tableFields });
     return refused ? `read-time (not evaluated, reads empty: ${refused})` : 'read-time (evaluated on read, not filterable or sortable)';
 }
 
 /**
- * @param {{ type?: string, computed?: { stored?: boolean, type?: string, expr?: string } | null }} f
+ * @param {DataField} f
  * @param {boolean} withId
- * @param {unknown[]} [tableFields]  the fields of the table `f` belongs to
+ * @param {DataField[]} [tableFields]  the fields of the table `f` belongs to
  * @returns {string[]}
  */
 function computedBits(f, withId, tableFields = []) {
