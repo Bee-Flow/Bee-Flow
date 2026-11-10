@@ -40,7 +40,8 @@ Open **Bee Flow** from the Nextcloud top bar as an administrator and pick a card
   **Settings → Organisation → Pair a new Nextcloud**. Without a code such a server answers
   "Pairing code required" for a Nextcloud it does not know.
   The card links to the [self-hosting guide](../self-hosting/docker-compose.md); the whole route is
-  in [Bee Flow on your own server next to Nextcloud](own-server.md).
+  in [Bee Flow on your own server next to Nextcloud](own-server.md). No server yet? The card opens an install help that makes a
+  script for your Docker host: [the install script](own-server.md#install-script).
 
 Before you press **Connect**, the page shows what connecting sends and to which host:
 

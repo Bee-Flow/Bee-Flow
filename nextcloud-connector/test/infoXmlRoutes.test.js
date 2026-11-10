@@ -110,6 +110,7 @@ const EXPECTED = [
     ['setup/rotate-tenant-key', 'POST', ACCESS.ADMIN],
     ['setup/status', 'GET', ACCESS.ADMIN],
     ['setup/public-nc-url', 'POST', ACCESS.ADMIN],
+    ['setup/install-script', 'POST', ACCESS.ADMIN],
     // Open to signed-in users: the embedded app asks it for everybody, and the
     // connector answers the diagnosis to administrators only (setup.js).
     ['setup/diagnostics', 'GET', ACCESS.USER],

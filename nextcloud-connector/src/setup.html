@@ -191,6 +191,37 @@
     .status .detail { display: block; margin-top: 6px; opacity: 0.85; }
     .status button { margin-top: 10px; }
 
+    /* The install help inside the self-hosted form. */
+    .install { margin: 0 0 16px; border: 1px solid var(--border); border-radius: 8px; background: var(--panel); }
+    .install > summary { cursor: pointer; padding: 10px 12px; font-weight: 600; }
+    .install[open] > summary { border-bottom: 1px solid var(--border); }
+    .install .inner { padding: 12px; }
+    .install .inner > p { margin: 0 0 10px; color: var(--text-2); }
+    .tabs { display: inline-flex; gap: 4px; padding: 3px; margin-bottom: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--card); }
+    .tabs button { padding: 5px 10px; font-size: 12px; background: transparent; color: var(--text-2); }
+    .tabs button[aria-selected=true] { background: var(--text); color: var(--card); }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
+    @media (max-width: 640px) { .grid2 { grid-template-columns: 1fr; } }
+    .install input[type=text], .install input[type=number] {
+        width: 100%; padding: 8px 12px; font: inherit; letter-spacing: normal; text-transform: none;
+        border-radius: 8px; border: 1px solid var(--border); background: var(--card); color: var(--text);
+    }
+    .check { display: flex; align-items: flex-start; gap: 8px; margin-top: 12px; font-weight: 400; color: var(--text); }
+    .check input { margin-top: 2px; accent-color: var(--accent); }
+    .check small { display: block; color: var(--text-3); font-size: 11.5px; }
+    .field-error { display: none; margin-top: 4px; font-size: 11.5px; color: color-mix(in srgb, var(--err) 75%, var(--text)); }
+    .field-error.show { display: block; }
+    .install details.more { margin-top: 12px; }
+    .steps { margin: 12px 0 0; padding-left: 18px; color: var(--text-2); }
+    .steps li { margin-bottom: 6px; }
+    .steps pre, .install pre.cmd {
+        margin: 6px 0 0; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--card);
+        font-family: ui-monospace, 'Menlo', monospace; font-size: 12px; white-space: pre-wrap; word-break: break-word;
+    }
+    #install-result { display: none; margin-top: 14px; }
+    #install-result.show { display: block; }
+    #install-script { display: block; max-height: 300px; margin-top: 8px; background: var(--card); }
+
     .meta { margin-top: 20px; font-size: 12px; color: var(--text-3); }
     .meta strong { color: var(--text); }
     .output {
@@ -278,6 +309,107 @@
     </div>
 
     <div class="form" id="form-self">
+        <details class="install" id="install-help">
+            <summary>No Bee Flow server yet? Install one with Docker</summary>
+            <div class="inner">
+                <p>Bee Flow runs as a set of Docker containers on a machine of yours: the server, the web
+                   app, its database, and by default the PII guard and the topic classifier. The installer
+                   uses the newest production release and generates every secret on that machine.</p>
+                <div class="tabs" role="tablist" aria-label="How to install">
+                    <button type="button" role="tab" id="tab-guided" aria-selected="true" aria-controls="install-guided">Make an install script</button>
+                    <button type="button" role="tab" id="tab-other" aria-selected="false" aria-controls="install-other">Other ways</button>
+                </div>
+
+                <div id="install-guided" role="tabpanel" aria-labelledby="tab-guided">
+                    <label for="inst-host">Address of the Docker host</label>
+                    <input type="text" id="inst-host" placeholder="192.168.1.20 or beeflow.example.com" autocomplete="off" spellcheck="false" />
+                    <div class="hint">The name or IP address at which this Nextcloud can reach that machine. Not <code>localhost</code>.</div>
+                    <div class="field-error" data-for="host"></div>
+
+                    <div class="grid2">
+                        <div>
+                            <label for="inst-server-port" class="spaced">Server port</label>
+                            <input type="number" id="inst-server-port" value="3001" min="1" max="65535" />
+                            <div class="field-error" data-for="serverPort"></div>
+                        </div>
+                        <div>
+                            <label for="inst-client-port" class="spaced">Web app port</label>
+                            <input type="number" id="inst-client-port" value="5176" min="1" max="65535" />
+                            <div class="field-error" data-for="clientPort"></div>
+                        </div>
+                        <div>
+                            <label for="inst-dir" class="spaced">Install directory</label>
+                            <input type="text" id="inst-dir" value="beeflow" autocomplete="off" spellcheck="false" />
+                            <div class="field-error" data-for="dir"></div>
+                        </div>
+                        <div>
+                            <label for="inst-version" class="spaced">Version</label>
+                            <input type="text" id="inst-version" placeholder="newest production release" autocomplete="off" spellcheck="false" />
+                            <div class="field-error" data-for="version"></div>
+                        </div>
+                    </div>
+
+                    <label for="inst-org" class="spaced">Name of your organisation</label>
+                    <input type="text" id="inst-org" placeholder="Acme" autocomplete="off" />
+                    <div class="hint">The script creates it and prints a pairing code for this Nextcloud. Leave empty to do that yourself later.</div>
+                    <div class="field-error" data-for="organisation"></div>
+
+                    <label class="check"><input type="checkbox" id="inst-sidecars" checked />
+                        <span>Also run the PII guard and the topic classifier
+                        <small>Recommended. They need about 7 GB of memory and a larger first download.</small></span></label>
+                    <label class="check"><input type="checkbox" id="inst-private" checked />
+                        <span>This Nextcloud is on a private address (same machine or local network)
+                        <small>Lets the Bee Flow server call private addresses. Leave it off for a Nextcloud on the internet.</small></span></label>
+
+                    <details class="more">
+                        <summary class="hint">A second Bee Flow on that machine</summary>
+                        <label for="inst-stack" class="spaced">Stack name</label>
+                        <input type="text" id="inst-stack" placeholder="empty for a single install" autocomplete="off" spellcheck="false" />
+                        <div class="hint">Gives this install its own containers, volumes and settings file.</div>
+                        <div class="field-error" data-for="stackName"></div>
+                    </details>
+
+                    <div class="actions">
+                        <button type="button" class="btn-primary" id="btn-make-script">Make the install script</button>
+                        <span class="hint inline" id="status-install-inline"></span>
+                    </div>
+
+                    <div id="install-result">
+                        <ol class="steps">
+                            <li>Save the script on the Docker host as <code id="install-filename">beeflow-install.sh</code>
+                                (download it, or copy the text into a file). Read it first: your answers are the
+                                block at the top.</li>
+                            <li>Run it there:<pre>bash beeflow-install.sh</pre></li>
+                            <li>When it finishes it prints the address of the server, a pairing code and the secrets
+                                it generated. The two addresses are already filled in below; enter the pairing code
+                                and press Connect.</li>
+                        </ol>
+                        <div class="actions">
+                            <button type="button" class="btn-secondary" id="btn-download-script">Download</button>
+                            <button type="button" class="btn-secondary" id="btn-copy-script">Copy</button>
+                        </div>
+                        <pre class="output" id="install-script" tabindex="0"></pre>
+                    </div>
+                </div>
+
+                <div id="install-other" role="tabpanel" aria-labelledby="tab-other" hidden>
+                    <ol class="steps">
+                        <li><strong>The installer with its defaults.</strong> On the Docker host:
+                            <pre>git clone --depth 1 https://github.com/Bee-Flow/Bee-Flow.git
+cd Bee-Flow
+PROFILES="core guard classify" ./selfhost.sh</pre>
+                            It pulls the newest production images, generates the secrets and prints the address and
+                            the administrator password. Ports and the public address are settings in its
+                            <code>.env</code> file.</li>
+                        <li><strong>Docker Compose by hand,</strong> for your own compose project or reverse proxy:
+                            <a id="link-docs-compose" target="_blank" rel="noopener noreferrer">the Docker Compose guide</a>.</li>
+                        <li><strong>Kubernetes:</strong>
+                            <a id="link-docs-k8s" target="_blank" rel="noopener noreferrer">the Kubernetes guide</a>.</li>
+                        <li><strong>A server that already runs:</strong> close this help and enter its address below.</li>
+                    </ol>
+                </div>
+            </div>
+        </details>
         <label for="apiBaseUrl">Server URL</label>
         <input type="url" id="apiBaseUrl"
                placeholder="https://beeflow.example.com"
@@ -554,6 +686,101 @@
         statusBox.textContent = String(text == null ? '' : text);
     }
 
+    // ── Install help: answers in, a script out (POST setup/install-script) ──
+    const tabGuided = $('tab-guided');
+    const tabOther = $('tab-other');
+    function showInstallTab(guided) {
+        tabGuided.setAttribute('aria-selected', String(guided));
+        tabOther.setAttribute('aria-selected', String(!guided));
+        $('install-guided').hidden = !guided;
+        $('install-other').hidden = guided;
+    }
+    tabGuided.addEventListener('click', () => showInstallTab(true));
+    tabOther.addEventListener('click', () => showInstallTab(false));
+
+    const installResult = $('install-result');
+    const installScript = $('install-script');
+    const statusInstallInline = $('status-install-inline');
+    let installFilename = 'beeflow-install.sh';
+
+    function showFieldErrors(fields) {
+        document.querySelectorAll('.field-error').forEach(el => {
+            const message = fields && fields[el.dataset.for];
+            el.textContent = message || '';
+            el.classList.toggle('show', !!message);
+        });
+    }
+
+    $('btn-make-script').addEventListener('click', async () => {
+        const answers = {
+            host: $('inst-host').value,
+            serverPort: $('inst-server-port').value,
+            clientPort: $('inst-client-port').value,
+            dir: $('inst-dir').value,
+            version: $('inst-version').value,
+            organisation: $('inst-org').value,
+            sidecars: $('inst-sidecars').checked,
+            privateNextcloud: $('inst-private').checked,
+            stackName: $('inst-stack').value,
+        };
+        statusInstallInline.textContent = '';
+        showFieldErrors(null);
+        try {
+            const r = await fetch(BASE + 'setup/install-script', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(answers),
+            });
+            const d = await r.json();
+            if (!r.ok) {
+                showFieldErrors(d.fields);
+                statusInstallInline.textContent = d.error || 'The script could not be made.';
+                installResult.classList.remove('show');
+                return;
+            }
+            installFilename = d.filename || installFilename;
+            $('install-filename').textContent = installFilename;
+            installScript.textContent = d.script;
+            installResult.classList.add('show');
+            // The addresses the script will print, ready for Connect.
+            if (!envLocked) {
+                inputUrl.value = d.serverUrl;
+                inputWebUrl.value = d.webAppUrl;
+                refreshButtons();
+                renderConsent();
+            }
+        } catch (e) {
+            statusInstallInline.textContent = 'The script could not be made: ' + e.message;
+        }
+    });
+
+    $('btn-download-script').addEventListener('click', () => {
+        const url = URL.createObjectURL(new Blob([installScript.textContent], { type: 'text/x-shellscript' }));
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = installFilename;
+        document.body.append(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+    });
+
+    $('btn-copy-script').addEventListener('click', async () => {
+        const done = () => { statusInstallInline.textContent = 'Copied.'; };
+        try {
+            await navigator.clipboard.writeText(installScript.textContent);
+            done();
+        } catch (_) {
+            // A framed page may not use the clipboard: select the text instead.
+            const range = document.createRange();
+            range.selectNodeContents(installScript);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            statusInstallInline.textContent = 'Selected: press Ctrl+C (or Cmd+C) to copy.';
+        }
+    });
+
     cards.forEach(c => c.addEventListener('click', (ev) => {
         // The documentation link inside the card is a link, not a choice.
         if (ev.target.closest('a')) return;
@@ -792,6 +1019,8 @@
             linkSelfHosting.href = s.selfHostingDocsUrl;
             if (texts.selfHostingLink) linkSelfHosting.textContent = texts.selfHostingLink;
             linkSelfHosting.style.display = '';
+            $('link-docs-compose').href = s.selfHostingDocsUrl + '/docker-compose';
+            $('link-docs-k8s').href = s.selfHostingDocsUrl + '/kubernetes';
         }
         // Only where it applies: the install-time value is the literal Cloud
         // address and no server is chosen.
