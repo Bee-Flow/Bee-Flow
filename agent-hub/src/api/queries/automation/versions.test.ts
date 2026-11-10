@@ -66,6 +66,12 @@ describe('parseFieldDiff', () => {
     });
 
     it('returns an empty diff for junk', () => {
-        expect(parseFieldDiff(undefined)).toEqual({ changes: [], stepIds: { added: [], removed: [], changed: [] } });
+        expect(parseFieldDiff(undefined)).toEqual({ changes: [], stepIds: { added: [], removed: [], changed: [] }, description: null, layoutOnly: false });
+    });
+
+    it('keeps the server summary and the layout-only flag', () => {
+        expect(parseFieldDiff({ changes: [], description: 'Moved two steps', layoutOnly: true }))
+            .toMatchObject({ description: 'Moved two steps', layoutOnly: true });
+        expect(parseFieldDiff({ changes: [], description: 7, layoutOnly: 'yes' })).toMatchObject({ description: null, layoutOnly: false });
     });
 });
