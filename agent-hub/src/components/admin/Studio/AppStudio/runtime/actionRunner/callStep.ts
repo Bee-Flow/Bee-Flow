@@ -5,7 +5,9 @@
  * CALLER's scope (a records/aggregate binding works as for a loop source), and
  * item/index/value are not inherited. Its vars writes, its last server result and
  * any automation effects carry back; its own action-level onSuccess/onError are
- * not applied. A server step inside it posts to the ROOT action's URL with the
+ * not applied. A `return` step ends the called action only (`exec` is the
+ * coordinator's action-level walk) and a loop around the call is not one a
+ * `break` inside it can leave. A server step inside it posts to the ROOT action's URL with the
  * callPath (the ordinal of each call_action from the root), so the server keeps
  * the role gate and the public surface on the action that was clicked.
  *
@@ -18,13 +20,17 @@ import { buildStepIndexMap, mergeAppEffects, normalizeSequence } from './core';
 import type { RunStep } from './core';
 import type { ClientStepEnv } from './clientSteps';
 import type { SeqState } from './serverSteps';
-import { MAX_CALL_DEPTH, ownActionOf } from './stepWalk';
+import { MAX_CALL_DEPTH, ownActionOf, usesRegistryKind } from './stepWalk';
 
 /** The part of the sequence env a call reads and passes on to the called action's steps. */
 export interface CallEnv extends ClientStepEnv {
     indexMap: Map<RunStep, number>;
     /** The actions on the call chain, root first. */
     callChain: string[];
+    /** An action on the chain holds a step kind of the registry: server steps are posted with their kind. */
+    echoKind?: boolean;
+    /** Inside the steps of a loop or while of the same action (./controlFlow). */
+    breakable?: boolean;
 }
 
 type ExecSteps<E extends CallEnv> = (env: E, list: unknown, st: SeqState) => Promise<void>;
@@ -71,7 +77,7 @@ export async function runCallStep<E extends CallEnv>(env: E, step: RunStep, st: 
         error: null,
         callPath: [...(st.callPath || []), typeof ordinal === 'number' ? ordinal : -1],
     };
-    const childEnv: E = { ...env, indexMap: buildStepIndexMap(steps), callChain: [...env.callChain, id] };
+    const childEnv: E = { ...env, indexMap: buildStepIndexMap(steps), callChain: [...env.callChain, id], breakable: false, echoKind: !!env.echoKind || usesRegistryKind(steps) };
     try {
         await exec(childEnv, steps, child);
     } finally {

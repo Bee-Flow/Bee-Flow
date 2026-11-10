@@ -1,0 +1,22 @@
+{
+  "translations": {
+    "studio_apps_flow_control.catalog.break_blurb": "Stop met herhalen en ga verder met de stap na de lus.",
+    "studio_apps_flow_control.catalog.break_label": "Lus verlaten",
+    "studio_apps_flow_control.catalog.continue_blurb": "Sla de rest van deze ronde van de lus over.",
+    "studio_apps_flow_control.catalog.continue_label": "Door naar de volgende ronde",
+    "studio_apps_flow_control.catalog.raise_error_blurb": "Laat de actie bewust mislukken, met je eigen melding.",
+    "studio_apps_flow_control.catalog.raise_error_label": "Stoppen met een fout",
+    "studio_apps_flow_control.catalog.return_blurb": "Beëindig de actie nu en geef eventueel een waarde terug.",
+    "studio_apps_flow_control.catalog.return_label": "Hier stoppen",
+    "studio_apps_flow_control.catalog.try_blurb": "Voer stappen uit en bepaal wat er gebeurt als er een mislukt.",
+    "studio_apps_flow_control.catalog.try_label": "Proberen",
+    "studio_apps_flow_control.catalog.while_blurb": "Voer deze stappen steeds opnieuw uit zolang een voorwaarde geldt.",
+    "studio_apps_flow_control.catalog.while_label": "Herhalen zolang",
+    "studio_apps_flow_control.runtime.not_in_loop": "Een stap {kind} werkt alleen binnen een loop of while.",
+    "studio_apps_flow_control.runtime.raised": "De actie gaf een fout.",
+    "studio_apps_flow_control.scope.try_catch": "Als een stap mislukt",
+    "studio_apps_flow_control.scope.try_finally": "Altijd, aan het einde",
+    "studio_apps_flow_control.scope.try_steps": "Proberen",
+    "studio_apps_flow_control.scope.while_steps": "Zolang het geldt"
+  }
+}

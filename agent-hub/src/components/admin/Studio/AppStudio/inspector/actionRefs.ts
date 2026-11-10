@@ -1,6 +1,7 @@
 import type {
     ActionEffect, AppAction, AppDefinition, AppNode, AppScreen, AppSection, FormFieldRef,
 } from './appDefinition';
+import { extraChildLists } from '@shared/appDefinition/stepFlow.mjs';
 import { nodeLabelWithType } from './nodeLabel';
 import { INPUT_TYPES } from './styleKnobMeta';
 import { NODE_EVENTS, findNode } from '../state/definitionOps';
@@ -55,6 +56,8 @@ export function stepCount(action: AppAction | null | undefined): number {
         for (const c of Array.isArray(step.cases) ? step.cases : []) total += walk(c?.steps);
         // A step's onError handler counts too, as the validator counts it.
         total += walk((step as { onError?: { steps?: unknown } }).onError?.steps);
+        // The places a registry container adds (a try's catch and finally).
+        for (const list of extraChildLists(step)) total += walk(list);
         return total;
     }, 0);
     return walk(action.steps);
