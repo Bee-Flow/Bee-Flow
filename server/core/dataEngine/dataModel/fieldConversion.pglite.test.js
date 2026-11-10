@@ -20,34 +20,15 @@ const assert = require('node:assert');
 
 process.env.NODE_ENV = 'test';
 
-const { createPgAppEngine } = require('../../../stores/lib/pgAppEngine');
-const { pgliteQuery } = require('../../../testUtils/pglitePool');
+const { usePgAppEngine } = require('../../../testUtils/pgAppEngine.testkit');
 const { planMigration, migrationPlan } = require('./migrationPlan');
 const { migrationFailureFor } = require('../../../stores/studioAppData/migrationPreview.mts');
 
 const OWNER = 'owner-conv';
-let pg = null;
-let engine = null;
 let appSeq = 0;
 
-const rawQuery = (sql, params) => pgliteQuery(pg)(sql, params);
-
-test('(setup) boot pglite and the engine', async () => {
-    const { newPglite } = require('../../../testUtils/pgliteTemplate');
-    pg = newPglite();
-    await pg.exec(`CREATE TABLE studio_apps (
-        id TEXT PRIMARY KEY, user_id TEXT NOT NULL, engine TEXT NOT NULL DEFAULT 'sqlite',
-        db_sha256 TEXT DEFAULT '', db_size BIGINT DEFAULT 0, updated_at TIMESTAMPTZ DEFAULT NOW())`);
-    engine = createPgAppEngine({
-        runQuery: rawQuery,
-        getClient: async () => ({ query: rawQuery, release: () => {} }),
-        logPrefix: 'StudioAppDB',
-        entityLabel: 'Studio App DB',
-        schemaFor: (appId) => 'app_' + appId,
-    });
-});
-
-test.after(async () => { if (pg) await pg.close(); });
+const pgApp = usePgAppEngine(test);
+const rawQuery = (sql, params) => pgApp.rawQuery(sql, params);
 
 const LINES = (fields) => ({ tables: [{ id: 'tbl_lines1', key: 'lines', fields }] });
 const computedField = (expr, key = 'dbl') => ({ id: 'fld_dbl', key, type: 'computed', computed: { expr, type: 'number', stored: true } });
@@ -56,18 +37,18 @@ const computedField = (expr, key = 'dbl') => ({ id: 'fld_dbl', key, type: 'compu
 async function populated(model, rows) {
     const appId = `conv-${++appSeq}`;
     await rawQuery(`INSERT INTO studio_apps (id, user_id, engine) VALUES ($1, $2, 'pg')`, [appId, OWNER]);
-    await engine.applyMigration(OWNER, appId, migrationPlan({ tables: [] }, model, { dialect: 'pg' }));
+    await pgApp.engine.applyMigration(OWNER, appId, migrationPlan({ tables: [] }, model, { dialect: 'pg' }));
     for (const [i, r] of rows.entries()) {
         const cols = Object.keys(r);
-        await engine.exec(OWNER, appId,
+        await pgApp.engine.exec(OWNER, appId,
             `INSERT INTO "lines" (id, ${cols.map((c) => `"${c}"`).join(', ')}) VALUES (?, ${cols.map(() => '?').join(', ')})`,
             [`rec_${i}`, ...cols.map((c) => r[c])]);
     }
     return appId;
 }
 
-const apply = (appId, planned) => engine.applyMigration(OWNER, appId, planned.statements, { probes: planned.probes });
-const column = async (appId, sql) => (await engine.query(OWNER, appId, sql)).rows;
+const apply = (appId, planned) => pgApp.engine.applyMigration(OWNER, appId, planned.statements, { probes: planned.probes });
+const column = async (appId, sql) => (await pgApp.engine.query(OWNER, appId, sql)).rows;
 
 test('spec: a stored computed field with a new expression gives the new value for every row', async () => {
     const QTY = { id: 'fld_qty', key: 'qty', type: 'number' };
@@ -141,7 +122,7 @@ test('drift: a NUMERIC column under a model text field converts to select and to
     const appId = await populated(LINES([NUM]), [{ a: 1 }, { a: 2.5 }, { a: null }]);
     const toSelect = planMigration(LINES([TXT]), LINES([{ ...TXT, type: 'select', options: ['1'] }]), { dialect: 'pg', convertTypes: true });
     // text ⇄ select has no statement; the save's version stamp still runs the probe.
-    await assert.rejects(engine.applyMigration(OWNER, appId, toSelect.statements, { probes: toSelect.probes, targetVersion: 2 }), (err) => {
+    await assert.rejects(pgApp.engine.applyMigration(OWNER, appId, toSelect.statements, { probes: toSelect.probes, targetVersion: 2 }), (err) => {
         assert.strictEqual(err.code, 'migration_precondition');
         assert.strictEqual(err.probed[0].bad, 1, '2.5 is not an option');
         return true;

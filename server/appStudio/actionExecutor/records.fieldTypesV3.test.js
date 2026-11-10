@@ -16,27 +16,11 @@ process.env.NODE_ENV = 'test';
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const Database = require('better-sqlite3');
+const { useSqliteAppStores } = require('../../testUtils/sqliteAppStores.testkit');
 
 const OWNER = 'owner-1';
 const app = { id: 'app-1', userId: OWNER, organizationId: 'org-1' };
-const db = new Database(':memory:');
-
-const norm = (params) => params.map((v) => (typeof v === 'boolean' ? (v ? 1 : 0) : v));
-const dbStore = require('../../stores/studioAppDbStore');
-const dataStore = require('../../stores/studioAppDataStore');
-const swaps = [
-    [dbStore, {
-        exec: async (_o, _a, sql, params) => ({ changes: db.prepare(sql).run(...norm(params)).changes }),
-        query: async (_o, _a, sql, params) => ({ rows: db.prepare(sql).all(...norm(params)) }),
-        batch: async (_o, _a, statements) => db.transaction(() => statements.map((s) => ({ changes: db.prepare(s.sql).run(...norm(s.params)).changes })))(),
-        sizeBytes: async () => 0,
-    }],
-    [dataStore, { bumpDataVersion: async () => 1, bumpRowCount: async () => ({}), getRowCounts: async () => ({}) }],
-];
-const originals = swaps.map(([target, methods]) => [target, Object.fromEntries(Object.keys(methods).map((k) => [k, target[k]]))]);
-swaps.forEach(([target, methods]) => Object.assign(target, methods));
-test.after(() => originals.forEach(([target, saved]) => Object.assign(target, saved)));
+const db = useSqliteAppStores(test);
 
 const dataModel = require('../dataModel');
 const { executeDataStep } = require('./dispatch');

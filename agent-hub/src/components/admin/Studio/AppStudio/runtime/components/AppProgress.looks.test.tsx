@@ -1,8 +1,7 @@
-import { render } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
 import AppProgress from './AppProgress';
-import { RuntimeProvider, buildScope, DEFAULT_RUNTIME } from '../RuntimeContext';
-import type { ReactElement, ComponentProps } from 'react';
+import { renderInRuntime as withRuntime } from '@/test/appRuntimeRender';
+import type { ComponentProps } from 'react';
 import { stub } from '@/test/mocks';
 import { withoutPartClasses } from '@/test/appPartClasses';
 
@@ -14,11 +13,6 @@ import { withoutPartClasses } from '@/test/appPartClasses';
  * this file only owns the look additions, so parallel work on that shared
  * file stays conflict-free.)
  */
-
-function withRuntime(ui: ReactElement) {
-    const value = { ...DEFAULT_RUNTIME, scope: buildScope({ now: '2026-01-01T00:00:00.000Z' }) };
-    return render(<RuntimeProvider value={value}>{ui}</RuntimeProvider>);
-}
 
 const progressNode = (props = {}, style = {}) => ({
     id: 'cmp_prg', type: 'progress', visible: true,

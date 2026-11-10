@@ -1,9 +1,7 @@
-import { render, within } from '@testing-library/react';
+import { within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, it, expect, vi } from 'vitest';
-import ThemePanel from '../ThemePanel';
-import { stub } from '@/test/mocks';
-import type { ComponentProps } from 'react';
+import { describe, it, expect } from 'vitest';
+import { renderThemePanel } from '../ThemePanel.testkit';
 
 /** screen.kind and design.accentEdge: in the definition for a long time, now with a control. */
 
@@ -19,11 +17,7 @@ const DEF = {
     actions: {},
 };
 
-function renderPanel(screenId: string, definition: Record<string, unknown> = DEF) {
-    const onCommit = vi.fn();
-    const utils = render(<ThemePanel definition={stub<ComponentProps<typeof ThemePanel>['definition']>(definition)} onCommit={onCommit} screenId={screenId} />);
-    return { ...utils, onCommit };
-}
+const renderPanel = (screenId: string, definition: Record<string, unknown> = DEF) => renderThemePanel(definition, screenId);
 
 describe('ThemePanel — screen kind', () => {
     it('makes the screen a dashboard, and Page removes the key again', async () => {

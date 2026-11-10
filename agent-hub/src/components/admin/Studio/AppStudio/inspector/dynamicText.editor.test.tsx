@@ -2,7 +2,7 @@ import { fireEvent, render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import type { ComponentProps } from 'react';
-import ThemePanel from './ThemePanel';
+import { THEME_PANEL_DEF, renderThemePanel } from './ThemePanel.testkit';
 import SequenceEffects from './SequenceEffects';
 import { isBareHost, parseLinkHosts, updateAllowedLinkHosts } from '../state/linkHostOps';
 import { updateServerScope } from '../state/serverScopeOps';
@@ -13,14 +13,7 @@ import { malformed, stub } from '@/test/mocks';
  * (App settings), the effects of a sequence (On success / On error), and the helpers behind them.
  */
 
-const DEF = {
-    schemaVersion: 2,
-    meta: { name: 'T', description: '', icon: null },
-    theme: {},
-    homeScreenId: 'scr_1',
-    screens: [{ id: 'scr_1', name: 'One', maxWidth: 'medium', refreshInterval: 0, showInNav: true, icon: null, sections: [] }],
-    actions: {},
-};
+const DEF = THEME_PANEL_DEF;
 
 describe('link host helpers', () => {
     it('accepts bare host names only', () => {
@@ -47,11 +40,7 @@ describe('link host helpers', () => {
 });
 
 describe('ThemePanel: links from formulas', () => {
-    function renderPanel(definition: Record<string, unknown> = DEF) {
-        const onCommit = vi.fn();
-        const utils = render(<ThemePanel definition={stub<ComponentProps<typeof ThemePanel>['definition']>(definition)} onCommit={onCommit} screenId="scr_1" />);
-        return { onCommit, ...utils };
-    }
+    const renderPanel = (definition: Record<string, unknown> = DEF) => renderThemePanel(definition);
 
     it('shows an empty list on an app that never set one, and says only the owner can change it', () => {
         const { getByLabelText, getByText } = renderPanel();
@@ -121,11 +110,7 @@ describe('SequenceEffects', () => {
 });
 
 describe('ThemePanel: what server steps can read', () => {
-    function renderPanel(definition: Record<string, unknown> = DEF) {
-        const onCommit = vi.fn();
-        const utils = render(<ThemePanel definition={stub<ComponentProps<typeof ThemePanel>['definition']>(definition)} onCommit={onCommit} screenId="scr_1" />);
-        return { onCommit, ...utils };
-    }
+    const renderPanel = (definition: Record<string, unknown> = DEF) => renderThemePanel(definition);
     const LABEL = 'Let server steps read the screen, other forms and action results';
 
     it('is off on an app that never set it, and switching it on writes serverScope: wide', async () => {

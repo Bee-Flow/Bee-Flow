@@ -1,9 +1,8 @@
 import { render, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, it, expect, vi } from 'vitest';
-import ThemePanel from './ThemePanel';
+import { describe, it, expect } from 'vitest';
+import { THEME_PANEL_DEF, renderThemePanel } from './ThemePanel.testkit';
 import { updateAiBrowsing } from '../state/definitionOps';
-import type { ComponentProps } from 'react';
 import { malformed, stub } from '@/test/mocks';
 
 /**
@@ -20,20 +19,9 @@ import { malformed, stub } from '@/test/mocks';
  * a bug rather than a design.
  */
 
-const DEF = {
-    schemaVersion: 2,
-    meta: { name: 'T', description: '', icon: null },
-    theme: {},
-    homeScreenId: 'scr_1',
-    screens: [{ id: 'scr_1', name: 'One', maxWidth: 'medium', refreshInterval: 0, showInNav: true, icon: null, sections: [] }],
-    actions: {},
-};
+const DEF = THEME_PANEL_DEF;
 
-function renderPanel(definition = DEF) {
-    const onCommit = vi.fn();
-    const utils = render(<ThemePanel definition={stub<ComponentProps<typeof ThemePanel>['definition']>(definition)} onCommit={onCommit} screenId="scr_1" />);
-    return { onCommit, ...utils };
-}
+const renderPanel = (definition: Record<string, unknown> = DEF) => renderThemePanel(definition);
 
 describe('updateAiBrowsing', () => {
     it('adds the key, merges patches, and leaves an untouched definition alone', () => {

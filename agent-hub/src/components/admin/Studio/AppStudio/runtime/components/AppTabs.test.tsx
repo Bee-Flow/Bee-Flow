@@ -1,9 +1,8 @@
-import { render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect } from 'vitest';
 import AppTabs, { tabBadgeContent } from './AppTabs';
-import { RuntimeProvider, buildScope, DEFAULT_RUNTIME } from '../RuntimeContext';
-import type { ReactElement } from 'react';
+import { buildScope } from '../RuntimeContext';
+import { renderInRuntime as withRuntime } from '@/test/appRuntimeRender';
 import { withoutPartClasses } from '@/test/appPartClasses';
 
 /**
@@ -19,11 +18,6 @@ import { withoutPartClasses } from '@/test/appPartClasses';
  * containers.test.jsx through AppRenderer; this file is about the strip's
  * visual registers only.
  */
-
-function withRuntime(ui: ReactElement, overrides = {}) {
-    const value = { ...DEFAULT_RUNTIME, scope: buildScope({ now: '2026-01-01T00:00:00.000Z' }), ...overrides };
-    return render(<RuntimeProvider value={value}>{ui}</RuntimeProvider>);
-}
 
 function tabsNode(props = {}) {
     return {

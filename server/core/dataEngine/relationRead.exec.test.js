@@ -21,19 +21,14 @@ process.env.NODE_ENV = 'test';
 require('../../testUtils/routeHarness').recordDb();
 
 const qc = require('./queryCompiler');
-const { ddlForTable } = require('./dataModel/ddl');
 const { compileAccessFilter } = require('./accessFilter');
 const { relationRead, finishRecords } = require('./relationRead.mts');
-const { toDollarParams } = require('../../stores/lib/pgAppEngine');
+const { CUSTOMER_FIELDS, readableCustomer, seedRelationEngines } = require('../../testUtils/relationEngines.testkit');
 
 const CUSTOMERS = {
     id: 'tbl_cust01',
     key: 'customers',
-    fields: [
-        { id: 'c1', key: 'name', type: 'text' },
-        { id: 'c2', key: 'segment', type: 'text' },
-        { id: 'c3', key: 'staff', type: 'number', subtype: 'integer' },
-    ],
+    fields: [...CUSTOMER_FIELDS],
     // A member reads only the retail customers; an outsider reads none of the table.
     access: { default: 'none', roles: { member: { read: 'all' } }, rowFilters: { member: 'record.segment == "retail"' } },
 };
@@ -50,12 +45,6 @@ const ORDERS = {
 const MODEL = { tables: [CUSTOMERS, ORDERS] };
 const VIEWER = { id: 'u1' };
 
-const CUSTOMER_ROWS = [
-    { id: 'cus_a', name: 'Alpha', segment: 'retail', staff: 4 },
-    { id: 'cus_b', name: 'Bravo', segment: 'retail', staff: 120 },
-    { id: 'cus_c', name: 'Charlie', segment: 'wholesale', staff: 55 },
-    { id: 'cus_d', name: 'Delta', segment: 'public', staff: 7 },
-];
 const HIDDEN_NAMES = ['Charlie', 'Delta'];
 
 /** 40 orders of u1 (every fifth without a customer, one pointing at a deleted customer) plus orders of u2. */
@@ -76,43 +65,11 @@ const seeded = [];
 test.after(async () => { for (const close of closers) await close(); });
 
 test('(setup) the same customers and orders on SQLite and on Postgres', async () => {
-    const Database = require('better-sqlite3');
-    const lite = new Database(':memory:');
-    closers.push(() => lite.close());
-    const { newPglite } = require('../../testUtils/pgliteTemplate');
-    const pg = newPglite();
-    closers.push(() => pg.close());
-    engines.sqlite = async (sql, params) => {
-        ran.sqlite.push({ sql, params });
-        const stmt = lite.prepare(sql);
-        return stmt.reader ? stmt.all(...params) : (stmt.run(...params), []);
-    };
-    engines.pg = async (sql, params) => {
-        ran.pg.push({ sql, params });
-        return (await pg.query(toDollarParams(sql, params.length), params)).rows;
-    };
-    for (const table of [CUSTOMERS, ORDERS]) {
-        lite.exec(ddlForTable(table, { dialect: 'sqlite' }));
-        await pg.exec(ddlForTable(table, { dialect: 'pg' }));
-    }
-    const inserts = [
-        ...CUSTOMER_ROWS.map(({ id, ...values }) => ({ table: CUSTOMERS, values, id, owner: 'u9' })),
-        ...orderRows().map((row, n) => ({ table: ORDERS, values: row.values, id: `ord_${String(n).padStart(3, '0')}`, owner: row.owner })),
-    ];
-    for (const ins of inserts) {
-        for (const dialect of ['sqlite', 'pg']) {
-            const c = qc.compileInsert(ins.table, ins.values, { createdBy: ins.owner, orgId: 'o1', id: ins.id, dialect });
-            await engines[dialect](c.sql, c.params);
-        }
-        if (ins.table === ORDERS) seeded.push({ id: ins.id, ...ins.values, owner: ins.owner });
-    }
+    await seedRelationEngines({ customers: CUSTOMERS, orders: ORDERS, orderRows: orderRows(), engines, seeded, closers, onSql: (dialect, sql, params) => ran[dialect].push({ sql, params }) });
     assert.strictEqual(seeded.length, 48);
 });
 
 const visibleOrders = () => seeded.filter((o) => o.owner === 'u1');
-const customerOf = (id) => CUSTOMER_ROWS.find((c) => c.id === id) || null;
-/** The customer as the member may see it: retail only. */
-const readableCustomer = (id) => { const c = customerOf(id); return c && c.segment === 'retail' ? c : null; };
 const byId = (a, b) => String(a.id).localeCompare(String(b.id));
 
 /** One page of orders for a role, through the compiler and the expansion step, on one engine. */

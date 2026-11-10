@@ -147,3 +147,41 @@ describe('More options round-trips on corpus nodes', () => {
         expect(canonical(latest())).toEqual(app);
     });
 });
+
+/**
+ * The props a type gained after the base (since 3) get a control under its bespoke panel,
+ * rendered from the server catalog: `pagination` on table, list and data_grid. "(default)"
+ * clears it.
+ */
+describe('later props under the bespoke panels', () => {
+    const SOURCE = { kind: 'records', tableId: 'tbl_a' };
+    const withNode = (node: Record<string, unknown>) => ({
+        schemaVersion: 2,
+        meta: { name: 'T', description: '', icon: 'LayoutGrid' },
+        theme: {},
+        homeScreenId: 'scr_t',
+        screens: [{ id: 'scr_t', name: 'T', sections: [{ id: 'sec_t', style: {}, children: [node] }] }],
+        actions: {},
+    } as unknown as AppDefinition);
+    const pagination = () => screen.getByRole('combobox', { name: 'Pagination' }) as HTMLSelectElement;
+
+    it('table: pagination from the spec, written when picked and cleared by (default)', async () => {
+        const { user, props } = await mount(withNode({ id: 'cmp_t', type: 'table', props: { source: SOURCE, columns: [] } }), 'cmp_t');
+        expect([...pagination().options].map((o) => o.value)).toEqual(['', 'loadMore', 'prevNext']);
+        expect(pagination().value).toBe('');
+        await user.selectOptions(pagination(), 'prevNext');
+        expect(props().pagination).toBe('prevNext');
+        await user.selectOptions(pagination(), '');
+        expect(props().pagination ?? null).toBeNull();
+    });
+
+    it('list shows the mode it holds', async () => {
+        await mount(withNode({ id: 'cmp_l', type: 'list', props: { source: SOURCE, pagination: 'loadMore' } }), 'cmp_l');
+        expect(pagination().value).toBe('loadMore');
+    });
+
+    it('data_grid offers the modes its spec has', async () => {
+        await mount(withNode({ id: 'cmp_g', type: 'data_grid', props: { source: SOURCE, columns: [] } }), 'cmp_g');
+        expect([...pagination().options].map((o) => o.value)).toEqual(['', 'loadMore']);
+    });
+});

@@ -2,7 +2,9 @@
 
 /**
  * app_run_action over the control kinds of the step registry: a dry run walks a while with a
- * break, a try with a catch and a return like the browser would, and reports each of them.
+ * break, a try with a catch and a return like the browser would, and reports each of them; it
+ * walks the branches of a `parallel` step one after another (and says so), takes a mock per
+ * branch by its walker path, and joins the variables in branch order.
  *
  * Run: cd server && node --test appStudio/mcpRunAction.controlFlow.test.js
  */
@@ -99,4 +101,58 @@ test('raise_error without a try fails the run with the author\'s message', async
     assert.equal(out.ok, false);
     assert.deepEqual(executed, []);
     assert.match(JSON.stringify(out), /The order has no lines\./);
+});
+
+// ── parallel ─────────────────────────────────────────────────────────────────
+
+const ai = (prompt, resultVar) => ({ kind: 'ai_generate', prompt, resultVar });
+const ACTION = { kind: 'sequence', steps: [
+    { kind: 'parallel', branches: [
+        { steps: [ai('summarise', 'summary'), setVar('first', 'vars.summary.text')] },
+        { steps: [ai('classify', 'label')] },
+    ] },
+    setVar('both', 'vars.first + " / " + vars.label.text'),
+] };
+
+test('a dry run walks the branches in order, with a mock per branch, and notes that it did', async () => {
+    const out = await run(ACTION, { mock: { 'steps[0].branches[0].steps[0]': 'A short summary', 'steps[0].branches[1].steps[0]': 'invoice' } });
+    assert.equal(out.ok, true, JSON.stringify(out).slice(0, 600));
+    assert.equal(out.dryRun, true);
+    assert.deepEqual(executed, [], 'both AI steps were mocked: nothing reached the executor');
+    assert.equal(out.vars.both, 'A short summary / invoice');
+    const steps = byPath(out);
+    assert.deepEqual(out.steps.map((s) => s.path), [
+        'steps[0].branches[0].steps[0]', 'steps[0].branches[0].steps[1]', 'steps[0].branches[1].steps[0]', 'steps[0]', 'steps[1]',
+    ], 'branch 1 to its end, then branch 2, then the step itself');
+    assert.equal(steps['steps[0].branches[0].steps[0]'].mocked, true);
+    assert.equal(steps['steps[0].branches[1].steps[0]'].mocked, true);
+    assert.deepEqual(steps['steps[0]'].result, { branches: 2 });
+    assert.match(JSON.stringify(out), /the branches of this parallel step ran one after another/);
+});
+
+test('a dry run without mocks runs both AI steps and reports a failing branch', async () => {
+    const fine = await run(ACTION);
+    assert.equal(fine.ok, true, JSON.stringify(fine).slice(0, 600));
+    assert.deepEqual(executed, ['ai_generate', 'ai_generate']);
+
+    executed = [];
+    failOn = 'kb_query';
+    const out = await run({ kind: 'sequence', steps: [
+        { kind: 'parallel', branches: [
+            { steps: [{ kind: 'kb_query', query: { kind: 'static', value: 'q' }, knowledgeBaseIds: ['kb_1'], resultVar: 'hits' }] },
+            { steps: [ai('still runs', 'draft')] },
+        ] },
+        ai('never', 'x'),
+    ] });
+    assert.equal(out.ok, false);
+    assert.deepEqual(executed, ['kb_query', 'ai_generate'], 'the other branch ran to its end; the step after the parallel did not');
+    const steps = byPath(out);
+    assert.equal(steps['steps[0].branches[0].steps[0]'].status, 'error');
+    assert.deepEqual(steps['steps[0]'].result, { branches: 2, failed: [0] });
+});
+
+test('a real run (dryRun: false) does not carry the dry run note', async () => {
+    const out = await run(ACTION, { dryRun: false });
+    assert.equal(out.ok, true, JSON.stringify(out).slice(0, 600));
+    assert.doesNotMatch(JSON.stringify(out), /ran one after another/);
 });
