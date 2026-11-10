@@ -3558,18 +3558,7 @@
       "count": 2
     }
   },
-  "core/dataEngine/queryCompiler.js": {
-    "complexity": {
-      "count": 1
-    },
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
   "core/dataEngine/queryCompilerBase.js": {
-    "complexity": {
-      "count": 2
-    },
     "max-params": {
       "count": 1
     }

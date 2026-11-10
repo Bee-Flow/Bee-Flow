@@ -167,7 +167,6 @@
     "core/customIntegrations/mcpLibrary/service.js": 762,
     "core/customIntegrations/mcpLibrary/service.test.js": 1003,
     "core/dataEngine/datatableRuntime.js": 524,
-    "core/dataEngine/queryCompiler.js": 413,
     "core/dataEngine/sources/spreadsheetFile/cells.js": 479,
     "core/dataEngine/sources/spreadsheetFile/formats/csv.js": 514,
     "core/dataEngine/sources/spreadsheetFile/providers/nextcloudFiles.js": 466,
