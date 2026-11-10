@@ -39,6 +39,8 @@ function specs(): Specs {
 /** Keys the section line already prints (`padding= gap= bg=`). */
 const SECTION_SHOWN = new Set(['padding', 'gap', 'background']);
 const MAX_VALUE = 40;
+/** A plain token may be a little longer: an `asset:<uuid>` ref (42 characters) stays whole and usable. */
+const MAX_TOKEN = 48;
 const TOKEN_CHARS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789#._:%-';
 
 function isObject(v: unknown): v is Bag {
@@ -53,7 +55,7 @@ function sameValue(a: unknown, b: unknown): boolean {
 
 /** A short token as is; anything else quoted and cut, so one value never floods the line. */
 function plainToken(s: string): boolean {
-    if (!s || s.length > MAX_VALUE) return false;
+    if (!s || s.length > MAX_TOKEN) return false;
     for (const ch of s) if (!TOKEN_CHARS.includes(ch)) return false;
     return true;
 }

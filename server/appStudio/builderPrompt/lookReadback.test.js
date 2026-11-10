@@ -91,4 +91,6 @@ test('a long or odd value is quoted and cut, so one value never floods the line'
     const long = lookValue('x'.repeat(200));
     assert.ok(long.length < 50 && long.endsWith('…"'), long);
     assert.equal(lookValue({ a: 1 }), '"{\\"a\\":1}"');
+    const asset = 'asset:0b6f2c1e-4a8d-4e1f-9c3b-1d2e3f4a5b6c';
+    assert.equal(lookValue(asset), asset, 'an asset ref stays whole, so the builder can reuse it');
 });
