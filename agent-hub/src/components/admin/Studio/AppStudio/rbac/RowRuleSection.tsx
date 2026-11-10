@@ -89,25 +89,46 @@ export default function RowRuleSection({ t, draft, setDraft, noAccess, table, va
                     onChange={(raw) => setDraft((prev) => ({ ...prev, raw }))} />
             </>
         )}
-        {followsRead && !rule.trim() ? (
-            <span data-testid="row-rule-follows-read" className="text-[11px] text-[var(--text-tertiary)]">
-                {t('studio_apps_rowrules.follows_read', 'No rule of its own: this action follows the rule for seeing.')}
-            </span>
-        ) : null}
-        {everyRow ? (
-            <span data-testid="row-rule-every-row" className="text-[11px] text-[var(--text-tertiary)]">
-                {t('studio_apps_rowrules.every_row_set', 'Written as true: no row rule narrows this action. Empty it to follow the rule for seeing again.')}
-            </span>
-        ) : null}
-        {rule.includes('viewer.groups') ? (
-            <span className="text-[11px] text-[var(--text-tertiary)]">
-                {t('studio_apps_rowrules.groups_hint', 'Groups are compared by their id, so the column has to hold a group id.')}
-            </span>
-        ) : null}
+        <RuleNotes t={t} rule={rule} followsRead={followsRead} />
         {validation.ok && validation.warning ? (
             <span data-testid="row-rule-advice" className="text-[11px] text-amber-600 dark:text-amber-400">{validation.warning}</span>
         ) : null}
     </div>;
+}
+
+/**
+ * For changing or deleting with a rule per action: what an empty rule means
+ * there (it follows the rule for seeing), and what the rule `true` means.
+ */
+function FollowsReadNote({ t, rule }: { t: TranslateFn; rule: string }) {
+    const own = rule.trim();
+    if (!own) {
+        return (
+            <span data-testid="row-rule-follows-read" className="text-[11px] text-[var(--text-tertiary)]">
+                {t('studio_apps_rowrules.follows_read', 'No rule of its own: this action follows the rule for seeing.')}
+            </span>
+        );
+    }
+    if (own !== EVERY_ROW) return null;
+    return (
+        <span data-testid="row-rule-every-row" className="text-[11px] text-[var(--text-tertiary)]">
+            {t('studio_apps_rowrules.every_row_set', 'Written as true: no row rule narrows this action. Empty it to follow the rule for seeing again.')}
+        </span>
+    );
+}
+
+/** What there is to say about the rule as written, whatever wrote it. */
+function RuleNotes({ t, rule, followsRead }: { t: TranslateFn; rule: string; followsRead: boolean }) {
+    return (
+        <>
+            {followsRead ? <FollowsReadNote t={t} rule={rule} /> : null}
+            {rule.includes('viewer.groups') ? (
+                <span className="text-[11px] text-[var(--text-tertiary)]">
+                    {t('studio_apps_rowrules.groups_hint', 'Groups are compared by their id, so the column has to hold a group id.')}
+                </span>
+            ) : null}
+        </>
+    );
 }
 
 function RawRuleBox({ table, value, onChange, disabled, error }: RawRuleBoxProps) {
