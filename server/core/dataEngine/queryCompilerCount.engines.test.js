@@ -9,12 +9,10 @@
 
 const { test } = require('node:test');
 const assert = require('node:assert');
-const Database = require('better-sqlite3');
 
 const qc = require('./queryCompiler');
 const { ddlForTable } = require('./dataModel/ddl');
-const { toDollarParams, _normalizeRows } = require('../../stores/lib/pgAppEngine');
-const { newPglite } = require('../../testUtils/pgliteTemplate');
+const { APP_ENGINES } = require('../../testUtils/appEngines');
 
 const TASKS = {
     id: 'tbl_tasks1',
@@ -25,30 +23,6 @@ const TASKS = {
     ],
 };
 const MINE = { where: '"created_by" = ?', params: ['user-1'] };
-
-function sqliteEngine() {
-    const db = new Database(':memory:');
-    return {
-        dialect: 'sqlite',
-        exec: async (sql) => db.exec(sql),
-        query: async (sql, params) => {
-            const stmt = db.prepare(sql);
-            if (!stmt.reader) { stmt.run(...params); return { rows: [] }; }
-            return { rows: stmt.all(...params) };
-        },
-        close: async () => db.close(),
-    };
-}
-
-function pgEngine() {
-    const db = newPglite();
-    return {
-        dialect: 'pg',
-        exec: async (sql) => db.exec(sql),
-        query: async (sql, params) => ({ rows: _normalizeRows(await db.query(toDollarParams(sql, params.length), params)) }),
-        close: async () => db.close(),
-    };
-}
 
 /** Walk every page the way the read runner does: limit+1 probe, cursor from the last kept row. */
 async function walk(engine, opts, access) {
@@ -72,7 +46,7 @@ async function count(engine, opts, access) {
     return Number(rows[0].total);
 }
 
-for (const [name, make] of [['sqlite', sqliteEngine], ['pg', pgEngine]]) {
+for (const [name, make] of APP_ENGINES) {
     test(`${name}: the cursor walk and the count agree, under the row rule and a filter`, async () => {
         const engine = make();
         try {

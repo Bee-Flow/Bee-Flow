@@ -72,7 +72,7 @@ function humanize(key: string) {
 }
 
 /** One prop's entry in the catalog's prop spec (or an inferred one). */
-interface PropSpec {
+export interface PropSpec {
     type: string;
     default?: unknown;
     values?: unknown[];
@@ -232,7 +232,7 @@ interface SpecFieldProps {
     disabled: boolean;
 }
 
-function SpecField({ propKey, fs, value, patch, definition, node, disabled }: SpecFieldProps) {
+export function SpecField({ propKey, fs, value, patch, definition, node, disabled }: SpecFieldProps) {
     const { t } = useTranslation();
     const label = humanize(propKey);
     const commit = (v: unknown) => patch({ [propKey]: v });

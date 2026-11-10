@@ -1,0 +1,14 @@
+{
+  "translations": {
+    "studio_apps_paging.load_more": "Meer laden",
+    "studio_apps_paging.loading": "Laden…",
+    "studio_apps_paging.failed": "De volgende pagina kon niet worden geladen.",
+    "studio_apps_paging.shown": "{shown} getoond",
+    "studio_apps_paging.shown_of_total": "{shown} van {total}",
+    "studio_apps_paging.range_of_total": "{from}–{to} van {total}",
+    "studio_apps_paging.previous": "Vorige",
+    "studio_apps_paging.next": "Volgende",
+    "studio_apps_paging.nav_label": "Pagina's"
+  },
+  "sameAsEnglish": ["studio_apps_paging.range"]
+}

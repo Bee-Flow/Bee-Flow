@@ -38780,6 +38780,16 @@ const EN_DEFAULTS = {
     "studio_misc.toolbar.view_cards": "Cards",
     "studio_misc.toolbar.view_list": "List",
     "studio_apps_computed.read_time_hint": "Worked out every time a record is read, from this table’s own columns. You can show it, but not filter or sort on it.",
+    "studio_apps_paging.load_more": "Load more",
+    "studio_apps_paging.loading": "Loading…",
+    "studio_apps_paging.failed": "The next page could not be loaded.",
+    "studio_apps_paging.shown": "{shown} shown",
+    "studio_apps_paging.shown_of_total": "{shown} of {total}",
+    "studio_apps_paging.range": "{from}–{to}",
+    "studio_apps_paging.range_of_total": "{from}–{to} of {total}",
+    "studio_apps_paging.previous": "Previous",
+    "studio_apps_paging.next": "Next",
+    "studio_apps_paging.nav_label": "Pages",
     "studio_apps_schema.newer_than_install": "This app was saved by a newer version of Bee Flow. Update this installation to open or change it.",
 };
 

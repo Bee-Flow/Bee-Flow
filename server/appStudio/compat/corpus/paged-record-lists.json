@@ -1,0 +1,248 @@
+{
+  "about": {
+    "source": "hand-written for server paging of record lists: a table stepping through pages (prevNext), a filtered list and a data grid loading more (loadMore), each over a records source with a limit",
+    "stored": "definition = canonicalizeAppDefinition(definition).def; dataModel = canonicalizeDataModel(model).model",
+    "captured": "2026-11-10"
+  },
+  "definition": {
+    "schemaVersion": 3,
+    "meta": {
+      "name": "Ticket queue",
+      "description": "Long record lists read page by page.",
+      "icon": "List"
+    },
+    "theme": {
+      "primary": "#0F766E",
+      "radius": "md",
+      "density": "comfortable",
+      "fontScale": "md",
+      "appearance": "auto"
+    },
+    "roles": [],
+    "screens": [
+      {
+        "id": "scr_queue01",
+        "name": "Queue",
+        "icon": "List",
+        "showInNav": true,
+        "maxWidth": "medium",
+        "sections": [
+          {
+            "id": "sec_queue01",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_qhead",
+                "type": "heading",
+                "props": {
+                  "text": "Ticket queue",
+                  "level": 1,
+                  "accent": "none"
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_qtable",
+                "type": "table",
+                "props": {
+                  "source": {
+                    "kind": "records",
+                    "tableId": "tbl_tick01",
+                    "sort": {
+                      "field": "opened",
+                      "dir": "desc"
+                    },
+                    "limit": 20
+                  },
+                  "columns": [
+                    {
+                      "key": "title",
+                      "label": "Title"
+                    },
+                    {
+                      "key": "status",
+                      "label": "Status",
+                      "format": "badge"
+                    },
+                    {
+                      "key": "opened",
+                      "label": "Opened",
+                      "format": "date"
+                    }
+                  ],
+                  "emptyText": "Nothing to show yet.",
+                  "rowLimit": 25,
+                  "pagination": "prevNext",
+                  "look": "default"
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_qlist",
+                "type": "list",
+                "props": {
+                  "source": {
+                    "kind": "records",
+                    "tableId": "tbl_tick01",
+                    "filter": [
+                      {
+                        "field": "status",
+                        "op": "eq",
+                        "value": "open"
+                      }
+                    ],
+                    "sort": {
+                      "field": "opened",
+                      "dir": "desc"
+                    },
+                    "limit": 20
+                  },
+                  "titleKey": "title",
+                  "subtitleKey": "status",
+                  "metaKey": null,
+                  "timestampKey": null,
+                  "badgeKey": null,
+                  "tagsKey": null,
+                  "badgeToneMap": [],
+                  "unreadKey": null,
+                  "badgePlacement": "meta",
+                  "selectedWhen": null,
+                  "selectedDetailKey": null,
+                  "groupKey": null,
+                  "groupOrder": [],
+                  "groupLabelMap": [],
+                  "icon": null,
+                  "emptyText": "Nothing to show yet.",
+                  "pagination": "loadMore",
+                  "look": "rows",
+                  "peekSource": null,
+                  "peekMatchKey": null,
+                  "peekRowKey": null,
+                  "peekTitleKey": null,
+                  "peekTextKey": null,
+                  "peekGroupKey": null,
+                  "peekGroupLabelMap": [],
+                  "peekCountKey": null,
+                  "peekLimit": 6,
+                  "peekTitle": null,
+                  "peekMoreText": null,
+                  "peekBadge": false
+                },
+                "style": {
+                  "span": 6
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_qgrid",
+                "type": "data_grid",
+                "props": {
+                  "source": {
+                    "kind": "records",
+                    "tableId": "tbl_tick01",
+                    "limit": 100
+                  },
+                  "columns": [
+                    {
+                      "key": "title",
+                      "label": "Title"
+                    },
+                    {
+                      "key": "status",
+                      "label": "Status"
+                    }
+                  ],
+                  "pageSize": 25,
+                  "pagination": "loadMore",
+                  "selectable": "none",
+                  "searchable": false,
+                  "rowActions": [],
+                  "toolbarActions": [],
+                  "addRowLabel": null,
+                  "addRowActionId": null,
+                  "bulkActions": [],
+                  "density": "comfortable",
+                  "clamp": "off",
+                  "rowTone": [],
+                  "groupBy": null,
+                  "groupOrder": [],
+                  "activeWhen": null,
+                  "zebra": false,
+                  "emptyText": "Nothing to show yet.",
+                  "look": "default"
+                },
+                "style": {
+                  "span": 6
+                },
+                "visible": true
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "actions": {},
+    "homeScreenId": "scr_queue01"
+  },
+  "dataModel": {
+    "modelVersion": 1,
+    "tables": [
+      {
+        "id": "tbl_tick01",
+        "key": "tickets",
+        "name": "Tickets",
+        "fields": [
+          {
+            "id": "fld_tk01",
+            "key": "title",
+            "type": "text",
+            "required": false,
+            "unique": false,
+            "name": "title"
+          },
+          {
+            "id": "fld_tk02",
+            "key": "status",
+            "type": "select",
+            "options": [
+              "open",
+              "closed"
+            ],
+            "required": false,
+            "unique": false,
+            "name": "status"
+          },
+          {
+            "id": "fld_tk03",
+            "key": "opened",
+            "type": "date",
+            "required": false,
+            "unique": false,
+            "name": "opened"
+          }
+        ],
+        "icon": null,
+        "access": {
+          "default": "app",
+          "roles": {},
+          "rowFilters": {}
+        }
+      }
+    ],
+    "roles": [],
+    "roleMapping": {
+      "default": "app",
+      "byGroup": {}
+    }
+  }
+}

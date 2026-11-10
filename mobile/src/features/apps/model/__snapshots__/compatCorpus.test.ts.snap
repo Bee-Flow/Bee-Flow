@@ -663,6 +663,43 @@ exports[`compat corpus: what the phone plans for every stored app lockstep-sampl
 }
 `;
 
+exports[`compat corpus: what the phone plans for every stored app paged-record-lists 1`] = `
+{
+  "defaultScreen": "scr_queue01",
+  "navigable": [
+    "scr_queue01",
+  ],
+  "screens": [
+    {
+      "id": "scr_queue01",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "id": "cmp_qhead",
+                "kind": "heading",
+                "level": 1,
+                "text": "Ticket queue",
+              },
+            ],
+            "screen": "scr_queue01",
+            "unsupported": [
+              "table",
+              "list",
+              "data_grid",
+            ],
+          },
+          "roles": [
+            "(no role)",
+          ],
+        },
+      ],
+    },
+  ],
+}
+`;
+
 exports[`compat corpus: what the phone plans for every stored app public-intake 1`] = `
 {
   "defaultScreen": "scr_pubbck",

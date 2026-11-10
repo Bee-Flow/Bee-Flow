@@ -14,6 +14,8 @@ export interface PeekPanelOpts {
 
 export interface ListProps {
     source?: BindingInput;
+    /** Server paging of a `records` source (schema 3): 'loadMore' | 'prevNext'. */
+    pagination?: string;
     peekSource?: BindingInput;
     titleKey?: string;
     subtitleKey?: string | null;

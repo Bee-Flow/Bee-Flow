@@ -5,6 +5,7 @@ import { SpecListField } from './SpecPanel';
 import useTranslation from '@/hooks/useTranslation';
 import ExpressionInput from '../logic/ExpressionInput';
 import { registerInspector } from '../registry';
+import SpecLaterFields from './SpecLaterFields';
 import FormField from '@/components/shared/FormField';
 import Toggle from '@/components/shared/Toggle';
 import { RepeatableList, inputCls } from '@/components/admin/product-website/fields';
@@ -250,6 +251,7 @@ export default function ListInspector({ node, definition, onCommit, disabled = f
                 onChange={(v) => patch({ emptyText: v })}
                 disabled={disabled}
             />
+            <SpecLaterFields node={node} definition={definition} patch={patch} disabled={disabled} />
         </div>
     );
 }

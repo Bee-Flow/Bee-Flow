@@ -11,6 +11,7 @@ import Toggle from '@/components/shared/Toggle';
 import { RepeatableList, inputCls } from '@/components/admin/product-website/fields';
 import { actionOptions } from '../actionLabels';
 import { registerInspector } from '../registry';
+import SpecLaterFields from './SpecLaterFields';
 import type { PanelProps } from '../appDefinition';
 
 function getAlignsOptions(t: TranslateFn) {
@@ -247,6 +248,7 @@ export default function DataGridInspector({ node, definition, onCommit, disabled
                 />
             </fieldset>
             <TextField label={t('studio_apps_panels.data_grid.empty_text', 'Empty text')} value={props.emptyText} onChange={(v) => patch({ emptyText: v })} disabled={disabled} />
+            <SpecLaterFields node={node} definition={definition} patch={patch} disabled={disabled} />
         </div>
     );
 }

@@ -12,14 +12,12 @@
 
 const { test } = require('node:test');
 const assert = require('node:assert');
-const Database = require('better-sqlite3');
 
 const qc = require('./queryCompiler');
 const { ddlForTable } = require('./dataModel/ddl');
 const { readTimeExprSql, READ_TIME_FUNCTIONS } = require('./queryCompilerComputed.mts');
 const { queryWithComputed, computedNote } = require('./computedRead.mts');
-const { toDollarParams, _normalizeRows } = require('../../stores/lib/pgAppEngine');
-const { newPglite } = require('../../testUtils/pgliteTemplate');
+const { APP_ENGINES, sqliteEngine, pgEngine } = require('../../testUtils/appEngines');
 
 const ITEMS = {
     id: 'tbl_items1',
@@ -48,30 +46,6 @@ const RATIOS = {
 };
 const MINE = { where: '"created_by" = ?', params: ['user-1'] };
 
-function sqliteEngine() {
-    const db = new Database(':memory:');
-    return {
-        dialect: 'sqlite',
-        exec: async (sql) => db.exec(sql),
-        query: async (sql, params) => {
-            const stmt = db.prepare(sql);
-            if (!stmt.reader) { stmt.run(...params); return { rows: [] }; }
-            return { rows: stmt.all(...params) };
-        },
-        close: async () => db.close(),
-    };
-}
-
-function pgEngine() {
-    const db = newPglite();
-    return {
-        dialect: 'pg',
-        exec: async (sql) => db.exec(sql),
-        query: async (sql, params) => ({ rows: _normalizeRows(await db.query(toDollarParams(sql, params.length), params)) }),
-        close: async () => db.close(),
-    };
-}
-
 async function seed(engine, table, rows) {
     await engine.exec(ddlForTable(table, { dialect: engine.dialect }));
     for (const [values, createdBy] of rows) {
@@ -80,9 +54,7 @@ async function seed(engine, table, rows) {
     }
 }
 
-const ENGINES = [['sqlite', sqliteEngine], ['pg', pgEngine]];
-
-for (const [name, make] of ENGINES) {
+for (const [name, make] of APP_ENGINES) {
     test(`${name}: read-time computed fields read a value, under the row rule`, async () => {
         const engine = make();
         try {
