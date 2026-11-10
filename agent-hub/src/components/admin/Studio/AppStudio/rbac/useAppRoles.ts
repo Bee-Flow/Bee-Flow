@@ -65,7 +65,7 @@ export interface DataModel {
 }
 
 /** One role's row rule: one rule for seeing, changing and deleting, or a rule per action. */
-export type StoredRowRule = string | { read?: string; update?: string; delete?: string };
+type StoredRowRule = string | { read?: string; update?: string; delete?: string };
 
 /** A table's access block: the default mode, per-role entries, per-role row filters. */
 export interface AccessBlock {

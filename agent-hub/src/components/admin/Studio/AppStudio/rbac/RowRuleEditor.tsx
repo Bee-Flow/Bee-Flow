@@ -1,24 +1,23 @@
-import { AlertTriangle, Database, Loader2 } from 'lucide-react';
+import { Database, Loader2 } from 'lucide-react';
 import { SetStateAction, Dispatch, useEffect, useMemo, useRef, useState } from 'react';
 import { validateRowFilterExpr } from './rowFilterSubset';
-import RowRuleBuilder from './RowRuleBuilder';
 import RowRuleScope, { ruleActionLabel } from './RowRuleScope';
-import { compareSourceLabel, conditionProblem, describeAccessOutcome, describeRowRule, matchBaseScope, parseRowRule, resolveAccessEntry, ruleFields, scopeToEntry } from './rowRuleModel';
+import RowRuleOutcome from './RowRuleOutcome';
+import RowRuleSection from './RowRuleSection';
+import { conditionProblem, matchBaseScope, resolveAccessEntry, scopeToEntry } from './rowRuleModel';
 import { BASE_SCOPES } from './rowRuleModel.constants';
-import { activeSlots, draftToRule, seedDraft, seedRuleSet, storedRule, withPerAction } from './rowRuleSet';
+import { activeSlots, draftToRule, seedRuleSet, storedRule, withPerAction } from './rowRuleSet';
 import type { RuleAction, RuleSet, RuleSlot } from './rowRuleSet';
-import { describeActionRules } from './rowRuleSetWords';
 import useAppRoles from './useAppRoles';
 import useTranslation, { TranslateParams } from '@/hooks/useTranslation';
 import type { TranslateFn } from '@/hooks/useTranslation';
-import { insertAtCursor } from '@/utils/bindingHelpers';
 import ConfirmDialog from '@/components/shared/ConfirmDialog';
 import EmptyState from '@/components/shared/EmptyState';
 import SegmentedControl from '@/components/shared/SegmentedControl';
 import toast from '@/components/shared/Toast';
 import type { AppRole, DataModelTable } from './useAppRoles';
-import type { AccessEntry, RuleTable, RuleCondition } from './rowRuleModel.types';
-import type { RuleDraft, RowRuleEditorProps, RawRuleBoxProps } from './RowRuleEditor.types';
+import type { AccessEntry, RuleTable } from './rowRuleModel.types';
+import type { RuleDraft, RowRuleEditorProps } from './RowRuleEditor.types';
 import useAdjustOnChange from '@/hooks/useAdjustOnChange';
 
 /**
@@ -45,11 +44,6 @@ import useAdjustOnChange from '@/hooks/useAdjustOnChange';
  * from a partial reading. Both paths validate against the client mirror of the
  * server subset before the owner can save.
  */
-
-// viewer.orgId, not viewer.organizationId: the latter is not the same value on every path.
-const VIEWER_CHIPS = ['viewer.id', 'viewer.email', 'viewer.orgId', 'viewer.role'];
-// A list of the person is not one value: its chip inserts the whole test.
-const MEMBERSHIP_CHIP = 'in viewer.groups';
 
 function findTable(tables: DataModelTable[], id: string) {
     return (tables || []).find((t) => t && (t.id === id || t.key === id)) || null;
@@ -136,7 +130,6 @@ export default function RowRuleEditor({ appId, onDirtyChange = null }: RowRuleEd
         const at: RuleSlot = prev.perAction ? action : 'all';
         return { ...prev, [at]: typeof update === 'function' ? update(prev[at]) : update };
     });
-    const rule = draftToRule(draft);
     const dirty = !sameAccess(access, saved.access) || ruleKey(ruleSet) !== saved.rule;
 
     // The host (the Roles & access tabs) blocks closing while there is unsaved work.
@@ -162,10 +155,6 @@ export default function RowRuleEditor({ appId, onDirtyChange = null }: RowRuleEd
     const unfinished = checks.some((c) => c.unfinished);
     // The first rule that would not save, named by its action when there is a rule per action.
     const invalid = checks.find((c) => c.text.trim() && !c.validation.ok);
-    const canSwitchToBuilder = useMemo(
-        () => draft.mode === 'raw' && parseRowRule(draft.raw, table).ok,
-        [draft.mode, draft.raw, table],
-    );
 
     // No preset match → the role was set up in more detail than these three
     // buttons; the entry is written back untouched.
@@ -174,17 +163,6 @@ export default function RowRuleEditor({ appId, onDirtyChange = null }: RowRuleEd
 
     const roleLabel = roles.find((r) => r.key === roleKey)?.label || roleKey || t('studio_apps_edit.rule_editor.this_role', 'This role');
     const tableName = table?.name || table?.key || t('studio_apps_edit.rule_editor.this_table', 'this table');
-    // Seeing follows the rule for seeing; changing and deleting get their own sentences below.
-    const readDraft = ruleSet.perAction ? ruleSet.read : ruleSet.all;
-    const outcome = describeAccessOutcome({
-        entry: access,
-        roleLabel,
-        tableName,
-        hasRule: ruleSet.kept || !!draftToRule(readDraft).trim(),
-        ruleSummary: readDraft.mode === 'build' ? describeRowRule(readDraft, table, t) : '',
-        t,
-    });
-    const actionLines = describeActionRules(ruleSet, access, table, t);
 
     const doSave = async () => {
         if (!table || !roleKey) return;
@@ -261,22 +239,10 @@ export default function RowRuleEditor({ appId, onDirtyChange = null }: RowRuleEd
                     {t('studio_apps_rowrules.kept_as_is', 'The rule stored for this role is in a form this screen cannot show. It stays exactly as it is; saving here changes only the access above.')}
                 </span>
             ) : (
-                <RowRuleEditorSection t={t} draft={draft} setDraft={setDraft} noAccess={noAccess} table={table} canSwitchToBuilder={canSwitchToBuilder} rule={rule} validation={validation} />
+                <RowRuleSection t={t} draft={draft} setDraft={setDraft} noAccess={noAccess} table={table} validation={validation} />
             )}
 
-            <div
-                data-testid="row-rule-outcome"
-                className="rounded-md border px-3 py-2 text-xs border-[var(--border-subtle)] bg-[var(--bg-tertiary)]"
-            >
-                <p className="text-[var(--text-primary)]">{outcome.sees}</p>
-                {outcome.writes ? (
-                    <p className="mt-1 text-[var(--text-secondary)]">{outcome.writes}</p>
-                ) : null}
-                {actionLines.map((line) => (
-                    <p key={line} className="mt-1 text-[var(--text-secondary)]">{line}</p>
-                ))}
-                <p className="mt-1 text-[11px] text-[var(--text-tertiary)]">{outcome.owner}</p>
-            </div>
+            <RowRuleOutcome t={t} ruleSet={ruleSet} access={access} table={table} roleLabel={roleLabel} tableName={tableName} />
 
             <div className="flex justify-end">
                 <button
@@ -329,131 +295,4 @@ function RowRuleEditorSection2({ t, tableId, requestSwitch, tables, roleKey, rol
             </select>
         </label>
     </div>;
-}
-
-function RowRuleEditorSection({ t, draft, setDraft, noAccess, table, canSwitchToBuilder, rule, validation }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; draft: RuleDraft; setDraft: Dispatch<SetStateAction<RuleDraft>>; noAccess: boolean; table: DataModelTable | null; canSwitchToBuilder: boolean; rule: string; validation: { ok: boolean; error: string | null | undefined; warning?: string; }; }) {
-    return <div className="flex flex-col gap-2">
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <span className="text-xs font-medium text-[var(--text-secondary)]">
-                {t('studio_apps_edit.rule_editor.then_keep', 'Then keep only the rows where…')}{' '}
-                <span className="text-[var(--text-tertiary)]">{t('studio_apps_edit.rule_editor.optional', '(optional)')}</span>
-            </span>
-            {draft.mode === 'build' ? (
-                <button
-                    type="button"
-                    onClick={() => setDraft((prev) => ({ ...prev, mode: 'raw', raw: draftToRule(prev) }))}
-                    disabled={noAccess}
-                    className="text-[11px] hover:underline disabled:opacity-50 text-[var(--accent-primary)]"
-                >
-                    {t('studio_apps_edit.rule_editor.write_myself', 'Write it myself')}
-                </button>
-            ) : (
-                <button
-                    type="button"
-                    onClick={() => setDraft(seedDraft(draft.raw, table))}
-                    disabled={noAccess || !canSwitchToBuilder}
-                    className="text-[11px] hover:underline disabled:opacity-50 text-[var(--accent-primary)]"
-                >
-                    {t('studio_apps_edit.rule_editor.back_to_picker', 'Back to the picker')}
-                </button>
-            )}
-        </div>
-
-        {draft.mode === 'build' ? (
-            <RowRuleBuilder
-                table={table}
-                join={draft.join}
-                conditions={draft.conditions}
-                disabled={noAccess}
-                onChange={(next) => setDraft((prev) => ({ ...prev, ...next }))} />
-        ) : (
-            <>
-                {draft.raw.trim() && !canSwitchToBuilder ? (
-                    <span className="text-[11px] text-[var(--text-tertiary)]">
-                        {t('studio_apps_edit.rule_editor.stays_text', 'This rule does more than the picker can show, so it stays as text — it is saved exactly as written.')}
-                    </span>
-                ) : null}
-                <RawRuleBox
-                    table={table}
-                    value={draft.raw}
-                    disabled={noAccess}
-                    error={rule.trim() && !validation.ok ? validation.error : null}
-                    onChange={(raw) => setDraft((prev) => ({ ...prev, raw }))} />
-            </>
-        )}
-        {rule.includes('viewer.groups') ? (
-            <span className="text-[11px] text-[var(--text-tertiary)]">
-                {t('studio_apps_rowrules.groups_hint', 'Groups are compared by their id, so the column has to hold a group id.')}
-            </span>
-        ) : null}
-        {validation.ok && validation.warning ? (
-            <span data-testid="row-rule-advice" className="text-[11px] text-amber-600 dark:text-amber-400">{validation.warning}</span>
-        ) : null}
-    </div>;
-}
-
-function RawRuleBox({ table, value, onChange, disabled, error }: RawRuleBoxProps) {
-    const { t } = useTranslation();
-    const ref = useRef<HTMLTextAreaElement>(null);
-    const insert = (text: string) => {
-        const result = insertAtCursor(ref.current, text);
-        onChange(result != null ? result : (value ? `${value} ${text}` : text));
-    };
-
-    return (
-        <div className="flex flex-col gap-1.5">
-            <textarea
-                ref={ref}
-                rows={2}
-                value={value}
-                onChange={(e) => onChange(e.target.value)}
-                disabled={disabled}
-                placeholder={t('studio_apps_edit.rule_editor.raw_example', 'e.g. record.owner_id == viewer.id')}
-                spellCheck={false}
-                aria-label={t('studio_apps_edit.rule_editor.raw_aria', 'Row rule expression')}
-                className="w-full rounded border px-2 py-1.5 font-mono text-xs focus:outline-none focus:ring-1 disabled:opacity-50 [background:var(--bg-primary)] [border-color:var(--border-default)] [color:var(--text-primary)]!"
-            />
-            <div className="flex flex-wrap items-center gap-1.5">
-                {ruleFields(table, t).slice(0, 8).map((f) => (
-                    <button
-                        key={f.key}
-                        type="button"
-                        onClick={() => insert(`record.${f.key}`)}
-                        disabled={disabled}
-                        title={f.name}
-                        className="rounded-md border px-2 py-0.5 text-[11px] hover:bg-[var(--bg-tertiary)] disabled:opacity-50 border-[var(--border-subtle)] text-[var(--text-secondary)]"
-                    >
-                        record.{f.key}
-                    </button>
-                ))}
-                {VIEWER_CHIPS.map((path) => (
-                    <button
-                        key={path}
-                        type="button"
-                        onClick={() => insert(path)}
-                        disabled={disabled}
-                        title={compareSourceLabel(path, t)}
-                        className="rounded-md border px-2 py-0.5 text-[11px] hover:bg-[var(--bg-tertiary)] disabled:opacity-50 border-[var(--border-subtle)] text-[var(--text-secondary)]"
-                    >
-                        {path}
-                    </button>
-                ))}
-                <button
-                    type="button"
-                    onClick={() => insert(MEMBERSHIP_CHIP)}
-                    disabled={disabled}
-                    title={compareSourceLabel('viewer.groups', t)}
-                    className="rounded-md border px-2 py-0.5 text-[11px] hover:bg-[var(--bg-tertiary)] disabled:opacity-50 border-[var(--border-subtle)] text-[var(--text-secondary)]"
-                >
-                    {MEMBERSHIP_CHIP}
-                </button>
-            </div>
-            {error ? (
-                <div className="inline-flex items-start gap-1.5 text-[11px] text-rose-500 dark:text-rose-400" data-rule-error="true">
-                    <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                    <span>{error}</span>
-                </div>
-            ) : null}
-        </div>
-    );
 }

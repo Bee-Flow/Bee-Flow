@@ -86,7 +86,8 @@ export function roleWords(roleKey: string | null | undefined, { roles = [], plan
         || tables.flatMap((tb) => Object.entries(((tb.access && tb.access.rowFilters) || {}))
             .map(([key, expr]) => ({ roleKey: key, expr })))
             .find((r) => r.roleKey === roleKey);
-    if (rule && rule.expr) return ruleWords(rule.expr, t);
+    // A rule per action ({ read, update, delete }) has no one sentence here: the role keeps its name.
+    if (rule && typeof rule.expr === 'string' && rule.expr) return ruleWords(rule.expr, t);
     const known = roles.find((r) => r.key === roleKey);
     return (known && known.label) || roleKey;
 }
