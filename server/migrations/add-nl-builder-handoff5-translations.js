@@ -49,7 +49,7 @@ const DATA = require(path.join(__dirname, 'data', 'builder-handoff5-nl.json'));
  * install that already ran this migration. Pinning the data's hash here makes
  * every data change a change to this file; the test fails until it is updated.
  */
-const DATA_SHA256 = 'e97c1676beeae7a163c0d3427997a6495b2c0a92a8a7ef6e7595f3901730c350';
+const DATA_SHA256 = '678b120f01e04affdd2deaae60fe4352346bb5202ac1eacb50b180043b0df754';
 
 const NL_TRANSLATIONS = Object.freeze({ ...DATA.translations });
 

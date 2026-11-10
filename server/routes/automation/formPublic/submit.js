@@ -38,6 +38,7 @@ async function submitForm(req, res) {
     const found = await loadForm(req, res);
     if (!found) return undefined;
 
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- the only pattern run on this body is the nonce check, an anchored character class with a bounded length: linear
     const body = (req.body && typeof req.body === 'object') ? req.body : {};
     if (!verifyCsrf(String(body.csrf || ''), found.token)) {
         return res.status(403).json({ error: 'This form expired — reload the page and try again.' });
@@ -57,8 +58,8 @@ async function submitForm(req, res) {
     // page keeps one nonce while it is on screen, so recording it for a
     // refused submission made the corrected one answer "already received"
     // and run nothing.
-    const invalid = submissionErrors(found, body);
-    if (invalid.length) return res.status(400).json({ error: 'Some answers need attention', fields: invalid });
+    const errors = submissionErrors(found, body);
+    if (errors.length) return res.status(400).json({ error: 'Some answers need attention', fields: errors });
     // And "busy, try again" for the same reason, before anything is written.
     formQueue.assertRoom(found.automation.id);
 
@@ -103,6 +104,7 @@ async function answerPage(req, res) {
     const loaded = await loadSession(found, req.params.sid);
     if (!loaded || loaded.expired) return res.status(404).json({ error: 'Not found' });
 
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- the only pattern run on this body is the nonce check, an anchored character class with a bounded length: linear
     const body = (req.body && typeof req.body === 'object') ? req.body : {};
     const submitterId = req.session?.user?.id || null;
     if (!verifyCsrf(String(body.csrf || ''), `${found.token}:${req.params.sid}`)) {

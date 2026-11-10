@@ -140,6 +140,7 @@ router.get('/callback', async (req, res) => {
     }
 
     try {
+        // nosemgrep: semgrep.beeflow-bare-fetch -- the admin-configured OAuth issuer; nextcloudFetch would refuse a private-host Nextcloud without NEXTCLOUD_ALLOW_PRIVATE_HOSTS and break sign-in there
         const tokenResponse = await fetch(nextcloudOAuthUrl(nextcloudUrl, 'token'), {
             method: 'POST',
             headers: {

@@ -175,6 +175,7 @@ async function exchangeNextcloud({ config, code, redirectUri, session }) {
 
     const { nextcloudUrl, clientId, clientSecret } = config.oauth || {};
 
+    // nosemgrep: semgrep.beeflow-bare-fetch -- the admin-configured OAuth issuer; nextcloudFetch would refuse a private-host Nextcloud without NEXTCLOUD_ALLOW_PRIVATE_HOSTS and break sign-in there
     const tokenResponse = await fetch(nextcloudOAuthUrl(nextcloudUrl, 'token'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },

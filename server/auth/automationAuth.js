@@ -191,7 +191,7 @@ async function refreshNextcloud(cred) {
     if (!nextcloudUrl || !clientId || !clientSecret) {
         throw new Error('Nextcloud OAuth not configured');
     }
-    const res = await fetch(require('../utils/nextcloudTarget').nextcloudOAuthUrl(nextcloudUrl, 'token'), {
+    const res = await fetch(require('../utils/nextcloudTarget').nextcloudOAuthUrl(nextcloudUrl, 'token'), { // nosemgrep: semgrep.beeflow-bare-fetch -- the admin-configured OAuth issuer; nextcloudFetch would refuse a private-host Nextcloud without NEXTCLOUD_ALLOW_PRIVATE_HOSTS and break sign-in there
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({

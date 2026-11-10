@@ -2749,7 +2749,10 @@
     "studio_apps_runtime.background.interrupted": "De run is onderbroken (de server is herstart). Start hem opnieuw.",
     "studio_apps_runtime.background.lost_track": "De run is uit het zicht geraakt; hij loopt door op de server.",
     "studio_apps_runtime.background.not_found": "Deze run is niet meer te vinden.",
-    "studio_apps_runtime.background.start_failed": "De run kon niet worden gestart. Probeer het opnieuw."
+    "studio_apps_runtime.background.start_failed": "De run kon niet worden gestart. Probeer het opnieuw.",
+    "studio_misc.overview.load_failed_title": "Je automatiseringen konden niet worden geladen",
+    "studio_misc.overview.load_failed_description": "Je automatiseringen zijn er nog. Controleer de verbinding en probeer het opnieuw.",
+    "studio_misc.overview.retry": "Opnieuw proberen"
   },
   "sameAsEnglish": [
     "studio_apps_bi.chart.type_donut",
