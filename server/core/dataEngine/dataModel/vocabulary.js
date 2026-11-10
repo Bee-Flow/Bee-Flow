@@ -138,6 +138,42 @@ const DATA_LIMITS = Object.freeze({
     MAX_COMPUTED_EXPR: 500,
 });
 
+/**
+ * Field rules (schema 3 vocabulary, optional): `field.validation` and `field.dynamicDefault`.
+ *
+ * Both are APPLICATION-level. Nothing of them reaches the DDL: a rule is checked by
+ * core/dataEngine/fieldRules.mts before a write is compiled, so adding, changing or removing one
+ * never migrates a column, and rows written before the rule existed are never re-checked. A field
+ * without either key writes exactly as before.
+ *
+ *   validation      { min, max }               number fields
+ *                   { minLength, maxLength }   text fields, counted in characters
+ *                   { pattern }                text fields; compiled through core/text/userPattern
+ *                   { enforceOptions: true }   select / multiselect: only the listed options
+ *                   { message }                replaces the generated sentence for every rule
+ *   dynamicDefault  filled on CREATE when the value is missing or empty, per field type:
+ *                   now → datetime, today → date (UTC), currentUser.id → text
+ */
+const FIELD_VALIDATION = Object.freeze({
+    since: 3,
+    keys: Object.freeze(['min', 'max', 'minLength', 'maxLength', 'pattern', 'enforceOptions', 'message']),
+});
+const DYNAMIC_DEFAULTS = Object.freeze({
+    since: 3,
+    // value → the field types it may sit on
+    types: Object.freeze({
+        now: Object.freeze(['datetime']),
+        today: Object.freeze(['date']),
+        'currentUser.id': Object.freeze(['text']),
+    }),
+});
+// Definition limits for the rules above (they decide whether a MODEL is valid, so constants).
+const FIELD_RULE_LIMITS = Object.freeze({
+    MAX_PATTERN_LEN: 500,
+    MAX_MESSAGE_LEN: 200,
+    MAX_LENGTH: 1_000_000,
+});
+
 // System columns present on every table — field keys may not collide with them.
 const SYSTEM_COLUMNS = Object.freeze(['id', 'created_at', 'updated_at', 'created_by', 'org_id']);
 
@@ -236,6 +272,9 @@ module.exports = {
     DATATABLE_ID_RE,
     PUBLIC_ROLE_KEY,
     DATA_LIMITS,
+    FIELD_VALIDATION,
+    DYNAMIC_DEFAULTS,
+    FIELD_RULE_LIMITS,
     SYSTEM_COLUMNS,
     KEY_RE,
     RESERVED_KEY_PREFIX_RE,

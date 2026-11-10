@@ -84,6 +84,9 @@ test('stepFailureExtras and sanitizeErrorScope', () => {
     assert.deepEqual(stepFailureExtras({ ok: false, retryable: false, ref: 'abcd1234' }), { retryable: false, ref: 'abcd1234' });
     assert.deepEqual(stepFailureExtras({ ok: false, ref: 'not a ref' }), {});
     assert.deepEqual(stepFailureExtras(null), {});
+    // A field rule's sentences ride along, bounded; anything else in the map is dropped.
+    assert.deepEqual(stepFailureExtras({ ok: false, retryable: false, fieldErrors: { qty: 'Too low.', bad: 5, ['x'.repeat(65)]: 'long key' } }), { retryable: false, fieldErrors: { qty: 'Too low.' } });
+    assert.deepEqual(stepFailureExtras({ ok: false, fieldErrors: [] }), {});
     assert.equal(sanitizeErrorScope(undefined), undefined);
     assert.deepEqual(sanitizeErrorScope({ message: 'm', step: 'ai_generate', attempts: 2 }), { message: 'm', step: 'ai_generate', code: null, attempts: 2 });
 });
