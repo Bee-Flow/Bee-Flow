@@ -38818,6 +38818,8 @@ const EN_DEFAULTS = {
     "studio_apps_public.look.edge_bar": "Coloured edge",
     "studio_apps_public.look.edge_none": "No edge",
     "studio_apps_public.look.intro": "Give the public page a look of its own. Anything left on “Same as the app” follows the app; the app’s own screens never change.",
+    "studio_apps_public.look.logo": "Logo of the page",
+    "studio_apps_public.look.logo_hint": "Shown at the top of the public page. Empty shows no logo: the app’s own logo is not used here.",
     "studio_apps_public.look.own_colour_aria": "{label}: use a colour of its own",
     "studio_apps_public.look.same_as_app": "Same as the app",
     "studio_apps_public.managed": "A Solution stage manages this app, so its screens and look change only with a deploy. The links below are still yours to manage.",

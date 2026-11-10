@@ -75,8 +75,15 @@ describe('public page — the block survives the canonicalizer unchanged', () =>
         pa = setLookKnob(pa, 'design', 'font', 'poppins');
         return setLookKnob(pa, 'design', 'accentEdge', 'none');
     };
+    const withLogo = (logo: string) => setLookKnob(edited(), 'design', 'logoUrl', logo);
 
-    for (const [name, pa] of [['a fresh block', openPublicAccess(DEF) as PublicAccess], ['an edited block', edited()]] as const) {
+    const blocks = [
+        ['a fresh block', openPublicAccess(DEF) as PublicAccess],
+        ['an edited block', edited()],
+        ['a page logo by URL', withLogo('https://example.com/logo.png')],
+        ['an uploaded page logo', withLogo('asset:9a1b2c3d-0000-4000-8000-00000000abcd')],
+    ] as const;
+    for (const [name, pa] of blocks) {
         it(name, () => {
             const { def, repairs } = canonicalizeAppDefinition({ ...DEF, publicAccess: pa });
             expect(repairs.filter((r: { code: string }) => r.code.startsWith('publicAccess'))).toEqual([]);

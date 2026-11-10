@@ -3,6 +3,7 @@ import ColorPicker from '@/components/shared/ColorPicker';
 import FormField from '@/components/shared/FormField';
 import Toggle from '@/components/shared/Toggle';
 import type { TranslateFn } from '@/hooks/useTranslation';
+import AssetRefField from '../../inspector/assets/AssetRefField';
 import { INPUT_CLS, SelectField } from '../../inspector/panels/kit';
 import { designFields, fontLabels, options, themeFields } from '../../inspector/ThemePanel.helpers';
 import { THEME_ENUMS } from '../../inspector/styleKnobMeta';
@@ -139,9 +140,11 @@ const edgeLabels = (t: TranslateFn) => [
 /**
  * The page's own look, merged over the app's on the public page only. The
  * fields and their labels are the theme panel's own (ThemePanel.helpers); a
- * knob left on "Same as the app" is not written.
+ * knob left on "Same as the app" is not written. The logo is the page's own
+ * (publicAccess.design.logoUrl, an https URL or an uploaded file): the public
+ * page header draws that one only, never the app's.
  */
-export function LookOverride({ t, pa, disabled, onChange }: Omit<SettingsProps, 'screens'>) {
+export function LookOverride({ t, pa, disabled, onChange, appId, definition }: Omit<SettingsProps, 'screens'> & { appId: string; definition: unknown }) {
     const pick = (part: LookPart, key: string) => (v: string | null) => onChange(setLookKnob(pa, part, key, v));
     const theme = pa.theme || {};
     const design = pa.design || {};
@@ -167,6 +170,16 @@ export function LookOverride({ t, pa, disabled, onChange }: Omit<SettingsProps, 
                 ))}
                 <LookSelect t={t} label={t('studio_apps_public.look.edge', 'Callout edge')} value={design.accentEdge} values={DESIGN_ENUMS.accentEdge} valueLabels={edgeLabels(t)} onPick={pick('design', 'accentEdge')} disabled={disabled} />
             </div>
+            <AssetRefField
+                label={t('studio_apps_public.look.logo', 'Logo of the page')}
+                hint={t('studio_apps_public.look.logo_hint', 'Shown at the top of the public page. Empty shows no logo: the app’s own logo is not used here.')}
+                value={design.logoUrl ?? null}
+                onChange={pick('design', 'logoUrl')}
+                appId={appId}
+                definition={definition}
+                placeholder={t('studio_apps_insp.theme.url_placeholder', 'https://…')}
+                disabled={disabled}
+            />
         </div>
     );
 }

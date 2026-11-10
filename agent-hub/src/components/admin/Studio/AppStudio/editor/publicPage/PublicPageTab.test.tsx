@@ -89,6 +89,22 @@ describe('settings', () => {
         expect('design' in (commits.at(-1)?.publicAccess as object)).toBe(false);
     });
 
+    it("the page's own logo is written into the look override, and Remove takes it out", async () => {
+        routeFetch(defaultRoutes());
+        const commits: AppDefinition[] = [];
+        const open = { entryScreenId: 'scr_home01', screenIds: ['scr_home01'], roleKey: 'public' };
+        const { unmount } = renderWithClient(<Harness initial={{ ...DEF, publicAccess: open }} onCommit={(d) => commits.push(d)} />);
+        const look = screen.getByTestId('public-page-look');
+        await userEvent.click(within(look).getByRole('textbox', { name: 'Logo of the page' }));
+        await userEvent.paste('https://example.com/logo.png');
+        expect((commits.at(-1)?.publicAccess as { design?: unknown }).design).toEqual({ logoUrl: 'https://example.com/logo.png' });
+        unmount();
+
+        renderWithClient(<Harness initial={{ ...DEF, publicAccess: { ...open, design: { logoUrl: 'asset:a-logo' } } }} onCommit={(d) => commits.push(d)} />);
+        await userEvent.click(within(screen.getByTestId('public-page-look')).getByRole('button', { name: 'Remove' }));
+        expect('design' in (commits.at(-1)?.publicAccess as object)).toBe(false);
+    });
+
     it('a managed app shows the settings read-only', () => {
         routeFetch(defaultRoutes());
         renderWithClient(<Harness initial={{ ...DEF, publicAccess: { entryScreenId: 'scr_home01', screenIds: ['scr_home01'], roleKey: 'public' } }} readOnly />);

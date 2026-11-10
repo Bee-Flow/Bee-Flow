@@ -11,6 +11,8 @@
     "studio_apps_public.look.edge_bar": "Gekleurde rand",
     "studio_apps_public.look.edge_none": "Geen rand",
     "studio_apps_public.look.intro": "Geef de publieke pagina een eigen uiterlijk. Wat op “Zelfde als de app” blijft staan, volgt de app; de eigen schermen van de app veranderen nooit.",
+    "studio_apps_public.look.logo": "Logo van de pagina",
+    "studio_apps_public.look.logo_hint": "Staat bovenaan de publieke pagina. Leeg toont geen logo: het eigen logo van de app wordt hier niet gebruikt.",
     "studio_apps_public.look.own_colour_aria": "{label}: een eigen kleur gebruiken",
     "studio_apps_public.look.same_as_app": "Zelfde als de app",
     "studio_apps_public.managed": "Een Solution-omgeving beheert deze app, dus de schermen en het uiterlijk veranderen alleen met een deploy. De links hieronder beheer je nog steeds zelf.",

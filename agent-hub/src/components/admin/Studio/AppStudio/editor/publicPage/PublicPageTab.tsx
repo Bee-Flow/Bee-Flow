@@ -81,7 +81,7 @@ export default function PublicPageTab({ appId, definition, onCommit, readOnly = 
                         <EntryAndTitle {...settings} />
                     </Section>
                     <Section title={t('studio_apps_public.section.look', 'Look')}>
-                        <LookOverride {...settings} />
+                        <LookOverride {...settings} appId={appId} definition={definition} />
                     </Section>
                     <Section title={t('studio_apps_public.section.reach', 'What a visitor can reach')}>
                         <PublicPageReach t={t} appId={appId} definition={definition} pa={settings.pa} />
