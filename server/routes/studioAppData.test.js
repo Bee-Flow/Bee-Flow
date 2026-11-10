@@ -21,13 +21,7 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const Database = require('better-sqlite3');
-
-function stub(path, exports) {
-    const filename = require.resolve(path);
-    require.cache[filename] = { id: filename, filename, loaded: true, exports };
-}
-
-// ── State ───────────────────────────────────────────────────────────
+const { stub, insertTaskRow, norm, canReadStudioApp, canWriteStudioApp, baseModel } = require('../testUtils/studioAppDataHarness');
 const apps = new Map();
 const models = new Map();      // appId → { model, modelVersion }
 const membership = new Map();  // `${appId}:${userId}` → roleKey
@@ -43,28 +37,11 @@ let dbSize = 0;                   // sizeBytes (byte-quota reads)
 const directoryCalls = [];        // getOrgMembersForDirectory calls (org-scope audit)
 let directoryRows = [];           // what the directory returns
 const userRows = new Map();       // userId → { email, groups, organizationId } of the user row
+const memdb = new Database(':memory:'); // one shared engine, per-app-namespaced by `tasks`
+memdb.exec(`CREATE TABLE tasks (id TEXT PRIMARY KEY, created_at TEXT, updated_at TEXT, created_by TEXT,
+    org_id TEXT, title TEXT, region TEXT, amount INTEGER)`);
 
-// One shared in-memory engine, per-app-namespaced by a `tasks` table.
-const memdb = new Database(':memory:');
-memdb.exec(`CREATE TABLE tasks (
-    id TEXT PRIMARY KEY, created_at TEXT, updated_at TEXT, created_by TEXT, org_id TEXT,
-    title TEXT, region TEXT, amount INTEGER
-)`);
-function norm(params) { return (params || []).map((v) => (typeof v === 'boolean' ? (v ? 1 : 0) : v)); }
 
-// Faithful copies of the store's pure predicates (real module needs live PG).
-function canReadStudioApp(app, userId, userGroupIds = [], userOrgIds = []) {
-    if (!app) return false;
-    if (app.userId === userId) return true;
-    if (!app.isPublished) return false;
-    if (!app.organizationId) return false;
-    const orgIds = Array.isArray(userOrgIds) ? userOrgIds : [...(userOrgIds || [])];
-    if (!orgIds.includes(app.organizationId)) return false;
-    const groups = Array.isArray(app.sharedGroups) ? app.sharedGroups : [];
-    if (groups.length === 0) return true;
-    return groups.some((g) => userGroupIds.includes(g));
-}
-function canWriteStudioApp(app, userId) { return !!app && app.userId === userId; }
 
 stub('../stores/studioAppStore', {
     getStudioApp: async (id) => apps.get(id) || null,
@@ -200,29 +177,6 @@ function dispatch({ method = 'GET', url, user = 'viewer-1', orgIds = [], groups 
 const OWNER = 'owner-1';
 const ORG = 'org1';
 
-function baseModel() {
-    return {
-        modelVersion: 1,
-        roles: [{ key: 'manager' }, { key: 'member' }],
-        roleMapping: { default: 'member', byGroup: {} },
-        tables: [{
-            id: 'tbl_tasks0', key: 'tasks', name: 'Tasks',
-            fields: [
-                { id: 'fld_title', key: 'title', type: 'text' },
-                { id: 'fld_region', key: 'region', type: 'text' },
-                { id: 'fld_amount', key: 'amount', type: 'number', subtype: 'integer' },
-            ],
-            access: {
-                default: 'none',
-                roles: {
-                    manager: { read: 'all', create: true, update: 'all', delete: 'all' },
-                    member: { read: 'own', create: true, update: 'own', delete: 'none' },
-                },
-                rowFilters: {},
-            },
-        }],
-    };
-}
 
 let seq = 0;
 function makeApp({ published = true, owner = OWNER, org = ORG, sharedGroups = [], model = baseModel() } = {}) {
@@ -234,10 +188,7 @@ function makeApp({ published = true, owner = OWNER, org = ORG, sharedGroups = []
     models.set(id, { model, modelVersion: 1 });
     return apps.get(id);
 }
-function seedRow({ id, by, region = 'EU', amount = 10, title = 'T' }) {
-    memdb.prepare(`INSERT INTO tasks (id, created_at, updated_at, created_by, org_id, title, region, amount)
-        VALUES (?,?,?,?,?,?,?,?)`).run(id, '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z', by, ORG, title, region, amount);
-}
+function seedRow(row) { insertTaskRow(memdb, ORG, row); }
 
 test.beforeEach(() => {
     dbCalls.length = 0; saveModelCalls.length = 0; memberMutations.length = 0;
