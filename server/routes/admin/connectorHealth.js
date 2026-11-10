@@ -153,6 +153,10 @@ const CUSTOMER_SAFE_WORDING = {
         message: 'Two Nextcloud accounts share one email address, so one of them cannot sign in.',
         remediation: 'Give each Nextcloud account its own email address, or disable the account that should not be used.',
     },
+    'connector.nc_admin_rights_missing': {
+        message: 'Bee Flow cannot read from Nextcloud whether accounts are enabled.',
+        remediation: 'Make sure the Nextcloud account that connected Bee Flow is in the admin group in Nextcloud, or pair Bee Flow again as a Nextcloud administrator.',
+    },
     'auth.no_matching_tenant_key': {
         message: 'The Nextcloud connection needs attention.',
         remediation: 'Open the Bee Flow app settings in Nextcloud and run the connection check, or re-pair the instance.',

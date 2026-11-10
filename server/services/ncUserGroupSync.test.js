@@ -351,12 +351,12 @@ test('a 401 on the user list opens connector.key_divergence, a 404 connector.app
     }
 });
 
-test('a successful full sync resolves all three sync failure codes', async () => {
+test('a successful full sync resolves the sync failure codes, and the admin-rights code when the disabled accounts were read', async () => {
     const calls = stubHealthStore();
     const result = await sync.runFullSync(ORG);
     assert.equal(result.error, undefined);
     assert.deepEqual(calls.upsert, []);
-    assert.deepEqual(calls.resolve, [{ id: ORG.id, codes: ['connector.nc_sync_failed', 'connector.app_removed', 'connector.key_divergence'] }]);
+    assert.deepEqual(calls.resolve, [{ id: ORG.id, codes: ['connector.nc_sync_failed', 'connector.app_removed', 'connector.key_divergence', 'connector.nc_admin_rights_missing'] }]);
 });
 
 test('runFullSync has no backoff of its own: "Sync now" right after a failure still reaches Nextcloud', async () => {
@@ -373,7 +373,7 @@ test('runFullSync has no backoff of its own: "Sync now" right after a failure st
     const retry = await sync.runFullSync(ORG);
     assert.equal(retry.error, undefined);
     assert.ok(requests.some(r => r.url.includes(USERS_PATH)), 'the retry must actually ask Nextcloud');
-    assert.deepEqual(calls.resolve, [{ id: ORG.id, codes: ['connector.nc_sync_failed', 'connector.app_removed', 'connector.key_divergence'] }]);
+    assert.deepEqual(calls.resolve, [{ id: ORG.id, codes: ['connector.nc_sync_failed', 'connector.app_removed', 'connector.key_divergence', 'connector.nc_admin_rights_missing'] }]);
 });
 
 test('summarizeSyncError classifies from an allow-list and never echoes the message', () => {
@@ -468,6 +468,8 @@ test('full sync: a failed read of the disabled accounts changes no status', asyn
         assert.deepEqual(result.errors, [{ stage: 'disabled_accounts', error: 'lookup_failed' }]);
         assert.equal(result.error, undefined, 'the sync itself still completes');
         assert.equal(calls.resolve.length, 1);
+        assert.deepEqual(calls.resolve[0].codes, ['connector.nc_sync_failed', 'connector.app_removed', 'connector.key_divergence'],
+            'the disabled accounts were not read: the admin-rights code stays open');
     }
 });
 

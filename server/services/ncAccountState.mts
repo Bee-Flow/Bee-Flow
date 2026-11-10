@@ -36,6 +36,13 @@ export const GUESTS_BACKEND = 'Guests';
 
 export type AccountState = 'enabled' | 'disabled' | 'unknown';
 
+/**
+ * The health code of an organisation whose stored Nextcloud admin is not told
+ * whether accounts are enabled (./ncStoredUid.mts opens it; a full sync that
+ * reads the disabled accounts resolves it).
+ */
+export const ADMIN_RIGHTS_MISSING = 'connector.nc_admin_rights_missing';
+
 export interface NcOrgRef {
     id?: string;
     nc_admin_uid?: string;
@@ -79,6 +86,11 @@ export function firstSighting(key: string): boolean {
     if (sightings.size >= SIGHTINGS_MAX) sightings.clear();
     sightings.add(key);
     return true;
+}
+
+/** Forget one key; true when it had been seen. */
+export function forgetSighting(key: string): boolean {
+    return sightings.delete(key);
 }
 
 /** Test hook: forget every key. */

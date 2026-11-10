@@ -36,7 +36,7 @@ const { fallback } = require('../utils/bestEffort');
 
 const { summarizeSyncError, classifySyncFailure, NC_SYNC_FAILED, APP_REMOVED, KEY_DIVERGENCE } = require('./ncSyncFailure');
 const { ncUserId } = require('../utils/ncUserId.mts');
-const { fetchAccountState, fetchDisabledUids, shouldMirrorUser, skipsNewGuest, isActiveStatus, firstSighting } = require('./ncAccountState.mts');
+const { fetchAccountState, fetchDisabledUids, shouldMirrorUser, skipsNewGuest, isActiveStatus, firstSighting, ADMIN_RIGHTS_MISSING } = require('./ncAccountState.mts');
 const { syncModeChosen, fullSyncHold, SKIP_NOT_CHOSEN } = require('./ncSyncStart.mts');
 
 /**
@@ -478,7 +478,7 @@ async function runFullSync(org) {
     }
 
     await userStore.updateOrganization(org.id, { ncLastSyncAt: new Date().toISOString() });
-    await orgHealth.resolve(org.id, [NC_SYNC_FAILED, APP_REMOVED, KEY_DIVERGENCE]);
+    await orgHealth.resolve(org.id, [NC_SYNC_FAILED, APP_REMOVED, KEY_DIVERGENCE, ...(disabled ? [ADMIN_RIGHTS_MISSING] : [])]); // disabled accounts read = the stored admin has administrator rights
     log.info(`[ncSync] Full sync for org ${org.id}: created=${result.created} deactivated=${result.deactivated} reactivated=${result.reactivated} errors=${result.errors.length}`);
     return result;
 }

@@ -5,10 +5,13 @@
  *
  * Run: node --test server/services/ncStoredUid.test.js
  */
-const { test, beforeEach } = require('node:test');
+const { test, beforeEach, after } = require('node:test');
 const assert = require('node:assert/strict');
 
 const { storedUidIsLiveWithEmail, resetStoredUidCache, conflictCacheMs, conflictWaitMs } = require('./ncStoredUid.mts');
+const { resetSightings, ADMIN_RIGHTS_MISSING } = require('./ncAccountState.mts');
+const orgHealth = require('./orgHealth');
+const log = require('../telemetry/log');
 
 const ORG = { id: 'org-1', nc_admin_uid: 'root' };
 const EMAIL = 'ann@example.org';
@@ -16,8 +19,19 @@ const record = (data) => ({ ocs: { data } });
 let calls;
 const answering = (body) => async (org, path, uid) => { calls.push({ org: org.id, path, uid }); return typeof body === 'function' ? body() : body; };
 
+let health;
+let warns;
+const usual = { problem: orgHealth.problem, resolve: orgHealth.resolve, warn: log.warn };
+after(() => { Object.assign(orgHealth, { problem: usual.problem, resolve: usual.resolve }); log.warn = usual.warn; });
+
 beforeEach(() => {
     calls = [];
+    health = { problems: [], resolved: [] };
+    warns = [];
+    orgHealth.problem = (code, opts) => { health.problems.push({ code, orgId: opts.orgId, source: opts.source, meta: opts.meta }); };
+    orgHealth.resolve = (orgId, codes) => { health.resolved.push({ orgId, codes }); };
+    log.warn = (m) => { warns.push(String(m)); };
+    resetSightings();
     resetStoredUidCache();
     delete process.env.NEXTCLOUD_UID_CONFLICT_CACHE_SECONDS;
     delete process.env.NEXTCLOUD_UID_CONFLICT_WAIT_MS;
@@ -110,4 +124,63 @@ test('NEXTCLOUD_UID_CONFLICT_WAIT_MS: default 5000; past the wait the answer is 
     process.env.NEXTCLOUD_UID_CONFLICT_WAIT_MS = '0';
     const delayed = answering(() => new Promise((resolve) => setTimeout(() => resolve(record({ id: 'ann', enabled: true, email: EMAIL })), 30)));
     assert.equal(await storedUidIsLiveWithEmail(ORG, 'ann', EMAIL, delayed), true);
+});
+
+// ── Nextcloud cannot say, and will not until someone acts ───────────────────
+
+const problemOf = (orgId, reason) => ({ code: ADMIN_RIGHTS_MISSING, orgId, source: 'ncStoredUid', meta: { reason } });
+
+test('a record without the enabled flag: no, and the organisation is told once that its stored admin lacks administrator rights', async () => {
+    const noFlag = answering(record({ id: 'ann', email: EMAIL }));
+    assert.equal(await storedUidIsLiveWithEmail(ORG, 'ann', EMAIL, noFlag), false);
+    assert.equal(await storedUidIsLiveWithEmail(ORG, 'ann', EMAIL, noFlag), false);
+    assert.equal(await storedUidIsLiveWithEmail(ORG, 'bea', EMAIL, answering(record({ id: 'bea', email: EMAIL }))), false);
+    assert.deepEqual(health.problems, [problemOf('org-1', 'enabled_not_reported')]);
+    assert.equal(warns.length, 1);
+    assert.match(warns[0], /stored uid not checked for org org-1: .*no administrator rights/);
+    assert.ok(!warns[0].includes(EMAIL) && !warns[0].includes('ann'), 'the line names no account');
+    // Another organisation gets its own row.
+    await storedUidIsLiveWithEmail({ ...ORG, id: 'org-2' }, 'ann', EMAIL, noFlag);
+    assert.deepEqual(health.problems.map((p) => p.orgId), ['org-1', 'org-2']);
+});
+
+test('an organisation without a stored admin: no, without a read, and it is told once', async () => {
+    const fetchAs = answering(record({ id: 'ann', enabled: true, email: EMAIL }));
+    assert.equal(await storedUidIsLiveWithEmail({ id: 'org-3' }, 'ann', EMAIL, fetchAs), false);
+    assert.equal(await storedUidIsLiveWithEmail({ id: 'org-3' }, 'ann', EMAIL, fetchAs), false);
+    assert.deepEqual(calls, []);
+    assert.deepEqual(health.problems, [problemOf('org-3', 'no_stored_admin')]);
+    assert.equal(warns.length, 1);
+});
+
+test('answers about the account itself, a failed read and other shapes open nothing', async () => {
+    const answers = [
+        record({ id: 'ann', enabled: false, email: EMAIL }),
+        record({ id: 'ann', enabled: true, email: 'bob@example.org' }),
+        record({ id: 'bob', email: EMAIL }),
+        record({ id: 'ann', enabled: 'yes', email: EMAIL }),
+        record([]), record(null), {}, null,
+    ];
+    for (const body of answers) await storedUidIsLiveWithEmail(ORG, 'ann', EMAIL, answering(body));
+    await storedUidIsLiveWithEmail(ORG, 'ann', EMAIL, async () => { throw new Error('NC proxy HTTP 503'); });
+    assert.deepEqual(health.problems, []);
+    assert.deepEqual(health.resolved, []);
+});
+
+test('once Nextcloud reports the flag again, what was reported is resolved, once', async () => {
+    await storedUidIsLiveWithEmail(ORG, 'ann', EMAIL, answering(record({ id: 'ann', email: EMAIL })));
+    assert.equal(health.problems.length, 1);
+    const withFlag = answering(record({ id: 'ann', enabled: false, email: EMAIL }));
+    await storedUidIsLiveWithEmail(ORG, 'ann', EMAIL, withFlag);
+    await storedUidIsLiveWithEmail(ORG, 'ann', EMAIL, withFlag);
+    assert.deepEqual(health.resolved, [{ orgId: 'org-1', codes: [ADMIN_RIGHTS_MISSING] }]);
+    // And it is reported again when the flag goes missing again.
+    await storedUidIsLiveWithEmail(ORG, 'ann', EMAIL, answering(record({ id: 'ann', email: EMAIL })));
+    assert.equal(health.problems.length, 2);
+});
+
+test('the health code is in the catalogue as a warning', () => {
+    const def = orgHealth.CODES[ADMIN_RIGHTS_MISSING];
+    assert.equal(def.severity, 'warning');
+    assert.equal(def.category, 'connector');
 });

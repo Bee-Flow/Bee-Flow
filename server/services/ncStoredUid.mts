@@ -15,15 +15,54 @@
  * missing account, a disabled one, an answer in another shape or without the
  * enabled flag, and an organisation without a stored admin are all "no".
  *
+ * Two of those are not about the account but about the organisation, and last
+ * until someone acts: there is no stored admin, or Nextcloud answers about the
+ * account without saying whether it is enabled (the stored admin has no
+ * administrator rights). The answer stays "no", and the organisation's health
+ * says so (ADMIN_RIGHTS_MISSING), once per organisation per process; a later
+ * reading that does carry the flag, or a full sync that reads the disabled
+ * accounts, resolves it.
+ *
  * The read goes through the sync's signed proxy call, which is bound to the
  * one organisation passed in; nothing here reads or writes Bee Flow users.
  */
 
 import { createRequire } from 'node:module';
-import { readEnabled, type NcOrgRef, type NcProxyFetch } from './ncAccountState.mts';
+import { readEnabled, firstSighting, forgetSighting, ADMIN_RIGHTS_MISSING, type NcOrgRef, type NcProxyFetch } from './ncAccountState.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 const log = nodeRequire('../telemetry/log.js') as { warn: (...a: unknown[]) => void };
+
+interface OrgHealth {
+    problem: (code: string, opts: Record<string, unknown>) => unknown;
+    resolve: (orgId: string, codes: string[]) => unknown;
+}
+function orgHealth(): OrgHealth {
+    return nodeRequire('./orgHealth.js') as OrgHealth;
+}
+
+const sightingKey = (orgId: string): string => `stored_uid_admin|${orgId}`;
+
+/** Nextcloud cannot say, and will not until someone acts: tell the organisation, once. */
+function reportCannotTell(org: NcOrgRef, reason: 'no_stored_admin' | 'enabled_not_reported'): void {
+    const orgId = String(org.id);
+    if (!firstSighting(sightingKey(orgId))) return;
+    log.warn(`[ncSync] stored uid not checked for org ${orgId}: ${reason === 'no_stored_admin'
+        ? 'the organisation has no stored Nextcloud admin'
+        : 'Nextcloud does not tell the stored admin whether an account is enabled (no administrator rights)'}`);
+    try {
+        orgHealth().problem(ADMIN_RIGHTS_MISSING, { orgId, source: 'ncStoredUid', meta: { reason } });
+    } catch { /* the health row is best effort */ }
+}
+
+/** Nextcloud told the stored admin whether an account is enabled: resolve what was reported. */
+function reportCanTell(org: NcOrgRef): void {
+    const orgId = String(org.id);
+    if (!forgetSighting(sightingKey(orgId))) return;
+    try {
+        orgHealth().resolve(orgId, [ADMIN_RIGHTS_MISSING]);
+    } catch { /* best effort */ }
+}
 
 function envNumber(name: string, fallback: number): number {
     const raw = Number.parseInt(String(process.env[name] ?? ''), 10);
@@ -57,11 +96,22 @@ function isRecord(v: unknown): v is Record<string, unknown> {
 
 async function readLive(org: NcOrgRef, storedUid: string, email: string, ncProxyFetch: NcProxyFetch): Promise<boolean> {
     const adminUid = String(org.nc_admin_uid || org.ncAdminUid || '');
-    if (!adminUid) return false;
+    if (!adminUid) {
+        reportCannotTell(org, 'no_stored_admin');
+        return false;
+    }
     const body = await ncProxyFetch(org, `/ocs/v2.php/cloud/users/${encodeURIComponent(storedUid)}?format=json`, adminUid);
     const data = body?.ocs?.data;
     if (!isRecord(data) || String(data.id ?? '') !== storedUid) return false;
-    return readEnabled(data) === true && sameAddress(data.email, email);
+    const enabled = readEnabled(data);
+    // Only a record without the field at all is the standing state; a field
+    // with another value is an answer in another shape.
+    if (enabled === null) {
+        if (!('enabled' in data)) reportCannotTell(org, 'enabled_not_reported');
+        return false;
+    }
+    reportCanTell(org);
+    return enabled && sameAddress(data.email, email);
 }
 
 /** The read, or false once the wait is over (the read itself is left to finish on its own). */

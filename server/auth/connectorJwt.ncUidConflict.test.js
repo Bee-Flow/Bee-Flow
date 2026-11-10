@@ -8,7 +8,9 @@
  *     nc_uid_conflict and the organisation gets a health event.
  *   - The stored account is gone, disabled or has another address: the stored
  *     uid is replaced by the signed one and the sign-in continues.
- *   - Nextcloud cannot say: as the line above.
+ *   - Nextcloud cannot say: as the line above. When it cannot say until
+ *     someone acts (no stored admin, or one without administrator rights),
+ *     the organisation's health says so.
  *
  * The middleware, its phases and services/ncStoredUid.mts are the real ones;
  * the stores are stubbed and the Nextcloud answer comes from a fetch stub.
@@ -31,6 +33,7 @@ const log = require('../telemetry/log');
 const connectorJwtMiddleware = require('./connectorJwt');
 const phases = require('./connectorJwtPhases');
 const { resetStoredUidCache } = require('../services/ncStoredUid.mts');
+const { resetSightings } = require('../services/ncAccountState.mts');
 
 const ORG = 'org1';
 const OTHER_ORG = 'org2';
@@ -64,6 +67,7 @@ beforeEach(() => {
     delete process.env.NEXTCLOUD_UID_CONFLICT_CACHE_SECONDS;
     delete process.env.NEXTCLOUD_UID_CONFLICT_WAIT_MS;
     resetStoredUidCache();
+    resetSightings();
     connectorJwtMiddleware.invalidateTenantKeyCache();
     // A new user id per test: the encryption-key cache is process-wide.
     row = { id: `u${++seq}`, email: EMAIL, organizationId: ORG, nc_uid: 'first', provider: 'nextcloud_connector', role: 'user' };
@@ -126,13 +130,16 @@ function assertRefused(out) {
     assert.deepEqual(rec.updates, [], 'the stored uid is not rewritten');
     assert.equal(row.nc_uid, 'first');
 }
-function assertHealed(out, sub = 'second') {
+/** `standing` = why Nextcloud cannot say until someone acts; the organisation's health then says so. */
+function assertHealed(out, sub = 'second', standing = null) {
     assert.equal(out.status, undefined);
     assert.equal(out.next, 1);
     assert.deepEqual(out.nextArgs, []);
     assert.deepEqual(rec.updates, [{ id: row.id, updates: { ncUid: sub } }]);
     assert.equal(out.req.session.connectorNcUid, sub);
-    assert.deepEqual(rec.problems, []);
+    assert.deepEqual(rec.problems, standing
+        ? [{ code: 'connector.nc_admin_rights_missing', opts: { orgId: ORG, source: 'ncStoredUid', meta: { reason: standing } } }]
+        : []);
 }
 
 // ── Two live accounts with one address ──────────────────────────────────────
@@ -220,7 +227,7 @@ const CANNOT_SAY = {
 for (const [name, answer] of Object.entries(CANNOT_SAY)) {
     test(`the read answers ${name}: the stored uid is replaced and the sign-in continues`, async () => {
         ncAnswer = answer;
-        assertHealed(await signIn('second'));
+        assertHealed(await signIn('second'), 'second', name === 'a record without the enabled flag' ? 'enabled_not_reported' : null);
     });
 }
 
@@ -235,7 +242,7 @@ test('a read that takes longer than the wait: the sign-in continues, the stored 
 
 test('an organisation without a stored Nextcloud admin: no read, replaced', async () => {
     userStore.getOrganization = async (id) => ({ id, nc_instance_id: 'nc1', nc_onboarding_completed_at: 1, connector_callback_url: CALLBACK[id] });
-    assertHealed(await signIn('second'));
+    assertHealed(await signIn('second'), 'second', 'no_stored_admin');
     assert.deepEqual(rec.requests, []);
 });
 
