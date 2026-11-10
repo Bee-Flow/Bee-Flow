@@ -17,6 +17,7 @@ const {
     normalizeFolder, folderPrefix, RECORDING_SUBFOLDER,
 } = require('../core/meetingNotes/talkRecordingPaths');
 const { readJsonSafe, v4, v1, COMMON_HEADERS } = require('./nextcloudTalkHttp');
+const { readNextcloudCapabilities } = require('./nextcloudCapabilities.mts');
 const {
     listMessages, searchMessages, sendMessage, deleteMessage, reactToMessage,
     createPoll, getPoll, votePoll, closePoll,
@@ -325,17 +326,10 @@ async function classifyRecordingResponse(res, authError, okExtra = {}) {
     return { success: true, ...okExtra };
 }
 
-// Capability cache. Keyed by baseUrl + uid, NOT baseUrl alone: the payload also
-// carries `config.attachments.folder`, which is a per-user preference.
-const _capCache = new Map(); // `${baseUrl}|${uid}` → { ts, ttl, val }
-const CAP_TTL_MS = 10 * 60 * 1000;
-// A non-2xx answer is not a definite "this instance cannot record": a proxy
-// 502/504, or a 503 from maintenance mode that outlasts the client's retries,
-// is gone a minute later. Cached for the full TTL it switched auto-record off
-// for ten minutes after Nextcloud came back (the scanner skips a user whose
-// capability says no). Held briefly, so a burst of callers during an outage
-// still shares one request, and the next scanner tick asks again.
-const CAP_FAILURE_TTL_MS = 30 * 1000;
+// The capabilities read and its cache live in ./nextcloudCapabilities.mts: per
+// user (the payload carries `config.attachments.folder`, a per-user
+// preference), and a non-2xx answer is held only briefly, so the next scanner
+// tick after an outage asks again.
 
 const CAP_UNAVAILABLE = Object.freeze({
     recordingEnabled: false,
@@ -368,29 +362,18 @@ const CAP_UNAVAILABLE = Object.freeze({
  *   attachmentFolder: string|null, recordingFolder: string|null}>}
  */
 async function getTalkRecordingCapability(session, userId) {
-    let ctx;
-    try { ctx = await ncClient.resolveAuth(session, userId); }
-    catch (_) { return { ...CAP_UNAVAILABLE }; }
-    const baseUrl = ctx.baseUrl;
-    const cacheKey = `${baseUrl}|${ctx.uid || ''}`;
-    const cached = _capCache.get(cacheKey);
-    if (cached && (Date.now() - cached.ts) < cached.ttl) return cached.val;
     try {
-        const res = await ctx.fetch(`${baseUrl}/ocs/v2.php/cloud/capabilities?format=json`, { headers: COMMON_HEADERS });
-        if (!res.ok) {
-            const val = { ...CAP_UNAVAILABLE };
-            _capCache.set(cacheKey, { ts: Date.now(), ttl: CAP_FAILURE_TTL_MS, val });
-            return val;
-        }
-        const data = await readJsonSafe(res);
-        const spreed = data?.ocs?.data?.capabilities?.spreed || {};
+        const read = await readNextcloudCapabilities(session, userId);
+        if (!read.ok) return { ...CAP_UNAVAILABLE };
+        /** @type {{ features?: unknown, config?: { call?: { recording?: unknown }, attachments?: { folder?: unknown } } }} */
+        const spreed = read.capabilities?.spreed || {};
         const features = Array.isArray(spreed.features) ? spreed.features : [];
         const apiAvailable = features.includes('recording-v1');
         const backendConfigured = spreed?.config?.call?.recording === true;
         const attachmentFolder = typeof spreed?.config?.attachments?.folder === 'string'
             ? spreed.config.attachments.folder
             : null;
-        const val = {
+        return {
             recordingEnabled: apiAvailable && backendConfigured,
             apiAvailable,
             backendConfigured,
@@ -400,8 +383,6 @@ async function getTalkRecordingCapability(session, userId) {
                 ? normalizeFolder(`${folderPrefix(normalizeFolder(attachmentFolder))}${RECORDING_SUBFOLDER}`)
                 : null,
         };
-        _capCache.set(cacheKey, { ts: Date.now(), ttl: CAP_TTL_MS, val });
-        return val;
     } catch (_) {
         return { ...CAP_UNAVAILABLE };
     }
