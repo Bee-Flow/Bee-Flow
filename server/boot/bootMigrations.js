@@ -310,7 +310,6 @@ const MANUAL_MIGRATIONS = [
     'agents-published-config',
     'stale-free-limits-repair-2026-11', // BFSF-249: a deliberate 5/3 override looks the same, --dry-run first
 ];
-
 const { LEDGER_TABLE, ensureLedgerTable } = require('../stores/lib/ddlLedgerTable');
 
 /**
