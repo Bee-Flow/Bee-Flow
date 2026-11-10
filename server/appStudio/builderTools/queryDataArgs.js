@@ -34,6 +34,7 @@ const bad = (error, _fixHint) => ({ error, _fixHint });
  * @typedef {{
  *   error?: string, _fixHint?: string, tableId?: string|null, datasetId?: string|null, limit?: number,
  *   limitClamped?: boolean, requestedLimit?: number, sort?: { field: string, dir: string }, filter?: any[], cursor?: string|null,
+ *   params?: Record<string, unknown>,
  * }} QueryArgs
  */
 
@@ -88,7 +89,8 @@ function parseQueryArgs(args) {
     if (a.cursor !== undefined && a.cursor !== null && typeof a.cursor !== 'string') {
         return bad('cursor must be the nextCursor string of the previous call.');
     }
-    return { tableId, datasetId, limit, limitClamped, requestedLimit, sort, filter, cursor: a.cursor || null };
+    const params = a.params && typeof a.params === 'object' && !Array.isArray(a.params) ? a.params : undefined;
+    return { tableId, datasetId, limit, limitClamped, requestedLimit, sort, filter, cursor: a.cursor || null, ...(params ? { params } : {}) };
 }
 
 /** A row without the internal ids a model has no use for. */

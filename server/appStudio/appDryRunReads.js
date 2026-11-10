@@ -16,6 +16,7 @@ const { seedVariableDefaults } = require('./componentSpecs');
 const { compile, tryEvaluate, resolveFilterList, FILTER_SKIP } = require('../shared/expr/index.mjs');
 const { isDatatableBacked } = require('./datatableSource');
 const { recordListDescriptor, aggregateDescriptor } = require('../core/dataEngine/readDescriptor.mts');
+const { resolveBindingParamValues } = require('./datasetParams.mts');
 const log = require('../telemetry/log');
 
 // Read-only probe page — a couple of rows is enough to prove a binding returns
@@ -184,12 +185,29 @@ async function runAggregateBinding(binding, table, { roleArg, viewer, scope, app
     }
 }
 
+/**
+ * A dataset binding's `params` against the synthetic scope, as the client
+ * resolves them: FILTER_SKIP when a formula reads a root the dry run cannot
+ * populate (or does not parse).
+ */
+function resolveDryRunParams(binding, scope) {
+    return resolveBindingParamValues(binding.params, (v) => {
+        let refs;
+        try { refs = compile(String(v.expr || '')).refs; }
+        catch { return FILTER_SKIP; }
+        if (refs.some((r) => !SYNTHETIC_SCOPE_ROOTS.has(r))) return FILTER_SKIP;
+        return tryEvaluate(/** @type {string} */ (v.expr), scope).value;
+    }, FILTER_SKIP);
+}
+
 /** Execute one dataset binding read-only via datasetCache.runDataset. */
-async function runDatasetBinding(binding, { dataModel, app, viewer, appId, ownerId, deps }) {
+async function runDatasetBinding(binding, { dataModel, app, viewer, appId, ownerId, deps, scope }) {
     try {
         const ds = await deps.getDataset(binding.datasetId, appId, ownerId);
         if (!ds) return { ok: true, skipped: 'unresolved' }; // STATIC flags unknown_dataset
-        const out = await deps.runDataset(app, dataModel, ds, viewer, { refresh: true });
+        const params = resolveDryRunParams(binding, scope || {});
+        if (params === FILTER_SKIP) return { ok: true, skipped: 'dynamic' };
+        const out = await deps.runDataset(app, dataModel, ds, viewer, params ? { refresh: true, params } : { refresh: true });
         const rows = Array.isArray(out && out.rows) ? out.rows : [];
         return { ok: true, rowCount: rows.length };
     } catch (e) {

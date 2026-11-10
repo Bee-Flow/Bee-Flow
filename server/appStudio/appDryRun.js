@@ -76,7 +76,7 @@ async function runDataPass(collected, { dataModel, app, roleArg, viewer, ownerSc
         if (!app) { findings.push({ ...base, ok: true, skipped: 'no_data' }); continue; }
         let res;
         if (binding.kind === 'dataset') {
-            res = await runDatasetBinding(binding, { dataModel, app, viewer, appId, ownerId, deps });
+            res = await runDatasetBinding(binding, { dataModel, app, viewer, appId, ownerId, deps, scope });
         } else {
             const table = findModelTable(dataModel, binding.tableId);
             if (!table) { findings.push({ ...base, ok: true, skipped: 'unresolved' }); continue; } // STATIC flags unknown_table

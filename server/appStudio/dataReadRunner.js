@@ -178,9 +178,12 @@ async function runInlineAggregate(ctx, table, descriptor = {}) {
  * The dataset row is OWNER-scoped (getDataset gates on it) while the access
  * filter runDataset builds is VIEWER-scoped — that split is the whole reason a
  * cached dataset is safe to share between viewers, and it is preserved here
- * unchanged.
+ * unchanged. `params` are the binding's values for the parameters the dataset
+ * declares; runDataset ignores them for a dataset that declares none.
+ * @param {{ refresh?: boolean, params?: unknown }} [opts]
  */
-async function runSavedDataset(ctx, datasetId, { refresh = false } = {}) {
+async function runSavedDataset(ctx, datasetId, opts = {}) {
+    const { refresh = false, params } = opts;
     const dataset = studioAppDataStore.getDataset
         ? await studioAppDataStore.getDataset(datasetId, ctx.app.id, ctx.app.userId)
         : null;
@@ -194,7 +197,7 @@ async function runSavedDataset(ctx, datasetId, { refresh = false } = {}) {
     if (datatableSource.isDatatableBacked(table)) {
         throw readError(501, 'A saved dataset cannot read a linked Studio table yet.');
     }
-    const out = await datasetCache.runDataset(ctx.app, ctx.model, dataset, ctx.viewer, { refresh });
+    const out = await datasetCache.runDataset(ctx.app, ctx.model, dataset, ctx.viewer, { refresh, params });
     return { rows: out.rows, columns: out.columns, truncated: out.truncated, cached: out.cached };
 }
 
@@ -231,7 +234,7 @@ async function runBatchRead(ctx, read) {
         // 404, the client degrades a 404 to "empty", and a people-picker that
         // silently shows nobody is worse than one that says it cannot load.
         if (datasetId.startsWith('sys_')) throw readError(400, 'Platform datasets are not available in a batch');
-        const out = await runSavedDataset(ctx, datasetId, { refresh: false });
+        const out = await runSavedDataset(ctx, datasetId, { refresh: false, params: read.params });
         // `result` mirrors the dataset-binding contract the runtime reads.
         return { payload: { ...out, result: out.rows }, table: null };
     }
@@ -302,5 +305,5 @@ module.exports = {
  *   app: { id: string, userId: string, organizationId?: string | null }, ownerScope: string,
  *   _datatablePlans?: Map<string, Promise<ReadPlan>>,
  * }} ReadCtx  the per-request context of a read
- * @typedef {{ id?: unknown, kind?: unknown, datasetId?: unknown, tableId?: unknown, filters?: unknown, groupBy?: unknown, aggregates?: unknown, sort?: unknown, cursor?: string | null, limit?: unknown }} BatchRead  one descriptor of a batch
+ * @typedef {{ id?: unknown, kind?: unknown, datasetId?: unknown, tableId?: unknown, filters?: unknown, groupBy?: unknown, aggregates?: unknown, sort?: unknown, cursor?: string | null, limit?: unknown, params?: unknown }} BatchRead  one descriptor of a batch (`params`: a dataset's parameter values)
  */

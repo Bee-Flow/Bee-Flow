@@ -110,10 +110,13 @@ async function getCache(datasetId, viewerScopeKey, paramsHash, dataVersion) {
 }
 
 /**
+ * `maxEntries` (a dataset with parameters, where every distinct set of values
+ * is its own row): expired rows of the dataset are dropped first, and nothing
+ * is written while it still holds that many rows. Without it nothing changes.
  * @param datasetId
- * @param {{ viewerScopeKey?: string, paramsHash?: string, dataVersion?: string|number, result?: any, rowCount?: number, ttlSeconds?: number }} [opts]
+ * @param {{ viewerScopeKey?: string, paramsHash?: string, dataVersion?: string|number, result?: any, rowCount?: number, ttlSeconds?: number, maxEntries?: number }} [opts]
  */
-async function putCache(datasetId, { viewerScopeKey, paramsHash, dataVersion, result, rowCount, ttlSeconds } = {}) {
+async function putCache(datasetId, { viewerScopeKey, paramsHash, dataVersion, result, rowCount, ttlSeconds, maxEntries } = {}) {
     await initDB();
     const id = crypto.randomUUID();
     const ttl = Number.isFinite(ttlSeconds) ? ttlSeconds : 60;
@@ -125,6 +128,18 @@ async function putCache(datasetId, { viewerScopeKey, paramsHash, dataVersion, re
              WHERE dataset_id = $1 AND viewer_scope_key = $2 AND params_hash = $3`,
             [datasetId, viewerScopeKey, paramsHash]
         );
+        if (Number.isFinite(maxEntries) && maxEntries > 0) {
+            await client.query(
+                `DELETE FROM studio_app_dataset_cache WHERE dataset_id = $1 AND expires_at <= $2`,
+                [datasetId, new Date(Date.now()).toISOString()]
+            );
+            const counted = await client.query(
+                `SELECT COUNT(*) AS n FROM studio_app_dataset_cache WHERE dataset_id = $1`,
+                [datasetId]
+            );
+            const held = parseInt(counted && counted.rows && counted.rows[0] ? counted.rows[0].n : 0, 10) || 0;
+            if (held >= maxEntries) return { ok: false, full: true };
+        }
         await client.query(
             `INSERT INTO studio_app_dataset_cache
                 (id, dataset_id, viewer_scope_key, params_hash, data_version, result, row_count, expires_at)

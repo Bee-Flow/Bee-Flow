@@ -7,6 +7,7 @@ const { FIELD_TYPES, FILTER_OPS, AGG_FNS, DATE_BUCKETS, ACCESS_MODES } = require
 const { MAX_SEED_RECORDS } = require('./schemaFragments');
 const { MAX_QUERY_LIMIT } = require('./queryDataArgs');
 const { HOOK_TARGETS } = require('../mailboxHookPolicy.mts');
+const { DATASET_PARAM_TYPES } = require('../datasetParams.mts');
 
 /** @type {Array<{ type: string, function: { name: string, description: string, parameters: object } }>} */
 const TOOL_SCHEMAS_PART_2 = [
@@ -261,11 +262,12 @@ const TOOL_SCHEMAS_PART_2 = [
                     tableId: { type: 'string', description: 'The source table id (tbl_…).' },
                     descriptor: {
                         type: 'object',
-                        description: `The aggregation: groupBy?: [{field, bucket?}] (bucket for date fields: ${DATE_BUCKETS.join('|')}); aggregates: [{fn: ${AGG_FNS.join('|')}, field?, as}] (count needs no field); filters?: [{field, op, value?}] (ops: ${FILTER_OPS.join(', ')}).`,
+                        description: `The aggregation: groupBy?: [{field, bucket?}] (bucket for date fields: ${DATE_BUCKETS.join('|')}); aggregates: [{fn: ${AGG_FNS.join('|')}, field?, as}] (count needs no field); filters?: [{field, op, value?}] (ops: ${FILTER_OPS.join(', ')}). Optional params?: [{name, type?: ${DATASET_PARAM_TYPES.join('|')}, default?, label?}] make the view reusable: a filter value { param: "<name>" } takes the value the binding sends ({kind:"dataset", datasetId, params:{<name>: literal or {kind:"formula",expr}}}); unset without a default drops that filter.`,
                         properties: {
                             groupBy: { type: 'array', items: { type: 'object' } },
                             aggregates: { type: 'array', items: { type: 'object' } },
                             filters: { type: 'array', items: { type: 'object' } },
+                            params: { type: 'array', items: { type: 'object' } },
                         },
                         required: ['aggregates'],
                     },
@@ -293,6 +295,7 @@ const TOOL_SCHEMAS_PART_2 = [
                 properties: {
                     tableId: { type: 'string', description: 'Table id (tbl_…) to list rows from.' },
                     datasetId: { type: 'string', description: 'Saved dataset id to run instead of a raw table read.' },
+                    params: { type: 'object', description: 'Literal values for the parameters a dataset declares (datasetId only), e.g. { region: "north" }.' },
                     filter: {
                         type: 'array',
                         description: `Optional literal filters: [{field, op, value?}] with ops ${FILTER_OPS.join(', ')}; an entry {any:[clauses]} matches when one of its clauses does.`,

@@ -221,7 +221,7 @@ async function loadDraft(appId, userId) {
         draftWrap.dataModelVersion = dataMeta?.modelVersion ?? 0;
         draftWrap.rowCounts = normalizeRowCounts(draftWrap.dataModel, dataMeta?.rowCounts);
         const datasets = await studioAppDataStore.listDatasets(appId, userId);
-        draftWrap.datasetIds = (datasets || []).map((d) => ({ id: d.id, name: d.name }));
+        draftWrap.datasetIds = (datasets || []).map((d) => require('./datasetParams.mts').datasetEntry(d));
         // Linked tables keep their rows outside the app: without their live
         // counts the data model printed rows=0 for them.
         await require('./linkedTables').attachLinkedTables(draftWrap, userId);
