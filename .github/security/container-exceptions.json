@@ -664,6 +664,48 @@
     },
     {
       "images": [
+        "classify",
+        "guard"
+      ],
+      "reviewedAt": "2026-11-10",
+      "expires": "2026-12-10",
+      "requiredUser": "app",
+      "id": "CVE-2026-119374",
+      "packages": [
+        "libsqlite3-0"
+      ],
+      "versions": [
+        "3.46.1-7+deb13u2"
+      ],
+      "reason": "Debian lists trixie as vulnerable with no fixed build and no no-dsa decision; the overflow is in fts5DoSecureDelete(), reached only through an FTS5 table with secure-delete enabled. Short expiry: revisit when Debian triages it.",
+      "reachability": "libsqlite3-0 backs Python's sqlite3 module. Neither service imports it; of the installed packages only filelock (lock files) and torch (local caches) do, and nothing in the image creates or queries an FTS5 table, let alone with request data. The default process is UID 1000 (app).",
+      "references": [
+        "https://security-tracker.debian.org/tracker/CVE-2026-119374"
+      ]
+    },
+    {
+      "images": [
+        "classify",
+        "guard"
+      ],
+      "reviewedAt": "2026-11-10",
+      "expires": "2026-12-10",
+      "requiredUser": "app",
+      "id": "CVE-2026-119379",
+      "packages": [
+        "libsqlite3-0"
+      ],
+      "versions": [
+        "3.46.1-7+deb13u2"
+      ],
+      "reason": "Debian lists trixie as vulnerable with no fixed build and no no-dsa decision; the overflow is in sqlite3changeset_apply() of the session extension, reached only by applying an attacker-supplied changeset. Short expiry: revisit when Debian triages it.",
+      "reachability": "libsqlite3-0 backs Python's sqlite3 module. Neither service imports it; of the installed packages only filelock (lock files) and torch (local caches) do, and Python's sqlite3 module has no binding for the session extension, so nothing in the image can apply a changeset. The default process is UID 1000 (app).",
+      "references": [
+        "https://security-tracker.debian.org/tracker/CVE-2026-119379"
+      ]
+    },
+    {
+      "images": [
         "server"
       ],
       "reviewedAt": "2026-11-06",
