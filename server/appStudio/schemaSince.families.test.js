@@ -6,7 +6,9 @@
  * Every mark here is a test-only fixture (testUtils/appCatalogExtensions.testkit.js): nothing
  * depends on what the registries ship. Where the canonicalizer keeps the fixture (it reads the
  * live tables), the version is read off the canonical output; where the fixture sits in a
- * frozen table or in hand-written canonicalizer code, off requiredSchemaVersion itself.
+ * frozen table or in hand-written canonicalizer code, off requiredSchemaVersion itself. A key of
+ * a data binding and a key of a groupBy entry are kept by the canonicalizer's one generic pass
+ * (canonicalize/markedKeys.js), so those are read off the canonical output too.
  *
  * Run: node --test appStudio/schemaSince.families.test.js
  */
@@ -73,6 +75,14 @@ const CASES = [
     ['an aggregate function in a binding', (def) => { table(def).props.source = { kind: 'aggregate', tableId: 'tbl_x', aggregates: [{ fn: 'zz_median', field: 'a', as: 'm' }] }; }, false],
     ['a date bucket in a binding', (def) => { table(def).props.source = { kind: 'aggregate', tableId: 'tbl_x', groupBy: [{ field: 'd', bucket: 'zz_fortnight' }] }; }, false],
     ['a filter operator in a step', (def) => { sequence(def).steps.push({ kind: 'update_record', tableId: 'tbl_x', filter: [{ field: 'a', op: 'zz_near', value: 1 }], values: {} }); }, false],
+    ['a key added to a binding', (def) => { table(def).props.source = { kind: 'records', tableId: 'tbl_x', zz_expand: ['owner'] }; }, true],
+    ['a key added to a binding, in a step field', (def) => { sequence(def).steps[1].rows = { kind: 'record', tableId: 'tbl_x', zz_expand: ['owner'] }; }, true],
+    ['a key added to a binding that holds a clause list', (def) => { table(def).props.source = { kind: 'aggregate', tableId: 'tbl_x', zz_having: [{ field: 'n', op: 'gt', value: 1 }] }; }, true],
+    ['a form of a filter in a binding', (def) => { table(def).props.source = { kind: 'records', tableId: 'tbl_x', filter: [{ zz_all: [{ field: 'a', op: 'eq', value: 1 }] }] }; }, true],
+    ['a form of a filter in a step read', (def) => { sequence(def).steps.push({ kind: 'update_record', tableId: 'tbl_x', filter: [{ zz_all: [{ field: 'a', op: 'eq', value: 1 }] }], values: {} }); }, true],
+    ['a form of a filter in a write\'s replaceWhere', (def) => { sequence(def).steps[0].writeTo = { tableId: 'tbl_x', replaceWhere: [{ zz_all: [] }] }; }, false],
+    ['a form of a filter under a marked key that holds one', (def) => { table(def).props.source = { kind: 'aggregate', tableId: 'tbl_x', zz_having: [{ zz_all: [] }] }; }, true],
+    ['a key added to the entries of a groupBy', (def) => { table(def).props.source = { kind: 'aggregate', tableId: 'tbl_x', groupBy: [{ field: 'amount', zz_step: 10 }] }; }, true],
 ];
 
 test('with nothing marked a definition needs the base version, whatever it holds', () => {
@@ -113,6 +123,17 @@ test('a value that is not the marked one, and a marked word in the author\'s own
         // Static payloads are data: an "op" in a row is not a filter clause.
         table(def).props.source = { kind: 'static', value: [{ op: 'zz_near', fn: 'zz_median', bucket: 'zz_fortnight' }] };
         assert.equal(since.requiredSchemaVersion(def), SCHEMA_VERSION_BASE);
+        // A marked binding key counts on the kinds it is marked for, and a filter form in a clause list only.
+        const other = sample();
+        table(other).props.source = { kind: 'aggregate', tableId: 'tbl_x', zz_expand: ['owner'], filter: 'zz_all == 1', groupBy: [{ field: 'a', zz_step: null }] };
+        heading(other).props.text = { kind: 'formula', expr: 'zz_expand', zz_having: [] };
+        other.screens[0].sections[0].children.push({ id: 'cmp_table002', type: 'table', props: { source: { kind: 'records', tableId: 'tbl_x', zz_having: [{ field: 'n', op: 'gt', value: 1 }], filter: [{ any: [{ field: 'a', op: 'eq', value: 1 }] }] } } });
+        assert.equal(since.requiredSchemaVersion(other), SCHEMA_VERSION_BASE);
+        // The canonicalizer drops the key where it is not marked, as it drops any unknown key.
+        const cleaned = canonicalizeAppDefinition(other).def;
+        assert.deepEqual(Object.keys(table(cleaned).props.source), ['kind', 'tableId', 'filter', 'groupBy']);
+        assert.deepEqual(table(cleaned).props.source.groupBy, [{ field: 'a' }]);
+        assert.equal(cleaned.schemaVersion, SCHEMA_VERSION_BASE);
         // Names that only look like marks never count.
         const odd = sample();
         Object.assign(odd.screens[0], { constructor: 1, toString: 2 });
@@ -135,7 +156,7 @@ test('with every fixture in the catalogue, no corpus app needs another version t
 
 test('the index lists only what is marked: an unmarked catalogue has an empty one', () => {
     assert.equal(shared.sinceIndexIsEmpty(since.buildSinceIndex({})), true);
-    const index = since.buildSinceIndex({
+    const built = since.buildSinceIndex({
         stepSpecs: { toast: { fields: { seconds: { since: 3 }, tone: { valuesSince: { loud: 3, info: 2 } }, message: {} } } },
         actionSpecs: { toast: { fields: { sticky: { since: 4 } } } },
         componentSpecs: {
@@ -144,8 +165,10 @@ test('the index lists only what is marked: an unmarked catalogue has an empty on
         },
         keyTables: { screen: { layout: { since: 3 }, name: {} }, nav: { style: { valuesSince: { dock: 3 } } }, section: {} },
         queryValuesSince: { op: { near: 3, eq: 2 }, fn: {}, bucket: { fortnight: 3 } },
+        bindingKeyMarks: { search: { since: 3, kinds: ['records'] }, expand: { since: 4 }, having: { since: 3, kinds: ['aggregate'], holds: 'filter' }, old: { since: 2 } },
+        queryShapeMarks: { 'filter.nested': { since: 3, uses: () => false }, 'groupBy.step': { since: 4, entryKey: true }, 'sort.old': { since: 2, uses: () => false } },
     });
-    assert.deepEqual(JSON.parse(JSON.stringify(index)), {
+    assert.deepEqual(JSON.parse(JSON.stringify(built)), {
         componentTypes: {}, props: {}, propValues: {}, styleKnobs: {}, styleValues: {}, stepKinds: {}, actionKinds: {}, bindingKinds: {}, topLevelKeys: {},
         stepFields: { toast: { seconds: 3 } },
         stepFieldValues: { toast: { tone: { loud: 3 } } },
@@ -155,5 +178,18 @@ test('the index lists only what is marked: an unmarked catalogue has an empty on
         typeNodeKeys: { heading: { onClick: 3 } },
         keys: { screen: { layout: 3 } },
         values: { nav: { style: { dock: 3 } }, query: { op: { near: 3 }, bucket: { fortnight: 3 } } },
+        bindingKeys: { records: { search: 3, expand: 4 }, record: { expand: 4 }, aggregate: { expand: 4, having: 3 }, dataset: { expand: 4 } },
+        queryShapes: { filter: { 'filter.nested': 3 }, replaceWhere: { 'filter.nested': 3 }, having: { 'filter.nested': 3 }, groupBy: { 'groupBy.step': 4 } },
     });
+    // The predicates sit under the same keys and names as their marks.
+    const tests = since.buildShapeTests({ queryShapeMarks: { 'filter.nested': { since: 3, uses: (v) => v === 'yes' }, 'groupBy.step': { since: 4, entryKey: true } }, bindingKeyMarks: { having: { since: 3, holds: 'filter' } } });
+    assert.deepEqual(Object.keys(tests), ['filter', 'replaceWhere', 'having', 'groupBy']);
+    assert.equal(tests.having['filter.nested']('yes'), true);
+    assert.equal(tests.groupBy['groupBy.step']([{ field: 'a', step: 5 }]), true);
+    assert.equal(tests.groupBy['groupBy.step']([{ field: 'a', step: null }, 'step']), false);
+    // A mark without its predicate is never counted: the walk does not guess.
+    const index = since.buildSinceIndex({ queryShapeMarks: { 'filter.nested': { since: 3, uses: () => true } } });
+    const def = { screens: [{ sections: [{ children: [{ type: 'table', props: { source: { kind: 'records', filter: [] } } }] }] }] };
+    assert.equal(shared.requiredSchemaVersion(def, index), SCHEMA_VERSION_BASE);
+    assert.equal(shared.requiredSchemaVersion(def, index, since.buildShapeTests({ queryShapeMarks: { 'filter.nested': { since: 3, uses: () => true } } })), 3);
 });

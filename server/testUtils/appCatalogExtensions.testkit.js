@@ -10,8 +10,9 @@
  * existing action kind, an enum value on a step field, a key and an enum value of the items of
  * a list prop (also of a nested list), a screen key and value, a section key, a knob newly
  * allowed on sections, a theme and a design key and value, a node key, a nav key, a nav group
- * key, a nav style, an event an existing type newly fires, and a word of each family of the
- * data vocabulary.
+ * key, a nav style, an event an existing type newly fires, a word of each family of the
+ * data vocabulary, a key of a data binding (one of them holding a clause list) and two query
+ * shapes: a form of a filter with its predicate, and a key of a groupBy entry.
  *
  * DESIGN_SPEC, NAV_STYLES and the data vocabulary are frozen, so their fixtures live in an
  * overlay only the catalogue tiers and the schema-version index read
@@ -73,7 +74,10 @@ const KEY_FIXTURE_NAMES = Object.freeze({
     designKeys: ['design.zz_backdrop'],
     navKeys: ['nav.groups[].zz_badge', 'nav.zz_footer'],
     actionFields: ['toast.zz_sticky'],
-    data: ['aggFn.zz_median', 'dateBucket.zz_fortnight', 'fieldOption.zz_mask', 'fieldType.zz_money', 'filterOp.zz_near'],
+    data: [
+        'aggFn.zz_median', 'binding.zz_expand', 'binding.zz_having', 'dateBucket.zz_fortnight', 'fieldOption.zz_mask', 'fieldType.zz_money',
+        'filter.zz_all', 'filterOp.zz_near', 'groupBy.zz_step',
+    ],
 });
 const ALL_FIXTURE_NAMES = Object.freeze([...Object.values(FIXTURE_NAMES), ...Object.values(KEY_FIXTURE_NAMES).flat()]);
 
@@ -89,6 +93,26 @@ const KEY_MARK_FIXTURES = Object.freeze({
         style: { valuesSince: { zz_dock: 3 }, shape: 'tabs|sidebar|mega|rail|zz_dock', description: 'zz_dock pins the screens to the bottom edge.' },
     },
     navGroup: { zz_badge: { since: 3, shape: 'formula', description: 'A count shown beside the group label.' } },
+    binding: {
+        zz_expand: {
+            since: 3, kinds: ['record', 'records'], shape: '[<relation field key>] ≤5', description: 'Related rows a read takes along.',
+            clean: (/** @type {unknown} */ v) => (Array.isArray(v) ? v.filter((name) => typeof name === 'string' && name).slice(0, 5) : undefined),
+        },
+        zz_having: {
+            since: 3, kinds: ['aggregate'], holds: 'filter', shape: '[clause]', description: 'A filter on the groups of an aggregate.',
+            clean: (/** @type {unknown} */ v) => (Array.isArray(v) ? v : undefined),
+        },
+    },
+    queryShape: {
+        'filter.zz_all': {
+            since: 3, shape: '{ "zz_all": [clause, …] }', description: 'A group whose clauses must all match.',
+            uses: (/** @type {unknown} */ list) => Array.isArray(list) && list.some((entry) => entry !== null && typeof entry === 'object' && Array.isArray(entry.zz_all)),
+        },
+        'groupBy.zz_step': {
+            since: 3, entryKey: true, shape: 'number > 0', description: 'The width of a number bin.',
+            clean: (/** @type {unknown} */ v) => (typeof v === 'number' && v > 0 ? v : undefined),
+        },
+    },
 });
 
 const DATA_MARK_FIXTURES = Object.freeze({
@@ -173,7 +197,7 @@ function installKeyFixtures() {
         for (const [key, mark] of Object.entries(marks)) {
             // A shipped mark on the same base key keeps its values: the fixture's are added to them.
             const shipped = KEY_MARKS[family][key];
-            const merged = shipped && mark.valuesSince ? { ...mark, valuesSince: { ...shipped.valuesSince, ...mark.valuesSince } } : mark;
+            const merged = shipped && 'valuesSince' in mark ? { ...mark, valuesSince: { ...shipped.valuesSince, ...mark.valuesSince } } : mark;
             undo.push(addKey(KEY_MARKS[family], key, merged));
         }
     }
