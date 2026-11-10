@@ -128,7 +128,7 @@ function canonNode(node, path, depth, ids, push) {
 
     if (spec) {
         out.props = cleanProps(node, spec, id, path, push);
-        out.style = cleanStyle(node.style, expandStyleKnobs(spec.styleKnobs), spec.defaultStyle, `${path}.style`, push);
+        out.style = cleanStyle(node.style, expandStyleKnobs(spec.styleKnobs, undefined, node.type), spec.defaultStyle, `${path}.style`, push);
     } else {
         // Unknown type — validate.js flags it with a closest-match hint; keep
         // the payload intact (minus aliasing) so nothing the user wrote is lost.

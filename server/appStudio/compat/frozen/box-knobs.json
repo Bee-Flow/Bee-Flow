@@ -1,0 +1,48 @@
+{
+  "corpus": "box-knobs",
+  "canonical": {
+    "sha256": "1be464f7ac5a1e18e36f286399e3d4ca1095c02f8e36a575e83bf4dd0357e930",
+    "bytes": 2230,
+    "inputIsCanonical": true,
+    "idempotent": true,
+    "keys": [
+      "schemaVersion",
+      "meta",
+      "theme",
+      "roles",
+      "screens",
+      "actions",
+      "homeScreenId"
+    ],
+    "parts": {
+      "schemaVersion": "4e07408562bedb8b",
+      "meta": "1fa1b457e18b3330",
+      "theme": "87df6a9096a03b63",
+      "roles": "4f53cda18c2baa0c",
+      "screens[0] scr_boxkn01": "86f001fc9f6d5764",
+      "homeScreenId": "7744d2c31464ccf8"
+    }
+  },
+  "schemaVersion": {
+    "stored": 3,
+    "canonical": 3
+  },
+  "validation": {
+    "strict": {
+      "errors": [],
+      "warnings": [
+        "component.control_inert @ screens[0].sections[0].children[5]"
+      ]
+    },
+    "save": {
+      "errors": [],
+      "warnings": [
+        "component.control_inert @ screens[0].sections[0].children[5]"
+      ]
+    }
+  },
+  "ordinals": {
+    "stored": {},
+    "canonical": "same as stored"
+  }
+}

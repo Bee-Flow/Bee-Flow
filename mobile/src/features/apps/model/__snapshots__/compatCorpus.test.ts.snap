@@ -46,6 +46,57 @@ exports[`compat corpus: what the phone plans for every stored app asset-refs 1`]
 }
 `;
 
+exports[`compat corpus: what the phone plans for every stored app box-knobs 1`] = `
+{
+  "defaultScreen": "scr_boxkn01",
+  "navigable": [
+    "scr_boxkn01",
+  ],
+  "screens": [
+    {
+      "id": "scr_boxkn01",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "id": "cmp_boxkn01",
+                "kind": "heading",
+                "level": 2,
+                "text": "Accent bar and a role fill",
+              },
+              {
+                "id": "cmp_boxkn02",
+                "kind": "stat",
+                "label": "Open items",
+                "value": "12",
+              },
+              {
+                "id": "cmp_boxkn03",
+                "kind": "stat",
+                "label": "Quiet tile",
+                "value": "3",
+              },
+              {
+                "id": "cmp_boxkn04",
+                "kind": "text",
+                "muted": false,
+                "text": "Space above and below, a bottom rule.",
+              },
+            ],
+            "screen": "scr_boxkn01",
+            "unsupported": [],
+          },
+          "roles": [
+            "(no role)",
+          ],
+        },
+      ],
+    },
+  ],
+}
+`;
+
 exports[`compat corpus: what the phone plans for every stored app design-preset-ember 1`] = `
 {
   "defaultScreen": "scr_p1yp7d",
@@ -491,6 +542,81 @@ exports[`compat corpus: what the phone plans for every stored app fixture-calcul
             "unsupported": [
               "stat",
             ],
+          },
+          "roles": [
+            "(no role)",
+          ],
+        },
+      ],
+    },
+  ],
+}
+`;
+
+exports[`compat corpus: what the phone plans for every stored app hover-backdrop 1`] = `
+{
+  "defaultScreen": "scr_hvbg001",
+  "navigable": [
+    "scr_hvbg001",
+  ],
+  "screens": [
+    {
+      "id": "scr_hvbg001",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "id": "cmp_hvbg01",
+                "kind": "heading",
+                "level": 2,
+                "text": "Lift on hover",
+              },
+              {
+                "id": "cmp_hvbg02",
+                "kind": "heading",
+                "level": 2,
+                "text": "Tint on hover",
+              },
+              {
+                "id": "cmp_hvbg03",
+                "kind": "heading",
+                "level": 2,
+                "text": "Outline on hover",
+              },
+              {
+                "id": "cmp_hvbg04",
+                "kind": "heading",
+                "level": 2,
+                "text": "Grow on hover",
+              },
+              {
+                "id": "cmp_hvbg05",
+                "kind": "heading",
+                "level": 2,
+                "text": "Hover none is the identity",
+              },
+              {
+                "id": "cmp_hvbg06",
+                "kind": "heading",
+                "level": 2,
+                "text": "Picture with a dim veil",
+              },
+              {
+                "id": "cmp_hvbg07",
+                "kind": "heading",
+                "level": 2,
+                "text": "Tiled pattern",
+              },
+              {
+                "id": "cmp_hvbg08",
+                "kind": "heading",
+                "level": 2,
+                "text": "Contained with a hover",
+              },
+            ],
+            "screen": "scr_hvbg001",
+            "unsupported": [],
           },
           "roles": [
             "(no role)",

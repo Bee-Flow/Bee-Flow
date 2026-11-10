@@ -485,7 +485,7 @@ function validateNode(node, path, depth, formId, ctx, parent = ROOT_PARENT) {
         if (!isObject(node.style)) {
             pushE({ code: 'style.invalid', severity: 'error', path: `${path}.style`, message: 'style must be an object.', hint: 'Use the style knobs from the catalog.' });
         } else {
-            const allowedKnobs = expandStyleKnobs(spec.styleKnobs);
+            const allowedKnobs = expandStyleKnobs(spec.styleKnobs, undefined, node.type);
             for (const [k, v] of Object.entries(node.style)) {
                 if (!allowedKnobs.includes(k)) {
                     pushE({ code: 'style.unknown_key', severity: 'error', path: `${path}.style.${k}`, message: `Style knob \`${k}\` does not apply to ${node.type}.`, hint: `Legal knobs: ${allowedKnobs.join(', ')}.` });

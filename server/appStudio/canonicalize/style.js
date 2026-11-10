@@ -78,9 +78,14 @@ function cleanStyle(raw, allowedKeys, defaults, path, push, { recordMissing = fa
             push('style.invalid', `${path}.${k}`, `${k}: unknown value ${JSON.stringify(v)} — reset to ${JSON.stringify(knob.default)}. Legal: ${knob.values.map((x) => JSON.stringify(x)).join(', ')}.`);
             out[k] = knob.default;
         } else if (knob.type === 'colorOrRole') {
+            // A colour knob added after the base (since-marked) has no colour to inherit
+            // by name: null is "not set" and stays out, like the value types below, and so
+            // does a value it cannot use.
+            const late = knob.since !== undefined;
+            if (v === null && late) continue;
             if (v === null || (typeof v === 'string' && (knob.roles.includes(v) || HEX_RE.test(v)))) { out[k] = v; continue; }
-            push('style.invalid', `${path}.${k}`, `${k}: ${JSON.stringify(v)} is neither a role (${knob.roles.join(', ')}) nor #rrggbb — reset to ${JSON.stringify(knob.default)}.`);
-            out[k] = knob.default;
+            push('style.invalid', `${path}.${k}`, `${k}: ${JSON.stringify(v)} is neither a role (${knob.roles.join(', ')}) nor #rrggbb — ${late ? 'dropped' : `reset to ${JSON.stringify(knob.default)}`}.`);
+            if (!late) out[k] = knob.default;
         } else {
             // A value type added after the base four (componentSpecs/valueTypes.js). Unset is
             // the only default such a knob has, so null, absent and an unacceptable value all

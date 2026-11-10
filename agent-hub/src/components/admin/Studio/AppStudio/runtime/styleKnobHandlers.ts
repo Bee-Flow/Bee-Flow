@@ -33,6 +33,10 @@ export interface StyleKnobHandler {
     node?: (s: StyleKnobs, style: InlineStyle) => string;
     /** A section's style (only for a group granted to the section's list). */
     section?: (s: StyleKnobs, style: InlineStyle) => string;
+    /** The inspector's heading over the group's controls: [i18n key, English]. */
+    title?: readonly [string, string];
+    /** What the inspector calls an enum value: knob → value → [i18n key, English]. */
+    valueLabels?: Readonly<Record<string, Readonly<Record<string, readonly [string, string]>>>>;
 }
 
 interface KnobGroup {

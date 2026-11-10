@@ -250,6 +250,138 @@
                 }
             }
         },
+        "backgroundImage": {
+            "type": "asset",
+            "default": null,
+            "since": 3,
+            "description": "A picture behind the component: asset:<id> of an uploaded image, or null. Upload the image to the app first and use its asset id; a web address is not accepted. The picture sits under the content and follows the corners of the box. Text over a picture is hard to read: set backgroundOverlay (dim for light text, light for dark text) and give the text the matching color, or keep the text off the picture. Not on button, callout, ai_chat, approval_list, browser_view, pdf_compare or connector_status, which frame their own box."
+        },
+        "backgroundFit": {
+            "type": "enum",
+            "values": [
+                "cover",
+                "contain",
+                "tile"
+            ],
+            "default": "cover",
+            "since": 3,
+            "description": "How the picture fills the box: cover, contain or tile. cover fills the box and crops the edges, contain shows the whole picture with room around it, tile repeats it at its own size (patterns, textures). Only has an effect together with backgroundImage. Not on button, callout, ai_chat, approval_list, browser_view, pdf_compare or connector_status, which frame their own box."
+        },
+        "backgroundOverlay": {
+            "type": "enum",
+            "values": [
+                "none",
+                "dim",
+                "light"
+            ],
+            "default": "none",
+            "since": 3,
+            "description": "A veil over the picture for readable content: none, dim or light. dim darkens the picture (for white text), light brightens it (for dark text). The validator warns about a picture without a veil under a component that shows text. Only has an effect together with backgroundImage. Not on button, callout, ai_chat, approval_list, browser_view, pdf_compare or connector_status, which frame their own box."
+        },
+        "marginTop": {
+            "type": "int",
+            "min": 0,
+            "max": 8,
+            "step": 1,
+            "default": 0,
+            "since": 3,
+            "description": "Extra space above the component, in spacing steps. 0..8 steps of 4px times the theme density, added outside the box. Use it to set a block apart from the one above it instead of adding a spacer. Not on button, callout, ai_chat, approval_list, browser_view, pdf_compare or connector_status, which frame their own box."
+        },
+        "marginBottom": {
+            "type": "int",
+            "min": 0,
+            "max": 8,
+            "step": 1,
+            "default": 0,
+            "since": 3,
+            "description": "Extra space below the component, in spacing steps. 0..8 steps of 4px times the theme density, added outside the box. Not on button, callout, ai_chat, approval_list, browser_view, pdf_compare or connector_status, which frame their own box."
+        },
+        "shadow": {
+            "type": "enum",
+            "values": [
+                "none",
+                "sm",
+                "md",
+                "lg"
+            ],
+            "default": "none",
+            "since": 3,
+            "description": "Elevation of the component box: none, sm, md or lg. Uses the theme elevation tokens, which become outline rings in high contrast, so a raised box stays visible in every theme. Give the box a surface too (backgroundColor, or background \"surface\" on a card) or the shadow outlines bare content. Not on button, callout, ai_chat, approval_list, browser_view, pdf_compare or connector_status, which frame their own box."
+        },
+        "opacity": {
+            "type": "int",
+            "min": 10,
+            "max": 100,
+            "step": 5,
+            "default": 100,
+            "since": 3,
+            "description": "How opaque the component is, from 10 to 100 percent. 100 changes nothing. Use it to quiet a secondary block, not to hide one (use visibility for that); text below about 60 gets hard to read. Not on button, callout, ai_chat, approval_list, browser_view, pdf_compare or connector_status, which frame their own box."
+        },
+        "borderWidth": {
+            "type": "int",
+            "min": 1,
+            "max": 4,
+            "step": 1,
+            "default": 1,
+            "since": 3,
+            "description": "Border thickness in pixels, 1 to 4. Setting any of borderWidth, borderSides or borderColor draws a solid border on the box and replaces the border knob where the type has one. Without borderColor the border takes the theme border colour, without borderSides it goes all round. Not on button, callout, ai_chat, approval_list, browser_view, pdf_compare or connector_status, which frame their own box."
+        },
+        "borderSides": {
+            "type": "enum",
+            "values": [
+                "all",
+                "top",
+                "right",
+                "bottom",
+                "left",
+                "x",
+                "y"
+            ],
+            "default": "all",
+            "since": 3,
+            "description": "Which sides get the border: all, top, right, bottom, left, x or y. x is left and right, y is top and bottom. One side with borderWidth 3 and a role colour makes an accent bar. Not on button, callout, ai_chat, approval_list, browser_view, pdf_compare or connector_status, which frame their own box."
+        },
+        "borderColor": {
+            "type": "colorOrRole",
+            "roles": [
+                "primary",
+                "neutral",
+                "success",
+                "warning",
+                "danger",
+                "info"
+            ],
+            "default": null,
+            "since": 3,
+            "description": "Border colour: a role or a #rrggbb colour. A role follows the theme in light, dark and high contrast, a hex colour stays exactly as written in every theme. Draws a border by itself (1px, all sides). Not on button, callout, ai_chat, approval_list, browser_view, pdf_compare or connector_status, which frame their own box."
+        },
+        "backgroundColor": {
+            "type": "colorOrRole",
+            "roles": [
+                "primary",
+                "neutral",
+                "success",
+                "warning",
+                "danger",
+                "info"
+            ],
+            "default": null,
+            "since": 3,
+            "description": "Fill of the component box: a role or a #rrggbb colour. Wins over the background knob where the type has one. A role paints a soft wash of that colour over the card surface, so text stays readable in light, dark and high contrast. A hex colour paints exactly that colour in every theme: the validator warns when the text on it would be hard to read, and a role is the safer choice. A card, stat or page_header with a look other than its default paints that look's own surface inside the box, so pick the look or this fill, not both. Most types have no padding knob, so text sits tight against the fill: put it in a card or container for an inset. Not on button, callout, ai_chat, approval_list, browser_view, pdf_compare or connector_status, which frame their own box."
+        },
+        "hover": {
+            "type": "enum",
+            "values": [
+                "none",
+                "lift",
+                "tint",
+                "outline",
+                "grow"
+            ],
+            "default": "none",
+            "since": 3,
+            "description": "Reaction to the pointer: none, lift, tint, outline or grow. lift raises it a little with a shadow, tint washes it with the primary colour, outline rings it in the primary colour, grow scales it up by 2 percent. Use it on a block that is clickable (a card that opens a record, a stat that links on) so it reads as one, not on every block. It does nothing on touch screens, in the editor canvas or when the viewer asks for reduced motion, so never make it the only sign that something can be clicked."
+        },
         "font": {
             "type": "enum",
             "values": [
@@ -326,6 +458,57 @@
         "hideAbove"
     ],
     "extensionKnobGroups": [
+        {
+            "name": "backdrop",
+            "since": 3,
+            "grantedBy": "span",
+            "knobs": [
+                "backgroundImage",
+                "backgroundFit",
+                "backgroundOverlay"
+            ],
+            "withheldFrom": [
+                "button",
+                "callout",
+                "ai_chat",
+                "approval_list",
+                "browser_view",
+                "pdf_compare",
+                "connector_status"
+            ]
+        },
+        {
+            "name": "box",
+            "since": 3,
+            "grantedBy": "span",
+            "knobs": [
+                "marginTop",
+                "marginBottom",
+                "shadow",
+                "opacity",
+                "borderWidth",
+                "borderSides",
+                "borderColor",
+                "backgroundColor"
+            ],
+            "withheldFrom": [
+                "button",
+                "callout",
+                "ai_chat",
+                "approval_list",
+                "browser_view",
+                "pdf_compare",
+                "connector_status"
+            ]
+        },
+        {
+            "name": "hover",
+            "since": 3,
+            "grantedBy": "span",
+            "knobs": [
+                "hover"
+            ]
+        },
         {
             "name": "text",
             "since": 3,
