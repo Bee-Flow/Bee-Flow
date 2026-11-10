@@ -13,6 +13,7 @@ import useTranslation from '@/hooks/useTranslation';
 import { useAutomationRows } from '../editor/automationTitles';
 import { useScreenValues } from '../editor/ScreenValuesContext';
 import { removeAction, setAction, setNodeEvent } from '../state/definitionOps';
+import { slotIds, withFirst, withoutAction, type SlotValue } from './eventSlots';
 import {
     actionChoices, appRefOf, kindSwitchOf, nextParamName, paramMetaOf, renamedMapping, startTestRun, targetTriggerOf,
     withEffect, withPickedAutomation, withoutMapping, type AutomationTrigger, type WiredAutomation,
@@ -62,11 +63,12 @@ const applyAction = setAction as (
     action: AppAction,
 ) => { def: AppDefinition; actionId: string | null };
 const dropAction = removeAction as (def: AppDefinition, actionId: string | null) => AppDefinition;
+// A slot holds one id or (schema 3) a list of them; setNodeEvent writes either as given.
 const wireEvent = setNodeEvent as (
     def: AppDefinition,
     nodeId: string,
     event: string,
-    actionIdOrNull: string | null,
+    slot: SlotValue,
 ) => AppDefinition;
 // ScreenValuesContext.js seeds its context with null, which is all TypeScript
 // reads of it. Null stays in the type — outside the editor there is no store.
@@ -171,7 +173,8 @@ export default function useEventWiring({
 }: UseEventWiringOptions): EventWiring {
     const { t } = useTranslation();
     const actions = useMemo(() => definition?.actions || {}, [definition?.actions]);
-    const actionId = typeof node?.[event] === 'string' ? node[event] as string : null;
+    // The slot's OWN action is its first id; the others are "then also run" (eventSlots.ts).
+    const actionId = slotIds(node?.[event])[0] ?? null;
     const action = actionId ? actions[actionId] : null;
 
     // The automation tile needs the step count and the solution, which live on the
@@ -234,10 +237,10 @@ export default function useEventWiring({
         if (!node) return;
         if (value === NEW_ACTION) {
             const { def: withAction, actionId: newId } = applyAction(definition, null, defaultAction('run_automation', definition));
-            onCommit(wireEvent(withAction, node.id, event, newId));
+            onCommit(wireEvent(withAction, node.id, event, withFirst(node[event], newId)));
             return;
         }
-        const next = wireEvent(definition, node.id, event, value || null);
+        const next = wireEvent(definition, node.id, event, withFirst(node[event], value || null));
         if (next !== definition) onCommit(next);
     };
 
@@ -247,14 +250,14 @@ export default function useEventWiring({
         if (!action || !node) return;
         const copy = JSON.parse(JSON.stringify(action)) as AppAction;
         const { def: withCopy, actionId: newId } = applyAction(definition, null, copy);
-        onCommit(wireEvent(withCopy, node.id, event, newId));
+        onCommit(wireEvent(withCopy, node.id, event, withFirst(node[event], newId)));
     };
 
     const onDeleteAction = () => {
         setConfirmDelete(false);
         let next = dropAction(definition, actionId);
         for (const ref of eventRefsToAction(next, actionId)) {
-            next = wireEvent(next, ref.nodeId, ref.event, null);
+            next = wireEvent(next, ref.nodeId, ref.event, withoutAction(ref.node[ref.event], actionId));
         }
         if (next !== definition) onCommit(next);
     };

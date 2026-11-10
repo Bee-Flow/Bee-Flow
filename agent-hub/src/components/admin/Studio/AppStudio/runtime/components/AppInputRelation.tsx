@@ -4,6 +4,7 @@ import ComboBox, { BindingLoader, CANDIDATE_LIMIT, useHasQueryClient } from './c
 import useTranslation from '@/hooks/useTranslation';
 import { useDataContext } from '../DataContext';
 import { useFormField } from '../formContext';
+import useInputChange from '../useInputChange';
 import { resolveBinding, walkPath } from '../resolveBinding';
 import { useRuntime } from '../RuntimeContext';
 import { displayValue } from '../uiBits';
@@ -74,9 +75,12 @@ export default function AppInputRelation({ node }: NodeProps<InputRelationProps>
         name, label = t('studio_apps_runtime.inputs.related', 'Related'), tableId = null, displayField = null,
         multiple = false, required = false, filter = null,
     } = node.props || {};
-    const { value, setValue, error } = useFormField<ComboOption['id'] | ComboOption['id'][]>({
+    const { value, setValue: setField, error } = useFormField<ComboOption['id'] | ComboOption['id'][]>({
         name, defaultValue: multiple ? [] : null, required, label,
     });
+    // A pick or a removal is the person's own change: it fires onChange (schema 3).
+    const fireChange = useInputChange(node, name);
+    const setValue = (next: ComboOption['id'] | ComboOption['id'][] | null) => { setField(next); fireChange(next); };
     const id = `${node.id}-input`;
 
     // An explicit limit, because the server clamps a MISSING one to 50: a

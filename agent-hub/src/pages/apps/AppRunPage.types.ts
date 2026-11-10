@@ -3,7 +3,7 @@ import type AppShell from '../../components/admin/Studio/AppStudio/runtime/AppSh
 import type { AppDefinition } from '../../components/admin/Studio/AppStudio/inspector/appDefinition';
 import type { UserMenuViewer } from '../../components/admin/Studio/AppStudio/runtime/shell/UserMenu';
 import type { NavigateFn } from '../../components/admin/Studio/AppStudio/runtime/actionRunner/runnerContext';
-import type { ActionState, RunOpts, Vars } from '../../components/admin/Studio/AppStudio/runtime/actionRunner/core';
+import type { ActionSlot, ActionState, RunOpts, Vars } from '../../components/admin/Studio/AppStudio/runtime/actionRunner/core';
 import type { DataState } from '../../components/admin/Studio/AppStudio/runtime/DataContext';
 
 export type ShellDefinition = NonNullable<React.ComponentProps<typeof AppShell>['definition']> & AppDefinition;
@@ -64,7 +64,7 @@ export interface RunBodyProps {
     viewer: UserMenuViewer | null;
     previewRole: string;
     actionState: ActionState;
-    runAction: (actionId: string, opts?: RunOpts) => Promise<void>;
+    runAction: (actionId: ActionSlot, opts?: RunOpts) => Promise<void>;
     vars: Vars;
     setVar: (name: string, value: unknown) => void;
     forms: Record<string, Record<string, unknown>>;

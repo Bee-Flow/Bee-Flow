@@ -10483,3 +10483,88 @@ exports[`compat corpus: what the phone plans for every stored app v3-ui-steps 1`
   ],
 }
 `;
+
+exports[`compat corpus: what the phone plans for every stored app v3-watchers-and-triggers 1`] = `
+{
+  "defaultScreen": "scr_desk0001",
+  "navigable": [
+    "scr_desk0001",
+  ],
+  "screens": [
+    {
+      "id": "scr_desk0001",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "body": "Click this note.",
+                "id": "cmp_call0001",
+                "kind": "callout",
+                "title": "Open the details",
+                "tone": "info",
+              },
+              {
+                "id": "cmp_txt00001",
+                "kind": "text",
+                "muted": false,
+                "text": "Status",
+              },
+              {
+                "id": "cmp_txt00002",
+                "kind": "text",
+                "muted": false,
+                "text": "A clickable group",
+              },
+              {
+                "action": null,
+                "description": null,
+                "id": "cmp_form0001",
+                "inputs": [],
+                "kind": "form",
+                "submitLabel": "Submit",
+                "title": "visit",
+              },
+            ],
+            "screen": "scr_desk0001",
+            "unsupported": [
+              "stat",
+              "image",
+              "input_datetime",
+              "input_person",
+              "input_relation",
+              "input_richtext",
+              "input_html",
+            ],
+          },
+          "roles": [
+            "(no role)",
+          ],
+        },
+      ],
+    },
+    {
+      "id": "scr_detail01",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "id": "cmp_head0001",
+                "kind": "heading",
+                "level": 2,
+                "text": "Detail",
+              },
+            ],
+            "screen": "scr_detail01",
+            "unsupported": [],
+          },
+          "roles": [
+            "(no role)",
+          ],
+        },
+      ],
+    },
+  ],
+}
+`;

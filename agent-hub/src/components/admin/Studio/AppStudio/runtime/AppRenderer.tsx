@@ -15,6 +15,7 @@ import { resolveBinding } from './resolveBinding';
 import { RuntimeProvider, ScopeProvider, DEFAULT_RUNTIME, buildScope, rowKey, useRuntime, type ExpressionScope, type RuntimeValue } from './RuntimeContext';
 import { resolveNodeStyle } from './styleResolver';
 import { themeVars } from './themeVars';
+import { tileClickProps } from './tileClick';
 import { definitionReadsUi, useUiScope } from './uiState';
 import useTranslation from '@/hooks/useTranslation';
 import type React from 'react';
@@ -71,9 +72,10 @@ function roleAllows(nodeOrScreen: { visibleToRoles?: string[] } | null | undefin
     if (!Array.isArray(gate) || gate.length === 0) return true;
     return gate.includes(previewRole);
 }
-function DefaultNodeWrapper({ node, className, style, children }: NodeWrapperProps) {
+function DefaultNodeWrapper({ node, className, style, children, interactive = null }: NodeWrapperProps) {
+    // `interactive`: a clickable tile (./tileClick.ts), run mode only; absent, the cell is what it was.
     return (
-        <div data-node-id={node.id} data-app-type={node.type} className={className} style={style}>
+        <div data-node-id={node.id} data-app-type={node.type} className={interactive ? `${className || ''} cursor-pointer` : className} style={style} {...interactive}>
             {children}
         </div>
     );
@@ -298,8 +300,9 @@ function RenderNode({ node, scope, NodeWrapper, mode }: RenderNodeProps) {
     const { className, style } = resolveNodeStyle(node);
     const cellStyle = hidden ? { ...style, opacity: 0.4 } : style;
 
+    const interactive = tileClickProps(node, mode, runtime.runAction, enabled.disabled);
     const cell = (
-        <NodeWrapper node={node} className={className} style={cellStyle}>
+        <NodeWrapper node={node} className={className} style={cellStyle} {...(interactive ? { interactive } : null)}>
             <NodeErrorBoundary type={node.type} signature={nodeSignature(node)} scope={nodeScope} mode={mode}>
                 {hidden ? <HiddenBadge /> : null}
                 {mode === 'edit' && formulaError ? <FormulaErrorBadge message={formulaError} /> : null}

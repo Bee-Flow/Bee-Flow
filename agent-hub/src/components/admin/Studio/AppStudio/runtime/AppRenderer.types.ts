@@ -3,6 +3,7 @@ import type { AppDefinition, AppNode } from '../inspector/appDefinition';
 import type { ActionState, Vars } from './actionRunner/core';
 import type { DataState } from './DataContext';
 import type { RuntimeValue, ExpressionScope, InitialUi } from './RuntimeContext';
+import type { TileClickProps } from './tileClick';
 
 /** Props of the component that wraps every rendered node (DefaultNodeWrapper, or the editor's). */
 export interface NodeWrapperProps {
@@ -10,6 +11,8 @@ export interface NodeWrapperProps {
     className?: string;
     style?: CSSProperties;
     children?: ReactNode;
+    /** A clickable tile in run mode (tileClick.ts); only the run surface's wrapper uses it. */
+    interactive?: TileClickProps | null;
 }
 
 /**

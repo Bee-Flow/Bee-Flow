@@ -44,6 +44,9 @@ export interface RunOpts {
     value?: unknown;
 }
 
+/** What an event slot holds: one action id, or (schema 3) a list of them run in order. */
+export type ActionSlot = string | readonly string[];
+
 /** A navigate effect: the authored string, or the { screenId, params } a return_to_app step sends. */
 type NavigateTarget = string | { screenId?: string; params?: Record<string, unknown> | null } | null;
 

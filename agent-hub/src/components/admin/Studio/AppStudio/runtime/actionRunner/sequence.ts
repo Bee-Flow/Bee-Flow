@@ -332,40 +332,55 @@ function runEnder(ctx: RunnerContext, actionId: string, state: SeqState, hasServ
     };
 }
 
-export async function runSequence(ctx: RunnerContext, actionId: string, action: RunnableAction, opts: RunOpts): Promise<void> {
+/** How a sequence that threw settles: the run log, the control's state, the toast. False: it did not run to the end. */
+interface ThrownRun {
+    env: SeqEnv;
+    action: RunnableAction;
+    opts: RunOpts;
+    state: SeqState;
+    end: (outcome: RunOutcome, error?: string | null) => void;
+}
+async function settleThrown({ env, action, opts, state, end }: ThrownRun, e: unknown): Promise<boolean> {
+    const { ctx, actionId, hasServer } = env;
+    if (e === SEQ_ABORT) {
+        end('aborted');
+        // Declined confirm / handled onError — settle without an error.
+        if (hasServer) {
+            ctx.setEntry(actionId, state.lastResult !== undefined
+                ? { status: 'success', result: state.lastResult, error: null }
+                : { status: 'idle', result: undefined, error: null });
+        }
+        return !!state.run?.handled;
+    }
+    if (e === CANCELLED || !ctx.alive.current) { end('cancelled'); return false; }
+    const message = state.error || failureMessage(e, ctx.tr);
+    end('error', message);
+    // A server-touching sequence surfaces the error on the triggering
+    // control (status:'error'); every failed sequence also toasts so the
+    // abort is never silent. onError effects (if any) apply afterwards.
+    if (hasServer) ctx.setEntry(actionId, { status: 'error', result: undefined, error: message });
+    showToast('danger', message);
+    await ctx.applyEffects(action.onError, { formId: opts.formId, formName: opts.formName });
+    return false;
+}
+
+/** Resolves true when the sequence settled as a success (an event slot with several actions goes on to the next one), false otherwise. */
+export async function runSequence(ctx: RunnerContext, actionId: string, action: RunnableAction, opts: RunOpts): Promise<boolean> {
     const steps = normalizeSequence(action);
     // Follows call_action, so a server step inside a called action shows the spinner too.
     const hasServer = sequenceHasServerStep(steps, ctx.live.current.definition?.actions);
-    if (hasServer && !(await prepareServerRun(ctx, actionId))) return;
+    if (hasServer && !(await prepareServerRun(ctx, actionId))) return false;
 
     const env: SeqEnv = { ctx, actionId, hasServer, indexMap: buildStepIndexMap(steps), liveBag: makeLiveBag(ctx, actionId), callChain: [actionId] };
     const state = initialState(ctx, actionId, opts);
     const end = runEnder(ctx, actionId, state, hasServer);
-    const { setEntry, applyEffects } = ctx;
     try {
         await execSteps(env, steps, state);
         end('success');
-        if (hasServer) setEntry(actionId, { status: 'success', result: state.lastResult, error: null });
-        await applyEffects(mergeAppEffects(action.onSuccess, state.appEffects), { formId: opts.formId, formName: opts.formName, effectsUnknown: !!state.effectsUnknown });
+        if (hasServer) ctx.setEntry(actionId, { status: 'success', result: state.lastResult, error: null });
+        await ctx.applyEffects(mergeAppEffects(action.onSuccess, state.appEffects), { formId: opts.formId, formName: opts.formName, effectsUnknown: !!state.effectsUnknown });
+        return true;
     } catch (e) {
-        if (e === SEQ_ABORT) {
-            end('aborted');
-            // Declined confirm / handled onError — settle without an error.
-            if (hasServer) {
-                setEntry(actionId, state.lastResult !== undefined
-                    ? { status: 'success', result: state.lastResult, error: null }
-                    : { status: 'idle', result: undefined, error: null });
-            }
-            return;
-        }
-        if (e === CANCELLED || !ctx.alive.current) { end('cancelled'); return; }
-        const message = state.error || failureMessage(e, ctx.tr);
-        end('error', message);
-        // A server-touching sequence surfaces the error on the triggering
-        // control (status:'error'); every failed sequence also toasts so the
-        // abort is never silent. onError effects (if any) apply afterwards.
-        if (hasServer) setEntry(actionId, { status: 'error', result: undefined, error: message });
-        showToast('danger', message);
-        await applyEffects(action.onError, { formId: opts.formId, formName: opts.formName });
+        return settleThrown({ env, action, opts, state, end }, e);
     }
 }

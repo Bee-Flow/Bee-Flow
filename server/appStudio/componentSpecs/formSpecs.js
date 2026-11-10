@@ -13,6 +13,8 @@ const FORM_SPECS = {
     card: {
         label: 'Card', category: 'Layout',
         description: 'A surface that groups other components. Children lay out on the card’s own 12-column grid.',
+        // Schema 3: a click on the whole tile runs an action (clientTriggerSpecs.js).
+        events: ['onClick'], eventsSince: { onClick: 3 },
         container: true,
         props: {
             title: { type: 'string', maxLen: 120, default: null },

@@ -1,0 +1,82 @@
+{
+  "corpus": "v3-watchers-and-triggers",
+  "canonical": {
+    "sha256": "c0312c6c0fe9ae4a8b42668b820f0ca2764f125df56778098e4b790a946bf9db",
+    "bytes": 5297,
+    "inputIsCanonical": true,
+    "idempotent": true,
+    "keys": [
+      "schemaVersion",
+      "meta",
+      "theme",
+      "roles",
+      "variables",
+      "screens",
+      "actions",
+      "homeScreenId",
+      "watchers"
+    ],
+    "parts": {
+      "schemaVersion": "4e07408562bedb8b",
+      "meta": "21055b9d9fdf1a61",
+      "theme": "87df6a9096a03b63",
+      "roles": "4f53cda18c2baa0c",
+      "variables": "6324eff72b1c3647",
+      "screens[0] scr_desk0001": "7759ebf1912e4a2a",
+      "screens[1] scr_detail01": "b94406044c8d21c2",
+      "actions.act_reset001": "7049cb07aec4f9fa",
+      "actions.act_hello001": "716a030e076550b9",
+      "actions.act_tick0001": "8beaac019255a9df",
+      "actions.act_detail01": "1ead5dfc1a40d048",
+      "actions.act_note0001": "84dd8163bb1b8a8b",
+      "actions.act_save0001": "50a6fe46be23761d",
+      "actions.act_status01": "ac029ff9c6783f68",
+      "homeScreenId": "e977af69a39bf06e",
+      "watchers": "69097b824cbecf38"
+    }
+  },
+  "schemaVersion": {
+    "stored": 3,
+    "canonical": 3
+  },
+  "validation": {
+    "strict": {
+      "errors": [],
+      "warnings": [
+        "binding.table_unset @ screens[0].sections[1].children[0].children[2].props.tableId"
+      ]
+    },
+    "save": {
+      "errors": [],
+      "warnings": [
+        "binding.table_unset @ screens[0].sections[1].children[0].children[2].props.tableId"
+      ]
+    }
+  },
+  "ordinals": {
+    "stored": {
+      "act_reset001": [
+        "0 set_variable"
+      ],
+      "act_hello001": [
+        "0 toast"
+      ],
+      "act_tick0001": [
+        "0 set_variable"
+      ],
+      "act_detail01": [
+        "0 navigate"
+      ],
+      "act_note0001": [
+        "0 set_variable"
+      ],
+      "act_save0001": [
+        "0 toast"
+      ],
+      "act_status01": [
+        "0 toast"
+      ]
+    },
+    "canonical": "same as stored"
+  }
+}

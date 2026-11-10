@@ -9,6 +9,7 @@ import { NAV_STYLES, NAV_DEFAULT_STYLE, DESIGN_ENUMS, DESIGN_DEFAULTS } from '..
 import { APP_COLOR_PRESETS } from '../runtime/themeVars';
 import { updateTheme, updateMeta, updateScreen, updateNav, updateDesign, updateAiBrowsing } from '../state/definitionOps';
 import DesignPresetGallery from './DesignPresetGallery';
+import ScreenTriggers from './ScreenTriggers';
 import type { DesignPreset } from './DesignPresetGallery';
 import type { AppDefinition, AppScreen } from './appDefinition';
 import type { ScreenView, ScreenPatch, ThemeValues, OptionalColorFieldProps, ScreenSettingsProps, ThemePanelProps } from './ThemePanel.types';
@@ -169,6 +170,7 @@ export default function ThemePanel({ definition, onCommit, disabled = false, scr
     return (
         <div className="p-4 flex flex-col gap-4" data-testid="theme-panel">
             <ScreenSettings screen={screen} onCommit={commitScreen} disabled={disabled} />
+            <ScreenTriggers definition={definition} screenId={screenId} onCommit={onCommit} disabled={disabled} />
 
             <div>
                 <SectionTitle>{t('studio_apps_insp.theme.look', 'Look')}</SectionTitle>

@@ -16,6 +16,7 @@ import type { LogicTableRow, RowStatus, LogicaTabProps } from './LogicaTab.types
 import { request, RefusedError } from '@/api/mutate';
 import { LogicTable } from './LogicTable';
 import NewActionMenu from './NewActionMenu';
+import WatchersPanel from './WatchersPanel';
 
 /**
  * The Logic tab — When · Happens · Status · ↗, across all screens.
@@ -263,6 +264,7 @@ export default function LogicaTab({
                         t={t}
                     />
                 )}
+                {definition && typeof onCommit === 'function' ? <WatchersPanel definition={definition} onCommit={onCommit} disabled={disabled} /> : null}
             </div>
 
             <AutomationPicker

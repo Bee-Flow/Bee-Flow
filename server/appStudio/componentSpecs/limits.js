@@ -9,6 +9,8 @@
 // The step error-handling bounds live with the step-tree helpers (mirrored to
 // the editor), so the browser coordinator and the server read one number.
 const { STEP_RETRY, MAX_TRANSACTION_STEPS } = require('../../shared/appDefinition/stepFlow.mjs');
+// The client trigger bounds (schema 3) live with their shapes, for the same reason.
+const { CLIENT_TRIGGER_LIMITS } = require('../../shared/appDefinition/clientTriggers.mjs');
 
 // ---------------------------------------------------------------------------
 // Hard ceilings (abuse guards; far above any real app)
@@ -100,6 +102,13 @@ const LIMITS = {
     MAX_VARIABLE_DEFAULT_BYTES: 2048,  // one seeded record/list. Exists so the
                                        // error can name the variable instead of
                                        // "your app is too big" at 512KB.
+    // Client triggers (schema 3): several actions per event, screen timers, watchers.
+    MAX_ACTIONS_PER_EVENT: CLIENT_TRIGGER_LIMITS.MAX_ACTIONS_PER_EVENT,
+    MIN_TIMER_SECONDS: CLIENT_TRIGGER_LIMITS.MIN_TIMER_SECONDS,
+    MAX_TIMER_SECONDS: CLIENT_TRIGGER_LIMITS.MAX_TIMER_SECONDS,
+    MAX_SCREEN_TIMERS: CLIENT_TRIGGER_LIMITS.MAX_SCREEN_TIMERS,
+    MAX_WATCHERS: CLIENT_TRIGGER_LIMITS.MAX_WATCHERS,
+    MAX_WATCHER_DEBOUNCE_MS: CLIENT_TRIGGER_LIMITS.MAX_WATCHER_DEBOUNCE_MS,
 };
 
 module.exports = {

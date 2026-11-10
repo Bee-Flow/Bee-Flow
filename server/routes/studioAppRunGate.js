@@ -14,6 +14,7 @@
 const studioAppStore = require('../stores/studioAppStore');
 const { resolveAudienceContext } = require('../auth/audience');
 const { EVENT_NAMES } = require('../appStudio/componentSpecs');
+const { screenTriggerRefs, slotNames, watchersOf } = require('../shared/appDefinition/clientTriggers.mjs');
 const { sessionUser } = require('../core/http/sessionUser');
 
 // ── App visibility ──────────────────────────────────────────────────
@@ -61,7 +62,8 @@ function roleAllows(nodeOrScreen, role) {
 }
 
 // Can `role` reach `actionId` through the UI? Walks screens → sections → node
-// trees for an event wiring (EVENT_NAMES) OR a per-row action
+// trees for an event wiring (EVENT_NAMES, one id or a list of them), a screen's
+// onOpen or timer, a watcher (every viewer runs those), OR a per-row action
 // (props.rowActions on data_grid, props.itemActions on repeater) naming the
 // action; a wiring counts only when its screen AND every ancestor container
 // clear the gate too. referenced:false means NO node wires the action and no
@@ -83,7 +85,7 @@ function wiredRoleAccess(def, actionId, role) {
         for (const node of (Array.isArray(nodes) ? nodes : [])) {
             if (!node || typeof node !== 'object') continue;
             const nodeVisible = visible && roleAllows(node, role);
-            let wired = EVENT_NAMES.some((ev) => node[ev] === actionId);
+            let wired = EVENT_NAMES.some((ev) => slotNames(node[ev], actionId));
             if (!wired) {
                 const props = (node.props && typeof node.props === 'object') ? node.props : {};
                 for (const listKey of ['rowActions', 'itemActions']) {
@@ -101,9 +103,19 @@ function wiredRoleAccess(def, actionId, role) {
     };
     for (const screen of (Array.isArray(def?.screens) ? def.screens : [])) {
         const screenVisible = roleAllows(screen, role);
+        // Schema 3: a screen's onOpen and timers run its actions for whoever can open the screen.
+        if (screenTriggerRefs(screen).some((ref) => ref.actionId === actionId)) {
+            referenced = true;
+            if (screenVisible) allowed = true;
+        }
         for (const section of (Array.isArray(screen?.sections) ? screen.sections : [])) {
             walk(section?.children, screenVisible);
         }
+    }
+    // A watcher (schema 3) runs in every viewer's browser, whatever screen is open.
+    if (watchersOf(def).some((w) => w.actionId === actionId)) {
+        referenced = true;
+        allowed = true;
     }
     return { referenced, allowed };
 }

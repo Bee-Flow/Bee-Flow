@@ -54,6 +54,8 @@ const RICH_INPUT_SPECS = {
     input_richtext: {
         label: 'Rich text', category: 'Input', isInput: true,
         description: 'A rich-text (markdown) editor. Submits markdown.',
+        // Schema 3: an action when the value changes (text editors: once, when the field loses focus).
+        events: ['onChange'], eventsSince: { onChange: 3 },
         props: {
             name: { type: 'string', required: true, maxLen: 60, default: 'body' },
             label: { type: 'string', required: true, maxLen: 120, default: 'Content' },
@@ -83,6 +85,8 @@ const RICH_INPUT_SPECS = {
     input_html: {
         label: 'Formatted text (HTML)', category: 'Input', isInput: true,
         description: 'A formatted-text editor that submits HTML — bold, italics, underline, lists, links, text colour, typeface, size and images. Use it for e-mail bodies and signatures; use input_richtext for notes stored in the app (that one submits markdown). Pair it with send_email bodyFormat "html".',
+        // Schema 3: an action when the value changes (text editors: once, when the field loses focus).
+        events: ['onChange'], eventsSince: { onChange: 3 },
         props: {
             name: { type: 'string', required: true, maxLen: 60, default: 'body' },
             label: { type: 'string', required: true, maxLen: 120, default: 'Message' },
@@ -104,6 +108,8 @@ const RICH_INPUT_SPECS = {
     input_datetime: {
         label: 'Date & time', category: 'Input', isInput: true,
         description: 'A date (optionally date+time) field. Submits ISO 8601.',
+        // Schema 3: an action when the value changes (text editors: once, when the field loses focus).
+        events: ['onChange'], eventsSince: { onChange: 3 },
         props: {
             name: { type: 'string', required: true, maxLen: 60, default: 'when' },
             label: { type: 'string', required: true, maxLen: 120, default: 'When' },
@@ -117,6 +123,8 @@ const RICH_INPUT_SPECS = {
     input_relation: {
         label: 'Relation', category: 'Input', isInput: true,
         description: 'Pick record(s) from a data table. `displayField` labels each option; `filter` is a formula that narrows the choices.',
+        // Schema 3: an action when the value changes (text editors: once, when the field loses focus).
+        events: ['onChange'], eventsSince: { onChange: 3 },
         props: {
             name: { type: 'string', required: true, maxLen: 60, default: 'related' },
             label: { type: 'string', required: true, maxLen: 120, default: 'Related' },
@@ -132,6 +140,8 @@ const RICH_INPUT_SPECS = {
     input_person: {
         label: 'Person', category: 'Input', isInput: true,
         description: 'Pick a member of the organisation. Submits their user id, so "assigned to me" can compare against currentUser.id. ALSO publishes <name>_label with the display name — write both, because there are no joins to look the name up later. Needs model.directory.orgMembers = true.',
+        // Schema 3: an action when the value changes (text editors: once, when the field loses focus).
+        events: ['onChange'], eventsSince: { onChange: 3 },
         props: {
             name: { type: 'string', required: true, maxLen: 60, default: 'person' },
             label: { type: 'string', required: true, maxLen: 120, default: 'Person' },

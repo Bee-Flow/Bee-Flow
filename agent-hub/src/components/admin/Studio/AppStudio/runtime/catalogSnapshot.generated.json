@@ -49,7 +49,13 @@
         "MAX_FILTER_BAR_FIELDS": 8,
         "MAX_STEPPER_STEPS": 10,
         "MAX_VARIABLES": 30,
-        "MAX_VARIABLE_DEFAULT_BYTES": 2048
+        "MAX_VARIABLE_DEFAULT_BYTES": 2048,
+        "MAX_ACTIONS_PER_EVENT": 5,
+        "MIN_TIMER_SECONDS": 5,
+        "MAX_TIMER_SECONDS": 3600,
+        "MAX_SCREEN_TIMERS": 3,
+        "MAX_WATCHERS": 10,
+        "MAX_WATCHER_DEBOUNCE_MS": 10000
     },
     "colorRoles": [
         "primary",
@@ -1885,11 +1891,23 @@
         "button": [
             "onClick"
         ],
+        "image": [
+            "onClick"
+        ],
+        "callout": [
+            "onClick"
+        ],
+        "stat": [
+            "onClick"
+        ],
         "list": [
             "onRowClick"
         ],
         "approval_list": [
             "onDecided"
+        ],
+        "card": [
+            "onClick"
         ],
         "form": [
             "onSubmit"
@@ -1916,8 +1934,26 @@
         "input_dataset": [
             "onChange"
         ],
+        "input_richtext": [
+            "onChange"
+        ],
+        "input_html": [
+            "onChange"
+        ],
+        "input_datetime": [
+            "onChange"
+        ],
+        "input_relation": [
+            "onChange"
+        ],
+        "input_person": [
+            "onChange"
+        ],
         "input_multiselect": [
             "onChange"
+        ],
+        "container": [
+            "onClick"
         ],
         "badge_list": [
             "onRowClick"

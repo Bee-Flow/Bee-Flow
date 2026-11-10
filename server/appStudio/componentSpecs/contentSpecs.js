@@ -63,6 +63,8 @@ const CONTENT_SPECS = {
     image: {
         label: 'Image', category: 'Content',
         description: 'An image from an https URL. Broken sources render a neutral placeholder (no layout shift).',
+        // Schema 3: a click on the whole tile runs an action (clientTriggerSpecs.js).
+        events: ['onClick'], eventsSince: { onClick: 3 },
         props: {
             src: { type: 'url', default: null },
             alt: { type: 'string', maxLen: 200, default: '' },
@@ -137,6 +139,8 @@ const CONTENT_SPECS = {
     callout: {
         label: 'Callout', category: 'Content',
         description: 'A highlighted note with a tone (info, success, warning, danger).',
+        // Schema 3: a click on the whole tile runs an action (clientTriggerSpecs.js).
+        events: ['onClick'], eventsSince: { onClick: 3 },
         props: {
             title: { type: 'string', maxLen: 120, default: null },
             // Not required any more (markdown.contentFrom pattern): with
@@ -169,6 +173,8 @@ const CONTENT_SPECS = {
     stat: {
         label: 'Stat', category: 'Data',
         description: 'A KPI tile: a label and a big value. The value can bind to an action result. v2 adds an optional delta/trend row.',
+        // Schema 3: a click on the whole tile runs an action (clientTriggerSpecs.js).
+        events: ['onClick'], eventsSince: { onClick: 3 },
         props: {
             label: { type: 'string', required: true, maxLen: 80, default: 'Metric' },
             value: { type: 'binding', default: { kind: 'static', value: '0' } },

@@ -12,6 +12,7 @@ import AppVersionBanner from '../../components/admin/Studio/AppStudio/runtime/Ap
 import { subscribeAppVersion } from '../../components/admin/Studio/AppStudio/runtime/appVersionSignal';
 import { mergeFormValues } from '../../components/admin/Studio/AppStudio/runtime/formValues';
 import useActionRunner from '../../components/admin/Studio/AppStudio/runtime/useActionRunner';
+import ClientTriggers from '@/components/admin/Studio/AppStudio/runtime/triggers/ClientTriggers';
 import useConfirmDialog from '../../components/admin/Studio/AppStudio/runtime/useConfirmDialog';
 import { BrowserRunProvider, useBrowserRunStore } from '../../components/admin/Studio/AppStudio/runtime/BrowserRunContext';
 import { studioAppsApi } from '../../components/admin/Studio/AppStudio/studioAppsApi';
@@ -81,6 +82,11 @@ function RunBody({
             registerFormValue={registerFormValue}
         />
     );
+    // onOpen, timers and watchers (schema 3): only this live surface fires them, never the editor or a screenshot.
+    const triggers = (
+        <ClientTriggers definition={definition} screenId={screenId} screenParams={screenParams} runAction={runAction}
+            actionState={actionState} dataState={dataState} vars={vars} forms={forms} currentUser={viewer} />
+    );
 
     // 'bare' is the PUBLIC page (pages/apps/PublicAppPage.jsx): no AppShell, so
     // no nav bar, no user menu and no "Alle apps" exit — an anonymous visitor
@@ -93,6 +99,7 @@ function RunBody({
             <div className="h-full min-h-0 flex flex-col" style={{ background: CANVAS_GROUND, color: 'var(--text-primary)' }}>
                 {versionBanner}
                 {publicHeader}
+                {triggers}
                 <div className="flex-1 min-h-0 overflow-auto">{renderer}</div>
             </div>
         );
@@ -109,6 +116,7 @@ function RunBody({
         >
             {versionBanner}
             <ConnectionsPreflight appId={appId} />
+            {triggers}
             {renderer}
         </AppShell>
     );
