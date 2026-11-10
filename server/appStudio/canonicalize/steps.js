@@ -7,7 +7,7 @@
 'use strict';
 
 const { LIMITS, STEP_SPECS } = require('../componentSpecs');
-const { HARD_DEPTH_CAP, isObject, deepCopy, truncate } = require('./shared');
+const { HARD_DEPTH_CAP, isObject, deepCopy, truncate, isLateEntry } = require('./shared');
 const { cleanBinding, cleanRecordFilter } = require('./bindings');
 const { cleanInputMapping, cleanNavParams, cleanCallParams } = require('./mappings');
 const { cleanStringList, cleanAiSchema, cleanAiWriteTo, cleanContextSources, cleanTierChoice } = require('./aiFields');
@@ -90,6 +90,7 @@ function cleanStep(raw, path, depth, push) {
     for (const [field, fs] of Object.entries(spec.fields)) {
         const p = `${path}.${field}`;
         const v = raw[field];
+        if (v === undefined && isLateEntry(fs)) continue; // a field added after the base: only when the step carries it
         if (fs.type === 'string' || fs.type === 'url') {
             if (typeof v === 'string') out[field] = truncate(v, fs.maxLen || LIMITS.MAX_STRING, p, push);
             else if (v === null && fs.nullable) out[field] = null;

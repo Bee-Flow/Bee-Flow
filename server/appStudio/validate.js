@@ -47,7 +47,6 @@ const {
     sectionHeightIsDefinite,
     SCREEN_SPEC,
     SECTION_STYLE_KNOBS,
-    SCHEMA_VERSION_CURRENT,
     LIMITS,
     VARIABLE_TYPES,
     VARIABLE_NAME_RE,
@@ -55,6 +54,7 @@ const {
     coerceVariableDefault,
 } = require('./componentSpecs');
 const { collectVariableWrites } = require('./collectVariableRefs');
+const { schemaNewerVerdict, checkSchemaVersion, validateRegisteredKeys } = require('./validate/versionAndKeys.mts');
 const { isObject } = require('./validate/shared');
 const {
     validateRoleRefs,
@@ -465,10 +465,9 @@ function validateAppDefinition(def, opts = {}) {
     }
 
     // ── Basic shape ──────────────────────────────────────────────────────
-    // Validation assumes canonical (post-migrate) input: the current schema.
-    if (def.schemaVersion !== SCHEMA_VERSION_CURRENT) {
-        pushE({ code: 'shape.schema_version', severity: 'error', path: 'schemaVersion', message: `schemaVersion must be ${SCHEMA_VERSION_CURRENT} (got ${JSON.stringify(def.schemaVersion)}).`, hint: 'Run the definition through canonicalize (it migrates v1 → v2).' });
-    }
+    const newer = schemaNewerVerdict(def);
+    if (newer) return newer;
+    checkSchemaVersion(def, pushE);
     const metaName = isObject(def.meta) ? def.meta.name : undefined;
     if (typeof metaName !== 'string' || !metaName.trim()) {
         pushE({ code: 'meta.name_missing', severity: 'error', path: 'meta.name', message: 'meta.name must be a non-empty string.', hint: 'Give the app a name.' });
@@ -589,6 +588,7 @@ function validateAppDefinition(def, opts = {}) {
     checkMailboxHooks(opts.dataModel, actionsObj, pushE);
 
     if (isObject(def.publicAccess)) checkPublicAccess(def, pushE, pushW);
+    validateRegisteredKeys(def, pushE, pushW, opts);
 
     return { ok: errors.length === 0, errors, warnings };
 }
@@ -608,5 +608,5 @@ module.exports = {
  * @typedef {import('./validate/shared').Finding} Finding
  * @typedef {import('./validate/shared').ValidationCtx} ValidationCtx
  * @typedef {(finding: Finding) => void} PushFinding
- * @typedef {{ ownedAutomations?: unknown, ownedDocuments?: unknown, knownTables?: unknown, knownDatasets?: unknown, dataModel?: unknown, datasets?: unknown, datatables?: unknown, dataRefsAsWarnings?: boolean }} ValidateOpts
+ * @typedef {{ ownedAutomations?: unknown, ownedDocuments?: unknown, knownTables?: unknown, knownDatasets?: unknown, dataModel?: unknown, datasets?: unknown, datatables?: unknown, dataRefsAsWarnings?: boolean, assetIds?: unknown }} ValidateOpts
  */

@@ -1,6 +1,5 @@
-import { tryEvaluate } from '@shared/expr/engine.mjs';
 import { parsePath } from '@shared/expr/path.mjs';
-import type { ActionMap, Bag, BagArg, DataEntry, FilterValue, PickSpec, ResolveResult, Scope } from './resolveBinding.types';
+import type { ActionMap, Bag, BagArg, DataEntry, PickSpec, ResolveResult } from './resolveBinding.types';
 import { EMPTY } from './resolveBinding.constants';
 
 /**
@@ -22,14 +21,6 @@ export function stableStringify(value: unknown): string {
     if (Array.isArray(value)) return `[${value.map(stableStringify).join(',')}]`;
     const keys = Object.keys(value).sort();
     return `{${keys.map((k) => `${JSON.stringify(k)}:${stableStringify((value as Record<string, unknown>)[k])}`).join(',')}}`;
-}
-
-/** One filter value: {kind:'formula'} → evaluated against the scope; literal → itself. */
-export function resolveFilterValue(value: FilterValue, scope: Scope): FilterValue {
-    if (!value || typeof value !== 'object' || value.kind !== 'formula') return value;
-    const expr = value.expr;
-    if (typeof expr !== 'string' || !expr.trim()) return undefined;
-    return tryEvaluate(expr, scope || {}).value;
 }
 
 /** Normalize the second argument into a bag, honouring the v1 bare-actionState form. */

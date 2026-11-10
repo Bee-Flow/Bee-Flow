@@ -353,6 +353,10 @@ async function replaceAutomation(entityId, entity, stamp, ctx, report, unresolve
  */
 async function replaceApp(entityId, entity, ctx, unresolved) {
     const store = require('../../stores/studioAppStore');
+    const { gateDefinition } = require('../appDefinitionGate.mts');
+    // Written and stamped as given; the gate only says whether, and what it found.
+    const gate = gateDefinition(entity.definition);
+    if (gate.verdict === 'refuse') throw new Error(gate.errors[0].message);
     const { definition } = resolveRefs('app', { definition: clone(entity.definition) }, ctx.refMap, unresolved);
     await store.saveDefinition(entityId, ctx.ownerId, definition);
     // Published = it has a live copy: the audience moves to the new version.
@@ -364,6 +368,7 @@ async function replaceApp(entityId, entity, ctx, unresolved) {
             row.definition ?? definition, Number.isInteger(row.definitionVersion) ? row.definitionVersion : undefined);
     }
     await ctx.stamp({ ref: entity.ref, kind: 'app', entityId, payload: definition });
+    return gate.verdict === 'warn' ? { errors: gate.errors } : null;
 }
 
 /**
@@ -458,11 +463,12 @@ async function replaceAgent(entityId, entity, ctx, report, unresolved) {
 async function replaceEntity(kind, entityId, entity, stamp, ctx, report) {
     const unresolved = [];
     try {
+        let findings = null;
         if (kind === 'automation') await replaceAutomation(entityId, entity, stamp, ctx, report, unresolved);
-        else if (kind === 'app') await replaceApp(entityId, entity, ctx, unresolved);
+        else if (kind === 'app') findings = await replaceApp(entityId, entity, ctx, unresolved);
         else if (kind === 'webpage') await replaceWebpage(entityId, entity, ctx);
         else if (kind === 'agent') await replaceAgent(entityId, entity, ctx, report, unresolved);
-        report.replaced.push({ ref: entity.ref, kind, entityId });
+        report.replaced.push({ ref: entity.ref, kind, entityId, ...(findings ? { findings } : {}) });
     } catch (err) {
         report.failed.push({ ref: entity.ref, kind, why: /** @type {Error} */ (err).message });
     }

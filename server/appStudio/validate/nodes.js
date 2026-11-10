@@ -18,6 +18,7 @@ const {
     FORMULA_SCOPE_ROOTS,
     COMPONENT_SPECS, COMPONENT_TYPES,
 } = require('../componentSpecs');
+const { valueTypeOf, isCleanValue, isAssetRef } = require('../componentSpecs/valueTypes');
 const { isObject, pickClosestId } = require('./shared');
 const { validateFormula } = require('./formulas');
 const { checkTableRef, checkTableSource } = require('./refs');
@@ -55,6 +56,8 @@ function validatePropValue(key, fs, value, path, ctx) {
             return;
         }
         case 'url': {
+            // An uploaded file of the app; whether it still exists is checked once per definition (validate/assetChecks.mts).
+            if (isAssetRef(value)) return;
             if (typeof value !== 'string') { pushE({ code: 'prop.type', severity: 'error', path, message: `\`${key}\` must be a URL string.`, hint: 'Pass an https:// URL.' }); return; }
             let ok = false;
             try { ok = new URL(value).protocol === 'https:'; } catch { ok = false; }
@@ -410,6 +413,23 @@ function validateAdvancedSizing(style, path, ctx, {
     }
 }
 
+/**
+ * A knob whose value type was added after the base four (componentSpecs/valueTypes.js): the
+ * stored value must be what the canonicalizer would store. Returns false for a base knob,
+ * which the caller checks itself.
+ * @param {string} name
+ * @param {unknown} v
+ * @param {{ type: string, [k: string]: unknown }} knob
+ * @param {string} path
+ * @param {(e: { code: string, severity: string, path: string, message: string, hint: string }) => void} pushE
+ */
+function validateTypedKnob(name, v, knob, path, pushE) {
+    const valueType = valueTypeOf(knob);
+    if (!valueType) return false;
+    if (!isCleanValue(valueType, v, knob)) pushE({ code: 'style.invalid', severity: 'error', path, message: `Style knob \`${name}\` has an invalid value.`, hint: valueType.hint(knob) });
+    return true;
+}
+
 // ---------------------------------------------------------------------------
 // Node walk — structure, props, style, events, form rules, depth. Also
 // collects form ids and input names for the action-mapping checks.
@@ -473,6 +493,7 @@ function validateNode(node, path, depth, formId, ctx, parent = ROOT_PARENT) {
                 }
                 const knob = STYLE_KNOBS[k];
                 if (knob.type === 'unitInt') { validateUnitKnob(k, knob, node.style, `${path}.style.${k}`, ctx); continue; }
+                if (validateTypedKnob(k, v, knob, `${path}.style.${k}`, pushE)) continue;
                 const bad = (knob.type === 'int' && (typeof v !== 'number' || !Number.isInteger(v) || v < knob.min || v > knob.max))
                     || (knob.type === 'enum' && !knob.values.includes(v))
                     || (knob.type === 'colorOrRole' && !(v === null || (typeof v === 'string' && (knob.roles.includes(v) || HEX_RE.test(v)))));
