@@ -25,7 +25,7 @@ let stripeSub;
 beforeEach(() => {
     writes = [];
     stripeSub = null;
-    patch(userStore, 'setOrgSubscription', async (/** @type {string} */ orgId, /** @type {any} */ data) => { writes.push({ orgId, data }); return true; });
+    patch(userStore, 'setOrgSubscription', async (/** @type {string} */ orgId, /** @type {any} */ data, /** @type {any} */ opts) => { writes.push({ orgId, data, opts }); return true; });
     patch(userStore, 'logSubscriptionAudit', async () => {});
     patch(userStore, 'getPlan', async () => null);
     patch(stripeService, 'getClient', async () => ({ subscriptions: { retrieve: async () => stripeSub } }));
@@ -40,6 +40,12 @@ test('an active subscription is assigned as active and paid', async () => {
     assert.equal(writes.length, 1);
     assert.equal(writes[0].data.status, 'active');
     assert.equal(writes[0].data.payment_status, 'paid');
+});
+
+test('a completed checkout resets stale limit overrides, also on the plan the org already had (BFSF-249)', async () => {
+    stripeSub = { id: 'sub_1', status: 'active', created: now() };
+    assert.equal(await handleCheckoutCompleted(SESSION), true);
+    assert.deepEqual(writes[0].opts, { resetLimits: true });
 });
 
 test('a trialing subscription keeps its trial state', async () => {

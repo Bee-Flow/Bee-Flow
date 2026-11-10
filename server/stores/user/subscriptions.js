@@ -25,7 +25,7 @@ async function getOrgSubscription(orgId) {
 
 const VALID_SUB_STATUSES = ['active', 'suspended', 'cancelled', 'trialing', 'past_due', 'incomplete', 'paused'];
 
-async function setOrgSubscription(orgId, data) {
+async function setOrgSubscription(orgId, data, { resetLimits = false } = {}) {
     await initDB();
     if (data.status && !VALID_SUB_STATUSES.includes(data.status)) {
         throw new Error(`Invalid subscription status: ${data.status}`);
@@ -64,21 +64,17 @@ async function setOrgSubscription(orgId, data) {
             if (data.payment_attempt_count !== undefined) updateMap.payment_attempt_count = data.payment_attempt_count;
             if (data.last_payment_failure_at !== undefined) updateMap.last_payment_failure_at = data.last_payment_failure_at;
             if (data.past_due_since !== undefined) updateMap.past_due_since = data.past_due_since;
-            // BFSF-245/249: assigning or changing a plan must re-provision the
-            // org's usage limits. The per-row max_* columns are *overrides* that
-            // getEffectiveLimits prefers over the plan, so stale values left from
-            // a previous (e.g. Free) plan would otherwise cap a paying subscriber
-            // at the old limits (€2 cost cap, 5 agents, 3 KB). When a plan is
-            // (re)assigned and the caller passed no explicit per-org override,
-            // clear the override columns so the newly-assigned plan governs.
-            // Deliberate admin overrides — which pass these fields explicitly, or
-            // edit limits without changing plan_id — are preserved untouched.
+            // BFSF-245/249: the max_* columns are *overrides* that getEffectiveLimits
+            // prefers over the plan, so values left from a previous (Free) plan
+            // would cap a paying subscriber (€2 cost cap, 5 agents, 3 KB). On a plan
+            // change, or a deliberate (re)assignment of the same plan (resetLimits:
+            // admin PUT, checkout, trial), every limit the caller does not write is
+            // cleared so the plan governs. Not on any write that carries plan_id:
+            // Stripe's subscription.updated re-sends it and must keep overrides.
             const LIMIT_OVERRIDE_COLS = ['max_messages_per_month', 'max_messages_by_type', 'max_tokens_per_month', 'max_cost_per_month', 'max_users', 'max_agents', 'max_knowledge_sources'];
-            const callerSetAnyLimit = LIMIT_OVERRIDE_COLS.some(c => data[c] !== undefined);
             const planIsChanging = data.plan_id !== undefined && data.plan_id !== existing.plan_id;
-            if (planIsChanging && !callerSetAnyLimit) {
-                for (const c of LIMIT_OVERRIDE_COLS) updateMap[c] = null;
-            }
+            const resetting = data.plan_id !== undefined && (planIsChanging || resetLimits);
+            for (const c of LIMIT_OVERRIDE_COLS) if (resetting && data[c] === undefined) updateMap[c] = null;
             updateMap.updated_at = now;
             const colMap = { plan_id: 'plan_id', status: 'status', max_messages_per_month: 'max_messages_per_month', max_messages_by_type: 'max_messages_by_type', max_tokens_per_month: 'max_tokens_per_month', max_cost_per_month: 'max_cost_per_month', max_users: 'max_users', max_agents: 'max_agents', max_knowledge_sources: 'max_knowledge_sources', allowed_features: 'allowed_features', allowed_models: 'allowed_models', billing_cycle_start: 'billing_cycle_start', notes: 'notes', trial_end_date: 'trial_end_date', stripe_customer_id: 'stripe_customer_id', stripe_subscription_id: 'stripe_subscription_id', payment_status: 'payment_status', manual_override_until: 'manual_override_until', manual_override_by: 'manual_override_by', stripe_seat_quantity: 'stripe_seat_quantity', cancel_at_period_end: 'cancel_at_period_end', cancel_at: 'cancel_at', current_period_end: 'current_period_end', pending_plan_id: 'pending_plan_id', pending_plan_effective: 'pending_plan_effective', stripe_schedule_id: 'stripe_schedule_id', payment_attempt_count: 'payment_attempt_count', last_payment_failure_at: 'last_payment_failure_at', past_due_since: 'past_due_since', updated_at: 'updated_at' };
             const q = dynamicUpdate('organization_subscriptions', orgId, updateMap, colMap, 'organization_id');
@@ -312,7 +308,7 @@ function isManualOverrideActive(sub) {
  * @param {string} orgId
  * @param {Record<string, unknown>} payload  fields to write through to setOrgSubscription
  */
-async function setOrgSubscriptionWithLock(orgId, payload) {
+async function setOrgSubscriptionWithLock(orgId, payload, { resetLimits = false } = {}) {
     await initDB();
     const client = await getClient();
     let snapshot = null;
@@ -350,7 +346,7 @@ async function setOrgSubscriptionWithLock(orgId, payload) {
     } finally {
         client.release();
     }
-    const ok = await setOrgSubscription(orgId, payload);
+    const ok = await setOrgSubscription(orgId, payload, { resetLimits });
     return { ok, snapshot, displaced };
 }
 

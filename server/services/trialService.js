@@ -74,7 +74,7 @@ async function startOrgTrial(orgId, planId, { changedBy } = {}) {
         trial_end_date: trialResult.trialEnd,
         stripe_customer_id: trialResult.stripeCustomerId,
         stripe_subscription_id: trialResult.stripeSubscriptionId,
-    });
+    }, { resetLimits: true });
     try {
         await require('./planEntitlements').applyPlanToOrg(orgId, planId, { mode: 'reset' });
     } catch (e) {

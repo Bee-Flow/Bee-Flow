@@ -122,7 +122,9 @@ async function handleCheckoutCompleted(session, opts = {}) {
             return false;
         }
         log.info(`[Stripe Webhook] Org checkout completed for org ${orgId}, plan ${planId}`);
-        const success = await userStore.setOrgSubscription(orgId, subData);
+        // A completed checkout provisions the bought plan: clear stale limit
+        // overrides even when the org already had that plan_id (BFSF-249).
+        const success = await userStore.setOrgSubscription(orgId, subData, { resetLimits: true });
         if (success) {
             await userStore.logSubscriptionAudit('assign_subscription', 'organization', orgId, 'stripe_webhook', null, { plan_id: planId, stripe_subscription_id: session.subscription, payment_status: subData.payment_status });
             log.info(`[Stripe Webhook] Subscription assigned to org ${orgId}`);
