@@ -41,6 +41,7 @@
         "MAX_AI_SCHEMA_FIELD_DESC": 2000,
         "MAX_CONTEXT_SOURCES": 12,
         "MAX_CONTEXT_SOURCE_LABEL": 120,
+        "MAX_AI_REPAIR_ROUNDS": 3,
         "MAX_CHART_SERIES": 12,
         "MAX_CHART_REFERENCES": 8,
         "MAX_ROLES": 20,
@@ -2375,6 +2376,25 @@
                     "resultVar": {
                         "type": "string",
                         "maxLen": 60
+                    },
+                    "temperature": {
+                        "type": "number",
+                        "min": 0,
+                        "max": 2,
+                        "since": 3,
+                        "description": "How much the answer may vary between runs, a number from 0 to 2. Use 0 to 0.3 for extraction, classification and anything checked, 0.7 or more for free drafts. Leave it out to keep the model tier's own setting (most steps should)."
+                    },
+                    "checks": {
+                        "type": "aiChecks",
+                        "since": 3,
+                        "description": "Rules every answer must pass before the step succeeds. A list (at most 20) of { kind, field, ... }. field is a path in the answer: a schema field of ai_generate with a schema (\"category\"), \"text\" for a plain ai_generate, \"rows[].category\" for ai_extract. Kinds: allowedFrom { ref, value?, ignoreCase?, allowEmpty? } (the answer is one of the list at ref, value names the key of each list item that holds the allowed value), numbersFrom { ref, tolerance?, ignoreUpTo?, percent?, ignoreDates? } (every number in the answer appears in the data at ref: no invented amounts), script { script, minRatio? } (written in latin, cyrillic, greek, arabic, hebrew, han, japanese, hangul, devanagari or thai), items { minItems?, maxItems?, sameCountAs? } (a list of the right length, sameCountAs a list path). ref and sameCountAs are paths into the step's own data: form.<input>, vars.<name>, item.<field>, params.<name> or value, no {{ }} and never secrets. A failing answer goes back to the AI with what failed (repairRounds), after that the step fails with ai_check_failed. Leave it out for no checks."
+                    },
+                    "repairRounds": {
+                        "type": "int",
+                        "min": 0,
+                        "max": 3,
+                        "since": 3,
+                        "description": "Extra AI calls that fix an answer which failed its checks. A whole number from 0 to 3, only read when the step has checks. Leave it out for 1 round. Each round sends what failed back to the AI and costs one more AI call. 0 fails the step at the first failed check."
                     }
                 }
             },
@@ -2432,6 +2452,25 @@
                         "type": "string",
                         "required": true,
                         "maxLen": 60
+                    },
+                    "temperature": {
+                        "type": "number",
+                        "min": 0,
+                        "max": 2,
+                        "since": 3,
+                        "description": "How much the answer may vary between runs, a number from 0 to 2. Use 0 to 0.3 for extraction, classification and anything checked, 0.7 or more for free drafts. Leave it out to keep the model tier's own setting (most steps should)."
+                    },
+                    "checks": {
+                        "type": "aiChecks",
+                        "since": 3,
+                        "description": "Rules every answer must pass before the step succeeds. A list (at most 20) of { kind, field, ... }. field is a path in the answer: a schema field of ai_generate with a schema (\"category\"), \"text\" for a plain ai_generate, \"rows[].category\" for ai_extract. Kinds: allowedFrom { ref, value?, ignoreCase?, allowEmpty? } (the answer is one of the list at ref, value names the key of each list item that holds the allowed value), numbersFrom { ref, tolerance?, ignoreUpTo?, percent?, ignoreDates? } (every number in the answer appears in the data at ref: no invented amounts), script { script, minRatio? } (written in latin, cyrillic, greek, arabic, hebrew, han, japanese, hangul, devanagari or thai), items { minItems?, maxItems?, sameCountAs? } (a list of the right length, sameCountAs a list path). ref and sameCountAs are paths into the step's own data: form.<input>, vars.<name>, item.<field>, params.<name> or value, no {{ }} and never secrets. A failing answer goes back to the AI with what failed (repairRounds), after that the step fails with ai_check_failed. Leave it out for no checks."
+                    },
+                    "repairRounds": {
+                        "type": "int",
+                        "min": 0,
+                        "max": 3,
+                        "since": 3,
+                        "description": "Extra AI calls that fix an answer which failed its checks. A whole number from 0 to 3, only read when the step has checks. Leave it out for 1 round. Each round sends what failed back to the AI and costs one more AI call. 0 fails the step at the first failed check."
                     }
                 }
             },
@@ -3067,6 +3106,25 @@
                         "type": "string",
                         "maxLen": 60
                     },
+                    "temperature": {
+                        "type": "number",
+                        "min": 0,
+                        "max": 2,
+                        "since": 3,
+                        "description": "How much the answer may vary between runs, a number from 0 to 2. Use 0 to 0.3 for extraction, classification and anything checked, 0.7 or more for free drafts. Leave it out to keep the model tier's own setting (most steps should)."
+                    },
+                    "checks": {
+                        "type": "aiChecks",
+                        "since": 3,
+                        "description": "Rules every answer must pass before the step succeeds. A list (at most 20) of { kind, field, ... }. field is a path in the answer: a schema field of ai_generate with a schema (\"category\"), \"text\" for a plain ai_generate, \"rows[].category\" for ai_extract. Kinds: allowedFrom { ref, value?, ignoreCase?, allowEmpty? } (the answer is one of the list at ref, value names the key of each list item that holds the allowed value), numbersFrom { ref, tolerance?, ignoreUpTo?, percent?, ignoreDates? } (every number in the answer appears in the data at ref: no invented amounts), script { script, minRatio? } (written in latin, cyrillic, greek, arabic, hebrew, han, japanese, hangul, devanagari or thai), items { minItems?, maxItems?, sameCountAs? } (a list of the right length, sameCountAs a list path). ref and sameCountAs are paths into the step's own data: form.<input>, vars.<name>, item.<field>, params.<name> or value, no {{ }} and never secrets. A failing answer goes back to the AI with what failed (repairRounds), after that the step fails with ai_check_failed. Leave it out for no checks."
+                    },
+                    "repairRounds": {
+                        "type": "int",
+                        "min": 0,
+                        "max": 3,
+                        "since": 3,
+                        "description": "Extra AI calls that fix an answer which failed its checks. A whole number from 0 to 3, only read when the step has checks. Leave it out for 1 round. Each round sends what failed back to the AI and costs one more AI call. 0 fails the step at the first failed check."
+                    },
                     "retry": {
                         "type": "retry",
                         "envelope": true
@@ -3132,6 +3190,25 @@
                         "type": "string",
                         "required": true,
                         "maxLen": 60
+                    },
+                    "temperature": {
+                        "type": "number",
+                        "min": 0,
+                        "max": 2,
+                        "since": 3,
+                        "description": "How much the answer may vary between runs, a number from 0 to 2. Use 0 to 0.3 for extraction, classification and anything checked, 0.7 or more for free drafts. Leave it out to keep the model tier's own setting (most steps should)."
+                    },
+                    "checks": {
+                        "type": "aiChecks",
+                        "since": 3,
+                        "description": "Rules every answer must pass before the step succeeds. A list (at most 20) of { kind, field, ... }. field is a path in the answer: a schema field of ai_generate with a schema (\"category\"), \"text\" for a plain ai_generate, \"rows[].category\" for ai_extract. Kinds: allowedFrom { ref, value?, ignoreCase?, allowEmpty? } (the answer is one of the list at ref, value names the key of each list item that holds the allowed value), numbersFrom { ref, tolerance?, ignoreUpTo?, percent?, ignoreDates? } (every number in the answer appears in the data at ref: no invented amounts), script { script, minRatio? } (written in latin, cyrillic, greek, arabic, hebrew, han, japanese, hangul, devanagari or thai), items { minItems?, maxItems?, sameCountAs? } (a list of the right length, sameCountAs a list path). ref and sameCountAs are paths into the step's own data: form.<input>, vars.<name>, item.<field>, params.<name> or value, no {{ }} and never secrets. A failing answer goes back to the AI with what failed (repairRounds), after that the step fails with ai_check_failed. Leave it out for no checks."
+                    },
+                    "repairRounds": {
+                        "type": "int",
+                        "min": 0,
+                        "max": 3,
+                        "since": 3,
+                        "description": "Extra AI calls that fix an answer which failed its checks. A whole number from 0 to 3, only read when the step has checks. Leave it out for 1 round. Each round sends what failed back to the AI and costs one more AI call. 0 fails the step at the first failed check."
                     },
                     "retry": {
                         "type": "retry",

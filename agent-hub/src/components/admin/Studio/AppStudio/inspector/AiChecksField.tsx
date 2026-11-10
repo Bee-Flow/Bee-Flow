@@ -7,7 +7,7 @@ import { INPUT_CLS } from './panels/kit';
  * { kind, field, ... } in the automation ai_step's shapes, checked after every answer. A failing
  * answer goes back to the AI with what failed (`repairRounds`), then the step fails.
  *
- * The kinds and scripts mirror core/automationModel/aiStepReliabilitySpec.js (AiChecksField.lockstep.test.ts).
+ * The kinds and scripts mirror core/automationModel/aiStepReliabilitySpec.js (AiChecksField.test.tsx checks the mirror).
  * An empty list is written as no field at all, so a step without checks stays as it was.
  */
 
