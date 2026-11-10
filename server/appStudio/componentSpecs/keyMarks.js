@@ -21,6 +21,11 @@
  *   node          a key of a component node beside id, type, props, style and children
  *   nav           a key of definition.nav
  *   navGroup      a key of one entry of definition.nav.groups
+ *   binding       a key a record, records, aggregate or dataset binding newly takes
+ *   queryShape    a form the value under a binding key newly takes (file <key>.<name>.js)
+ *
+ * The last two describe a data read and carry more than a mark (the function the canonicalizer
+ * keeps the key with, the predicate that recognises the form): queryMarks.js says what.
  *
  * What a mark does: a definition that uses the key (or the value) is stored with at least that
  * schemaVersion (schemaSince.mts), and the AI builder lists it in its extension index and
@@ -35,6 +40,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { requireSince } = require('./registryDir');
+const { bindingMarkProblems, queryShapeProblems } = require('./queryMarks');
 
 const KEYS_DIR = path.join(__dirname, 'keys');
 const KEY_NAME = /^[A-Za-z][A-Za-z0-9_]{0,39}$/;
@@ -53,10 +59,16 @@ const KEY_MARK_FAMILIES = Object.freeze({
     ]),
     nav: Object.freeze(['style', 'groups']),
     navGroup: Object.freeze(['id', 'label', 'icon', 'screens']),
+    // The base keys of a binding differ per kind, and a query shape is not a key: queryMarks.js holds both.
+    binding: Object.freeze([]),
+    queryShape: Object.freeze([]),
 });
 
+/** The families whose files are checked by their own rules (queryMarks.js). */
+const QUERY_MARK_PROBLEMS = Object.freeze({ binding: bindingMarkProblems, queryShape: queryShapeProblems });
+
 /** @typedef {keyof typeof KEY_MARK_FAMILIES} KeyMarkFamily */
-/** @typedef {{ since?: number, valuesSince?: Record<string, number>, shape?: string, description: string }} KeyMark */
+/** @typedef {{ since?: number, valuesSince?: Record<string, number>, shape?: string, description: string, kinds?: readonly string[], holds?: string, entryKey?: boolean, clean?: (value: unknown, ctx: import('./queryMarks').CleanContext) => unknown, uses?: (value: unknown) => boolean }} KeyMark */
 /** @typedef {Record<KeyMarkFamily, Record<string, KeyMark>>} KeyMarks */
 
 /** @param {unknown} v @returns {v is Record<string, unknown>} */
@@ -114,6 +126,7 @@ function keyMarkProblems(family, key, mark) {
     const where = `keys/${family}/${key}.js`;
     const base = Object.hasOwn(KEY_MARK_FAMILIES, family) ? KEY_MARK_FAMILIES[/** @type {KeyMarkFamily} */ (family)] : null;
     if (!base) return [`${where}: "${family}" is not a family (${Object.keys(KEY_MARK_FAMILIES).join(', ')})`];
+    if (Object.hasOwn(QUERY_MARK_PROBLEMS, family)) return QUERY_MARK_PROBLEMS[/** @type {keyof typeof QUERY_MARK_PROBLEMS} */ (family)](key, mark);
     if (!KEY_NAME.test(key)) return [`${where}: the file is named after the key (letters, digits, underscores; at most 40)`];
     if (!isObject(mark)) return [`${where}: must export an object`];
     const out = sinceProblems(mark, base.includes(key), where);

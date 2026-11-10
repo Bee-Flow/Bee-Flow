@@ -12,6 +12,9 @@
  *   the data vocabulary                    field types, field options, filter operators,
  *                                          aggregate functions and date buckets, marked in
  *                                          core/dataEngine/dataModel/vocabularySince.js
+ *   keys/binding, keys/queryShape          a key a data binding newly takes, a form the value
+ *                                          under a key of a read newly takes (queryMarks.js):
+ *                                          listed with the data vocabulary, in the `data` family
  *
  * Pure: everything is computed from the source it is handed.
  */
@@ -40,6 +43,8 @@ const KEY_MARK_NAMES: Readonly<Record<string, { family: ExtensionFamily; prefix:
     node: { family: 'nodeKeys', prefix: 'node.' },
     nav: { family: 'navKeys', prefix: 'nav.' },
     navGroup: { family: 'navKeys', prefix: 'nav.groups[].' },
+    binding: { family: 'data', prefix: 'binding.' },
+    queryShape: { family: 'data', prefix: '' }, // the file name is the whole name: <key>.<name>
 });
 
 /** The spec tables whose keys are fixed objects of a definition: the index family and name prefix of each. */
