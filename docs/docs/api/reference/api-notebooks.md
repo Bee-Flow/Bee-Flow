@@ -105,7 +105,7 @@ No request schema.
 
 ### `POST /api/notebooks/:id/export/nextcloud`
 
-**Access:** Signed-in user · Capability `notebooks` · middleware `gate`, `requireNotebookOwner`
+**Access:** Signed-in user · Capability `notebooks` · middleware `gate`, `requireNotebookOwner` · the handler also checks who the caller is
 
 **Body**
 

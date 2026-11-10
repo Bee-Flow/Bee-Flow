@@ -224,7 +224,7 @@ test('§WS2.4 — a run the SCHEDULER claimed is never blocked by markRunning (m
     // The tick claimed the row atomically (claimDueAutomations) and says so with
     // markerClaimed; executeAutomation must NOT consult the marker again, so
     // even a false marker cannot block. The trigger KIND alone is not that
-    // claim: see automationRunner/runHeartbeat.scheduleKind.test.js.
+    // claim: see automationRunner/runHeartbeat.testMarker.test.js.
     spies.markRunningResult = false;
 
     const result = await runner.executeAutomation(freshAutomation(), { triggerKind: 'schedule', mode: 'live', markerClaimed: true });

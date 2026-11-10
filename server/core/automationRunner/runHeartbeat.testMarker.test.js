@@ -100,3 +100,64 @@ test('lifecycle events carry who started the run', async () => {
     await runner.executeAutomation(automation(), { triggerKind: 'webhook', mode: 'live', triggerPayload: { a: 1 } });
     assert.ok(events.filter((e) => e.automationId === 'auto-m').every((e) => e.startedByUserId === null));
 });
+
+// ═══ Only the SCHEDULER's own claim lets a run skip the marker acquisition ═══
+//
+// "triggerKind === 'schedule'" does not mean "the tick already claimed this
+// row for me". Two other callers start a run with that kind and no claim: a
+// retry of a scheduled run (POST /:id/runs/:runId/retry passes the original
+// run's triggerKind) and the resume of a scheduled run after an approval or
+// form pause (resume.js does the same). Handed ownership of the marker without
+// asking, both run alongside whatever live run holds it, and at their end
+// write the automation's last status and RELEASE that other run's marker —
+// after which the scheduler can start yet another run on top of it.
+//
+// The tick now says so explicitly (`markerClaimed: true`); every other
+// schedule-kind run asks for the marker like any other live run.
+//
+
+function scheduledAutomation() {
+    return {
+        id: 'auto-s', version: 1, userId: 'owner-1', organizationId: null, title: 'Nightly', triggerType: 'schedule',
+        scheduleCron: '0 7 * * *', scheduleTz: 'UTC',
+        definition: {
+            trigger: { id: 'trig', type: 'trigger', kind: 'schedule' },
+            steps: [{ id: 's1', type: 'set', fields: { ok: { kind: 'literal', value: true } } }],
+            edges: [{ from: 'trig', to: 's1' }],
+        },
+    };
+}
+const scheduleKinds = () => markerCalls.map((c) => c[0]);
+const scheduleWroteLastStatus = () => markerCalls.some((c) => c[0] === 'updateAutomation' && c[2].includes('lastStatus'));
+
+test('a run the scheduler claimed does not ask for the marker again, and releases it', async () => {
+    const run = await runner.executeAutomation(scheduledAutomation(), { triggerKind: 'schedule', mode: 'live', markerClaimed: true });
+    assert.strictEqual(run.status, 'success');
+    assert.ok(!scheduleKinds().includes('markRunning'), 'the tick claimed the row: asking again would answer "already running"');
+    assert.ok(scheduleKinds().includes('releaseAutomation'));
+});
+
+test('a retry of a scheduled run does not take over a marker another run holds', async () => {
+    busy = true;
+    const run = await runner.executeAutomation(scheduledAutomation(), { triggerKind: 'schedule', mode: 'live' });
+    assert.ok(scheduleKinds().includes('markRunning'), 'a schedule-kind run nobody claimed for must ask for the marker');
+    assert.strictEqual(run.status, 'cancelled', 'like any live run that finds the automation busy');
+    assert.ok(!scheduleKinds().includes('releaseAutomation'), 'it released the marker of the run that is still going');
+    assert.ok(!scheduleWroteLastStatus(), 'it overwrote the last status of the run that is still going');
+});
+
+test('a retry of a scheduled run on a free automation owns and releases the marker', async () => {
+    const run = await runner.executeAutomation(scheduledAutomation(), { triggerKind: 'schedule', mode: 'live' });
+    assert.strictEqual(run.status, 'success');
+    assert.ok(scheduleKinds().includes('markRunning') && scheduleKinds().includes('releaseAutomation'));
+});
+
+test('a resumed scheduled run continues alongside a busy automation without owning its marker', async () => {
+    busy = true;
+    const run = await runner.executeAutomation(scheduledAutomation(), {
+        triggerKind: 'schedule', mode: 'live', skipUntilStepId: 'trig', replayState: { trig: { output: {}, status: 'success' } },
+    });
+    assert.strictEqual(run.status, 'success', 'a resume is a continuation, never skipped');
+    assert.ok(!scheduleKinds().includes('releaseAutomation'), 'the resume released the marker of the run that is still going');
+    assert.ok(!scheduleWroteLastStatus());
+});
