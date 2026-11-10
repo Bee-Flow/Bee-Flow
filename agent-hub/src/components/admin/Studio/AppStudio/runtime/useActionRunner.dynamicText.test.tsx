@@ -35,7 +35,7 @@ async function run(steps: unknown[], extra: Record<string, unknown> = {}, def: R
     const realOpen = window.open;
     window.open = openWindow;
     try {
-        const { result } = renderHook(() => useActionRunner('app1', stub<Parameters<typeof useActionRunner>[1]>(definition), { onNavigate, confirm, vars: { n: 12, go: 'scr_other' } }));
+        const { result } = renderHook(() => useActionRunner('app1', stub<Parameters<typeof useActionRunner>[1]>(definition), { onNavigate, confirm }));
         await act(async () => { await result.current.runAction('act_1'); });
         return { onNavigate, confirm, openWindow, entry: result.current.actionState.act_1 };
     } finally {

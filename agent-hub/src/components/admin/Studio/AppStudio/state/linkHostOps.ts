@@ -1,7 +1,7 @@
 import type { AppDefinition } from '../inspector/appDefinition';
 
 /** Mirror of LIMITS.MAX_ALLOWED_LINK_HOSTS (server/appStudio/componentSpecs/limits.js). */
-export const MAX_ALLOWED_LINK_HOSTS = 50;
+const MAX_ALLOWED_LINK_HOSTS = 50;
 const HOST_CHARS = 'abcdefghijklmnopqrstuvwxyz0123456789.-';
 
 /** True for a bare host name: host characters only, no empty label, no dash at the edge of a label. */

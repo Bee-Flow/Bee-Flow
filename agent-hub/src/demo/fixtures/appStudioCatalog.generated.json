@@ -2622,12 +2622,12 @@
                     "onSuccess": {
                         "type": "effects",
                         "since": 3,
-                        "description": "What happens after the sequence ends well, a toast and/or a screen to open. Effects are applied once and never chain, so use steps for anything longer. Same shape as on run_automation."
+                        "description": "A toast and/or a screen to open after the sequence ends well. Effects are applied once and never chain, so use steps for anything longer. Same shape as on run_automation."
                     },
                     "onError": {
                         "type": "effects",
                         "since": 3,
-                        "description": "What happens after the sequence failed, a toast and/or a screen to open. The failure is toasted either way. Effects are applied once and never chain."
+                        "description": "A toast and/or a screen to open after the sequence failed. The failure is toasted either way. Effects are applied once and never chain."
                     }
                 }
             }
@@ -2808,12 +2808,12 @@
                     "confirmLabelExpr": {
                         "type": "formula",
                         "since": 3,
-                        "description": "A formula that gives the text of the confirm button, instead of confirmLabel. When it returns nothing, confirmLabel is used if there is one."
+                        "description": "A formula for the confirm button text, instead of confirmLabel. When it returns nothing, confirmLabel is used if there is one."
                     },
                     "cancelLabelExpr": {
                         "type": "formula",
                         "since": 3,
-                        "description": "A formula that gives the text of the cancel button, instead of cancelLabel. When it returns nothing, cancelLabel is used if there is one."
+                        "description": "A formula for the cancel button text, instead of cancelLabel. When it returns nothing, cancelLabel is used if there is one."
                     }
                 }
             },
@@ -3840,7 +3840,7 @@
                         "type": "switchCases",
                         "required": true,
                         "itemSince": {
-                            "when": 3
+                            "whenExpr": 3
                         }
                     },
                     "default": {
