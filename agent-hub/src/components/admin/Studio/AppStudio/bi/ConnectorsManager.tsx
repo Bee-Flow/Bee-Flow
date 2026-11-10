@@ -20,10 +20,11 @@ export { connectorProblem } from './connectors/connectorModel';
  * App Studio BI — the owner's external-connectors editor.
  *
  * A connector is an owner-authored external data source (server contract in
- * server/appStudio/connectors.js + validated by dataModel.js). Three kinds:
+ * server/appStudio/connectors.js + validated by dataModel.js). The kinds:
  *   integration_tool — dispatch a platform tool with author-pinned fixedArgs
  *   automation       — trigger one of the owner's automations
  *   rest             — GET an https-only, allow-listed URL template
+ *   mailbox          — read a Gmail/Outlook mailbox into an app table
  *
  * ── ONE CONNECTOR = ONE ACTION ──────────────────────────────────────
  * That has always been the model, and it stays: it keeps one row shape per
