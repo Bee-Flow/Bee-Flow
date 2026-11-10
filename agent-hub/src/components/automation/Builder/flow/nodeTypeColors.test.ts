@@ -287,6 +287,18 @@ describe('nodeTypeColors — tiles, radii, minimap', () => {
         expect(miniMapColor('ai', 'skipped')).toBe('var(--type-ai)');
     });
 
+    it('a step a dry run only simulated wears "simulated" on a neutral card, not the green of done', () => {
+        const done = cardChrome({ group: 'action', status: 'success' });
+        const held = cardChrome({ group: 'action', status: 'success', simulated: true });
+        expect(done.badge!.en).toBe('done');
+        expect(held.badge).toEqual({ key: 'automations.card.badge_simulated', en: 'simulated', bg: 'var(--text-secondary)', fg: 'var(--bg-card)' });
+        expect(held.style.border).toBe('1px solid var(--border-default)');
+        expect(held.style.boxShadow).not.toContain('var(--success)');
+        // Only a settled success can have been simulated: a failure stays a failure.
+        expect(cardChrome({ group: 'action', status: 'error', simulated: true }).badge!.en).toBe('failed');
+        expect(cardChrome({ group: 'action', status: 'running', simulated: true }).badge!.en).toBe('running');
+    });
+
     it('card geometry matches the design (240×72; the 96px layout box adds the tool port)', () => {
         expect(CARD_W).toBe(240);
         expect(CARD_H).toBe(72);

@@ -1117,7 +1117,8 @@
     "automations.header.workflow_actions": "Acties voor deze automatisering",
     "automations.library.loadFailed": "Je automatiseringen konden niet worden geladen.",
     "automations.library.retry": "Opnieuw proberen",
-    "runs.tab.load_retry": "Opnieuw proberen"
+    "runs.tab.load_retry": "Opnieuw proberen",
+    "runs.timeline.simulated": "Nagebootst: {what}"
   },
   "sameAsEnglish": [
     "automations.agent_step.group_automations",

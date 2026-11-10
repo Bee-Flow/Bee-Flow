@@ -61,7 +61,8 @@ export interface RunFocus {
     label: string;
     done: number;
     total: number;
-    state: 'running' | 'error';
+    /** 'dry_done': a dry run that finished without a failure. Nothing was sent, and the banner says so. */
+    state: 'running' | 'error' | 'dry_done';
     startedAt: string | null;
     awaitingForm: boolean;
     awaitingApproval: boolean;
@@ -76,6 +77,8 @@ interface RunFocusParams {
     runInFlight?: boolean;
     /** The graph as it is on the canvas NOW. */
     definition?: FocusDefinition;
+    /** The run these rows belong to is a dry run that has finished (build/runIdentity.ts). */
+    dryFinished?: boolean;
 }
 
 function liveGraph(definition: FocusDefinition | undefined): FocusStep[] {
@@ -88,7 +91,7 @@ function labelOf(step: FocusStep | null | undefined, stepId: string | null): str
 }
 
 /** Returns null when there is nothing to show. */
-export function computeRunFocus({ runSteps, runInFlight = false, definition }: RunFocusParams = {}): RunFocus | null {
+export function computeRunFocus({ runSteps, runInFlight = false, definition, dryFinished = false }: RunFocusParams = {}): RunFocus | null {
     const graph = liveGraph(definition);
     const liveIds = new Set(graph.map((s: FocusStep) => s.id).filter(Boolean));
 
@@ -107,9 +110,13 @@ export function computeRunFocus({ runSteps, runInFlight = false, definition }: R
     const deciding = runInFlight ? undefined : rows.find((s: FocusRow) => s.status === AWAITING_APPROVAL);
     const parked = waiting || deciding;
     const target = running || parked || (runInFlight ? null : failed);
-    if (!target?.stepId && !runInFlight) return null;
-
     const done = rows.filter((s: FocusRow) => DONE_STATES.includes(s.status as string)).length;
+    if (!target?.stepId && !runInFlight) {
+        // A finished dry run looks like a finished run on the canvas. It names
+        // no step and counts no time: it only says that nothing left the building.
+        if (!dryFinished || rows.length === 0) return null;
+        return { stepId: null, label: '', done, total: graph.length, state: 'dry_done', startedAt: null, awaitingForm: false, awaitingApproval: false, pausedAt: null };
+    }
     const stepId = target?.stepId || null;
     const step = stepId ? graph.find((s: FocusStep) => s.id === stepId) : null;
 

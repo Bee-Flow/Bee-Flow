@@ -81,6 +81,13 @@ const NL_TRANSLATIONS = Object.freeze({
     'automations.canvas.run_review_decide': 'Bekijken en beslissen',
     'automations.canvas.run_stop_test': 'Deze test stoppen',
     'automations.canvas.run_discard': 'Weggooien',
+    'automations.canvas.run_dry_done': 'Proefrun: er is niets verstuurd of weggeschreven',
+    'automations.canvas.run_dry_dismiss': 'De melding over de proefrun sluiten',
+    // What a proefrun held back, on the step's card (flow/simulatedStep.ts).
+    'automations.card.badge_simulated': 'nagebootst',
+    'automations.canvas.result.not_sent': 'niet verstuurd',
+    'automations.canvas.result.not_written': 'niet weggeschreven',
+    'automations.canvas.result.not_carried_out': 'niet uitgevoerd',
     'automations.canvas.run_version_behind': 'Deze test is op een oudere versie gestart',
     'automations.canvas.run_keep_version': 'Doorgaan op de oude versie',
     'automations.canvas.run_restart_current': 'Opnieuw starten met de huidige versie',
