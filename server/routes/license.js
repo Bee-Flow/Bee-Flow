@@ -154,6 +154,9 @@ router.get('/status', licenseLimiter, async (req, res) => {
 // ── POST /activate ──────────────────────────────────────────────────────
 // body: { token: '<jwt>', scope?: 'organization' | 'consumer' | 'server' }
 //
+// An admin-issued blob (`beeflow-admin-v1.…`) is accepted from a super-admin
+// only, whatever the scope.
+//
 // scope='server' applies the licence install-wide. It requires:
 //   - super-admin caller (session.isAdmin or role='admin')
 //   - tier ≥ enterprise — a community-tier server licence is meaningless
@@ -182,6 +185,7 @@ router.post('/activate', licenseLimiter, validate({ body: ActivateBody }), async
                 userId: null,
                 scope: 'server',
                 activatedBy: userId,
+                allowAdminBlob: true,
             });
             // R2 from the plan: refuse community-tier server licences —
             // they're indistinguishable from "no licence" and just confuse
@@ -218,6 +222,10 @@ router.post('/activate', licenseLimiter, validate({ body: ActivateBody }), async
             organizationId: resolvedScope === 'organization' ? orgId : null,
             userId: resolvedScope === 'consumer' ? userId : null,
             activatedBy: userId,
+            // An admin blob is unsigned: only a super-admin may activate one,
+            // in any scope. An org admin or a user without an organisation
+            // could otherwise write a blob for any tier.
+            allowAdminBlob: isSuperAdmin(req),
         });
         const status = await license.getLicenseStatus({
             organizationId: resolvedScope === 'organization' ? orgId : null,
@@ -226,6 +234,9 @@ router.post('/activate', licenseLimiter, validate({ body: ActivateBody }), async
         });
         res.json({ activated, status });
     } catch (e) {
+        if (e.code === license.adminIssuance.ADMIN_BLOB_FORBIDDEN) {
+            return res.status(403).json({ error: /** @type {Error} */ (e).message, code: e.code });
+        }
         // Verification failures carry a code we want to surface to the UI
         if (e.code) return res.status(400).json({ error: /** @type {Error} */ (e).message, code: e.code });
         log.error('[License] activate error:', e);

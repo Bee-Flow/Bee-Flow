@@ -30,8 +30,14 @@ let lastDeactivateArgs = null;
 const licenseStub = {
     COMMUNITY_FALLBACK: 'community',
     tiers: { normalizeTier: (t) => (t === 'pro' ? 'enterprise' : t) },
+    adminIssuance: { ADMIN_BLOB_FORBIDDEN: 'admin_blob_super_admin_only' },
     async activateLicense(args) {
         lastActivateArgs = args;
+        // Mirrors the real module: a blob is refused unless the route vouches
+        // for a super-admin.
+        if (String(args.token).startsWith('beeflow-admin-v1.') && !args.allowAdminBlob) {
+            throw Object.assign(new Error('Only a super-admin can activate an admin-issued licence blob.'), { code: 'admin_blob_super_admin_only' });
+        }
         return {
             id: 'lic-test',
             tier: mockActivatedTier,
@@ -225,6 +231,35 @@ const ORG_ADMIN_SESSION = {
         const delNoneRes = await request('DELETE', '/api/license/deactivate', { query: 'scope=server' });
         assert.strictEqual(delNoneRes.status, 404);
         mockDeactivateOk = true;
+
+        // ── Admin blob: super-admin only, in every scope ───────────────
+        const BLOB = 'beeflow-admin-v1.e30';
+        const CONSUMER_SESSION = { isAuthenticated: true, isAdmin: false, user: { id: 'u_solo', organizationId: null, role: 'user' } };
+        for (const [label, session, scope] of [
+            ['org admin, own organisation', ORG_ADMIN_SESSION, undefined],
+            ['org admin, explicit organisation scope', ORG_ADMIN_SESSION, 'organization'],
+            ['org admin, consumer scope', ORG_ADMIN_SESSION, 'consumer'],
+            ['user without an organisation', CONSUMER_SESSION, undefined],
+        ]) {
+            currentSession = session;
+            lastActivateArgs = null;
+            const blobRes = await request('POST', '/api/license/activate', { body: scope ? { token: BLOB, scope } : { token: BLOB } });
+            assert.strictEqual(blobRes.status, 403, `${label}: expected 403, got ${blobRes.status} body=${JSON.stringify(blobRes.body)}`);
+            assert.match(blobRes.body.error, /super-admin/, label);
+            assert.strictEqual(blobRes.body.code, 'admin_blob_super_admin_only', label);
+            assert.strictEqual(lastActivateArgs.allowAdminBlob, false, `${label}: the route must not vouch for a non-super-admin`);
+        }
+        // A super-admin still can: server-wide and for their own account.
+        currentSession = SUPER_ADMIN_SESSION;
+        for (const body of [{ token: BLOB, scope: 'server' }, { token: BLOB }]) {
+            const superRes = await request('POST', '/api/license/activate', { body });
+            assert.strictEqual(superRes.status, 200, `super-admin ${JSON.stringify(body)}: got ${superRes.status} body=${JSON.stringify(superRes.body)}`);
+            assert.strictEqual(lastActivateArgs.allowAdminBlob, true);
+        }
+        // A signed key from an org admin is unaffected.
+        currentSession = ORG_ADMIN_SESSION;
+        const jwtRes = await request('POST', '/api/license/activate', { body: { token: 'fake-token' } });
+        assert.strictEqual(jwtRes.status, 200, `org admin with a signed key: got ${jwtRes.status} body=${JSON.stringify(jwtRes.body)}`);
 
         // ── Unauthenticated → 401 (router-level guard, unchanged) ──────
         currentSession = null;

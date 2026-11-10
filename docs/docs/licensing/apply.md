@@ -25,6 +25,11 @@ organisation** on the server instead of activating the same key per-org.
 2. Open **Admin → Server licence**.
 3. Paste the JWT (or `beeflow-admin-v1.…` admin blob) and confirm.
 
+An admin blob (`beeflow-admin-v1.…`) carries no signature, so only a
+super-admin can activate one. Pasted by anyone else, in
+**Settings → Organisation → Licence & usage** for example, it is refused
+with a `403` (`admin_blob_super_admin_only`).
+
 While a server-wide licence is active:
 
 - Every organisation and consumer on the install resolves to the
