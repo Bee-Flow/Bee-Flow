@@ -2661,7 +2661,13 @@
             "loop",
             "switch",
             "call_action",
-            "transaction"
+            "transaction",
+            "break",
+            "continue",
+            "raise_error",
+            "return",
+            "try",
+            "while"
         ],
         "stepSpecs": {
             "navigate": {
@@ -3840,6 +3846,89 @@
                         "envelope": true
                     }
                 }
+            },
+            "break": {
+                "mutatesData": false,
+                "fields": {},
+                "since": 3,
+                "retrySafe": true
+            },
+            "continue": {
+                "mutatesData": false,
+                "fields": {},
+                "since": 3,
+                "retrySafe": true
+            },
+            "raise_error": {
+                "mutatesData": false,
+                "fields": {
+                    "message": {
+                        "type": "binding",
+                        "required": true,
+                        "description": "What went wrong, for the person: a static text or a formula (at most 500 characters are shown)."
+                    },
+                    "code": {
+                        "type": "string",
+                        "maxLen": 60,
+                        "description": "A short machine name for the failure, read as error.code by a catch (\"raised\" when left out)."
+                    }
+                },
+                "since": 3,
+                "retrySafe": true
+            },
+            "return": {
+                "mutatesData": false,
+                "fields": {
+                    "value": {
+                        "type": "binding",
+                        "description": "The result of the action: a static value or a formula. Left out, the result stays what the last server step gave."
+                    }
+                },
+                "since": 3,
+                "retrySafe": true
+            },
+            "try": {
+                "mutatesData": false,
+                "fields": {
+                    "steps": {
+                        "type": "steps",
+                        "required": true,
+                        "description": "The steps to attempt."
+                    },
+                    "catch": {
+                        "type": "steps",
+                        "description": "Runs when a step in `steps` fails, with error.message, error.step, error.code and error.attempts in scope. Present (even empty): the failure is handled and the action goes on. Left out: the failure still ends the action after `finally`."
+                    },
+                    "finally": {
+                        "type": "steps",
+                        "description": "Always runs last: after `steps` succeeded, after `catch`, and before a return, break or continue leaves the try."
+                    }
+                },
+                "since": 3,
+                "retrySafe": true
+            },
+            "while": {
+                "mutatesData": false,
+                "fields": {
+                    "expr": {
+                        "type": "formula",
+                        "required": true,
+                        "description": "Checked before every round. The steps run while it is true."
+                    },
+                    "steps": {
+                        "type": "steps",
+                        "required": true,
+                        "description": "The steps of one round."
+                    },
+                    "maxIterations": {
+                        "type": "int",
+                        "min": 1,
+                        "max": 200,
+                        "description": "The most rounds that run (1 to 200, 200 when left out). When it is reached the loop ends and the action goes on."
+                    }
+                },
+                "since": 3,
+                "retrySafe": true
             }
         },
         "clientStepKinds": [
@@ -3856,7 +3945,13 @@
             "condition",
             "loop",
             "switch",
-            "call_action"
+            "call_action",
+            "break",
+            "continue",
+            "raise_error",
+            "return",
+            "try",
+            "while"
         ],
         "dataMutatingStepKinds": [
             "run_automation",

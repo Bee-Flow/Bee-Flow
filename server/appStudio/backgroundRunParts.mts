@@ -86,7 +86,7 @@ export function trimToBytes(value: unknown, max: number): unknown {
 /** A run row as the browser reads it (additive contract). */
 export function toJobView(row: ActionRunRow): JobView {
     const p = row.progress || {};
-    const loop = isObject(p.loop) && typeof p.loop.index === 'number' && typeof p.loop.count === 'number' ? { index: p.loop.index, count: p.loop.count } : null;
+    const loop = isObject(p.loop) && typeof p.loop.index === 'number' && typeof p.loop.count === 'number' && p.loop.count > 0 ? { index: p.loop.index, count: p.loop.count } : null;
     return {
         jobId: row.id, actionId: row.actionId, status: row.status,
         progress: {

@@ -22,6 +22,8 @@
  * Pure: no I/O.
  */
 
+import { extraChildLists } from '../../shared/appDefinition/stepFlow.mjs';
+
 export const DOCUMENT_COMPONENT_TYPES: readonly string[] = Object.freeze(['document_viewer', 'document_compare', 'input_document']);
 /** The props of each document component that hold a document reference. */
 const REF_PROPS: Readonly<Record<string, readonly string[]>> = Object.freeze({
@@ -74,6 +76,8 @@ function stepsOfKind(action: unknown, kind: string, out: Array<Record<string, un
     // A step's onError handler (`{ steps }`; the legacy array form too) runs as well.
     const handler = step.onError;
     if (handler && typeof handler === 'object') stepsOfKind(Array.isArray(handler) ? { steps: handler } : handler, kind, out, depth + 1);
+    // The places a registry container adds (a try's catch and finally).
+    for (const list of extraChildLists(step)) for (const child of list) stepsOfKind(child, kind, out, depth + 1);
     return out;
 }
 

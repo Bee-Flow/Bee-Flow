@@ -57,6 +57,7 @@ const FORMS_ROOT_TEST = /\bforms\.[A-Za-z_$][\w$]*\./;
 const GARBLED_BINDING_RE = /\bkind\b\s*\\{0,2}"?\s*:/;
 const GARBLED_NAME_RE = /\bname\b\s*\\{0,2}"?\s*:\s*\\{0,2}"?([A-Za-z_$][\w$]*)/;
 const MAX_DEPTH = require('../componentSpecs/limits').LIMITS.MAX_ACTION_DEPTH;
+const { extraChildSlots } = require('../../shared/appDefinition/stepFlow.mjs');
 
 function isObject(v) { return v !== null && typeof v === 'object' && !Array.isArray(v); }
 /**
@@ -264,9 +265,8 @@ function walkSteps(list, at, notes, ctx, depth) {
         }
         if (step.kind === 'request_approval') repairApprovalStep(step, stepAt, notes);
         if (step.kind === 'navigate') repairNavigate(step, notes);
-        if (Array.isArray(step.steps)) step.steps = walkSteps(step.steps, `${stepAt}.steps`, notes, ctx, depth + 1);
-        if (Array.isArray(step.then)) step.then = walkSteps(step.then, `${stepAt}.then`, notes, ctx, depth + 1);
-        if (Array.isArray(step.else)) step.else = walkSteps(step.else, `${stepAt}.else`, notes, ctx, depth + 1);
+        // steps / then / else, and the plain child lists a registry container adds (a try's catch and finally).
+        for (const f of ['steps', 'then', 'else', ...extraChildSlots(step).filter((sl) => sl.each === undefined).map((sl) => sl.field)]) if (Array.isArray(step[f])) step[f] = walkSteps(step[f], `${stepAt}.${f}`, notes, ctx, depth + 1);
         if (Array.isArray(step.cases)) {
             step.cases = step.cases.map((c, j) => (isObject(c) && Array.isArray(c.steps)
                 ? { ...c, steps: walkSteps(c.steps, `${stepAt}.cases[${j}].steps`, notes, ctx, depth + 1) }

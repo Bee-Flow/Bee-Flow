@@ -6,6 +6,7 @@
 
 import { createRequire } from 'node:module';
 import type { Decision } from './sequenceWalk.mts';
+import { FLOW_KINDS } from './sequenceWalkFlow.mts';
 
 export type { Decision };
 
@@ -24,7 +25,8 @@ const { STEP_POLICY_LISTS: lists } = nodeRequire('./componentSpecs/stepRegistry.
 };
 const specs = nodeRequire('./componentSpecs/actionSpecsActionKinds.js') as { DATA_MUTATING_STEP_KINDS: string[] };
 const SERVER_KINDS: readonly string[] = specs.DATA_MUTATING_STEP_KINDS;
-export const CONTROL_KINDS = ['condition', 'switch', 'loop'];
+/** The kinds the walker evaluates itself (the base three and the registry's control kinds): never a host decision. */
+export const CONTROL_KINDS: readonly string[] = ['condition', 'switch', 'loop', ...FLOW_KINDS];
 
 // Every list below is derived from the policy rows of the step catalogue (componentSpecs/stepMeta.js,
 // or a kind's own registry file); a kind without an answer is in none of them.

@@ -123,6 +123,8 @@ function automationsInAction(action) {
             walkSteps(step.default, depth + 1);
             // A step's onError handler (stepFlow.errorHandlerOf) runs as well.
             walkSteps(step.onError && /** @type {{ steps?: unknown }} */ (step.onError).steps, depth + 1);
+            // The places a registry container adds (a try's catch and finally).
+            for (const list of extraChildLists(step)) walkSteps(list, depth + 1);
         }
     };
 

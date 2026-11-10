@@ -499,6 +499,36 @@
         "transaction": {
             "client": false,
             "mutatesData": true
+        },
+        "break": {
+            "client": true,
+            "mutatesData": false,
+            "since": 3
+        },
+        "continue": {
+            "client": true,
+            "mutatesData": false,
+            "since": 3
+        },
+        "raise_error": {
+            "client": true,
+            "mutatesData": false,
+            "since": 3
+        },
+        "return": {
+            "client": true,
+            "mutatesData": false,
+            "since": 3
+        },
+        "try": {
+            "client": true,
+            "mutatesData": false,
+            "since": 3
+        },
+        "while": {
+            "client": true,
+            "mutatesData": false,
+            "since": 3
         }
     },
     "types": {

@@ -9,7 +9,7 @@
 const { isObject, pushDataRef } = require('./shared');
 const { checkCallAction } = require('./callChecks.mts');
 const { someStepThroughCalls } = require('../actionCalls.mts');
-const { TRANSACTION_CHILD_KINDS, MAX_TRANSACTION_STEPS } = require('../../shared/appDefinition/stepFlow.mjs');
+const { TRANSACTION_CHILD_KINDS, MAX_TRANSACTION_STEPS, extraChildLists } = require('../../shared/appDefinition/stepFlow.mjs');
 const { STEP_META, EXTENSION_STEP_ENTRIES } = require('../componentSpecs/stepRegistry');
 
 // The base kinds are told in this order (the order the warnings have always come in); registry kinds follow.
@@ -48,6 +48,8 @@ function containsSendEmail(steps) {
             }
         }
         if (containsSendEmail(s.default)) return true;
+        // The places a registry container adds (a try's catch and finally).
+        if (extraChildLists(s).some((list) => containsSendEmail(list))) return true;
     }
     return false;
 }
@@ -72,6 +74,8 @@ function containsStepKind(steps, kind) {
         if (containsStepKind(s.default, kind)) return true;
         // A step's onError handler runs too (automationRefs.walkSteps descends into it as well).
         if (containsStepKind(s.onError?.steps, kind)) return true;
+        // The places a registry container adds (a try's catch and finally).
+        if (extraChildLists(s).some((list) => containsStepKind(list, kind))) return true;
     }
     return false;
 }
