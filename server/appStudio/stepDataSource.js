@@ -51,6 +51,7 @@ const MAX_CONTEXT_ROWS = 50;
 const DATA_KINDS = new Set(['record', 'records', 'aggregate']);
 const { resolveFilterList } = require('../shared/expr/index.mjs');
 const { recordListDescriptor, aggregateDescriptor } = require('../core/dataEngine/readDescriptor.mts');
+const { searchText } = require('../shared/appDefinition/bindingPlan.mjs');
 
 function isDataBinding(binding) {
     return !!binding && typeof binding === 'object' && DATA_KINDS.has(binding.kind);
@@ -85,6 +86,22 @@ function resolveFilters(filters, resolveValue) {
     });
     if (res.status !== 'ok') return { filters: [], blocked: true };
     return { filters: res.filters, blocked: false };
+}
+
+/**
+ * A record/records binding's `search` with its value made literal, the way a
+ * filter value is (a binding object goes through `resolveValue`). A value that
+ * holds no text leaves the search out (undefined), as the runtime does.
+ * @param {unknown} search
+ * @param {((binding: Record<string, unknown>) => unknown) | undefined} resolveValue
+ */
+function resolveSearch(search, resolveValue) {
+    if (!search || typeof search !== 'object' || Array.isArray(search)) return undefined;
+    const spec = /** @type {Record<string, unknown>} */ (search);
+    const raw = spec.value;
+    const isBound = !!raw && typeof raw === 'object' && typeof (/** @type {Record<string, unknown>} */ (raw)).kind === 'string';
+    const text = searchText(isBound ? (resolveValue ? resolveValue(/** @type {Record<string, unknown>} */ (raw)) : undefined) : raw);
+    return text === undefined ? undefined : { ...spec, value: text };
 }
 
 /**
@@ -133,6 +150,7 @@ async function resolveDataBinding(app, model, binding, { viewer, role, resolveVa
         } else {
             compiled = queryCompiler.compileRecordList(plan.tableMeta, recordListDescriptor(binding, {
                 filters,
+                ...(binding.search !== undefined ? { search: resolveSearch(binding.search, resolveValue) } : {}),
                 limit: binding.kind === 'record'
                     ? 1
                     : Math.min(Number.isFinite(binding.limit) ? binding.limit : maxRows, maxRows),

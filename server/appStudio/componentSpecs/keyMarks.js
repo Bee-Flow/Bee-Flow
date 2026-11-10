@@ -32,7 +32,7 @@
  * serves `shape — description` through app_inspect_catalog (catalogTiers.mts). The mark does
  * NOT make the key legal: the canonicalizer and the validator still have to keep it.
  *
- * The directories ship empty. Plain .js like the rest of componentSpecs.
+ * A directory holds only the marks a feature shipped (keys/binding/: match, search). Plain .js like the rest of componentSpecs.
  */
 
 'use strict';

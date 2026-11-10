@@ -69,6 +69,14 @@ function stableStringify(value) {
     return stableJson.stableStringify(value);
 }
 
+/** The client's readExtras: `match` and `search` join the key only when the binding sets them. */
+function readExtras(binding) {
+    return {
+        ...(binding.match ? { match: binding.match } : {}),
+        ...(binding.search && binding.kind !== 'aggregate' ? { search: binding.search } : {}),
+    };
+}
+
 /** Port of the client dataCacheKey for the server-collected binding kinds. */
 function dataCacheKey(binding) {
     if (!binding || typeof binding !== 'object') return null;
@@ -78,6 +86,7 @@ function dataCacheKey(binding) {
             filter: binding.filter ?? null,
             sort: binding.sort ?? null,
             limit: binding.limit ?? null,
+            ...readExtras(binding),
         });
         return `${binding.kind}:${binding.tableId ?? ''}:${shape}`;
     }
@@ -88,6 +97,7 @@ function dataCacheKey(binding) {
             aggregates: binding.aggregates ?? null,
             sort: binding.sort ?? null,
             limit: binding.limit ?? null,
+            ...readExtras(binding),
         });
         return `aggregate:${binding.tableId ?? ''}:${shape}`;
     }

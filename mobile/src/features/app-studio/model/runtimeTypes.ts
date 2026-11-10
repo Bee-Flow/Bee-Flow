@@ -166,6 +166,10 @@ export type DataRecord = Record<string, unknown>;
 
 export interface RecordsQuery {
     filter?: unknown;
+    /** How the filters join: 'all' (default) or 'any'. */
+    match?: 'all' | 'any';
+    /** `{ value: <text>, fields: [<field keys>] }`: rows where any field contains the text. */
+    search?: unknown;
     sort?: unknown;
     cursor?: string;
     limit?: number;

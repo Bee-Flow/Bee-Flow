@@ -43,4 +43,4 @@ recognises the form (or `entryKey: true` and `clean` for a key of a groupBy or a
 `../queryMarks.js` checks them and `../README.md` ("A key or a form inside a data read") has the
 recipe; for these two the canonicalizer needs no edit.
 
-`../README.md` lists every place a mark can sit. The subfolders ship empty.
+`../README.md` lists every place a mark can sit. A subfolder holds only the marks a feature shipped (`binding/`: `match`, `search`).

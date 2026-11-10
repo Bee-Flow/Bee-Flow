@@ -12,7 +12,7 @@ const { recordListDescriptor, aggregateDescriptor } = require('./readDescriptor.
 
 const BINDING = {
     kind: 'records', tableId: 'tbl_1', filters: [{ field: 'a', op: 'eq', value: 1 }], sort: [{ field: 'a' }],
-    groupBy: [{ field: 'g' }], aggregates: [{ fn: 'count' }], cursor: 'c', limit: 9, match: 'any', search: { value: 'x' },
+    groupBy: [{ field: 'g' }], aggregates: [{ fn: 'count' }], cursor: 'c', limit: 9,
 };
 
 test('a record list picks filters and sort, then the caller\'s own fields', () => {
@@ -39,7 +39,7 @@ test('the caller\'s own value wins and keeps the picked position', () => {
 test('fields the compiler does not take from a read are not passed on', () => {
     const list = recordListDescriptor(BINDING);
     const agg = aggregateDescriptor(BINDING);
-    for (const key of ['kind', 'tableId', 'cursor', 'limit', 'match', 'search']) {
+    for (const key of ['kind', 'tableId', 'cursor', 'limit']) {
         assert.ok(!(key in list), `record list leaves ${key} to the caller`);
         assert.ok(!(key in agg), `aggregate leaves ${key} to the caller`);
     }
@@ -48,4 +48,13 @@ test('fields the compiler does not take from a read are not passed on', () => {
 test('a missing field stays a present key holding undefined, as the hand-built objects had it', () => {
     const out = aggregateDescriptor({}, { limit: undefined });
     assert.deepStrictEqual(out, { filters: undefined, groupBy: undefined, aggregates: undefined, sort: undefined, limit: undefined });
+});
+
+test('match and search travel only when the read carries them; an aggregate takes match alone', () => {
+    const asked = { ...BINDING, match: 'any', search: { value: 'x', fields: ['a'] } };
+    assert.deepStrictEqual(Object.keys(recordListDescriptor(asked, { limit: 1 })), ['filters', 'sort', 'match', 'search', 'limit']);
+    assert.deepStrictEqual(Object.keys(aggregateDescriptor(asked)), ['filters', 'groupBy', 'aggregates', 'sort', 'match']);
+    assert.deepStrictEqual(Object.keys(recordListDescriptor({ ...BINDING, match: null, search: null })), ['filters', 'sort']);
+    // A caller that resolved the search itself wins, and its "no search" leaves none.
+    assert.strictEqual(recordListDescriptor(asked, { search: undefined }).search, undefined);
 });

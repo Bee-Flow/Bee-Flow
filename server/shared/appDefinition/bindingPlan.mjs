@@ -40,6 +40,14 @@
  * returned AS-IS (identity-stable, memo-friendly); a filter left empty by
  * omission is dropped, so its cache key equals the no-filter key.
  *
+ * Search (a record / records binding's `search`, a marked binding key): its
+ * `value` may be a formula (a search box) and is made literal after the
+ * filters, in every option set. A value that resolves to no text (nothing typed
+ * yet) leaves the search OUT, as an unset filter value is left out, so an empty
+ * box shows every row; a number is spelled out. A literal text search and a
+ * binding without one come back as-is. A formula reading a root the option set
+ * cannot fill is needs-scope, as in a filter.
+ *
  * Aggregate shape: `groupBy`, `aggregates`, `sort`, `limit` may be authored as
  * a formula and resolve against the scope before the fetch, so a report the
  * viewer composed in the running app asks its own question. A formula that
@@ -217,14 +225,50 @@ function planProbeFilters(binding, scope, o) {
 }
 
 /**
- * A binding's filter list resolved under the option set's filter mode.
+ * A search value as the compiler takes it: a non-blank text (a finite number
+ * spelled out), or undefined when it holds none.
+ * @param {unknown} value
+ * @returns {string | undefined}
+ */
+export function searchText(value) {
+    const text = typeof value === 'number' && Number.isFinite(value) ? String(value) : value;
+    return typeof text === 'string' && text.trim() !== '' ? text : undefined;
+}
+
+const SEARCHED_KINDS = new Set(['record', 'records']);
+
+/**
+ * A record / records binding's `search.value` made literal (see the header).
+ * @param {unknown} binding
+ * @param {unknown} scope
+ * @param {BindingPlanOptions} o
+ * @returns {BindingPlan}
+ */
+export function planSearch(binding, scope, o) {
+    if (!isObject(binding) || !SEARCHED_KINDS.has(/** @type {string} */ (binding.kind))) return fetch(binding);
+    const search = binding.search;
+    if (!isObject(search) || Array.isArray(search)) return fetch(binding);
+    const value = dynamicValue(search.value, scope, o);
+    if (value === NEEDS_SCOPE) return { plan: 'needsScope' };
+    const text = searchText(value);
+    if (text === search.value) return fetch(binding);
+    if (text === undefined) {
+        const { search: _dropped, ...rest } = binding;
+        return fetch(rest);
+    }
+    return fetch({ ...binding, search: { ...search, value: text } });
+}
+
+/**
+ * A binding's filter list resolved under the option set's filter mode, then its search.
  * @param {unknown} binding
  * @param {unknown} scope
  * @param {BindingPlanOptions} o
  * @returns {BindingPlan}
  */
 export function planFilters(binding, scope, o) {
-    return o.filterMode === 'probe' ? planProbeFilters(binding, scope, o) : planLiveFilters(binding, scope, o);
+    const filtered = o.filterMode === 'probe' ? planProbeFilters(binding, scope, o) : planLiveFilters(binding, scope, o);
+    return filtered.plan === 'fetch' ? planSearch(filtered.binding, scope, o) : filtered;
 }
 
 /**

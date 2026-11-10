@@ -35,6 +35,10 @@ export interface DataBinding {
     tableId?: string | null;
     datasetId?: string | null;
     filter?: unknown;
+    /** How the top-level filters join: every one (default) or any one. */
+    match?: 'all' | 'any';
+    /** A free search over some columns; `value` may be a formula (a search box). Records bindings only. */
+    search?: { value?: FilterValue; fields?: string[] };
     sort?: FilterValue;
     limit?: FilterValue;
     groupBy?: FilterValue;

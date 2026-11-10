@@ -3,7 +3,8 @@
  * canonicalize/markedKeys.js: the one pass that keeps a marked key of a data binding, and a
  * marked key of a groupBy or aggregates entry, with the mark's own `clean`.
  *
- * Every mark here is put into the live registry for the length of a test: it ships empty.
+ * Every mark here is put into the live registry for the length of a test (the shipped ones are
+ * taken out where a test needs the registry empty).
  * Run: node --test appStudio/canonicalize/markedKeys.test.js
  */
 
@@ -51,11 +52,33 @@ function clean(raw) {
 
 const search = { since: 3, kinds: ['record', 'records'], shape: 'string ≤5', description: 'Free text.', clean: (/** @type {unknown} */ v) => (typeof v === 'string' ? v.slice(0, 5) : undefined) };
 
-test('with nothing marked an unknown key of a binding is dropped, as it always was', () => {
+/**
+ * Run `fn` with the shipped marks of both families taken out, as the registry was before any.
+ * @param {() => void} fn
+ */
+function withoutShipped(fn) {
+    /** @type {Array<() => void>} */
+    const undo = [];
+    for (const family of /** @type {const} */ (['binding', 'queryShape'])) {
+        /** @type {Record<string, any>} */
+        const table = specs.KEY_MARKS[family];
+        for (const [key, mark] of Object.entries(table)) {
+            delete table[key];
+            undo.push(() => { table[key] = mark; });
+        }
+    }
+    try {
+        fn();
+    } finally {
+        for (const fn2 of undo) fn2();
+    }
+}
+
+test('with nothing marked an unknown key of a binding is dropped, as it always was', () => withoutShipped(() => {
     assert.deepEqual(Object.keys(specs.KEY_MARKS.binding), []);
     assert.deepEqual(clean({ kind: 'records', tableId: 'tbl_x', zz_search: 'abc', limit: 3 }).out, { kind: 'records', tableId: 'tbl_x', limit: 3 });
     assert.deepEqual(clean({ kind: 'aggregate', tableId: 'tbl_x', groupBy: [{ field: 'a', zz_step: 5 }] }).out, { kind: 'aggregate', tableId: 'tbl_x', groupBy: [{ field: 'a' }] });
-});
+}));
 
 test('a marked key is kept after the base keys, cleaned by its mark, on the kinds it is marked for', () => {
     withMarks({ binding: { zz_search: search } }, () => {

@@ -13,6 +13,7 @@ const { FILTER_OPS } = require('../dataModel');
 const { isObject } = require('./shared');
 const { countFilterLeaves, MAX_FILTER_CLAUSES: MAX_FILTERS } = require('../../shared/expr/filterGroups.mjs');
 const { validateFormula } = require('./formulas');
+const { validateReadKeys } = require('./readKeys');
 const {
     checkTableRef,
     checkTableSource,
@@ -235,6 +236,7 @@ function validateBinding(key, value, path, ctx) {
         // through undisturbed.
         checkTableSource(value.tableId, `${path}.tableId`, ctx, label);
         if (value.filter !== undefined && value.filter !== null) validateBindingFilter(value.filter, `${path}.filter`, ctx, value.tableId, label);
+        validateReadKeys(value, path, ctx, label);
         // An aggregate may sort by the columns it produces, which is what the
         // compiler does too.
         const aggAliases = value.kind === 'aggregate' ? aggregateAliases(value) : null;

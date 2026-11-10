@@ -1,10 +1,10 @@
 /**
  * The read features the query compiler had and the App Studio read path did not pass on:
  * `match: 'any'`, a free `search` over several columns and a case-insensitive `eq` (`ci`).
- * `match` and `search` are REQUEST options (the records routes, app_query_data), not binding
- * keys: a binding that carries them keeps the base canonical form. `ci` on a filter clause is
- * base behaviour (the compiler always honoured it), so a definition using it, or the base
- * operators, measures and buckets the editor now offers, keeps schema version 2.
+ * `match` and `search` are request options (the records routes, app_query_data) and marked
+ * binding keys (componentSpecs/keys/binding/, proved in bindingKeys.matchSearch.test.js). `ci` on a
+ * filter clause is base behaviour (the compiler always honoured it), so a definition using it, or
+ * the base operators, measures and buckets the editor now offers, keeps schema version 2.
  *
  * Run: node --test appStudio/dataRead.matchSearch.test.js
  */
@@ -113,17 +113,19 @@ test('ci and the base words the editor now offers keep a definition at schema ve
     assert.strictEqual(sourceOf(canonicalizeAppDefinition(def(records)).def).filter[0].ci, true, 'canonicalize keeps ci as it always did');
 });
 
-test('match and search on a binding stay out of the canonical form and out of a step read', async () => {
+test('a step read passes a binding\'s match on and its search with the value made literal', async () => {
     const plain = { kind: 'records', tableId: 'tbl_task01', filter: [{ field: 'status', op: 'eq', value: 'x' }] };
-    const extra = { ...plain, match: 'any', search: { value: 'needle', fields: ['title'] } };
-    const out = canonicalizeAppDefinition(def(extra)).def;
-    assert.deepStrictEqual(Object.keys(sourceOf(out)), ['kind', 'tableId', 'filter']);
-    assert.strictEqual(out.schemaVersion, 2);
-
     const viewer = { id: USER, role: 'owner' };
-    const plainCalls = [];
-    const extraCalls = [];
-    await withDb(plainCalls, () => resolveDataBinding(APP, model, plain, { viewer, role: 'owner' }));
-    await withDb(extraCalls, () => resolveDataBinding(APP, model, extra, { viewer, role: 'owner' }));
-    assert.deepStrictEqual(extraCalls, plainCalls);
+    const run = async (binding, resolveValue) => {
+        const calls = [];
+        await withDb(calls, () => resolveDataBinding(APP, model, binding, { viewer, role: 'owner', resolveValue }));
+        return calls[0];
+    };
+    const base = await run(plain);
+    // A search box with nothing typed reads as the binding without a search.
+    assert.deepStrictEqual(await run({ ...plain, search: { value: { kind: 'formula', expr: 'vars.q' }, fields: ['title'] } }, () => ''), base);
+    const searched = await run({ ...plain, match: 'any', search: { value: { kind: 'formula', expr: 'vars.q' }, fields: ['title', 'note'] } }, () => 'needle');
+    assert.match(searched.sql, / OR /);
+    assert.ok(searched.params.includes('%needle%'));
+    assert.ok(!searched.sql.includes('needle'));
 });
