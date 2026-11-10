@@ -50,7 +50,7 @@ const rlsGateway = require('../appStudio/rlsGateway');
 const actionExecutor = require('../appStudio/actionExecutor');
 const { resolveRequestedStep, STEP_MISMATCH, sanitizeBag, sanitizeErrorScope } = require('../appStudio/actionSequence');
 const { LIMITS } = require('../appStudio/componentSpecs/limits');
-const { loadVisibleApp, assertActionRoleAccess } = require('./studioAppRunGate');
+const { loadVisibleApp, assertActionRoleAccess, visibleFormValues } = require('./studioAppRunGate');
 const { resolveAudienceContext } = require('../auth/audience');
 const { requireAuth } = require('../auth/permissions');
 const { browseStepLimiter, aiStepLimiter } = require('./studioAppRateLimits');
@@ -188,7 +188,7 @@ router.post('/:id/actions/:actionId/step/stream', requireAuth, jsonBody, validat
         const heartbeat = setInterval(() => send({ type: 'ping' }), HEARTBEAT_MS);
 
         try {
-            const formValues = sanitizeBag(req.body.formValues);
+            const formValues = visibleFormValues(def, actionId, role, sanitizeBag(req.body.formValues));
             const vars = sanitizeBag(req.body.vars);
             const result = /** @type {{ ok: boolean, result?: unknown, error?: string, code?: string, limit?: number, used?: number }} */ (await loggedSignedInStep({ app, actionId, userId, draft: isOwner && wantDraft, def, step, body: req.body, ownerActionId }, () => actionExecutor.executeDataStep(app, dataModel, step, {
                 viewerId: userId,
