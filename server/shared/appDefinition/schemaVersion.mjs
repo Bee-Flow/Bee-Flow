@@ -1,6 +1,6 @@
 // @typecheck strict
 /**
- * App Studio — the lowest schema version a definition needs. Pure, imports nothing.
+ * App Studio — the lowest schema version a definition needs. Pure: imports only schemaVersionQuery.mjs.
  *
  * Every catalogue entry added after the frozen base carries a numeric `since`
  * (3 or higher). A definition that uses none of them needs SCHEMA_VERSION_BASE,
@@ -27,6 +27,8 @@
  *     typeNodeKeys:   { [type]: { [key]: n } },                a node key an existing type newly takes (an event)
  *     keys:           { [family]: { [key]: n } },               a key added to one of the fixed objects below
  *     values:         { [family]: { [key]: { [value]: n } } },   an enum value added to one of their keys
+ *     bindingKeys:    { [kind]: { [key]: n } },                 a key added to a binding of that kind
+ *     queryShapes:    { [key]: { [name]: n } },                 a form of the value under a key (schemaVersionQuery.mjs)
  *   }
  *
  * ShapeMarks is `{ keys?, values?, items? }`: the marks of one item shape, `items` holding the
@@ -39,6 +41,8 @@
  * Only entries above the base are listed; an empty index answers the base
  * without walking anything.
  */
+
+import { queryShapeSince } from './schemaVersionQuery.mjs';
 
 /** The version every definition written before `since` existed has. */
 export const SCHEMA_VERSION_BASE = 2;
@@ -65,8 +69,10 @@ export const SCHEMA_VERSION_CURRENT = 3;
  *   typeNodeKeys: Record<string, SinceMap>,
  *   keys: Record<string, SinceMap>,
  *   values: Record<string, Record<string, SinceMap>>,
+ *   bindingKeys: Record<string, SinceMap>, queryShapes: Record<string, SinceMap>,
  * }} SinceIndex
  * @typedef {{ keys?: SinceMap, values?: Record<string, SinceMap>, items?: Record<string, ShapeMarks> }} ShapeMarks
+ * @typedef {import('./schemaVersionQuery.mjs').ShapeTests | undefined} Tests  the predicates of `queryShapes`
  */
 
 /** The objects of a definition whose keys and scalar values the `keys` / `values` groups mark. */
@@ -95,6 +101,8 @@ export function emptySinceIndex() {
         typeNodeKeys: map(),
         keys: map(),
         values: map(),
+        bindingKeys: map(),
+        queryShapes: map(),
     };
 }
 
@@ -180,14 +188,16 @@ function shapeSince(list, marks) {
 }
 
 /**
- * What one object inside a binding or a step field needs: a binding kind, a step kind with
- * the fields added to it, and the query vocabulary (`op`, `fn`, `bucket`).
+ * What one object inside a binding or a step field needs: a binding kind and the keys added to it, a step kind with
+ * the fields added to it, the query vocabulary (`op`, `fn`, `bucket`) and the forms of the values it holds.
  * @param {Record<string, unknown>} value
  * @param {SinceIndex} index
  * @param {boolean} steps  also read the object as a step (inside an action)
+ * @param {Tests} tests
  */
-function objectSince(value, index, steps) {
-    let max = Math.max(sinceOf(index.bindingKinds, value.kind), bagSince(value, undefined, own(index.values, QUERY_FAMILY)));
+function objectSince(value, index, steps, tests) {
+    const keys = bagSince(value, own(index.bindingKeys, value.kind), own(index.values, QUERY_FAMILY));
+    let max = Math.max(sinceOf(index.bindingKinds, value.kind), keys, queryShapeSince(value, index.queryShapes, tests));
     if (steps) {
         max = Math.max(
             max,
@@ -205,19 +215,20 @@ function objectSince(value, index, steps) {
  * @param {unknown} value
  * @param {SinceIndex} index
  * @param {boolean} steps
+ * @param {Tests} tests
  * @returns {number}
  */
-function deepSince(value, index, steps) {
+function deepSince(value, index, steps, tests) {
     if (Array.isArray(value)) {
         let max = 0;
-        for (const item of value) max = Math.max(max, deepSince(item, index, steps));
+        for (const item of value) max = Math.max(max, deepSince(item, index, steps, tests));
         return max;
     }
     if (!isObject(value)) return 0;
-    let max = objectSince(value, index, steps);
+    let max = objectSince(value, index, steps, tests);
     for (const [k, v] of Object.entries(value)) {
         if (k === 'value' && value.kind === 'static') continue;
-        max = Math.max(max, deepSince(v, index, steps));
+        max = Math.max(max, deepSince(v, index, steps, tests));
     }
     return max;
 }
@@ -226,23 +237,25 @@ function deepSince(value, index, steps) {
  * One action: its kind, the fields added to that kind, and everything under it as steps.
  * @param {unknown} action
  * @param {SinceIndex} index
+ * @param {Tests} tests
  * @returns {number}
  */
-function actionSince(action, index) {
+function actionSince(action, index, tests) {
     if (!isObject(action)) return 0;
     return Math.max(
         sinceOf(index.actionKinds, action.kind),
         bagSince(action, own(index.actionFields, action.kind), own(index.actionFieldValues, action.kind)),
-        deepSince(action, index, true),
+        deepSince(action, index, true, tests),
     );
 }
 
 /**
  * @param {unknown} node
  * @param {SinceIndex} index
+ * @param {Tests} tests
  * @returns {number}
  */
-function nodeSince(node, index) {
+function nodeSince(node, index, tests) {
     if (!isObject(node)) return 0;
     const type = typeof node.type === 'string' ? node.type : '';
     let max = Math.max(sinceOf(index.componentTypes, type), familySince(node, 'node', index), bagSince(node, own(index.typeNodeKeys, type), undefined));
@@ -254,9 +267,9 @@ function nodeSince(node, index) {
     }
     for (const [k, v] of Object.entries(node)) {
         if (k === 'children' || k === 'style' || k === 'type' || k === 'id') continue;
-        max = Math.max(max, deepSince(v, index, false));
+        max = Math.max(max, deepSince(v, index, false, tests));
     }
-    for (const child of listOf(node.children)) max = Math.max(max, nodeSince(child, index));
+    for (const child of listOf(node.children)) max = Math.max(max, nodeSince(child, index, tests));
     return max;
 }
 
@@ -264,9 +277,10 @@ function nodeSince(node, index) {
  * One screen: its own keys, its sections (keys, style) and their nodes.
  * @param {unknown} screen
  * @param {SinceIndex} index
+ * @param {Tests} tests
  * @returns {number}
  */
-function screenSince(screen, index) {
+function screenSince(screen, index, tests) {
     if (!isObject(screen)) return 0;
     let max = familySince(screen, 'screen', index);
     for (const section of listOf(screen.sections)) {
@@ -277,7 +291,7 @@ function screenSince(screen, index) {
             bagSince(section.style, index.styleKnobs, index.styleValues),
             familySince(section.style, 'sectionStyle', index),
         );
-        for (const node of listOf(section.children)) max = Math.max(max, nodeSince(node, index));
+        for (const node of listOf(section.children)) max = Math.max(max, nodeSince(node, index, tests));
     }
     return max;
 }
@@ -306,19 +320,20 @@ function lookSince(definition, index) {
 
 /**
  * The lowest schema version `definition` can be stored as: SCHEMA_VERSION_BASE
- * unless it uses something the index marks with a higher `since`.
+ * unless it uses something the index marks with a higher `since` (no query shape counts without `tests`).
  *
  * @param {unknown} definition
  * @param {SinceIndex} index
+ * @param {Tests} [tests]
  * @returns {number}
  */
-export function requiredSchemaVersion(definition, index) {
+export function requiredSchemaVersion(definition, index, tests) {
     if (!isObject(definition) || !index || sinceIndexIsEmpty(index)) return SCHEMA_VERSION_BASE;
     let max = SCHEMA_VERSION_BASE;
     for (const key of Object.keys(definition)) max = Math.max(max, sinceOf(index.topLevelKeys, key));
-    for (const screen of listOf(definition.screens)) max = Math.max(max, screenSince(screen, index));
+    for (const screen of listOf(definition.screens)) max = Math.max(max, screenSince(screen, index, tests));
     if (isObject(definition.actions)) {
-        for (const action of Object.values(definition.actions)) max = Math.max(max, actionSince(action, index));
+        for (const action of Object.values(definition.actions)) max = Math.max(max, actionSince(action, index, tests));
     }
     return Math.max(max, lookSince(definition, index));
 }

@@ -7,6 +7,8 @@
  *   an event an existing type newly fires  one fixed sentence
  *   a section, node, nav or nav-group key  from its key file (componentSpecs/keys/): `shape — description`
  *   a word of the data vocabulary          from its mark (core/dataEngine/dataModel/vocabularySince.js)
+ *   a key of a data binding, a form of     from its key file (componentSpecs/keys/binding/, keys/queryShape/):
+ *   the value under a key of a read        `shape — description`, a binding key with the kinds that take it
  *
  * An enum value is answered with the entry of the key that holds it, like everywhere else.
  */
@@ -16,7 +18,7 @@ import { catalogueMarks, fullCatalogue } from '../catalogTiers.mts';
 import type { ExtensionItem } from '../catalogTiers.mts';
 
 type FieldSpec = { type?: string; values?: unknown[]; default?: unknown; description?: unknown; optional?: unknown; maxLen?: unknown; itemShape?: Record<string, FieldSpec> } & Record<string, unknown>;
-type Mark = { shape?: unknown; description?: unknown };
+type Mark = { shape?: unknown; description?: unknown; kinds?: unknown };
 
 const nodeRequire = createRequire(import.meta.url);
 const render = nodeRequire('./catalogRender.js') as {
@@ -31,7 +33,7 @@ const text = (v: unknown): string => (typeof v === 'string' ? v.trim() : '');
 const withNote = (line: string, note: string): string => (note ? `${line} — ${note}` : line);
 
 /** How each key-mark family and data family words its entry. */
-const KEY_PREFIX: Readonly<Record<string, string>> = Object.freeze({ section: 'section.', node: 'node.', nav: 'nav.', navGroup: 'nav.groups[].' });
+const KEY_PREFIX: Readonly<Record<string, string>> = Object.freeze({ section: 'section.', node: 'node.', nav: 'nav.', navGroup: 'nav.groups[].', binding: 'binding.', queryShape: '' });
 const DATA_LABEL: Readonly<Record<string, string>> = Object.freeze({ fieldTypes: 'field type', filterOps: 'filter op', aggFns: 'aggregate fn', dateBuckets: 'date bucket' });
 
 /** One theme or design key: its values, its default when it has one, its own description. */
@@ -72,7 +74,10 @@ function keyMarkEntry(item: ExtensionItem): string | null {
     const mark = (catalogueMarks().keyMarks[item.owner || ''] as Record<string, Mark> | undefined)?.[item.key || ''];
     if (!mark) return null;
     if (item.owner === 'sectionStyle') return withNote(`section.style.${render.renderStyleKnobEntry(item.key as string)}`, text(mark.description));
-    return withNote(`${KEY_PREFIX[item.owner || ''] || ''}${item.key}: ${text(mark.shape)}`, text(mark.description));
+    const line = `${KEY_PREFIX[item.owner || ''] || ''}${item.key}: ${text(mark.shape)}`;
+    // A binding key says which binding kinds take it (all four when the mark names none).
+    const on = item.owner === 'binding' && Array.isArray(mark.kinds) && mark.kinds.length ? `binding kinds: ${mark.kinds.map(String).join(', ')}` : '';
+    return withNote(withNote(line, on), text(mark.description));
 }
 
 function dataEntry(item: ExtensionItem): string | null {

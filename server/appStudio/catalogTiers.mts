@@ -50,7 +50,7 @@ export interface ExtensionItem {
     /**
      * The table the owner lives in, for a prop, a field, a key or an enum value. 'item' is the
      * item shape of a list prop, 'event' an event an existing type newly fires, 'keys' a key file of
-     * componentSpecs/keys/, 'data' the data vocabulary.
+     * componentSpecs/keys/ (a binding key and a query shape among them), 'data' the data vocabulary.
      */
     ownerTable?: 'component' | 'knob' | 'step' | 'action' | 'item' | 'event' | 'screen' | 'theme' | 'design' | 'keys' | 'data';
     /** The component type or kind that holds `key`; the key-mark or data family for 'keys' and 'data' (absent for a knob). */
