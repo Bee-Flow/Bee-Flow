@@ -251,6 +251,22 @@ router.post('/stream', requireAuth, builderRateLimit, async (req, res) => {
         send('model_selected', { modelId, tier: resolvedTier });
         if (draftWrap._todos.length) send('plan', { todos: draftWrap._todos });
 
+        // An AbortController as well as the flag: the flag is only read at the
+        // TOP of the next iteration, so without this a closed tab still ran the
+        // CURRENT round to the max_tokens cap — on a self-hosted box, on the
+        // model's only slot. streamWithRetry forwards the signal to the adapter.
+        // Registered before the prompt is assembled: that step can wait on a
+        // model call of its own (the design brief), and a tab closed during it
+        // must still stop the build loop.
+        const clientAbort = new AbortController();
+        // The RESPONSE's close: a POST's request stream closes once its body
+        // is read, ahead of this handler, so req 'close' says nothing here.
+        res.on('close', () => {
+            if (res.writableEnded) return;
+            turn.clientGone = true;
+            try { clientAbort.abort(); } catch (err) { log.debug('already aborted', err); }
+        });
+
         // The system prompt, the tool menu and this turn's folded user message.
         const { profile, tools, toolNameSet, history, approvedPlanForTurn, workModeState, messages } = await assembleTurnPrompt({
             send, userId, modelId, resolvedTier, draftWrap, priorSnapshot, isApproval, planApproval, planMode, workMode,
@@ -281,19 +297,6 @@ router.post('/stream', requireAuth, builderRateLimit, async (req, res) => {
         if (isApproval) await writeCheckpoint('AI checkpoint — before plan');
 
         const iterationBudget = Math.min(profile.maxIterations || MAX_ITERATIONS, MAX_ITERATIONS);
-
-        // An AbortController as well as the flag: the flag is only read at the
-        // TOP of the next iteration, so without this a closed tab still ran the
-        // CURRENT round to the max_tokens cap — on a self-hosted box, on the
-        // model's only slot. streamWithRetry forwards the signal to the adapter.
-        const clientAbort = new AbortController();
-        // The RESPONSE's close: a POST's request stream closes once its body
-        // is read, ahead of this handler, so req 'close' says nothing here.
-        res.on('close', () => {
-            if (res.writableEnded) return;
-            turn.clientGone = true;
-            try { clientAbort.abort(); } catch (err) { log.debug('already aborted', err); }
-        });
 
         await runBuildLoop(turn, {
             res, send, sendError, messages, adapter, cfg, modelId, tier, profile, tools, toolNameSet,
