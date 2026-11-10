@@ -28,6 +28,7 @@ const stableJson = require('../utils/stableJson');
 
 const { collectDataBindings } = require('../appStudio/collectDataBindings');
 const queryCompiler = require('../core/dataEngine/queryCompiler');
+const { recordListDescriptor, aggregateDescriptor } = require('../core/dataEngine/readDescriptor.mts');
 const rlsGateway = require('../appStudio/rlsGateway');
 const { seedVariableDefaults } = require('../appStudio/componentSpecs');
 const { ROLE_PROBE_VIEWER_ID } = require('../appStudio/appDryRun');
@@ -212,21 +213,15 @@ async function runTableEntry(binding, { model, app, roleArg, viewer, deps }) {
         const accessFilter = rlsGateway.compileAccessFilter(table, roleArg, viewer, 'read');
         let rows;
         if (binding.kind === 'aggregate') {
-            const { sql, params } = queryCompiler.compileAggregate(table, {
-                filters: binding.filter,
-                groupBy: binding.groupBy,
-                aggregates: binding.aggregates,
-                sort: binding.sort,
-                limit: binding.limit,
-            }, accessFilter);
+            const { sql, params } = queryCompiler.compileAggregate(table,
+                aggregateDescriptor(binding, { filters: binding.filter, limit: binding.limit }), accessFilter);
             const out = await deps.dbQuery(app.userId, app.id, sql, params);
             rows = Array.isArray(out && out.rows) ? out.rows : [];
         } else {
-            const { sql, params, limit } = queryCompiler.compileRecordList(table, {
+            const { sql, params, limit } = queryCompiler.compileRecordList(table, recordListDescriptor(binding, {
                 filters: binding.filter,
-                sort: binding.sort,
                 limit: binding.kind === 'record' ? 1 : binding.limit,
-            }, accessFilter);
+            }), accessFilter);
             const out = await deps.dbQuery(app.userId, app.id, sql, params);
             // The compiler fetches limit+1 as a pagination probe — drop it.
             rows = (Array.isArray(out && out.rows) ? out.rows : []).slice(0, limit);

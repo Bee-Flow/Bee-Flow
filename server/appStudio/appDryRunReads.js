@@ -15,6 +15,7 @@ const rlsGateway = require('./rlsGateway');
 const { seedVariableDefaults } = require('./componentSpecs');
 const { compile, tryEvaluate, resolveFilterList, FILTER_SKIP } = require('../shared/expr/index.mjs');
 const { isDatatableBacked } = require('./datatableSource');
+const { recordListDescriptor, aggregateDescriptor } = require('../core/dataEngine/readDescriptor.mts');
 const log = require('../telemetry/log');
 
 // Read-only probe page — a couple of rows is enough to prove a binding returns
@@ -122,6 +123,7 @@ function linkedReadCtx(app, ownerScope, dataModel, roleArg, viewer) {
 async function runRecordBinding(binding, table, { roleArg, viewer, scope, app, ownerScope, deps, dataModel }) {
     const resolved = resolveDryRunFilters(binding, scope);
     if (resolved.skipped) return { ok: true, skipped: 'dynamic' };
+    const descriptor = recordListDescriptor(binding, { filters: resolved.filters, limit: DRY_RUN_LIMIT });
     try {
         if (isDatatableBacked(table)) {
             // The rows are in a Studio table, not the per-app database: read them
@@ -129,16 +131,12 @@ async function runRecordBinding(binding, table, { roleArg, viewer, scope, app, o
             // synthetic app role has nothing to say about it.
             if (roleArg !== 'owner') return { ok: true, skipped: 'linked' };
             const ctx = linkedReadCtx(app, ownerScope, dataModel, roleArg, viewer);
-            const out = await deps.readRecords(ctx, table, { filters: resolved.filters, sort: binding.sort, limit: DRY_RUN_LIMIT });
+            const out = await deps.readRecords(ctx, table, descriptor);
             const rows = Array.isArray(out && out.records) ? out.records : [];
             return readSummary(rows, resolved.filters, !!(out && out.nextCursor));
         }
         const accessFilter = rlsGateway.compileAccessFilter(table, roleArg, viewer, 'read');
-        const { sql, params } = queryCompiler.compileRecordList(
-            table,
-            { filters: resolved.filters, sort: binding.sort, limit: DRY_RUN_LIMIT },
-            accessFilter,
-        );
+        const { sql, params } = queryCompiler.compileRecordList(table, descriptor, accessFilter);
         const out = await deps.dbQuery(ownerScope, app.id, sql, params);
         const rows = Array.isArray(out && out.rows) ? out.rows : [];
         return readSummary(rows, resolved.filters, rows.length > DRY_RUN_LIMIT);
@@ -164,13 +162,10 @@ async function runRecordBinding(binding, table, { roleArg, viewer, scope, app, o
 async function runAggregateBinding(binding, table, { roleArg, viewer, scope, app, ownerScope, deps, dataModel }) {
     const resolved = resolveDryRunFilters(binding, scope);
     if (resolved.skipped) return { ok: true, skipped: 'dynamic' };
-    const descriptor = {
+    const descriptor = aggregateDescriptor(binding, {
         filters: resolved.filters,
-        groupBy: binding.groupBy,
-        aggregates: binding.aggregates,
-        sort: binding.sort,
         limit: DRY_RUN_LIMIT + 1, // one more than shown, so exactly-3 is not "sampled"
-    };
+    });
     try {
         if (isDatatableBacked(table)) {
             if (roleArg !== 'owner') return { ok: true, skipped: 'linked' };

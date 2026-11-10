@@ -50,6 +50,7 @@ const MAX_CONTEXT_ROWS = 50;
 
 const DATA_KINDS = new Set(['record', 'records', 'aggregate']);
 const { resolveFilterList } = require('../shared/expr/index.mjs');
+const { recordListDescriptor, aggregateDescriptor } = require('../core/dataEngine/readDescriptor.mts');
 
 function isDataBinding(binding) {
     return !!binding && typeof binding === 'object' && DATA_KINDS.has(binding.kind);
@@ -124,23 +125,19 @@ async function resolveDataBinding(app, model, binding, { viewer, role, resolveVa
     let compiled;
     try {
         if (binding.kind === 'aggregate') {
-            compiled = queryCompiler.compileAggregate(plan.tableMeta, {
+            compiled = queryCompiler.compileAggregate(plan.tableMeta, aggregateDescriptor(binding, {
                 filters,
-                groupBy: binding.groupBy,
-                aggregates: binding.aggregates,
-                sort: binding.sort,
                 limit: Math.min(Number.isFinite(binding.limit) ? binding.limit : maxRows, maxRows),
                 dialect: plan.dialect,
-            }, accessFilter);
+            }), accessFilter);
         } else {
-            compiled = queryCompiler.compileRecordList(plan.tableMeta, {
+            compiled = queryCompiler.compileRecordList(plan.tableMeta, recordListDescriptor(binding, {
                 filters,
-                sort: binding.sort,
                 limit: binding.kind === 'record'
                     ? 1
                     : Math.min(Number.isFinite(binding.limit) ? binding.limit : maxRows, maxRows),
                 dialect: plan.dialect,
-            }, accessFilter);
+            }), accessFilter);
         }
     } catch {
         // A CompileError here is an authoring mistake (unknown column, bad op).
