@@ -4,7 +4,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it } from 'vitest';
 import { setDemoTransport } from '@/utils/helpers';
-import { AdminScopeOverrideProvider } from '@/components/admin/dashboard/useAdminScopeOverride';
+import { AdminOrgProvider, type AdminOrgChoice } from '@/components/admin/dashboard/useAdminOrg';
 import MonitoringPanel from './index';
 
 const json = (body: unknown) => new Response(JSON.stringify(body), { status: 200, headers: { 'Content-Type': 'application/json' } });
@@ -83,22 +83,34 @@ describe('MonitoringPanel scope', () => {
         expect(feedbackReads(asked).some((u) => u.includes('/api/feedback/org'))).toBe(false);
     });
 
-    // The dashboard's chip and the line under the heading tell the same story.
-    it('reports an organisation scope to the dashboard chip when the figures cover one organisation, none when they cover all', async () => {
-        const reported: (string | null)[] = [];
-        const report = (scope: string | null) => { reported.push(scope); };
-        serve(ORG_A);
-        const { unmount } = render(<AdminScopeOverrideProvider value={report}><MonitoringPanel user={ORG_ADMIN} /></AdminScopeOverrideProvider>);
+    // The dashboard's organisation picker: one organisation chosen narrows every read to it.
+    it('sends the organisation chosen in the dashboard as orgId with the usage, feedback and terminations reads', async () => {
+        const choice: AdminOrgChoice = {
+            isPlatformAdmin: true, orgId: 'org-a', orgName: 'Org A', organizations: [{ id: 'org-a', name: 'Org A' }],
+            organizationsLoaded: true, pending: false, homeOrganization: null, setOrgId: () => {},
+        };
+        const asked = serve(ORG_A);
+        const { unmount } = render(<AdminOrgProvider value={choice}><MonitoringPanel activeSection="feedback" user={PLATFORM_ADMIN} /></AdminOrgProvider>);
         await screen.findByText('Usage of Org A');
-        await waitFor(() => expect(reported.at(-1)).toBe('org'));
+        await waitFor(() => expect(feedbackReads(asked).length).toBe(2));
+        const usage = asked.filter((u) => u.includes('/api/usage/') && !u.includes('/model-costs'));
+        expect(usage.length).toBeGreaterThan(5);
+        expect(usage.every((u) => u.includes('orgId=org-a'))).toBe(true);
+        expect(feedbackReads(asked).every((u) => u.includes('/api/feedback/org') && u.includes('orgId=org-a'))).toBe(true);
         unmount();
-        expect(reported.at(-1)).toBeNull();
 
-        reported.length = 0;
-        serve(ALL);
-        render(<AdminScopeOverrideProvider value={report}><MonitoringPanel user={PLATFORM_ADMIN} /></AdminScopeOverrideProvider>);
+        const again = serve(ORG_A);
+        render(<AdminOrgProvider value={choice}><MonitoringPanel activeSection="terminations" user={PLATFORM_ADMIN} /></AdminOrgProvider>);
+        const terminationReads = () => again.filter((u) => u.includes('/api/terminations'));
+        await waitFor(() => expect(terminationReads().length).toBe(4));
+        expect(terminationReads().every((u) => u.includes('/api/terminations/org') && u.includes('orgId=org-a'))).toBe(true);
+    });
+
+    it('sends no orgId when no organisation is chosen', async () => {
+        const asked = serve(ALL);
+        render(<MonitoringPanel activeSection="overview" user={PLATFORM_ADMIN} />);
         await screen.findByText('Usage of all organisations');
-        expect(reported).toEqual([]);
+        expect(asked.some((u) => u.includes('orgId='))).toBe(false);
     });
 
     // The /org routes need an organisation admin; the generic route needs only

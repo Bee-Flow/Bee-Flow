@@ -23,6 +23,7 @@ const { unknownUsage } = require('../../stores/agent/agentUsage');
 // "Vraagt aandacht" (routes/studio/attentionChecks.js, bron `agentNoKb`)
 // stelt dezelfde vraag aan dezelfde functie.
 const { groundingOf } = require('../../core/agentRuntime/agentGrounding');
+const { namedAdminOrg, withOrganizationNames } = require('./agentOrgScope.mts');
 const log = require('../../telemetry/log');
 
 // Attach the server-side edit verdict to each agent row so clients render
@@ -164,12 +165,18 @@ const { bestEffort } = require('../../utils/bestEffort');
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
 
 const USAGE_TEXT = 'usage is "1" or "0".';
-const ListQuery = z.object({
+const LIST_SHAPE = {
     usage: z.enum(['0', '1', 'true', 'false'], { error: () => USAGE_TEXT }).optional(),
     // The Agent Hub adds ?t=<Date.now()> to dodge caches; it means nothing here.
     // Refusing it answered every Hub load with a 400, which the Hub reads as
     // "no published agents" and shows only the user's own.
     t: z.string().optional(),
+};
+const ListQuery = z.object(LIST_SHAPE).strict();
+// GET /all also takes the admin dashboard's organisation (./agentOrgScope.mts).
+const AllQuery = z.object({
+    ...LIST_SHAPE,
+    orgId: z.string({ error: typeError({ invalid: 'orgId is one organisation id.' }) }).optional(),
 }).strict();
 
 const GROUPS_TEXT = 'sharedGroups is a list of group ids.';
@@ -227,16 +234,24 @@ router.get('/published', validate({ query: ListQuery }), async (/** @type {impor
 
 // Get ALL agents (for Admin Dashboard). Requires manage_agents — lower-privileged
 // users would otherwise see unpublished drafts owned by colleagues in their org.
-router.get('/all', requirePermission('manage_agents'), validate({ query: ListQuery }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof ListQuery>>} */ req, res) => {
-    let agents = await agentStore.getAllAgents();
-
+// `?orgId` narrows a platform admin's list to one organisation; for anyone
+// else it is checked and the list stays theirs (./agentOrgScope.mts). Every
+// row names its organisation.
+router.get('/all', requirePermission('manage_agents'), validate({ query: AllQuery }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof AllQuery>>} */ req, res) => {
     const orgIds = await resolveUserOrgIds(req);
+    const named = await namedAdminOrg(req, (r) => require('../../auth/permissions').resolveAdminOrgId(r));
+
+    let agents = await agentStore.getAllAgents();
     if (orgIds !== null) {
         agents = agents.filter(a => orgIds.has(a.organization_id));
+    } else if (named) {
+        agents = agents.filter(a => a.organization_id === named);
     }
+    const labelled = await withOrganizationNames(agents, { getOrganization: (id) => userStore.getOrganization(id), listOrganizations: () => userStore.getAllOrganizations() },
+        (e) => log.warn('[agents] organisation names unavailable:', /** @type {Error} */ (e)?.message));
 
     const userId = getEffectiveUserId(req);
-    res.json(await withListStats(withGrounding(await withCanEdit(agents, userId, req)), req, userId));
+    res.json(await withListStats(withGrounding(await withCanEdit(labelled, userId, req)), req, userId));
 });
 
 // Toggle agent published status + set sharing scope

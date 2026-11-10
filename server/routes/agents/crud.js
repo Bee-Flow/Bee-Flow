@@ -1,3 +1,4 @@
+// @typecheck
 const express = require('express');
 const agentStore = require('../../stores/agentStore');
 require('../../core/agentRuntime');
@@ -21,6 +22,8 @@ const { assertAgentToolsWrite, managedPayloadOfAgent } = require('../../stores/a
 
 const { validate } = require('../../core/http/validate');
 const { makeAgentAccess } = require('../../agents/agentAccess');
+const { categoryListOrgId, withOrganizationNames } = require('./agentOrgScope.mts');
+const orgNameLookups = () => ({ getOrganization: (/** @type {string} */ id) => userStore.getOrganization(id), listOrganizations: () => userStore.getAllOrganizations() });
 
 const router = express.Router();
 
@@ -45,12 +48,11 @@ router.get('/', async (req, res) => {
 
 // ============ Agent Categories ============
 
-// List categories for user's org
+// List categories for user's org; `?orgId` narrows a platform admin's list (./agentOrgScope.mts). Rows name their organisation.
 router.get('/categories', async (req, res) => {
-    const orgIds = await resolveUserOrgIds(req);
-    const orgId = orgIds !== null && orgIds.size > 0 ? Array.from(orgIds)[0] : null;
-    const categories = await agentStore.getAgentCategories(orgId);
-    res.json(categories);
+    const orgId = await categoryListOrgId(req, await resolveUserOrgIds(req), (r) => require('../../auth/permissions').resolveAdminOrgId(r));
+    res.json(await withOrganizationNames(await agentStore.getAgentCategories(orgId), orgNameLookups(),
+        (e) => require('../../utils/bestEffort').bestEffort('routes/agents/crud:categoryOrgNames', e)));
 });
 
 // Category mutations are org-scoped. resolveUserOrgIds returns null
@@ -66,11 +68,10 @@ async function canManageCategory(req, category) {
 
 // Create a new category. Idempotent on a case-insensitive duplicate: returns
 // the EXISTING row with `existing: true` so clients select it instead of
-// stacking "Sales" next to "sales".
+// stacking "Sales" next to "sales". The organisation is the one GET lists (`?orgId` names a platform admin's).
 router.post('/categories', requirePermission('manage_agents'), validate({ body: CategoryBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof CategoryBody>, import('qs').ParsedQs>} */ req, res) => {
     const { name, icon, color } = req.body;
-    const orgIds = await resolveUserOrgIds(req);
-    const orgId = orgIds !== null && orgIds.size > 0 ? Array.from(orgIds)[0] : null;
+    const orgId = await categoryListOrgId(req, await resolveUserOrgIds(req), (r) => require('../../auth/permissions').resolveAdminOrgId(r));
     const existing = await agentStore.findAgentCategoryByName(orgId, name);
     if (existing) return res.json({ ...existing, existing: true });
     const category = await agentStore.createAgentCategory(orgId, name, icon, color);
@@ -188,7 +189,7 @@ router.get('/:id', async (req, res) => {
     if (wantsDraft && canEdit) {
         return res.json({ ...agent, can_edit: true, runtimeSource: 'draft', unpublishedChanges, managed, complianceCounting });
     }
-    const body = { ...views.runtime, can_edit: canEdit, managed };
+    const body = /** @type {Record<string, unknown>} */ ({ ...views.runtime, can_edit: canEdit, managed });
     if (canEdit) body.unpublishedChanges = unpublishedChanges;
     body.complianceCounting = complianceCounting;
     res.json(body);

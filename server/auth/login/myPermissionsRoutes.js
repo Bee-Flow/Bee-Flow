@@ -33,6 +33,11 @@ router.get('/my-permissions', requireAuth, async (req, res) => {
     // carries admin rights); the admin dashboard (auth/adminOrg.mts) asks the
     // same. The SPA reads it instead of guessing from orgRole alone.
     let isHomeOrgAdmin = false;
+    // The home organisation (users.organizationId) with its name, so the admin
+    // dashboard can say WHICH organisation an organisation admin manages. Null
+    // without a home organisation; the name is null when the lookup fails.
+    /** @type {{ id: string, name: string | null } | null} */
+    let homeOrganization = null;
     let user = null;
     try {
         user = await userStore.getUser(userId);
@@ -55,6 +60,9 @@ router.get('/my-permissions', requireAuth, async (req, res) => {
             isHomeOrgAdmin = !!user.organizationId && _evalOrgAdmin(user, allGroups, user.organizationId);
         }
     } catch (_) { log.warn('group lookup failed, org and agent-type lists stay empty', _); }
+    if (user && typeof user.organizationId === 'string' && user.organizationId !== '') {
+        homeOrganization = { id: user.organizationId, name: await homeOrganizationName(user.organizationId) };
+    }
 
     // Derive the beta-feature list AND the canUseFeature map from the ONE unified
     // resolver (the same resolveEntitlements that requireCapability enforces), so
@@ -91,7 +99,22 @@ router.get('/my-permissions', requireAuth, async (req, res) => {
         try { betaFeatures = await require('../../core/entitlements/betaFeatures').getUserBetaFeatures(userId, req.session); } catch (e) { fallback('myPermissions:legacy-betas', e); }
     }
 
-    res.json({ permissions: perms, groups: userGroups, organizations: userOrgIds, allowedAgentTypes, betaFeatures, canUseFeature, orgRole: user?.orgRole || '', isHomeOrgAdmin });
+    res.json({ permissions: perms, groups: userGroups, organizations: userOrgIds, allowedAgentTypes, betaFeatures, canUseFeature, orgRole: user?.orgRole || '', isHomeOrgAdmin, homeOrganization });
 });
+
+/**
+ * The name of the caller's home organisation; null when it has none or the
+ * lookup fails (the rest of the answer must not depend on it).
+ * @param {string} orgId
+ * @returns {Promise<string | null>}
+ */
+async function homeOrganizationName(orgId) {
+    try {
+        const org = await userStore.getOrganization(orgId);
+        return org && typeof org.name === 'string' && org.name !== '' ? org.name : null;
+    } catch (err) {
+        return fallback('myPermissions:home-organisation-name', err, null);
+    }
+}
 
 module.exports = router;

@@ -362,6 +362,7 @@ No request schema.
 |-------|------|:--------:|-------|
 | `usage` | one of `"0"`, `"1"`, `"true"`, `"false"` |  |  |
 | `t` | string |  |  |
+| `orgId` | string |  |  |
 
 ## `categories`
 

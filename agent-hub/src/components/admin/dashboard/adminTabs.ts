@@ -85,7 +85,42 @@ const SECURITY_SCOPES: Readonly<Record<string, AdminScope>> = {
     'guardrails/dlp': 'instance',
     'guardrails/directchat': 'instance',
     'guardrails/organisations': 'mixed',
+    // Users screen tabs (admin/security/users/<tab>): the organisations, their Nextcloud
+    // bindings, the server's role table and the permission catalogue are server-wide.
+    'users/organizations': 'instance',
+    'users/nextcloud': 'instance',
+    'users/roles': 'instance',
+    'users/permissions': 'instance',
 };
+
+// Access: Grants and the organisation's access menu follow the dashboard's organisation;
+// the server licence and the global feature switches under Ceiling are server-wide.
+const ACCESS_SCOPES: Readonly<Record<string, AdminScope>> = {
+    'ceiling/server': 'instance',
+};
+
+/**
+ * Sections whose data does not follow the dashboard's organisation picker, keyed
+ * by tab id or `tab/section/part`: 'home' always shows the viewer's own
+ * organisation (Compliance resolves the home organisation on the server,
+ * routes/compliance/shared.js), 'all' always lists every organisation.
+ */
+const FIXED_ORG_VIEWS: Readonly<Record<string, FixedOrgView>> = {
+    compliance: 'home',
+    'security/guardrails/organisations': 'all',
+};
+
+/** How a section that does not follow the organisation picker chooses its organisation. */
+export type FixedOrgView = 'home' | 'all';
+
+/** The fixed organisation view of a tab, a section or a part, most specific first; null when it follows the picker. */
+export function fixedOrgViewOf(tabId: string, section?: string, part?: string): FixedOrgView | null {
+    const keys = [section && part ? `${tabId}/${section}/${part}` : '', section ? `${tabId}/${section}` : '', tabId].filter(Boolean);
+    for (const key of keys) {
+        if (Object.hasOwn(FIXED_ORG_VIEWS, key)) return FIXED_ORG_VIEWS[key];
+    }
+    return null;
+}
 
 export const ADMIN_TABS: readonly AdminTab[] = [
     { id: 'agents', labelKey: 'admin.tab_agents', icon: Bot, group: 'ai', perm: ['admin_agents', 'admin_agents_chat', 'admin_agents_system'], scope: 'mixed', sections: { system: 'instance' }, superAdminOnly: false, minTier: 'enterprise' },
@@ -94,9 +129,10 @@ export const ADMIN_TABS: readonly AdminTab[] = [
     { id: 'integrations', labelKey: 'admin.tab_integrations', icon: Plug, group: 'platform', perm: ['admin_security'], scope: 'instance', superAdminOnly: true },
     // Access & Permissions — grant features/integrations to All members or
     // per group, within the plan/license ceiling. Available to org-admins
-    // too (they manage their own org); super-admins get an org picker, and the
-    // Ceiling holds server-wide switches, so no one scope fits the tab.
-    { id: 'access', labelKey: 'admin.tab_access', labelFallback: 'Access', icon: KeyRound, group: 'security', perm: ['admin_security', 'org_admin', 'manage_users'], scope: null, superAdminOnly: false },
+    // too (they manage their own org); a platform admin works on the
+    // organisation chosen in the dashboard, and the Ceiling's licence and
+    // global switches are server-wide (ACCESS_SCOPES).
+    { id: 'access', labelKey: 'admin.tab_access', labelFallback: 'Access', icon: KeyRound, group: 'security', perm: ['admin_security', 'org_admin', 'manage_users'], scope: 'mixed', sections: ACCESS_SCOPES, superAdminOnly: false },
     // Feedback: a platform admin reads every organisation's, an organisation admin their home
     // organisation's (server routes/feedback.js `/org`, which refuses anyone else).
     { id: 'monitoring', labelKey: 'admin.tab_monitoring', icon: Activity, group: 'operations', perm: ['admin_monitoring'], scope: 'mixed', orgAdminSections: ['feedback'], superAdminOnly: false, minTier: 'enterprise' },

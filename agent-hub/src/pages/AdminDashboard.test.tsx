@@ -52,7 +52,8 @@ describe('AdminDashboard navigation', () => {
         for (const name of ['Agents', 'Monitoring', 'Compliance', 'Subscriptions', 'Product Website', 'Release Notes']) {
             expect(nav.getByRole('link', { name })).toBeInTheDocument();
         }
-        expect(nav.getByText('Website')).toBeInTheDocument();
+        // The whole-server block is one flat list: no "Website" sub-heading.
+        expect(within(nav.getByTestId('admin-rail-section-instance')).getByRole('link', { name: 'Release Notes' })).toBeInTheDocument();
     });
 
     it('shows an org admin only the tabs their permission opens', () => {

@@ -29,6 +29,10 @@ interface TabItem<TId extends string = string> {
     badge?: React.ReactNode;
     /** Optional leading icon. */
     icon?: React.ReactNode;
+    /** A small mark after the label (an icon with its own accessible name). */
+    mark?: React.ReactNode;
+    /** A divider with this label before the tab, starting a group (decorative: the tabs' marks carry the meaning). */
+    dividerBefore?: React.ReactNode;
     disabled?: boolean;
 }
 
@@ -89,8 +93,13 @@ export default function Tabs<TId extends string = string>({
                 const tabId = `${baseId}-tab-${item.id}`;
                 const panelId = `${baseId}-panel-${item.id}`;
                 return (
+                    <React.Fragment key={item.id}>
+                    {item.dividerBefore != null && (
+                        <span aria-hidden="true" className="ml-2 inline-flex shrink-0 items-center gap-1.5 self-stretch border-l border-[var(--border-subtle)] pl-3 text-[11px] font-semibold uppercase tracking-[0.05em] text-[var(--text-tertiary)]">
+                            {item.dividerBefore}
+                        </span>
+                    )}
                     <button
-                        key={item.id}
                         ref={(el) => { buttonRefs.current[item.id] = el; }}
                         id={tabId}
                         role="tab"
@@ -111,23 +120,30 @@ export default function Tabs<TId extends string = string>({
                     >
                         {item.icon}
                         <span>{item.label}</span>
-                        {item.badge != null && (
-                            <span
-                                className="ml-1 inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full text-[10px] font-semibold"
-                                style={{
-                                    // A token tint, not bg-white/10: white at
-                                    // 10% is invisible on the paper, sepia and
-                                    // light themes, and the count went with it.
-                                    background: 'color-mix(in srgb, var(--text-primary) 8%, transparent)',
-                                    color: 'var(--text-secondary)',
-                                }}
-                            >
-                                {item.badge}
-                            </span>
-                        )}
+                        {item.mark}
+                        {item.badge != null && <TabBadge>{item.badge}</TabBadge>}
                     </button>
+                    </React.Fragment>
                 );
             })}
         </div>
+    );
+}
+
+/** The count to the right of a tab's label. */
+function TabBadge({ children }: { children: React.ReactNode }) {
+    return (
+        <span
+            className="ml-1 inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full text-[10px] font-semibold"
+            style={{
+                // A token tint, not bg-white/10: white at
+                // 10% is invisible on the paper, sepia and
+                // light themes, and the count went with it.
+                background: 'color-mix(in srgb, var(--text-primary) 8%, transparent)',
+                color: 'var(--text-secondary)',
+            }}
+        >
+            {children}
+        </span>
     );
 }

@@ -48,7 +48,7 @@ export function TerminationDetail({ r }: { r: TerminationRow }) {
         <div role="row" className="flex flex-col gap-1.5 border-b border-[var(--border-default)] bg-[var(--bg-secondary)] px-4 py-3 text-xs">
             <DetailRow label="Source" value={r.source} />
             <DetailRow label={t('admin_monitoring.term_d_conversation', 'Conversation')} value={r.conversation_id} mono />
-            <DetailRow label={t('admin_monitoring.term_d_user', 'User')} value={r.user_id} mono />
+            <DetailRow label={t('admin_monitoring.term_d_user', 'User')} value={r.person?.name ?? r.user_id} mono={!r.person} />
             <DetailRow label={t('admin_monitoring.term_d_org', 'Organization')} value={r.organization_id} mono />
             <DetailRow label={t('admin_monitoring.term_col_error_code', 'Error code')} value={r.error_code} mono />
             <DetailRow label={t('admin_monitoring.term_col_iter', 'Iter.')} value={String(r.iteration_count || 0)} />

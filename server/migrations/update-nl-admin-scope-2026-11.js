@@ -2,8 +2,9 @@
 // @typecheck strict
 /**
  * Dutch for the admin dashboard scope labels (Nov 2026). Every admin section
- * now says whether it is about the whole server, one organisation, or the
- * viewer's own account (chip in the dashboard shell), and three texts that
+ * now says whether it is about the whole server, one organisation (by name,
+ * with the organisation picker for a platform admin), or the viewer's own
+ * account (the scope bar in the dashboard shell), and three texts that
  * named the wrong scope were corrected:
  *   - the Look editor says the look is what everyone on this server sees;
  *   - the integration defaults are copied into organisations created in the
@@ -24,18 +25,16 @@
 /** @type {Readonly<Record<string, string>>} */
 const NL_TRANSLATIONS = Object.freeze({
     'admin.scope_instance': 'Hele server',
-    'admin.scope_instance_hint': 'Geldt voor alle organisaties op deze server',
+    'admin.scope_instance_changes': 'Wijzigingen hier gelden voor elke organisatie op deze server',
     'admin.scope_org': 'Jouw organisatie',
     'admin.rail_group_orgs': 'Organisaties',
     'admin.scope_org_named': 'Organisatie: {name}',
-    'admin.scope_org_hint': 'Geldt alleen voor jouw organisatie',
-    'admin.scope_org_view_hint': 'Toont alleen jouw organisatie',
     'admin.scope_all_orgs': 'Alle organisaties',
-    'admin.scope_all_orgs_hint': 'Toont alle organisaties op deze server',
-    'admin.scope_your_orgs': 'Jouw organisaties',
-    'admin.scope_your_orgs_hint': 'Toont de organisaties waartoe je behoort',
-    'admin.scope_user': 'Persoonlijk',
-    'admin.scope_user_hint': 'Geldt alleen voor je eigen account',
+    'admin.scope_all_orgs_showing': 'Alle organisaties op deze server worden getoond',
+    'admin.scope_one_org_hint': 'Alleen {name} wordt getoond',
+    'admin.scope_compliance_home': 'Compliance toont je eigen organisatie',
+    'admin.scope_access_choose_org': 'Kies hierboven een organisatie om de toegang te beheren',
+    'admin.scope_personal': 'Persoonlijk: alleen voor jou',
 });
 
 /** @type {Readonly<Record<string, { was: string[], now: string }>>} */

@@ -8,7 +8,13 @@ export type { DesignerAgent, DesignerMessage };
 /** The designer's state bag, as the API hook reads and writes it. */
 export type ApiState = ReturnType<typeof useAgentState>;
 
-export interface ApiOptions { systemMode?: boolean; securityMode?: boolean; initialAgentId?: string | null }
+export interface ApiOptions {
+    systemMode?: boolean;
+    securityMode?: boolean;
+    initialAgentId?: string | null;
+    /** The admin dashboard's chosen organisation, sent as `orgId` with the agents list and the categories. */
+    orgId?: string | null;
+}
 
 /** The fields `PUT/POST /agents` receives from the designer. */
 export interface AgentSaveBody {
@@ -24,4 +30,6 @@ export interface AgentSaveBody {
     embedEnabled: boolean;
     config: Record<string, unknown>;
     categoryId?: string | null;
+    /** On create only: the organisation the admin dashboard narrowed the list to (POST /agents trusts it from a platform admin). */
+    organizationId?: string;
 }

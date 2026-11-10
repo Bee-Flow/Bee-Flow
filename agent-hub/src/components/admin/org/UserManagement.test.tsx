@@ -145,7 +145,7 @@ describe('UserManagement', () => {
     it('marks the section from the URL as the selected tab', async () => {
         render(<UserManagement user={fullAdmin} activeSection="roles" />);
         const tabs = await screen.findByRole('tablist', { name: 'admin.sec_users' });
-        expect(within(tabs).getByRole('tab', { name: 'admin.users_tab_roles' })).toHaveAttribute('aria-selected', 'true');
+        expect(within(tabs).getByRole('tab', { name: 'admin.users_tab_roles admin.scope_instance' })).toHaveAttribute('aria-selected', 'true');
         expect(within(tabs).getByRole('tab', { name: 'admin.users_tab_users' })).toHaveAttribute('aria-selected', 'false');
     });
 
