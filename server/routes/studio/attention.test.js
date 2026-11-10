@@ -60,7 +60,7 @@ function makeDeps(overrides = {}) {
         modules: { isModuleActive: async () => true },
         license: { featureAllowedForRequest: async () => ({ allowed: true, resolution: {} }) },
         entitlements: { hasCapability: async () => true },
-        permissions: { hasPermission: async () => true },
+        permissions: { hasPermission: async () => true, resolvePermissionsByOrg: async () => ({ holds: () => true }) },
         auth: {
             resolveUserOrgIds: async () => new Set(['orgA']),
             resolveUserGroups: async () => ['g1'],
@@ -101,7 +101,7 @@ function makeDeps(overrides = {}) {
             canUserManageKB: () => true,
         },
         kbShared: {
-            resolveIsOrgAdmin: async () => false,
+            resolveAdminOrgIds: async () => new Set(),
             resolveEnabledSystemSlugs: async () => [],
             listFilterFromQuery: () => ({ sourceKind: 'manual' }),
             resolveUserGroups: async () => ['g1'],
@@ -697,6 +697,25 @@ test('a base this reader may READ but not MANAGE is not an instruction for them'
     assert.deepStrictEqual(ids, ['kb1'], 'the row whose "add a document" button this reader actually has');
     assert.deepStrictEqual(deps._calls.usageIds, ['kb1'], 'and the other one is not even probed');
     assert.strictEqual(b.sources.kbEmptyInUse.status, 'checked', 'out of reach is not a gap');
+});
+
+test('manage_knowledge counts in the base\'s own organisation, not in every organisation of the reader', async () => {
+    const b = await body({
+        permissions: {
+            hasPermission: async () => true,
+            resolvePermissionsByOrg: async () => ({ holds: (perm, orgId) => perm === 'manage_knowledge' && orgId === 'orgA' }),
+        },
+        kbStore: {
+            listKBs: async () => [
+                { id: 'kbA', name: 'Home base', document_count: 0, tenant_id: 'u2', organization_id: 'orgA' },
+                { id: 'kbB', name: 'Group org base', document_count: 0, tenant_id: 'u2', organization_id: 'orgB' },
+            ],
+            filterByGroupAccess: (kbs) => kbs,
+            // The store's rule reduced to its last step: the boolean it is handed.
+            canUserManageKB: (_kb, _userId, _orgIds, hasManage) => hasManage,
+        },
+    });
+    assert.deepStrictEqual(rowsFrom(b, 'kbEmptyInUse').map(r => r.targetId), ['kbA']);
 });
 
 test('only Solutions (and unclassified legacy projects) are checked for publishing', async () => {

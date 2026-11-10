@@ -188,6 +188,49 @@ async function isOrgAdminForOrg(req, orgId, opts = {}) {
 }
 
 /**
+ * A user row's group ids (`groups` is an array off getUser, or its JSON text).
+ * @param {{ groups?: unknown }} user
+ * @returns {unknown[]}
+ */
+function groupIdsOfUser(user) {
+    if (Array.isArray(user.groups)) return user.groups;
+    let parsed;
+    try { parsed = JSON.parse(typeof user.groups === 'string' && user.groups ? user.groups : '[]'); } catch (err) { parsed = fallback('permissionsOrgGates:groups-json', err, []); }
+    return Array.isArray(parsed) ? parsed : [];
+}
+
+/**
+ * The organisations the requesting user administers, by the rule of
+ * _evalOrgAdmin (home organisation with an admin orgRole, or a group IN that
+ * organisation that carries admin rights), among the organisations the user
+ * belongs to (home organisation, then the organisations of their groups).
+ *
+ * For a decision about a resource of one organisation: "is the caller an
+ * admin of THIS resource's organisation" is `set.has(resource.organization_id)`.
+ * A super admin gets the same per-organisation answer here, not "every
+ * organisation": callers answer a super admin before they ask (the
+ * `orgIds === null` idiom). Store errors propagate.
+ * @param {{ session?: { user?: { id?: string } | null } | null } | null | undefined} req  only the session's user id is read
+ * @returns {Promise<Set<string>>}
+ */
+async function resolveAdminOrgIds(req) {
+    const userId = req?.session?.user?.id;
+    if (!userId) return new Set();
+    const user = await userStore.getUser(userId);
+    if (!user) return new Set();
+    const allGroups = (await userStore.getAllGroups()) || [];
+
+    /** @type {string[]} */
+    const candidates = [];
+    if (user.organizationId) candidates.push(user.organizationId);
+    for (const gid of groupIdsOfUser(user)) {
+        const orgId = allGroups.find((g) => g?.id === gid)?.organizationId;
+        if (orgId && !candidates.includes(orgId)) candidates.push(orgId);
+    }
+    return new Set(candidates.filter((orgId) => _evalOrgAdmin(user, allGroups, orgId)));
+}
+
+/**
  * Shared middleware factory: require org admin access for the org
  * specified by req.params[paramName], decided by isOrgAdminForOrg
  * (_evalOrgAdmin above). Use this across all route files instead of local copies.
@@ -315,6 +358,7 @@ module.exports = {
     requireActiveOrgForMutations,
     _evalOrgAdmin,
     isOrgAdminForOrg,
+    resolveAdminOrgIds,
     requireOrgAdmin,
     isSuperAdmin,
     isSuperAdminUser,

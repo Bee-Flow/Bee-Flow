@@ -319,12 +319,13 @@ router.post('/', requirePermission('manage_agents'), async (req, res) => {
         if (e) return res.status(400).json({ error: e });
     }
 
-    // Validate that the user actually belongs to the requested organisation
-    // (or auto-assign their primary org when none was provided). Trusting
-    // organizationId from the body would let any member create agents in
-    // other orgs.
-    let assignOrgId;
-    assignOrgId = await assertUserCanUseOrg(req, organizationId);
+    // The user belongs to the requested organisation (or gets their primary org
+    // when none was provided) AND holds manage_agents IN it: a right held in
+    // another organisation of their union creates nothing here.
+    const assignOrgId = await assertUserCanUseOrg(req, organizationId);
+    if (assignOrgId && !(await require('../../auth').resolvePermissionsByOrg(userId, req.session)).holds('manage_agents', assignOrgId)) {
+        return res.status(403).json({ error: 'You cannot create agents in this organisation', code: 'org_permission_required' });
+    }
 
     // Strip any shared_groups that don't belong to the agent's org. Empty/
     // unset on create is fine — publish endpoint is the canonical write path.
@@ -440,7 +441,7 @@ const { applyConfigValidation } = publishable;
 // same question. This router builds its instance from ITS imports, which is what
 // keeps the rules testable here (crud.authz.test.js is their contract).
 const { buildCanModifyContext, canModifyAgent } = makeAgentAccess({
-    hasPermission: (/** @type {Parameters<typeof import('../../auth').hasPermission>} */ ...args) => require('../../auth').hasPermission(...args),
+    resolvePermissionsByOrg: (userId, session) => require('../../auth').resolvePermissionsByOrg(userId, session),
     resolveUserOrgIds: (req) => resolveUserOrgIds(req),
     getUser: (id) => userStore.getUser(id),
     roles: () => ({ SystemRoles, OrgRoles }),

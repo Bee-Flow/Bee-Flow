@@ -75,7 +75,7 @@ function makeDeps(overrides = {}) {
             filterByGroupAccess: (kbs) => kbs.filter(kb => kb.id !== 'kbx'),
         },
         kbShared: {
-            resolveIsOrgAdmin: async () => false,
+            resolveAdminOrgIds: async () => new Set(),
             resolveEnabledSystemSlugs: async () => [],
             listFilterFromQuery: () => ({ sourceKind: 'manual', usageContext: null, excludeContext: null }),
             resolveUserGroups: async () => ['g1'],
@@ -195,7 +195,7 @@ test('the transcriptions COUNT uses the store\'s predicate and the KB count the 
     assert.match(seen.sql, /user_id = \$1 OR shared_with @> \$2::jsonb OR \(is_published = true AND organization_id = ANY\(\$3::text\[\]\) AND \(shared_groups = '\[\]'::jsonb OR shared_groups \?\| \$4::text\[\]\)\)/);
     assert.deepStrictEqual(seen.params, ['u1', JSON.stringify(['u1']), ['orgA'], ['g1']]);
     assert.strictEqual(kbArgs.userId, 'u1');
-    assert.deepStrictEqual(kbArgs.opts, { sourceKind: 'manual', usageContext: null, excludeContext: null, systemSlugs: [], isOrgAdmin: false });
+    assert.deepStrictEqual(kbArgs.opts, { sourceKind: 'manual', usageContext: null, excludeContext: null, systemSlugs: [], adminOrgIds: new Set() });
 });
 
 test('a super admin counts every transcription', async () => {

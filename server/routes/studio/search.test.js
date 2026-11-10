@@ -85,7 +85,7 @@ function makeDeps(overrides = {}) {
             filterByGroupAccess: (kbs) => kbs.filter((kb) => kb.id !== 'kbx'),
         },
         kbShared: {
-            resolveIsOrgAdmin: async () => false,
+            resolveAdminOrgIds: async () => new Set(),
             resolveEnabledSystemSlugs: async () => [],
             listFilterFromQuery: () => ({ sourceKind: 'manual' }),
             resolveUserGroups: async () => ['g1'],

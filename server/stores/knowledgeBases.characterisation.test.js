@@ -131,7 +131,7 @@ test('golden trace of every public path', async () => {
     await step('listKBs super admin system', () => store.listKBs('alice', null, { sourceKind: null, systemSlugs: ['s'], usageContext: 'agent' }));
     await step('listKBs no org', () => store.listKBs('alice', new Set(), { excludeContext: 'webpage' }));
     await step('listKBs org member', () => store.listKBs('alice', new Set(['orgA', 'orgB']), { usageContext: 'direct_chat', systemSlugs: ['s'] }));
-    await step('listKBs org admin', () => store.listKBs('alice', new Set(['orgA']), { isOrgAdmin: true, sourceKind: null }));
+    await step('listKBs org admin', () => store.listKBs('alice', new Set(['orgA']), { adminOrgIds: new Set(['orgA']), sourceKind: null }));
 
     // ── access ──
     const kbs = [
@@ -150,7 +150,7 @@ test('golden trace of every public path', async () => {
     await step('filterByGroupAccess non-array', () => store.filterByGroupAccess(null, 'alice'));
     await step('filterByGroupAccess member', () => ids(store.filterByGroupAccess(kbs, 'alice', ['g1'], { orgIds: new Set(['orgA']) })));
     await step('filterByGroupAccess no groups', () => ids(store.filterByGroupAccess(kbs, 'alice')));
-    await step('filterByGroupAccess org admin', () => ids(store.filterByGroupAccess(kbs, 'alice', [], { orgIds: new Set(['orgA']), isOrgAdmin: true })));
+    await step('filterByGroupAccess org admin', () => ids(store.filterByGroupAccess(kbs, 'alice', [], { orgIds: new Set(['orgA']), adminOrgIds: new Set(['orgA']) })));
     await step('filterByGroupAccess super admin', () => ids(store.filterByGroupAccess(kbs, 'alice', [], { orgIds: null })));
     await step('canUserAccessKB null', () => store.canUserAccessKB(null, 'alice'));
     await step('canUserManageKB matrix', () => kbs.flatMap(kb => [

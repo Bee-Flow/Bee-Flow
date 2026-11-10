@@ -38,7 +38,7 @@ const {
     SEARCH_SERVICE_URL,
     getUserId,
     resolveUserGroups,
-    resolveIsOrgAdmin,
+    resolveAdminOrgIds,
 } = require('./shared');
 
 /**
@@ -84,19 +84,19 @@ router.post('/search', requireAuth, validate({ body: SearchBody }), async (req, 
 
     const orgIds = await resolveUserOrgIds(req);
     const userGroups = await resolveUserGroups(req);
-    const isOrgAdmin = await resolveIsOrgAdmin(req);
+    const adminOrgIds = await resolveAdminOrgIds(req);
     const { getAll } = require('../../db');
 
     // Global search: when no kb_ids are supplied, search across
     // every KB the user can access instead of erroring. Explicit ids keep
     // the existing strict per-KB access check. Org admins may search every
-    // KB in their org (incl. drafts / group-restricted) — same policy as the
-    // KB list & per-id guards (canUserAccessKB opts.isOrgAdmin).
+    // KB of the org they administer (incl. drafts / group-restricted) — same
+    // policy as the KB list & per-id guards (canUserAccessKB opts.adminOrgIds).
     let effectiveKbIds = req.body.kb_ids || [];
     if (effectiveKbIds.length === 0) {
-        const all = await kbStore.listKBs(userId, orgIds, { isOrgAdmin });
+        const all = await kbStore.listKBs(userId, orgIds, { adminOrgIds });
         effectiveKbIds = (all || [])
-            .filter(/** @param {Record<string, any>} kb */ kb => kbStore.canUserAccessKB(kb, userId, orgIds, userGroups, { isOrgAdmin }))
+            .filter(/** @param {Record<string, any>} kb */ kb => kbStore.canUserAccessKB(kb, userId, orgIds, userGroups, { adminOrgIds }))
             .map(/** @param {Record<string, any>} kb */ kb => kb.id);
         if (effectiveKbIds.length === 0) {
             return res.json({ chunks: [], results: [], kb_ids: [] });
@@ -112,7 +112,7 @@ router.post('/search', requireAuth, validate({ body: SearchBody }), async (req, 
             return res.status(403).json({ error: `Access denied for KB ${missing}` });
         }
         for (const kb of kbRows) {
-            if (!kbStore.canUserAccessKB(kb, userId, orgIds, userGroups, { isOrgAdmin })) {
+            if (!kbStore.canUserAccessKB(kb, userId, orgIds, userGroups, { adminOrgIds })) {
                 return res.status(403).json({ error: `Access denied for KB ${kb.id}` });
             }
         }

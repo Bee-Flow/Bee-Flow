@@ -9,6 +9,19 @@
 const { PROJECT_FILES_KIND, KB_COUNTS_SELECT } = require('./model');
 
 /**
+ * The organisations an administrator's shortcut applies in, as a Set. Accepts
+ * a Set or an array (from support/kbAccess.js resolveAdminOrgIds); anything
+ * else is no organisation.
+ * @param {unknown} adminOrgIds
+ * @returns {Set<string>}
+ */
+function adminOrgSet(adminOrgIds) {
+    if (adminOrgIds instanceof Set) return /** @type {Set<string>} */ (adminOrgIds);
+    if (Array.isArray(adminOrgIds)) return new Set(adminOrgIds.filter((o) => typeof o === 'string' && o));
+    return new Set();
+}
+
+/**
  * @param {import('./model').KbCtx} ctx  the barrel's db handle, schema init,
  *        write guard and the store object itself (methods dispatch through it,
  *        so a method swapped on the export is the one the others call)
@@ -23,7 +36,7 @@ function makeAccessFns(ctx) {
          *   null = super admin (see all), Set with values = org member, empty Set = no org
          * @param {{
          *   sourceKind?: string|string[]|null, usageContext?: string|null, excludeContext?: string|null,
-         *   systemSlugs?: string[], isOrgAdmin?: boolean,
+         *   systemSlugs?: string[], adminOrgIds?: Set<string>|string[],
          * }} [opts]
          *   sourceKind: Filter by source kind. Pass a string for one kind, an array for several, or null to include
          *     all kinds.
@@ -34,7 +47,8 @@ function makeAccessFns(ctx) {
          *   systemSlugs: When provided, system-managed KBs whose `system_slug` is in this list are included in
          *     addition to the normal personal/org results. Used by the chat layer to surface system KBs whose beta
          *     feature is enabled for the requesting user's org.
-         *   isOrgAdmin: server-resolved; org admins also see draft org KBs.
+         *   adminOrgIds: server-resolved (support/kbAccess.js resolveAdminOrgIds), the organisations the caller
+         *     administers; in those, and only those, draft org KBs are listed too.
          */
         listKBs: async (tenantId, orgIds = undefined, opts = {}) => {
             await initDB();
@@ -146,10 +160,21 @@ function makeAccessFns(ctx) {
             // Group restriction (shared_groups) is applied in JS by callers via filterByGroupAccess.
             const f = buildFilters(3);
             const u = buildSystemUnion(3 + f.params.length);
-            // Org admins see every KB in their org (drafts included); regular
-            // members see only PUBLISHED org KBs. Owner KBs always included.
-            // (isOrgAdmin is a server-resolved boolean, never user input.)
-            const orgDraftClause = opts.isOrgAdmin ? '' : ' AND kb.is_published = TRUE';
+            // An org admin sees every KB of the organisation they ADMINISTER
+            // (drafts included); in every other organisation of the union they
+            // are a regular member and see only PUBLISHED org KBs. Owner KBs are
+            // always included. (adminOrgIds is server-resolved, never user input.)
+            const admin = adminOrgSet(opts.adminOrgIds);
+            const adminOrgIdArray = orgIdArray.filter((o) => admin.has(o));
+            /** @type {string[][]} */
+            const adminParams = [];
+            let orgDraftClause;
+            if (adminOrgIdArray.length === orgIdArray.length) orgDraftClause = '';
+            else if (adminOrgIdArray.length === 0) orgDraftClause = ' AND kb.is_published = TRUE';
+            else {
+                orgDraftClause = ` AND (kb.is_published = TRUE OR kb.organization_id = ANY($${3 + f.params.length + u.params.length}))`;
+                adminParams.push(adminOrgIdArray);
+            }
             // A project's files base is never an org row, whoever asks (see
             // PROJECT_FILES_KIND): an org admin's ?includeAuto=1 listing must not
             // hand them the files of a project they are not a member of.
@@ -157,7 +182,7 @@ function makeAccessFns(ctx) {
                 `${baseSelect}
              WHERE (kb.tenant_id = $1 OR (kb.organization_id = ANY($2) AND kb.source_kind IS DISTINCT FROM '${PROJECT_FILES_KIND}'${orgDraftClause}))${f.sql}${u.sql}
              ORDER BY created_at DESC`,
-                [tenantId, orgIdArray, ...f.params, ...u.params]
+                [tenantId, orgIdArray, ...f.params, ...u.params, ...adminParams]
             );
         },
 
@@ -169,10 +194,12 @@ function makeAccessFns(ctx) {
          * @param {Array} kbs - Result of listKBs
          * @param {string} userId - The user's ID
          * @param {Array<string>} userGroups - Group IDs the user belongs to
+         * @param {{ orgIds?: Set<string>|null, adminOrgIds?: Set<string>|string[] }} [opts]
+         *   adminOrgIds: as canUserAccessKB
          */
         filterByGroupAccess: (kbs, userId, userGroups = [], opts = {}) => {
             if (!Array.isArray(kbs)) return [];
-            return kbs.filter(kb => KnowledgeBasesStore.canUserAccessKB(kb, userId, opts.orgIds, userGroups, { isOrgAdmin: opts.isOrgAdmin }));
+            return kbs.filter(kb => KnowledgeBasesStore.canUserAccessKB(kb, userId, opts.orgIds, userGroups, { adminOrgIds: opts.adminOrgIds }));
         },
 
         /**
@@ -186,6 +213,9 @@ function makeAccessFns(ctx) {
          *   When undefined, org membership is not considered (list-path callers
          *   already constrained the query by org, so only group rules need to run).
          * @param {Array<string>} userGroups - Group ids the user belongs to
+         * @param {{ adminOrgIds?: Set<string>|string[] }} [opts]
+         *   adminOrgIds: the organisations the caller administers (server-resolved,
+         *   support/kbAccess.js resolveAdminOrgIds). Absent: none.
          */
         canUserAccessKB: (kb, userId, orgIds = undefined, userGroups = [], opts = {}) => {
             if (!kb) return false;
@@ -202,10 +232,13 @@ function makeAccessFns(ctx) {
             if (kb.tenant_id === userId) return true;
             // Super admin
             if (orgIds === null) return true;
-            // Org admins always see every KB in their organisation — including
-            // unpublished drafts and group-restricted KBs (read access). Scoped to
-            // the admin's own org(s); a member's personal (no-org) KB stays private.
-            if (opts.isOrgAdmin && kb.organization_id && orgIds instanceof Set && orgIds.has(kb.organization_id)) {
+            // An org admin sees every KB of the organisation they administer,
+            // including unpublished drafts and group-restricted KBs (read
+            // access). Only THAT organisation: in another organisation of the
+            // caller's union they read as a regular member, and a member's
+            // personal (no-org) KB stays private.
+            if (kb.organization_id && orgIds instanceof Set && orgIds.has(kb.organization_id)
+                && adminOrgSet(opts.adminOrgIds).has(kb.organization_id)) {
                 return true;
             }
             // Direct-fetch path: must be in the KB's org
@@ -225,13 +258,16 @@ function makeAccessFns(ctx) {
          * "Is this user allowed to MANAGE this KB's settings?".
          * Deliberately separate from canUserAccessKB: draft status gates READING
          * content, not managing settings. Non-owner managers must belong to the
-         * KB's org AND hold manage_knowledge (checked by the caller via
-         * hasPermission and passed in as a boolean so this stays pure/testable).
+         * KB's org AND hold manage_knowledge IN THAT org (checked by the caller,
+         * `resolvePermissionsByOrg(...).holds('manage_knowledge', kb.organization_id)`,
+         * and passed in as a boolean so this stays pure/testable). The flat
+         * hasPermission answer is not that question: it counts a right held in
+         * any of the caller's organisations.
          *
          * @param {DbRow.KnowledgeBases} kb - Row from knowledge_bases
          * @param {string} userId - Requesting user's id
          * @param {Set|null} orgIds - resolveUserOrgIds(req) result; null = super admin
-         * @param {boolean} hasManagePermission - hasPermission(userId,'manage_knowledge')
+         * @param {boolean} hasManagePermission - holds manage_knowledge in kb.organization_id
          */
         canUserManageKB: (kb, userId, orgIds, hasManagePermission) => {
             if (!kb) return false;

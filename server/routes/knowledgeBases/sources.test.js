@@ -212,7 +212,7 @@ const MOCKS = {
         requirePermission: () => mw,
         requireActiveOrgForMutations: () => mw,
         resolveUserOrgIds: async () => new Set(['org1']),
-        hasPermission: async () => true,
+        hasPermission: async () => true, resolvePermissionsByOrg: async () => ({ holds: () => true }),
         validateSharedGroupsForOrg: async () => {},
         resolveUserGroups: async (id) => (fx.users[id]?.groups || []),
     },
@@ -224,7 +224,7 @@ const MOCKS = {
     '../core/serviceAuth': { getServiceHeaders: () => ({}) },
     '../support/kbAccess': {
         canAccessKB: async () => fx.canAccess,
-        resolveIsOrgAdmin: async () => true,
+        resolveAdminOrgIds: async () => new Set(['org1']),
     },
     '../license': {
         resolveTier: async () => 'community',

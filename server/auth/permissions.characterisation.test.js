@@ -154,6 +154,10 @@ test('export keys are exactly the monolith\'s, in order', () => {
         'hasPlatformAdminAccess', 'requirePlatformAdmin',
         // The admin dashboard's organisation (auth/adminOrg.mts).
         'resolveAdminOrgId', 'requireAdminOrg',
+        // A permission in one organisation (auth/permissionGrants.mts).
+        'resolvePermissionsByOrg', 'hasPermissionInOrg',
+        // The organisations the caller administers (auth/permissionsOrgGates.js).
+        'resolveAdminOrgIds',
     ]);
 });
 

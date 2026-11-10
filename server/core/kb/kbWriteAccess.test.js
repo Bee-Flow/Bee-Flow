@@ -100,6 +100,54 @@ test('orgIds is coerced to a Set — a null must never mean super-admin', async 
     }
 });
 
+test('manage_knowledge counts in the base\'s own organisation only', async () => {
+    // Holds manage_knowledge in org1 (home), is a plain group member of org2.
+    const manageByOrg = { holds: (perm, orgId) => perm === 'manage_knowledge' && orgId === 'org1' };
+    const both = { orgIds: new Set(['org1', 'org2']) };
+    const deps = storeOf([kb('home'), kb('group', { organization_id: 'org2' })]);
+    assert.strictEqual((await canWriteToKb('home', { ...both, userId: 'colleague', manageByOrg, deps })).ok, true);
+    const r = await canWriteToKb('group', { ...both, userId: 'colleague', manageByOrg, deps });
+    assert.strictEqual(r.ok, false);
+    assert.strictEqual(r.reason, REASONS.NO_MANAGE);
+});
+
+test('the owner check asks where the owner holds manage_knowledge', async () => {
+    const { canOwnerWriteToKb } = require('./kbWriteAccess');
+    const deps = {
+        ...storeOf([kb('home'), kb('group', { organization_id: 'org2' })]),
+        askerContext: async () => ({ orgIds: new Set(['org1', 'org2']) }),
+        resolvePermissionsByOrg: async () => ({ holds: (perm, orgId) => perm === 'manage_knowledge' && orgId === 'org1' }),
+    };
+    assert.strictEqual((await canOwnerWriteToKb('home', 'colleague', { deps })).ok, true);
+    assert.strictEqual((await canOwnerWriteToKb('group', 'colleague', { deps })).ok, false);
+    const failing = { ...deps, resolvePermissionsByOrg: async () => { throw new Error('down'); } };
+    assert.strictEqual((await canOwnerWriteToKb('home', 'colleague', { deps: failing })).ok, false, 'a failed read holds nowhere');
+});
+
+test('an owner context resolved once answers for every base, with the same verdicts', async () => {
+    const { canOwnerWriteToKb, resolveOwnerWriteContext } = require('./kbWriteAccess');
+    const calls = { asker: 0, perms: 0 };
+    const deps = {
+        ...storeOf([kb('home'), kb('group', { organization_id: 'org2' })]),
+        askerContext: async () => { calls.asker += 1; return { orgIds: new Set(['org1', 'org2']) }; },
+        resolvePermissionsByOrg: async () => { calls.perms += 1; return { holds: (perm, orgId) => perm === 'manage_knowledge' && orgId === 'org1' }; },
+    };
+    const context = await resolveOwnerWriteContext('colleague', { deps });
+    assert.strictEqual((await canOwnerWriteToKb('home', 'colleague', { deps, context })).ok, true);
+    assert.strictEqual((await canOwnerWriteToKb('group', 'colleague', { deps, context })).reason, REASONS.NO_MANAGE);
+    assert.deepStrictEqual(calls, { asker: 1, perms: 1 });
+});
+
+test('an owner context whose organisations could not be read answers UNAVAILABLE', async () => {
+    const { canOwnerWriteToKb, resolveOwnerWriteContext } = require('./kbWriteAccess');
+    const deps = { ...storeOf([kb('home')]), askerContext: async () => { throw new Error('down'); } };
+    const context = await resolveOwnerWriteContext('colleague', { deps });
+    assert.strictEqual(context.available, false);
+    const r = await canOwnerWriteToKb('home', 'colleague', { deps, context });
+    assert.strictEqual(r.ok, false);
+    assert.strictEqual(r.reason, REASONS.UNAVAILABLE);
+});
+
 test('an id that resolves to nothing is refused, not passed through', async () => {
     const deps = storeOf([]);
     const r = await canWriteToKb('gone', { ...IN_ORG, userId: 'owner', deps });

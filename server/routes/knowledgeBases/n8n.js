@@ -14,7 +14,7 @@ const kbStore = require('../../stores/knowledgeBases');
 const configStore = require('../../stores/configStore');
 const { requireAuth, requirePermission } = require('../../auth');
 const { ingestDocument } = require('../../core/kb/kbIngestionHelpers');
-const { getUserId, canAccessKB, blockIfSystemKB, ensureKbSource } = require('./shared');
+const { getUserId, canManageKB, blockIfSystemKB, ensureKbSource } = require('./shared');
 const { validate } = require('../../core/http/validate');
 const { z } = require('../../utils/zod');
 
@@ -56,7 +56,8 @@ router.post('/:id/ingest/n8n', requireAuth, requirePermission('manage_knowledge'
     try {
         const kb = await kbStore.getKB(req.params.id);
         if (!kb) return res.status(404).json({ error: 'KB not found' });
-        if (!(await canAccessKB(req, kb))) return res.status(403).json({ error: 'Access denied' });
+        // Writing content is managing the base (manage_knowledge in its own organisation).
+        if (!(await canManageKB(req, kb))) return res.status(403).json({ error: 'Access denied' });
         if (blockIfSystemKB(kb, res)) return;
 
         const { workflowId, mode } = req.body;

@@ -39,6 +39,8 @@ const MOCKS = {
         requireAuth: pass,
         requirePermission: () => pass,
         assertUserCanUseOrg: async (_req, orgId) => orgId || 'org1',
+        // manage_knowledge holds in org1 only.
+        resolvePermissionsByOrg: async () => ({ holds: (perm, orgId) => perm === 'manage_knowledge' && orgId === 'org1' }),
     },
     './shared': {
         getUserId: (req) => req.session?.user?.id || null,
@@ -113,6 +115,15 @@ test('a knowledge base with no name is refused in words, not with "Required"', a
     assert.strictEqual(res.body.error, 'A knowledge base needs a name.', 'the caller reads this sentence');
     assert.ok(res.body.details.some((d) => d.path === 'body.name'));
     assert.deepStrictEqual(touched, []);
+});
+
+test('a base is not created in an organisation where manage_knowledge does not hold', async () => {
+    const res = await dispatch({ method: 'POST', url: '/', body: { name: 'Handbook', organizationId: 'org2' } });
+    assert.strictEqual(res.statusCode, 403);
+    assert.strictEqual(res.body.code, 'org_permission_required');
+    assert.deepStrictEqual(touched, [], 'nothing is created');
+    const ok = await dispatch({ method: 'POST', url: '/', body: { name: 'Handbook', organizationId: 'org1' } });
+    assert.strictEqual(ok.statusCode, 201);
 });
 
 test('a blank name gets the same sentence as a missing one', async () => {
