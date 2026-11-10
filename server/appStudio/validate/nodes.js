@@ -26,6 +26,7 @@ const { validateBinding } = require('./bindings');
 const { checkDocumentPicker } = require('./documentPicker');
 const { checkActionWiring, checkNodeAdvisories } = require('./nodeWiring');
 const { nodeActionRefs } = require('../nodeActionRefs.mts');
+const { checkObjectValue } = require('./objectChecks.mts');
 
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -44,6 +45,7 @@ function validatePropValue(key, fs, value, path, ctx) {
         if (fs.required) pushE({ code: 'prop.required', severity: 'error', path, message: `Missing required prop \`${key}\`.`, hint: `Provide a ${fs.type} value${fs.default !== undefined && fs.default !== null ? ` (spec default: ${JSON.stringify(fs.default)})` : ''}.` });
         return;
     }
+    if (checkObjectValue(fs, value, path, pushE)) return;
 
     switch (fs.type) {
         case 'string':
@@ -117,6 +119,7 @@ function validatePropValue(key, fs, value, path, ctx) {
                         if (ifs.required) pushE({ code: 'prop.item_required', severity: 'error', path: `${ip}.${ik}`, message: `\`${key}\` item ${i} is missing required \`${ik}\`.`, hint: 'Fill the field.' });
                         continue;
                     }
+                    if (checkObjectValue(ifs, iv, `${ip}.${ik}`, pushE)) continue;
                     if (ifs.type === 'string') {
                         if (typeof iv !== 'string') pushE({ code: 'prop.item_invalid', severity: 'error', path: `${ip}.${ik}`, message: `\`${ik}\` must be a string.`, hint: 'Pass a plain string.' });
                         else if (iv.length > (ifs.maxLen || LIMITS.MAX_STRING)) pushE({ code: 'prop.item_invalid', severity: 'error', path: `${ip}.${ik}`, message: `\`${ik}\` is ${iv.length} chars — the maximum is ${ifs.maxLen || LIMITS.MAX_STRING}.`, hint: 'Shorten it.' });

@@ -52,7 +52,11 @@
         "MAX_SECTION_TITLE_LEN": 80,
         "MAX_SECTION_NAME_LEN": 60,
         "MAX_CUSTOM_CSS_LEN": 20000,
-        "MAX_CSS_CLASS_LEN": 40
+        "MAX_CSS_CLASS_LEN": 40,
+        "MAX_FORMAT_DECIMALS": 10,
+        "MAX_FORMAT_PATTERN_LEN": 40,
+        "MAX_FORMAT_LANGUAGE_LEN": 35,
+        "MAX_FORMAT_TIME_ZONE_LEN": 64
     },
     "colorRoles": [
         "primary",

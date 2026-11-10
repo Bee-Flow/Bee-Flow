@@ -56,7 +56,11 @@
         "MAX_SECTION_TITLE_LEN": 80,
         "MAX_SECTION_NAME_LEN": 60,
         "MAX_CUSTOM_CSS_LEN": 20000,
-        "MAX_CSS_CLASS_LEN": 40
+        "MAX_CSS_CLASS_LEN": 40,
+        "MAX_FORMAT_DECIMALS": 10,
+        "MAX_FORMAT_PATTERN_LEN": 40,
+        "MAX_FORMAT_LANGUAGE_LEN": 35,
+        "MAX_FORMAT_TIME_ZONE_LEN": 64
     },
     "theme": {
         "primary": {
@@ -1378,6 +1382,12 @@
                     ],
                     "default": "plain",
                     "description": "plain = label and value only; tile = on its own card surface; tinted = soft primary wash; accent = tile with a primary edge bar; gradient = soft primary gradient wash, value in the primary color."
+                },
+                "formatOptions": {
+                    "type": "object",
+                    "objectShape": "formatOptions",
+                    "since": 3,
+                    "description": "How the tile writes its value and its delta when they are numbers. An object { currency?: \"USD\", decimals?: 0..10, pattern?: \"dd-MM-yyyy\", compact?: true, percentScale?: \"whole\"|\"fraction\" }, every key optional, set only what should differ. A numeric value is written as an amount when currency is set (or as a percentage when percentScale is set), as a number otherwise; text values are shown as they are. The delta follows deltaFormat and takes decimals and compact. currency (ISO 4217) and decimals win over the app-level `format`. compact writes 1.2K / 3.4M. percentScale \"fraction\" reads 0.25 as 25% (the default \"whole\" reads 25 as 25%). pattern is a date pattern from yyyy yy MMMM MMM MM M dd d EEEE EEE HH H hh h mm ss a, literal letters in single quotes. Absent keeps the default way of writing the value."
                 }
             },
             "styleKnobs": [
@@ -1508,6 +1518,12 @@
                         "actionId": {
                             "type": "string",
                             "maxLen": 20
+                        },
+                        "formatOptions": {
+                            "type": "object",
+                            "objectShape": "formatOptions",
+                            "since": 3,
+                            "description": "How this column writes its numbers, amounts and dates. An object { currency?: \"USD\", decimals?: 0..10, pattern?: \"dd-MM-yyyy\", compact?: true, percentScale?: \"whole\"|\"fraction\" }, every key optional, set only what should differ. It applies to the number, currency, percent, progress, date, datetime and relative formats of the column. currency (ISO 4217) and decimals win over the app-level `format`. compact writes 1.2K / 3.4M. percentScale \"fraction\" reads 0.25 as 25% (the default \"whole\" reads 25 as 25%). pattern is a date pattern from yyyy yy MMMM MMM MM M dd d EEEE EEE HH H hh h mm ss a, literal letters in single quotes. Absent keeps the default way of writing the value."
                         }
                     }
                 },
@@ -1721,6 +1737,12 @@
                         "actionId": {
                             "type": "string",
                             "maxLen": 20
+                        },
+                        "formatOptions": {
+                            "type": "object",
+                            "objectShape": "formatOptions",
+                            "since": 3,
+                            "description": "How this column writes its numbers, amounts and dates. An object { currency?: \"USD\", decimals?: 0..10, pattern?: \"dd-MM-yyyy\", compact?: true, percentScale?: \"whole\"|\"fraction\" }, every key optional, set only what should differ. It applies to the number, currency, percent, progress, date, datetime and relative formats of the column. currency (ISO 4217) and decimals win over the app-level `format`. compact writes 1.2K / 3.4M. percentScale \"fraction\" reads 0.25 as 25% (the default \"whole\" reads 25 as 25%). pattern is a date pattern from yyyy yy MMMM MMM MM M dd d EEEE EEE HH H hh h mm ss a, literal letters in single quotes. Absent keeps the default way of writing the value."
                         }
                     }
                 },
@@ -2095,6 +2117,12 @@
                     "type": "string",
                     "maxLen": 20,
                     "default": null
+                },
+                "formatOptions": {
+                    "type": "object",
+                    "objectShape": "formatOptions",
+                    "since": 3,
+                    "description": "How the value axis and the tooltip write the numbers of this chart. An object { currency?: \"USD\", decimals?: 0..10, pattern?: \"dd-MM-yyyy\", compact?: true, percentScale?: \"whole\"|\"fraction\" }, every key optional, set only what should differ. It refines valueFormat (number, currency or percent): pattern does not apply here, and unitLabel is still written after the number. currency (ISO 4217) and decimals win over the app-level `format`. compact writes 1.2K / 3.4M. percentScale \"fraction\" reads 0.25 as 25% (the default \"whole\" reads 25 as 25%). pattern is a date pattern from yyyy yy MMMM MMM MM M dd d EEEE EEE HH H hh h mm ss a, literal letters in single quotes. Absent keeps the default way of writing the value."
                 }
             },
             "events": [

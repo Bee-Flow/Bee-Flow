@@ -155,6 +155,7 @@ function ItemControl(props: ItemFieldProps) {
 /** One key of one item: a labelled control (a checkbox and a nested list carry their own label). */
 export function ItemField(props: ItemFieldProps) {
     const { fs, itemKey } = props;
+    if (fs.type === 'object') return null; // formatOptions: the bespoke panel's own fields
     if (fs.type === 'boolean') return <BooleanItem {...props} />;
     if (fs.type === 'list') return <ItemControl {...props} />;
     return (
@@ -200,7 +201,8 @@ interface SpecListFieldProps extends ItemContext {
 export function SpecListField({ label, itemShape, items, onChange, disabled = false, maxItems, definition = null, node = null }: SpecListFieldProps) {
     const { t } = useTranslation();
     const shape = itemShape || {};
-    const keys = Object.keys(shape);
+    // An object key (formatOptions) is edited by the bespoke panel, never by a generic control.
+    const keys = Object.keys(shape).filter((k) => shape[k].type !== 'object');
     return (
         <fieldset disabled={disabled} className="min-w-0">
             <RepeatableList

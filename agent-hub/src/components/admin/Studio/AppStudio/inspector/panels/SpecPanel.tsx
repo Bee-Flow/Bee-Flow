@@ -246,6 +246,9 @@ function SpecField({ propKey, fs, value, patch, definition, node, disabled }: Sp
                     />
                 </FormField>
             );
+        case 'object':
+            // A small fixed object (formatOptions): its bespoke panel edits it, never a text box.
+            return null;
         case 'string':
         case 'url':
         default:

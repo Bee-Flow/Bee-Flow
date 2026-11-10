@@ -9,6 +9,7 @@ import SegmentedControl from '@/components/shared/SegmentedControl';
 import Slider from '@/components/shared/Slider';
 import Toggle from '@/components/shared/Toggle';
 import { RepeatableList, inputCls } from '@/components/admin/product-website/fields';
+import FormatOptionsFields, { withFormatOptions } from './FormatOptionsFields';
 import { actionOptions } from '../actionLabels';
 import GridActionSurfaces from './GridActionSurfaces';
 import { registerInspector } from '../registry';
@@ -84,6 +85,7 @@ interface GridColumn {
     sortable?: boolean;
     filterable?: boolean;
     editable?: boolean;
+    formatOptions?: Record<string, unknown>;
 }
 
 /** One row action: a button label and the action it runs. */
@@ -147,6 +149,7 @@ export default function DataGridInspector({ node, definition, onCommit, disabled
                             <select className={inputCls} value={col.format || 'text'} onChange={(e) => update({ ...col, format: e.target.value })} aria-label={t('studio_apps_panels.data_grid.column_format', 'Column format')}>
                                 {FORMATS.map((f) => <option key={f} value={f}>{FORMAT_LABELS[f] ?? f}</option>)}
                             </select>
+                            <FormatOptionsFields kind={col.format} value={col.formatOptions} onChange={(next) => update(withFormatOptions(col, next))} />
                             <div className="flex gap-2">
                                 <select className={inputCls} value={col.align || 'auto'} onChange={(e) => update({ ...col, align: e.target.value })} aria-label={t('studio_apps_panels.data_grid.column_alignment', 'Column alignment')}>
                                     {ALIGNS.map((a) => <option key={a.value} value={a.value}>{a.label}</option>)}
@@ -254,7 +257,7 @@ export default function DataGridInspector({ node, definition, onCommit, disabled
 }
 
 registerInspector('data_grid', DataGridInspector, { props: ['source', 'columns', 'selectable', 'density', 'look', 'pageSize', 'searchable', 'rowActions', 'toolbarActions', 'bulkActions', 'addRowLabel', 'addRowActionId', 'emptyText'], items: {
-        columns: ['key', 'label', 'format', 'align', 'width', 'toneFrom', 'sortable', 'filterable', 'editable'],
+        columns: ['key', 'label', 'format', 'formatOptions', 'align', 'width', 'toneFrom', 'sortable', 'filterable', 'editable'],
         rowActions: ['label', 'actionId'],
         toolbarActions: ['label', 'actionId', 'tone'],
         bulkActions: ['label', 'actionId', 'tone'],

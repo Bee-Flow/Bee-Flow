@@ -55,23 +55,14 @@ export function resolveSeriesColor(color: unknown, index: number, palette: strin
 export { CHART_AXIS, CHART_GRID_STROKE, CHART_TOOLTIP_STYLE } from '@/components/shared/charts/chartChrome';
 
 /**
- * A number formatter for tick / tooltip values. `valueFormat` is the chart's
- * enum: 'number' | 'percent' | 'currency'. Non-finite input passes through
- * untouched so labels/strings still render.
+ * A number formatter for tick / tooltip values: makeValueFormatter(valueFormat, { app, options }?)
+ * from the shared formatter (src/shared/format/valueFormat.mjs). `valueFormat` is the chart's
+ * enum: 'number' | 'percent' | 'currency'. Non-finite input passes through untouched so
+ * labels/strings still render. Without the second argument (or with no format and no
+ * formatOptions in it) it is the formatter charts always had: EUR without decimals, the
+ * viewer's own locale.
  */
-export function makeValueFormatter(valueFormat?: string) {
-    return (raw: unknown) => {
-        const n = Number(raw);
-        if (!Number.isFinite(n)) return raw == null ? '' : String(raw);
-        if (valueFormat === 'percent') {
-            return `${n.toLocaleString(undefined, { maximumFractionDigits: 1 })}%`;
-        }
-        if (valueFormat === 'currency') {
-            return n.toLocaleString(undefined, { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
-        }
-        return n.toLocaleString();
-    };
-}
+export { makeValueFormatter } from '@shared/format/valueFormat.mjs';
 
 // A neutral sample series used in edit mode when a chart has no bound data yet,
 // so the canvas never shows an empty box. Deterministic (no randomness) so the

@@ -104,6 +104,12 @@ const LIMITS = {
     // The app's own stylesheet (2026-11): design.customCss and a node's cssClass.
     MAX_CUSTOM_CSS_LEN: 20000,         // characters of design.customCss
     MAX_CSS_CLASS_LEN: 40,             // characters of node.cssClass
+    // Value formatting (schema 3): definition.format and formatOptions. The cleaner is
+    // server/shared/format/formatClean.mjs (FORMAT_LIMITS); formatLimits.test.js holds both equal.
+    MAX_FORMAT_DECIMALS: 10,           // decimals / currencyDecimals
+    MAX_FORMAT_PATTERN_LEN: 40,        // a date pattern ("dd-MM-yyyy")
+    MAX_FORMAT_LANGUAGE_LEN: 35,       // a BCP 47 language tag
+    MAX_FORMAT_TIME_ZONE_LEN: 64,      // an IANA time zone name
 };
 
 module.exports = {

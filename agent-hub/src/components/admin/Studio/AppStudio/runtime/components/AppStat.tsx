@@ -10,7 +10,9 @@ import type { BindingInput } from '../resolveBinding.types';
 import { useRuntime } from '../RuntimeContext';
 import { roleTextColor, spaceSteps } from '../styleResolver';
 import { ROLE_COLORS } from '../styleResolver.constants';
-import { ErrorText, Skeleton, displayValue, useStickyBinding } from '../uiBits';
+import { ErrorText, Skeleton, useStickyBinding } from '../uiBits';
+import { useFormatContext, type FormatContext } from '../appFormat';
+import { statDeltaText, statValueText } from './statFormat';
 import type { NodeProps } from './appNode.types';
 
 /**
@@ -75,16 +77,17 @@ interface DeltaChipProps {
     delta: unknown;
     deltaFormat: string;
     positiveIsGood: boolean;
+    fmt: FormatContext | null;
 }
 
-function DeltaChip({ delta, deltaFormat, positiveIsGood }: DeltaChipProps) {
+function DeltaChip({ delta, deltaFormat, positiveIsGood, fmt }: DeltaChipProps) {
     const n = Number(delta);
     const numeric = Number.isFinite(n);
     const dir = numeric ? Math.sign(n) : 0;
     const good = (dir > 0 && positiveIsGood) || (dir < 0 && !positiveIsGood);
     const color = dir === 0 ? 'var(--text-muted)' : (good ? ROLE_COLORS.success : ROLE_COLORS.danger);
     const Icon = dir > 0 ? ArrowUpRight : dir < 0 ? ArrowDownRight : Minus;
-    const magnitude = numeric ? Math.abs(n).toLocaleString() : displayValue(delta);
+    const magnitude = numeric ? statDeltaText(Math.abs(n), fmt) : statValueText(delta, null);
     const text = deltaFormat === 'percent' && numeric ? `${magnitude}%` : magnitude;
     return (
         <span className="inline-flex items-center gap-0.5 text-xs font-medium bfa-stat__delta" style={{ color }} data-app-stat-delta="true">
@@ -105,6 +108,7 @@ interface StatProps {
     delta?: BindingInput;
     trend?: BindingInput;
     look?: string;
+    formatOptions?: unknown;
 }
 
 export default function AppStat({ node }: NodeProps<StatProps>) {
@@ -125,6 +129,7 @@ export default function AppStat({ node }: NodeProps<StatProps>) {
     const size = node.style?.size || 'md';
     const look = node.props?.look;
     const lookStyle = STAT_LOOKS[look as string] || null; // 'plain' / unknown → identity
+    const fmt = useFormatContext(node.props?.formatOptions); // null = the legacy text (statFormat.ts)
 
     const hasDelta = deltaVal != null && deltaVal !== '';
     const sparkData = toSparkData(trendVal);
@@ -156,13 +161,13 @@ export default function AppStat({ node }: NodeProps<StatProps>) {
                         <div className="flex items-baseline gap-2 min-w-0">
                             <div
                                 className={`${VALUE_SIZES[size] || VALUE_SIZES.md} font-semibold leading-tight truncate bfa-stat__value`}
-                                {...hoverable(displayValue(value))}
+                                {...hoverable(statValueText(value, fmt))}
                                 // gradient: the value carries the primary — over a
                                 // soft (≤16%) wash it stays readable in both themes.
                                 style={look === 'gradient' ? { color: 'var(--app-primary)' } : undefined}
-                            >{displayValue(value)}</div>
+                            >{statValueText(value, fmt)}</div>
                             {hasDelta ? (
-                                <DeltaChip delta={deltaVal} deltaFormat={deltaFormat} positiveIsGood={positiveIsGood} />
+                                <DeltaChip delta={deltaVal} deltaFormat={deltaFormat} positiveIsGood={positiveIsGood} fmt={fmt} />
                             ) : null}
                         </div>
                     )}

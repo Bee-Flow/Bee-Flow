@@ -8,6 +8,7 @@
 
 const { LIMITS } = require('./limits');
 const { COLOR_ROLES } = require('./styleKnobs');
+const { formatOptionsSpec } = require('./objectShapes');
 
 const ANALYTICS_SPECS = {
     // ── v2 data & visualization ──────────────────────────────────────────
@@ -110,6 +111,11 @@ const ANALYTICS_SPECS = {
                     // do it is a detour they have to be taught. The action gets
                     // the row as `item` and as form values, like a row action.
                     actionId: { type: 'string', maxLen: 20 },
+                    // Schema 3: how this column writes its numbers and dates.
+                    formatOptions: formatOptionsSpec(
+                        'How this column writes its numbers, amounts and dates.',
+                        'It applies to the number, currency, percent, progress, date, datetime and relative formats of the column.',
+                    ),
                 },
             },
             pageSize: { type: 'int', min: 5, max: 100, default: 25 },
@@ -278,6 +284,11 @@ const ANALYTICS_SPECS = {
             },
             // A bare number on a health axis is unreadable — 72 what?
             unitLabel: { type: 'string', maxLen: 20, default: null },
+            // Schema 3: how the value axis and the tooltip write numbers.
+            formatOptions: formatOptionsSpec(
+                'How the value axis and the tooltip write the numbers of this chart.',
+                'It refines valueFormat (number, currency or percent): pattern does not apply here, and unitLabel is still written after the number.',
+            ),
         },
         events: ['onRowClick'],
         styleKnobs: ['span', 'height'],
