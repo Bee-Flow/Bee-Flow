@@ -25,7 +25,9 @@ OC.L10N.register(
         "The Bee Flow server could not be reached from this Nextcloud. Check the address and that the server is running, then try again.": "De Bee Flow-server is vanaf deze Nextcloud niet bereikbaar. Controleer het adres en of de server draait, en probeer het opnieuw.",
         "The certificate of the Bee Flow server is not trusted. Give the server a certificate from a public certificate authority, then try again.": "Het certificaat van de Bee Flow-server wordt niet vertrouwd. Geef de server een certificaat van een publieke certificaatautoriteit en probeer het opnieuw.",
         "This Bee Flow server and this connector do not work together in these versions. Update both to their latest release, then try again.": "Deze Bee Flow-server en deze connector werken in deze versies niet samen. Werk beide bij naar de nieuwste release en probeer het opnieuw.",
-        "This Bee Flow server asks for a pairing code. Generate one in Bee Flow (Settings → Organisation → Pair a new Nextcloud), enter it here and connect again.": "Deze Bee Flow-server vraagt om een koppelcode. Maak er een aan in Bee Flow (Settings → Organisation → Pair a new Nextcloud), vul hem hier in en verbind opnieuw."
+        "This Bee Flow server asks for a pairing code. Generate one in Bee Flow (Settings → Organisation → Pair a new Nextcloud), enter it here and connect again.": "Deze Bee Flow-server vraagt om een koppelcode. Maak er een aan in Bee Flow (Settings → Organisation → Pair a new Nextcloud), vul hem hier in en verbind opnieuw.",
+        "Your Nextcloud account has no e-mail address": "Je Nextcloud-account heeft geen e-mailadres",
+        "Bee Flow needs an e-mail address to sign you in. Add one in Nextcloud under Personal settings, or ask your administrator to add it, then reload this page.": "Bee Flow heeft een e-mailadres nodig om je aan te melden. Voeg er een toe in Nextcloud onder Persoonlijke instellingen, of vraag je beheerder om dat te doen, en laad deze pagina daarna opnieuw."
     },
     "nplurals=2; plural=(n != 1);"
 );

@@ -486,6 +486,8 @@ module.exports = {
     appApiAuthMiddleware,
     _resetUserCacheForTests: () => { _userCache.clear(); _lookupsInFlight.clear(); },
     _settleLookupsForTests,
+    // Drop one user from the lookup cache: the next request asks Nextcloud.
+    forgetUser: (/** @type {string} */ uid) => { _userCache.delete(uid); },
     isDocumentNavigation,
     decodeAuthHeader,
     secretMatches,

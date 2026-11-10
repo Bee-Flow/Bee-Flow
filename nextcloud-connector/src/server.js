@@ -152,6 +152,11 @@ try {
 }
 app.use(serverChoice.unconfiguredGate({ pageHtml: () => setupHtml }));
 
+// A Nextcloud account without an e-mail address cannot sign in to Bee Flow:
+// the web app and the calls it proxies answer with a clear message. Everything
+// mounted above (setup, diagnostics, lifecycle) works without an address.
+app.use(require('./noEmail').noEmailGate);
+
 // Re-run UI registration (top-menu, embed script, settings form, event
 // listeners) on every boot. AppAPI only calls /init on install/upgrade, so
 // without this a `docker restart` after the script's re-registration step
