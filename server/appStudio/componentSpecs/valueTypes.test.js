@@ -241,8 +241,8 @@ test('emitOptionalKeys: absent stays absent, present is cleaned, in table order'
     assert.deepEqual(notes, []);
     assert.deepEqual(emitOptionalKeys(base(), { title: 4 }, cleaners, 's', push), base());
     assert.deepEqual(notes, ['section.field_invalid s.title']);
-    // The section table is empty: canonicalize writes exactly id, style and children.
+    // A key outside the section table is never written: canonicalize keeps exactly id, style and children.
     const def = specs.emptyDefinition('sections');
-    def.screens[0].sections[0].title = 'Totals';
+    def.screens[0].sections[0].stray = 'Totals';
     assert.deepEqual(Object.keys(canonicalizeAppDefinition(def).def.screens[0].sections[0]), ['id', 'style', 'children']);
 });

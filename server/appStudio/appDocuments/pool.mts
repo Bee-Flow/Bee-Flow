@@ -86,7 +86,7 @@ function staticId(binding: unknown): string | null {
 }
 
 export interface PoolChecks {
-    /** May this viewer see the screen or node (visibleToRoles)? */
+    /** May this viewer see the screen, section or node (visibleToRoles)? */
     visible: (nodeOrScreen: unknown) => boolean;
     /** May this viewer reach the action through the UI? */
     actionAllowed: (actionId: string) => boolean;
@@ -109,6 +109,7 @@ function* visibleNodes(def: AnyDef, checks: PoolChecks): Generator<AnyNode> {
     for (const screen of Array.isArray(def?.screens) ? def.screens : []) {
         if (!screen || typeof screen !== 'object' || !checks.visible(screen)) continue;
         for (const section of Array.isArray((screen as { sections?: unknown }).sections) ? (screen as { sections: unknown[] }).sections : []) {
+            if (!section || typeof section !== 'object' || !checks.visible(section)) continue;
             yield* walk((section as { children?: unknown })?.children);
         }
     }

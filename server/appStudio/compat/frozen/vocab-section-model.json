@@ -1,0 +1,52 @@
+{
+  "corpus": "vocab-section-model",
+  "canonical": {
+    "sha256": "972c058044b89ae1cc8786511950cfc4eac7bcf30549658d03c95a0a1e42bfd7",
+    "bytes": 2380,
+    "inputIsCanonical": true,
+    "idempotent": true,
+    "keys": [
+      "schemaVersion",
+      "meta",
+      "theme",
+      "roles",
+      "variables",
+      "screens",
+      "actions",
+      "homeScreenId"
+    ],
+    "parts": {
+      "schemaVersion": "4e07408562bedb8b",
+      "meta": "d54051754d57050b",
+      "theme": "2982606cab814516",
+      "roles": "523e153dda41a4cd",
+      "variables": "397f5da2e53f7e47",
+      "screens[0] scr_secmod01": "6846a8e5fcb611f0",
+      "screens[1] scr_secmod02": "8d5a20244c482479",
+      "actions.act_secmod01": "c0c4a55745e666d5",
+      "homeScreenId": "b281bf9df405e472"
+    }
+  },
+  "schemaVersion": {
+    "stored": 3,
+    "canonical": 3
+  },
+  "validation": {
+    "strict": {
+      "errors": [],
+      "warnings": []
+    },
+    "save": {
+      "errors": [],
+      "warnings": []
+    }
+  },
+  "ordinals": {
+    "stored": {
+      "act_secmod01": [
+        "0 navigate"
+      ]
+    },
+    "canonical": "same as stored"
+  }
+}

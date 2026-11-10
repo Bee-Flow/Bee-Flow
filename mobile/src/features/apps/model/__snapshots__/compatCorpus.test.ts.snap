@@ -10809,3 +10809,115 @@ exports[`compat corpus: what the phone plans for every stored app typography-tex
   ],
 }
 `;
+
+exports[`compat corpus: what the phone plans for every stored app vocab-section-model 1`] = `
+{
+  "defaultScreen": "scr_secmod01",
+  "navigable": [
+    "scr_secmod01",
+    "scr_secmod02",
+  ],
+  "screens": [
+    {
+      "id": "scr_secmod01",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "id": "cmp_secmod01",
+                "kind": "text",
+                "muted": false,
+                "text": "Everything that still needs a reply.",
+              },
+              {
+                "id": "cmp_secmod02",
+                "kind": "text",
+                "muted": false,
+                "text": "Closed last week: 12.",
+              },
+              {
+                "id": "cmp_secmod05",
+                "kind": "text",
+                "muted": false,
+                "text": "Always shown.",
+              },
+            ],
+            "screen": "scr_secmod01",
+            "unsupported": [
+              "text",
+            ],
+          },
+          "roles": [
+            "(no role)",
+          ],
+        },
+        {
+          "plan": {
+            "blocks": [
+              {
+                "id": "cmp_secmod01",
+                "kind": "text",
+                "muted": false,
+                "text": "Everything that still needs a reply.",
+              },
+              {
+                "id": "cmp_secmod02",
+                "kind": "text",
+                "muted": false,
+                "text": "Closed last week: 12.",
+              },
+              {
+                "action": {
+                  "actionId": "act_secmod01",
+                  "kind": "navigate",
+                  "label": "Approve all",
+                  "runnable": false,
+                },
+                "id": "cmp_secmod04",
+                "kind": "button",
+              },
+              {
+                "id": "cmp_secmod05",
+                "kind": "text",
+                "muted": false,
+                "text": "Always shown.",
+              },
+            ],
+            "screen": "scr_secmod01",
+            "unsupported": [
+              "text",
+            ],
+          },
+          "roles": [
+            "manager",
+          ],
+        },
+      ],
+    },
+    {
+      "id": "scr_secmod02",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "id": "cmp_secmod06",
+                "kind": "text",
+                "muted": false,
+                "text": "A full-height section with a title.",
+              },
+            ],
+            "screen": "scr_secmod02",
+            "unsupported": [],
+          },
+          "roles": [
+            "(no role)",
+            "manager",
+          ],
+        },
+      ],
+    },
+  ],
+}
+`;

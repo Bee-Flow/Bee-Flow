@@ -67,6 +67,8 @@ const { checkMailboxHooks } = require('./validate/mailboxHookCheck');
 const { validateAction, DATASET_QUERY_OUTPUTS } = require('./validate/actions');
 const { checkCallGraph } = require('./validate/callChecks.mts');
 const { buildFieldTypes } = require('./validate/writeToKeyChecks.mts');
+const { validateRolesAndCollect } = require('./validate/roles.mts');
+const { checkSectionKeys } = require('./validate/sectionChecks.mts');
 
 const ID_HINT = 'Ids must match <prefix>_<4-12 lowercase alphanumerics> with prefix scr/sec/cmp/act. Use newId() from componentSpecs.';
 
@@ -215,34 +217,6 @@ function buildMailboxConnectorIds(dataModel) {
     return set;
 }
 
-// def.roles → a Set of role ids, validating the { id, name } shape.
-/**
- * @param {(value: { code: string; severity: string; path: string; message: string; hint: string; }) => void} pushE
- */
-function validateRolesAndCollect(def, pushE) {
-    const ids = new Set();
-    if (def.roles === undefined) return ids;
-    if (!Array.isArray(def.roles)) {
-        pushE({ code: 'roles.invalid', severity: 'error', path: 'roles', message: 'roles must be an array of { id, name }.', hint: 'Use [] when the app has no roles.' });
-        return ids;
-    }
-    if (def.roles.length > LIMITS.MAX_ROLES) {
-        pushE({ code: 'roles.too_many', severity: 'error', path: 'roles', message: `App declares ${def.roles.length} roles — the maximum is ${LIMITS.MAX_ROLES}.`, hint: 'Remove unused roles.' });
-    }
-    def.roles.forEach((role, i) => {
-        if (!isObject(role) || typeof role.id !== 'string' || !role.id) {
-            pushE({ code: 'role.invalid', severity: 'error', path: `roles[${i}]`, message: 'Each role needs a non-empty string id.', hint: 'Use { id, name }.' });
-            return;
-        }
-        if (ids.has(role.id)) {
-            pushE({ code: 'role.duplicate', severity: 'error', path: `roles[${i}].id`, message: `Duplicate role id ${JSON.stringify(role.id)}.`, hint: 'Role ids must be unique.' });
-            return;
-        }
-        ids.add(role.id);
-    });
-    return ids;
-}
-
 /**
  * definition.variables — structure only. Runs BEFORE the deep walk, because
  * validateFormula consults the resulting name set while walking.
@@ -323,6 +297,7 @@ function walkScreens(screens, ctx) {
                 pushE({ code: 'section.children_invalid', severity: 'error', path: `${secPath}.children`, message: 'Section `children` must be an array.', hint: 'Use [] for an empty section.' });
                 return;
             }
+            checkSectionKeys(section, secPath, ctx); // title, visibleWhen, visibleToRoles … (validate/sectionChecks.mts)
             // A section's own sizing, then what it hands its children. The
             // section knob list has no `span`, so only the height pair applies.
             const sectionKnobs = expandStyleKnobs(SECTION_STYLE_KNOBS);

@@ -6,7 +6,7 @@
  * form field, submit) something the owner conditioned off.
  */
 
-import type { AppNode } from './types';
+import type { AppNode, AppSection } from './types';
 
 /** Mirrors roleAllows() on the server: an absent or empty gate is open. */
 export function roleAllows(node: AppNode, viewerRole: string | null | undefined): boolean {
@@ -33,5 +33,18 @@ export function fieldGate(node: AppNode, viewerRole: string | null | undefined):
     if (!roleAllows(node, viewerRole)) return 'hidden';
     const visible: unknown = node.visible;
     if (hasFormulaGate(node) || (visible != null && typeof visible !== 'boolean')) return 'unsupported';
+    return 'open';
+}
+
+/**
+ * Whether the phone draws a section (its optional keys, server/appStudio/componentSpecs/keys/section/):
+ * `hidden` when its visibleToRoles closes for this viewer (not named, as a node), `unsupported`
+ * when a visibleWhen condition the phone cannot evaluate gates it, `open` otherwise. A section
+ * without these keys is always open, as before.
+ */
+export function sectionGate(section: AppSection, viewerRole: string | null | undefined): 'open' | 'hidden' | 'unsupported' {
+    if (!roleAllows({ id: section.id, type: 'section', visibleToRoles: section.visibleToRoles }, viewerRole)) return 'hidden';
+    const when = section.visibleWhen;
+    if (when != null && when !== true) return 'unsupported';
     return 'open';
 }

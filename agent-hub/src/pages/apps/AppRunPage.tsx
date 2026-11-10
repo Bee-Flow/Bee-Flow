@@ -199,7 +199,7 @@ export function RunSurface({ appId, draft, definition, screenId, viewer, onNavig
                 sample={false}
                 draft={draft}
                 scope={scope}
-                refreshMs={refreshMs}
+                refreshMs={refreshMs} sectionRole={previewRole}
             >
                 {(dataState, { refresh }) => (
                     <RunBody

@@ -197,6 +197,26 @@ export const CASES = [
     ['setVariables.clear', 'setVariables', (o, d) => o.setVariables(d, [])],
     ['setPublicAccess.open', 'setPublicAccess', (o, d) => o.setPublicAccess(d, { screens: ['scr_home01'] })],
     ['setPublicAccess.close', 'setPublicAccess', (o, d) => o.setPublicAccess(d, null)],
+
+    // Added with the section model (appended, so the seeds of every case above stay the same).
+    ['updateSection.set', 'updateSection', (o, d) => o.updateSection(d, 'sec_bot001', { title: 'Totals', collapsible: true })],
+    ['updateSection.remove', 'updateSection', (o, d) => o.updateSection(o.updateSection(d, 'sec_bot001', { title: 'x' }), 'sec_bot001', { title: null })],
+    ['updateSection.noop', 'updateSection', (o, d) => o.updateSection(d, 'sec_bot001', { title: null })],
+    ['updateSection.baseKeys', 'updateSection', (o, d) => o.updateSection(d, 'sec_bot001', { id: 'sec_x00000', style: {}, children: [] })],
+    ['updateSection.sameList', 'updateSection', (o, d) => o.updateSection(o.updateSection(d, 'sec_det001', { visibleToRoles: ['manager'] }), 'sec_det001', { visibleToRoles: ['manager'] })],
+    ['updateSection.missing', 'updateSection', (o, d) => o.updateSection(d, 'sec_none00', { title: 'x' })],
+    ['moveSection.down', 'moveSection', (o, d) => o.moveSection(d, 'sec_top001', 1)],
+    ['moveSection.samePlace', 'moveSection', (o, d) => o.moveSection(d, 'sec_top001', 0)],
+    ['moveSection.clamped', 'moveSection', (o, d) => o.moveSection(d, 'sec_bot001', -3)],
+    ['moveSection.missing', 'moveSection', (o, d) => o.moveSection(d, 'sec_none00', 0)],
+    ['duplicateSection.top', 'duplicateSection', (o, d) => o.duplicateSection(d, 'sec_top001')],
+    ['duplicateSection.missing', 'duplicateSection', (o, d) => o.duplicateSection(d, 'sec_none00')],
+    ['moveScreen.first', 'moveScreen', (o, d) => o.moveScreen(d, 'scr_detl01', 0)],
+    ['moveScreen.samePlace', 'moveScreen', (o, d) => o.moveScreen(d, 'scr_home01', 0)],
+    ['moveScreen.missing', 'moveScreen', (o, d) => o.moveScreen(d, 'scr_none00', 0)],
+    ['duplicateScreen.named', 'duplicateScreen', (o, d) => o.duplicateScreen(d, 'scr_detl01', { name: ' Detail copy ' })],
+    ['duplicateScreen.unnamed', 'duplicateScreen', (o, d) => o.duplicateScreen(d, 'scr_home01')],
+    ['duplicateScreen.missing', 'duplicateScreen', (o, d) => o.duplicateScreen(d, 'scr_none00')],
 ];
 
 /** The ops both copies implemented identically before the move: their results must agree. */
@@ -205,6 +225,7 @@ export const SHARED_OPS = [
     'updateNodeProps', 'updateNodeStyle', 'insertNode', 'moveNode',
     'updateTheme', 'updateMeta', 'updateDesign', 'updateNav',
     'addScreen', 'updateScreen', 'addSection', 'setAction',
+    'updateSection', 'moveSection', 'duplicateSection', 'moveScreen', 'duplicateScreen',
 ];
 
 function mulberry32(seed) {

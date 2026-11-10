@@ -1,0 +1,219 @@
+{
+  "about": {
+    "source": "hand-made for package LK5 (section model): section title, name, collapsible, maxWidth, visibleWhen and visibleToRoles, a titled full-height section, a dashboard screen",
+    "captured": "2026-11-10"
+  },
+  "definition": {
+    "schemaVersion": 3,
+    "meta": {
+      "name": "Section model",
+      "description": "Section titles, folding, width caps, conditions and roles.",
+      "icon": "Rows3"
+    },
+    "theme": {
+      "primary": "#2563EB",
+      "radius": "md",
+      "density": "comfortable",
+      "fontScale": "md",
+      "appearance": "auto"
+    },
+    "roles": [
+      {
+        "id": "manager",
+        "name": "Manager"
+      }
+    ],
+    "variables": [
+      {
+        "name": "view",
+        "label": "view",
+        "type": "text",
+        "default": "open",
+        "description": ""
+      }
+    ],
+    "screens": [
+      {
+        "id": "scr_secmod01",
+        "name": "Orders",
+        "icon": null,
+        "showInNav": true,
+        "maxWidth": "wide",
+        "sections": [
+          {
+            "id": "sec_secmod01",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_secmod01",
+                "type": "text",
+                "props": {
+                  "text": "Everything that still needs a reply.",
+                  "muted": false
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              }
+            ],
+            "name": "Intro",
+            "title": "Open orders",
+            "maxWidth": "narrow"
+          },
+          {
+            "id": "sec_secmod02",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_secmod02",
+                "type": "text",
+                "props": {
+                  "text": "Closed last week: 12.",
+                  "muted": false
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              }
+            ],
+            "title": "History",
+            "collapsible": true
+          },
+          {
+            "id": "sec_secmod03",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_secmod03",
+                "type": "text",
+                "props": {
+                  "text": "Archived orders.",
+                  "muted": false
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              }
+            ],
+            "name": "Archive",
+            "visibleWhen": {
+              "kind": "formula",
+              "expr": "vars.view == 'archive'"
+            }
+          },
+          {
+            "id": "sec_secmod04",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_secmod04",
+                "type": "button",
+                "props": {
+                  "label": "Approve all",
+                  "variant": "primary",
+                  "iconLeft": null,
+                  "role": "button",
+                  "disabledWhen": null
+                },
+                "style": {
+                  "span": 4
+                },
+                "visible": true,
+                "onClick": "act_secmod01"
+              }
+            ],
+            "title": "Approve",
+            "maxWidth": "medium",
+            "visibleToRoles": [
+              "manager"
+            ]
+          },
+          {
+            "id": "sec_secmod05",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_secmod05",
+                "type": "text",
+                "props": {
+                  "text": "Always shown.",
+                  "muted": false
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              }
+            ],
+            "maxWidth": "full",
+            "visibleWhen": true
+          }
+        ]
+      },
+      {
+        "id": "scr_secmod02",
+        "name": "Board",
+        "icon": null,
+        "showInNav": true,
+        "maxWidth": "full",
+        "kind": "dashboard",
+        "sections": [
+          {
+            "id": "sec_secmod06",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none",
+              "height": "fill"
+            },
+            "children": [
+              {
+                "id": "cmp_secmod06",
+                "type": "text",
+                "props": {
+                  "text": "A full-height section with a title.",
+                  "muted": false
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              }
+            ],
+            "title": "Work"
+          }
+        ]
+      }
+    ],
+    "actions": {
+      "act_secmod01": {
+        "kind": "navigate",
+        "screenId": "scr_secmod02"
+      }
+    },
+    "homeScreenId": "scr_secmod01"
+  }
+}

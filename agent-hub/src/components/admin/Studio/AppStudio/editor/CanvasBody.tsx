@@ -12,6 +12,8 @@ import { projectGhostCell } from './ghostCellDraft';
 import useBuildFollow from './useBuildFollow';
 import EditorNodeWrapper from './EditorNodeWrapper';
 import Marquee from './Marquee';
+import SectionChips from './SectionChips';
+import AddSectionButton from './AddSectionButton';
 import toast from '@/components/shared/Toast';
 import AppCustomCss from '../runtime/AppCustomCss';
 import AppRenderer from '../runtime/AppRenderer';
@@ -312,6 +314,14 @@ export function CanvasBody({
                             : null;
                     })}
                     {ghost && ghostContainer ? <GhostCell draft={ghost} container={ghostContainer} /> : null}
+                    <SectionChips
+                        sections={screen?.sections || []}
+                        sectionEls={sectionEls}
+                        selectedId={selectedNodeId && selectedNodeId.startsWith('sec_') ? selectedNodeId : null}
+                        disabled={streamLock}
+                        onSelect={onSelectNode}
+                    />
+                    <AddSectionButton screen={screen} definitionRef={definitionRef} onCommit={onCommit} disabled={streamLock} />
                 </div>
             ) : (
                 <CanvasPreview

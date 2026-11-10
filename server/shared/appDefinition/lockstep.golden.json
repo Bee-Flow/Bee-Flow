@@ -624,6 +624,157 @@
     true
    ],
    "hash": "b1d83c034ab556b4"
+  },
+  "updateSection.set": {
+   "same": false,
+   "keptScreens": [
+    false,
+    true
+   ],
+   "hash": "c58b20c2d221b0d5"
+  },
+  "updateSection.remove": {
+   "same": false,
+   "keptScreens": [
+    false,
+    true
+   ],
+   "hash": "b1d83c034ab556b4"
+  },
+  "updateSection.noop": {
+   "same": true,
+   "keptScreens": [
+    true,
+    true
+   ],
+   "hash": "b1d83c034ab556b4"
+  },
+  "updateSection.baseKeys": {
+   "same": true,
+   "keptScreens": [
+    true,
+    true
+   ],
+   "hash": "b1d83c034ab556b4"
+  },
+  "updateSection.sameList": {
+   "same": false,
+   "keptScreens": [
+    true,
+    false
+   ],
+   "hash": "d2c61e5fdd9c9747"
+  },
+  "updateSection.missing": {
+   "same": true,
+   "keptScreens": [
+    true,
+    true
+   ],
+   "hash": "b1d83c034ab556b4"
+  },
+  "moveSection.down": {
+   "same": false,
+   "keptScreens": [
+    false,
+    true
+   ],
+   "hash": "7d3395d3406f998e"
+  },
+  "moveSection.samePlace": {
+   "same": true,
+   "keptScreens": [
+    true,
+    true
+   ],
+   "hash": "b1d83c034ab556b4"
+  },
+  "moveSection.clamped": {
+   "same": false,
+   "keptScreens": [
+    false,
+    true
+   ],
+   "hash": "7d3395d3406f998e"
+  },
+  "moveSection.missing": {
+   "same": true,
+   "keptScreens": [
+    true,
+    true
+   ],
+   "hash": "b1d83c034ab556b4"
+  },
+  "duplicateSection.top": {
+   "same": false,
+   "keptScreens": [
+    false,
+    true
+   ],
+   "hash": "a2f1eadbf0decc6d",
+   "sectionId": "sec_8xm5i8"
+  },
+  "duplicateSection.missing": {
+   "same": true,
+   "keptScreens": [
+    true,
+    true
+   ],
+   "hash": "b1d83c034ab556b4",
+   "sectionId": null
+  },
+  "moveScreen.first": {
+   "same": false,
+   "keptScreens": [
+    true,
+    true
+   ],
+   "hash": "9c9089965b1b1a68"
+  },
+  "moveScreen.samePlace": {
+   "same": true,
+   "keptScreens": [
+    true,
+    true
+   ],
+   "hash": "b1d83c034ab556b4"
+  },
+  "moveScreen.missing": {
+   "same": true,
+   "keptScreens": [
+    true,
+    true
+   ],
+   "hash": "b1d83c034ab556b4"
+  },
+  "duplicateScreen.named": {
+   "same": false,
+   "keptScreens": [
+    true,
+    true,
+    false
+   ],
+   "hash": "babc2e86d459172a",
+   "screenId": "scr_jlme2l"
+  },
+  "duplicateScreen.unnamed": {
+   "same": false,
+   "keptScreens": [
+    true,
+    false,
+    true
+   ],
+   "hash": "63cf398a8d804ac9",
+   "screenId": "scr_jpqnra"
+  },
+  "duplicateScreen.missing": {
+   "same": true,
+   "keptScreens": [
+    true,
+    true
+   ],
+   "hash": "b1d83c034ab556b4",
+   "screenId": null
   }
  },
  "client": {

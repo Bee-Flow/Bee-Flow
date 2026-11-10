@@ -7,6 +7,8 @@ import type { DataState } from './DataContext';
 import { dataCacheKey, resolveBinding, resolveBindingFilters, resolveBindingParams, resolveBindingShape } from './resolveBinding';
 import type { BindingInput, ConnectorBinding, DataBinding as RecordsBinding } from './resolveBinding.types';
 import useAppDataSource, { MIN_REFRESH_MS } from './useAppDataSource';
+import { sectionHasGate, sectionLoadsData } from './sectionModel';
+import type { SectionModel } from './sectionModel';
 
 /**
  * App Studio runtime — the live-data scope.
@@ -132,7 +134,12 @@ function useFetchScope(scope: FetchScope | null | undefined, definition: ScopeDe
  * two components are not competing, they are sharing, and the faster one is the
  * only one that would notice being served late.
  */
-export function collectDataBindings(definition: ScopeDefinition | null | undefined, screenId: string | null | undefined) {
+export function collectDataBindings(
+    definition: ScopeDefinition | null | undefined,
+    screenId: string | null | undefined,
+    // A section this answers false for is skipped: the renderer draws nothing of it.
+    loadsSection: ((section: SectionModel) => boolean) | null = null,
+) {
     const screen = resolveScreen(definition, screenId);
     if (!screen) return [];
 
@@ -163,8 +170,28 @@ export function collectDataBindings(definition: ScopeDefinition | null | undefin
         const inherited = own ? { seconds: own, when: value.props?.liveWhile ?? null } : liveSeconds;
         for (const v of Object.values(value) as Visitable[]) visit(v, inherited);
     };
-    for (const section of screen.sections || []) visit(section, null);
+    for (const section of screen.sections || []) {
+        if (loadsSection && section && typeof section === 'object' && !Array.isArray(section) && !loadsSection(section as SectionModel)) continue;
+        visit(section, null);
+    }
     return out;
+}
+
+/**
+ * The section gate of the data layer for one viewer role: null (load every section, as before)
+ * when no role is given or no section of the screen carries a gate, so a screen without one
+ * keeps its memo inputs and its bindings exactly.
+ */
+function useSectionGate(definition: ScopeDefinition | null | undefined, screenId: string | null | undefined, scope: FetchScope | null | undefined, role: string | null | undefined) {
+    const gated = useMemo(() => {
+        if (role === undefined) return false;
+        const sections = resolveScreen(definition, screenId)?.sections || [];
+        return sections.some((s) => !!s && typeof s === 'object' && !Array.isArray(s) && sectionHasGate(s as SectionModel));
+    }, [definition, screenId, role]);
+    return useMemo(
+        () => (gated ? (section: SectionModel) => sectionLoadsData(section, scope || {}, role) : null),
+        [gated, scope, role],
+    );
 }
 
 /**
@@ -225,19 +252,21 @@ function BindingFetcher({ binding, sample, scope, refreshMs, live }: {
  */
 const MIN_SPACING_MS = 2_500;
 
-function BindingLoaders({ appId, definition, screenId, sample, scope, refreshMs }: {
+function BindingLoaders({ appId, definition, screenId, sample, scope, refreshMs, sectionRole }: {
     appId: string | null | undefined;
     definition: ScopeDefinition | null | undefined;
     screenId: string | null | undefined;
     sample: boolean;
     scope: FetchScope | null | undefined;
     refreshMs: number;
+    sectionRole?: string | null;
 }) {
-    const bindings = useMemo(
-        () => collectDataBindings(definition, screenId),
-        [definition, screenId],
-    );
     const fetchScope = useFetchScope(scope, definition, screenId);
+    const loadsSection = useSectionGate(definition, screenId, fetchScope, sectionRole);
+    const bindings = useMemo(
+        () => collectDataBindings(definition, screenId, loadsSection),
+        [definition, screenId, loadsSection],
+    );
     const requestsPerRound = useSyncExternalStore(
         subscribeBatchAvailability,
         () => requestsForBindings(appId, bindings.length),
@@ -310,7 +339,7 @@ function DataConsumer({ appId, children }: {
     return typeof children === 'function' ? children(dataState, controls) : children;
 }
 
-export default function AppDataScope({ appId, definition, screenId, sample = false, draft = false, scope, refreshMs = 0, children }: {
+export default function AppDataScope({ appId, definition, screenId, sample = false, draft = false, scope, refreshMs = 0, sectionRole, children }: {
     appId: string | null | undefined;
     definition: ScopeDefinition | null | undefined;
     screenId: string | null | undefined;
@@ -318,11 +347,17 @@ export default function AppDataScope({ appId, definition, screenId, sample = fal
     draft?: boolean;
     scope?: FetchScope | null;
     refreshMs?: number;
+    /**
+     * The viewer's role as the renderer gates with it (previewRole). Given, a section hidden
+     * from that role, or by a condition on the roots this scope holds, loads no data
+     * (sectionModel.sectionLoadsData). Left out: every section loads, as before.
+     */
+    sectionRole?: string | null;
     children?: ReactNode | ((dataState: DataState, controls: DataScopeControls) => ReactNode);
 }) {
     return (
         <DataProvider appId={appId} draft={draft}>
-            <BindingLoaders appId={appId} definition={definition} screenId={screenId} sample={sample} scope={scope} refreshMs={refreshMs} />
+            <BindingLoaders appId={appId} definition={definition} screenId={screenId} sample={sample} scope={scope} refreshMs={refreshMs} sectionRole={sectionRole} />
             <DataConsumer appId={appId}>{children}</DataConsumer>
         </DataProvider>
     );
