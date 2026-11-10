@@ -253,4 +253,9 @@ export default function DataGridInspector({ node, definition, onCommit, disabled
     );
 }
 
-registerInspector('data_grid', DataGridInspector);
+registerInspector('data_grid', DataGridInspector, { props: ['source', 'columns', 'selectable', 'density', 'look', 'pageSize', 'searchable', 'rowActions', 'toolbarActions', 'bulkActions', 'addRowLabel', 'addRowActionId', 'emptyText'], items: {
+        columns: ['key', 'label', 'format', 'align', 'width', 'toneFrom', 'sortable', 'filterable', 'editable'],
+        rowActions: ['label', 'actionId'],
+        toolbarActions: ['label', 'actionId', 'tone'],
+        bulkActions: ['label', 'actionId', 'tone'],
+    } });

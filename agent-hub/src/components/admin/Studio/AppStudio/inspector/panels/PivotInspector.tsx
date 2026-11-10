@@ -121,4 +121,4 @@ export default function PivotInspector({ node, definition, onCommit, disabled = 
     );
 }
 
-registerInspector('pivot', PivotInspector);
+registerInspector('pivot', PivotInspector, { props: ['source', 'rows', 'columns', 'values', 'showTotals', 'emptyText'], items: { rows: ['key', 'label'], columns: ['key', 'label'], values: ['key', 'agg', 'label', 'format'] } });

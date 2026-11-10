@@ -50,4 +50,4 @@ function CalloutInspector({ node, definition, onCommit, disabled = false }: Pane
     );
 }
 
-registerInspector('callout', CalloutInspector);
+registerInspector('callout', CalloutInspector, { props: ['title', 'text', 'tone'] });

@@ -134,6 +134,6 @@ export function TabInspector({ node, definition, onCommit, disabled = false }: P
     );
 }
 
-registerInspector('tabs', TabsInspector);
-registerInspector('tab', TabInspector);
+registerInspector('tabs', TabsInspector, { props: ['look'] });
+registerInspector('tab', TabInspector, { props: ['label', 'icon'] });
 

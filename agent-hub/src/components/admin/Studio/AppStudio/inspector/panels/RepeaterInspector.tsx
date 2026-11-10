@@ -104,4 +104,4 @@ export default function RepeaterInspector({ node, definition, onCommit, disabled
     );
 }
 
-registerInspector('repeater', RepeaterInspector);
+registerInspector('repeater', RepeaterInspector, { props: ['source', 'itemActions', 'emptyText'], items: { itemActions: ['label', 'actionId'] } });

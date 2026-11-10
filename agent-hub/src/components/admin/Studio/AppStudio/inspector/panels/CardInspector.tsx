@@ -54,4 +54,4 @@ export default function CardInspector({ node, definition, onCommit, disabled = f
     );
 }
 
-registerInspector('card', CardInspector);
+registerInspector('card', CardInspector, { props: ['title', 'description', 'look'] });

@@ -127,4 +127,4 @@ function FilterBarInspector({ node, definition, onCommit, disabled = false }: Pa
     );
 }
 
-registerInspector('filter_bar', FilterBarInspector);
+registerInspector('filter_bar', FilterBarInspector, { props: ['fields'], items: { fields: ['name', 'label', 'type', 'options'], 'fields[].options': ['value', 'label'] } });

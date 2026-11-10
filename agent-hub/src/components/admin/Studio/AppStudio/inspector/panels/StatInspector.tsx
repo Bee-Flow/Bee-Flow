@@ -60,4 +60,4 @@ export default function StatInspector({ node, definition, onCommit, disabled = f
     );
 }
 
-registerInspector('stat', StatInspector);
+registerInspector('stat', StatInspector, { props: ['label', 'value', 'caption', 'icon', 'look'] });

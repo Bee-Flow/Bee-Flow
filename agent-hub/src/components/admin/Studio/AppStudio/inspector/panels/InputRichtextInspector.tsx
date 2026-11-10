@@ -38,4 +38,4 @@ export default function InputRichtextInspector({ node, definition, onCommit, dis
     );
 }
 
-registerInspector('input_richtext', InputRichtextInspector);
+registerInspector('input_richtext', InputRichtextInspector, { props: ['name', 'label', 'required', 'defaultValue'] });
