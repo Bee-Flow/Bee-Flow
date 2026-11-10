@@ -80,9 +80,7 @@ function resolveFilters(filters, resolveValue) {
     ), {
         isUnset: (v) => v === undefined || v === null || v === '',
         keepMalformed: false,
-        // isNull/isNotNull carry no value, so they are dropped here like an
-        // unresolved clause (kept as it always was; a filed issue tracks it).
-        noValueOps: false,
+        noValueOps: true,
     });
     if (res.status !== 'ok') return { filters: [], blocked: true };
     return { filters: res.filters, blocked: false };

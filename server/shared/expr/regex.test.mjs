@@ -12,8 +12,9 @@ import { REGEX_ENGINE, createRegex } from './regexEngine.mjs';
 import { setMaxTextChars, DEFAULT_MAX_TEXT_CHARS } from './limits.mjs';
 
 const ev = (src, scope = {}) => evaluate(src, scope);
-// A formula string literal: `\` must be doubled inside the quotes, like JSON.
-const q = (s) => JSON.stringify(s);
+// A formula string literal. A regex pattern is read from its source text, so a
+// `\` is written once (`\d`); only a quote inside is escaped.
+const q = (s) => `"${s.replace(/["']/g, '\\$&')}"`;
 
 test('regexMatch: true when the pattern occurs, flags i/m/s, nothing is false', () => {
     assert.equal(ev(`regexMatch("Order 2026-11", ${q('\\d{4}-\\d{2}')})`), true);
@@ -24,7 +25,7 @@ test('regexMatch: true when the pattern occurs, flags i/m/s, nothing is false', 
     assert.equal(ev('regexMatch(t, "a.b")', { t: 'a\nb' }), false);
     assert.equal(ev('regexMatch(missing, "a")'), false);
     assert.equal(ev('regexMatch(12345, "^[0-9]+$")'), true, 'a number is read as its text');
-    assert.equal(ev('regexMatch("é", "^\\\\p{L}$")'), true, 'u is always on');
+    assert.equal(ev('regexMatch("é", "^\\p{L}$")'), true, 'u is always on');
 });
 
 test('regexReplace: every match, with $&, $1..$99 and $$', () => {
@@ -111,4 +112,25 @@ test('the server runs RE2: a backtracking-prone pattern on a long input answers 
     // Refused at parse time (repeated alternative); RE2 itself is linear on it.
     assert.equal(createRegex('(x|x)*y', 'u').test(long.slice(0, 5000)), false);
     assert.ok(Date.now() - started < 2000, `took ${Date.now() - started} ms`);
+});
+
+test('a backslash in a regex pattern literal is a regex escape (\\d, \\s, \\b); other strings keep their escapes', () => {
+    assert.equal(ev('regexMatch("a1", "^a\\d$")'), true);
+    assert.equal(ev('regexMatch("ad", "^a\\d$")'), false, '\\d is a digit, not the letter d');
+    assert.equal(ev('regexReplace("a  b", "\\s+", "-")'), 'a-b');
+    assert.equal(ev('regexMatch("ab", "a\\bb")'), false, '\\b is a word boundary, never a backspace');
+    assert.equal(ev('regexMatch("say \\"hi\\"", "\\"hi\\"")'), true, 'an escaped quote stays a quote');
+    assert.equal(ev('"a\\tb"'), 'a\tb', 'a normal string still unescapes');
+});
+
+test('a doubled backslash in a pattern is one backslash: the JSON way of writing it keeps its meaning', () => {
+    // The formula text is  regexMatch("a1", "^a\\d$")  with TWO backslashes.
+    assert.equal(ev(String.raw`regexMatch("a1", "^a\\d$")`), true);
+    assert.equal(ev(String.raw`regexMatch("ad", "^a\\d$")`), false);
+    assert.equal(ev(String.raw`regexReplace("a  b", "\\s+", "-")`), 'a-b');
+    assert.equal(ev(String.raw`regexMatch("a.b", "a\\.b")`), true);
+    assert.equal(ev(String.raw`regexMatch("axb", "a\\.b")`), false, 'an escaped dot is a dot in both spellings');
+    // Four backslashes stay the pattern for one literal backslash.
+    assert.equal(ev(String.raw`regexMatch(t, "a\\\\b")`, { t: 'a\\b' }), true);
+    assert.throws(() => ev(String.raw`regexMatch(x, "(a)\\1")`), /back-references/, 'and the checks read the same pattern');
 });

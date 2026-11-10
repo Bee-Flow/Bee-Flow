@@ -60,3 +60,17 @@ test('checkNodeAdvisories: a pane that clips, and a form whose Submit does nothi
     checkNodeAdvisories({ type: 'form' }, 's', { showSubmit: false }, null, ctx);
     assert.deepEqual(warnings.map((w) => `${w.path}:${w.code}`), ['p:component.pane_clips', 'r:form.no_submit_action']);
 });
+
+test('checkActionWiring: a dangling id on a grid add-row button or column is an error; known and empty ids pass', () => {
+    const { errors, ctx } = ctxWith(['save_record']);
+    const props = { addRowActionId: 'nope', columns: [{ field: 'a' }, { field: 'b', actionId: 'save_recrd' }, { field: 'c', actionId: 'save_record' }, { field: 'd', actionId: '' }] };
+    checkActionWiring({ type: 'data_grid', id: 'g' }, 'n', props, { events: [] }, ctx);
+    assert.deepEqual(errors.map((e) => [e.code, e.path]), [
+        ['event.action_unresolved', 'n.props.addRowActionId'],
+        ['event.action_unresolved', 'n.props.columns[1].actionId'],
+    ]);
+    assert.match(errors[1].hint, /save_record/);
+    const ok = ctxWith(['save_record']);
+    checkActionWiring({ type: 'data_grid', id: 'g' }, 'n', { addRowActionId: 'save_record', columns: [{ actionId: 'save_record' }] }, { events: [] }, ok.ctx);
+    assert.equal(ok.errors.length, 0);
+});

@@ -34,6 +34,9 @@ export const LIST_CASES = [
     // regular expressions (pattern and flags are literals)
     { expr: 'regexMatch(form.email, "^[a-z]+@[a-z]+[.]com$")', expected: true },
     { expr: 'regexMatch(currentUser.name, "^tom$", "i")', expected: true },
+    { expr: 'regexMatch("ab12", "^[a-z]+\\d+$")', expected: true },        // \d is a digit class, not the letter d
+    { expr: 'regexMatch("a b", "a\\sb")', expected: true },
+    { expr: 'regexMatch("say \\"hi\\"", "\\"hi\\"")', expected: true },   // an escaped quote stays a quote
     { expr: 'regexMatch(missing.x, "a")', expected: false },
     { expr: 'regexReplace("2026-07-04", "([0-9]+)-([0-9]+)-([0-9]+)", "$3/$2/$1")', expected: '04/07/2026' },
     { expr: 'regexReplace("a1b22", "[0-9]+", "<$&>")', expected: 'a<1>b<22>' },
@@ -48,11 +51,11 @@ export const LIST_REJECT = [
     'regexMatch(form.email, form.email)',       // the pattern must be a literal
     'regexMatch(form.email, "a", form.email)',  // so must the flags
     'regexMatch(form.email, "(a+)+")',          // nested quantifier
-    'regexMatch(form.email, "(\\\\w|\\\\d)+x")',      // alternative inside a repeated group
+    'regexMatch(form.email, "(\\w|\\d)+x")',      // alternative inside a repeated group
     'regexMatch(form.email, "(a|aa)+$")',
     'regexMatch(form.email, "(?=a)")',          // look-ahead
     'regexMatch(form.email, "(?<!a)b")',        // look-behind
-    'regexMatch(form.email, "(a)\\\\1")',          // back-reference
+    'regexMatch(form.email, "(a)\\1")',          // back-reference
     'regexMatch(form.email, "a", "g")',         // unknown flag
     'regexMatch(form.email, "[")',              // not a pattern
     'regexReplace(form.email, "a", "b", "i", 1)',
