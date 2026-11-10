@@ -112,7 +112,7 @@ test('every topic the prompt asks for by name exists', () => {
     for (const name of ['formulas', 'sizing', 'sequences', 'actions', 'data_model', 'mail_apps', 'documents', 'theme', 'screens', 'node_logic', 'bindings', 'variables', 'limits']) {
         assert.ok(index.includes(name) && CATALOG_TOPIC_NAMES.includes(name), `${name} is in the index and served`);
     }
-    assert.deepEqual([...CATALOG_TOPIC_NAMES].sort(), ['actions', 'bindings', 'data_model', 'documents', 'formulas', 'limits', 'mail_apps', 'node_logic', 'screens', 'sequences', 'sizing', 'theme', 'variables']);
+    assert.deepEqual([...CATALOG_TOPIC_NAMES].sort(), ['actions', 'bindings', 'data_model', 'design_example', 'documents', 'formulas', 'layout_dashboard', 'layout_form_wizard', 'layout_kanban_board', 'layout_landing', 'layout_list_detail', 'layout_report', 'layouts', 'limits', 'mail_apps', 'node_logic', 'screens', 'sequences', 'sizing', 'theme', 'variables']);
 });
 
 test('a rarely used component type is one summary line, and its full entry is served by name', async () => {

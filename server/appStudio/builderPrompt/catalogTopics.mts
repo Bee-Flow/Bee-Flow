@@ -14,6 +14,7 @@
 import { createRequire } from 'node:module';
 import { TOPIC_PREFIX } from './catalogDiet.mts';
 import { DOCUMENTS_TOPIC, MAIL_APPS_TOPIC } from './promptTopics.mts';
+import { LAYOUT_ARCHETYPES, renderDesignExampleTopic, renderLayoutTopic, renderLayoutsTopic } from './designTopics.mts';
 
 type Sections = Record<string, string> & { _stepsLead: string[]; _stepNotes: string[] };
 
@@ -35,6 +36,9 @@ const TOPICS: Readonly<Record<string, { holds: string; render: () => string }>> 
     bindings: { holds: 'every binding shape, filter and sort', render: () => sections().bindings },
     variables: { holds: 'declaring and reading app variables', render: () => sections().variables },
     limits: { holds: 'the size limits of a definition', render: () => sections().limits },
+    layouts: { holds: 'six screen shapes as worked skeletons: dashboard, list-detail, form wizard, landing, kanban board, report', render: renderLayoutsTopic },
+    ...Object.fromEntries(LAYOUT_ARCHETYPES.map((a) => [`layout_${a.name}`, { holds: `the ${a.title.toLowerCase()} skeleton alone`, render: () => renderLayoutTopic(a) }])),
+    design_example: { holds: 'one worked design: an ask, its direction, the calls that carry it out', render: renderDesignExampleTopic },
 });
 
 export const CATALOG_TOPIC_NAMES: readonly string[] = Object.freeze(Object.keys(TOPICS));

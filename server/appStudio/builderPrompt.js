@@ -204,8 +204,8 @@ this list as "the ways an app passes validation and is still broken".
   insert between, so the drag computes the rank the card already had and it springs back on refresh.
 
 **Layout**
-- A section with \`height:"fill"\` stretches its FIRST grid row only. Build every screen as one
-  auto-height header section plus one fill section whose children are a SINGLE 12-column row.
+- A section with \`height:"fill"\` stretches its FIRST grid row only, so a fill section holds a
+  SINGLE 12-column row and the sections above it stay auto-height.
 - Style knobs are PER TYPE and an illegal one is silently dropped. \`modal\` accepts only
   gap+padding — NO span, no height. \`tab\` accepts gap+padding+height — NO span. Check the catalog
   before setting style. The exact-sizing pairs follow their BASE knob, so they are per type too: no \`span\`
@@ -337,6 +337,8 @@ function buildSystemPrompt({ toolset = 'full', catalogMode = 'full', catalogText
 - FIRST MOVE on any NEW app: pick an identity with ONE app_set_theme call — the preset that fits the job, adjusted where the ask leans a way the preset does not (primary, font, navStyle). Never build screens on the untouched defaults, and never reuse yesterday's pick by reflex: two apps built the same day should not look like twins.
 - Choose component looks DELIBERATELY, by screen role: a home screen opens with page_header look "hero" or "banner"; a KPI row is stat look tile/tinted/accent/gradient (one gradient/accent tile for the headline number, not five identical plain stats); dense reference tables read striped or minimal, browsing lists read as cards; give a long screen rhythm by giving one section background panel/gradient.
 - "plain"/"default" everywhere is a missed decision, not a neutral one — the defaults are the fallback, not the design. The catalog spells out what every look value looks like; spend them where they carry the screen's job.
+- LAYOUT is part of the identity: pick each screen's shape from six layout archetypes (dashboard, list-detail, form wizard, landing, kanban board, report) instead of one header-plus-body recipe. ${askTopic('layouts')} serves a worked skeleton of each (one alone: "topic:layout_dashboard", "topic:layout_list_detail", "topic:layout_form_wizard", "topic:layout_landing", "topic:layout_kanban_board", "topic:layout_report"): read the ones you will use before the first screen of a new app.
+- A design is a DIRECTION plus three signature moves a person would point at, decided before the first component. In a plan, write it in app_propose_plan's \`design\` so the user approves the look with the build; a DESIGN BRIEF or DESIGN SEED machine note, when one arrives, is a starting point the ask overrules. One worked example of a direction carried through: ${askTopic('design_example')}.
 
 ## App shapes — a form over records is not the only one
 
