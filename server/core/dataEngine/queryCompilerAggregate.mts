@@ -12,7 +12,7 @@
 
 import { createRequire } from 'node:module';
 import { compileWhere } from './queryCompilerFilter.mts';
-import { resolveAggSort } from './queryCompilerOrder.mts';
+import { resolveAggSort, resolveAggOrderBy } from './queryCompilerOrder.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 
@@ -122,10 +122,10 @@ function addAggregate(tableMeta: TableMeta, fm: FieldMap, entry: unknown, dialec
     state.knownAliases.add(alias);
 }
 
-/** ORDER BY one output alias, then the LIMIT, shared by both shapes. */
-function finish(sql: string, sort: unknown, state: AggState, params: unknown[], limit: number): { sql: string; params: unknown[] } {
+/** ORDER BY one output alias (`sort`) or up to three (`orderBy`, which wins), then the LIMIT, shared by both shapes. */
+function finish(sql: string, opts: Entry, state: AggState, params: unknown[], limit: number): { sql: string; params: unknown[] } {
     let out = sql;
-    const orderBy = resolveAggSort(sort, state.knownAliases);
+    const orderBy = resolveAggOrderBy(opts.orderBy, state.knownAliases) ?? resolveAggSort(opts.sort, state.knownAliases);
     if (orderBy) out += ` ORDER BY ${orderBy}`;
     out += ` LIMIT ?`;
     params.push(limit);
@@ -202,5 +202,5 @@ export function compileAggregate(tableMeta: TableMeta, opts: Entry = {}, accessF
     const limit = core.clampLimit(opts.limit);
     const tableKey = tableMeta.key as string;
     const sql = state.percentiles.length === 0 ? plainSql(tableKey, where, state) : percentileSql(tableKey, where, state);
-    return finish(sql, opts.sort, state, [...params], limit);
+    return finish(sql, opts, state, [...params], limit);
 }

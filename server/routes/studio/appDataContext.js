@@ -269,7 +269,10 @@ function parseListQuery(req) {
     if (typeof q.filter === 'string' && q.filter) { try { filters = JSON.parse(q.filter); } catch (err) { fallback('routes/studio/appDataContext:parseListQuery', err); /* ignore */ } }
     if (typeof q.sort === 'string' && q.sort) { try { sort = JSON.parse(q.sort); } catch (err) { fallback('routes/studio/appDataContext:parseListQuery#2', err); /* ignore */ } }
     if (filters !== undefined && !Array.isArray(filters)) filters = [filters];
-    return { filters, sort };
+    /** @type {unknown} */
+    let orderBy;
+    if (typeof q.orderBy === 'string' && q.orderBy) { try { orderBy = JSON.parse(q.orderBy); } catch (err) { fallback('routes/studio/appDataContext:parseListQuery#3', err); /* ignore */ } }
+    return orderBy === undefined ? { filters, sort } : { filters, sort, orderBy };
 }
 
 // The cache invalidation + row count after a write used to live here as

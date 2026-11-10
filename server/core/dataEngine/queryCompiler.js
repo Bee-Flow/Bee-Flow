@@ -77,7 +77,7 @@ const { resolveDialect } = require('./engineFlag');
 const { MAX_RESULT_ROWS, DEFAULT_LIMIT, MAX_KEY_INDEX_KEYS, MAX_AGGREGATES, CompileError, RowsLockedError, assertRowsWritable, qi, assertTableMeta, fieldMap, resolveColumn, scalar, assertAccessFilter, MATCH_MODES, buildWhere, clampLimit } = require('./queryCompilerBase');
 const { compileInsert, compileUpdate, compileDelete, compileUpsertByKey, compileUpsertById } = require('./queryCompilerWrite');
 const { compileIdList, compileKeyValues, compileDeleteAll, compileDeleteOlderThan, compileSelectOlderThan, compileDeleteOrphans, compileDoomedUnderParent, compileRetentionDelete } = require('./queryCompilerMaintenance');
-const { encodeCursor, decodeCursor, resolvePrimarySort, keysetClause, recordOrderBy } = require('./queryCompilerOrder.mts');
+const { encodeCursor, decodeCursor, resolvePrimarySort, keysetClause, recordOrderBy, MAX_ORDER_BY, resolveOrderBy, orderByClause, orderKeysetClause, encodeOrderCursor } = require('./queryCompilerOrder.mts');
 const { recordSelectList } = require('./queryCompilerSelect.mts');
 const { compileAggregate } = require('./queryCompilerAggregate.mts');
 
@@ -101,6 +101,8 @@ function compileRecordList(tableMeta, opts = {}, accessFilter) {
     const { where, params } = buildWhere(
         tableMeta, fm, opts.filters, accessFilter, dialect, opts.match, opts.search);
     const limit = clampLimit(opts.limit, opts.maxLimit);
+    const order = resolveOrderBy(tableMeta, fm, opts.orderBy);
+    if (order) return recordListOrdered(tableMeta, { where, params, limit, order, cursor: opts.cursor });
     const primary = resolvePrimarySort(tableMeta, fm, opts.sort);
 
     let clause = where;
@@ -116,6 +118,42 @@ function compileRecordList(tableMeta, opts = {}, accessFilter) {
         + `${recordOrderBy(primary)} LIMIT ?`;
     allParams.push(limit + 1); // probe row → nextCursor
     return { sql, params: allParams, primaryField: primary.fieldKey, limit };
+}
+
+/**
+ * The record list of an `orderBy` read (up to MAX_ORDER_BY columns, `id` last).
+ * Returns `orderFields` next to the usual fields; the caller mints the next
+ * cursor with nextCursor(compiled, lastRow).
+ * @param {TableMeta} tableMeta
+ * @param {{ where: string, params: unknown[], limit: number, order: Array<{ fieldKey: string, column: string, dir: 'asc' | 'desc' }>, cursor?: string }} parts
+ */
+function recordListOrdered(tableMeta, { where, params, limit, order, cursor }) {
+    let clause = where;
+    const allParams = [...params];
+    const cur = decodeCursor(cursor);
+    if (cur) {
+        const keyset = orderKeysetClause(order, cur);
+        clause += keyset.sql;
+        allParams.push(...keyset.params);
+    }
+    const sql = `SELECT ${recordSelectList()} FROM ${qi(tableMeta.key)} ${clause} ${orderByClause(order)} LIMIT ?`;
+    allParams.push(limit + 1); // probe row → nextCursor
+    return { sql, params: allParams, primaryField: order[0].fieldKey, limit, orderFields: order.map((c) => c.fieldKey) };
+}
+
+/**
+ * The cursor for the page after `lastRow`, for either kind of record list: the
+ * (value, id) pair of a `sort` read, or every sort value of an `orderBy` read.
+ * One function, so a caller cannot mint the wrong kind.
+ * @param {{ primaryField: string, orderFields?: string[] }} compiled
+ * @param {Record<string, unknown>} lastRow
+ * @returns {string | null}
+ */
+function nextCursor(compiled, lastRow) {
+    if (Array.isArray(compiled.orderFields)) {
+        return encodeOrderCursor(compiled.orderFields.map((fieldKey) => ({ fieldKey, column: '', dir: 'asc' })), lastRow);
+    }
+    return encodeCursor(lastRow[compiled.primaryField], lastRow.id);
 }
 
 /** SELECT one record by id, access-scoped. Hidden rows return 0 rows → 404. */
@@ -179,6 +217,8 @@ module.exports = {
     compileDeleteOrphans, compileDoomedUnderParent, compileRetentionDelete,
     encodeCursor,
     decodeCursor,
+    nextCursor,
+    MAX_ORDER_BY,
     // Exported so a route clamps with the compiler's own rule, not a copy.
     clampLimit,
     CompileError,
@@ -217,7 +257,7 @@ module.exports = {
 
 /**
  * @typedef {{ dialect?: string, filters?: FilterSpec[], match?: string, search?: SearchSpec | null,
- *   sort?: SortEntry | SortEntry[], cursor?: string, limit?: unknown, maxLimit?: number }} ListOpts
+ *   sort?: SortEntry | SortEntry[], orderBy?: SortEntry | SortEntry[], cursor?: string, limit?: unknown, maxLimit?: number }} ListOpts
  */
 
 /**

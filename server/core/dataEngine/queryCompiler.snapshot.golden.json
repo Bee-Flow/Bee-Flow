@@ -2483,6 +2483,958 @@
         "primaryField": "created_at",
         "limit": 50
       }
+    },
+    "tree-all-in-any": {
+      "sqlite": {
+        "sql": "SELECT * FROM \"tasks\" WHERE (\"created_by\" = ?) AND ((\"title\" = ? AND \"amount\" > ?) OR \"title\" = ?) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+        "params": [
+          "viewer-1",
+          "a",
+          1,
+          "b",
+          51
+        ],
+        "primaryField": "created_at",
+        "limit": 50
+      },
+      "pg": {
+        "sql": "SELECT * FROM \"tasks\" WHERE (\"created_by\" = ?) AND ((\"title\" = ? AND \"amount\" > ?) OR \"title\" = ?) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+        "params": [
+          "viewer-1",
+          "a",
+          1,
+          "b",
+          51
+        ],
+        "primaryField": "created_at",
+        "limit": 50
+      }
+    },
+    "tree-all-top": {
+      "sqlite": {
+        "sql": "SELECT * FROM \"tasks\" WHERE (\"created_by\" = ?) AND (\"title\" = ? AND \"done\" = ?) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+        "params": [
+          "viewer-1",
+          "a",
+          1,
+          51
+        ],
+        "primaryField": "created_at",
+        "limit": 50
+      },
+      "pg": {
+        "sql": "SELECT * FROM \"tasks\" WHERE (\"created_by\" = ?) AND (\"title\" = ? AND \"done\" = ?) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+        "params": [
+          "viewer-1",
+          "a",
+          true,
+          51
+        ],
+        "primaryField": "created_at",
+        "limit": 50
+      }
+    },
+    "tree-all-single": {
+      "sqlite": {
+        "sql": "SELECT * FROM \"tasks\" WHERE (\"created_by\" = ?) AND \"title\" = ? ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+        "params": [
+          "viewer-1",
+          "a",
+          51
+        ],
+        "primaryField": "created_at",
+        "limit": 50
+      },
+      "pg": {
+        "sql": "SELECT * FROM \"tasks\" WHERE (\"created_by\" = ?) AND \"title\" = ? ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+        "params": [
+          "viewer-1",
+          "a",
+          51
+        ],
+        "primaryField": "created_at",
+        "limit": 50
+      }
+    },
+    "tree-not-clause": {
+      "sqlite": {
+        "sql": "SELECT * FROM \"tasks\" WHERE (\"created_by\" = ?) AND NOT COALESCE((\"title\" = ?), 0) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+        "params": [
+          "viewer-1",
+          "a",
+          51
+        ],
+        "primaryField": "created_at",
+        "limit": 50
+      },
+      "pg": {
+        "sql": "SELECT * FROM \"tasks\" WHERE (\"created_by\" = ?) AND NOT COALESCE((\"title\" = ?), FALSE) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+        "params": [
+          "viewer-1",
+          "a",
+          51
+        ],
+        "primaryField": "created_at",
+        "limit": 50
+      }
+    },
+    "tree-not-any": {
+      "sqlite": {
+        "sql": "SELECT * FROM \"tasks\" WHERE (\"created_by\" = ?) AND \"title\" = ? AND NOT COALESCE(((\"title\" = ? OR 0)), 0) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+        "params": [
+          "viewer-1",
+          "z",
+          "a",
+          51
+        ],
+        "primaryField": "created_at",
+        "limit": 50
+      },
+      "pg": {
+        "sql": "SELECT * FROM \"tasks\" WHERE (\"created_by\" = ?) AND \"title\" = ? AND NOT COALESCE(((\"title\" = ? OR FALSE)), FALSE) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+        "params": [
+          "viewer-1",
+          "z",
+          "a",
+          51
+        ],
+        "primaryField": "created_at",
+        "limit": 50
+      }
+    },
+    "tree-depth-3": {
+      "sqlite": {
+        "sql": "SELECT * FROM \"tasks\" WHERE (\"created_by\" = ?) AND ((NOT COALESCE((\"title\" = ?), 0) AND \"title\" = ?) OR NOT COALESCE(((\"title\" = ? AND \"title\" = ?)), 0)) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+        "params": [
+          "viewer-1",
+          "a",
+          "b",
+          "c",
+          "d",
+          51
+        ],
+        "primaryField": "created_at",
+        "limit": 50
+      },
+      "pg": {
+        "sql": "SELECT * FROM \"tasks\" WHERE (\"created_by\" = ?) AND ((NOT COALESCE((\"title\" = ?), FALSE) AND \"title\" = ?) OR NOT COALESCE(((\"title\" = ? AND \"title\" = ?)), FALSE)) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+        "params": [
+          "viewer-1",
+          "a",
+          "b",
+          "c",
+          "d",
+          51
+        ],
+        "primaryField": "created_at",
+        "limit": 50
+      }
+    },
+    "tree-any-in-all-in-any": {
+      "sqlite": {
+        "sql": "SELECT * FROM \"tasks\" WHERE (\"created_by\" = ?) AND ((\"title\" = ? OR \"title\" = ?) AND \"title\" = ?) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+        "params": [
+          "viewer-1",
+          "a",
+          "b",
+          "c",
+          51
+        ],
+        "primaryField": "created_at",
+        "limit": 50
+      },
+      "pg": {
+        "sql": "SELECT * FROM \"tasks\" WHERE (\"created_by\" = ?) AND ((\"title\" = ? OR \"title\" = ?) AND \"title\" = ?) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+        "params": [
+          "viewer-1",
+          "a",
+          "b",
+          "c",
+          51
+        ],
+        "primaryField": "created_at",
+        "limit": 50
+      }
+    },
+    "tree-match-any": {
+      "sqlite": {
+        "sql": "SELECT * FROM \"tasks\" WHERE (\"created_by\" = ?) AND ((\"title\" = ? AND \"title\" = ?) OR NOT COALESCE((\"title\" = ?), 0)) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+        "params": [
+          "viewer-1",
+          "a",
+          "b",
+          "c",
+          51
+        ],
+        "primaryField": "created_at",
+        "limit": 50
+      },
+      "pg": {
+        "sql": "SELECT * FROM \"tasks\" WHERE (\"created_by\" = ?) AND ((\"title\" = ? AND \"title\" = ?) OR NOT COALESCE((\"title\" = ?), FALSE)) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+        "params": [
+          "viewer-1",
+          "a",
+          "b",
+          "c",
+          51
+        ],
+        "primaryField": "created_at",
+        "limit": 50
+      }
+    },
+    "tree-with-search-and-cursor": {
+      "sqlite": {
+        "sql": "SELECT * FROM \"tasks\" WHERE (\"created_by\" = ?) AND NOT COALESCE(((\"title\" = ? OR \"title\" = ?)), 0) AND (\"title\" LIKE ? ESCAPE '\\') AND (\"amount\", \"id\") > (?, ?) ORDER BY \"amount\" ASC, \"id\" ASC LIMIT ?",
+        "params": [
+          "viewer-1",
+          "a",
+          "b",
+          "%q%",
+          3,
+          "rec_1",
+          51
+        ],
+        "primaryField": "amount",
+        "limit": 50
+      },
+      "pg": {
+        "sql": "SELECT * FROM \"tasks\" WHERE (\"created_by\" = ?) AND NOT COALESCE(((\"title\" = ? OR \"title\" = ?)), FALSE) AND (\"title\" ILIKE ? ESCAPE '\\') AND (\"amount\", \"id\") > (?, ?) ORDER BY \"amount\" ASC, \"id\" ASC LIMIT ?",
+        "params": [
+          "viewer-1",
+          "a",
+          "b",
+          "%q%",
+          3,
+          "rec_1",
+          51
+        ],
+        "primaryField": "amount",
+        "limit": 50
+      }
+    },
+    "tree-allow-access": {
+      "sqlite": {
+        "sql": "SELECT * FROM \"tasks\" WHERE (1=1) AND (NOT COALESCE((\"title\" = ?), 0) OR \"title\" = ?) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+        "params": [
+          "a",
+          "b",
+          51
+        ],
+        "primaryField": "created_at",
+        "limit": 50
+      },
+      "pg": {
+        "sql": "SELECT * FROM \"tasks\" WHERE (1=1) AND (NOT COALESCE((\"title\" = ?), FALSE) OR \"title\" = ?) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+        "params": [
+          "a",
+          "b",
+          51
+        ],
+        "primaryField": "created_at",
+        "limit": 50
+      }
+    },
+    "other-field-number": {
+      "sqlite": {
+        "sql": "SELECT * FROM \"tasks\" WHERE (\"created_by\" = ?) AND \"amount\" >= \"amount\" ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+        "params": [
+          "viewer-1",
+          51
+        ],
+        "primaryField": "created_at",
+        "limit": 50
+      },
+      "pg": {
+        "sql": "SELECT * FROM \"tasks\" WHERE (\"created_by\" = ?) AND \"amount\" >= \"amount\" ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+        "params": [
+          "viewer-1",
+          51
+        ],
+        "primaryField": "created_at",
+        "limit": 50
+      }
+    },
+    "other-field-bool-neq": {
+      "sqlite": {
+        "sql": "SELECT * FROM \"tasks\" WHERE (\"created_by\" = ?) AND \"done\" != \"done\" ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+        "params": [
+          "viewer-1",
+          51
+        ],
+        "primaryField": "created_at",
+        "limit": 50
+      },
+      "pg": {
+        "sql": "SELECT * FROM \"tasks\" WHERE (\"created_by\" = ?) AND \"done\" != \"done\" ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+        "params": [
+          "viewer-1",
+          51
+        ],
+        "primaryField": "created_at",
+        "limit": 50
+      }
+    },
+    "other-field-eq-text": {
+      "sqlite": {
+        "sql": "SELECT * FROM \"tasks\" WHERE (\"created_by\" = ?) AND \"title\" = \"region\" ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+        "params": [
+          "viewer-1",
+          51
+        ],
+        "primaryField": "created_at",
+        "limit": 50
+      },
+      "pg": {
+        "sql": "SELECT * FROM \"tasks\" WHERE (\"created_by\" = ?) AND \"title\" = \"region\" ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+        "params": [
+          "viewer-1",
+          51
+        ],
+        "primaryField": "created_at",
+        "limit": 50
+      }
+    },
+    "other-field-system": {
+      "sqlite": {
+        "sql": "SELECT * FROM \"tasks\" WHERE (\"created_by\" = ?) AND \"due\" <= \"updated_at\" ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+        "params": [
+          "viewer-1",
+          51
+        ],
+        "primaryField": "created_at",
+        "limit": 50
+      },
+      "pg": {
+        "sql": "SELECT * FROM \"tasks\" WHERE (\"created_by\" = ?) AND \"due\" <= \"updated_at\" ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+        "params": [
+          "viewer-1",
+          51
+        ],
+        "primaryField": "created_at",
+        "limit": 50
+      }
+    },
+    "other-field-in-tree": {
+      "sqlite": {
+        "sql": "SELECT * FROM \"tasks\" WHERE (\"created_by\" = ?) AND (\"created_by\" != \"owner_ref\" OR NOT COALESCE((\"due\" < \"created_at\"), 0)) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+        "params": [
+          "viewer-1",
+          51
+        ],
+        "primaryField": "created_at",
+        "limit": 50
+      },
+      "pg": {
+        "sql": "SELECT * FROM \"tasks\" WHERE (\"created_by\" = ?) AND (\"created_by\" != \"owner_ref\" OR NOT COALESCE((\"due\" < \"created_at\"), FALSE)) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+        "params": [
+          "viewer-1",
+          51
+        ],
+        "primaryField": "created_at",
+        "limit": 50
+      }
+    },
+    "order-by-one": {
+      "sqlite": {
+        "sql": "SELECT * FROM \"tasks\" WHERE (\"created_by\" = ?) ORDER BY (\"title\" IS NULL), \"title\" ASC, \"id\" ASC LIMIT ?",
+        "params": [
+          "viewer-1",
+          51
+        ],
+        "primaryField": "title",
+        "limit": 50,
+        "orderFields": [
+          "title",
+          "id"
+        ]
+      },
+      "pg": {
+        "sql": "SELECT * FROM \"tasks\" WHERE (\"created_by\" = ?) ORDER BY (\"title\" IS NULL), \"title\" ASC, \"id\" ASC LIMIT ?",
+        "params": [
+          "viewer-1",
+          51
+        ],
+        "primaryField": "title",
+        "limit": 50,
+        "orderFields": [
+          "title",
+          "id"
+        ]
+      }
+    },
+    "order-by-object": {
+      "sqlite": {
+        "sql": "SELECT * FROM \"tasks\" WHERE (\"created_by\" = ?) ORDER BY (\"amount\" IS NULL), \"amount\" DESC, \"id\" DESC LIMIT ?",
+        "params": [
+          "viewer-1",
+          51
+        ],
+        "primaryField": "amount",
+        "limit": 50,
+        "orderFields": [
+          "amount",
+          "id"
+        ]
+      },
+      "pg": {
+        "sql": "SELECT * FROM \"tasks\" WHERE (\"created_by\" = ?) ORDER BY (\"amount\" IS NULL), \"amount\" DESC, \"id\" DESC LIMIT ?",
+        "params": [
+          "viewer-1",
+          51
+        ],
+        "primaryField": "amount",
+        "limit": 50,
+        "orderFields": [
+          "amount",
+          "id"
+        ]
+      }
+    },
+    "order-by-three-mixed": {
+      "sqlite": {
+        "sql": "SELECT * FROM \"tasks\" WHERE (\"created_by\" = ?) ORDER BY (\"region\" IS NULL), \"region\" ASC, (\"amount\" IS NULL), \"amount\" DESC, (\"title\" IS NULL), \"title\" ASC, \"id\" ASC LIMIT ?",
+        "params": [
+          "viewer-1",
+          51
+        ],
+        "primaryField": "region",
+        "limit": 50,
+        "orderFields": [
+          "region",
+          "amount",
+          "title",
+          "id"
+        ]
+      },
+      "pg": {
+        "sql": "SELECT * FROM \"tasks\" WHERE (\"created_by\" = ?) ORDER BY (\"region\" IS NULL), \"region\" ASC, (\"amount\" IS NULL), \"amount\" DESC, (\"title\" IS NULL), \"title\" ASC, \"id\" ASC LIMIT ?",
+        "params": [
+          "viewer-1",
+          51
+        ],
+        "primaryField": "region",
+        "limit": 50,
+        "orderFields": [
+          "region",
+          "amount",
+          "title",
+          "id"
+        ]
+      }
+    },
+    "order-by-wins-over-sort": {
+      "sqlite": {
+        "sql": "SELECT * FROM \"tasks\" WHERE (\"created_by\" = ?) ORDER BY (\"amount\" IS NULL), \"amount\" DESC, (\"due\" IS NULL), \"due\" ASC, \"id\" ASC LIMIT ?",
+        "params": [
+          "viewer-1",
+          51
+        ],
+        "primaryField": "amount",
+        "limit": 50,
+        "orderFields": [
+          "amount",
+          "due",
+          "id"
+        ]
+      },
+      "pg": {
+        "sql": "SELECT * FROM \"tasks\" WHERE (\"created_by\" = ?) ORDER BY (\"amount\" IS NULL), \"amount\" DESC, (\"due\" IS NULL), \"due\" ASC, \"id\" ASC LIMIT ?",
+        "params": [
+          "viewer-1",
+          51
+        ],
+        "primaryField": "amount",
+        "limit": 50,
+        "orderFields": [
+          "amount",
+          "due",
+          "id"
+        ]
+      }
+    },
+    "order-by-with-id": {
+      "sqlite": {
+        "sql": "SELECT * FROM \"tasks\" WHERE (\"created_by\" = ?) ORDER BY (\"region\" IS NULL), \"region\" DESC, \"id\" ASC LIMIT ?",
+        "params": [
+          "viewer-1",
+          51
+        ],
+        "primaryField": "region",
+        "limit": 50,
+        "orderFields": [
+          "region",
+          "id"
+        ]
+      },
+      "pg": {
+        "sql": "SELECT * FROM \"tasks\" WHERE (\"created_by\" = ?) ORDER BY (\"region\" IS NULL), \"region\" DESC, \"id\" ASC LIMIT ?",
+        "params": [
+          "viewer-1",
+          51
+        ],
+        "primaryField": "region",
+        "limit": 50,
+        "orderFields": [
+          "region",
+          "id"
+        ]
+      }
+    },
+    "order-by-empty-list-is-sort": {
+      "sqlite": {
+        "sql": "SELECT * FROM \"tasks\" WHERE (\"created_by\" = ?) ORDER BY \"title\" ASC, \"id\" ASC LIMIT ?",
+        "params": [
+          "viewer-1",
+          51
+        ],
+        "primaryField": "title",
+        "limit": 50
+      },
+      "pg": {
+        "sql": "SELECT * FROM \"tasks\" WHERE (\"created_by\" = ?) ORDER BY \"title\" ASC, \"id\" ASC LIMIT ?",
+        "params": [
+          "viewer-1",
+          51
+        ],
+        "primaryField": "title",
+        "limit": 50
+      }
+    },
+    "order-by-cursor": {
+      "sqlite": {
+        "sql": "SELECT * FROM \"tasks\" WHERE (\"created_by\" = ?) AND (((\"region\" > ? OR \"region\" IS NULL)) OR (\"region\" = ? AND (\"amount\" < ? OR \"amount\" IS NULL)) OR (\"region\" = ? AND \"amount\" = ? AND \"id\" < ?)) ORDER BY (\"region\" IS NULL), \"region\" ASC, (\"amount\" IS NULL), \"amount\" DESC, \"id\" DESC LIMIT ?",
+        "params": [
+          "viewer-1",
+          "eu",
+          "eu",
+          12,
+          "eu",
+          12,
+          "rec_3",
+          11
+        ],
+        "primaryField": "region",
+        "limit": 10,
+        "orderFields": [
+          "region",
+          "amount",
+          "id"
+        ]
+      },
+      "pg": {
+        "sql": "SELECT * FROM \"tasks\" WHERE (\"created_by\" = ?) AND (((\"region\" > ? OR \"region\" IS NULL)) OR (\"region\" = ? AND (\"amount\" < ? OR \"amount\" IS NULL)) OR (\"region\" = ? AND \"amount\" = ? AND \"id\" < ?)) ORDER BY (\"region\" IS NULL), \"region\" ASC, (\"amount\" IS NULL), \"amount\" DESC, \"id\" DESC LIMIT ?",
+        "params": [
+          "viewer-1",
+          "eu",
+          "eu",
+          12,
+          "eu",
+          12,
+          "rec_3",
+          11
+        ],
+        "primaryField": "region",
+        "limit": 10,
+        "orderFields": [
+          "region",
+          "amount",
+          "id"
+        ]
+      }
+    },
+    "order-by-cursor-nulls": {
+      "sqlite": {
+        "sql": "SELECT * FROM \"tasks\" WHERE (\"created_by\" = ?) AND \"title\" = ? AND ((\"region\" IS NULL AND (\"amount\" < ? OR \"amount\" IS NULL)) OR (\"region\" IS NULL AND \"amount\" = ? AND \"due\" IS NULL AND \"id\" > ?)) ORDER BY (\"region\" IS NULL), \"region\" ASC, (\"amount\" IS NULL), \"amount\" DESC, (\"due\" IS NULL), \"due\" ASC, \"id\" ASC LIMIT ?",
+        "params": [
+          "viewer-1",
+          "a",
+          12,
+          12,
+          "rec_3",
+          51
+        ],
+        "primaryField": "region",
+        "limit": 50,
+        "orderFields": [
+          "region",
+          "amount",
+          "due",
+          "id"
+        ]
+      },
+      "pg": {
+        "sql": "SELECT * FROM \"tasks\" WHERE (\"created_by\" = ?) AND \"title\" = ? AND ((\"region\" IS NULL AND (\"amount\" < ? OR \"amount\" IS NULL)) OR (\"region\" IS NULL AND \"amount\" = ? AND \"due\" IS NULL AND \"id\" > ?)) ORDER BY (\"region\" IS NULL), \"region\" ASC, (\"amount\" IS NULL), \"amount\" DESC, (\"due\" IS NULL), \"due\" ASC, \"id\" ASC LIMIT ?",
+        "params": [
+          "viewer-1",
+          "a",
+          12,
+          12,
+          "rec_3",
+          51
+        ],
+        "primaryField": "region",
+        "limit": 50,
+        "orderFields": [
+          "region",
+          "amount",
+          "due",
+          "id"
+        ]
+      }
+    },
+    "order-by-cursor-one": {
+      "sqlite": {
+        "sql": "SELECT * FROM \"tasks\" WHERE (\"created_by\" = ?) AND (((\"amount\" < ? OR \"amount\" IS NULL)) OR (\"amount\" = ? AND \"id\" < ?)) ORDER BY (\"amount\" IS NULL), \"amount\" DESC, \"id\" DESC LIMIT ?",
+        "params": [
+          "viewer-1",
+          5,
+          5,
+          "rec_9",
+          51
+        ],
+        "primaryField": "amount",
+        "limit": 50,
+        "orderFields": [
+          "amount",
+          "id"
+        ]
+      },
+      "pg": {
+        "sql": "SELECT * FROM \"tasks\" WHERE (\"created_by\" = ?) AND (((\"amount\" < ? OR \"amount\" IS NULL)) OR (\"amount\" = ? AND \"id\" < ?)) ORDER BY (\"amount\" IS NULL), \"amount\" DESC, \"id\" DESC LIMIT ?",
+        "params": [
+          "viewer-1",
+          5,
+          5,
+          "rec_9",
+          51
+        ],
+        "primaryField": "amount",
+        "limit": 50,
+        "orderFields": [
+          "amount",
+          "id"
+        ]
+      }
+    },
+    "err-tree-too-deep": {
+      "sqlite": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "filter groups nest at most 3 deep"
+        }
+      },
+      "pg": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "filter groups nest at most 3 deep"
+        }
+      }
+    },
+    "err-all-empty": {
+      "sqlite": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "an { all: [...] } filter group needs at least one clause"
+        }
+      },
+      "pg": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "an { all: [...] } filter group needs at least one clause"
+        }
+      }
+    },
+    "err-tree-unknown-field": {
+      "sqlite": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "unknown field: ssn"
+        }
+      },
+      "pg": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "unknown field: ssn"
+        }
+      }
+    },
+    "err-tree-too-many": {
+      "sqlite": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "too many filters: 51 clauses (max 50, counting the clauses inside any groups)"
+        }
+      },
+      "pg": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "too many filters: 51 clauses (max 50, counting the clauses inside any groups)"
+        }
+      }
+    },
+    "err-not-list": {
+      "sqlite": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "field must be a non-empty string"
+        }
+      },
+      "pg": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "field must be a non-empty string"
+        }
+      }
+    },
+    "err-other-field-unknown": {
+      "sqlite": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "unknown field: ssn"
+        }
+      },
+      "pg": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "unknown field: ssn"
+        }
+      }
+    },
+    "err-other-field-computed": {
+      "sqlite": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "field \"total\" is a read-time computed field and cannot be queried"
+        }
+      },
+      "pg": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "field \"total\" is a read-time computed field and cannot be queried"
+        }
+      }
+    },
+    "err-other-field-op": {
+      "sqlite": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "a comparison with otherField takes one of eq, neq, gt, gte, lt, lte, not contains"
+        }
+      },
+      "pg": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "a comparison with otherField takes one of eq, neq, gt, gte, lt, lte, not contains"
+        }
+      }
+    },
+    "err-other-field-kinds": {
+      "sqlite": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "cannot compare \"title\" with \"amount\": the two fields must be of the same kind (number, date, datetime, bool or text)"
+        }
+      },
+      "pg": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "cannot compare \"title\" with \"amount\": the two fields must be of the same kind (number, date, datetime, bool or text)"
+        }
+      }
+    },
+    "err-other-field-json": {
+      "sqlite": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "cannot compare \"tags\" with \"tags\": the two fields must be of the same kind (number, date, datetime, bool or text)"
+        }
+      },
+      "pg": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "cannot compare \"tags\" with \"tags\": the two fields must be of the same kind (number, date, datetime, bool or text)"
+        }
+      }
+    },
+    "err-other-field-and-value": {
+      "sqlite": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "a filter clause takes a value or an otherField, not both"
+        }
+      },
+      "pg": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "a filter clause takes a value or an otherField, not both"
+        }
+      }
+    },
+    "err-other-field-number-text": {
+      "sqlite": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "cannot compare \"amount\" with \"stored_total\": the two fields must be of the same kind (number, date, datetime, bool or text)"
+        }
+      },
+      "pg": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "cannot compare \"amount\" with \"stored_total\": the two fields must be of the same kind (number, date, datetime, bool or text)"
+        }
+      }
+    },
+    "err-order-by-too-many": {
+      "sqlite": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "orderBy takes at most 3 columns"
+        }
+      },
+      "pg": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "orderBy takes at most 3 columns"
+        }
+      }
+    },
+    "err-order-by-unknown": {
+      "sqlite": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "unknown field: nope"
+        }
+      },
+      "pg": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "unknown field: nope"
+        }
+      }
+    },
+    "err-order-by-computed": {
+      "sqlite": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "field \"total\" is a read-time computed field and cannot be queried"
+        }
+      },
+      "pg": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "field \"total\" is a read-time computed field and cannot be queried"
+        }
+      }
+    },
+    "err-order-by-twice": {
+      "sqlite": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "orderBy names \"title\" twice"
+        }
+      },
+      "pg": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "orderBy names \"title\" twice"
+        }
+      }
+    },
+    "err-order-by-no-field": {
+      "sqlite": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "each orderBy entry needs a field"
+        }
+      },
+      "pg": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "each orderBy entry needs a field"
+        }
+      }
+    },
+    "err-order-by-legacy-cursor": {
+      "sqlite": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "cursor does not belong to this orderBy"
+        }
+      },
+      "pg": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "cursor does not belong to this orderBy"
+        }
+      }
+    },
+    "err-order-by-cursor-length": {
+      "sqlite": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "cursor does not belong to this orderBy"
+        }
+      },
+      "pg": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "cursor does not belong to this orderBy"
+        }
+      }
+    },
+    "err-order-by-cursor-object": {
+      "sqlite": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "cursor does not belong to this orderBy"
+        }
+      },
+      "pg": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "cursor does not belong to this orderBy"
+        }
+      }
     }
   },
   "aggregate": {
@@ -3295,6 +4247,126 @@
           "name": "CompileError",
           "status": 422,
           "message": "accessFilter {where, params} is required — the query compiler cannot run unscoped"
+        }
+      }
+    },
+    "tree-filters": {
+      "sqlite": {
+        "sql": "SELECT \"region\" AS \"region\", COUNT(*) AS \"n\" FROM \"tasks\" WHERE (\"created_by\" = ?) AND ((\"title\" = ? AND \"due\" > \"created_at\") OR NOT COALESCE((\"title\" = ?), 0)) GROUP BY \"region\" LIMIT ?",
+        "params": [
+          "viewer-1",
+          "a",
+          "b",
+          50
+        ]
+      },
+      "pg": {
+        "sql": "SELECT \"region\" AS \"region\", COUNT(*) AS \"n\" FROM \"tasks\" WHERE (\"created_by\" = ?) AND ((\"title\" = ? AND \"due\" > \"created_at\") OR NOT COALESCE((\"title\" = ?), FALSE)) GROUP BY \"region\" LIMIT ?",
+        "params": [
+          "viewer-1",
+          "a",
+          "b",
+          50
+        ]
+      }
+    },
+    "tree-filters-percentile": {
+      "sqlite": {
+        "sql": "WITH __src AS (SELECT \"region\" AS \"region\", \"amount\" AS \"__pv_0\", ROW_NUMBER() OVER (PARTITION BY \"region\" ORDER BY (CASE WHEN \"amount\" IS NULL THEN 1 ELSE 0 END), \"amount\") AS \"__rn_0\", COUNT(\"amount\") OVER (PARTITION BY \"region\" ) AS \"__cn_0\" FROM \"tasks\" WHERE (\"created_by\" = ?) AND NOT COALESCE(((\"title\" = ? OR \"title\" = ?)), 0)) SELECT \"region\", MIN(CASE WHEN \"__rn_0\" >= CAST(0.5 * \"__cn_0\" + 0.5 AS INTEGER) THEN \"__pv_0\" END) AS \"m\" FROM __src GROUP BY \"region\" LIMIT ?",
+        "params": [
+          "viewer-1",
+          "a",
+          "b",
+          50
+        ]
+      },
+      "pg": {
+        "sql": "SELECT \"region\" AS \"region\", PERCENTILE_DISC(0.5) WITHIN GROUP (ORDER BY \"amount\") AS \"m\" FROM \"tasks\" WHERE (\"created_by\" = ?) AND NOT COALESCE(((\"title\" = ? OR \"title\" = ?)), FALSE) GROUP BY \"region\" LIMIT ?",
+        "params": [
+          "viewer-1",
+          "a",
+          "b",
+          50
+        ]
+      }
+    },
+    "order-by-two": {
+      "sqlite": {
+        "sql": "SELECT \"region\" AS \"region\", \"done\" AS \"done\", COUNT(*) AS \"n\" FROM \"tasks\" WHERE (\"created_by\" = ?) GROUP BY \"region\", \"done\" ORDER BY \"n\" DESC, \"region\" ASC LIMIT ?",
+        "params": [
+          "viewer-1",
+          50
+        ]
+      },
+      "pg": {
+        "sql": "SELECT \"region\" AS \"region\", \"done\" AS \"done\", COUNT(*) AS \"n\" FROM \"tasks\" WHERE (\"created_by\" = ?) GROUP BY \"region\", \"done\" ORDER BY \"n\" DESC, \"region\" ASC LIMIT ?",
+        "params": [
+          "viewer-1",
+          50
+        ]
+      }
+    },
+    "order-by-wins-over-sort": {
+      "sqlite": {
+        "sql": "SELECT \"region\" AS \"region\", COUNT(*) AS \"n\" FROM \"tasks\" WHERE (\"created_by\" = ?) GROUP BY \"region\" ORDER BY \"n\" ASC LIMIT ?",
+        "params": [
+          "viewer-1",
+          50
+        ]
+      },
+      "pg": {
+        "sql": "SELECT \"region\" AS \"region\", COUNT(*) AS \"n\" FROM \"tasks\" WHERE (\"created_by\" = ?) GROUP BY \"region\" ORDER BY \"n\" ASC LIMIT ?",
+        "params": [
+          "viewer-1",
+          50
+        ]
+      }
+    },
+    "order-by-percentile": {
+      "sqlite": {
+        "sql": "WITH __src AS (SELECT \"region\" AS \"region\", \"amount\" AS \"__pv_0\", ROW_NUMBER() OVER (PARTITION BY \"region\" ORDER BY (CASE WHEN \"amount\" IS NULL THEN 1 ELSE 0 END), \"amount\") AS \"__rn_0\", COUNT(\"amount\") OVER (PARTITION BY \"region\" ) AS \"__cn_0\" FROM \"tasks\" WHERE (\"created_by\" = ?)) SELECT \"region\", COUNT(*) AS \"n\", MIN(CASE WHEN \"__rn_0\" >= CAST(0.9 * \"__cn_0\" + 0.5 AS INTEGER) THEN \"__pv_0\" END) AS \"m\" FROM __src GROUP BY \"region\" ORDER BY \"m\" DESC, \"n\" ASC, \"region\" ASC LIMIT ?",
+        "params": [
+          "viewer-1",
+          50
+        ]
+      },
+      "pg": {
+        "sql": "SELECT \"region\" AS \"region\", PERCENTILE_DISC(0.9) WITHIN GROUP (ORDER BY \"amount\") AS \"m\", COUNT(*) AS \"n\" FROM \"tasks\" WHERE (\"created_by\" = ?) GROUP BY \"region\" ORDER BY \"m\" DESC, \"n\" ASC, \"region\" ASC LIMIT ?",
+        "params": [
+          "viewer-1",
+          50
+        ]
+      }
+    },
+    "err-order-by-unknown": {
+      "sqlite": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "cannot sort by unknown output column: title"
+        }
+      },
+      "pg": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "cannot sort by unknown output column: title"
+        }
+      }
+    },
+    "err-order-by-too-many": {
+      "sqlite": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "orderBy takes at most 3 columns"
+        }
+      },
+      "pg": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "orderBy takes at most 3 columns"
         }
       }
     },

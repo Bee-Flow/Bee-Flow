@@ -26,9 +26,16 @@ const RECORD_LIST_FIELDS = Object.freeze(['filters', 'sort']);
 /** The query-shape fields of an aggregate, in the order they are passed on. */
 const AGGREGATE_FIELDS = Object.freeze(['filters', 'groupBy', 'aggregates', 'sort']);
 
+/**
+ * Query-shape fields that travel only when the request carries them, for both
+ * kinds of read: a descriptor without them is passed on exactly as before.
+ */
+const OPTIONAL_FIELDS = Object.freeze(['orderBy']);
+
 function pick(src: Descriptor, fields: readonly string[]): Descriptor {
     const out: Descriptor = {};
     for (const f of fields) out[f] = src[f];
+    for (const f of OPTIONAL_FIELDS) if (src[f] !== undefined && src[f] !== null) out[f] = src[f];
     return out;
 }
 

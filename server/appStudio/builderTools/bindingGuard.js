@@ -119,7 +119,11 @@ function checkComponentDataRefs(entries, model) {
         }
         const filters = Array.isArray(b.filter) ? b.filter : (Array.isArray(b.filters) ? b.filters : []);
         // Every clause, the ones inside { any: [...] } groups too.
-        forEachFilterClause(filters, (f, at) => { if (isObject(f)) fieldCheck(index, `${path}.filter${at}.field`, table, f.field, `${b.kind} filter`); });
+        forEachFilterClause(filters, (f, at) => {
+            if (!isObject(f)) return;
+            fieldCheck(index, `${path}.filter${at}.field`, table, f.field, `${b.kind} filter`);
+            if (typeof f.otherField === 'string') fieldCheck(index, `${path}.filter${at}.otherField`, table, f.otherField, `${b.kind} filter`);
+        });
         const sorts = Array.isArray(b.sort) ? b.sort : (isObject(b.sort) ? [b.sort] : []);
         const aliases = new Set();
         if (b.kind === 'aggregate') {
@@ -136,6 +140,7 @@ function checkComponentDataRefs(entries, model) {
             });
         }
         sorts.forEach((s, i) => { if (isObject(s) && !aliases.has(s.field)) fieldCheck(index, `${path}.sort[${i}].field`, table, s.field, `${b.kind} sort`); });
+        (Array.isArray(b.orderBy) ? b.orderBy : []).forEach((s, i) => { if (isObject(s) && !aliases.has(s.field)) fieldCheck(index, `${path}.orderBy[${i}].field`, table, s.field, `${b.kind} orderBy`); });
     };
 
     /**

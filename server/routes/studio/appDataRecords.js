@@ -51,9 +51,8 @@ async function listRecords(req, res) {
         if (!ctx) return;
         if (!rlsGateway.canRead(ctx.table, ctx.role)) return res.status(403).json({ error: 'Forbidden' });
 
-        const { filters, sort } = parseListQuery(req);
         const { records, nextCursor } = await dataReadRunner.runRecordList(ctx, ctx.table, {
-            filters, sort, cursor: req.query.cursor, limit: req.query.limit,
+            ...parseListQuery(req), cursor: req.query.cursor, limit: req.query.limit,
         });
         // appVersion rides along on the read every screen already makes: a
         // viewer whose session predates a republish learns about it without a

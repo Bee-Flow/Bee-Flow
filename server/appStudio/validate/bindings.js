@@ -11,7 +11,8 @@ const { pickClosestId } = require('../../automation/validate/helpers');
 const { relativePathTokens, suggestRelativeSpelling } = require('../../core/automationModel/refPaths');
 const { FILTER_OPS } = require('../dataModel');
 const { isObject } = require('./shared');
-const { countFilterLeaves, MAX_FILTER_CLAUSES: MAX_FILTERS } = require('../../shared/expr/filterGroups.mjs');
+const { countFilterLeaves, MAX_FILTER_CLAUSES: MAX_FILTERS, MAX_FILTER_DEPTH, FIELD_COMPARE_OPS } = require('../../shared/expr/filterGroups.mjs');
+const { MAX_ORDER_BY } = require('../componentSpecs');
 const { validateFormula } = require('./formulas');
 const {
     checkTableRef,
@@ -89,11 +90,7 @@ function validateBindingFilter(filter, path, ctx, tableId, label) {
         pushE({ code: 'binding.filter_invalid', severity: 'error', path, message: `${label} filter must be an array of { field, op, value? } entries.`, hint: `Ops: ${FILTER_OPS.join(', ')}. value may be a literal or {kind:"formula", expr}.` });
         return;
     }
-    filter.forEach((entry, i) => {
-        const p = `${path}[${i}]`;
-        if (isObject(entry) && entry.any !== undefined) validateAnyGroup(entry, p, ctx, tableId, label);
-        else validateFilterClause(entry, p, ctx, tableId, label);
-    });
+    filter.forEach((entry, i) => validateFilterEntry(entry, `${path}[${i}]`, ctx, tableId, label, 0));
     const leaves = countFilterLeaves(filter);
     if (leaves > MAX_FILTERS) {
         pushE({ code: 'binding.filter_too_many', severity: 'error', path, message: `${label} filter has ${leaves} clauses; the limit is ${MAX_FILTERS}, counting the clauses inside any groups.`, hint: 'Combine values with op "in" instead of one clause per value.' });
@@ -101,12 +98,85 @@ function validateBindingFilter(filter, path, ctx, tableId, label) {
 }
 
 /**
- * One `{ any: [clause, …] }` OR group: a non-empty list of clauses, one level deep.
+ * One entry of a filter list or of a group: an `any` / `all` / `not` group
+ * (nested to MAX_FILTER_DEPTH) or a clause.
+ * @param {unknown} entry
+ * @param {string} p
+ * @param {string} label
+ * @param {number} depth groups above this entry
+ */
+function validateFilterEntry(entry, p, ctx, tableId, label, depth) {
+    const group = !isObject(entry) ? null
+        : entry.any !== undefined ? 'any'
+            : entry.field !== undefined ? null
+                : entry.all !== undefined ? 'all'
+                    : entry.not !== undefined ? 'not' : null;
+    if (group === null) { validateFilterClause(entry, p, ctx, tableId, label); return; }
+    if (depth >= MAX_FILTER_DEPTH) {
+        ctx.pushE({ code: 'binding.filter_too_deep', severity: 'error', path: p, message: `Filter groups nest at most ${MAX_FILTER_DEPTH} deep.`, hint: 'Flatten the innermost group: (a AND (b AND c)) is (a AND b AND c).' });
+        return;
+    }
+    if (group === 'any') validateAnyGroup(entry, p, ctx, tableId, label, depth);
+    else if (group === 'all') validateAllGroup(entry, p, ctx, tableId, label, depth);
+    else validateNotGroup(entry, p, ctx, tableId, label, depth);
+}
+
+/**
+ * One `{ all: [entry, …] }` AND group: a non-empty list of clauses and groups.
  * @param {Record<string, unknown>} entry
  * @param {string} p
  * @param {string} label
+ * @param {number} depth
  */
-function validateAnyGroup(entry, p, ctx, tableId, label) {
+function validateAllGroup(entry, p, ctx, tableId, label, depth) {
+    const { pushE } = ctx;
+    if (entry.op !== undefined || entry.value !== undefined || entry.not !== undefined) {
+        pushE({ code: 'binding.filter_invalid', severity: 'error', path: p, message: 'A filter entry is either a clause { field, op, value? } or one group ({ any }, { all } or { not }), not both.', hint: 'Give each group its own entry.' });
+    }
+    if (!Array.isArray(entry.all) || entry.all.length === 0) {
+        pushE({ code: 'binding.filter_group_empty', severity: 'error', path: `${p}.all`, message: 'An AND group needs a non-empty all list.', hint: '{ "all": [{ "field": "status", "op": "eq", "value": "open" }, { "field": "priority", "op": "eq", "value": "high" }] }' });
+        return;
+    }
+    checkGroupRequired(entry, p, ctx);
+    entry.all.forEach((member, j) => validateFilterEntry(member, `${p}.all[${j}]`, ctx, tableId, label, depth + 1));
+}
+
+/**
+ * One `{ not: entry }` group: exactly one clause or group.
+ * @param {Record<string, unknown>} entry
+ * @param {string} p
+ * @param {string} label
+ * @param {number} depth
+ */
+function validateNotGroup(entry, p, ctx, tableId, label, depth) {
+    const { pushE } = ctx;
+    if (entry.op !== undefined || entry.value !== undefined) {
+        pushE({ code: 'binding.filter_invalid', severity: 'error', path: p, message: 'A filter entry is either a clause { field, op, value? } or one group ({ any }, { all } or { not }), not both.', hint: 'Give each group its own entry.' });
+    }
+    if (!isObject(entry.not)) {
+        pushE({ code: 'binding.filter_group_empty', severity: 'error', path: `${p}.not`, message: '`not` takes one clause or one group, not a list.', hint: '{ "not": { "field": "status", "op": "eq", "value": "done" } }, or { "not": { "any": [...] } } for several.' });
+        return;
+    }
+    checkGroupRequired(entry, p, ctx);
+    validateFilterEntry(entry.not, `${p}.not`, ctx, tableId, label, depth + 1);
+}
+
+/** @param {Record<string, unknown>} entry @param {string} p */
+function checkGroupRequired(entry, p, ctx) {
+    if (entry.required !== undefined && typeof entry.required !== 'boolean') {
+        ctx.pushE({ code: 'binding.filter_invalid', severity: 'error', path: `${p}.required`, message: '`required` must be true or false.', hint: 'Set required:true when the component should show nothing until the group has a value.' });
+    }
+}
+
+/**
+ * One `{ any: [entry, …] }` OR group: a non-empty list of clauses and groups
+ * (an OR group directly inside an OR group is refused: it is the same group).
+ * @param {Record<string, unknown>} entry
+ * @param {string} p
+ * @param {string} label
+ * @param {number} depth
+ */
+function validateAnyGroup(entry, p, ctx, tableId, label, depth) {
     const { pushE } = ctx;
     if (entry.field !== undefined || entry.op !== undefined || entry.value !== undefined) {
         pushE({ code: 'binding.filter_invalid', severity: 'error', path: p, message: 'A filter entry is either a clause { field, op, value? } or an OR group { any: [...] }, not both.', hint: 'Move the clause into the group\'s any list, or next to the group.' });
@@ -124,7 +194,7 @@ function validateAnyGroup(entry, p, ctx, tableId, label) {
             pushE({ code: 'binding.filter_group_nested', severity: 'error', path: cp, message: 'An OR group cannot hold another group.', hint: 'Put its clauses directly in this group\'s any list (a OR (b OR c) is a OR b OR c).' });
             return;
         }
-        validateFilterClause(clause, cp, ctx, tableId, label);
+        validateFilterEntry(clause, cp, ctx, tableId, label, depth + 1);
     });
 }
 
@@ -150,7 +220,60 @@ function validateFilterClause(entry, p, ctx, tableId, label) {
     if (entry.required !== undefined && typeof entry.required !== 'boolean') {
         pushE({ code: 'binding.filter_invalid', severity: 'error', path: `${p}.required`, message: '`required` must be true or false.', hint: 'Set required:true when the component should show nothing until this value exists.' });
     }
+    if (entry.otherField !== undefined && entry.otherField !== null) { validateOtherField(entry, p, ctx, tableId, label); return; }
     validateFilterValue(entry.value, `${p}.value`, ctx);
+}
+
+/**
+ * The `otherField` of a clause: another column of the same row, compared with one of FIELD_COMPARE_OPS, and no value.
+ * @param {Record<string, unknown>} entry
+ * @param {string} p
+ * @param {string} label
+ */
+function validateOtherField(entry, p, ctx, tableId, label) {
+    const { pushE } = ctx;
+    if (typeof entry.otherField !== 'string' || !entry.otherField) {
+        pushE({ code: 'binding.filter_invalid', severity: 'error', path: `${p}.otherField`, message: '`otherField` must be a field key of the same table.', hint: 'e.g. { "field": "spent", "op": "gt", "otherField": "budget" }.' });
+    } else {
+        checkFieldRef(tableId, entry.otherField, `${p}.otherField`, ctx, `${label} filter`);
+    }
+    if (FILTER_OPS.includes(entry.op) && !FIELD_COMPARE_OPS.includes(entry.op)) {
+        pushE({ code: 'binding.filter_invalid', severity: 'error', path: `${p}.op`, message: `A comparison with otherField cannot use op ${JSON.stringify(entry.op)}.`, hint: `Use one of: ${FIELD_COMPARE_OPS.join(', ')}.` });
+    }
+    if (entry.value !== undefined && entry.value !== null) {
+        pushE({ code: 'binding.filter_invalid', severity: 'error', path: `${p}.value`, message: 'A clause takes a `value` or an `otherField`, not both.', hint: 'Remove one of the two.' });
+    }
+}
+
+/**
+ * `orderBy`: 1..MAX_ORDER_BY { field, dir? } entries, each field once. For an
+ * aggregate the fields are its output columns (`allowedAliases`).
+ * @param {string} path
+ * @param {string} label
+ */
+function validateBindingOrderBy(value, path, ctx, label, allowedAliases) {
+    const { pushE } = ctx;
+    const orderBy = value.orderBy;
+    if (!Array.isArray(orderBy) || orderBy.length === 0 || orderBy.length > MAX_ORDER_BY) {
+        pushE({ code: 'binding.sort_invalid', severity: 'error', path, message: `${label} orderBy must be a list of 1 to ${MAX_ORDER_BY} { field, dir? } entries.`, hint: 'e.g. [{ "field": "status", "dir": "asc" }, { "field": "due", "dir": "desc" }].' });
+        return;
+    }
+    if (value.sort !== undefined && value.sort !== null) {
+        pushE({ code: 'binding.sort_invalid', severity: 'error', path, message: `${label} has both sort and orderBy.`, hint: 'Keep orderBy (it sorts on every column it lists) and remove sort.' });
+    }
+    validateBindingSort(orderBy, path, ctx, value.tableId, label, allowedAliases);
+    // A groupBy or aggregates formula names its output columns only when it runs.
+    const isFormula = (/** @type {unknown} */ v) => isObject(v) && v.kind === 'formula';
+    const strictAliases = Boolean(allowedAliases) && !isFormula(value.groupBy) && !isFormula(value.aggregates);
+    const seen = new Set();
+    orderBy.forEach((entry, i) => {
+        if (!isObject(entry) || typeof entry.field !== 'string') return;
+        if (strictAliases && !allowedAliases.has(entry.field)) {
+            pushE({ code: 'binding.sort_invalid', severity: 'error', path: `${path}[${i}].field`, message: `${label} orderBy names ${JSON.stringify(entry.field)}, which is not one of its output columns.`, hint: `Use one of: ${Array.from(allowedAliases).join(', ')}.` });
+        }
+        if (seen.has(entry.field)) pushE({ code: 'binding.sort_invalid', severity: 'error', path: `${path}[${i}].field`, message: `orderBy names ${JSON.stringify(entry.field)} twice.`, hint: 'List each field once.' });
+        seen.add(entry.field);
+    });
 }
 
 /**
@@ -239,6 +362,7 @@ function validateBinding(key, value, path, ctx) {
         // compiler does too.
         const aggAliases = value.kind === 'aggregate' ? aggregateAliases(value) : null;
         if (value.sort !== undefined && value.sort !== null) validateBindingSort(value.sort, `${path}.sort`, ctx, value.tableId, label, aggAliases);
+        if (value.orderBy !== undefined && value.orderBy !== null) validateBindingOrderBy(value, `${path}.orderBy`, ctx, label, aggAliases);
         if (value.limit !== undefined && value.limit !== null && (typeof value.limit !== 'number' || !Number.isInteger(value.limit) || value.limit < 1)) {
             pushE({ code: 'binding.limit_invalid', severity: 'error', path: `${path}.limit`, message: `${label} limit must be a positive integer.`, hint: 'Use an integer ≥ 1, or omit it.' });
         }

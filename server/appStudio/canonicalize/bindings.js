@@ -69,6 +69,7 @@ function copyRecordsQuery(raw, out, path, push) {
         out.filter = typeof raw.filter === 'string' ? truncate(raw.filter, LIMITS.MAX_FORMULA_LEN, `${path}.filter`, push) : canonicalFilterList(raw.filter, `${path}.filter`, push);
     }
     if (raw.sort !== undefined && raw.sort !== null) out.sort = deepCopy(raw.sort);
+    if (raw.orderBy !== undefined && raw.orderBy !== null) out.orderBy = deepCopy(raw.orderBy);
     if (raw.limit !== undefined && raw.limit !== null) {
         out.limit = (typeof raw.limit === 'string' && raw.limit.trim() !== '' && Number.isFinite(Number(raw.limit))) ? Number(raw.limit) : deepCopy(raw.limit);
     }

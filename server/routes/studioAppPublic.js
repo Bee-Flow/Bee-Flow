@@ -416,9 +416,12 @@ router.get('/:token/data/tables/:tableId/records', ipLimiter, tokenLimiter, requ
         if (typeof req.query.filter === 'string' && req.query.filter) { try { filters = JSON.parse(req.query.filter); } catch (err) { fallback('routes/studioAppPublic:anon#2', err); /* compiler validates */ } }
         if (typeof req.query.sort === 'string' && req.query.sort) { try { sort = JSON.parse(req.query.sort); } catch (err) { fallback('routes/studioAppPublic:anon#3', err); /* compiler validates */ } }
         if (filters !== undefined && !Array.isArray(filters)) filters = [filters];
+        /** @type {unknown} */
+        let orderBy;
+        if (typeof req.query.orderBy === 'string' && req.query.orderBy) { try { orderBy = JSON.parse(req.query.orderBy); } catch (err) { fallback('routes/studioAppPublic:anon#4', err); /* compiler validates */ } }
 
         const out = await dataReadRunner.runRecordList(ctx, ctx.table, {
-            filters, sort, cursor: req.query.cursor, limit: req.query.limit,
+            filters, sort, ...(orderBy === undefined ? {} : { orderBy }), cursor: req.query.cursor, limit: req.query.limit,
         });
         return res.json(out);
     } catch (err) { return handleErr(res, err, 'records.list'); }

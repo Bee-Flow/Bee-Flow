@@ -138,6 +138,8 @@ const jsonText = (name) => worded(JSON_TEXT(name)).max(20_000, JSON_TEXT(name)).
 const RecordsQuery = queryOf({
     filter: jsonText('filter').optional(),
     sort: jsonText('sort').optional(),
+    // Up to three { field, dir } entries; when present it replaces sort.
+    orderBy: jsonText('orderBy').optional(),
     cursor: worded('cursor is the value the previous page handed back.').max(500, 'cursor is the value the previous page handed back.').optional(),
     limit: wholeNumber('limit is a whole number, 1 or more.', { min: 1 }).optional(),
     // The editor's preview asks for a sample; the page size already covers it.

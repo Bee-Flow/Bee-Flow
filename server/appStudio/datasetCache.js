@@ -92,6 +92,8 @@ function computeParamsHash(tableKey, descriptor) {
         aggregates: d.aggregates ?? null,
         sort: d.sort ?? null,
         limit: d.limit ?? null,
+        // Only when the descriptor has one: a descriptor without it keeps its hash.
+        ...(d.orderBy !== undefined && d.orderBy !== null ? { orderBy: d.orderBy } : {}),
     };
     return sha256('params:v1:' + stableStringify(norm));
 }
@@ -221,7 +223,7 @@ module.exports = {
 
 /** @typedef {{ where?: string, params?: unknown[] }} AccessFilterLike */
 
-/** @typedef {{ tableId?: string, tableKey?: string, filters?: unknown, groupBy?: unknown, aggregates?: unknown, sort?: unknown, limit?: unknown }} Descriptor */
+/** @typedef {{ tableId?: string, tableKey?: string, filters?: unknown, groupBy?: unknown, aggregates?: unknown, sort?: unknown, orderBy?: unknown, limit?: unknown }} Descriptor */
 
 /**
  * @typedef {Descriptor & { id?: string, descriptor?: Descriptor, aggregate?: Descriptor, cacheTtlSeconds?: number }} DatasetOrDescriptor

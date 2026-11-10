@@ -2,10 +2,12 @@
  * The filter tree: how a closed filter descriptor becomes the WHERE clause of a
  * read (and of the bulk writes, which share it).
  *
- * One clause per `{ field, op, value }`, one level of `{ any: [...] }` groups,
- * a `match` combinator for the top level, and the one fixed search group. The
- * RLS access predicate is ALWAYS present and ANDed first, so even a zero-filter
- * query is scoped.
+ * One clause per `{ field, op, value }` (or `{ field, op, otherField }`, two
+ * columns of one row compared), groups `{ any: [...] }`, `{ all: [...] }` and
+ * `{ not: entry }` nested to MAX_FILTER_DEPTH, a `match` combinator for the top
+ * level, and the one fixed search group. The RLS access predicate is ALWAYS
+ * present and ANDed first, OUTSIDE everything the client sent, so even a
+ * zero-filter query is scoped and no OR or NOT in a group can widen it.
  *
  * Moved out of queryCompilerBase.js without a change to the SQL it emits
  * (queryCompiler.snapshot.test.js pins it). queryCompilerBase.buildWhere is the
@@ -45,18 +47,22 @@ const core = nodeRequire('./queryCompilerCore') as {
     scalar(v: unknown, dialect: string): string | number | boolean | null;
     assertAccessFilter(accessFilter: AccessFilter): void;
 };
-const { FILTER_OPS } = nodeRequire('./dataModel/vocabulary') as { FILTER_OPS: readonly string[] };
-const { isAnyGroup, countFilterLeaves } = nodeRequire('../../shared/expr/filterGroups.mjs') as {
+const { FILTER_OPS, SYSTEM_COLUMNS } = nodeRequire('./dataModel/vocabulary') as { FILTER_OPS: readonly string[]; SYSTEM_COLUMNS: readonly string[] };
+const { isAnyGroup, isAllGroup, isNotGroup, countFilterLeaves, MAX_FILTER_DEPTH, FIELD_COMPARE_OPS } = nodeRequire('../../shared/expr/filterGroups.mjs') as {
     isAnyGroup(entry: unknown): boolean;
+    isAllGroup(entry: unknown): boolean;
+    isNotGroup(entry: unknown): boolean;
     countFilterLeaves(filters: unknown[]): number;
+    MAX_FILTER_DEPTH: number;
+    FIELD_COMPARE_OPS: readonly string[];
 };
 
 const { CompileError, resolveColumn, scalar } = core;
 
 // How the client filters join each other. ONE top-level combinator plus
-// one level of `{ any: [...] }` groups: 'status is new OR retry' is the
-// shape people actually ask for, and a recursive query-builder would trade
-// the closed descriptor — the whole reason no client SQL exists — for a grammar.
+// `any` / `all` / `not` groups to a fixed depth. The descriptor stays closed:
+// a group holds only clauses and groups, every column still goes through
+// resolveColumn and every value is still a bound parameter.
 export const MATCH_MODES = Object.freeze(['all', 'any']);
 
 // Escape LIKE metacharacters so a `contains`/`startsWith` value can't smuggle
@@ -152,6 +158,44 @@ const OPS = new Map<string, OpEmitter>([
     ['isNotNull', nullTest('IS NOT NULL')],
 ]);
 
+/**
+ * How two columns may be compared with each other: only within one class, so
+ * the comparison means the same on both engines (Postgres refuses text against
+ * a number; SQLite would answer by storage class). Null: not comparable.
+ */
+function compareClass(fieldName: string, fm: FieldMap): string | null {
+    if (fieldName === 'created_at' || fieldName === 'updated_at') return 'datetime';
+    if (SYSTEM_COLUMNS.includes(fieldName)) return 'text';
+    const f = fm.get(fieldName);
+    const type = f && f.type === 'computed' ? computedClass(f) : f && f.type;
+    if (type === 'number' || type === 'bool' || type === 'date' || type === 'datetime') return type;
+    if (type === 'multiselect' || type === 'file' || !type) return null;
+    return 'text';
+}
+
+function computedClass(f: Field): string {
+    const rt = (f.computed as { type?: string } | undefined)?.type;
+    return rt === 'number' || rt === 'integer' ? 'number' : 'text';
+}
+
+const COMPARE_SYMBOL = new Map<string, string>([['eq', '='], ['neq', '!='], ['gt', '>'], ['gte', '>='], ['lt', '<'], ['lte', '<=']]);
+
+/** `{ field, op, otherField }`: two columns of the same row, both resolved through the model. No bound value. */
+function compileFieldCompare(tableMeta: TableMeta, fm: FieldMap, clause: Clause, col: string, out: Out): void {
+    const other = resolveColumn(tableMeta, clause.otherField, fm);
+    const sym = COMPARE_SYMBOL.get(clause.op as string);
+    if (!sym || !FIELD_COMPARE_OPS.includes(clause.op as string)) {
+        throw new CompileError(`a comparison with otherField takes one of ${FIELD_COMPARE_OPS.join(', ')}, not ${clause.op}`);
+    }
+    if (clause.value !== undefined && clause.value !== null) throw new CompileError('a filter clause takes a value or an otherField, not both');
+    const left = compareClass(clause.field as string, fm);
+    const right = compareClass(clause.otherField as string, fm);
+    if (!left || left !== right) {
+        throw new CompileError(`cannot compare "${clause.field}" with "${clause.otherField}": the two fields must be of the same kind (number, date, datetime, bool or text)`);
+    }
+    out.sql.push(`${col} ${sym} ${other}`);
+}
+
 /** One `{ field, op, value }` clause: the column is resolved first, then the operator is checked. */
 export function compileFilter(tableMeta: TableMeta, fm: FieldMap, filter: unknown, out: Out, dialect: string): void {
     if (!filter || typeof filter !== 'object' || Array.isArray(filter)) throw new CompileError('filter must be an object');
@@ -159,27 +203,54 @@ export function compileFilter(tableMeta: TableMeta, fm: FieldMap, filter: unknow
     const col = resolveColumn(tableMeta, clause.field, fm);
     const op = clause.op;
     if (typeof op !== 'string' || !FILTER_OPS.includes(op)) throw new CompileError(`unknown filter op: ${op}`);
+    if (clause.otherField !== undefined && clause.otherField !== null) { compileFieldCompare(tableMeta, fm, clause, col, out); return; }
     const emit = OPS.get(op);
     if (!emit) throw new CompileError(`unsupported filter op: ${op}`);
     emit(col, clause, out, dialect);
 }
 
 /**
- * One `{ any: [clause, …] }` entry: its clauses OR each other inside one
- * parenthesised group, which ANDs with the other entries. One level only
- * (a group inside a group is refused), every clause goes through
- * compileFilter, so the columns and bound values stay as closed as ever.
+ * One `{ any: [entry, …] }` or `{ all: [entry, …] }` group: its entries OR
+ * (AND) each other inside one parenthesised group, which ANDs with the other
+ * top-level entries. Every clause goes through compileFilter, so the columns
+ * and bound values stay as closed as ever. An `any` directly inside an `any`
+ * is refused as before (a OR (b OR c) is a OR b OR c).
  */
-function compileAnyGroup(tableMeta: TableMeta, fm: FieldMap, group: Clause & { any: unknown[] }, out: Out, dialect: string): void {
-    if (group.field !== undefined) throw new CompileError('a filter is either a clause with a field or an { any: [...] } group, not both');
-    if (group.any.length === 0) throw new CompileError('an { any: [...] } filter group needs at least one clause');
+function compileGroup(ctx: TreeCtx, group: Clause, key: 'any' | 'all', depth: number, out: Out): void {
+    const members = group[key] as unknown[];
+    if (group.field !== undefined) throw new CompileError(`a filter is either a clause with a field or an { ${key}: [...] } group, not both`);
+    if (members.length === 0) throw new CompileError(`an { ${key}: [...] } filter group needs at least one clause`);
     const inner: Out = { sql: [], params: [] };
-    for (const clause of group.any) {
-        if (isAnyGroup(clause)) throw new CompileError('an { any: [...] } filter group cannot hold another group');
-        compileFilter(tableMeta, fm, clause, inner, dialect);
+    for (const member of members) {
+        if (key === 'any' && isAnyGroup(member)) throw new CompileError('an { any: [...] } filter group cannot hold another group');
+        compileEntry(ctx, member, depth + 1, inner);
     }
-    out.sql.push(inner.sql.length > 1 ? `(${inner.sql.join(' OR ')})` : inner.sql[0]);
+    out.sql.push(inner.sql.length > 1 ? `(${inner.sql.join(key === 'any' ? ' OR ' : ' AND ')})` : inner.sql[0]);
     out.params.push(...inner.params);
+}
+
+/**
+ * `{ not: entry }`: the rows the entry does NOT match. Two-valued on purpose:
+ * a row for which the entry is unknown (a NULL column) is not matched by it,
+ * so it belongs to the negation, the same way notContains and notIn keep rows
+ * with an empty column.
+ */
+function compileNot(ctx: TreeCtx, group: Clause, depth: number, out: Out): void {
+    const inner: Out = { sql: [], params: [] };
+    compileEntry(ctx, group.not, depth + 1, inner);
+    out.sql.push(`NOT COALESCE((${inner.sql[0]}), ${ctx.dialect === 'pg' ? 'FALSE' : '0'})`);
+    out.params.push(...inner.params);
+}
+
+type TreeCtx = { tableMeta: TableMeta; fm: FieldMap; dialect: string };
+
+/** One entry of a filter list or of a group: a group (to MAX_FILTER_DEPTH) or a clause. */
+function compileEntry(ctx: TreeCtx, entry: unknown, depth: number, out: Out): void {
+    const group = isAnyGroup(entry) ? 'any' : isAllGroup(entry) ? 'all' : isNotGroup(entry) ? 'not' : null;
+    if (group === null) { compileFilter(ctx.tableMeta, ctx.fm, entry, out, ctx.dialect); return; }
+    if (depth >= MAX_FILTER_DEPTH) throw new CompileError(`filter groups nest at most ${MAX_FILTER_DEPTH} deep`);
+    if (group === 'not') compileNot(ctx, entry as Clause, depth, out);
+    else compileGroup(ctx, entry as Clause, group, depth, out);
 }
 
 /** The client filter list as clauses (still uncombined) and their bound values. */
@@ -189,10 +260,8 @@ function compileFilterList(tableMeta: TableMeta, fm: FieldMap, filters: unknown,
     if (!Array.isArray(filters)) throw new CompileError('filters must be an array');
     const leaves = countFilterLeaves(filters);
     if (leaves > core.MAX_FILTERS) throw new CompileError(`too many filters: ${leaves} clauses (max ${core.MAX_FILTERS}, counting the clauses inside any groups)`);
-    for (const f of filters) {
-        if (isAnyGroup(f)) compileAnyGroup(tableMeta, fm, f as Clause & { any: unknown[] }, out, dialect);
-        else compileFilter(tableMeta, fm, f, out, dialect);
-    }
+    const ctx: TreeCtx = { tableMeta, fm, dialect };
+    for (const f of filters) compileEntry(ctx, f, 0, out);
     return out;
 }
 

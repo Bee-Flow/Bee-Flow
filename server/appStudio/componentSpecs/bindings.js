@@ -64,7 +64,31 @@ const FORMULA_SCOPE_ROOTS = [
  */
 const CURRENT_USER_KEYS = ['id', 'name', 'email', 'roleKey', 'isOwner', 'roles'];
 
+// Columns one `orderBy` may name (queryCompilerOrder.MAX_ORDER_BY; bindings.lockstep.test.js holds the two together).
+const MAX_ORDER_BY = 3;
+
+/**
+ * Query vocabulary of the record / records / aggregate bindings (and of the
+ * step filters that share their grammar) that came after schema version 2.
+ * Each is optional and absent from a definition that does not use it:
+ *   orderBy            [{ field, dir? }] on up to MAX_ORDER_BY columns; `sort`
+ *                      keeps reading its first entry only
+ *   filter.all / .not  { all: [entry, …] } and { not: entry } groups, and
+ *                      groups inside groups (to filterGroups.MAX_FILTER_DEPTH);
+ *                      a flat list and a one-level { any: [clauses] } are the base
+ *   filter.otherField  { field, op, otherField }: two columns of one row compared
+ */
+const BINDING_QUERY_EXTENSIONS = Object.freeze([
+    Object.freeze({ key: 'orderBy', since: 3 }),
+    Object.freeze({ key: 'filter.all', since: 3 }),
+    Object.freeze({ key: 'filter.not', since: 3 }),
+    Object.freeze({ key: 'filter.nested', since: 3 }),
+    Object.freeze({ key: 'filter.otherField', since: 3 }),
+]);
+
 module.exports = {
+    MAX_ORDER_BY,
+    BINDING_QUERY_EXTENSIONS,
     BINDING_KINDS,
     INPUT_MAPPING_KINDS,
     FORMULA_SCOPE_ROOTS,

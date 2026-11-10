@@ -157,7 +157,7 @@ async function runRecordList(ctx, table, opts = {}) {
     if (rows.length > compiled.limit) {
         const last = rows[compiled.limit - 1];
         rows.length = compiled.limit;
-        nextCursor = queryCompiler.encodeCursor(last[compiled.primaryField], last.id);
+        nextCursor = queryCompiler.nextCursor(compiled, last);
     }
     return { records: rows, nextCursor };
 }
@@ -302,5 +302,5 @@ module.exports = {
  *   app: { id: string, userId: string, organizationId?: string | null }, ownerScope: string,
  *   _datatablePlans?: Map<string, Promise<ReadPlan>>,
  * }} ReadCtx  the per-request context of a read
- * @typedef {{ id?: unknown, kind?: unknown, datasetId?: unknown, tableId?: unknown, filters?: unknown, groupBy?: unknown, aggregates?: unknown, sort?: unknown, cursor?: string | null, limit?: unknown }} BatchRead  one descriptor of a batch
+ * @typedef {{ id?: unknown, kind?: unknown, datasetId?: unknown, tableId?: unknown, filters?: unknown, groupBy?: unknown, aggregates?: unknown, sort?: unknown, orderBy?: unknown, cursor?: string | null, limit?: unknown }} BatchRead  one descriptor of a batch
  */
