@@ -1,0 +1,48 @@
+{
+  "corpus": "layout-v2",
+  "canonical": {
+    "sha256": "73a10764552768e4ba242deefb6584ceba35133147a82d4bdf37f01d2269f494",
+    "bytes": 7396,
+    "inputIsCanonical": true,
+    "idempotent": true,
+    "keys": [
+      "schemaVersion",
+      "meta",
+      "theme",
+      "roles",
+      "screens",
+      "actions",
+      "homeScreenId"
+    ],
+    "parts": {
+      "schemaVersion": "4e07408562bedb8b",
+      "meta": "1bb8844d6cae2b3d",
+      "theme": "5d7eeb0111b89897",
+      "roles": "4f53cda18c2baa0c",
+      "screens[0] scr_layout1": "881198a41f015cd5",
+      "homeScreenId": "6896ac320503af73"
+    }
+  },
+  "schemaVersion": {
+    "stored": 3,
+    "canonical": 3
+  },
+  "validation": {
+    "strict": {
+      "errors": [],
+      "warnings": [
+        "form.no_submit_action @ screens[0].sections[2].children[1]"
+      ]
+    },
+    "save": {
+      "errors": [],
+      "warnings": [
+        "form.no_submit_action @ screens[0].sections[2].children[1]"
+      ]
+    }
+  },
+  "ordinals": {
+    "stored": {},
+    "canonical": "same as stored"
+  }
+}

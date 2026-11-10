@@ -339,3 +339,25 @@
     pointer-events: auto;
     color: var(--editor-accent-contrast);
 }
+
+/*
+ * The width a cell is SHOWN at on the canvas (nodeWrapper/useNodeResize, previewClass): the
+ * span being dragged, and on the Tablet and Phone setting of the canvas switch the span the
+ * cell has at that size. The runtime places cells with !important wherever a grid has its
+ * own columns or a breakpoint span applies (runtime/css/layout.css), so an inline preview
+ * cannot move them; these rules carry one class-level selector more than the strongest of
+ * those, and so win wherever the two stylesheets end up in the bundle.
+ */
+.app-grid.app-grid.app-grid > .app-node.app-node.app-span-preview-1 { grid-column: span 1 / span 1 !important; }
+.app-grid.app-grid.app-grid > .app-node.app-node.app-span-preview-2 { grid-column: span 2 / span 2 !important; }
+.app-grid.app-grid.app-grid > .app-node.app-node.app-span-preview-3 { grid-column: span 3 / span 3 !important; }
+.app-grid.app-grid.app-grid > .app-node.app-node.app-span-preview-4 { grid-column: span 4 / span 4 !important; }
+.app-grid.app-grid.app-grid > .app-node.app-node.app-span-preview-5 { grid-column: span 5 / span 5 !important; }
+.app-grid.app-grid.app-grid > .app-node.app-node.app-span-preview-6 { grid-column: span 6 / span 6 !important; }
+.app-grid.app-grid.app-grid > .app-node.app-node.app-span-preview-7 { grid-column: span 7 / span 7 !important; }
+.app-grid.app-grid.app-grid > .app-node.app-node.app-span-preview-8 { grid-column: span 8 / span 8 !important; }
+.app-grid.app-grid.app-grid > .app-node.app-node.app-span-preview-9 { grid-column: span 9 / span 9 !important; }
+.app-grid.app-grid.app-grid > .app-node.app-node.app-span-preview-10 { grid-column: span 10 / span 10 !important; }
+.app-grid.app-grid.app-grid > .app-node.app-node.app-span-preview-11 { grid-column: span 11 / span 11 !important; }
+.app-grid.app-grid.app-grid > .app-node.app-node.app-span-preview-12 { grid-column: span 12 / span 12 !important; }
+.app-grid.app-grid.app-grid > .app-node.app-node.app-span-preview-full { grid-column: 1 / -1 !important; }

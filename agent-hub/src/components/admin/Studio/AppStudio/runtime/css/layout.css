@@ -236,3 +236,152 @@
 @media (min-width: 1280px) {
     .app-hide-above-lg:not([data-app-edit] *) { display: none !important; }
 }
+
+/*
+ * LAYOUT V2: a grid's own column count, per-breakpoint spans, row span and sticky.
+ *
+ * Everything below is selected by a class the resolver emits only for a style that sets one
+ * of the layout knobs (styleResolver/layout.ts: gridOwnClasses, keepSmClass, applyPlacement),
+ * so a grid or node without them matches none of it and keeps the rules above unchanged.
+ *
+ * The ORDER of the blocks is the design. They all carry four class-level selectors, the same
+ * weight as the strongest rule above (the pane rail), so a later block wins over an earlier
+ * one and over everything above:
+ *   1. a manual grid undoes the automatic tablet rule,
+ *   2. a grid with fewer than 12 columns turns a span at or above its count into the full row,
+ *   3. spanMd beats both in the tablet tier,
+ *   4. a keep-sm grid keeps its columns on a phone and spanSm places a node in them.
+ * Add a new rule at the end, never between two blocks.
+ */
+
+/*
+ * 1. responsive "manual", or columns below 12 (.app-grid--manual): the tablet tier leaves
+ * the spans alone. Quarters-to-halves is right for a 12-column page nobody tuned, and wrong
+ * for a grid whose author picked the columns, so there every span reads as written.
+ */
+@media (min-width: 640px) and (max-width: 1023.98px) {
+    .app-grid.app-grid--manual > .app-node.app-span-1 { grid-column: span 1 / span 1 !important; }
+    .app-grid.app-grid--manual > .app-node.app-span-2 { grid-column: span 2 / span 2 !important; }
+    .app-grid.app-grid--manual > .app-node.app-span-3 { grid-column: span 3 / span 3 !important; }
+    .app-grid.app-grid--manual > .app-node.app-span-4 { grid-column: span 4 / span 4 !important; }
+    .app-grid.app-grid--manual > .app-node.app-span-5 { grid-column: span 5 / span 5 !important; }
+    .app-grid.app-grid--manual > .app-node.app-span-6 { grid-column: span 6 / span 6 !important; }
+    .app-grid.app-grid--manual > .app-node.app-span-7 { grid-column: span 7 / span 7 !important; }
+    .app-grid.app-grid--manual > .app-node.app-span-8 { grid-column: span 8 / span 8 !important; }
+    .app-grid.app-grid--manual > .app-node.app-span-9 { grid-column: span 9 / span 9 !important; }
+    .app-grid.app-grid--manual > .app-node.app-span-10 { grid-column: span 10 / span 10 !important; }
+    .app-grid.app-grid--manual > .app-node.app-span-11 { grid-column: span 11 / span 11 !important; }
+}
+
+/*
+ * 2. columns below 12 (.app-cols-N, with the template written inline): a child whose span
+ * is the column count or more owns the row. Without this a span of 12, the default of most
+ * types, would ask a 5-column grid for 12 tracks and the grid would grow seven unsized
+ * ones. Not in a media query: it holds at every width.
+ */
+.app-grid.app-cols-1 > .app-node:is(.app-span-1, .app-span-2, .app-span-3, .app-span-4, .app-span-5, .app-span-6, .app-span-7, .app-span-8, .app-span-9, .app-span-10, .app-span-11, .app-span-12) { grid-column: 1 / -1 !important; }
+.app-grid.app-cols-2 > .app-node:is(.app-span-2, .app-span-3, .app-span-4, .app-span-5, .app-span-6, .app-span-7, .app-span-8, .app-span-9, .app-span-10, .app-span-11, .app-span-12) { grid-column: 1 / -1 !important; }
+.app-grid.app-cols-3 > .app-node:is(.app-span-3, .app-span-4, .app-span-5, .app-span-6, .app-span-7, .app-span-8, .app-span-9, .app-span-10, .app-span-11, .app-span-12) { grid-column: 1 / -1 !important; }
+.app-grid.app-cols-4 > .app-node:is(.app-span-4, .app-span-5, .app-span-6, .app-span-7, .app-span-8, .app-span-9, .app-span-10, .app-span-11, .app-span-12) { grid-column: 1 / -1 !important; }
+.app-grid.app-cols-5 > .app-node:is(.app-span-5, .app-span-6, .app-span-7, .app-span-8, .app-span-9, .app-span-10, .app-span-11, .app-span-12) { grid-column: 1 / -1 !important; }
+.app-grid.app-cols-6 > .app-node:is(.app-span-6, .app-span-7, .app-span-8, .app-span-9, .app-span-10, .app-span-11, .app-span-12) { grid-column: 1 / -1 !important; }
+.app-grid.app-cols-7 > .app-node:is(.app-span-7, .app-span-8, .app-span-9, .app-span-10, .app-span-11, .app-span-12) { grid-column: 1 / -1 !important; }
+.app-grid.app-cols-8 > .app-node:is(.app-span-8, .app-span-9, .app-span-10, .app-span-11, .app-span-12) { grid-column: 1 / -1 !important; }
+.app-grid.app-cols-9 > .app-node:is(.app-span-9, .app-span-10, .app-span-11, .app-span-12) { grid-column: 1 / -1 !important; }
+.app-grid.app-cols-10 > .app-node:is(.app-span-10, .app-span-11, .app-span-12) { grid-column: 1 / -1 !important; }
+.app-grid.app-cols-11 > .app-node:is(.app-span-11, .app-span-12) { grid-column: 1 / -1 !important; }
+
+/*
+ * 3. spanMd (.app-span-md-N): the node's width between 640 and 1023px, whatever the
+ * automatic rule or the desktop span says. Then the same full-row clamp as block 2.
+ */
+@media (min-width: 640px) and (max-width: 1023.98px) {
+    .app-grid.app-grid > .app-node.app-span-md-1 { grid-column: span 1 / span 1 !important; }
+    .app-grid.app-grid > .app-node.app-span-md-2 { grid-column: span 2 / span 2 !important; }
+    .app-grid.app-grid > .app-node.app-span-md-3 { grid-column: span 3 / span 3 !important; }
+    .app-grid.app-grid > .app-node.app-span-md-4 { grid-column: span 4 / span 4 !important; }
+    .app-grid.app-grid > .app-node.app-span-md-5 { grid-column: span 5 / span 5 !important; }
+    .app-grid.app-grid > .app-node.app-span-md-6 { grid-column: span 6 / span 6 !important; }
+    .app-grid.app-grid > .app-node.app-span-md-7 { grid-column: span 7 / span 7 !important; }
+    .app-grid.app-grid > .app-node.app-span-md-8 { grid-column: span 8 / span 8 !important; }
+    .app-grid.app-grid > .app-node.app-span-md-9 { grid-column: span 9 / span 9 !important; }
+    .app-grid.app-grid > .app-node.app-span-md-10 { grid-column: span 10 / span 10 !important; }
+    .app-grid.app-grid > .app-node.app-span-md-11 { grid-column: span 11 / span 11 !important; }
+    .app-grid.app-grid > .app-node.app-span-md-12 { grid-column: 1 / -1 !important; }
+    .app-grid.app-cols-1 > .app-node:is(.app-span-md-1, .app-span-md-2, .app-span-md-3, .app-span-md-4, .app-span-md-5, .app-span-md-6, .app-span-md-7, .app-span-md-8, .app-span-md-9, .app-span-md-10, .app-span-md-11, .app-span-md-12) { grid-column: 1 / -1 !important; }
+    .app-grid.app-cols-2 > .app-node:is(.app-span-md-2, .app-span-md-3, .app-span-md-4, .app-span-md-5, .app-span-md-6, .app-span-md-7, .app-span-md-8, .app-span-md-9, .app-span-md-10, .app-span-md-11, .app-span-md-12) { grid-column: 1 / -1 !important; }
+    .app-grid.app-cols-3 > .app-node:is(.app-span-md-3, .app-span-md-4, .app-span-md-5, .app-span-md-6, .app-span-md-7, .app-span-md-8, .app-span-md-9, .app-span-md-10, .app-span-md-11, .app-span-md-12) { grid-column: 1 / -1 !important; }
+    .app-grid.app-cols-4 > .app-node:is(.app-span-md-4, .app-span-md-5, .app-span-md-6, .app-span-md-7, .app-span-md-8, .app-span-md-9, .app-span-md-10, .app-span-md-11, .app-span-md-12) { grid-column: 1 / -1 !important; }
+    .app-grid.app-cols-5 > .app-node:is(.app-span-md-5, .app-span-md-6, .app-span-md-7, .app-span-md-8, .app-span-md-9, .app-span-md-10, .app-span-md-11, .app-span-md-12) { grid-column: 1 / -1 !important; }
+    .app-grid.app-cols-6 > .app-node:is(.app-span-md-6, .app-span-md-7, .app-span-md-8, .app-span-md-9, .app-span-md-10, .app-span-md-11, .app-span-md-12) { grid-column: 1 / -1 !important; }
+    .app-grid.app-cols-7 > .app-node:is(.app-span-md-7, .app-span-md-8, .app-span-md-9, .app-span-md-10, .app-span-md-11, .app-span-md-12) { grid-column: 1 / -1 !important; }
+    .app-grid.app-cols-8 > .app-node:is(.app-span-md-8, .app-span-md-9, .app-span-md-10, .app-span-md-11, .app-span-md-12) { grid-column: 1 / -1 !important; }
+    .app-grid.app-cols-9 > .app-node:is(.app-span-md-9, .app-span-md-10, .app-span-md-11, .app-span-md-12) { grid-column: 1 / -1 !important; }
+    .app-grid.app-cols-10 > .app-node:is(.app-span-md-10, .app-span-md-11, .app-span-md-12) { grid-column: 1 / -1 !important; }
+    .app-grid.app-cols-11 > .app-node:is(.app-span-md-11, .app-span-md-12) { grid-column: 1 / -1 !important; }
+}
+
+/*
+ * 4. spanSm (.app-span-sm-N) and the grid that holds it (.app-grid--keep-sm, set when a
+ * child has spanSm). The phone stack above collapses every grid to one column. A keep-sm
+ * grid gets its columns back, the children without spanSm still take a row each (the rule
+ * above), and a child with spanSm sits in its columns. A row span means nothing in a stack,
+ * so it is dropped wherever the grid did collapse.
+ */
+@media (max-width: 639.98px) {
+    .app-grid.app-grid--keep-sm {
+        grid-template-columns: repeat(12, minmax(0, 1fr)) !important;
+    }
+    /* --app-cols is inherited, so only a grid that sets its own (app-cols-N) reads it: a
+       12-column grid inside a 5-column one must not pick up the parent's 5. */
+    .app-grid.app-grid--keep-sm:is(.app-cols-1, .app-cols-2, .app-cols-3, .app-cols-4, .app-cols-5, .app-cols-6, .app-cols-7, .app-cols-8, .app-cols-9, .app-cols-10, .app-cols-11) {
+        grid-template-columns: repeat(var(--app-cols), minmax(0, 1fr)) !important;
+    }
+    .app-grid.app-grid--keep-sm > .app-node.app-span-sm-1 { grid-column: span 1 / span 1 !important; }
+    .app-grid.app-grid--keep-sm > .app-node.app-span-sm-2 { grid-column: span 2 / span 2 !important; }
+    .app-grid.app-grid--keep-sm > .app-node.app-span-sm-3 { grid-column: span 3 / span 3 !important; }
+    .app-grid.app-grid--keep-sm > .app-node.app-span-sm-4 { grid-column: span 4 / span 4 !important; }
+    .app-grid.app-grid--keep-sm > .app-node.app-span-sm-5 { grid-column: span 5 / span 5 !important; }
+    .app-grid.app-grid--keep-sm > .app-node.app-span-sm-6 { grid-column: span 6 / span 6 !important; }
+    .app-grid.app-grid--keep-sm > .app-node.app-span-sm-7 { grid-column: span 7 / span 7 !important; }
+    .app-grid.app-grid--keep-sm > .app-node.app-span-sm-8 { grid-column: span 8 / span 8 !important; }
+    .app-grid.app-grid--keep-sm > .app-node.app-span-sm-9 { grid-column: span 9 / span 9 !important; }
+    .app-grid.app-grid--keep-sm > .app-node.app-span-sm-10 { grid-column: span 10 / span 10 !important; }
+    .app-grid.app-grid--keep-sm > .app-node.app-span-sm-11 { grid-column: span 11 / span 11 !important; }
+    .app-grid.app-grid--keep-sm > .app-node.app-span-sm-12 { grid-column: 1 / -1 !important; }
+    .app-grid.app-grid--keep-sm.app-cols-1 > .app-node:is(.app-span-sm-1, .app-span-sm-2, .app-span-sm-3, .app-span-sm-4, .app-span-sm-5, .app-span-sm-6, .app-span-sm-7, .app-span-sm-8, .app-span-sm-9, .app-span-sm-10, .app-span-sm-11, .app-span-sm-12) { grid-column: 1 / -1 !important; }
+    .app-grid.app-grid--keep-sm.app-cols-2 > .app-node:is(.app-span-sm-2, .app-span-sm-3, .app-span-sm-4, .app-span-sm-5, .app-span-sm-6, .app-span-sm-7, .app-span-sm-8, .app-span-sm-9, .app-span-sm-10, .app-span-sm-11, .app-span-sm-12) { grid-column: 1 / -1 !important; }
+    .app-grid.app-grid--keep-sm.app-cols-3 > .app-node:is(.app-span-sm-3, .app-span-sm-4, .app-span-sm-5, .app-span-sm-6, .app-span-sm-7, .app-span-sm-8, .app-span-sm-9, .app-span-sm-10, .app-span-sm-11, .app-span-sm-12) { grid-column: 1 / -1 !important; }
+    .app-grid.app-grid--keep-sm.app-cols-4 > .app-node:is(.app-span-sm-4, .app-span-sm-5, .app-span-sm-6, .app-span-sm-7, .app-span-sm-8, .app-span-sm-9, .app-span-sm-10, .app-span-sm-11, .app-span-sm-12) { grid-column: 1 / -1 !important; }
+    .app-grid.app-grid--keep-sm.app-cols-5 > .app-node:is(.app-span-sm-5, .app-span-sm-6, .app-span-sm-7, .app-span-sm-8, .app-span-sm-9, .app-span-sm-10, .app-span-sm-11, .app-span-sm-12) { grid-column: 1 / -1 !important; }
+    .app-grid.app-grid--keep-sm.app-cols-6 > .app-node:is(.app-span-sm-6, .app-span-sm-7, .app-span-sm-8, .app-span-sm-9, .app-span-sm-10, .app-span-sm-11, .app-span-sm-12) { grid-column: 1 / -1 !important; }
+    .app-grid.app-grid--keep-sm.app-cols-7 > .app-node:is(.app-span-sm-7, .app-span-sm-8, .app-span-sm-9, .app-span-sm-10, .app-span-sm-11, .app-span-sm-12) { grid-column: 1 / -1 !important; }
+    .app-grid.app-grid--keep-sm.app-cols-8 > .app-node:is(.app-span-sm-8, .app-span-sm-9, .app-span-sm-10, .app-span-sm-11, .app-span-sm-12) { grid-column: 1 / -1 !important; }
+    .app-grid.app-grid--keep-sm.app-cols-9 > .app-node:is(.app-span-sm-9, .app-span-sm-10, .app-span-sm-11, .app-span-sm-12) { grid-column: 1 / -1 !important; }
+    .app-grid.app-grid--keep-sm.app-cols-10 > .app-node:is(.app-span-sm-10, .app-span-sm-11, .app-span-sm-12) { grid-column: 1 / -1 !important; }
+    .app-grid.app-grid--keep-sm.app-cols-11 > .app-node:is(.app-span-sm-11, .app-span-sm-12) { grid-column: 1 / -1 !important; }
+    .app-grid:not(.app-grid--keep-sm) > .app-node.app-row-span {
+        grid-row: auto !important;
+    }
+}
+
+/*
+ * sticky (.app-sticky-top / .app-sticky-bottom). A grid item sticks inside its own grid
+ * area, so it needs room to move: `align-self` takes it off the default stretch (an inline
+ * alignSelf from the knob still wins). The offset is a custom property the resolver writes
+ * only when stickyOffset is set.
+ *
+ * Off on the editor canvas, with the same guard as the hide classes above and for the same
+ * reason: the canvas scrolls inside the editor, and a cell that slides under the pointer
+ * cannot be selected or dragged.
+ */
+.app-sticky-top:not([data-app-edit] *) {
+    position: sticky;
+    top: var(--app-sticky-offset, 0px);
+    align-self: start;
+}
+.app-sticky-bottom:not([data-app-edit] *) {
+    position: sticky;
+    bottom: var(--app-sticky-offset, 0px);
+    align-self: end;
+}

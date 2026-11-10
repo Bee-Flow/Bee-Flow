@@ -3,6 +3,7 @@ import { SortableContext, rectSortingStrategy } from '@dnd-kit/sortable';
 import { MousePointerClick } from 'lucide-react';
 import { RefObject, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import BreakpointSwitch from './BreakpointSwitch';
 import BuildBanner from './BuildBanner';
 import { useBuildCue } from './BuildCueContext';
 import { buildNode, sectionDroppableId } from './dnd';
@@ -320,6 +321,13 @@ export function CanvasBody({
                     confirmDialog={confirmDialog}
                 />
             )}
+
+            {/* Which screen size the width grip arranges (span, spanMd, spanSm). Edit mode only. */}
+            {mode === 'edit' ? (
+                <div className="pointer-events-none absolute right-4 top-2 z-20 flex justify-end">
+                    <BreakpointSwitch disabled={streamLock} />
+                </div>
+            ) : null}
 
             {/* streamLock shield — always mounted. It blocks pointer events on the
                 canvas while the AI edits, and NOTHING more: it used to dim the

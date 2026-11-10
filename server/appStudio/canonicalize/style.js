@@ -37,6 +37,8 @@ function cleanStyle(raw, allowedKeys, defaults, path, push, { recordMissing = fa
     for (const [k, v] of Object.entries(raw)) {
         if (!allowedKeys.includes(k)) { unknown.push(k); continue; }
         const knob = STYLE_KNOBS[k];
+        // A knob added after the base has no default that is written: null is "not set".
+        if (knob.since !== undefined && (v === null || v === undefined)) continue;
         if (knob.type === 'unitInt') {
             // null/undefined is the legitimate "not set" state — the inspector
             // commits it when the author switches back to columns/preset.
@@ -66,8 +68,8 @@ function cleanStyle(raw, allowedKeys, defaults, path, push, { recordMissing = fa
             let num = v;
             if (typeof num === 'string' && num.trim() !== '' && Number.isFinite(Number(num))) num = Number(num);
             if (typeof num !== 'number' || !Number.isFinite(num)) {
-                push('style.invalid', `${path}.${k}`, `${k} must be an integer ${knob.min}..${knob.max} — reset to ${JSON.stringify(knob.default)}.`);
-                out[k] = knob.default;
+                push('style.invalid', `${path}.${k}`, `${k} must be an integer ${knob.min}..${knob.max} — ${knob.default === undefined ? 'dropped' : `reset to ${JSON.stringify(knob.default)}`}.`);
+                if (knob.default !== undefined) out[k] = knob.default;
                 continue;
             }
             const clamped = Math.min(knob.max, Math.max(knob.min, Math.round(num)));
@@ -75,8 +77,10 @@ function cleanStyle(raw, allowedKeys, defaults, path, push, { recordMissing = fa
             out[k] = clamped;
         } else if (knob.type === 'enum') {
             if (knob.values.includes(v)) { out[k] = v; continue; }
-            push('style.invalid', `${path}.${k}`, `${k}: unknown value ${JSON.stringify(v)} — reset to ${JSON.stringify(knob.default)}. Legal: ${knob.values.map((x) => JSON.stringify(x)).join(', ')}.`);
-            out[k] = knob.default;
+            // A knob added after the base drops a bad value: its default is never written.
+            const drop = knob.since !== undefined;
+            push('style.invalid', `${path}.${k}`, `${k}: unknown value ${JSON.stringify(v)} — ${drop ? 'dropped' : `reset to ${JSON.stringify(knob.default)}`}. Legal: ${knob.values.map((x) => JSON.stringify(x)).join(', ')}.`);
+            if (!drop) out[k] = knob.default;
         } else if (knob.type === 'colorOrRole') {
             // A colour knob added after the base (since-marked) has no colour to inherit
             // by name: null is "not set" and stays out, like the value types below, and so

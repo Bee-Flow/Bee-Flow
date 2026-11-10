@@ -1,5 +1,5 @@
-/** A knob measured in whole numbers within a range (a slider). */
-interface IntKnob { type: 'int'; min: number; max: number; step: number; default: number }
+/** A knob measured in whole numbers within a range (a slider). A knob added after the base may have no default: unset is then its only resting state. */
+interface IntKnob { type: 'int'; min: number; max: number; step: number; default?: number }
 
 /** A knob that picks one of a closed list; `null` in the list is "inherit". */
 interface EnumKnob { type: 'enum'; values: unknown[]; default: string | null }

@@ -1,5 +1,5 @@
 import type { NodeStyle } from '../../inspector/appDefinition';
-import { gridTemplate, spaceSteps } from '../styleResolver';
+import { gridClasses, gridColumnStyle, spaceSteps } from '../styleResolver';
 import { fillRowTemplate, isFill } from '../styleResolver.helpers';
 import type { NodeProps } from './appNode.types';
 
@@ -49,10 +49,10 @@ export default function AppContainer({ node, children }: NodeProps<ContainerProp
     const lookStyle = CONTAINER_LOOKS[look as string] || null; // 'plain' / unknown → identity
     return (
         <div
-            className={`app-grid${fill ? ' app-fill h-full min-h-0' : ''}${lookStyle ? ` app-container--${look}` : ''}`}
+            className={`app-grid${gridClasses(node)}${fill ? ' app-fill h-full min-h-0' : ''}${lookStyle ? ` app-container--${look}` : ''}`}
             data-app-container="true"
             style={{
-                gridTemplateColumns: gridTemplate(),
+                ...gridColumnStyle(node.style),
                 gap: spaceSteps(gap),
                 ...(fill ? { gridTemplateRows: fillRowTemplate(node) } : null),
                 ...lookStyle,
