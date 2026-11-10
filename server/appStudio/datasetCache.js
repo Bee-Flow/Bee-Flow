@@ -45,6 +45,7 @@ const studioAppDbStore = require('../stores/studioAppDbStore');
 const queryCompiler = require('./queryCompiler');
 const rlsGateway = require('./rlsGateway');
 const { aggregateDescriptor } = require('../core/dataEngine/readDescriptor.mts');
+const { relatedForAggregate } = require('./aggregateRelated.mts');
 const { bestEffort } = require('../utils/bestEffort');
 
 const DEFAULT_TTL_SECONDS = 60;
@@ -72,12 +73,15 @@ function stableStringify(value) {
  * compiled access ⇒ same key (safe to share); any difference ⇒ different key
  * (never shared). This is the security control described in the file header.
  */
-function computeViewerScopeKey(role, accessFilter) {
+function computeViewerScopeKey(role, accessFilter, related) {
     const af = accessFilter && typeof accessFilter === 'object' ? accessFilter : {};
     const identity = {
         role: role || null,
         where: typeof af.where === 'string' ? af.where : '',
         params: Array.isArray(af.params) ? af.params : [],
+        // A groupBy through a relation also reads the related table under the
+        // viewer's predicate on it. Only then: a dataset without one keeps its key.
+        ...(related ? { related: Object.fromEntries(Object.entries(related).map(([k, r]) => [k, { where: r.accessFilter.where, params: r.accessFilter.params }])) } : {}),
     };
     return sha256('viewerscope:v1:' + stableStringify(identity));
 }
@@ -94,6 +98,7 @@ function computeParamsHash(tableKey, descriptor) {
         limit: d.limit ?? null,
         // Only when the descriptor has one: a descriptor without it keeps its hash.
         ...(d.orderBy !== undefined && d.orderBy !== null ? { orderBy: d.orderBy } : {}),
+        ...(d.groupFilter !== undefined && d.groupFilter !== null ? { groupFilter: d.groupFilter } : {}),
     };
     return sha256('params:v1:' + stableStringify(norm));
 }
@@ -103,12 +108,17 @@ function resolveTable(model, tableRef) {
     return tables.find((t) => t && (t.id === tableRef || t.key === tableRef)) || null;
 }
 
-/** The table's current cache-invalidation token (0 when no meta row yet). */
-async function currentDataVersion(app, tableKey) {
+/**
+ * The table's current cache-invalidation token (0 when no meta row yet). With
+ * related tables (a groupBy through a relation) it is the sum over all of them:
+ * each version only grows, so a write to any of them moves the sum.
+ * @param {string[]} [relatedKeys]
+ */
+async function currentDataVersion(app, tableKey, relatedKeys = []) {
     try {
         const meta = await studioAppDataStore.getDataModel(app.id, app.userId);
         const versions = meta && meta.dataVersions && typeof meta.dataVersions === 'object' ? meta.dataVersions : {};
-        return parseInt(versions[tableKey], 10) || 0;
+        return [tableKey, ...relatedKeys].reduce((sum, key) => sum + (parseInt(versions[key], 10) || 0), 0);
     } catch {
         return 0;
     }
@@ -157,10 +167,11 @@ async function runDataset(app, model, datasetOrDescriptor, viewer, { refresh = f
     // The access filter — ALWAYS present, ALWAYS AND-ed into the query. Compiled
     // here from the (role, viewer) so a member's chart folds only their rows.
     const accessFilter = rlsGateway.compileAccessFilter(table, role, v, 'read');
+    const related = relatedForAggregate(model, table, descriptor.groupBy, { role, viewer: v });
 
-    const viewerScopeKey = computeViewerScopeKey(role, accessFilter);
+    const viewerScopeKey = computeViewerScopeKey(role, accessFilter, related);
     const paramsHash = computeParamsHash(table.key, descriptor);
-    const dataVersion = await currentDataVersion(app, table.key);
+    const dataVersion = await currentDataVersion(app, table.key, related ? Object.values(related).map((r) => r.tableMeta.key) : []);
     const ttlSeconds = Number.isFinite(dod.cacheTtlSeconds) ? dod.cacheTtlSeconds : DEFAULT_TTL_SECONDS;
 
     // Only SAVED datasets are cache-persisted (studio_app_dataset_cache FKs the
@@ -182,7 +193,7 @@ async function runDataset(app, model, datasetOrDescriptor, viewer, { refresh = f
 
     // Miss / forced refresh / inline → compile (scoped) and run live.
     const { sql, params } = queryCompiler.compileAggregate(table,
-        aggregateDescriptor(descriptor, { limit: descriptor.limit }), accessFilter);
+        aggregateDescriptor(descriptor, { limit: descriptor.limit }), accessFilter, related);
 
     const out = await studioAppDbStore.query(app.userId, app.id, sql, params);
     const result = {
@@ -223,7 +234,7 @@ module.exports = {
 
 /** @typedef {{ where?: string, params?: unknown[] }} AccessFilterLike */
 
-/** @typedef {{ tableId?: string, tableKey?: string, filters?: unknown, groupBy?: unknown, aggregates?: unknown, sort?: unknown, orderBy?: unknown, limit?: unknown }} Descriptor */
+/** @typedef {{ tableId?: string, tableKey?: string, filters?: unknown, groupBy?: unknown, aggregates?: unknown, sort?: unknown, orderBy?: unknown, groupFilter?: unknown, limit?: unknown }} Descriptor */
 
 /**
  * @typedef {Descriptor & { id?: string, descriptor?: Descriptor, aggregate?: Descriptor, cacheTtlSeconds?: number }} DatasetOrDescriptor

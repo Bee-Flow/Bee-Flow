@@ -49,3 +49,11 @@ test('a missing field stays a present key holding undefined, as the hand-built o
     const out = aggregateDescriptor({}, { limit: undefined });
     assert.deepStrictEqual(out, { filters: undefined, groupBy: undefined, aggregates: undefined, sort: undefined, limit: undefined });
 });
+
+test('groupFilter travels on an aggregate when the read has one, never on a record list', () => {
+    const groupFilter = [{ field: 'n', op: 'gt', value: 1 }];
+    assert.deepStrictEqual(aggregateDescriptor({ ...BINDING, groupFilter }).groupFilter, groupFilter);
+    assert.ok(!('groupFilter' in aggregateDescriptor(BINDING)));
+    assert.ok(!('groupFilter' in aggregateDescriptor({ ...BINDING, groupFilter: null })));
+    assert.ok(!('groupFilter' in recordListDescriptor({ ...BINDING, groupFilter })));
+});

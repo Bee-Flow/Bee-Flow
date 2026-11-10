@@ -32,10 +32,13 @@ const AGGREGATE_FIELDS = Object.freeze(['filters', 'groupBy', 'aggregates', 'sor
  */
 const OPTIONAL_FIELDS = Object.freeze(['orderBy']);
 
-function pick(src: Descriptor, fields: readonly string[]): Descriptor {
+/** The same, for an aggregate only. */
+const AGGREGATE_OPTIONAL_FIELDS = Object.freeze(['groupFilter']);
+
+function pick(src: Descriptor, fields: readonly string[], optional: readonly string[] = OPTIONAL_FIELDS): Descriptor {
     const out: Descriptor = {};
     for (const f of fields) out[f] = src[f];
-    for (const f of OPTIONAL_FIELDS) if (src[f] !== undefined && src[f] !== null) out[f] = src[f];
+    for (const f of optional) if (src[f] !== undefined && src[f] !== null) out[f] = src[f];
     return out;
 }
 
@@ -46,5 +49,5 @@ export function recordListDescriptor(src: Descriptor, own: Descriptor = {}): Des
 
 /** The compileAggregate options for a read: the picked query fields, then the caller's own. */
 export function aggregateDescriptor(src: Descriptor, own: Descriptor = {}): Descriptor {
-    return { ...pick(src, AGGREGATE_FIELDS), ...own };
+    return { ...pick(src, AGGREGATE_FIELDS, [...OPTIONAL_FIELDS, ...AGGREGATE_OPTIONAL_FIELDS]), ...own };
 }

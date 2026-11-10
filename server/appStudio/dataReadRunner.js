@@ -48,6 +48,7 @@ const studioAppDataStore = require('../stores/studioAppDataStore');
 const datatableSource = require('./datatableSource');
 const { readError } = require('./readError');
 const { recordListDescriptor, aggregateDescriptor } = require('../core/dataEngine/readDescriptor.mts');
+const { relatedForAggregate } = require('./aggregateRelated.mts');
 const log = require('../telemetry/log');
 const { bestEffort } = require('../utils/bestEffort');
 
@@ -166,8 +167,10 @@ async function runRecordList(ctx, table, opts = {}) {
 async function runInlineAggregate(ctx, table, descriptor = {}) {
     const plan = await readPlan(ctx, table);
     const accessFilter = rlsGateway.compileAccessFilter(plan.tableMeta, plan.role, plan.viewer, 'read', { dialect: plan.dialect });
+    // A groupBy through a relation reads the related table under the same role and viewer.
+    const related = relatedForAggregate(ctx.model, plan.tableMeta, descriptor.groupBy, plan);
     const { sql, params } = queryCompiler.compileAggregate(plan.tableMeta,
-        aggregateDescriptor(descriptor, { limit: descriptor.limit, dialect: plan.dialect }), accessFilter);
+        aggregateDescriptor(descriptor, { limit: descriptor.limit, dialect: plan.dialect }), accessFilter, related);
     const { rows } = await plan.query(sql, params);
     return { rows };
 }
@@ -302,5 +305,5 @@ module.exports = {
  *   app: { id: string, userId: string, organizationId?: string | null }, ownerScope: string,
  *   _datatablePlans?: Map<string, Promise<ReadPlan>>,
  * }} ReadCtx  the per-request context of a read
- * @typedef {{ id?: unknown, kind?: unknown, datasetId?: unknown, tableId?: unknown, filters?: unknown, groupBy?: unknown, aggregates?: unknown, sort?: unknown, orderBy?: unknown, cursor?: string | null, limit?: unknown }} BatchRead  one descriptor of a batch
+ * @typedef {{ id?: unknown, kind?: unknown, datasetId?: unknown, tableId?: unknown, filters?: unknown, groupBy?: unknown, aggregates?: unknown, sort?: unknown, orderBy?: unknown, groupFilter?: unknown, cursor?: string | null, limit?: unknown }} BatchRead  one descriptor of a batch
  */

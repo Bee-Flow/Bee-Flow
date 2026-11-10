@@ -30,6 +30,7 @@ const { collectDataBindings } = require('../appStudio/collectDataBindings');
 const queryCompiler = require('../core/dataEngine/queryCompiler');
 const { recordListDescriptor, aggregateDescriptor } = require('../core/dataEngine/readDescriptor.mts');
 const rlsGateway = require('../appStudio/rlsGateway');
+const { relatedForAggregate } = require('../appStudio/aggregateRelated.mts');
 const { seedVariableDefaults } = require('../appStudio/componentSpecs');
 const { ROLE_PROBE_VIEWER_ID } = require('../appStudio/appDryRun');
 const { compile, tryEvaluate, resolveFilterList, FILTER_SKIP } = require('../shared/expr/index.mjs');
@@ -90,6 +91,7 @@ function dataCacheKey(binding) {
             sort: binding.sort ?? null,
             limit: binding.limit ?? null,
             ...(binding.orderBy === undefined || binding.orderBy === null ? {} : { orderBy: binding.orderBy }),
+            ...(binding.groupFilter === undefined || binding.groupFilter === null ? {} : { groupFilter: binding.groupFilter }),
         });
         return `aggregate:${binding.tableId ?? ''}:${shape}`;
     }
@@ -216,7 +218,8 @@ async function runTableEntry(binding, { model, app, roleArg, viewer, deps }) {
         let rows;
         if (binding.kind === 'aggregate') {
             const { sql, params } = queryCompiler.compileAggregate(table,
-                aggregateDescriptor(binding, { filters: binding.filter, limit: binding.limit }), accessFilter);
+                aggregateDescriptor(binding, { filters: binding.filter, limit: binding.limit }), accessFilter,
+                relatedForAggregate(model, table, binding.groupBy, { role: roleArg, viewer }));
             const out = await deps.dbQuery(app.userId, app.id, sql, params);
             rows = Array.isArray(out && out.rows) ? out.rows : [];
         } else {

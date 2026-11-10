@@ -24,6 +24,7 @@ const { compileAccessFilter } = require('./accessFilter');
 const engineFlag = require('./engineFlag');
 const { FILTER_OPS, AGG_FNS, DATE_BUCKETS } = require('./dataModel/vocabulary');
 const C = require('./queryCompiler.snapshot.fixture');
+const CX = require('./queryCompiler.snapshot.fixtureAgg');
 
 const GOLDEN_PATH = path.join(__dirname, 'queryCompiler.snapshot.golden.json');
 const DIALECTS = ['sqlite', 'pg'];
@@ -58,7 +59,7 @@ const accessOf = (access) => (access === undefined ? C.ACCESS : access);
 
 function snapshot() {
     /** @type {Record<string, Record<string, unknown>>} */
-    const out = { list: {}, aggregate: {}, getById: {}, keyIndex: {}, access: {}, clampLimit: {}, implicitDialect: {} };
+    const out = { list: {}, aggregate: {}, getById: {}, keyIndex: {}, access: {}, clampLimit: {}, implicitDialect: {}, aggregateExtended: {}, aggregateRelated: {} };
     for (const [name, opts, access] of C.LIST_CASES) {
         out.list[name] = Object.fromEntries(DIALECTS.map((d) => [d, capture(
             () => qc.compileRecordList(C.TABLE, withDialect(opts, d), accessOf(access)))]));
@@ -66,6 +67,14 @@ function snapshot() {
     for (const [name, opts, access] of C.AGGREGATE_CASES) {
         out.aggregate[name] = Object.fromEntries(DIALECTS.map((d) => [d, capture(
             () => qc.compileAggregate(C.TABLE, withDialect(opts, d), accessOf(access)))]));
+    }
+    for (const [name, opts] of CX.EXTENDED_CASES) {
+        out.aggregateExtended[name] = Object.fromEntries(DIALECTS.map((d) => [d, capture(
+            () => qc.compileAggregate(C.TABLE, withDialect(opts, d), C.ACCESS))]));
+    }
+    for (const [name, opts, related] of CX.RELATED_CASES) {
+        out.aggregateRelated[name] = Object.fromEntries(DIALECTS.map((d) => [d, capture(
+            () => qc.compileAggregate(CX.ORDERS, withDialect(opts, d), CX.ORDERS_ACCESS, related === undefined ? CX.RELATED : related))]));
     }
     for (const [name, id, access] of C.GET_BY_ID_CASES) {
         out.getById[name] = Object.fromEntries(DIALECTS.map((d) => [d, capture(

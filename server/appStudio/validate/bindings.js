@@ -13,6 +13,7 @@ const { isObject } = require('./shared');
 const { MAX_ORDER_BY } = require('../componentSpecs');
 const { validateBindingFilter } = require('./bindingFilters');
 const { validateFormula } = require('./formulas');
+const { groupByAlias, validateExtendedGroupBy, validateGroupFilter } = require('./aggregateChecks.mts');
 const {
     checkTableRef,
     checkTableSource,
@@ -84,8 +85,8 @@ function aggregateAliases(binding) {
     const out = new Set();
     for (const g of Array.isArray(binding.groupBy) ? binding.groupBy : []) {
         if (!isObject(g)) continue;
-        if (typeof g.as === 'string' && g.as) out.add(g.as);
-        else if (typeof g.field === 'string' && g.field) out.add(g.bucket ? `${g.field}_${g.bucket}` : g.field);
+        const alias = groupByAlias(g);
+        if (alias) out.add(alias);
     }
     for (const a of Array.isArray(binding.aggregates) ? binding.aggregates : []) {
         if (!isObject(a)) continue;
@@ -172,6 +173,7 @@ function validateBinding(key, value, path, ctx) {
     }
     if (value.kind === 'aggregate') {
         const { AGG_FNS, DATE_BUCKETS } = require('../dataModel');
+        const { AGG_FNS_EXTENDED } = require('../../core/dataEngine/dataModel/vocabulary');
         // groupBy/aggregates may be a FORMULA rather than a literal list — a
         // saved report supplying the question at runtime. The expression is
         // parse-compiled here (never executed) and the per-entry field/function
@@ -206,7 +208,7 @@ function validateBinding(key, value, path, ctx) {
         });
         aggregates.forEach((a, i) => {
             if (!isObject(a)) return;
-            if (!AGG_FNS.includes(a.fn)) {
+            if (!AGG_FNS.includes(a.fn) && !AGG_FNS_EXTENDED.includes(a.fn)) {
                 pushE({
                     code: 'binding.aggregate_invalid', severity: 'error', path: `${path}.aggregates[${i}].fn`,
                     message: `Unknown aggregate function ${JSON.stringify(a.fn)}.`,
@@ -228,6 +230,8 @@ function validateBinding(key, value, path, ctx) {
                 checkFieldRef(value.tableId, a.field, `${path}.aggregates[${i}].field`, ctx, 'aggregate binding', { codePrefix: 'binding' });
             }
         });
+        validateExtendedGroupBy(groupBy, path, value.tableId, ctx);
+        if (value.groupFilter !== undefined && value.groupFilter !== null) validateGroupFilter(value, path, ctx);
     }
     if (value.kind === 'dataset') {
         checkDatasetRef(value.datasetId, `${path}.datasetId`, ctx, 'dataset binding');

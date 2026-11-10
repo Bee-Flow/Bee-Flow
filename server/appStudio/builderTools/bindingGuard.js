@@ -24,6 +24,7 @@ const { isDatatableBacked } = require('../datatableSource');
 const { getSpec } = require('../componentSpecs');
 const { suggestTableId } = require('./tableHints');
 const { forEachFilterClause } = require('../../shared/expr/filterGroups.mjs');
+const { groupByAlias } = require('../validate/aggregateChecks.mts');
 
 // What the model reads when a table is not there: both ways to get one. The
 // 2026-09-13 trace saw "create the table first" from a menu that had no
@@ -130,8 +131,8 @@ function checkComponentDataRefs(entries, model) {
             (Array.isArray(b.groupBy) ? b.groupBy : []).forEach((g, i) => {
                 if (!isObject(g)) return;
                 fieldCheck(index, `${path}.groupBy[${i}].field`, table, g.field, 'aggregate groupBy');
-                if (typeof g.as === 'string') aliases.add(g.as);
-                else if (typeof g.field === 'string') aliases.add(g.bucket ? `${g.field}_${g.bucket}` : g.field);
+                const alias = typeof g.as === 'string' ? g.as : groupByAlias(g);
+                if (alias !== null) aliases.add(alias);
             });
             (Array.isArray(b.aggregates) ? b.aggregates : []).forEach((a, i) => {
                 if (!isObject(a)) return;

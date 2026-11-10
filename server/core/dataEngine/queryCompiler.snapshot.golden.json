@@ -5690,5 +5690,887 @@
         ]
       }
     }
+  },
+  "aggregateExtended": {
+    "count-distinct": {
+      "sqlite": {
+        "sql": "SELECT \"region\" AS \"region\", COUNT(DISTINCT \"created_by\") AS \"people\" FROM \"tasks\" WHERE (\"created_by\" = ?) GROUP BY \"region\" LIMIT ?",
+        "params": [
+          "viewer-1",
+          50
+        ]
+      },
+      "pg": {
+        "sql": "SELECT \"region\" AS \"region\", COUNT(DISTINCT \"created_by\") AS \"people\" FROM \"tasks\" WHERE (\"created_by\" = ?) GROUP BY \"region\" LIMIT ?",
+        "params": [
+          "viewer-1",
+          50
+        ]
+      }
+    },
+    "count-distinct-default-alias": {
+      "sqlite": {
+        "sql": "SELECT COUNT(DISTINCT \"region\") AS \"countDistinct_region\" FROM \"tasks\" WHERE (\"created_by\" = ?) LIMIT ?",
+        "params": [
+          "viewer-1",
+          50
+        ]
+      },
+      "pg": {
+        "sql": "SELECT COUNT(DISTINCT \"region\") AS \"countDistinct_region\" FROM \"tasks\" WHERE (\"created_by\" = ?) LIMIT ?",
+        "params": [
+          "viewer-1",
+          50
+        ]
+      }
+    },
+    "count-distinct-percentile": {
+      "sqlite": {
+        "sql": "WITH __src AS (SELECT \"region\" AS \"region\", \"amount\" AS \"__pv_0\", ROW_NUMBER() OVER (PARTITION BY \"region\" ORDER BY (CASE WHEN \"amount\" IS NULL THEN 1 ELSE 0 END), \"amount\") AS \"__rn_0\", COUNT(\"amount\") OVER (PARTITION BY \"region\" ) AS \"__cn_0\" FROM \"tasks\" WHERE (\"created_by\" = ?)) SELECT \"region\", COUNT(DISTINCT \"title\") AS \"titles\", MIN(CASE WHEN \"__rn_0\" >= CAST(0.5 * \"__cn_0\" + 0.5 AS INTEGER) THEN \"__pv_0\" END) AS \"m\" FROM __src GROUP BY \"region\" LIMIT ?",
+        "params": [
+          "viewer-1",
+          50
+        ]
+      },
+      "pg": {
+        "sql": "SELECT \"region\" AS \"region\", COUNT(DISTINCT \"title\") AS \"titles\", PERCENTILE_DISC(0.5) WITHIN GROUP (ORDER BY \"amount\") AS \"m\" FROM \"tasks\" WHERE (\"created_by\" = ?) GROUP BY \"region\" LIMIT ?",
+        "params": [
+          "viewer-1",
+          50
+        ]
+      }
+    },
+    "bin": {
+      "sqlite": {
+        "sql": "SELECT (FLOOR(CAST(\"amount\" AS REAL) / 10) * 10) AS \"amount_bin\", COUNT(*) AS \"n\" FROM \"tasks\" WHERE (\"created_by\" = ?) GROUP BY (FLOOR(CAST(\"amount\" AS REAL) / 10) * 10) LIMIT ?",
+        "params": [
+          "viewer-1",
+          50
+        ]
+      },
+      "pg": {
+        "sql": "SELECT (FLOOR(\"amount\"::numeric / 10) * 10) AS \"amount_bin\", COUNT(*) AS \"n\" FROM \"tasks\" WHERE (\"created_by\" = ?) GROUP BY (FLOOR(\"amount\"::numeric / 10) * 10) LIMIT ?",
+        "params": [
+          "viewer-1",
+          50
+        ]
+      }
+    },
+    "bin-as-sorted": {
+      "sqlite": {
+        "sql": "SELECT (FLOOR(CAST(\"amount\" AS REAL) / 250) * 250) AS \"band\", COUNT(*) AS \"n\" FROM \"tasks\" WHERE (\"created_by\" = ?) GROUP BY (FLOOR(CAST(\"amount\" AS REAL) / 250) * 250) ORDER BY \"band\" ASC LIMIT ?",
+        "params": [
+          "viewer-1",
+          50
+        ]
+      },
+      "pg": {
+        "sql": "SELECT (FLOOR(\"amount\"::numeric / 250) * 250) AS \"band\", COUNT(*) AS \"n\" FROM \"tasks\" WHERE (\"created_by\" = ?) GROUP BY (FLOOR(\"amount\"::numeric / 250) * 250) ORDER BY \"band\" ASC LIMIT ?",
+        "params": [
+          "viewer-1",
+          50
+        ]
+      }
+    },
+    "bin-percentile": {
+      "sqlite": {
+        "sql": "WITH __src AS (SELECT (FLOOR(CAST(\"amount\" AS REAL) / 100) * 100) AS \"band\", \"amount\" AS \"__pv_0\", ROW_NUMBER() OVER (PARTITION BY (FLOOR(CAST(\"amount\" AS REAL) / 100) * 100) ORDER BY (CASE WHEN \"amount\" IS NULL THEN 1 ELSE 0 END), \"amount\") AS \"__rn_0\", COUNT(\"amount\") OVER (PARTITION BY (FLOOR(CAST(\"amount\" AS REAL) / 100) * 100) ) AS \"__cn_0\" FROM \"tasks\" WHERE (\"created_by\" = ?)) SELECT \"band\", MIN(CASE WHEN \"__rn_0\" >= CAST(0.9 * \"__cn_0\" + 0.5 AS INTEGER) THEN \"__pv_0\" END) AS \"p\" FROM __src GROUP BY \"band\" LIMIT ?",
+        "params": [
+          "viewer-1",
+          50
+        ]
+      },
+      "pg": {
+        "sql": "SELECT (FLOOR(\"amount\"::numeric / 100) * 100) AS \"band\", PERCENTILE_DISC(0.9) WITHIN GROUP (ORDER BY \"amount\") AS \"p\" FROM \"tasks\" WHERE (\"created_by\" = ?) GROUP BY (FLOOR(\"amount\"::numeric / 100) * 100) LIMIT ?",
+        "params": [
+          "viewer-1",
+          50
+        ]
+      }
+    },
+    "group-filter": {
+      "sqlite": {
+        "sql": "SELECT \"region\" AS \"region\", COUNT(*) AS \"n\", SUM(\"amount\") AS \"total\" FROM \"tasks\" WHERE (\"created_by\" = ?) GROUP BY \"region\" HAVING COUNT(*) >= ? AND SUM(\"amount\") < ? LIMIT ?",
+        "params": [
+          "viewer-1",
+          3,
+          1000.5,
+          50
+        ]
+      },
+      "pg": {
+        "sql": "SELECT \"region\" AS \"region\", COUNT(*) AS \"n\", SUM(\"amount\") AS \"total\" FROM \"tasks\" WHERE (\"created_by\" = ?) GROUP BY \"region\" HAVING COUNT(*) >= ? AND SUM(\"amount\") < ? LIMIT ?",
+        "params": [
+          "viewer-1",
+          3,
+          1000.5,
+          50
+        ]
+      }
+    },
+    "group-filter-every-op": {
+      "sqlite": {
+        "sql": "SELECT \"region\" AS \"region\", COUNT(*) AS \"n\" FROM \"tasks\" WHERE (\"created_by\" = ?) GROUP BY \"region\" HAVING COUNT(*) = ? AND COUNT(*) <> ? AND COUNT(*) > ? AND COUNT(*) >= ? AND COUNT(*) < ? LIMIT ?",
+        "params": [
+          "viewer-1",
+          0,
+          1,
+          2,
+          3,
+          4,
+          50
+        ]
+      },
+      "pg": {
+        "sql": "SELECT \"region\" AS \"region\", COUNT(*) AS \"n\" FROM \"tasks\" WHERE (\"created_by\" = ?) GROUP BY \"region\" HAVING COUNT(*) = ? AND COUNT(*) <> ? AND COUNT(*) > ? AND COUNT(*) >= ? AND COUNT(*) < ? LIMIT ?",
+        "params": [
+          "viewer-1",
+          0,
+          1,
+          2,
+          3,
+          4,
+          50
+        ]
+      }
+    },
+    "group-filter-ungrouped": {
+      "sqlite": {
+        "sql": "SELECT AVG(\"amount\") AS \"mean\" FROM \"tasks\" WHERE (\"created_by\" = ?) HAVING AVG(\"amount\") <= ? LIMIT ?",
+        "params": [
+          "viewer-1",
+          0,
+          50
+        ]
+      },
+      "pg": {
+        "sql": "SELECT AVG(\"amount\") AS \"mean\" FROM \"tasks\" WHERE (\"created_by\" = ?) HAVING AVG(\"amount\") <= ? LIMIT ?",
+        "params": [
+          "viewer-1",
+          0,
+          50
+        ]
+      }
+    },
+    "group-filter-percentile": {
+      "sqlite": {
+        "sql": "WITH __src AS (SELECT \"region\" AS \"region\", \"amount\" AS \"__pv_0\", ROW_NUMBER() OVER (PARTITION BY \"region\" ORDER BY (CASE WHEN \"amount\" IS NULL THEN 1 ELSE 0 END), \"amount\") AS \"__rn_0\", COUNT(\"amount\") OVER (PARTITION BY \"region\" ) AS \"__cn_0\" FROM \"tasks\" WHERE (\"created_by\" = ?)) SELECT \"region\", COUNT(*) AS \"n\", MIN(CASE WHEN \"__rn_0\" >= CAST(0.5 * \"__cn_0\" + 0.5 AS INTEGER) THEN \"__pv_0\" END) AS \"m\" FROM __src GROUP BY \"region\" HAVING MIN(CASE WHEN \"__rn_0\" >= CAST(0.5 * \"__cn_0\" + 0.5 AS INTEGER) THEN \"__pv_0\" END) > ? AND COUNT(*) > ? LIMIT ?",
+        "params": [
+          "viewer-1",
+          10,
+          1,
+          50
+        ]
+      },
+      "pg": {
+        "sql": "SELECT \"region\" AS \"region\", PERCENTILE_DISC(0.5) WITHIN GROUP (ORDER BY \"amount\") AS \"m\", COUNT(*) AS \"n\" FROM \"tasks\" WHERE (\"created_by\" = ?) GROUP BY \"region\" HAVING PERCENTILE_DISC(0.5) WITHIN GROUP (ORDER BY \"amount\") > ? AND COUNT(*) > ? LIMIT ?",
+        "params": [
+          "viewer-1",
+          10,
+          1,
+          50
+        ]
+      }
+    },
+    "group-filter-count-distinct-order-by": {
+      "sqlite": {
+        "sql": "SELECT \"region\" AS \"region\", COUNT(DISTINCT \"created_by\") AS \"people\" FROM \"tasks\" WHERE (\"created_by\" = ?) AND \"done\" = ? GROUP BY \"region\" HAVING COUNT(DISTINCT \"created_by\") > ? ORDER BY \"people\" DESC LIMIT ?",
+        "params": [
+          "viewer-1",
+          0,
+          1,
+          5
+        ]
+      },
+      "pg": {
+        "sql": "SELECT \"region\" AS \"region\", COUNT(DISTINCT \"created_by\") AS \"people\" FROM \"tasks\" WHERE (\"created_by\" = ?) AND \"done\" = ? GROUP BY \"region\" HAVING COUNT(DISTINCT \"created_by\") > ? ORDER BY \"people\" DESC LIMIT ?",
+        "params": [
+          "viewer-1",
+          false,
+          1,
+          5
+        ]
+      }
+    },
+    "group-filter-null-ignored": {
+      "sqlite": {
+        "sql": "SELECT COUNT(*) AS \"n\" FROM \"tasks\" WHERE (\"created_by\" = ?) LIMIT ?",
+        "params": [
+          "viewer-1",
+          50
+        ]
+      },
+      "pg": {
+        "sql": "SELECT COUNT(*) AS \"n\" FROM \"tasks\" WHERE (\"created_by\" = ?) LIMIT ?",
+        "params": [
+          "viewer-1",
+          50
+        ]
+      }
+    },
+    "err-count-distinct-no-field": {
+      "sqlite": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "countDistinct needs a field"
+        }
+      },
+      "pg": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "countDistinct needs a field"
+        }
+      }
+    },
+    "err-count-distinct-star": {
+      "sqlite": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "countDistinct needs a field"
+        }
+      },
+      "pg": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "countDistinct needs a field"
+        }
+      }
+    },
+    "err-count-distinct-computed": {
+      "sqlite": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "field \"total\" is a read-time computed field and cannot be queried"
+        }
+      },
+      "pg": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "field \"total\" is a read-time computed field and cannot be queried"
+        }
+      }
+    },
+    "err-bin-text": {
+      "sqlite": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "binWidth needs a number field"
+        }
+      },
+      "pg": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "binWidth needs a number field"
+        }
+      }
+    },
+    "err-bin-zero": {
+      "sqlite": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "binWidth must be a whole number from 1 to 1000000000"
+        }
+      },
+      "pg": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "binWidth must be a whole number from 1 to 1000000000"
+        }
+      }
+    },
+    "err-bin-fraction": {
+      "sqlite": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "binWidth must be a whole number from 1 to 1000000000"
+        }
+      },
+      "pg": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "binWidth must be a whole number from 1 to 1000000000"
+        }
+      }
+    },
+    "err-bin-string": {
+      "sqlite": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "binWidth must be a whole number from 1 to 1000000000"
+        }
+      },
+      "pg": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "binWidth must be a whole number from 1 to 1000000000"
+        }
+      }
+    },
+    "err-bin-huge": {
+      "sqlite": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "binWidth must be a whole number from 1 to 1000000000"
+        }
+      },
+      "pg": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "binWidth must be a whole number from 1 to 1000000000"
+        }
+      }
+    },
+    "err-bin-and-bucket": {
+      "sqlite": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "a groupBy entry takes bucket or binWidth, not both"
+        }
+      },
+      "pg": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "a groupBy entry takes bucket or binWidth, not both"
+        }
+      }
+    },
+    "err-bin-untyped-computed": {
+      "sqlite": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "binWidth needs a number field"
+        }
+      },
+      "pg": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "binWidth needs a number field"
+        }
+      }
+    },
+    "err-bin-system-column": {
+      "sqlite": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "binWidth needs a number field"
+        }
+      },
+      "pg": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "binWidth needs a number field"
+        }
+      }
+    },
+    "err-group-filter-group-alias": {
+      "sqlite": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "groupFilter field \"region\" is not one of the aggregates"
+        }
+      },
+      "pg": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "groupFilter field \"region\" is not one of the aggregates"
+        }
+      }
+    },
+    "err-group-filter-unknown": {
+      "sqlite": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "groupFilter field \"nope\" is not one of the aggregates"
+        }
+      },
+      "pg": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "groupFilter field \"nope\" is not one of the aggregates"
+        }
+      }
+    },
+    "err-group-filter-text-aggregate": {
+      "sqlite": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "groupFilter on \"last\" needs an aggregate that yields a number"
+        }
+      },
+      "pg": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "groupFilter on \"last\" needs an aggregate that yields a number"
+        }
+      }
+    },
+    "err-group-filter-op": {
+      "sqlite": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "unknown groupFilter op: contains"
+        }
+      },
+      "pg": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "unknown groupFilter op: contains"
+        }
+      }
+    },
+    "err-group-filter-string-value": {
+      "sqlite": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "groupFilter value must be a number"
+        }
+      },
+      "pg": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "groupFilter value must be a number"
+        }
+      }
+    },
+    "err-group-filter-empty": {
+      "sqlite": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "groupFilter must be a list of 1 to 5 { field, op, value } entries"
+        }
+      },
+      "pg": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "groupFilter must be a list of 1 to 5 { field, op, value } entries"
+        }
+      }
+    },
+    "err-group-filter-object": {
+      "sqlite": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "groupFilter must be a list of 1 to 5 { field, op, value } entries"
+        }
+      },
+      "pg": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "groupFilter must be a list of 1 to 5 { field, op, value } entries"
+        }
+      }
+    },
+    "err-group-filter-too-many": {
+      "sqlite": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "groupFilter must be a list of 1 to 5 { field, op, value } entries"
+        }
+      },
+      "pg": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "groupFilter must be a list of 1 to 5 { field, op, value } entries"
+        }
+      }
+    },
+    "err-related-no-map": {
+      "sqlite": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "the table behind relation \"owner_ref\" is not available"
+        }
+      },
+      "pg": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "the table behind relation \"owner_ref\" is not available"
+        }
+      }
+    },
+    "err-related-not-relation": {
+      "sqlite": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "groupBy relatedField needs a relation field: region"
+        }
+      },
+      "pg": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "groupBy relatedField needs a relation field: region"
+        }
+      }
+    }
+  },
+  "aggregateRelated": {
+    "related": {
+      "sqlite": {
+        "sql": "SELECT \"__rel_0\".\"__rv\" AS \"customer_segment\", SUM(\"amount\") AS \"total\" FROM \"orders\" LEFT JOIN (SELECT \"id\" AS \"__rid\", \"segment\" AS \"__rv\" FROM \"customers\" WHERE ((1=1) AND ((\"segment\" = ?)))) AS \"__rel_0\" ON \"__rel_0\".\"__rid\" = \"orders\".\"customer\" WHERE (\"created_by\" = ?) GROUP BY \"__rel_0\".\"__rv\" LIMIT ?",
+        "params": [
+          "retail",
+          "viewer-1",
+          50
+        ]
+      },
+      "pg": {
+        "sql": "SELECT \"__rel_0\".\"__rv\" AS \"customer_segment\", SUM(\"amount\") AS \"total\" FROM \"orders\" LEFT JOIN (SELECT \"id\" AS \"__rid\", \"segment\" AS \"__rv\" FROM \"customers\" WHERE ((1=1) AND ((\"segment\" = ?)))) AS \"__rel_0\" ON \"__rel_0\".\"__rid\" = \"orders\".\"customer\" WHERE (\"created_by\" = ?) GROUP BY \"__rel_0\".\"__rv\" LIMIT ?",
+        "params": [
+          "retail",
+          "viewer-1",
+          50
+        ]
+      }
+    },
+    "related-as-and-filters": {
+      "sqlite": {
+        "sql": "SELECT \"__rel_0\".\"__rv\" AS \"who\", COUNT(*) AS \"n\" FROM \"orders\" LEFT JOIN (SELECT \"id\" AS \"__rid\", \"name\" AS \"__rv\" FROM \"customers\" WHERE ((1=1) AND ((\"segment\" = ?)))) AS \"__rel_0\" ON \"__rel_0\".\"__rid\" = \"orders\".\"customer\" WHERE (\"created_by\" = ?) AND \"amount\" > ? GROUP BY \"__rel_0\".\"__rv\" LIMIT ?",
+        "params": [
+          "retail",
+          "viewer-1",
+          5,
+          50
+        ]
+      },
+      "pg": {
+        "sql": "SELECT \"__rel_0\".\"__rv\" AS \"who\", COUNT(*) AS \"n\" FROM \"orders\" LEFT JOIN (SELECT \"id\" AS \"__rid\", \"name\" AS \"__rv\" FROM \"customers\" WHERE ((1=1) AND ((\"segment\" = ?)))) AS \"__rel_0\" ON \"__rel_0\".\"__rid\" = \"orders\".\"customer\" WHERE (\"created_by\" = ?) AND \"amount\" > ? GROUP BY \"__rel_0\".\"__rv\" LIMIT ?",
+        "params": [
+          "retail",
+          "viewer-1",
+          5,
+          50
+        ]
+      }
+    },
+    "related-bucket": {
+      "sqlite": {
+        "sql": "SELECT strftime('%Y', \"__rel_0\".\"__rv\") AS \"customer_since_year\", COUNT(*) AS \"n\" FROM \"orders\" LEFT JOIN (SELECT \"id\" AS \"__rid\", \"since\" AS \"__rv\" FROM \"customers\" WHERE ((1=1) AND ((\"segment\" = ?)))) AS \"__rel_0\" ON \"__rel_0\".\"__rid\" = \"orders\".\"customer\" WHERE (\"created_by\" = ?) GROUP BY strftime('%Y', \"__rel_0\".\"__rv\") LIMIT ?",
+        "params": [
+          "retail",
+          "viewer-1",
+          50
+        ]
+      },
+      "pg": {
+        "sql": "SELECT to_char(\"__rel_0\".\"__rv\"::timestamptz, 'YYYY') AS \"customer_since_year\", COUNT(*) AS \"n\" FROM \"orders\" LEFT JOIN (SELECT \"id\" AS \"__rid\", \"since\" AS \"__rv\" FROM \"customers\" WHERE ((1=1) AND ((\"segment\" = ?)))) AS \"__rel_0\" ON \"__rel_0\".\"__rid\" = \"orders\".\"customer\" WHERE (\"created_by\" = ?) GROUP BY to_char(\"__rel_0\".\"__rv\"::timestamptz, 'YYYY') LIMIT ?",
+        "params": [
+          "retail",
+          "viewer-1",
+          50
+        ]
+      }
+    },
+    "related-bin": {
+      "sqlite": {
+        "sql": "SELECT (FLOOR(CAST(\"__rel_0\".\"__rv\" AS REAL) / 50) * 50) AS \"customer_staff_bin\", COUNT(*) AS \"n\" FROM \"orders\" LEFT JOIN (SELECT \"id\" AS \"__rid\", \"staff\" AS \"__rv\" FROM \"customers\" WHERE ((1=1) AND ((\"segment\" = ?)))) AS \"__rel_0\" ON \"__rel_0\".\"__rid\" = \"orders\".\"customer\" WHERE (\"created_by\" = ?) GROUP BY (FLOOR(CAST(\"__rel_0\".\"__rv\" AS REAL) / 50) * 50) LIMIT ?",
+        "params": [
+          "retail",
+          "viewer-1",
+          50
+        ]
+      },
+      "pg": {
+        "sql": "SELECT (FLOOR(\"__rel_0\".\"__rv\"::numeric / 50) * 50) AS \"customer_staff_bin\", COUNT(*) AS \"n\" FROM \"orders\" LEFT JOIN (SELECT \"id\" AS \"__rid\", \"staff\" AS \"__rv\" FROM \"customers\" WHERE ((1=1) AND ((\"segment\" = ?)))) AS \"__rel_0\" ON \"__rel_0\".\"__rid\" = \"orders\".\"customer\" WHERE (\"created_by\" = ?) GROUP BY (FLOOR(\"__rel_0\".\"__rv\"::numeric / 50) * 50) LIMIT ?",
+        "params": [
+          "retail",
+          "viewer-1",
+          50
+        ]
+      }
+    },
+    "related-system-column": {
+      "sqlite": {
+        "sql": "SELECT \"__rel_0\".\"__rv\" AS \"customer_created_by\", COUNT(*) AS \"n\" FROM \"orders\" LEFT JOIN (SELECT \"id\" AS \"__rid\", \"created_by\" AS \"__rv\" FROM \"customers\" WHERE ((1=1) AND ((\"segment\" = ?)))) AS \"__rel_0\" ON \"__rel_0\".\"__rid\" = \"orders\".\"customer\" WHERE (\"created_by\" = ?) GROUP BY \"__rel_0\".\"__rv\" LIMIT ?",
+        "params": [
+          "retail",
+          "viewer-1",
+          50
+        ]
+      },
+      "pg": {
+        "sql": "SELECT \"__rel_0\".\"__rv\" AS \"customer_created_by\", COUNT(*) AS \"n\" FROM \"orders\" LEFT JOIN (SELECT \"id\" AS \"__rid\", \"created_by\" AS \"__rv\" FROM \"customers\" WHERE ((1=1) AND ((\"segment\" = ?)))) AS \"__rel_0\" ON \"__rel_0\".\"__rid\" = \"orders\".\"customer\" WHERE (\"created_by\" = ?) GROUP BY \"__rel_0\".\"__rv\" LIMIT ?",
+        "params": [
+          "retail",
+          "viewer-1",
+          50
+        ]
+      }
+    },
+    "related-two-and-plain": {
+      "sqlite": {
+        "sql": "SELECT \"__rel_0\".\"__rv\" AS \"customer_segment\", \"__rel_1\".\"__rv\" AS \"billed\", \"amount\" AS \"amount\", COUNT(*) AS \"n\" FROM \"orders\" LEFT JOIN (SELECT \"id\" AS \"__rid\", \"segment\" AS \"__rv\" FROM \"customers\" WHERE ((1=1) AND ((\"segment\" = ?)))) AS \"__rel_0\" ON \"__rel_0\".\"__rid\" = \"orders\".\"customer\" LEFT JOIN (SELECT \"id\" AS \"__rid\", \"segment\" AS \"__rv\" FROM \"customers\" WHERE (1=0)) AS \"__rel_1\" ON \"__rel_1\".\"__rid\" = \"orders\".\"billed_to\" WHERE (\"created_by\" = ?) GROUP BY \"__rel_0\".\"__rv\", \"__rel_1\".\"__rv\", \"amount\" LIMIT ?",
+        "params": [
+          "retail",
+          "viewer-1",
+          50
+        ]
+      },
+      "pg": {
+        "sql": "SELECT \"__rel_0\".\"__rv\" AS \"customer_segment\", \"__rel_1\".\"__rv\" AS \"billed\", \"amount\" AS \"amount\", COUNT(*) AS \"n\" FROM \"orders\" LEFT JOIN (SELECT \"id\" AS \"__rid\", \"segment\" AS \"__rv\" FROM \"customers\" WHERE ((1=1) AND ((\"segment\" = ?)))) AS \"__rel_0\" ON \"__rel_0\".\"__rid\" = \"orders\".\"customer\" LEFT JOIN (SELECT \"id\" AS \"__rid\", \"segment\" AS \"__rv\" FROM \"customers\" WHERE (1=0)) AS \"__rel_1\" ON \"__rel_1\".\"__rid\" = \"orders\".\"billed_to\" WHERE (\"created_by\" = ?) GROUP BY \"__rel_0\".\"__rv\", \"__rel_1\".\"__rv\", \"amount\" LIMIT ?",
+        "params": [
+          "retail",
+          "viewer-1",
+          50
+        ]
+      }
+    },
+    "related-self": {
+      "sqlite": {
+        "sql": "SELECT \"__rel_0\".\"__rv\" AS \"parent_amount\", COUNT(*) AS \"n\" FROM \"orders\" LEFT JOIN (SELECT \"id\" AS \"__rid\", \"amount\" AS \"__rv\" FROM \"orders\" WHERE (\"created_by\" = ?)) AS \"__rel_0\" ON \"__rel_0\".\"__rid\" = \"orders\".\"parent\" WHERE (\"created_by\" = ?) GROUP BY \"__rel_0\".\"__rv\" LIMIT ?",
+        "params": [
+          "viewer-1",
+          "viewer-1",
+          50
+        ]
+      },
+      "pg": {
+        "sql": "SELECT \"__rel_0\".\"__rv\" AS \"parent_amount\", COUNT(*) AS \"n\" FROM \"orders\" LEFT JOIN (SELECT \"id\" AS \"__rid\", \"amount\" AS \"__rv\" FROM \"orders\" WHERE (\"created_by\" = ?)) AS \"__rel_0\" ON \"__rel_0\".\"__rid\" = \"orders\".\"parent\" WHERE (\"created_by\" = ?) GROUP BY \"__rel_0\".\"__rv\" LIMIT ?",
+        "params": [
+          "viewer-1",
+          "viewer-1",
+          50
+        ]
+      }
+    },
+    "related-percentile": {
+      "sqlite": {
+        "sql": "WITH __src AS (SELECT \"__rel_0\".\"__rv\" AS \"customer_segment\", \"amount\" AS \"__pv_0\", ROW_NUMBER() OVER (PARTITION BY \"__rel_0\".\"__rv\" ORDER BY (CASE WHEN \"amount\" IS NULL THEN 1 ELSE 0 END), \"amount\") AS \"__rn_0\", COUNT(\"amount\") OVER (PARTITION BY \"__rel_0\".\"__rv\" ) AS \"__cn_0\" FROM \"orders\" LEFT JOIN (SELECT \"id\" AS \"__rid\", \"segment\" AS \"__rv\" FROM \"customers\" WHERE ((1=1) AND ((\"segment\" = ?)))) AS \"__rel_0\" ON \"__rel_0\".\"__rid\" = \"orders\".\"customer\" WHERE (\"created_by\" = ?)) SELECT \"customer_segment\", MIN(CASE WHEN \"__rn_0\" >= CAST(0.5 * \"__cn_0\" + 0.5 AS INTEGER) THEN \"__pv_0\" END) AS \"m\" FROM __src GROUP BY \"customer_segment\" LIMIT ?",
+        "params": [
+          "retail",
+          "viewer-1",
+          50
+        ]
+      },
+      "pg": {
+        "sql": "SELECT \"__rel_0\".\"__rv\" AS \"customer_segment\", PERCENTILE_DISC(0.5) WITHIN GROUP (ORDER BY \"amount\") AS \"m\" FROM \"orders\" LEFT JOIN (SELECT \"id\" AS \"__rid\", \"segment\" AS \"__rv\" FROM \"customers\" WHERE ((1=1) AND ((\"segment\" = ?)))) AS \"__rel_0\" ON \"__rel_0\".\"__rid\" = \"orders\".\"customer\" WHERE (\"created_by\" = ?) GROUP BY \"__rel_0\".\"__rv\" LIMIT ?",
+        "params": [
+          "retail",
+          "viewer-1",
+          50
+        ]
+      }
+    },
+    "related-group-filter-order-by": {
+      "sqlite": {
+        "sql": "SELECT \"__rel_0\".\"__rv\" AS \"seg\", COUNT(DISTINCT \"customer\") AS \"buyers\", SUM(\"amount\") AS \"total\" FROM \"orders\" LEFT JOIN (SELECT \"id\" AS \"__rid\", \"segment\" AS \"__rv\" FROM \"customers\" WHERE ((1=1) AND ((\"segment\" = ?)))) AS \"__rel_0\" ON \"__rel_0\".\"__rid\" = \"orders\".\"customer\" WHERE (\"created_by\" = ?) GROUP BY \"__rel_0\".\"__rv\" HAVING SUM(\"amount\") > ? ORDER BY \"total\" DESC, \"seg\" ASC LIMIT ?",
+        "params": [
+          "retail",
+          "viewer-1",
+          100,
+          20
+        ]
+      },
+      "pg": {
+        "sql": "SELECT \"__rel_0\".\"__rv\" AS \"seg\", COUNT(DISTINCT \"customer\") AS \"buyers\", SUM(\"amount\") AS \"total\" FROM \"orders\" LEFT JOIN (SELECT \"id\" AS \"__rid\", \"segment\" AS \"__rv\" FROM \"customers\" WHERE ((1=1) AND ((\"segment\" = ?)))) AS \"__rel_0\" ON \"__rel_0\".\"__rid\" = \"orders\".\"customer\" WHERE (\"created_by\" = ?) GROUP BY \"__rel_0\".\"__rv\" HAVING SUM(\"amount\") > ? ORDER BY \"total\" DESC, \"seg\" ASC LIMIT ?",
+        "params": [
+          "retail",
+          "viewer-1",
+          100,
+          20
+        ]
+      }
+    },
+    "related-map-unused": {
+      "sqlite": {
+        "sql": "SELECT \"customer\" AS \"customer\", COUNT(*) AS \"n\" FROM \"orders\" WHERE (\"created_by\" = ?) GROUP BY \"customer\" LIMIT ?",
+        "params": [
+          "viewer-1",
+          50
+        ]
+      },
+      "pg": {
+        "sql": "SELECT \"customer\" AS \"customer\", COUNT(*) AS \"n\" FROM \"orders\" WHERE (\"created_by\" = ?) GROUP BY \"customer\" LIMIT ?",
+        "params": [
+          "viewer-1",
+          50
+        ]
+      }
+    },
+    "err-related-wrong-target": {
+      "sqlite": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "relation \"stray\" does not point at that table"
+        }
+      },
+      "pg": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "relation \"stray\" does not point at that table"
+        }
+      }
+    },
+    "err-related-unknown-field": {
+      "sqlite": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "unknown field: nope"
+        }
+      },
+      "pg": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "unknown field: nope"
+        }
+      }
+    },
+    "err-related-computed": {
+      "sqlite": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "field \"score\" is a read-time computed field and cannot be queried"
+        }
+      },
+      "pg": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "field \"score\" is a read-time computed field and cannot be queried"
+        }
+      }
+    },
+    "err-related-empty": {
+      "sqlite": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "relatedField must be a non-empty string"
+        }
+      },
+      "pg": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "relatedField must be a non-empty string"
+        }
+      }
+    },
+    "err-related-bin-text": {
+      "sqlite": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "binWidth needs a number field"
+        }
+      },
+      "pg": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "binWidth needs a number field"
+        }
+      }
+    },
+    "err-related-too-many": {
+      "sqlite": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "too many groupBy entries through a relation (max 3)"
+        }
+      },
+      "pg": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "too many groupBy entries through a relation (max 3)"
+        }
+      }
+    },
+    "err-related-missing-entry": {
+      "sqlite": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "the table behind relation \"customer\" is not available"
+        }
+      },
+      "pg": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "the table behind relation \"customer\" is not available"
+        }
+      }
+    },
+    "err-related-unscoped": {
+      "sqlite": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "accessFilter {where, params} is required — the query compiler cannot run unscoped"
+        }
+      },
+      "pg": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "accessFilter {where, params} is required — the query compiler cannot run unscoped"
+        }
+      }
+    },
+    "err-related-bad-table": {
+      "sqlite": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "invalid table key: Bad Key"
+        }
+      },
+      "pg": {
+        "error": {
+          "name": "CompileError",
+          "status": 422,
+          "message": "invalid table key: Bad Key"
+        }
+      }
+    }
   }
 }

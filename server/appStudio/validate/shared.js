@@ -35,7 +35,7 @@ module.exports = { isObject, pushDataRef, pickClosestId };
  *   allInputNames: Set<string>, ownedAutomations: Map<string, true | Record<string, any>> | null,
  *   ownedDocuments: Map<string, Record<string, any>> | null, knownTables: Set<string> | null,
  *   knownDatasets: Set<string> | null, dataTables: Map<string, Set<string>> | null,
- *   dataFieldTypes?: Map<string, Map<string, string>> | null,
+ *   dataFieldTypes?: Map<string, Map<string, string>> | null, dataRelationTargets?: Map<string, Map<string, string>> | null,
  *   dataTableSources: Map<string, any> | null, knownDatatables: Set<string> | null, dataDatasets: Set<string> | null,
  *   dataConnectors: Set<string> | null, dataMailboxConnectors: Set<string> | null, dataRefsAsWarnings: boolean,
  *   aiBrowsingEnabled: boolean, target?: { id?: string | null, title?: string }, actions?: Record<string, unknown> | null,

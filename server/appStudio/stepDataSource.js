@@ -51,6 +51,7 @@ const MAX_CONTEXT_ROWS = 50;
 const DATA_KINDS = new Set(['record', 'records', 'aggregate']);
 const { resolveFilterList } = require('../shared/expr/index.mjs');
 const { recordListDescriptor, aggregateDescriptor } = require('../core/dataEngine/readDescriptor.mts');
+const { relatedForAggregate } = require('./aggregateRelated.mts');
 
 function isDataBinding(binding) {
     return !!binding && typeof binding === 'object' && DATA_KINDS.has(binding.kind);
@@ -129,7 +130,7 @@ async function resolveDataBinding(app, model, binding, { viewer, role, resolveVa
                 filters,
                 limit: Math.min(Number.isFinite(binding.limit) ? binding.limit : maxRows, maxRows),
                 dialect: plan.dialect,
-            }), accessFilter);
+            }), accessFilter, relatedForAggregate(model, plan.tableMeta, binding.groupBy, plan));
         } else {
             compiled = queryCompiler.compileRecordList(plan.tableMeta, recordListDescriptor(binding, {
                 filters,

@@ -64,6 +64,29 @@ const PERCENTILE_FNS = Object.freeze({ p50: 0.5, p90: 0.9 });
 // grain is a day and that chart degrades to something else entirely.
 const DATE_BUCKETS = Object.freeze(['hour', 'day', 'week', 'month', 'quarter', 'year']);
 
+/**
+ * Aggregate vocabulary that came after App Studio schema version 2. Kept apart
+ * from AGG_FNS on purpose: AGG_FNS is printed into the AI builder's pinned
+ * catalogue text, and everything here is optional and absent from a descriptor
+ * that does not use it.
+ *   countDistinct          COUNT(DISTINCT field)
+ *   groupBy[].binWidth     a number column folded onto steps of this width
+ *   groupBy[].relatedField group by a column of the row a relation field points
+ *                          at, read under that table's own row rules
+ *   groupFilter            [{ field: <aggregate alias>, op, value: number }]:
+ *                          keep only the groups whose aggregate passes (HAVING).
+ *                          Not called `having`: a stored descriptor carrying a
+ *                          `having` key has always been read without it.
+ */
+const AGG_FNS_EXTENDED = Object.freeze(['countDistinct']);
+const GROUP_FILTER_OPS = Object.freeze(['eq', 'neq', 'gt', 'gte', 'lt', 'lte']);
+// Validity limits of a descriptor (not runtime budgets).
+const AGGREGATE_LIMITS = Object.freeze({
+    MAX_GROUP_FILTERS: 5,
+    MAX_RELATED_GROUP_BY: 3,
+    MAX_BIN_WIDTH: 1_000_000_000,
+});
+
 // Access modes consumed by the RLS gateway. Defined here for a single
 // vocabulary; enforcement lives in the sibling gateway wave.
 const ACCESS_MODES = Object.freeze(['app', 'owner', 'role', 'none']);
@@ -228,6 +251,9 @@ module.exports = {
     AGG_FNS,
     PERCENTILE_FNS,
     DATE_BUCKETS,
+    AGG_FNS_EXTENDED,
+    GROUP_FILTER_OPS,
+    AGGREGATE_LIMITS,
     ACCESS_MODES,
     TABLE_SOURCE_KINDS,
     TABLE_SOURCE_MODES,

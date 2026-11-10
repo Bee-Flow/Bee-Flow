@@ -419,11 +419,11 @@ function buildValidationContext(def, opts, { pushE, pushW, actionIds, screenIds,
         ownedDocuments: normalizeOwnedDocuments(opts.ownedDocuments),
         knownTables: normalizeIdSet(opts.knownTables),
         knownDatasets: normalizeIdSet(opts.knownDatasets),
-        // Data-model mode (opts.dataModel !== undefined): tableId → Set of
-        // field keys, plus the known dataset ids. null model = "no model yet"
-        // (every table/dataset reference is unknown). See the module header.
+        // Data-model mode (opts.dataModel !== undefined): tableId → Set of field keys, plus the known
+        // dataset ids. null model = "no model yet" (every table/dataset reference is unknown); see the header.
         dataTables: buildDataTables(opts.dataModel),
         dataFieldTypes: buildFieldTypes(opts.dataModel),
+        dataRelationTargets: require('./validate/aggregateChecks.mts').buildRelationTargets(opts.dataModel),
         // The second table kind: tableId → model.tables[].source. Empty for an app whose
         // tables all have their own storage, so nothing changes for that kind.
         dataTableSources: buildTableSources(opts.dataModel),

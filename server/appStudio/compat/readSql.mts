@@ -48,7 +48,10 @@ const accessFilter = nodeRequire('../../core/dataEngine/accessFilter') as {
 };
 const queryCompiler = nodeRequire('../queryCompiler') as {
     compileRecordList: (table: Obj, opts: Obj, access: unknown) => Compiled;
-    compileAggregate: (table: Obj, opts: Obj, access: unknown) => Compiled;
+    compileAggregate: (table: Obj, opts: Obj, access: unknown, related?: unknown) => Compiled;
+};
+const { relatedForAggregate } = nodeRequire('../aggregateRelated.mts') as {
+    relatedForAggregate: (model: Obj, table: Obj, groupBy: unknown, who: { role: string; viewer: Obj }) => unknown;
 };
 const { isDatatableBacked } = nodeRequire('../datatableSource') as { isDatatableBacked: (table: Obj) => boolean };
 
@@ -82,7 +85,7 @@ function fixedScope(viewer: Obj, variables: unknown): Obj {
 /** The descriptor the runtime posts for this binding (run view, not the editor's sample). */
 function descriptorOf(binding: Binding, filters: unknown): Obj {
     if (binding.kind === 'aggregate') {
-        return { filters, groupBy: binding.groupBy, aggregates: binding.aggregates, sort: binding.sort, limit: binding.limit, ...orderByOf(binding) };
+        return { filters, groupBy: binding.groupBy, aggregates: binding.aggregates, sort: binding.sort, limit: binding.limit, ...orderByOf(binding), ...groupFilterOf(binding) };
     }
     return { filters, sort: binding.sort, limit: binding.limit, ...orderByOf(binding) };
 }
@@ -92,11 +95,16 @@ function orderByOf(src: Obj): Obj {
     return src.orderBy === undefined || src.orderBy === null ? {} : { orderBy: src.orderBy };
 }
 
-function compileFor(table: Obj, kind: string, descriptor: Obj, who: Identity): Obj {
+/** `groupFilter` likewise, for an aggregate only. */
+function groupFilterOf(src: Obj): Obj {
+    return src.groupFilter === undefined || src.groupFilter === null ? {} : { groupFilter: src.groupFilter };
+}
+
+function compileFor(table: Obj, kind: string, descriptor: Obj, who: Identity, model: Obj): Obj {
     try {
         const access = accessFilter.compileAccessFilter(table, who.role, who.viewer, 'read');
         const compiled = kind === 'aggregate'
-            ? queryCompiler.compileAggregate(table, descriptor, access)
+            ? queryCompiler.compileAggregate(table, descriptor, access, relatedForAggregate(model, table, descriptor.groupBy, who))
             : queryCompiler.compileRecordList(table, descriptor, access);
         return { sql: compiled.sql, params: compiled.params };
     } catch (e) {
@@ -116,7 +124,7 @@ function bindingRead(entry: CorpusEntry, binding: Binding, who: Identity): Obj {
     if (resolved.skipped) return { skipped: 'dynamic' };
     const descriptor = descriptorOf(binding, resolved.filters);
     if (isDatatableBacked(table)) return { linked: descriptor };
-    return compileFor(table, binding.kind, descriptor, who);
+    return compileFor(table, binding.kind, descriptor, who, entry.dataModel ?? {});
 }
 
 /** A saved dataset, compiled the way datasetCache.runDataset compiles a cache miss. */
@@ -130,8 +138,8 @@ function datasetRead(entry: CorpusEntry, datasetId: unknown, who: Identity): Obj
     if (isDatatableBacked(table)) return { skipped: 'linked' };
     return compileFor(table, 'aggregate', {
         filters: descriptor.filters, groupBy: descriptor.groupBy, aggregates: descriptor.aggregates,
-        sort: descriptor.sort, limit: descriptor.limit, ...orderByOf(descriptor),
-    }, who);
+        sort: descriptor.sort, limit: descriptor.limit, ...orderByOf(descriptor), ...groupFilterOf(descriptor),
+    }, who, entry.dataModel ?? {});
 }
 
 function readFor(entry: CorpusEntry, binding: Binding, who: Identity): Obj {

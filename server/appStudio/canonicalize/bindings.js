@@ -116,6 +116,17 @@ const MAX_AGG_GROUP_BY = 8;
 const MAX_AGG_FNS = 16;
 
 /**
+ * `binWidth` (since v3, only when present: a number step), then `as`.
+ * @param {Record<string, unknown>} entry
+ * @param {Record<string, unknown>} g
+ */
+function withAliasAfterBin(entry, g) {
+    if (g.binWidth !== undefined && g.binWidth !== null) entry.binWidth = deepCopy(g.binWidth);
+    if (typeof g.as === 'string' && g.as) entry.as = g.as;
+    return entry;
+}
+
+/**
  * Clean an aggregate's groupBy list. Entries whose bucket the compiler does not
  * know are dropped rather than kept: a stored descriptor that always throws at
  * query time is worse than a slightly different chart.
@@ -133,12 +144,12 @@ function cleanAggGroupBy(raw, path, push) {
     for (const g of raw.slice(0, MAX_AGG_GROUP_BY)) {
         if (!isObject(g) || typeof g.field !== 'string' || !g.field) continue;
         const entry = { field: g.field };
+        if (g.relatedField !== undefined && g.relatedField !== null) entry.relatedField = deepCopy(g.relatedField);
         if (typeof g.bucket === 'string') {
             if (DATE_BUCKETS.includes(g.bucket)) entry.bucket = g.bucket;
             else push('binding.aggregate_invalid', `${path}.groupBy`, `Unknown date bucket "${g.bucket}" — dropped.`);
         }
-        if (typeof g.as === 'string' && g.as) entry.as = g.as;
-        out.push(entry);
+        out.push(withAliasAfterBin(entry, g));
     }
     return out.length ? out : undefined;
 }
@@ -154,10 +165,11 @@ function cleanAggregates(raw, path, push) {
         return undefined;
     }
     const { AGG_FNS } = require('../dataModel');
+    const { AGG_FNS_EXTENDED } = require('../../core/dataEngine/dataModel/vocabulary');
     const out = [];
     for (const a of raw.slice(0, MAX_AGG_FNS)) {
         if (!isObject(a) || typeof a.fn !== 'string') continue;
-        if (!AGG_FNS.includes(a.fn)) {
+        if (!AGG_FNS.includes(a.fn) && !AGG_FNS_EXTENDED.includes(a.fn)) {
             push('binding.aggregate_invalid', `${path}.aggregates`, `Unknown aggregate "${a.fn}" — dropped.`);
             continue;
         }
@@ -232,6 +244,8 @@ function cleanBinding(raw, path, push) {
                 const aggregates = cleanAggregates(raw.aggregates, path, push);
                 if (aggregates) out.aggregates = aggregates;
             }
+            // Since v3, only when present: a filter on the aggregated groups.
+            if (raw.groupFilter !== undefined && raw.groupFilter !== null) out.groupFilter = deepCopy(raw.groupFilter);
             cleanPick(raw, out);
             return out;
         }

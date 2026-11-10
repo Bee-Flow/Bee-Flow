@@ -77,6 +77,11 @@ const MAX_ORDER_BY = 3;
  *                      groups inside groups (to filterGroups.MAX_FILTER_DEPTH);
  *                      a flat list and a one-level { any: [clauses] } are the base
  *   filter.otherField  { field, op, otherField }: two columns of one row compared
+ * and of the aggregate binding (core/dataEngine/dataModel/vocabulary.js AGG_FNS_EXTENDED):
+ *   aggregates.countDistinct  { fn: 'countDistinct', field }
+ *   groupBy.binWidth          { field: <number field>, binWidth: <whole number> }
+ *   groupBy.relatedField      { field: <relation field>, relatedField }: a column of the related row
+ *   groupFilter               [{ field: <aggregate alias>, op, value: <number> }] (SQL HAVING)
  */
 const BINDING_QUERY_EXTENSIONS = Object.freeze([
     Object.freeze({ key: 'orderBy', since: 3 }),
@@ -84,6 +89,10 @@ const BINDING_QUERY_EXTENSIONS = Object.freeze([
     Object.freeze({ key: 'filter.not', since: 3 }),
     Object.freeze({ key: 'filter.nested', since: 3 }),
     Object.freeze({ key: 'filter.otherField', since: 3 }),
+    Object.freeze({ key: 'aggregates.countDistinct', since: 3 }),
+    Object.freeze({ key: 'groupBy.binWidth', since: 3 }),
+    Object.freeze({ key: 'groupBy.relatedField', since: 3 }),
+    Object.freeze({ key: 'groupFilter', since: 3 }),
 ]);
 
 module.exports = {

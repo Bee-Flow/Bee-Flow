@@ -87,7 +87,8 @@ test('orderBy on an aggregate names its output columns; a dynamic shape is check
 test('the limits and the since markers: the spec and the compiler agree', () => {
     assert.strictEqual(MAX_ORDER_BY, queryCompiler.MAX_ORDER_BY);
     assert.deepStrictEqual(BINDING_QUERY_EXTENSIONS.map((entry) => `${entry.key}:${entry.since}`),
-        ['orderBy:3', 'filter.all:3', 'filter.not:3', 'filter.nested:3', 'filter.otherField:3']);
+        ['orderBy:3', 'filter.all:3', 'filter.not:3', 'filter.nested:3', 'filter.otherField:3',
+            'aggregates.countDistinct:3', 'groupBy.binWidth:3', 'groupBy.relatedField:3', 'groupFilter:3']);
 });
 
 test('canonicalize keeps a tree, an otherField and an orderBy; a binding without them gains nothing', () => {

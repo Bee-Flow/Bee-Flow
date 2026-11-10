@@ -16,6 +16,7 @@ const { seedVariableDefaults } = require('./componentSpecs');
 const { compile, tryEvaluate, resolveFilterList, FILTER_SKIP } = require('../shared/expr/index.mjs');
 const { isDatatableBacked } = require('./datatableSource');
 const { recordListDescriptor, aggregateDescriptor } = require('../core/dataEngine/readDescriptor.mts');
+const { relatedForAggregate } = require('./aggregateRelated.mts');
 const log = require('../telemetry/log');
 
 // Read-only probe page — a couple of rows is enough to prove a binding returns
@@ -175,7 +176,8 @@ async function runAggregateBinding(binding, table, { roleArg, viewer, scope, app
             return readSummary(rows, resolved.filters, rows.length > DRY_RUN_LIMIT);
         }
         const accessFilter = rlsGateway.compileAccessFilter(table, roleArg, viewer, 'read');
-        const { sql, params } = queryCompiler.compileAggregate(table, descriptor, accessFilter);
+        const related = relatedForAggregate(dataModel, table, descriptor.groupBy, { role: roleArg, viewer });
+        const { sql, params } = queryCompiler.compileAggregate(table, descriptor, accessFilter, related);
         const out = await deps.dbQuery(ownerScope, app.id, sql, params);
         const rows = Array.isArray(out && out.rows) ? out.rows : [];
         return readSummary(rows, resolved.filters, rows.length > DRY_RUN_LIMIT);
