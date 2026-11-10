@@ -4,6 +4,7 @@ import { useTranslation } from '@/hooks/useTranslation';
 import type { TimelineRow, Bucket } from './TerminationsPage.types';
 import { TYPE_META } from './TerminationsPage.helpers';
 
+/** Terminations per period, stacked by type; the heights are the data, the colours the type's series slot. */
 export function StackedBarChart({ data }: { data: TimelineRow[] }) {
     const { t } = useTranslation();
     if (!data || data.length === 0) return <Empty text={t('admin_monitoring.term_no_data', 'No data to display')} />;
@@ -17,31 +18,25 @@ export function StackedBarChart({ data }: { data: TimelineRow[] }) {
     const periods = Object.values(buckets).sort((a, b) => a.period.localeCompare(b.period));
     const maxTotal = Math.max(...periods.map(p => TYPE_ORDER.reduce((s, ty) => s + Number(p[ty] || 0), 0)), 1);
     return (
-        <div className="[display:flex] [align-items:flex-end] [gap:4px] h-[140px] [padding:8px_0]">
+        <div className="flex h-[140px] items-end gap-1 py-2">
             {periods.map(p => {
                 const total = TYPE_ORDER.reduce((s, ty) => s + Number(p[ty] || 0), 0);
-                const heightPct = (total / maxTotal) * 100;
                 return (
-                    <div key={p.period} className="[flex:1] [display:flex] [flex-direction:column] [align-items:center] [gap:4px] min-w-[8px]">
-                        <div title={`${p.period} · ${total} terminations`} style={{
-                            width: '100%', height: `${heightPct}%`, minHeight: total > 0 ? 2 : 0,
-                            display: 'flex', flexDirection: 'column', justifyContent: 'flex-end',
-                            borderRadius: '4px 4px 0 0', overflow: 'hidden',
-                        }}>
-                            {TYPE_ORDER.map(ty => {
-                                const v = Number(p[ty] || 0);
-                                if (v === 0) return null;
-                                return (
-                                    <div key={ty} style={{
-                                        height: `${(v / total) * 100}%`,
-                                        background: TYPE_META[ty].color,
-                                    }} />
-                                );
-                            })}
+                    <div key={p.period} className="flex h-full min-w-[8px] flex-1 flex-col items-center gap-1">
+                        <div className="flex w-full flex-1 flex-col justify-end">
+                            <div
+                                title={`${p.period} · ${total} terminations`}
+                                className="flex w-full flex-col justify-end overflow-hidden rounded-t"
+                                style={{ height: `${(total / maxTotal) * 100}%`, minHeight: total > 0 ? 2 : 0 }}
+                            >
+                                {TYPE_ORDER.map(ty => {
+                                    const v = Number(p[ty] || 0);
+                                    if (v === 0) return null;
+                                    return <div key={ty} style={{ height: `${(v / total) * 100}%`, background: TYPE_META[ty].color }} />;
+                                })}
+                            </div>
                         </div>
-                        <span className="[font-size:9px] [color:var(--text-muted,#888)] [white-space:nowrap]">
-                            {p.period.slice(5)}
-                        </span>
+                        <span className="whitespace-nowrap text-[9px] text-[var(--text-tertiary)]">{p.period.slice(5)}</span>
                     </div>
                 );
             })}

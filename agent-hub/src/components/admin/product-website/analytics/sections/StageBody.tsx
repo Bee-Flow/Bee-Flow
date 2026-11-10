@@ -21,13 +21,13 @@ export function StageBody({
     return (
         <>
             {backdrop.status === 'error' && (
-                <div className="[margin-bottom:10px]">
+                <div className="mb-2.5">
                     <ErrorNote message={t('cms_site.analytics.heatmap.backdrop_error', '{error} The numbers beside this are still accurate.', { error: backdrop.error })}
                         onRetry={backdrop.reload} compact />
                 </div>
             )}
 
-            <div className="[position:relative]">
+            <div className="relative">
                 <PageStage
                     frameRef={backdrop.frameRef} src={backdrop.src}
                     width={width} height={height}
@@ -37,7 +37,7 @@ export function StageBody({
                 />
 
                 {(busy || noData) && (
-                    <div className="[position:absolute] [inset:0] [display:flex] [align-items:center] [justify-content:center] [border-radius:10px] [background:rgba(10,10,20,0.72)] [backdrop-filter:blur(1px)] [font-size:12px] [color:var(--text-secondary,#ccc)] [text-align:center] [padding:20px]">
+                    <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--bg-primary)_80%,transparent)] backdrop-blur-[1px] text-xs text-[var(--text-secondary)] text-center p-5">
                         {busy ? t('cms_site.analytics.heatmap.loading', 'Loading the page…') : (
                             mode === 'click'
                                 ? t('cms_site.analytics.heatmap.no_clicks_page', 'No clicks recorded on this page yet.')
@@ -55,11 +55,11 @@ export function StageBody({
 function ClickLegend() {
     const { t } = useTranslation();
     return (
-        <div className="[display:flex] [align-items:center] [gap:8px] [margin-top:10px] [font-size:11px] [color:var(--text-muted,#888)]">
+        <div className="flex items-center gap-2 mt-2.5 text-[11px] text-[var(--text-tertiary)]">
             <span>{t('cms_site.analytics.heatmap.legend_fewer', 'fewer clicks')}</span>
-            <span className="[display:inline-block] w-[120px] h-[8px] [border-radius:4px] [background:linear-gradient(90deg,#14b8a6,#10b981,#f59e0b,#f97316,#ef4444)]" />
+            <span className="inline-block w-[120px] h-[8px] rounded [background:linear-gradient(90deg,#14b8a6,#10b981,#f59e0b,#f97316,#ef4444)]" />
             <span>{t('cms_site.analytics.heatmap.legend_more', 'more')}</span>
-            <span className="[margin-left:10px]">{t('cms_site.analytics.heatmap.legend_hover', 'Hover the page to highlight a block.')}</span>
+            <span className="ml-2.5">{t('cms_site.analytics.heatmap.legend_hover', 'Hover the page to highlight a block.')}</span>
         </div>
     );
 }
@@ -67,7 +67,7 @@ function ClickLegend() {
 function ScrollLegend({ reach }: ScrollLegendProps) {
     const { t } = useTranslation();
     return (
-        <div className="[margin-top:10px] [font-size:11px] [color:var(--text-muted,#888)]">
+        <div className="mt-2.5 text-[11px] text-[var(--text-tertiary)]">
             {reach.totalSessions
                 ? t('cms_site.analytics.heatmap.scroll_legend_n', 'Darker means fewer visitors got that far — out of {n} recorded sessions.', { n: fmt(reach.totalSessions) })
                 : t('cms_site.analytics.heatmap.scroll_legend', 'Darker means fewer visitors got that far.')}

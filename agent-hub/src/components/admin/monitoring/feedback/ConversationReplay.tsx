@@ -1,7 +1,7 @@
 import { Bot, MessageSquare, User } from 'lucide-react';
 import type { SnapshotMessage } from './feedbackModel';
 import { useTranslation } from '@/hooks/useTranslation';
-import { COLORS, fmtTime } from '../shared';
+import { fmtTime } from '../shared';
 import { MarkdownRenderer } from '../sharedTyped';
 
 /** One message of the shared conversation; empty system/tool messages render nothing. */
@@ -18,38 +18,19 @@ function SnapshotBubble({ msg }: { msg: SnapshotMessage }) {
         : content;
 
     return (
-        <div className={`[display:flex] ${isUserMsg ? '[justify-content:flex-end]' : '[justify-content:flex-start]'}`}>
-            <div style={{
-                maxWidth: '85%',
-                padding: '8px 12px', borderRadius: '12px',
-                background: isUserMsg
-                    ? 'var(--bg-secondary, #1a1a2e)'
-                    : 'var(--bg-primary, #0f0f1a)',
-                border: `1px solid ${isUserMsg
-                    ? 'var(--border-default, rgba(255,255,255,0.08))'
-                    : COLORS.primary + '20'
-                }`,
-            }}>
-                <div className="[display:flex] [align-items:center] [gap:5px] [margin-bottom:4px]">
-                    {isUserMsg
-                        ? <User className="w-[10px] h-[10px] [color:var(--text-muted,#888)]" />
-                        : <Bot style={{ width: 10, height: 10, color: COLORS.primary }} />
-                    }
-                    <span style={{
-                        fontSize: '10px', fontWeight: 600,
-                        color: isUserMsg ? 'var(--text-muted, #888)' : COLORS.primary,
-                    }}>
-                        {isUserMsg ? 'User' : 'AI'}
-                    </span>
-                    {msg.timestamp && (
-                        <span className="[font-size:9px] [color:var(--text-muted,#666)] [margin-left:auto]">
-                            {fmtTime(msg.timestamp)}
-                        </span>
-                    )}
+        <div className={`flex ${isUserMsg ? 'justify-end' : 'justify-start'}`}>
+            <div className={`max-w-[85%] rounded-xl border px-3 py-2 ${isUserMsg
+                ? 'border-[var(--border-default)] bg-[var(--bg-tertiary)]'
+                : 'border-[var(--border-default)] bg-[var(--bg-card)]'}`}
+            >
+                <div className="mb-1 flex items-center gap-1.5 text-[10px] font-semibold text-[var(--text-tertiary)]">
+                    {isUserMsg ? <User className="h-2.5 w-2.5" aria-hidden="true" /> : <Bot className="h-2.5 w-2.5" aria-hidden="true" />}
+                    <span>{isUserMsg ? 'User' : 'AI'}</span>
+                    {msg.timestamp && <span className="ml-auto pl-2 font-normal">{fmtTime(msg.timestamp)}</span>}
                 </div>
-                <div className="prose prose-sm dark:prose-invert max-w-none [font-size:13px] [color:var(--text-primary,#fff)] [word-break:break-word] [line-height:1.6]">
+                <div className="prose prose-sm max-w-none break-words text-[13px] leading-relaxed text-[var(--text-primary)] dark:prose-invert">
                     {isUserMsg
-                        ? <span className="[white-space:pre-wrap]">{truncated}</span>
+                        ? <span className="whitespace-pre-wrap">{truncated}</span>
                         : <MarkdownRenderer content={truncated} />
                     }
                 </div>
@@ -63,15 +44,11 @@ export function ConversationReplay({ snapshot }: { snapshot: SnapshotMessage[] }
     const { t } = useTranslation();
     return (
         <div>
-            <div style={{
-                fontSize: '10px', fontWeight: 700, textTransform: 'uppercase',
-                letterSpacing: '0.04em', marginBottom: '8px',
-                color: COLORS.blue, display: 'flex', alignItems: 'center', gap: '5px',
-            }}>
-                <MessageSquare className="w-[11px] h-[11px]" />
+            <div className="mb-2 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.04em] text-[var(--text-tertiary)]">
+                <MessageSquare className="h-3 w-3" aria-hidden="true" />
                 {t('admin_monitoring.feedback_conversation', 'Conversation ({n} messages)', { n: snapshot.length })}
             </div>
-            <div className="max-h-[400px] [overflow-y:auto] [display:flex] [flex-direction:column] [gap:6px] [padding:2px]">
+            <div className="flex max-h-[400px] flex-col gap-1.5 overflow-y-auto p-0.5">
                 {snapshot.map((msg, mi) => <SnapshotBubble key={mi} msg={msg} />)}
             </div>
         </div>
@@ -82,12 +59,10 @@ export function ConversationReplay({ snapshot }: { snapshot: SnapshotMessage[] }
 export function NoConversation() {
     const { t } = useTranslation();
     return (
-        <div className="[padding:16px] [border-radius:10px] [text-align:center] [background:var(--bg-primary,#0f0f1a)] [border:1px_dashed_var(--border-default,rgba(255,255,255,0.08))]">
-            <MessageSquare className="w-[20px] h-[20px] [color:var(--text-muted,#555)] [margin:0_auto_6px]" />
-            <div className="[font-size:12px] [color:var(--text-muted,#666)]">
-                {t('admin_monitoring.feedback_no_convo', 'No conversation shared')}
-            </div>
-            <div className="[font-size:10px] [color:var(--text-muted,#555)] [margin-top:2px]">
+        <div className="rounded-lg border border-dashed border-[var(--border-default)] bg-[var(--bg-card)] p-4 text-center">
+            <MessageSquare className="mx-auto mb-1.5 h-5 w-5 text-[var(--text-tertiary)]" aria-hidden="true" />
+            <div className="text-xs text-[var(--text-secondary)]">{t('admin_monitoring.feedback_no_convo', 'No conversation shared')}</div>
+            <div className="mt-0.5 text-[10px] text-[var(--text-tertiary)]">
                 {t('admin_monitoring.feedback_no_convo_hint', 'User did not include conversation context with this feedback')}
             </div>
         </div>

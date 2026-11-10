@@ -1,4 +1,4 @@
-import { render, screen, cleanup, waitFor } from '@testing-library/react';
+import { render, screen, cleanup, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
@@ -131,6 +131,16 @@ describe('AnalyticsPanel', () => {
         await waitFor(() => {
             expect(new URLSearchParams(window.location.search).get('section')).toBe('realtime');
         });
+    });
+
+    it('opens the section the URL names and marks it current in the section list', async () => {
+        window.history.replaceState(null, '', '/app/admin/website-analytics?section=pages');
+        render(<AnalyticsPanel />);
+        const nav = await screen.findByRole('navigation', { name: 'Website Analytics' });
+        const pages = within(nav).getByRole('button', { name: 'Pages' });
+        expect(pages.getAttribute('aria-current')).toBe('page');
+        expect(within(nav).getByRole('button', { name: 'Overview' }).getAttribute('aria-current')).toBeNull();
+        expect(screen.getByRole('heading', { level: 2, name: 'Pages' })).toBeInTheDocument();
     });
 
     it('adds a drill-down filter chip when a breakdown row is clicked', async () => {

@@ -257,6 +257,7 @@ export default {
     "cms_site.analytics.panel.no_site": "No tracked site yet. Publish a CMS site (with analytics enabled) to start collecting visitor data.",
     "cms_site.analytics.panel.refresh": "Refresh",
     "cms_site.analytics.panel.settings": "Analytics settings",
+    "cms_site.analytics.panel.site": "Site",
     "cms_site.analytics.panel.subtitle": "Self-hosted, privacy-first usage tracking for your published site",
     "cms_site.analytics.panel.title": "Website Analytics",
     "cms_site.analytics.performance.all_good": "All five Core Web Vitals are in Google's {good} band for this period. Nothing to fix.",

@@ -17,6 +17,11 @@ import React, { useMemo, useState } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { fmt } from '../ui';
 import { ACCENT } from '../BarList';
+import { SeriesDot } from '@/components/admin/monitoring/shared';
+import { CHART_SERIES } from '@/components/shared/charts/chartChrome';
+
+/** A series' own colour, else the first slot for the first series and the third (green) for the next. */
+const seriesColor = (s: { color?: string }, si: number) => s.color || (si === 0 ? ACCENT : CHART_SERIES[2]);
 
 const PAD = { top: 10, right: 8, bottom: 20, left: 8 };
 
@@ -88,34 +93,33 @@ export default function TrendChart({
 
     if (!n || !series.some(s => s.data.some(v => v != null))) {
         return (
-            <div style={{
-                height, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 12, color: 'var(--text-muted, #888)',
-                background: 'var(--bg-tertiary, rgba(255,255,255,0.02))', borderRadius: 10,
-            }}>{emptyText || tr('cms_site.analytics.common.no_data', 'No data')}</div>
+            <div className="flex items-center justify-center rounded-lg border border-dashed border-[var(--border-default)] text-xs text-[var(--text-tertiary)]" style={{ height }}>
+                {emptyText || tr('cms_site.analytics.common.no_data', 'No data')}
+            </div>
         );
     }
 
     const label = (i: number) => (formatLabel ? formatLabel(i) : labels[i]);
 
     return (
-        <div className="[position:relative]">
+        <div className="relative">
             <svg
                 viewBox="0 0 100 100" preserveAspectRatio="none"
-                style={{ width: '100%', height, display: 'block', overflow: 'visible' }}
+                className="block w-full overflow-visible"
+                height={height}
                 role="img"
                 aria-label={`${series.map(s => s.label).join(' and ')} over ${n} points`}
             >
                 {refLines.map((r, i) => (
                     <g key={i}>
                         <line x1="0" x2="100" y1={scaleY(r.y)} y2={scaleY(r.y)}
-                            stroke={r.color || 'var(--border-default, rgba(255,255,255,0.18))'}
+                            stroke={r.color || 'var(--border-default)'}
                             strokeWidth="0.4" strokeDasharray="2 2" vectorEffect="non-scaling-stroke" />
                     </g>
                 ))}
 
                 {series.map((s, si) => {
-                    const color = s.color || (si === 0 ? ACCENT : '#3b82f6');
+                    const color = seriesColor(s, si);
                     const solid = partialLast ? s.data.slice(0, -1) : s.data;
                     const d = pathFor(solid, scaleX, scaleY);
                     // The final segment is dashed when today's bucket is still
@@ -128,7 +132,7 @@ export default function TrendChart({
                         <g key={s.key || si}>
                             {s.style !== 'line' && s.style !== 'dashed' && (
                                 <path
-                                    d={`${d}L${scaleX(s.data.length - 1)},100L${scaleX(0)},100Z`}
+                                    d={`${d}L${scaleX(solid.length - 1)},100L${scaleX(0)},100Z`}
                                     fill={color} opacity={0.12}
                                 />
                             )}
@@ -147,7 +151,7 @@ export default function TrendChart({
 
                 {hover != null && (
                     <line x1={scaleX(hover)} x2={scaleX(hover)} y1="0" y2="100"
-                        stroke="var(--text-muted, #888)" strokeWidth="0.4"
+                        stroke="var(--text-tertiary)" strokeWidth="0.4"
                         vectorEffect="non-scaling-stroke" />
                 )}
 
@@ -160,29 +164,22 @@ export default function TrendChart({
                 ))}
             </svg>
 
-            <div className="[display:flex] [justify-content:space-between] [margin-top:4px] [font-size:10px] [color:var(--text-muted,#777)]">
+            <div className="flex justify-between mt-1 text-[10px] text-[var(--text-tertiary)]">
                 <span>{label(0)}</span>
                 <span>{label(n - 1)}</span>
             </div>
 
             {hover != null && (
-                <div style={{
-                    position: 'absolute', top: 0,
-                    left: `${scaleX(hover)}%`, transform: 'translateX(-50%)',
-                    pointerEvents: 'none', padding: '6px 9px', borderRadius: 8,
-                    background: 'var(--bg-secondary, #12121f)',
-                    border: '1px solid var(--border-default, rgba(255,255,255,0.14))',
-                    fontSize: 11, whiteSpace: 'nowrap', zIndex: 2,
-                }}>
-                    <div className="[color:var(--text-muted,#888)] [margin-bottom:3px]">{label(hover)}</div>
+                <div
+                    className="pointer-events-none absolute top-0 z-[2] -translate-x-1/2 whitespace-nowrap rounded-lg border border-[var(--border-default)] bg-[var(--bg-primary)] px-2.5 py-1.5 text-[11px] shadow-[var(--shadow-popover)]"
+                    style={{ left: `${scaleX(hover)}%` }}
+                >
+                    <div className="text-[var(--text-tertiary)] mb-[3px]">{label(hover)}</div>
                     {series.map((s, si) => (
-                        <div key={s.key || si} className="[display:flex] [gap:8px] [align-items:center]">
-                            <span style={{
-                                width: 7, height: 7, borderRadius: 2,
-                                background: s.color || (si === 0 ? ACCENT : '#3b82f6'),
-                            }} />
-                            <span className="[color:var(--text-muted,#999)]">{s.label}</span>
-                            <span className="[color:var(--text-primary,#fff)] [font-weight:700] [margin-left:auto]">
+                        <div key={s.key || si} className="flex gap-2 items-center">
+                            <SeriesDot square color={seriesColor(s, si)} />
+                            <span className="text-[var(--text-tertiary)]">{s.label}</span>
+                            <span className="text-[var(--text-primary)] font-semibold ml-auto">
                                 {s.data[hover] == null ? 'no data' : formatY(s.data[hover])}
                             </span>
                         </div>
@@ -191,19 +188,15 @@ export default function TrendChart({
             )}
 
             {series.length > 1 && (
-                <div className="[display:flex] [gap:14px] [margin-top:6px] [flex-wrap:wrap]">
+                <div className="flex gap-3.5 mt-1.5 flex-wrap">
                     {series.map((s, si) => (
-                        <span key={s.key || si} className="[display:inline-flex] [align-items:center] [gap:6px] [font-size:11px]">
-                            <span style={{
-                                width: 10, height: 3, borderRadius: 2,
-                                background: s.color || (si === 0 ? ACCENT : '#3b82f6'),
-                                opacity: s.style === 'dashed' ? 0.6 : 1,
-                            }} />
-                            <span className="[color:var(--text-muted,#888)]">{s.label}</span>
+                        <span key={s.key || si} className="inline-flex items-center gap-1.5 text-[11px]">
+                            <span aria-hidden="true" className={`inline-block h-[3px] w-2.5 rounded-sm ${s.style === 'dashed' ? 'opacity-60' : ''}`} style={{ background: seriesColor(s, si) }} />
+                            <span className="text-[var(--text-tertiary)]">{s.label}</span>
                         </span>
                     ))}
                     {partialLast && (
-                        <span className="[font-size:11px] [color:var(--text-muted,#777)]">
+                        <span className="text-[11px] text-[var(--text-tertiary)]">
                             {tr('cms_site.analytics.trend_chart.partial_legend', 'dashed = period still in progress')}
                         </span>
                     )}

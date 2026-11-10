@@ -35,6 +35,7 @@ import type { XYRow } from '../ui.types';
 import type { SiteSettings, PageIndexRow, PreviewBlock, HeatmapPayload, HeatmapSectionProps, StaleNoticeProps, BlockRankingProps, ReachMilestonesProps, RecordingOffProps } from './HeatmapSection.types';
 import { PageRail } from './PageRail';
 import { StageBody } from './StageBody';
+import { ALERT_WARNING, PRIMARY_BTN } from '@/components/mcpLibrary/ui';
 
 export default function HeatmapSection({ scope, site, settings, onOpenSettings }: HeatmapSectionProps) {
     const { t } = useTranslation();
@@ -129,7 +130,7 @@ export default function HeatmapSection({ scope, site, settings, onOpenSettings }
     const indexRow = pages.find(p => p.urlPath === urlPath);
 
     return (
-        <div className="[display:flex] [flex-direction:column] [gap:14px]">
+        <div className="flex flex-col gap-3.5">
             <PageRail
                 index={index} pages={pages} urlPath={urlPath} onSelectPath={setSelectedPath}
                 mode={mode} onSelectMode={setMode}
@@ -143,7 +144,7 @@ export default function HeatmapSection({ scope, site, settings, onOpenSettings }
             {stale && <StaleNotice liveH={liveH} recordedH={recordedH} />}
 
             {urlPath && (
-                <div className="[display:grid] [grid-template-columns:minmax(0,1fr)_320px] [gap:14px] [align-items:start]">
+                <div className="grid grid-cols-[minmax(0,1fr)_320px] gap-3.5 [align-items:start]">
                     <Card title={mode === 'scroll'
                         ? t('cms_site.analytics.heatmap.title_scroll', 'How far down — {path}', { path: urlPath })
                         : t('cms_site.analytics.heatmap.title_click', 'Where visitors click — {path}', { path: urlPath })}>
@@ -169,8 +170,8 @@ export default function HeatmapSection({ scope, site, settings, onOpenSettings }
 function StaleNotice({ liveH, recordedH }: StaleNoticeProps) {
     const { t } = useTranslation();
     return (
-        <div style={warnStyle}>
-            <AlertTriangle className="w-[14px] h-[14px] [flex-shrink:0] [margin-top:1px]" />
+        <div className={ALERT_WARNING}>
+            <AlertTriangle className="w-[14px] h-[14px] shrink-0 mt-[1px]" />
             <span>
                 {rich(t('cms_site.analytics.heatmap.stale', 'This page is {live} tall today, but these clicks were recorded on a {recorded} page. It has been edited since — positions below the first screen may not line up with what visitors actually saw.'), {
                     live: <strong>{fmt(Math.round(liveH))}px</strong>,
@@ -186,12 +187,12 @@ function BlockRanking({ attribution, views, highlightId, onHighlight, ready }: B
     const { rows, total } = attribution;
     return (
         <Card title={t('cms_site.analytics.heatmap.ranking', 'Where the clicks go')} icon={Flame} action={
-            total ? <span className="[font-size:11px] [color:var(--text-muted,#888)]">{t('cms_site.analytics.heatmap.clicks_count', '{n} clicks', { n: fmt(total) })}</span> : null
+            total ? <span className="text-[11px] text-[var(--text-tertiary)]">{t('cms_site.analytics.heatmap.clicks_count', '{n} clicks', { n: fmt(total) })}</span> : null
         }>
             {!ready ? <Skeleton height={200} />
                 : rows.length === 0 ? <Empty text={t('cms_site.analytics.heatmap.no_attribution', 'No clicks to attribute yet.')} />
                 : (
-                    <div className="[display:flex] [flex-direction:column] [gap:2px]">
+                    <div className="flex flex-col gap-0.5">
                         {rows.map(r => {
                             const isChrome = r.id === '__chrome__';
                             const on = highlightId === r.id;
@@ -200,21 +201,17 @@ function BlockRanking({ attribution, views, highlightId, onHighlight, ready }: B
                                     key={r.id}
                                     onMouseEnter={() => onHighlight?.(isChrome ? null : r.id)}
                                     onMouseLeave={() => onHighlight?.(null)}
-                                    style={{
-                                        display: 'block', width: '100%', textAlign: 'left', padding: '8px 9px',
-                                        borderRadius: 8, border: '1px solid transparent', cursor: 'default',
-                                        background: on ? `${ACCENT}14` : 'transparent',
-                                        borderColor: on ? `${ACCENT}44` : 'transparent',
-                                    }}
+                                    type="button"
+                                    className={`block w-full cursor-default rounded-lg border px-2.5 py-2 text-left ${on ? 'border-[var(--border-default)] bg-[var(--bg-tertiary)]' : 'border-transparent'}`}
                                 >
-                                    <div className="[display:flex] [justify-content:space-between] [gap:8px] [margin-bottom:4px]">
-                                        <span className={`[font-size:12px] [font-weight:600] [overflow:hidden] [text-overflow:ellipsis] [white-space:nowrap] ${isChrome ? '[color:var(--text-muted,_#888)]' : '[color:var(--text-primary,_#fff)]'}`}>{blockLabel(r.type, t)}</span>
-                                        <span style={{ fontSize: 12, fontWeight: 800, color: ACCENT, flexShrink: 0 }}>
+                                    <div className="flex justify-between gap-2 mb-1">
+                                        <span className={`text-xs font-semibold overflow-hidden text-ellipsis whitespace-nowrap ${isChrome ? 'text-[var(--text-tertiary)]' : 'text-[var(--text-primary)]'}`}>{blockLabel(r.type, t)}</span>
+                                        <span className="text-xs font-semibold tabular-nums text-[var(--text-primary)] shrink-0">
                                             {Math.round(r.share)}%
                                         </span>
                                     </div>
                                     <ShareBar value={r.share} of={100} />
-                                    <div className="[font-size:11px] [color:var(--text-muted,#888)] [margin-top:4px]">
+                                    <div className="text-[11px] text-[var(--text-tertiary)] mt-1">
                                         {r.per100 != null && views > 0
                                             ? t('cms_site.analytics.heatmap.clicks_per100', '{n} clicks · {per} per 100 views', { n: fmt(r.clicks), per: r.per100.toFixed(1) })
                                             : t('cms_site.analytics.heatmap.clicks_count', '{n} clicks', { n: fmt(r.clicks) })}
@@ -242,18 +239,18 @@ function ReachMilestones({ reach, blocks, pageHeight }: ReachMilestonesProps) {
     }));
     return (
         <Card title={t('cms_site.analytics.heatmap.reach_title', 'How far visitors get')} icon={MoveVertical} action={
-            <span className="[font-size:11px] [color:var(--text-muted,#888)]">{t('cms_site.analytics.heatmap.sessions_count', '{n} sessions', { n: fmt(reach.totalSessions) })}</span>
+            <span className="text-[11px] text-[var(--text-tertiary)]">{t('cms_site.analytics.heatmap.sessions_count', '{n} sessions', { n: fmt(reach.totalSessions) })}</span>
         }>
-            <div className="[display:flex] [flex-direction:column] [gap:12px]">
+            <div className="flex flex-col gap-3">
                 {marks.map(m => (
                     <div key={m.depth}>
-                        <div className="[display:flex] [justify-content:space-between] [gap:8px] [margin-bottom:4px]">
-                            <span className="[font-size:12px] [color:var(--text-primary,#fff)]">
+                        <div className="flex justify-between gap-2 mb-1">
+                            <span className="text-xs text-[var(--text-primary)]">
                                 {m.block
                                     ? t('cms_site.analytics.heatmap.depth_block', '{depth}% down · {block}', { depth: m.depth, block: blockLabel(m.block.type, t) })
                                     : t('cms_site.analytics.heatmap.depth', '{depth}% down', { depth: m.depth })}
                             </span>
-                            <span style={{ fontSize: 12, fontWeight: 800, color: ACCENT }}>
+                            <span className="text-xs font-semibold tabular-nums text-[var(--text-primary)]">
                                 {m.reach == null ? '—' : `${Math.round(m.reach)}%`}
                             </span>
                         </div>
@@ -261,7 +258,7 @@ function ReachMilestones({ reach, blocks, pageHeight }: ReachMilestonesProps) {
                     </div>
                 ))}
             </div>
-            <p className="[font-size:11px] [color:var(--text-muted,#777)] [margin:12px_0_0]">
+            <p className="text-[11px] text-[var(--text-tertiary)] mt-3 mx-0 mb-0">
                 {t('cms_site.analytics.heatmap.reach_note', 'Share of recorded sessions that scrolled at least this far.')}
             </p>
         </Card>
@@ -272,26 +269,23 @@ function RecordingOff({ site, settings, onOpenSettings }: RecordingOffProps) {
     const { t } = useTranslation();
     return (
         <Card title={t('cms_site.analytics.heatmap.off_title', 'Heatmaps')} icon={Flame}>
-            <div className="[display:flex] [flex-direction:column] [gap:12px] [align-items:flex-start]">
-                <p className="[font-size:13px] [color:var(--text-secondary,#ccc)] [margin:0]">
+            <div className="flex flex-col gap-3 items-start">
+                <p className="text-[13px] text-[var(--text-secondary)] m-0">
                     {site?.name
                         ? t('cms_site.analytics.heatmap.off_named', 'Heatmaps need session recording, which is off for “{name}”.', { name: site.name })
                         : t('cms_site.analytics.heatmap.off_site', 'Heatmaps need session recording, which is off for this site.')}
                 </p>
-                <div className="[display:flex] [gap:8px] [align-items:flex-start] [font-size:12px] [color:var(--text-muted,#888)]">
-                    <ShieldAlert className="w-[14px] h-[14px] [margin-top:1px] [flex-shrink:0] [color:#f59e0b]" />
+                <div className="flex gap-2 items-start text-xs text-[var(--text-tertiary)]">
+                    <ShieldAlert className="w-[14px] h-[14px] mt-[1px] shrink-0 text-[var(--warning-ink)]" />
                     <span>
                         {t('cms_site.analytics.heatmap.off_body', 'Recording captures clicks, scrolling and page structure from real visitors, so it only ever runs for people who accepted your cookie banner — in every consent mode. Form inputs are masked.')}
                     </span>
                 </div>
-                <button onClick={onOpenSettings} style={{
-                    padding: '8px 16px', borderRadius: 9, background: ACCENT, color: '#06241f',
-                    border: 'none', fontSize: 13, fontWeight: 700, cursor: 'pointer',
-                }}>
+                <button type="button" onClick={onOpenSettings} className={PRIMARY_BTN}>
                     {t('cms_site.analytics.heatmap.turn_on', 'Turn on session recording')}
                 </button>
                 {settings?.consentMode && (
-                    <p className="[font-size:11px] [color:var(--text-muted,#777)] [margin:0]">
+                    <p className="text-[11px] text-[var(--text-tertiary)] m-0">
                         {t('cms_site.analytics.heatmap.banner_needed', 'Your cookie banner must be enabled on the site for recording to ever start.')}
                     </p>
                 )}
@@ -300,8 +294,3 @@ function RecordingOff({ site, settings, onOpenSettings }: RecordingOffProps) {
     );
 }
 
-const warnStyle = {
-    display: 'flex', gap: 9, alignItems: 'flex-start', padding: '11px 14px',
-    borderRadius: 10, background: 'rgba(245,158,11,0.08)',
-    border: '1px solid rgba(245,158,11,0.25)', fontSize: 12, color: '#fcd34d',
-};

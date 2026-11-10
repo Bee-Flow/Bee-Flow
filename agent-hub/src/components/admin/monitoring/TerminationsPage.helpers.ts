@@ -1,17 +1,17 @@
-import { type CSSProperties } from 'react';
 import { AlertOctagon, ZapOff, RefreshCcw, XCircle } from 'lucide-react';
-import { COLORS } from './shared';
+import { CHART_SERIES } from '@/components/shared/charts/chartChrome';
 import { type TranslateParams } from '@/hooks/useTranslation';
 import type { TypeMeta } from './TerminationsPage.types';
 import { request, RefusedError } from '@/api/mutate';
 
 export const API = (import.meta.env.VITE_API_URL || '') + '/api/terminations';
 
+/** Each termination type's series colour (the theme's chart slots: amber, orange, red, cyan) and icon. */
 export const TYPE_META: Record<string, TypeMeta> = {
-    max_tokens:     { label: 'Max tokens',     color: COLORS.amber,  icon: ZapOff },
-    max_iterations: { label: 'Max iterations', color: COLORS.orange, icon: RefreshCcw },
-    error:          { label: 'Error',          color: COLORS.rose,   icon: AlertOctagon },
-    aborted:        { label: 'Aborted',        color: COLORS.cyan,   icon: XCircle },
+    max_tokens:     { label: 'Max tokens',     color: CHART_SERIES[3], icon: ZapOff },
+    max_iterations: { label: 'Max iterations', color: CHART_SERIES[1], icon: RefreshCcw },
+    error:          { label: 'Error',          color: CHART_SERIES[7], icon: AlertOctagon },
+    aborted:        { label: 'Aborted',        color: CHART_SERIES[6], icon: XCircle },
 };
 
 export function typeLabel(t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string, type: string) {
@@ -53,14 +53,3 @@ export function fmtBytes(n: number | null | undefined) {
     if (n < 1024 * 1024 * 1024) return `${(n / (1024 * 1024)).toFixed(1)} MB`;
     return `${(n / (1024 * 1024 * 1024)).toFixed(2)} GB`;
 }
-
-export const filterSelectWrapper: CSSProperties = {
-    display: 'flex', alignItems: 'center', gap: 6, padding: '5px 10px',
-    borderRadius: 8, background: 'var(--bg-primary, #0f0f1a)',
-    border: '1px solid var(--border-default, rgba(255,255,255,0.08))',
-};
-
-export const filterSelectStyle: CSSProperties = {
-    background: 'transparent', border: 'none', outline: 'none',
-    fontSize: 12, color: 'var(--text-primary, #fff)', cursor: 'pointer',
-};

@@ -16,7 +16,6 @@ import React, { useLayoutEffect, useRef, useState } from 'react';
 import HeatCanvas from './HeatCanvas';
 import { blockLabel, type ScrollReach } from './model';
 import { useTranslation } from '@/hooks/useTranslation';
-import { ACCENT } from '../BarList';
 
 interface PageStageProps {
     src: string;
@@ -64,18 +63,13 @@ export default function PageStage({
     return (
         <div
             ref={scrollerRef}
-            style={{
-                position: 'relative', overflow: 'auto', maxHeight,
-                borderRadius: 10, border: '1px solid var(--border-subtle, rgba(255,255,255,0.08))',
-                background: '#fff',
-            }}
+            // The page behind the heat is the customer's own page: it renders on
+            // white whatever the admin theme, exactly as a visitor saw it.
+            className="relative overflow-auto rounded-xl border border-[var(--border-default)] bg-white"
+            style={{ maxHeight }}
         >
-            <div style={{ width: width * scale, height: h * scale, position: 'relative' }}>
-                <div style={{
-                    width, height: h || undefined,
-                    transform: `scale(${scale})`, transformOrigin: 'top left',
-                    position: 'relative',
-                }}>
+            <div className="relative" style={{ width: width * scale, height: h * scale }}>
+                <div className="relative origin-top-left" style={{ width, height: h || undefined, transform: `scale(${scale})` }}>
                     <iframe
                         ref={frameRef}
                         src={src}
@@ -85,7 +79,8 @@ export default function PageStage({
                         // on-screen-Y the same number, which is what lets a
                         // recorded pageY land where it was actually clicked.
                         scrolling="no"
-                        style={{ width, height: h, border: 0, display: 'block', background: '#fff' }}
+                        className="block border-0 bg-white"
+                        style={{ width, height: h }}
                     />
 
                     {mode === 'click' && (
@@ -101,15 +96,8 @@ export default function PageStage({
                         <div
                             key={b.id}
                             aria-hidden="true"
-                            style={{
-                                position: 'absolute', left: 0, right: 0,
-                                top: b.top, height: b.height,
-                                pointerEvents: 'none',
-                                outline: highlightId === b.id ? `2px solid ${ACCENT}` : 'none',
-                                outlineOffset: -2,
-                                background: highlightId === b.id ? `${ACCENT}14` : 'transparent',
-                                transition: 'background 120ms ease',
-                            }}
+                            className={`pointer-events-none absolute inset-x-0 transition-colors ${highlightId === b.id ? 'bg-[color-mix(in_srgb,var(--chart-1)_10%,transparent)] outline-2 -outline-offset-2 outline-[var(--chart-1)]' : ''}`}
+                            style={{ top: b.top, height: b.height }}
                         />
                     ))}
 
@@ -128,7 +116,7 @@ export default function PageStage({
                             for (const b of blocks) if (y >= b.top && y < b.top + b.height) hit = b;
                             onHighlight(hit?.id || null);
                         }}
-                        className="[position:absolute] [inset:0] [cursor:crosshair]"
+                        className="absolute inset-0 [cursor:crosshair]"
                     />
                 </div>
             </div>
@@ -164,19 +152,13 @@ function ScrollShade({ steps, height, width, viewportH }: ScrollShadeProps) {
     return (
         <>
             {bands.map((b, i) => (
-                <div key={i} aria-hidden="true" style={{
-                    position: 'absolute', left: 0, width, top: b.top, height: b.height,
-                    background: `rgba(2,6,23,${b.alpha})`,
-                }} />
+                // The shade is the data: darker where fewer visitors scrolled.
+                <div key={i} aria-hidden="true" className="absolute left-0 bg-black" style={{ width, top: b.top, height: b.height, opacity: b.alpha }} />
             ))}
             {viewportH > 0 && viewportH < height && (
-                <div style={{ position: 'absolute', left: 0, width, top: viewportH, pointerEvents: 'none' }}>
-                    <div style={{ borderTop: `2px dashed ${ACCENT}`, opacity: 0.9 }} />
-                    <span style={{
-                        display: 'inline-block', marginTop: 4, marginLeft: 8, padding: '2px 8px',
-                        borderRadius: 6, background: ACCENT, color: '#06241f',
-                        fontSize: 11, fontWeight: 800,
-                    }}>
+                <div className="pointer-events-none absolute left-0" style={{ width, top: viewportH }}>
+                    <div className="border-t-2 border-dashed border-[var(--chart-1)]" />
+                    <span className="ml-2 mt-1 inline-block rounded-md border border-[var(--border-default)] bg-[var(--bg-card)] px-2 py-0.5 text-[11px] font-semibold text-[var(--text-primary)] shadow-[var(--shadow-sm)]">
                         {t('cms_site.analytics.page_stage.fold', 'The fold — everything below this needs a scroll')}
                     </span>
                 </div>
