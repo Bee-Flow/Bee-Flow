@@ -214,6 +214,40 @@ export default function AppForm({ node, children }: NodeProps<FormProps>) {
     return <FormBody key={token} node={node}>{children}</FormBody>;
 }
 
+type FieldErrors = Record<string, string | undefined>;
+type SetFieldErrors = (update: (prev: FieldErrors) => FieldErrors) => void;
+
+/**
+ * A field rule the server checks (data model validation) answers per field:
+ * each sentence goes under its input, like a rule checked here, and clears
+ * when that field changes. Adjusted during render when a new answer arrives.
+ */
+function useServerFieldErrors(serverFieldErrors: FieldErrors | null, setErrors: SetFieldErrors) {
+    const [seenServerErrors, setSeenServerErrors] = useState(serverFieldErrors);
+    if (serverFieldErrors !== seenServerErrors) {
+        setSeenServerErrors(serverFieldErrors);
+        if (serverFieldErrors) setErrors((prev) => ({ ...prev, ...serverFieldErrors }));
+    }
+}
+
+type LiveInputs = { values: Record<string, unknown>; scope: Record<string, unknown>; validations: ReturnType<typeof collectValidations>; t: TranslateFn };
+
+/**
+ * Live validation (validateOn): the latest values/scope sit in a ref, read from
+ * callbacks that must stay stable, and one field is checked at a time.
+ */
+function useLiveValidation(inputs: LiveInputs, fieldsRef: { current: Map<string, FormFieldMeta> }, setErrors: SetFieldErrors) {
+    const liveRef = useRef(inputs);
+    useEffect(() => { liveRef.current = inputs; });
+    const validateLive = useCallback((name: string, value: unknown) => {
+        const live = liveRef.current;
+        const fieldScope = { ...live.scope, form: { ...live.values, [name]: value }, value };
+        const message = fieldError(fieldsRef.current.get(name), live.validations.get(name), value, fieldScope, live.t);
+        setErrors((prev) => (prev[name] === message ? prev : { ...prev, [name]: message }));
+    }, [fieldsRef, setErrors]);
+    return { liveRef, validateLive };
+}
+
 function FormBody({ node, children }: NodeProps<FormProps>) {
     const { t } = useTranslation();
     const { mode, runAction, actionState, registerFormValue, scope } = useRuntime();
@@ -227,15 +261,7 @@ function FormBody({ node, children }: NodeProps<FormProps>) {
     // The spinner was the only thing read off the action's state, so a
     // failed submit just stopped spinning and said nothing.
     const submitError = node.onSubmit ? actionState?.[node.onSubmit]?.error : null;
-    // A field rule the server checks (data model validation) answers per field:
-    // each sentence goes under its input, like a rule checked here, and clears
-    // when that field changes. Adjusted during render when a new answer arrives.
-    const serverFieldErrors = node.onSubmit ? actionState?.[node.onSubmit]?.fieldErrors ?? null : null;
-    const [seenServerErrors, setSeenServerErrors] = useState(serverFieldErrors);
-    if (serverFieldErrors !== seenServerErrors) {
-        setSeenServerErrors(serverFieldErrors);
-        if (serverFieldErrors) setErrors((prev) => ({ ...prev, ...serverFieldErrors }));
-    }
+    useServerFieldErrors(node.onSubmit ? actionState?.[node.onSubmit]?.fieldErrors ?? null : null, setErrors);
     const validations = useMemo(() => collectValidations(node), [node]);
 
     useEffect(() => {
@@ -254,18 +280,8 @@ function FormBody({ node, children }: NodeProps<FormProps>) {
         fieldsRef.current.delete(name);
     }, []);
 
-    // Latest values/scope for live validation (validateOn), read from callbacks
-    // that must stay stable.
-    const liveRef = useRef({ values, scope, validations, t });
-    useEffect(() => { liveRef.current = { values, scope, validations, t }; });
     const validateOn = node.props?.validateOn;
-
-    const validateLive = useCallback((name: string, value: unknown) => {
-        const live = liveRef.current;
-        const fieldScope = { ...live.scope, form: { ...live.values, [name]: value }, value };
-        const message = fieldError(fieldsRef.current.get(name), live.validations.get(name), value, fieldScope, live.t);
-        setErrors((prev) => (prev[name] === message ? prev : { ...prev, [name]: message }));
-    }, []);
+    const { liveRef, validateLive } = useLiveValidation({ values, scope, validations, t }, fieldsRef, setErrors);
 
     const setValue = useCallback((name: string, value: unknown) => {
         setValues((prev) => ({ ...prev, [name]: value }));

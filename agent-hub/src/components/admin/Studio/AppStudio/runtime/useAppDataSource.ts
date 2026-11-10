@@ -98,6 +98,22 @@ function datasetParams(binding: FetchBinding): Record<string, unknown> | null {
 const recordReadExtras = (b: DataBinding) => ({ orderBy: b.orderBy ?? undefined, expand: b.expand ?? undefined, fields: b.fields ?? undefined });
 
 /**
+ * The query an aggregate binding sends, the same on the batch road and on /data/query. Note
+ * the key rename: the binding says `filter` (matching records), the server says `filters`.
+ */
+const aggregateQuery = (b: DataBinding) => ({
+    tableId: b.tableId,
+    filters: b.filter ?? undefined,
+    match: b.match ?? undefined,
+    groupBy: b.groupBy ?? undefined,
+    aggregates: b.aggregates ?? undefined,
+    sort: b.sort ?? undefined,
+    orderBy: b.orderBy ?? undefined,
+    groupFilter: b.groupFilter ?? undefined,
+    limit: b.limit ?? undefined,
+});
+
+/**
  * The batch descriptor for a binding, or null if this kind never batches.
  *
  * Connectors are excluded because they are not a read: another router, another
@@ -113,21 +129,7 @@ function batchDescriptor(id: string, binding: FetchBinding, limit: unknown) {
         const params = datasetParams(binding);
         return { id, kind: 'dataset', datasetId: binding.datasetId, ...(params ? { params } : {}) };
     }
-    if (binding.kind === 'aggregate') {
-        return {
-            id,
-            kind: 'aggregate',
-            tableId: binding.tableId,
-            filters: binding.filter ?? undefined,
-            match: binding.match ?? undefined,
-            groupBy: binding.groupBy ?? undefined,
-            aggregates: binding.aggregates ?? undefined,
-            sort: binding.sort ?? undefined,
-            orderBy: binding.orderBy ?? undefined,
-            groupFilter: binding.groupFilter ?? undefined,
-            limit: binding.limit ?? undefined,
-        };
-    }
+    if (binding.kind === 'aggregate') return { id, kind: 'aggregate', ...aggregateQuery(binding) };
     // record + records are one query; which of the rows the caller wants is a
     // client-side concern, exactly as it is on the single-request path.
     return {
@@ -224,23 +226,11 @@ async function fetchBinding(appId: string | null, binding: FetchBinding, { sampl
 
     if (binding.kind === 'aggregate') {
         // The /data/query endpoint already accepts an INLINE descriptor, so a
-        // count-per-status needs no saved dataset and no new route. Note the key
-        // rename: the binding says `filter` (matching records), the route says
-        // `filters`.
+        // count-per-status needs no saved dataset and no new route (aggregateQuery).
         const res = await studioAppFetch(`${API_BASE}/api/studio-apps/${id}/data/query`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                tableId: binding.tableId,
-                filters: binding.filter ?? undefined,
-                match: binding.match ?? undefined,
-                groupBy: binding.groupBy ?? undefined,
-                aggregates: binding.aggregates ?? undefined,
-                sort: binding.sort ?? undefined,
-                orderBy: binding.orderBy ?? undefined,
-                groupFilter: binding.groupFilter ?? undefined,
-                limit: binding.limit ?? undefined,
-            }),
+            body: JSON.stringify(aggregateQuery(binding)),
         });
         if (res.status === 404) return [];
         let body = null;

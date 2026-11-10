@@ -111,6 +111,29 @@ function NotAvailable({ error, onRetry }: { error: unknown; onRetry: () => void 
     );
 }
 
+/** The document around a public app: the app's name as the title, and the light ground. */
+function usePublicDocument(appName: string | null) {
+    useEffect(() => {
+        if (!appName) return undefined;
+        const previous = document.title;
+        document.title = appName;
+        return () => { document.title = previous; };
+    }, [appName]);
+
+    // applyThemeToDocument never runs on this page (it is outside the authed
+    // shell), so the light/dark ground is stamped here — same as the public
+    // form page does.
+    useEffect(() => {
+        const root = document.documentElement;
+        const previous = root.getAttribute('data-theme');
+        root.setAttribute('data-theme', 'light');
+        return () => {
+            if (previous) root.setAttribute('data-theme', previous);
+            else root.removeAttribute('data-theme');
+        };
+    }, []);
+}
+
 /** Where the visitor starts, and where an empty or refused screen link lands. */
 function entryScreenOf(payload: PublicAppPayload | null | undefined): string | null {
     return payload?.entryScreenId || payload?.definition?.homeScreenId || null;
@@ -171,25 +194,7 @@ export default function PublicAppPage({ token }: { token: string }) {
     useEffect(() => { load(); }, [load]);
 
     const appName = state.payload?.app?.name || null;
-    useEffect(() => {
-        if (!appName) return undefined;
-        const previous = document.title;
-        document.title = appName;
-        return () => { document.title = previous; };
-    }, [appName]);
-
-    // applyThemeToDocument never runs on this page (it is outside the authed
-    // shell), so the light/dark ground is stamped here — same as the public
-    // form page does.
-    useEffect(() => {
-        const root = document.documentElement;
-        const previous = root.getAttribute('data-theme');
-        root.setAttribute('data-theme', 'light');
-        return () => {
-            if (previous) root.setAttribute('data-theme', previous);
-            else root.removeAttribute('data-theme');
-        };
-    }, []);
+    usePublicDocument(appName);
 
     const definition = state.payload?.definition || null;
 
