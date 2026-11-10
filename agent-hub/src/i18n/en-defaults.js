@@ -38919,6 +38919,11 @@ const EN_DEFAULTS = {
     "studio_apps_surfaces.sort_none": "No particular order",
     "studio_apps_surfaces.relation_display": "Show this column for each record",
     "studio_apps_surfaces.relation_display_auto": "Automatic (first text column)",
+    "studio_apps_text.knobs.font": "Font",
+    "studio_apps_text.knobs.line_height": "Line spacing",
+    "studio_apps_text.knobs.text_size": "Text size",
+    "studio_apps_text.knobs.tracking": "Letter spacing",
+    "studio_apps_text.knobs.transform": "Letter case",
 };
 
 export default EN_DEFAULTS;

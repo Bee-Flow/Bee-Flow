@@ -1,0 +1,9 @@
+{
+  "translations": {
+    "studio_apps_text.knobs.font": "Lettertype",
+    "studio_apps_text.knobs.line_height": "Regelafstand",
+    "studio_apps_text.knobs.text_size": "Tekstgrootte",
+    "studio_apps_text.knobs.tracking": "Letterafstand",
+    "studio_apps_text.knobs.transform": "Hoofdletters"
+  }
+}

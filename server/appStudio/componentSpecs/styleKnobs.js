@@ -47,7 +47,7 @@ const STYLE_KNOBS = {
     radius:     { type: 'enum', values: [null, 'none', 'sm', 'md', 'lg', 'full'], default: null },
     padding:    { type: 'int', min: 0, max: 6, step: 1, default: 0 },   // spacing steps × density
     gap:        { type: 'int', min: 0, max: 6, step: 1, default: 3 },
-    weight:     { type: 'enum', values: ['regular', 'medium', 'semibold'], default: 'regular' },
+    weight:     { type: 'enum', values: ['regular', 'medium', 'semibold', 'bold'], valuesSince: { bold: 3 }, default: 'regular' },
     // 'fill' has no fixed pixel size: it takes whatever height is left over.
     // Inside a `pane` that means "this is the part that grows"; on a section it
     // means "this screen is a full-height layout". It is the one knob that makes

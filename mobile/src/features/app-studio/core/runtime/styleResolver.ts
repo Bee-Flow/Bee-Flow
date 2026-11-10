@@ -77,7 +77,7 @@ export function resolveRadius(value: unknown): RadiusRef | undefined {
 }
 
 export const ALIGN_VALUES: Readonly<Record<string, 'left' | 'center' | 'right'>> = { start: 'left', center: 'center', end: 'right' };
-export const WEIGHT_VALUES: Readonly<Record<string, 400 | 500 | 600>> = { regular: 400, medium: 500, semibold: 600 };
+export const WEIGHT_VALUES: Readonly<Record<string, 400 | 500 | 600 | 700>> = { regular: 400, medium: 500, semibold: 600, bold: 700 };
 /** Font size as a multiple of the inherited size; md is the inherited size itself. */
 export const FONT_SCALE: Readonly<Record<string, number>> = { sm: 0.875, lg: 1.125 };
 export const HEIGHT_PX: Readonly<Record<string, number>> = { sm: 120, md: 200, lg: 320, xl: 620 };
@@ -149,7 +149,7 @@ export interface NodeLayout {
     span: number;
     width: SizeSpec | null;
     align: 'left' | 'center' | 'right' | null;
-    fontWeight: 400 | 500 | 600 | null;
+    fontWeight: 400 | 500 | 600 | 700 | null;
     fontScale: number | null;
     height: HeightRule;
     color: ColorRef | null;
