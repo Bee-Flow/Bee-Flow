@@ -15,25 +15,25 @@ toc_max_heading_level: 2
 
 ### `GET /api/cms/admin/analytics/diagnose`
 
-**Access:** Platform admin · middleware `requireAdmin`
+**Access:** Platform admin
 
 No request schema.
 
 ### `GET /api/cms/admin/analytics/overview`
 
-**Access:** Platform admin · middleware `requireAdmin` · the handler also checks who the caller is
+**Access:** Platform admin · the handler also checks who the caller is
 
 No request schema.
 
 ### `GET /api/cms/admin/analytics/query/:resource`
 
-**Access:** Platform admin · middleware `requireAdmin` · the handler also checks who the caller is
+**Access:** Platform admin · the handler also checks who the caller is
 
 No request schema.
 
 ### `PUT /api/cms/admin/analytics/recorder`
 
-**Access:** Platform admin · middleware `requireAdmin`
+**Access:** Platform admin
 
 **Body**
 
@@ -44,19 +44,19 @@ No request schema.
 
 ### `POST /api/cms/admin/analytics/report/:type`
 
-**Access:** Platform admin · middleware `requireAdmin` · the handler also checks who the caller is
+**Access:** Platform admin · the handler also checks who the caller is
 
 No request schema.
 
 ### `GET /api/cms/admin/analytics/settings`
 
-**Access:** Platform admin · middleware `requireAdmin`
+**Access:** Platform admin
 
 No request schema.
 
 ### `PUT /api/cms/admin/analytics/settings`
 
-**Access:** Platform admin · middleware `requireAdmin`
+**Access:** Platform admin
 
 **Body**
 
@@ -80,25 +80,25 @@ No request schema.
 
 ### `GET /api/cms/admin/analytics/sites`
 
-**Access:** Platform admin · middleware `requireAdmin`
+**Access:** Platform admin
 
 No request schema.
 
 ### `GET /api/cms/admin/analytics/status`
 
-**Access:** Platform admin · middleware `requireAdmin`
+**Access:** Platform admin
 
 No request schema.
 
 ### `GET /api/cms/admin/assets`
 
-**Access:** middleware `requireAdmin`
+**Access:** Platform admin
 
 No request schema.
 
 ### `PUT /api/cms/admin/default-locale`
 
-**Access:** middleware `requireAdmin`
+**Access:** Platform admin
 
 **Body**
 
@@ -108,7 +108,7 @@ No request schema.
 
 ### `PUT /api/cms/admin/enabled`
 
-**Access:** middleware `requireAdmin`
+**Access:** Platform admin
 
 **Body**
 
@@ -119,13 +119,13 @@ No request schema.
 
 ### `GET /api/cms/admin/form-automations`
 
-**Access:** middleware `requireAdmin`
+**Access:** Platform admin
 
 No request schema.
 
 ### `PUT /api/cms/admin/form-automations/:automationId`
 
-**Access:** middleware `requireAdmin`
+**Access:** Platform admin
 
 **Body**
 
@@ -135,7 +135,7 @@ No request schema.
 
 ### `PUT /api/cms/admin/form-automations/:automationId/blocks/:blockId`
 
-**Access:** middleware `requireAdmin`
+**Access:** Platform admin
 
 **Body**
 
@@ -145,13 +145,13 @@ No request schema.
 
 ### `GET /api/cms/admin/graph`
 
-**Access:** middleware `requireAdmin`
+**Access:** Platform admin
 
 No request schema.
 
 ### `POST /api/cms/admin/pages`
 
-**Access:** middleware `requireAdmin`
+**Access:** Platform admin
 
 **Body**
 
@@ -164,13 +164,13 @@ No request schema.
 
 ### `GET /api/cms/admin/pages/:id`
 
-**Access:** middleware `requireAdmin`
+**Access:** Platform admin
 
 No request schema.
 
 ### `PUT /api/cms/admin/pages/:id`
 
-**Access:** middleware `requireAdmin` · the handler also checks who the caller is
+**Access:** Platform admin · the handler also checks who the caller is
 
 **Body**
 
@@ -180,13 +180,13 @@ No request schema.
 
 ### `DELETE /api/cms/admin/pages/:id`
 
-**Access:** middleware `requireAdmin`
+**Access:** Platform admin
 
 No request schema.
 
 ### `POST /api/cms/admin/pages/:id/ai-translate/:locale`
 
-**Access:** middleware `requireAdmin`
+**Access:** Platform admin
 
 **Body**
 
@@ -196,13 +196,13 @@ No request schema.
 
 ### `PUT /api/cms/admin/pages/:id/homepage`
 
-**Access:** middleware `requireAdmin`
+**Access:** Platform admin
 
 No request schema.
 
 ### `PUT /api/cms/admin/pages/:id/locale/:locale`
 
-**Access:** middleware `requireAdmin` · the handler also checks who the caller is
+**Access:** Platform admin · the handler also checks who the caller is
 
 **Body**
 
@@ -212,13 +212,13 @@ No request schema.
 
 ### `DELETE /api/cms/admin/pages/:id/locale/:locale`
 
-**Access:** middleware `requireAdmin`
+**Access:** Platform admin
 
 No request schema.
 
 ### `PUT /api/cms/admin/pages/:id/meta`
 
-**Access:** middleware `requireAdmin`
+**Access:** Platform admin
 
 **Body**
 
@@ -233,7 +233,7 @@ No request schema.
 
 ### `PUT /api/cms/admin/pages/order`
 
-**Access:** middleware `requireAdmin`
+**Access:** Platform admin
 
 **Body**
 
@@ -243,19 +243,19 @@ No request schema.
 
 ### `POST /api/cms/admin/publish`
 
-**Access:** middleware `requireAdmin`
+**Access:** Platform admin
 
 No request schema.
 
 ### `GET /api/cms/admin/site`
 
-**Access:** middleware `requireAdmin`
+**Access:** Platform admin
 
 No request schema.
 
 ### `PUT /api/cms/admin/site`
 
-**Access:** middleware `requireAdmin`
+**Access:** Platform admin
 
 **Body**
 
@@ -265,7 +265,7 @@ No request schema.
 
 ### `POST /api/cms/admin/site/ai-translate/:locale`
 
-**Access:** middleware `requireAdmin`
+**Access:** Platform admin
 
 **Body**
 
@@ -275,7 +275,7 @@ No request schema.
 
 ### `PUT /api/cms/admin/site/locale/:locale`
 
-**Access:** middleware `requireAdmin`
+**Access:** Platform admin
 
 **Body**
 
@@ -285,19 +285,19 @@ No request schema.
 
 ### `DELETE /api/cms/admin/site/locale/:locale`
 
-**Access:** middleware `requireAdmin`
+**Access:** Platform admin
 
 No request schema.
 
 ### `GET /api/cms/admin/templates`
 
-**Access:** middleware `requireAdmin`
+**Access:** Platform admin
 
 No request schema.
 
 ### `POST /api/cms/admin/templates`
 
-**Access:** middleware `requireAdmin`
+**Access:** Platform admin
 
 **Body**
 
@@ -309,19 +309,19 @@ No request schema.
 
 ### `DELETE /api/cms/admin/templates/:id`
 
-**Access:** middleware `requireAdmin`
+**Access:** Platform admin
 
 No request schema.
 
 ### `POST /api/cms/admin/upload`
 
-**Access:** middleware `requireAdmin` · the handler also checks who the caller is
+**Access:** Platform admin · the handler also checks who the caller is
 
 No request schema.
 
 ### `POST /api/cms/admin/upload-clip`
 
-**Access:** middleware `requireAdmin`
+**Access:** Platform admin
 
 No request schema.
 
@@ -337,7 +337,7 @@ No request schema.
 
 ### `GET /api/cms/builder/session/:siteId`
 
-**Access:** middleware `requireAdmin`
+**Access:** Platform admin
 
 **Path parameters**
 
@@ -347,7 +347,7 @@ No request schema.
 
 ### `POST /api/cms/builder/stream`
 
-**Access:** middleware `requireAdmin` · the handler also checks who the caller is
+**Access:** Platform admin · the handler also checks who the caller is
 
 **Body**
 
@@ -396,13 +396,13 @@ No request schema.
 
 ### `GET /api/cms/sites`
 
-**Access:** middleware `requireAdmin`
+**Access:** Platform admin
 
 No request schema.
 
 ### `POST /api/cms/sites`
 
-**Access:** middleware `requireAdmin`
+**Access:** Platform admin
 
 **Body**
 
@@ -412,13 +412,13 @@ No request schema.
 
 ### `GET /api/cms/sites/:siteId`
 
-**Access:** middleware `requireAdmin`, `attachSiteIdFromParam`
+**Access:** Platform admin · middleware `attachSiteIdFromParam`
 
 No request schema.
 
 ### `PUT /api/cms/sites/:siteId`
 
-**Access:** middleware `requireAdmin`, `attachSiteIdFromParam`
+**Access:** Platform admin · middleware `attachSiteIdFromParam`
 
 **Body**
 
@@ -428,7 +428,7 @@ No request schema.
 
 ### `PATCH /api/cms/sites/:siteId`
 
-**Access:** middleware `requireAdmin`, `attachSiteIdFromParam`
+**Access:** Platform admin · middleware `attachSiteIdFromParam`
 
 **Body**
 
@@ -438,31 +438,31 @@ No request schema.
 
 ### `DELETE /api/cms/sites/:siteId`
 
-**Access:** middleware `requireAdmin`, `attachSiteIdFromParam`
+**Access:** Platform admin · middleware `attachSiteIdFromParam`
 
 No request schema.
 
 ### `POST /api/cms/sites/:siteId/duplicate`
 
-**Access:** middleware `requireAdmin`, `attachSiteIdFromParam`
+**Access:** Platform admin · middleware `attachSiteIdFromParam`
 
 No request schema.
 
 ### `GET /api/cms/sites/:siteId/export`
 
-**Access:** middleware `requireAdmin`, `attachSiteIdFromParam`
+**Access:** Platform admin · middleware `attachSiteIdFromParam`
 
 No request schema.
 
 ### `GET /api/cms/sites/:siteId/graph`
 
-**Access:** middleware `requireAdmin`, `attachSiteIdFromParam`
+**Access:** Platform admin · middleware `attachSiteIdFromParam`
 
 No request schema.
 
 ### `POST /api/cms/sites/:siteId/link-check`
 
-**Access:** middleware `requireAdmin`, `attachSiteIdFromParam`
+**Access:** Platform admin · middleware `attachSiteIdFromParam`
 
 **Body**
 
@@ -472,7 +472,7 @@ No request schema.
 
 ### `PUT /api/cms/sites/:siteId/live`
 
-**Access:** middleware `requireAdmin`, `attachSiteIdFromParam` · the handler also checks who the caller is
+**Access:** Platform admin · middleware `attachSiteIdFromParam` · the handler also checks who the caller is
 
 **Body**
 
@@ -482,7 +482,7 @@ No request schema.
 
 ### `POST /api/cms/sites/:siteId/pages`
 
-**Access:** middleware `requireAdmin`, `attachSiteIdFromParam`
+**Access:** Platform admin · middleware `attachSiteIdFromParam`
 
 **Body**
 
@@ -495,13 +495,13 @@ No request schema.
 
 ### `GET /api/cms/sites/:siteId/pages/:id`
 
-**Access:** middleware `requireAdmin`, `attachSiteIdFromParam`
+**Access:** Platform admin · middleware `attachSiteIdFromParam`
 
 No request schema.
 
 ### `PUT /api/cms/sites/:siteId/pages/:id`
 
-**Access:** middleware `requireAdmin`, `attachSiteIdFromParam` · the handler also checks who the caller is
+**Access:** Platform admin · middleware `attachSiteIdFromParam` · the handler also checks who the caller is
 
 **Body**
 
@@ -511,13 +511,13 @@ No request schema.
 
 ### `DELETE /api/cms/sites/:siteId/pages/:id`
 
-**Access:** middleware `requireAdmin`, `attachSiteIdFromParam`
+**Access:** Platform admin · middleware `attachSiteIdFromParam`
 
 No request schema.
 
 ### `POST /api/cms/sites/:siteId/pages/:id/ai-translate/:locale`
 
-**Access:** middleware `requireAdmin`, `attachSiteIdFromParam`
+**Access:** Platform admin · middleware `attachSiteIdFromParam`
 
 **Body**
 
@@ -527,13 +527,13 @@ No request schema.
 
 ### `PUT /api/cms/sites/:siteId/pages/:id/homepage`
 
-**Access:** middleware `requireAdmin`, `attachSiteIdFromParam`
+**Access:** Platform admin · middleware `attachSiteIdFromParam`
 
 No request schema.
 
 ### `PUT /api/cms/sites/:siteId/pages/:id/locale/:locale`
 
-**Access:** middleware `requireAdmin`, `attachSiteIdFromParam` · the handler also checks who the caller is
+**Access:** Platform admin · middleware `attachSiteIdFromParam` · the handler also checks who the caller is
 
 **Body**
 
@@ -543,13 +543,13 @@ No request schema.
 
 ### `DELETE /api/cms/sites/:siteId/pages/:id/locale/:locale`
 
-**Access:** middleware `requireAdmin`, `attachSiteIdFromParam`
+**Access:** Platform admin · middleware `attachSiteIdFromParam`
 
 No request schema.
 
 ### `PUT /api/cms/sites/:siteId/pages/:id/meta`
 
-**Access:** middleware `requireAdmin`, `attachSiteIdFromParam`
+**Access:** Platform admin · middleware `attachSiteIdFromParam`
 
 **Body**
 
@@ -564,7 +564,7 @@ No request schema.
 
 ### `PUT /api/cms/sites/:siteId/pages/order`
 
-**Access:** middleware `requireAdmin`, `attachSiteIdFromParam`
+**Access:** Platform admin · middleware `attachSiteIdFromParam`
 
 **Body**
 
@@ -574,13 +574,13 @@ No request schema.
 
 ### `GET /api/cms/sites/:siteId/posts`
 
-**Access:** middleware `requireAdmin`, `attachSiteIdFromParam`
+**Access:** Platform admin · middleware `attachSiteIdFromParam`
 
 No request schema.
 
 ### `POST /api/cms/sites/:siteId/posts`
 
-**Access:** middleware `requireAdmin`, `attachSiteIdFromParam`
+**Access:** Platform admin · middleware `attachSiteIdFromParam`
 
 **Body**
 
@@ -604,13 +604,13 @@ No request schema.
 
 ### `GET /api/cms/sites/:siteId/posts/:postId`
 
-**Access:** middleware `requireAdmin`, `attachSiteIdFromParam`
+**Access:** Platform admin · middleware `attachSiteIdFromParam`
 
 No request schema.
 
 ### `PUT /api/cms/sites/:siteId/posts/:postId`
 
-**Access:** middleware `requireAdmin`, `attachSiteIdFromParam`
+**Access:** Platform admin · middleware `attachSiteIdFromParam`
 
 **Body**
 
@@ -634,13 +634,13 @@ No request schema.
 
 ### `DELETE /api/cms/sites/:siteId/posts/:postId`
 
-**Access:** middleware `requireAdmin`, `attachSiteIdFromParam`
+**Access:** Platform admin · middleware `attachSiteIdFromParam`
 
 No request schema.
 
 ### `PUT /api/cms/sites/:siteId/posts/:postId/locale/:locale`
 
-**Access:** middleware `requireAdmin`, `attachSiteIdFromParam`
+**Access:** Platform admin · middleware `attachSiteIdFromParam`
 
 **Body**
 
@@ -658,25 +658,25 @@ No request schema.
 
 ### `DELETE /api/cms/sites/:siteId/posts/:postId/locale/:locale`
 
-**Access:** middleware `requireAdmin`, `attachSiteIdFromParam`
+**Access:** Platform admin · middleware `attachSiteIdFromParam`
 
 No request schema.
 
 ### `POST /api/cms/sites/:siteId/publish`
 
-**Access:** middleware `requireAdmin`, `attachSiteIdFromParam`
+**Access:** Platform admin · middleware `attachSiteIdFromParam`
 
 No request schema.
 
 ### `GET /api/cms/sites/:siteId/redirects`
 
-**Access:** middleware `requireAdmin`, `attachSiteIdFromParam`
+**Access:** Platform admin · middleware `attachSiteIdFromParam`
 
 No request schema.
 
 ### `POST /api/cms/sites/:siteId/redirects`
 
-**Access:** middleware `requireAdmin`, `attachSiteIdFromParam`
+**Access:** Platform admin · middleware `attachSiteIdFromParam`
 
 **Body**
 
@@ -689,13 +689,13 @@ No request schema.
 
 ### `DELETE /api/cms/sites/:siteId/redirects/:id`
 
-**Access:** middleware `requireAdmin`, `attachSiteIdFromParam`
+**Access:** Platform admin · middleware `attachSiteIdFromParam`
 
 No request schema.
 
 ### `PUT /api/cms/sites/:siteId/redirects/hosts`
 
-**Access:** middleware `requireAdmin`, `attachSiteIdFromParam`
+**Access:** Platform admin · middleware `attachSiteIdFromParam`
 
 **Body**
 
@@ -705,7 +705,7 @@ No request schema.
 
 ### `POST /api/cms/sites/:siteId/site/ai-translate/:locale`
 
-**Access:** middleware `requireAdmin`, `attachSiteIdFromParam`
+**Access:** Platform admin · middleware `attachSiteIdFromParam`
 
 **Body**
 
@@ -715,7 +715,7 @@ No request schema.
 
 ### `PUT /api/cms/sites/:siteId/site/locale/:locale`
 
-**Access:** middleware `requireAdmin`, `attachSiteIdFromParam`
+**Access:** Platform admin · middleware `attachSiteIdFromParam`
 
 **Body**
 
@@ -725,13 +725,13 @@ No request schema.
 
 ### `DELETE /api/cms/sites/:siteId/site/locale/:locale`
 
-**Access:** middleware `requireAdmin`, `attachSiteIdFromParam`
+**Access:** Platform admin · middleware `attachSiteIdFromParam`
 
 No request schema.
 
 ### `POST /api/cms/sites/import`
 
-**Access:** middleware `requireAdmin`
+**Access:** Platform admin
 
 No request schema.
 

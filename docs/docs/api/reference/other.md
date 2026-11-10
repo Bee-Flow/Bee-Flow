@@ -1045,13 +1045,13 @@ No request schema.
 
 ### `GET /api/release-notes/admin`
 
-**Access:** middleware `requireAdmin`
+**Access:** Platform admin
 
 No request schema.
 
 ### `PUT /api/release-notes/admin/:id`
 
-**Access:** middleware `requireAdmin`
+**Access:** Platform admin
 
 **Body**
 
@@ -1067,19 +1067,19 @@ No request schema.
 
 ### `DELETE /api/release-notes/admin/:id`
 
-**Access:** middleware `requireAdmin`
+**Access:** Platform admin
 
 No request schema.
 
 ### `POST /api/release-notes/admin/:id/publish`
 
-**Access:** middleware `requireAdmin`
+**Access:** Platform admin
 
 No request schema.
 
 ### `POST /api/release-notes/admin/:id/unpublish`
 
-**Access:** middleware `requireAdmin`
+**Access:** Platform admin
 
 No request schema.
 
