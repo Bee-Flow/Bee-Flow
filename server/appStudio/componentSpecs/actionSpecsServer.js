@@ -21,6 +21,8 @@ const GUARD_FIELD = Object.freeze({
         + 'A condition step decides in the browser, a guard decides on the server. '
         + 'It reads the roots a server step has (form, vars, item, index, value, params, currentUser, now, today), '
         + 'and screen, forms and actions only when the app sets serverScope to "wide". '
+        + 'Only currentUser comes from the server: every other root is sent by the browser, so decide who may do something with currentUser, never with vars, form or actions. '
+        + 'A guard covers its own step only, so each step that needs the rule carries it. '
         + 'Every server step kind takes it, the kinds added later too. '
         + 'A step inside a transaction takes no guard of its own: put it on the transaction.',
 });
