@@ -54,8 +54,15 @@ async function installApps(entities, ctx, report) {
         return;
     }
     const studioAppStore = require('../../../../stores/studioAppStore');
+    const { gateDefinition } = require('../../../appDefinitionGate.mts');
     for (const entity of entities) {
         try {
+            // The definition is stored and stamped as given; the gate only says whether, and what it found.
+            // A part without a definition gets the store's empty app, as it always did: there is nothing to gate.
+            const gate = entity.definition == null ? null : gateDefinition(entity.definition);
+            if (gate && gate.verdict === 'refuse') throw new Error(gate.errors[0].message);
+            // Errors only: a warning can name an id canonicalize would generate, which differs per call.
+            const findings = gate && gate.verdict === 'warn' ? { errors: gate.errors } : null;
             const created = await studioAppStore.createStudioApp({
                 userId: ctx.ownerId,
                 organizationId: ctx.organizationId,
@@ -69,7 +76,7 @@ async function installApps(entities, ctx, report) {
             ctx.refMap.set(entity.ref, created.id);
             await installAppDataModel(created.id, entity, ctx, report);
             await ctx.stamp({ ref: entity.ref, kind: 'app', entityId: created.id, payload: entity.definition });
-            report.installed.apps.push({ ref: entity.ref, id: created.id, name: entity.name });
+            report.installed.apps.push({ ref: entity.ref, id: created.id, name: entity.name, ...(findings ? { findings } : {}) });
         } catch (err) {
             report.skipped.push({ ref: entity.ref, kind: 'app', why: /** @type {Error} */ (err).message });
         }

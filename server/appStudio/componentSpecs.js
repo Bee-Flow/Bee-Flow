@@ -24,10 +24,12 @@
  *           // v2 (all optional, additive):
  *           visibleWhen?, enabledWhen?, readOnly?, computed?, validations?, visibleToRoles? }
  *
- * SCHEMA VERSIONING — this file is the v2 contract. schemaVersion 1 defs still
- * validate/render: canonicalize accepts {1,2}, runs migrate.migrateV1toV2()
- * inline, and always emits SCHEMA_VERSION_CURRENT (2). Every v2 addition is a
- * SUPERSET of v1 — v1 defs migrate losslessly.
+ * SCHEMA VERSIONING — schemaVersion 1 defs still validate/render: canonicalize
+ * accepts {1,2,3}, runs the migrate.js chain inline, and emits the LOWEST
+ * sufficient version: SCHEMA_VERSION_BASE (2) unless the definition uses an
+ * entry marked `since: 3` (schemaSince.mts). Every v2 addition is a SUPERSET
+ * of v1 — v1 defs migrate losslessly. A version above SCHEMA_VERSION_CURRENT
+ * is refused, never normalised.
  *
  * Layout is a vertical stack of sections; each section is a 12-column grid
  * and children carry style.span (1–12). There are NO x/y coordinates in the
@@ -58,6 +60,7 @@
 const {
     ID_PREFIXES,
     ID_RE,
+    SCHEMA_VERSION_BASE,
     SCHEMA_VERSION_CURRENT,
     SCHEMA_VERSIONS_ACCEPTED,
     newId,
@@ -86,6 +89,7 @@ const {
 } = require('./componentSpecs/styleKnobs');
 const {
     BINDING_KINDS,
+    BINDING_KIND_SINCE,
     INPUT_MAPPING_KINDS,
     FORMULA_SCOPE_ROOTS,
     CURRENT_USER_KEYS,
@@ -192,7 +196,9 @@ function getSpec(type) { return COMPONENT_SPECS[type] || null; }
  */
 function buildCatalog() {
     return {
-        schemaVersion: SCHEMA_VERSION_CURRENT,
+        // What a new definition is written with (the base), not the newest
+        // version this install reads: that is the last of acceptedSchemaVersions.
+        schemaVersion: SCHEMA_VERSION_BASE,
         acceptedSchemaVersions: SCHEMA_VERSIONS_ACCEPTED,
         limits: LIMITS,
         theme: THEME_SPEC,
@@ -232,7 +238,7 @@ function buildCatalog() {
 function emptyDefinition(name = 'Untitled app') {
     const screenId = newId('screen');
     return {
-        schemaVersion: SCHEMA_VERSION_CURRENT,
+        schemaVersion: SCHEMA_VERSION_BASE,
         meta: { name, description: '', icon: 'LayoutGrid' },
         theme: {
             primary: THEME_SPEC.primary.default,
@@ -270,6 +276,7 @@ module.exports = {
     ID_PREFIXES,
     ID_RE,
     newId,
+    SCHEMA_VERSION_BASE,
     SCHEMA_VERSION_CURRENT,
     SCHEMA_VERSIONS_ACCEPTED,
     LIMITS,
@@ -299,6 +306,7 @@ module.exports = {
     sectionHeightIsDefinite,
     COLOR_ROLES,
     BINDING_KINDS,
+    BINDING_KIND_SINCE,
     FORMULA_SCOPE_ROOTS,
     CURRENT_USER_KEYS,
     INPUT_MAPPING_KINDS,

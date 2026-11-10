@@ -12,6 +12,7 @@
 
 const { LIMITS } = require('../componentSpecs');
 const { canonicalizeAppDefinition } = require('../canonicalize');
+const { schemaNewerMessage } = require('../schemaSince.mts');
 const { pickClosestId } = require('../../automation/validate/helpers');
 const { NODE_VALIDATION_TYPES } = require('./schemas');
 
@@ -158,7 +159,9 @@ function limitRepairsUnder(nextDef, pathPrefix) {
  * This is THE common tail of every mutating tool.
  */
 function adoptCanonical(draftWrap, nextDef, result) {
-    const { def, repairs } = canonicalizeAppDefinition(nextDef);
+    const { def, repairs, refused } = canonicalizeAppDefinition(nextDef);
+    // Never adopt a definition this install must not rewrite; the draft stays as it was.
+    if (refused) return { error: schemaNewerMessage(nextDef) };
     draftWrap.def = def;
     const teachable = repairs.filter((r) => !BENIGN_REPAIR_CODES.has(r.code));
     if (teachable.length) {

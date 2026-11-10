@@ -43,9 +43,10 @@ const {
 
 // ── Version + limits ────────────────────────────────────────────────────────
 
-test('schema version is 2 and both 1 and 2 are accepted', () => {
-    assert.equal(SCHEMA_VERSION_CURRENT, 2);
-    assert.deepEqual(SCHEMA_VERSIONS_ACCEPTED, [1, 2]);
+test('the base schema version is 2, the newest is 3, and 1, 2 and 3 are accepted', () => {
+    assert.equal(specs.SCHEMA_VERSION_BASE, 2);
+    assert.equal(SCHEMA_VERSION_CURRENT, 3);
+    assert.deepEqual(SCHEMA_VERSIONS_ACCEPTED, [1, 2, 3]);
 });
 
 test('v2 limits are present with the contracted values', () => {
@@ -257,10 +258,10 @@ test('every step spec has a fields table', () => {
 
 // ── Serialized catalog + empty def ──────────────────────────────────────────
 
-test('buildCatalog is JSON-serializable and advertises v2', () => {
+test('buildCatalog is JSON-serializable and advertises the base version for new definitions', () => {
     const cat = buildCatalog();
     assert.equal(cat.schemaVersion, 2);
-    assert.deepEqual(cat.acceptedSchemaVersions, [1, 2]);
+    assert.deepEqual(cat.acceptedSchemaVersions, [1, 2, 3]);
     assert.deepEqual(cat.events, EVENT_NAMES);
     assert.ok(cat.actions.stepKinds && cat.actions.stepSpecs, 'catalog exposes step schema');
     assert.deepEqual(cat.bindings.formulaScopeRoots, FORMULA_SCOPE_ROOTS);
