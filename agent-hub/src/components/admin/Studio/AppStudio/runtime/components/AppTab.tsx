@@ -1,4 +1,4 @@
-import { spaceSteps } from '../styleResolver';
+import { gridTemplate, spaceSteps } from '../styleResolver';
 import { fillRowTemplate, isFill } from '../styleResolver.helpers';
 import type { NodeStyle } from '../../inspector/appDefinition';
 import type { NodeProps } from './appNode.types';
@@ -21,7 +21,7 @@ export default function AppTab({ node, children }: NodeProps) {
         <div
             className={`app-grid${fill ? ' app-fill h-full min-h-0' : ''}`}
             style={{
-                gridTemplateColumns: 'repeat(12, minmax(0, 1fr))',
+                gridTemplateColumns: gridTemplate(),
                 gap: spaceSteps(gap),
                 padding: padding > 0 ? spaceSteps(padding) : undefined,
                 ...(fill ? { gridTemplateRows: fillRowTemplate(node) } : null),

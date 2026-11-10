@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import useTranslation from '@/hooks/useTranslation';
 import Modal from '@/components/shared/Modal';
 import { useRuntime } from '../RuntimeContext';
-import { spaceSteps } from '../styleResolver';
+import { gridTemplate, spaceSteps } from '../styleResolver';
 import type { ModalPlacement, ModalSize } from '@/components/shared/Modal';
 import type { NodeStyle } from '../../inspector/appDefinition';
 import type { NodeProps } from './appNode.types';
@@ -80,7 +80,7 @@ export default function AppModal({ node, children }: NodeProps<ModalNodeProps>) 
     const grid = (
         <div
             className="app-grid"
-            style={{ gridTemplateColumns: 'repeat(12, minmax(0, 1fr))', gap: spaceSteps(gap) }}
+            style={{ gridTemplateColumns: gridTemplate(), gap: spaceSteps(gap) }}
         >
             {children}
         </div>

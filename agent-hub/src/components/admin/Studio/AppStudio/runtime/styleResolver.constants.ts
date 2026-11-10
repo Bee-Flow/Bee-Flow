@@ -50,7 +50,7 @@ export const SOFT_PRIMARY_GRADIENT =
     'linear-gradient(135deg, color-mix(in srgb, var(--app-primary) 12%, transparent), color-mix(in srgb, var(--app-primary) 2%, transparent))';
 
 /**
- * hideBelow/hideAbove knob -> media-query classes (rules in runtime.css). A
+ * hideBelow/hideAbove knob -> media-query classes (rules in css/layout.css). A
  * class rather than an inline style for the same reason the span rides along
  * as one: only a stylesheet can read the viewport. 'none'/absent emits
  * nothing, so a definition without the knobs keeps its exact className.

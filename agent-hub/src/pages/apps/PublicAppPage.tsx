@@ -2,6 +2,7 @@ import { CircleSlash } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { RunSurface, type ShellDefinition } from './AppRunPage';
 import { appDesignProps } from '../../components/admin/Studio/AppStudio/runtime/appDesign';
+import AppCustomCss from '../../components/admin/Studio/AppStudio/runtime/AppCustomCss';
 import AppFontLoader from '../../components/admin/Studio/AppStudio/runtime/AppFontLoader';
 import { createPublicAppTransport } from '../../components/admin/Studio/AppStudio/runtime/publicAppTransport';
 import { CANVAS_GROUND, themeVars } from '../../components/admin/Studio/AppStudio/runtime/themeVars';
@@ -187,6 +188,7 @@ export default function PublicAppPage({ token }: { token: string }) {
             style={{ ...themeVars(definition?.theme), ...design.style, background: CANVAS_GROUND }}
         >
             <AppFontLoader definition={definition} />
+            <AppCustomCss definition={definition} />
             <RunSurface
                 appId={state.payload?.app?.id || null}
                 draft={false}

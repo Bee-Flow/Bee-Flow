@@ -89,7 +89,7 @@ html:not([data-theme="high-contrast"]) .app-runtime[data-app-appearance="light"]
 /*
  * SURFACE VARIANTS — stamped by appDesign.js only for non-default values.
  * 'hairline' (default) has no class: .app-surface keeps its 1px hairline from
- * runtime.css, untouched.
+ * css/look.css, untouched.
  */
 .app-design--surface-soft .app-surface {
     background: var(--bg-card);

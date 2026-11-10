@@ -57,6 +57,7 @@
 
 'use strict';
 
+const path = require('node:path');
 const {
     ID_PREFIXES,
     ID_RE,
@@ -75,6 +76,9 @@ const {
     ADVANCED_WIDTH_KNOBS,
     ADVANCED_HEIGHT_KNOBS,
     RESPONSIVE_VISIBILITY_KNOBS,
+    BASE_STYLE_KNOB_GROUPS,
+    EXTENSION_STYLE_KNOB_GROUPS,
+    STYLE_KNOB_GROUPS,
     expandStyleKnobs,
     unitRange,
     unitSpan,
@@ -134,6 +138,7 @@ const { DOCUMENT_SPECS } = require('./componentSpecs/documentSpecs');
 // A leaf module, not mailboxConnector.js: this file is loaded by the mobile
 // tests, and everything it requires is what ci.yml's mobile filter lists.
 const { MAILBOX_TABLE_TEMPLATES } = require('./mailboxTableTemplates');
+const { loadTypeExtensions } = require('./componentSpecs/typeExtensions');
 
 // ---------------------------------------------------------------------------
 // The component catalog. v1 shipped 19 types; v2 ADDS data/chart/pivot, richer
@@ -171,7 +176,7 @@ const { MAILBOX_TABLE_TEMPLATES } = require('./mailboxTableTemplates');
 // The catalog families are composed in the order the catalog has always had —
 // the key order is what the palette and the AI catalog list, so the slices are
 // assigned in catalog order rather than grouped by family here.
-const COMPONENT_SPECS = Object.assign(Object.create(null),
+const BASE_COMPONENT_SPECS = Object.assign(Object.create(null),
     CONTENT_SPECS,          // heading … stat
     RECORD_LIST_SPECS,      // table, list, approval_list
     FORM_SPECS,             // card, form, input_text … input_date
@@ -181,6 +186,20 @@ const COMPONENT_SPECS = Object.assign(Object.create(null),
     RECORD_DISPLAY_SPECS,   // badge_list … record_detail
     INTERACTIVE_SPECS,      // filter_bar, kanban, calendar, ai_chat
     DOCUMENT_SPECS,         // document_viewer, document_compare, input_document
+);
+
+/** The frozen base list, in catalog order. Every type after it is an extension. */
+const BASE_COMPONENT_TYPES = Object.freeze(Object.keys(BASE_COMPONENT_SPECS));
+
+// Types added later: one file per type in componentSpecs/types/ (typeExtensions.js), each
+// carrying `since` >= 3, appended after the base in file-name order. Ships empty.
+const COMPONENT_SPECS = Object.assign(Object.create(null),
+    BASE_COMPONENT_SPECS,
+    loadTypeExtensions(path.join(__dirname, 'componentSpecs', 'types'), {
+        baseSpecs: BASE_COMPONENT_SPECS,
+        styleKnobs: STYLE_KNOBS,
+        eventNames: EVENT_NAMES,
+    }),
 );
 
 const COMPONENT_TYPES = Object.keys(COMPONENT_SPECS);
@@ -293,6 +312,9 @@ module.exports = {
     ADVANCED_WIDTH_KNOBS,
     ADVANCED_HEIGHT_KNOBS,
     RESPONSIVE_VISIBILITY_KNOBS,
+    BASE_STYLE_KNOB_GROUPS,
+    EXTENSION_STYLE_KNOB_GROUPS,
+    STYLE_KNOB_GROUPS,
     FIXED_HEIGHT_PRESETS,
     DEFINITE_HEIGHT_PRESETS,
     CONTAINER_HEIGHT_ROUTES,
@@ -332,6 +354,7 @@ module.exports = {
     EVENT_NAMES,
     SECTION_STYLE_KNOBS,
     SECTION_STYLE_DEFAULTS,
+    BASE_COMPONENT_TYPES,
     COMPONENT_SPECS,
     COMPONENT_TYPES,
     CONTAINER_TYPES,
