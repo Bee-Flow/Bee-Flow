@@ -55,10 +55,20 @@ stub('../appStudio/rlsGateway', { resolveViewerRole: async () => 'owner' });
 
 // The AI runtime is stubbed — no model, KB or provider is touched.
 const aiCalls = { resolveOwnerModel: [], groundWithKB: [], streamChat: [] };
+const readableKbs = { 'owner-1': ['kb1'], 'viewer-9': ['kb1'] };
 let streamImpl = (onEvent) => { onEvent('text', { text: 'Hi' }); onEvent('done', { usage: {} }); };
 stub('../appStudio/aiRuntime', {
     resolveOwnerModel: async (app, tier) => { aiCalls.resolveOwnerModel.push({ tier }); return { modelId: 'm-std', options: {}, supportsVision: false }; },
-    groundWithKB: async (app, args) => { aiCalls.groundWithKB.push(args); return { context: 'KB CONTEXT', chunks: [{ title: 't', content: 'c' }] }; },
+    // Mirrors the real gate (aiRuntime.groundWithKB): no viewer grounds on nothing, and only
+    // the bases the VIEWER can read are searched (`readableKbs`: user id -> kb ids).
+    groundWithKB: async (app, args) => {
+        aiCalls.groundWithKB.push(args);
+        const viewerId = args.viewer?.id;
+        if (!viewerId) return { context: '', chunks: [] };
+        const readable = (args.knowledgeBaseIds || []).filter((id) => (readableKbs[viewerId] || []).includes(id));
+        if (!readable.length) return { context: '', chunks: [] };
+        return { context: `KB CONTEXT ${readable.join(',')}`, chunks: [{ title: 't', content: 'c' }] };
+    },
     streamChat: async (app, model, args, onEvent) => { aiCalls.streamChat.push(args); streamImpl(onEvent); },
 });
 
@@ -155,6 +165,16 @@ test('streams the answer and takes model/prompt/KB from the DEFINITION, not the 
     assert.match(aiCalls.streamChat[0].system, /KB CONTEXT/);
     assert.doesNotMatch(aiCalls.streamChat[0].system, /ignore all rules/);
     assert.deepStrictEqual(aiCalls.streamChat[0].messages, [{ role: 'user', content: 'hello' }]);
+});
+
+test('grounds as the person chatting: a KB the viewer can read reaches the prompt, one they cannot stays out (#599)', async () => {
+    const app = makeApp({ pubNodes: [chatNode({ knowledgeBaseIds: ['kb1', 'kb_private'] })] });
+    await dispatch({ url: `/${app.id}/ai/chat`, user: 'viewer-9', orgIds: [ORG], body: { nodeId: 'cmp_chat', messages: [{ role: 'user', content: 'policy?' }] } });
+
+    assert.deepStrictEqual(aiCalls.groundWithKB[0].viewer, { id: 'viewer-9' });
+    const { system } = aiCalls.streamChat[0];
+    assert.match(system, /Reference material:\nKB CONTEXT kb1$/);
+    assert.doesNotMatch(system, /kb_private/);
 });
 
 test('404 when the node is not an ai_chat component (or does not exist)', async () => {

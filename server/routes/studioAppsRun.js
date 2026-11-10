@@ -573,10 +573,9 @@ router.post('/:id/ai/chat', requireAuth, stepLimiter, jsonBody, bodySizeGuard, v
     const model = await aiRuntime.resolveOwnerModel(app, props.modelTier);
 
     const lastUser = [...messages].reverse().find((m) => m.role === 'user')?.content || '';
-    // Grounding is effectively off today (no viewer passed, issue #599); the query-log hook is in place
-    // for when it is on. The person asking is `userId`, not the app's owner.
+    // The person asking is `userId`, not the app's owner: grounding searches only the bases they can read.
     const ground = await aiRuntime.groundWithKB(app, {
-        knowledgeBaseIds: props.knowledgeBaseIds, query: lastUser,
+        knowledgeBaseIds: props.knowledgeBaseIds, query: lastUser, viewer: { id: userId },
         log: { channel: 'studio_ai_chat', channelRef: { appId: app.id, componentId: node.id || null }, orgId: app.organizationId || null, userId },
     });
     const queryLogHandle = handleOf(ground.chunks);
