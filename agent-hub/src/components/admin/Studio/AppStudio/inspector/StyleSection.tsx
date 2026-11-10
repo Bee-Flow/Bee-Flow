@@ -1,17 +1,6 @@
 import useTranslation from '@/hooks/useTranslation';
 import { SelectField, NumberField } from './panels/kit';
-import {
-    STYLE_KNOBS,
-    SECTION_STYLE_KNOBS,
-    SECTION_STYLE_DEFAULTS,
-    getKnobsForType,
-    advancedKnobsFor,
-    effectiveSizeMode,
-    unitRange,
-    clampKnob,
-    knobLabel,
-    valueLabel,
-} from './styleKnobMeta';
+import { STYLE_KNOBS, SECTION_STYLE_KNOBS, SECTION_STYLE_DEFAULTS, getKnobsForType, advancedKnobsFor, effectiveSizeMode, unitRange, clampKnob, knobLabel, valueLabel } from './styleKnobMeta';
 import LayoutSection, { layoutTypeOf } from './LayoutSection';
 import { STYLE_VALUE_CONTROLS, isBaseValueType } from './styleValueControls';
 import TokenColorField from './TokenColorField';

@@ -81,6 +81,32 @@ type EditorState = ReturnType<typeof useAppEditor>;
  * surface ref, and the section elements found under it after each render of
  * the edit surface (cleared outside edit mode).
  */
+interface EmptySectionDropZonesProps {
+    sections: AppSection[];
+    sectionEls: Map<string | null | undefined, Element>;
+    ghostContainer: Element | null | undefined;
+    onAddStarter: (sectionId: string, type: string) => void;
+    disabled: boolean;
+}
+
+/** A drop zone in every empty section of the screen being edited. */
+function EmptySectionDropZones({ sections, sectionEls, ghostContainer, onAddStarter, disabled }: EmptySectionDropZonesProps) {
+    return (
+        <>
+            {sections.map((section) => {
+                const container = sectionEls.get(section.id);
+                // The ghost takes the empty section's slot while a card is
+                // being typed into it — a drop zone under a ghost would be
+                // two placeholders for one spot.
+                if (ghostContainer && ghostContainer === container) return null;
+                return container
+                    ? <SectionDropZone key={section.id} sectionId={section.id as string} container={container} onAddStarter={onAddStarter} disabled={disabled} />
+                    : null;
+            })}
+        </>
+    );
+}
+
 function useSectionElements(definition: EditorState['definition'], screenId: EditorState['screenId'], mode: EditorState['mode']) {
     const surfaceRef = useRef<HTMLDivElement>(null);
     const [sectionEls, setSectionEls] = useState(() => new Map<string | null | undefined, Element>());
@@ -295,24 +321,13 @@ export function CanvasBody({
                             registerFormValue={registerFormValue}
                         />
                     </SortableContext>
-                    {emptySections.map((section: AppSection) => {
-                        const container = sectionEls.get(section.id);
-                        // The ghost takes the empty section's slot while a card is
-                        // being typed into it — a drop zone under a ghost would be
-                        // two placeholders for one spot.
-                        if (ghost && ghostContainer === container) return null;
-                        return container
-                            ? (
-                                <SectionDropZone
-                                    key={section.id}
-                                    sectionId={section.id as string}
-                                    container={container}
-                                    onAddStarter={addStarter}
-                                    disabled={streamLock}
-                                />
-                            )
-                            : null;
-                    })}
+                    <EmptySectionDropZones
+                        sections={emptySections}
+                        sectionEls={sectionEls}
+                        ghostContainer={ghost ? ghostContainer : null}
+                        onAddStarter={addStarter}
+                        disabled={streamLock}
+                    />
                     {ghost && ghostContainer ? <GhostCell draft={ghost} container={ghostContainer} /> : null}
                     <SectionChips
                         sections={screen?.sections || []}
