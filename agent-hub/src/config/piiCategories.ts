@@ -30,9 +30,8 @@ export interface PiiCategoryDef {
     /** UI group used for the section header on the picker. */
     group: PiiGroup;
     /**
-     * @deprecated Emoji glyph. Superseded by `Icon`; kept only because
-     * NcOnboardingWizard still carries its own emoji copy of this list.
-     * Every picker renders `Icon`.
+     * @deprecated Emoji glyph. Superseded by `Icon`, which every picker
+     * renders (the Nextcloud onboarding wizard included).
      */
     icon: string;
     /**

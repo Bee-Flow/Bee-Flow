@@ -56,7 +56,10 @@ What happens on Connect:
 2. The choice is saved in `${APP_PERSISTENT_STORAGE}/setup-config.json` (mode `0600`) and the
    connector connects to that server. No container restart is needed.
 3. The page reports the outcome: connected to your organisation, a code was e-mailed to an
-   administrator (open Bee Flow to enter it), or the failure with its name.
+   administrator, or the failure with its name. After a connect that succeeded, and after a code
+   was e-mailed, Bee Flow opens by itself a moment later: an administrator goes straight on to
+   the organisation set-up (or to the screen that takes the code). The **Open Bee Flow** button is
+   there for whoever does not want to wait.
 
 A first choice whose check passed stays chosen when connecting then fails, for example because the
 server asks for a pairing code. The connector is then on that server without a key. Until the
