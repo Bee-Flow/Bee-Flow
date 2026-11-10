@@ -21,6 +21,7 @@
 
 const { VARIABLE_NAME_RE, RESERVED_VARIABLE_NAMES } = require('./componentSpecs');
 const { stepMetaOf } = require('./componentSpecs/stepRegistry');
+const { extraChildLists } = require('../shared/appDefinition/stepFlow.mjs');
 
 function isObject(v) { return v !== null && typeof v === 'object' && !Array.isArray(v); }
 
@@ -46,6 +47,8 @@ function walkSteps(steps, visit, depth = 0) {
             }
         }
         walkSteps(step.default, visit, depth + 1);
+        // The places a registry container adds (a try's catch and finally).
+        for (const list of extraChildLists(step)) walkSteps(list, visit, depth + 1);
     }
 }
 

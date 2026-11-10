@@ -10,4 +10,59 @@
  */
 
 /** @type {Readonly<Record<string, { childSlots: readonly { field: string, each?: string, walked?: boolean }[], retrySafe: boolean, server: boolean }>>} */
-export const EXTENSION_STEP_KINDS = Object.freeze({});
+export const EXTENSION_STEP_KINDS = Object.freeze({
+    "break": {
+        "childSlots": [],
+        "retrySafe": true,
+        "server": false
+    },
+    "continue": {
+        "childSlots": [],
+        "retrySafe": true,
+        "server": false
+    },
+    "parallel": {
+        "childSlots": [
+            {
+                "field": "branches",
+                "each": "steps"
+            }
+        ],
+        "retrySafe": true,
+        "server": false
+    },
+    "raise_error": {
+        "childSlots": [],
+        "retrySafe": true,
+        "server": false
+    },
+    "return": {
+        "childSlots": [],
+        "retrySafe": true,
+        "server": false
+    },
+    "try": {
+        "childSlots": [
+            {
+                "field": "steps"
+            },
+            {
+                "field": "catch"
+            },
+            {
+                "field": "finally"
+            }
+        ],
+        "retrySafe": true,
+        "server": false
+    },
+    "while": {
+        "childSlots": [
+            {
+                "field": "steps"
+            }
+        ],
+        "retrySafe": true,
+        "server": false
+    }
+});

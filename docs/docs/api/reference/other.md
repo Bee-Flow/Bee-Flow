@@ -958,6 +958,7 @@ No request schema.
 | Field | Type | Required | Notes |
 |-------|------|:--------:|-------|
 | `stepIndex` | integer | yes | min 0; max 9007199254740991 |
+| `kind` | string |  | min length 1; max length 40 |
 | `formValues` | object or null |  |  |
 | `vars` | object or null |  |  |
 | `item` | any |  |  |

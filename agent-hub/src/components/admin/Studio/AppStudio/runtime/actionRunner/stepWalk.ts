@@ -5,7 +5,7 @@
  * (mobile …/runtime/stepIndex.lockstep.test.ts) loads this module as is.
  */
 import { tryEvaluate } from '@shared/expr/engine.mjs';
-import { extensionServerKinds, handlerStepsOf, numberedChildLists } from '@shared/appDefinition/stepFlow.mjs';
+import { extensionServerKinds, handlerStepsOf, isExtensionStepKind, numberedChildLists } from '@shared/appDefinition/stepFlow.mjs';
 import type { BindingInput } from '../resolveBinding.types';
 
 /**
@@ -94,6 +94,17 @@ export function buildStepIndexMap(steps: unknown): Map<RunStep, number> {
         if (handler) walk(handler);
     }
     return map;
+}
+
+/**
+ * Does the sequence hold a step kind of the step registry? Then every server
+ * step of it is posted with its `kind` next to the ordinal: the server refuses
+ * a client that numbers or walks such an action differently (its
+ * actionSequence.resolveRequestedStep asks the same question).
+ */
+export function usesRegistryKind(steps: unknown): boolean {
+    for (const step of buildStepIndexMap(steps).keys()) if (isExtensionStepKind(step.kind)) return true;
+    return false;
 }
 
 // call_action: at most this many calls below the clicked action (LIMITS.MAX_CALL_DEPTH,

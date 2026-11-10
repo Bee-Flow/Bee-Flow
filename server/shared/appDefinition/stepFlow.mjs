@@ -208,6 +208,50 @@ export function handlerStepsOf(step) {
     return handlerList(/** @type {Record<string, unknown>} */ (step).onError);
 }
 
+/** The fields a reader that walks child steps by name already visits. */
+const NAMED_CHILD_FIELDS = Object.freeze(['steps', 'then', 'else', 'default']);
+
+/**
+ * The child places of a registry kind that a by-name reader does not visit:
+ * `{ field, steps }` per plain slot outside `steps`, `then`, `else`, `default`,
+ * and `{ field, index, each, steps }` per entry of a list slot other than
+ * `cases[].steps`. Empty for a base kind. One more loop over this lets such a
+ * reader see the containers the registry adds (a try's `catch` and `finally`),
+ * and a definition without one is read exactly as before.
+ *
+ * @param {unknown} step
+ * @returns {{ field: string, index?: number, each?: string, steps: unknown[] }[]}
+ */
+export function extraChildSlots(step) {
+    if (!step || typeof step !== 'object' || Array.isArray(step)) return [];
+    const s = /** @type {Record<string, unknown>} */ (step);
+    const kind = extensionKind(s.kind);
+    /** @type {{ field: string, index?: number, each?: string, steps: unknown[] }[]} */
+    const out = [];
+    for (const spec of kind?.childSlots ?? []) {
+        const each = spec.each;
+        if (each === undefined) {
+            if (!NAMED_CHILD_FIELDS.includes(spec.field) && Array.isArray(s[spec.field])) out.push({ field: spec.field, steps: /** @type {unknown[]} */ (s[spec.field]) });
+        } else if (!(spec.field === 'cases' && each === 'steps')) {
+            listOf(s[spec.field]).forEach((c, index) => {
+                const steps = c && typeof c === 'object' ? /** @type {Record<string, unknown>} */ (c)[each] : null;
+                if (Array.isArray(steps)) out.push({ field: spec.field, index, each, steps });
+            });
+        }
+    }
+    return out;
+}
+
+/**
+ * The lists of extraChildSlots, for a reader that only needs the steps.
+ *
+ * @param {unknown} step
+ * @returns {unknown[][]}
+ */
+export function extraChildLists(step) {
+    return extraChildSlots(step).map((slot) => slot.steps);
+}
+
 /**
  * Every child list of `step`, walked or not: what a static check reads.
  *

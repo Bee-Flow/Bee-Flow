@@ -45,6 +45,14 @@ test('a step names its position, and a chat turn its component', async () => {
     assert.deepStrictEqual(db.queries, []);
 });
 
+test('a step may name its kind: a short text, checked against the definition later', async () => {
+    h.assertRefused(assert, await post('/actions/a1/step', { stepIndex: 0, kind: 7 }), 'body.kind', /kind of the step/);
+    h.assertRefused(assert, await post('/actions/a1/step', { stepIndex: 0, kind: 'x'.repeat(41) }), 'body.kind', /kind of the step/);
+    assert.deepStrictEqual(db.queries, []);
+    const res = await post('/actions/a1/step?draft=1', { stepIndex: 0, kind: 'create_record' });
+    assert.strictEqual(res.status, 404, res.text);
+});
+
 test('the session is checked before the body', async () => {
     const res = await post('/actions/a1/run', { wait: 'false' }, null);
     assert.strictEqual(res.status, 401);

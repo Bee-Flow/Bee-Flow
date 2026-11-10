@@ -14,6 +14,7 @@ export type Decision =
 
 export type StepEvent = {
     path: string; kind: string; ordinal: number | null; ownerActionId: string;
+    /** `loop.count` 0: an open loop (a while), whose number of rounds is not known up front. */
     iteration: number | null; loop: { index: number; count: number } | null;
 };
 export type StepStatus = 'ok' | 'error' | 'skipped' | 'refused' | 'deferred';
@@ -44,7 +45,10 @@ export type WalkState = {
     lastResult: unknown; executed: number; stopped: string | null;
     /** The stop came from a budget (shouldStop), not from a failing step. */
     truncated: boolean;
-    failed: { path: string; kind: string; ordinal: number | null; error: string; code?: string } | null;
+    /** `step`: the kind that really failed when it is not `kind` (a step inside a called action), for error.step. */
+    failed: { path: string; kind: string; ordinal: number | null; error: string; code?: string; step?: string } | null;
+    /** Leaving early (sequenceWalkFlow.mts): a return on its way to the action boundary, a break or continue on its way to its loop. */
+    signal?: 'return' | 'break' | 'continue' | null;
     callChain: string[];
     deferred: Obj[];
     outcomes: Map<string, Outcome>;
@@ -69,6 +73,8 @@ export type WalkHost = {
     onStepEnd?(e: StepEndEvent): void | Promise<void>;
     onVar?(name: string, value: unknown): void;
     shouldStop?(w: WalkState): string | null;
+    /** Set: the branches of a `parallel` step are walked one after another, and this text says so in a note (the dry run). */
+    sequentialBranches?: string;
     resolveCallee?(actionId: string): Obj | null;
     sleep(ms: number): Promise<void>;
     now(): number;

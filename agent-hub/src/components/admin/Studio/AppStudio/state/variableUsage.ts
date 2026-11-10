@@ -1,5 +1,6 @@
 import type { AppDefinition, AppNode } from '../inspector/appDefinition';
 import { RESERVED_VARIABLE_NAMES, VARIABLE_NAME_RE } from '../runtime/appVariables';
+import { extraChildLists } from '@shared/appDefinition/stepFlow.mjs';
 
 /**
  * Where every `vars.<name>` is read and written, with enough detail to point at
@@ -59,6 +60,8 @@ function walkSteps(steps: unknown, visit: (step: Record<string, unknown>) => voi
             if (isObject(c)) walkSteps(c.steps, visit, depth + 1);
         }
         walkSteps(step.default, visit, depth + 1);
+        // The places a registry container adds (a try's catch and finally).
+        for (const list of extraChildLists(step)) walkSteps(list, visit, depth + 1);
     }
 }
 

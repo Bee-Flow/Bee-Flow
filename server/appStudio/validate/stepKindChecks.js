@@ -8,8 +8,10 @@
 
 const { isObject, pushDataRef } = require('./shared');
 const { checkCallAction } = require('./callChecks.mts');
+const { checkLoopExit, checkWhile, checkTry } = require('./controlFlowChecks.mts');
+const { checkParallel, validateStepBranches } = require('./parallelChecks.mts');
 const { someStepThroughCalls } = require('../actionCalls.mts');
-const { TRANSACTION_CHILD_KINDS, MAX_TRANSACTION_STEPS } = require('../../shared/appDefinition/stepFlow.mjs');
+const { TRANSACTION_CHILD_KINDS, MAX_TRANSACTION_STEPS, extraChildLists } = require('../../shared/appDefinition/stepFlow.mjs');
 const { STEP_META, EXTENSION_STEP_ENTRIES } = require('../componentSpecs/stepRegistry');
 
 // The base kinds are told in this order (the order the warnings have always come in); registry kinds follow.
@@ -48,6 +50,8 @@ function containsSendEmail(steps) {
             }
         }
         if (containsSendEmail(s.default)) return true;
+        // The places a registry container adds (a try's catch and finally).
+        if (extraChildLists(s).some((list) => containsSendEmail(list))) return true;
     }
     return false;
 }
@@ -72,6 +76,8 @@ function containsStepKind(steps, kind) {
         if (containsStepKind(s.default, kind)) return true;
         // A step's onError handler runs too (automationRefs.walkSteps descends into it as well).
         if (containsStepKind(s.onError?.steps, kind)) return true;
+        // The places a registry container adds (a try's catch and finally).
+        if (extraChildLists(s).some((list) => containsStepKind(list, kind))) return true;
     }
     return false;
 }
@@ -268,7 +274,7 @@ function checkGeneratePresentation(step, path, ctx) {
 
 function checkLoopCosts(step, path, ctx) {
     const { pushW } = ctx;
-    if (step.kind !== 'loop') return;
+    if (step.kind !== 'loop' && step.kind !== 'while') return;
     // What a loop holding a kind is told is on the kind's catalogue entry (`inLoop`, `noLoop`).
     for (const kind of LOOP_FINDING_KINDS) {
         const finding = STEP_META[kind].inLoop;
@@ -364,8 +370,14 @@ const KIND_CHECKS = {
     ai_browse: checkAiBrowse,
     copy_document: checkCopyDocument,
     call_action: checkCallAction,
+    // The control kinds of the step registry (controlFlowChecks.mts); a while is told what a loop is told.
+    break: checkLoopExit,
+    continue: checkLoopExit,
+    while: (step, path, ctx) => { checkWhile(step, path, ctx); checkLoopCosts(step, path, ctx); },
+    try: checkTry,
+    parallel: checkParallel,
 };
 
-module.exports = { containsSendEmail, KIND_CHECKS };
+module.exports = { containsSendEmail, KIND_CHECKS, validateStepBranches };
 
 /** @typedef {import('./shared').ValidationCtx} ValidationCtx */

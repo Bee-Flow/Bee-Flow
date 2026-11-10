@@ -33,7 +33,7 @@ const {
 } = require('./refs');
 const { validateBinding } = require('./bindings');
 const { validateContextSources } = require('./contextSources.mts');
-const { containsSendEmail, KIND_CHECKS } = require('./stepKindChecks');
+const { containsSendEmail, KIND_CHECKS, validateStepBranches } = require('./stepKindChecks');
 const { checkCallAction, validateCallParams } = require('./callChecks.mts');
 const { someStepThroughCalls } = require('../actionCalls.mts');
 const { validateTierChoice } = require('./tierChoice.mts');
@@ -335,8 +335,8 @@ function validateStepField(kind, field, fs, value, path, depth, counter, ctx, la
             for (const [col, b] of Object.entries(value)) validateBinding(col, b, `${path}.${col}`, ctx);
             return;
         }
-        case 'steps':
-            validateActionSteps(value, path, depth + 1, counter, ctx);
+        case 'steps': // `errorScope`: the list runs with a failure in scope (a try's catch), so `error` has a value there.
+            validateActionSteps(value, path, depth + 1, counter, fs.errorScope ? { ...ctx, inErrorHandler: true } : ctx);
             return;
         case 'switchCases': {
             if (!Array.isArray(value)) { pushE({ code: 'action.step_field_invalid', severity: 'error', path, message: 'switch `cases` must be an array.', hint: 'Use [{ value, steps }].' }); return; }
@@ -346,6 +346,7 @@ function validateStepField(kind, field, fs, value, path, depth, counter, ctx, la
             });
             return;
         }
+        case 'stepBranches': validateStepBranches(value, path, (list, at) => validateActionSteps(list, at, depth + 1, counter, ctx), ctx); return;
         case 'navParams':
             validateNavigateParams(label, value, path, ctx);
             return;

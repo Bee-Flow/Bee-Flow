@@ -48,6 +48,7 @@ export const FIELD_LABELS: Record<string, string[]> = {
     documentMode: ['studio_apps_edit.step_settings.field_document_mode', 'Read documents as'],
     retry: ['studio_apps_edit.step_settings.field_retry', 'If it fails, try again'],
     onError: ['studio_apps_edit.step_settings.field_on_error', 'If it still fails'],
+    failFast: ['studio_apps_flow_parallel.settings.fail_fast', 'Stop the other branches when one fails'],
 };
 
 export const HINTS: Record<string, string[]> = {
@@ -71,4 +72,5 @@ export const HINTS: Record<string, string[]> = {
     // AI step answer reliability (schema v3).
     temperature: ['studio_apps_aichecks.hint_temperature', 'From 0 to 2. Lower answers vary less between runs. Leave it empty to use the model tier’s setting.'],
     repairRounds: ['studio_apps_aichecks.hint_repair_rounds', 'How often an answer that fails its checks goes back to the AI before the step fails (0 to 3, empty = 1). Each round is one more AI call.'],
+    failFast: ['studio_apps_flow_parallel.settings.fail_fast_hint', 'Off: every branch runs to its end before the failure is reported. On: the other branches stop before their next step.'],
 };

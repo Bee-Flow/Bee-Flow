@@ -49,7 +49,8 @@
         "MAX_FILTER_BAR_FIELDS": 8,
         "MAX_STEPPER_STEPS": 10,
         "MAX_VARIABLES": 30,
-        "MAX_VARIABLE_DEFAULT_BYTES": 2048
+        "MAX_VARIABLE_DEFAULT_BYTES": 2048,
+        "MAX_PARALLEL_BRANCHES": 8
     },
     "colorRoles": [
         "primary",
@@ -500,6 +501,41 @@
         "transaction": {
             "client": false,
             "mutatesData": true
+        },
+        "break": {
+            "client": true,
+            "mutatesData": false,
+            "since": 3
+        },
+        "continue": {
+            "client": true,
+            "mutatesData": false,
+            "since": 3
+        },
+        "parallel": {
+            "client": true,
+            "mutatesData": false,
+            "since": 3
+        },
+        "raise_error": {
+            "client": true,
+            "mutatesData": false,
+            "since": 3
+        },
+        "return": {
+            "client": true,
+            "mutatesData": false,
+            "since": 3
+        },
+        "try": {
+            "client": true,
+            "mutatesData": false,
+            "since": 3
+        },
+        "while": {
+            "client": true,
+            "mutatesData": false,
+            "since": 3
         }
     },
     "types": {

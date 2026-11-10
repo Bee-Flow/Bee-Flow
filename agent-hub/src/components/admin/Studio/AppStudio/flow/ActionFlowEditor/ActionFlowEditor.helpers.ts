@@ -86,6 +86,7 @@ export function summarise(step: FlowStep | null, options: Record<string, RefOpti
         case 'open_url': return plain(step.url || t('studio_apps_edit.action_flow.no_address', 'No address yet'));
         case 'set_variable': return plain(step.name ? `vars.${step.name}` : t('studio_apps_edit.action_flow.no_variable', 'No variable picked yet'));
         case 'condition':
+        case 'while':
         case 'switch': return plain(step.expr || t('studio_apps_edit.action_flow.no_condition', 'No condition yet'));
         case 'loop': return plain(step.itemVar ? t('studio_apps_edit.action_flow.each_item', 'each {item}', { item: step.itemVar }) : t('studio_apps_edit.action_flow.every_row', 'For every row'));
         case 'create_record':

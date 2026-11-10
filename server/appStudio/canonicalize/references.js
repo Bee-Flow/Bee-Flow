@@ -8,6 +8,7 @@
 
 const { EVENT_NAMES } = require('../componentSpecs');
 const { isObject } = require('./shared');
+const { extraChildLists } = require('../../shared/appDefinition/stepFlow.mjs');
 
 // ---------------------------------------------------------------------------
 // Pass 2 — reference rewriting + dangling cleanup over the REBUILT tree
@@ -47,6 +48,8 @@ function rewriteStepScreenRefs(steps, ren) {
         if (Array.isArray(step.cases)) for (const c of step.cases) if (isObject(c)) rewriteStepScreenRefs(c.steps, ren);
         // A step's onError handler (canonicalized to { steps }) can navigate too.
         if (isObject(step.onError) && Array.isArray(step.onError.steps)) rewriteStepScreenRefs(step.onError.steps, ren);
+        // The places a registry container adds (a try's catch and finally).
+        for (const list of extraChildLists(step)) rewriteStepScreenRefs(list, ren);
     }
 }
 

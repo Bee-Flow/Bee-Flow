@@ -133,7 +133,7 @@ const { loadVisibleApp, assertActionRoleAccess, stepDocumentContext } = require(
 // actionSequence.js: the public route (routes/studioAppPublic.js) resolves
 // steps by the same pre-order index, and two copies of that walk is two ways
 // for one index to mean two different steps. See that module's header.
-const { resolveRequestedStep, sanitizeBag, sanitizeErrorScope, stepNotes, stepFailureExtras } = require('../appStudio/actionSequence');
+const { resolveRequestedStep, STEP_MISMATCH, sanitizeBag, sanitizeErrorScope, stepNotes, stepFailureExtras } = require('../appStudio/actionSequence');
 const { validate } = require('../core/http/validate');
 const { openSse } = require('../core/http/sseHelpers');
 // The request shapes an app's runtime sends — shared with the public app
@@ -193,8 +193,9 @@ router.post('/:id/actions/:actionId/step', requireAuth, stepLimiter, jsonBody, b
     // Resolve the step FROM THE DEFINITION by its pre-order index — inside a
     // called action when the body carries a callPath (the URL keeps the ROOT
     // action, so the role gate below stays on the action that was clicked).
-    const found = resolveRequestedStep(def, actionId, req.body?.stepIndex, req.body?.callPath);
+    const found = resolveRequestedStep(def, actionId, req.body?.stepIndex, req.body?.callPath, req.body?.kind);
     if ('error' in found) {
+        if (found.error === 'mismatch') return res.status(409).json(STEP_MISMATCH);
         return res.status(404).json({ error: found.error === 'action' ? 'Action not found' : 'Step not found' });
     }
     const { step, ownerActionId } = found;

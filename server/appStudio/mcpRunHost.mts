@@ -253,6 +253,8 @@ export function hostFor(run: Run): WalkHost {
         },
         sleep: (ms) => new Promise((resolve) => { setTimeout(resolve, ms); }),
         now: () => deps.now(),
+        // A dry run reads top to bottom: the branches of a parallel step run one after another.
+        ...(opts.dryRun ? { sequentialBranches: 'dryRun: the branches of this parallel step ran one after another; a real run starts them side by side.' } : {}),
     };
 }
 

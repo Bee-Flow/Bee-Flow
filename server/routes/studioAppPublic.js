@@ -87,8 +87,8 @@ const { uploadGuard, scanBuffer } = require('../middleware/uploadGuard');
 const { DATA_LIMITS } = require('../appStudio/dataModel');
 const { perUserRateLimit } = require('../utils/perUserRateLimit');
 const { issueVisitorToken, verifyVisitorToken } = require('../auth/publicShareToken');
-const { resolveRequestedStep, sanitizeBag, sanitizeErrorScope, stepNotes, stepFailureExtras } = require('../appStudio/actionSequence');
-const { bestEffort } = require('../utils/bestEffort');
+const { resolveRequestedStep, STEP_MISMATCH, sanitizeBag, sanitizeErrorScope, stepNotes, stepFailureExtras } = require('../appStudio/actionSequence');
+const { bestEffort, fallback } = require('../utils/bestEffort');
 const { optionalListQuery } = require('./studio/appDataContext');
 const { attachmentResponseHeaders } = require('./studioAppAttachmentHeaders.mts');
 const uploadDelete = require('./studioAppUploadDeleteToken.mts');
@@ -344,8 +344,9 @@ router.post('/:token/actions/:actionId/step', ipLimiter, tokenLimiter, jsonBody,
     }
     // A called action's step is reached ONLY through callPath from this public
     // root: posting the callee's own id is the 404 above.
-    const resolved = resolveRequestedStep(found.definition, actionId, req.body?.stepIndex, req.body?.callPath);
+    const resolved = resolveRequestedStep(found.definition, actionId, req.body?.stepIndex, req.body?.callPath, req.body?.kind);
     if ('error' in resolved) {
+        if (resolved.error === 'mismatch') return res.status(409).json(STEP_MISMATCH);
         return res.status(404).json({ error: resolved.error === 'action' ? 'Action not found' : 'Step not found' });
     }
     const { step, ownerActionId } = resolved;
