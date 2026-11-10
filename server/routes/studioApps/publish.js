@@ -12,6 +12,7 @@ const studioAppStore = require('../../stores/studioAppStore');
 const userStore = require('../../stores/userStore');
 const { validateSharedGroupsForOrg } = require('../../auth');
 const { canonicalizeAppDefinition } = require('../../appStudio/canonicalize');
+const { schemaNewerError } = require('../../appStudio/schemaSince.mts');
 const { validateAppDefinition } = require('../../appStudio/validate');
 const { requireAuth } = require('../../auth/permissions');
 // Who can reach an app is an access-control fact, so a change to it is an
@@ -64,7 +65,9 @@ router.patch('/:id/publish', requireAuth, requireManageApps, validate({ body: Pu
         // here, warnings on draft saves). The exact validated bytes are
         // what gets frozen, which closes the publish TOCTOU.
         validateDraft: async () => {
-            const { def: canonical } = canonicalizeAppDefinition(app.definition);
+            const { def: canonical, refused } = canonicalizeAppDefinition(app.definition);
+            // 422 schema_newer: a definition from a newer install is not frozen.
+            if (refused) throw schemaNewerError(app.definition);
             const ownedAutomations = await loadOwnedAutomations(app.userId);
             const dataRefs = await loadDataRefs(req.params.id, app.userId);
             const { ok, errors, warnings } = validateAppDefinition(canonical, { ownedAutomations, ...dataRefs });

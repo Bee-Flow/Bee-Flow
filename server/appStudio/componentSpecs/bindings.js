@@ -26,6 +26,11 @@
 //               makes "count per status" or "median first response" one binding
 //               instead of an automation.
 const BINDING_KINDS = ['static', 'actionResult', 'formula', 'record', 'records', 'dataset', 'connector', 'aggregate'];
+// A binding kind added after the base is listed here with the schema version
+// that introduced it ({ kind: 3 }); BINDING_KINDS is a list of names and has no
+// entry to carry it. Null-prototype: only own keys are kinds.
+/** @type {Record<string, number>} */
+const BINDING_KIND_SINCE = Object.create(null);
 const INPUT_MAPPING_KINDS = ['static', 'field'];
 
 // The ONLY root identifiers a formula/filter expression may reference. A root
@@ -66,6 +71,7 @@ const CURRENT_USER_KEYS = ['id', 'name', 'email', 'roleKey', 'isOwner', 'roles']
 
 module.exports = {
     BINDING_KINDS,
+    BINDING_KIND_SINCE,
     INPUT_MAPPING_KINDS,
     FORMULA_SCOPE_ROOTS,
     CURRENT_USER_KEYS,

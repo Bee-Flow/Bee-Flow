@@ -67,6 +67,7 @@
 const { collectReferencedActions } = require('./validate');
 const { DATA_MUTATING_STEP_KINDS } = require('./componentSpecs');
 const { closeOverCalls } = require('./actionCalls.mts');
+const { definitionKeys } = require('./definitionKeyRegistry.mts');
 const { LIMITS } = require('./componentSpecs/limits');
 const { THEME_SPEC, HEX_RE, canonicalizeTheme } = require('../core/cms/themeSpec');
 const { DESIGN_SPEC } = require('./appDesignSpec');
@@ -368,6 +369,12 @@ function buildPublicDefinition(definition, surface) {
     }
     // Deliberately absent: `nav`. Its groups name back-office screens, so
     // shipping it would leak the app's internal structure to the open internet.
+    //
+    // A registered top-level key (definitionKeyRegistry.mts) ships only when
+    // its entry says `public: true`; every other one stays in the process.
+    for (const entry of definitionKeys()) {
+        if (entry.public === true && definition[entry.key] !== undefined) out[entry.key] = definition[entry.key];
+    }
     return out;
 }
 

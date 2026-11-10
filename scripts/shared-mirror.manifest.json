@@ -53,9 +53,10 @@
             "transform": "none",
             "exclude": [
                 "lockstep.fixture.mjs",
-                "lockstep.golden.json"
+                "lockstep.golden.json",
+                "schemaVersion.mjs"
             ],
-            "why": "App Studio definition model (ids, section style, the shared definition ops, design presets, variables): the editor's state/definitionOps.js and runtime re-export it. The lockstep fixture and golden are test data and stay on the server. stepFlow.mjs (where a step holds child steps, the retry/onError helpers) is read by the browser action runner."
+            "why": "App Studio definition model (ids, section style, the shared definition ops, design presets, variables): the editor's state/definitionOps.js and runtime re-export it. The lockstep fixture and golden are test data and stay on the server. schemaVersion.mjs (the lowest schema version a definition needs, the export envelope versions) has only server callers: drop it from exclude when the editor reads it. stepFlow.mjs (where a step holds child steps, the retry/onError helpers) is read by the browser action runner."
         },
         {
             "source": "server/shared/schedule",

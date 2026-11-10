@@ -490,7 +490,8 @@ function captureTemplate({
     const icon = cleanStr(meta.icon, 40);
     if (icon) def.meta.icon = icon;
 
-    const { def: canonicalDef } = canonicalizeAppDefinition(def);
+    const { def: canonicalDef, refused } = canonicalizeAppDefinition(def);
+    if (refused) return { ok: false, errors: [require('./schemaSince.mts').schemaNewerMessage(def)] };
 
     let model = null;
     if (isObject(dataModel) && Array.isArray(dataModel.tables) && dataModel.tables.length) {
