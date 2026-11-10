@@ -13,7 +13,8 @@
  * carrying everything needed to re-import this license on another install.
  * It is NOT a JWT — the leading `beeflow-admin-v1.` prefix prevents any
  * confusion with real signed tokens. There is no signature: re-import is
- * gated by the importing install's own admin authentication.
+ * gated by the importing install's own super-admin authentication
+ * (`assertBlobAllowed`).
  */
 
 const crypto = require('crypto');
@@ -23,6 +24,23 @@ const { bestEffort } = require('../utils/bestEffort');
 
 const ADMIN_ISSUER = 'beeflow.admin.console';
 const BLOB_PREFIX = 'beeflow-admin-v1.';
+
+const ADMIN_BLOB_FORBIDDEN = 'admin_blob_super_admin_only';
+
+/**
+ * A blob carries no signature, so anyone can write one for any tier; the only
+ * thing that makes it trustworthy is WHO pastes it. Activation therefore
+ * refuses a blob unless the caller says a super-admin did. The flag is off by
+ * default in `activateLicense`, so a new caller cannot open this path by
+ * accident.
+ * @param {boolean} allowed
+ */
+function assertBlobAllowed(allowed) {
+    if (allowed) return;
+    const err = /** @type {Error & { code?: string }} */ (new Error('Only a super-admin can activate an admin-issued licence blob.'));
+    err.code = ADMIN_BLOB_FORBIDDEN;
+    throw err;
+}
 
 /**
  * @param {string} buf
@@ -248,6 +266,8 @@ function publicLicenseShape(lic) {
 }
 
 module.exports = {
+    ADMIN_BLOB_FORBIDDEN,
+    assertBlobAllowed,
     ADMIN_ISSUER,
     BLOB_PREFIX,
     issueAdminLicense,

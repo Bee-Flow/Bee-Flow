@@ -68,8 +68,21 @@ test('activateLicense refuses a token whose header is JSON null with a coded err
 test('activateLicense refuses an admin blob that decodes to a non-object with malformed_admin_blob', async () => {
     for (const value of [null, 7, 'text', [1, 2]]) {
         await assert.rejects(
-            license.activateLicense({ token: `${license.adminIssuance.BLOB_PREFIX}${b64url(value)}`, organizationId: 'org-1' }),
+            license.activateLicense({ token: `${license.adminIssuance.BLOB_PREFIX}${b64url(value)}`, organizationId: 'org-1', allowAdminBlob: true }),
             (err) => err.code === 'malformed_admin_blob',
+        );
+    }
+    assert.equal(calls.upserts.length, 0);
+});
+
+test('activateLicense refuses an admin blob unless the caller vouches for a super-admin', async () => {
+    const blob = license.adminIssuance.encodeAdminLicenseBlob({
+        v: 1, tier: 'enterprise', expires_at: new Date(Date.now() + 86400000).toISOString(),
+    });
+    for (const scope of [{ organizationId: 'org-1' }, { userId: 'user-1' }, { scope: 'server' }]) {
+        await assert.rejects(
+            license.activateLicense({ token: blob, ...scope }),
+            (err) => err.code === license.adminIssuance.ADMIN_BLOB_FORBIDDEN,
         );
     }
     assert.equal(calls.upserts.length, 0);

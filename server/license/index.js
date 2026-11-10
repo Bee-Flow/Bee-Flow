@@ -581,10 +581,10 @@ function _nudgeEntitlementRefresh() {
     }
 }
 
-async function activateLicense(/** @type {{ token: string, organizationId?: string | null, userId?: string | null, activatedBy?: string | null, scope?: string | null }} */ { token, organizationId = null, userId = null, activatedBy = null, scope: explicitScope = null }) {
-    // Admin-issued blob path — no JWT verify, trust comes from the activate
-    // endpoint's existing admin/org-admin gate.
+async function activateLicense(/** @type {{ token: string, organizationId?: string | null, userId?: string | null, activatedBy?: string | null, scope?: string | null, allowAdminBlob?: boolean }} */ { token, organizationId = null, userId = null, activatedBy = null, scope: explicitScope = null, allowAdminBlob = false }) {
+    // Admin-issued blob: no JWT verify, so super-admin only (adminIssuance.assertBlobAllowed).
     if (typeof token === 'string' && token.startsWith(adminIssuance.BLOB_PREFIX)) {
+        adminIssuance.assertBlobAllowed(allowAdminBlob);
         let decoded;
         try {
             decoded = adminIssuance.decodeAdminLicenseEnvelope(token);
