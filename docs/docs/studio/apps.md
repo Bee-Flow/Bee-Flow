@@ -12,8 +12,8 @@ ties them together. Then you refine it visually.
 URL: `/app/studio/apps` · end-users open a published app at `/app/apps/:id`.
 
 **Tier:** Enterprise (GA). App Studio is on by default for Enterprise organisations;
-an org admin can disable it under beta/feature settings. Everyone who opens a
-published app needs the same Enterprise `app_studio` entitlement. An app is shared
+an org admin can disable it under beta/feature settings. Everyone who signs in to open
+a published app needs the same Enterprise `app_studio` entitlement. An app is shared
 inside your organisation; an app can also open a limited set of its screens to
 anonymous visitors behind a link (a *public page*), and only those screens and the
 actions wired to them are reachable without signing in.
