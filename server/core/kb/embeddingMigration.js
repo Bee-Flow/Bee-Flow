@@ -97,6 +97,7 @@ async function columnDim(deps, column) {
  * @param {MigrationDeps} deps
  * @param {string[]} texts
  * @param {number} dim
+ * @returns {Promise<{ vectors: number[][] } & import('./embeddingCost').EmbedOrigin>}
  */
 async function embedExactly(deps, texts, dim) {
     const result = await deps.embed(texts);
