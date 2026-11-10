@@ -464,3 +464,28 @@ test('a callback URL this server may not connect to is refused before any branch
     assert.equal(callsOf('updateOrganization').length, 0);
     assert.equal(callsOf('event').length, 0);
 });
+
+// ═══ POST /connector/bootstrap: Nextcloud not reachable from this server ═══
+
+test('a Nextcloud this server cannot reach: 403 with a remediation that fits any deployment', async () => {
+    resetFx();
+    const prev = { allow: process.env.NEXTCLOUD_ALLOW_PRIVATE_HOSTS, skip: process.env.BEEFLOW_BOOTSTRAP_SKIP_VERIFY };
+    delete process.env.NEXTCLOUD_ALLOW_PRIVATE_HOSTS;
+    delete process.env.BEEFLOW_BOOTSTRAP_SKIP_VERIFY;
+    try {
+        // A private address is refused by the host gate, so no request leaves.
+        const res = await dispatch({ url: '/connector/bootstrap', headers: bootstrapHeaders({ ncBaseUrl: 'http://10.0.0.5' }) });
+        assert.equal(res.statusCode, 403);
+        assert.equal(res.body.code, 'nc_capabilities_unreachable');
+        const text = res.body.remediation;
+        assert.match(text, /^The Bee Flow server could not reach your Nextcloud at http:\/\/10\.0\.0\.5\./);
+        assert.match(text, /BEEFLOW_NC_PUBLIC_URL/);
+        assert.match(text, /self-hosted Bee Flow server .*NEXTCLOUD_ALLOW_PRIVATE_HOSTS=1/);
+        assert.doesNotMatch(text, /Bee Flow Cloud|SaaS/);
+    } finally {
+        if (prev.allow !== undefined) process.env.NEXTCLOUD_ALLOW_PRIVATE_HOSTS = prev.allow;
+        if (prev.skip !== undefined) process.env.BEEFLOW_BOOTSTRAP_SKIP_VERIFY = prev.skip;
+    }
+    assert.equal(callsOf('createOrganization').length, 0);
+    assert.equal(callsOf('problem')[0][1], 'bootstrap.verify_failed');
+});
