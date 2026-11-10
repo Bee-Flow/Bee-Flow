@@ -13,8 +13,10 @@ After installing, the connector has no Bee Flow server. Until an administrator
 
 - nothing is sent to any Bee Flow server, and no part of the web app is loaded from one;
 - no organisation is created anywhere;
-- the connector does not read the list of administrators, and stores nothing unless an
-  administrator saves something on the setup page.
+- the connector does not read the list of administrators, and stores nothing about Bee Flow unless
+  an administrator saves something on the setup page. The only files it may write by itself are the
+  trust record for your own Nextcloud's certificate (`nc-trust/` and the certificate pin), on a
+  Nextcloud whose certificate is self-signed or from an internal certificate authority.
 
 The connector talks to your own Nextcloud only (its lifecycle calls and registrations, such as the
 top-bar entry and the settings form). An administrator who opens Bee Flow gets the setup page, which the
@@ -92,17 +94,32 @@ Every request is signed with the tenant-key HMAC and bound to your NC user ID �
 
 ## Inbound webhooks (NC → connector → SaaS)
 
-NC fires events to the connector. Five events are subscribed:
+Once a server is chosen and the connector holds its key, it registers these events in Nextcloud's
+`webhook_listeners` app. They are the push triggers of automations. Nextcloud delivers each event to
+the connector, which forwards it to the chosen Bee Flow server:
 
-| NC event | Forwarded to SaaS as |
-|----------|----------------------|
-| `UserCreatedEvent` | `user.created` |
-| `UserDeletedEvent` | `user.deleted` |
-| `UserChangedEvent` | `user.updated` |
-| `Group\UserAddedEvent` | `group.member_added` |
-| `Group\UserRemovedEvent` | `group.member_removed` |
+| Nextcloud event class | Forwarded as |
+|-----------------------|--------------|
+| `OCP\Files\Events\Node\Node{Created,Written,Deleted,Renamed,Copied}Event`, and `NodeRestoredEvent` where Nextcloud has it | `file.new`, `file.changed`, `file.deleted`, `file.renamed`, `file.copied`, `file.restored` |
+| `OCP\SystemTag\Tag{Assigned,Unassigned}Event` | `file.tagged`, `file.untagged` |
+| `OCP\Calendar\Events\CalendarObject{Created,Updated,Deleted,Moved}Event` | `calendar.event.created`, `.changed`, `.deleted`, `.moved` |
+| `OCA\Forms\Events\FormSubmittedEvent` (when Forms is installed) | `forms.submitted` |
+| `OCA\Tables\Event\Row{Added,Updated,Deleted}Event` (when Tables is installed) | `tables.row.added`, `.updated`, `.deleted` |
+| `OCA\Deck\Event\Card{Created,Updated,Deleted}Event` (when Deck is installed) | `deck.card.created`, `.changed`, `.deleted` |
 
-The forwarded payload contains the affected user ID and (for group events) the group ID. Names, emails, and group lists are pulled fresh from NC by the SaaS via the HMAC `/nc/*` proxy when needed — they're not pushed in the event payload.
+A forwarded event holds the trigger name, the user id and display name of who acted, the time, and
+what Nextcloud puts in the event:
+
+- a file: its id and path, and whether it is a file or a folder; for a tag the ids of the tag and the file;
+- a calendar event: the identifiers of the event and its calendar, the calendar's owner and who it is
+  shared with. Not its title, time or text;
+- a form submission: the form's id, title and owner, the submission's id and who submitted. Not the answers;
+- a table row: the ids of the table and the row, and the values of the row;
+- a Deck card: its id, title, description, list, board, due date, labels and assigned users.
+
+User and group changes are not delivered as events. They arrive through the periodic
+synchronisation and the **Sync now** action, in which the Bee Flow server reads users and groups
+through the connector.
 
 ## Encryption in transit
 
@@ -127,7 +144,7 @@ Default detection covers email addresses, phone numbers, IBANs, BSNs (NL), credi
 |-------|-----------|
 | Connector RAM | Per-request only — no on-disk caching of fetched items |
 | Connector tenant-key cache | `${APP_PERSISTENT_STORAGE}/tenant-key.json`, mode `0600`. Persists across restarts. Contains: `tenantKey`, `organizationId`, `organizationName`, `boundApiBaseUrl` (the server that issued the key), `cachedAt`. Written only after a server is chosen. |
-| Connector setup choice | `${APP_PERSISTENT_STORAGE}/setup-config.json`, mode `0600`. The chosen server, its web app URL and the public Nextcloud URL, as saved on the setup page. |
+| Connector setup choice | `${APP_PERSISTENT_STORAGE}/setup-config.json`, mode `0600`. The chosen server, its web app URL and the public Nextcloud URL, as saved on the setup page, and the server the settings form named while none was chosen (kept so that it stays without effect). |
 | Bee Flow service (chat history) | As long as the conversation exists (deletable by the user) |
 | Bee Flow service (raw file bodies) | Held only for the duration of the LLM turn unless explicitly indexed into a Knowledge Base |
 | Audit log | 90 days by default; configurable per-org (Enterprise+) |

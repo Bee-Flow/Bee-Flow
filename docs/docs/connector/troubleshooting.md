@@ -167,7 +167,7 @@ The connector works behind Cloudflare; we have not tested this setup ourselves. 
 
 ## Bootstrap "failed" state in heartbeat
 
-`/heartbeat` returns a `failed` state with a category and remediation when connecting to the Bee Flow server fails. The setup page shows the same. To read it from inside the container (this works under every deploy daemon):
+`/heartbeat` reports `"bootstrap":"failed"` when connecting to the Bee Flow server fails. To read it from inside the container (this works under every deploy daemon):
 
 ```bash
 docker exec nc_app_bee_flow sh -c 'if [ -n "$HP_SHARED_KEY" ]; then
@@ -175,8 +175,10 @@ docker exec nc_app_bee_flow sh -c 'if [ -n "$HP_SHARED_KEY" ]; then
   else
     curl -s "http://127.0.0.1:$APP_PORT/heartbeat"
   fi'
-# → {"status":"failed","category":"saas_unreachable","error":"...","nextRetryAt":"..."}
+# → {"status":"ok","bootstrap":"failed","remediation":"Open Bee Flow in Nextcloud as an administrator, or read GET /setup/diagnostics, for the cause and how to fix it."}
 ```
+
+`status` stays `ok`: the connector itself is healthy. The heartbeat names the state only. The category, the error and the time of the next attempt are on the [setup page](setup-picker.md#where-the-setup-page-is) and in `GET setup/diagnostics`, both for Nextcloud administrators.
 
 With HaRP's tunnel the connector listens on a Unix socket and has no TCP port, so a check against a port number cannot work there.
 
@@ -225,7 +227,7 @@ docker logs nc_app_bee_flow --tail 50
 | `[Bootstrap] capabilities fetch timeout` | Connector can't reach NC | Check `NEXTCLOUD_URL` env. Ping it from inside the container: `docker exec nc_app_bee_flow curl $NEXTCLOUD_URL/status.php`. |
 | `[Bootstrap] admin discovery: no admin found` | NC has no user in the `admin` group | Create one: `occ user:add --group admin alice`. |
 | `[Bootstrap] SaaS responded 401` | Bee Flow service rejected the AppAPI signature | Check clocks (NTP) on both hosts. Verify `BEEFLOW_API_BASE_URL` is reachable. |
-| The setup page or `/heartbeat` shows `pairing_required` on a Nextcloud that was connected before | The connector no longer holds the key of its organisation, and the server does not hand it out again without one | Ask a Bee Flow organisation admin to generate a pairing code (**Settings → Organisation → Pair a new Nextcloud**) and enter it on the setup page under **Bind to existing organisation**. |
+| The setup page shows `pairing_required` on a Nextcloud that was connected before | The connector no longer holds the key of its organisation, and the server does not hand it out again without one | Ask a Bee Flow organisation admin to generate a pairing code (**Settings → Organisation → Pair a new Nextcloud**) and enter it on the setup page under **Bind to existing organisation**. |
 
 The connector keeps its key in `${APP_PERSISTENT_STORAGE}/tenant-key.json`. Leave that file in place: the key in it is what proves to the Bee Flow server that this is the same Nextcloud. To connect again:
 

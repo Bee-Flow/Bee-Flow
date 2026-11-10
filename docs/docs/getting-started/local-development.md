@@ -281,16 +281,13 @@ If that hangs, your Docker network setup doesn't have `host-gateway` mapping. Th
 
 The SPA polls `/api/...` against the Bee Flow server the connector is on. When that is a local address and no Bee Flow server is running there, it'll never resolve.
 
-Fix: run the Bee Flow server locally, or register the app again with another server. `BEEFLOW_API_BASE_URL` is an install-time value: AppAPI stores it and passes it again on every update, so it is changed by registering again.
+Fix: run the Bee Flow server locally, or start the connector with another server. A `manual-install` daemon does not start the container and passes it no values: `BEEFLOW_API_BASE_URL` is set where the container is started. With the sandbox script:
 
 ```bash
-docker exec -u www-data bee-flow-nc-sandbox php occ app_api:app:unregister bee_flow
-docker exec -u www-data bee-flow-nc-sandbox php occ \
-    app_api:app:register bee_flow manual_dev --info-xml /tmp/info.xml \
-    --env "BEEFLOW_API_BASE_URL=cloud"        # or the URL of a Bee Flow server
+API_BASE_URL=cloud FORCE=1 ./scripts/local-sandbox.sh up        # or the URL of a Bee Flow server
 ```
 
-Leave `BEEFLOW_API_BASE_URL` out to choose on the setup page instead. With the sandbox script: `API_BASE_URL=<url> FORCE=1 ./scripts/local-sandbox.sh up`.
+When you start the container by hand, give it there: `docker run -e BEEFLOW_API_BASE_URL=<url|cloud> …`. Leave the variable out to choose on the setup page instead (with the script: `WITH_SERVER=0 FORCE=1 ./scripts/local-sandbox.sh up`).
 
 ### Wiped sandbox after testing
 
@@ -310,17 +307,14 @@ docker rmi  bee-flow-connector:dev
 
 ## Pointing at a real Bee Flow server
 
-Once you have the local install working, register the app again without the dummy tenant key, so the server you choose issues a real one:
+Once you have the local install working, start the connector again without the dummy tenant key and without a server address, so the server you choose issues a real key. On the `manual-install` daemon these values are the environment the container is started with (`docker run -e …`); registering the app again does not change them. With the sandbox script:
 
 ```bash
-docker exec -u www-data bee-flow-nc-sandbox php occ app_api:app:unregister bee_flow --rm-data
-
-# No BEEFLOW_TENANT_KEY (it defaults to "auto") and no BEEFLOW_API_BASE_URL:
-docker exec -u www-data bee-flow-nc-sandbox php occ \
-    app_api:app:register bee_flow manual_dev --info-xml /tmp/info.xml
+# TENANT_KEY defaults to "auto"; WITH_SERVER=0 and no API_BASE_URL: no Bee Flow server
+WITH_SERVER=0 FORCE=1 ./scripts/local-sandbox.sh up
 ```
 
-Open Bee Flow as `admin` and choose Bee Flow Cloud or your own server on the setup page. Nothing is sent before that choice; after it the connector gets its tenant key from the chosen server. (To fix the server at install time instead, add `--env "BEEFLOW_API_BASE_URL=cloud"` or `--env "BEEFLOW_API_BASE_URL=<your server URL>"`.) Watch the logs:
+Open Bee Flow as `admin` and choose Bee Flow Cloud or your own server on the setup page. Nothing is sent before that choice; after it the connector gets its tenant key from the chosen server. (To fix the server when the container starts instead, give `API_BASE_URL=cloud` or `API_BASE_URL=<your server URL>`, which the script passes as `BEEFLOW_API_BASE_URL`.) Watch the logs:
 
 ```bash
 docker logs nc_app_bee_flow -f | grep -i bootstrap
