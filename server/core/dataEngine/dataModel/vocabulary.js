@@ -87,6 +87,28 @@ const AGGREGATE_LIMITS = Object.freeze({
     MAX_BIN_WIDTH: 1_000_000_000,
 });
 
+/**
+ * Reading through a relation, and the columns a record read returns. All
+ * optional, after App Studio schema version 2, and absent from a read that
+ * does not use them:
+ *   expand   [{ field: <relation field>, pick?: [<column of the related table>], as? }]
+ *            the related row of each record, one relation deep, read with a
+ *            second query under the related table's own row rules
+ *   fields   [<column>]: only these columns (and `id`) leave the server
+ *   filter   { field: '<relation field>.<column of the related table>', op, value }
+ * Validity limits of a read (not runtime budgets).
+ */
+const RELATION_READ_LIMITS = Object.freeze({
+    MAX_EXPAND: 5,
+    MAX_EXPAND_PICK: 20,
+    MAX_FIELDS: 100,
+    MAX_RELATION_FILTERS: 5,
+});
+// The column an expansion lands in when the entry names none: <relation field> + this.
+const EXPAND_DEFAULT_SUFFIX = '_record';
+// The key of an expanded row that carries the relation's display value (relation.displayField).
+const EXPAND_LABEL_KEY = '_label';
+
 // Access modes consumed by the RLS gateway. Defined here for a single
 // vocabulary; enforcement lives in the sibling gateway wave.
 const ACCESS_MODES = Object.freeze(['app', 'owner', 'role', 'none']);
@@ -254,6 +276,9 @@ module.exports = {
     AGG_FNS_EXTENDED,
     GROUP_FILTER_OPS,
     AGGREGATE_LIMITS,
+    RELATION_READ_LIMITS,
+    EXPAND_DEFAULT_SUFFIX,
+    EXPAND_LABEL_KEY,
     ACCESS_MODES,
     TABLE_SOURCE_KINDS,
     TABLE_SOURCE_MODES,

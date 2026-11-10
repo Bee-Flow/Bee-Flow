@@ -192,3 +192,33 @@ test('orderBy next to sort, or on a dataset, is refused with a hint', async () =
         assert.match(many.error, /orderBy takes at most 3 columns/);
     });
 });
+
+test('expand and fields read through a relation: the related row lands on the page, the column list narrows it', async () => {
+    const related = canonicalizeDataModel({
+        tables: [
+            { id: 'tbl_task01', key: 'tasks', name: 'Tasks', access: { default: 'owner' }, fields: [{ id: 'fld_ti01', key: 'title', type: 'text' }, { id: 'fld_pr01', key: 'project', type: 'relation', relation: { table: 'tbl_proj01', displayField: 'name' } }] },
+            { id: 'tbl_proj01', key: 'projects', name: 'Projects', access: { default: 'owner' }, fields: [{ id: 'fld_na01', key: 'name', type: 'text' }] },
+        ],
+    }).model;
+    const calls = [];
+    const patches = [
+        [studioAppStore, 'getStudioApp', async () => APP],
+        [studioAppDbStore, 'query', async (owner, appId, sql, params) => {
+            calls.push({ sql, params });
+            return { rows: sql.startsWith('SELECT "id" AS "id"') ? [{ id: 'rec_p1', name: 'Apollo' }] : [{ id: 'rec_1', title: 't1', project: 'rec_p1', created_at: '2026-01-01T00:00:00Z' }, { id: 'rec_2', title: 't2', project: 'rec_gone', created_at: '2026-01-02T00:00:00Z' }] };
+        }],
+    ];
+    await withPatches(patches, async () => {
+        const r = await applyQueryData({ ...wrap(), dataModel: related }, { tableId: 'tbl_task01', expand: [{ field: 'project' }], fields: ['title'], filter: [{ field: 'project.name', op: 'contains', value: 'Apo' }] });
+        assert.deepStrictEqual(r.rows, [
+            { id: 'rec_1', title: 't1', project_record: { id: 'rec_p1', name: 'Apollo', _label: 'Apollo' } },
+            { id: 'rec_2', title: 't2', project_record: null },
+        ]);
+        assert.match(calls[0].sql, /^SELECT "id", "title", "created_at", "project" FROM "tasks" WHERE .* AND "project" IN \(SELECT "id" FROM "projects" WHERE /);
+        assert.deepStrictEqual(calls[1].params.slice(-2), ['rec_p1', 'rec_gone']);
+        const bad = await applyQueryData({ ...wrap(), dataModel: related }, { tableId: 'tbl_task01', expand: [{ field: 'title' }] });
+        assert.match(bad.error, /expand needs a relation field/);
+        assert.match((await applyQueryData({ ...wrap(), dataModel: related }, { tableId: 'tbl_task01', expand: [] })).error, /expand must be a non-empty list/);
+        assert.match((await applyQueryData({ ...wrap(), dataModel: related }, { datasetId: 'ds_1', fields: ['title'] })).error, /apply to raw table rows/);
+    });
+});

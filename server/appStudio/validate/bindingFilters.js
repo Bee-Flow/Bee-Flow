@@ -12,6 +12,7 @@ const { FILTER_OPS } = require('../dataModel');
 const { countFilterLeaves, MAX_FILTER_CLAUSES: MAX_FILTERS, MAX_FILTER_DEPTH, FIELD_COMPARE_OPS } = require('../../shared/expr/filterGroups.mjs');
 const { validateFormula } = require('./formulas');
 const { checkFieldRef } = require('./refs');
+const { checkRelationFilterField, checkRelationFilterCount } = require('./relationReadChecks.mts');
 
 /** @param {unknown} v @returns {v is Record<string, unknown>} */
 function isObject(v) { return v !== null && typeof v === 'object' && !Array.isArray(v); }
@@ -55,6 +56,29 @@ function validateFilterValue(v, path, ctx) {
  * @param {string} label
  */
 function validateBindingFilter(filter, path, ctx, tableId, label) {
+    validateFilterIn(filter, path, { ctx, tableId, label });
+}
+
+/**
+ * The filter of a READ (a record / records / aggregate binding): the same grammar, and a clause
+ * may also name `<relation field>.<field of the related table>`.
+ * @param {unknown} filter
+ * @param {string} path
+ * @param {ValidationCtx} ctx
+ * @param {unknown} tableId
+ * @param {string} label
+ */
+function validateReadFilter(filter, path, ctx, tableId, label) {
+    validateFilterIn(filter, path, { ctx, tableId, label, relations: true });
+}
+
+/**
+ * @param {unknown} filter
+ * @param {string} path
+ * @param {FilterScope} scope
+ */
+function validateFilterIn(filter, path, scope) {
+    const { ctx, label } = scope;
     const { pushE } = ctx;
     if (typeof filter === 'string') {
         // Legacy formula-expression filter — compiled, never executed.
@@ -65,7 +89,8 @@ function validateBindingFilter(filter, path, ctx, tableId, label) {
         pushE({ code: 'binding.filter_invalid', severity: 'error', path, message: `${label} filter must be an array of { field, op, value? } entries.`, hint: `Ops: ${FILTER_OPS.join(', ')}. value may be a literal or {kind:"formula", expr}.` });
         return;
     }
-    filter.forEach((entry, i) => validateFilterEntry(entry, `${path}[${i}]`, { ctx, tableId, label }, 0));
+    filter.forEach((entry, i) => validateFilterEntry(entry, `${path}[${i}]`, scope, 0));
+    if (scope.relations) checkRelationFilterCount(filter, path, ctx);
     const leaves = countFilterLeaves(filter);
     if (leaves > MAX_FILTERS) {
         pushE({ code: 'binding.filter_too_many', severity: 'error', path, message: `${label} filter has ${leaves} clauses; the limit is ${MAX_FILTERS}, counting the clauses inside any groups.`, hint: 'Combine values with op "in" instead of one clause per value.' });
@@ -96,7 +121,7 @@ function groupOf(entry) {
  */
 function validateFilterEntry(entry, p, scope, depth) {
     const group = groupOf(entry);
-    if (group === null || !isObject(entry)) { validateFilterClause(entry, p, scope.ctx, scope.tableId, scope.label); return; }
+    if (group === null || !isObject(entry)) { validateFilterClause(entry, p, scope); return; }
     if (depth >= MAX_FILTER_DEPTH) {
         scope.ctx.pushE({ code: 'binding.filter_too_deep', severity: 'error', path: p, message: `Filter groups nest at most ${MAX_FILTER_DEPTH} deep.`, hint: 'Flatten the innermost group: (a AND (b AND c)) is (a AND b AND c).' });
         return;
@@ -187,11 +212,10 @@ function validateAnyGroup(entry, p, scope, depth) {
  * One filter clause { field, op, value?, required? }.
  * @param {unknown} entry
  * @param {string} p
- * @param {ValidationCtx} ctx
- * @param {unknown} tableId
- * @param {string} label
+ * @param {FilterScope} scope
  */
-function validateFilterClause(entry, p, ctx, tableId, label) {
+function validateFilterClause(entry, p, scope) {
+    const { ctx, tableId, label } = scope;
     const { pushE } = ctx;
     if (!isObject(entry)) {
         pushE({ code: 'binding.filter_invalid', severity: 'error', path: p, message: 'Each filter entry must be an object { field, op, value? }.', hint: `Ops: ${FILTER_OPS.join(', ')}.` });
@@ -199,7 +223,7 @@ function validateFilterClause(entry, p, ctx, tableId, label) {
     }
     if (typeof entry.field !== 'string' || !entry.field) {
         pushE({ code: 'binding.filter_invalid', severity: 'error', path: `${p}.field`, message: 'Each filter entry needs a non-empty string `field`.', hint: 'Use a field key from the bound table (system columns id/created_at/updated_at/created_by/org_id also resolve).' });
-    } else {
+    } else if (!(scope.relations && checkRelationFilterField(entry, p, ctx, tableId, label))) {
         checkFieldRef(tableId, /** @type {string} */ (entry.field), `${p}.field`, ctx, `${label} filter`);
     }
     if (!FILTER_OPS.includes(/** @type {string} */ (entry.op))) {
@@ -236,7 +260,7 @@ function validateOtherField(entry, p, ctx, tableId, label) {
     }
 }
 
-module.exports = { validateBindingFilter };
+module.exports = { validateBindingFilter, validateReadFilter };
 
 /** @typedef {import('./shared').ValidationCtx} ValidationCtx */
-/** @typedef {{ ctx: ValidationCtx, tableId: unknown, label: string }} FilterScope  what every entry of one filter is checked against */
+/** @typedef {{ ctx: ValidationCtx, tableId: unknown, label: string, relations?: boolean }} FilterScope  what every entry of one filter is checked against */

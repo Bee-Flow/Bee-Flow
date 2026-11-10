@@ -228,7 +228,7 @@ export function compileAggregate(tableMeta: TableMeta, opts: Entry = {}, accessF
     core.assertTableMeta(tableMeta);
     const fm = core.fieldMap(tableMeta);
     const { where, params } = compileWhere({
-        tableMeta, fm, filters: opts.filters, accessFilter: accessFilter as AccessFilter, dialect, match: opts.match,
+        tableMeta, fm, filters: opts.filters, accessFilter: accessFilter as AccessFilter, dialect, match: opts.match, related,
     });
     const { groupBy, aggregates } = aggregateLists(opts);
     const state: AggState = { selectParts: [], groupExprs: [], groupAliases: [], knownAliases: new Set(), percentiles: [], ext: newExtState() };

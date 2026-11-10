@@ -75,6 +75,13 @@ function copyRecordsQuery(raw, out, path, push) {
     }
 }
 
+// Since v3, only when present: the related rows a record read takes along (`expand`) and the
+// columns it returns (`fields`). Copied as authored; validate/relationReadChecks.mts judges them.
+function copyRelationRead(raw, out) {
+    if (raw.expand !== undefined && raw.expand !== null) out.expand = deepCopy(raw.expand);
+    if (raw.fields !== undefined && raw.fields !== null) out.fields = deepCopy(raw.fields);
+}
+
 // Connector binding params — { key: literal | {kind:'formula',expr} }. Known
 // formula params rebuilt to their exact shape (expr truncated); literals kept
 // verbatim; malformed objects passed through for validate.js to flag.
@@ -201,6 +208,7 @@ function cleanBinding(raw, path, push) {
             const out = { kind: 'record', tableId: raw.tableId };
             if (raw.path !== undefined && raw.path !== null) out.path = raw.path;
             copyRecordsQuery(raw, out, path, push);
+            copyRelationRead(raw, out);
             cleanPick(raw, out);
             // `recordId` is documented, accepted by the validator — and read by
             // NOTHING. A binding that named one therefore fetched the table's
@@ -221,6 +229,7 @@ function cleanBinding(raw, path, push) {
         if (raw.kind === 'records') {
             const out = { kind: 'records', tableId: raw.tableId };
             copyRecordsQuery(raw, out, path, push);
+            copyRelationRead(raw, out);
             cleanPick(raw, out);
             return out;
         }

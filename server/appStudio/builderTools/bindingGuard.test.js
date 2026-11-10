@@ -92,3 +92,37 @@ test('a clause inside an { any: [...] } group is field-checked at its own path',
     const { errors } = checkComponentDataRefs(entries, MODEL);
     assert.deepEqual(errors.map((e) => [e.index, e.path]), [[0, 'components[0].props.data.filter[0].any[1].field']]);
 });
+
+const REL_MODEL = { tables: [
+    { id: 'tbl_ord', key: 'orders', fields: [{ key: 'amount', type: 'number' }, { key: 'customer', type: 'relation', relation: { table: 'tbl_cus', displayField: 'name' } }] },
+    { id: 'tbl_cus', key: 'customers', fields: [{ key: 'name', type: 'text' }, { key: 'city', type: 'text' }] },
+] };
+
+test('a read through a relation passes: expand, fields, a relation.field filter and grid columns on the expanded row', () => {
+    const grid = (data, columns) => [{ type: 'data_grid', props: { data: { kind: 'records', tableId: 'tbl_ord', ...data }, columns } }];
+    const ok = grid({ expand: [{ field: 'customer', pick: ['name', 'city'] }], fields: ['amount', 'customer'], filter: [{ field: 'customer.city', op: 'eq', value: 'Utrecht' }] },
+        [{ key: 'amount' }, { key: 'customer_record.city' }, { key: 'customer_record' }, { key: 'customer_record._label' }]);
+    assert.deepEqual(checkComponentDataRefs(ok, REL_MODEL).errors, []);
+    assert.deepEqual(checkComponentDataRefs(grid({ expand: [{ field: 'customer', as: 'buyer' }] }, [{ key: 'buyer.name' }]), REL_MODEL).errors, []);
+});
+
+test('a read through a relation is checked against BOTH tables, each finding at its own path', () => {
+    const entries = [{ type: 'data_grid', props: {
+        data: { kind: 'records', tableId: 'tbl_ord', expand: [{ field: 'amount' }, { field: 'customer', pick: ['town'] }], fields: ['total'], filter: [{ field: 'customer.town', op: 'eq', value: 'x' }, { field: 'amount.city', op: 'eq', value: 'x' }, { field: 'customer.a.b', op: 'eq', value: 'x' }] },
+        columns: [{ key: 'customer_record.town' }, { key: 'buyer.name' }],
+    } }];
+    const { errors } = checkComponentDataRefs(entries, REL_MODEL);
+    assert.deepEqual(errors.map((e) => e.path), [
+        'components[0].props.data.filter[0].field',
+        'components[0].props.data.filter[1].field',
+        'components[0].props.data.filter[2].field',
+        'components[0].props.data.fields[0]',
+        'components[0].props.data.expand[0].field',
+        'components[0].props.data.expand[1].pick[0]',
+        'components[0].props.columns[0].key',
+        'components[0].props.columns[1].key',
+    ]);
+    assert.match(errors[0].message, /table tbl_cus \(customers\) does not have/);
+    assert.match(errors[1].hint, /Relation fields on orders: customer/);
+    assert.match(errors[7].hint, /Add expand/);
+});

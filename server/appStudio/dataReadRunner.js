@@ -49,6 +49,7 @@ const datatableSource = require('./datatableSource');
 const { readError } = require('./readError');
 const { recordListDescriptor, aggregateDescriptor } = require('../core/dataEngine/readDescriptor.mts');
 const { relatedForAggregate } = require('../core/dataEngine/aggregateRelated.mts');
+const { relationRead, finishRecords } = require('../core/dataEngine/relationRead.mts');
 const log = require('../telemetry/log');
 const { bestEffort } = require('../utils/bestEffort');
 
@@ -149,8 +150,15 @@ function readPlan(ctx, table) {
 async function runRecordList(ctx, table, opts = {}) {
     const plan = await readPlan(ctx, table);
     const accessFilter = rlsGateway.compileAccessFilter(plan.tableMeta, plan.role, plan.viewer, 'read', { dialect: plan.dialect });
+    // Reading through a relation (expand, a relation.field filter) stays inside the app's own
+    // storage: a linked Studio table gets no model to resolve relations in, so the compiler
+    // refuses those by name. `fields` narrows either kind of table.
+    const read = relationRead(datatableSource.isDatatableBacked(table) ? null : ctx.model, plan.tableMeta, opts, plan);
+    if (read && read.expand !== undefined && datatableSource.isDatatableBacked(table)) {
+        throw readError(400, 'A linked Studio table cannot expand a relation.');
+    }
     const compiled = queryCompiler.compileRecordList(plan.tableMeta,
-        recordListDescriptor(opts, { cursor: opts.cursor, limit: opts.limit, dialect: plan.dialect }), accessFilter);
+        recordListDescriptor(opts, { cursor: opts.cursor, limit: opts.limit, dialect: plan.dialect }), accessFilter, read);
     const { rows } = await plan.query(compiled.sql, compiled.params);
 
     /** @type {string | null} */
@@ -160,7 +168,8 @@ async function runRecordList(ctx, table, opts = {}) {
         rows.length = compiled.limit;
         nextCursor = queryCompiler.nextCursor(compiled, last);
     }
-    return { records: rows, nextCursor };
+    // The related rows, each under its own table's row rules, and only the columns asked for.
+    return { records: await finishRecords(compiled, rows, plan.query), nextCursor };
 }
 
 /** An inline aggregate descriptor — a count/sum/group-by with no saved dataset. */
@@ -168,7 +177,7 @@ async function runInlineAggregate(ctx, table, descriptor = {}) {
     const plan = await readPlan(ctx, table);
     const accessFilter = rlsGateway.compileAccessFilter(plan.tableMeta, plan.role, plan.viewer, 'read', { dialect: plan.dialect });
     // A groupBy through a relation reads the related table under the same role and viewer.
-    const related = relatedForAggregate(ctx.model, plan.tableMeta, descriptor.groupBy, plan);
+    const related = relatedForAggregate(datatableSource.isDatatableBacked(table) ? null : ctx.model, plan.tableMeta, descriptor.groupBy, plan, descriptor.filters);
     const { sql, params } = queryCompiler.compileAggregate(plan.tableMeta,
         aggregateDescriptor(descriptor, { limit: descriptor.limit, dialect: plan.dialect }), accessFilter, related);
     const { rows } = await plan.query(sql, params);
@@ -305,5 +314,5 @@ module.exports = {
  *   app: { id: string, userId: string, organizationId?: string | null }, ownerScope: string,
  *   _datatablePlans?: Map<string, Promise<ReadPlan>>,
  * }} ReadCtx  the per-request context of a read
- * @typedef {{ id?: unknown, kind?: unknown, datasetId?: unknown, tableId?: unknown, filters?: unknown, groupBy?: unknown, aggregates?: unknown, sort?: unknown, orderBy?: unknown, groupFilter?: unknown, cursor?: string | null, limit?: unknown }} BatchRead  one descriptor of a batch
+ * @typedef {{ id?: unknown, kind?: unknown, datasetId?: unknown, tableId?: unknown, filters?: unknown, groupBy?: unknown, aggregates?: unknown, sort?: unknown, orderBy?: unknown, groupFilter?: unknown, expand?: unknown, fields?: unknown, cursor?: string | null, limit?: unknown }} BatchRead  one descriptor of a batch
  */

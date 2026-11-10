@@ -31,3 +31,12 @@ test('RecordsQuery takes orderBy as JSON text and refuses anything else', () => 
     assert.strictEqual(RecordsQuery.safeParse({ orderBy: '[{"field":' }).success, false);
     assert.strictEqual(RecordsQuery.safeParse({ orderBy: ['a'] }).success, false);
 });
+
+test('expand and fields travel as JSON text, only when the request sent them', () => {
+    const expand = [{ field: 'customer', pick: ['name'] }];
+    assert.deepStrictEqual(listQueryOf({ expand: JSON.stringify(expand), fields: '["title"]' }), { filters: undefined, sort: undefined, expand, fields: ['title'] });
+    assert.deepStrictEqual(Object.keys(listQueryOf({ sort: '{"field":"a"}' })), ['filters', 'sort']);
+    assert.strictEqual(RecordsQuery.safeParse({ expand: JSON.stringify(expand), fields: '["title"]' }).success, true);
+    assert.strictEqual(RecordsQuery.safeParse({ expand: '[{' }).success, false);
+    assert.strictEqual(RecordsQuery.safeParse({ fields: 'title' }).success, false);
+});

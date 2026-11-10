@@ -25,6 +25,7 @@ const engineFlag = require('./engineFlag');
 const { FILTER_OPS, AGG_FNS, DATE_BUCKETS } = require('./dataModel/vocabulary');
 const C = require('./queryCompiler.snapshot.fixture');
 const CX = require('./queryCompiler.snapshot.fixtureAgg');
+const CR = require('./queryCompiler.snapshot.fixtureRel');
 
 const GOLDEN_PATH = path.join(__dirname, 'queryCompiler.snapshot.golden.json');
 const DIALECTS = ['sqlite', 'pg'];
@@ -57,9 +58,20 @@ function capture(fn) {
 const withDialect = (opts, dialect) => (opts === undefined ? { dialect } : { dialect, ...opts });
 const accessOf = (access) => (access === undefined ? C.ACCESS : access);
 
+/** A compiled list with each expansion as its plan and the lookup it runs for two ids (the related table itself left out). */
+function withLookups(compiled) {
+    if (!Array.isArray(compiled.expand)) return compiled;
+    return {
+        ...compiled,
+        expand: compiled.expand.map((plan) => ({
+            field: plan.field, as: plan.as, pick: plan.pick, label: plan.label, lookup: qc.compileExpandLookup(plan, ['rec_1', 'rec_2']),
+        })),
+    };
+}
+
 function snapshot() {
     /** @type {Record<string, Record<string, unknown>>} */
-    const out = { list: {}, aggregate: {}, getById: {}, keyIndex: {}, access: {}, clampLimit: {}, implicitDialect: {}, aggregateExtended: {}, aggregateRelated: {} };
+    const out = { list: {}, aggregate: {}, getById: {}, keyIndex: {}, access: {}, clampLimit: {}, implicitDialect: {}, aggregateExtended: {}, aggregateRelated: {}, listRelation: {}, aggregateRelationFilter: {} };
     for (const [name, opts, access] of C.LIST_CASES) {
         out.list[name] = Object.fromEntries(DIALECTS.map((d) => [d, capture(
             () => qc.compileRecordList(C.TABLE, withDialect(opts, d), accessOf(access)))]));
@@ -75,6 +87,18 @@ function snapshot() {
     for (const [name, opts, related] of CX.RELATED_CASES) {
         out.aggregateRelated[name] = Object.fromEntries(DIALECTS.map((d) => [d, capture(
             () => qc.compileAggregate(CX.ORDERS, withDialect(opts, d), CX.ORDERS_ACCESS, related === undefined ? CX.RELATED : related))]));
+    }
+    for (const [name, opts, read] of CR.LIST_CASES) {
+        out.listRelation[name] = Object.fromEntries(DIALECTS.map((d) => [d, capture(
+            () => withLookups(qc.compileRecordList(CR.ORDERS, withDialect(opts, d), CR.ORDERS_ACCESS, { related: CR.RELATED, ...read })))]));
+    }
+    for (const [name, opts] of CR.NO_READ_CASES) {
+        out.listRelation[name] = Object.fromEntries(DIALECTS.map((d) => [d, capture(
+            () => qc.compileRecordList(CR.ORDERS, withDialect(opts, d), CR.ORDERS_ACCESS))]));
+    }
+    for (const [name, opts] of CR.AGGREGATE_CASES) {
+        out.aggregateRelationFilter[name] = Object.fromEntries(DIALECTS.map((d) => [d, capture(
+            () => qc.compileAggregate(CR.ORDERS, withDialect(opts, d), CR.ORDERS_ACCESS, CR.RELATED))]));
     }
     for (const [name, id, access] of C.GET_BY_ID_CASES) {
         out.getById[name] = Object.fromEntries(DIALECTS.map((d) => [d, capture(

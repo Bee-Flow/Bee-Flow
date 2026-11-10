@@ -283,3 +283,14 @@ test('readPlan is de enige splitsing: hij geeft per soort een compleet plan', as
     assert.equal(linked.viewer.id, VIEWER);
     assert.equal(linked.dialect, 'pg');
 });
+
+test('a linked table is never read through a relation: expand is refused by name, fields still narrows it', async () => {
+    await assert.rejects(
+        () => dataReadRunner.runRecordList(signedInCtx(), LINKED_TABLE, { expand: [{ field: 'anything' }] }),
+        (err) => err.status === 400 && err.safe === true && /linked Studio table cannot expand/.test(err.message),
+    );
+    await assert.rejects(
+        () => dataReadRunner.runRecordList(signedInCtx(), LINKED_TABLE, { filters: [{ field: 'anything.name', op: 'eq', value: 'x' }] }),
+        (err) => err.name === 'CompileError',
+    );
+});

@@ -167,7 +167,7 @@ async function runDataset(app, model, datasetOrDescriptor, viewer, { refresh = f
     // The access filter — ALWAYS present, ALWAYS AND-ed into the query. Compiled
     // here from the (role, viewer) so a member's chart folds only their rows.
     const accessFilter = rlsGateway.compileAccessFilter(table, role, v, 'read');
-    const related = relatedForAggregate(model, table, descriptor.groupBy, { role, viewer: v });
+    const related = relatedForAggregate(model, table, descriptor.groupBy, { role, viewer: v }, descriptor.filters);
 
     const viewerScopeKey = computeViewerScopeKey(role, accessFilter, related);
     const paramsHash = computeParamsHash(table.key, descriptor);

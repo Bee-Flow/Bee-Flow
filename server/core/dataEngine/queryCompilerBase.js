@@ -23,10 +23,11 @@ const { MATCH_MODES, compileWhere } = require('./queryCompilerFilter.mts');
  * @param {string} dialect
  * @param {unknown} [match]
  * @param {unknown} [search]
+ * @param {Record<string, { tableMeta: TableMeta, accessFilter: AccessFilter }>} [related]  for `<relation>.<column>` filters
  * @returns {{ where: string, params: unknown[] }}
  */
-function buildWhere(tableMeta, fm, filters, accessFilter, dialect, match = 'all', search = null) {
-    return compileWhere({ tableMeta, fm, filters, accessFilter, dialect, match, search });
+function buildWhere(tableMeta, fm, filters, accessFilter, dialect, match = 'all', search = null, related = undefined) {
+    return compileWhere({ tableMeta, fm, filters, accessFilter, dialect, match, search, related });
 }
 
 module.exports = {

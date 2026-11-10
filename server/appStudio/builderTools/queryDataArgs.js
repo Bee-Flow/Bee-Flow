@@ -34,6 +34,7 @@ const bad = (error, _fixHint) => ({ error, _fixHint });
  * @typedef {{
  *   error?: string, _fixHint?: string, tableId?: string|null, datasetId?: string|null, limit?: number,
  *   limitClamped?: boolean, requestedLimit?: number, sort?: { field: string, dir: string }, orderBy?: unknown[], filter?: any[], cursor?: string|null,
+ *   expand?: unknown[], fields?: unknown[],
  * }} QueryArgs
  */
 
@@ -94,7 +95,17 @@ function parseQueryArgs(args) {
     if (a.cursor !== undefined && a.cursor !== null && typeof a.cursor !== 'string') {
         return bad('cursor must be the nextCursor string of the previous call.');
     }
-    return { tableId, datasetId, limit, limitClamped, requestedLimit, sort, ...(orderBy ? { orderBy } : {}), filter, cursor: a.cursor || null };
+    // Read through a relation (tableId only); the compiler checks the entries against both tables.
+    /** @type {{ expand?: unknown[], fields?: unknown[] }} */
+    const through = {};
+    for (const name of /** @type {const} */ (['expand', 'fields'])) {
+        if (a[name] === undefined || a[name] === null) continue;
+        if (!Array.isArray(a[name]) || !a[name].length) {
+            return bad(`${name} must be a non-empty list.`, name === 'expand' ? 'expand: [{ field: <relation field>, pick?: [<fields of the related table>], as? }].' : 'fields: the field keys to return.');
+        }
+        through[name] = a[name];
+    }
+    return { tableId, datasetId, limit, limitClamped, requestedLimit, sort, ...(orderBy ? { orderBy } : {}), ...through, filter, cursor: a.cursor || null };
 }
 
 /** A row without the internal ids a model has no use for. */
@@ -109,11 +120,16 @@ function shapeRow(row) {
 // allow-list, so a column added to the physical table later does not leak.
 const ROW_SYSTEM_KEYS = ['id', 'created_at', 'updated_at'];
 
-/** A table row reduced to the table's declared field keys and the safe system columns. */
-function shapeTableRow(row, table) {
+/**
+ * A table row reduced to the table's declared field keys and the safe system columns, plus the
+ * keys the read's own expansions landed in (`expanded`: the related rows, already reduced to
+ * what was picked).
+ * @param {string[]} [expanded]
+ */
+function shapeTableRow(row, table, expanded = []) {
     if (!row || typeof row !== 'object') return row;
     const fields = table && Array.isArray(table.fields) ? table.fields : [];
-    const allowed = new Set([...ROW_SYSTEM_KEYS, ...fields.map((f) => f && f.key).filter(Boolean)]);
+    const allowed = new Set([...ROW_SYSTEM_KEYS, ...fields.map((f) => f && f.key).filter(Boolean), ...expanded]);
     return Object.fromEntries(Object.entries(row).filter(([k]) => allowed.has(k)));
 }
 

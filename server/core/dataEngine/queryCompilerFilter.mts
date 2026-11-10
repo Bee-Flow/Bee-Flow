@@ -37,6 +37,8 @@ type WhereInput = {
     dialect: string;
     match?: unknown;
     search?: unknown;
+    /** Per relation field: the table it points at and the viewer's access predicate on it (queryCompilerRelation.mts). */
+    related?: RelatedTables;
 };
 
 const core = nodeRequire('./queryCompilerCore') as {
@@ -46,7 +48,10 @@ const core = nodeRequire('./queryCompilerCore') as {
     resolveColumn(tableMeta: TableMeta, fieldName: unknown, fm?: FieldMap): string;
     scalar(v: unknown, dialect: string): string | number | boolean | null;
     assertAccessFilter(accessFilter: AccessFilter): void;
+    fieldMap(tableMeta: TableMeta): FieldMap;
 };
+const { relationPath, relatedTarget, relationFilterSql, assertRelationFilterCount } = nodeRequire('./queryCompilerRelation.mts') as typeof import('./queryCompilerRelation.mts');
+type RelatedTables = import('./queryCompilerRelation.mts').RelatedTables;
 const { FILTER_OPS, SYSTEM_COLUMNS } = nodeRequire('./dataModel/vocabulary') as { FILTER_OPS: readonly string[]; SYSTEM_COLUMNS: readonly string[] };
 const { isAnyGroup, isAllGroup, isNotGroup, countFilterLeaves, MAX_FILTER_DEPTH, FIELD_COMPARE_OPS } = nodeRequire('../../shared/expr/filterGroups.mjs') as {
     isAnyGroup(entry: unknown): boolean;
@@ -242,25 +247,50 @@ function compileNot(ctx: TreeCtx, group: Clause, depth: number, out: Out): void 
     out.params.push(...inner.params);
 }
 
-type TreeCtx = { tableMeta: TableMeta; fm: FieldMap; dialect: string };
+type TreeCtx = { tableMeta: TableMeta; fm: FieldMap; dialect: string; related?: RelatedTables; relationFilters: number };
+
+/**
+ * One clause: on a column of this table or, when the caller handed over the
+ * related tables, `{ field: '<relation>.<column>', op, value }` on a column of
+ * the row a relation points at (a subquery under that table's own access
+ * predicate, see queryCompilerRelation.mts). Without `related` a dotted name is
+ * an unknown field, as it always was.
+ */
+function compileClause(ctx: TreeCtx, entry: unknown, out: Out): void {
+    const clause = ctx.related && entry && typeof entry === 'object' && !Array.isArray(entry) ? entry as Clause : null;
+    const path = clause ? relationPath(clause.field) : null;
+    if (!clause || !path) { compileFilter(ctx.tableMeta, ctx.fm, entry, out, ctx.dialect); return; }
+    if (clause.otherField !== undefined && clause.otherField !== null) {
+        throw new CompileError('a filter through a relation compares with a value, not with another column');
+    }
+    const fkColumn = resolveColumn(ctx.tableMeta, path.relation, ctx.fm);
+    const target = relatedTarget(ctx.fm, path.relation, ctx.related, 'a filter');
+    ctx.relationFilters += 1;
+    assertRelationFilterCount(ctx.relationFilters);
+    const inner: Out = { sql: [], params: [] };
+    compileFilter(target.tableMeta, core.fieldMap(target.tableMeta), { ...clause, field: path.column }, inner, ctx.dialect);
+    const built = relationFilterSql({ fkColumn, target }, { sql: inner.sql[0], params: inner.params });
+    out.sql.push(built.sql);
+    out.params.push(...built.params);
+}
 
 /** One entry of a filter list or of a group: a group (to MAX_FILTER_DEPTH) or a clause. */
 function compileEntry(ctx: TreeCtx, entry: unknown, depth: number, out: Out): void {
     const group = isAnyGroup(entry) ? 'any' : isAllGroup(entry) ? 'all' : isNotGroup(entry) ? 'not' : null;
-    if (group === null) { compileFilter(ctx.tableMeta, ctx.fm, entry, out, ctx.dialect); return; }
+    if (group === null) { compileClause(ctx, entry, out); return; }
     if (depth >= MAX_FILTER_DEPTH) throw new CompileError(`filter groups nest at most ${MAX_FILTER_DEPTH} deep`);
     if (group === 'not') compileNot(ctx, entry as Clause, depth, out);
     else compileGroup(ctx, entry as Clause, group, depth, out);
 }
 
 /** The client filter list as clauses (still uncombined) and their bound values. */
-function compileFilterList(tableMeta: TableMeta, fm: FieldMap, filters: unknown, dialect: string): Out {
+function compileFilterList(tableMeta: TableMeta, fm: FieldMap, filters: unknown, dialect: string, related?: RelatedTables): Out {
     const out: Out = { sql: [], params: [] };
     if (filters == null) return out;
     if (!Array.isArray(filters)) throw new CompileError('filters must be an array');
     const leaves = countFilterLeaves(filters);
     if (leaves > core.MAX_FILTERS) throw new CompileError(`too many filters: ${leaves} clauses (max ${core.MAX_FILTERS}, counting the clauses inside any groups)`);
-    const ctx: TreeCtx = { tableMeta, fm, dialect };
+    const ctx: TreeCtx = { tableMeta, fm, dialect, related, relationFilters: 0 };
     for (const f of filters) compileEntry(ctx, f, 0, out);
     return out;
 }
@@ -303,10 +333,10 @@ function compileSearch(tableMeta: TableMeta, fm: FieldMap, search: unknown, dial
  * whole security story: `access OR status='new'` would hand every row of the
  * table to anyone who asked for the right status.
  */
-export function compileWhere({ tableMeta, fm, filters, accessFilter, dialect, match = 'all', search = null }: WhereInput): { where: string; params: unknown[] } {
+export function compileWhere({ tableMeta, fm, filters, accessFilter, dialect, match = 'all', search = null, related }: WhereInput): { where: string; params: unknown[] } {
     core.assertAccessFilter(accessFilter);
     if (!MATCH_MODES.includes(match as string)) throw new CompileError(`match must be one of ${MATCH_MODES.join(', ')}`);
-    const out = compileFilterList(tableMeta, fm, filters, dialect);
+    const out = compileFilterList(tableMeta, fm, filters, dialect, related);
     const user = (match === 'any' && out.sql.length > 1)
         ? [`(${out.sql.join(' OR ')})`]
         : out.sql;

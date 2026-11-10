@@ -11,9 +11,10 @@ const { pickClosestId } = require('../../automation/validate/helpers');
 const { relativePathTokens, suggestRelativeSpelling } = require('../../core/automationModel/refPaths');
 const { isObject } = require('./shared');
 const { MAX_ORDER_BY } = require('../componentSpecs');
-const { validateBindingFilter } = require('./bindingFilters');
+const { validateBindingFilter, validateReadFilter } = require('./bindingFilters');
 const { validateFormula } = require('./formulas');
 const { groupByAlias, validateExtendedGroupBy, validateGroupFilter } = require('./aggregateChecks.mts');
+const { validateExpand, validateFields } = require('./relationReadChecks.mts');
 const {
     checkTableRef,
     checkTableSource,
@@ -158,7 +159,7 @@ function validateBinding(key, value, path, ctx) {
         // if the answer is no, so it has to be said by name here. A table with its own storage passes
         // through undisturbed.
         checkTableSource(value.tableId, `${path}.tableId`, ctx, label);
-        if (value.filter !== undefined && value.filter !== null) validateBindingFilter(value.filter, `${path}.filter`, ctx, value.tableId, label);
+        if (value.filter !== undefined && value.filter !== null) validateReadFilter(value.filter, `${path}.filter`, ctx, value.tableId, label);
         // An aggregate may sort by the columns it produces, which is what the
         // compiler does too.
         const aggAliases = value.kind === 'aggregate' ? aggregateAliases(value) : null;
@@ -167,6 +168,11 @@ function validateBinding(key, value, path, ctx) {
         if (value.limit !== undefined && value.limit !== null && (typeof value.limit !== 'number' || !Number.isInteger(value.limit) || value.limit < 1)) {
             pushE({ code: 'binding.limit_invalid', severity: 'error', path: `${path}.limit`, message: `${label} limit must be a positive integer.`, hint: 'Use an integer ≥ 1, or omit it.' });
         }
+    }
+    if (value.kind === 'record' || value.kind === 'records') {
+        // Since v3, only when present: the related rows to read along, and the columns to return.
+        if (value.expand !== undefined && value.expand !== null) validateExpand(value, path, ctx);
+        if (value.fields !== undefined && value.fields !== null) validateFields(value, path, ctx, `${value.kind} binding`);
     }
     if (value.kind === 'record') {
         checkBindingPath(value.path, `${path}.path`, ctx);

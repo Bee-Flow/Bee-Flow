@@ -80,6 +80,7 @@ const { compileIdList, compileKeyValues, compileDeleteAll, compileDeleteOlderTha
 const { encodeCursor, decodeCursor, resolvePrimarySort, keysetClause, recordOrderBy, MAX_ORDER_BY, resolveOrderBy, orderByClause, orderKeysetClause, encodeOrderCursor } = require('./queryCompilerOrder.mts');
 const { recordSelectList } = require('./queryCompilerSelect.mts');
 const { compileAggregate } = require('./queryCompilerAggregate.mts');
+const { recordShape, compileExpandLookup, EXPAND_LOOKUP_BATCH } = require('./queryCompilerRelation.mts');
 
 // ── Public compilers ────────────────────────────────────────────────
 
@@ -93,16 +94,28 @@ const { compileAggregate } = require('./queryCompilerAggregate.mts');
  *
  * `match: 'any'` ORs the client filters; the access predicate stays ANDed
  * outside that group. `maxLimit` caps the page below MAX_RESULT_ROWS.
+ *
+ * `read` (optional; built by the server in relationRead.mts, never taken from
+ * the client descriptor) is what reads through a relation and narrows the
+ * columns: `{ related, expand, fields }`. With it the result also carries
+ * `expand` (the lookups to run after the list, relationRead.mts) and
+ * `project` (the keys a record keeps), each only when asked for. Without it
+ * the read compiles exactly as before.
  */
-function compileRecordList(tableMeta, opts = {}, accessFilter) {
+function compileRecordList(tableMeta, opts = {}, accessFilter, read) {
     const dialect = resolveDialect(opts);
     assertTableMeta(tableMeta);
     const fm = fieldMap(tableMeta);
     const { where, params } = buildWhere(
-        tableMeta, fm, opts.filters, accessFilter, dialect, opts.match, opts.search);
+        tableMeta, fm, opts.filters, accessFilter, dialect, opts.match, opts.search, read ? read.related : undefined);
     const limit = clampLimit(opts.limit, opts.maxLimit);
+    const shape = read ? recordShape(tableMeta, fm, read, dialect) : null;
     const order = resolveOrderBy(tableMeta, fm, opts.orderBy);
-    if (order) return recordListOrdered(tableMeta, { where, params, limit, order, cursor: opts.cursor });
+    if (order) {
+        const select = shape ? shape.select(order.map((c) => c.column)) : undefined;
+        const listed = recordListOrdered(tableMeta, { where, params, limit, order, cursor: opts.cursor, select });
+        return shape ? { ...listed, ...shape.result } : listed;
+    }
     const primary = resolvePrimarySort(tableMeta, fm, opts.sort);
 
     let clause = where;
@@ -114,10 +127,11 @@ function compileRecordList(tableMeta, opts = {}, accessFilter) {
         allParams.push(...keyset.params);
     }
 
-    const sql = `SELECT ${recordSelectList()} FROM ${qi(tableMeta.key)} ${clause} `
+    const sql = `SELECT ${recordSelectList(shape ? shape.select([primary.column]) : undefined)} FROM ${qi(tableMeta.key)} ${clause} `
         + `${recordOrderBy(primary)} LIMIT ?`;
     allParams.push(limit + 1); // probe row → nextCursor
-    return { sql, params: allParams, primaryField: primary.fieldKey, limit };
+    const listed = { sql, params: allParams, primaryField: primary.fieldKey, limit };
+    return shape ? { ...listed, ...shape.result } : listed;
 }
 
 /**
@@ -125,9 +139,9 @@ function compileRecordList(tableMeta, opts = {}, accessFilter) {
  * Returns `orderFields` next to the usual fields; the caller mints the next
  * cursor with nextCursor(compiled, lastRow).
  * @param {TableMeta} tableMeta
- * @param {{ where: string, params: unknown[], limit: number, order: Array<{ fieldKey: string, column: string, dir: 'asc' | 'desc' }>, cursor?: string }} parts
+ * @param {{ where: string, params: unknown[], limit: number, order: Array<{ fieldKey: string, column: string, dir: 'asc' | 'desc' }>, cursor?: string, select?: string[] }} parts
  */
-function recordListOrdered(tableMeta, { where, params, limit, order, cursor }) {
+function recordListOrdered(tableMeta, { where, params, limit, order, cursor, select }) {
     let clause = where;
     const allParams = [...params];
     const cur = decodeCursor(cursor);
@@ -136,7 +150,7 @@ function recordListOrdered(tableMeta, { where, params, limit, order, cursor }) {
         clause += keyset.sql;
         allParams.push(...keyset.params);
     }
-    const sql = `SELECT ${recordSelectList()} FROM ${qi(tableMeta.key)} ${clause} ${orderByClause(order)} LIMIT ?`;
+    const sql = `SELECT ${recordSelectList(select)} FROM ${qi(tableMeta.key)} ${clause} ${orderByClause(order)} LIMIT ?`;
     allParams.push(limit + 1); // probe row → nextCursor
     return { sql, params: allParams, primaryField: order[0].fieldKey, limit, orderFields: order.map((c) => c.fieldKey) };
 }
@@ -207,6 +221,8 @@ module.exports = {
     compileUpdate,
     compileDelete,
     compileKeyIndex,
+    compileExpandLookup,
+    EXPAND_LOOKUP_BATCH,
     compileUpsertByKey,
     compileUpsertById,
     compileIdList,

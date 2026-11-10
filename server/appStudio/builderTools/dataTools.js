@@ -10,6 +10,7 @@
 const { MAX_SEED_RECORDS } = require('./schemas');
 const { AGG_FNS } = require('../dataModel');
 const { parseQueryArgs, shapeTableRow, pageDatasetRows, pageMeta, queryFailure, MAX_QUERY_LIMIT } = require('./queryDataArgs');
+const { expandAlias } = require('../validate/relationReadChecks.mts');
 const { persistDraft } = require('./persistence');
 const { isDatatableBacked } = require('../datatableSource');
 const { linkedTableRefusal, rowCountsById, findModelTable, tableIdHint, persistDataModel, dataModelPersistError } = require('./dataToolsShared');
@@ -209,7 +210,7 @@ async function applyQueryData(draftWrap, args) {
     }
     const parsed = parseQueryArgs(args);
     if (parsed.error) return { ...parsed, ...(parsed._fixHint ? {} : { _fixHint: tableIdHint(model) }) };
-    const { tableId, datasetId, limit, filter, sort, orderBy, cursor } = parsed;
+    const { tableId, datasetId, limit, filter, sort, orderBy, cursor, expand, fields } = parsed;
     const studioAppStore = require('../../stores/studioAppStore');
     let app = null;
     try { app = await studioAppStore.getStudioApp(draftWrap.appId); } catch (_) { app = null; }
@@ -218,7 +219,7 @@ async function applyQueryData(draftWrap, args) {
     let linked = false;
     try {
         if (datasetId) {
-            if (filter || sort || orderBy) {
+            if (filter || sort || orderBy || expand || fields) {
                 return { error: 'filter and sort apply to raw table rows (tableId); a saved dataset returns its own aggregation.', _fixHint: 'Page through a dataset with cursor, or query its source table with tableId.' };
             }
             const studioAppDataStore = require('../../stores/studioAppDataStore');
@@ -249,8 +250,9 @@ async function applyQueryData(draftWrap, args) {
             viewer: { id: draftWrap.userId, role: 'owner' },
             model,
         };
-        const out = await dataReadRunner.runRecordList(ctx, table, { filters: filter, sort, orderBy, cursor, limit });
-        const rows = (Array.isArray(out.records) ? out.records : []).map((r) => shapeTableRow(r, table));
+        const out = await dataReadRunner.runRecordList(ctx, table, { filters: filter, sort, orderBy, cursor, limit, ...(expand ? { expand } : {}), ...(fields ? { fields } : {}) });
+        const expanded = (expand || []).map((e) => expandAlias(/** @type {Record<string, unknown>} */ (e && typeof e === 'object' ? e : {}))).filter(Boolean);
+        const rows = (Array.isArray(out.records) ? out.records : []).map((r) => shapeTableRow(r, table, expanded));
         return {
             rows,
             rowCount: rows.length,

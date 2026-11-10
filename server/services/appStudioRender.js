@@ -31,6 +31,7 @@ const queryCompiler = require('../core/dataEngine/queryCompiler');
 const { recordListDescriptor, aggregateDescriptor } = require('../core/dataEngine/readDescriptor.mts');
 const rlsGateway = require('../appStudio/rlsGateway');
 const { relatedForAggregate } = require('../core/dataEngine/aggregateRelated.mts');
+const { relationRead, finishRecords } = require('../core/dataEngine/relationRead.mts');
 const { seedVariableDefaults } = require('../appStudio/componentSpecs');
 const { ROLE_PROBE_VIEWER_ID } = require('../appStudio/appDryRun');
 const { compile, tryEvaluate, resolveFilterList, FILTER_SKIP } = require('../shared/expr/index.mjs');
@@ -219,17 +220,18 @@ async function runTableEntry(binding, { model, app, roleArg, viewer, deps }) {
         if (binding.kind === 'aggregate') {
             const { sql, params } = queryCompiler.compileAggregate(table,
                 aggregateDescriptor(binding, { filters: binding.filter, limit: binding.limit }), accessFilter,
-                relatedForAggregate(model, table, binding.groupBy, { role: roleArg, viewer }));
+                relatedForAggregate(model, table, binding.groupBy, { role: roleArg, viewer }, binding.filter));
             const out = await deps.dbQuery(app.userId, app.id, sql, params);
             rows = Array.isArray(out && out.rows) ? out.rows : [];
         } else {
-            const { sql, params, limit } = queryCompiler.compileRecordList(table, recordListDescriptor(binding, {
+            const compiled = queryCompiler.compileRecordList(table, recordListDescriptor(binding, {
                 filters: binding.filter,
                 limit: binding.kind === 'record' ? 1 : binding.limit,
-            }), accessFilter);
-            const out = await deps.dbQuery(app.userId, app.id, sql, params);
+            }), accessFilter, relationRead(model, table, { filters: binding.filter, expand: binding.expand, fields: binding.fields }, { role: roleArg, viewer }));
+            const out = await deps.dbQuery(app.userId, app.id, compiled.sql, compiled.params);
             // The compiler fetches limit+1 as a pagination probe — drop it.
-            rows = (Array.isArray(out && out.rows) ? out.rows : []).slice(0, limit);
+            rows = await finishRecords(compiled, (Array.isArray(out && out.rows) ? out.rows : []).slice(0, compiled.limit),
+                (sql, params) => deps.dbQuery(app.userId, app.id, sql, params));
         }
         const result = binding.kind === 'record' ? (rows[0] ?? null) : rows;
         return entryBase({ ...base, result });

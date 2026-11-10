@@ -82,6 +82,11 @@ const MAX_ORDER_BY = 3;
  *   groupBy.binWidth          { field: <number field>, binWidth: <whole number> }
  *   groupBy.relatedField      { field: <relation field>, relatedField }: a column of the related row
  *   groupFilter               [{ field: <aggregate alias>, op, value: <number> }] (SQL HAVING)
+ * and of the record / records bindings (vocabulary.js RELATION_READ_LIMITS):
+ *   expand                    [{ field: <relation field>, pick?: [<field of the related table>], as? }]:
+ *                             the related row of each record, under that table's own row rules
+ *   fields                    [<field>]: only these columns (and id) are returned
+ *   filter.relationField      { field: '<relation field>.<field of the related table>', op, value }
  */
 const BINDING_QUERY_EXTENSIONS = Object.freeze([
     Object.freeze({ key: 'orderBy', since: 3 }),
@@ -93,6 +98,9 @@ const BINDING_QUERY_EXTENSIONS = Object.freeze([
     Object.freeze({ key: 'groupBy.binWidth', since: 3 }),
     Object.freeze({ key: 'groupBy.relatedField', since: 3 }),
     Object.freeze({ key: 'groupFilter', since: 3 }),
+    Object.freeze({ key: 'expand', since: 3 }),
+    Object.freeze({ key: 'fields', since: 3 }),
+    Object.freeze({ key: 'filter.relationField', since: 3 }),
 ]);
 
 module.exports = {
