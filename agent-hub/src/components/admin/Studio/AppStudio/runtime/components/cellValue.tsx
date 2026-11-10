@@ -1,6 +1,6 @@
 import { Check, Minus } from 'lucide-react';
 import useTranslation from '@/hooks/useTranslation';
-import { makeValueFormatter } from '../chartPalette';
+import { LEGACY_CELL, useCellFormatters } from './cellFormat';
 import { hoverable } from '../hoverable';
 import { roleTextColor } from '../styleResolver';
 import { ROLE_COLORS } from '../styleResolver.constants';
@@ -28,10 +28,6 @@ export type { CellColumn } from './cellValue.types';
  * asserts this over the source text — the same guard AppDataGrid and AppTable
  * carry, moved here with the code it protects.
  */
-
-const fmtNumber = makeValueFormatter('number');
-const fmtPercent = makeValueFormatter('percent');
-const fmtCurrency = makeValueFormatter('currency');
 
 const NUMERIC_FORMATS = new Set<string | undefined>(['number', 'currency', 'percent', 'progress']);
 
@@ -226,7 +222,7 @@ export function asTags(value: unknown) {
     return str.split(',').map((s) => s.trim()).filter(Boolean);
 }
 
-function renderMainValue({ value, format, col, row, now, t }: RenderMainValueArgs) {
+function renderMainValue({ value, format, col, row, now, t, fmt = LEGACY_CELL }: RenderMainValueArgs) {
     // An empty cell is muted everywhere. AppTable used to render a bare em-dash
     // at full text colour, which read as content rather than as absence.
     if (value == null || value === '') {
@@ -252,23 +248,23 @@ function renderMainValue({ value, format, col, row, now, t }: RenderMainValueArg
         // figures never lines up on its digits, however right-aligned.
         case 'number': {
             const n = Number(value);
-            return <span className="tabular-nums" style={textToneStyle(col, row, value)}>{Number.isFinite(n) ? fmtNumber(n) : displayValue(value)}</span>;
+            return <span className="tabular-nums" style={textToneStyle(col, row, value)}>{Number.isFinite(n) ? fmt.number(n) : displayValue(value)}</span>;
         }
         case 'currency': {
             const n = Number(value);
-            return <span className="tabular-nums">{Number.isFinite(n) ? fmtCurrency(n) : displayValue(value)}</span>;
+            return <span className="tabular-nums">{Number.isFinite(n) ? fmt.currency(n) : displayValue(value)}</span>;
         }
         case 'percent': {
             const n = Number(value);
-            return <span className="tabular-nums">{Number.isFinite(n) ? fmtPercent(n) : displayValue(value)}</span>;
+            return <span className="tabular-nums">{Number.isFinite(n) ? fmt.percent(n) : displayValue(value)}</span>;
         }
         case 'date': {
             const d = new Date(value as string | number | Date);
-            return <>{Number.isNaN(d.getTime()) ? displayValue(value) : d.toLocaleDateString()}</>;
+            return <>{Number.isNaN(d.getTime()) ? displayValue(value) : fmt.date(value, d)}</>;
         }
         case 'datetime': {
             const d = new Date(value as string | number | Date);
-            return <>{Number.isNaN(d.getTime()) ? displayValue(value) : d.toLocaleString()}</>;
+            return <>{Number.isNaN(d.getTime()) ? displayValue(value) : fmt.datetime(value, d)}</>;
         }
         case 'relative': {
             // `now` comes from the runtime scope so every row on a screen is
@@ -280,7 +276,7 @@ function renderMainValue({ value, format, col, row, now, t }: RenderMainValueArg
             const rel = now == null ? null : relativeFrom(value, now, t);
             if (rel != null) return <>{rel}</>;
             const d = new Date(value as string | number | Date);
-            return <>{Number.isNaN(d.getTime()) ? displayValue(value) : d.toLocaleString()}</>;
+            return <>{Number.isNaN(d.getTime()) ? displayValue(value) : fmt.datetime(value, d)}</>;
         }
         case 'boolean':
             return <>{value ? t('studio_apps_runtime.cell.yes', 'Yes') : t('studio_apps_runtime.cell.no', 'No')}</>;
@@ -369,7 +365,7 @@ function renderMainValue({ value, format, col, row, now, t }: RenderMainValueArg
                             style={{ width: `${pct}%`, background: ROLE_COLORS[col?.tone ?? ''] || 'var(--app-primary)' }}
                         />
                     </span>
-                    <span className="text-xs tabular-nums text-[var(--text-secondary)]">{fmtNumber(n)}</span>
+                    <span className="text-xs tabular-nums text-[var(--text-secondary)]">{fmt.number(n)}</span>
                 </span>
             );
         }
@@ -421,7 +417,7 @@ function textToneStyle(col: CellColumn | null | undefined, row: unknown, value: 
 }
 export default function CellValue({ value, format = 'text', col = null, row = null, now = null }: CellValueProps) {
     const { t } = useTranslation();
-    const main = renderMainValue({ value, format, col, row, now, t });
+    const main = renderMainValue({ value, format, col, row, now, t, fmt: useCellFormatters(col) });
 
     // Decorations (spec: columns[].flagFrom / subtextFrom). A column without
     // them returns the main content verbatim — the identity path.

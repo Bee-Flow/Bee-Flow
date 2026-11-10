@@ -395,8 +395,10 @@ export default function AppRenderer({
         // consumer's fallback is today's behaviour.
         appDesign: appDesignContext,
         initialUi: initialUi && typeof initialUi === 'object' ? initialUi : null,
+        // definition.format (schema 3, appFormat.ts); absent = every value written as before.
+        appFormat: definition?.format ?? null,
         scope: baseScope,
-    }), [mode, selectedNodeId, selectedNodeIds, onSelectNode, recentlyAddedIds, actionState, dataState, runAction, registerFormValue, currentUser, previewRole, setVar, appDesignContext, initialUi, baseScope]);
+    }), [mode, selectedNodeId, selectedNodeIds, onSelectNode, recentlyAddedIds, actionState, dataState, runAction, registerFormValue, currentUser, previewRole, setVar, appDesignContext, initialUi, definition?.format, baseScope]);
 
     if (!definition) return null;
     if (!screen) return null;
