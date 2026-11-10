@@ -286,16 +286,23 @@ sudo -u www-data php occ app_api:app:update bee_flow \
 # with the same data volume, the same APP_SECRET and the same install-time values
 ```
 
-The update command reads the routes of the new version, with their access levels, and then waits for the new container. When a newer container reaches Nextcloud before the command has run, Nextcloud notes the new version by itself, the command answers `already updated`, and the routes of the previous version stay. After an update from 1.x that shows as follows: somebody who is not an administrator gets Nextcloud's "Page not found" for `setup/diagnostics`, where this version answers `{"canConfigure":false}`. The connection is not affected: the tenant key and the organisation stay. To get the routes of the new version, register the app again as below.
+The update command reads the routes of the new version, with their access levels, and then waits for the new container. When a newer container reaches Nextcloud before the command has run, Nextcloud notes the new version by itself, the command answers `already updated`, and the routes of the previous version stay. After an update from 1.x that shows as follows: somebody who is not an administrator gets Nextcloud's "Page not found" (behind HaRP: `403 Forbidden`) for `setup/diagnostics`, where this version answers `{"canConfigure":false}`. The connection is not affected: the tenant key and the organisation stay. To get the routes of the new version, register the app again as below.
 
-**Registering again** (to change an install-time value, or to rotate the app secret). Stop the container before `unregister`, and start it again when you register, with the secret of the new registration:
+Between the start of the new container and the moment Nextcloud enables the app again, the connector log shows `HTTP 401 (AppAPI auth warming up)`, `next task HTTP 412` and `0/12 providers registered`. Nextcloud answers that way while it holds the app disabled for the update; the lines stop and the providers register once the command finishes.
+
+**Registering again** (to change an install-time value, or to rotate the app secret). Stop the container before `unregister`, and start it again while `register` waits, with the secret of the new registration:
 
 ```bash
 docker stop <connector container>
-sudo -u www-data php occ app_api:app:unregister bee_flow        # without --rm-data: the data is kept
-sudo -u www-data php occ app_api:app:register bee_flow <daemon> --env NAME=VALUE ...
-# start the container again with the new APP_SECRET
+# --force: with the container stopped Nextcloud cannot ask the app to disable itself;
+# without --rm-data the data is kept
+sudo -u www-data php occ app_api:app:unregister bee_flow --force
+sudo -u www-data php occ app_api:app:register bee_flow <daemon> \
+  --info-xml https://raw.githubusercontent.com/Bee-Flow/connector/main/appinfo/info.xml --wait-finish --env NAME=VALUE ...
+# while that command waits, in a second terminal: start the container with the new APP_SECRET
 ```
+
+With the container stopped, `unregister` without `--force` answers `Error during disabling bee_flow ExApp.` and leaves the app registered and disabled; run it again, or with `--force`, before you register.
 
 Unregistering removes the app's webhook rows and the Talk bot. The rows, the Assistant providers and the Files menu entries are registered again at the next start; add the bot to your conversations again.
 
@@ -306,9 +313,11 @@ While the app is not registered, Nextcloud refuses every request a running conne
 ```bash
 docker stop <connector container>
 sudo -u www-data php occ security:bruteforce:reset <IP address of the connector container>
-sudo -u www-data php occ app_api:app:unregister bee_flow
-sudo -u www-data php occ app_api:app:register bee_flow <daemon> --env NAME=VALUE ...
-# start the container
+# answers "not found" when the app is not registered at that moment: go on with register
+sudo -u www-data php occ app_api:app:unregister bee_flow --force
+sudo -u www-data php occ app_api:app:register bee_flow <daemon> \
+  --info-xml https://raw.githubusercontent.com/Bee-Flow/connector/main/appinfo/info.xml --wait-finish --env NAME=VALUE ...
+# while that command waits, in a second terminal: start the container with the new APP_SECRET
 ```
 
 The tenant key and the organisation are on the data volume and are not touched by any of this.
@@ -401,7 +410,8 @@ The connector mints short-lived JWTs (default 300 s) for browser-side calls. If 
 ```bash
 # Remove and install again. Without --rm-data the data volume, and with it the
 # connection, is kept. Give your install-time values again with --env NAME=VALUE.
-# On a manual-install daemon: stop the container first, start it when you register.
+# On a manual-install daemon: stop the container first, add --force to unregister,
+# and start the container while register waits.
 sudo -u www-data php occ app_api:app:unregister bee_flow
 sudo -u www-data php occ app_api:app:register bee_flow \
   --info-xml https://raw.githubusercontent.com/Bee-Flow/connector/main/appinfo/info.xml

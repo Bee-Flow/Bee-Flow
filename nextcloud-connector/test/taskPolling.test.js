@@ -78,6 +78,19 @@ test('a round Nextcloud refuses stops at the first provider, and the next rounds
         await tp._pollOnce();
         assert.equal(asked, 11);
 
+        // So does the answer to an app Nextcloud does not know or has disabled:
+        // from the normal pace, the first round already stops at one request.
+        status = 204;
+        await tp._pollOnce();
+        status = 412;
+        asked = 0;
+        await tp._pollOnce();
+        assert.equal(asked, 1, 'one request in the first round answered 412');
+        assert.equal(tp._currentPollDelay(), tp.POLL_REFUSED_MS);
+        await tp._pollOnce();
+        assert.equal(asked, 2);
+        assert.equal(tp._currentPollDelay(), 2 * tp.POLL_REFUSED_MS);
+
         // Nextcloud answers again: every provider is asked, at the normal pace.
         status = 204;
         asked = 0;

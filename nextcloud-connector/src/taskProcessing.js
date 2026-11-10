@@ -526,8 +526,8 @@ async function drainProvider(id, opts) {
 const POLL_FAST_MS = 5_000;
 const POLL_IDLE_MS = 300_000;
 const POLL_BACKOFF_AFTER_EMPTY = 6;
-// Nextcloud refuses this app's requests (the app is being registered again or
-// updated, or Nextcloud limits the address): the round stops at the first
+// Nextcloud refuses this app's requests (the app is being registered again,
+// is disabled or is being updated, or Nextcloud limits the address): the round stops at the first
 // provider, since the others would get the same answer, and the next round
 // waits longer each time, up to the idle tick. Nextcloud counts refused
 // requests per address and slows that address down when there are many.
@@ -546,7 +546,8 @@ let _refusedThisRound = false;
  */
 function isRefusal(err) {
     const status = typeof err === 'object' && err !== null && 'status' in err ? err.status : null;
-    return status === 401 || status === 403 || status === 429;
+    // 412 is Nextcloud's answer to an app it does not know or has disabled.
+    return status === 401 || status === 403 || status === 412 || status === 429;
 }
 
 async function pollOnce() {
