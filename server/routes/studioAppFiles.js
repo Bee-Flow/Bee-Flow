@@ -68,6 +68,7 @@ const { uploadGuard, scanBuffer } = require('../middleware/uploadGuard');
 const { DATA_LIMITS } = require('../appStudio/dataModel');
 const { resolveAudienceContext } = require('../auth/audience');
 const { perUserRateLimit } = require('../utils/perUserRateLimit');
+const { attachmentResponseHeaders } = require('./studioAppAttachmentHeaders.mts');
 
 // ── Auth ────────────────────────────────────────────────────────────
 // requireAuth is the canonical gate from auth/permissions (verifies the
@@ -321,10 +322,8 @@ router.get('/:id/data/attachments/:fileId', requireAuth, readLimiter, validate({
     const mime = attachment.mimeType || obj.contentType || 'application/octet-stream';
     res.setHeader('Content-Type', mime);
     res.setHeader('X-Content-Type-Options', 'nosniff');
-    // Inline only for types that are safe to render (SVG was sanitized at
-    // upload); everything else is forced to download.
-    const inline = /^image\//.test(mime) || mime === 'application/pdf';
-    res.setHeader('Content-Disposition', inline ? 'inline' : 'attachment');
+    // Disposition and policy as on the public page's route (studioAppAttachmentHeaders.mts).
+    for (const [name, value] of Object.entries(attachmentResponseHeaders(mime))) res.setHeader(name, value);
     if (obj.contentLength) res.setHeader('Content-Length', obj.contentLength);
 
     sendStream(obj.stream, res, next);
