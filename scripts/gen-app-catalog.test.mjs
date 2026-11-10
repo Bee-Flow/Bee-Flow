@@ -17,7 +17,7 @@ import path from 'node:path';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import {
-    OUT, DEMO_TYPES, buildSnapshot, buildDemoCatalog, defaultPropsOf, renderMobileExtensions, renderTypeEventLists, run, toolNamesOf,
+    OUT, DEMO_TYPES, buildSnapshot, buildDemoCatalog, defaultPropsOf, renderMobileExtensions, renderTypeEventLists, run, toolNamesOf, toolVerbsOutput,
 } from './gen-app-catalog.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -123,6 +123,13 @@ test('the real spec generates, and every DEMO_TYPES entry exists', () => {
 
 test('toolNamesOf keeps the server order', () => {
     assert.deepStrictEqual(toolNamesOf([{ function: { name: 'b' } }, { function: { name: 'a' } }]), ['b', 'a']);
+});
+
+test('toolVerbsOutput writes the registry verbs, and {} when none ship', () => {
+    assert.equal(toolVerbsOutput(undefined).file, OUT.toolVerbs);
+    assert.equal(toolVerbsOutput(undefined).text, '{}\n');
+    const verbs = { app_zz_echo: { key: 'zz.act_echo', en: 'Echoed' } };
+    assert.deepStrictEqual(JSON.parse(toolVerbsOutput(verbs).text), verbs);
 });
 
 function sandbox() {

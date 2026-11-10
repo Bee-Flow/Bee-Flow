@@ -17,6 +17,7 @@
 import type { LucideIcon } from 'lucide-react';
 import type { TranslateFn } from '@/hooks/useTranslation';
 import { getComponentEntry } from '../runtime/componentRegistry';
+import REGISTRY_VERBS from './appToolVerbs.generated.json';
 
 interface Verb {
     key: string;
@@ -108,7 +109,27 @@ export const VERBS: VerbTable = {
     app_apply_template: { key: 'app_studio.builder.act.apply_template', en: 'Applied a template' },
     app_save_as_template: { key: 'app_studio.builder.act.save_as_template', en: 'Saved as a template' },
     app_finalize: { key: 'app_studio.builder.act.finalize', en: 'Checked and saved the app' },
+    app_set_mailbox_hook: { key: 'studio_apps_tools.act_set_mailbox_hook', en: 'Linked a mailbox' },
+    app_list_documents: { key: 'studio_apps_tools.act_list_documents', en: 'Listed the documents' },
+    app_get_node: { key: 'studio_apps_tools.act_get_node', en: 'Read components' },
+    app_get_action: { key: 'studio_apps_tools.act_get_action', en: 'Read the actions' },
+    app_inspect_catalog: { key: 'studio_apps_tools.act_inspect_catalog', en: 'Looked up the building blocks' },
+    app_update_records: { key: 'studio_apps_tools.act_update_records', en: 'Updated rows' },
+    app_search_documents: { key: 'studio_apps_tools.act_search_documents', en: 'Searched the documents' },
+    app_read_document: { key: 'studio_apps_tools.act_read_document', en: 'Read a document' },
 };
+
+/**
+ * The verb of a tool: the table above, else the verb a registry tool carries
+ * (server builderTools/tools/<name>.js, generated into appToolVerbs.generated.json
+ * by `node scripts/gen-app-catalog.mjs --tools`; its key is in that tool's own
+ * i18n namespace). `registry` is for tests.
+ */
+export function verbFor(name: string, registry: Readonly<Record<string, Verb | undefined>> = REGISTRY_VERBS): Verb | null {
+    if (Object.prototype.hasOwnProperty.call(VERBS, name)) return VERBS[name] || null;
+    const own = Object.prototype.hasOwnProperty.call(registry, name) ? registry[name] : undefined;
+    return own && typeof own.key === 'string' && typeof own.en === 'string' ? own : null;
+}
 
 const ONE_COMPONENT = { key: 'app_studio.builder.act.add_component_one', en: 'Added 1 component' };
 const REFUSED = { key: 'app_studio.builder.act.refused', en: 'Not applied' };
@@ -135,6 +156,7 @@ export function landedIcon(type: unknown): LucideIcon | null {
 
 export function describeAppToolCall(tc: AppToolCall | null | undefined, t: TranslateFn | null = null): AppToolCallRow {
     const name = str(tc && tc.name) || '';
+    const verb = verbFor(name);
     const failed = tc && tc.ok === false;
     const added = (Array.isArray(tc && tc.added) ? (tc as { added: AddedItem[] }).added : [])
         .filter((a) => a && typeof a === 'object')
@@ -146,7 +168,6 @@ export function describeAppToolCall(tc: AppToolCall | null | undefined, t: Trans
         title = added.length === 1 ? tr(t, ONE_COMPONENT) : tr(t, VERBS.app_add_components, { n: added.length || '' });
         if (!added.length) title = tr(t, { key: 'app_studio.builder.act.add_components_some', en: 'Added components' });
     } else {
-        const verb = VERBS[name];
         title = verb ? tr(t, verb) : (name.replace(/^app_/, '').replace(/_/g, ' ') || tr(t, { key: 'app_studio.builder.act.tool', en: 'Tool call' }));
     }
     // The detail line: what landed, by name; a refusal's error; else the
@@ -163,7 +184,7 @@ export function describeAppToolCall(tc: AppToolCall | null | undefined, t: Trans
         added,
         error: failed ? (str(tc.error) || null) : null,
         hint: failed ? (str(tc.hint) || null) : null,
-        verbLabel: VERBS[name] ? tr(t, VERBS[name], { n: added.length }) : null,
+        verbLabel: verb ? tr(t, verb, { n: added.length }) : null,
     };
 }
 

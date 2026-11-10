@@ -1,0 +1,13 @@
+{
+  "translations": {
+    "studio_apps_tools.act_get_action": "De acties gelezen",
+    "studio_apps_tools.act_get_node": "Componenten gelezen",
+    "studio_apps_tools.act_inspect_catalog": "De bouwstenen opgezocht",
+    "studio_apps_tools.act_list_documents": "De documenten bekeken",
+    "studio_apps_tools.act_read_document": "Een document gelezen",
+    "studio_apps_tools.act_search_documents": "De documenten doorzocht",
+    "studio_apps_tools.act_set_mailbox_hook": "Een mailbox gekoppeld",
+    "studio_apps_tools.act_update_records": "Rijen bijgewerkt"
+  },
+  "sameAsEnglish": []
+}
