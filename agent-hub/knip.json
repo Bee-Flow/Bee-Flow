@@ -10,7 +10,8 @@
     "scripts/*.mjs",
     "vite.config.js",
     "vite.runtime.config.js",
-    "src/components/admin/Studio/AppStudio/runtime/components/pdfCompare/pdfEngine.stub.ts"
+    "src/components/admin/Studio/AppStudio/runtime/components/pdfCompare/pdfEngine.stub.ts",
+    "src/components/admin/Studio/AppStudio/flow/StepSettings/fieldTypes/*.tsx"
   ],
   "project": [
     "src/**/*.{js,jsx,ts,tsx,mjs}",

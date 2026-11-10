@@ -48,6 +48,13 @@ export interface StepFieldProps {
     references: StepReferences;
     formFields: FormFieldRef[];
     disabled: boolean;
+    /**
+     * Replaces the whole step, for the one edit that has to touch a second field with it: a renamed
+     * schema field carries its writeTo column along, and the first approval stage clears the single
+     * approver it supersedes. Absent (a caller that only edits one field), such a control writes only
+     * its own field.
+     */
+    onStepChange?: (next: AppAction) => void;
     /** Controls by field type, in place of the registered ones (fieldTypes.ts). Left out everywhere but in tests. */
     fieldControls?: Record<string, ComponentType<StepFieldProps & { label: string; hint?: string; required: boolean }>>;
 }

@@ -90,6 +90,7 @@ export default function StepSettings({ step, onChange, definition, node = null, 
                     value={step[key]}
                     step={step}
                     onChange={(v) => set({ [key]: v })}
+                    onStepChange={onChange}
                     definition={definition}
                     node={node}
                     options={options}

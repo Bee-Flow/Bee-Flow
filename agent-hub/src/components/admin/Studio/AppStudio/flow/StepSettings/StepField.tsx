@@ -16,6 +16,7 @@ import { KeyedBindingsField } from './KeyedBindingsField';
 import TierChoiceField from './TierChoiceField';
 import RetryField from './RetryField';
 import ErrorHandlerField from './ErrorHandlerField';
+import LongTextField, { isLongText } from './LongTextField';
 
 /** 'screenId' → 'Screen', 'maxIterations' → 'Max iterations'. */
 function humanize(key: string) {
@@ -28,7 +29,7 @@ function humanize(key: string) {
 }
 
 export function StepField({
-    fieldKey, fs, value, step, onChange, definition, node, options, references, formFields, disabled, fieldControls,
+    fieldKey, fs, value, step, onChange, definition, node, options, references, formFields, disabled, fieldControls, onStepChange,
 }: StepFieldProps) {
     const { t } = useTranslation();
     const labelEntry = FIELD_LABELS[fieldKey];
@@ -72,7 +73,7 @@ export function StepField({
     const registered = fieldControlFor(fs.type, fieldControls);
     if (registered) {
         return createElement(registered, {
-            fieldKey, fs, value, step, onChange, definition, node, options, references, formFields, disabled, label, hint, required,
+            fieldKey, fs, value, step, onChange, definition, node, options, references, formFields, disabled, label, hint, required, onStepChange,
         });
     }
 
@@ -189,6 +190,9 @@ export function StepField({
         case 'url':
         case 'string':
         default:
+            if (isLongText(fs)) {
+                return <LongTextField label={label} hint={hint} value={value} onChange={onChange} maxLen={fs.maxLen} required={required} nullable={!!fs.nullable} disabled={disabled} />;
+            }
             return (
                 <FormField label={label} hint={hint}>
                     <input
