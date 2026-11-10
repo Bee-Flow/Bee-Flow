@@ -15,7 +15,7 @@
 import { COMMON_ROUTES, daysAgo, minutesAgo } from './common';
 import { AI_ACT_ROUTES, seedAiAct } from './automationsAiAct';
 import { REPEATING_ROUTES } from './automationsRepeating';
-import { recordRun, runRoutes, seedRuns } from './automationsRuns';
+import { heldBackInDryRun, recordRun, rowOf, runRoutes, seedRuns } from './automationsRuns';
 import type { DemoRun } from './automationsRuns';
 import { SETTINGS_LIBRARY_ROUTES, SETTINGS_ROUTES, seedFolders, seedShares, seedTrash, seedWebhooks } from './automationsSettings';
 import { TEMPLATE_ROUTES } from './automationsTemplates';
@@ -751,11 +751,13 @@ export const ROUTES = {
         return { ...env, stepRecord: env.steps[0] };
     },
 
-    // Dry run — same rows, flagged so the UI can label it.
-    'POST /api/automation/:id/dry-run': ({ params }: Ctx) => ({
-        ...runEnvelope(params.id, RUN_ORDER),
-        dryRun: true,
-    }),
+    // Dry run: the same rows, but the sending step is held back and says so,
+    // and the run is recorded as a dry run so the Runs tab can open it.
+    'POST /api/automation/:id/dry-run': ({ state, params }: Ctx) => {
+        if (!find(state.automations, params.id)) return notFound();
+        const run = recordRun(state, params.id, true, true);
+        return { run: rowOf(run), steps: runEnvelope(params.id, RUN_ORDER).steps.map(heldBackInDryRun), dryRun: true };
+    },
 
     // The Runs tab, the Versions tab and Settings (handoff 5). The builder
     // rehydrates the canvas from the newest run's step rows on mount
