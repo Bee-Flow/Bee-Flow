@@ -366,7 +366,7 @@ function validateStepField(kind, field, fs, value, path, depth, counter, ctx, la
         case 'contextSources':
             validateContextSources(field, value, path, ctx);
             return;
-        case 'approvalQuestions': validateApprovalQuestions(field, value, path, ctx); return;
+        case 'approvalQuestions': require('./approvalQuestionChecks.mts').validateApprovalQuestions(field, value, path, ctx); return;
         case 'approvalStages': validateApprovalStages(field, value, path, ctx); return;
         case 'approvalOnDecided': validateApprovalOnDecided(value, path, ctx); return;
         // Checked by stepDataChecks.checkRecordTarget (it needs recordId next to it).
@@ -377,33 +377,6 @@ function validateStepField(kind, field, fs, value, path, depth, counter, ctx, la
         // temperature and an AI step's answer checks (schema v3): aiReliability.mts, the automation ai_step's rules.
         default: require('../aiReliability.mts').validateReliabilityField(field, fs, value, path, ctx);
     }
-}
-
-// Approver questions: the form vocabulary, ≤ 20, and never `file` — approvers
-// download attachments, they do not upload (matches the automation-approval
-// rule in automation/validate.js).
-const APPROVAL_QUESTION_TYPES = new Set(['text', 'textarea', 'number', 'date', 'email', 'select', 'checkbox']);
-/**
- * @param {string} field
- * @param {string} path
- */
-function validateApprovalQuestions(field, value, path, ctx) {
-    const { pushE } = ctx;
-    if (!Array.isArray(value)) { pushE({ code: 'action.approval_questions_invalid', severity: 'error', path, message: `\`${field}\` must be an array of question objects.`, hint: 'Use [{ name, label, type, required? }].' }); return; }
-    if (value.length > 20) { pushE({ code: 'action.approval_questions_invalid', severity: 'error', path, message: `Too many approver questions (${value.length}; max 20).`, hint: 'An approval is a decision, not a form.' }); return; }
-    const seen = new Set();
-    value.forEach((q, i) => {
-        const qp = `${path}[${i}]`;
-        if (!isObject(q) || typeof q.name !== 'string' || !q.name) {
-            pushE({ code: 'action.approval_questions_invalid', severity: 'error', path: qp, message: 'Each question needs a `name`.', hint: 'Use { name, label, type }.' });
-            return;
-        }
-        if (seen.has(q.name)) pushE({ code: 'action.approval_questions_invalid', severity: 'error', path: `${qp}.name`, message: `Duplicate question name ${JSON.stringify(q.name)}.`, hint: 'Names key the answers — keep them unique.' });
-        seen.add(q.name);
-        if (q.type !== undefined && !APPROVAL_QUESTION_TYPES.has(q.type)) {
-            pushE({ code: 'action.approval_questions_invalid', severity: 'error', path: `${qp}.type`, message: `Question type ${JSON.stringify(q.type)} is not legal.`, hint: `Use one of: ${[...APPROVAL_QUESTION_TYPES].join(', ')}. File uploads from approvers are not supported.` });
-        }
-    });
 }
 
 // The stage chain. Caps come from the shared rulebook so the app path and the
