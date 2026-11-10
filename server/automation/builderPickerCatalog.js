@@ -43,11 +43,11 @@ function defaultDeps() {
         resolvePrincipal: (userId) => require('../auth/datatableAccess').resolveDatatablePrincipalForUser(userId),
         kbStore: () => require('../stores/knowledgeBases'),
         askerContext: (userId) => require('../core/kb/askerContext').askerContext(userId),
-        hasPermission: (/** @type {string} */ userId, /** @type {string} */ perm) => require('../auth/permissions').hasPermission(userId, perm),
-        isOrgAdmin: async (userId) => {
-            const user = await require('../stores/userStore').getUser(userId);
-            return !!(user && require('../auth/permissions').isOrgAdminRole(user.orgRole));
-        },
+        resolvePermissionsByOrg: (/** @type {string} */ userId) => require('../auth/permissions').resolvePermissionsByOrg(userId),
+        // The organisations this user administers, off-request: the session-less
+        // request names the user and nothing else (no admin flag).
+        resolveAdminOrgIds: (/** @type {string} */ userId) => require('../auth/permissions')
+            .resolveAdminOrgIds({ session: { user: { id: userId } } }),
         hasFeature: (userId, feature, session) => require('../core/entitlements/betaFeatures').userHasBetaFeature(userId, feature, session),
         listInboxes: (/** @type {string} */ orgId) => require('../stores/supportInboxStore').listInboxes(orgId),
         publicBaseUrl: () => require('./triggerBus').getPublicBaseUrl(),
@@ -105,25 +105,42 @@ async function buildAgentPickerForUser(userId, { principal = null, deps = null }
  *
  * Throws on a failed read; the callers decide what that means.
  *
- * @param {{ userId: string, orgIds: Set<string>, userGroups: string[], canManage: boolean, isOrgAdmin: boolean }} p
- *   orgIds: ALWAYS a Set (`canUserManageKB` reads a null as super-admin); canManage: holds `manage_knowledge`
+ * @param {{ userId: string, orgIds: Set<string>, userGroups: string[], manageOrgIds?: Set<string>, adminOrgIds?: Set<string> }} p
+ *   orgIds: ALWAYS a Set (`canUserManageKB` reads a null as super-admin); manageOrgIds: the organisations in
+ *   which the person holds `manage_knowledge`; adminOrgIds: the organisations they administer (drafts and
+ *   group-restricted bases of those are listed too)
  */
-async function listKnowledgeBasePicker({ userId, orgIds, userGroups, canManage, isOrgAdmin }, { deps = null } = {}) {
+async function listKnowledgeBasePicker({ userId, orgIds, userGroups, manageOrgIds, adminOrgIds }, { deps = null } = {}) {
     const kbStore = depsOf(deps).kbStore();
     const orgSet = orgIds instanceof Set ? orgIds : new Set(Array.isArray(orgIds) ? orgIds : []);
-    const kbs = await kbStore.listKBs(userId, orgSet, { sourceKind: null, isOrgAdmin: !!isOrgAdmin });
+    const manageIn = manageOrgIds instanceof Set ? manageOrgIds : new Set();
+    const adminIn = adminOrgIds instanceof Set ? adminOrgIds : new Set();
+    const kbs = await kbStore.listKBs(userId, orgSet, { sourceKind: null, adminOrgIds: adminIn });
     const out = [];
-    for (const kb of kbStore.filterByGroupAccess(kbs, userId, userGroups || [], { orgIds: orgSet, isOrgAdmin: !!isOrgAdmin })) {
+    for (const kb of kbStore.filterByGroupAccess(kbs, userId, userGroups || [], { orgIds: orgSet, adminOrgIds: adminIn })) {
         if (typeof kbStore.isSystemKB === 'function' && kbStore.isSystemKB(kb)) continue;
         out.push({
             id: kb.id,
             name: kb.name,
             description: kb.description || null,
-            canWrite: kbStore.canUserManageKB(kb, userId, orgSet, !!canManage),
+            canWrite: kbStore.canUserManageKB(kb, userId, orgSet, !!kb.organization_id && manageIn.has(kb.organization_id)),
             scope: kb.organization_id ? 'org' : 'personal',
         });
     }
     return out;
+}
+
+/**
+ * The organisations of `orgIds` in which `byOrg` holds `permission`. A missing
+ * answer (a failed read) holds in none.
+ * @param {Set<string>|string[]|null|undefined} orgIds
+ * @param {{ holds: (permission: string, orgId: string) => boolean } | null | undefined} byOrg
+ * @param {string} permission
+ * @returns {Set<string>}
+ */
+function orgsHolding(orgIds, byOrg, permission) {
+    const list = orgIds instanceof Set ? [...orgIds] : (Array.isArray(orgIds) ? orgIds : []);
+    return new Set(byOrg ? list.filter((o) => byOrg.holds(permission, o)) : []);
 }
 
 /**
@@ -134,10 +151,16 @@ async function buildKnowledgeBasePickerForUser(userId, { deps = null } = {}) {
     const d = depsOf(deps);
     try {
         const { orgIds, userGroups } = await d.askerContext(userId);
-        const canManage = await Promise.resolve(d.hasPermission(userId, 'manage_knowledge')).catch(() => false);
-        let isOrgAdmin = false;
-        try { isOrgAdmin = await d.isOrgAdmin(userId); } catch (_) { isOrgAdmin = false; }
-        const knowledgeBases = await listKnowledgeBasePicker({ userId, orgIds, userGroups, canManage, isOrgAdmin }, { deps });
+        const byOrg = await Promise.resolve().then(() => d.resolvePermissionsByOrg(userId))
+            .catch((e) => fallback('automation/builderPickerCatalog:permissionsByOrg', e, null));
+        const manageOrgIds = orgsHolding(orgIds, byOrg, 'manage_knowledge');
+        /** @type {Set<string>} */
+        let adminOrgIds = new Set();
+        try {
+            const resolved = await d.resolveAdminOrgIds(userId);
+            if (resolved instanceof Set) adminOrgIds = resolved;
+        } catch (e) { adminOrgIds = fallback('automation/builderPickerCatalog:adminOrgIds', e, new Set()); }
+        const knowledgeBases = await listKnowledgeBasePicker({ userId, orgIds, userGroups, manageOrgIds, adminOrgIds }, { deps });
         return { knowledgeBases, knowledgeBasesError: null };
     } catch (e) {
         const knowledgeBasesError = /** @type {Error} */ (e).message || 'knowledge base list unavailable';

@@ -18,6 +18,8 @@ const { GUI_DEFAULTS } = require('../i18n/defaults/en');
 // The keys this round added to the AI Monitor and Website analytics.
 const ROUND_KEYS = new Set([
     'admin_monitoring.range_label',
+    'admin_monitoring.scope_all',
+    'admin_monitoring.scope_org',
     'cms_site.analytics.panel.site',
 ]);
 const OWNED = (k) => ROUND_KEYS.has(k);

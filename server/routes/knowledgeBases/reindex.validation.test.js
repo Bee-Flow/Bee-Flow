@@ -35,7 +35,7 @@ const MOCKS = {
         listByKb: async () => [{ id: 's1', name: 'Website' }, { id: 's2', name: 'Uploads' }],
     },
     '../../auth': { requireAuth: pass, requirePermission: () => pass },
-    './shared': { canAccessKB: async () => true, blockIfSystemKB: () => false },
+    './shared': { canManageKB: async () => true, blockIfSystemKB: () => false },
     '../../core/kb/sources': {
         syncSource: async (source, opts) => { touched.push({ what: 'syncSource', args: [source.id, opts.reason] }); return { updated: 1 }; },
     },

@@ -1,4 +1,5 @@
 /** @typedef {import('express-serve-static-core').NextFunction} NextFunction */
+// @typecheck
 /**
  * AI Config — external integration settings: the org-level n8n connection,
  * workflows, diagnostics and permissions, Agent Search defaults, and the
@@ -15,6 +16,9 @@ const { orgScope } = require('../../../auth/orgScope');
 const { validate } = require('../../../core/http/validate');
 const { z, worded, bodyOf, queryOf, closedObject, choice, typeError } = require('../../../core/http/schemaParts');
 const { isAdminUser } = require('./shared');
+const { requireAdminUser } = require('../requireAdminUser');
+/** The platform-admin gate of the instance-wide settings here (tagged, see ../requireAdminUser). */
+const requireAdmin = requireAdminUser(isAdminUser);
 
 // ── What these routes accept ─────────────────────────────────────────
 // Closed bodies. What they close: `include_citations: "false"` switched
@@ -164,8 +168,7 @@ router.get('/agent-search/defaults', requireAuth, async (req, res) => {
 
 // Installation-wide: every agent's search reads these. requireAuth
 // alone would let any signed-in user rewrite them for everyone.
-router.put('/agent-search/defaults', requireAuth, validate({ body: SearchDefaultsBody }), /** @param {import('express').Request<{}, any, import('zod').infer<typeof SearchDefaultsBody>, import('qs').ParsedQs>} req */ async (req, res) => {
-    if (!(await isAdminUser(req))) return res.status(403).json({ error: 'Admin access required' });
+router.put('/agent-search/defaults', requireAuth, requireAdmin, validate({ body: SearchDefaultsBody }), /** @param {import('express').Request<{}, any, import('zod').infer<typeof SearchDefaultsBody>, import('qs').ParsedQs>} req */ async (req, res) => {
     const { mode, include_citations, web, web_fast } = req.body;
     await configStore.setConfig('agent_search_defaults', {
         mode: ['web', 'web_fast', 'kb', 'auto'].includes(mode) ? mode : 'web',
@@ -322,12 +325,9 @@ router.get('/n8n/diagnostics', requireAuth, async (req, res) => {
     // 3. User-level integration gating.
     const userEnabledApps = await configStore.getConfig(`enabled_apps_user_${userId}`);
     /** @type {string} */
+    let userGateReason;
     /** @type {boolean} */
-    /** @type {boolean} */
-    /** @type {boolean} */
-    /** @type {boolean} */
-    /** @type {boolean} */
-    let userGateReason, userGatePasses;
+    let userGatePasses;
     if (!userEnabledApps) {
         userGateReason = 'no_saved_list'; userGatePasses = true;
     } else if (userEnabledApps.includes('n8n')) {

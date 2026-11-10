@@ -10,14 +10,38 @@ URL inside Bee Flow: `/app/admin` and `/app/org-settings`.
 
 ## Who is an admin
 
-There are two admin levels:
+There are two admin levels, the same on Bee Flow Cloud and on a self-hosted server:
 
-| Level | What they can do |
-|-------|------------------|
-| **Org admin** | Manage org settings, users, groups, integrations, license, audit. Default for the first user. |
-| **System admin** (self-hosted only) | All of the above + cross-org tasks: install packages, manage feature flags globally. Set via `BEEFLOW_SYSTEM_ADMINS` env var. |
+| Level | What they can do | How someone becomes one |
+|-------|------------------|-------------------------|
+| **Organisation admin** | Manage their organisation: its settings, users, groups, access and audit. | Their **Organisation Role** is Organisation Admin in their own organisation, set under [Users & groups](users-and-groups.md). Whoever signs up and creates an organisation becomes its organisation admin. A group of an organisation can also carry admin rights; its members administer that organisation. |
+| **Platform admin** | Everything that applies to the whole server: AI configuration and provider keys, integrations, modules, appearance, languages, the server licence, and every organisation on it. | The operator account `admin`, created at first setup (the setup page, or `INIT_ADMIN_PASSWORD`), is one. A platform admin makes another account one under **Admin → Security → Users**: edit (or add) the person and turn on **Platform administrator**. |
 
-The first user to register on a fresh install becomes an org admin automatically. Promote / demote others under [Users & groups](users-and-groups.md).
+An organisation admin is never a platform admin, also not on a self-hosted server with a single
+organisation, and administers only their own organisation (or one whose admin group they are in).
+Being an ordinary member of a group of another organisation gives no admin rights there.
+
+### Appointing a platform admin
+
+Under **Admin → Security → Users**, a platform admin edits the person and turns on
+**Platform administrator**, in the section **Whole server** of the form, below the organisation
+role. The form asks for confirmation and names the person; the change applies when you save.
+Only a platform admin sees this switch: an organisation admin cannot set or clear the platform
+role, also not for a member of their own organisation (the server refuses it). Nor does an
+organisation admin manage the account of a platform admin who is a member of their
+organisation: its password, two-factor reset, status, avatar and deletion are for a platform
+admin, and the user list offers an organisation admin no actions on that row.
+
+In the user list a platform admin carries a **Platform admin** marker, next to their
+organisation role. The organisation role belongs to the organisation the list shows them under.
+
+Turning the switch off withdraws the role. Turning it off for yourself asks first, because it
+ends your own access to the settings of the whole server. The operator account `admin` always
+stays a platform admin, and the server keeps the last active platform admin: it refuses to take
+the role away from, suspend or delete that account, and the panel shows why.
+
+The same through the API: `PUT /auth/users/<id>` with `{"role": "admin"}` (or `{"role": "user"}`
+to withdraw it), as a platform admin.
 
 ## The admin dashboard
 

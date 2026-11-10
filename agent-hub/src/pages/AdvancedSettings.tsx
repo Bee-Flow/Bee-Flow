@@ -1,4 +1,4 @@
-import { Users, Link2, BarChart2, Cloud, FolderGit2, GraduationCap, FileText, Scale, Plug, ShieldCheck } from 'lucide-react';
+import { Users, Link2, BarChart2, Cloud, FolderGit2, GraduationCap, FileText, Scale, Plug, ShieldCheck, RefreshCw } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
 import { SETTINGS_ORG_ID_TO_URL, settingsTabFromPath } from '../authedApp/settingsRoutes';
 import ComplianceHub from '../components/admin/compliance';
@@ -54,6 +54,9 @@ const BASE_ORG_SUB_ITEMS = [
     { id: 'org_meeting_templates', labelKey: 'settings.meeting_templates', icon: FileText, color: '#a855f7' },
 ];
 const AZURE_SUB_ITEM = { id: 'org_azure', labelKey: 'settings.azure_config', icon: Cloud, color: '#0078D4' };
+// The same tab and address for an organisation admin who is not the platform
+// admin: the organisation's own group sync (GroupSyncPanel), not the instance-wide setup.
+const GROUP_SYNC_SUB_ITEM = { id: 'org_azure', labelKey: 'azure.group_sync_nav', icon: RefreshCw, color: '#0078D4' };
 
 /* The order the sidebar draws the visible org rows in: topic groups with a
  * thin rule between them, no captions. 1 the organisation and its plan,
@@ -114,6 +117,7 @@ const AdvancedSettings = ({ onNavigate, onLogout, user, onUpdateUser, onClose }:
     const {
         canSeeOrg, canUseLearning, entitlementsLoading, inCeiling, entitlementsUnknown, projectsOn, canSeeCompliance,
         showComplianceNav, canManageUsers, isSelfHosted, isConsumerAccount, isNcConnectorUser, isNcOrg, showNcSync,
+        isPlatformAdmin,
     } = useSettingsAccess(user);
     // The badge on the Compliance row: ONE cheap call, no poll, `attention_open`
     // only; an unknown or zero count renders nothing (NavCountBadge): a "0"
@@ -147,10 +151,10 @@ const AdvancedSettings = ({ onNavigate, onLogout, user, onUpdateUser, onClose }:
     const { memoryStats, memoryStatsStatus, agents, statuses, orgAuthLocked, fetchMemoryStats, fetchSettingsStatuses } = useSettingsData(user, canSeeOrg);
     const orgSubItems = useMemo(() => {
         return filterOrgSubItems(BASE_ORG_SUB_ITEMS, AZURE_SUB_ITEM, {
-            canSeeOrg, canManageUsers, canUseLearning, showComplianceNav, isSelfHosted, isNcConnectorUser, isNcOrg, showNcSync,
+            canSeeOrg, canManageUsers, canUseLearning, showComplianceNav, isSelfHosted, isPlatformAdmin, isNcConnectorUser, isNcOrg, showNcSync,
             githubConnected: statuses.githubConnected, orgAuthLocked, entitlementsLoading, entitlementsUnknown, inCeiling,
-        });
-    }, [canSeeOrg, canManageUsers, canUseLearning, showComplianceNav, isSelfHosted, isNcConnectorUser, isNcOrg, showNcSync, statuses.githubConnected, orgAuthLocked, entitlementsLoading, entitlementsUnknown, inCeiling]);
+        }, GROUP_SYNC_SUB_ITEM);
+    }, [canSeeOrg, canManageUsers, canUseLearning, showComplianceNav, isSelfHosted, isPlatformAdmin, isNcConnectorUser, isNcOrg, showNcSync, statuses.githubConnected, orgAuthLocked, entitlementsLoading, entitlementsUnknown, inCeiling]);
 
     // The rows as the sidebar draws them: ORG_NAV_GROUPS order, empty groups dropped.
     const orgNavGroups = useMemo(() => groupOrgNavItems(orgSubItems, ORG_NAV_GROUPS), [orgSubItems]);
@@ -181,7 +185,7 @@ const AdvancedSettings = ({ onNavigate, onLogout, user, onUpdateUser, onClose }:
 
     const renderContent = () => renderSettingsContent({
         user, activeTab, setActiveTab, isMobile, phoneExemptTab, isOrgSubTab, canSeeOrg, canSeeCompliance, canUseLearning,
-        isConsumerAccount, isSelfHosted, projectsOn, entitlementsUnknown, orgDeepSegs,
+        isConsumerAccount, isSelfHosted, isPlatformAdmin, projectsOn, entitlementsUnknown, orgDeepSegs,
         // On a phone the hub owns the way back to the section list (its own top bar).
         complianceHub: (
             <ComplianceHub
@@ -224,7 +228,7 @@ const AdvancedSettings = ({ onNavigate, onLogout, user, onUpdateUser, onClose }:
     // Phone title bar shows the section name while in detail view: a top-level
     // row, an org sub-tab (Compliance, the no-plan licence page) or a consumer
     // row (the Stripe return), else the screen title.
-    const activeNavItem = findActiveNavItem(activeTab, [...BASE_ORG_SUB_ITEMS, AZURE_SUB_ITEM]);
+    const activeNavItem = findActiveNavItem(activeTab, [...BASE_ORG_SUB_ITEMS, isPlatformAdmin ? AZURE_SUB_ITEM : GROUP_SYNC_SUB_ITEM]);
     const mobileInDetail = isMobile && mobileDetail;
     const titleLabel = mobileInDetail && activeNavItem ? t(activeNavItem.labelKey) : t('settings.title');
     // The Compliance Center draws its OWN top bar on a phone, so in detail view

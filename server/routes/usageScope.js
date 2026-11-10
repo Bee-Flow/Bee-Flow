@@ -10,6 +10,8 @@ const auth = require('../auth');
 const { resolveUserOrgIds } = auth;
 const userStore = require('../stores/userStore');
 const log = require('../telemetry/log');
+const { HttpError } = require('../core/http/errors');
+const { coveredScope } = require('./monitoringOrg.mts');
 
 // Helper to parse days filter
 /**
@@ -26,6 +28,15 @@ function getDateFilters(daysParam = '30') {
 // not be READ (the store stumbled) is `'__unknown__'`, never a caller of no
 // organisation — the two look the same (an empty set) and only the second
 // may be answered with the caller's own rows.
+//
+//   - a platform admin (resolveUserOrgIds answers null for exactly them): the
+//     organisation of auth/adminOrg.mts resolveAdminOrgId — `?orgId` — or
+//     null, every organisation;
+//   - anyone else: their first organisation, which is their HOME organisation
+//     whenever they have one (auth/orgScope.js puts it first), so an
+//     organisation admin always reads their own. A `?orgId` naming any other
+//     organisation is a 403, never a wider or different answer.
+// Throws HttpError (400, 403, 404) for a refused `?orgId`.
 /** @param {import('express').Request} req */
 async function getOrgFilter(req) {
     let orgIds;
@@ -35,9 +46,26 @@ async function getOrgFilter(req) {
         log.warn('[usage] organisation scope unavailable:', /** @type {Error} */ (e).message);
         return '__unknown__';
     }
-    if (orgIds === null) return null;
-    if (orgIds.size === 0) return '__none__';
-    return Array.from(orgIds)[0];
+    if (orgIds === null) return require('../auth/permissions').resolveAdminOrgId(req);
+    const orgId = orgIds.size === 0 ? '__none__' : Array.from(orgIds)[0];
+    const named = req.query?.orgId;
+    if (named !== undefined && named !== '' && named !== orgId) {
+        throw new HttpError(403, 'org_admin_required', 'Organization admin access required');
+    }
+    return orgId;
+}
+
+/**
+ * What a usage answer covers, for its `scope` block (routes/monitoringOrg.mts
+ * coveredScope): the organisation of the filters, all organisations for a
+ * platform admin without one, or the caller's own rows.
+ * @param {import('express').Request} req
+ */
+function usageScopeOf(req) {
+    const orgId = typeof req.usageFilters?.organizationId === 'string' ? req.usageFilters.organizationId : null;
+    // The isSuperAdmin predicate, spelled as narrowMembersToOwnRows below spells it.
+    const platformAdmin = !!(req.session?.isAdmin || req.session?.user?.role === 'admin');
+    return coveredScope(orgId, !orgId && platformAdmin, (id) => userStore.getOrganization(id));
 }
 
 // Build filters from request query params
@@ -69,7 +97,13 @@ function buildRequestFilters(req) {
 async function attachOrgFilter(req, res, next) {
     const user = req.session?.user;
     if (!req.session?.isAuthenticated || !user) return res.status(401).json({ error: 'Not authenticated' });
-    const orgId = await getOrgFilter(req);
+    /** @type {string | null} */
+    let orgId;
+    try {
+        orgId = await getOrgFilter(req);
+    } catch (err) {
+        return next(err);
+    }
     if (orgId === '__unknown__') {
         return res.status(403).json({ error: 'Your organisation could not be determined. Please retry.', code: 'org_scope_unavailable' });
     }
@@ -133,4 +167,4 @@ async function narrowMembersToOwnRows(req, _res, next) {
     next();
 }
 
-module.exports = { getDateFilters, getOrgFilter, buildRequestFilters, attachOrgFilter, narrowMembersToOwnRows, mayViewColleagues };
+module.exports = { getDateFilters, getOrgFilter, buildRequestFilters, attachOrgFilter, narrowMembersToOwnRows, mayViewColleagues, usageScopeOf };

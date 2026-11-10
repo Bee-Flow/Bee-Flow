@@ -110,7 +110,7 @@ router.patch('/inboxes/:id', validate({ body: S.PatchInboxBody }), async (/** @t
     // string / null clears the operator (allowed).
     if (typeof req.body?.operator_user_id === 'string' && req.body.operator_user_id.trim()) {
         const { _eligibleStaffForOrg } = require('../services/supportAutoAssigner');
-        const eligible = await _eligibleStaffForOrg(inbox.organization_id).catch((e) => fallback('routes/supportInbox:anon', e, []));
+        const eligible = await _eligibleStaffForOrg(inbox.organization_id, { tenantInbox: true }).catch((e) => fallback('routes/supportInbox:anon', e, []));
         const op = req.body.operator_user_id.trim();
         if (!Array.isArray(eligible) || !eligible.includes(op)) {
             return res.status(400).json({ error: "Operator must be a support-capable member of this inbox's organisation." });

@@ -48,7 +48,7 @@ const MOCKS = {
         SEARCH_SERVICE_URL: 'http://search.internal',
         getUserId: (req) => req.session?.user?.id || null,
         resolveUserGroups: async () => [],
-        resolveIsOrgAdmin: async () => false,
+        resolveAdminOrgIds: async () => new Set(),
     },
     '../../db': {
         getAll: async (sql, params) => {

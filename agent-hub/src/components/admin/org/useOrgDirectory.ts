@@ -82,6 +82,11 @@ export interface OrgDirectory {
     editablePermissions: string[];
     organizations: Organization[];
     loading: boolean;
+    /**
+     * The admin-scoped member list was refused (403): the viewer administers
+     * no organisation of their own, as the admin dashboard tells the same case.
+     */
+    notOrgAdmin: boolean;
     customTiersMeta: CustomTierMeta[];
     usageByUser: Map<string, MemberUsage>;
     /** null until the org row lands, and for an org that has no sign-in method. */
@@ -103,8 +108,8 @@ export interface UseOrgDirectoryOptions {
  * every tab of the panel, and every write in the other hooks ends by calling
  * `fetchData` so the tabs cannot disagree about the same organisation.
  *
- * Server scoping is trusted: GET /auth/users already returns exactly the
- * members the caller may see.
+ * Server scoping is trusted: GET /auth/users?scope=admin returns the members
+ * of the caller's home organisation (every user for a platform admin).
  */
 export default function useOrgDirectory({ user }: UseOrgDirectoryOptions): OrgDirectory {
     const { isSelfHosted } = useDeploymentMode();
@@ -114,6 +119,7 @@ export default function useOrgDirectory({ user }: UseOrgDirectoryOptions): OrgDi
     const [editablePermissions, setEditablePermissions] = useState<string[]>([]);
     const [organizations, setOrganizations] = useState<Organization[]>([]);
     const [loading, setLoading] = useState(true);
+    const [notOrgAdmin, setNotOrgAdmin] = useState(false);
 
     // Custom tier metadata — used alongside the four standard tiers in the
     // group's Allowed-tiers editor. Empty allowedTiers on a group means "no
@@ -137,13 +143,17 @@ export default function useOrgDirectory({ user }: UseOrgDirectoryOptions): OrgDi
             // /auth/roles (the install-wide SYSTEM role table) is no longer
             // fetched here: the only thing left reading it was a badge that
             // counted three of its rows, and the panel is about ORG roles.
+            // The three lists are the admin dashboard's (`?scope=admin`): the
+            // viewer's home organisation, the one its writes are accepted for
+            // (every organisation for a platform admin).
             const [usersRes, groupsRes, orgsRes, orgRolesRes] = await Promise.all([
-                settled(`${API_BASE}/auth/users`, undefined, 'empty'),
-                settled(`${API_BASE}/auth/groups`, undefined, 'empty'),
-                settled(`${API_BASE}/auth/organizations`, undefined, 'empty'),
+                settled(`${API_BASE}/auth/users?scope=admin`, undefined, 'empty'),
+                settled(`${API_BASE}/auth/groups?scope=admin`, undefined, 'empty'),
+                settled(`${API_BASE}/auth/organizations?scope=admin`, undefined, 'empty'),
                 settled(`${API_BASE}/auth/org-roles`, undefined, 'empty'),
             ]);
             if (usersRes.ok) setUsers(await usersRes.res.json());
+            setNotOrgAdmin(!usersRes.ok && usersRes.status === 403);
             if (groupsRes.ok) setGroups(await groupsRes.res.json());
             // An install running an older server has no /auth/org-roles; the
             // Roles tab then says so rather than inventing a list.
@@ -246,6 +256,7 @@ export default function useOrgDirectory({ user }: UseOrgDirectoryOptions): OrgDi
         editablePermissions,
         organizations,
         loading,
+        notOrgAdmin,
         customTiersMeta,
         usageByUser,
         orgAuthMethod,

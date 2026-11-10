@@ -10,8 +10,18 @@ const express = require('express');
 const log = require('../../telemetry/log');
 const router = express.Router();
 const kbStore = require('../../stores/knowledgeBases');
-const { requireAuth, requirePermission, assertUserCanUseOrg } = require('../../auth');
+const { requireAuth, requirePermission, assertUserCanUseOrg, resolvePermissionsByOrg } = require('../../auth');
 const { getUserId, canAccessKB, sanitizeUsageContexts } = require('./shared');
+
+/**
+ * Does the caller hold manage_knowledge IN `orgId` (a platform admin: everywhere)?
+ * @param {import('express').Request<any, any, any, any>} req
+ * @param {string} orgId
+ * @returns {Promise<boolean>}
+ */
+async function managesKnowledgeIn(req, orgId) {
+    return (await resolvePermissionsByOrg(getUserId(req), req.session)).holds('manage_knowledge', orgId);
+}
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
@@ -54,6 +64,12 @@ router.post('/', requireAuth, requirePermission('manage_knowledge'), validate({ 
     // any member create KBs in other orgs.
     let assignOrgId;
     assignOrgId = await assertUserCanUseOrg(req, organizationId);
+    // Belonging to the organisation is not enough: manage_knowledge must hold
+    // IN it (a right of another organisation in the caller's union does not
+    // create bases here). A platform admin holds it everywhere.
+    if (assignOrgId && !(await managesKnowledgeIn(req, assignOrgId))) {
+        return res.status(403).json({ error: 'You cannot create knowledge bases in this organisation', code: 'org_permission_required' });
+    }
 
     const cleanedContexts = sanitizeUsageContexts(usageContexts);
 
@@ -91,11 +107,13 @@ router.post('/:id/duplicate', requireAuth, requirePermission('manage_knowledge')
     if (!await canAccessKB(req, source)) return res.status(404).json({ error: 'Knowledge base not found' });
 
     // Personal KBs (organization_id null) copy as personal; org KBs stay in
-    // the same org when the requester may use it, else fall back to personal.
+    // the same org when the requester may use it AND holds manage_knowledge
+    // there, else fall back to personal.
     let assignOrgId = source.organization_id || null;
     if (assignOrgId) {
         try { assignOrgId = await assertUserCanUseOrg(req, assignOrgId); } catch (_) { assignOrgId = null; }
     }
+    if (assignOrgId && !(await managesKnowledgeIn(req, assignOrgId))) assignOrgId = null;
 
     let usageContexts = null;
     try { usageContexts = Array.isArray(source.usage_contexts) ? source.usage_contexts : JSON.parse(source.usage_contexts || 'null'); } catch (_) { usageContexts = null; }

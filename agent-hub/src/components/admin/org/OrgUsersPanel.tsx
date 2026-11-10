@@ -5,15 +5,17 @@ import GroupsSection from './orgUsers/GroupsSection';
 import RolesSection from './orgUsers/RolesSection';
 import UsersSection from './orgUsers/UsersSection';
 import useOrgDirectory from './useOrgDirectory';
-import type { OrgGroupRow, OrgRolePermissions } from './useOrgDirectory';
+import type { OrgGroupRow, OrgMember, OrgRolePermissions } from './useOrgDirectory';
 import useOrgGroups from './useOrgGroups';
 import useOrgInvitations from './useOrgInvitations';
 import useOrgMemberRoles from './useOrgMemberRoles';
 import type { OrgMemberRoles } from './useOrgMemberRoles';
+import { ALERT_INFO } from '@/components/mcpLibrary/ui';
 import { ORG_ROLES } from '@/config/orgRoles';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useUrlTab } from '@/hooks/useUrlTab';
 import { useUserFilters } from '@/hooks/useUserFilters';
+import { isPlatformAdmin } from '@/utils/adminAccess';
 import NextcloudSyncPanel from '../../integrations/nextcloud/NextcloudSyncPanel';
 import ConfirmDialog from '../../shared/ConfirmDialog';
 import Tabs from '../../shared/Tabs';
@@ -42,6 +44,7 @@ interface OrgUsersPanelUser {
     /** Group ids. */
     groups?: string[];
     isAdmin?: boolean;
+    role?: string | null;
     orgRole?: string | null;
     ncOrg?: { instanceId?: string | null } | null;
     [key: string]: unknown;
@@ -169,14 +172,23 @@ const OrgUsersPanel = ({ user, initialSection: _initialSection, basePath = LEGAC
     const orgRoleCount = ORG_ROLES.length;
 
     const canEditRoles = canUserEditRoles(user);
+    // No client-side gate on the row controls, except one: a platform admin's
+    // account is changed by platform admins only, read from the ROW the server
+    // sent. The viewer's own organisation pointer is not consulted: it can be
+    // stale (the embedded Nextcloud view), and hiding controls on it locked
+    // legitimate admins out. The server refuses whatever else is not allowed.
+    // (Admin > Security > Users applies the full rule, utils/adminAccess
+    // mayManageAccount, on its own screen.)
+    const viewerIsPlatformAdmin = isPlatformAdmin(user);
+    const canManageMember = (member: OrgMember) => viewerIsPlatformAdmin || member.role !== 'admin';
 
     const handleRolePermissionsSaved = (roleId: string, permissions: string[]) => {
         setOrgRolePerms(prev => spliceRolePermissions(prev, roleId, permissions, editablePermissions));
     };
 
-    // Trust the server's org scoping. GET /auth/users already returns exactly
-    // the org members the caller may see (scoped server-side via
-    // resolveUserOrgIds, self always included). Re-deriving the org set on the
+    // Trust the server's org scoping. GET /auth/users?scope=admin returns the
+    // members of the caller's home organisation (auth/adminOrg.mts; every user
+    // for a platform admin). Re-deriving the org set on the
     // client from `user.organizationId` caused the member list to diverge
     // between the embedded Nextcloud view and standalone, and could hide
     // members from an org-admin whose client-side org pointer was stale. We
@@ -211,6 +223,14 @@ const OrgUsersPanel = ({ user, initialSection: _initialSection, basePath = LEGAC
                 items={sections}
             />
 
+            {/* The admin-scoped lists were refused: say so, as the admin
+                dashboard does, rather than show an empty organisation. */}
+            {directory.notOrgAdmin && (
+                <div role="status" className={ALERT_INFO}>
+                    {t('admin_org.user_mgmt_org_admins_only', 'This page is for administrators of the organisation, so ask a platform administrator if you need access.')}
+                </div>
+            )}
+
             {activeSection === 'users' && (
                 <UsersSection
                     directory={directory}
@@ -221,6 +241,7 @@ const OrgUsersPanel = ({ user, initialSection: _initialSection, basePath = LEGAC
                     memberRoles={memberRoles}
                     userFilters={userFilters}
                     onGoToGroups={goToGroups}
+                    canManageMember={canManageMember}
                 />
             )}
 

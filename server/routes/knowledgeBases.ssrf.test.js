@@ -64,6 +64,8 @@ const MOCKS = {
     '../stores/knowledgeBases': {
         getKB: async (id) => ({ id, tenant_id: 't1', name: 'kb' }),
         isSystemKB: () => false,
+        // Access is not what this suite tests: the caller may manage the base.
+        canUserManageKB: () => true,
         hashContent: (c) => `h${c.length}`,
         hasContentHash: async () => false,
         bumpKBVersion: async () => {},
@@ -76,6 +78,7 @@ const MOCKS = {
         requireActiveOrgForMutations: () => mw,
         resolveUserOrgIds: async () => [],
         hasPermission: async () => true,
+        resolvePermissionsByOrg: async () => ({ holds: () => true }),
         assertUserCanUseOrg: async () => {},
         validateSharedGroupsForOrg: async () => {},
         isOrgAdminRole: () => true,
@@ -83,7 +86,7 @@ const MOCKS = {
     },
     '../core/entitlements/betaFeatures': { userHasBetaFeature: async () => false },
     '../core/serviceAuth': { getServiceHeaders: () => ({}) },
-    '../support/kbAccess': { canAccessKB: async () => true, resolveIsOrgAdmin: async () => true },
+    '../support/kbAccess': { canAccessKB: async () => true, resolveAdminOrgIds: async () => new Set(['o1']) },
     '../core/kb/kbIngestionHelpers': {
         getAzureIngestParams: async () => ({}),
         extractFileContent: async () => '',

@@ -52,7 +52,8 @@ describe('AdminDashboard navigation', () => {
         for (const name of ['Agents', 'Monitoring', 'Compliance', 'Subscriptions', 'Product Website', 'Release Notes']) {
             expect(nav.getByRole('link', { name })).toBeInTheDocument();
         }
-        expect(nav.getByText('Website')).toBeInTheDocument();
+        // The whole-server block is one flat list: no "Website" sub-heading.
+        expect(within(nav.getByTestId('admin-rail-section-instance')).getByRole('link', { name: 'Release Notes' })).toBeInTheDocument();
     });
 
     it('shows an org admin only the tabs their permission opens', () => {
@@ -101,3 +102,49 @@ describe('AdminDashboard navigation', () => {
         expect(onBack).toHaveBeenCalled();
     });
 });
+
+describe('AdminDashboard scope groups', () => {
+    const orgAdmin = {
+        id: 'u4', isAdmin: false, role: 'user', orgRole: 'org_admin', organizationId: 'org-1',
+        permissions: ['org_admin', 'admin_agents', 'admin_ai_config', 'admin_security', 'admin_monitoring', 'admin_compliance', 'manage_users'],
+    };
+    const enterprise = { tier: 'enterprise', deploymentMode: 'self-hosted' } as const;
+
+    it('gives a platform admin both groups: the organisation and the whole server', () => {
+        renderDashboard({ seg1: 'agents', license: enterprise });
+        const nav = within(rail());
+        expect(nav.getByTestId('admin-rail-section-org')).toHaveTextContent('Organisations');
+        expect(nav.getByTestId('admin-rail-section-org')).not.toHaveTextContent('Your organisation');
+        expect(nav.getByTestId('admin-rail-section-instance')).toHaveTextContent('Whole server');
+        expect(within(nav.getByTestId('admin-rail-section-org')).getAllByRole('link').map(a => a.textContent))
+            .toEqual(['Agents', 'Security', 'Access', 'Compliance', 'Monitoring']);
+        const server = within(nav.getByTestId('admin-rail-section-instance')).getAllByRole('link').map(a => a.textContent);
+        expect(server).toEqual(expect.arrayContaining(['AI Config', 'Integrations', 'Modules', 'Server licence', 'Languages']));
+        expect(server).not.toContain('Agents');
+    });
+
+    it('gives an organisation admin one group and no tab about the whole server', () => {
+        renderDashboard({ user: orgAdmin, seg1: 'agents', license: enterprise });
+        const nav = within(rail());
+        expect(nav.getByTestId('admin-rail-section-org')).toHaveTextContent('Your organisation');
+        expect(nav.queryByTestId('admin-rail-section-instance')).not.toBeInTheDocument();
+        expect(nav.queryByText('Whole server')).not.toBeInTheDocument();
+        expect(nav.getAllByRole('link').map(a => a.textContent)).toEqual(['Agents', 'Security', 'Access', 'Compliance', 'Monitoring']);
+    });
+
+    it('leaves the Agents tab out when the viewer has no agent section left', () => {
+        const systemOnly = { ...orgAdmin, permissions: [...orgAdmin.permissions, 'admin_agents_system'], allowedAgentTypes: ['system'] };
+        renderDashboard({ user: systemOnly, seg1: 'agents', license: enterprise });
+        const links = within(rail()).getAllByRole('link').map(a => a.textContent);
+        expect(links).not.toContain('Agents');
+        expect(links[0]).toBe('Security');
+    });
+
+    it('sends an organisation admin who follows a link to a server-wide tab to the first visible tab', () => {
+        renderDashboard({ user: orgAdmin, seg1: 'ai-config', license: enterprise });
+        expect(within(rail()).getByRole('link', { name: 'Agents' })).toHaveAttribute('aria-current', 'page');
+        expect(screen.queryByTestId('admin-tab-ai-config')).not.toBeInTheDocument();
+        expect(screen.queryByRole('heading', { name: 'Access Denied' })).not.toBeInTheDocument();
+    });
+});
+

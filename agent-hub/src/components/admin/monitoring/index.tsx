@@ -15,7 +15,11 @@ import { useMonitoringData, type MonitoringData } from './useMonitoringData';
 import type { DrawerDetail } from './drawer/drawerTypes';
 import type { MonitoringPanelProps } from './index.types';
 import { PAGES, monitoringPageOf } from './monitoring.constants';
+import type { CoveredScope } from './shared.types';
 import { toLocalInput } from './monitoring.helpers';
+import { isAdminSectionVisibleTo } from '@/components/admin/dashboard/adminTabs';
+import { useAdminOrgIdParam } from '@/components/admin/dashboard/useAdminOrg';
+import { isHomeOrgAdmin, isPlatformAdmin } from '@/utils/adminAccess';
 
 /** Change against the previous period, in percent (null where the previous period had none). */
 function usageDeltas(summary: UsageSummary | null, prevSummary: UsageSummary | null): UsageDeltas {
@@ -27,6 +31,14 @@ function usageDeltas(summary: UsageSummary | null, prevSummary: UsageSummary | n
         cost: calc(summary.total_estimated_cost || 0, prevSummary.total_estimated_cost || 0),
         latency: calc(summary.avg_duration_ms || 0, prevSummary.avg_duration_ms || 0),
     };
+}
+
+/** The line under the heading that says what the figures cover; null when the answer does not say (or covers the caller's own rows). */
+function useScopeLine(scope: CoveredScope | undefined): string | null {
+    const { t } = useTranslation();
+    if (scope?.allOrganizations) return t('admin_monitoring.scope_all', 'Usage of all organisations');
+    if (scope?.organizationId) return t('admin_monitoring.scope_org', 'Usage of {name}', { name: scope.organizationName || scope.organizationId });
+    return null;
 }
 
 const DELTA_LABELS: Record<string, string> = { today: 'vs yesterday', '7d': 'vs prev 7d', '30d': 'vs prev 30d', custom: 'vs prev period' };
@@ -57,12 +69,14 @@ interface PageProps {
     customStart: string;
     customEnd: string;
     refreshKey: number;
+    /** The admin dashboard's chosen organisation, or null. */
+    orgId: string | null;
     onDetail: (detail: DrawerDetail) => void;
     onNavigate?: (path: string) => void;
 }
 
 /** The page the URL names, fed from the shared read. */
-function MonitoringPage({ page, data, range, customStart, customEnd, refreshKey, onDetail, onNavigate }: PageProps) {
+function MonitoringPage({ page, data, range, customStart, customEnd, refreshKey, orgId, onDetail, onNavigate }: PageProps) {
     const { costPerModel, totalCost } = useModelCosts(data);
     const deltas = useMemo(() => usageDeltas(data.summary, data.prevSummary), [data.summary, data.prevSummary]);
     const onSelectModel = (m: DrawerDetail['data']) => onDetail({ type: 'model', data: m });
@@ -81,7 +95,10 @@ function MonitoringPage({ page, data, range, customStart, customEnd, refreshKey,
         case 'activity':
             return <ActivityPage recent={data.recent} />;
         case 'terminations':
-            return <TerminationsPage range={range} customStart={customStart} customEnd={customEnd} refreshKey={refreshKey} />;
+            // The generic route: it needs admin_monitoring (the tab's own permission) and scopes a
+            // caller who is not a platform admin to their own organisation on the server. A platform
+            // admin who chose one organisation reads the `/org` routes for it.
+            return <TerminationsPage range={range} customStart={customStart} customEnd={customEnd} refreshKey={refreshKey} orgId={orgId} />;
         default:
             return (
                 <OverviewPage
@@ -100,22 +117,31 @@ function MonitoringPage({ page, data, range, customStart, customEnd, refreshKey,
  * per URL (admin/monitoring/<page>; bare admin/monitoring is Overview), with
  * the period chosen once for all of them in the page header.
  */
-export default function MonitoringPanel({ activeSection = '', onNavigate }: MonitoringPanelProps) {
+export default function MonitoringPanel({ activeSection = '', onNavigate, user }: MonitoringPanelProps) {
     const { t } = useTranslation();
-    const page = monitoringPageOf(activeSection);
-    const meta = PAGES.find(p => p.id === page) ?? PAGES[0];
+    // Feedback is for a platform admin and an organisation admin of their home organisation
+    // (the `/org` route refuses anyone else); a hidden page falls back to Overview.
+    const viewer = { isPlatformAdmin: isPlatformAdmin(user), isHomeOrgAdmin: isHomeOrgAdmin(user) };
+    const pages = PAGES.filter(p => isAdminSectionVisibleTo('monitoring', viewer, p.id));
+    const requested = monitoringPageOf(activeSection);
+    const page = pages.some(p => p.id === requested) ? requested : 'overview';
+    const meta = pages.find(p => p.id === page) ?? pages[0];
     const [range, setRange] = useState('7d');
     const [customStart, setCustomStart] = useState(defaultStart);
     const [customEnd, setCustomEnd] = useState(() => toLocalInput(new Date()));
     const [detail, setDetail] = useState<DrawerDetail | null>(null);
-    const { data, loading, reload, refreshKey } = useMonitoringData(range, customStart, customEnd);
+    // The dashboard's chosen organisation (a platform admin's), sent as `orgId`; none: the server's default scope.
+    const orgId = useAdminOrgIdParam();
+    const { data, loading, reload, refreshKey } = useMonitoringData(range, customStart, customEnd, orgId);
     const title = t('admin_monitoring.title', 'AI Monitor');
     const { costPerModel } = useModelCosts(data);
+    const scopeLine = useScopeLine(data.summary?.scope);
+    const pageDescription = t(meta.descriptionKey, meta.description);
 
     const sidebar = (
         <SectionNav
             label={title}
-            items={PAGES.map(p => ({ id: p.id, icon: p.icon, label: t(p.labelKey) }))}
+            items={pages.map(p => ({ id: p.id, icon: p.icon, label: t(p.labelKey) }))}
             activeId={page}
             onSelect={(id) => onNavigate?.(`admin/monitoring/${id}`)}
         />
@@ -128,7 +154,7 @@ export default function MonitoringPanel({ activeSection = '', onNavigate }: Moni
                     <div className="mx-auto flex max-w-[1400px] flex-col gap-5 p-4 md:p-6">
                         <SectionHeader
                             title={t(meta.labelKey)}
-                            description={t(meta.descriptionKey, meta.description)}
+                            description={scopeLine ? <>{pageDescription}<span className="block">{scopeLine}</span></> : pageDescription}
                             status={(
                                 <RangeControls
                                     range={range} setRange={setRange} customStart={customStart} setCustomStart={setCustomStart}
@@ -138,7 +164,7 @@ export default function MonitoringPanel({ activeSection = '', onNavigate }: Moni
                         />
                         <MonitoringPage
                             page={page} data={data} range={range} customStart={customStart} customEnd={customEnd}
-                            refreshKey={refreshKey} onDetail={setDetail} onNavigate={onNavigate}
+                            refreshKey={refreshKey} orgId={orgId} onDetail={setDetail} onNavigate={onNavigate}
                         />
                     </div>
                 </div>

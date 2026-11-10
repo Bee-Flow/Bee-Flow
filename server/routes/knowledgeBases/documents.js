@@ -28,7 +28,7 @@ const router = express.Router();
 const kbStore = require('../../stores/knowledgeBases');
 const { requireAuth, requirePermission } = require('../../auth');
 const { deleteDocumentChunks } = require('../../core/kb/kbIngestionHelpers');
-const { getUserId, canAccessKB, blockIfSystemKB } = require('./shared');
+const { getUserId, canAccessKB, canManageKB, blockIfSystemKB } = require('./shared');
 const { statusFilter, piiFilter } = require('./docFilters');
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
@@ -138,7 +138,8 @@ router.get('/:id/documents', requireAuth, validate({ query: DocumentsQuery }), a
 router.post('/:id/documents/bulk-delete', requireAuth, requirePermission('manage_knowledge'), validate({ body: BulkDeleteBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof BulkDeleteBody>, import('qs').ParsedQs>} */ req, res) => {
     const kb = await kbStore.getKB(req.params.id);
     if (!kb) return res.status(404).json({ error: 'KB not found' });
-    if (!(await canAccessKB(req, kb))) return res.status(403).json({ error: 'Access denied' });
+    // Deleting content is managing the base (manage_knowledge in its own organisation).
+    if (!(await canManageKB(req, kb))) return res.status(403).json({ error: 'Access denied' });
     if (blockIfSystemKB(kb, res)) return;
 
     const ids = req.body.documentIds;
@@ -313,7 +314,7 @@ router.get('/:id/documents/:docId/original', requireAuth, validate({ query: NoQu
 router.delete('/:id/documents/:docId', requireAuth, requirePermission('manage_knowledge'), validate({ query: NoQuery, body: NoBody }), async (/** @type {import('express').Request<{ id: string, docId: string }, any, import('zod').infer<typeof NoBody>, import('zod').infer<typeof NoQuery>>} */ req, res) => {
     const kb = await kbStore.getKB(req.params.id);
     if (!kb) return res.status(404).json({ error: 'KB not found' });
-    if (!(await canAccessKB(req, kb))) return res.status(403).json({ error: 'Access denied' });
+    if (!(await canManageKB(req, kb))) return res.status(403).json({ error: 'Access denied' });
     if (blockIfSystemKB(kb, res)) return;
 
     const doc = await kbStore.getDocument(req.params.docId);

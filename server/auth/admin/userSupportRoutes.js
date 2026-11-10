@@ -1,7 +1,10 @@
 // @typecheck
 const log = require('../../telemetry/log');
 const userStore = require('../../stores/userStore');
-const { isOrgAdminRole } = require('../permissions');
+const { isOrgAdminRole, loadConfig } = require('../permissions');
+const { isPlatformOperator } = require('../platformOperator');
+const { wouldOrphanOrg, orgsAdministeredBy, refuseLastOrgAdmin } = require('./orgAdminGuards');
+const { leavesNoPlatformAdmin, LAST_PLATFORM_ADMIN_REFUSAL } = require('./platformAdminCount.mts');
 const { z, typeError } = require('../../utils/zod');
 const { worded, costLimit } = require('../../core/http/schemaParts');
 const ORG_ROLE_DEFS = require('../../config/orgRoles.json');
@@ -259,4 +262,35 @@ async function endSessionsFor(userId, opts = {}) {
     } catch (err) { require('../../utils/bestEffort').bestEffort('auth/admin/users:endSessions', err); }
 }
 
-module.exports = { costLimitRefusal, stripKeyMaterial, buildRoleDowngradeHint, CreateUserBody, ChangePasswordBody, USER_UPDATE_FIELDS, SUPER_ADMIN_ONLY_FIELDS, isKnownRoleId, USER_UPDATE_ALLOWED_KEYS, USER_TEXT_FIELDS, needsAdminPasswordFloor, unknownFieldsRefusal, accessChanges, endSessionsFor };
+/**
+ * Would this change to `prevUser` leave the server without a platform admin?
+ * (platformAdminCount.mts). An account that is not one never is.
+ * @param {{ role?: string | null } | null} prevUser
+ * @param {import('./platformAdminCount.mts').AccountChange} change
+ */
+async function leavesServerWithoutPlatformAdmin(prevUser, change) {
+    if (prevUser?.role !== 'admin') return false;
+    const [rows, config] = await Promise.all([userStore.getAllUsers(), loadConfig()]);
+    return leavesNoPlatformAdmin(rows, change, { isOperator: isPlatformOperator, operatorSignsInFromConfig: !!config?.admin?.passwordHash });
+}
+
+/**
+ * Answers 409 and returns true when deleting `prevUser` would leave one of its
+ * organisations, or the server, without an administrator. The org half fires
+ * only when the organisation still has OTHER members to strand (wouldOrphanOrg),
+ * so the sole member of a one-person org (every self-serve signup starts as
+ * that) remains deletable: erasure has to keep working, and this is its path.
+ * @param {import('express').Response} res
+ * @param {Record<string, any> | null} prevUser the stored row, before the delete
+ * @param {string} id
+ */
+async function refusedDelete(res, prevUser, id) {
+    for (const guardedOrg of prevUser && isOrgAdminRole(prevUser.orgRole) ? await orgsAdministeredBy(prevUser) : []) {
+        if (await wouldOrphanOrg(guardedOrg, id)) return !!refuseLastOrgAdmin(res, 'Deleting this user');
+    }
+    if (!await leavesServerWithoutPlatformAdmin(prevUser, { id, deleted: true })) return false;
+    res.status(409).json(LAST_PLATFORM_ADMIN_REFUSAL);
+    return true;
+}
+
+module.exports = { costLimitRefusal, stripKeyMaterial, buildRoleDowngradeHint, CreateUserBody, ChangePasswordBody, USER_UPDATE_FIELDS, SUPER_ADMIN_ONLY_FIELDS, isKnownRoleId, USER_UPDATE_ALLOWED_KEYS, USER_TEXT_FIELDS, needsAdminPasswordFloor, unknownFieldsRefusal, accessChanges, endSessionsFor, leavesServerWithoutPlatformAdmin, refusedDelete };

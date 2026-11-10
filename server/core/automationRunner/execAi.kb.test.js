@@ -238,5 +238,5 @@ test('an automation owned by an org admin still only grounds on what its owner m
         {}, 'live',
     );
     assert.strictEqual(accessOpts.length, 1);
-    assert.strictEqual(accessOpts[0].isOrgAdmin, false, 'never the admin bypass at retrieval');
+    assert.deepStrictEqual(accessOpts[0].adminOrgIds, [], 'never the admin bypass at retrieval');
 });

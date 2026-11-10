@@ -52,7 +52,7 @@ after(close);
 test('reading: the owner and a super admin, never an org admin, a publish flag or a group', async () => {
     assert.strictEqual(store.canUserAccessKB(filesKb, 'owner', ORG, []), true, 'the project owner');
     assert.strictEqual(store.canUserAccessKB(filesKb, 'root', null, []), true, 'a super admin');
-    assert.strictEqual(store.canUserAccessKB(filesKb, 'admin', ORG, [], { isOrgAdmin: true }), false,
+    assert.strictEqual(store.canUserAccessKB(filesKb, 'admin', ORG, [], { adminOrgIds: ORG }), false,
         'an org admin who is not a member reads nothing through the generic ACL');
     const published = { ...filesKb, is_published: true, shared_groups: '[]' };
     assert.strictEqual(store.canUserAccessKB(published, 'mallory', ORG, []), false,
@@ -61,7 +61,7 @@ test('reading: the owner and a super admin, never an org admin, a publish flag o
     assert.strictEqual(store.canUserAccessKB(grouped, 'mallory', ORG, ['g1']), false);
     // An ordinary org base is unchanged.
     assert.strictEqual(store.canUserAccessKB(orgKb, 'mallory', ORG, []), true);
-    assert.strictEqual(store.canUserAccessKB(orgDraft, 'admin', ORG, [], { isOrgAdmin: true }), true);
+    assert.strictEqual(store.canUserAccessKB(orgDraft, 'admin', ORG, [], { adminOrgIds: ORG }), true);
 });
 
 test('managing: nobody through the generic routes, not even a same-org manage_knowledge holder', async () => {
@@ -79,9 +79,19 @@ test('managing: nobody through the generic routes, not even a same-org manage_kn
 test('listing: an org admin\'s ?includeAuto=1 does not list another person\'s project files base', async () => {
     const ids = (rows) => rows.map(r => r.id);
 
-    const admin = await store.listKBs('admin', ORG, { sourceKind: null, isOrgAdmin: true });
+    const admin = await store.listKBs('admin', ORG, { sourceKind: null, adminOrgIds: ORG });
     assert.ok(ids(admin).includes(orgDraft.id), 'org drafts still listed for an org admin');
     assert.ok(!ids(admin).includes(filesKb.id), 'the files base is not an org row');
+
+    // Admin of another organisation, plain member of org1: org1's drafts stay
+    // hidden, the other organisation's drafts are listed (the draft clause
+    // binds the administered organisations after the filter parameters).
+    const otherDraft = await store.createKB('owner2', 'Other draft', '', 'org2');
+    const both = new Set(['org1', 'org2']);
+    const elsewhere = await store.listKBs('admin', both, { sourceKind: null, usageContext: null, systemSlugs: ['none'], adminOrgIds: new Set(['org2']) });
+    assert.ok(ids(elsewhere).includes(otherDraft.id), 'drafts of the administered organisation');
+    assert.ok(!ids(elsewhere).includes(orgDraft.id), 'no drafts of an organisation the caller only belongs to');
+    assert.ok(ids(elsewhere).includes(orgKb.id), 'published bases of that organisation still listed');
 
     const member = await store.listKBs('mallory', ORG, { sourceKind: null });
     assert.ok(ids(member).includes(orgKb.id));

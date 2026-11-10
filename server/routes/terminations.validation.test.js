@@ -35,7 +35,11 @@ const Module = require('module');
 // Every store read lands in `touched`. A refused request must leave it empty.
 const touched = [];
 // Who holds `admin_monitoring`, and which org role each user has.
-const fx = { monitoring: new Set(['u1']), orgRole: { u1: 'org_admin' }, rows: [] };
+const fx = {
+    monitoring: new Set(['u1']), orgRole: { u1: 'org_admin' }, rows: [],
+    /** Home organisation per user (org-1 when unlisted), groups per user, the organisations that exist. */
+    homeOrg: {}, groups: {}, orgs: { 'org-1': { id: 'org-1', name: 'Org One' }, 'org-2': { id: 'org-2', name: 'Org Two' } },
+};
 
 const MOCKS = {
     '../stores/terminationStore': {
@@ -45,7 +49,8 @@ const MOCKS = {
         getByAgent: async (filters) => { touched.push({ what: 'getByAgent', filters }); return []; },
     },
     '../auth': {
-        resolveUserOrgIds: async () => new Set(['org-1']),
+        // null for a platform admin, as the real one answers.
+        resolveUserOrgIds: async (req) => (req.session?.isAdmin ? null : new Set(['org-1'])),
         isOrgAdminRole: (role) => role === 'org_admin',
         // The decision lines of the real requirePermission (auth/permissions.js).
         requirePermission: (permission) => (req, res, next) => {
@@ -54,8 +59,20 @@ const MOCKS = {
             return res.status(403).json({ error: `Permission '${permission}' required` });
         },
     },
-    '../stores/userStore': { getUser: async (id) => ({ id, orgRole: fx.orgRole[id] || 'member' }) },
+    '../stores/userStore': {
+        getUser: async (id) => ({ id, orgRole: fx.orgRole[id] || 'member', organizationId: fx.homeOrg[id] ?? 'org-1', groups: fx.groups[id] || [] }),
+        getOrganization: async (id) => fx.orgs[id] || null,
+    },
 };
+// The /org routes' organisation: the real decision (auth/adminOrg.mts) over the users above.
+MOCKS['../auth/permissions'] = require('../auth/adminOrg.mts').createAdminOrgGate({
+    isSuperAdmin: (req) => !!(req.session?.isAdmin || req.session?.user?.role === 'admin'),
+    evalOrgAdmin: (user, groups, orgId) => (user.organizationId === orgId && user.orgRole === 'org_admin')
+        || groups.some((g) => user.groups.includes(g.id) && g.organizationId === orgId && g.roles.includes('org_admin')),
+    getUser: (id) => MOCKS['../stores/userStore'].getUser(id),
+    getAllGroups: async () => [{ id: 'g-b-admins', organizationId: 'org-2', roles: ['org_admin'] }],
+    getOrganization: (id) => MOCKS['../stores/userStore'].getOrganization(id),
+});
 
 const MOCK_IDS = {};
 for (const [request, exportsObj] of Object.entries(MOCKS)) {
@@ -124,6 +141,8 @@ test.beforeEach(() => {
     fx.monitoring = new Set(['u1']);
     fx.orgRole = { u1: 'org_admin' };
     fx.rows = [];
+    fx.homeOrg = {};
+    fx.groups = {};
     audit.rows.length = 0;
     audit.fail = false;
 });
@@ -245,6 +264,58 @@ test('the org admin\'s own view is unchanged: the org-admin role, not the permis
     touched.length = 0;
     const member = await dispatch('/org/summary', MEMBER);
     assert.strictEqual(member.statusCode, 403);
+    assert.deepStrictEqual(touched, []);
+});
+
+test('an organisation admin of org-1 in an admin group of org-2 reads org-1 only', async () => {
+    fx.groups = { u1: ['g-b-admins'] };
+    const own = await dispatch('/org/summary');
+    assert.strictEqual(own.statusCode, 200);
+    assert.strictEqual(touched[0].filters.organizationId, 'org-1');
+    assert.deepStrictEqual(own.body.scope, { organizationId: 'org-1', organizationName: 'Org One', allOrganizations: false });
+
+    touched.length = 0;
+    const other = await dispatch('/org/summary?orgId=org-2');
+    assert.strictEqual(other.statusCode, 403);
+    assert.strictEqual(other.body.code, 'org_admin_required');
+    assert.deepStrictEqual(touched, [], 'no store read on a refused request');
+});
+
+test('a platform admin is not refused on /org: ?orgId, else their own organisation, else 403', async () => {
+    const ADMIN = { isAuthenticated: true, isAdmin: true, user: { id: 'op', role: 'admin' } };
+    const chosen = await dispatch('/org/summary?orgId=org-2', ADMIN);
+    assert.strictEqual(chosen.statusCode, 200);
+    assert.strictEqual(touched[0].filters.organizationId, 'org-2');
+    assert.strictEqual(chosen.body.scope.organizationName, 'Org Two');
+
+    touched.length = 0;
+    const picked = await dispatch('/org', { ...ADMIN, adminSelectedOrgId: 'org-2' });
+    assert.strictEqual(picked.statusCode, 200);
+    assert.strictEqual(touched[0].filters.organizationId, 'org-1', 'the Access panel\'s session key does not choose');
+
+    touched.length = 0;
+    const own = await dispatch('/org/summary', ADMIN);
+    assert.strictEqual(own.statusCode, 200);
+    assert.strictEqual(touched[0].filters.organizationId, 'org-1', 'nothing chosen: the organisation on their record');
+
+    fx.homeOrg = { op: '' };
+    touched.length = 0;
+    const none = await dispatch('/org/summary', ADMIN);
+    assert.strictEqual(none.statusCode, 403);
+    assert.strictEqual(none.body.code, 'no_organisation');
+    assert.deepStrictEqual(touched, []);
+});
+
+test('the generic summary of a platform admin covers every organisation, and says so', async () => {
+    fx.monitoring = new Set(['op']);
+    const res = await dispatch('/summary', { isAuthenticated: true, isAdmin: true, user: { id: 'op', role: 'admin' } });
+    assert.strictEqual(res.statusCode, 200);
+    assert.deepStrictEqual(res.body.scope, { organizationId: null, organizationName: null, allOrganizations: true });
+});
+
+test('only /org takes an orgId; the generic routes refuse a filter they would not apply', async () => {
+    const res = await dispatch('/summary?orgId=org-1');
+    assert.strictEqual(res.statusCode, 400);
     assert.deepStrictEqual(touched, []);
 });
 

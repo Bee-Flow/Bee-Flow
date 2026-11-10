@@ -3,7 +3,8 @@
  *
  * Verified against:
  * - server/routes/branding.js — GET/PUT /api/branding/admin (requireAdmin:
- *   `manage_users` or `all`). The PUT body is `.strict()`, each knob in its own
+ *   a platform admin, in every deployment mode; the default theme is the
+ *   instance's, not an organisation's). The PUT body is `.strict()`, each knob in its own
  *   vocabulary (radiusScale 0.5–1.5, accent `#rrggbb`, font system|inter|plex|geist),
  *   and brandingStore.setOrgDefault MERGES it over the stored default — so a
  *   partial body leaves the glass and wallpaper knobs alone.

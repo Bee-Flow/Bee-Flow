@@ -37,12 +37,13 @@ const JAN = {
     organizationId: 'o1',
 };
 
+// The admin dashboard's lists carry ?scope=admin; the role table and the permission catalogue do not.
 const FIXTURES: Record<string, unknown> = {
-    '/auth/users': [SYSTEM_ROW, JAN],
-    '/auth/groups': [{ id: 'g1', name: 'Finance', organizationId: 'o1', permissions: [], roles: [] }],
+    '/auth/users?scope=admin': [SYSTEM_ROW, JAN],
+    '/auth/groups?scope=admin': [{ id: 'g1', name: 'Finance', organizationId: 'o1', permissions: [], roles: [] }],
     '/auth/roles': [{ id: 'org_admin', name: 'Org admin', description: '', permissions: [] }],
     '/auth/permissions': [{ id: 'manage_users', name: 'Manage users', category: 'actions' }],
-    '/auth/organizations': [
+    '/auth/organizations?scope=admin': [
         { id: 'o1', name: 'Acme B.V.', description: 'Test org', registrationSource: 'nextcloud_connector' },
         { id: 'o2', name: 'Legacy Org', description: 'Pre-BFSF-286 org' }, // no registrationSource
     ],
@@ -52,6 +53,8 @@ const LIST_ENDPOINTS = Object.keys(FIXTURES);
 
 const fullAdmin = { id: 'me', permissions: ['all'], isAdmin: true, organizations: ['o1'] };
 const orgScoped = { id: 'me', permissions: ['page_chat'], isAdmin: false, organizations: ['o1'] };
+// Holds the 'all' permission inside a tenant, without the platform flag or role.
+const allHolder = { id: 'me', permissions: ['all'], isAdmin: false, organizations: ['o1'] };
 
 describe('UserManagement', () => {
     beforeEach(() => {
@@ -63,10 +66,25 @@ describe('UserManagement', () => {
         });
     });
 
-    it('fires the five list endpoints on mount', async () => {
+    it('fires the five list endpoints on mount, the directory lists scoped to the admin dashboard', async () => {
         render(<UserManagement user={fullAdmin} />);
         await waitFor(() => expect(authFetch).toHaveBeenCalledTimes(5));
         expect(asMock(authFetch).mock.calls.map(([url]) => url).sort()).toEqual([...LIST_ENDPOINTS].sort());
+    });
+
+    it('asks an organisation-scoped caller for the admin-scoped lists and never the server-wide role table', async () => {
+        render(<UserManagement user={allHolder} />);
+        await screen.findByText('Jan de Vries');
+        const urls = asMock(authFetch).mock.calls.map(([url]) => String(url));
+        expect(urls.sort()).toEqual(LIST_ENDPOINTS.filter((u) => u !== '/auth/roles').sort());
+    });
+
+    it('offers the org-scoped section set to an \'all\' holder who is not a platform admin', async () => {
+        render(<UserManagement user={allHolder} />);
+        expect(await screen.findByText('admin.users_tab_my_org')).toBeInTheDocument();
+        expect(screen.queryByText('admin.users_tab_roles')).not.toBeInTheDocument();
+        expect(screen.queryByText('admin.users_tab_organizations')).not.toBeInTheDocument();
+        expect(screen.queryByText('admin.users_tab_nextcloud')).not.toBeInTheDocument();
     });
 
     // Changed in P1: the old table rendered the synthetic 'admin' row
@@ -127,7 +145,7 @@ describe('UserManagement', () => {
     it('marks the section from the URL as the selected tab', async () => {
         render(<UserManagement user={fullAdmin} activeSection="roles" />);
         const tabs = await screen.findByRole('tablist', { name: 'admin.sec_users' });
-        expect(within(tabs).getByRole('tab', { name: 'admin.users_tab_roles' })).toHaveAttribute('aria-selected', 'true');
+        expect(within(tabs).getByRole('tab', { name: 'admin.users_tab_roles admin.scope_instance' })).toHaveAttribute('aria-selected', 'true');
         expect(within(tabs).getByRole('tab', { name: 'admin.users_tab_users' })).toHaveAttribute('aria-selected', 'false');
     });
 
@@ -150,6 +168,15 @@ describe('UserManagement', () => {
         expect(await screen.findByDisplayValue('Acme B.V.')).toBeInTheDocument();
     });
 
+    // The organisations arrive in id order; the caller's own organisation wins
+    // over one they only belong to through a group, whatever its id.
+    it('seeds the my-organization form from the home org, not the first org in the list', async () => {
+        const memberOfBoth = { ...orgScoped, organizationId: 'o2', organizations: ['o1', 'o2'] };
+        render(<UserManagement user={memberOfBoth} activeSection="my-organization" />);
+        expect(await screen.findByDisplayValue('Legacy Org')).toBeInTheDocument();
+        expect(screen.queryByDisplayValue('Acme B.V.')).not.toBeInTheDocument();
+    });
+
     // BFSF-286: every org card shows its registration source; orgs from before
     // the backfill (no registrationSource) surface as "unknown" instead of
     // being silently mislabelled. Connector orgs also name their terms channel.
@@ -159,6 +186,40 @@ describe('UserManagement', () => {
         expect(screen.getAllByText(/admin\.org_source_label/)).toHaveLength(2);
         expect(screen.getByText(/admin\.org_source_nextcloud_connector/)).toBeInTheDocument();
         expect(screen.getByText(/admin\.org_source_unknown/)).toBeInTheDocument();
+    });
+
+    // A directory permission without administration of the home organisation:
+    // the admin-scoped lists answer 403, and the screen says who it is for.
+    it('says who the page is for when the admin-scoped lists are refused', async () => {
+        asMock(authFetch).mockImplementation((url: string) => (String(url).includes('scope=admin')
+            ? jsonRes({ error: 'Organization admin access required', code: 'org_admin_required' }, 403)
+            : jsonRes(FIXTURES[url] ?? {})));
+        const directoryHolder = { id: 'me', permissions: ['manage_users'], isAdmin: false, organizations: ['o1'] };
+        render(<UserManagement user={directoryHolder} />);
+        expect((await screen.findByText('admin_org.user_mgmt_org_admins_only')).closest('[role="status"]')).not.toBeNull();
+        expect(screen.getByText('admin.sec_people_title')).toBeInTheDocument();
+        // The server refuses the edits as it refused the lists, so no control offers one.
+        expect(screen.queryByText('admin.sec_people_add')).not.toBeInTheDocument();
+    });
+
+    // The scoped list also holds members of the organisation's groups whose
+    // home is elsewhere (or nowhere); the server manages an account through its
+    // home organisation only.
+    it('lists a member through a group alone read-only for an organisation admin', async () => {
+        const bob = { id: 'u2', username: 'bob', displayName: 'Bob Visser', role: 'user', orgRole: 'member', groups: ['g1'], organizationId: 'o2' };
+        asMock(authFetch).mockImplementation((url: string) => jsonRes(url === '/auth/users?scope=admin' ? [JAN, bob] : (FIXTURES[url] ?? {})));
+        const orgAdmin = { id: 'me', permissions: ['manage_users'], isAdmin: false, organizationId: 'o1', orgRole: 'org_admin', organizations: ['o1'] };
+        render(<UserManagement user={orgAdmin} />);
+        const bobRows = (await screen.findAllByText('Bob Visser')).map((el) => el.closest('[data-testid="people-row"]') as HTMLElement);
+        for (const row of bobRows) expect(within(row).queryAllByRole('button')).toHaveLength(0);
+        const janRow = screen.getByText('Jan de Vries').closest('[data-testid="people-row"]') as HTMLElement;
+        expect(within(janRow).getAllByRole('button')).toHaveLength(3);
+    });
+
+    it('keeps that sentence away from a viewer whose lists load', async () => {
+        render(<UserManagement user={orgScoped} />);
+        await screen.findByText('Jan de Vries');
+        expect(screen.queryByText('admin_org.user_mgmt_org_admins_only')).not.toBeInTheDocument();
     });
 
     it('reports a load failure rather than rendering an empty table', async () => {

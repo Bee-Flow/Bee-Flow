@@ -98,6 +98,8 @@ module.exports = {
     "admin_monitoring.range_custom": "Custom",
     "admin_monitoring.range_label": "Period",
     "admin_monitoring.refresh": "Refresh",
+    "admin_monitoring.scope_all": "Usage of all organisations",
+    "admin_monitoring.scope_org": "Usage of {name}",
     "admin_monitoring.shared_all_agents": "All Agents",
     "admin_monitoring.shared_all_users": "All Users",
     "admin_monitoring.shared_avg": "{duration} avg",

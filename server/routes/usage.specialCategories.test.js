@@ -114,6 +114,8 @@ preloadStubs(require, {
     '../core/llm/modelCosts': { computeCostSplit: () => ({ input_cost: 0, output_cost: 0 }) },
     '../stores/serverGeoResolver': { countryFlag: () => '' },
     '../license': { serverLicenseGovernsOrgs: () => true },
+    // The admin dashboard's organisation (auth/adminOrg.mts): every caller here administers org_a.
+    '../auth/permissions': { resolveAdminOrgId: async () => 'org_a' },
 });
 
 const express = require('express');

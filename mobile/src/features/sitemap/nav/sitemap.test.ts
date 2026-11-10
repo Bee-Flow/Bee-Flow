@@ -194,6 +194,15 @@ describe('the organisation settings', () => {
         expect(isReachable(shield, who({ orgRole: 'org_admin' }, ['org_admin']))).toBe(true);
     });
 
+    // Their routes answer a platform admin only: the setup is instance-wide.
+    it('offers the Azure screens and the theme to a platform admin, not to an org admin', () => {
+        for (const id of ['org-azure', 'org-azure-sso', 'org-theme']) {
+            const d = DESTINATIONS.find((x) => x.id === id) as Destination;
+            expect(isReachable(d, who({ orgRole: 'org_admin' }, ['org_admin']))).toBe(false);
+            expect(isReachable(d, who({ orgRole: 'org_admin', role: 'admin' }, ['org_admin']))).toBe(true);
+        }
+    });
+
     it('does not offer them to a member, nor Compliance to anyone without admin_compliance', () => {
         expect(isReachable(shield, who({}, ['use_notebooks', 'use_apps']))).toBe(false);
         expect(isReachable(compliance, who({}, ['use_notebooks']))).toBe(false);

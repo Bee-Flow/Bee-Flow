@@ -7,12 +7,13 @@
  * nothing; `useAzureDocProcessing: "false"` switched document processing ON and
  * `autoApproveSSO: "false"` auto-approved every Microsoft sign-in; a chat-models
  * save dropped the `standard` and `swarm` tiers it does not show; and
- * `destructiveSync: "false"` switched destructive group sync on. On the
- * multi-tenant cloud, any org admin could do all of that to every tenant.
+ * `destructiveSync: "false"` switched destructive group sync on.
  *
  *   - the 400 names the field, in a sentence — the section one included;
  *   - a refused request writes nothing;
- *   - on cloud, only a platform admin reaches the platform keys.
+ *   - only a platform admin reaches the platform keys, in cloud and
+ *     self-hosted alike; the group-sync routes stay with the organisation's
+ *     admin.
  *
  * Run: cd server && node --test routes/orgAzureConfig.validation.test.js
  */
@@ -27,7 +28,7 @@ const Module = require('module');
 
 // Every write lands in `touched`. A refused request must leave it empty.
 const touched = [];
-const fx = { mode: 'self-hosted', superAdmin: false, stored: {} };
+const fx = { superAdmin: true, stored: {} };
 const pass = (req, res, next) => next();
 
 const MOCKS = {
@@ -62,8 +63,8 @@ const MOCKS = {
         getSyncSettings: async () => ({}),
         setSyncSettings: async (orgId, updates) => { touched.push({ what: 'setSyncSettings', args: [orgId, updates] }); return updates; },
         getSyncStatus: async () => ({}),
+        getSyncBinding: async () => ({ syncOrganizationId: 'org1', syncTenantId: '11111111-1111-1111-1111-111111111111' }),
     },
-    '../license': { deploymentMode: () => fx.mode },
 };
 
 const MOCK_IDS = {};
@@ -91,12 +92,30 @@ const dispatch = dispatcher(router);
 const put = (body) => dispatch({ method: 'PUT', url: '/org1', body });
 const SECTION_TEXT = 'section is one of openai, chatModels, piiDetection, docProcessing or sso.';
 
+// The body checks below run as a platform admin: the platform gate comes first.
 test.beforeEach(() => {
     touched.length = 0;
-    fx.mode = 'self-hosted';
-    fx.superAdmin = false;
+    fx.superAdmin = true;
     fx.stored = {};
 });
+
+/**
+ * Runs `fn` once per deployment mode; the gate must not depend on it.
+ * @param {(mode: string) => Promise<void>} fn
+ */
+async function inEachMode(fn) {
+    const before = process.env.DEPLOYMENT_MODE;
+    try {
+        for (const mode of ['cloud', 'self-hosted']) {
+            process.env.DEPLOYMENT_MODE = mode;
+            touched.length = 0;
+            await fn(mode);
+        }
+    } finally {
+        if (before === undefined) delete process.env.DEPLOYMENT_MODE;
+        else process.env.DEPLOYMENT_MODE = before;
+    }
+}
 
 // ── the section ─────────────────────────────────────────────────────
 
@@ -278,20 +297,45 @@ test('a sync run with no body still runs', async () => {
 
 // ── who may touch the platform keys ─────────────────────────────────
 
-test('on cloud an org admin can neither read nor write the platform configuration', async () => {
-    fx.mode = 'cloud';
-    const read = await dispatch({ method: 'GET', url: '/org1', body: undefined });
-    assert.strictEqual(read.statusCode, 403);
-    assert.strictEqual(read.body.code, 'platform_managed');
-    const write = await put({ section: 'openai', azureEndpoint: 'https://attacker.example/' });
-    assert.strictEqual(write.statusCode, 403);
-    assert.deepStrictEqual(touched, [], 'the platform endpoint was not rewritten');
+test('an org admin can neither read nor write the platform configuration, in cloud and self-hosted alike', async () => {
+    fx.superAdmin = false;
+    await inEachMode(async (mode) => {
+        const read = await dispatch({ method: 'GET', url: '/org1', body: undefined });
+        assert.strictEqual(read.statusCode, 403, mode);
+        assert.strictEqual(read.body.code, 'platform_managed');
+        const write = await put({ section: 'openai', azureEndpoint: 'https://other.example/' });
+        assert.strictEqual(write.statusCode, 403, mode);
+        const sso = await put({ section: 'sso', ssoClientId: 'x', autoApproveSSO: true });
+        assert.strictEqual(sso.statusCode, 403, mode);
+        assert.deepStrictEqual(touched, [], `${mode}: the platform configuration was not rewritten`);
+    });
 });
 
-test('on cloud a platform admin still passes', async () => {
-    fx.mode = 'cloud';
-    fx.superAdmin = true;
-    const res = await put({ section: 'openai', azureModels: 'gpt-4o' });
-    assert.strictEqual(res.statusCode, 200);
-    assert.deepStrictEqual(touched, [{ what: 'setConfig', args: ['azure_models', 'gpt-4o'] }]);
+test('a platform admin passes, in cloud and self-hosted alike', async () => {
+    await inEachMode(async (mode) => {
+        const res = await put({ section: 'openai', azureModels: 'gpt-4o' });
+        assert.strictEqual(res.statusCode, 200, mode);
+        assert.deepStrictEqual(touched, [{ what: 'setConfig', args: ['azure_models', 'gpt-4o'] }]);
+        const read = await dispatch({ method: 'GET', url: '/org1', body: undefined });
+        assert.strictEqual(read.statusCode, 200, mode);
+    });
+});
+
+test('the group-sync routes stay with the organisation admin, in cloud and self-hosted alike', async () => {
+    fx.superAdmin = false;
+    await inEachMode(async (mode) => {
+        const settings = await dispatch({ method: 'PUT', url: '/org1/sync-groups/settings', body: { periodicSync: true } });
+        assert.strictEqual(settings.statusCode, 200, mode);
+        const status = await dispatch({ method: 'GET', url: '/org1/sync-groups/status', body: undefined });
+        assert.strictEqual(status.statusCode, 200, mode);
+        const run = await dispatch({ method: 'POST', url: '/org1/sync-groups', body: undefined });
+        assert.strictEqual(run.statusCode, 200, mode);
+    });
+});
+
+test('the platform gate is tagged on the platform axis', () => {
+    const { readGate } = require('../auth/gateMeta');
+    const putRoute = router.stack.find((l) => l.route && l.route.path === '/:orgId' && l.route.methods.put);
+    const tags = putRoute.route.stack.map((x) => readGate(x.handle)).filter(Boolean);
+    assert.ok(tags.some((t) => t.axis === 'platform' && t.kind === 'superAdmin'), JSON.stringify(tags));
 });

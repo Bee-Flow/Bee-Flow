@@ -10,6 +10,8 @@ import { useTranslation } from '@/hooks/useTranslation';
 import Spinner from '@/components/shared/Spinner';
 import SectionHeader from '@/components/shared/SectionHeader';
 import Tabs from '@/components/shared/Tabs';
+import { adminSectionScope } from '@/components/admin/dashboard/adminTabs';
+import { useAdminScopeOverride } from '@/components/admin/dashboard/useAdminScopeOverride';
 
 /**
  * Guardrail Configs — the server-operator console.
@@ -37,6 +39,8 @@ const GuardrailsHub = ({ section, onNavigate }: GuardrailsHubProps) => {
 
     const sections = useMemo(() => availableSections(capabilities), [capabilities]);
     const active = resolveSection(section, sections);
+    // The scope follows the sub-section that is open: patterns and Direct chat are server-wide, the shield is per organisation.
+    useAdminScopeOverride(active ? adminSectionScope('security', 'guardrails', active) : null);
 
     // Normalise the URL when it names nothing renderable, so a refresh or a
     // shared link lands on the same place the user is actually looking at.

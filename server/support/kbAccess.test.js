@@ -25,6 +25,10 @@ const KBS = {
     'kb-system': { id: 'kb-system', tenant_id: 'system', organization_id: null, is_published: true, source_kind: 'system_managed', shared_groups: '[]' },
 };
 
+// The caller's organisations and the ones they administer, per test.
+const fx = { orgIds: new Set(['org-1']), adminOrgIds: new Set(), adminThrows: false };
+test.beforeEach(() => { fx.orgIds = new Set(['org-1']); fx.adminOrgIds = new Set(); fx.adminThrows = false; });
+
 // ── Stub the modules kbAccess pulls in ────────────────────────────
 const kbStorePath = require.resolve('../stores/knowledgeBases');
 const realKbStore = require('../stores/knowledgeBases');
@@ -54,8 +58,9 @@ require.cache[permissionsPath] = {
     filename: permissionsPath,
     loaded: true,
     exports: {
-        resolveUserOrgIds: async () => new Set(['org-1']),
+        resolveUserOrgIds: async () => fx.orgIds,
         isOrgAdminRole: () => false,
+        resolveAdminOrgIds: async () => { if (fx.adminThrows) throw new Error('down'); return fx.adminOrgIds; },
     },
 };
 const audiencePath = require.resolve('../auth/audience');
@@ -120,4 +125,25 @@ test('non-array and junk input degrade to empty rather than throwing', async () 
 
 test('canAccessKB returns false for a null kb', async () => {
     assert.strictEqual(await canAccessKB(req, null), false);
+});
+
+test('an admin of the KB\'s organisation reads its drafts and group-restricted bases', async () => {
+    fx.adminOrgIds = new Set(['org-1']);
+    const { allowed } = await partitionAccessibleKBIds(req, ['kb-same-org-draft', 'kb-group-restricted']);
+    assert.deepStrictEqual(allowed, ['kb-same-org-draft', 'kb-group-restricted']);
+});
+
+test('an admin of another organisation reads a member organisation\'s bases as a member', async () => {
+    // Admin of org-2, plain group member of org-1.
+    fx.orgIds = new Set(['org-2', 'org-1']);
+    fx.adminOrgIds = new Set(['org-2']);
+    const { allowed, denied } = await partitionAccessibleKBIds(req, ['kb-same-org-draft', 'kb-group-restricted', 'kb-same-org-published', 'kb-theirs']);
+    assert.deepStrictEqual(allowed, ['kb-same-org-published', 'kb-theirs']);
+    assert.deepStrictEqual(denied, ['kb-same-org-draft', 'kb-group-restricted']);
+});
+
+test('an unreadable admin answer is no organisation', async () => {
+    fx.adminThrows = true;
+    const { denied } = await partitionAccessibleKBIds(req, ['kb-same-org-draft']);
+    assert.deepStrictEqual(denied, ['kb-same-org-draft']);
 });

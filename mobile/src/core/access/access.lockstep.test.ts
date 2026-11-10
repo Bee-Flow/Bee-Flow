@@ -84,8 +84,13 @@ describe('the server role predicates', () => {
         expect(contains(catalog, "ORG_ADMIN: 'org_admin',")).toBe(true);
         expect(contains(catalog, "LEGACY_ADMIN: 'admin',")).toBe(true);
         expect([...ORG_ADMIN_ROLES].sort()).toEqual(['admin', 'org_admin']);
+        // requireOrgAdmin decides through isOrgAdminForOrg, which asks _evalOrgAdmin;
+        // its own-organisation path accepts an orgRole in ORG_ADMIN_VARIANTS.
         const gate = src.slice(src.indexOf('function requireOrgAdmin('), src.indexOf('function isSuperAdmin('));
-        expect(gate).toContain('!isOrgAdminRole(user.orgRole)');
+        expect(gate).toContain('await isOrgAdminForOrg(req, orgId)');
+        const decide = src.slice(src.indexOf('function _evalOrgAdmin('), src.indexOf('async function isOrgAdminForOrg('));
+        expect(contains(decide, ': isOrgAdminRole(user.orgRole);')).toBe(true);
+        expect(decide).toContain('user.organizationId === orgId && directAdmin');
     });
 
     it('the org_admin role carries the org_admin permission, and no other built-in role does', () => {

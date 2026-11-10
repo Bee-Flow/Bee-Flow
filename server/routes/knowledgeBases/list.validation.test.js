@@ -44,7 +44,7 @@ const MOCKS = {
     '../../core/kb/kbIngestionHelpers': {},
     '../../utils/ssrfGuard': {},
     '../../core/kb/fetchGuard': { guardedFetch: async () => null },
-    '../../support/kbAccess': { canAccessKB: async () => true, resolveIsOrgAdmin: async () => false },
+    '../../support/kbAccess': { canAccessKB: async () => true, resolveAdminOrgIds: async () => new Set() },
     '../../core/kb/sources/ensureSource': { ensureKbSource: async () => null },
     '../../stores/kbSources': { countsByKb: async () => ({ kb1: { sourceCount: 2, autoRefreshCount: 1, lastRefreshAt: null } }) },
     '../../telemetry/log': { info() {}, warn() {}, error() {}, debug() {} },

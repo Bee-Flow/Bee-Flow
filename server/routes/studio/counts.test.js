@@ -15,12 +15,9 @@
 
 const test = require('node:test');
 const assert = require('node:assert');
-const http = require('node:http');
-const express = require('express');
 
 const { createCountsRouter, KIND_KEYS, CACHE_TTL_MS, ownerOf } = require('./counts');
-
-const USER = { id: 'u1', organizationId: 'orgA' };
+const { studioApp, studioServer } = require('./studioServer.testkit');
 
 // ── A fully-open, fully-populated fake dependency set ───────────────────────
 function makeDeps(overrides = {}) {
@@ -75,7 +72,7 @@ function makeDeps(overrides = {}) {
             filterByGroupAccess: (kbs) => kbs.filter(kb => kb.id !== 'kbx'),
         },
         kbShared: {
-            resolveIsOrgAdmin: async () => false,
+            resolveAdminOrgIds: async () => new Set(),
             resolveEnabledSystemSlugs: async () => [],
             listFilterFromQuery: () => ({ sourceKind: 'manual', usageContext: null, excludeContext: null }),
             resolveUserGroups: async () => ['g1'],
@@ -93,36 +90,12 @@ function makeDeps(overrides = {}) {
 }
 
 // ── Server harness ──────────────────────────────────────────────────────────
-let server;
-let baseUrl;
 let deps;
+const mount = (nextDeps) => studioApp(createCountsRouter(deps = nextDeps));
+const srv = studioServer(test);
+const listen = srv.listen;
 
-function mount(nextDeps) {
-    deps = nextDeps;
-    const app = express();
-    // The real mount sits behind requireAuth; here a header stands in for the
-    // session so an unauthenticated request can be exercised too.
-    app.use((req, _res, next) => {
-        const who = req.headers['x-test-user'];
-        req.session = who ? { isAuthenticated: true, user: { ...USER, id: who } } : {};
-        next();
-    });
-    app.use('/api/studio', createCountsRouter(deps));
-    return app;
-}
-
-async function listen(app) {
-    if (server) await new Promise((resolve) => server.close(resolve));
-    server = http.createServer(app);
-    await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
-    baseUrl = `http://127.0.0.1:${server.address().port}`;
-}
-
-test.after(async () => {
-    if (server) await new Promise((resolve) => server.close(resolve));
-});
-
-const get = (user = 'u1') => fetch(`${baseUrl}/api/studio/counts`, { headers: user ? { 'x-test-user': user } : {} });
+const get = (user = 'u1') => fetch(`${srv.baseUrl}/api/studio/counts`, { headers: user ? { 'x-test-user': user } : {} });
 
 test('every kind is counted with its list route\'s scoping when everything is open', async () => {
     await listen(mount(makeDeps()));
@@ -195,7 +168,7 @@ test('the transcriptions COUNT uses the store\'s predicate and the KB count the 
     assert.match(seen.sql, /user_id = \$1 OR shared_with @> \$2::jsonb OR \(is_published = true AND organization_id = ANY\(\$3::text\[\]\) AND \(shared_groups = '\[\]'::jsonb OR shared_groups \?\| \$4::text\[\]\)\)/);
     assert.deepStrictEqual(seen.params, ['u1', JSON.stringify(['u1']), ['orgA'], ['g1']]);
     assert.strictEqual(kbArgs.userId, 'u1');
-    assert.deepStrictEqual(kbArgs.opts, { sourceKind: 'manual', usageContext: null, excludeContext: null, systemSlugs: [], isOrgAdmin: false });
+    assert.deepStrictEqual(kbArgs.opts, { sourceKind: 'manual', usageContext: null, excludeContext: null, systemSlugs: [], adminOrgIds: new Set() });
 });
 
 test('a super admin counts every transcription', async () => {

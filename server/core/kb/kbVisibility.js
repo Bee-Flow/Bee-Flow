@@ -117,7 +117,7 @@ async function filterKbIdsForUser(kbIds, {
         // An id that cannot be resolved is dropped. It is deleted, or it was
         // never real; either way it cannot be authorised, and letting it
         // through re-creates the trust-the-client hole this exists to close.
-        const ok = !!kb && store.canUserAccessKB(kb, userId, orgSet, groups, { isOrgAdmin: false });
+        const ok = !!kb && store.canUserAccessKB(kb, userId, orgSet, groups, { adminOrgIds: [] });
         if (ok) kept.push(id);
         else dropped.push({ id, reason: reasonFor(kb, userId, orgSet) });
     }
@@ -247,7 +247,7 @@ async function filterKbIdsForGroupMember(kbIds, {
         let kb = null;
         try { kb = await store.getKB(id); } catch (_) { kb = null; }
         if (!kb) continue;
-        if (store.canUserAccessKB(kb, GROUP_MEMBER, orgSet, [groupId], { isOrgAdmin: false })) {
+        if (store.canUserAccessKB(kb, GROUP_MEMBER, orgSet, [groupId], { adminOrgIds: [] })) {
             kept.push(id);
         } else {
             log.warn('[KBVisibility] test-as dropped', JSON.stringify({

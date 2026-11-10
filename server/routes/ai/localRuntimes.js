@@ -31,8 +31,9 @@ const { validate } = require('../../core/http/validate');
 const { openSse } = require('../../core/http/sseHelpers');
 const { requireAdminUser } = require('./requireAdminUser');
 
-// The same bar as config/shared.isAdminUser (instance-wide settings), kept as
-// a local copy so the tests that double that import still reach the gate.
+// The same bar as config/shared.isAdminUser (instance-wide settings: a platform
+// admin, in every deployment mode), kept as a local copy so the tests that
+// double that import still reach the gate.
 /** @param {import('express').Request} req */
 async function isAdminUser(req) {
     if (!req.session) return false;

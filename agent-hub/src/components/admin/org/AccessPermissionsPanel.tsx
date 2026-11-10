@@ -1,19 +1,19 @@
-import { ShieldCheck, Crown, Building2 } from 'lucide-react';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { ShieldCheck, Crown } from 'lucide-react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import CeilingSection from './access/CeilingSection';
 import GroupAccessMatrix from './GroupAccessMatrix';
 import { useTranslation } from '@/hooks/useTranslation';
 import { API_BASE } from '@/utils/helpers';
-import { mutate, request, RefusedError } from '@/api/mutate';
+import { mutate, RefusedError } from '@/api/mutate';
 import { useEntitlements } from '../../licensing/EntitlementsContext';
 import SectionNav from '@/components/shared/SectionNav';
 import StudioShell from '@/components/shared/StudioShell';
 import Spinner from '@/components/shared/Spinner';
-import { FIELD_INPUT } from '@/components/shared/SettingsList';
 import { ALERT_INFO } from '@/components/mcpLibrary/ui';
-import type { Organization } from './useOrgDirectory';
 import type { AdminCurrentUser } from './userManagement/types';
 import { logger } from '@/utils/logger';
+import { isPlatformAdmin } from '@/utils/adminAccess';
+import { useAdminOrgChoice } from '@/components/admin/dashboard/useAdminOrg';
 
 /**
  * AccessPermissionsPanel — the hub for configuring beta / integration / core
@@ -25,9 +25,11 @@ import { logger } from '@/utils/logger';
  * MCP server install/config lives on Admin → Integrations (the MCP section);
  * installed servers are ordinary integrations, granted through the matrix here.
  *
- * A super-admin gets an organisation picker (manage any org); an org-admin
- * manages their own org via the /me endpoints. Mode comes from the unified
- * entitlements snapshot.
+ * A super-admin works on the organisation chosen in the admin dashboard's scope
+ * bar (useAdminOrg); with "All organisations" chosen there is no organisation to
+ * manage, so the organisation's parts ask for a choice instead of picking one.
+ * An org-admin manages their own org via the /me endpoints. Mode comes from the
+ * unified entitlements snapshot.
  */
 
 interface AccessPermissionsPanelProps {
@@ -36,55 +38,56 @@ interface AccessPermissionsPanelProps {
     onNavigate?: (path: string) => void;
 }
 
-export default function AccessPermissionsPanel({ user, activeSection = 'grants', onNavigate }: AccessPermissionsPanelProps) {
-    const { t } = useTranslation();
-    const isSuperAdmin = !!(user?.isAdmin || user?.role === 'admin' || (user?.permissions || []).includes('all'));
-    const { mode, reload: reloadEntitlements } = useEntitlements();
-
-    const [orgs, setOrgs] = useState<Organization[] | null>(null); // null = loading; [] = none / not super-admin
-    const [orgId, setOrgId] = useState<string | null>(null);
-
-    // Persist the picker selection server-side so a GLOBAL super-admin (no org of
-    // their own) has their OWN entitlement resolution governed by the org they're
-    // administering — the org access ceiling then binds them like everyone else.
-    // Reload the snapshot so the change applies immediately. Non-fatal on error.
-    const persistSelectedOrg = useCallback(async (id: string | null) => {
-        if (!id) return;
-        try {
+/**
+ * PUT /auth/admin/selected-org when the platform admin CHANGES the dashboard's
+ * organisation to one organisation while this panel is open: that session
+ * setting also binds a platform admin without a home organisation to the chosen
+ * organisation's access menu in their own entitlements
+ * (core/entitlements/entitlements.js governingOrgId). Never on mount, never for
+ * "All organisations" (that keeps the last explicit binding). The snapshot is
+ * reloaded so the change applies at once; a failure is not fatal.
+ */
+function useSelectedOrgOnChange(orgId: string | null, enabled: boolean, reloadEntitlements: (() => void) | undefined) {
+    const previous = useRef(orgId);
+    useEffect(() => {
+        if (previous.current === orgId) return;
+        previous.current = orgId;
+        if (!enabled || !orgId) return;
+        (async () => {
             try {
                 await mutate(`${API_BASE}/auth/admin/selected-org`, {
                     method: 'PUT', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ orgId: id }),
+                    body: JSON.stringify({ orgId }),
                 });
             } catch (err) {
                 // A refusal still reloads the snapshot, as the unchecked call did.
-                if (!(err instanceof RefusedError)) throw err;
+                if (!(err instanceof RefusedError)) { logger.debug('the panel still works for viewing the organisation', err); return; }
             }
             reloadEntitlements?.();
-        } catch (err) { logger.debug('picker still works for viewing other orgs', err); }
-    }, [reloadEntitlements]);
-
-    const selectOrg = useCallback((id: string | null) => { setOrgId(id); persistSelectedOrg(id); }, [persistSelectedOrg]);
-
-    useEffect(() => {
-        if (!isSuperAdmin) { setOrgs([]); return; }
-        let alive = true;
-        (async () => {
-            try {
-                const res = await request(`${API_BASE}/auth/organizations`).catch((err: unknown) => {
-                    if (err instanceof RefusedError) return null;
-                    throw err;
-                });
-                if (!res) { if (alive) setOrgs([]); return; }
-                const j = await res.json();
-                const list = Array.isArray(j) ? j : (j.organizations || j.orgs || []);
-                if (!alive) return;
-                setOrgs(list);
-                if (list.length > 0) { setOrgId(list[0].id); persistSelectedOrg(list[0].id); }
-            } catch (_) { if (alive) setOrgs([]); }
         })();
-        return () => { alive = false; };
-    }, [isSuperAdmin, persistSelectedOrg]);
+    }, [orgId, enabled, reloadEntitlements]);
+}
+
+/** In place of an organisation's part while "All organisations" is chosen. */
+function ChooseOrgNotice({ noOrgs }: { noOrgs: boolean }) {
+    const { t } = useTranslation();
+    return (
+        <p className={ALERT_INFO} data-testid="access-choose-org">
+            {noOrgs
+                ? t('admin_org.access_panel_no_orgs', 'No organisations found.')
+                : t('admin.scope_access_choose_org', 'Choose an organisation above to manage its access')}
+        </p>
+    );
+}
+
+export default function AccessPermissionsPanel({ user, activeSection = 'grants', onNavigate }: AccessPermissionsPanelProps) {
+    const { t } = useTranslation();
+    const isSuperAdmin = isPlatformAdmin(user);
+    const { mode, reload: reloadEntitlements } = useEntitlements();
+    const choice = useAdminOrgChoice();
+    const orgId = isSuperAdmin ? choice?.orgId ?? null : null;
+    const orgName = choice?.orgName ?? orgId;
+    useSelectedOrgOnChange(orgId, isSuperAdmin, reloadEntitlements);
 
     const sections = useMemo(() => ([
         { id: 'grants', label: t('admin_org.ceiling_grants', 'Grants'), icon: ShieldCheck },
@@ -96,24 +99,18 @@ export default function AccessPermissionsPanel({ user, activeSection = 'grants',
 
     const handleSectionClick = (id: string) => { if (onNavigate) onNavigate(`admin/access/${id}`); };
 
-    const orgName = useMemo(() => (orgs || []).find(o => o.id === orgId)?.name || orgId, [orgs, orgId]);
-
-    if (isSuperAdmin && orgs === null) {
+    if (isSuperAdmin && !(choice?.organizationsLoaded ?? true)) {
         return <div className="p-6"><Spinner size="sm" /></div>;
     }
 
-    const noOrg = isSuperAdmin && (!orgs || orgs.length === 0);
+    const chooseOrg = <ChooseOrgNotice noOrgs={(choice?.organizations.length ?? 0) === 0} />;
 
     const renderBody = () => {
-        if (noOrg) {
-            return (
-                <p className={ALERT_INFO}>{t('admin_org.access_panel_no_orgs', 'No organisations found.')}</p>
-            );
-        }
         if (active === 'grants') {
+            if (isSuperAdmin && !orgId) return chooseOrg;
             // Org-admins manage integrations (incl. MCP) on Settings → Organisation
             // → Integrations, so the hub shows them only Features + Beta. Super-admins
-            // (org picker) keep all kinds for managing other orgs.
+            // keep all kinds for managing other orgs.
             return (
                 <GroupAccessMatrix
                     key={`grants:${orgId || 'me'}`}
@@ -131,6 +128,7 @@ export default function AccessPermissionsPanel({ user, activeSection = 'grants',
                     orgId={isSuperAdmin ? orgId : undefined}
                     orgName={isSuperAdmin ? orgName : undefined}
                     onCeilingChanged={reloadEntitlements}
+                    chooseOrg={chooseOrg}
                 />
             );
         }
@@ -139,22 +137,6 @@ export default function AccessPermissionsPanel({ user, activeSection = 'grants',
 
     return (
         <div className="flex h-full flex-col overflow-hidden">
-            {/* ── Org picker bar (super-admin) ── */}
-            {isSuperAdmin && orgs && orgs.length > 0 ? (
-                <div className="flex shrink-0 items-center gap-2.5 border-b border-[var(--border-default)] bg-[var(--bg-secondary)] px-4 py-2.5">
-                    <Building2 className="h-4 w-4 shrink-0 text-[var(--text-secondary)]" aria-hidden="true" />
-                    <label htmlFor="access-org-picker" className="text-sm text-[var(--text-secondary)]">{t('admin_org.access_panel_organisation', 'Organisation')}</label>
-                    <select
-                        id="access-org-picker"
-                        value={orgId || ''}
-                        onChange={e => selectOrg(e.target.value)}
-                        className={`${FIELD_INPUT} max-w-sm flex-1`}
-                    >
-                        {orgs.map(o => <option key={o.id} value={o.id}>{o.name || o.id}</option>)}
-                    </select>
-                </div>
-            ) : null}
-
             <div className="min-h-0 flex-1">
                 <StudioShell
                     responsive

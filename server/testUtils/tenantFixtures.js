@@ -18,6 +18,12 @@
  * `router()` requires the router lazily (the stores must be initialised on the
  * PGlite pool first, which the test does).
  *
+ * `orgAdminCaller: true` also runs the kind's routes as a second caller: the
+ * organisation admin of org A who is a plain member of a group of org B. That
+ * person belongs to org B but does not administer it, so every route must
+ * still answer 403 or 404. Set it on kinds whose routes are gated on
+ * org-admin; kinds gated on a flat permission are outside it.
+ *
  * tenantIsolation.exemptions.json lists the routes with a parameter that no kind
  * covers yet, with a reason; lint:tenant-matrix-ratchet keeps that list from
  * growing.
@@ -33,8 +39,18 @@
  *   create: (ctx: { orgId: string, userId: string, index: number }) => Promise<string>,
  *   routes: string[],
  *   ownerStatus?: number,
+ *   orgAdminCaller?: boolean,
  * }} TenantFixture
  */
+
+/**
+ * Make the owner of the fixture org B's admin, so the first route of an
+ * org-admin-gated kind answers 200 for them.
+ * @param {string} userId
+ */
+async function makeOwnerOrgAdmin(userId) {
+    await require('../stores/userStore').updateUser(userId, { orgRole: 'org_admin' });
+}
 
 /** @type {TenantFixture[]} */
 const FIXTURES = [
@@ -195,6 +211,52 @@ const FIXTURES = [
             'GET /api/compliance/kb-query-log/subjects/:userId', 'GET /api/compliance/kb-query-log/subjects/:userId/content',
             'GET /api/compliance/kb-query-log/subjects/:userId/export', 'DELETE /api/compliance/kb-query-log/subjects/:userId',
         ],
+    },
+    {
+        // A person of org B and the user-management routes that take them by id
+        // (auth/admin/userRoutes.js, requireOrgAdminForUser). The MFA reset is first:
+        // for org B's admin it answers 200 without a body.
+        kind: 'orgUser',
+        mount: '/auth',
+        router: () => require('../auth/adminRoutes'),
+        create: async ({ orgId, userId, index }) => {
+            await makeOwnerOrgAdmin(userId);
+            const id = `u-matrix-member-${index}`;
+            await require('../stores/userStore').createUser({
+                id, username: id, email: `${id}@matrix.test`, organizationId: orgId,
+                role: 'user', orgRole: 'member', groups: [], passwordHash: 'x',
+            });
+            return id;
+        },
+        routes: [
+            'POST /auth/users/:id/mfa/reset', 'PUT /auth/users/:id', 'DELETE /auth/users/:id',
+            'POST /auth/users/:id/avatar', 'DELETE /auth/users/:id/avatar',
+        ],
+        orgAdminCaller: true,
+    },
+    {
+        // Org B itself: its settings, logo and encryption status (auth/admin/orgRoutes.js)
+        // and its access grants (auth/admin/featureAccessRoutes.js). The id is the org's.
+        // PUT encryption and POST encryption/backfill validate their body before the
+        // org-admin check, so an empty body is a 400 there; they stay exempt.
+        kind: 'organization',
+        mount: '/auth',
+        router: () => require('../auth/adminRoutes'),
+        create: async ({ orgId, userId }) => {
+            await makeOwnerOrgAdmin(userId);
+            return orgId;
+        },
+        routes: [
+            'GET /auth/organizations/:id', 'PUT /auth/organizations/:id', 'DELETE /auth/organizations/:id',
+            'POST /auth/organizations/:id/logo', 'DELETE /auth/organizations/:id/logo',
+            'GET /auth/organizations/:id/encryption', 'GET /auth/organizations/:id/encryption/backfill',
+            'GET /auth/organizations/:orgId/group-access', 'PUT /auth/organizations/:orgId/org-access',
+            'GET /auth/organizations/:orgId/active-integrations', 'PUT /auth/organizations/:orgId/active-integrations',
+            'GET /auth/organizations/:orgId/active-beta-features', 'PUT /auth/organizations/:orgId/active-beta-features',
+            'PUT /auth/organizations/:orgId/beta-features',
+            'GET /auth/organizations/:orgId/org-availability', 'PUT /auth/organizations/:orgId/org-availability',
+        ],
+        orgAdminCaller: true,
     },
 ];
 

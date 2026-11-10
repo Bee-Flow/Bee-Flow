@@ -11,6 +11,8 @@ export type DesignerSectionProps = ReturnType<typeof useAgentState> & {
     checkCapability: (prompt: string, key: CapabilityKey) => boolean;
     toggleCapability: (key: CapabilityKey) => void;
     isReadonly?: boolean;
+    /** The admin dashboard's chosen organisation: a category created here is that organisation's. */
+    adminOrgId?: string | null;
     sequentialThinkingEnabled?: boolean;
     setSequentialThinkingEnabled?: (enabled: boolean) => void;
     sequentialThinkingModel?: string;

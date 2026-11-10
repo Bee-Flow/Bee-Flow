@@ -152,6 +152,12 @@ test('export keys are exactly the monolith\'s, in order', () => {
         'requireActiveOrg', 'requireActiveOrgForMutations', 'isPermissionLookupDegraded',
         // The gate of instance-wide settings (auth/requirePlatformAdmin.js).
         'hasPlatformAdminAccess', 'requirePlatformAdmin',
+        // The admin dashboard's organisation (auth/adminOrg.mts).
+        'resolveAdminOrgId', 'requireAdminOrg',
+        // A permission in one organisation (auth/permissionGrants.mts).
+        'resolvePermissionsByOrg', 'hasPermissionInOrg',
+        // The organisations the caller administers (auth/permissionsOrgGates.js).
+        'resolveAdminOrgIds',
     ]);
 });
 
@@ -446,11 +452,18 @@ test('requireOrgAdmin', async () => {
 
     fx.users.mem = { id: 'mem', orgRole: 'member', organizationId: 'o' };
     fx.users.oa = { id: 'oa', orgRole: 'org_admin', organizationId: 'o', groups: ['g'] };
-    fx.groups = [{ id: 'g', organizationId: 'o2' }];
+    fx.groups = [{ id: 'g', organizationId: 'o2' }, { id: 'ga', organizationId: 'o4', roles: ['org_admin'] }];
     assert.equal((await run(gate, { session: session({ id: 'mem' }), params: { id: 'o' } })).status, 403);
     assert.equal((await run(gate, { session: session({ id: 'oa' }), params: { id: 'o' } })).status, 'next');
-    assert.equal((await run(gate, { session: session({ id: 'oa' }), params: { id: 'o2' } })).status, 'next');
+    // Changed deliberately (decision record "An organisation admin is not a
+    // platform admin"): the gate is isOrgAdminForOrg / _evalOrgAdmin. An org
+    // admin of o who is a plain member of a group of o2 does not administer o2;
+    // the monolith answered 'next' here. An admin-carrying group of o4 does make
+    // its member o4's admin, whatever their own orgRole.
+    assert.deepEqual(await run(gate, { session: session({ id: 'oa' }), params: { id: 'o2' } }).then((r) => [r.status, r.body]), [403, { error: 'Organization admin access required' }]);
     assert.equal((await run(gate, { session: session({ id: 'oa' }), params: { id: 'o3' } })).status, 403);
+    fx.users.gm = { id: 'gm', orgRole: 'member', organizationId: 'o', groups: ['ga'] };
+    assert.equal((await run(gate, { session: session({ id: 'gm' }), params: { id: 'o4' } })).status, 'next');
 });
 
 test('isOrgAdminForOrg / _evalOrgAdmin', async () => {
@@ -499,6 +512,25 @@ test('resolveUserOrgIds / resolvePrimaryOrgId / requirePrimaryOrgAdmin', async (
     assert.equal((await run(gate, sa)).status, 'next');
     assert.equal(sa.primaryOrgId, 'fallback');
     assert.deepEqual(await run(gate, { session: session({ id: 'sa2', role: 'admin' }) }).then((r) => [r.status, r.body]), [400, { error: 'No organization for this account' }]);
+});
+
+// No own organisation: the primary org is the first group's. An admin orgRole
+// plus an ordinary group there administers nothing (_evalOrgAdmin); a group
+// there that carries admin rights does.
+test('requirePrimaryOrgAdmin asks _evalOrgAdmin of the org it resolved', async () => {
+    fx.users.n = { id: 'n', orgRole: 'org_admin', organizationId: null, groups: ['plain'] };
+    fx.users.a = { id: 'a', orgRole: 'org_admin', organizationId: null, groups: ['admins'] };
+    fx.groups = [
+        { id: 'plain', organizationId: 'other' },
+        { id: 'admins', organizationId: 'other', roles: ['org_admin'] },
+    ];
+    const gate = perms.requirePrimaryOrgAdmin();
+    const refused = { session: session({ id: 'n' }) };
+    assert.deepEqual(await run(gate, refused).then((r) => [r.status, r.body]), [403, { error: 'Organization admin access required' }]);
+    assert.equal(refused.primaryOrgId, undefined);
+    const admitted = { session: session({ id: 'a' }) };
+    assert.equal((await run(gate, admitted)).status, 'next');
+    assert.equal(admitted.primaryOrgId, 'other');
 });
 
 // ── 7. Studio helpers ────────────────────────────────────────────────────────

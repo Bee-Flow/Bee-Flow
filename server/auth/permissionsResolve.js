@@ -2,8 +2,9 @@
 /**
  * Permissions — resolving what a user may do: getUserPermissions (with its
  * cache and degraded-state signal), the audit variant, hasPermission, the RBAC
- * gates built on it (requireAdmin, requirePermission, requirePluginAdmin) and
- * resolveUserOrgIds.
+ * gates built on it (requireAdmin, requirePermission, requirePluginAdmin),
+ * resolveUserOrgIds, and the per-organisation form (resolvePermissionsByOrg,
+ * hasPermissionInOrg) for a decision about a resource of one organisation.
  *
  * Part of auth/permissions.js (the public surface); import from there.
  */
@@ -21,6 +22,8 @@ const { buildKey } = require('../utils/buildInfo');
 const _metrics = require('../telemetry/httpMetrics');
 const { OrgRoles, GROUP_GRANT_IMPLIED_PERMISSIONS, orgWideGrantImpliedPermissions, getOrgRolePermissions } = require('./permissionsCatalog');
 const { PERM_CACHE_TTL, _permCache } = require('./permissionsCache');
+
+const { collectPermissionGrants, permissionsOfGrants, grantsHoldInOrg } = require('./permissionGrants.mts');
 
 // Degraded-state signal — flipped whenever getUserPermissions hits an
 // exception path. Stays true for 60s after the last failure so dashboards
@@ -85,123 +88,10 @@ async function getUserPermissions(userId, /** @type {import('../core/entitlement
         // Legacy: if user.role === 'admin', grant all
         if (user.role === 'admin') return ['all'];
 
-        const permSet = new Set();
-
-        // Resolve groups — user.groups may already be parsed to an array by getUser()
-        let groupIds = [];
-        if (Array.isArray(user.groups)) {
-            groupIds = user.groups;
-        } else {
-            try { groupIds = JSON.parse(user.groups || '[]'); } catch (err) { groupIds = fallback('permissionsResolve:groups-json', err, []); }
-        }
-
-        const allGroups = await userStore.getAllGroups();
-        const allRoles = await userStore.getAllRoles();
-        const roleMap = Object.fromEntries(allRoles.map(r => [r.id, r]));
-
-        for (const gid of groupIds) {
-            const group = allGroups.find(g => g.id === gid);
-            if (!group) continue;
-
-            // Add group-level permissions
-            for (const p of (group.permissions || [])) permSet.add(p);
-
-            // …and the permissions a capability grant to this group implies.
-            const granted = Array.isArray(group.granted_capabilities) ? group.granted_capabilities : [];
-            for (const capId of granted) {
-                for (const p of (GROUP_GRANT_IMPLIED_PERMISSIONS[capId] || [])) permSet.add(p);
-            }
-
-            // Resolve roles attached to the group
-            for (const rid of (group.roles || [])) {
-                const role = roleMap[rid];
-                if (role) {
-                    for (const p of (role.permissions || [])) permSet.add(p);
-                }
-            }
-        }
-
-        // Resolve the user's direct role field (e.g. 'admin-light')
-        if (user.role && user.role !== 'admin') {
-            const directRole = roleMap[user.role];
-            if (directRole) {
-                for (const p of (directRole.permissions || [])) permSet.add(p);
-            }
-        }
-
-        // ── Organisation role → permissions mapping ──
-        // Shipped defaults from config/orgRoles.json, with the organisation's
-        // own choices layered on top (auth/orgRolePolicy.js). An org that has
-        // never touched its Roles screen resolves byte-identically to before.
-        const { resolveOrgRolePermissions } = dep('orgRolePolicy');
-        const ORG_ROLE_DEFAULTS = getOrgRolePermissions();
-        // Cached per org for a few seconds inside orgRolePolicy, and this whole
-        // function is itself behind the per-user permission cache, so a group
-        // in a second org costs one extra config read at most.
-        const _permsForOrg = new Map();
-        const permsForRoleInOrg = async (role, orgId) => {
-            const key = String(orgId || '');
-            if (!_permsForOrg.has(key)) {
-                _permsForOrg.set(key, await resolveOrgRolePermissions(orgId, ORG_ROLE_DEFAULTS));
-            }
-            return _permsForOrg.get(key)[role] || null;
-        };
-
-        // Legacy compatibility: accounts created before the role rename carry
-        // orgRole === 'admin' instead of 'org_admin'. Many code paths already
-        // accept both (see server/routes/ai/config.js requireOrgAdminForN8n),
-        // but the permissions map only has 'org_admin' — resulting in zero
-        // permissions for legacy admins. Normalise here.
-        const normaliseOrgRole = (r) => (r === OrgRoles.LEGACY_ADMIN ? OrgRoles.ORG_ADMIN : r);
-
-        // Apply user's direct orgRole
-        const userOrgRole = normaliseOrgRole(user.orgRole);
-        if (userOrgRole) {
-            const granted = await permsForRoleInOrg(userOrgRole, user.organizationId);
-            if (granted) for (const p of granted) permSet.add(p);
-        }
-
-        // The org's "All members" grants of a group-scoped beta — only where
-        // the org's Roles screen has not decided this role (precedence: see
-        // orgWideGrantImpliedPermissions).
-        if (user.organizationId) {
-            const { getOrgRoleOverrides } = dep('orgRolePolicy');
-            const overrides = await getOrgRoleOverrides(user.organizationId);
-            const roleDecided = !!userOrgRole && Object.prototype.hasOwnProperty.call(overrides, userOrgRole);
-            if (!roleDecided) {
-                for (const p of await orgWideGrantImpliedPermissions(user.organizationId)) permSet.add(p);
-            }
-        }
-
-        // Apply group-level orgRoles (a group can grant a role to all its members).
-        //
-        // Why this exists: the canonical place to assign an orgRole is the
-        // `users.orgRole` column. The `groups.orgRole` column is a fan-out
-        // shortcut for "everyone in this group should also act as <role>"
-        // (e.g. an "ops" group that grants `dpo` to its members without
-        // editing each user). It is additive — a user's own orgRole and
-        // every group orgRole they're in all union into the permission set.
-        //
-        // Operational notes:
-        //   • Group orgRoles do NOT promote a user across org boundaries —
-        //     a group's organizationId scopes its members; cross-org
-        //     resolution still relies on the per-user orgRole + user.organizationId.
-        //   • Removing a member from a group invalidates their cached perms
-        //     via invalidateAllPermissionCaches (group mutations) or the
-        //     per-user invalidation when adminRoutes updates `users.groups`.
-        //   • The mechanism is rarely used today; left in place for orgs
-        //     that want to manage "all members of group X get DPO" without
-        //     editing per-user rows.
-        for (const gid of groupIds) {
-            const group = allGroups.find(g => g.id === gid);
-            const groupOrgRole = normaliseOrgRole(group?.orgRole);
-            if (!groupOrgRole) continue;
-            // The GROUP's org decides, not the user's: a group fans its role
-            // out to its own members, and it is that organisation's Roles
-            // screen that says what the role means.
-            const granted = await permsForRoleInOrg(groupOrgRole, group?.organizationId || user.organizationId);
-            if (granted) for (const p of granted) permSet.add(p);
-        }
+        // The union of every grant (auth/permissionGrants.mts), in the order
+        // they are collected: groups (permissions, implied capability, roles),
+        // direct role, orgRole, org-wide grant, group orgRoles.
+        const permSet = new Set(permissionsOfGrants(await collectUserGrants(user)));
 
         // Short-circuit: 'all' overrides everything
         if (permSet.has('all')) return ['all'];
@@ -233,6 +123,138 @@ async function getUserPermissions(userId, /** @type {import('../core/entitlement
         log.error('[Auth] getUserPermissions degraded:', err);
         return ['page_chat'];
     }
+}
+
+/**
+ * Every permission grant of `user`, tagged with the organisation it holds in
+ * (auth/permissionGrants.mts), read from the stores. Store errors propagate.
+ *
+ * The orgRole permissions are the shipped defaults from config/orgRoles.json
+ * with the organisation's own choices layered on top (auth/orgRolePolicy.js):
+ * an org that has never touched its Roles screen resolves to the defaults.
+ * Legacy accounts carry orgRole 'admin' instead of 'org_admin'; the role map
+ * only knows 'org_admin', so the orgRole is normalised first.
+ *
+ * A group's orgRole is a fan-out shortcut ("everyone in this group also acts
+ * as <role>"); it resolves in the GROUP's organisation, whose Roles screen
+ * says what the role means there. Removing a member from a group invalidates
+ * their cached permissions (invalidateAllPermissionCaches on group mutations,
+ * the per-user invalidation when `users.groups` changes).
+ *
+ * @param {import('./permissionGrants.mts').GrantUser & { groups?: unknown }} user  a userStore.getUser row
+ * @returns {Promise<import('./permissionGrants.mts').PermissionGrant[]>}
+ */
+async function collectUserGrants(user) {
+    // user.groups may already be parsed to an array by getUser()
+    /** @type {unknown[]} */
+    let groupIds = [];
+    if (Array.isArray(user.groups)) {
+        groupIds = user.groups;
+    } else {
+        try { groupIds = JSON.parse(typeof user.groups === 'string' && user.groups ? user.groups : '[]'); } catch (err) { groupIds = fallback('permissionsResolve:groups-json', err, []); }
+        if (!Array.isArray(groupIds)) groupIds = [];
+    }
+
+    const allGroups = await userStore.getAllGroups();
+    const allRoles = await userStore.getAllRoles();
+
+    const { resolveOrgRolePermissions, getOrgRoleOverrides } = dep('orgRolePolicy');
+    const ORG_ROLE_DEFAULTS = getOrgRolePermissions();
+    // Cached per org for a few seconds inside orgRolePolicy, and the flat
+    // answer is itself behind the per-user permission cache, so a group in a
+    // second org costs one extra config read at most.
+    /** @type {Map<string, Record<string, string[]>>} */
+    const permsForOrg = new Map();
+
+    return collectPermissionGrants(user, {
+        groupIds,
+        allGroups,
+        allRoles,
+        impliedByCapability: GROUP_GRANT_IMPLIED_PERMISSIONS,
+        normaliseOrgRole: (r) => {
+            if (typeof r !== 'string' || !r) return null;
+            return r === OrgRoles.LEGACY_ADMIN ? OrgRoles.ORG_ADMIN : r;
+        },
+        permsForRoleInOrg: async (role, orgId) => {
+            const key = String(orgId || '');
+            let byRole = permsForOrg.get(key);
+            if (!byRole) {
+                byRole = await resolveOrgRolePermissions(orgId, ORG_ROLE_DEFAULTS);
+                permsForOrg.set(key, byRole);
+            }
+            return (byRole && byRole[role]) || null;
+        },
+        // The org's "All members" grants of a group-scoped beta, only where
+        // the org's Roles screen has not decided this role (precedence: see
+        // orgWideGrantImpliedPermissions).
+        orgWideGrants: async (orgId, orgRole) => {
+            const overrides = await getOrgRoleOverrides(orgId);
+            const roleDecided = !!orgRole && Object.prototype.hasOwnProperty.call(overrides, orgRole);
+            return roleDecided ? [] : orgWideGrantImpliedPermissions(/** @type {string} */ (orgId));
+        },
+    });
+}
+
+/**
+ * @typedef {{ holds: (permission: string, orgId: string | null | undefined) => boolean }} OrgPermissions
+ *   `holds(P, X)`: the user holds P (or 'all') IN organisation X. Never for an
+ *   absent organisation, except for a platform admin, who holds everything.
+ */
+
+/** @type {OrgPermissions} */
+const HOLDS_EVERYWHERE = Object.freeze({ holds: () => true });
+/** @type {OrgPermissions} */
+const HOLDS_NOWHERE = Object.freeze({ holds: () => false });
+
+/**
+ * Which permissions the user holds in which organisation: one read, any
+ * number of `holds(permission, orgId)` questions (a list endpoint asks one per
+ * row). See auth/permissionGrants.mts for where each source holds: a group's
+ * rights in the group's organisation, the user's orgRole and direct role in
+ * the home organisation.
+ *
+ * A platform admin (`session.isAdmin`, or users.role 'admin') holds everything
+ * everywhere, as with getUserPermissions. The always-granted `page_chat` floor
+ * of getUserPermissions is not an organisation grant and does not appear here.
+ *
+ * `session` is the CALLER's, as with getUserPermissions: asking about another
+ * user, pass none.
+ *
+ * Not cached: the per-user permission cache holds the flat answer only. A
+ * store error answers "holds nowhere" (fails closed) and flips the same
+ * degraded-state signal as getUserPermissions.
+ *
+ * @param {string | null | undefined} userId
+ * @param {import('../core/entitlements/entitlementTypes').SessionLike | null} [session]
+ * @returns {Promise<OrgPermissions>}
+ */
+async function resolvePermissionsByOrg(userId, session = null) {
+    if (session?.isAdmin) return HOLDS_EVERYWHERE;
+    if (!userId) return HOLDS_NOWHERE;
+    try {
+        const user = await userStore.getUser(userId);
+        if (!user) return HOLDS_NOWHERE;
+        if (user.role === 'admin') return HOLDS_EVERYWHERE;
+        const grants = await collectUserGrants(user);
+        return { holds: (permission, orgId) => grantsHoldInOrg(grants, permission, orgId) };
+    } catch (err) {
+        _lastPermLookupFailedAt = Date.now();
+        log.error('[Auth] resolvePermissionsByOrg degraded:', err);
+        return HOLDS_NOWHERE;
+    }
+}
+
+/**
+ * Does the user hold `permission` (or 'all') IN organisation `orgId`? The
+ * single-question form of resolvePermissionsByOrg.
+ * @param {string | null | undefined} userId
+ * @param {string} permission
+ * @param {string | null | undefined} orgId
+ * @param {import('../core/entitlements/entitlementTypes').SessionLike | null} [session]
+ * @returns {Promise<boolean>}
+ */
+async function hasPermissionInOrg(userId, permission, orgId, session = null) {
+    return (await resolvePermissionsByOrg(userId, session)).holds(permission, orgId);
 }
 
 function isPermissionLookupDegraded() {
@@ -344,4 +366,6 @@ module.exports = {
     requirePermission,
     requirePluginAdmin,
     resolveUserOrgIds,
+    resolvePermissionsByOrg,
+    hasPermissionInOrg,
 };

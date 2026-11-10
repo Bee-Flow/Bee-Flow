@@ -46,7 +46,7 @@ const MOCKS = {
     },
     './shared': {
         getUserId: (req) => req.session?.user?.id || null,
-        canAccessKB: async () => true,
+        canManageKB: async () => true,
         blockIfSystemKB: () => false,
         ensureKbSource: async (...a) => { touched.push({ what: 'ensureKbSource', args: a }); return { id: 's1' }; },
     },

@@ -6,7 +6,8 @@
  * Verified against:
  * - server/routes/ai/config/instanceConfig.js — GET /ai/config (any member;
  *   `hasGoogleMapsKey`), POST /ai/config `{ googleMapsApiKey }` (a closed
- *   body; `admin_ai_config`, which org_admin holds).
+ *   body; a platform admin only, in every deployment mode: the key is
+ *   instance-wide).
  * - server/routes/admin/ncIntegrations.js — GET/PUT
  *   /auth/admin/:orgId/nc-integrations `{ enabled }` and GET …/groups, PUT
  *   …/groups/:groupId `{ disabledIntegrations }` (.strict(); NC ids only;

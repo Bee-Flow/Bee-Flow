@@ -62,7 +62,14 @@ const MOCKS = {
     // route plumbing
     '../../core/entitlements/limits': { checkSubscriptionLimits: async () => state.limitError },
     '../../auth': { resolveUserOrgIds: async () => new Set(['orgA']) },
-    '../auth/permissions': { hasPermission: async () => false },
+    // The decision of the real platform gate (auth/permissionsOrgGates.js requireSuperAdmin).
+    '../auth/permissions': {
+        requireSuperAdmin: (req, res, next) => {
+            if (!req.session?.user) return res.status(401).json({ error: 'Unauthorized' });
+            if (req.session.isAdmin || req.session.user.role === 'admin') return next();
+            return res.status(403).json({ error: 'Operator access required' });
+        },
+    },
     '../../core/llm/modelResolver': {
         getUserTierMap: async () => clone(state.tiers),
     },

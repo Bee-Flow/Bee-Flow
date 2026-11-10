@@ -9,6 +9,10 @@
  * changed knobs are sent; the server merges them, so the wallpaper and glass
  * knobs (web-only: they apply to the glass presets) keep their values. A
  * save repaints this app at once by refreshing the branding query it reads.
+ *
+ * The default theme is the instance's, so /api/branding/admin answers a
+ * platform admin only, in every deployment mode; an org admin is turned away
+ * here instead of being shown a screen whose read fails.
  */
 
 import React, { useState } from 'react';
@@ -30,8 +34,15 @@ import { useOrgContext } from '../hooks/useOrgSections';
 export function OrgThemeScreen() {
     const t = useTranslation();
     const { toast } = useToast();
-    const { orgId, isOrgAdmin } = useOrgContext();
-    const allowed = isOrgAdmin && Boolean(orgId);
+    const { orgId, isOrgAdmin, isSuperAdmin } = useOrgContext();
+    const allowed = isSuperAdmin && Boolean(orgId);
+    const denied = isOrgAdmin && !isSuperAdmin
+        ? {
+              icon: 'Lock' as const,
+              title: t('mobile.org.theme_platform_title', 'For the platform administrator'),
+              message: t('mobile.org.theme_platform_message', 'The default theme applies to the whole server, so only the platform administrator can change it.'),
+          }
+        : undefined;
     const [iconsOpen, setIconsOpen] = useState(false);
     const query = useOrgTheme(allowed);
     const save = useSaveOrgTheme();
@@ -63,6 +74,7 @@ export function OrgThemeScreen() {
             title={t('mobile.org.section_theme', 'Theme')}
             subtitle={t('mobile.org.theme_subtitle', 'The look everyone in the organisation starts from')}
             allowed={allowed}
+            denied={denied}
             query={query}
             onRefresh={() => void icons.refetch()}
             dirty={form.dirty}

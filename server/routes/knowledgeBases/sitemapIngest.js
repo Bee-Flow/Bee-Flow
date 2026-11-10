@@ -25,7 +25,7 @@ const router = express.Router();
 const kbStore = require('../../stores/knowledgeBases');
 const { requireAuth, requirePermission } = require('../../auth');
 const { ingestDocument } = require('../../core/kb/kbIngestionHelpers');
-const { getUserId, guardedFetch, canAccessKB, blockIfSystemKB, ensureKbSource } = require('./shared');
+const { getUserId, guardedFetch, canManageKB, blockIfSystemKB, ensureKbSource } = require('./shared');
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
@@ -56,7 +56,8 @@ const SitemapBody = z.preprocess((v) => (v === undefined || v === null ? {} : v)
 router.post('/:id/ingest/sitemap', requireAuth, requirePermission('manage_knowledge'), validate({ body: SitemapBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof SitemapBody>, import('qs').ParsedQs>} */ req, res) => {
     const kb = await kbStore.getKB(req.params.id);
     if (!kb) return res.status(404).json({ error: 'KB not found' });
-    if (!(await canAccessKB(req, kb))) return res.status(403).json({ error: 'Access denied' });
+    // Writing content is managing the base (manage_knowledge in its own organisation).
+    if (!(await canManageKB(req, kb))) return res.status(403).json({ error: 'Access denied' });
     if (blockIfSystemKB(kb, res)) return;
 
     const { url } = req.body;

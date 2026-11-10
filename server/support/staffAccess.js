@@ -11,17 +11,19 @@ const log = require('../telemetry/log');
 
 /**
  * Pure permission-set check. getUserPermissions returns an array of permission
- * strings (or ['all'] for admins); tolerate a Set for future-proofing.
+ * strings; tolerate a Set for future-proofing. Only the `admin_support`
+ * permission makes staff: the 'all' wildcard does not (a platform admin is
+ * staff through isSuperAdmin, not through the permission set).
  */
 function hasSupportPerms(perms) {
-    if (Array.isArray(perms)) return perms.includes('admin_support') || perms.includes('all');
-    if (perms instanceof Set) return perms.has('admin_support') || perms.has('all');
+    if (Array.isArray(perms)) return perms.includes('admin_support');
+    if (perms instanceof Set) return perms.has('admin_support');
     return false;
 }
 
 /**
  * May this requester act as Bee Flow support staff? Super admins always;
- * otherwise the user needs the admin_support (or all) permission.
+ * otherwise the user needs the admin_support permission.
  * @param {string} userId
  */
 async function hasAdminSupport(req, userId) {

@@ -2,18 +2,15 @@
 /**
  * Organization Azure Configuration API
  *
- * On self-hosted installs, org admins can view and manage the SAME global
- * Azure configuration that platform admins set in the admin dashboard.
- * This avoids config duplication — there's one source of truth.
- *
- * "Self-hosted" is load-bearing, and the server now says so rather than only
- * the SPA (which hides this panel on cloud): GET and PUT /:orgId read and
- * write the PLATFORM's Azure OpenAI endpoint and key, its Microsoft SSO app
- * and its PII defaults. On the multi-tenant cloud any org admin could rewrite
- * them for every tenant — point every Azure call at their own endpoint, swap
- * the SSO app, switch the platform PII default — and read the platform's
- * endpoints and the tail of its keys. There, only a platform admin passes.
- * The group-sync routes below stay org-scoped and are not gated this way.
+ * GET and PUT /:orgId read and write the SAME global Azure configuration the
+ * admin dashboard sets: the platform's Azure OpenAI endpoint and key, chat-model
+ * tiers, Microsoft SSO app, PII defaults and document processing. That state is
+ * instance-wide, so both routes take the platform-admin gate in every
+ * deployment mode (platformConfigGate). The org's own `autoApproveSSO` flag rides
+ * along in the `sso` section; an org admin sets it in the organisation settings
+ * (auth/admin/orgRoutes.js). The group-sync routes are org-scoped and keep the
+ * strict org-admin check for the organisation in the path (isOrgAdmin); their
+ * status read answers through orgAzureSyncView.js, without configuration values.
  */
 
 const express = require('express');
@@ -23,39 +20,37 @@ const configStore = require('../stores/configStore');
 const userStore = require('../stores/userStore');
 const { resolveUserOrgIds } = require('../auth');
 const { loadConfig, saveConfig, isSuperAdmin } = require('../auth/permissions');
-const { syncAzureGroupsToOrg, getSyncSettings, setSyncSettings, getSyncStatus, assertSyncBinding } = require('../integrations/azureGroupSync');
+const { tagGate } = require('../auth/gateMeta');
+const { PLATFORM_GATE } = require('../auth/requirePlatformAdmin');
+const { syncAzureGroupsToOrg, getSyncSettings, setSyncSettings, getSyncStatus, getSyncBinding, assertSyncBinding } = require('../integrations/azureGroupSync');
+const { groupSyncView } = require('./orgAzureSyncView');
 const { validate } = require('../core/http/validate');
 const { forbidden } = require('../core/http/errors');
 const { z, typeError } = require('../utils/zod');
 const { worded, choice } = require('../core/http/schemaParts');
 
-// requireAuth is the canonical gate from auth/permissions (verifies the
-// user still exists in the DB, cached 5s, and destroys deleted-user sessions).
-const { requireAuth } = require('../auth/permissions');
-
-/**
- * Check if the current user is an admin for the given org.
- * Platform super admins can manage any org.
- */
-const { isOrgAdminForOrg } = require('../auth/permissions');
-// orgAzureConfig historically required the exact ORG_ADMIN orgRole (it does
-// not accept the legacy 'admin' orgRole variant) — preserve that strictness.
+// requireAuth is the canonical gate (verifies the user still exists in the DB,
+// cached 5s, and destroys deleted-user sessions). isOrgAdminForOrg: platform
+// admins pass for any org; otherwise the exact ORG_ADMIN orgRole of that org
+// (not the legacy 'admin' orgRole variant) or an admin-carrying group of it.
+const { requireAuth, isOrgAdminForOrg } = require('../auth/permissions');
 /** @param {import('express').Request} req @param {string} orgId */
 const isOrgAdmin = (req, orgId) => isOrgAdminForOrg(req, orgId, { strictOrgRole: true });
 
 /**
- * The platform configuration is an org admin's on a self-hosted install only
- * (see the header); on any other deployment only a platform admin passes.
+ * The platform configuration is a platform admin's, in every deployment mode
+ * (see the header). Tagged on the platform axis, so the route contract reads
+ * the two routes behind it as platform-class.
  * @param {import('express').Request} req
  * @param {import('express').Response} _res
  * @param {import('express').NextFunction} next
  */
 function platformConfigGate(req, _res, next) {
-    const { deploymentMode } = require('../license');
-    if (deploymentMode() === 'self-hosted' || isSuperAdmin(req)) return next();
+    if (isSuperAdmin(req)) return next();
     return next(forbidden('platform_managed',
         'On this deployment the Azure configuration is managed by the platform administrator.'));
 }
+tagGate(platformConfigGate, PLATFORM_GATE);
 
 // ── What a caller may send ──────────────────────────────────────────
 //
@@ -393,7 +388,8 @@ router.post('/:orgId/sync-groups', requireAuth, /** @param {import('express').Re
     res.json(result);
 });
 
-// GET /:orgId/sync-groups/status — get last sync status
+// GET /:orgId/sync-groups/status — the last run, the settings and whether a
+// directory is connected for this org; no configuration value (orgAzureSyncView.js).
 router.get('/:orgId/sync-groups/status', requireAuth, /** @param {import('express').Request<{ orgId: string }>} req */ async (req, res) => {
     const { orgId } = req.params;
     const admin = await isOrgAdmin(req, orgId);
@@ -401,9 +397,10 @@ router.get('/:orgId/sync-groups/status', requireAuth, /** @param {import('expres
         return res.status(403).json({ error: 'Only organization admins can view sync status' });
     }
 
-    const status = await getSyncStatus(orgId);
-    const settings = await getSyncSettings(orgId);
-    res.json({ status, settings });
+    const microsoft = (await loadConfig()).providers?.microsoft;
+    res.json(groupSyncView({
+        orgId, status: await getSyncStatus(orgId), settings: await getSyncSettings(orgId), binding: await getSyncBinding(), microsoft,
+    }));
 });
 
 // PUT /:orgId/sync-groups/settings — update sync settings

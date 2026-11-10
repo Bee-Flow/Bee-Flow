@@ -72,6 +72,25 @@ test('no source is attached to a base the owner may not write to', async () => {
     assert.deepStrictEqual(store.rows.map(r => r.knowledgeBaseId), ['kb1']);
 });
 
+test('the owner is resolved once for every base the automation writes to', async () => {
+    const realKbStore = require('../../stores/knowledgeBases');
+    const rows = new Map(['kb1', 'kb2', 'kb3'].map((id) => [id, { id, name: id, tenant_id: 'other', organization_id: id === 'kb3' ? 'org2' : 'org1', is_published: true }]));
+    const calls = { asker: 0, perms: 0 };
+    const store = fakeStore();
+    const out = await syncKbSources('a1', def(['kb1', 'kb2', 'kb3']), {
+        userId: 'u1',
+        deps: {
+            kbSourcesStore: store,
+            writeAccess: require('./kbWriteAccess'),
+            kbStore: { getKB: async (id) => rows.get(id) || null, canUserManageKB: realKbStore.canUserManageKB, isSystemKB: realKbStore.isSystemKB },
+            askerContext: async () => { calls.asker += 1; return { orgIds: new Set(['org1', 'org2']) }; },
+            resolvePermissionsByOrg: async () => { calls.perms += 1; return { holds: (perm, orgId) => perm === 'manage_knowledge' && orgId === 'org1' }; },
+        },
+    });
+    assert.deepStrictEqual(out.added.sort(), ['kb1', 'kb2'], 'manage_knowledge in org1 writes to the org1 bases only');
+    assert.deepStrictEqual(calls, { asker: 1, perms: 1 });
+});
+
 test('saving twice does not attach a second source', async () => {
     const store = fakeStore();
     const deps = { kbSourcesStore: store, writeAccess: writeAccess(['kb1']) };

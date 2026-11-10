@@ -13,6 +13,7 @@ const ADMIN: OrgVisibilityInputs = {
     canSeeCompliance: true,
     canUseLearning: true,
     isSuperAdmin: false,
+    isPlatformAdmin: false,
     isSelfHosted: false,
     isNcOrg: false,
     isNcConnectorUser: false,
@@ -81,11 +82,12 @@ describe('searchOrgPlaces', () => {
     it('finds the screens below a section', () => {
         expect(ids('invitations')).toContain('org-invitations');
         expect(ids('n8n')).toContain('org-n8n');
-        expect(ids('group sync', { ...ADMIN, isSelfHosted: true })).toContain('org-azure-sso');
     });
 
     it('keeps out what the index hides this session', () => {
         expect(ids('azure')).toEqual([]);
+        // The Azure screens are a platform admin's, also on self-hosted.
+        expect(ids('group sync', { ...ADMIN, isSelfHosted: true })).toEqual([]);
         expect(ids('invoices', { ...ADMIN, isSelfHosted: true })).toEqual([]);
     });
 

@@ -29,15 +29,11 @@
 
 const test = require('node:test');
 const assert = require('node:assert');
-const http = require('node:http');
-const express = require('express');
-const { terminalErrorHandler } = require('../../core/http/terminalErrorHandler');
 
 const {
     createSearchRouter, KIND_KEYS, MAX_PER_KIND, MIN_QUERY_LENGTH, MAX_QUERY_LENGTH, escapeLike, nameOf,
 } = require('./search');
-
-const USER = { id: 'u1', organizationId: 'orgA' };
+const { studioApp, studioServer } = require('./studioServer.testkit');
 
 // ── A fully-open, fully-populated fake dependency set ───────────────────────
 function makeDeps(overrides = {}) {
@@ -85,7 +81,7 @@ function makeDeps(overrides = {}) {
             filterByGroupAccess: (kbs) => kbs.filter((kb) => kb.id !== 'kbx'),
         },
         kbShared: {
-            resolveIsOrgAdmin: async () => false,
+            resolveAdminOrgIds: async () => new Set(),
             resolveEnabledSystemSlugs: async () => [],
             listFilterFromQuery: () => ({ sourceKind: 'manual' }),
             resolveUserGroups: async () => ['g1'],
@@ -106,39 +102,13 @@ function makeDeps(overrides = {}) {
 }
 
 // ── Server harness ──────────────────────────────────────────────────────────
-let server;
-let baseUrl;
 let deps;
-
-function mount(nextDeps) {
-    deps = nextDeps;
-    const app = express();
-    // The real mount sits behind requireAuth; here a header stands in for the
-    // session so an unauthenticated request can be exercised too.
-    app.use((req, _res, next) => {
-        const who = req.headers['x-test-user'];
-        req.session = who ? { isAuthenticated: true, user: { ...USER, id: who } } : {};
-        next();
-    });
-    app.use('/api/studio', createSearchRouter(deps));
-    // A schema refusal travels as an error; answer it the way index.js does.
-    app.use(terminalErrorHandler);
-    return app;
-}
-
-async function listen(app) {
-    if (server) await new Promise((resolve) => server.close(resolve));
-    server = http.createServer(app);
-    await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
-    baseUrl = `http://127.0.0.1:${server.address().port}`;
-}
-
-test.after(async () => {
-    if (server) await new Promise((resolve) => server.close(resolve));
-});
+const mount = (nextDeps) => studioApp(createSearchRouter(deps = nextDeps), { errors: true });
+const srv = studioServer(test);
+const listen = srv.listen;
 
 const get = (q = 'invoice', user = 'u1') => fetch(
-    `${baseUrl}/api/studio/search?q=${encodeURIComponent(q)}`,
+    `${srv.baseUrl}/api/studio/search?q=${encodeURIComponent(q)}`,
     { headers: user ? { 'x-test-user': user } : {} },
 );
 
@@ -194,7 +164,7 @@ test('a kind that matches nothing is an EMPTY ARRAY, not an omission', async () 
 
 test('an unauthenticated request is refused before any store is touched', async () => {
     await listen(mount(makeDeps()));
-    const res = await fetch(`${baseUrl}/api/studio/search?q=invoice`);
+    const res = await fetch(`${srv.baseUrl}/api/studio/search?q=invoice`);
     assert.strictEqual(res.status, 401);
     assert.strictEqual(deps._calls.sql.length, 0);
     assert.strictEqual(deps._calls.apps, undefined);
@@ -303,13 +273,13 @@ test('a query under two characters touches no store at all', async () => {
 
 test('a missing q parameter is the same cheap path, not a crash', async () => {
     await listen(mount(makeDeps()));
-    const res = await fetch(`${baseUrl}/api/studio/search`, { headers: { 'x-test-user': 'u1' } });
+    const res = await fetch(`${srv.baseUrl}/api/studio/search`, { headers: { 'x-test-user': 'u1' } });
     assert.strictEqual(res.status, 200);
     assert.strictEqual((await res.json()).tooShort, true);
     // An array-shaped q (?q=a&q=b) is not a string and must not reach a store.
     // It used to be answered 200 `tooShort` — "keep typing" to somebody who
     // had typed; the schema now refuses it by name.
-    const res2 = await fetch(`${baseUrl}/api/studio/search?q=aa&q=bb`, { headers: { 'x-test-user': 'u1' } });
+    const res2 = await fetch(`${srv.baseUrl}/api/studio/search?q=aa&q=bb`, { headers: { 'x-test-user': 'u1' } });
     assert.strictEqual(res2.status, 400);
     assert.ok((await res2.json()).details.some((d) => d.path === 'query.q'));
     assert.strictEqual(deps._calls.sql.length, 0);

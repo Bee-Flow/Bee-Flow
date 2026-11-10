@@ -1,6 +1,7 @@
 import React from 'react';
 import type { ReactNode } from 'react';
 import OrgAzureConfigPanel from '@/components/integrations/azure/index';
+import GroupSyncPanel from '@/components/integrations/azure/GroupSyncPanel';
 import { RequireTier } from '@/components/licensing/LicenseContext';
 import AppearanceSection from '../AppearanceSection';
 import ConsumerBetaFeaturesSection from '../ConsumerBetaFeaturesSection';
@@ -35,6 +36,8 @@ export interface SettingsContentContext {
     canUseLearning: boolean;
     isConsumerAccount: boolean;
     isSelfHosted: boolean;
+    /** The server's platform-admin test (session isAdmin or role 'admin'). */
+    isPlatformAdmin: boolean;
     projectsOn: boolean;
     entitlementsUnknown: boolean;
     orgDeepSegs: OrgDeepSegs;
@@ -66,7 +69,7 @@ function orgActiveSectionFor(activeTab: string, isOrgSubTab: boolean): string {
 export function renderSettingsContent(ctx: SettingsContentContext): React.ReactNode {
     const {
         user, activeTab, setActiveTab, isMobile, phoneExemptTab, isOrgSubTab, canSeeOrg, canSeeCompliance, canUseLearning,
-        isConsumerAccount, isSelfHosted, projectsOn, entitlementsUnknown, orgDeepSegs, complianceHub,
+        isConsumerAccount, isSelfHosted, isPlatformAdmin, projectsOn, entitlementsUnknown, orgDeepSegs, complianceHub,
         defaultAgentMode, setDefaultAgentMode, defaultAgentId, setDefaultAgentId, agents, onLogout, onUpdateUser,
         memoryStats, memoryStatsStatus, fetchMemoryStats, openMemoryPanel, statuses, handleIntegrationSaved,
     } = ctx;
@@ -88,7 +91,12 @@ export function renderSettingsContent(ctx: SettingsContentContext): React.ReactN
                 </RequireTier>
             );
         }
-        if (activeTab === 'org_azure' && canSeeOrg) return <OrgAzureConfigPanel user={user} />;
+        // The instance-wide Azure setup: a platform admin's, like its API. An
+        // organisation admin on a self-hosted install gets the org's own group sync there.
+        if (activeTab === 'org_azure') {
+            if (isPlatformAdmin) return <OrgAzureConfigPanel user={user} />;
+            return isSelfHosted && canSeeOrg ? <GroupSyncPanel user={user} /> : null;
+        }
         if (isOrgSubTab && canSeeOrg) return <OrganisationSection user={user} activeSection={orgActiveSection} usageInitialReport={activeTab === 'org_usage' ? (orgDeepSegs.seg1 || '') : ''} />;
         // Consumer account tabs
         if (activeTab === 'consumer_license' && isConsumerAccount) return <ConsumerLicenseSection user={user} />;

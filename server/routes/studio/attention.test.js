@@ -34,12 +34,9 @@
 
 const test = require('node:test');
 const assert = require('node:assert');
-const http = require('node:http');
-const express = require('express');
 
 const { createAttentionRouter, SOURCE_KEYS, CACHE_TTL_MS } = require('./attention');
-
-const USER = { id: 'u1', organizationId: 'orgA' };
+const { studioApp, studioServer } = require('./studioServer.testkit');
 
 // One app with no screens → the App Studio validator's `screens.missing`.
 const APP_BROKEN = { schemaVersion: 2, meta: { name: 'Order portal' }, screens: [] };
@@ -60,7 +57,7 @@ function makeDeps(overrides = {}) {
         modules: { isModuleActive: async () => true },
         license: { featureAllowedForRequest: async () => ({ allowed: true, resolution: {} }) },
         entitlements: { hasCapability: async () => true },
-        permissions: { hasPermission: async () => true },
+        permissions: { hasPermission: async () => true, resolvePermissionsByOrg: async () => ({ holds: () => true }) },
         auth: {
             resolveUserOrgIds: async () => new Set(['orgA']),
             resolveUserGroups: async () => ['g1'],
@@ -101,7 +98,7 @@ function makeDeps(overrides = {}) {
             canUserManageKB: () => true,
         },
         kbShared: {
-            resolveIsOrgAdmin: async () => false,
+            resolveAdminOrgIds: async () => new Set(),
             resolveEnabledSystemSlugs: async () => [],
             listFilterFromQuery: () => ({ sourceKind: 'manual' }),
             resolveUserGroups: async () => ['g1'],
@@ -140,38 +137,18 @@ function makeDeps(overrides = {}) {
 }
 
 // ── Server harness ──────────────────────────────────────────────────────────
-let server;
-let baseUrl;
 let deps;
 let router;
 
 function mount(nextDeps) {
     deps = nextDeps;
-    const app = express();
-    // The real mount sits behind requireAuth; here a header stands in for the
-    // session so an unauthenticated request can be exercised too.
-    app.use((req, _res, next) => {
-        const who = req.headers['x-test-user'];
-        req.session = who ? { isAuthenticated: true, user: { ...USER, id: who } } : {};
-        next();
-    });
     router = createAttentionRouter(deps);
-    app.use('/api/studio', router);
-    return app;
+    return studioApp(router);
 }
+const srv = studioServer(test);
+const listen = srv.listen;
 
-async function listen(app) {
-    if (server) await new Promise((resolve) => server.close(resolve));
-    server = http.createServer(app);
-    await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
-    baseUrl = `http://127.0.0.1:${server.address().port}`;
-}
-
-test.after(async () => {
-    if (server) await new Promise((resolve) => server.close(resolve));
-});
-
-const get = (user = 'u1') => fetch(`${baseUrl}/api/studio/attention`, {
+const get = (user = 'u1') => fetch(`${srv.baseUrl}/api/studio/attention`, {
     headers: user ? { 'x-test-user': user } : {},
 });
 
@@ -464,7 +441,7 @@ test('Solutions are checked only for the projects the caller already holds', asy
 
 test('an unauthenticated request is refused before any store is touched', async () => {
     await listen(mount(makeDeps()));
-    const res = await fetch(`${baseUrl}/api/studio/attention`);
+    const res = await fetch(`${srv.baseUrl}/api/studio/attention`);
     assert.strictEqual(res.status, 401);
     assert.strictEqual(deps._calls.apps, undefined);
     assert.strictEqual(deps._calls.listKBs, undefined);
@@ -697,6 +674,25 @@ test('a base this reader may READ but not MANAGE is not an instruction for them'
     assert.deepStrictEqual(ids, ['kb1'], 'the row whose "add a document" button this reader actually has');
     assert.deepStrictEqual(deps._calls.usageIds, ['kb1'], 'and the other one is not even probed');
     assert.strictEqual(b.sources.kbEmptyInUse.status, 'checked', 'out of reach is not a gap');
+});
+
+test('manage_knowledge counts in the base\'s own organisation, not in every organisation of the reader', async () => {
+    const b = await body({
+        permissions: {
+            hasPermission: async () => true,
+            resolvePermissionsByOrg: async () => ({ holds: (perm, orgId) => perm === 'manage_knowledge' && orgId === 'orgA' }),
+        },
+        kbStore: {
+            listKBs: async () => [
+                { id: 'kbA', name: 'Home base', document_count: 0, tenant_id: 'u2', organization_id: 'orgA' },
+                { id: 'kbB', name: 'Group org base', document_count: 0, tenant_id: 'u2', organization_id: 'orgB' },
+            ],
+            filterByGroupAccess: (kbs) => kbs,
+            // The store's rule reduced to its last step: the boolean it is handed.
+            canUserManageKB: (_kb, _userId, _orgIds, hasManage) => hasManage,
+        },
+    });
+    assert.deepStrictEqual(rowsFrom(b, 'kbEmptyInUse').map(r => r.targetId), ['kbA']);
 });
 
 test('only Solutions (and unclassified legacy projects) are checked for publishing', async () => {

@@ -11,6 +11,8 @@ export interface DesignerAgent {
     owner_id?: string;
     is_published?: boolean;
     avatar?: string | null;
+    /** The agent's organisation (GET /agents/all); null for an agent without one. */
+    organizationName?: string | null;
     [key: string]: unknown;
 }
 
@@ -21,6 +23,8 @@ export interface AgentListSidebarProps {
     selectedAgentId?: string;
     loading: boolean;
     systemMode: boolean;
+    /** The list spans organisations (all organisations in the admin dashboard): each row names its organisation. */
+    showOrgNames?: boolean;
     canManage: boolean;
     user: DesignerUser | null;
     onSelect: (agent: DesignerAgent) => void;
@@ -98,6 +102,25 @@ export default function AgentListSidebar(p: AgentListSidebarProps) {
     );
 }
 
+/** The agent's name and, when the list spans organisations, its organisation under it. */
+function AgentRowLabel({ agent, selected, showOrgName }: { agent: DesignerAgent; selected: boolean; showOrgName: boolean }) {
+    const { t } = useTranslation();
+    const name = (
+        <span className={`truncate text-[13px] text-[var(--text-primary)] ${selected ? 'font-medium' : ''} ${showOrgName ? '' : 'flex-1'}`}>
+            {agent.name}
+        </span>
+    );
+    if (!showOrgName) return name;
+    return (
+        <span className="flex min-w-0 flex-1 flex-col">
+            {name}
+            <span className="truncate text-[11px] text-[var(--text-tertiary)]" data-testid="agent-row-org">
+                {agent.organizationName || t('admin.sec_people_no_org', 'No organisation')}
+            </span>
+        </span>
+    );
+}
+
 function AgentRow({ agent, p }: { agent: DesignerAgent; p: AgentListSidebarProps }) {
     const { t } = useTranslation();
     const sel = p.selectedAgentId === agent.id;
@@ -110,7 +133,7 @@ function AgentRow({ agent, p }: { agent: DesignerAgent; p: AgentListSidebarProps
             role="button"
             tabIndex={0}
             aria-current={sel ? 'true' : undefined}
-            className={`group relative flex h-9 w-full cursor-pointer items-center gap-2.5 rounded-md px-2 text-left transition-colors ${sel ? 'bg-[var(--bg-tertiary)]' : 'hover:bg-[var(--bg-secondary)]'}`}
+            className={`group relative flex w-full cursor-pointer items-center gap-2.5 rounded-md px-2 text-left transition-colors ${p.showOrgNames ? 'min-h-9 py-1' : 'h-9'} ${sel ? 'bg-[var(--bg-tertiary)]' : 'hover:bg-[var(--bg-secondary)]'}`}
         >
             <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center overflow-hidden rounded-md text-sm">
                 {isImageAvatar(av) ? (
@@ -119,9 +142,7 @@ function AgentRow({ agent, p }: { agent: DesignerAgent; p: AgentListSidebarProps
                     av || agent.name?.[0]?.toUpperCase()
                 )}
             </div>
-            <span className={`flex-1 truncate text-[13px] text-[var(--text-primary)] ${sel ? 'font-medium' : ''}`}>
-                {agent.name}
-            </span>
+            <AgentRowLabel agent={agent} selected={sel} showOrgName={!!p.showOrgNames} />
             {!p.systemMode && p.canManage && (
                 <div className="flex items-center gap-0.5 flex-shrink-0">
                     <button

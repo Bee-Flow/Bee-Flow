@@ -63,8 +63,8 @@ describe('routes/usage.js', () => {
 describe('routes/feedback.js', () => {
     it('serves the org routes behind the org-admin and licence gates, with a strict window query', () => {
         expectAll(feedback, [
-            "router.get('/org', requireOwnOrgAdmin, requireAdvancedMonitoring, validate({ query: ListQuery })",
-            "router.get('/org/summary', requireOwnOrgAdmin, requireAdvancedMonitoring, validate({ query: RangeQuery })",
+            "router.get('/org', requireOwnOrgAdmin, requireAdvancedMonitoring, validate({ query: OrgListQuery })",
+            "router.get('/org/summary', requireOwnOrgAdmin, requireAdvancedMonitoring, validate({ query: OrgRangeQuery })",
             "const RangeQuery = z.object({ startDate: moment('startDate'), endDate: moment('endDate') }).strict();",
         ]);
         expectAll(feedbackStore, [
@@ -77,10 +77,10 @@ describe('routes/feedback.js', () => {
 describe('routes/terminations.js', () => {
     it('serves the org routes with the keys this feature sends', () => {
         expectAll(terminations, [
-            "router.get('/org', requireOwnOrgAdminScope, readQuery",
-            "router.get('/org/summary', requireOwnOrgAdminScope, readQuery",
-            "router.get('/org/timeline', requireOwnOrgAdminScope, readQuery",
-            "router.get('/org/by-agent', requireOwnOrgAdminScope, readQuery",
+            "router.get('/org', requireOwnOrgAdminScope, readOrgQuery",
+            "router.get('/org/summary', requireOwnOrgAdminScope, readOrgQuery",
+            "router.get('/org/timeline', requireOwnOrgAdminScope, readOrgQuery",
+            "router.get('/org/by-agent', requireOwnOrgAdminScope, readOrgQuery",
             'startDate: when(', 'endDate: when(', "interval: z.enum(['hour', 'day']", 'limit: z.coerce.number(',
             'res.json({ rows })', 'res.json({ rows, interval })',
         ]);

@@ -2,6 +2,7 @@ import { useEntitlements } from '@/components/licensing/EntitlementsContext';
 import { useCan } from '@/components/licensing/Gate';
 import usePermissionCheck from '@/hooks/usePermissionCheck';
 import useProjectsAvailable from '@/hooks/useProjectsAvailable';
+import { isPlatformAdmin as isPlatformAdminUser } from '@/utils/adminAccess';
 import type { SettingsUser } from './settingsShellTypes';
 
 // Stable identity for usePermissionCheck (its memo keys on the array reference).
@@ -61,9 +62,13 @@ export function useSettingsAccess(user: SettingsUser | null | undefined) {
     // when their own org is NC-bound.
     const isSuperAdmin = perms.includes('all') || user?.role === 'admin';
     const showNcSync = isNcOrg || isSuperAdmin;
+    // The platform admin exactly as the server tests it (utils/adminAccess); the
+    // `all` permission is not it. The instance-wide rows (Azure) take this.
+    const isPlatformAdmin = isPlatformAdminUser(user);
 
     return {
         canSeeOrg, canUseLearning, entitlementsLoading, inCeiling, entitlementsUnknown, projectsOn, canSeeCompliance,
         showComplianceNav, canManageUsers, isSelfHosted, isConsumerAccount, isNcConnectorUser, isNcOrg, showNcSync,
+        isPlatformAdmin,
     };
 }

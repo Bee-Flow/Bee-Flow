@@ -1,7 +1,8 @@
 /**
  * The organisation's settings sections (features/org model/sections.ts, the
  * web's order), and the screens under them. Gated like the org index: the
- * org-admin sections for org admins, Compliance for `admin_compliance`.
+ * org-admin sections for org admins, Compliance for `admin_compliance`, the
+ * Azure screens and the organisation theme for a platform admin.
  * Invitations is org-admin only: the invitation routes check the org-admin
  * predicate, which `manage_users` alone does not pass. Access & features is
  * listed here though the index no longer has a row for it: it opens from
@@ -14,6 +15,9 @@ import { destination, type DestinationSpec } from '../destination';
 import type { Destination } from '../types';
 
 const ADMIN: Gate = { orgAdmin: true };
+// Instance-wide settings (the Azure setup, the default theme): their routes
+// answer a platform admin only.
+const PLATFORM: Gate = { orgAdmin: true, superAdmin: true };
 
 /** A row of the Organisation group; the label is the web's key where it has one. */
 function row(spec: Omit<DestinationSpec, 'group'>): Destination {
@@ -47,12 +51,12 @@ export const ORG_SETTINGS: Destination[] = [
     row({ id: 'org-nextcloud-talk', label: { i18nKey: 'meetings.admin_talk.title', en: 'Talk Meeting Notes' }, hint: { i18nKey: 'mobile.sitemap.org_nextcloud_talk.hint', en: 'Notes of Nextcloud Talk calls: bot, language and summary' }, icon: 'MessageSquare', href: '/org/nextcloud/talk', gate: { orgAdmin: true, license: 'meeting_notes' }, keywords: ['talk', 'transcription', 'minutes'] }),
     row({ id: 'org-nextcloud-meet', label: { i18nKey: 'meetings.admin_meet.title', en: 'Google Meet Meeting Notes' }, hint: { i18nKey: 'mobile.sitemap.org_nextcloud_meet.hint', en: 'Notes of Google Meet calls: language and summary' }, icon: 'Video', href: '/org/nextcloud/meet', gate: { orgAdmin: true, license: 'meeting_notes' }, keywords: ['google meet', 'transcription', 'minutes'] }),
     row({ id: 'org-meeting-templates', label: { i18nKey: 'settings.meeting_templates', en: 'Meeting Templates' }, hint: { i18nKey: 'mobile.sitemap.org_meeting_templates.hint', en: 'Summary templates for the organisation and its groups' }, icon: 'FileText', href: '/org/meeting-templates', gate: ADMIN, keywords: ['summary', 'notes', 'recording'] }),
-    row({ id: 'org-azure', label: { i18nKey: 'settings.azure_config', en: 'Azure Configuration' }, hint: { i18nKey: 'mobile.sitemap.org_azure.hint', en: 'Azure OpenAI, document processing and sign-in' }, icon: 'Cloud', href: '/org/azure', gate: ADMIN, keywords: ['microsoft', 'entra', 'openai'] }),
-    row({ id: 'org-azure-openai', label: { i18nKey: 'azure.openai_title', en: 'Azure OpenAI Service' }, hint: { i18nKey: 'mobile.sitemap.org_azure_openai.hint', en: 'Endpoint, API key, version and deployed models' }, icon: 'Cloud', href: '/org/azure/openai', gate: ADMIN, keywords: ['azure', 'openai', 'deployment'] }),
-    row({ id: 'org-azure-models', label: { i18nKey: 'azure.chat_tiers_title', en: 'Chat Model Tiers' }, hint: { i18nKey: 'mobile.sitemap.org_azure_models.hint', en: 'Which Azure deployment each chat tier uses' }, icon: 'Cpu', href: '/org/azure/models', gate: ADMIN, keywords: ['azure', 'tiers', 'reasoning'] }),
-    row({ id: 'org-azure-documents', label: { i18nKey: 'azure.doc_processing_title', en: 'Azure Document Processing' }, hint: { i18nKey: 'mobile.sitemap.org_azure_documents.hint', en: 'Document Intelligence and embeddings for knowledge bases' }, icon: 'FileText', href: '/org/azure/documents', gate: ADMIN, keywords: ['azure', 'ocr', 'embeddings'] }),
-    row({ id: 'org-azure-sso', label: { i18nKey: 'azure.sso_title', en: 'Microsoft / Azure AD SSO' }, hint: { i18nKey: 'mobile.sitemap.org_azure_sso.hint', en: 'Microsoft sign-in and Azure AD group sync' }, icon: 'KeyRound', href: '/org/azure/sso', gate: ADMIN, keywords: ['microsoft', 'entra', 'sso', 'group sync'] }),
-    row({ id: 'org-theme', label: { i18nKey: 'mobile.sitemap.org_theme.label', en: 'Organisation theme' }, hint: { i18nKey: 'mobile.sitemap.org_theme.hint', en: 'Colours, corners and font for everyone in the organisation' }, icon: 'Palette', href: '/org/theme', gate: ADMIN, keywords: ['branding', 'accent', 'colour', 'icons'] }),
+    row({ id: 'org-azure', label: { i18nKey: 'settings.azure_config', en: 'Azure Configuration' }, hint: { i18nKey: 'mobile.sitemap.org_azure.hint', en: 'Azure OpenAI, document processing and sign-in' }, icon: 'Cloud', href: '/org/azure', gate: PLATFORM, keywords: ['microsoft', 'entra', 'openai'] }),
+    row({ id: 'org-azure-openai', label: { i18nKey: 'azure.openai_title', en: 'Azure OpenAI Service' }, hint: { i18nKey: 'mobile.sitemap.org_azure_openai.hint', en: 'Endpoint, API key, version and deployed models' }, icon: 'Cloud', href: '/org/azure/openai', gate: PLATFORM, keywords: ['azure', 'openai', 'deployment'] }),
+    row({ id: 'org-azure-models', label: { i18nKey: 'azure.chat_tiers_title', en: 'Chat Model Tiers' }, hint: { i18nKey: 'mobile.sitemap.org_azure_models.hint', en: 'Which Azure deployment each chat tier uses' }, icon: 'Cpu', href: '/org/azure/models', gate: PLATFORM, keywords: ['azure', 'tiers', 'reasoning'] }),
+    row({ id: 'org-azure-documents', label: { i18nKey: 'azure.doc_processing_title', en: 'Azure Document Processing' }, hint: { i18nKey: 'mobile.sitemap.org_azure_documents.hint', en: 'Document Intelligence and embeddings for knowledge bases' }, icon: 'FileText', href: '/org/azure/documents', gate: PLATFORM, keywords: ['azure', 'ocr', 'embeddings'] }),
+    row({ id: 'org-azure-sso', label: { i18nKey: 'azure.sso_title', en: 'Microsoft / Azure AD SSO' }, hint: { i18nKey: 'mobile.sitemap.org_azure_sso.hint', en: 'Microsoft sign-in and Azure AD group sync' }, icon: 'KeyRound', href: '/org/azure/sso', gate: PLATFORM, keywords: ['microsoft', 'entra', 'sso', 'group sync'] }),
+    row({ id: 'org-theme', label: { i18nKey: 'mobile.sitemap.org_theme.label', en: 'Organisation theme' }, hint: { i18nKey: 'mobile.sitemap.org_theme.hint', en: 'Colours, corners and font for everyone in the organisation' }, icon: 'Palette', href: '/org/theme', gate: PLATFORM, keywords: ['branding', 'accent', 'colour', 'icons'] }),
     row({ id: 'org-access', label: { i18nKey: 'mobile.sitemap.org_access.label', en: 'Access & features' }, hint: { i18nKey: 'mobile.sitemap.org_access.hint', en: 'Which features and integrations each group may use' }, icon: 'KeySquare', href: '/org/access', gate: ADMIN, keywords: ['grants', 'capabilities', 'ceiling', 'beta'] }),
     row({ id: 'org-knowledge-bases', label: { i18nKey: 'knowledge.system_knowledge_bases_system_knowledge_bases', en: 'System knowledge bases' }, hint: { i18nKey: 'mobile.sitemap.org_knowledge_bases.hint', en: 'The built-in knowledge bases, switched on for the organisation' }, icon: 'Library', href: '/org/knowledge-bases', gate: ADMIN, keywords: ['kb', 'beta'] }),
 ];

@@ -22,7 +22,8 @@ const { stubCrudRequires } = require('./crud.testkit');
 // ── Mutable per-test fixtures the mocks close over ──────────────────
 const fx = {
     userId: 'user1',            // getEffectiveUserId
-    hasManage: true,            // hasPermission(userId, 'manage_agents')
+    hasManage: true,            // holds manage_agents (in the organisations of manageIn)
+    manageIn: null,             // null: in every organisation of orgIds
     orgIds: new Set(['orgA']),  // resolveUserOrgIds
     user: { orgRole: 'org_admin' }, // userStore.getUser
     agents: {},                 // agentStore.getAgent fixtures by id
@@ -58,6 +59,10 @@ const MOCKS = {
         OrgRoles: { AGENT_EDITOR: 'agent_editor', ORG_ADMIN: 'org_admin' },
         SystemRoles: { SUPER_ADMIN: 'admin' },
         hasPermission: async () => fx.hasManage,
+        resolvePermissionsByOrg: async () => ({
+            holds: (perm, orgId) => perm === 'manage_agents' && fx.hasManage && !!orgId
+                && (fx.manageIn ? fx.manageIn.has(orgId) : fx.orgIds.has(orgId)),
+        }),
         resolveUserOrgIds: async () => fx.orgIds,
         canSeePublished: () => false,
         resolveUserGroups: async () => [],
@@ -84,6 +89,7 @@ test.after(restoreResolve);
 function resetFx() {
     fx.userId = 'user1';
     fx.hasManage = true;
+    fx.manageIn = null;
     fx.orgIds = new Set(['orgA']);
     fx.user = { orgRole: 'org_admin' };
     fx.agents = {};
@@ -135,10 +141,20 @@ test('same-org WITHOUT manage_agents denied', async () => {
     assert.strictEqual(await canModifyAgent(AGENT(), 'user1', req()), false);
 });
 
-test('multi-org membership: secondary org counts (Set semantics, not primary-org equality)', async () => {
+test('multi-org membership: a secondary org counts when manage_agents holds there (Set semantics, not primary-org equality)', async () => {
     resetFx();
     fx.orgIds = new Set(['orgB', 'orgA']);
+    fx.manageIn = new Set(['orgA']);
     assert.strictEqual(await canModifyAgent(AGENT({ organization_id: 'orgA' }), 'user1', req()), true);
+});
+
+test('manage_agents held in the home organisation only: an agent of a group organisation is denied', async () => {
+    resetFx();
+    fx.orgIds = new Set(['orgA', 'orgB']); // home orgA, a group in orgB
+    fx.manageIn = new Set(['orgA']);
+    assert.strictEqual(await canModifyAgent(AGENT({ organization_id: 'orgB' }), 'user1', req()), false);
+    assert.strictEqual(await canModifyAgent(AGENT({ organization_id: 'orgA' }), 'user1', req()), true);
+    assert.strictEqual(await canModifyAgent(AGENT({ organization_id: 'orgB', owner_id: 'user1' }), 'user1', req()), true, 'the owner keeps their own agent');
 });
 
 // ═══ Route-level: cross-org PUT/DELETE return the structured 403 ═══

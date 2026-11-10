@@ -287,6 +287,14 @@ describe('9. install-wide surfaces are gated on platform role, not on a permissi
         '/auth/free-email-domains',
         '/auth/default-integrations',
         '/auth/connector-provisioning-mode',
+        // The platform-admin gates (auth/requirePlatformAdmin.js): a platform
+        // admin only, in every deployment mode. (GET /api/admin/metrics is
+        // mounted on the app itself, which this walk does not read; the route
+        // contract holds it at platform.)
+        '/api/admin/guard',
+        '/api/branding/admin',
+        '/ai/local-runtimes/test',
+        '/ai/local-runtimes/detect',
     ];
     const underPlatformPrefix = (p) =>
         PLATFORM_PREFIXES.some((prefix) => p === prefix || p.startsWith(`${prefix}/`));
@@ -315,6 +323,19 @@ describe('9. install-wide surfaces are gated on platform role, not on a permissi
             }
         }
         assert.deepEqual(rbacGated, [], `install-wide routes gated on a tenant-reachable permission:\n  ${rbacGated.join('\n  ')}`);
+    });
+
+    test('no gate anywhere claims platform scope on the rbac axis', () => {
+        // A platform gate says so on the platform axis. An rbac tag that also
+        // marks itself platform-wide would read as a permission here and as
+        // platform-class in the route contract: the two readings must agree.
+        const mixed = [];
+        for (const route of walk.routes) {
+            for (const g of gatesOf(route)) {
+                if (g.axis === 'rbac' && g.platform) mixed.push(`${route.id} → rbac ${JSON.stringify(g.anyOf || g.id)} marked platform`);
+            }
+        }
+        assert.deepEqual(mixed, [], `gates tagged rbac and platform at once:\n  ${mixed.join('\n  ')}`);
     });
 
     test('the platform prefixes actually exist — no dead entries', () => {

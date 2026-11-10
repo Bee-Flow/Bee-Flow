@@ -1555,7 +1555,7 @@ No request schema.
 
 ### `DELETE /auth/users/:id`
 
-**Access:** Admin of the target user's organisation · the handler also checks who the caller is
+**Access:** Admin of the target user's organisation
 
 No request schema.
 

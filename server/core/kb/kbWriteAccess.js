@@ -48,15 +48,20 @@ const REASONS = Object.freeze({
     UNAVAILABLE: 'unavailable',
 });
 
+/** @type {OrgPermissions} */
+const HOLDS_NOWHERE = Object.freeze({ holds: () => false });
+
 /**
  * May `userId` write into this knowledge base?
  *
  * @param {string} kbId
  * @param {WriteAccessArgs} p  `userId` is the identity the WRITE happens under; `orgIds` always a Set,
- *   empty, never null; `canManage`: does this person hold `manage_knowledge`?
+ *   empty, never null; `manageByOrg`: where this person holds `manage_knowledge` (auth/permissions
+ *   resolvePermissionsByOrg), asked for the base's own organisation; without it, `canManage`: does this
+ *   person hold `manage_knowledge` in the base's organisation?
  * @returns {Promise<{ok: boolean, reason?: string, kb?: any}>}
  */
-async function canWriteToKb(kbId, { userId, orgIds, canManage = false, deps = {} } = /** @type {WriteAccessArgs} */ ({})) {
+async function canWriteToKb(kbId, { userId, orgIds, canManage = false, manageByOrg = null, deps = {} } = /** @type {WriteAccessArgs} */ ({})) {
     if (!kbId) return { ok: false, reason: REASONS.UNKNOWN };
     const store = deps.kbStore || kbStore;
 
@@ -74,7 +79,11 @@ async function canWriteToKb(kbId, { userId, orgIds, canManage = false, deps = {}
     // returns true for everything — the same footgun kbVisibility coerces away.
     const orgSet = orgIds instanceof Set ? orgIds : new Set(Array.isArray(orgIds) ? orgIds : []);
 
-    if (store.canUserManageKB(kb, userId, orgSet, !!canManage)) return { ok: true, kb };
+    // manage_knowledge counts in the base's own organisation only.
+    const managesHere = manageByOrg
+        ? !!kb.organization_id && manageByOrg.holds('manage_knowledge', kb.organization_id)
+        : !!canManage;
+    if (store.canUserManageKB(kb, userId, orgSet, managesHere)) return { ok: true, kb };
 
     return {
         ok: false,
@@ -92,12 +101,31 @@ async function canWriteToKb(kbId, { userId, orgIds, canManage = false, deps = {}
  * product's rule everywhere else, and a write is the place it matters most: a
  * trigger anyone can fire must not become a way to write as the owner into
  * something the owner could not.
+ *
+ * A caller that asks about several bases for the same owner resolves the
+ * owner once (`resolveOwnerWriteContext`) and passes it as `context`.
  * @param {string} kbId
  * @param {string} ownerId
- * @param {{ deps?: { askerContext?: Function, hasPermission?: Function, [key: string]: any } }} [opts]
+ * @param {{ deps?: OwnerDeps, context?: OwnerWriteContext | null }} [opts]
  */
-async function canOwnerWriteToKb(kbId, ownerId, { deps = {} } = {}) {
+async function canOwnerWriteToKb(kbId, ownerId, { deps = {}, context = null } = {}) {
     if (!ownerId) return { ok: false, reason: REASONS.UNKNOWN };
+    const owner = context || await resolveOwnerWriteContext(ownerId, { deps });
+    if (!owner.available) return { ok: false, reason: REASONS.UNAVAILABLE };
+    return canWriteToKb(kbId, { userId: ownerId, orgIds: owner.orgIds, manageByOrg: owner.manageByOrg, deps });
+}
+
+/**
+ * What the write question needs to know about an owner, read once: their
+ * organisations and where they hold `manage_knowledge`. `available: false`
+ * when the organisations could not be read (every answer is then
+ * REASONS.UNAVAILABLE); a failed permission read holds nowhere.
+ * @param {string} ownerId
+ * @param {{ deps?: OwnerDeps }} [opts]
+ * @returns {Promise<OwnerWriteContext>}
+ */
+async function resolveOwnerWriteContext(ownerId, { deps = {} } = {}) {
+    /** @type {Set<string>} */
     let orgIds = new Set();
     try {
         const askerContext = deps.askerContext || require('./askerContext').askerContext;
@@ -110,16 +138,19 @@ async function canOwnerWriteToKb(kbId, ownerId, { deps = {} } = {}) {
         // permission change and sends somebody to audit sharing that never
         // moved. The datatable sibling makes the same distinction.
         log.warn('[kbWriteAccess] could not resolve the owner context:', /** @type {Error} */ (e).message);
-        return { ok: false, reason: REASONS.UNAVAILABLE };
+        return { available: false, orgIds: new Set(), manageByOrg: HOLDS_NOWHERE };
     }
-    let canManage = false;
+    // Where the owner holds manage_knowledge; a failed read holds nowhere.
+    /** @type {OrgPermissions} */
+    let manageByOrg = HOLDS_NOWHERE;
     try {
-        const hasPermission = deps.hasPermission || require('../../auth/permissions').hasPermission;
-        canManage = await hasPermission(ownerId, 'manage_knowledge');
+        const resolvePermissionsByOrg = deps.resolvePermissionsByOrg || require('../../auth/permissions').resolvePermissionsByOrg;
+        const resolved = await resolvePermissionsByOrg(ownerId);
+        if (resolved && typeof resolved.holds === 'function') manageByOrg = resolved;
     } catch (_) {
-        canManage = false;
+        manageByOrg = HOLDS_NOWHERE;
     }
-    return canWriteToKb(kbId, { userId: ownerId, orgIds, canManage, deps });
+    return { available: true, orgIds, manageByOrg };
 }
 
 /**
@@ -147,8 +178,11 @@ function messageFor(reason, kbName = null) {
     }
 }
 
-module.exports = { canWriteToKb, canOwnerWriteToKb, messageFor, REASONS };
+module.exports = { canWriteToKb, canOwnerWriteToKb, resolveOwnerWriteContext, messageFor, REASONS };
 
 /**
- * @typedef {{ userId: string|null, orgIds: Set<string>, canManage?: boolean, deps?: { kbStore?: Partial<typeof kbStore>, [key: string]: unknown } }} WriteAccessArgs
+ * @typedef {{ askerContext?: Function, resolvePermissionsByOrg?: Function, [key: string]: any }} OwnerDeps
+ * @typedef {{ available: boolean, orgIds: Set<string>, manageByOrg: OrgPermissions }} OwnerWriteContext
+ * @typedef {{ holds: (permission: string, orgId: string) => boolean }} OrgPermissions
+ * @typedef {{ userId: string|null, orgIds: Set<string>, canManage?: boolean, manageByOrg?: OrgPermissions | null, deps?: { kbStore?: Partial<typeof kbStore>, [key: string]: unknown } }} WriteAccessArgs
  */

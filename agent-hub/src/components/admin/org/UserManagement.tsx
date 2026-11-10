@@ -22,9 +22,17 @@ import { useDeploymentMode } from '@/hooks/useDeploymentMode';
 import ConfirmDialog from '../../shared/ConfirmDialog';
 import Spinner from '@/components/shared/Spinner';
 import Tabs from '@/components/shared/Tabs';
-import { ALERT_ERROR, ALERT_SUCCESS } from '@/components/mcpLibrary/ui';
+import { ALERT_ERROR, ALERT_INFO, ALERT_SUCCESS } from '@/components/mcpLibrary/ui';
+import { homeOrgIdOf, isPlatformAdmin as isPlatformAdminUser } from '@/utils/adminAccess';
 import { OrgIcon } from './userManagement/EntityRows';
 import type { AdminCurrentUser, ConfirmOptions } from './userManagement/types';
+import { adminSectionScope } from '@/components/admin/dashboard/adminTabs';
+import { ServerWideMark, serverWideLast } from '@/components/admin/dashboard/serverWideNav';
+import { useAdminOrgIdParam } from '@/components/admin/dashboard/useAdminOrg';
+import { useAdminScopeOverride } from '@/components/admin/dashboard/useAdminScopeOverride';
+
+/** Is this tab of the screen about the whole server (adminTabs: security `users/<tab>`)? */
+const isServerWideTab = (key: string) => adminSectionScope('security', 'users', key) === 'instance';
 
 interface UserManagementProps {
     activeSection?: string;
@@ -32,9 +40,14 @@ interface UserManagementProps {
     user?: AdminCurrentUser | null;
 }
 
-/** The section tabs this person may open: everything for a full admin, users/groups (and their own organisation) otherwise. */
-function sectionsFor(isFullAdmin: boolean | undefined, hasOrg: boolean) {
-    return isFullAdmin ? [
+/**
+ * The section tabs this person may open: everything for a platform admin,
+ * users/groups (and their own organisation) otherwise. The 'all' permission
+ * is not enough: its holder's lists cover their own organisation only, and
+ * the server-wide role table is not read for them.
+ */
+function sectionsFor(isPlatformAdmin: boolean | undefined, hasOrg: boolean) {
+    return isPlatformAdmin ? [
         { key: 'users', labelKey: 'admin.users_tab_users', icon: Users },
         { key: 'organizations', labelKey: 'admin.users_tab_organizations', icon: OrgIcon },
         { key: 'nextcloud', labelKey: 'admin.users_tab_nextcloud', icon: Cloud },
@@ -59,12 +72,19 @@ const UserManagement = ({ activeSection: activeSectionProp = '', onNavigate, use
     // Platform operator — deliberately NOT isFullAdmin, which counts the 'all'
     // permission and is obtainable inside a tenant. Moving a user between
     // organisations is server-side restricted to this exact test
-    // (session.isAdmin || user.role === 'admin'), so the org picker below has to
+    // (utils/adminAccess, the server's isSuperAdmin), so the org picker below has to
     // ask the same question or it offers an action that answers 403.
-    const isPlatformAdmin = currentUser?.isAdmin || currentUser?.role === 'admin';
+    const isPlatformAdmin = isPlatformAdminUser(currentUser);
     const userOrgIds = currentUser?.organizations || [];
 
-    const { users, groups, organizations, roles, permissions, loading, message, setMessage, loadData } = useUserManagementData();
+    // The admin dashboard's lists (`?scope=admin`): an organisation admin's home organisation only,
+    // a platform admin's the organisation chosen in the dashboard (none chosen: every organisation).
+    const orgId = useAdminOrgIdParam();
+    const { users, groups, organizations, roles, permissions, loading, notOrgAdmin, message, setMessage, loadData } = useUserManagementData({ currentUser, orgId });
+    // The dashboard's scope bar follows the open tab: the organisations, Nextcloud, roles and permissions are server-wide.
+    useAdminScopeOverride(isPlatformAdmin ? adminSectionScope('security', 'users', activeSection) : 'org');
+    // The controls follow the lists: when the server refused them, it refuses the edits too.
+    const mayManageListed = !!canManageUsers && !notOrgAdmin;
 
     // Destructive actions route through <ConfirmDialog/> rather than
     // window.confirm: the native dialog is unstyled, unthemeable, blocks the
@@ -73,8 +93,12 @@ const UserManagement = ({ activeSection: activeSectionProp = '', onNavigate, use
     const askConfirm = (opts: ConfirmOptions) => setConfirmState(opts);
 
     // The caller's own organisation — used by the my-organization section and by
-    // the org-actions hook, which seeds its form from it.
-    const myOrg = organizations.find(o => userOrgIds.includes(o.id));
+    // the org-actions hook, which seeds its form from it. The home org first
+    // (useOrgDirectory does the same): `organizations` comes in id order, and an
+    // org the caller only belongs to through a group is not one they administer.
+    const homeOrgId = typeof currentUser?.organizationId === 'string' ? currentUser.organizationId : '';
+    const myOrg = (homeOrgId ? organizations.find(o => o.id === homeOrgId) : undefined)
+        ?? organizations.find(o => userOrgIds.includes(o.id));
 
     const { isSelfHosted } = useDeploymentMode();
     const userActions = useUserActions({ loadData, setMessage, askConfirm, t, isSelfHosted });
@@ -82,7 +106,8 @@ const UserManagement = ({ activeSection: activeSectionProp = '', onNavigate, use
     const roleActions = useRoleActions({ loadData, setMessage, askConfirm, t });
     const orgActions = useOrgActions({ loadData, setMessage, askConfirm, t, activeSection, myOrg });
 
-    const sections = sectionsFor(isFullAdmin, userOrgIds.length > 0);
+    // The server-wide tabs go last, behind a "Whole server" divider, each with the server icon.
+    const sections = serverWideLast(sectionsFor(isPlatformAdmin, userOrgIds.length > 0), s => isPlatformAdmin && isServerWideTab(s.key));
 
     return (
         <div className="h-full flex flex-col">
@@ -92,8 +117,19 @@ const UserManagement = ({ activeSection: activeSectionProp = '', onNavigate, use
                     ariaLabel={t('admin.sec_users')}
                     value={activeSection}
                     onChange={(key) => { if (onNavigate) onNavigate(`admin/security/users/${key}`); }}
-                    items={sections.map(({ key, labelKey, icon: Icon }) => ({ id: key, label: t(labelKey), icon: <Icon className="h-4 w-4" aria-hidden="true" /> }))}
+                    items={sections.map(({ key, labelKey, icon: Icon, serverWide, startsServerGroup }) => ({
+                        id: key,
+                        label: t(labelKey),
+                        icon: <Icon className="h-4 w-4" aria-hidden="true" />,
+                        mark: serverWide ? <ServerWideMark /> : undefined,
+                        dividerBefore: startsServerGroup ? t('admin.scope_instance', 'Whole server') : undefined,
+                    }))}
                 />
+                {notOrgAdmin && (
+                    <div role="status" className={ALERT_INFO}>
+                        {t('admin_org.user_mgmt_org_admins_only', 'This page is for administrators of the organisation, so ask a platform administrator if you need access.')}
+                    </div>
+                )}
                 {message && (
                     <div role="status" className={message.type === 'success' ? ALERT_SUCCESS : ALERT_ERROR}>
                         {typeof message.text === 'string' ? message.text : JSON.stringify(message.text)}
@@ -115,7 +151,10 @@ const UserManagement = ({ activeSection: activeSectionProp = '', onNavigate, use
                                 users={users}
                                 groups={groups}
                                 organizations={organizations}
-                                canManageUsers={canManageUsers}
+                                canManageUsers={mayManageListed}
+                                viewerIsPlatformAdmin={isPlatformAdmin}
+                                viewerHomeOrgId={homeOrgIdOf(currentUser)}
+                                scopeOrgId={orgId}
                                 onAddUser={userActions.openAddUser}
                                 onEditUser={userActions.openEditUser}
                                 onResetMfa={userActions.handleResetMfa}
@@ -152,7 +191,7 @@ const UserManagement = ({ activeSection: activeSectionProp = '', onNavigate, use
                                 groups={groups}
                                 organizations={organizations}
                                 users={users}
-                                canManageUsers={canManageUsers}
+                                canManageUsers={mayManageListed}
                                 onAddGroup={groupActions.openAddGroup}
                                 onEditGroup={groupActions.openEditGroup}
                                 onDeleteGroup={groupActions.handleDeleteGroup}
@@ -248,6 +287,9 @@ function UserManagementModals({
             organizations={organizations}
             isPlatformAdmin={isPlatformAdmin}
             isSelfHosted={isSelfHosted}
+            currentUserId={currentUser?.id}
+            storedRole={userActions.storedRole}
+            platformRoleRefusal={userActions.platformRoleRefusal}
             onSubmitAdd={userActions.handleAddUser}
             onSubmitUpdate={userActions.handleUpdateUser}
             onUploadAvatar={userActions.handleAvatarUpload}

@@ -9,6 +9,7 @@ const ADMIN: OrgVisibilityInputs = {
     canSeeCompliance: true,
     canUseLearning: true,
     isSuperAdmin: false,
+    isPlatformAdmin: false,
     isSelfHosted: false,
     isNcOrg: false,
     isNcConnectorUser: false,
@@ -23,14 +24,24 @@ describe('visibleOrgSections', () => {
         expect(ids(ADMIN)).toEqual([
             'license', 'auth', 'privacy', 'encryption', 'ai_context', 'integration_cache', 'info',
             'org_usage', 'org_compliance', 'org_users', 'org_academy', 'org_integrations',
-            'org_github_sync', 'org_meeting_templates', 'theme', 'knowledge_bases',
+            'org_github_sync', 'org_meeting_templates', 'knowledge_bases',
         ]);
     });
 
-    it('drops the licence and adds Azure on self-hosted', () => {
-        const shown = ids({ ...ADMIN, isSelfHosted: true });
-        expect(shown).not.toContain('license');
-        expect(shown).toContain('org_azure');
+    it('drops the licence on self-hosted', () => {
+        expect(ids({ ...ADMIN, isSelfHosted: true })).not.toContain('license');
+    });
+
+    // /api/org-azure-config/:orgId and /api/branding/admin answer a platform admin only.
+    it('offers Azure (self-hosted) and the theme to a platform admin only', () => {
+        expect(ids({ ...ADMIN, isSelfHosted: true })).not.toContain('org_azure');
+        expect(ids({ ...ADMIN, isSelfHosted: true })).not.toContain('theme');
+        // `all` makes isSuperAdmin true here, never isPlatformAdmin.
+        expect(ids({ ...ADMIN, isSelfHosted: true, isSuperAdmin: true })).not.toContain('org_azure');
+        const platform = ids({ ...ADMIN, isSelfHosted: true, isSuperAdmin: true, isPlatformAdmin: true });
+        expect(platform).toContain('org_azure');
+        expect(platform).toContain('theme');
+        expect(ids({ ...ADMIN, isSuperAdmin: true, isPlatformAdmin: true })).not.toContain('org_azure');
     });
 
     it('hides the sign-in method once chosen, and for a Nextcloud org', () => {
@@ -66,6 +77,12 @@ describe('inputsFromAccess', () => {
         expect(inputs.canSeeOrg).toBe(true);
         expect(inputs.canManageUsers).toBe(true);
         expect(inputs.isSuperAdmin).toBe(false);
+        expect(inputs.isPlatformAdmin).toBe(false);
+    });
+
+    it('reads a platform admin from the role, never from the `all` permission', () => {
+        expect(inputsFromAccess(snapshot({ orgRole: 'org_admin' }, ['all']), facts).isPlatformAdmin).toBe(false);
+        expect(inputsFromAccess(snapshot({ role: 'admin' }, []), facts).isPlatformAdmin).toBe(true);
     });
 
     it('lets manage_users manage people without seeing the org', () => {

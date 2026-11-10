@@ -125,10 +125,10 @@ const installFetch = () => {
         if (override) {
             return override.notJson ? notJsonRes(override.status) : jsonRes(override.body ?? {}, override.status);
         }
-        if (url === '/auth/users') return jsonRes(state.users);
-        if (url === '/auth/groups') return jsonRes(state.groups);
+        if (url === '/auth/users?scope=admin') return jsonRes(state.users);
+        if (url === '/auth/groups?scope=admin') return jsonRes(state.groups);
         if (url === '/auth/org-roles') return jsonRes(state.orgRoles);
-        if (url === '/auth/organizations') return jsonRes(state.organizations);
+        if (url === '/auth/organizations?scope=admin') return jsonRes(state.organizations);
         if (url === '/auth/invitations') return jsonRes(state.invitations);
         if (url === '/api/usage/by-user?days=30') return jsonRes(state.usage);
         if (url === '/ai/config/custom-tiers-list') return jsonRes({ tiers: state.customTiers });
@@ -196,10 +196,10 @@ describe('OrgUsersPanel — loading and failed fetches', () => {
         expect(screen.queryByText(/could not|failed|error/i)).not.toBeInTheDocument();
     });
 
-    it('a 403 on /auth/users is indistinguishable from "no users yet" (wrat)', async () => {
-        await renderPanel({ getOverrides: { '/auth/users': { status: 403, body: { error: 'forbidden' } } } });
-        expect(screen.getByText('No users yet')).toBeInTheDocument();
-        expect(screen.getByText('Manage Groups')).toBeInTheDocument();
+    it('a 403 on the admin-scoped member list says the page is for organisation admins, not "no users yet"', async () => {
+        await renderPanel({ getOverrides: { '/auth/users?scope=admin': { status: 403, body: { error: 'forbidden' } } } });
+        expect(screen.getByRole('status')).toHaveTextContent(/for administrators of the organisation/);
+        expect(screen.queryByText('No users yet')).not.toBeInTheDocument();
     });
 
     it('keeps the Invite User button on a failed fetch, so an empty org still offers to invite', async () => {

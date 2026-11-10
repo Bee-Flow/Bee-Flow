@@ -18,6 +18,10 @@ interface SectionNavItem {
     title?: string;
     /** Eyebrow above the first row of a run of rows with the same group. */
     group?: string;
+    /** The group's eyebrow also gets a divider line above it. */
+    groupDivider?: boolean;
+    /** A small mark after the label (an icon with its own accessible name). */
+    mark?: ReactNode;
     testId?: string;
 }
 
@@ -34,6 +38,7 @@ const ROW = 'flex shrink-0 items-center gap-2.5 whitespace-nowrap rounded-md px-
 const ROW_ACTIVE = 'bg-[var(--bg-tertiary)] font-medium text-[var(--text-primary)]';
 const ROW_IDLE = 'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)]';
 const EYEBROW = 'hidden px-3 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-[0.05em] text-[var(--text-tertiary)] md:block';
+const DIVIDER = 'mt-2 border-t border-[var(--border-subtle)]';
 
 export default function SectionNav({ items, activeId, onSelect, label, className = '' }: SectionNavProps) {
     return (
@@ -47,7 +52,7 @@ export default function SectionNav({ items, activeId, onSelect, label, className
                 const startsGroup = item.group && item.group !== items[i - 1]?.group;
                 return (
                     <div key={item.id} className="contents">
-                        {startsGroup ? <div className={EYEBROW}>{item.group}</div> : null}
+                        {startsGroup ? <div className={`${EYEBROW} ${item.groupDivider ? DIVIDER : ''}`}>{item.group}</div> : null}
                         <button
                             type="button"
                             onClick={() => onSelect(item.id)}
@@ -58,6 +63,7 @@ export default function SectionNav({ items, activeId, onSelect, label, className
                         >
                             {Icon ? <Icon className="h-4 w-4 shrink-0" aria-hidden="true" /> : null}
                             <span className="truncate">{item.label}</span>
+                            {item.mark}
                         </button>
                     </div>
                 );

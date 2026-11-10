@@ -10,6 +10,7 @@ import { AccessStatus } from './AccessParts';
 import { FIELD_INPUT, SettingRow, SettingsGroup, SettingsList } from '@/components/shared/SettingsList';
 import Spinner from '@/components/shared/Spinner';
 import { ALERT_INFO, SECONDARY_BTN } from '@/components/mcpLibrary/ui';
+import { ServerWideMark } from '@/components/admin/dashboard/serverWideNav';
 
 /**
  * CloudCeilingEditor — the cloud-mode ceiling. On cloud the ceiling for an org
@@ -136,6 +137,8 @@ export default function CloudCeilingEditor({ orgId, orgName, onCeilingChanged }:
                             {selectedPlan ? (
                                 <button type="button" onClick={() => setEditing(true)} className={`${SECONDARY_BTN} shrink-0`}>
                                     <Pencil className="h-3.5 w-3.5" aria-hidden="true" /> {t('admin_org.ceiling_edit_plan', 'Edit plan')}
+                                    {/* The plan is shared by every organisation on it: this edit is server-wide, under an organisation heading. */}
+                                    <ServerWideMark />
                                 </button>
                             ) : null}
                         </div>

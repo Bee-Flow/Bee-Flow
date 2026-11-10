@@ -30,7 +30,9 @@ const feedbackStore = require('../stores/feedbackStore');
 // Imported from auth/permissions rather than the ../auth barrel: the barrel
 // also pulls in every auth router (and their module-scope timers), which a
 // route module does not need and which keeps test processes alive.
-const { resolveUserOrgIds, isOrgAdminRole, requireAuth, requireSuperAdmin } = require('../auth/permissions');
+const permissions = require('../auth/permissions');
+const { resolveUserOrgIds, requireAuth, requireSuperAdmin } = permissions;
+const { createMonitoringOrg, coveredScope } = require('./monitoringOrg.mts');
 const userStore = require('../stores/userStore');
 const { getAll } = require('../db');
 const log = require('../telemetry/log');
@@ -125,6 +127,11 @@ const ListQuery = RangeQuery.extend({
     // /org only: names instead of pseudonyms, after an access-audit row.
     reveal: choice(['true', 'false'], 'reveal is true or false.').optional(),
 }).strict();
+// /org only: a platform admin's choice of organisation (routes/monitoringOrg.mts).
+// The instance-wide routes do not take it: a filter they ignored would read as applied.
+const orgChoice = { orgId: idText('orgId is the id of an organisation.').optional() };
+const OrgRangeQuery = RangeQuery.extend(orgChoice).strict();
+const OrgListQuery = ListQuery.extend(orgChoice).strict();
 
 /**
  * Request after validate({ query: ListQuery }): `limit` is already a clamped number.
@@ -135,9 +142,15 @@ const ListQuery = RangeQuery.extend({
  * @typedef {import('express').Request<{}, any, any, { startDate?: string, endDate?: string }> & { scopedOrgId?: string }} FeedbackRangeReq
  */
 
-// Resolves the caller's own org id and rejects when the caller is not an
-// org admin for it. Super admins are also allowed (they can use the global
-// /api/feedback endpoints, but this lets them sanity-check the org view).
+// The organisation the /org routes read (routes/monitoringOrg.mts): an
+// organisation admin's home organisation, or for a platform admin `?orgId`,
+// else the organisation on their own record.
+// Refusals go to the terminal error handler as HttpError.
+const monitoringOrg = createMonitoringOrg({
+    resolveAdminOrgId: (/** @type {import('express').Request} */ req) => permissions.resolveAdminOrgId(req),
+    getUser: (/** @type {string} */ userId) => userStore.getUser(userId),
+});
+
 /**
  * @param {import('express').Request} req
  * @param {import('express').Response} res
@@ -145,24 +158,16 @@ const ListQuery = RangeQuery.extend({
  */
 async function requireOwnOrgAdmin(req, res, next) {
     if (!req.session?.user) return res.status(401).json({ error: 'Unauthorized' });
-    const isSuperAdmin = req.session.isAdmin || req.session.user?.role === 'admin';
-
-    const orgIds = await resolveUserOrgIds(req);
-    const orgId = orgIds && orgIds.size > 0 ? Array.from(orgIds)[0] : null;
-    if (!orgId) return res.status(403).json({ error: 'No organisation context' });
-
-    if (isSuperAdmin) {
-        req.scopedOrgId = orgId;
-        return next();
+    try {
+        req.scopedOrgId = await monitoringOrg.monitoringOrgId(req);
+    } catch (err) {
+        return next(err);
     }
-
-    const user = await userStore.getUser(req.session.user.id);
-    if (!user || !isOrgAdminRole(user.orgRole)) {
-        return res.status(403).json({ error: 'Organization admin access required' });
-    }
-    req.scopedOrgId = orgId;
     next();
 }
+
+/** The `scope` block of a summary: one organisation, or every one. @param {string | null} orgId */
+const scopeOf = (orgId) => coveredScope(orgId, !orgId, (id) => userStore.getOrganization(id));
 
 // Best-effort lookup of the concrete model + agent_name used for the most
 // recent assistant call in this conversation. Lets us surface the actual
@@ -250,7 +255,7 @@ router.get('/', requireSuperAdmin, requireAdvancedMonitoring, validate({ query: 
 router.get('/summary', requireSuperAdmin, requireAdvancedMonitoring, validate({ query: RangeQuery }), /** @param {FeedbackRangeReq} req */ async (req, res) => {
     const { startDate, endDate } = req.query;
     const data = await feedbackStore.getFeedbackSummary({ startDate, endDate });
-    res.json(data);
+    res.json({ ...data, scope: await scopeOf(null) });
 });
 
 // ── Org-scoped endpoints ───────────────────────────────────────────────────
@@ -320,7 +325,7 @@ async function enrichSnapshotsWithUsage(rows) {
 }
 
 // GET /org — list feedback for the caller's organisation
-router.get('/org', requireOwnOrgAdmin, requireAdvancedMonitoring, validate({ query: ListQuery }), /** @param {FeedbackListReq} req */ async (req, res) => {
+router.get('/org', requireOwnOrgAdmin, requireAdvancedMonitoring, validate({ query: OrgListQuery }), /** @param {FeedbackListReq} req */ async (req, res) => {
     const { startDate, endDate, rating, agentId, source, limit } = req.query;
     const data = await feedbackStore.getFeedback(
         { startDate, endDate, rating, agentId, source, organizationId: req.scopedOrgId },
@@ -336,12 +341,12 @@ router.get('/org', requireOwnOrgAdmin, requireAdvancedMonitoring, validate({ que
 });
 
 // GET /org/summary — aggregated stats for the caller's organisation
-router.get('/org/summary', requireOwnOrgAdmin, requireAdvancedMonitoring, validate({ query: RangeQuery }), /** @param {FeedbackRangeReq} req */ async (req, res) => {
+router.get('/org/summary', requireOwnOrgAdmin, requireAdvancedMonitoring, validate({ query: OrgRangeQuery }), /** @param {FeedbackRangeReq} req */ async (req, res) => {
     const { startDate, endDate } = req.query;
     const data = await feedbackStore.getFeedbackSummary({
         startDate, endDate, organizationId: req.scopedOrgId,
     });
-    res.json(data);
+    res.json({ ...data, scope: await scopeOf(req.scopedOrgId || null) });
 });
 
 module.exports = router;

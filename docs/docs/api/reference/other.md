@@ -272,6 +272,7 @@ No request schema.
 | `source` | one of `"agent"`, `"direct"` |  |  |
 | `limit` | integer |  | min 1; max 9007199254740991 |
 | `reveal` | one of `"true"`, `"false"` |  |  |
+| `orgId` | string |  | max length 200 |
 
 ### `GET /api/feedback/org/summary`
 
@@ -283,6 +284,7 @@ No request schema.
 |-------|------|:--------:|-------|
 | `startDate` | string |  |  |
 | `endDate` | string |  |  |
+| `orgId` | string |  | max length 200 |
 
 ### `GET /api/feedback/summary`
 
@@ -767,13 +769,13 @@ No request schema.
 
 ### `GET /api/org-azure-config/:orgId`
 
-**Access:** Signed-in user · middleware `platformConfigGate` · the handler also checks who the caller is
+**Access:** Signed-in user · Platform admin · the handler also checks who the caller is
 
 No request schema.
 
 ### `PUT /api/org-azure-config/:orgId`
 
-**Access:** Signed-in user · middleware `platformConfigGate` · the handler also checks who the caller is
+**Access:** Signed-in user · Platform admin · the handler also checks who the caller is
 
 **Body:** object
 
@@ -1043,13 +1045,13 @@ No request schema.
 
 ### `GET /api/release-notes/admin`
 
-**Access:** middleware `requireAdmin`
+**Access:** Platform admin
 
 No request schema.
 
 ### `PUT /api/release-notes/admin/:id`
 
-**Access:** middleware `requireAdmin`
+**Access:** Platform admin
 
 **Body**
 
@@ -1065,19 +1067,19 @@ No request schema.
 
 ### `DELETE /api/release-notes/admin/:id`
 
-**Access:** middleware `requireAdmin`
+**Access:** Platform admin
 
 No request schema.
 
 ### `POST /api/release-notes/admin/:id/publish`
 
-**Access:** middleware `requireAdmin`
+**Access:** Platform admin
 
 No request schema.
 
 ### `POST /api/release-notes/admin/:id/unpublish`
 
-**Access:** middleware `requireAdmin`
+**Access:** Platform admin
 
 No request schema.
 
@@ -1735,6 +1737,7 @@ No request schema.
 | `interval` | one of `"hour"`, `"day"` |  |  |
 | `limit` | integer |  | min 1; max 9007199254740991 |
 | `reveal` | one of `"true"`, `"false"` |  |  |
+| `orgId` | string |  |  |
 
 ### `GET /api/terminations/org/by-agent`
 
@@ -1753,6 +1756,7 @@ No request schema.
 | `interval` | one of `"hour"`, `"day"` |  |  |
 | `limit` | integer |  | min 1; max 9007199254740991 |
 | `reveal` | one of `"true"`, `"false"` |  |  |
+| `orgId` | string |  |  |
 
 ### `GET /api/terminations/org/summary`
 
@@ -1771,6 +1775,7 @@ No request schema.
 | `interval` | one of `"hour"`, `"day"` |  |  |
 | `limit` | integer |  | min 1; max 9007199254740991 |
 | `reveal` | one of `"true"`, `"false"` |  |  |
+| `orgId` | string |  |  |
 
 ### `GET /api/terminations/org/timeline`
 
@@ -1789,6 +1794,7 @@ No request schema.
 | `interval` | one of `"hour"`, `"day"` |  |  |
 | `limit` | integer |  | min 1; max 9007199254740991 |
 | `reveal` | one of `"true"`, `"false"` |  |  |
+| `orgId` | string |  |  |
 
 ### `GET /api/terminations/summary`
 

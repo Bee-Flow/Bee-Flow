@@ -79,7 +79,7 @@ async function teammates(req, res) {
     const seen = new Set();
     const out = [];
     for (const orgId of scope) {
-        const ids = await _eligibleStaffForOrg(orgId).catch((e) => fallback('routes/support/inboxSettings:teammates', e, []));
+        const ids = await _eligibleStaffForOrg(orgId, { tenantInbox: true }).catch((e) => fallback('routes/support/inboxSettings:teammates', e, []));
         for (const id of ids) {
             if (seen.has(id)) continue;
             seen.add(id);
@@ -111,7 +111,7 @@ async function availableIntegrations(req, res) {
 
     const userStore = require('../../stores/userStore');
     const { _eligibleStaffForOrg } = require('../../services/supportAutoAssigner');
-    const eligible = await _eligibleStaffForOrg(inbox.organization_id).catch((e) => fallback('routes/support/inboxSettings:availableIntegrations', e, []));
+    const eligible = await _eligibleStaffForOrg(inbox.organization_id, { tenantInbox: true }).catch((e) => fallback('routes/support/inboxSettings:availableIntegrations', e, []));
     if (!Array.isArray(eligible) || !eligible.includes(operatorUserId)) {
         return res.status(400).json({ error: "Operator must be a member of this inbox's organisation." });
     }
@@ -251,7 +251,7 @@ async function _resolveAccessMembers(inbox, sharedGroups) {
     try {
         const userStore = require('../../stores/userStore');
         const { _eligibleStaffForOrg } = require('../../services/supportAutoAssigner');
-        const eligible = await _eligibleStaffForOrg(inbox.organization_id).catch((e) => fallback('routes/support/inboxSettings:_resolveAccessMembers', e, []));
+        const eligible = await _eligibleStaffForOrg(inbox.organization_id, { tenantInbox: true }).catch((e) => fallback('routes/support/inboxSettings:_resolveAccessMembers', e, []));
         let memberIds = Array.isArray(eligible) ? eligible : [];
         if (Array.isArray(sharedGroups) && sharedGroups.length) {
             const filtered = [];

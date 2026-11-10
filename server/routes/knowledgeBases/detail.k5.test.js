@@ -60,6 +60,7 @@ const MOCKS = {
         requireActiveOrgForMutations: () => mw,
         resolveUserOrgIds: async () => fx.orgIds,
         hasPermission: async () => true,
+        resolvePermissionsByOrg: async () => ({ holds: () => true }),
         resolveUserGroups: async () => [],
         validateSharedGroupsForOrg: async () => {},
         assertUserCanUseOrg: async (req, orgId) => {
@@ -67,7 +68,7 @@ const MOCKS = {
             return orgId;
         },
     },
-    '../support/kbAccess': { canAccessKB: async () => true, resolveIsOrgAdmin: async () => false },
+    '../support/kbAccess': { canAccessKB: async () => true, resolveAdminOrgIds: async () => new Set() },
     '../core/kb/kbUsage': {
         usageForKb: async () => fx.usage,
         scrubReferences: async (id) => { fx.scrubbed.push(id); return { agent: 1 }; },

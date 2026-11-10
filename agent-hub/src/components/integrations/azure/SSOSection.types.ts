@@ -13,6 +13,8 @@ export interface GroupSyncStatus {
     syncedGroups?: number;
     syncedUsers?: number;
     errors?: unknown[];
+    /** GET …/sync-groups/status answers the number of errors of the last run, not their text. */
+    errorCount?: number;
 }
 
 export interface SyncResult {

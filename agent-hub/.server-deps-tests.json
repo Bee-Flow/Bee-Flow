@@ -5,6 +5,7 @@
   "src/components/admin/Studio/AppStudio/rbac/RowRuleEditor.test.jsx",
   "src/components/admin/Studio/AppStudio/rbac/rowRuleModel.test.ts",
   "src/components/automation/Builder/mapping/autoMapInputs.deep.test.ts",
-  "src/components/automation/Builder/mapping/deepenForEach.test.ts"
+  "src/components/automation/Builder/mapping/deepenForEach.test.ts",
+  "src/utils/adminAccess.lockstep.test.ts"
  ]
 }

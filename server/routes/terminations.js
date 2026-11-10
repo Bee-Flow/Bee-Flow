@@ -43,8 +43,9 @@
 const express = require('express');
 const router = express.Router();
 const terminationStore = require('../stores/terminationStore');
-const { resolveUserOrgIds, isOrgAdminRole, requirePermission } = require('../auth');
+const { resolveUserOrgIds, requirePermission } = require('../auth');
 const userStore = require('../stores/userStore');
+const { createMonitoringOrg, coveredScope } = require('./monitoringOrg.mts');
 const { validate } = require('../core/http/validate');
 const { withPersonColumn } = require('../core/privacy/personColumn');
 const { z, typeError, datetimeWithOffset } = require('../utils/zod');
@@ -80,8 +81,14 @@ const TerminationsQuery = z.object({
     // /org list only: names instead of pseudonyms, after an access-audit row.
     reveal: z.enum(['true', 'false'], { error: () => 'reveal is true or false.' }).optional(),
 }).strict();
+// /org/* only: a platform admin's choice of organisation (routes/monitoringOrg.mts).
+// The generic routes do not take it: a filter they ignored would read as applied.
+const OrgTerminationsQuery = TerminationsQuery.extend({
+    orgId: z.string({ error: typeError({ invalid: 'orgId is one id.' }) }).trim().optional(),
+}).strict();
 
 const readQuery = validate({ query: TerminationsQuery });
+const readOrgQuery = validate({ query: OrgTerminationsQuery });
 /** @typedef {{ termOrgId?: string | null }} TermOrgScope set by attachOrgFilter / requireOwnOrgAdminScope */
 /** @typedef {import('express').Request<{}, any, any, import('zod').infer<typeof TerminationsQuery>> & TermOrgScope} TerminationsReq */
 
@@ -144,10 +151,18 @@ async function attachOrgFilter(req, res, next) {
 }
 
 // ── Org-scoped routes (org admin only) ─────────────────────────────────────
-// Mounted before the generic attachOrgFilter so /org/* is gated explicitly to
-// the caller's own organisation and to org_admin role. Super admin also passes.
-// The gate runs before the query is judged, so a caller without a session or
-// the role still hears 401/403 first.
+// Mounted before the generic attachOrgFilter so /org/* reads exactly one
+// organisation (routes/monitoringOrg.mts): an organisation admin's home
+// organisation, or for a platform admin `?orgId`, else the organisation on
+// their own record. The gate runs before the
+// query is judged, so a caller without a session or the role still hears
+// 401/403 first; refusals go to the terminal error handler as HttpError.
+const monitoringOrg = createMonitoringOrg({
+    // Read at call time: auth/permissions is the barrel that builds the gate with the real stores.
+    resolveAdminOrgId: (/** @type {import('express').Request} */ req) => require('../auth/permissions').resolveAdminOrgId(req),
+    getUser: (/** @type {string} */ userId) => userStore.getUser(userId),
+});
+
 /**
  * @param {import('express').Request & TermOrgScope} req
  * @param {import('express').Response} res
@@ -155,23 +170,25 @@ async function attachOrgFilter(req, res, next) {
  */
 async function requireOwnOrgAdminScope(req, res, next) {
     if (!req.session?.user) return res.status(401).json({ error: 'Unauthorized' });
-    const isSuperAdmin = req.session.isAdmin || req.session.user?.role === 'admin';
-
-    const orgIds = await resolveUserOrgIds(req);
-    const orgId = orgIds && orgIds.size > 0 ? Array.from(orgIds)[0] : null;
-    if (!orgId) return res.status(403).json({ error: 'No organisation context' });
-
-    if (!isSuperAdmin) {
-        const user = await userStore.getUser(req.session.user.id);
-        if (!user || !isOrgAdminRole(user.orgRole)) {
-            return res.status(403).json({ error: 'Organization admin access required' });
-        }
+    try {
+        req.termOrgId = await monitoringOrg.monitoringOrgId(req);
+    } catch (err) {
+        return next(err);
     }
-    req.termOrgId = orgId;
     next();
 }
 
-router.get('/org', requireOwnOrgAdminScope, readQuery, /** @param {TerminationsReq} req */ async (req, res) => {
+/**
+ * The `scope` block of a summary: the organisation read, every organisation
+ * (a platform admin on the generic routes), or the caller's own rows.
+ * @param {TerminationsReq} req
+ */
+function scopeOf(req) {
+    const orgId = req.termOrgId && req.termOrgId !== '__none__' ? req.termOrgId : null;
+    return coveredScope(orgId, req.termOrgId === null, (id) => userStore.getOrganization(id));
+}
+
+router.get('/org', requireOwnOrgAdminScope, readOrgQuery, /** @param {TerminationsReq} req */ async (req, res) => {
     const limit = Math.min(req.query.limit || 100, 500);
     const filters = termFilters(req);
     const found = await terminationStore.getList(filters, limit);
@@ -184,18 +201,18 @@ router.get('/org', requireOwnOrgAdminScope, readQuery, /** @param {TerminationsR
     res.json({ rows, revealed: reveal });
 });
 
-router.get('/org/summary', requireOwnOrgAdminScope, readQuery, /** @param {TerminationsReq} req */ async (req, res) => {
+router.get('/org/summary', requireOwnOrgAdminScope, readOrgQuery, /** @param {TerminationsReq} req */ async (req, res) => {
     const summary = await terminationStore.getSummary(termFilters(req));
-    res.json(summary);
+    res.json({ ...summary, scope: await scopeOf(req) });
 });
 
-router.get('/org/timeline', requireOwnOrgAdminScope, readQuery, /** @param {TerminationsReq} req */ async (req, res) => {
+router.get('/org/timeline', requireOwnOrgAdminScope, readOrgQuery, /** @param {TerminationsReq} req */ async (req, res) => {
     const interval = req.query.interval || 'day';
     const rows = await terminationStore.getTimeline(termFilters(req), interval);
     res.json({ rows, interval });
 });
 
-router.get('/org/by-agent', requireOwnOrgAdminScope, readQuery, /** @param {TerminationsReq} req */ async (req, res) => {
+router.get('/org/by-agent', requireOwnOrgAdminScope, readOrgQuery, /** @param {TerminationsReq} req */ async (req, res) => {
     const rows = await terminationStore.getByAgent(termFilters(req));
     res.json({ rows });
 });
@@ -213,7 +230,7 @@ router.get('/', readQuery, /** @param {TerminationsReq} req */ async (req, res) 
 
 router.get('/summary', readQuery, /** @param {TerminationsReq} req */ async (req, res) => {
     const summary = await terminationStore.getSummary(termFilters(req));
-    res.json(summary);
+    res.json({ ...summary, scope: await scopeOf(req) });
 });
 
 router.get('/timeline', readQuery, /** @param {TerminationsReq} req */ async (req, res) => {

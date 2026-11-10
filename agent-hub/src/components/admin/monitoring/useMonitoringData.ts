@@ -4,7 +4,7 @@ import type { AgentUsage, ChartPoint, ModelUsage, ToolUsage, UsageRecord, UsageS
 import type { ModelRate } from './drawer/drawerTypes';
 import type { FeedbackItem, FeedbackSummary } from './feedback/feedbackModel';
 import { monitoringUrl } from './monitoringUrl';
-import { API, AI_API, FEEDBACK_API } from './monitoring.constants';
+import { API, AI_API, FEEDBACK_API, scopedApi } from './monitoring.constants';
 import { rangeToFilter, prevPeriodFilter, autoInterval, fetchJson } from './monitoring.helpers';
 
 // authFetch, not raw fetch (fetchJson goes through api/mutate's request). Both
@@ -56,9 +56,23 @@ function useLatestOnly() {
     }, []);
 }
 
+/** The period and the dashboard's chosen organisation (null: none sent) of one read. */
+interface ReadArgs {
+    range: string;
+    customStart: string;
+    customEnd: string;
+    orgId: string | null;
+}
+
+/** A filter with the chosen organisation as `orgId`; without one the filter as it is. */
+function withOrg(filters: Record<string, string>, orgId: string | null): Record<string, string> {
+    return orgId ? { ...filters, orgId } : filters;
+}
+
 /** The core figures of a range, all read at once. */
-async function readCore(range: string, customStart: string, customEnd: string): Promise<Partial<MonitoringData>> {
-    const filters = rangeToFilter(range, customStart, customEnd);
+async function readCore({ range, customStart, customEnd, orgId }: ReadArgs): Promise<Partial<MonitoringData>> {
+    const filters = withOrg(rangeToFilter(range, customStart, customEnd), orgId);
+    const org = withOrg({}, orgId);
     const qs = new URLSearchParams(filters).toString();
     const q = qs ? '?' + qs : '';
     const interval = autoInterval(range, customStart, customEnd);
@@ -71,9 +85,9 @@ async function readCore(range: string, customStart: string, customEnd: string): 
         fetchJson(monitoringUrl(`${API}/cost-timeline`, { ...filters, interval })),
         fetchJson(`${AI_API}/model-costs`),
         fetchJson(`${API}/tools${q}`),
-        fetchJson(`${API}/recent?limit=100`),
-        fetchJson(`${API}/filters/sources`),
-        fetchJson(`${API}/filters/models`),
+        fetchJson(monitoringUrl(`${API}/recent`, { limit: 100, ...org })),
+        fetchJson(monitoringUrl(`${API}/filters/sources`, org)),
+        fetchJson(monitoringUrl(`${API}/filters/models`, org)),
         fetchJson(`${API}/by-conversation${q}`),
     ]);
     return {
@@ -86,25 +100,31 @@ async function readCore(range: string, customStart: string, customEnd: string): 
 
 type SetData = (update: (d: MonitoringData) => MonitoringData) => void;
 
-/** Core figures, then the previous period's summary, then feedback; each step stops once a newer read has started. */
-async function readAll(range: string, customStart: string, customEnd: string, superseded: () => boolean, setData: SetData) {
-    const qs = new URLSearchParams(rangeToFilter(range, customStart, customEnd)).toString();
+/**
+ * Core figures, then the previous period's summary, then feedback; each step
+ * stops once a newer read has started. Feedback follows the summary's scope:
+ * the `/org` routes when it covers one organisation (scopedApi).
+ */
+async function readAll(args: ReadArgs, superseded: () => boolean, setData: SetData) {
+    const { range, customStart, customEnd, orgId } = args;
+    const qs = new URLSearchParams(withOrg(rangeToFilter(range, customStart, customEnd), orgId)).toString();
     try {
-        const core = await readCore(range, customStart, customEnd);
+        const core = await readCore(args);
         if (superseded()) return;
         setData(d => ({ ...d, ...core }));
 
         // Previous period for delta comparison
         const prevFilter = prevPeriodFilter(range, customStart, customEnd);
-        const prevSummary = prevFilter ? await fetchJson(`${API}/summary?${new URLSearchParams(prevFilter).toString()}`) : null;
+        const prevSummary = prevFilter ? await fetchJson(`${API}/summary?${new URLSearchParams(withOrg(prevFilter, orgId)).toString()}`) : null;
         if (superseded()) return;
         setData(d => ({ ...d, prevSummary }));
 
         try {
             const fbQs = qs ? '?' + qs : '';
+            const fbApi = scopedApi(FEEDBACK_API, core.summary?.scope);
             const [fbData, fbSum] = await Promise.all([
-                fetchJson(`${FEEDBACK_API}${fbQs}`),
-                fetchJson(`${FEEDBACK_API}/summary${fbQs}`),
+                fetchJson(`${fbApi}${fbQs}`),
+                fetchJson(`${fbApi}/summary${fbQs}`),
             ]);
             if (superseded()) return;
             setData(d => ({ ...d, feedback: list(fbData), feedbackSummary: fbSum || EMPTY_FEEDBACK }));
@@ -115,24 +135,25 @@ async function readAll(range: string, customStart: string, customEnd: string, su
 }
 
 /**
- * Everything the AI Monitor shows for a range: read on a range change, every
+ * Everything the AI Monitor shows for a range (and the admin dashboard's chosen
+ * organisation, sent as `orgId`): read on a range or organisation change, every
  * minute, and on `reload()` (the Refresh button). `loading` holds from the
  * start of a read until the newest one has answered; `refreshKey` counts the
  * reloads, for the pages that read on their own (Terminations).
  */
-export function useMonitoringData(range: string, customStart: string, customEnd: string) {
+export function useMonitoringData(range: string, customStart: string, customEnd: string, orgId: string | null = null) {
     const [data, setData] = useState<MonitoringData>(INITIAL);
     const [refreshKey, setRefreshKey] = useState(0);
     const [settledKey, setSettledKey] = useState<string | null>(null);
     const beginFetch = useLatestOnly();
-    const readKey = `${range}|${customStart}|${customEnd}|${refreshKey}`;
+    const readKey = `${range}|${customStart}|${customEnd}|${orgId ?? ''}|${refreshKey}`;
 
     useEffect(() => {
         const superseded = beginFetch();
-        readAll(range, customStart, customEnd, superseded, setData).then(() => {
+        readAll({ range, customStart, customEnd, orgId }, superseded, setData).then(() => {
             if (!superseded()) setSettledKey(readKey);
         });
-    }, [range, customStart, customEnd, readKey, beginFetch]);
+    }, [range, customStart, customEnd, orgId, readKey, beginFetch]);
 
     const reload = useCallback(() => setRefreshKey(k => k + 1), []);
     useEffect(() => {
