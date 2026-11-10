@@ -106,7 +106,14 @@ export const ORG = 'org';
 export const GROUPS = 'groups';
 
 const ROW_SCOPES: unknown[] = ['none', 'own', 'all'];
-const CONNECTOR_KINDS = ['integration_tool', 'automation', 'rest'];
+/**
+ * Every connector kind the connector runtime runs (server
+ * appStudio/connectors/shared.js CONNECTOR_KINDS; pinned by
+ * publishAccessSummary.lockstep.test.ts).
+ */
+export const CONNECTOR_KINDS: readonly string[] = Object.freeze(['integration_tool', 'automation', 'rest', 'mailbox']);
+/** The reserved role of an anonymous visitor on a public page (server dataModel PUBLIC_ROLE_KEY). */
+export const PUBLIC_ROLE_KEY = 'public';
 
 /**
  * Translate with `t` when the caller has one; otherwise the English default
@@ -174,6 +181,9 @@ export function resolveScope(table: AccessTable | null | undefined, role: string
     if (entry && typeof entry === 'object' && Object.hasOwn(entry, action)) {
         return normalizePerm(entry[action], action);
     }
+    // The anonymous role never inherits access.default: a public page's
+    // tables opt in per action (server core/dataEngine/accessFilter.js).
+    if (role === PUBLIC_ROLE_KEY) return action === 'create' ? false : 'none';
     return modeScope(access.default, action);
 }
 

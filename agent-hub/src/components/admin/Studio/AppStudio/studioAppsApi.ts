@@ -176,6 +176,16 @@ export const studioAppsApi = {
     checkApp: (id: string, opts: { screenId?: string; asRole?: string } = {}) =>
         request(`${base}/${enc(id)}/check`, { method: 'POST', body: JSON.stringify(opts) }),
 
+    /**
+     * Public pages (server: routes/studioApps/publicPages.js). Owner-only, all
+     * three; minting and revoking also need manage_apps.
+     * list → { pages: [{ token, url, createdAt, lastSeenAt, visits }], publicAccess, blockers }
+     * create → 201 { page, blockers }; 409 once the app has its maximum of URLs.
+     */
+    listPublicPages: (id: string) => request(`${base}/${enc(id)}/public-pages`),
+    createPublicPage: (id: string) => request(`${base}/${enc(id)}/public-pages`, { method: 'POST' }),
+    revokePublicPage: (id: string, token: string) => request(`${base}/${enc(id)}/public-pages/${enc(token)}`, { method: 'DELETE' }),
+
     // Versions
     listVersions: (id: string) => request(`${base}/${enc(id)}/versions`),
     restoreVersion: (id: string, versionId: string | number | undefined) =>
