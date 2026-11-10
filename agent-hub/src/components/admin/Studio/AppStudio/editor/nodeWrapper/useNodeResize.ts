@@ -68,12 +68,14 @@ export function useNodeResize({ nodeId, nodeStyle, nodeType, parent = null, defi
         e.preventDefault();
         e.stopPropagation();
         if (streamLock) return;
-        // The step and the reach of the drag come from the grid as it is drawn: its real track count.
+        // The step comes from the grid as it is drawn (its real track count); the reach is the
+        // grid's own column count. Below 640px the drawn grid has one track, and a reach of one
+        // would turn a click on the grip into span 1.
         const measured = measureGrid(cellRef.current?.parentElement);
-        widthDragRef.current = { startSpan: currentSpan, startX: e.clientX, columnWidth: measured.columnWidth, columns: measured.columns };
+        widthDragRef.current = { startSpan: currentSpan, startX: e.clientX, columnWidth: measured.columnWidth, columns };
         setWidthPreview(currentSpan);
         e.currentTarget.setPointerCapture?.(e.pointerId);
-    }, [streamLock, currentSpan, cellRef]);
+    }, [streamLock, currentSpan, columns, cellRef]);
 
     const moveWidthResize = useCallback((e: GripEvent) => {
         const d = widthDragRef.current;

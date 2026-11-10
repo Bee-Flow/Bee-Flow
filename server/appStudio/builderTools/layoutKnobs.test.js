@@ -65,6 +65,18 @@ test('a draft that uses none of the knobs keeps the base schema version', async 
     assert.equal(wrap.def.schemaVersion, 2);
 });
 
+test('an invalid layout knob is dropped, never written as its default', async () => {
+    const wrap = draft();
+    const parentId = wrap.def.screens[0].sections[0].id;
+    const added = await applyToolCall('app_add_components', { parentId, components: [
+        { tempId: 'h', type: 'heading', props: { text: 'Bad' }, style: { span: 6, sticky: 'yes', alignSelf: 'top', columns: 'many', spanMd: 'half' } },
+    ] }, wrap);
+    assert.ok(!added.error, JSON.stringify(added));
+    const { style } = ops.findNode(wrap.def, added.ids.h).node;
+    for (const knob of ['sticky', 'alignSelf', 'columns', 'spanMd']) assert.equal(Object.hasOwn(style, knob), false, `${knob} is left out`);
+    assert.equal(wrap.def.schemaVersion, 2);
+});
+
 test('app_inspect_catalog serves every layout knob with its range and how to use it', () => {
     const names = extensionItems().filter((item) => item.family === 'styleKnobs').map((item) => item.name);
     for (const knob of KNOBS) assert.ok(names.includes(knob), `${knob} is an extension style knob`);

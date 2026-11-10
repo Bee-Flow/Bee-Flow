@@ -208,6 +208,15 @@ describe('EditorNodeWrapper — width resize gesture', () => {
         expect(onCommit).not.toHaveBeenCalled();
     });
 
+    it('a click on the grip of a grid drawn as one track (phone width) commits nothing', () => {
+        const { onCommit } = renderWrapper(buttonNode());
+        document.querySelector('[data-grid]').style.gridTemplateColumns = '390px';
+        const handle = widthHandle();
+        fireEvent.pointerDown(handle, { clientX: 100, pointerId: 1 });
+        fireEvent.pointerUp(handle, { clientX: 100, pointerId: 1 });
+        expect(onCommit).not.toHaveBeenCalled();
+    });
+
     it('ArrowRight nudges span by one and commits once (keyboard accessible)', () => {
         const { onCommit } = renderWrapper(buttonNode());
         fireEvent.keyDown(widthHandle(), { key: 'ArrowRight' });

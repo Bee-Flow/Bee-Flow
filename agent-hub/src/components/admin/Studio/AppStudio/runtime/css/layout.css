@@ -330,7 +330,12 @@
  */
 @media (max-width: 639.98px) {
     .app-grid.app-grid--keep-sm {
-        grid-template-columns: repeat(var(--app-cols, 12), minmax(0, 1fr)) !important;
+        grid-template-columns: repeat(12, minmax(0, 1fr)) !important;
+    }
+    /* --app-cols is inherited, so only a grid that sets its own (app-cols-N) reads it: a
+       12-column grid inside a 5-column one must not pick up the parent's 5. */
+    .app-grid.app-grid--keep-sm:is(.app-cols-1, .app-cols-2, .app-cols-3, .app-cols-4, .app-cols-5, .app-cols-6, .app-cols-7, .app-cols-8, .app-cols-9, .app-cols-10, .app-cols-11) {
+        grid-template-columns: repeat(var(--app-cols), minmax(0, 1fr)) !important;
     }
     .app-grid.app-grid--keep-sm > .app-node.app-span-sm-1 { grid-column: span 1 / span 1 !important; }
     .app-grid.app-grid--keep-sm > .app-node.app-span-sm-2 { grid-column: span 2 / span 2 !important; }
