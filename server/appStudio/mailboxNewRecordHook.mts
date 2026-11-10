@@ -146,8 +146,15 @@ function hostFor(app: App, model: unknown, def: Record<string, unknown>, actionI
     return {
         decide: async (step: Step) => ({ run: true, step }),
         execute: (step: Step, _f: unknown, w: WalkState) => deps.executeStep(app, model, step, ctx(w)),
-        // set_variable, loop and call_action are refused by the policy: nothing here reads a binding.
-        resolve: async () => { throw new Error('This step cannot run on an arriving mail'); },
+        // set_variable, loop and call_action are refused by the policy, so nothing here reads data.
+        // What is left is the message of a raise_error and the value of a return: a static value
+        // or a formula (evaluated like a condition's). Any other binding is refused.
+        resolve: async (binding: unknown, _c: unknown, scope: unknown) => {
+            const b = binding !== null && typeof binding === 'object' ? binding as Record<string, unknown> : null;
+            if (b && b.kind === 'static') return b.value;
+            if (b && b.kind === 'formula' && typeof b.expr === 'string') return deps.evaluate(b.expr, scope);
+            throw new Error('This step cannot run on an arriving mail');
+        },
         evaluate: (expr: string, scope: unknown) => deps.evaluate(expr, scope),
         buildScope: (c: Record<string, unknown>) => deps.buildScope(c),
         ctxFor: (w: WalkState) => ctx(w),
