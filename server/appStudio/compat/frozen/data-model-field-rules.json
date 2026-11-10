@@ -1,0 +1,73 @@
+{
+  "corpus": "data-model-field-rules",
+  "canonical": {
+    "sha256": "de02ce412090b68fe36e1b80c511731e5fcff8289568971bd28beaf508b19452",
+    "bytes": 2915,
+    "inputIsCanonical": true,
+    "idempotent": true,
+    "keys": [
+      "schemaVersion",
+      "meta",
+      "theme",
+      "roles",
+      "screens",
+      "actions",
+      "homeScreenId"
+    ],
+    "parts": {
+      "schemaVersion": "d4735e3a265e16ee",
+      "meta": "cbb0b9fa0b620656",
+      "theme": "5d7eeb0111b89897",
+      "roles": "4f53cda18c2baa0c",
+      "screens[0] scr_order1": "1baba128e433cef1",
+      "actions.act_order1": "2df8bb74e2ec9a5a",
+      "homeScreenId": "a39820bdcccd7658"
+    }
+  },
+  "schemaVersion": {
+    "stored": 2,
+    "canonical": 2
+  },
+  "validation": {
+    "strict": {
+      "errors": [],
+      "warnings": []
+    },
+    "save": {
+      "errors": [],
+      "warnings": []
+    }
+  },
+  "ordinals": {
+    "stored": {
+      "act_order1": [
+        "0 create_record",
+        "1 toast"
+      ]
+    },
+    "canonical": "same as stored"
+  },
+  "reads": [
+    {
+      "at": "cmp_ordls1.source",
+      "kind": "records",
+      "table": "tbl_order1",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"orders\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"orders\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      }
+    }
+  ]
+}
