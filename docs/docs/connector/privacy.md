@@ -38,15 +38,22 @@ pairing code is given, and hands the connector its tenant key. Before any of thi
 asks the chosen address for `/api/health`; when no Bee Flow server answers there, nothing is saved
 and nothing is sent.
 
-A connector that was given a tenant key at install sends no such request: it takes the key into use
-for the chosen server.
+To find the administrators, the connector asks Nextcloud for the members of the `admin` group.
+Where Nextcloud does not answer that to an app (current versions do not), the connector lists the
+accounts and reads each account's record (e-mail address, display name, groups) to see who is an
+administrator. That reading stays inside the connector on your own infrastructure: only the
+administrators' names and e-mail addresses are sent to the chosen server.
+
+A connector that was given a tenant key at install sends no such request and does not read the
+accounts: it takes the key into use for the chosen server.
 
 ## Synchronised after the choice
 
 - Users and groups: user id, e-mail address, display name and group memberships of the Nextcloud
   accounts, read by the Bee Flow server through the connector. The organisation's administrator sets
   which groups are synchronised in the onboarding wizard and later under
-  **Settings → Organisation**.
+  **Settings → Organisation**. Until that wizard is finished, other users cannot use Bee Flow
+  ([why](troubleshooting.md#setup-in-progress)).
 - On every sign-in: your Nextcloud user id, e-mail address, display name and group memberships (used
   to identify your organisation and apply group-based permissions).
 

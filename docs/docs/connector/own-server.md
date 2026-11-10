@@ -35,6 +35,10 @@ In Nextcloud you then tell the connector where that server is.
    first asks your server for `/api/health`; when no Bee Flow server answers there, nothing is saved
    and nothing is sent. More in [Choose where Bee Flow runs](setup-picker.md).
 
+6. **Finish the onboarding wizard.** Still as a Nextcloud administrator, open **Bee Flow** again:
+   the web app shows the wizard of your organisation. Until it is finished, the server holds other
+   users back (`403`, code `NC_ONBOARDING_PENDING`); afterwards they get the app.
+
 ## What the host needs
 
 - **Docker with the Compose plugin**, and a shell to run the script.

@@ -31,6 +31,7 @@ this *before* the connector sees a request:
 | `^/?api/.*`, `^/?auth/.*`, catch-all | `USER` | Requires a signed-in Nextcloud user; AppAPI forwards their uid. A `PUBLIC` catch-all would let anonymous traffic through. |
 | `^/?heartbeat$`, static shell | `PUBLIC` | Lifecycle and assets; no user session exists. |
 | `^/?init$`, `^/?enabled$`, `^/?setup/...` | `ADMIN` | Anything that could disrupt the whole organisation (rotate the tenant key, repoint the server, redeem a pairing code). |
+| `^/?setup/diagnostics$` (GET) | `USER` | The web app asks it for every signed-in user. The connector itself checks for a Nextcloud administrator: an administrator gets the diagnosis, anybody else `{"canConfigure":false}`. |
 | `^/?hooks/.*` | `PUBLIC` + brute-force protection | Delivered by a Nextcloud background job with no session; authenticated by a static header secret, so Nextcloud throttles repeated rejections. |
 | `^/?nc/.*` | `PUBLIC` | The Bee Flow server calling back into Nextcloud; authenticated by HMAC (below), not by a session. |
 

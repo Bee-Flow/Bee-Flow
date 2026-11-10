@@ -150,13 +150,13 @@ Runs once a server is chosen: when an administrator chooses it, and at every sta
 2. **Cache check** — read the persistent file at `APP_PERSISTENT_STORAGE/tenant-key.json`.
 3. **Gather metadata** — anonymous OCS call to fetch the NC version and theming name. Nextcloud publishes no instance id in its capabilities, so the connector derives one from the host of the public Nextcloud URL (`nc-host:<host>`) and keeps it in the tenant-key cache.
 4. **Discover admin**:
-   - **Fast path** — `GET /ocs/v2.php/cloud/groups/admin/users`, single round-trip.
-   - **Fallback** — walk `/ocs/v2.php/cloud/users` in parallel batches of 5, looking for first user in the `admin` group.
+   - **Group lookup** — `GET /ocs/v2.php/cloud/groups/admin/users`, a single round-trip where Nextcloud answers it to an app that acts without a user.
+   - **Otherwise** (current Nextcloud versions refuse that lookup) — list the accounts through AppAPI and read each account's record in parallel batches of 5 for its groups; the members of `admin` with an e-mail address are the administrators. The records are read inside the connector; only the administrators' names and addresses go into the next step.
 5. **Call the server's bootstrap** — `POST {apiBaseUrl}/auth/connector/bootstrap` with the Nextcloud's address, instance id and version, and the administrators' names and e-mail addresses.
 6. **Anti-spoofing** — the server independently re-fetches the Nextcloud's capabilities to confirm the metadata matches.
 7. **Persist** — store the returned `{tenantKey, organizationId, organizationName}` in the cache file, with the server that issued it (`boundApiBaseUrl`).
 
-If a step fails, the connector records the failure with a category and a remediation text; `/heartbeat`, `GET setup/diagnostics` and the setup page show it. A failure of step 3 or 4 is the connector's own read of Nextcloud (`nc_cert_untrusted`, `nc_unreachable`, `admin_lookup_failed`): nothing has been sent to the Bee Flow server at that point.
+If a step fails, the connector records the failure with a category and a remediation text; `/heartbeat` (to Nextcloud itself; an outside caller gets the state only), `GET setup/diagnostics` and the setup page show it, the setup page also when it is opened later. While a first connect has failed and there is no key, **Bee Flow** in the top bar opens the setup page for an administrator and a short notice for everybody else. A failure of step 3 or 4 is the connector's own read of Nextcloud (`nc_cert_untrusted`, `nc_unreachable`, `admin_lookup_failed`): nothing has been sent to the Bee Flow server at that point.
 
 ## Event subscriptions
 
@@ -171,7 +171,7 @@ Real-time events go through Nextcloud's bundled `webhook_listeners` app (`occ ap
 | Tables (if installed) | `OCA\Tables\Event\Row{Added,Updated,Deleted}Event` | `tables.row.added`, `.updated`, `.deleted` |
 | Deck (if installed) | `OCA\Deck\Event\Card{Created,Updated,Deleted}Event` | `deck.card.created`, `.changed`, `.deleted` |
 
-Each row has the relative uri `/hooks/nextcloud` and carries a secret header (`X-Beeflow-Hook-Secret`, derived from the tenant key) that the connector checks on delivery. Nextcloud delivers a row with a relative uri through AppAPI to the connector (directly, or through HaRP), so Nextcloud does not call its own public address and `allow_local_remote_servers` is not needed for push triggers. AppAPI waits 3 seconds for the answer; the connector answers within 2 and finishes forwarding to the Bee Flow server afterwards. Registration is idempotent: existing rows are updated in place, rows registered with an absolute address are rewritten, and duplicates are removed. `GET setup/diagnostics` reports under `webhooks` whether the rows are registered, how many deliveries arrived since the connector started and when the last one came in. If `webhook_listeners` is not enabled the connector logs a warning and retries every minute.
+Each row has the relative uri `/hooks/nextcloud` and carries a secret header (`X-Beeflow-Hook-Secret`, derived from the tenant key) that the connector checks on delivery. Nextcloud delivers a row with a relative uri through AppAPI to the connector (directly, or through HaRP), so Nextcloud does not call its own public address and `allow_local_remote_servers` is not needed for push triggers. AppAPI waits 3 seconds for the answer; the connector answers within 2 and finishes forwarding to the Bee Flow server afterwards. Registration is idempotent: existing rows are updated in place, rows registered with an absolute address are rewritten, and duplicates are removed. `GET setup/diagnostics` reports under `webhooks` whether the rows are registered, how many deliveries arrived since the connector started and when the last one came in (`deliveries`, `lastDeliveryAt`), and how many events the Bee Flow server accepted and when it last did (`forwarded`, `lastForwardedAt`). A delivery of a class the connector does not forward counts as a delivery only; one delivery can be more than one event. To confirm that an event reached the server, read `forwarded` before and after it; with `LOG_LEVEL=debug` the connector also writes one `[AutomationEvents] … accepted by the Bee Flow server` line per event. An event the server refuses is logged as a warning. If `webhook_listeners` is not enabled the connector logs a warning and retries every minute.
 
 Nextcloud dispatches these deliveries from background jobs, so out of the box the delay is the cron interval (5 minutes). For near-real-time delivery run a dedicated worker:
 
@@ -206,7 +206,7 @@ Install-time values, declared in `appinfo/info.xml`. Give them in the advanced d
 | `BEEFLOW_TENANT_KEY` | `auto` | Tenant key, or literal `auto`: the chosen server issues one |
 | `BEEFLOW_API_BASE_URL` | (none) | Empty: an administrator chooses after installing. The word `cloud` or a server URL fixes the server |
 | `BEEFLOW_EMBED_BASE_URL` | (none) | Empty: the web app follows the chosen server. A URL forces one web app host. A value that is not a URL is logged and ignored |
-| `BEEFLOW_NC_PUBLIC_URL` | (none) | Address at which the Bee Flow server reaches this Nextcloud, when that is not its main URL |
+| `BEEFLOW_NC_PUBLIC_URL` | (none) | Address at which the Bee Flow server reaches this Nextcloud, when that is not its main URL. A URL here is fixed: the field on the setup page is locked and saving it there answers `409` with the code `env_locked`. A value that is not a URL is logged and ignored, and the field on the setup page stays free |
 | `BEEFLOW_PAIRING_CODE` | (none) | One-time code that joins this Nextcloud to an existing organisation |
 | `BEEFLOW_TRUSTED_EMBED_ORIGINS` | (none) | Extra origins that may frame the app |
 | `BEEFLOW_NC_CA_CERT`, `BEEFLOW_NC_TLS_PIN` | (none), `auto` | Trust for a Nextcloud certificate that is self-signed or from an internal CA. `BEEFLOW_NC_CA_CERT` takes the PEM text of the authority's certificate (not a path). `BEEFLOW_NC_TLS_PIN=off` keeps a self-signed certificate refused |
@@ -215,7 +215,7 @@ Install-time values, declared in `appinfo/info.xml`. Give them in the advanced d
 | `BEEFLOW_NC_PROXY_MAX_BODY_MB` | `100` | Largest body of one request from the Bee Flow server into Nextcloud. 0 = no cap |
 | `BEEFLOW_NC_PROXY_MAX_INFLIGHT_MB` | `512` | Upload data all such requests together may hold in memory. 0 = no cap |
 | `BEEFLOW_UPSTREAM_HEADERS_TIMEOUT_MS` | `60000` | How long the Bee Flow server may take to start answering. 0 = off |
-| `LOG_LEVEL` | `info` | `debug`, `info`, `warn` or `error`: the least severe level that is written to the container log |
+| `LOG_LEVEL` | `info` | `debug`, `info`, `warn` or `error`: the least severe level that is written to the container log. The lines of the certificate check at container start (`[nc-tls-trust] …`) are written at every level |
 | `BEEFLOW_SIG_SKEW_SECONDS` | `300` | HMAC clock-skew tolerance, between 30 and 900 |
 
 Not declared in `info.xml`, so settable only where you start the container yourself (a `manual-install` daemon or `docker run`): `BEEFLOW_RUN_AS`, `BEEFLOW_NC_TLS_PROBE_BUDGET_MS`, `BEEFLOW_UPSTREAM_MAX_SOCKETS`, `BEEFLOW_BOOTSTRAP_RETRY_MS`, `BEEFLOW_STUDIO_MENU_SYNC_SECONDS` and `BEEFLOW_JWT_TTL_SECONDS` (default 300, kept between 30 and 900).

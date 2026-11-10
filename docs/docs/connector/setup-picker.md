@@ -59,9 +59,26 @@ What happens on Connect:
    administrator (open Bee Flow to enter it), or the failure with its name.
 
 A first choice whose check passed stays chosen when connecting then fails, for example because the
-server asks for a pairing code. The connector is then on that server without a key and shows the
-failure on the setup page and in `GET setup/diagnostics`; enter the pairing code or fix the cause
-and connect again.
+server asks for a pairing code. The connector is then on that server without a key. Until the
+connection is made, **Bee Flow** in the top bar opens the setup page for an administrator, with the
+failure and what to do about it, also on a later visit; everybody else sees "Bee Flow is not
+connected yet. Ask your Nextcloud administrator to open Bee Flow and finish connecting it." The
+failure is also in `GET setup/diagnostics`. Enter the pairing code or fix the cause and connect
+again.
+
+### After connecting: the onboarding wizard
+
+Connected is not yet open to everybody. The Bee Flow server holds an organisation that was just
+linked to a Nextcloud in onboarding until an organisation administrator has gone through its
+wizard (which groups are synchronised, and so on):
+
+1. Open **Bee Flow** from the top bar as a Nextcloud administrator. The web app shows the wizard
+   ("Welcome to Bee Flow for *organisation*"). Finish it.
+2. From then on the other users get the app.
+
+Until step 1 is done the server answers every request of another user with `403` and the code
+`NC_ONBOARDING_PENDING`; they cannot use Bee Flow yet. This gate is the server's, the connector
+passes its answer on.
 
 Named failures, shown in the administrator's Nextcloud language (English and Dutch):
 
@@ -71,11 +88,13 @@ Named failures, shown in the administrator's Nextcloud language (English and Dut
 | Certificate not trusted | The server's certificate does not verify. Use a certificate from a public certificate authority, or give your own certificate authority in `BEEFLOW_SERVER_CA_CERT`. |
 | Version mismatch | The server and the connector do not work together in these versions. |
 | Pairing code required | The server does not create an organisation by itself; generate a code in Bee Flow under **Settings → Organisation → Pair a new Nextcloud**. |
+| Pairing code not accepted | The code is mistyped, expired or already used. Generate a new one in the same place and enter it on the setup page; nothing has to be installed again. |
 
 ## The same choice in Nextcloud's settings
 
-**Administration → Artificial Intelligence → Bee Flow** holds a form with the same choice. Its first
-option, **No change (keep the current connection)**, is the default; with it selected the form asks
+The **Artificial Intelligence** section of Nextcloud's administration settings (`/settings/admin/ai`;
+some Nextcloud versions label it **Assistant** in the menu) holds a **Bee Flow** form with the same
+choice. Its first option, **No change (keep the current connection)**, is the default; with it selected the form asks
 for nothing.
 
 - A server counts as chosen there once an administrator makes the form name another server than it
@@ -84,9 +103,16 @@ for nothing.
   effect after a choice on the setup page and after a restart, until the form names another one.
   An address typed next to **Bee Flow Cloud** or **No change**, and the web app URL alone, never
   choose a server.
+- "Another server" is about the server, not about how its address is typed: the address of the
+  server in use with a trailing slash, with the host in capitals or with the default port written
+  out is the same server, and the connection is left as it is.
 - A first choice made in the form checks the address in the same way as the setup page. When no
   Bee Flow server answers, nothing is saved and nothing is sent, and the connector looks again at its
   next poll (every 60 seconds).
+- A switch made in the form that does not happen (see [Switching later](#switching-later)) is tried
+  again for as long as the form names that server: at each poll the connector asks that address for
+  `/api/health`, and it makes the switch again once a Bee Flow server answers there. Until then the
+  connection in use is not touched. Select **No change** to stop it.
 - The form's description states what choosing a server sends.
 
 ## Which server the connector uses
@@ -102,6 +128,23 @@ The server is worked out once when the connector starts. The first match wins:
 | 5 | None | No server. The connector waits for an administrator. |
 
 `GET setup/status` (administrators only) reports the result in `configured`, `active` and `source`.
+
+`GET setup/diagnostics` reports how far the connection is, in `state`:
+
+| `state` | Meaning |
+|---|---|
+| `server_not_chosen` | No server is chosen. |
+| `initialising` | A server is chosen and the connector is connecting to it. |
+| `awaiting_email_verification` | The server e-mailed a code to an administrator; open Bee Flow to enter it. |
+| `awaiting_admin_approval` | The server waits for an organisation administrator to approve the link. |
+| `failed` | Connecting failed and there is no key; `lastError` and `connectError` say why. |
+| `ok` | Connected: the connector holds a tenant key for `apiBaseUrl`. |
+
+`organizationId` and `organizationName` are filled in when the server issued the key. With a tenant
+key given at install time they stay `null`: that key comes without them. `hasTenantKey` is `false`
+for as long as no server is chosen, also when a key was given at install time, because the key is
+taken into use only once a server is known. Somebody who is not a Nextcloud administrator gets
+`{"canConfigure":false}` from this address and nothing else.
 
 ### Fixing the server at install time
 
@@ -159,9 +202,11 @@ The setup page stays available. A switch from one server to another:
 - drops the tenant key of the previous server and connects to the new one;
 - goes back to the previous server when the new one does not connect. Saving answers at once
   (`200`, with the server you asked for under `saved`) and the connection is made afterwards: the
-  page then says that connecting failed and that the previous server is still in use.
+  page then names the failure (for example "certificate not trusted", with the option that solves
+  it) and says that the previous server is still in use.
   `GET setup/diagnostics` keeps that failure under `rejectedSwitch`, with the server it is about;
-  `lastError` there is always about the server in use;
+  `lastError` there is always about the server in use. Nothing is tried again on the server in use
+  after a switch that did not happen: its key and its record stay as they were;
 - does not move data: chats, agents and knowledge bases stay with the organisation on the server
   they were made on.
 

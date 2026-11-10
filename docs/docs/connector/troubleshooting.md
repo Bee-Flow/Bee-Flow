@@ -166,7 +166,7 @@ A Nextcloud whose certificate is self-signed, or issued by your own certificate 
 | Self-signed, `BEEFLOW_NC_TLS_PIN` at `auto` (the default) | Keeps to the certificate it saw first, for the Nextcloud address only. A certificate that changes later is refused until an administrator accepts it on the setup page. |
 | Self-signed, `BEEFLOW_NC_TLS_PIN=off` | Refuses it. |
 
-When the connector does not trust the certificate (`BEEFLOW_NC_TLS_PIN=off` with a self-signed certificate, or a `BEEFLOW_NC_CA_CERT` that is not the authority that issued it), connecting fails with the category `nc_cert_untrusted`, the error names the certificate problem, and nothing is sent to the Bee Flow server. `GET setup/diagnostics` answers `502` (`User lookup failed`) in that state, because the connector cannot ask Nextcloud who you are; read the cause in the connector log (`[Bootstrap] nc_cert_untrusted …`). Fix the value by [registering the app again](setup-picker.md#fixing-the-server-at-install-time).
+When the connector does not trust the certificate (`BEEFLOW_NC_TLS_PIN=off` with a self-signed certificate, or a `BEEFLOW_NC_CA_CERT` that is not the authority that issued it), connecting fails with the category `nc_cert_untrusted`, the error names the certificate problem, and nothing is sent to the Bee Flow server. `GET setup/diagnostics` and the setup page answer `502` (`User lookup failed`) in that state, because the connector cannot ask Nextcloud who you are; read the cause in the connector log (`[Bootstrap] nc_cert_untrusted …`), in `bootstrap-last-error.json` on the connector's data volume, or in the heartbeat Nextcloud itself asks for. Fix the value by [registering the app again](setup-picker.md#fixing-the-server-at-install-time).
 
 **The Bee Flow server.** The server verifies the certificate itself when it calls your Nextcloud. Bee Flow Cloud accepts certificates from public authorities only. On your own server, add your authority (or the self-signed certificate) to what the server trusts: for the server container, the environment variable `NODE_EXTRA_CA_CERTS` with the location of a PEM file in that container. We have not tested this setup ourselves. Without it connecting fails with `nc_not_publicly_reachable`.
 
@@ -195,7 +195,7 @@ docker exec nc_app_bee_flow sh -c 'if [ -n "$HP_SHARED_KEY" ]; then
 # → {"status":"ok","bootstrap":"failed","remediation":"Open Bee Flow in Nextcloud as an administrator, or read GET /setup/diagnostics, for the cause and how to fix it."}
 ```
 
-`status` stays `ok`: the connector itself is healthy. The heartbeat names the state only. The category, the error and the time of the next attempt are on the [setup page](setup-picker.md#where-the-setup-page-is) and in `GET setup/diagnostics`, both for Nextcloud administrators.
+`status` stays `ok`: the connector itself is healthy. Asked like this, without AppAPI's signature, the heartbeat names the state only; the heartbeat Nextcloud itself asks for (signed by AppAPI) also carries the category, the error, the remediation and the time of the next attempt. For a Nextcloud administrator the same detail is on the [setup page](setup-picker.md#where-the-setup-page-is), also when it is opened later, and in `GET setup/diagnostics`. While a first connect has failed, **Bee Flow** in the top bar opens that page for an administrator.
 
 With HaRP's tunnel the connector listens on a Unix socket and has no TCP port, so a check against a port number cannot work there.
 
@@ -207,11 +207,12 @@ With HaRP's tunnel the connector listens on a Unix socket and has no TCP port, s
 | `nc_cert_untrusted` | The connector itself does not trust the certificate of your Nextcloud. Nothing was sent to the Bee Flow server | See [Nextcloud with its own certificate](#nextcloud-certificate). |
 | `nc_unreachable` | The connector itself cannot read your Nextcloud at `NEXTCLOUD_URL`. Nothing was sent to the Bee Flow server | The error names the cause (connection refused, name not found, timeout). Check that the address answers from inside the connector container. |
 | `pairing_required` | The server does not create an organisation by itself | Generate a pairing code in Bee Flow (**Settings → Organisation → Pair a new Nextcloud**) and enter it on the setup page. |
+| `pairing_code_invalid` | The server does not accept the pairing code: mistyped, expired or already used | Generate a new code in the same place and enter it on the setup page. Nothing has to be installed again. |
 | `version_mismatch` | The server and the connector do not work together in these versions, or the address is the web app's instead of the server's | Update both; check the address. |
 | `admin_lookup_failed` | No admin user found in NC's `admin` group | `occ user:add --group admin <uid>`, then restart the connector container. |
 | `appstore_signature_invalid` | Downloaded tarball signature mismatch (rare) | Uninstall and reinstall from the App Store. |
 
-The next retry is scheduled automatically; you don't need to redeploy unless you've changed the underlying problem.
+A failure that can pass by itself (no answer, a server error) is tried again automatically, and `nextRetryAt` names the time. A refusal that asking again would not change (a pairing code that is required or not accepted, a refused address) waits for you: `nextRetryAt` is then empty. The texts name the server the connector is on, with its address for a server of your own.
 
 ## Install hangs at "Deploying…"
 
@@ -246,25 +247,34 @@ docker logs nc_app_bee_flow --tail 50
 | `[Bootstrap] nc_unreachable (capabilities): …` | The connector can't reach Nextcloud; the line names the cause | Check `NEXTCLOUD_URL`. Ask it from inside the container: `docker exec nc_app_bee_flow curl $NEXTCLOUD_URL/status.php`. |
 | `[Bootstrap] nc_cert_untrusted (capabilities): …` | The connector does not trust the certificate of Nextcloud | See [Nextcloud with its own certificate](#nextcloud-certificate). |
 | `[Bootstrap] admin_lookup_failed (admin): …` | Nextcloud has no user in the `admin` group | Create one: `occ user:add --group admin alice`. |
-| `[Bootstrap] … (saas_post): The Bee Flow server refused the connection (HTTP …): …` | The Bee Flow server answered and said no; the category before it and the text after it say why | The matching row under [Bootstrap "failed" state in heartbeat](#bootstrap-failed-state-in-heartbeat). |
+| `[Bootstrap] … (saas_post): Your Bee Flow server (<address>) refused the connection (HTTP …): …` (or `Bee Flow Cloud refused …`) | The Bee Flow server answered and said no; the category before it and the text after it say why | The matching row under [Bootstrap "failed" state in heartbeat](#bootstrap-failed-state-in-heartbeat). |
 | The setup page shows `pairing_required` on a Nextcloud that was connected before | The connector no longer holds the key of its organisation, and the server does not hand it out again without one | Ask a Bee Flow organisation admin to generate a pairing code (**Settings → Organisation → Pair a new Nextcloud**) and enter it on the setup page under **Bind to existing organisation**. |
 
 The connector keeps its key in `${APP_PERSISTENT_STORAGE}/tenant-key.json`. Leave that file in place: the key in it is what proves to the Bee Flow server that this is the same Nextcloud. To connect again:
 
 - **Clear organisation cache** on the [setup page](setup-picker.md#where-the-setup-page-is) connects again from the start, and puts the previous key back when that fails.
 - A **pairing code** joins the Nextcloud to its organisation when the key is gone.
-- A restart of the container (`docker restart nc_app_bee_flow`) makes the connector try again with what it has.
+- A restart of the container (`docker restart nc_app_bee_flow`) makes a connector without a key try again. A connector that holds a key loads it and sends no new request to the Bee Flow server.
 
-## "Setup in progress" never goes away
+## "Setup in progress": other users cannot use Bee Flow yet {#setup-in-progress}
 
-Other users see this until the org admin completes the wizard. If you are the admin and still see it:
+After a Nextcloud is linked, the Bee Flow server keeps the organisation in onboarding until an organisation administrator has finished the wizard in the web app. Until then the server answers every request of another user with `403` and the code `NC_ONBOARDING_PENDING` ("Setup in progress — your organization administrator is finalising the Bee Flow setup"), and those users cannot use Bee Flow. The gate is the server's; the connector passes the answer on.
+
+To lift it: open **Bee Flow** from the top bar as a Nextcloud administrator and finish the wizard. Other users then get the app at their next page load.
+
+If you are the administrator and do not get the wizard:
 
 1. Reload the page (Cmd/Ctrl+Shift+R).
 2. Check **Administration → AppAPI** — Bee Flow should show **Enabled**.
-3. Check the connector logs: `docker logs nc_app_bee_flow --tail 100`.
-4. Hit the health endpoint of the Bee Flow server the connector is on (the setup page shows it): `curl <your Bee Flow server>/api/health`.
+3. Read `GET setup/diagnostics` (or the [setup page](setup-picker.md#where-the-setup-page-is)): `state` should be `ok`, with your organisation.
+4. Check the connector logs: `docker logs nc_app_bee_flow --tail 100`.
+5. Hit the health endpoint of the Bee Flow server the connector is on (the setup page shows it): `curl <your Bee Flow server>/api/health`.
 
-If the SaaS health is fine but the wizard still shows "Setup in progress", the tenant-key bootstrap probably ran but the SaaS didn't finish creating the org row. Restart the connector to force re-bootstrap.
+A restart of the connector does not connect again when it holds a key. To connect again from the start, use **Clear organisation cache** on the setup page.
+
+## A reverse proxy logs "upstream sent more data than specified in Content-Length"
+
+Seen on the **manual-install / Docker-Socket-Proxy daemons** for the app's `index.html`, uncompressed. Nextcloud's AppAPI proxy adds a nonce to the script tags of an `.html` page it passes on and keeps the length the connector announced; the connector ends such a page with spaces so the page itself arrives whole. What is left over are a few hundred spaces after the announced length. Browsers, curl and nginx drop that connection and open a new one, so nothing is lost; a client that reuses the connection without that check would read the spaces before the next answer. It does not occur with compression on the web server, nor on HaRP.
 
 ## `ERR_INVALID_CHUNKED_ENCODING` on SSE responses
 
