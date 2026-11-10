@@ -20,7 +20,7 @@ const Module = require('module');
 // Pure at require time (it reads the permitted list only when asked), so the
 // real one can back the stub below.
 const realTierAccess = require('../../core/entitlements/tierAccess');
-
+process.env.STUDIO_APP_DESIGN_BRIEF = 'off'; // the scripts here are BUILD rounds: the brief's own call is in appStudioBuilder/designBrief.test.js
 function clone(v) { return v == null ? v : JSON.parse(JSON.stringify(v)); }
 
 // ── Shared mutable state the mocks read ─────────────────────────────

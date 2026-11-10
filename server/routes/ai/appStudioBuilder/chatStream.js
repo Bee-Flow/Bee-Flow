@@ -103,6 +103,7 @@ const { makeTurnUsageLogger } = require('./usageAccounting');
 const { runBuildLoop } = require('./buildLoop');
 const { handleProposedPlan, runAutoFinalizeNet, persistTurnSnapshot, classifyTurnOutcome } = require('./turnClosing');
 const { bestEffort } = require('../../../utils/bestEffort');
+const { designNotesForTurn } = require('./designBrief.mts');
 const { sessionUser } = require('../../../core/http/sessionUser');
 
 // Each builder turn is a multi-iteration LLM conversation chaining many tool
@@ -254,6 +255,12 @@ router.post('/stream', requireAuth, builderRateLimit, async (req, res) => {
         const { profile, tools, toolNameSet, history, approvedPlanForTurn, workModeState, messages } = await assembleTurnPrompt({
             send, userId, modelId, resolvedTier, draftWrap, priorSnapshot, isApproval, planApproval, planMode, workMode,
             editorContext, inboundImages, modelSupportsVision, effectiveMessage,
+            // A new app's look: the per-app seed and, once, a design brief from a model call of
+            // its own (same adapter, same usage totals; it never blocks the build).
+            designNotes: ({ profile: turnProfile, approvedPlan }) => designNotesForTurn({
+                profile: turnProfile, draftWrap, approvedPlan, isApproval, workMode, priorSnapshot,
+                ask: String(effectiveMessage), adapter, cfg, modelId, userId, usageTotals, res,
+            }),
         });
 
         // Per-turn checkpoint bookkeeping.
