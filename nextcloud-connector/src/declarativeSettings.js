@@ -239,10 +239,14 @@ async function applyStoredValuesIfChanged() {
         await require('./bootstrap').invalidateAndRebootstrap({ apiBaseUrl: target });
     } catch (err) {
         rebootstrapOk = false;
-        log.warn(`[Settings] re-bootstrap failed; keeping previous apiBaseUrl ${config.apiBaseUrl}. Detail: ${errMessage(err)}`);
+        log.warn(`[Settings] re-bootstrap failed; the connector is on ${config.apiBaseUrl}. Detail: ${errMessage(err)}`);
     }
 
-    if (rebootstrapOk) {
+    // A first choice stays chosen when connecting to it failed (see
+    // bootstrap.invalidateAndRebootstrap): it is saved like an applied one, and
+    // the bootstrap's own retry takes it from there, not this poll.
+    const firstChoiceKept = !rebootstrapOk && config.apiBaseUrl === target;
+    if (rebootstrapOk || firstChoiceKept) {
         try {
             setupConfig.save({ mode, apiBaseUrl: target, embedBaseUrl: webUrl || null });
         } catch (err) {
@@ -250,7 +254,7 @@ async function applyStoredValuesIfChanged() {
         }
         _lastApplied = fingerprint;
     }
-    // On failure: leave _lastApplied unchanged so the next poll retries.
+    // On a failed switch: leave _lastApplied unchanged so the next poll retries.
     // That way an admin who sets up ngrok later doesn't have to toggle
     // the radio off and on for the connector to reattempt.
 }

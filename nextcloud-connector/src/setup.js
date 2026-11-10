@@ -7,7 +7,7 @@
  * Routes:
  *   GET  /setup           → setup.html
  *   GET  /setup/status    → current target + reachability hints
- *   POST /setup           → persist mode + apiBaseUrl, optionally trigger re-bootstrap
+ *   POST /setup           → choose the Bee Flow server (first choice or a switch) and connect to it
  *   POST /setup/test      → ping a candidate URL, return reachability summary
  *
  * All routes are admin-gated through AppAPI (same as /init). They do NOT
@@ -36,11 +36,12 @@ const { shellBaseUrl } = require('./embedTarget');
 const ncProxy = require('./ncProxy');
 const log = require('./log'); // callback-signature health for diagnostics
 const { errMessage, errCode, asError } = require('./errors');
-const { NOT_CHOSEN_CODE, NOT_CHOSEN_MESSAGE } = require('./serverChoice');
+const { NOT_CHOSEN_CODE, NOT_CHOSEN_MESSAGE, envLock } = require('./serverChoice');
+const { probe } = require('./serverProbe');
+const l10n = require('./l10n');
+const { SETUP_TEXTS, CONNECT_ERRORS, CATEGORY_TO_CONNECT_ERROR, SELF_HOSTING_DOCS_URL } = require('./setupTexts');
 
 /**
- * @typedef {{ ok: boolean, status: number, url: string, error: string | null, version?: string | null, tier?: string | null }} ProbeResult
- *
  * What POST /diagnose answers: this connector's view next to the Bee Flow server's.
  * @typedef {object} DiagnoseResult
  * @property {{ apiBaseUrl: string | null, organizationId: string | null, ncInstanceId: string | null, hasTenantKey: boolean, tenantKeyFingerprint: string | null, liveNcInstanceId?: string }} local
@@ -63,6 +64,35 @@ function bodyOf(req) {
 
 const HTML_PATH = path.join(__dirname, 'setup.html');
 const REQUEST_TIMEOUT_MS = 5_000;
+
+/** @typedef {import('./setupTexts').ConnectErrorCode} ConnectErrorCode */
+
+/**
+ * The language of the administrator's Nextcloud account (auth.js reads it with
+ * the user lookup); English when unknown.
+ * @param {import('express').Request} req
+ */
+function languageOf(req) {
+    return l10n.normaliseLanguage(req.beeflow?.user?.language);
+}
+
+/**
+ * @param {import('express').Request} req
+ * @param {ConnectErrorCode} code
+ * @returns {{ code: ConnectErrorCode, error: string }}
+ */
+function connectError(req, code) {
+    return { code, error: l10n.t(languageOf(req), CONNECT_ERRORS[code]) };
+}
+
+/**
+ * A failed probe as the named failure the page shows.
+ * @param {import('./serverProbe').ProbeResult} result
+ * @returns {ConnectErrorCode}
+ */
+function probeFailure(result) {
+    return result.reason === 'certificate' ? 'certificate_not_trusted' : 'server_unreachable';
+}
 
 /**
  * Guard for the routes that reconfigure or re-bind the whole organisation.
@@ -165,59 +195,6 @@ const limits = {
 };
 
 /**
- * Probe a Bee Flow service /api/health endpoint.
- * @param {string} url
- * @returns {Promise<ProbeResult>}
- */
-async function probe(url) {
-    // Validate before connecting — an admin-supplied hostname must not be able
-    // to reach link-local/cloud-metadata infrastructure through the connector.
-    try {
-        await assertAllowedUrl(url, { label: 'Bee Flow server URL' });
-    } catch (err) {
-        return { ok: false, status: 0, url: String(url), error: errMessage(err) };
-    }
-    const target = `${url.replace(/\/+$/, '')}/api/health`;
-    const ac = new AbortController();
-    const t = setTimeout(() => ac.abort(), REQUEST_TIMEOUT_MS);
-    try {
-        // Redirects are NOT followed. A validated hostname that 302s to
-        // 169.254.169.254 is the standard way round a host allow-list, and the
-        // admin is better served by being told to enter the final URL anyway.
-        const res = await fetch(target, { signal: ac.signal, redirect: 'manual' });
-        clearTimeout(t);
-        if (res.status >= 300 && res.status < 400) {
-            return {
-                ok: false,
-                status: res.status,
-                url: target,
-                error: `the server redirected (HTTP ${res.status}) — enter the final URL directly`,
-            };
-        }
-        const text = await res.text();
-        /** @type {{ version?: string, tier?: string } | null} */
-        let body;
-        try { body = JSON.parse(text); } catch (_) { body = null; }
-        return {
-            ok: res.ok,
-            status: res.status,
-            url: target,
-            version: body?.version || null,
-            tier: body?.tier || null,
-            error: res.ok ? null : `HTTP ${res.status}`,
-        };
-    } catch (err) {
-        clearTimeout(t);
-        return {
-            ok: false,
-            status: 0,
-            url: target,
-            error: err instanceof Error && err.name === 'AbortError' ? `timeout after ${REQUEST_TIMEOUT_MS}ms` : errMessage(err),
-        };
-    }
-}
-
-/**
  * The instance id Nextcloud publishes at `baseUrl`, null when it publishes none.
  * @param {string} baseUrl
  * @returns {Promise<string | null>}
@@ -290,12 +267,25 @@ router.get('/', (req, res) => {
 
 router.get('/status', firstRunStatusForNonAdmin, requireNcAdmin, (req, res) => {
     const stored = setupConfig.get();
+    const lang = languageOf(req);
+    /** @param {Record<string, string>} texts */
+    const localised = (texts) => Object.fromEntries(Object.entries(texts).map(([key, text]) => [key, l10n.t(lang, text)]));
     res.json({
         canConfigure: true,
         envOverridden: config.apiBaseUrlLocked,
         envApiBaseUrl: process.env.BEEFLOW_API_BASE_URL || null,
         // null: no Bee Flow server is chosen yet.
         active: config.apiBaseUrl,
+        // Is a Bee Flow server chosen, and where the choice came from
+        // (serverChoice.js: env-lock, binding, legacy-binding, picker,
+        // legacy-env-key, none).
+        configured: !!config.apiBaseUrl,
+        source: config.apiBaseUrl ? config.serverSource : 'none',
+        // The install-time value is the literal Cloud address, which by itself
+        // is not a choice. The page says so while no server is chosen.
+        legacyCloudEnv: envLock(process.env.BEEFLOW_API_BASE_URL).legacyCloud,
+        selfHostingDocsUrl: SELF_HOSTING_DOCS_URL,
+        texts: { ...localised(SETUP_TEXTS), errors: localised(CONNECT_ERRORS) },
         chosen: stored,
         cloudUrl: setupConfig.CLOUD_URL,
         defaults: {
@@ -357,11 +347,17 @@ router.get('/diagnostics', requireNcAdmin, (req, res) => {
             : null,
     };
 
+    const named = lastError && state === 'failed' ? CATEGORY_TO_CONNECT_ERROR[lastError.category] : undefined;
+
     res.json({
         state,
         hasTenantKey,
         apiBaseUrl: config.apiBaseUrl,
         organizationId: config.organizationId || null,
+        organizationName: config.organizationName || null,
+        // The failure as the setup page names it, in the administrator's
+        // language; null when it has no name (lastError carries the detail).
+        connectError: named ? connectError(req, named) : null,
         ncInstanceId: config.ncInstanceId || null,
         ncTls,
         // Callback-signature health. Repeated rejections mean the Bee Flow
@@ -471,18 +467,47 @@ router.post('/public-nc-url', requireNcAdmin, limits.rebind, express.json(), asy
     res.json({ saved: { publicNcUrl: saved.publicNcUrl || null } });
 });
 
+// Pairing codes look like XXXX-XXXX.
+const PAIRING_CODE_RE = /^[A-Z0-9]{4}-[A-Z0-9]{4}$/;
+
+// Choose the Bee Flow server: the first choice of an install that has none, or
+// a switch to another one.
+//
+// A first choice is the moment this Nextcloud introduces itself to a Bee Flow
+// server, so the address is probed first (a bare GET of /api/health) and
+// nothing is saved or sent when no server answers there. Once the probe
+// passes the choice is saved and stays, also when connecting then fails: the
+// install is on that server without a key, the failure is shown with its
+// remedy (a pairing code, a public Nextcloud URL), and the administrator
+// finishes from there.
+//
+// A switch away from a working server keeps its safety net: when the new
+// server does not bind, key, server and saved choice go back to the old one.
 router.post('/', requireNcAdmin, limits.rebind, express.json(), async (req, res) => {
-    // Note: BEEFLOW_API_BASE_URL used to hard-lock this endpoint to whatever
-    // value AppAPI env passed in. That made the in-NC settings panel
-    // (declarativeSettings.js) read-only in the local sandbox, which always
-    // sets the env var. The env now seeds the initial value via config.js
-    // but admin overrides through this endpoint or the NC settings panel
-    // win at runtime — last-writer wins, persisted via setupConfig.
+    // An install-time value fixes the server: it is not changed from here.
+    if (config.apiBaseUrlLocked) {
+        return res.status(409).json({
+            ok: false, code: 'env_locked',
+            error: 'The Bee Flow server is fixed at install time (BEEFLOW_API_BASE_URL) and cannot be changed here.',
+        });
+    }
     let { mode, apiBaseUrl, embedBaseUrl } = bodyOf(req);
     if (mode === 'cloud') { apiBaseUrl = setupConfig.CLOUD_URL; embedBaseUrl = null; }
     // The web app URL of a self-hosted server (optional): where the embedded
     // app's shell is loaded from while that server is the live one (#401).
     const webUrl = typeof embedBaseUrl === 'string' ? embedBaseUrl.trim() : '';
+
+    // Optional: bind to an existing organisation in the same step.
+    const pairingCode = String(bodyOf(req).pairingCode || '').toUpperCase().trim();
+    if (pairingCode && !PAIRING_CODE_RE.test(pairingCode)) {
+        return res.status(400).json({
+            ok: false, code: 'invalid_pairing_code',
+            error: 'Pairing codes look like XXXX-XXXX (8 letters or digits, one dash).',
+        });
+    }
+    if (!mode || !setupConfig.VALID_MODES.includes(mode)) {
+        return res.status(400).json({ ok: false, code: 'invalid_mode', error: 'Choose Bee Flow Cloud or a self-hosted server.' });
+    }
 
     // DNS-level check before we persist and start signing requests to it.
     // setupConfig.save() re-runs the synchronous half of this; here we can also
@@ -496,6 +521,17 @@ router.post('/', requireNcAdmin, limits.rebind, express.json(), async (req, res)
         }
     }
 
+    const firstChoice = !config.apiBaseUrl;
+    /** @type {import('./serverProbe').ProbeResult | null} */
+    let probeRes = null;
+    if (firstChoice) {
+        probeRes = await probe(String(apiBaseUrl).trim().replace(/\/+$/, ''));
+        if (!probeRes.ok) {
+            log.info(`[Setup] first choice not saved: no Bee Flow server answered at ${probeRes.url} (${probeRes.error})`);
+            return res.status(502).json({ ok: false, ...connectError(req, probeFailure(probeRes)), detail: probeRes.error, probe: probeRes });
+        }
+    }
+
     const previousChoice = setupConfig.get();
     let saved;
     try {
@@ -503,21 +539,37 @@ router.post('/', requireNcAdmin, limits.rebind, express.json(), async (req, res)
     } catch (err) {
         return res.status(400).json({ error: errMessage(err) });
     }
+    const startedAt = new Date().toISOString();
 
     // Switch the live process (the API proxy reads config.apiBaseUrl per
-    // request) and re-bootstrap against the new server in the background so
-    // the admin can keep clicking: the old key belongs to the old server. A
-    // failed switch puts everything back, the saved choice included, so the
-    // next restart does not move to a server the connector has no key for.
-    bootstrap.invalidateAndRebootstrap({ apiBaseUrl: saved.apiBaseUrl }).catch(err => {
+    // request) and bootstrap against the chosen server in the background, so
+    // the admin can keep clicking; the page follows the outcome through
+    // GET /setup/diagnostics. A failed switch puts everything back, the saved
+    // choice included, so the next restart does not move to a server the
+    // connector has no key for. A first choice has nothing to go back to and
+    // stays (bootstrap.invalidateAndRebootstrap), and so does its saved choice.
+    bootstrap.invalidateAndRebootstrap({ apiBaseUrl: saved.apiBaseUrl, ...(pairingCode ? { pairingCode } : {}) }).catch(err => {
+        if (config.apiBaseUrl === saved.apiBaseUrl) {
+            log.warn(`[Setup] ${saved.apiBaseUrl} is chosen; connecting to it failed: ${errMessage(err)}`);
+            return;
+        }
         log.warn(`[Setup] switch to ${saved.apiBaseUrl} failed, staying on ${config.apiBaseUrl}: ${errMessage(err)}`);
         try { setupConfig.restoreApiChoice(previousChoice); } catch (e) {
             log.warn(`[Setup] could not restore the saved server choice: ${errMessage(e)}`);
         }
     });
 
-    const probeRes = await probe(saved.apiBaseUrl).catch(() => null);
-    res.json({ saved, probe: probeRes, restartRequired: false });
+    if (!probeRes) probeRes = await probe(saved.apiBaseUrl).catch(() => null);
+    res.json({
+        saved,
+        probe: probeRes,
+        // What the page shows right away when the server of a switch does not answer.
+        probeError: probeRes && !probeRes.ok ? connectError(req, probeFailure(probeRes)) : null,
+        firstChoice,
+        // Outcomes recorded from this moment on belong to this choice.
+        startedAt,
+        restartRequired: false,
+    });
 });
 
 // First 16 hex chars of sha256(tenant key): enough for an admin to tell two
@@ -627,11 +679,8 @@ router.post('/clear-cache', requireNcAdmin, requireServerChosen, limits.rebind, 
 });
 
 // Bind this Nextcloud install to an existing Bee Flow organisation by
-// redeeming a one-shot pairing code minted in the SaaS admin UI. Without
-// this UI path, admins had to SSH into the NC host and set
-// BEEFLOW_PAIRING_CODE via `occ app_api:app:setenv` + container restart —
-// a flow no real Nextcloud admin would tolerate.
-const PAIRING_CODE_RE = /^[A-Z0-9]{4}-[A-Z0-9]{4}$/;
+// redeeming a one-shot pairing code minted in the Bee Flow admin UI, from the
+// setup page: no install-time value and no restart needed.
 router.post('/apply-pairing-code', requireNcAdmin, requireServerChosen, limits.verify, express.json(), async (req, res) => {
     const uid = req.beeflow?.user?.uid || 'unknown';
     const raw = String(bodyOf(req).pairingCode || '').toUpperCase().trim();

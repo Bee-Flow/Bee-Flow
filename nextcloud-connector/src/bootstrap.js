@@ -414,9 +414,11 @@ const REMEDIATION = {
     saas_auth_rejected:
         'The Bee Flow service rejected our credentials. Check that this NC instance has not been disabled in your Bee Flow organisation.',
     tenant_already_provisioned:
-        'This Nextcloud was bootstrapped previously and the tenant-key cache was lost. Recover the key from the Bee Flow admin UI, then set BEEFLOW_TENANT_KEY via `occ app_api:app:setenv`.',
+        'This Nextcloud was bootstrapped previously and the tenant-key cache was lost. Recover the key from the Bee Flow admin UI, then register the app again with that key as the install-time value BEEFLOW_TENANT_KEY.',
     pairing_required:
-        'This Bee Flow server does not auto-create organisations. Ask your Bee Flow organisation admin to generate a pairing code (Settings → Organisation → Pair a new Nextcloud), set it as BEEFLOW_PAIRING_CODE via `occ app_api:app:setenv bee_flow BEEFLOW_PAIRING_CODE <CODE>`, then redeploy the connector.',
+        'This Bee Flow server does not create an organisation by itself. Ask your Bee Flow organisation admin to generate a pairing code (Settings → Organisation → Pair a new Nextcloud) and enter it on the Bee Flow setup page.',
+    version_mismatch:
+        'The Bee Flow server at this address has no endpoint for this connector. Update the Bee Flow server and the connector to their latest release, and check that the address is the one of the server, not of the web app.',
     appstore_signature_invalid:
         'The downloaded connector tarball failed signature verification. Uninstall and reinstall from the App Store.',
     unknown:
@@ -502,6 +504,9 @@ function categoriseError(err, phase) {
     // phase-based buckets below — otherwise phase==='admin' would mislabel a
     // missing-email failure as a generic admin_lookup_failed.
     if (code === 'admin_email_missing') return 'admin_email_missing';
+    // A server that answers, but has no bootstrap endpoint: it predates this
+    // connector (or is not the server at all).
+    if (phase === 'saas_post' && err instanceof Error && err.status === 404) return 'version_mismatch';
     const msg = errText(err);
     if (phase === 'capabilities' || /NC capabilities/i.test(msg)) return 'nc_not_publicly_reachable';
     if (phase === 'admin' || /admin/i.test(msg) && /No NC users|admin from user list/i.test(msg)) return 'admin_lookup_failed';
@@ -915,6 +920,16 @@ async function _provisionFlow() {
         return;
     }
     if (!config.isAutoTenantKey) {
+        // An install-time key and a server that became known later (an
+        // administrator chose it, or a re-bootstrap dropped the key from
+        // memory): the key is taken into use as it is. No bootstrap request.
+        if (!config.tenantKey && config.envTenantKey) {
+            config.tenantKey = config.envTenantKey;
+            await clearErrorFile();
+            log.info('[Bootstrap] BEEFLOW_TENANT_KEY is in use for the chosen server');
+            tenantKeyReady();
+            return;
+        }
         log.info('[Bootstrap] BEEFLOW_TENANT_KEY explicitly set, skipping auto-bootstrap');
         return;
     }
@@ -1152,7 +1167,11 @@ async function _provisionFlow() {
  * to the server that issued the pending binding.
  *
  * On failure everything rolls back (key, server URL, cache, pending state)
- * and the error is thrown.
+ * and the error is thrown. One exception: a first choice (there was no server
+ * before) stays chosen. The connector is then on that server without a key,
+ * with the failure recorded, exactly like an install whose first bootstrap
+ * failed: heartbeat, diagnostics and the retry all work from there, and the
+ * administrator can add what was missing (a pairing code, a public URL).
  * @param {{ pairingCode?: string, apiBaseUrl?: string }} [opts]
  * @returns {Promise<{ status: 'bound' | 'verification_pending' }>}
  */
@@ -1205,6 +1224,7 @@ async function invalidateAndRebootstrap({ pairingCode, apiBaseUrl } = {}) {
             // Read through the getter: TS narrowed pendingState to null above.
             if (getPendingState()?.status === 'awaiting_email_verification') {
                 log.info(`[Bootstrap] ${config.apiBaseUrl} wants the emailed code before it binds — switch pending`);
+                if (apiBaseUrl) config.serverSource = 'picker';
                 if (!prev.apiBaseUrl) serverChosen();
                 return { status: 'verification_pending' };
             }
@@ -1212,11 +1232,18 @@ async function invalidateAndRebootstrap({ pairingCode, apiBaseUrl } = {}) {
             // got back here without a key, the new target is unreachable.
             throw new Error('bootstrap completed without producing a tenant key');
         }
+        if (apiBaseUrl) config.serverSource = 'picker';
         if (!prev.apiBaseUrl) serverChosen();
         return { status: 'bound' };
     } catch (err) {
-        log.warn(`[Bootstrap] re-bootstrap failed (${errMessage(err)}); rolling back to previous tenant key`);
-        config.apiBaseUrl = prev.apiBaseUrl;
+        if (prev.apiBaseUrl) {
+            log.warn(`[Bootstrap] re-bootstrap failed (${errMessage(err)}); rolling back to previous tenant key`);
+            config.apiBaseUrl = prev.apiBaseUrl;
+        } else {
+            log.warn(`[Bootstrap] ${config.apiBaseUrl} is chosen, but connecting to it failed (${errMessage(err)})`);
+            config.serverSource = 'picker';
+            serverChosen();
+        }
         config.tenantKey = prev.tenantKey;
         config.organizationId = prev.organizationId;
         config.organizationName = prev.organizationName;
@@ -1262,7 +1289,7 @@ async function rotateTenantKey() {
         throw e;
     }
     if (!config.isAutoTenantKey) {
-        const e = new Error('The tenant key is set with BEEFLOW_TENANT_KEY. Rotate it in Bee Flow (Admin → Nextcloud) and set the new key with occ app_api:app:setenv.');
+        const e = new Error('The tenant key is set with BEEFLOW_TENANT_KEY at install time. Rotate it in Bee Flow (Admin → Nextcloud) and register the app again with the new key.');
         e.code = 'env_tenant_key';
         throw e;
     }
