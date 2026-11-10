@@ -773,11 +773,6 @@
       "count": 1
     }
   },
-  "src/components/admin/Studio/AppStudio/runtime/componentRegistry.ts": {
-    "max-lines": {
-      "count": 1
-    }
-  },
   "src/components/admin/Studio/AppStudio/runtime/components/AppAiChat.tsx": {
     "max-lines-per-function": {
       "count": 1
@@ -7288,11 +7283,6 @@
       "count": 1
     },
     "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "src/demo/fixtures/appStudioCatalog.ts": {
-    "max-lines": {
       "count": 1
     }
   },

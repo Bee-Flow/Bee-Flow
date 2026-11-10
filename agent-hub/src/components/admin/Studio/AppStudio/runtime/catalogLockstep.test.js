@@ -19,10 +19,10 @@
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { describe, it, expect } from 'vitest';
-import { buildSnapshot, renderTypeEventLists } from '../../../../../../../scripts/gen-app-catalog.mjs';
 import { MAX_CALL_DEPTH } from './actionRunner/stepWalk';
 import snapshot from './catalogSnapshot.generated.json';
 import { APP_COMPONENT_TYPES, PALETTE_CATEGORIES } from './componentRegistry';
+import { buildSnapshot, renderTypeEventLists } from '../../../../../../../scripts/gen-app-catalog.mjs';
 import {
     COLOR_ROLES as FE_COLOR_ROLES,
     STYLE_KNOBS as FE_STYLE_KNOBS,
