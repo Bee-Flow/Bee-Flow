@@ -311,9 +311,18 @@ test('resend: within budget mails the new code and answers as before', async () 
     assert.equal(callsOf('sendNcVerificationCodeEmail')[0][1].to, 'admin@acme.test');
 });
 
+// The code goes to an administrator of the organisation the row is for.
+const ORG_V_ADMIN = { id: 'u-setup', email: 'setup@acme.test', organizationId: 'org-v', orgRole: 'org_admin', status: 'active' };
+const pendingVerification = () => ({
+    orgId: 'org-v', hasVerification: true, status: 'pending',
+    verificationEmail: 'admin@acme.test', ncAdminEmail: 'admin@acme.test',
+    expiresAt: new Date(Date.now() + 60_000).toISOString(),
+});
+
 test('retarget: a spent per-pendingId budget answers 429 and sends no mail', async () => {
     resetFx();
-    fx.pendingRow = { orgId: 'org-v', hasVerification: true, status: 'pending', expiresAt: new Date(Date.now() + 60_000).toISOString() };
+    fx.pendingRow = pendingVerification();
+    fx.userByEmail = ORG_V_ADMIN;
     fx.sendResult = { status: 'too_many' };
     const res = await dispatch({ url: '/connector/bootstrap/pending/p1/retarget', body: { email: 'setup@acme.test' } });
     assert.equal(res.statusCode, 429);
@@ -324,12 +333,59 @@ test('retarget: a spent per-pendingId budget answers 429 and sends no mail', asy
 
 test('retarget: within budget mails the code to the new admin', async () => {
     resetFx();
-    fx.pendingRow = { orgId: 'org-v', hasVerification: true, status: 'pending', expiresAt: new Date(Date.now() + 60_000).toISOString() };
+    fx.pendingRow = pendingVerification();
+    fx.userByEmail = ORG_V_ADMIN;
     fx.sendResult = { status: 'ok', row: SENT_ROW };
     const res = await dispatch({ url: '/connector/bootstrap/pending/p1/retarget', body: { email: 'setup@acme.test' } });
     assert.equal(res.statusCode, 200);
     assert.equal(res.body.expiresAt, SENT_ROW.expiresAt);
     assert.equal(callsOf('sendNcVerificationCodeEmail')[0][1].to, 'setup@acme.test');
+});
+
+// The emailed code goes only to an administrator of the organisation it links.
+const NOT_AN_ADMIN_OF_ORG_V = {
+    'no account (an address at the organisation\'s e-mail domain)': null,
+    'a member who is not an administrator': { ...ORG_V_ADMIN, orgRole: 'member' },
+    'an administrator of another organisation': { ...ORG_V_ADMIN, organizationId: 'org-other' },
+    'an account without an organisation': { ...ORG_V_ADMIN, organizationId: null },
+    'an administrator whose account is suspended': { ...ORG_V_ADMIN, status: 'suspended' },
+};
+
+for (const [who, account] of Object.entries(NOT_AN_ADMIN_OF_ORG_V)) {
+    test(`retarget to ${who}: 403, no code issued, no mail`, async () => {
+        resetFx();
+        fx.pendingRow = pendingVerification();
+        fx.userByEmail = account;
+        fx.sendResult = { status: 'ok', row: SENT_ROW };
+        const res = await dispatch({ url: '/connector/bootstrap/pending/p1/retarget', body: { email: 'setup@acme.test' } });
+        assert.equal(res.statusCode, 403);
+        assert.equal(res.body.code, 'email_not_in_org');
+        assert.match(res.body.error, /pairing code/);
+        assert.equal(callsOf('retargetNcVerification').length, 0);
+        assert.equal(callsOf('sendNcVerificationCodeEmail').length, 0);
+    });
+
+    test(`resend for a row addressed to ${who}: 403, no code issued, no mail`, async () => {
+        resetFx();
+        fx.pendingRow = pendingVerification();
+        fx.userByEmail = account;
+        fx.sendResult = { status: 'ok', row: SENT_ROW };
+        const res = await dispatch({ url: '/connector/bootstrap/pending/p1/resend' });
+        assert.equal(res.statusCode, 403);
+        assert.equal(res.body.code, 'email_not_in_org');
+        assert.equal(callsOf('resetNcVerificationCode').length, 0);
+        assert.equal(callsOf('sendNcVerificationCodeEmail').length, 0);
+    });
+}
+
+test('resend for a row addressed to an administrator of the organisation: the code is mailed', async () => {
+    resetFx();
+    fx.pendingRow = pendingVerification();
+    fx.userByEmail = { ...ORG_V_ADMIN, email: 'admin@acme.test' };
+    fx.sendResult = { status: 'ok', row: SENT_ROW };
+    const res = await dispatch({ url: '/connector/bootstrap/pending/p1/resend' });
+    assert.equal(res.statusCode, 200);
+    assert.equal(callsOf('sendNcVerificationCodeEmail')[0][1].to, 'admin@acme.test');
 });
 
 // ═══ POST /connector/bootstrap: returning bind and the callback URL ═══════

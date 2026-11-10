@@ -7,8 +7,9 @@
  * only to the organisation that code was issued for. So:
  *
  *   - bindOrgToNcInstance answers with the organisation it was asked to bind,
- *     as stored, or throws: never with another organisation, whatever the
- *     instance id is linked to;
+ *     as stored, or throws;
+ *   - an organisation is linked to one Nextcloud instance: the bind sets the
+ *     instance id only on an organisation that has none or has this one;
  *   - a bootstrap that presents a code for an instance id that belongs to
  *     another organisation is refused with 409 `nc_instance_bound_elsewhere`:
  *     the code stays unused and the answer carries no tenant key.
@@ -28,6 +29,7 @@ const { NC_INTEGRATION_IDS } = require('../../utils/ncIntegrationCatalog');
 /** @typedef {{ ncInstanceId: string, ncBaseUrl: string, ncAdminUid: string, connectorCallbackUrl?: string|null }} BindParams */
 
 const NC_INSTANCE_BOUND_ELSEWHERE = 'nc_instance_bound_elsewhere';
+const ORG_LINKED_TO_OTHER_INSTANCE = 'org_linked_to_other_instance';
 
 // Recorded against the organisation the code was issued for; resolved once
 // that organisation is linked.
@@ -38,6 +40,15 @@ class NcInstanceBoundElsewhereError extends Error {
         super('This Nextcloud instance is already linked to another Bee Flow organisation');
         this.name = 'NcInstanceBoundElsewhereError';
         this.code = NC_INSTANCE_BOUND_ELSEWHERE;
+        this.statusCode = 409;
+    }
+}
+
+class OrgLinkedToOtherInstanceError extends Error {
+    constructor() {
+        super('This organisation is already linked to a different Nextcloud instance');
+        this.name = 'OrgLinkedToOtherInstanceError';
+        this.code = ORG_LINKED_TO_OTHER_INSTANCE;
         this.statusCode = 409;
     }
 }
@@ -58,6 +69,7 @@ async function ncInstanceBoundElsewhere(orgId, ncInstanceId) {
  * @param {BindParams} params
  * @returns {Promise<OrgRow>} `org` as stored after the bind
  * @throws {NcInstanceBoundElsewhereError} the instance id belongs to another organisation
+ * @throws {OrgLinkedToOtherInstanceError} the organisation has another instance id
  */
 async function bindOrgToNcInstance(org, params) {
     const { ncInstanceId, ncBaseUrl, ncAdminUid, connectorCallbackUrl } = params;
@@ -69,18 +81,21 @@ async function bindOrgToNcInstance(org, params) {
         try { existingIntegrations = JSON.parse(org.enabledIntegrations) || []; } catch (_) { existingIntegrations = []; }
     }
     const merged = Array.from(new Set([...existingIntegrations, ...NC_INTEGRATION_IDS]));
+    // The instance id first, in one statement; the rest of the link follows it.
+    if (!(await userStore.claimNcInstanceForOrganization(org.id, ncInstanceId))) {
+        if (await ncInstanceBoundElsewhere(org.id, ncInstanceId)) throw new NcInstanceBoundElsewhereError();
+        throw new OrgLinkedToOtherInstanceError();
+    }
     await userStore.updateOrganization(org.id, {
         authMethod: 'nextcloud_connector',
         autoApproveSSO: true,
         connectorCallbackUrl: connectorCallbackUrl || null,
-        ncInstanceId,
         ncBaseUrl,
         ncAdminUid,
         ncProvisionedAt: new Date().toISOString(),
         enabledIntegrations: merged,
     });
-    // Read back what the instance id is linked to now: the store answers false
-    // on a refused write (an instance id is unique across organisations).
+    // Read back the organisation this instance id is linked to.
     const bound = await userStore.getOrganizationByNcInstanceId(ncInstanceId);
     if (!bound) throw new Error(`the Nextcloud binding of organization ${org.id} was not stored`);
     if (bound.id !== org.id) throw new NcInstanceBoundElsewhereError();
@@ -108,8 +123,31 @@ function refuseInstanceBoundElsewhere({ res, ncInstanceId }, org, via) {
 }
 
 /**
+ * Answer 409: the organisation the presented code was issued for is linked to
+ * another Nextcloud instance.
+ * @param {import('express').Response} res
+ * @param {'pairing_code' | 'email_verification'} via
+ */
+function refuseOrgLinkedToOtherInstance(res, via) {
+    return res.status(409).json(via === 'pairing_code'
+        ? { error: 'Target organisation is already bound to a different Nextcloud instance', code: 'pairing_code_org_already_bound' }
+        : alreadyLinkedAnswer());
+}
+
+// The emailed code links a Nextcloud to an organisation that has none. The
+// `error` text carries the next step: it is what the setup screen shows.
+function alreadyLinkedAnswer() {
+    return {
+        error: 'This organisation is already linked to a Nextcloud. To connect again, ask a Bee Flow organisation admin for a pairing code (Settings → Organisation → Pair a new Nextcloud) and enter it on the Bee Flow setup page.',
+        code: 'already_bound',
+        remediation: 'To connect again, ask a Bee Flow organisation admin to generate a pairing code (Settings → Organisation → Pair a new Nextcloud) and enter it on the Bee Flow setup page.',
+    };
+}
+
+/**
  * Bind `org` to the instance; when the instance id belongs to another
- * organisation, answer the refusal above and return null.
+ * organisation, or the organisation has another instance id, answer the
+ * refusal above and return null.
  * @param {{ res: import('express').Response, ncInstanceId: string }} ctx
  * @param {OrgRow} org
  * @param {Omit<BindParams, 'ncInstanceId'>} params
@@ -119,6 +157,10 @@ async function bindOrRefuse(ctx, org, params, via) {
     try {
         return await bindOrgToNcInstance(org, { ...params, ncInstanceId: ctx.ncInstanceId });
     } catch (e) {
+        if (e instanceof OrgLinkedToOtherInstanceError) {
+            refuseOrgLinkedToOtherInstance(ctx.res, via);
+            return null;
+        }
         if (!(e instanceof NcInstanceBoundElsewhereError)) throw e;
         refuseInstanceBoundElsewhere(ctx, org, via);
         return null;
@@ -129,6 +171,8 @@ module.exports = {
     NC_INSTANCE_BOUND_ELSEWHERE,
     INSTANCE_BOUND_ELSEWHERE_PROBLEM,
     NcInstanceBoundElsewhereError,
+    OrgLinkedToOtherInstanceError,
+    alreadyLinkedAnswer,
     ncInstanceBoundElsewhere,
     bindOrgToNcInstance,
     refuseInstanceBoundElsewhere,

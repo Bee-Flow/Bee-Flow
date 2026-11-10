@@ -25,6 +25,7 @@ const {
     slugify,
     applyNcDefaultPlanIfConfigured,
     getOrMintTenantKey,
+    adminEmailBelongsElsewhere,
     ensureOrgAdminUser,
     ensureAdditionalOrgAdmins,
 } = require('./provisioning');
@@ -331,6 +332,20 @@ async function createFreshOrg(ctx) {
     // theming name "Nextcloud", which produces indistinguishable orgs in the
     // admin list — qualify it with the instance host, e.g. "Nextcloud (nc.e380.net)".
     const orgName = buildAutoOrgName(nc.themingName, ncBaseUrl);
+    // A new organisation starts with its Nextcloud admin as its administrator.
+    // An address that belongs to an account elsewhere cannot be that: answer
+    // before anything is created.
+    if (await adminEmailBelongsElsewhere(orgId, ncAdminEmail)) {
+        orgHealth.problem('bootstrap.admin_email_conflict', {
+            ncInstanceId, source: 'connectorBootstrap', req,
+            meta: { maskedEmail: maskEmail(ncAdminEmail), reason: 'fresh_org_branch' },
+        });
+        return res.status(409).json({
+            error: 'NC admin email belongs to an existing Bee Flow account',
+            code: 'admin_email_conflict',
+            remediation: 'The Nextcloud admin email is already used by an existing Bee Flow account. To connect this Nextcloud to that account\'s organisation, ask its organisation admin for a pairing code (Settings → Organisation → Pair a new Nextcloud) and enter it on the Bee Flow setup page. Otherwise use a different admin user on Nextcloud, or contact support.',
+        });
+    }
     const created = await userStore.createOrganization({
         id: orgId,
         name: orgName,

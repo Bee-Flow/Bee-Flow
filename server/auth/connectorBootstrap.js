@@ -12,13 +12,14 @@
  *   - **Fresh org** (no SaaS user matches the NC admin email): create a new
  *     Bee Flow org keyed off this NC instance, mint a tenantKey, return it.
  *     One-click. There is no victim — the org is brand new.
- *   - **Adoption** (NC admin email matches an existing un-bound org):
- *     **Do NOT bind.** A `pending_nc_bindings` row is created and the
- *     caller receives 202 with a poll URL. The org-admin must explicitly
- *     approve the binding from inside the authenticated SaaS UI before the
- *     connector ever sees the tenantKey. This blocks the unauthenticated
- *     org-takeover where an attacker hosting a fake NC could otherwise
- *     adopt a victim's org by claiming the victim's email.
+ *   - **Adoption** (NC admin email matches an existing un-bound org): the
+ *     bootstrap does not bind. A `pending_nc_bindings` row is created and the
+ *     caller receives 202. A one-time code is then sent, on request, to an
+ *     administrator of that organisation and to nobody else; entering it
+ *     links the Nextcloud to that organisation and answers with its tenant
+ *     key. A code is accepted once, on a pending row, and only after it was
+ *     sent. Anyone else connects with a pairing code from an organisation
+ *     administrator.
  *
  * The connector caches the returned key in its persistent storage volume so
  * subsequent restarts don't re-bootstrap.
@@ -44,7 +45,6 @@ const userStore = require('../stores/userStore');
 const configStore = require('../stores/configStore');
 const { orgHealth } = require('./connector/serviceDeps');
 const { sendNcVerificationCodeEmail } = require('../utils/emailService');
-const { isFreeEmailDomain, getEffectiveFreeEmailDomains } = require('../utils/freeEmailDomains');
 // The pieces this router is built from (split out of this file; `helpers` at
 // the bottom still exports every name it exported before).
 const {
@@ -59,10 +59,14 @@ const {
     ensureAdditionalOrgAdmins,
     _selectSecondaryAdmins,
 } = require('./connector/provisioning');
-const { INSTANCE_BOUND_ELSEWHERE_PROBLEM, bindOrgToNcInstance, bindOrRefuse } = require('./connector/instanceBinding');
+const {
+    INSTANCE_BOUND_ELSEWHERE_PROBLEM, alreadyLinkedAnswer, ncInstanceBoundElsewhere, refuseInstanceBoundElsewhere,
+    bindOrgToNcInstance, bindOrRefuse,
+} = require('./connector/instanceBinding');
 const { stableInstanceIdFallback, verifyNcInstance } = require('./connector/ncVerify');
 const { readBootstrapHeaders, callbackUrlRefusal } = require('./connector/bootstrapHeaders');
 const { PENDING_TTL_SECONDS, generateVerificationCode, maskEmail } = require('./connector/verificationCode');
+const { isAddressOfOrgAdmin, notOrgAdminAnswer } = require('./connector/pendingBinding.mts');
 const { NC_SUBJECT_PROBLEM_CODES, runBootstrapBranches } = require('./connector/bootstrapBranches');
 const { resolveConnectorBearer, registerRotateKeyRoute } = require('./connector/rotateKey.mts');
 
@@ -174,20 +178,42 @@ router.post('/connector/bootstrap', bootstrapLimiter, async (req, res) => {
     });
 });
 
+// How long after an administrator's approval the poll below answers with the
+// tenant key. The connector polls every few seconds.
+const APPROVAL_PICKUP_WINDOW_MS = 10 * 60_000;
+
+/**
+ * The poll's answer for an approved approval row: the tenant key within the
+ * pickup window and while the organisation is linked to the row's Nextcloud,
+ * 410 otherwise.
+ * @param {NonNullable<Awaited<ReturnType<typeof userStore.getPendingNcBinding>>>} row
+ * @param {import('express').Response} res
+ */
+async function answerApproval(row, res) {
+    const org = await userStore.getOrganization(row.orgId);
+    const approvedAt = row.approvedAt ? new Date(row.approvedAt).getTime() : 0;
+    const withinPickup = Date.now() - approvedAt <= APPROVAL_PICKUP_WINDOW_MS;
+    if (!org || !withinPickup || !row.ncInstanceId || org.nc_instance_id !== row.ncInstanceId) {
+        return res.status(410).json({ status: 'expired' });
+    }
+    const tenantKey = await getOrMintTenantKey(org.id);
+    return res.json({ tenantKey, organizationId: org.id, organizationName: org.name, ncVersion: row.ncVersion, isAdopted: true });
+}
+
 // Connector polls this endpoint while a pending binding awaits admin
-// approval. Possession of the random `id` lets the caller read status only —
-// no privileges are granted by the token alone. The tenantKey is only
-// returned once an authenticated org-admin has approved the binding.
+// approval. The row id reads the status. The tenant key is answered only for
+// an approval row (not a pairing-code or verification row: those answer their
+// own request), shortly after an authenticated org-admin approved it, and
+// while the organisation is linked to the Nextcloud that row is for.
 router.get('/connector/bootstrap/pending/:id', pendingPollLimiter, async (req, res) => {
     const id = String(req.params.id || '').trim();
     if (!id) return res.status(400).json({ error: 'Missing id' });
 
     const row = await userStore.getPendingNcBinding(id);
     if (!row) return res.status(404).json({ status: 'not_found' });
-    // Email-verification rows are confirmed via the /verify endpoint, not by
-    // polling. Don't expose them here — that would hand the tenant key to anyone
-    // holding the id once the code is accepted.
-    if (row.hasVerification) return res.status(404).json({ status: 'not_found' });
+    // Verification rows answer on /verify and pairing-code rows on the
+    // bootstrap that presents the code; neither is polled.
+    if (row.hasVerification || row.pairingCode) return res.status(404).json({ status: 'not_found' });
 
     const expired = row.expiresAt && new Date(row.expiresAt).getTime() <= Date.now();
     if (row.status === 'denied') return res.status(410).json({ status: 'denied' });
@@ -198,18 +224,7 @@ router.get('/connector/bootstrap/pending/:id', pendingPollLimiter, async (req, r
         }
         return res.status(410).json({ status: 'expired' });
     }
-    if (row.status === 'approved') {
-        const org = await userStore.getOrganization(row.orgId);
-        if (!org) return res.status(410).json({ status: 'expired' });
-        const tenantKey = await getOrMintTenantKey(org.id);
-        return res.json({
-            tenantKey,
-            organizationId: org.id,
-            organizationName: org.name,
-            ncVersion: row.ncVersion,
-            isAdopted: true,
-        });
-    }
+    if (row.status === 'approved') return answerApproval(row, res);
     // status === 'pending'
     return res.status(202).json({
         status: 'pending',
@@ -217,12 +232,12 @@ router.get('/connector/bootstrap/pending/:id', pendingPollLimiter, async (req, r
     });
 });
 
-// Submit the emailed verification code. Possession of the code (delivered to a
-// mailbox at the matching domain) is the proof of authority; on success we bind
-// the org, mint the tenant key and hand it straight back so the connector can
-// cache it without a separate poll. Unauthenticated by design — the connector
-// has no SaaS creds yet — but attempt-capped (in verifyPendingNcCode) and
-// IP-rate-limited.
+// Submit the emailed verification code. Possession of the code (sent to an
+// administrator of the organisation) is the proof of authority; on success we
+// bind the org, mint the tenant key and hand it straight back so the connector
+// can cache it without a separate poll. Unauthenticated by design — the
+// connector has no SaaS creds yet — but attempt-capped (in verifyPendingNcCode)
+// and IP-rate-limited.
 router.post('/connector/bootstrap/pending/:id/verify', pendingPollLimiter, async (req, res) => {
     const id = String(req.params.id || '').trim();
     const code = String(req.body?.code || '').trim();
@@ -249,39 +264,33 @@ router.post('/connector/bootstrap/pending/:id/verify', pendingPollLimiter, async
     // The emailed code links a Nextcloud to an organisation that has none; the
     // key of a linked organisation goes only to a signed bootstrap or to a
     // pairing code issued for it (connector/bootstrapBranches.js).
-    if (org.nc_instance_id) {
-        return res.status(409).json({
-            error: `Organisation is already bound to ${org.nc_instance_id === row.ncInstanceId ? 'this' : 'a different'} Nextcloud instance`,
-            code: 'already_bound',
-            remediation: 'To connect again, ask a Bee Flow organisation admin to generate a pairing code (Settings → Organisation → Pair a new Nextcloud) and enter it on the Bee Flow setup page.',
-        });
-    }
+    if (org.nc_instance_id) return res.status(409).json(alreadyLinkedAnswer());
+    // The code was sent to an administrator of this organisation, and it is
+    // that administrator who links it.
+    const adminEmail = row.verificationEmail || row.ncAdminEmail;
+    if (!(await isAddressOfOrgAdmin(org.id, adminEmail))) return res.status(403).json(notOrgAdminAnswer());
     // And it links the Nextcloud to that organisation only (connector/instanceBinding.js).
-    const boundOrg = await bindOrRefuse({ res, ncInstanceId: row.ncInstanceId }, org, {
+    const bindCtx = { res, ncInstanceId: row.ncInstanceId };
+    if (await ncInstanceBoundElsewhere(org.id, row.ncInstanceId)) {
+        return refuseInstanceBoundElsewhere(bindCtx, org, 'email_verification');
+    }
+    // The steps that can fail come before the link: after a failure the
+    // organisation is still unlinked and the same code can be entered again.
+    await ensureOrgAdminUser(org, {
+        ncAdminEmail: adminEmail,
+        ncAdminUid: row.ncAdminUid,
+        ncAdminDisplayName: row.ncAdminDisplayName,
+    });
+    const tenantKey = await getOrMintTenantKey(org.id);
+    const boundOrg = await bindOrRefuse(bindCtx, org, {
         ncBaseUrl: row.ncBaseUrl,
         ncAdminUid: row.ncAdminUid,
         connectorCallbackUrl: row.connectorCallbackUrl,
     }, 'email_verification');
     if (!boundOrg) return;
-    await applyNcDefaultPlanIfConfigured(boundOrg.id, 'email_verification');
-    try {
-        await ensureOrgAdminUser(boundOrg, {
-            ncAdminEmail: row.ncAdminEmail,
-            ncAdminUid: row.ncAdminUid,
-            ncAdminDisplayName: row.ncAdminDisplayName,
-        });
-    } catch (e) {
-        if (e.statusCode === 409) {
-            orgHealth.problem('bootstrap.admin_email_conflict', {
-                orgId: boundOrg.id, source: 'connectorBootstrap', req,
-                meta: { maskedEmail: maskEmail(row.ncAdminEmail), reason: 'verification_branch' },
-            });
-            return res.status(409).json({ error: e.message, code: 'admin_email_conflict' });
-        }
-        throw e;
-    }
-    const tenantKey = await getOrMintTenantKey(boundOrg.id);
+    // From here the code has done its work.
     await userStore.markPendingNcBindingApproved(row.id, null);
+    await applyNcDefaultPlanIfConfigured(boundOrg.id, 'email_verification');
     log.info(`[ConnectorBootstrap] verification_succeeded org=${boundOrg.id} ncInstance=${row.ncInstanceId}`);
     orgHealth.event('bootstrap.verification_succeeded', {
         orgId: boundOrg.id, actorKind: 'connector', req, meta: { ncInstanceId: row.ncInstanceId },
@@ -311,11 +320,16 @@ const tooManyCodeRequests = (res) => res.status(429).json({
 });
 
 // Re-send the verification code (new code, per-code attempts reset, TTL
-// extended), capped per pendingId. Goes to the same mailbox the original was
-// sent to, so a held pendingId can't redirect the code elsewhere.
+// extended), capped per pendingId. Goes to the address on the row, and only
+// when that is the address of an administrator of the row's organisation.
 router.post('/connector/bootstrap/pending/:id/resend', verificationResendLimiter, async (req, res) => {
     const id = String(req.params.id || '').trim();
     if (!id) return res.status(400).json({ error: 'Missing id' });
+    const current = await userStore.getPendingNcBinding(id);
+    if (current?.hasVerification && current.status === 'pending'
+        && !(await isAddressOfOrgAdmin(current.orgId, current.verificationEmail || current.ncAdminEmail))) {
+        return res.status(403).json(notOrgAdminAnswer());
+    }
     const code = generateVerificationCode();
     const sent = await userStore.resetNcVerificationCode(id, code);
     if (sent.status === 'too_many') return tooManyCodeRequests(res);
@@ -336,9 +350,8 @@ router.post('/connector/bootstrap/pending/:id/resend', verificationResendLimiter
 
 // Re-point a pending verification at the admin who is actually performing the
 // setup (the NC user in the embedded view), then email them the code. The
-// connector supplies the current user's email/uid; we re-validate that the
-// email qualifies for the org before redirecting the code, so a held pendingId
-// can't be used to send the code to an unrelated mailbox.
+// connector supplies the current user's email/uid; the code is sent only when
+// that address is the one of an administrator of the row's organisation.
 router.post('/connector/bootstrap/pending/:id/retarget', verificationResendLimiter, async (req, res) => {
     const id = String(req.params.id || '').trim();
     const email = String(req.body?.email || '').trim().toLowerCase();
@@ -355,22 +368,7 @@ router.post('/connector/bootstrap/pending/:id/retarget', verificationResendLimit
     const expired = row.expiresAt && new Date(row.expiresAt).getTime() <= Date.now();
     if (expired) return res.status(410).json({ status: 'expired', code: 'expired' });
 
-    // The target email must itself qualify for the org being linked — exact
-    // user match, or a matching corporate domain. Mirrors the bootstrap routing.
-    const domain = email.split('@')[1] || '';
-    let qualifies = false;
-    const exact = await userStore.getUserByEmail(email);
-    if (exact?.organizationId === row.orgId) qualifies = true;
-    if (!qualifies && domain && !isFreeEmailDomain(domain, await getEffectiveFreeEmailDomains())) {
-        const o = await userStore.findUnboundOrgByEmailDomain(domain);
-        if (o?.id === row.orgId) qualifies = true;
-    }
-    if (!qualifies) {
-        return res.status(403).json({
-            error: 'This Nextcloud account is not part of the Bee Flow organisation this connection is being linked to.',
-            code: 'email_not_in_org',
-        });
-    }
+    if (!(await isAddressOfOrgAdmin(row.orgId, email))) return res.status(403).json(notOrgAdminAnswer());
 
     const code = generateVerificationCode();
     const sent = await userStore.retargetNcVerification(id, { email, uid, displayName, code });

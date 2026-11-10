@@ -206,14 +206,29 @@ async function rotateTenantKey(orgId) {
     return key;
 }
 
-// Promote / create the NC admin user inside an org. Used by the fresh-org
-// branch and the approval handler.
+/**
+ * True when `email` is the address of an account that is not a member of the
+ * organisation `orgId`: a member of another organisation, or of none.
+ * @param {string} orgId
+ * @param {string} email
+ */
+async function adminEmailBelongsElsewhere(orgId, email) {
+    const user = await userStore.getUserByEmail(email);
+    return !!user && user.organizationId !== orgId;
+}
+
+// Promote / create the NC admin user inside an org. An address without an
+// account gets a new one in this organisation; an existing account is touched
+// only when it is a member of this organisation already: an account joins an
+// organisation through that organisation's own member management. An account
+// of another organisation throws 409; an account without an organisation is
+// left as it is and the answer is null (the link itself goes ahead).
 /**
  * @param {OrgRow} org
  * @param {{ ncAdminEmail: string, ncAdminUid: string, ncAdminDisplayName?: string|null }} admin
  */
 async function ensureOrgAdminUser(org, { ncAdminEmail, ncAdminUid, ncAdminDisplayName }) {
-    let user = await userStore.getUserByEmail(ncAdminEmail);
+    const user = await userStore.getUserByEmail(ncAdminEmail);
     if (!user) {
         const userId = `nc_${org.id}_${slugify(ncAdminUid)}`;
         const r = await userStore.createUserWithSeatCheck({
@@ -239,25 +254,16 @@ async function ensureOrgAdminUser(org, { ncAdminEmail, ncAdminUid, ncAdminDispla
         }
         return await userStore.getUser(userId);
     }
-    if (user.organizationId && user.organizationId !== org.id) {
-        const userOrg = await userStore.getOrganization(user.organizationId);
-        if (!userOrg) {
-            // Orphaned — rebind.
-            await userStore.updateUser(user.id, {
-                organizationId: org.id,
-                orgRole: 'org_admin',
-                ncUid: user.nc_uid || ncAdminUid,
-                provider: user.provider || 'nextcloud_connector',
-            });
-            log.info(`[ConnectorBootstrap] Rebound orphaned user ${user.id} to org ${org.id}`);
-            return await userStore.getUser(user.id);
-        }
+    if (!user.organizationId) {
+        log.info(`[ConnectorBootstrap] NC admin of org=${org.id} has an account (${user.id}) that is not a member of it; left as it is`);
+        return null;
+    }
+    if (user.organizationId !== org.id) {
         const err = new Error('NC admin email is linked to another Bee Flow organization');
         err.statusCode = 409;
         throw err;
     }
     const updates = {};
-    if (!user.organizationId) updates.organizationId = org.id;
     if (user.orgRole !== 'org_admin') updates.orgRole = 'org_admin';
     // Raw row spelling is nc_uid — checking only the camelCase alias made this
     // guard always-true, so every bootstrap stamped admins[0]'s uid over the
@@ -328,6 +334,7 @@ module.exports = {
     slugify,
     getOrMintTenantKey,
     rotateTenantKey,
+    adminEmailBelongsElsewhere,
     ensureOrgAdminUser,
     _selectSecondaryAdmins,
     ensureAdditionalOrgAdmins,

@@ -318,6 +318,28 @@ test('orgRole is still repaired on re-bootstrap (the fix must not freeze other u
     assert.deepEqual(state.updates[0].updates, { orgRole: 'org_admin' });
 });
 
+// ═══ ensureOrgAdminUser: an existing account outside the organisation stays where it is ═══
+
+test('an existing account without an organisation is left as it is: null, no write', async () => {
+    seedExistingAdmin({ organizationId: null, orgRole: '' });
+    const result = await helpers.ensureOrgAdminUser(ORG, { ncAdminEmail: EMAIL, ncAdminUid: 'bob' });
+    assert.equal(result, null);
+    assert.deepEqual(state.updates, []);
+});
+
+test('an existing account of another organisation: 409, no write, whether or not that organisation still exists', async () => {
+    for (const exists of [true, false]) {
+        state.orgs.clear();
+        if (exists) state.orgs.set('org-2', { id: 'org-2' });
+        seedExistingAdmin({ organizationId: 'org-2' });
+        await assert.rejects(
+            helpers.ensureOrgAdminUser(ORG, { ncAdminEmail: EMAIL, ncAdminUid: 'bob' }),
+            { statusCode: 409 },
+        );
+        assert.deepEqual(state.updates, []);
+    }
+});
+
 test('resolveProvisioningMode fails closed to pairing_only when the stored mode cannot be read, even on an open-by-default host', async () => {
     const prevHost = process.env.SERVER_PUBLIC_HOST;
     const prevEnv = process.env.BEEFLOW_CONNECTOR_PROVISIONING;
