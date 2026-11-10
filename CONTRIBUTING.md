@@ -45,6 +45,20 @@ npm run typecheck     # tsc --noEmit
 npm run lint          # eslint 9
 ```
 
+### Nextcloud connector (`nextcloud-connector/`)
+
+```bash
+cd nextcloud-connector
+npm test              # node --test test/*.test.js
+npm run lint          # eslint
+npm run typecheck     # tsc
+```
+
+To try it against a real Nextcloud, `scripts/local-sandbox.sh` starts one with AppAPI and the
+connector registered (`--harp` for the HaRP route); see
+[local development](./docs/docs/getting-started/local-development.md). The connector starts
+without a Bee Flow server unless the script is given one.
+
 ### Python services
 
 Install-free lint for the Python FastAPI services (config in `ruff.toml`):
@@ -101,6 +115,13 @@ CI.
 After touching `.github/workflows/` or `scripts/`, also run
 `npm run test:scripts`; `npm run check:fast` already covers
 `npm run lint:workflows` and `npm run lint:checks`.
+
+Two checks that CI runs are not part of `check:fast`:
+
+- `npm run lint:duplication` (jscpd against `.jscpd-ratchet.json`, about seven seconds). Run it
+  when you added tests or copied code; shared test set-up belongs in a helper.
+- Semgrep (`sast.yml`, new findings only). The usual finding is a regular expression tested
+  against request text: use plain string comparisons there.
 
 ## Secret scans on every commit
 
