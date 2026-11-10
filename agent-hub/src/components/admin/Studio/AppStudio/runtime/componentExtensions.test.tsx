@@ -7,7 +7,7 @@ import { COMPONENT_EXTENSION_MODULES, collectComponentExtensions } from './compo
 import { APP_COMPONENT_TYPES } from './componentRegistry';
 import type { ComponentExtension } from './componentRegistry.types';
 
-// Test-only fixture: no extension type ships in this wave.
+// Test-only fixture: whatever the registry ships is only held to the rules below.
 const Fixture = () => <div data-testid="fixture-widget" />;
 const fixture: ComponentExtension = { Component: Fixture, icon: Gauge, sample: { props: { title: 'Hi' } } };
 const CATALOG = { heading: {}, fixture_widget: { since: 3 }, zeta_widget: { since: 3 } };
@@ -18,9 +18,11 @@ const extensionTypes = Object.entries(catalogTypes as Record<string, { since?: n
     .map(([type]) => type);
 
 describe('component extensions', () => {
-    it('ships empty: no registry file, no extension type in the catalog', () => {
-        expect(COMPONENT_EXTENSION_MODULES).toEqual({});
-        expect(extensionTypes).toEqual([]);
+    it('has one registry file per extension type of the catalog, and no other', () => {
+        // A type the server added (componentSpecs/types/<type>.js) without its file here has no renderer:
+        // add runtime/components/registry/<type>.ts exporting { Component, icon, sample }.
+        const files = Object.keys(COMPONENT_EXTENSION_MODULES).map((file) => file.slice(file.lastIndexOf('/') + 1, file.lastIndexOf('.')));
+        expect(files.sort()).toEqual([...extensionTypes].sort());
     });
 
     it('collects one entry per file, keyed by its name, in file-name order', () => {

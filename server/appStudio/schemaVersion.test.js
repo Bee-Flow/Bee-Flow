@@ -1,9 +1,10 @@
 'use strict';
 /**
  * Schema versions: the lowest sufficient version, the migration chain, the
- * refusal of a newer definition, and the top-level key registry. The registry
- * and the catalogue ship without any `since` entry, so everything here that
- * needs one runs against a test-only fixture.
+ * refusal of a newer definition, and the top-level key registry. Nothing here
+ * depends on what the registry and the catalogue ship: everything that needs a
+ * `since` entry runs against a test-only fixture, and what ships is only held
+ * to the rules every entry follows (catalogContract.test.js has the rest).
  */
 
 const { test } = require('node:test');
@@ -54,16 +55,25 @@ const withNotesKey = (fn, entry = NOTES_ENTRY) => registry._withDefinitionKeys([
 
 // ── What ships ──────────────────────────────────────────────────────────────
 
-test('the registry and the catalogue ship without a since entry', () => {
-    assert.deepEqual(registry.loadDefinitionKeys(), []);
-    const index = since.buildSinceIndex({
-        componentSpecs: specs.COMPONENT_SPECS, styleKnobs: specs.STYLE_KNOBS, stepSpecs: specs.STEP_SPECS,
-        actionSpecs: specs.ACTION_SPECS, bindingKindSince: specs.BINDING_KIND_SINCE, definitionKeys: registry.definitionKeys(),
-    });
-    assert.equal(shared.sinceIndexIsEmpty(index), true);
+test('every shipped top-level key is a complete registry entry, and the index lists it', () => {
+    const shipped = registry.loadDefinitionKeys();
+    const keyOf = (entry) => entry.key;
+    assert.deepEqual(registry.definitionKeys().map(keyOf), shipped.map(keyOf));
+    const index = since.buildSinceIndex(since.liveCatalogue());
+    for (const entry of shipped) {
+        const name = keyOf(entry);
+        const where = `definitionKeys/${name}.js`;
+        assert.ok(Number.isInteger(entry.since) && entry.since >= 3, `${where}: since is an integer of 3 or more`);
+        assert.equal(typeof entry.canon, 'function', `${where}: canon`);
+        assert.ok(!registry.BASE_DEFINITION_KEYS.includes(name), `${where}: a base key is built by canonicalize itself`);
+        assert.equal(index.topLevelKeys[name], entry.since, `${where}: indexed for the schema version`);
+    }
+    assert.deepEqual(Object.keys(index.topLevelKeys), shipped.map(keyOf));
+    // The base has no since: an index built from nothing is empty.
+    assert.equal(shared.sinceIndexIsEmpty(since.buildSinceIndex({})), true);
 });
 
-test('every definition needs the base version today, and canonicalize writes it', () => {
+test('a definition that uses only base vocabulary needs the base version, and canonicalize writes it', () => {
     const def = sampleDef();
     assert.equal(since.requiredSchemaVersion(def), SCHEMA_VERSION_BASE);
     assert.equal(def.schemaVersion, 2);

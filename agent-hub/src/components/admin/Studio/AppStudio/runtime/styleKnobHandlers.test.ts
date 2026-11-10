@@ -1,8 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
-import { STYLE_KNOB_HANDLERS, applyStyleKnobHandlers, collectStyleKnobHandlers, type StyleKnobHandler } from './styleKnobHandlers';
+import { extensionKnobGroups } from './catalogSnapshot.generated.json';
+import { STYLE_KNOB_HANDLERS, STYLE_KNOB_LABELS, applyStyleKnobHandlers, collectStyleKnobHandlers, collectStyleKnobLabels, type StyleKnobHandler } from './styleKnobHandlers';
 import type { InlineStyle, StyleKnobs } from './styleResolver.types';
 
-// Test-only fixtures: no handler or group ships in this wave.
+// Test-only fixtures: whatever ships is only held to the rules in the first test.
 const GROUPS = [
     { name: 'glow', knobs: ['glow'] },
     { name: 'tilt', knobs: ['tilt', 'tiltAxis'] },
@@ -15,8 +16,24 @@ const glow: StyleKnobHandler = {
 };
 
 describe('style knob handlers', () => {
-    it('ships empty', () => {
-        expect(STYLE_KNOB_HANDLERS).toEqual([]);
+    it('every knob group of the catalog has its handler file, and that file names each of its knobs', () => {
+        const groups = extensionKnobGroups as ReadonlyArray<{ name: string; knobs: readonly string[] }>;
+        // A group the server added (componentSpecs/styleKnobGroups/<group>.js) without its file here is never drawn.
+        expect(STYLE_KNOB_HANDLERS.map((h) => h.group).sort(), 'add runtime/styleKnobs/<group>.ts for each knob group').toEqual(groups.map((g) => g.name).sort());
+        for (const group of groups) {
+            for (const knob of group.knobs) {
+                expect(STYLE_KNOB_LABELS[knob]?.[1], `runtime/styleKnobs/${group.name}.ts: add labels.${knob} = [i18n key, English]`).toBeTruthy();
+            }
+        }
+    });
+
+    it('collects the labels of a handler for the knobs of its own group only', () => {
+        const handlers = collectStyleKnobHandlers({
+            './styleKnobs/glow.ts': { default: { ...glow, labels: { glow: ['look.glow', 'Glow'], tilt: ['look.tilt', 'Not mine'] } } },
+            './styleKnobs/tilt.ts': { default: { section: () => '', labels: { tilt: ['look.tilt', 'Tilt'] } } },
+        }, GROUPS);
+        expect(collectStyleKnobLabels(handlers)).toEqual({ glow: ['look.glow', 'Glow'], tilt: ['look.tilt', 'Tilt'] });
+        expect(collectStyleKnobLabels([])).toEqual({});
     });
 
     it('registers one handler per file, in file-name order, tied to its catalog group', () => {

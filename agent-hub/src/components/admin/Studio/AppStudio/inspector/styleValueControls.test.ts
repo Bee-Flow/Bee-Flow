@@ -6,9 +6,16 @@ import type { StyleValueControlProps } from './styleValueControls';
 const Control = (_props: StyleValueControlProps) => null;
 
 describe('style value controls added as files', () => {
-    it('ships empty, and every knob in the catalogue is a base value type', () => {
-        expect(STYLE_VALUE_CONTROLS).toEqual({});
-        for (const [knob, spec] of Object.entries(STYLE_KNOBS)) expect(isBaseValueType(spec?.type ?? ''), knob).toBe(true);
+    it('every knob in the catalogue can be drawn: a base value type, or one with its control file', () => {
+        for (const [knob, spec] of Object.entries(STYLE_KNOBS)) {
+            const type = spec?.type ?? '';
+            const drawn = isBaseValueType(type) || Object.hasOwn(STYLE_VALUE_CONTROLS, type);
+            expect(drawn, `knob ${knob} has value type "${type}": add inspector/styleValueControls/${type}.tsx`).toBe(true);
+        }
+        for (const [type, control] of Object.entries(STYLE_VALUE_CONTROLS)) {
+            expect(isBaseValueType(type), type).toBe(false);
+            expect(typeof control, type).toBe('function');
+        }
     });
 
     it('keys a control by its file name', () => {

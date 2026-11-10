@@ -1,7 +1,7 @@
 /**
  * Differential lockstep: core/flow/stepCatalog against the web's
  * flow/stepCatalog.js (its Lucide imports load as their names, see
- * testing/loadWeb), and against the server's STEP_KINDS.
+ * testing/loadWeb), and against the server's BASE_STEP_KINDS.
  */
 
 import { ICON_REGISTRY } from '@/shared/ui/icons/registry.generated';
@@ -33,8 +33,10 @@ interface WebCatalog {
 }
 
 const web = loadWeb<WebCatalog>('flow/stepCatalog.ts');
+// The BASE kinds: the port (like the web's stepCatalog.ts it mirrors) holds the catalogue before the
+// step registry (server/appStudio/componentSpecs/steps/); a kind added there has its own web file and no port.
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const { STEP_KINDS } = require('../../../../../../server/appStudio/componentSpecs/actionSpecs.js') as { STEP_KINDS: string[] };
+const { BASE_STEP_KINDS: STEP_KINDS } = require('../../../../../../server/appStudio/componentSpecs/actionSpecsActionKinds.js') as { BASE_STEP_KINDS: string[] };
 
 /** Lucide renamed these; the phone registry uses the current names. */
 const RENAMED: Record<string, string> = { CheckCircle2: 'CircleCheck', FileSignature: 'FilePenLine' };
@@ -80,7 +82,7 @@ describe('the step catalog agrees with the web', () => {
         expect(port.UNKNOWN_STEP.icon in ICON_REGISTRY).toBe(true);
     });
 
-    it('covers exactly the server step kinds', () => {
+    it('covers exactly the base step kinds of the server', () => {
         expect(Object.keys(port.STEP_CATALOG).sort()).toEqual([...STEP_KINDS].sort());
     });
 

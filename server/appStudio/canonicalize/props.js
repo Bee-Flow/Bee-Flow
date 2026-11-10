@@ -79,6 +79,18 @@ function cleanPropValue(fs, raw, path, push) {
 }
 
 /**
+ * The props of a type that a node's canonical form holds: every base prop (filled from its
+ * default when the node lacks it), and a prop added after the base only when the node carries
+ * a value for it (null means not set).
+ * @param {Record<string, any>} specProps
+ * @param {Record<string, unknown>} provided
+ * @returns {Array<[string, any]>}
+ */
+function propsToWrite(specProps, provided) {
+    return Object.entries(specProps).filter(([key, fs]) => !isLateEntry(fs) || (provided[key] !== undefined && provided[key] !== null));
+}
+
+/**
  * @param {string} path
  * @param {(arg0: string, arg1: string, arg2: string) => void} push
  */
@@ -92,9 +104,7 @@ function cleanProps(node, spec, id, path, push) {
     const props = {};
     /** @type {string[]} */
     const filled = [];
-    for (const [key, fs] of Object.entries(spec.props)) {
-        // A prop added after the base is written only when the node carries a value for it.
-        if (isLateEntry(fs) && (provided[key] === undefined || provided[key] === null)) continue;
+    for (const [key, fs] of propsToWrite(spec.props, provided)) {
         if (key in provided) {
             props[key] = cleanPropValue(fs, provided[key], `${path}.props.${key}`, push);
         } else {

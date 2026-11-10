@@ -2,7 +2,8 @@
 /**
  * knobGroupExtensions.js and expandStyleKnobs: style knobs granted by rule.
  *
- * The shipped registry is empty; a fixture directory written per test proves the mechanism.
+ * A fixture directory written per test proves the mechanism; what the registry ships (nothing,
+ * or any number of files) is only held to the rules every group follows.
  * Run: node --test appStudio/componentSpecs/knobGroupExtensions.test.js
  */
 
@@ -33,15 +34,31 @@ function fixtureDir(files) {
 
 const glowKnob = { type: 'enum', values: ['none', 'soft', 'strong'], default: 'none', since: 3 };
 
-test('the shipped registry is empty and the base groups expand exactly as before', () => {
-    assert.deepEqual(EXTENSION_STYLE_KNOB_GROUPS, []);
-    assert.deepEqual(STYLE_KNOB_GROUPS, BASE_STYLE_KNOB_GROUPS);
-    assert.deepEqual(loadKnobGroupExtensions(path.join(__dirname, 'styleKnobGroups'), CTX), []);
+test('the base groups expand exactly as before, and the shipped groups come after them', () => {
+    assert.deepEqual(STYLE_KNOB_GROUPS, [...BASE_STYLE_KNOB_GROUPS, ...EXTENSION_STYLE_KNOB_GROUPS]);
     // The order the base has always produced: span earns width then visibility, height its pair.
-    assert.deepEqual(expandStyleKnobs(['span', 'height']), ['span', 'height', 'widthMode', 'widthValue', 'hideBelow', 'hideAbove', 'heightMode', 'heightValue']);
+    const baseExpansion = ['span', 'height', 'widthMode', 'widthValue', 'hideBelow', 'hideAbove', 'heightMode', 'heightValue'];
+    assert.deepEqual(expandStyleKnobs(['span', 'height'], BASE_STYLE_KNOB_GROUPS), baseExpansion);
     // Nothing earned: the same array back (canonicalize and validate key off it).
     const gapOnly = ['gap'];
-    assert.equal(expandStyleKnobs(gapOnly), gapOnly);
+    assert.equal(expandStyleKnobs(gapOnly, BASE_STYLE_KNOB_GROUPS), gapOnly);
+
+    // Whatever ships: the base expansion is a prefix, and everything after it is a knob of a shipped group.
+    const shippedKnobs = EXTENSION_STYLE_KNOB_GROUPS.flatMap((g) => [...g.knobs]);
+    const live = expandStyleKnobs(['span', 'height']);
+    assert.deepEqual(live.slice(0, baseExpansion.length), baseExpansion);
+    for (const knob of live.slice(baseExpansion.length)) assert.ok(shippedKnobs.includes(knob), `${knob} is not a knob of a shipped group`);
+
+    // The shipped directory, read against the base knobs only (the way styleKnobs.js reads it), is what the hub serves.
+    const baseKnobs = Object.fromEntries(Object.entries(STYLE_KNOBS).filter(([name]) => !shippedKnobs.includes(name)));
+    const shipped = loadKnobGroupExtensions(path.join(__dirname, 'styleKnobGroups'), { ...CTX, styleKnobs: baseKnobs });
+    assert.deepEqual(shipped.map((g) => g.name), EXTENSION_STYLE_KNOB_GROUPS.map((g) => g.name));
+    for (const group of shipped) {
+        for (const knob of group.knobs) {
+            assert.equal(STYLE_KNOBS[knob], group.specs[knob], `${knob}: the vocabulary holds the group file's own object`);
+            assert.ok(STYLE_KNOBS[knob].since >= 3, `${knob}: since 3 or more`);
+        }
+    }
 });
 
 test('an extension group is granted by rule, after the base groups, without duplicates', () => {

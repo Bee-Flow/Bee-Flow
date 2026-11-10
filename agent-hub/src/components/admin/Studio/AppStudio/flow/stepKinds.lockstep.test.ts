@@ -1,7 +1,7 @@
 import { createRequire } from 'node:module';
 import { Bell } from 'lucide-react';
 import { describe, expect, it } from 'vitest';
-import { STEP_CATALOG, STEP_GROUPS } from './stepCatalog';
+import { STEP_CATALOG, STEP_GROUPS, paletteGroups as basePaletteGroups } from './stepCatalog';
 import { EXTENSION_STEP_KINDS, buildStepKinds, newStep, paletteGroups, stepMeta } from './stepKinds';
 import type { StepKindModule } from './stepKinds';
 
@@ -84,7 +84,8 @@ describe('buildStepKinds: a kind is one file', () => {
         expect(groups.map((g) => g.group)).toEqual([...STEP_GROUPS, 'Integrations']);
         const data = groups.find((g) => g.group === 'Data')?.kinds.map((k) => k.kind) ?? [];
         expect(data[data.length - 1]).toBe('zz_probe');
-        expect(data.slice(0, -1)).toEqual(paletteGroups().find((g) => g.group === 'Data')?.kinds.map((k) => k.kind));
+        // After the BASE kinds of the group: this catalog holds the fixture files only, whatever the registry ships.
+        expect(data.slice(0, -1)).toEqual(basePaletteGroups().find((g) => g.group === 'Data')?.kinds.map((k) => k.kind));
         expect(groups[groups.length - 1].kinds.map((k) => k.kind)).toEqual(['zz_else']);
     });
 

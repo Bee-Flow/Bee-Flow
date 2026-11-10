@@ -67,8 +67,8 @@ const KEY_FIXTURE_NAMES = Object.freeze({
         'table.columns[].align=zz_justify', 'theme.radius=zz_pill',
     ],
     screenKeys: ['screen.zz_layout'],
-    sectionKeys: ['section.style.radius', 'section.zz_title'],
-    nodeKeys: ['heading.onClick', 'node.zz_styleWhen'],
+    sectionKeys: ['section.style.weight', 'section.zz_title'],
+    nodeKeys: ['divider.onCardMove', 'node.zz_styleWhen'],
     themeKeys: ['theme.zz_tint'],
     designKeys: ['design.zz_backdrop'],
     navKeys: ['nav.groups[].zz_badge', 'nav.zz_footer'],
@@ -82,7 +82,7 @@ const isFixtureName = (/** @type {string} */ name) => ALL_FIXTURE_NAMES.includes
 
 const KEY_MARK_FIXTURES = Object.freeze({
     section: { zz_title: { since: 3, shape: 'string ≤80', description: 'A title shown above the section. Empty hides it.' } },
-    sectionStyle: { radius: { since: 3, description: 'Rounds the corners of the section band.' } },
+    sectionStyle: { weight: { since: 3, description: 'The weight of the text in the section band.' } },
     node: { zz_styleWhen: { since: 3, shape: '[{ when: formula, style: { <knob>: value } }]', description: 'Style overrides applied while a formula is true.' } },
     nav: {
         zz_footer: { since: 3, shape: 'string ≤120', description: 'A line of text under the navigation.' },
@@ -110,10 +110,15 @@ function addEnumValue(spec, value) {
     };
 }
 
-/** @param {Record<string, any>} table @param {string} key @param {unknown} entry @returns {() => void} the undo */
+/**
+ * Put `entry` under `key`; the undo puts back what was there (a shipped entry may hold the key).
+ * @param {Record<string, any>} table @param {string} key @param {unknown} entry @returns {() => void}
+ */
 function addKey(table, key, entry) {
+    const had = Object.hasOwn(table, key);
+    const before = table[key];
     table[key] = entry;
-    return () => { delete table[key]; };
+    return () => { if (had) table[key] = before; else delete table[key]; };
 }
 
 /**
@@ -139,24 +144,29 @@ function installKeyFixtures() {
         addEnumValue(THEME_SPEC.radius, 'zz_pill'),
         addEnumValue(DESIGN_SPEC.motion, 'zz_expressive'),
     ];
-    // An existing type newly fires an existing event.
+    // An existing type newly fires an existing event (a pairing no feature will ship).
     /** @type {Record<string, any>} */
-    const heading = COMPONENT_SPECS.heading;
-    const eventsBefore = { events: heading.events, eventsSince: heading.eventsSince };
-    heading.events = [...(heading.events || []), 'onClick'];
-    heading.eventsSince = { ...heading.eventsSince, onClick: 3 };
+    const divider = COMPONENT_SPECS.divider;
+    const eventsBefore = { events: divider.events, eventsSince: divider.eventsSince };
+    divider.events = [...(divider.events || []), 'onCardMove'];
+    divider.eventsSince = { ...divider.eventsSince, onCardMove: 3 };
     undo.push(() => {
         for (const name of /** @type {const} */ (['events', 'eventsSince'])) {
-            if (eventsBefore[name] === undefined) delete heading[name]; else heading[name] = eventsBefore[name];
+            if (eventsBefore[name] === undefined) delete divider[name]; else divider[name] = eventsBefore[name];
         }
     });
     for (const [family, marks] of Object.entries(KEY_MARK_FIXTURES)) {
-        for (const [key, mark] of Object.entries(marks)) undo.push(addKey(KEY_MARKS[family], key, mark));
+        for (const [key, mark] of Object.entries(marks)) {
+            // A shipped mark on the same base key keeps its values: the fixture's are added to them.
+            const shipped = KEY_MARKS[family][key];
+            const merged = shipped && mark.valuesSince ? { ...mark, valuesSince: { ...shipped.valuesSince, ...mark.valuesSince } } : mark;
+            undo.push(addKey(KEY_MARKS[family], key, merged));
+        }
     }
-    // expandStyleKnobs remembers its answer per list, so the knob goes onto that answer too.
+    // A knob no section takes. expandStyleKnobs remembers its answer per list, so it goes onto that answer too.
     const sectionLists = [...new Set([SECTION_STYLE_KNOBS, specs.expandStyleKnobs(SECTION_STYLE_KNOBS)])];
-    for (const list of sectionLists) list.push('radius');
-    undo.push(() => { for (const list of sectionLists) list.splice(list.indexOf('radius'), 1); });
+    for (const list of sectionLists) list.push('weight');
+    undo.push(() => { for (const list of sectionLists) list.splice(list.indexOf('weight'), 1); });
     _setCatalogueOverlay({
         DESIGN_SPEC: { ...DESIGN_SPEC, zz_backdrop: { type: 'enum', values: ['none', 'dots'], default: 'none', optional: true, since: 3, description: 'A pattern behind the whole app.' } },
         NAV_STYLES: [...NAV_STYLES, 'zz_dock'],

@@ -101,8 +101,8 @@ test('the index lists the items by family, with a gloss in the full form and nam
             'styleKnobs: zz_glow — A coloured halo around the box',
             'enumValues: button.variant=zz_ghost; design.motion=zz_expressive; nav.style=zz_dock — zz_dock pins the screens to the bottom edge; screen.maxWidth=zz_ultra; step.generate_file.format=zz_tsv; style.background=zz_mesh; table.columns[].align=zz_justify; theme.radius=zz_pill',
             'screenKeys: screen.zz_layout — split = two columns of sections side by side',
-            'sectionKeys: section.style.radius — Rounds the corners of the section band; section.zz_title — A title shown above the section',
-            'nodeKeys: heading.onClick; node.zz_styleWhen — Style overrides applied while a formula is true',
+            'sectionKeys: section.style.weight — The weight of the text in the section band; section.zz_title — A title shown above the section',
+            'nodeKeys: divider.onCardMove; node.zz_styleWhen — Style overrides applied while a formula is true',
             'themeKeys: theme.zz_tint — A second brand colour for charts',
             'designKeys: design.zz_backdrop — A pattern behind the whole app',
             'navKeys: nav.groups[].zz_badge — A count shown beside the group label; nav.zz_footer — A line of text under the navigation',
@@ -123,8 +123,8 @@ test('the index lists the items by family, with a gloss in the full form and nam
             'styleKnobs: zz_glow',
             'enumValues: button.variant=zz_ghost, design.motion=zz_expressive, nav.style=zz_dock, screen.maxWidth=zz_ultra, step.generate_file.format=zz_tsv, style.background=zz_mesh, table.columns[].align=zz_justify, theme.radius=zz_pill',
             'screenKeys: screen.zz_layout',
-            'sectionKeys: section.style.radius, section.zz_title',
-            'nodeKeys: heading.onClick, node.zz_styleWhen',
+            'sectionKeys: section.style.weight, section.zz_title',
+            'nodeKeys: divider.onCardMove, node.zz_styleWhen',
             'themeKeys: theme.zz_tint',
             'designKeys: design.zz_backdrop',
             'navKeys: nav.groups[].zz_badge, nav.zz_footer',
@@ -261,11 +261,11 @@ test('app_inspect_catalog serves the keys outside the component and kind tables,
         });
         assert.deepEqual(answered('screenKeys'), { 'screen.zz_layout': 'screen.zz_layout: null|"split" — split = two columns of sections side by side.' });
         assert.deepEqual(answered('sectionKeys'), {
-            'section.style.radius': 'section.style.radius(null|none|sm|md|lg|full) — Rounds the corners of the section band.',
+            'section.style.weight': 'section.style.weight(regular|medium|semibold) — The weight of the text in the section band.',
             'section.zz_title': 'section.zz_title: string ≤80 — A title shown above the section. Empty hides it.',
         });
         assert.deepEqual(answered('nodeKeys'), {
-            'heading.onClick': 'heading also fires onClick: bind an action to it with app_bind_action { event: "onClick" }',
+            'divider.onCardMove': 'divider also fires onCardMove: bind an action to it with app_bind_action { event: "onCardMove" }',
             'node.zz_styleWhen': 'node.zz_styleWhen: [{ when: formula, style: { <knob>: value } }] — Style overrides applied while a formula is true.',
         });
         assert.deepEqual(answered('themeKeys'), { 'theme.zz_tint': 'theme.zz_tint: #rrggbb or unset — A second brand colour for charts.' });

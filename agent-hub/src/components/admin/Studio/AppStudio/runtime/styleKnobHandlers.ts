@@ -7,8 +7,14 @@
  * that the handler imports itself:
  *
  *   import './glow.css';
- *   const glow: StyleKnobHandler = { node: (s, style) => (s.glow === 'soft' ? 'app-glow-soft' : '') };
+ *   const glow: StyleKnobHandler = {
+ *       labels: { glow: ['studio_apps_look.knobs.glow', 'Glow'] },
+ *       node: (s, style) => (s.glow === 'soft' ? 'app-glow-soft' : ''),
+ *   };
  *   export default glow;
+ *
+ * `labels` names each knob of the group in the inspector (i18n key, English text); the
+ * inspector reads them from here, so a new knob edits no shared label list.
  *
  * A handler is called only for a node or section whose style SETS one of its group's knobs,
  * so a stored app (which sets none) resolves exactly as before. It writes inline style into
@@ -21,6 +27,8 @@ import { extensionKnobGroups } from './catalogSnapshot.generated.json';
 import type { InlineStyle, StyleKnobs } from './styleResolver.types';
 
 export interface StyleKnobHandler {
+    /** What the inspector calls each knob of the group: knob → [i18n key, English]. */
+    labels?: Readonly<Record<string, readonly [string, string]>>;
     /** A component node's style. */
     node?: (s: StyleKnobs, style: InlineStyle) => string;
     /** A section's style (only for a group granted to the section's list). */
@@ -47,7 +55,10 @@ type HandlerModules = Record<string, { default: StyleKnobHandler }>;
  */
 function handlerModules(): HandlerModules {
     try {
-        return import.meta.glob<{ default: StyleKnobHandler }>(['./styleKnobs/*.ts', '!./styleKnobs/*.test.ts'], { eager: true });
+        // No type argument on the call, on purpose: vitest keeps a transformed module on disk
+        // between runs unless its text holds the call exactly as `import.meta.glob(`, and a
+        // kept copy would not see a file added to the folder.
+        return import.meta.glob(['./styleKnobs/*.ts', '!./styleKnobs/*.test.ts'], { eager: true }) as Record<string, { default: StyleKnobHandler }>;
     } catch {
         return {};
     }
@@ -96,3 +107,17 @@ export const STYLE_KNOB_HANDLERS: readonly RegisteredHandler[] = collectStyleKno
     handlerModules(),
     extensionKnobGroups as readonly KnobGroup[],
 );
+
+/** The inspector labels of the knobs of `handlers`: only for a knob of the handler's own group. */
+export function collectStyleKnobLabels(handlers: readonly RegisteredHandler[]): Record<string, [string, string]> {
+    const out: Record<string, [string, string]> = {};
+    for (const { knobs, handler } of handlers) {
+        for (const knob of knobs) {
+            const label = handler.labels && Object.hasOwn(handler.labels, knob) ? handler.labels[knob] : undefined;
+            if (label) out[knob] = [label[0], label[1]];
+        }
+    }
+    return out;
+}
+
+export const STYLE_KNOB_LABELS: Readonly<Record<string, [string, string]>> = collectStyleKnobLabels(STYLE_KNOB_HANDLERS);

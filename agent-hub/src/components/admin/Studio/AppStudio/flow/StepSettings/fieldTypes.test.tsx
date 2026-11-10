@@ -38,7 +38,7 @@ describe('step field types: a control is one file', () => {
         expect(() => buildFieldControls({ './fieldTypes/other.tsx': { default: shout } })).toThrow(/its own type/);
     });
 
-    it('ships no control yet, so every type StepField knows draws as before', () => {
+    it('no shipped control takes over a type StepField draws itself, and an unregistered type has none', () => {
         expect(fieldControlFor('zzShout')).toBe(null);
         for (const type of BUILT_IN_FIELD_TYPES) expect(fieldControlFor(type)).toBe(null);
     });
