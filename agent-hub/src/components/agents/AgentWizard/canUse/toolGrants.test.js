@@ -435,7 +435,7 @@ describe('toolRows', () => {
         const rows = toolRows({
             ...base,
             enabledIntegrations: ['gmail'],
-            toolsConfig: { youtrack: { actions: [] } },
+            toolsConfig: { youtrack: { actions: ['youtrack_create_issue'] } },
         });
         expect(rows.map(r => r.appId)).toEqual(['gmail', 'youtrack']);
     });
@@ -447,6 +447,30 @@ describe('toolRows', () => {
             toolsConfig: { automations: { a1: {} }, datatables: { t1: {} } },
         });
         expect(rows).toEqual([]);
+    });
+
+    // De eerste curatie schrijft `{actions: []}` voor elke app die de kiezer nooit kon tonen. Zo'n app staat ook op
+    // app-niveau UIT: beide poorten weigeren, dus de agent heeft er niets van en de kaart tekent er geen rij voor.
+    it('tekent geen rij voor een opgeslagen weigering van een app die óók uit staat', () => {
+        const rows = toolRows({
+            ...base,
+            enabledIntegrations: ['gmail'],
+            toolsConfig: { gmail: { actions: ['gmail_search'] }, 'google-drive': { actions: [] }, youtrack: { actions: [] } },
+        });
+        expect(rows.map(r => r.appId)).toEqual(['gmail']);
+    });
+
+    it('houdt de rij van een app die AAN staat, ook met nul acties', () => {
+        const rows = toolRows({ ...base, enabledIntegrations: ['gmail'], toolsConfig: { gmail: { actions: [] } } });
+        expect(rows.map(r => r.appId)).toEqual(['gmail']);
+        expect(rows[0].grantedCount).toBe(0);
+    });
+
+    it('houdt de rij van een app die uit staat maar WEL iets gegund kreeg, en alles onder legacy null', () => {
+        const granted = toolRows({ ...base, enabledIntegrations: [], toolsConfig: { gmail: { actions: ['gmail_search'] }, youtrack: { confirm: 'ask' } } });
+        expect(granted.map(r => r.appId)).toEqual(['gmail', 'youtrack']);
+        const legacy = toolRows({ ...base, enabledIntegrations: null, apps: null, catalogState: READ.ERROR, toolsConfig: { gmail: { actions: [] } } });
+        expect(legacy.map(r => r.appId)).toEqual(['gmail']);
     });
 });
 

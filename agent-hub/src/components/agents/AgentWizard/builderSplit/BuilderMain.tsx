@@ -1,6 +1,7 @@
 import AgentHero from './AgentHero';
 import { AGENT_TAB_IDS } from './AgentEditorHeader';
 import BuilderConfigPanel from './BuilderConfigPanel';
+import { CHOOSER_SECTION, chooserRequest } from '../canUse/toolChooser';
 import { CanUseTabPanel, TestTabPanel, UsedByTabPanel } from './BuilderTabPanels';
 import type { NavigateFn } from './editorTypes';
 import type { RelativeTimeInput } from '@/hooks/useRelativeTime';
@@ -72,7 +73,7 @@ export default function BuilderMain({ t, ro, rel, user, locale, onNavigate, s, a
                     ro={ro} t={t} agent={agent}
                     flushNow={flushNow}
                     actionBarRef={s.actionBarRef} tiers={tiers} selectedTier={s.selectedTier} updateModel={actions.updateModel}
-                    enabledIntegrationCount={derived.enabledIntegrationCount} appsPickerOpen={s.appsPickerOpen} setAppsPickerOpen={s.setAppsPickerOpen}
+                    enabledIntegrationCount={derived.enabledIntegrationCount} onBrowseApps={() => canUse.openChooser(chooserRequest(CHOOSER_SECTION.APPS))}
                     uploadDocCount={uploadDocCount} setKnowledgeOpen={s.setKnowledgeOpen}
                     strictKnowledge={s.strictKnowledge} onStrictKnowledgeChange={actions.onStrictKnowledgeChange}
                     attachedSkillIds={s.attachedSkillIds} skillPickerOpen={s.skillPickerOpen} setSkillPickerOpen={s.setSkillPickerOpen}
@@ -83,7 +84,6 @@ export default function BuilderMain({ t, ro, rel, user, locale, onNavigate, s, a
                     allSkills={allSkills} setAllSkills={boot.setAllSkills} automations={boot.automations}
                     skillSearch={s.skillSearch} setSkillSearch={s.setSkillSearch} toggleSkill={actions.toggleSkill}
                     setAttachedSkillIds={s.setAttachedSkillIds} patchConfig={actions.patchConfig}
-                    availableIntegrations={derived.availableIntegrations} enabledIntegrations={s.enabledIntegrations} toggleIntegration={actions.toggleIntegration}
                     refining={s.refining} instructionsEditing={s.instructionsEditing} setInstructionsEditing={s.setInstructionsEditing}
                     instructionsTextareaRef={s.instructionsTextareaRef} instructions={s.instructions} updateInstructions={actions.updateInstructions}
                 />
