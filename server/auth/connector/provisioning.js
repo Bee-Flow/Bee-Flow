@@ -205,6 +205,57 @@ async function rotateTenantKey(orgId) {
     return key;
 }
 
+/**
+ * One Nextcloud account has one user per organisation: does a user of this
+ * organisation already hold the uid (under another e-mail address)? Then no
+ * second one is created; the health row says so.
+ * @param {OrgRow} org
+ * @param {string} ncUid
+ */
+async function ncUidIsHeld(org, ncUid) {
+    const holder = ncUid ? await userStore.getUserByNcUid(org.id, ncUid) : null;
+    if (!holder) return false;
+    log.warn(`[connectorBootstrap] NC admin not created for org=${org.id}: user ${holder.id} already holds that Nextcloud uid under another e-mail address`);
+    orgHealth.problem('bootstrap.admin_provision_failed', {
+        orgId: org.id, source: 'connectorBootstrap',
+        meta: { reason: 'nc_uid_taken' },
+    });
+    return true;
+}
+
+/**
+ * Create the NC admin user of an org; null when it cannot be created (the uid
+ * is held by another user, the seat cap, the id is taken).
+ * @param {OrgRow} org
+ * @param {{ ncAdminEmail: string, ncAdminUid: string, ncAdminDisplayName?: string|null }} admin
+ */
+async function createOrgAdminUser(org, { ncAdminEmail, ncAdminUid, ncAdminDisplayName }) {
+    if (await ncUidIsHeld(org, ncAdminUid)) return null;
+    const userId = ncUserId(org.id, ncAdminUid, { lowercase: true, fallback: 'nc' });
+    const r = await userStore.createUserWithSeatCheck({
+        id: userId,
+        username: ncAdminEmail,
+        email: ncAdminEmail,
+        displayName: ncAdminDisplayName || ncAdminUid,
+        role: 'user',
+        orgRole: 'org_admin',
+        organizationId: org.id,
+        ncUid: ncAdminUid,
+        provider: 'nextcloud_connector',
+        autoProvisioned: true,
+        status: 'active',
+    }, { strict: false });
+    if (!r.created) {
+        log.warn(`[connectorBootstrap] could not create NC admin for org=${org.id} reason=${r.reason}`);
+        orgHealth.problem('bootstrap.admin_provision_failed', {
+            orgId: org.id, source: 'connectorBootstrap',
+            meta: { reason: r.reason },
+        });
+        return null;
+    }
+    return await userStore.getUser(userId);
+}
+
 // Promote / create the NC admin user inside an org. Used by the fresh-org
 // branch and the approval handler.
 /**
@@ -213,31 +264,7 @@ async function rotateTenantKey(orgId) {
  */
 async function ensureOrgAdminUser(org, { ncAdminEmail, ncAdminUid, ncAdminDisplayName }) {
     let user = await userStore.getUserByEmail(ncAdminEmail);
-    if (!user) {
-        const userId = ncUserId(org.id, ncAdminUid, { lowercase: true, fallback: 'nc' });
-        const r = await userStore.createUserWithSeatCheck({
-            id: userId,
-            username: ncAdminEmail,
-            email: ncAdminEmail,
-            displayName: ncAdminDisplayName || ncAdminUid,
-            role: 'user',
-            orgRole: 'org_admin',
-            organizationId: org.id,
-            ncUid: ncAdminUid,
-            provider: 'nextcloud_connector',
-            autoProvisioned: true,
-            status: 'active',
-        }, { strict: false });
-        if (!r.created) {
-            log.warn(`[connectorBootstrap] could not create NC admin for org=${org.id} reason=${r.reason}`);
-            orgHealth.problem('bootstrap.admin_provision_failed', {
-                orgId: org.id, source: 'connectorBootstrap',
-                meta: { reason: r.reason },
-            });
-            return null;
-        }
-        return await userStore.getUser(userId);
-    }
+    if (!user) return createOrgAdminUser(org, { ncAdminEmail, ncAdminUid, ncAdminDisplayName });
     if (user.organizationId && user.organizationId !== org.id) {
         const userOrg = await userStore.getOrganization(user.organizationId);
         if (!userOrg) {

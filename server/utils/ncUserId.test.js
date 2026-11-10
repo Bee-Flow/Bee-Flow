@@ -97,3 +97,22 @@ test('an empty uid takes the fallback', () => {
     assert.equal(ncUserId('org1', null), 'nc_org1_user');
     assert.equal(ncUserId('org1', undefined, { fallback: 'nc' }), 'nc_org1_nc');
 });
+
+test('a plain uid is never the slug of another uid: one that ends like a hashed slug gets a hash too', () => {
+    const dotted = ncUserId('org1', 'john.doe');
+    const lookalike = `john-doe-${sha8('john.doe')}`;
+    assert.equal(dotted, `nc_org1_${lookalike}`);
+    assert.equal(ncUserId('org1', lookalike), `nc_org1_${lookalike}-${sha8(lookalike)}`);
+    assert.notEqual(ncUserId('org1', lookalike), dotted);
+    // The hash alone (a uid of other characters only) and a uid that is 8 hex characters.
+    const bare = sha8('@@@');
+    assert.equal(ncUserId('org1', '@@@'), `nc_org1_${bare}`);
+    assert.equal(ncUserId('org1', bare), `nc_org1_${bare}-${sha8(bare)}`);
+    // A long look-alike still fits in 40 characters.
+    const long = `${'a'.repeat(31)}-deadbeef`;
+    assert.equal(long.length, 40);
+    assert.equal(ncUserSlug(long), `${'a'.repeat(31)}-${sha8(long)}`);
+    // Upper-case hex and a longer last part are no hash tail.
+    assert.equal(ncUserSlug('john-doe-30F69670'), 'john-doe-30F69670');
+    assert.equal(ncUserSlug('john-doe-30f696701'), 'john-doe-30f696701');
+});

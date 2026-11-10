@@ -160,11 +160,36 @@ async function _provisioningGate(req, org, orgId, payload) {
 }
 
 /**
+ * One Nextcloud account has one Bee Flow user per organisation. The token's
+ * address found no user; when a user of this organisation already holds the
+ * token's uid, that user is the account (its address differs until the sync
+ * brings the new one over) and no second user is created. Returns a reject
+ * outcome, or null to continue.
+ */
+async function _ncUidHolderGate(req, orgId, ncUid) {
+    if (!ncUid) return null;
+    const holder = await userStore.getUserByNcUid(orgId, ncUid);
+    if (!holder) return null;
+    log.warn(`[ConnectorJWT] auto-provision refused for org ${orgId}: user ${holder.id} already holds the Nextcloud uid of this sign-in under another e-mail address`);
+    orgHealth.problem('auth.provision_failed', {
+        orgId, source: 'connectorJwt', req,
+        meta: { lastUserId: holder.id, reason: 'nc_uid_taken' },
+    });
+    return reject(409, {
+        error: 'Your Nextcloud account is already linked to a Bee Flow account under another e-mail address. Try again in a few minutes; if this message stays, ask your Bee Flow administrator.',
+        code: 'nc_user_id_conflict',
+    });
+}
+
+/**
  * Create the user (seat check included). Returns reject (seat cap / pending
- * approval / the id is taken), fail (HttpError 500 provision_failed) or ok(user).
+ * approval / the uid or the id is taken), fail (HttpError 500 provision_failed)
+ * or ok(user).
  */
 async function _autoProvision(req, org, orgId, payload, reqNcUid) {
     const ncUid = reqNcUid;
+    const held = await _ncUidHolderGate(req, orgId, ncUid);
+    if (held) return held;
     const status = (org.nc_new_user_default_status === 'pending') ? 'pending' : 'active';
     const userId = ncUserId(orgId, ncUid || payload.email);
     const defaultOrgRole = resolveDefaultNcUserOrgRole(org);

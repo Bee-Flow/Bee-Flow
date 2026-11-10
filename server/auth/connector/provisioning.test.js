@@ -31,7 +31,7 @@ const fx = {
 };
 
 // Users and orgs for the ensureOrgAdminUser (nc_uid) tests.
-const state = { usersByEmail: new Map(), usersById: new Map(), orgs: new Map(), updates: [] };
+const state = { usersByEmail: new Map(), usersById: new Map(), orgs: new Map(), updates: [], creates: [] };
 
 function callsOf(name) {
     return fx.calls.filter(c => c[0] === name);
@@ -52,7 +52,8 @@ const MOCKS = {
         getUser: async (id) => state.usersById.get(id) || null,
         getOrganization: async (id) => state.orgs.get(id) || null,
         updateUser: async (id, updates) => { state.updates.push({ id, updates }); },
-        createUserWithSeatCheck: async () => ({ created: true }),
+        getUserByNcUid: async (orgId, ncUid) => [...state.usersById.values()].find(u => u.organizationId === orgId && u.nc_uid === ncUid) || null,
+        createUserWithSeatCheck: async (data) => { state.creates.push(data); state.usersById.set(data.id, { ...data, nc_uid: data.ncUid }); return { created: true }; },
     },
     '../../stores/configStore': {
         getConfig: async () => null,
@@ -277,6 +278,7 @@ beforeEach(() => {
     state.usersById.clear();
     state.orgs.clear();
     state.updates.length = 0;
+    state.creates.length = 0;
 });
 
 test('an existing snake_case nc_uid is never overwritten by a re-bootstrap', async () => {
@@ -316,6 +318,41 @@ test('orgRole is still repaired on re-bootstrap (the fix must not freeze other u
     });
     assert.equal(state.updates.length, 1);
     assert.deepEqual(state.updates[0].updates, { orgRole: 'org_admin' });
+});
+
+// ═══ ensureOrgAdminUser: one user per Nextcloud account ═════════════
+
+test('an admin whose address has no user yet is created with the id of the uid', async () => {
+    const user = await helpers.ensureOrgAdminUser(ORG, { ncAdminEmail: EMAIL, ncAdminUid: 'Root', ncAdminDisplayName: 'Root' });
+    assert.equal(state.creates.length, 1);
+    assert.equal(state.creates[0].id, 'nc_org-1_root');
+    assert.equal(state.creates[0].ncUid, 'Root');
+    assert.equal(user.id, 'nc_org-1_root');
+});
+
+test('an admin whose uid is held by a user of the organisation under another address gets no second user', async () => {
+    // The row carries an id in the shape `nc_<org>_<uid with dashes>`.
+    for (const [id, uid] of [['nc_org-1_john-doe', 'john.doe'], ['nc_org-1_root', 'root']]) {
+        fx.calls.length = 0;
+        state.usersById.clear();
+        state.creates.length = 0;
+        state.usersById.set(id, { id, email: 'old@example.com', organizationId: ORG.id, nc_uid: uid, provider: 'nextcloud_connector' });
+        const user = await helpers.ensureOrgAdminUser(ORG, { ncAdminEmail: 'new@example.com', ncAdminUid: uid });
+        assert.equal(user, null, uid);
+        assert.deepEqual(state.creates, [], uid);
+        assert.deepEqual(state.updates, [], uid);
+        const problems = callsOf('problem');
+        assert.equal(problems.length, 1, uid);
+        assert.equal(problems[0][1], 'bootstrap.admin_provision_failed');
+        assert.equal(problems[0][2].meta.reason, 'nc_uid_taken');
+    }
+});
+
+test('the same uid in another organisation does not stand in the way', async () => {
+    state.usersById.set('nc_org-2_john-doe', { id: 'nc_org-2_john-doe', email: 'old@example.com', organizationId: 'org-2', nc_uid: 'john.doe' });
+    const user = await helpers.ensureOrgAdminUser(ORG, { ncAdminEmail: 'new@example.com', ncAdminUid: 'john.doe' });
+    assert.equal(state.creates.length, 1);
+    assert.ok(user);
 });
 
 test('resolveProvisioningMode fails closed to pairing_only when the stored mode cannot be read, even on an open-by-default host', async () => {

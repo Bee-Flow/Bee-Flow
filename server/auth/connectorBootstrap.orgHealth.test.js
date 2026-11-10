@@ -50,6 +50,7 @@ const MOCKS = {
         retargetNcVerification: async (id) => { fx.calls.push(['retargetNcVerification', id]); return fx.sendResult; },
         getPendingNcBinding: async () => fx.pendingRow,
         getUserByEmail: async () => fx.userByEmail || null,
+        getUserByNcUid: async () => null,
         findUnboundOrgByEmailDomain: async () => (fx.unboundOrg === undefined ? { id: 'org-v' } : fx.unboundOrg),
         // Fresh-org branch: a concurrent bootstrap won the insert (fx.raceOrg).
         createOrganization: async (o) => {
