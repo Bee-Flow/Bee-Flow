@@ -9,6 +9,41 @@ The Nextcloud App Store reads the entry whose heading matches `<version>` in `ap
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-11-10
+
+### Changed, read before updating
+- **A new install connects to nothing until an administrator chooses.** After installing, a Nextcloud administrator opens Bee Flow and chooses where it runs: Bee Flow Cloud or your own server. Until that choice nothing is sent to any Bee Flow server and nothing is created anywhere. Everybody else who opens Bee Flow in the meantime reads "Bee Flow is not set up yet. Ask your Nextcloud administrator to open Bee Flow and choose where it runs."
+- **"Bee Flow server" (`BEEFLOW_API_BASE_URL`) has no default and accepts the word `cloud`.** Leave it empty and the administrator chooses after installing. Fill it in only to fix the choice at install time: the URL of your own server, or the word `cloud` for Bee Flow Cloud. A value given there cannot be changed from inside Nextcloud. The address `https://server.beeflow.nl` in that field is not a choice by itself; for Bee Flow Cloud type `cloud`.
+- **An install that is connected keeps its server.** There is nothing to do after the update, and the connector does not register again.
+- **An install that never finished connecting shows the picker.** An administrator opens Bee Flow and chooses the server. A code that was e-mailed before the update cannot be entered any more; a new one is sent after the choice.
+- **An install with a pasted tenant key and no server address needs one click.** When `BEEFLOW_TENANT_KEY` was filled in at install without a server address, an administrator opens Bee Flow and chooses the server; the key is then taken into use as it is. A pasted key next to the Cloud address keeps working without a step.
+- **Install-time values are changed by registering the app again.** The deploy options at install, or `occ app_api:app:register bee_flow <daemon> --env NAME=VALUE`, set them, and Nextcloud passes the same values again on every update. To change one, run `occ app_api:app:unregister bee_flow` (without `--rm-data`, so the data volume with your binding is kept) and register again with the new `--env` values. The options added in this release take a value on an existing install the same way.
+- **Going back to 1.7.0 doubles push triggers.** This version registers its webhook rows in a form the older one does not recognise, so the older one adds a second set and automations fire twice until the connector is updated again.
+
+### Added
+- **The setup page checks a server before it is chosen.** On a first choice it asks the address for its health first. When no Bee Flow server answers there, nothing is saved and nothing is sent, and the page says which it was: server unreachable or certificate not trusted. Before you press Connect the page shows what connecting sends and to which host: the names and e-mail addresses of the Nextcloud's administrators, its address, instance id and version. After Connect it reports the outcome: connected to your organisation, a code was e-mailed, or the failure. Server unreachable, certificate not trusted, version mismatch and pairing code required are named, also in Dutch.
+- **A pairing code can be entered together with the choice of a self-hosted server**, so a Nextcloud joins an existing organisation in one step.
+- **"No change (keep the current connection)" in the settings form.** It is the default of the form under Administration → Artificial Intelligence → Bee Flow, and with it selected the form asks for nothing. A server counts as chosen there once an administrator changes the deployment mode or the server address; the web app URL alone never chooses one. The form's description says what choosing a server sends, and a first choice made there checks the address in the same way as the setup page.
+- **A self-hosted Bee Flow server with a certificate from your own certificate authority** (`BEEFLOW_SERVER_CA_CERT`). Give the PEM certificate or chain, or the path of a PEM file inside the container. It is added to the default certificate authorities and used for the connection to the Bee Flow server only; certificate verification stays on. A certificate that does not verify is reported as "certificate not trusted", with the name of this option.
+- **An outbound proxy for the connection to the Bee Flow server** (`HTTPS_PROXY`, `NO_PROXY`). The proxy only tunnels: the server's certificate is still verified end to end. Nextcloud is always reached directly. The log shows the proxy's host and port, never its credentials, and when the proxy cannot be reached the Bee Flow server is reported unreachable; there is no fallback to a direct connection.
+- **Five advanced options can be set at install.** `BEEFLOW_NC_PROXY_MAX_BODY_MB` (100, 0 means no cap), `BEEFLOW_NC_PROXY_MAX_INFLIGHT_MB` (512, 0 means no cap), `BEEFLOW_UPSTREAM_HEADERS_TIMEOUT_MS` (60000, 0 means off), `LOG_LEVEL` (info) and `BEEFLOW_SIG_SKEW_SECONDS` (300, between 30 and 900). Left blank, the connector's default applies; a value the connector cannot use is ignored.
+- **An account without an e-mail address gets a clear page.** Bee Flow needs an e-mail address for every user. An account without one reads "Your Nextcloud account has no e-mail address" with where to add it, in English or Dutch. Setup and the administrator pages work without an address.
+- **The diagnostics show push triggers and the organisation.** `setup/diagnostics` reports whether the webhook rows are registered, how many deliveries arrived since the connector started and when the last one came in, the name of the organisation the connector is linked to, and the last failure to connect with its code. `setup/status` reports what made the choice of server.
+
+### Changed
+- **Push triggers no longer need Nextcloud to reach its own public address.** Nextcloud delivers them to the connector through AppAPI (directly or through HaRP), so they also work on a Nextcloud that cannot call its own public name, and `allow_local_remote_servers` is not needed for them. Rows registered by an earlier version are rewritten in place the first time the connector registers after the update. Nextcloud waits three seconds for the answer to a delivery; the connector answers within two and finishes forwarding afterwards. A failed delivery shows in `nextcloud.log` as `Webhook(<id>) call failed`.
+- **The App Store listing says what the app requires**: AppAPI with a Docker deploy daemon, HaRP recommended. It cannot be installed on managed or shared hosting without Docker.
+- **A first choice stays when connecting fails.** When the server answered the check but connecting then fails (it asks for a pairing code, for example), the connector stays on that server and shows the failure with what to do. A switch away from a working server still goes back to that server when the new one does not connect.
+- **The setup page does not change a server that is fixed at install time**, and says so.
+- **Messages name your server and the setup page.** When the Bee Flow server or Nextcloud cannot be reached, the message names the server that is configured instead of a fixed host. When Nextcloud cannot be reached from Bee Flow Cloud, it says that Cloud needs a Nextcloud reachable from the internet (directly or through a tunnel, entered as public Nextcloud URL on the setup page), and that a Nextcloud on a private network needs a self-hosted Bee Flow server that is allowed to reach it. Instructions for an install-time value point to the deploy options or to registering the app again.
+- **The Talk bot is registered once a Bee Flow server is known**, not before.
+- **A public Nextcloud URL saved before a server is chosen is kept** and used when the server is chosen.
+- **`BEEFLOW_JWT_TTL_SECONDS` is kept between 30 and 900 seconds.**
+
+### Fixed
+- **The setup page shows the server in use.** The badge and the selected card follow the server the connector talks to, whatever made the choice.
+- **Choosing a server, or "Clear organisation cache", on an install with a tenant key given at install keeps that key** and completes instead of going back.
+
 ## [1.7.0] - 2026-11-10
 
 ### Changed
