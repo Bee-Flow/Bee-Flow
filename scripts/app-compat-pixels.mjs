@@ -240,7 +240,8 @@ async function renderJob(render, job, app, bundle) {
         viewport: job.viewport,
         deps: {
             readBundle: async () => bundle,
-            capture: ({ doc, assets, viewport }) => _test.captureDocument({ doc: prepareDocument(doc, job.theme), assets, viewport }),
+            // Everything the service hands its capture (fonts and assets fulfilment, crop target) passes on.
+            capture: (args) => _test.captureDocument({ ...args, doc: prepareDocument(args.doc, job.theme) }),
             dbQuery: async () => ({ rows: [] }),
             getDataset: async (datasetId) => app.datasets.find((d) => d && d.id === datasetId) || null,
             runDataset: async () => ({ rows: [] }),

@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import useTranslation from '@/hooks/useTranslation';
 import Modal from '@/components/shared/Modal';
 import { useRuntime } from '../RuntimeContext';
+import { initialModalOpen } from '../initialUi';
 import { gridClasses, gridColumnStyle, spaceSteps } from '../styleResolver';
 import type { ModalPlacement, ModalSize } from '@/components/shared/Modal';
 import type { NodeStyle } from '../../inspector/appDefinition';
@@ -70,9 +71,9 @@ const MODAL_PLACEMENT: Record<string, ModalPlacement> = { center: 'center', left
 
 export default function AppModal({ node, children }: NodeProps<ModalNodeProps>) {
     const { t } = useTranslation();
-    const { mode } = useRuntime();
+    const { mode, initialUi } = useRuntime();
     const { title = null, size = 'md', placement = 'center', triggerLabel = null } = node.props || {};
-    const [open, setOpen] = useState(false);
+    const [open, setOpen] = useState(() => mode === 'run' && initialModalOpen(initialUi, node.id));
 
     useEffect(() => subscribe(node.id, setOpen), [node.id]);
 

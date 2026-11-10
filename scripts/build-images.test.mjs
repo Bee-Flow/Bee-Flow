@@ -363,6 +363,20 @@ mkdir -p dist-runtime && : > dist-runtime/app-runtime.mjs && echo css > dist-run
     assert.ok(!fs.existsSync(path.join(dir, 'server/vendor/app-runtime/app-runtime.mjs')));
 });
 
+test('the runtime bundle stages its two files and the self-hosted fonts next to them', { skip }, (t) => {
+    const npm = `#!/usr/bin/env bash
+[[ "$1 $2" == "run build:runtime" ]] || exit 1
+mkdir -p dist-runtime && echo js > dist-runtime/app-runtime.mjs && echo css > dist-runtime/app-runtime.css
+`;
+    const dir = stageRepo(t, { 'agent-hub/node_modules/.keep': '', 'agent-hub/public/fonts/inter/Inter-Variable.woff2': 'font' });
+    fakeNpm(dir, npm);
+    const res = run(dir, 'scripts/stage-server-context.sh', ['runtime-bundle']);
+    assert.strictEqual(res.status, 0, res.stderr + res.stdout);
+    const out = path.join(dir, 'server/vendor/app-runtime');
+    assert.deepStrictEqual(fs.readdirSync(out).sort(), ['app-runtime.css', 'app-runtime.mjs', 'fonts']);
+    assert.strictEqual(fs.readFileSync(path.join(out, 'fonts/inter/Inter-Variable.woff2'), 'utf8'), 'font');
+});
+
 test('"all" runs both parts even when the first fails, and still fails', { skip }, (t) => {
     const dir = stageRepo(t);
     const res = run(dir, 'scripts/stage-server-context.sh', ['all']);

@@ -9,6 +9,7 @@
  * @typedef {{
  *   ok: boolean, unavailable?: boolean, reason?: string, code?: string, png?: Buffer, dataUrl?: string,
  *   width?: number, height?: number, mountError?: string|null, pageErrors?: string[], consoleErrors?: string[],
+ *   cropNote?: string,
  * }} ScreenshotResult
  */
 

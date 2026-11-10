@@ -11,6 +11,7 @@ const { BASE_FILTER_OPS: FILTER_OPS, BASE_AGG_FNS: AGG_FNS, BASE_DATE_BUCKETS: D
 const { MAX_SEED_RECORDS } = require('./schemaFragments');
 const { MAX_QUERY_LIMIT } = require('./queryDataArgs');
 const { HOOK_TARGETS } = require('../mailboxHookPolicy.mts');
+const { SCREENSHOT_VIEW_PROPERTIES } = require('./screenshotView.mts');
 
 /** @type {Array<{ type: string, function: { name: string, description: string, parameters: object } }>} */
 const TOOL_SCHEMAS_PART_2 = [
@@ -353,6 +354,7 @@ const TOOL_SCHEMAS_PART_2 = [
                     screenId: { type: 'string', description: 'Screen to render (scr_…); omit for the app\'s home screen.' },
                     asRole: { type: 'string', description: 'Render — and read data — as this role key (from the data model\'s roles), exactly as a member with that role would see the screen.' },
                     viewport: { type: 'string', enum: ['desktop', 'tablet', 'mobile'], description: 'Screen width to render at (default desktop). Shoot "mobile" once per screen before finalizing: a 12-column row that reads well on a laptop wraps into a stack on a phone, and that is where cramped or clipped layouts show up.' },
+                    ...SCREENSHOT_VIEW_PROPERTIES,
                 },
             },
         },
