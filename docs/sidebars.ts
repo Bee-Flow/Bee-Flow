@@ -41,6 +41,7 @@ const sidebars: SidebarsConfig = {
           items: [
             'connector/deploy-daemon',
             'connector/setup-picker',
+            'connector/own-server',
             'connector/troubleshooting',
           ],
         },

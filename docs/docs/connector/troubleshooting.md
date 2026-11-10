@@ -119,14 +119,39 @@ Cause: your Bee Flow server can't reach your Nextcloud at the URL it was told to
 
 Fix: enter your **public** Nextcloud URL under **Public Nextcloud URL** on the [setup page](setup-picker.md#where-the-setup-page-is). To give it at install time instead, register the app with `--env BEEFLOW_NC_PUBLIC_URL=https://cloud.example.com`.
 
-Bee Flow Cloud needs a Nextcloud that is reachable from the internet, directly or through a tunnel. A Nextcloud on a private network needs a self-hosted Bee Flow server that can reach it.
-
 Verify from outside (your laptop / a phone on cellular):
 
 ```bash
 curl "https://cloud.example.com/status.php"
 # → {"installed":true,...}
 ```
+
+If your Nextcloud has no address that is reachable from outside, see the next section.
+
+## Nextcloud is not reachable from the internet {#not-reachable}
+
+Symptom: connecting fails with `nc_not_publicly_reachable`, and the setup page says that your Bee Flow server cannot reach this Nextcloud. No organisation is created and nothing is connected.
+
+Cause: the connection runs in both directions. The connector calls the Bee Flow server, and the Bee Flow server calls your Nextcloud back: once while connecting, to check that the Nextcloud is the one it says it is, and afterwards for files, mail, calendar and user sync. A Nextcloud that only has an address on a private network (a LAN, a VPN, `192.168.x.x`, `10.x.x.x`) cannot be called from outside that network.
+
+| Your Bee Flow server | What works |
+|---|---|
+| **Bee Flow Cloud** | Needs a Nextcloud it can reach from the internet: directly, or through a tunnel or reverse proxy that gives it a public HTTPS address. Enter that address as **Public Nextcloud URL** on the setup page. A tunnel makes your Nextcloud reachable from the internet; if that is what you want to avoid, Bee Flow Cloud is not the fit for this Nextcloud. |
+| **Your own Bee Flow server** | Works with a private Nextcloud when the server can reach it over your network **and** is allowed to call private addresses (below). See [Bee Flow on your own server next to Nextcloud](own-server.md). |
+
+**Allowing private addresses on your own server.** A Bee Flow server refuses to call private and loopback addresses unless you set this in the environment of the server container and restart it:
+
+```bash
+NEXTCLOUD_ALLOW_PRIVATE_HOSTS=1
+```
+
+:::warning This setting applies to the whole server
+It is not per organisation and not per Nextcloud. With it, the server calls private and loopback addresses for every Nextcloud address that anybody on that server enters, including the address a user saves next to an app password. Set it only on a server whose users you trust, and only when your Nextcloud really is on a private network. Cloud metadata addresses stay refused either way.
+:::
+
+The server container must also be able to resolve the Nextcloud's hostname and route to it.
+
+**Linking the two.** A self-hosted server links a Nextcloud by pairing code: generate one in Bee Flow (**Settings → Organisation → Pair a new Nextcloud**) and enter it on the setup page.
 
 ## Bootstrap "failed" state in heartbeat
 
@@ -147,7 +172,7 @@ With HaRP's tunnel the connector listens on a Unix socket and has no TCP port, s
 |---|---|---|
 | `saas_unreachable` | Connector can't reach the Bee Flow server that was chosen | Test `curl <your Bee Flow server>/api/health` from inside the container (the remediation text names the address). Allow that hostname in your egress firewall; behind a forward proxy, register the app with `--env HTTPS_PROXY=…`. |
 | `saas_cert_untrusted` | The certificate of the Bee Flow server does not verify | A certificate from a public certificate authority, or the install-time value `BEEFLOW_SERVER_CA_CERT` with your own authority's PEM certificate. |
-| `nc_not_publicly_reachable` | The Bee Flow server couldn't reach your Nextcloud (also shown for the server answer `invalid_callback_url`) | Set the public Nextcloud URL (see section above). A Nextcloud on a private network needs a self-hosted Bee Flow server that can reach it. |
+| `nc_not_publicly_reachable` | The Bee Flow server couldn't reach your Nextcloud (also shown for the server answer `invalid_callback_url`) | Set the public Nextcloud URL (see section above). A Nextcloud on a private network needs a self-hosted Bee Flow server that can reach it and is allowed to: see [Nextcloud is not reachable from the internet](#not-reachable). |
 | `pairing_required` | The server does not create an organisation by itself | Generate a pairing code in Bee Flow (**Settings → Organisation → Pair a new Nextcloud**) and enter it on the setup page. |
 | `version_mismatch` | The server and the connector do not work together in these versions, or the address is the web app's instead of the server's | Update both; check the address. |
 | `admin_lookup_failed` | No admin user found in NC's `admin` group | `occ user:add --group admin <uid>`, then restart the connector container. |

@@ -120,10 +120,16 @@ server in the Bee Flow connector (the Nextcloud ExApp):
    only offer on secure (HTTPS) pages. On a Nextcloud served over plain HTTP the embedded sign-in
    fails; put Nextcloud behind TLS.
    :::
-4. Press **Connect**. The connector first asks your server for `/api/health`; when it does not
+4. Generate a pairing code in Bee Flow (**Settings → Organisation → Pair a new Nextcloud**) and
+   enter it on the same page. A self-hosted server links a Nextcloud by pairing code by default: it
+   does not create an organisation for a Nextcloud it does not know.
+5. Press **Connect**. The connector first asks your server for `/api/health`; when it does not
    answer, nothing is saved and nothing is sent. Then it connects, and the page reports the outcome.
-   When your server asks for a pairing code, generate one in Bee Flow (**Settings → Organisation →
-   Pair a new Nextcloud**) and enter it on the same page.
+
+The same route, with what the host needs and what stays yours to look after, is in
+[Bee Flow on your own server next to Nextcloud](../connector/own-server.md). A Nextcloud that has
+only a private address needs one server setting:
+[Nextcloud is not reachable from the internet](../connector/troubleshooting.md#not-reachable).
 
 The connector has no default server: a Nextcloud talks to your server only because an administrator
 chose it, and to nothing before that. To fix the choice at install time, give the install-time value

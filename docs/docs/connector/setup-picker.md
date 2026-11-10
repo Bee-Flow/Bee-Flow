@@ -34,9 +34,13 @@ In this state:
 Open **Bee Flow** from the Nextcloud top bar as an administrator and pick a card:
 
 - **Bee Flow Cloud.** No fields.
-- **Self-hosted server.** The URL of your Bee Flow server, optionally the URL of its web app, and
-  optionally a pairing code (`XXXX-XXXX`) to join an organisation that already exists on that server.
-  The card links to the [self-hosting guide](../self-hosting/docker-compose.md).
+- **Self-hosted server.** The URL of your Bee Flow server, optionally the URL of its web app, and a
+  pairing code (`XXXX-XXXX`) that joins this Nextcloud to an organisation on that server. A
+  self-hosted server links a Nextcloud by pairing code by default: generate one in Bee Flow under
+  **Settings → Organisation → Pair a new Nextcloud**. Without a code such a server answers
+  "Pairing code required" for a Nextcloud it does not know.
+  The card links to the [self-hosting guide](../self-hosting/docker-compose.md); the whole route is
+  in [Bee Flow on your own server next to Nextcloud](own-server.md).
 
 Before you press **Connect**, the page shows what connecting sends and to which host:
 

@@ -83,7 +83,9 @@ The connector trusts AppAPI's shared secret on every inbound `/init`, `/enabled`
 
 ## Deeper reading
 
+- [Deploy daemon and reverse proxy](deploy-daemon.md) — which daemon applies to which install, and the `/exapps/` rule HaRP needs.
 - [Choose where Bee Flow runs](setup-picker.md) — the setup page, the install-time value, and how the server is resolved.
+- [Bee Flow on your own server next to Nextcloud](own-server.md) — who installs what, what the host needs, and where it does not work.
 - [Architecture](architecture.md) — full request-flow diagrams, lifecycle, HMAC spec.
 - [Permissions & scopes](permissions.md) — exactly what data leaves your tenant.
 - [Privacy & data flow](privacy.md) — what's sent to the Bee Flow service and when.

@@ -121,7 +121,7 @@ If your Nextcloud is reached via a public URL (e.g. `https://cloud.example.com`)
     --env BEEFLOW_NC_PUBLIC_URL=https://cloud.example.com
   ```
 
-Bee Flow Cloud needs a Nextcloud that is reachable from the internet, directly or through a tunnel. A Nextcloud on a private network needs a self-hosted Bee Flow server that can reach it.
+Bee Flow Cloud needs a Nextcloud that is reachable from the internet, directly or through a tunnel. A Nextcloud on a private network needs a self-hosted Bee Flow server that can reach it and is allowed to call private addresses: see [Nextcloud is not reachable from the internet](../connector/troubleshooting.md#not-reachable). Without a reachable address connecting fails; no organisation is created.
 
 ### 2d. HaRP (recommended) {#2d-harp}
 
@@ -346,7 +346,8 @@ recordings in the meantime.
 
 Open **Bee Flow** from the top bar as a Nextcloud administrator. The setup page offers two cards:
 **Bee Flow Cloud** (hosted by Bee Flow B.V. in the Netherlands) or **Self-hosted server** (the URL of
-[your own Bee Flow server](../self-hosting/docker-compose.md), with an optional pairing code).
+your own Bee Flow server and a pairing code generated there; see
+[Bee Flow on your own server next to Nextcloud](../connector/own-server.md)).
 
 Before you press **Connect**, the page shows what connecting sends and to which host: the names and
 e-mail addresses of the Nextcloud's administrators, its address, instance id and version. Nothing is
