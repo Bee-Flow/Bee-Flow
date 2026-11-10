@@ -9,9 +9,20 @@ describe('signedOutScreen', () => {
         expect(signedOutScreen({ ncOnboardingState: null, diagnosticsState: 'failed', embedded: false })).toBe('login');
     });
 
-    it('inside Nextcloud: never the sign-in form', () => {
+    it("inside Nextcloud: the state of the connector's sign-in first", () => {
         expect(signedOutScreen({ ncOnboardingState: null, diagnosticsState: null, embedded: true })).toBe('nc_sign_in_failed');
         expect(signedOutScreen({ ncOnboardingState: null, diagnosticsState: 'failed', embedded: true })).toBe('nc_sign_in_failed');
+        expect(signedOutScreen({ ncOnboardingState: null, diagnosticsState: null, embedded: true, formRequested: false })).toBe('nc_sign_in_failed');
+    });
+
+    it('inside Nextcloud: the sign-in form once the person asks for it', () => {
+        expect(signedOutScreen({ ncOnboardingState: null, diagnosticsState: null, embedded: true, formRequested: true })).toBe('login');
+        expect(signedOutScreen({ ncOnboardingState: null, diagnosticsState: 'failed', embedded: true, formRequested: true })).toBe('login');
+    });
+
+    it('asking for the form does not replace the pending and e-mail verification screens', () => {
+        expect(signedOutScreen({ ncOnboardingState: 'pending', diagnosticsState: null, embedded: true, formRequested: true })).toBe('nc_onboarding_pending');
+        expect(signedOutScreen({ ncOnboardingState: null, diagnosticsState: 'awaiting_email_verification', embedded: true, formRequested: true })).toBe('email_verification');
     });
 
     it('pending onboarding: the setup-in-progress screen', () => {

@@ -1375,6 +1375,7 @@
   "app.nc_sign_in_failed_body": "Binnen Nextcloud meldt Bee Flow je aan met je Nextcloud-account. Dat is voor deze pagina niet gebeurd. Probeer het opnieuw; blijft deze melding staan, vraag het dan aan je beheerder.",
   "app.nc_sign_in_failed_retry": "Opnieuw proberen",
   "app.nc_sign_in_failed_title": "Niet aangemeld bij Bee Flow",
+  "app.nc_sign_in_failed_use_account": "Aanmelden met een Bee Flow-account",
   "app.nc_verify_your_admin": "je e-mail",
   "app.retry_connection": "Verbinding opnieuw proberen",
   "app.server_unavailable_desc": "Kon geen verbinding maken met de Bee Flow-server. Controleer of de server draait en probeer het opnieuw.",

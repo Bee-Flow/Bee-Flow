@@ -1,10 +1,12 @@
 /**
- * Without a session inside Nextcloud the person gets the state of the
- * connector's sign-in, never the password form; standalone the form stays.
+ * Without a session inside Nextcloud the person first gets the state of the
+ * connector's sign-in, with the sign-in form one action away; standalone the
+ * form is the screen.
  */
 import React, { Suspense } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { SignedOutGate } from './SignedOutGate';
 
@@ -46,6 +48,32 @@ describe('SignedOutGate inside Nextcloud', () => {
         gate({ embedded: true, signInRefusal: { status: 403, code: null, message: 'Ask your Bee Flow administrator to invite you.' } });
         expect(await screen.findByText('Ask your Bee Flow administrator to invite you.')).toBeTruthy();
         expect(document.querySelector('input')).toBeNull();
+    });
+
+    it('a person with a Bee Flow account of their own reaches the sign-in form', async () => {
+        const message = 'Your Bee Flow account is not a member of the organisation this Nextcloud is connected to. Sign in to Bee Flow directly, or ask an admin of that organisation to add your account.';
+        gate({ embedded: true, signInRefusal: { status: 403, code: 'NC_ORG_MISMATCH', message } });
+        expect(await screen.findByText(message)).toBeTruthy();
+        expect(passwordField()).toBeNull();
+        await userEvent.click(screen.getByRole('button', { name: 'Sign in with a Bee Flow account' }));
+        await vi.waitFor(() => expect(passwordField()).not.toBeNull(), { timeout: 10_000 });
+        expect(screen.queryByRole('heading', { name: 'Not signed in to Bee Flow' })).toBeNull();
+    });
+
+    it('the action is there without an answer from the server too (after signing out)', async () => {
+        gate({ embedded: true, signInRefusal: null });
+        expect(await screen.findByRole('button', { name: 'Sign in with a Bee Flow account' })).toBeTruthy();
+    });
+
+    it('pending onboarding and e-mail verification do not offer it', async () => {
+        const pending = gate({ embedded: true, ncOnboardingState: 'pending' });
+        expect(await screen.findByRole('heading', { name: 'Setup in progress' })).toBeTruthy();
+        expect(screen.queryByRole('button', { name: 'Sign in with a Bee Flow account' })).toBeNull();
+        pending.unmount();
+        gate({ embedded: true, bootstrapDiagnostics: { state: 'awaiting_email_verification' } });
+        await vi.waitFor(() => expect(document.querySelector('input')).not.toBeNull(), { timeout: 10_000 });
+        expect(screen.queryByRole('button', { name: 'Sign in with a Bee Flow account' })).toBeNull();
+        expect(passwordField()).toBeNull();
     });
 });
 

@@ -18,6 +18,16 @@ describe('NcSignInFailedScreen', () => {
         expect(onRetry).toHaveBeenCalledTimes(1);
     });
 
+    it('offers the sign-in form as a second action when the caller wires one', async () => {
+        const onUseAccount = vi.fn();
+        const { unmount } = render(<NcSignInFailedScreen onRetry={() => {}} onUseAccount={onUseAccount} />);
+        await userEvent.click(screen.getByRole('button', { name: 'Sign in with a Bee Flow account' }));
+        expect(onUseAccount).toHaveBeenCalledTimes(1);
+        unmount();
+        render(<NcSignInFailedScreen onRetry={() => {}} />);
+        expect(screen.queryByRole('button', { name: 'Sign in with a Bee Flow account' })).toBeNull();
+    });
+
     it("shows the server's sentence when it answered one", () => {
         render(<NcSignInFailedScreen message="Ask your Bee Flow administrator to invite you." onRetry={() => {}} />);
         expect(screen.getByText('Ask your Bee Flow administrator to invite you.')).toBeTruthy();
@@ -31,6 +41,7 @@ describe('the texts of the signed-out Nextcloud screens', () => {
             'app.nc_sign_in_failed_title',
             'app.nc_sign_in_failed_body',
             'app.nc_sign_in_failed_retry',
+            'app.nc_sign_in_failed_use_account',
             'integ.nc_onboarding_pending_setup_in_progress',
             'integ.nc_onboarding_pending_refresh',
         ]) {

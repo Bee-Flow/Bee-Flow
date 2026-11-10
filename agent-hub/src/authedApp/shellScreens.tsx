@@ -122,10 +122,11 @@ export function ServerUnavailableScreen({ useOrgBrand, orgLogo, bootstrapDiagnos
 }
 
 // Inside Nextcloud, without a session: the connector signs the person in with
-// their Nextcloud account, so there is no form to offer. `message` is the
+// their Nextcloud account, so the screen explains and retries. `message` is the
 // server's own sentence when it answered one for this person (not invited yet,
-// awaiting approval, no seat left).
-export function NcSignInFailedScreen({ message, onRetry }: { message?: string | null; onRetry: () => void }) {
+// awaiting approval, no seat left). `onUseAccount` opens the sign-in form for a
+// person who has a Bee Flow account of their own.
+export function NcSignInFailedScreen({ message, onRetry, onUseAccount }: { message?: string | null; onRetry: () => void; onUseAccount?: () => void }) {
     const { t } = useTranslation();
     return (
         <div className="h-screen flex items-center justify-center p-4 [background:linear-gradient(160deg,var(--bg-primary)_0%,var(--bg-secondary)_50%,var(--bg-tertiary)_100%)]">
@@ -144,6 +145,14 @@ export function NcSignInFailedScreen({ message, onRetry }: { message?: string | 
                     >
                         {t('app.nc_sign_in_failed_retry', 'Try again')}
                     </button>
+                    {onUseAccount && (
+                        <button
+                            onClick={onUseAccount}
+                            className="w-full mt-3 py-2.5 rounded-xl font-medium text-sm border transition-colors hover:bg-[var(--bg-tertiary)] [border-color:var(--border-default)] [color:var(--text-primary)]!"
+                        >
+                            {t('app.nc_sign_in_failed_use_account', 'Sign in with a Bee Flow account')}
+                        </button>
+                    )}
                 </div>
             </div>
         </div>

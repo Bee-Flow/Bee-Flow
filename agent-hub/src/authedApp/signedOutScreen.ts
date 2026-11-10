@@ -2,15 +2,17 @@
  * Which full-screen state a person without a session gets.
  *
  * Standalone that is the sign-in form. Inside Nextcloud (the connector embed)
- * the person never signs in here: the connector vouches for their Nextcloud
- * account on every request, and they have no Bee Flow password. So the embed
- * never offers the form; it says what the connector's sign-in answered:
+ * the connector vouches for the person's Nextcloud account on every request,
+ * so the embed first says what the connector's sign-in answered:
  *
  *   - the organisation's administrator has not finished the setup wizard
  *     (/auth/user answers 403 NC_ONBOARDING_PENDING): the "setup in progress"
  *     screen;
  *   - the connector is waiting for the e-mail verification code: that screen;
- *   - anything else: a short explanation with a retry.
+ *   - anything else: a short explanation with a retry, and a second action
+ *     that opens the sign-in form (`formRequested`). A person with a Bee Flow
+ *     account of their own signs in with it there; the session that sign-in
+ *     hands to the embed takes precedence over the connector's.
  */
 type SignedOutScreen = 'nc_onboarding_pending' | 'email_verification' | 'nc_sign_in_failed' | 'login';
 
@@ -40,12 +42,14 @@ export async function readSignInRefusal(res: Pick<Response, 'status' | 'json'>):
     return { status: res.status, code, message: PERSONAL_STATUSES.has(res.status) ? text : null };
 }
 
-export function signedOutScreen({ ncOnboardingState, diagnosticsState, embedded }: {
+export function signedOutScreen({ ncOnboardingState, diagnosticsState, embedded, formRequested = false }: {
     ncOnboardingState: string | null;
     diagnosticsState?: string | null;
     embedded: boolean;
+    /** The person chose "Sign in with a Bee Flow account" on the embed's screen. */
+    formRequested?: boolean;
 }): SignedOutScreen {
     if (ncOnboardingState === 'pending') return 'nc_onboarding_pending';
     if (diagnosticsState === 'awaiting_email_verification') return 'email_verification';
-    return embedded ? 'nc_sign_in_failed' : 'login';
+    return embedded && !formRequested ? 'nc_sign_in_failed' : 'login';
 }
