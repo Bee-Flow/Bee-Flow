@@ -2,7 +2,7 @@ import { AlertTriangle } from 'lucide-react';
 import { SetStateAction, Dispatch, useMemo, useRef } from 'react';
 import RowRuleBuilder from './RowRuleBuilder';
 import { compareSourceLabel, parseRowRule, ruleFields } from './rowRuleModel';
-import { draftToRule, seedDraft } from './rowRuleSet';
+import { EVERY_ROW, draftToRule, seedDraft } from './rowRuleSet';
 import useTranslation from '@/hooks/useTranslation';
 import type { TranslateFn } from '@/hooks/useTranslation';
 import { insertAtCursor } from '@/utils/bindingHelpers';
@@ -27,11 +27,14 @@ interface RowRuleSectionProps {
     noAccess: boolean;
     table: DataModelTable | null;
     validation: { ok: boolean; error: string | null | undefined; warning?: string };
+    /** Changing or deleting with a rule per action: without a rule it follows the rule for seeing. */
+    followsRead?: boolean;
 }
 
 /** One rule on screen: the pickers or the raw box, the switch between them, and what there is to say about it. */
-export default function RowRuleSection({ t, draft, setDraft, noAccess, table, validation }: RowRuleSectionProps) {
+export default function RowRuleSection({ t, draft, setDraft, noAccess, table, validation, followsRead = false }: RowRuleSectionProps) {
     const rule = draftToRule(draft);
+    const everyRow = followsRead && rule.trim() === EVERY_ROW;
     const canSwitchToBuilder = useMemo(
         () => draft.mode === 'raw' && parseRowRule(draft.raw, table).ok,
         [draft.mode, draft.raw, table],
@@ -69,10 +72,11 @@ export default function RowRuleSection({ t, draft, setDraft, noAccess, table, va
                 join={draft.join}
                 conditions={draft.conditions}
                 disabled={noAccess}
+                onEveryRow={followsRead ? () => setDraft({ mode: 'raw', join: 'and', conditions: [], raw: EVERY_ROW }) : undefined}
                 onChange={(next) => setDraft((prev) => ({ ...prev, ...next }))} />
         ) : (
             <>
-                {draft.raw.trim() && !canSwitchToBuilder ? (
+                {draft.raw.trim() && !canSwitchToBuilder && !everyRow ? (
                     <span className="text-[11px] text-[var(--text-tertiary)]">
                         {t('studio_apps_edit.rule_editor.stays_text', 'This rule does more than the picker can show, so it stays as text — it is saved exactly as written.')}
                     </span>
@@ -85,6 +89,16 @@ export default function RowRuleSection({ t, draft, setDraft, noAccess, table, va
                     onChange={(raw) => setDraft((prev) => ({ ...prev, raw }))} />
             </>
         )}
+        {followsRead && !rule.trim() ? (
+            <span data-testid="row-rule-follows-read" className="text-[11px] text-[var(--text-tertiary)]">
+                {t('studio_apps_rowrules.follows_read', 'No rule of its own: this action follows the rule for seeing.')}
+            </span>
+        ) : null}
+        {everyRow ? (
+            <span data-testid="row-rule-every-row" className="text-[11px] text-[var(--text-tertiary)]">
+                {t('studio_apps_rowrules.every_row_set', 'Written as true: no row rule narrows this action. Empty it to follow the rule for seeing again.')}
+            </span>
+        ) : null}
         {rule.includes('viewer.groups') ? (
             <span className="text-[11px] text-[var(--text-tertiary)]">
                 {t('studio_apps_rowrules.groups_hint', 'Groups are compared by their id, so the column has to hold a group id.')}

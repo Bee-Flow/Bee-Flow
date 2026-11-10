@@ -18,7 +18,7 @@ const assert = require('node:assert/strict');
 const Database = require('better-sqlite3');
 
 const accessFilter = require('./accessFilter');
-const { VIEWER_ATTRIBUTES, ROW_FILTER_FEATURES } = require('./dataModel/vocabulary');
+const { VIEWER_ATTRIBUTES } = require('./dataModel/vocabulary');
 
 const SQLITE = { dialect: 'sqlite' };
 const PG = { dialect: 'pg' };
@@ -172,12 +172,47 @@ test('an attribute the viewer does not have is a warning, as it only ever matche
 
 // ── 3. a rule per operation ─────────────────────────────────────────
 
-test('each operation gets its own rule; one that is left out has none', () => {
+test('each operation gets its own rule; one that is left out follows the rule for read', () => {
     const rule = { read: 'record.status == "open"', update: 'record.team in viewer.groups' };
     const viewer = { id: 'u1', groups: ['g1'] };
-    assert.deepEqual(compile(rule, viewer, 'read'), { where: '(1=1) AND (("status" = ?))', params: ['open'] });
+    const read = { where: '(1=1) AND (("status" = ?))', params: ['open'] };
+    assert.deepEqual(compile(rule, viewer, 'read'), read);
     assert.deepEqual(compile(rule, viewer, 'update'), { where: '(1=1) AND (("team" IN (?)))', params: ['g1'] });
-    assert.deepEqual(compile(rule, viewer, 'delete'), { where: '1=1', params: [] });
+    assert.deepEqual(compile(rule, viewer, 'delete'), read);
+    // Only read: changing and deleting are narrowed the same way, as with one rule.
+    for (const action of ['read', 'update', 'delete']) {
+        assert.deepEqual(compile({ read: 'record.status == "open"' }, viewer, action), compile('record.status == "open"', viewer, action), action);
+    }
+    // An operation written without a rule counts as left out: it is not widened.
+    assert.deepEqual(compile({ read: 'record.status == "open"', delete: null }, viewer, 'delete'), read);
+    assert.deepEqual(compile({ read: 'record.status == "open"', delete: '' }, viewer, 'delete'), read);
+});
+
+test('every row for one operation is written out: the rule true', () => {
+    const rule = { read: 'record.status == "open"', delete: 'true' };
+    const viewer = { id: 'u1' };
+    assert.equal(accessFilter.validateRowFilter(rule, tableWith()).ok, true);
+    assert.deepEqual(compile(rule, viewer, 'delete'), { where: '(1=1) AND (?)', params: [1] });
+    assert.deepEqual(compile(rule, viewer, 'delete', PG), { where: '(1=1) AND (?)', params: [true] });
+    assert.deepEqual(compile(rule, viewer, 'update'), compile(rule, viewer, 'read'));
+    // Run against a real SQLite: true matches every row, the inherited rule only the open one.
+    const db = new Database(':memory:');
+    db.exec('CREATE TABLE t (id TEXT, status TEXT)');
+    db.prepare('INSERT INTO t VALUES (?, ?), (?, ?)').run('a', 'open', 'b', 'done');
+    const count = (action) => {
+        const { where, params } = compile(rule, viewer, action);
+        return db.prepare(`SELECT count(*) AS n FROM t WHERE ${where}`).get(...params).n;
+    };
+    assert.equal(count('delete'), 2);
+    assert.equal(count('update'), 1);
+    db.close();
+});
+
+test('without a rule for read, an operation that is left out has none either', () => {
+    const rule = { update: 'record.status == "open"' };
+    const viewer = { id: 'u1' };
+    assert.deepEqual(compile(rule, viewer, 'read'), { where: '1=1', params: [] });
+    assert.deepEqual(compile(rule, viewer, 'delete'), compile(rule, viewer, 'read'));
     assert.deepEqual(compile(rule, viewer, 'delete'), compile(undefined, viewer, 'delete'));
 });
 
@@ -228,11 +263,10 @@ test('errors and warnings of a per-operation entry name their operation', () => 
 
 // ── vocabulary ──────────────────────────────────────────────────────
 
-test('the new attributes and grammar parts are marked with the version they arrived in', () => {
+test('the viewer attributes are the six a rule knows, and only groups is a list', () => {
     const byKey = Object.fromEntries(VIEWER_ATTRIBUTES.map((spec) => [spec.key, spec]));
     assert.deepEqual(Object.keys(byKey), ['id', 'role', 'organizationId', 'orgId', 'email', 'groups']);
-    for (const old of ['id', 'role', 'organizationId']) assert.equal('since' in byKey[old], false, old);
-    for (const added of ['orgId', 'email', 'groups']) assert.equal(byKey[added].since, 3, added);
-    assert.equal(byKey.groups.list, true);
-    assert.deepEqual(ROW_FILTER_FEATURES, { membership: { since: 3 }, perOperation: { since: 3 } });
+    // A data model has no schema version, so no entry carries a mark of its own.
+    for (const spec of VIEWER_ATTRIBUTES) assert.equal('since' in spec, false, spec.key);
+    assert.deepEqual(VIEWER_ATTRIBUTES.filter((spec) => spec.list === true).map((spec) => spec.key), ['groups']);
 });

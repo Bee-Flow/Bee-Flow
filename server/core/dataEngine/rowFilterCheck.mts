@@ -7,7 +7,7 @@
  *
  *   validateRowFilter(ruleOrPerOperation, tableMeta) → { ok, errors }
  *   rowFilterWarnings(ruleOrPerOperation, tableMeta) → string[] (advice, never a refusal)
- *   rowFilterForAction(entry, action) → the rule of one operation, or none
+ *   rowFilterForAction(entry, action) → the rule of one operation (its own, else the read rule), or none
  */
 
 import { createRequire } from 'node:module';
@@ -60,18 +60,27 @@ function isPerOperation(entry: unknown): entry is PerOperation {
     return !!entry && typeof entry === 'object' && !Array.isArray(entry) && typeof (entry as { kind?: unknown }).kind !== 'string';
 }
 
+/** True for what a per-operation entry holds when an operation has no rule of its own. */
+function isUnset(rule: unknown): boolean {
+    return rule === null || rule === undefined || rule === '';
+}
+
 /**
  * The rule of one operation out of a `rowFilters[role]` entry. One rule (a
- * string or an AST) is that rule for every operation; a per-operation object
- * gives the rule under the operation's own key, or none. An object with a key
- * that is not an operation is refused rather than read as "no rule": a typo
- * must not widen a table.
+ * string or an AST) is that rule for every operation. A per-operation object
+ * gives the rule under the operation's own key; an operation it leaves out
+ * follows the rule for `read`, so changing or deleting is never broader than
+ * seeing because a key is missing. An author who wants every row for one
+ * operation writes the rule `true` for it. An object with a key that is not an
+ * operation is refused rather than read as "no rule": a typo must not widen a
+ * table.
  */
 export function rowFilterForAction(entry: unknown, action: string): unknown {
     if (!isPerOperation(entry)) return entry;
     const stray = Object.keys(entry).find((k) => !ROW_FILTER_OPERATIONS.includes(k));
     if (stray !== undefined) throw reject(`"${stray}" is not a row rule operation (${ROW_FILTER_OPERATIONS.join(', ')})`);
-    return Object.hasOwn(entry, action) ? entry[action] : null;
+    if (Object.hasOwn(entry, action) && !isUnset(entry[action])) return entry[action];
+    return Object.hasOwn(entry, 'read') && !isUnset(entry.read) ? entry.read : null;
 }
 
 /**

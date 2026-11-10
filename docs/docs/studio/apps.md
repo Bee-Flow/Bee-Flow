@@ -188,8 +188,10 @@ relations, and set **access**:
     `in`: `record.team in viewer.groups`. All of these are read from the person's
     account on the server at the moment of the query.
   - A rule narrows seeing, changing and deleting alike. To give each its own rule, pick
-    **A rule per action** in the rule editor (stored as `{ read, update, delete }`); an
-    action without a rule is not narrowed by one.
+    **A rule per action** in the rule editor (stored as `{ read, update, delete }`).
+    Changing or deleting without a rule of its own follows the rule for seeing, so it is
+    never wider than seeing because a rule is missing; the rule `true` gives one action
+    every row.
 
 Every app gets its own private database. Records are created with the acting user
 stamped in `created_by`, and all reads/writes are filtered by the role rules — so a

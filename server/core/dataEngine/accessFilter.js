@@ -22,7 +22,9 @@
  * PLUS `AND (rowFilterSql)` when the table declares access.rowFilters[role].
  * That entry is ONE rule (a string or an AST) for read, update and delete alike,
  * or an object `{ read?, update?, delete? }` with a rule per operation; an
- * operation it leaves out has no row rule. One rule compiles exactly as before.
+ * operation it leaves out follows the rule for read (never broader than read
+ * by omission), and `true` is the rule for every row. One rule compiles
+ * exactly as before.
  * The app OWNER is always 'all' and skips row filters (full access).
  * `create` has no rows to filter, so compileAccessFilter THROWS on it; the
  * create permission is answered by assertCanWrite alone.

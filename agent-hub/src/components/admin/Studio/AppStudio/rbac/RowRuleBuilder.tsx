@@ -29,9 +29,11 @@ interface RowRuleBuilderProps {
     conditions?: RuleCondition[];
     disabled?: boolean;
     onChange?: (next: { join: string; conditions: RuleCondition[] }) => void;
+    /** Given for an action that follows the rule for seeing: offers "every row" instead. */
+    onEveryRow?: () => void;
 }
 
-export default function RowRuleBuilder({ table, join = 'and', conditions = [], onChange, disabled = false }: RowRuleBuilderProps) {
+export default function RowRuleBuilder({ table, join = 'and', conditions = [], onChange, onEveryRow, disabled = false }: RowRuleBuilderProps) {
     const { t } = useTranslation();
     const fields = ruleFields(table, t);
     const joins = [
@@ -67,6 +69,16 @@ export default function RowRuleBuilder({ table, join = 'and', conditions = [], o
                     <Plus className="h-3.5 w-3.5" aria-hidden="true" />
                     {t('studio_apps_edit.rule_builder.add_condition', 'Add a condition')}
                 </button>
+                {onEveryRow ? (
+                    <button
+                        type="button"
+                        onClick={onEveryRow}
+                        disabled={disabled}
+                        className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-medium hover:bg-[var(--bg-tertiary)] disabled:opacity-50 border-[var(--border-default)] text-[var(--text-primary)]"
+                    >
+                        {t('studio_apps_rowrules.every_row', 'Every row, whatever the rule for seeing says')}
+                    </button>
+                ) : null}
             </div>
         );
     }

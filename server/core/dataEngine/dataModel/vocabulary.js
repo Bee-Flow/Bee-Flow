@@ -124,8 +124,7 @@ const PUBLIC_ROLE_KEY = 'public';
  * compares with `==` and friends. `resolved: true` is read from the user's own
  * row at use (appStudio/viewerAttributes.mts), never from the request; a path
  * that did not resolve it leaves it out and the rule then matches no row.
- * `since` is the vocabulary version an entry arrived in; an entry without one
- * has always been there.
+ * A data model has no schema version, so nothing here carries a `since` mark.
  *
  *   id               the person's user id (an anonymous visitor: the visitor id)
  *   role             their role in this app
@@ -141,22 +140,16 @@ const VIEWER_ATTRIBUTES = Object.freeze([
     Object.freeze({ key: 'id' }),
     Object.freeze({ key: 'role' }),
     Object.freeze({ key: 'organizationId' }),
-    Object.freeze({ key: 'orgId', resolved: true, since: 3 }),
-    Object.freeze({ key: 'email', resolved: true, since: 3 }),
-    Object.freeze({ key: 'groups', resolved: true, list: true, since: 3 }),
+    Object.freeze({ key: 'orgId', resolved: true }),
+    Object.freeze({ key: 'email', resolved: true }),
+    Object.freeze({ key: 'groups', resolved: true, list: true }),
 ]);
 
 /**
- * The parts of the row rule grammar that arrived after the first version, for
- * whoever stamps a version on a model that uses one.
- *   membership     `record.<field> in viewer.<list attribute>`
- *   perOperation   `rowFilters[role]` as `{ read, update, delete }` instead of one rule
+ * The keys of a per-operation row rule: `rowFilters[role]` as `{ read, update, delete }`
+ * instead of one rule. An operation that is left out follows the rule for `read`, so an
+ * entry is never broader than its read rule by omission; `true` is the rule for "every row".
  */
-const ROW_FILTER_FEATURES = Object.freeze({
-    membership: Object.freeze({ since: 3 }),
-    perOperation: Object.freeze({ since: 3 }),
-});
-/** The keys of a per-operation row rule. */
 const ROW_FILTER_OPERATIONS = Object.freeze(['read', 'update', 'delete']);
 
 const DATA_LIMITS = Object.freeze({
@@ -279,7 +272,6 @@ module.exports = {
     DATATABLE_ID_RE,
     PUBLIC_ROLE_KEY,
     VIEWER_ATTRIBUTES,
-    ROW_FILTER_FEATURES,
     ROW_FILTER_OPERATIONS,
     DATA_LIMITS,
     SYSTEM_COLUMNS,

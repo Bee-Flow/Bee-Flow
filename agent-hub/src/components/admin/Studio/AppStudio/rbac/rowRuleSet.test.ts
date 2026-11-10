@@ -4,7 +4,7 @@ import { describe, it, expect } from 'vitest';
 import { validateRowFilterExpr, VIEWER_LISTS } from './rowFilterSubset';
 import { buildRowRule, conditionProblem, describeRowRule, parseRowRule, retypeCondition, serializeCondition, sourcesForCondition, withSource } from './rowRuleModel';
 import { COMPARE_SOURCES } from './rowRuleModel.constants';
-import { activeSlots, draftToRule, seedRuleSet, storedRule, withPerAction } from './rowRuleSet';
+import { EVERY_ROW, activeSlots, draftToRule, effectiveRule, seedRuleSet, storedRule, withPerAction } from './rowRuleSet';
 import { describeActionRules } from './rowRuleSetWords';
 import type { TranslateFn } from '@/hooks/useTranslation';
 
@@ -146,7 +146,21 @@ describe('one rule, or a rule per action', () => {
         const each = seedRuleSet({ read: 'record.status == "open"', update: 'record.team in viewer.groups' }, table);
         expect(storedRule(withPerAction(each, false, table, 'update'))).toBe('record.team in viewer.groups');
         expect(storedRule(withPerAction(each, false, table))).toBe('record.status == "open"');
-        expect(storedRule(withPerAction(each, false, table, 'delete'))).toBeNull();
+        // Deleting has no rule of its own, so the rule that counts for it is the one for seeing.
+        expect(storedRule(withPerAction(each, false, table, 'delete'))).toBe('record.status == "open"');
+        expect(effectiveRule(each, 'delete')).toBe('record.status == "open"');
+        expect(effectiveRule(each, 'update')).toBe('record.team in viewer.groups');
+    });
+
+    it('an action left out of what is stored follows the rule for seeing on the server, and true frees it', () => {
+        const model = (rule: unknown) => ({ ...table, access: { default: 'app', rowFilters: { member: rule } } });
+        const compile = (rule: unknown, action: string) => gateway.compileAccessFilter(model(rule), 'member', { id: 'u1' }, action, { dialect: 'sqlite' });
+        const stored = storedRule(seedRuleSet({ read: 'record.status == "open"', update: EVERY_ROW }, table));
+        expect(stored).toEqual({ read: 'record.status == "open"', update: 'true' });
+        expect(validateRowFilterExpr(EVERY_ROW, table, t).ok).toBe(true);
+        expect(gateway.validateRowFilter(stored, table)).toEqual({ ok: true, errors: [] });
+        expect(compile(stored, 'delete')).toEqual(compile(stored, 'read'));
+        expect(compile(stored, 'update')).toEqual({ where: '(1=1) AND (?)', params: [1] });
     });
 
     it('says what the rules for changing and deleting come to', () => {
@@ -154,6 +168,12 @@ describe('one rule, or a rule per action', () => {
         const each = seedRuleSet({ read: 'record.status == "open"', update: 'record.team in viewer.groups' }, table);
         expect(describeActionRules(each, all, table, t)).toEqual([
             'They can change only the rows where Team is one of their groups.',
+            'They can delete only the rows the rule for seeing lets through.',
+        ]);
+        // Written free of the rule for seeing: the rule true.
+        const freed = seedRuleSet({ read: 'record.status == "open"', delete: EVERY_ROW }, table);
+        expect(describeActionRules(freed, all, table, t)).toEqual([
+            'They can change only the rows the rule for seeing lets through.',
             'No row rule narrows which rows they can delete.',
         ]);
         const typed = seedRuleSet({ delete: '!(record.team in viewer.groups)' }, table);

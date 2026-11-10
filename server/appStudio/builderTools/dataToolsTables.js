@@ -219,7 +219,7 @@ async function applyUpsertTable(draftWrap, args) {
         return {
             error: `access.rowFilters on "${canonTable.key}" are not expressible as a row filter — fix every error below, then call the tool again.`,
             errors: rowFilterErrors,
-            _fixHint: 'A row filter compares record.<field> / viewer.<attr> / literals with == != < <= > >= combined by && || ! — no function calls, arithmetic or bracket access. viewer has id, role, email, orgId and the list groups; a list only stands in `record.<text field> in viewer.groups`. One string per role, or { read, update, delete } with a string each.',
+            _fixHint: 'A row filter compares record.<field> / viewer.<attr> / literals with == != < <= > >= combined by && || ! — no function calls, arithmetic or bracket access. viewer has id, role, email, orgId and the list groups; a list only stands in `record.<text field> in viewer.groups`. One string per role, or { read, update, delete } with a string each: an operation left out follows read, and `true` gives it every row.',
         };
     }
     const onUnconvertible = args.onUnconvertible === 'clear' ? 'clear' : 'refuse';

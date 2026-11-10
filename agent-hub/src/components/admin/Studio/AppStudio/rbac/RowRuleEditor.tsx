@@ -239,7 +239,7 @@ export default function RowRuleEditor({ appId, onDirtyChange = null }: RowRuleEd
                     {t('studio_apps_rowrules.kept_as_is', 'The rule stored for this role is in a form this screen cannot show. It stays exactly as it is; saving here changes only the access above.')}
                 </span>
             ) : (
-                <RowRuleSection t={t} draft={draft} setDraft={setDraft} noAccess={noAccess} table={table} validation={validation} />
+                <RowRuleSection t={t} draft={draft} setDraft={setDraft} noAccess={noAccess} table={table} validation={validation} followsRead={ruleSet.perAction && action !== 'read'} />
             )}
 
             <RowRuleOutcome t={t} ruleSet={ruleSet} access={access} table={table} roleLabel={roleLabel} tableName={tableName} />

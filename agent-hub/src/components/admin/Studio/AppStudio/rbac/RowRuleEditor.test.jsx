@@ -290,10 +290,11 @@ describe('RowRuleEditor — a rule per action, and the person\'s groups', () => 
         const { getByText, getByRole, getByTestId, getByLabelText } = render(<RowRuleEditor appId="a1" />);
         expect(getByRole('radio', { name: 'A rule per action' }).getAttribute('aria-checked')).toBe('true');
         expect(getByRole('radio', { name: 'Seeing (rule set)' }).getAttribute('aria-checked')).toBe('true');
-        expect(getByTestId('row-rule-outcome').textContent).toMatch(/No row rule narrows which rows they can change\./);
+        expect(getByTestId('row-rule-outcome').textContent).toMatch(/They can change only the rows the rule for seeing lets through\./);
         expect(getByTestId('row-rule-outcome').textContent).toMatch(/They can delete only the rows where Owner is the person opening the app\./);
 
         await user.click(getByRole('radio', { name: 'Changing' }));
+        expect(getByTestId('row-rule-follows-read').textContent).toMatch(/follows the rule for seeing/);
         await user.click(getByText('Add a condition'));
         await user.selectOptions(getByLabelText('Compare with, condition 1'), 'viewer.email');
         await user.click(getByText('Save row access'));
@@ -302,6 +303,27 @@ describe('RowRuleEditor — a rule per action, and the person\'s groups', () => 
         expect(patch.rowFilters).toEqual({ member: {
             read: 'record.status == "open"', update: 'record.owner_id == viewer.email', delete: 'record.owner_id == viewer.id',
         } });
+        expect(gateway.validateRowFilter(patch.rowFilters.member, tasks())).toEqual({ ok: true, errors: [] });
+    });
+
+    it('leaves an action without a rule out, so it follows seeing, and writes every row as true', async () => {
+        const user = userEvent.setup();
+        mockRoles([tasks({ member: { read: 'record.status == "open"' } })]);
+        const { getByText, getByRole, getByTestId, queryByTestId, queryByText } = render(<RowRuleEditor appId="a1" />);
+        // Seeing is the rule the others follow: it gets no "every row" shortcut and no note.
+        expect(queryByTestId('row-rule-follows-read')).toBeNull();
+        expect(queryByText('Every row, whatever the rule for seeing says')).toBeNull();
+        expect(getByTestId('row-rule-outcome').textContent).toMatch(/They can delete only the rows the rule for seeing lets through\./);
+
+        await user.click(getByRole('radio', { name: 'Deleting' }));
+        await user.click(getByText('Every row, whatever the rule for seeing says'));
+        expect(getByTestId('row-rule-every-row')).toBeTruthy();
+        expect(getByTestId('row-rule-outcome').textContent).toMatch(/No row rule narrows which rows they can delete\./);
+        await user.click(getByText('Save row access'));
+        await waitFor(() => expect(saveTableAccess).toHaveBeenCalled());
+        const patch = saveTableAccess.mock.calls[0][1];
+        // Changing stays left out: the server reads that as the rule for seeing.
+        expect(patch.rowFilters).toEqual({ member: { read: 'record.status == "open"', delete: 'true' } });
         expect(gateway.validateRowFilter(patch.rowFilters.member, tasks())).toEqual({ ok: true, errors: [] });
     });
 

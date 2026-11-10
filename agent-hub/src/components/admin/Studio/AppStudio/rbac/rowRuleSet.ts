@@ -7,7 +7,9 @@ import type { RuleTable } from './rowRuleModel.types';
  *
  * The server stores ONE rule (a string) that narrows seeing, changing and
  * deleting alike, or an object `{ read?, update?, delete? }` with a rule per
- * action; an action it leaves out has no row rule. This module is the bridge
+ * action. Changing or deleting that it leaves out follows the rule for seeing,
+ * so neither is ever broader than seeing because a rule is missing; the rule
+ * `true` (EVERY_ROW) says "every row" for one action. This module is the bridge
  * between that stored value and the editor's drafts:
  *
  *   seedRuleSet(stored, table) → the drafts (one, or one per action)
@@ -23,6 +25,8 @@ export type RuleAction = typeof RULE_ACTIONS[number];
 /** The draft being edited: the one rule, or the rule of one action. */
 export type RuleSlot = 'all' | RuleAction;
 export type PerActionRules = Partial<Record<RuleAction, string>>;
+/** The rule that matches every row: how an action is written free of the rule for seeing. */
+export const EVERY_ROW = 'true';
 
 export interface RuleSet {
     /** A rule per action instead of one rule for all three. */
@@ -77,6 +81,14 @@ export function seedRuleSet(stored: unknown, table: RuleTable | null): RuleSet {
     };
 }
 
+/**
+ * The rule that counts for one action of a set with a rule per action: its own,
+ * or the rule for seeing when it has none.
+ */
+export function effectiveRule(set: RuleSet, action: RuleAction): string {
+    return draftToRule(set[action]).trim() || draftToRule(set.read).trim();
+}
+
 /** The drafts that count for what gets saved. */
 export function activeSlots(set: RuleSet): RuleSlot[] {
     return set.perAction ? [...RULE_ACTIONS] : ['all'];
@@ -84,8 +96,8 @@ export function activeSlots(set: RuleSet): RuleSlot[] {
 
 /**
  * What to write to `rowFilters[role]`: the one rule, the rules per action that
- * are not empty, or null when there is none. undefined: leave the stored rule
- * alone (see `kept`).
+ * are not empty (an action without one follows the rule for seeing), or null
+ * when there is none. undefined: leave the stored rule alone (see `kept`).
  */
 export function storedRule(set: RuleSet): string | PerActionRules | null | undefined {
     if (set.kept) return undefined;
@@ -101,9 +113,9 @@ export function storedRule(set: RuleSet): string | PerActionRules | null | undef
 /**
  * Switch between one rule and a rule per action without changing what the
  * rule does at that moment. One rule becomes the same rule for each action
- * (that is what one rule means). Going back keeps the rule of `from`, the
- * action on screen: the other two are dropped, and the editor says which
- * rule it kept by showing it.
+ * (that is what one rule means). Going back keeps the rule that counts for
+ * `from`, the action on screen (its own, or the rule for seeing): the others
+ * are dropped, and the editor says which rule it kept by showing it.
  */
 export function withPerAction(set: RuleSet, perAction: boolean, table: RuleTable | null, from: RuleAction = 'read'): RuleSet {
     if (perAction === set.perAction) return set;
@@ -111,5 +123,5 @@ export function withPerAction(set: RuleSet, perAction: boolean, table: RuleTable
         const rule = draftToRule(set.all);
         return { ...set, perAction: true, kept: false, read: seedDraft(rule, table), update: seedDraft(rule, table), delete: seedDraft(rule, table) };
     }
-    return { ...set, perAction: false, kept: false, all: seedDraft(draftToRule(set[from]), table) };
+    return { ...set, perAction: false, kept: false, all: seedDraft(effectiveRule(set, from), table) };
 }

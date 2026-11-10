@@ -66,7 +66,7 @@ export default function RowRuleScope({ t, ruleSet, action, disabled, onPerAction
                         />
                     </div>
                     <span className="text-[11px] text-[var(--text-tertiary)]">
-                        {t('studio_apps_rowrules.each_hint', 'Each action has its own rule. An action without a rule is not narrowed by one.')}
+                        {t('studio_apps_rowrules.each_hint', 'Each action can have its own rule. Changing or deleting without one follows the rule for seeing.')}
                     </span>
                 </>
             ) : null}
