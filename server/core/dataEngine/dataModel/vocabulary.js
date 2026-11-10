@@ -96,12 +96,54 @@ const RESERVED_DATASET_IDS = Object.freeze(['sys_org_members']);
 // than a SQLite aggregate (there isn't one). They exist because "median first
 // response" is the number an operations dashboard actually reports — an average
 // is skewed by one forgotten ticket.
-const AGG_FNS = Object.freeze(['count', 'sum', 'avg', 'min', 'max', 'p50', 'p90']);
+// countDistinct (COUNT(DISTINCT field)) came after the base: it is appended and marked in vocabularySince.js.
+const AGG_FNS = Object.freeze(['count', 'sum', 'avg', 'min', 'max', 'p50', 'p90', 'countDistinct']);
 const PERCENTILE_FNS = Object.freeze({ p50: 0.5, p90: 0.9 });
 
 // 'hour' makes a busiest-hours histogram expressible; without it the finest
 // grain is a day and that chart degrades to something else entirely.
 const DATE_BUCKETS = Object.freeze(['hour', 'day', 'week', 'month', 'quarter', 'year']);
+
+/**
+ * Aggregate descriptor keys that came after App Studio schema version 2. Each is
+ * optional and absent from a descriptor that does not use it.
+ *   groupBy[].binWidth     a number column folded onto steps of this width
+ *   groupBy[].relatedField group by a column of the row a relation field points
+ *                          at, read under that table's own row rules
+ *   groupFilter            [{ field: <aggregate alias>, op, value: number }]:
+ *                          keep only the groups whose aggregate passes (HAVING).
+ *                          Not called `having`: a stored descriptor carrying a
+ *                          `having` key has always been read without it.
+ */
+const GROUP_FILTER_OPS = Object.freeze(['eq', 'neq', 'gt', 'gte', 'lt', 'lte']);
+// Validity limits of a descriptor (not runtime budgets).
+const AGGREGATE_LIMITS = Object.freeze({
+    MAX_GROUP_FILTERS: 5,
+    MAX_RELATED_GROUP_BY: 3,
+    MAX_BIN_WIDTH: 1_000_000_000,
+});
+
+/**
+ * Reading through a relation, and the columns a record read returns. All
+ * optional, after App Studio schema version 2, and absent from a read that
+ * does not use them:
+ *   expand   [{ field: <relation field>, pick?: [<column of the related table>], as? }]
+ *            the related row of each record, one relation deep, read with a
+ *            second query under the related table's own row rules
+ *   fields   [<column>]: only these columns (and `id`) leave the server
+ *   filter   { field: '<relation field>.<column of the related table>', op, value }
+ * Validity limits of a read (not runtime budgets).
+ */
+const RELATION_READ_LIMITS = Object.freeze({
+    MAX_EXPAND: 5,
+    MAX_EXPAND_PICK: 20,
+    MAX_FIELDS: 100,
+    MAX_RELATION_FILTERS: 5,
+});
+// The column an expansion lands in when the entry names none: <relation field> + this.
+const EXPAND_DEFAULT_SUFFIX = '_record';
+// The key of an expanded row that carries the relation's display value (relation.displayField).
+const EXPAND_LABEL_KEY = '_label';
 
 // Access modes consumed by the RLS gateway. Defined here for a single
 // vocabulary; enforcement lives in the sibling gateway wave.
@@ -352,6 +394,11 @@ module.exports = {
     AGG_FNS,
     PERCENTILE_FNS,
     DATE_BUCKETS,
+    GROUP_FILTER_OPS,
+    AGGREGATE_LIMITS,
+    RELATION_READ_LIMITS,
+    EXPAND_DEFAULT_SUFFIX,
+    EXPAND_LABEL_KEY,
     ACCESS_MODES,
     TABLE_SOURCE_KINDS,
     TABLE_SOURCE_MODES,

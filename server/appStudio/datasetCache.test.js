@@ -269,3 +269,93 @@ test('an inline descriptor (no dataset id) runs live and is never cached', async
     assert.strictEqual(out.rows[0].n, 2, 'bob has 2 rows');
     assert.strictEqual(putCalls.length, 0, 'inline queries are never memoised (no dataset FK)');
 });
+
+// ── groupBy through a relation (relatedField) ───────────────────────
+// The related table is read under the viewer's own predicate on it; the saved
+// dataset partitions by that predicate and is invalidated by a write to it.
+
+memdb.exec(`CREATE TABLE customers (id TEXT PRIMARY KEY, created_at TEXT, updated_at TEXT, created_by TEXT, org_id TEXT, name TEXT, segment TEXT)`);
+memdb.exec(`CREATE TABLE orders (id TEXT PRIMARY KEY, created_at TEXT, updated_at TEXT, created_by TEXT, org_id TEXT, amount INTEGER, customer TEXT)`);
+memdb.prepare('INSERT INTO customers (id, created_by, name, segment) VALUES (?, ?, ?, ?), (?, ?, ?, ?)').run('cus_a', 'u9', 'Alpha', 'retail', 'cus_b', 'u9', 'Bravo', 'wholesale');
+for (const [id, by, amount, customer] of [['o1', 'alice', 10, 'cus_a'], ['o2', 'alice', 20, 'cus_b'], ['o3', 'alice', 5, 'cus_a'], ['o4', 'bob', 99, 'cus_a']]) {
+    memdb.prepare('INSERT INTO orders (id, created_by, amount, customer) VALUES (?, ?, ?, ?)').run(id, by, amount, customer);
+}
+const REL_MODEL = {
+    roles: [{ key: 'member' }],
+    tables: [
+        {
+            id: 'tbl_ord01', key: 'orders',
+            fields: [{ id: 'f3', key: 'amount', type: 'number' }, { id: 'f4', key: 'customer', type: 'relation', relation: { table: 'tbl_cust01' } }],
+            access: { default: 'none', roles: { member: { read: 'own' } } },
+        },
+        {
+            id: 'tbl_cust01', key: 'customers',
+            fields: [{ id: 'f1', key: 'name', type: 'text' }, { id: 'f2', key: 'segment', type: 'text' }],
+            access: { default: 'none', roles: { member: { read: 'all' } }, rowFilters: { member: 'record.segment == viewer.segment' } },
+        },
+    ],
+};
+const BY_NAME = { groupBy: [{ field: 'customer', relatedField: 'name', as: 'who' }], aggregates: [{ fn: 'sum', field: 'amount', as: 'total' }], orderBy: [{ field: 'total', dir: 'desc' }] };
+
+test('the read runner groups through a relation under the related table\'s row rules', async () => {
+    const dataReadRunner = require('./dataReadRunner');
+    const ctxFor = (role, v) => ({ model: REL_MODEL, role, viewer: v, app: APP, ownerScope: 'owner-1' });
+    const orders = REL_MODEL.tables[0];
+    const retail = await dataReadRunner.runInlineAggregate(ctxFor('member', { id: 'alice', segment: 'retail' }), orders, BY_NAME);
+    // alice's own orders; Bravo is wholesale, so its order lands in the empty group, never by name.
+    assert.deepStrictEqual(retail.rows, [{ who: null, total: 20 }, { who: 'Alpha', total: 15 }]);
+    const owner = await dataReadRunner.runInlineAggregate(ctxFor('owner', { id: 'owner-1' }), orders, { ...BY_NAME, groupFilter: [{ field: 'total', op: 'gt', value: 50 }] });
+    assert.deepStrictEqual(owner.rows, [{ who: 'Alpha', total: 114 }]);
+});
+
+test('a saved dataset through a relation partitions by the related predicate and its version', async () => {
+    const dataset = { id: 'ds-rel', tableId: 'tbl_ord01', descriptor: BY_NAME };
+    const plain = { id: 'ds-plain', tableId: 'tbl_ord01', descriptor: { groupBy: [{ field: 'customer' }], aggregates: [{ fn: 'count', as: 'n' }] } };
+    dataVersions = { orders: 3, customers: 4 };
+    await datasetCache.runDataset(APP, REL_MODEL, dataset, { id: 'alice', role: 'member', segment: 'retail' });
+    await datasetCache.runDataset(APP, REL_MODEL, dataset, { id: 'alice', role: 'member', segment: 'wholesale' });
+    await datasetCache.runDataset(APP, REL_MODEL, plain, { id: 'alice', role: 'member', segment: 'retail' });
+    const [retail, wholesale, flat] = putCalls;
+    assert.notStrictEqual(retail.viewerScopeKey, wholesale.viewerScopeKey, 'another related predicate is another partition');
+    assert.strictEqual(retail.dataVersion, 7, 'a write to either table moves the version');
+    assert.strictEqual(flat.viewerScopeKey, datasetCache.computeViewerScopeKey('member', { where: '"created_by" = ?', params: ['alice'] }), 'without a relation: the key it always had');
+    assert.strictEqual(flat.dataVersion, 3, 'without a relation: the version of the table alone');
+});
+
+// ── Record reads through a relation, through the shared read runner ──
+
+test('the read runner expands a relation under the related table\'s row rules, in a list and in a batch', async () => {
+    const dataReadRunner = require('./dataReadRunner');
+    const ctxFor = (role, v) => ({ model: REL_MODEL, role, viewer: v, app: APP, ownerScope: 'owner-1' });
+    const orders = REL_MODEL.tables[0];
+    const read = { expand: [{ field: 'customer', pick: ['name'] }], fields: ['amount'], orderBy: [{ field: 'amount', dir: 'asc' }] };
+    const retail = await dataReadRunner.runRecordList(ctxFor('member', { id: 'alice', segment: 'retail' }), orders, read);
+    // alice's own orders; Bravo is wholesale, so o2 expands to null and its name never leaves.
+    assert.deepStrictEqual(retail.records, [
+        { id: 'o3', amount: 5, customer_record: { id: 'cus_a', name: 'Alpha' } },
+        { id: 'o1', amount: 10, customer_record: { id: 'cus_a', name: 'Alpha' } },
+        { id: 'o2', amount: 20, customer_record: null },
+    ]);
+    const filtered = await dataReadRunner.runRecordList(ctxFor('member', { id: 'alice', segment: 'retail' }), orders, { filters: [{ field: 'customer.name', op: 'eq', value: 'Bravo' }] });
+    assert.deepStrictEqual(filtered.records, [], 'a filter on a value of a row the viewer may not read matches nothing');
+    const [batched, plain] = await dataReadRunner.runBatch(ctxFor('owner', { id: 'owner-1' }), [
+        { id: 'a', kind: 'records', tableId: 'tbl_ord01', ...read, filters: [{ field: 'customer.segment', op: 'eq', value: 'wholesale' }] },
+        { id: 'b', kind: 'records', tableId: 'tbl_ord01', limit: 1 },
+    ]);
+    assert.deepStrictEqual(batched.data.records, [{ id: 'o2', amount: 20, customer_record: { id: 'cus_b', name: 'Bravo' } }]);
+    assert.deepStrictEqual(Object.keys(plain.data.records[0]).sort(), ['amount', 'created_at', 'created_by', 'customer', 'id', 'org_id', 'updated_at'], 'a read without expand or fields returns the row as it always did');
+});
+
+test('the read runner pages an expanded list: the probe row is never looked up', async () => {
+    const dataReadRunner = require('./dataReadRunner');
+    const ctx = { model: REL_MODEL, role: 'owner', viewer: { id: 'owner-1' }, app: APP, ownerScope: 'owner-1' };
+    const before = dbCalls.length;
+    const first = await dataReadRunner.runRecordList(ctx, REL_MODEL.tables[0], { expand: [{ field: 'customer', pick: ['name'] }], sort: [{ field: 'amount', dir: 'desc' }], limit: 1 });
+    assert.deepStrictEqual(first.records.map((r) => [r.id, r.customer_record.name]), [['o4', 'Alpha']]);
+    assert.ok(first.nextCursor);
+    const lookups = dbCalls.slice(before).filter((c) => c.sql.includes('FROM "customers"'));
+    assert.strictEqual(lookups.length, 1);
+    assert.deepStrictEqual(lookups[0].params, ['cus_a'], 'only the customer of the row on the page');
+    const second = await dataReadRunner.runRecordList(ctx, REL_MODEL.tables[0], { expand: [{ field: 'customer', pick: ['name'] }], sort: [{ field: 'amount', dir: 'desc' }], limit: 1, cursor: first.nextCursor });
+    assert.deepStrictEqual(second.records.map((r) => [r.id, r.customer_record.name]), [['o2', 'Bravo']]);
+});

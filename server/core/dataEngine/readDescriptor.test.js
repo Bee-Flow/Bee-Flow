@@ -58,3 +58,11 @@ test('match and search travel only when the read carries them; an aggregate take
     // A caller that resolved the search itself wins, and its "no search" leaves none.
     assert.strictEqual(recordListDescriptor(asked, { search: undefined }).search, undefined);
 });
+
+test('groupFilter travels on an aggregate when the read has one, never on a record list', () => {
+    const groupFilter = [{ field: 'n', op: 'gt', value: 1 }];
+    assert.deepStrictEqual(aggregateDescriptor({ ...BINDING, groupFilter }).groupFilter, groupFilter);
+    assert.ok(!('groupFilter' in aggregateDescriptor(BINDING)));
+    assert.ok(!('groupFilter' in aggregateDescriptor({ ...BINDING, groupFilter: null })));
+    assert.ok(!('groupFilter' in recordListDescriptor({ ...BINDING, groupFilter })));
+});

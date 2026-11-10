@@ -88,7 +88,7 @@ const { DATA_LIMITS } = require('../appStudio/dataModel');
 const { perUserRateLimit } = require('../utils/perUserRateLimit');
 const { issueVisitorToken, verifyVisitorToken } = require('../auth/publicShareToken');
 const { resolveRequestedStep, sanitizeBag, sanitizeErrorScope, stepNotes, stepFailureExtras } = require('../appStudio/actionSequence');
-const { bestEffort, fallback } = require('../utils/bestEffort');
+const { bestEffort } = require('../utils/bestEffort');
 const { optionalListQuery } = require('./studio/appDataContext');
 const { attachmentResponseHeaders } = require('./studioAppAttachmentHeaders.mts');
 const uploadDelete = require('./studioAppUploadDeleteToken.mts');
@@ -414,14 +414,8 @@ router.get('/:token/data/tables/:tableId/records', ipLimiter, tokenLimiter, requ
         if (!ctx) return undefined;
         if (!rlsGateway.canRead(ctx.table, ctx.role)) return res.status(403).json({ error: 'Forbidden' });
 
-        let filters;
-        let sort;
-        if (typeof req.query.filter === 'string' && req.query.filter) { try { filters = JSON.parse(req.query.filter); } catch (err) { fallback('routes/studioAppPublic:anon#2', err); /* compiler validates */ } }
-        if (typeof req.query.sort === 'string' && req.query.sort) { try { sort = JSON.parse(req.query.sort); } catch (err) { fallback('routes/studioAppPublic:anon#3', err); /* compiler validates */ } }
-        if (filters !== undefined && !Array.isArray(filters)) filters = [filters];
-
         const out = await dataReadRunner.runRecordList(ctx, ctx.table, {
-            filters, sort, ...optionalListQuery(req.query), cursor: req.query.cursor, limit: req.query.limit, total: req.query.total === '1',
+            ...R.listQueryOf(req.query), ...optionalListQuery(req.query), cursor: req.query.cursor, limit: req.query.limit, total: req.query.total === '1',
         });
         return res.json(out);
     } catch (err) { return handleErr(res, err, 'records.list'); }

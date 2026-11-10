@@ -7,7 +7,8 @@ import ExpressionInput from '../inspector/logic/ExpressionInput';
 import { INPUT_CLS } from '../inspector/panels/kit';
 import type { AppDefinition, AppNode } from '../inspector/appDefinition';
 import type { FormulaValue, FilterValue, Stash, FilterRow, FilterField, FilterRowsEditorProps, FilterEntry } from './FilterRowsEditor.types';
-import { AddAnyGroupButton, FilterAnyGroup, isAnyGroupRow, newAnyGroup } from './FilterAnyGroup';
+import { AddGroupButtons, FilterTreeGroup, addableGroupKinds, groupKindOf, newGroup, useGroupLabel } from './FilterTreeGroup';
+import { CompareWithFieldButton, FieldCompareRow, isCompareOp, isFieldCompareRow } from './FilterFieldCompare';
 import { logger } from '@/utils/logger';
 import { allowedOps, offersIgnoreCase, withOperator, opsFor, isFormulaValue, choicesOf, valueControlFor, isNumeric, emptyValueFor, reKeySet, reKeyMap } from './FilterRowsEditor.helpers';
 import { ValueControl } from './ValueControl';
@@ -75,6 +76,9 @@ function literalFromExpr(expr: string | undefined, control: string) {
     return emptyValueFor(control);
 }
 
+/** A row shows a value control unless its op takes none or it compares with another field. */
+const rowNeedsValue = (f: FilterRow) => !NO_VALUE_OPS.has(f.op) && !isFieldCompareRow(f);
+
 export default function FilterRowsEditor({
     fields = [],
     filters,
@@ -86,8 +90,12 @@ export default function FilterRowsEditor({
     node = null,
     allowGroups = false,
     allowIgnoreCase = false,
+    depth = 0,
+    parentKind = null,
+    maxItems,
 }: FilterRowsEditorProps) {
     const { t } = useTranslation();
+    const groupLabel = useGroupLabel();
     const fieldName = (key: string) => (fields.find((f) => f.key === key) || {}).name || key || t('studio_apps_bi.filter.filter', 'Filter');
     // Rows the user explicitly sent to free text, keyed by the row OBJECT.
     // Never by index: RepeatableList re-indexes on remove.
@@ -118,28 +126,31 @@ export default function FilterRowsEditor({
                 onChange={onChange}
                 makeNew={() => ({ field: '', op: 'eq', value: '' })}
                 addLabel={t('studio_apps_bi.filter.add', 'Add filter')}
-                itemLabel={(f) => (isAnyGroupRow(f) ? t('studio_apps_bi.filter.any_group', 'Any of these') : fieldName(f.field))}
+                maxItems={maxItems}
+                itemLabel={(f) => { const kind = groupKindOf(f); return kind ? groupLabel(kind) : fieldName((f as FilterRow).field); }}
                 renderItem={(entry, rawEntryUpdate, idx) => {
-                    if (isAnyGroupRow(entry)) {
+                    const groupKind = groupKindOf(entry);
+                    if (groupKind) {
                         return (
-                            <FilterAnyGroup
-                                group={entry} allowRequired={allowFormula}
+                            <FilterTreeGroup
+                                entry={entry} kind={groupKind} depth={depth} allowRequired={allowFormula}
                                 onChange={(next) => (next ? rawEntryUpdate(next) : onChange(rows.filter((r) => r !== entry)))}
-                                renderMembers={(members, change) => (
-                                    <FilterRowsEditor fields={fields} filters={members} onChange={(next) => change(next.filter((m) => !isAnyGroupRow(m)) as FilterRow[])}
-                                        allowFormula={allowFormula} allowIgnoreCase={allowIgnoreCase} disabled={disabled} definition={definition} node={node} label={t('studio_apps_bi.filter.any_group', 'Any of these')} />
+                                renderMembers={(members, change, childDepth, childMax) => (
+                                    <FilterRowsEditor fields={fields} filters={members} onChange={change} allowGroups={allowGroups} depth={childDepth} parentKind={groupKind} maxItems={childMax}
+                                        allowFormula={allowFormula} allowIgnoreCase={allowIgnoreCase} disabled={disabled} definition={definition} node={node} label={groupLabel(groupKind)} />
                                 )}
                             />
                         );
                     }
-                    const f = entry;
+                    const f = entry as FilterRow;
                     const rawUpdate = (next: FilterRow) => rawEntryUpdate(next);
                     // Every write goes through here so the free-text marker
                     // follows the row object rather than its position.
                     const update = (next: FilterRow) => { reKey(f, next); rawUpdate(next); };
 
-                    const usesFormula = isFormulaValue(f.value);
-                    const needsValue = !NO_VALUE_OPS.has(f.op);
+                    const usesFormula = isFormulaValue(f.value as FilterValue);
+                    const comparesField = isFieldCompareRow(f);
+                    const needsValue = rowNeedsValue(f);
                     const field = fields.find((x) => x.key === f.field) || null;
                     const typedControl = valueControlFor(field, f.op);
                     // Derived first, remembered second: a saved value the typed
@@ -151,7 +162,7 @@ export default function FilterRowsEditor({
                     // field that must hold an array.
                     const unrepresentable = !usesFormula
                         && typedControl !== 'list'
-                        && !isRepresentable(f.value, typedControl, field);
+                        && !isRepresentable(f.value as FilterValue, typedControl, field);
                     const isEscaped = escaped.has(f);
                     const control = (isEscaped || unrepresentable) ? 'text' : typedControl;
                     // The raw-text escape exists for controls that CONSTRAIN a
@@ -168,7 +179,7 @@ export default function FilterRowsEditor({
                             // Back to the picker: clear only if what is there
                             // cannot be shown, so a valid value survives.
                             setEscaped((prev) => { const n = new Set(prev); n.delete(f); return n; });
-                            if (!isRepresentable(f.value, typedControl, field)) {
+                            if (!isRepresentable(f.value as FilterValue, typedControl, field)) {
                                 rawUpdate({ ...f, value: emptyValueFor(typedControl) });
                             }
                             return;
@@ -190,7 +201,7 @@ export default function FilterRowsEditor({
                             ? (remembered.literal !== undefined
                                 ? remembered.literal
                                 : literalFromExpr((f.value as FormulaValue)?.expr, typedControl))
-                            : { kind: 'formula', expr: remembered.formula || exprFromLiteral(f.value) };
+                            : { kind: 'formula', expr: remembered.formula || exprFromLiteral(f.value as FilterValue) };
                         const leaving = usesFormula
                             ? { formula: (f.value as FormulaValue)?.expr ?? '' }
                             : { literal: f.value };
@@ -205,6 +216,8 @@ export default function FilterRowsEditor({
                                     className={INPUT_CLS}
                                     value={f.field || ''}
                                     onChange={(e) => {
+                                        // Another column: the one it was compared with may be of another kind.
+                                        if (comparesField) { update({ field: e.target.value, op: f.op, otherField: '' }); return; }
                                         const nextField = fields.find((x) => x.key === e.target.value) || null;
                                         // An op the new column cannot carry is
                                         // reset rather than left behind — a
@@ -243,15 +256,17 @@ export default function FilterRowsEditor({
                                     }}
                                     aria-label={t('studio_apps_bi.filter.operator', 'Filter operator')}
                                 >
-                                    {opsFor(field, f.op, t).map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                                    {opsFor(field, f.op, t).filter((o) => !comparesField || isCompareOp(o.value)).map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                                 </select>
                             </div>
                             {needsValue ? (
                                 <FilterValueRow
                                     f={f} field={field} control={control} usesFormula={usesFormula} canEscape={canEscape} allowFormula={allowFormula}
                                     definition={definition} node={node} update={update} onToggleEscape={toggleEscape} onToggleFormula={toggleFormula} t={t}
+                                    canCompareField={allowGroups} fields={fields}
                                 />
                             ) : null}
+                            {comparesField ? <FieldCompareRow f={f} field={field} fields={fields} update={update} /> : null}
 
                             {/*
                               * The server has honoured `required` all along and
@@ -267,7 +282,9 @@ export default function FilterRowsEditor({
                     );
                 }}
             />
-            {allowGroups ? <AddAnyGroupButton onAdd={() => onChange([...rows, newAnyGroup()])} /> : null}
+            {allowGroups && !(maxItems !== undefined && rows.length >= maxItems) ? (
+                <AddGroupButtons kinds={addableGroupKinds(parentKind, depth)} onAdd={(kind) => onChange([...rows, newGroup(kind)])} />
+            ) : null}
         </fieldset>
     );
 }
@@ -284,11 +301,14 @@ interface FilterValueRowProps {
     update: (next: FilterRow) => void;
     onToggleEscape: () => void;
     onToggleFormula: () => void;
+    /** Offer "compare with another field" (where there is one of the same kind). */
+    canCompareField: boolean;
+    fields: FilterField[];
     t: TranslateFn;
 }
 
 /** One filter row's value: the formula input or the typed control, plus the raw-text and formula toggles. */
-function FilterValueRow({ f, field, control, usesFormula, canEscape, allowFormula, definition, node, update, onToggleEscape, onToggleFormula, t }: FilterValueRowProps) {
+function FilterValueRow({ f, field, control, usesFormula, canEscape, allowFormula, definition, node, update, onToggleEscape, onToggleFormula, canCompareField, fields, t }: FilterValueRowProps) {
     return (
         <div className="flex items-stretch gap-1.5">
             {usesFormula ? (
@@ -331,6 +351,7 @@ function FilterValueRow({ f, field, control, usesFormula, canEscape, allowFormul
                     {usesFormula ? <Type size={13} /> : <FunctionSquare size={13} />}
                 </button>
             ) : null}
+            <CompareWithFieldButton offered={canCompareField} f={f} field={field} fields={fields} update={update} />
         </div>
     );
 }

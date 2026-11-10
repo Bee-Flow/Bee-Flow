@@ -80,6 +80,19 @@ function readExtras(binding: DataBinding): { match?: string; search?: unknown } 
     };
 }
 
+/** `orderBy` in a cache key only when the binding has one, so a binding without it keeps the key it always had. */
+function orderByPart(binding: DataBinding): { orderBy?: unknown } {
+    return binding.orderBy === undefined || binding.orderBy === null ? {} : { orderBy: binding.orderBy };
+}
+
+/** `expand` and `fields` likewise: a record read without them keeps its key. */
+function relationReadPart(binding: DataBinding): { expand?: unknown; fields?: unknown } {
+    const out: { expand?: unknown; fields?: unknown } = {};
+    if (binding.expand !== undefined && binding.expand !== null) out.expand = binding.expand;
+    if (binding.fields !== undefined && binding.fields !== null) out.fields = binding.fields;
+    return out;
+}
+
 /**
  * Stable cache key for a record/records/dataset binding — the SAME key the
  * DataContext fetch hook stores results under. record/records key on the
@@ -101,6 +114,8 @@ export function dataCacheKey(binding: Binding | null | undefined): string | null
             sort: binding.sort ?? null,
             limit: binding.limit ?? null,
             ...readExtras(binding),
+            ...orderByPart(binding),
+            ...relationReadPart(binding),
         });
         return `${binding.kind}:${binding.tableId ?? ''}:${shape}`;
     }
@@ -112,6 +127,8 @@ export function dataCacheKey(binding: Binding | null | undefined): string | null
             sort: binding.sort ?? null,
             limit: binding.limit ?? null,
             ...readExtras(binding),
+            ...orderByPart(binding),
+            ...(binding.groupFilter === undefined || binding.groupFilter === null ? {} : { groupFilter: binding.groupFilter }),
         });
         return `aggregate:${binding.tableId ?? ''}:${shape}`;
     }

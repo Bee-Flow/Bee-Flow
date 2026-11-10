@@ -5,6 +5,9 @@ import { MatchMode } from './ReadOptions';
 import FilterRowsEditor from '@/components/admin/Studio/AppStudio/bi/FilterRowsEditor';
 import { AGGS, DATE_BUCKETS } from '@/components/admin/Studio/AppStudio/bi/QueryBuilder';
 import useAppTables, { fieldsForTable } from '@/components/admin/Studio/AppStudio/bi/useAppTables';
+import GroupByExtras from '@/components/admin/Studio/AppStudio/bi/GroupByExtras';
+import { relationFilterFields } from '@/components/admin/Studio/AppStudio/bi/relationRead';
+import { groupByColumnName } from '@/components/admin/Studio/AppStudio/bi/aggregateExtras';
 import type { BindingDraft, AggregateBindingProps, PickValueFieldProps } from '../BindingField.types';
 
 export function AggregateBinding({ binding, onChange, appId, disabled, definition, node, singleValue = false }: AggregateBindingProps) {
@@ -16,6 +19,7 @@ export function AggregateBinding({ binding, onChange, appId, disabled, definitio
         ? binding.aggregates
         : [{ fn: 'count', as: 'count' }];
     const groupBy = Array.isArray(binding.groupBy) ? binding.groupBy : [];
+    const firstGroup = groupBy[0] ?? null;
 
     const patch = (delta: Partial<BindingDraft>) => onChange({ ...binding, ...delta });
 
@@ -23,7 +27,7 @@ export function AggregateBinding({ binding, onChange, appId, disabled, definitio
     // compiler applies, and the same list datasetColumns builds for a saved view.
     const columns = [
         ...aggregates.map((a) => a?.as || (a?.fn ? `${a.fn}_${a.field || 'all'}` : null)),
-        ...groupBy.map((g) => g?.as || (g?.bucket ? `${g.field}_${g.bucket}` : g?.field)),
+        ...groupBy.map((g) => groupByColumnName(g)),
     ].filter((c): c is string => typeof c === 'string' && !!c);
 
     // Not split by anything → the answer IS one number, and asking which column
@@ -121,8 +125,12 @@ export function AggregateBinding({ binding, onChange, appId, disabled, definitio
                         ) : <span />}
                     </div>
 
+                    {firstGroup?.field ? (
+                        <GroupByExtras t={t} group={firstGroup} update={(g) => patch({ groupBy: [g] })} fields={fields} tables={tables} inputClass={INPUT_CLS} disabled={disabled} />
+                    ) : null}
+
                     <FilterRowsEditor
-                        fields={fields}
+                        fields={[...fields, ...relationFilterFields(tables, tableId)]}
                         filters={Array.isArray(binding.filter) ? binding.filter : []}
                         onChange={(filter) => patch({ filter: filter.length ? filter : undefined })}
                         allowFormula

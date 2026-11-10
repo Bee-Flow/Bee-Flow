@@ -1,7 +1,10 @@
+import { filterClauseFields } from '@shared/expr/filterGroups.mjs';
+import { breakdownEntry, groupFilterEntries, type GroupFilterRow } from './aggregateExtras';
+import { descriptorFilters } from './filterDescriptor';
 import { NO_VALUE_OPS, type FilterRow } from './FilterRowsEditor';
 import type { FilterEntry } from './FilterRowsEditor.types';
-import { isAnyGroupRow } from './FilterAnyGroup';
 import { DATE_TYPES } from './QueryBuilderParts';
+import type { AppTable } from './useAppTables';
 import type { DatasetGroup } from './useDatasets';
 import type { TableColumn } from '../inspector/aiFieldMatching';
 
@@ -38,9 +41,6 @@ function sanitizeAlias(label: string | undefined, fallback: string) {
     return s;
 }
 
-/** One filter clause as the compiler reads it. */
-type Clause = { field: string; op: string; value?: unknown };
-
 /** Build the structured aggregate descriptor compileAggregate consumes. */
 export function buildDescriptor(
     tableId: string,
@@ -49,24 +49,46 @@ export function buildDescriptor(
     aggregates: { agg: string; field?: string; label?: string }[],
     filters: FilterEntry[],
 ) {
+    return buildQueryDescriptor({ tableId, fields, groupBy, aggregates, filters });
+}
+
+interface QueryParts {
+    tableId: string;
+    fields: TableColumn[];
+    groupBy: DatasetGroup[];
+    aggregates: { agg: string; field?: string; label?: string }[];
+    filters: FilterEntry[];
+    /** Resolves breakdowns through a relation. */
+    tables?: AppTable[];
+    /** Rows that name a measure by its position in `aggregates`. */
+    groupFilter?: GroupFilterRow[];
+}
+
+/** buildDescriptor, with the breakdowns through a relation and the group filter. */
+export function buildQueryDescriptor({ tableId, fields, groupBy, aggregates, filters, ...extra }: QueryParts) {
     const fieldType = (key: string | undefined) => (fields.find((f) => f.key === key) || {}).type;
     const gb = (groupBy || [])
         .filter((g) => g.field)
-        .map((g) => (g.bucket && DATE_TYPES.has(fieldType(g.field)) ? { field: g.field, bucket: g.bucket } : { field: g.field }));
+        .map((g) => breakdownEntry(g, extra.tables || [], fields, (type) => DATE_TYPES.has(type)));
     const usedAliases = new Set();
+    const aliasAt: (string | undefined)[] = [];
     const aggs = (aggregates || [])
-        .filter((a) => a.agg && (a.agg === 'count' || a.field))
-        .map((a) => {
+        .map((a, i) => ({ a, i }))
+        .filter(({ a }) => a.agg && (a.agg === 'count' || a.field))
+        .map(({ a, i }) => {
             const isCount = a.agg === 'count';
             let alias = sanitizeAlias(a.label, isCount ? 'count' : `${a.agg}_${a.field || 'x'}`);
             let n = 2;
             while (usedAliases.has(alias)) alias = `${alias.slice(0, 58)}_${n++}`;
             usedAliases.add(alias);
+            aliasAt[i] = alias;
             return { fn: a.agg, ...(isCount && !a.field ? {} : { field: a.field }), as: alias };
         });
-    const clauseOf = (f: FilterRow): Clause => {
+    const gf = groupFilterEntries(extra.groupFilter || [], aliasAt);
+    const leaf = (f: FilterRow) => {
         const base = { field: f.field, op: f.op };
         if (NO_VALUE_OPS.has(f.op)) return base;
+        if (typeof f.otherField === 'string') return { ...base, otherField: f.otherField };
         let value = f.value;
         if (fieldType(f.field) === 'number' && typeof value !== 'boolean' && value !== '' && value != null) {
             const num = parseUserNumber(value);
@@ -74,24 +96,17 @@ export function buildDescriptor(
         }
         return { ...base, value: value ?? '' };
     };
-    const complete = (f: FilterRow) => !!(f.field && f.op);
-    // An either/or group keeps its complete clauses; one left with none is dropped rather than saved empty.
-    const flt = (filters || []).flatMap((entry): Array<Clause | { any: Clause[] }> => {
-        if (!isAnyGroupRow(entry)) return complete(entry) ? [clauseOf(entry)] : [];
-        const members = entry.any.filter(complete).map(clauseOf);
-        return members.length ? [{ any: members }] : [];
-    });
+    // A group keeps its complete clauses; one left with none is dropped rather than saved empty.
+    const flt = descriptorFilters(filters || [], leaf);
 
     // A row left pointing at a field the table doesn't have would compile to a
     // broken query server-side — name them so the user can repick, and block.
     const known = new Set<string | undefined>(fields.map((f) => f.key));
-    const referenced = [...gb, ...aggs, ...flt.flatMap((x) => ('any' in x ? x.any : [x]))].map((x) => x.field).filter(Boolean);
+    const referenced = [...[...gb, ...aggs].map((x) => x.field), ...filterClauseFields(flt)].filter(Boolean);
     const unknownFields = [...new Set(referenced.filter((k) => !known.has(k)))];
-    const base = { groupBy: gb, aggregates: aggs, filters: flt };
     return {
-        descriptor: base,
+        descriptor: { groupBy: gb, aggregates: aggs, filters: flt, ...(gf.length ? { groupFilter: gf } : {}) },
         unknownFields,
         valid: !!tableId && (gb.length > 0 || aggs.length > 0) && unknownFields.length === 0,
     };
 }
-

@@ -1,0 +1,375 @@
+{
+  "corpus": "flex-relation-expand",
+  "canonical": {
+    "sha256": "a8dcfc0881a44689ab32b05fa456721dfeb6acab94452835d81a72aa4ad04b1b",
+    "bytes": 3635,
+    "inputIsCanonical": false,
+    "idempotent": true,
+    "keys": [
+      "schemaVersion",
+      "meta",
+      "theme",
+      "roles",
+      "screens",
+      "actions",
+      "homeScreenId"
+    ],
+    "parts": {
+      "schemaVersion": "4e07408562bedb8b",
+      "meta": "e928625e59a6d620",
+      "theme": "5d7eeb0111b89897",
+      "roles": "335bd906a0438921",
+      "screens[0] scr_flexdh": "97367a7cadf88b89",
+      "homeScreenId": "e7e8a031e0f34c9e"
+    }
+  },
+  "schemaVersion": {
+    "stored": 2,
+    "canonical": 3
+  },
+  "validation": {
+    "strict": {
+      "errors": [],
+      "warnings": []
+    },
+    "save": {
+      "errors": [],
+      "warnings": []
+    }
+  },
+  "ordinals": {
+    "stored": {},
+    "canonical": "same as stored"
+  },
+  "reads": [
+    {
+      "at": "cmp_flexdhtbl.source",
+      "kind": "records",
+      "table": "tbl_flexdhord",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT \"id\", \"amount\", \"status\", \"customer\" FROM \"orders\" WHERE (1=1) AND \"customer\" IN (SELECT \"id\" FROM \"customers\" WHERE (1=1) AND \"region\" = ?) AND \"status\" = ? ORDER BY (\"amount\" IS NULL), \"amount\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "north",
+            "open",
+            51
+          ],
+          "expand": [
+            {
+              "sql": "SELECT \"id\" AS \"id\", \"name\" AS \"name\", \"city\" AS \"city\" FROM \"customers\" WHERE (1=1) AND \"id\" IN (?)",
+              "params": [
+                "<id>"
+              ]
+            }
+          ]
+        },
+        "member": {
+          "sql": "SELECT \"id\", \"amount\", \"status\", \"customer\" FROM \"orders\" WHERE (\"created_by\" = ?) AND \"customer\" IN (SELECT \"id\" FROM \"customers\" WHERE ((1=1) AND ((\"region\" != ?))) AND \"region\" = ?) AND \"status\" = ? ORDER BY (\"amount\" IS NULL), \"amount\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "usr_compat_member",
+            "internal",
+            "north",
+            "open",
+            51
+          ],
+          "expand": [
+            {
+              "sql": "SELECT \"id\" AS \"id\", \"name\" AS \"name\", \"city\" AS \"city\" FROM \"customers\" WHERE ((1=1) AND ((\"region\" != ?))) AND \"id\" IN (?)",
+              "params": [
+                "internal",
+                "<id>"
+              ]
+            }
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT \"id\", \"amount\", \"status\", \"customer\" FROM \"orders\" WHERE (1=1) AND \"customer\" IN (SELECT \"id\" FROM \"customers\" WHERE (1=1) AND \"region\" = ?) AND \"status\" = ? ORDER BY (\"amount\" IS NULL), \"amount\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "north",
+            "open",
+            51
+          ],
+          "expand": [
+            {
+              "sql": "SELECT \"id\" AS \"id\", \"name\" AS \"name\", \"city\" AS \"city\" FROM \"customers\" WHERE (1=1) AND \"id\" IN (?)",
+              "params": [
+                "<id>"
+              ]
+            }
+          ]
+        },
+        "member": {
+          "sql": "SELECT \"id\", \"amount\", \"status\", \"customer\" FROM \"orders\" WHERE (\"created_by\" = ?) AND \"customer\" IN (SELECT \"id\" FROM \"customers\" WHERE ((1=1) AND ((\"region\" != ?))) AND \"region\" = ?) AND \"status\" = ? ORDER BY (\"amount\" IS NULL), \"amount\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "usr_compat_member",
+            "internal",
+            "north",
+            "open",
+            51
+          ],
+          "expand": [
+            {
+              "sql": "SELECT \"id\" AS \"id\", \"name\" AS \"name\", \"city\" AS \"city\" FROM \"customers\" WHERE ((1=1) AND ((\"region\" != ?))) AND \"id\" IN (?)",
+              "params": [
+                "internal",
+                "<id>"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_flexdhgrid.source",
+      "kind": "records",
+      "table": "tbl_flexdhord",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"orders\" WHERE (1=1) AND NOT COALESCE((\"previous\" IN (SELECT \"id\" FROM \"orders\" WHERE (1=1) AND \"status\" = ?)), 0) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "paid",
+            51
+          ],
+          "expand": [
+            {
+              "sql": "SELECT \"id\" AS \"id\", \"name\" AS \"name\" FROM \"customers\" WHERE (1=1) AND \"id\" IN (?)",
+              "params": [
+                "<id>"
+              ]
+            },
+            {
+              "sql": "SELECT \"id\" AS \"id\", \"amount\" AS \"amount\", \"status\" AS \"status\" FROM \"orders\" WHERE (1=1) AND \"id\" IN (?)",
+              "params": [
+                "<id>"
+              ]
+            }
+          ]
+        },
+        "member": {
+          "sql": "SELECT * FROM \"orders\" WHERE (\"created_by\" = ?) AND NOT COALESCE((\"previous\" IN (SELECT \"id\" FROM \"orders\" WHERE (\"created_by\" = ?) AND \"status\" = ?)), 0) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "usr_compat_member",
+            "usr_compat_member",
+            "paid",
+            51
+          ],
+          "expand": [
+            {
+              "sql": "SELECT \"id\" AS \"id\", \"name\" AS \"name\" FROM \"customers\" WHERE ((1=1) AND ((\"region\" != ?))) AND \"id\" IN (?)",
+              "params": [
+                "internal",
+                "<id>"
+              ]
+            },
+            {
+              "sql": "SELECT \"id\" AS \"id\", \"amount\" AS \"amount\", \"status\" AS \"status\" FROM \"orders\" WHERE (\"created_by\" = ?) AND \"id\" IN (?)",
+              "params": [
+                "usr_compat_member",
+                "<id>"
+              ]
+            }
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"orders\" WHERE (1=1) AND NOT COALESCE((\"previous\" IN (SELECT \"id\" FROM \"orders\" WHERE (1=1) AND \"status\" = ?)), FALSE) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "paid",
+            51
+          ],
+          "expand": [
+            {
+              "sql": "SELECT \"id\" AS \"id\", \"name\" AS \"name\" FROM \"customers\" WHERE (1=1) AND \"id\" IN (?)",
+              "params": [
+                "<id>"
+              ]
+            },
+            {
+              "sql": "SELECT \"id\" AS \"id\", \"amount\" AS \"amount\", \"status\" AS \"status\" FROM \"orders\" WHERE (1=1) AND \"id\" IN (?)",
+              "params": [
+                "<id>"
+              ]
+            }
+          ]
+        },
+        "member": {
+          "sql": "SELECT * FROM \"orders\" WHERE (\"created_by\" = ?) AND NOT COALESCE((\"previous\" IN (SELECT \"id\" FROM \"orders\" WHERE (\"created_by\" = ?) AND \"status\" = ?)), FALSE) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "usr_compat_member",
+            "usr_compat_member",
+            "paid",
+            51
+          ],
+          "expand": [
+            {
+              "sql": "SELECT \"id\" AS \"id\", \"name\" AS \"name\" FROM \"customers\" WHERE ((1=1) AND ((\"region\" != ?))) AND \"id\" IN (?)",
+              "params": [
+                "internal",
+                "<id>"
+              ]
+            },
+            {
+              "sql": "SELECT \"id\" AS \"id\", \"amount\" AS \"amount\", \"status\" AS \"status\" FROM \"orders\" WHERE (\"created_by\" = ?) AND \"id\" IN (?)",
+              "params": [
+                "usr_compat_member",
+                "<id>"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_flexdhdet.source",
+      "kind": "record",
+      "table": "tbl_flexdhord",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT \"id\", \"amount\", \"status\", \"created_at\", \"customer\" FROM \"orders\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ],
+          "expand": [
+            {
+              "sql": "SELECT \"id\" AS \"id\", \"name\" AS \"name\", \"city\" AS \"city\" FROM \"customers\" WHERE (1=1) AND \"id\" IN (?)",
+              "params": [
+                "<id>"
+              ]
+            }
+          ]
+        },
+        "member": {
+          "sql": "SELECT \"id\", \"amount\", \"status\", \"created_at\", \"customer\" FROM \"orders\" WHERE (\"created_by\" = ?) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "usr_compat_member",
+            51
+          ],
+          "expand": [
+            {
+              "sql": "SELECT \"id\" AS \"id\", \"name\" AS \"name\", \"city\" AS \"city\" FROM \"customers\" WHERE ((1=1) AND ((\"region\" != ?))) AND \"id\" IN (?)",
+              "params": [
+                "internal",
+                "<id>"
+              ]
+            }
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT \"id\", \"amount\", \"status\", \"created_at\", \"customer\" FROM \"orders\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ],
+          "expand": [
+            {
+              "sql": "SELECT \"id\" AS \"id\", \"name\" AS \"name\", \"city\" AS \"city\" FROM \"customers\" WHERE (1=1) AND \"id\" IN (?)",
+              "params": [
+                "<id>"
+              ]
+            }
+          ]
+        },
+        "member": {
+          "sql": "SELECT \"id\", \"amount\", \"status\", \"created_at\", \"customer\" FROM \"orders\" WHERE (\"created_by\" = ?) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "usr_compat_member",
+            51
+          ],
+          "expand": [
+            {
+              "sql": "SELECT \"id\" AS \"id\", \"name\" AS \"name\", \"city\" AS \"city\" FROM \"customers\" WHERE ((1=1) AND ((\"region\" != ?))) AND \"id\" IN (?)",
+              "params": [
+                "internal",
+                "<id>"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_flexdhcnt.value",
+      "kind": "aggregate",
+      "table": "tbl_flexdhord",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"orders\" WHERE (1=1) AND \"customer\" IN (SELECT \"id\" FROM \"customers\" WHERE (1=1) AND \"region\" = ?) AND \"status\" = ? LIMIT ?",
+          "params": [
+            "north",
+            "open",
+            50
+          ]
+        },
+        "member": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"orders\" WHERE (\"created_by\" = ?) AND \"customer\" IN (SELECT \"id\" FROM \"customers\" WHERE ((1=1) AND ((\"region\" != ?))) AND \"region\" = ?) AND \"status\" = ? LIMIT ?",
+          "params": [
+            "usr_compat_member",
+            "internal",
+            "north",
+            "open",
+            50
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"orders\" WHERE (1=1) AND \"customer\" IN (SELECT \"id\" FROM \"customers\" WHERE (1=1) AND \"region\" = ?) AND \"status\" = ? LIMIT ?",
+          "params": [
+            "north",
+            "open",
+            50
+          ]
+        },
+        "member": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"orders\" WHERE (\"created_by\" = ?) AND \"customer\" IN (SELECT \"id\" FROM \"customers\" WHERE ((1=1) AND ((\"region\" != ?))) AND \"region\" = ?) AND \"status\" = ? LIMIT ?",
+          "params": [
+            "usr_compat_member",
+            "internal",
+            "north",
+            "open",
+            50
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_flexdhplain.source",
+      "kind": "records",
+      "table": "tbl_flexdhord",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"orders\" WHERE (1=1) ORDER BY \"amount\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            6
+          ]
+        },
+        "member": {
+          "sql": "SELECT * FROM \"orders\" WHERE (\"created_by\" = ?) ORDER BY \"amount\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "usr_compat_member",
+            6
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"orders\" WHERE (1=1) ORDER BY \"amount\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            6
+          ]
+        },
+        "member": {
+          "sql": "SELECT * FROM \"orders\" WHERE (\"created_by\" = ?) ORDER BY \"amount\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "usr_compat_member",
+            6
+          ]
+        }
+      }
+    }
+  ]
+}

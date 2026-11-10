@@ -92,6 +92,12 @@ function datasetParams(binding: FetchBinding): Record<string, unknown> | null {
 }
 
 /**
+ * The optional parts of a record read (several sort columns, the related rows to bring along, the
+ * columns to load): each travels only when the binding has it, on both roads.
+ */
+const recordReadExtras = (b: DataBinding) => ({ orderBy: b.orderBy ?? undefined, expand: b.expand ?? undefined, fields: b.fields ?? undefined });
+
+/**
  * The batch descriptor for a binding, or null if this kind never batches.
  *
  * Connectors are excluded because they are not a read: another router, another
@@ -117,6 +123,8 @@ function batchDescriptor(id: string, binding: FetchBinding, limit: unknown) {
             groupBy: binding.groupBy ?? undefined,
             aggregates: binding.aggregates ?? undefined,
             sort: binding.sort ?? undefined,
+            orderBy: binding.orderBy ?? undefined,
+            groupFilter: binding.groupFilter ?? undefined,
             limit: binding.limit ?? undefined,
         };
     }
@@ -130,6 +138,7 @@ function batchDescriptor(id: string, binding: FetchBinding, limit: unknown) {
         match: binding.match ?? undefined,
         search: binding.search ?? undefined,
         sort: binding.sort ?? undefined,
+        ...recordReadExtras(binding),
         limit,
     };
 }
@@ -228,6 +237,8 @@ async function fetchBinding(appId: string | null, binding: FetchBinding, { sampl
                 groupBy: binding.groupBy ?? undefined,
                 aggregates: binding.aggregates ?? undefined,
                 sort: binding.sort ?? undefined,
+                orderBy: binding.orderBy ?? undefined,
+                groupFilter: binding.groupFilter ?? undefined,
                 limit: binding.limit ?? undefined,
             }),
         });
@@ -260,6 +271,7 @@ async function fetchBinding(appId: string | null, binding: FetchBinding, { sampl
         match: binding.match,
         search: binding.search,
         sort: binding.sort,
+        ...recordReadExtras(binding),
         limit,
         sample: sample ? 1 : undefined,
     });

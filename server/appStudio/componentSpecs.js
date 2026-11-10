@@ -98,6 +98,7 @@ const {
     INPUT_MAPPING_KINDS,
     FORMULA_SCOPE_ROOTS,
     CURRENT_USER_KEYS,
+    MAX_ORDER_BY,
 } = require('./componentSpecs/bindings');
 const { KEY_MARKS } = require('./componentSpecs/keyMarks');
 const {
@@ -334,6 +335,7 @@ module.exports = {
     BINDING_KIND_DOCS,
     FORMULA_SCOPE_ROOTS,
     CURRENT_USER_KEYS,
+    MAX_ORDER_BY,
     INPUT_MAPPING_KINDS,
     VARIABLE_TYPES,
     VARIABLE_TYPE_DEFAULTS,

@@ -33,9 +33,12 @@ const AGGREGATE_FIELDS = Object.freeze(['filters', 'groupBy', 'aggregates', 'sor
  * has no search group, so an aggregate takes `match` alone. A binding carries
  * them as marked binding keys (componentSpecs/keys/binding/); a caller that
  * resolves a search value itself passes the literal one in `own`.
+ *
+ * `orderBy` travels the same way for both kinds of read, and `groupFilter` for
+ * an aggregate only: a descriptor without them is passed on exactly as before.
  */
-const RECORD_LIST_OPTIONAL_FIELDS = Object.freeze(['match', 'search']);
-const AGGREGATE_OPTIONAL_FIELDS = Object.freeze(['match']);
+const RECORD_LIST_OPTIONAL_FIELDS = Object.freeze(['match', 'search', 'orderBy']);
+const AGGREGATE_OPTIONAL_FIELDS = Object.freeze(['match', 'orderBy', 'groupFilter']);
 
 function pick(src: Descriptor, fields: readonly string[], optional: readonly string[]): Descriptor {
     const out: Descriptor = {};

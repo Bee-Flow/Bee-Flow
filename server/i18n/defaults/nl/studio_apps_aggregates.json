@@ -1,0 +1,29 @@
+{
+  "translations": {
+    "studio_apps_aggregates.agg_count_distinct": "Aantal verschillende",
+    "studio_apps_aggregates.bin_hint": "Groepeert de getallen in stappen, bijvoorbeeld 0–9, 10–19 bij een stap van 10.",
+    "studio_apps_aggregates.bin_placeholder": "Exacte waarden",
+    "studio_apps_aggregates.bin_width": "Groeperen in stappen van",
+    "studio_apps_aggregates.group_filter_add": "Voorwaarde toevoegen",
+    "studio_apps_aggregates.group_filter_item": "{measure} {op} {value}",
+    "studio_apps_aggregates.group_filter_label": "Alleen groepen houden waarbij",
+    "studio_apps_aggregates.group_filter_measure": "Welk getal",
+    "studio_apps_aggregates.group_filter_none": "Voeg eerst een aantal, som of gemiddelde toe.",
+    "studio_apps_aggregates.group_filter_op": "Vergelijking",
+    "studio_apps_aggregates.group_filter_value": "Waarde",
+    "studio_apps_aggregates.op_eq": "is",
+    "studio_apps_aggregates.op_gt": "is meer dan",
+    "studio_apps_aggregates.op_gte": "is minstens",
+    "studio_apps_aggregates.op_lt": "is minder dan",
+    "studio_apps_aggregates.op_lte": "is hoogstens",
+    "studio_apps_aggregates.op_neq": "is niet",
+    "studio_apps_aggregates.pick_number": "Kies een getal…",
+    "studio_apps_aggregates.related_field": "Welk veld van het gekoppelde record",
+    "studio_apps_aggregates.related_hint": "Records die je niet mag zien vallen onder een lege waarde.",
+    "studio_apps_aggregates.related_itself": "Het gekoppelde record zelf"
+  },
+  "sameAsEnglish": [
+    "studio_apps_aggregates.group_filter_item",
+    "studio_apps_aggregates.op_eq"
+  ]
+}

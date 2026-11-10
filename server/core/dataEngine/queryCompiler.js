@@ -71,15 +71,17 @@
 //   queryCompilerSelect.mts     the select list of a record read
 //   queryCompilerOrder.mts      sort, ORDER BY and the keyset cursor
 //   queryCompilerAggregate.mts  group-by, date buckets, aggregate functions, percentiles
+//   queryCompilerRelation.mts   reads through a relation: expand lookups, relation.field filters, the fields list
 //   queryCompilerWrite.js / queryCompilerMaintenance.js / queryCompilerBulk.mts  the writes
 // This file composes the record reads and is the one import every caller uses.
 const { resolveDialect } = require('./engineFlag');
 const { MAX_RESULT_ROWS, DEFAULT_LIMIT, MAX_KEY_INDEX_KEYS, MAX_AGGREGATES, CompileError, RowsLockedError, assertRowsWritable, qi, assertTableMeta, fieldMap, resolveColumn, scalar, assertAccessFilter, MATCH_MODES, buildWhere, clampLimit } = require('./queryCompilerBase');
 const { compileInsert, compileUpdate, compileDelete, compileUpsertByKey, compileUpsertById } = require('./queryCompilerWrite');
 const { compileIdList, compileKeyValues, compileDeleteAll, compileDeleteOlderThan, compileSelectOlderThan, compileDeleteOrphans, compileDoomedUnderParent, compileRetentionDelete } = require('./queryCompilerMaintenance');
-const { encodeCursor, decodeCursor, resolvePrimarySort, keysetClause, recordOrderBy } = require('./queryCompilerOrder.mts');
+const { encodeCursor, decodeCursor, resolvePrimarySort, keysetClause, recordOrderBy, MAX_ORDER_BY, resolveOrderBy, orderByClause, orderKeysetClause, encodeOrderCursor } = require('./queryCompilerOrder.mts');
 const { recordSelectList, computedSelectFor, computedReadMeta } = require('./queryCompilerSelect.mts');
 const { compileAggregate } = require('./queryCompilerAggregate.mts');
+const { recordShape, compileExpandLookup, EXPAND_LOOKUP_BATCH } = require('./queryCompilerRelation.mts');
 
 // ── Public compilers ────────────────────────────────────────────────
 
@@ -100,14 +102,29 @@ const { compileAggregate } = require('./queryCompilerAggregate.mts');
  * such a read through computedRead.mts, so a failing expression reads NULL with
  * a note instead of failing the read. Without the option, or on a table without
  * such a field, the SQL and the result are what they always were.
+ *
+ * `read` (optional; built by the server in relationRead.mts, never taken from
+ * the client descriptor) is what reads through a relation and narrows the
+ * columns: `{ related, expand, fields }`. With it the result also carries
+ * `expand` (the lookups to run after the list, relationRead.mts) and
+ * `project` (the keys a record keeps), each only when asked for. Without it
+ * the read compiles exactly as before.
  */
-function compileRecordList(tableMeta, opts = {}, accessFilter) {
+function compileRecordList(tableMeta, opts = {}, accessFilter, read) {
     const dialect = resolveDialect(opts);
     assertTableMeta(tableMeta);
     const fm = fieldMap(tableMeta);
     const { where, params } = buildWhere(
-        tableMeta, fm, opts.filters, accessFilter, dialect, opts.match, opts.search);
+        tableMeta, fm, opts.filters, accessFilter, dialect, opts.match, opts.search, read ? read.related : undefined);
     const limit = clampLimit(opts.limit, opts.maxLimit);
+    const shape = read ? recordShape(tableMeta, fm, read, dialect) : null;
+    const order = resolveOrderBy(tableMeta, fm, opts.orderBy);
+    if (order) {
+        const select = shape ? shape.select(order.map((c) => c.column)) : undefined;
+        const computed = computedSelectFor(tableMeta, opts, dialect);
+        const listed = recordListOrdered(tableMeta, { where, params, limit, order, cursor: opts.cursor, select, computed });
+        return shape ? { ...listed, ...shape.result } : listed;
+    }
     const primary = resolvePrimarySort(tableMeta, fm, opts.sort);
 
     let clause = where;
@@ -120,14 +137,56 @@ function compileRecordList(tableMeta, opts = {}, accessFilter) {
     }
 
     const computed = computedSelectFor(tableMeta, opts, dialect);
+    const select = shape ? shape.select([primary.column]) : undefined;
     /** @param {string} list */
     const sqlWith = (list) => `SELECT ${list} FROM ${qi(tableMeta.key)} ${clause} `
         + `${recordOrderBy(primary)} LIMIT ?`;
     allParams.push(limit + 1); // probe row → nextCursor
-    return {
-        sql: sqlWith(recordSelectList(computed)), params: allParams, primaryField: primary.fieldKey, limit,
-        ...computedReadMeta(computed, sqlWith),
+    const listed = {
+        sql: sqlWith(recordSelectList(select, computed)), params: allParams, primaryField: primary.fieldKey, limit,
+        ...computedReadMeta(computed, sqlWith, select),
     };
+    return shape ? { ...listed, ...shape.result } : listed;
+}
+
+/**
+ * The record list of an `orderBy` read (up to MAX_ORDER_BY columns, `id` last).
+ * Returns `orderFields` next to the usual fields; the caller mints the next
+ * cursor with nextCursor(compiled, lastRow).
+ * @param {TableMeta} tableMeta
+ * @param {{ where: string, params: unknown[], limit: number, order: Array<{ fieldKey: string, column: string, dir: 'asc' | 'desc' }>, cursor?: string, select?: string[], computed?: import('./queryCompilerComputed.mts').ComputedSelect | null }} parts
+ */
+function recordListOrdered(tableMeta, { where, params, limit, order, cursor, select, computed = null }) {
+    let clause = where;
+    const allParams = [...params];
+    const cur = decodeCursor(cursor);
+    if (cur) {
+        const keyset = orderKeysetClause(order, cur);
+        clause += keyset.sql;
+        allParams.push(...keyset.params);
+    }
+    /** @param {string} list */
+    const sqlWith = (list) => `SELECT ${list} FROM ${qi(tableMeta.key)} ${clause} ${orderByClause(order)} LIMIT ?`;
+    allParams.push(limit + 1); // probe row → nextCursor
+    return {
+        sql: sqlWith(recordSelectList(select, computed)), params: allParams, primaryField: order[0].fieldKey, limit,
+        orderFields: order.map((c) => c.fieldKey), ...computedReadMeta(computed, sqlWith, select),
+    };
+}
+
+/**
+ * The cursor for the page after `lastRow`, for either kind of record list: the
+ * (value, id) pair of a `sort` read, or every sort value of an `orderBy` read.
+ * One function, so a caller cannot mint the wrong kind.
+ * @param {{ primaryField: string, orderFields?: string[] }} compiled
+ * @param {Record<string, unknown>} lastRow
+ * @returns {string | null}
+ */
+function nextCursor(compiled, lastRow) {
+    if (Array.isArray(compiled.orderFields)) {
+        return encodeOrderCursor(compiled.orderFields.map((fieldKey) => ({ fieldKey, column: '', dir: 'asc' })), lastRow);
+    }
+    return encodeCursor(lastRow[compiled.primaryField], lastRow.id);
 }
 
 /**
@@ -136,14 +195,16 @@ function compileRecordList(tableMeta, opts = {}, accessFilter) {
  * Returns { sql, params } that select one row `{ total }`. The WHERE is the one
  * compileRecordList builds from the same descriptor (access filter, client
  * filters, match, search); the cursor, the order and the limit are left out,
- * because the total is the size of the whole result, not of one page.
+ * because the total is the size of the whole result, not of one page. `read`
+ * is the one compileRecordList takes: only its related tables count here, for a
+ * filter on a field of a linked record.
  */
-function compileRecordCount(tableMeta, opts = {}, accessFilter) {
+function compileRecordCount(tableMeta, opts = {}, accessFilter, read) {
     const dialect = resolveDialect(opts);
     assertTableMeta(tableMeta);
     const fm = fieldMap(tableMeta);
     const { where, params } = buildWhere(
-        tableMeta, fm, opts.filters, accessFilter, dialect, opts.match, opts.search);
+        tableMeta, fm, opts.filters, accessFilter, dialect, opts.match, opts.search, read ? read.related : undefined);
     return { sql: `SELECT COUNT(*) AS ${qi('total')} FROM ${qi(tableMeta.key)} ${where}`, params: [...params] };
 }
 
@@ -161,7 +222,7 @@ function compileGetById(tableMeta, id, accessFilter, opts = {}) {
     /** @param {string} list */
     const sqlWith = (list) => `SELECT ${list} FROM ${qi(tableMeta.key)} WHERE ${qi('id')} = ? AND (${accessFilter.where}) LIMIT 1`;
     return {
-        sql: sqlWith(recordSelectList(computed)),
+        sql: sqlWith(recordSelectList(undefined, computed)),
         params: [id, ...accessFilter.params],
         ...computedReadMeta(computed, sqlWith),
     };
@@ -207,6 +268,8 @@ module.exports = {
     compileUpdate,
     compileDelete,
     compileKeyIndex,
+    compileExpandLookup,
+    EXPAND_LOOKUP_BATCH,
     compileUpsertByKey,
     compileUpsertById,
     compileIdList,
@@ -217,6 +280,8 @@ module.exports = {
     compileDeleteOrphans, compileDoomedUnderParent, compileRetentionDelete,
     encodeCursor,
     decodeCursor,
+    nextCursor,
+    MAX_ORDER_BY,
     // Exported so a route clamps with the compiler's own rule, not a copy.
     clampLimit,
     CompileError,
@@ -255,7 +320,7 @@ module.exports = {
 
 /**
  * @typedef {{ dialect?: string, filters?: FilterSpec[], match?: string, search?: SearchSpec | null,
- *   sort?: SortEntry | SortEntry[], cursor?: string, limit?: unknown, maxLimit?: number,
+ *   sort?: SortEntry | SortEntry[], orderBy?: SortEntry | SortEntry[], cursor?: string, limit?: unknown, maxLimit?: number,
  *   readTimeComputed?: boolean }} ListOpts
  */
 

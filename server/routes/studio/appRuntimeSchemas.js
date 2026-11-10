@@ -141,6 +141,12 @@ const RecordsQuery = queryOf({
     // How the filters join (all of them, or any one) and a free search over some columns.
     match: choice(['all', 'any'], 'match is all or any.').optional(),
     search: jsonText('search').optional(),
+    // Up to three { field, dir } entries; when present it replaces sort.
+    orderBy: jsonText('orderBy').optional(),
+    // Up to five { field, pick?, as? }: the related row of a relation field, read under its own table's row rules.
+    expand: jsonText('expand').optional(),
+    // The columns to return (next to id).
+    fields: jsonText('fields').optional(),
     cursor: worded('cursor is the value the previous page handed back.').max(500, 'cursor is the value the previous page handed back.').optional(),
     limit: wholeNumber('limit is a whole number, 1 or more.', { min: 1 }).optional(),
     // The editor's preview asks for a sample; the page size already covers it.
@@ -149,4 +155,38 @@ const RecordsQuery = queryOf({
     total: choice(['0', '1'], 'total is 1 to count the matching records.').optional(),
 }, 'A table page');
 
-module.exports = { DraftQuery, StepBody, RunBody, RunEndBody, BackgroundBody, JobParams, JobsQuery, ChatBody, RecordsQuery, ErrorScope };
+/**
+ * filter / sort / orderBy / expand / fields of a table page, from the JSON text RecordsQuery let
+ * through. The compiler validates the shapes; `orderBy`, `expand` and `fields` are present only
+ * when the request sent one.
+ * @param {Record<string, unknown>} query
+ * @returns {{ filters: unknown, sort: unknown, orderBy?: unknown, expand?: unknown, fields?: unknown }}
+ */
+function listQueryOf(query) {
+    /** @param {string} name */
+    const parsed = (name) => (typeof query[name] === 'string' && query[name] ? JSON.parse(/** @type {string} */ (query[name])) : undefined);
+    const filter = parsed('filter');
+    const orderBy = parsed('orderBy');
+    /** @type {{ filters: unknown, sort: unknown, orderBy?: unknown, expand?: unknown, fields?: unknown }} */
+    const out = { filters: filter !== undefined && !Array.isArray(filter) ? [filter] : filter, sort: parsed('sort') };
+    if (orderBy !== undefined) out.orderBy = orderBy;
+    return { ...out, ...relationQueryOf(query) };
+}
+
+/**
+ * `expand` and `fields` of a table page, each only when the request sent one. RecordsQuery
+ * already refused text that is not JSON; the compiler validates the shapes.
+ * @param {Record<string, unknown>} query
+ * @returns {{ expand?: unknown, fields?: unknown }}
+ */
+function relationQueryOf(query) {
+    /** @type {{ expand?: unknown, fields?: unknown }} */
+    const out = {};
+    for (const name of /** @type {const} */ (['expand', 'fields'])) {
+        const text = query[name];
+        if (typeof text === 'string' && text) out[name] = JSON.parse(text);
+    }
+    return out;
+}
+
+module.exports = { listQueryOf, relationQueryOf, DraftQuery, StepBody, RunBody, RunEndBody, BackgroundBody, JobParams, JobsQuery, ChatBody, RecordsQuery, ErrorScope };

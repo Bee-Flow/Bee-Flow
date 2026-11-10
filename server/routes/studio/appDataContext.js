@@ -24,6 +24,7 @@ const { perUserRateLimit } = require('../../utils/perUserRateLimit');
 const { fallback } = require('../../utils/bestEffort');
 const { sessionUser } = require('../../core/http/sessionUser');
 const { withViewerAttributes } = require('../../appStudio/viewerAttributes.mts');
+const { relationQueryOf } = require('./appRuntimeSchemas');
 
 /**
  * @typedef {import('../../appStudio/builderTools/dataTools').DataTable} DataTable
@@ -265,7 +266,9 @@ function publicTable(t) {
             required: !!f.required,
             unique: !!f.unique,
             ...(Array.isArray(f.options) ? { options: f.options } : {}),
-            ...(f.relation && typeof f.relation === 'object' ? { relation: { table: f.relation.table } } : {}),
+            // The relation's display field rides along when the model names one: the editor offers it,
+            // and an expansion of the relation carries its value as the label.
+            ...(f.relation && typeof f.relation === 'object' ? { relation: { table: f.relation.table, ...(typeof f.relation.displayField === 'string' && f.relation.displayField ? { displayField: f.relation.displayField } : {}) } } : {}),
         })),
     };
 }
@@ -280,7 +283,10 @@ function parseListQuery(req) {
     if (typeof q.filter === 'string' && q.filter) { try { filters = JSON.parse(q.filter); } catch (err) { fallback('routes/studio/appDataContext:parseListQuery', err); /* ignore */ } }
     if (typeof q.sort === 'string' && q.sort) { try { sort = JSON.parse(q.sort); } catch (err) { fallback('routes/studio/appDataContext:parseListQuery#2', err); /* ignore */ } }
     if (filters !== undefined && !Array.isArray(filters)) filters = [filters];
-    return { filters, sort, ...optionalListQuery(q) };
+    /** @type {unknown} */
+    let orderBy;
+    if (typeof q.orderBy === 'string' && q.orderBy) { try { orderBy = JSON.parse(q.orderBy); } catch (err) { fallback('routes/studio/appDataContext:parseListQuery#3', err); /* ignore */ } }
+    return { ...(orderBy === undefined ? { filters, sort } : { filters, sort, orderBy }), ...optionalListQuery(q), ...relationQueryOf(q) };
 }
 
 /**

@@ -6,12 +6,14 @@ import { roleTextColor } from '../styleResolver';
 import { ROLE_COLORS } from '../styleResolver.constants';
 import CadThumb from './CadThumb';
 import { EM_DASH, displayValue } from '../uiBits';
+import { cellLabel, labelForCell } from './cellLabel';
 import type { GridColumn } from './grid/useGridColumns';
 import type React from 'react';
 import type { TranslateParams } from '@/hooks/useTranslation';
-import type { CellColumn, ToneForCellArgs, LabelForCellArgs, PillProps, CellFlagProps, MonogramProps, RenderMainValueArgs, CellValueProps } from './cellValue.types';
+import type { CellColumn, ToneForCellArgs, PillProps, CellFlagProps, MonogramProps, RenderMainValueArgs, CellValueProps } from './cellValue.types';
 import { logger } from '@/utils/logger';
 export type { CellColumn } from './cellValue.types';
+export { labelForCell };
 
 /**
  * One table cell, for BOTH `data_grid` and `table`.
@@ -74,13 +76,6 @@ export function toneForCell({ col, row, value }: ToneForCellArgs) {
     if (!map || value == null) return null;
     const hit = map.find((m) => m && String(m.value) === String(value));
     return hit ? (hit.tone || null) : null;
-}
-
-export function labelForCell({ col, value }: LabelForCellArgs) {
-    const map = col && Array.isArray(col.toneMap) ? col.toneMap : null;
-    if (!map || value == null) return value;
-    const hit = map.find((m) => m && String(m.value) === String(value));
-    return hit && hit.label != null ? hit.label : value;
 }
 
 /** A soft wash in the role's hue, with text readable on it. Mirrors AppList. */
@@ -294,7 +289,7 @@ function renderMainValue({ value, format, col, row, now, t }: RenderMainValueArg
         case 'relation':
             return (
                 <Pill tone={toneForCell({ col, row, value })} dot={col?.badgeStyle === 'dot'}>
-                    {displayValue(labelForCell({ col, value }))}
+                    {displayValue(cellLabel({ format, col, row, value }))}
                 </Pill>
             );
         case 'tags': {

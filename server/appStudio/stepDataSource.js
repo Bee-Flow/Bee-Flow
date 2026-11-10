@@ -53,6 +53,8 @@ const { resolveFilterList } = require('../shared/expr/index.mjs');
 const { recordListDescriptor, aggregateDescriptor } = require('../core/dataEngine/readDescriptor.mts');
 const { searchText } = require('../shared/appDefinition/bindingPlan.mjs');
 const { queryWithComputed } = require('../core/dataEngine/computedRead.mts');
+const { relatedForAggregate } = require('../core/dataEngine/aggregateRelated.mts');
+const { relationRead, finishRecords } = require('../core/dataEngine/relationRead.mts');
 
 function isDataBinding(binding) {
     return !!binding && typeof binding === 'object' && DATA_KINDS.has(binding.kind);
@@ -147,7 +149,7 @@ async function resolveDataBinding(app, model, binding, { viewer, role, resolveVa
                 filters,
                 limit: Math.min(Number.isFinite(binding.limit) ? binding.limit : maxRows, maxRows),
                 dialect: plan.dialect,
-            }), accessFilter);
+            }), accessFilter, relatedForAggregate(datatableSource.isDatatableBacked(table) ? null : model, plan.tableMeta, binding.groupBy, plan, filters));
         } else {
             compiled = queryCompiler.compileRecordList(plan.tableMeta, recordListDescriptor(binding, {
                 filters,
@@ -157,7 +159,8 @@ async function resolveDataBinding(app, model, binding, { viewer, role, resolveVa
                     : Math.min(Number.isFinite(binding.limit) ? binding.limit : maxRows, maxRows),
                 dialect: plan.dialect,
                 readTimeComputed: true,
-            }), accessFilter);
+            }), accessFilter, relationRead(datatableSource.isDatatableBacked(table) ? null : model, plan.tableMeta,
+                { filters, expand: binding.expand, fields: binding.fields }, plan));
         }
     } catch {
         // A CompileError here is an authoring mistake (unknown column, bad op).
@@ -171,6 +174,8 @@ async function resolveDataBinding(app, model, binding, { viewer, role, resolveVa
         // Read-time computed fields are evaluated; one that fails reads empty.
         const { result: res } = await queryWithComputed(plan.query, compiled);
         rows = Array.isArray(res) ? res : (res?.rows || []);
+        // The probe row goes first; then the related rows a binding expands, under their own row rules.
+        if (binding.kind !== 'aggregate') rows = await finishRecords(compiled, rows.slice(0, binding.kind === 'record' ? 1 : maxRows), plan.query);
     } catch {
         return null;
     }

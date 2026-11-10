@@ -1,0 +1,21 @@
+{
+  "translations": {
+    "studio_apps_filtertree.add_all_group": "Groep 'alle' toevoegen",
+    "studio_apps_filtertree.add_none_group": "Groep 'geen van' toevoegen",
+    "studio_apps_filtertree.all_group": "Al deze",
+    "studio_apps_filtertree.all_group_hint": "Een rij wordt getoond als ze ALLEMAAL kloppen.",
+    "studio_apps_filtertree.compare_with_field": "Vergelijken met een ander veld",
+    "studio_apps_filtertree.group_required_label": "Niets tonen tot deze een waarde hebben",
+    "studio_apps_filtertree.none_group": "Geen van deze",
+    "studio_apps_filtertree.none_group_hint": "Een rij wordt getoond als er GEEN van klopt.",
+    "studio_apps_filtertree.other_field": "Veld om mee te vergelijken",
+    "studio_apps_filtertree.pick_other_field": "Kies het andere veld…",
+    "studio_apps_filtertree.sort_add_level": "Daarna sorteren op een ander veld",
+    "studio_apps_filtertree.sort_levels_hint": "Rijen met een lege waarde komen in elk niveau als laatste.",
+    "studio_apps_filtertree.sort_remove_level": "Sorteerniveau {n} verwijderen",
+    "studio_apps_filtertree.sort_then_direction": "Richting van sorteerniveau {n}",
+    "studio_apps_filtertree.sort_then_field": "Daarna sorteren op, niveau {n}",
+    "studio_apps_filtertree.use_value": "Vergelijken met een waarde"
+  },
+  "sameAsEnglish": []
+}

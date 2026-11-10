@@ -336,6 +336,41 @@ test('member list is scoped to own rows; foreign rows are invisible', async () =
     assert.deepStrictEqual(r.body.records.map((x) => x.id), ['rec_alice']);
 });
 
+test('fields narrows the columns of a page; expand is checked against the model', async () => {
+    const app = makeApp();
+    membership.set(`${app.id}:alice`, 'member');
+    seedRow({ id: 'rec_a', by: 'alice', title: 'mine', region: 'EU', amount: 2 });
+    const url = `/${app.id}/data/tables/tbl_tasks0/records`;
+    const r = await dispatch({ url, query: { fields: '["title"]', sort: '{"field":"amount","dir":"asc"}' }, user: 'alice', orgIds: [ORG] });
+    assert.deepStrictEqual(r.body.records, [{ id: 'rec_a', title: 'mine' }]);
+    const bad = await dispatch({ url, query: { expand: '[{"field":"title"}]' }, user: 'alice', orgIds: [ORG] });
+    assert.strictEqual(bad.statusCode, 422);
+});
+
+test('orderBy pages on several columns and a filter tree stays inside the row rules', async () => {
+    const app = makeApp();
+    membership.set(`${app.id}:alice`, 'member');
+    [['a', 'EU', 2], ['b', 'US', 2], ['c', 'EU', 1], ['d', null, 3], ['e', 'US', 1]].forEach(([k, region, amount]) => seedRow({ id: `rec_${k}`, by: 'alice', region, amount }));
+    seedRow({ id: 'rec_bob', by: 'bob', region: 'EU', amount: 9 });
+    const url = `/${app.id}/data/tables/tbl_tasks0/records`;
+    const base = { orderBy: JSON.stringify([{ field: 'region', dir: 'asc' }, { field: 'amount', dir: 'desc' }]), limit: '2' };
+    const seen = [];
+    let cursor;
+    for (let page = 0; page < 5; page += 1) {
+        const r = await dispatch({ url, query: cursor ? { ...base, cursor } : base, user: 'alice', orgIds: [ORG] });
+        assert.strictEqual(r.statusCode, 200);
+        seen.push(...r.body.records.map((x) => x.id));
+        cursor = r.body.nextCursor;
+        if (!cursor) break;
+    }
+    assert.deepStrictEqual(seen, ['rec_a', 'rec_c', 'rec_b', 'rec_e', 'rec_d'], 'region asc (empty last), amount desc, every own row once');
+
+    const filter = [{ any: [{ not: { field: 'region', op: 'eq', value: 'US' } }, { field: 'id', op: 'isNotNull' }] }];
+    const r = await dispatch({ url, query: { filter: JSON.stringify(filter) }, user: 'alice', orgIds: [ORG] });
+    assert.strictEqual(r.body.records.length, 5, 'a tree that is true for every row returns the own rows only');
+    assert.ok(r.body.records.every((x) => x.created_by === 'alice'));
+});
+
 test('member updating a FOREIGN record → 404 (0 rows changed)', async () => {
     const app = makeApp();
     membership.set(`${app.id}:alice`, 'member');

@@ -1,8 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { Database, Loader2 } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState, type ComponentProps } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import ChartDataPanel, { deriveChartMapping } from './ChartDataPanel';
-import { buildDescriptor } from './buildDescriptor';
+import { buildQueryDescriptor } from './buildDescriptor';
 import FilterRowsEditor from './FilterRowsEditor';
 import type { FilterEntry } from './FilterRowsEditor.types';
 import SortLimitFields from './SortLimitFields';
@@ -14,7 +14,9 @@ import { runPreview } from './runPreview';
 import Modal from '@/components/shared/Modal';
 import toast from '@/components/shared/Toast';
 import { inputCls } from '@/components/admin/product-website/fields';
-import { BreakdownField, DATE_TYPES, MeasuresField, NoTables, PreviewResult, QueryFooter } from './QueryBuilderParts';
+import { BreakdownField, groupFilterMeasures, MeasuresField, NoTables, PreviewResult, previewChartNodeFor, QueryFooter } from './QueryBuilderParts';
+import GroupFilterField from './GroupFilterField';
+import type { GroupFilterRow } from './aggregateExtras';
 import DatasetParamsField from './DatasetParamsField';
 import type { ParamRow } from './datasetParamRows';
 import { useQueryDescriptors } from './useQueryDescriptors';
@@ -25,7 +27,6 @@ import type { QueryBuilderProps, ConfigureDataButtonProps } from './QueryBuilder
 import type { BuiltView } from '../inspector/panels/BindingField.types';
 import type { DatasetGroup } from './useDatasets';
 import type { ChartMapping } from './ChartDataPanel';
-import type { TableColumn } from '../inspector/aiFieldMatching';
 
 /**
  * App Studio BI — the visual Query Builder.
@@ -60,24 +61,6 @@ function useDebounced(value: string, delay: number) {
 
 export { buildDescriptor, parseUserNumber } from './buildDescriptor';
 
-/** The live preview chart, as a static-source chart node over the preview rows. */
-function previewChartNodeFor(effectiveMapping: ChartMapping, previewRows: unknown[]): ComponentProps<typeof AppChart>['node'] {
-    return {
-    id: 'qb_preview_chart',
-    type: 'chart',
-    props: {
-        chartType: effectiveMapping.chartType,
-        source: { kind: 'static', value: previewRows },
-        xKey: effectiveMapping.xKey,
-        series: effectiveMapping.series,
-        showLegend: true,
-        showGrid: true,
-        valueFormat: 'number',
-    },
-    style: { height: 'md' },
-    };
-}
-
 export default function QueryBuilder({ open, onClose, appId, componentType = 'chart', onSave, onOpenTables = null }: QueryBuilderProps) {
     const { t } = useTranslation();
     const { tables, isLoading: tablesLoading } = useAppTables(open ? appId : null);
@@ -88,6 +71,7 @@ export default function QueryBuilder({ open, onClose, appId, componentType = 'ch
     const [aggregates, setAggregates] = useState<{ agg: string; field: string; label: string; }[]>([]);
     const [filters, setFilters] = useState<FilterEntry[]>([]);
     const [paramRows, setParamRows] = useState<ParamRow[]>([]);
+    const [groupFilter, setGroupFilter] = useState<GroupFilterRow[]>([]);
     const [sort, setSort] = useState<DatasetSort | null>(null);
     const [limit, setLimit] = useState<number | null>(null);
     const [name, setName] = useState('');
@@ -122,14 +106,15 @@ export default function QueryBuilder({ open, onClose, appId, componentType = 'ch
         setGroupBy([]);
         setFilters([]);
         setParamRows([]);
+        setGroupFilter([]);
         setSort(null);
         setAggregates([{ agg: 'count', field: '', label: 'Count' }]);
         setChartMapping(null);
     };
 
     const built = useMemo(
-        () => buildDescriptor(tableId, fields, groupBy, aggregates, filters),
-        [tableId, fields, groupBy, aggregates, filters],
+        () => buildQueryDescriptor({ tableId, fields, groupBy, aggregates, filters, tables, groupFilter }),
+        [tableId, fields, groupBy, aggregates, filters, tables, groupFilter],
     );
     const { unknownFields } = built;
     // Parameters, sort and limit ride on the built descriptor; absent, it keeps exactly the keys it had.
@@ -227,9 +212,11 @@ export default function QueryBuilder({ open, onClose, appId, componentType = 'ch
                             </select>
                         </label>
 
-                        <BreakdownField t={t} groupBy={groupBy} setGroupBy={setGroupBy} fields={fields} fieldName={fieldName} fieldType={fieldType} />
+                        <BreakdownField t={t} groupBy={groupBy} setGroupBy={setGroupBy} fields={fields} fieldName={fieldName} fieldType={fieldType} tables={tables} />
 
                         <MeasuresField t={t} aggregates={aggregates} setAggregates={setAggregates} fields={fields} fieldName={fieldName} />
+
+                        {groupBy.length ? <GroupFilterField t={t} rows={groupFilter} setRows={setGroupFilter} measures={groupFilterMeasures(aggregates, fieldName, fieldType, t)} inputClass={inputCls} /> : null}
 
                         <FilterRowsEditor fields={fields} filters={filters} onChange={setFilters} allowGroups label={t('studio_apps_bi.query.only_count_where', 'Only count rows where')} />
 

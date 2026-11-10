@@ -17,6 +17,8 @@ const { DRY_RUN_PLAN, planFilters, planParams } = require('../shared/appDefiniti
 const { isDatatableBacked } = require('./datatableSource');
 const { recordListDescriptor, aggregateDescriptor } = require('../core/dataEngine/readDescriptor.mts');
 const { queryWithComputed } = require('../core/dataEngine/computedRead.mts');
+const { relatedForAggregate } = require('../core/dataEngine/aggregateRelated.mts');
+const { relationRead } = require('../core/dataEngine/relationRead.mts');
 const log = require('../telemetry/log');
 
 // Read-only probe page — a couple of rows is enough to prove a binding returns
@@ -124,7 +126,10 @@ async function runRecordBinding(binding, table, { roleArg, viewer, scope, app, o
             return readSummary(rows, resolved.filters, !!(out && out.nextCursor));
         }
         const accessFilter = rlsGateway.compileAccessFilter(table, roleArg, viewer, 'read');
-        const compiled = queryCompiler.compileRecordList(table, { ...descriptor, readTimeComputed: true }, accessFilter);
+        // Compiled with what the binding reads through a relation, so a bad expand or relation
+        // filter is reported here; the rows are only counted, so the lookups themselves do not run.
+        const read = relationRead(dataModel, table, { filters: descriptor.filters, expand: binding.expand, fields: binding.fields }, { role: roleArg, viewer });
+        const compiled = queryCompiler.compileRecordList(table, { ...descriptor, readTimeComputed: true }, accessFilter, read);
         const { result: out, notes } = await queryWithComputed(
             (/** @type {string} */ sql, /** @type {unknown[]} */ params) => deps.dbQuery(ownerScope, app.id, sql, params), compiled);
         const rows = Array.isArray(out && out.rows) ? out.rows : [];
@@ -165,7 +170,8 @@ async function runAggregateBinding(binding, table, { roleArg, viewer, scope, app
             return readSummary(rows, resolved.filters, rows.length > DRY_RUN_LIMIT);
         }
         const accessFilter = rlsGateway.compileAccessFilter(table, roleArg, viewer, 'read');
-        const { sql, params } = queryCompiler.compileAggregate(table, descriptor, accessFilter);
+        const related = relatedForAggregate(dataModel, table, descriptor.groupBy, { role: roleArg, viewer }, descriptor.filters);
+        const { sql, params } = queryCompiler.compileAggregate(table, descriptor, accessFilter, related);
         const out = await deps.dbQuery(ownerScope, app.id, sql, params);
         const rows = Array.isArray(out && out.rows) ? out.rows : [];
         return readSummary(rows, resolved.filters, rows.length > DRY_RUN_LIMIT);

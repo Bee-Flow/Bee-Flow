@@ -4,26 +4,30 @@
  * a breakdown or a measure alias) and `limit` (clamped by the server), so only those shapes are written.
  */
 
+import { groupByColumnName } from './aggregateExtras';
+import type { DatasetGroup } from './useDatasets';
+
 export interface DatasetSort {
     field: string;
     dir: 'asc' | 'desc';
 }
 
 interface DescriptorLike {
-    groupBy?: Array<{ field?: string; bucket?: string; as?: string } | null>;
+    groupBy?: Array<DatasetGroup | null>;
     aggregates?: Array<{ as?: string } | null>;
     [key: string]: unknown;
 }
 
 /**
  * The columns a descriptor's answer has, in the names the compiler gives them (`as`, else the field, else
- * `<field>_<bucket>`): the only columns a sort may name.
+ * `<field>_<bucket>`, and the related-field and number-step forms of aggregateExtras.groupByColumnName): the
+ * only columns a sort may name.
  */
 export function outputColumnsOf(descriptor: DescriptorLike | null | undefined): string[] {
     const out: string[] = [];
     for (const g of descriptor?.groupBy || []) {
-        if (!g?.field) continue;
-        out.push(g.as || (g.bucket ? `${g.field}_${g.bucket}` : g.field));
+        const column = groupByColumnName(g);
+        if (g?.field && column) out.push(column);
     }
     for (const a of descriptor?.aggregates || []) if (a?.as) out.push(a.as);
     return out;

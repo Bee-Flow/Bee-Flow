@@ -2,11 +2,13 @@
  * The select list of a record read: which columns a list or a get-by-id
  * returns.
  *
- * Every column of the one table (`*`). A read that asks for it
- * (`readTimeComputed: true`) also gets each read-time computed field as an
- * expression after the `*` (queryCompilerComputed.mts); a table without one,
- * or a read that does not ask, compiles to `*` exactly as before. It lives in
- * its own module so a change to what a read returns is made here once, for
+ * Every column of the one table (`*`) unless the read names its columns
+ * (`fields`, queryCompilerRelation.resolveFields): then those columns, each
+ * once, in the order given. A read that asks for it (`readTimeComputed: true`)
+ * also gets each read-time computed field as an expression after those columns
+ * (queryCompilerComputed.mts); a table without one, or a read that does not
+ * ask, compiles to the columns alone exactly as before. It lives in its own
+ * module so a change to what a read returns is made here once, for
  * compileRecordList and compileGetById together, instead of in each compiler.
  */
 
@@ -21,9 +23,18 @@ export function computedSelectFor(tableMeta: TableMeta, opts: { readTimeComputed
     return readTimeComputedSelect(tableMeta, dialect);
 }
 
-/** The select list of compileRecordList and compileGetById. */
-export function recordSelectList(computed: ComputedSelect | null = null): string {
-    return computed ? computed.list : '*';
+/**
+ * The select list of compileRecordList and compileGetById.
+ * @param columns   quoted column names, or nothing for every column
+ * @param computed  the read-time computed part, or null
+ * @param fallback  true for the list with every computed field NULL
+ */
+export function recordSelectList(columns?: readonly string[] | null, computed: ComputedSelect | null = null, fallback = false): string {
+    const base = !columns || columns.length === 0 ? '*' : columns.filter((c, i) => columns.indexOf(c) === i).join(', ');
+    if (!computed) return base;
+    // Both computed lists start with `*`: the read's own columns take its place.
+    const list = fallback ? computed.fallbackList : computed.list;
+    return base === '*' ? list : `${base}${list.slice(1)}`;
 }
 
 /**
@@ -31,14 +42,14 @@ export function recordSelectList(computed: ComputedSelect | null = null): string
  * fields: the same read with every one of them NULL (same params), for the
  * caller to fall back on when an expression fails on the engine.
  */
-export function computedReadMeta(computed: ComputedSelect | null, sqlWith: (list: string) => string): Record<string, unknown> {
+export function computedReadMeta(computed: ComputedSelect | null, sqlWith: (list: string) => string, columns?: readonly string[] | null): Record<string, unknown> {
     if (!computed) return {};
     return {
         readTimeComputed: {
             keys: computed.keys,
             refused: computed.refused,
             columns: computed.columns,
-            fallbackSql: sqlWith(computed.fallbackList),
+            fallbackSql: sqlWith(recordSelectList(columns, computed, true)),
         },
     };
 }

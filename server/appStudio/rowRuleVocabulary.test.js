@@ -64,8 +64,12 @@ test('the extension index lists each word and app_inspect_catalog serves its ent
     assert.match(byName.entries['rowRule.perOperation'], /^row rule "perOperation" — .*an operation left out follows the read formula \(never broader than read\).*`true` gives that operation every row/);
     assert.match(byName.entries['rowRule.in'], /record\.team in viewer\.groups/);
     assert.match(byName.entries['rowRule.viewer.groups'], /^row rule "viewer\.groups" — /);
+    // A family answer holds the first INSPECT_MAX_FAMILY_ENTRIES items; one past the cap is named in its note.
     const byFamily = index.inspectExtensions([], 'data');
-    for (const name of NAMES) assert.equal(byFamily.entries[name], byName.entries[name]);
+    for (const name of NAMES) {
+        if (Object.hasOwn(byFamily.entries, name)) assert.equal(byFamily.entries[name], byName.entries[name]);
+        else assert.ok(byFamily.notes.some((note) => note.includes(name)), `${name} is answered or named in the note`);
+    }
 });
 
 test('the pinned text of app_upsert_table does not move, and names no marked word', () => {

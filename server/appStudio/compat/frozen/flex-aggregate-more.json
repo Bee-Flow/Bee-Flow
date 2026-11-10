@@ -1,0 +1,294 @@
+{
+  "corpus": "flex-aggregate-more",
+  "canonical": {
+    "sha256": "72de397cba321447de518fdc586411aba10c47bc99a2f4408bddb2d25f82257d",
+    "bytes": 3166,
+    "inputIsCanonical": false,
+    "idempotent": true,
+    "keys": [
+      "schemaVersion",
+      "meta",
+      "theme",
+      "roles",
+      "screens",
+      "actions",
+      "homeScreenId"
+    ],
+    "parts": {
+      "schemaVersion": "4e07408562bedb8b",
+      "meta": "964f365ec287da8e",
+      "theme": "5d7eeb0111b89897",
+      "roles": "4f53cda18c2baa0c",
+      "screens[0] scr_flexdg": "19fcd9acb6adda62",
+      "homeScreenId": "272edfb59066af3d"
+    }
+  },
+  "schemaVersion": {
+    "stored": 3,
+    "canonical": 3
+  },
+  "validation": {
+    "strict": {
+      "errors": [],
+      "warnings": []
+    },
+    "save": {
+      "errors": [],
+      "warnings": []
+    }
+  },
+  "ordinals": {
+    "stored": {},
+    "canonical": "same as stored"
+  },
+  "reads": [
+    {
+      "at": "cmp_flexdgreg.source",
+      "kind": "aggregate",
+      "table": "tbl_flexdgord",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT \"__rel_0\".\"__rv\" AS \"region\", SUM(\"amount\") AS \"total\", COUNT(DISTINCT \"customer\") AS \"buyers\" FROM \"orders\" LEFT JOIN (SELECT \"id\" AS \"__rid\", \"region\" AS \"__rv\" FROM \"customers\" WHERE (1=1)) AS \"__rel_0\" ON \"__rel_0\".\"__rid\" = \"orders\".\"customer\" WHERE (1=1) GROUP BY \"__rel_0\".\"__rv\" HAVING SUM(\"amount\") > ? ORDER BY \"total\" DESC LIMIT ?",
+          "params": [
+            100,
+            50
+          ]
+        },
+        "member": {
+          "sql": "SELECT \"__rel_0\".\"__rv\" AS \"region\", SUM(\"amount\") AS \"total\", COUNT(DISTINCT \"customer\") AS \"buyers\" FROM \"orders\" LEFT JOIN (SELECT \"id\" AS \"__rid\", \"region\" AS \"__rv\" FROM \"customers\" WHERE ((1=1) AND ((\"region\" != ?)))) AS \"__rel_0\" ON \"__rel_0\".\"__rid\" = \"orders\".\"customer\" WHERE (\"created_by\" = ?) GROUP BY \"__rel_0\".\"__rv\" HAVING SUM(\"amount\") > ? ORDER BY \"total\" DESC LIMIT ?",
+          "params": [
+            "internal",
+            "usr_compat_member",
+            100,
+            50
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT \"__rel_0\".\"__rv\" AS \"region\", SUM(\"amount\") AS \"total\", COUNT(DISTINCT \"customer\") AS \"buyers\" FROM \"orders\" LEFT JOIN (SELECT \"id\" AS \"__rid\", \"region\" AS \"__rv\" FROM \"customers\" WHERE (1=1)) AS \"__rel_0\" ON \"__rel_0\".\"__rid\" = \"orders\".\"customer\" WHERE (1=1) GROUP BY \"__rel_0\".\"__rv\" HAVING SUM(\"amount\") > ? ORDER BY \"total\" DESC LIMIT ?",
+          "params": [
+            100,
+            50
+          ]
+        },
+        "member": {
+          "sql": "SELECT \"__rel_0\".\"__rv\" AS \"region\", SUM(\"amount\") AS \"total\", COUNT(DISTINCT \"customer\") AS \"buyers\" FROM \"orders\" LEFT JOIN (SELECT \"id\" AS \"__rid\", \"region\" AS \"__rv\" FROM \"customers\" WHERE ((1=1) AND ((\"region\" != ?)))) AS \"__rel_0\" ON \"__rel_0\".\"__rid\" = \"orders\".\"customer\" WHERE (\"created_by\" = ?) GROUP BY \"__rel_0\".\"__rv\" HAVING SUM(\"amount\") > ? ORDER BY \"total\" DESC LIMIT ?",
+          "params": [
+            "internal",
+            "usr_compat_member",
+            100,
+            50
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_flexdgband.source",
+      "kind": "aggregate",
+      "table": "tbl_flexdgord",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT (FLOOR(CAST(\"amount\" AS REAL) / 50) * 50) AS \"band\", COUNT(*) AS \"n\" FROM \"orders\" WHERE (1=1) GROUP BY (FLOOR(CAST(\"amount\" AS REAL) / 50) * 50) ORDER BY \"band\" ASC LIMIT ?",
+          "params": [
+            50
+          ]
+        },
+        "member": {
+          "sql": "SELECT (FLOOR(CAST(\"amount\" AS REAL) / 50) * 50) AS \"band\", COUNT(*) AS \"n\" FROM \"orders\" WHERE (\"created_by\" = ?) GROUP BY (FLOOR(CAST(\"amount\" AS REAL) / 50) * 50) ORDER BY \"band\" ASC LIMIT ?",
+          "params": [
+            "usr_compat_member",
+            50
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT (FLOOR(\"amount\"::numeric / 50) * 50) AS \"band\", COUNT(*) AS \"n\" FROM \"orders\" WHERE (1=1) GROUP BY (FLOOR(\"amount\"::numeric / 50) * 50) ORDER BY \"band\" ASC LIMIT ?",
+          "params": [
+            50
+          ]
+        },
+        "member": {
+          "sql": "SELECT (FLOOR(\"amount\"::numeric / 50) * 50) AS \"band\", COUNT(*) AS \"n\" FROM \"orders\" WHERE (\"created_by\" = ?) GROUP BY (FLOOR(\"amount\"::numeric / 50) * 50) ORDER BY \"band\" ASC LIMIT ?",
+          "params": [
+            "usr_compat_member",
+            50
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_flexdgbuy.value",
+      "kind": "aggregate",
+      "table": "tbl_flexdgord",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT COUNT(DISTINCT \"customer\") AS \"buyers\" FROM \"orders\" WHERE (1=1) LIMIT ?",
+          "params": [
+            50
+          ]
+        },
+        "member": {
+          "sql": "SELECT COUNT(DISTINCT \"customer\") AS \"buyers\" FROM \"orders\" WHERE (\"created_by\" = ?) LIMIT ?",
+          "params": [
+            "usr_compat_member",
+            50
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT COUNT(DISTINCT \"customer\") AS \"buyers\" FROM \"orders\" WHERE (1=1) LIMIT ?",
+          "params": [
+            50
+          ]
+        },
+        "member": {
+          "sql": "SELECT COUNT(DISTINCT \"customer\") AS \"buyers\" FROM \"orders\" WHERE (\"created_by\" = ?) LIMIT ?",
+          "params": [
+            "usr_compat_member",
+            50
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_flexdgsize.source",
+      "kind": "aggregate",
+      "table": "tbl_flexdgord",
+      "sqlite": {
+        "owner": {
+          "sql": "WITH __src AS (SELECT (FLOOR(CAST(\"__rel_0\".\"__rv\" AS REAL) / 100) * 100) AS \"customer_staff_bin\", \"channel\" AS \"channel\", \"amount\" AS \"__pv_0\", ROW_NUMBER() OVER (PARTITION BY (FLOOR(CAST(\"__rel_0\".\"__rv\" AS REAL) / 100) * 100), \"channel\" ORDER BY (CASE WHEN \"amount\" IS NULL THEN 1 ELSE 0 END), \"amount\") AS \"__rn_0\", COUNT(\"amount\") OVER (PARTITION BY (FLOOR(CAST(\"__rel_0\".\"__rv\" AS REAL) / 100) * 100), \"channel\" ) AS \"__cn_0\" FROM \"orders\" LEFT JOIN (SELECT \"id\" AS \"__rid\", \"staff\" AS \"__rv\" FROM \"customers\" WHERE (1=1)) AS \"__rel_0\" ON \"__rel_0\".\"__rid\" = \"orders\".\"customer\" WHERE (1=1)) SELECT \"customer_staff_bin\", \"channel\", COUNT(*) AS \"n\", MIN(CASE WHEN \"__rn_0\" >= CAST(0.5 * \"__cn_0\" + 0.5 AS INTEGER) THEN \"__pv_0\" END) AS \"median\" FROM __src GROUP BY \"customer_staff_bin\", \"channel\" HAVING COUNT(*) >= ? LIMIT ?",
+          "params": [
+            2,
+            50
+          ]
+        },
+        "member": {
+          "sql": "WITH __src AS (SELECT (FLOOR(CAST(\"__rel_0\".\"__rv\" AS REAL) / 100) * 100) AS \"customer_staff_bin\", \"channel\" AS \"channel\", \"amount\" AS \"__pv_0\", ROW_NUMBER() OVER (PARTITION BY (FLOOR(CAST(\"__rel_0\".\"__rv\" AS REAL) / 100) * 100), \"channel\" ORDER BY (CASE WHEN \"amount\" IS NULL THEN 1 ELSE 0 END), \"amount\") AS \"__rn_0\", COUNT(\"amount\") OVER (PARTITION BY (FLOOR(CAST(\"__rel_0\".\"__rv\" AS REAL) / 100) * 100), \"channel\" ) AS \"__cn_0\" FROM \"orders\" LEFT JOIN (SELECT \"id\" AS \"__rid\", \"staff\" AS \"__rv\" FROM \"customers\" WHERE ((1=1) AND ((\"region\" != ?)))) AS \"__rel_0\" ON \"__rel_0\".\"__rid\" = \"orders\".\"customer\" WHERE (\"created_by\" = ?)) SELECT \"customer_staff_bin\", \"channel\", COUNT(*) AS \"n\", MIN(CASE WHEN \"__rn_0\" >= CAST(0.5 * \"__cn_0\" + 0.5 AS INTEGER) THEN \"__pv_0\" END) AS \"median\" FROM __src GROUP BY \"customer_staff_bin\", \"channel\" HAVING COUNT(*) >= ? LIMIT ?",
+          "params": [
+            "internal",
+            "usr_compat_member",
+            2,
+            50
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT (FLOOR(\"__rel_0\".\"__rv\"::numeric / 100) * 100) AS \"customer_staff_bin\", \"channel\" AS \"channel\", PERCENTILE_DISC(0.5) WITHIN GROUP (ORDER BY \"amount\") AS \"median\", COUNT(*) AS \"n\" FROM \"orders\" LEFT JOIN (SELECT \"id\" AS \"__rid\", \"staff\" AS \"__rv\" FROM \"customers\" WHERE (1=1)) AS \"__rel_0\" ON \"__rel_0\".\"__rid\" = \"orders\".\"customer\" WHERE (1=1) GROUP BY (FLOOR(\"__rel_0\".\"__rv\"::numeric / 100) * 100), \"channel\" HAVING COUNT(*) >= ? LIMIT ?",
+          "params": [
+            2,
+            50
+          ]
+        },
+        "member": {
+          "sql": "SELECT (FLOOR(\"__rel_0\".\"__rv\"::numeric / 100) * 100) AS \"customer_staff_bin\", \"channel\" AS \"channel\", PERCENTILE_DISC(0.5) WITHIN GROUP (ORDER BY \"amount\") AS \"median\", COUNT(*) AS \"n\" FROM \"orders\" LEFT JOIN (SELECT \"id\" AS \"__rid\", \"staff\" AS \"__rv\" FROM \"customers\" WHERE ((1=1) AND ((\"region\" != ?)))) AS \"__rel_0\" ON \"__rel_0\".\"__rid\" = \"orders\".\"customer\" WHERE (\"created_by\" = ?) GROUP BY (FLOOR(\"__rel_0\".\"__rv\"::numeric / 100) * 100), \"channel\" HAVING COUNT(*) >= ? LIMIT ?",
+          "params": [
+            "internal",
+            "usr_compat_member",
+            2,
+            50
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_flexdgds.source",
+      "kind": "dataset",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT strftime('%Y', \"__rel_0\".\"__rv\") AS \"customer_since_year\", COUNT(DISTINCT \"customer\") AS \"buyers\", AVG(\"amount\") AS \"mean\" FROM \"orders\" LEFT JOIN (SELECT \"id\" AS \"__rid\", \"since\" AS \"__rv\" FROM \"customers\" WHERE (1=1)) AS \"__rel_0\" ON \"__rel_0\".\"__rid\" = \"orders\".\"customer\" WHERE (1=1) AND \"channel\" != ? GROUP BY strftime('%Y', \"__rel_0\".\"__rv\") HAVING COUNT(DISTINCT \"customer\") >= ? AND AVG(\"amount\") < ? ORDER BY \"customer_since_year\" ASC LIMIT ?",
+          "params": [
+            "test",
+            1,
+            10000,
+            50
+          ]
+        },
+        "member": {
+          "sql": "SELECT strftime('%Y', \"__rel_0\".\"__rv\") AS \"customer_since_year\", COUNT(DISTINCT \"customer\") AS \"buyers\", AVG(\"amount\") AS \"mean\" FROM \"orders\" LEFT JOIN (SELECT \"id\" AS \"__rid\", \"since\" AS \"__rv\" FROM \"customers\" WHERE ((1=1) AND ((\"region\" != ?)))) AS \"__rel_0\" ON \"__rel_0\".\"__rid\" = \"orders\".\"customer\" WHERE (\"created_by\" = ?) AND \"channel\" != ? GROUP BY strftime('%Y', \"__rel_0\".\"__rv\") HAVING COUNT(DISTINCT \"customer\") >= ? AND AVG(\"amount\") < ? ORDER BY \"customer_since_year\" ASC LIMIT ?",
+          "params": [
+            "internal",
+            "usr_compat_member",
+            "test",
+            1,
+            10000,
+            50
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT to_char(\"__rel_0\".\"__rv\"::timestamptz, 'YYYY') AS \"customer_since_year\", COUNT(DISTINCT \"customer\") AS \"buyers\", AVG(\"amount\") AS \"mean\" FROM \"orders\" LEFT JOIN (SELECT \"id\" AS \"__rid\", \"since\" AS \"__rv\" FROM \"customers\" WHERE (1=1)) AS \"__rel_0\" ON \"__rel_0\".\"__rid\" = \"orders\".\"customer\" WHERE (1=1) AND \"channel\" != ? GROUP BY to_char(\"__rel_0\".\"__rv\"::timestamptz, 'YYYY') HAVING COUNT(DISTINCT \"customer\") >= ? AND AVG(\"amount\") < ? ORDER BY \"customer_since_year\" ASC LIMIT ?",
+          "params": [
+            "test",
+            1,
+            10000,
+            50
+          ]
+        },
+        "member": {
+          "sql": "SELECT to_char(\"__rel_0\".\"__rv\"::timestamptz, 'YYYY') AS \"customer_since_year\", COUNT(DISTINCT \"customer\") AS \"buyers\", AVG(\"amount\") AS \"mean\" FROM \"orders\" LEFT JOIN (SELECT \"id\" AS \"__rid\", \"since\" AS \"__rv\" FROM \"customers\" WHERE ((1=1) AND ((\"region\" != ?)))) AS \"__rel_0\" ON \"__rel_0\".\"__rid\" = \"orders\".\"customer\" WHERE (\"created_by\" = ?) AND \"channel\" != ? GROUP BY to_char(\"__rel_0\".\"__rv\"::timestamptz, 'YYYY') HAVING COUNT(DISTINCT \"customer\") >= ? AND AVG(\"amount\") < ? ORDER BY \"customer_since_year\" ASC LIMIT ?",
+          "params": [
+            "internal",
+            "usr_compat_member",
+            "test",
+            1,
+            10000,
+            50
+          ]
+        }
+      }
+    },
+    {
+      "at": "dataset ds_flexdgyear",
+      "kind": "dataset",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT strftime('%Y', \"__rel_0\".\"__rv\") AS \"customer_since_year\", COUNT(DISTINCT \"customer\") AS \"buyers\", AVG(\"amount\") AS \"mean\" FROM \"orders\" LEFT JOIN (SELECT \"id\" AS \"__rid\", \"since\" AS \"__rv\" FROM \"customers\" WHERE (1=1)) AS \"__rel_0\" ON \"__rel_0\".\"__rid\" = \"orders\".\"customer\" WHERE (1=1) AND \"channel\" != ? GROUP BY strftime('%Y', \"__rel_0\".\"__rv\") HAVING COUNT(DISTINCT \"customer\") >= ? AND AVG(\"amount\") < ? ORDER BY \"customer_since_year\" ASC LIMIT ?",
+          "params": [
+            "test",
+            1,
+            10000,
+            50
+          ]
+        },
+        "member": {
+          "sql": "SELECT strftime('%Y', \"__rel_0\".\"__rv\") AS \"customer_since_year\", COUNT(DISTINCT \"customer\") AS \"buyers\", AVG(\"amount\") AS \"mean\" FROM \"orders\" LEFT JOIN (SELECT \"id\" AS \"__rid\", \"since\" AS \"__rv\" FROM \"customers\" WHERE ((1=1) AND ((\"region\" != ?)))) AS \"__rel_0\" ON \"__rel_0\".\"__rid\" = \"orders\".\"customer\" WHERE (\"created_by\" = ?) AND \"channel\" != ? GROUP BY strftime('%Y', \"__rel_0\".\"__rv\") HAVING COUNT(DISTINCT \"customer\") >= ? AND AVG(\"amount\") < ? ORDER BY \"customer_since_year\" ASC LIMIT ?",
+          "params": [
+            "internal",
+            "usr_compat_member",
+            "test",
+            1,
+            10000,
+            50
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT to_char(\"__rel_0\".\"__rv\"::timestamptz, 'YYYY') AS \"customer_since_year\", COUNT(DISTINCT \"customer\") AS \"buyers\", AVG(\"amount\") AS \"mean\" FROM \"orders\" LEFT JOIN (SELECT \"id\" AS \"__rid\", \"since\" AS \"__rv\" FROM \"customers\" WHERE (1=1)) AS \"__rel_0\" ON \"__rel_0\".\"__rid\" = \"orders\".\"customer\" WHERE (1=1) AND \"channel\" != ? GROUP BY to_char(\"__rel_0\".\"__rv\"::timestamptz, 'YYYY') HAVING COUNT(DISTINCT \"customer\") >= ? AND AVG(\"amount\") < ? ORDER BY \"customer_since_year\" ASC LIMIT ?",
+          "params": [
+            "test",
+            1,
+            10000,
+            50
+          ]
+        },
+        "member": {
+          "sql": "SELECT to_char(\"__rel_0\".\"__rv\"::timestamptz, 'YYYY') AS \"customer_since_year\", COUNT(DISTINCT \"customer\") AS \"buyers\", AVG(\"amount\") AS \"mean\" FROM \"orders\" LEFT JOIN (SELECT \"id\" AS \"__rid\", \"since\" AS \"__rv\" FROM \"customers\" WHERE ((1=1) AND ((\"region\" != ?)))) AS \"__rel_0\" ON \"__rel_0\".\"__rid\" = \"orders\".\"customer\" WHERE (\"created_by\" = ?) AND \"channel\" != ? GROUP BY to_char(\"__rel_0\".\"__rv\"::timestamptz, 'YYYY') HAVING COUNT(DISTINCT \"customer\") >= ? AND AVG(\"amount\") < ? ORDER BY \"customer_since_year\" ASC LIMIT ?",
+          "params": [
+            "internal",
+            "usr_compat_member",
+            "test",
+            1,
+            10000,
+            50
+          ]
+        }
+      }
+    }
+  ]
+}

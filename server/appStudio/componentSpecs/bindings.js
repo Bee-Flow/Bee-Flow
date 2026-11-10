@@ -74,7 +74,11 @@ const FORMULA_SCOPE_ROOTS = [
  */
 const CURRENT_USER_KEYS = ['id', 'name', 'email', 'roleKey', 'isOwner', 'roles'];
 
+// Columns one `orderBy` may name (queryCompilerOrder.MAX_ORDER_BY; bindings.lockstep.test.js holds the two together).
+const MAX_ORDER_BY = 3;
+
 module.exports = {
+    MAX_ORDER_BY,
     BINDING_KINDS,
     BINDING_KIND_SINCE,
     BINDING_KIND_DOCS,

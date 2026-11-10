@@ -90,7 +90,12 @@ const DATA_VOCABULARY_MARKS = Object.freeze({
         }),
     }),
     filterOps: Object.freeze({}),
-    aggFns: Object.freeze({}),
+    aggFns: Object.freeze({
+        countDistinct: Object.freeze({
+            since: 3,
+            description: 'Counts the different non-empty values of a field. Needs a field: { "fn": "countDistinct", "field": "<field>", "as": "<alias>" }.',
+        }),
+    }),
     dateBuckets: Object.freeze({}),
     // Row rules (`access.rowFilters[role]` of a table): what a rule can know about the viewer
     // beyond id, role and organizationId, the membership test and the rule per operation.

@@ -27,7 +27,11 @@ export interface DatasetAggregate {
 /** One breakdown of a saved view's descriptor. */
 export interface DatasetGroup {
     field?: string;
+    /** A field of the record a relation field points at (bi/aggregateExtras.ts). */
+    relatedField?: string;
     bucket?: string;
+    /** A whole-number step for a number field. */
+    binWidth?: number;
     as?: string;
 }
 

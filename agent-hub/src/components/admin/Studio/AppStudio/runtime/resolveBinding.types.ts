@@ -40,9 +40,17 @@ export interface DataBinding {
     /** A free search over some columns; `value` may be a formula (a search box). Records bindings only. */
     search?: { value?: FilterValue; fields?: string[] };
     sort?: FilterValue;
+    /** Up to three `{ field, dir }` entries; replaces `sort` when present. */
+    orderBy?: unknown;
     limit?: FilterValue;
     groupBy?: FilterValue;
     aggregates?: FilterValue;
+    /** record / records only: `[{ field: <relation field>, pick?, as? }]`, the related row of each record (under `as`, or `<field>_record`). */
+    expand?: unknown;
+    /** record / records only: the columns to return (next to `id`). */
+    fields?: unknown;
+    /** Aggregate only: `[{ field: <aggregate alias>, op, value }]`, the groups to keep. */
+    groupFilter?: unknown;
     pick?: PickSpec | null;
     path?: unknown;
     /** dataset only: values for the parameters the dataset declares (literals or formulas). */

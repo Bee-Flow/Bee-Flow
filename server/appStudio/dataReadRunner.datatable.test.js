@@ -412,3 +412,14 @@ test('paging: the batch passes cursor and total through; a filter narrows the to
     assert.equal(res.data.total, 1);
     assert.equal(res.data.nextCursor, null);
 }));
+
+test('a linked table is never read through a relation: expand is refused by name, fields still narrows it', async () => {
+    await assert.rejects(
+        () => dataReadRunner.runRecordList(signedInCtx(), LINKED_TABLE, { expand: [{ field: 'anything' }] }),
+        (err) => err.status === 400 && err.safe === true && /linked Studio table cannot expand/.test(err.message),
+    );
+    await assert.rejects(
+        () => dataReadRunner.runRecordList(signedInCtx(), LINKED_TABLE, { filters: [{ field: 'anything.name', op: 'eq', value: 'x' }] }),
+        (err) => err.name === 'CompileError',
+    );
+});

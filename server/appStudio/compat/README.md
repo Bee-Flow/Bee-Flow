@@ -22,7 +22,7 @@ is allowed.
 | `validation` | `validateAppDefinition` on the canonical form, publish-style (`strict`) and save-style (`save`, data references as warnings), as `code @ path` | `validation.test.js` |
 | `ordinals` | `actionSequence.flattenSteps` per action, `<ordinal> <kind>`, stored and canonical | `stepsAndPublic.test.js` |
 | `publicDefinition` | `publicAccess.buildPublicDefinition` over the stored bytes (apps with `publicAccess`) | `stepsAndPublic.test.js` |
-| `reads` | per binding and saved dataset, per role, in sqlite and pg: the SQL and params the query compiler produces (`readSql.mts` says how) | `reads.test.js` |
+| `reads` | per binding and saved dataset, per role, in sqlite and pg: the SQL and params the query compiler produces, and under `expand` the lookup each expanded relation runs afterwards (`readSql.mts` says how) | `reads.test.js` |
 
 A missing or invalid id is replaced by a random one when the input is canonicalized. Those ids are
 masked as `<generated-N>` before hashing (`canonical.generatedIds` counts them).

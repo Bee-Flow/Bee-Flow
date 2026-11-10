@@ -31,6 +31,8 @@ const queryCompiler = require('../core/dataEngine/queryCompiler');
 const { recordListDescriptor, aggregateDescriptor } = require('../core/dataEngine/readDescriptor.mts');
 const { queryWithComputed } = require('../core/dataEngine/computedRead.mts');
 const rlsGateway = require('../appStudio/rlsGateway');
+const { relatedForAggregate } = require('../core/dataEngine/aggregateRelated.mts');
+const { relationRead, finishRecords } = require('../core/dataEngine/relationRead.mts');
 const { seedVariableDefaults } = require('../appStudio/componentSpecs');
 const { ROLE_PROBE_VIEWER_ID } = require('../appStudio/appDryRun');
 const { RENDER_PLAN, planShape, planFilters, planParams } = require('../shared/appDefinition/bindingPlan.mjs');
@@ -93,6 +95,9 @@ function dataCacheKey(binding) {
             sort: binding.sort ?? null,
             limit: binding.limit ?? null,
             ...readExtras(binding),
+            ...(binding.orderBy === undefined || binding.orderBy === null ? {} : { orderBy: binding.orderBy }),
+            ...(binding.expand === undefined || binding.expand === null ? {} : { expand: binding.expand }),
+            ...(binding.fields === undefined || binding.fields === null ? {} : { fields: binding.fields }),
         });
         return `${binding.kind}:${binding.tableId ?? ''}:${shape}`;
     }
@@ -104,6 +109,8 @@ function dataCacheKey(binding) {
             sort: binding.sort ?? null,
             limit: binding.limit ?? null,
             ...readExtras(binding),
+            ...(binding.orderBy === undefined || binding.orderBy === null ? {} : { orderBy: binding.orderBy }),
+            ...(binding.groupFilter === undefined || binding.groupFilter === null ? {} : { groupFilter: binding.groupFilter }),
         });
         return `aggregate:${binding.tableId ?? ''}:${shape}`;
     }
@@ -201,7 +208,8 @@ async function runTableEntry(binding, { model, app, roleArg, viewer, deps }) {
         let rows;
         if (binding.kind === 'aggregate') {
             const { sql, params } = queryCompiler.compileAggregate(table,
-                aggregateDescriptor(binding, { filters: binding.filter, limit: binding.limit }), accessFilter);
+                aggregateDescriptor(binding, { filters: binding.filter, limit: binding.limit }), accessFilter,
+                relatedForAggregate(model, table, binding.groupBy, { role: roleArg, viewer }, binding.filter));
             const out = await deps.dbQuery(app.userId, app.id, sql, params);
             rows = Array.isArray(out && out.rows) ? out.rows : [];
         } else {
@@ -209,12 +217,12 @@ async function runTableEntry(binding, { model, app, roleArg, viewer, deps }) {
                 filters: binding.filter,
                 limit: binding.kind === 'record' ? 1 : binding.limit,
                 readTimeComputed: true,
-            }), accessFilter);
-            const { limit } = compiled;
+            }), accessFilter, relationRead(model, table, { filters: binding.filter, expand: binding.expand, fields: binding.fields }, { role: roleArg, viewer }));
             const { result: out } = await queryWithComputed(
                 (/** @type {string} */ sql, /** @type {unknown[]} */ params) => deps.dbQuery(app.userId, app.id, sql, params), compiled);
             // The compiler fetches limit+1 as a pagination probe — drop it.
-            rows = (Array.isArray(out && out.rows) ? out.rows : []).slice(0, limit);
+            rows = await finishRecords(compiled, (Array.isArray(out && out.rows) ? out.rows : []).slice(0, compiled.limit),
+                (sql, params) => deps.dbQuery(app.userId, app.id, sql, params));
         }
         const result = binding.kind === 'record' ? (rows[0] ?? null) : rows;
         return entryBase({ ...base, result });
