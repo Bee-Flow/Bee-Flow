@@ -46,6 +46,43 @@ exports[`compat corpus: what the phone plans for every stored app asset-refs 1`]
 }
 `;
 
+exports[`compat corpus: what the phone plans for every stored app computed-read-time 1`] = `
+{
+  "defaultScreen": "scr_lines01",
+  "navigable": [
+    "scr_lines01",
+  ],
+  "screens": [
+    {
+      "id": "scr_lines01",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "id": "cmp_lnhead",
+                "kind": "heading",
+                "level": 1,
+                "text": "Order lines",
+              },
+            ],
+            "screen": "scr_lines01",
+            "unsupported": [
+              "table",
+              "stat",
+            ],
+          },
+          "roles": [
+            "(no role)",
+            "clerk",
+          ],
+        },
+      ],
+    },
+  ],
+}
+`;
+
 exports[`compat corpus: what the phone plans for every stored app data-model-field-rules 1`] = `
 {
   "defaultScreen": "scr_order1",
@@ -245,6 +282,43 @@ exports[`compat corpus: what the phone plans for every stored app data-model-fie
           },
           "roles": [
             "(no role)",
+          ],
+        },
+      ],
+    },
+  ],
+}
+`;
+
+exports[`compat corpus: what the phone plans for every stored app dataset-params 1`] = `
+{
+  "defaultScreen": "scr_home01",
+  "navigable": [
+    "scr_home01",
+  ],
+  "screens": [
+    {
+      "id": "scr_home01",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "id": "cmp_head01",
+                "kind": "heading",
+                "level": 2,
+                "text": "Orders by region",
+              },
+            ],
+            "screen": "scr_home01",
+            "unsupported": [
+              "stat",
+              "chart",
+            ],
+          },
+          "roles": [
+            "(no role)",
+            "viewer",
           ],
         },
       ],
@@ -963,6 +1037,43 @@ exports[`compat corpus: what the phone plans for every stored app lockstep-sampl
           "roles": [
             "(no role)",
             "manager",
+          ],
+        },
+      ],
+    },
+  ],
+}
+`;
+
+exports[`compat corpus: what the phone plans for every stored app paged-record-lists 1`] = `
+{
+  "defaultScreen": "scr_queue01",
+  "navigable": [
+    "scr_queue01",
+  ],
+  "screens": [
+    {
+      "id": "scr_queue01",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "id": "cmp_qhead",
+                "kind": "heading",
+                "level": 1,
+                "text": "Ticket queue",
+              },
+            ],
+            "screen": "scr_queue01",
+            "unsupported": [
+              "table",
+              "list",
+              "data_grid",
+            ],
+          },
+          "roles": [
+            "(no role)",
           ],
         },
       ],
