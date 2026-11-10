@@ -114,7 +114,7 @@ export default function AppInputTextarea({ node }: NodeProps<InputTextareaProps>
 
     const id = `${node.id}-input`;
     return (
-        <Field id={id} label={label} required={required} error={error}>
+        <Field part="input_textarea" id={id} label={label} required={required} error={error}>
             <div className="relative">
                 <textarea
                     id={id}
@@ -131,13 +131,13 @@ export default function AppInputTextarea({ node }: NodeProps<InputTextareaProps>
                     onKeyUp={(e) => sync(e.target as HTMLTextAreaElement)}
                     onClick={(e) => sync(e.target as HTMLTextAreaElement)}
                     onBlur={() => setToken(null)}
-                    className={`${INPUT_CLASS} resize-y`}
+                    className={`${INPUT_CLASS} resize-y bfa-input_textarea__control`}
                     style={inputStyle(error)}
                 />
                 {open ? (
                     <ul
                         data-app-snippets="true"
-                        className="absolute left-0 right-0 top-full z-20 mt-1 max-h-56 overflow-y-auto border shadow-lg [background:var(--bg-card)] [border-color:var(--border-default)] [border-radius:var(--app-radius)]"
+                        className="absolute left-0 right-0 top-full z-20 mt-1 max-h-56 overflow-y-auto border shadow-lg [background:var(--bg-card)] [border-color:var(--border-default)] [border-radius:var(--app-radius)] bfa-input_textarea__snippets"
                     >
                         {matches.map((row, i) => (
                             <li key={i}>

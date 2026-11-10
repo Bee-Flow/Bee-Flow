@@ -126,6 +126,7 @@ export default function AppInputRelation({ node }: NodeProps<InputRelationProps>
                 options={options}
                 selectedIds={selectedIds}
                 multiple={multiple}
+                part="input_relation"
                 disabled={!tableId}
                 placeholder={t('studio_apps_runtime.inputs.search_records', 'Search records…')}
                 disabledText={t('studio_apps_runtime.inputs.no_table', 'No table selected')}

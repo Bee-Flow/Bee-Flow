@@ -800,7 +800,15 @@
                 "span": 6,
                 "gap": 3,
                 "padding": 0
-            }
+            },
+            "parts": [
+                "root",
+                "body",
+                "error",
+                "actions",
+                "submit",
+                "reset"
+            ]
         },
         "input_text": {
             "label": "Text input",
@@ -820,7 +828,13 @@
             },
             "defaultStyle": {
                 "span": 12
-            }
+            },
+            "parts": [
+                "root",
+                "label",
+                "control",
+                "error"
+            ]
         },
         "input_textarea": {
             "label": "Text area",
@@ -846,7 +860,14 @@
             },
             "defaultStyle": {
                 "span": 12
-            }
+            },
+            "parts": [
+                "root",
+                "label",
+                "control",
+                "snippets",
+                "error"
+            ]
         },
         "input_number": {
             "label": "Number input",
@@ -867,7 +888,13 @@
             },
             "defaultStyle": {
                 "span": 6
-            }
+            },
+            "parts": [
+                "root",
+                "label",
+                "control",
+                "error"
+            ]
         },
         "input_select": {
             "label": "Select",
@@ -890,7 +917,13 @@
             },
             "defaultStyle": {
                 "span": 6
-            }
+            },
+            "parts": [
+                "root",
+                "label",
+                "control",
+                "error"
+            ]
         },
         "input_checkbox": {
             "label": "Checkbox",
@@ -903,7 +936,13 @@
             },
             "defaultStyle": {
                 "span": 12
-            }
+            },
+            "parts": [
+                "root",
+                "label",
+                "control",
+                "error"
+            ]
         },
         "input_date": {
             "label": "Date picker",
@@ -921,7 +960,13 @@
             },
             "defaultStyle": {
                 "span": 6
-            }
+            },
+            "parts": [
+                "root",
+                "label",
+                "control",
+                "error"
+            ]
         },
         "data_grid": {
             "label": "Data grid",
@@ -1015,7 +1060,16 @@
             },
             "defaultStyle": {
                 "span": 6
-            }
+            },
+            "parts": [
+                "root",
+                "label",
+                "button",
+                "items",
+                "item",
+                "remove",
+                "error"
+            ]
         },
         "input_dataset": {
             "label": "Dataset upload",
@@ -1030,7 +1084,15 @@
             },
             "defaultStyle": {
                 "span": 12
-            }
+            },
+            "parts": [
+                "root",
+                "label",
+                "button",
+                "selected",
+                "remove",
+                "error"
+            ]
         },
         "input_richtext": {
             "label": "Rich text",
@@ -1048,7 +1110,16 @@
             },
             "defaultStyle": {
                 "span": 12
-            }
+            },
+            "parts": [
+                "root",
+                "label",
+                "frame",
+                "toolbar",
+                "tool",
+                "editor",
+                "error"
+            ]
         },
         "input_html": {
             "label": "Formatted text (HTML)",
@@ -1069,7 +1140,16 @@
             },
             "defaultStyle": {
                 "span": 12
-            }
+            },
+            "parts": [
+                "root",
+                "label",
+                "frame",
+                "toolbar",
+                "tool",
+                "editor",
+                "error"
+            ]
         },
         "input_datetime": {
             "label": "Date & time",
@@ -1084,7 +1164,13 @@
             },
             "defaultStyle": {
                 "span": 6
-            }
+            },
+            "parts": [
+                "root",
+                "label",
+                "control",
+                "error"
+            ]
         },
         "input_relation": {
             "label": "Relation",
@@ -1101,7 +1187,17 @@
             },
             "defaultStyle": {
                 "span": 6
-            }
+            },
+            "parts": [
+                "root",
+                "label",
+                "chips",
+                "chip",
+                "control",
+                "menu",
+                "option",
+                "error"
+            ]
         },
         "input_person": {
             "label": "Person",
@@ -1116,7 +1212,17 @@
             },
             "defaultStyle": {
                 "span": 6
-            }
+            },
+            "parts": [
+                "root",
+                "label",
+                "chips",
+                "chip",
+                "control",
+                "menu",
+                "option",
+                "error"
+            ]
         },
         "input_multiselect": {
             "label": "Multi-select",
@@ -1135,7 +1241,15 @@
             },
             "defaultStyle": {
                 "span": 6
-            }
+            },
+            "parts": [
+                "root",
+                "label",
+                "chips",
+                "chip",
+                "control",
+                "error"
+            ]
         },
         "tabs": {
             "label": "Tabs",
@@ -1446,7 +1560,13 @@
             },
             "defaultStyle": {
                 "span": 12
-            }
+            },
+            "parts": [
+                "root",
+                "field",
+                "label",
+                "control"
+            ]
         },
         "kanban": {
             "label": "Kanban",
@@ -1567,7 +1687,17 @@
             },
             "defaultStyle": {
                 "span": 6
-            }
+            },
+            "parts": [
+                "root",
+                "label",
+                "chips",
+                "chip",
+                "control",
+                "menu",
+                "option",
+                "error"
+            ]
         }
     },
     "typeStyleKnobs": {

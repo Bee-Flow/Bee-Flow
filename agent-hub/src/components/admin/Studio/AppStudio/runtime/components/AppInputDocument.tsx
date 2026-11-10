@@ -39,6 +39,7 @@ export default function AppInputDocument({ node }: NodeProps<Props>) {
             required={required}
             error={error}
             options={known}
+            part="input_document"
             selectedIds={value ? [value] : []}
             disabled={!scope.live}
             disabledText={t('studio_app_documents.picker_design', 'Documents can be picked when the app runs.')}

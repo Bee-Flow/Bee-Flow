@@ -12,6 +12,7 @@ const { VALUE_FROM } = require('./styleKnobs');
 const RICH_INPUT_SPECS = {
     // ── v2 rich inputs ───────────────────────────────────────────────────
     input_file: {
+        parts: ['root', 'label', 'button', 'items', 'item', 'remove', 'error'],
         label: 'File upload', category: 'Input', isInput: true,
         description: 'A file picker. `accept` is a comma-separated MIME/extension list. `buttonLabel` renames the picker button itself — the runtime ships one English default, and a form your customers fill in should not say "Choose a file" in the middle of Dutch copy.',
         props: {
@@ -33,6 +34,7 @@ const RICH_INPUT_SPECS = {
         defaultStyle: { span: 6 },
     },
     input_dataset: {
+        parts: ['root', 'label', 'button', 'selected', 'remove', 'error'],
         label: 'Dataset upload', category: 'Input', isInput: true,
         description: 'Pick or upload a LARGE dataset (a multi-GB genome VCF). Uploads stream in resumable parts and index in the background, with progress shown; the ready dataset\'s descriptor becomes the form value — the shape dataset_query and the AI steps\' `datasets` binding take. Needs the large_datasets licence feature.',
         props: {
@@ -52,6 +54,7 @@ const RICH_INPUT_SPECS = {
         defaultStyle: { span: 12 },
     },
     input_richtext: {
+        parts: ['root', 'label', 'frame', 'toolbar', 'tool', 'editor', 'error'],
         label: 'Rich text', category: 'Input', isInput: true,
         description: 'A rich-text (markdown) editor. Submits markdown.',
         props: {
@@ -81,6 +84,7 @@ const RICH_INPUT_SPECS = {
      * once the message leaves the building.
      */
     input_html: {
+        parts: ['root', 'label', 'frame', 'toolbar', 'tool', 'editor', 'error'],
         label: 'Formatted text (HTML)', category: 'Input', isInput: true,
         description: 'A formatted-text editor that submits HTML — bold, italics, underline, lists, links, text colour, typeface, size and images. Use it for e-mail bodies and signatures; use input_richtext for notes stored in the app (that one submits markdown). Pair it with send_email bodyFormat "html".',
         props: {
@@ -102,6 +106,7 @@ const RICH_INPUT_SPECS = {
         defaultStyle: { span: 12 },
     },
     input_datetime: {
+        parts: ['root', 'label', 'control', 'error'],
         label: 'Date & time', category: 'Input', isInput: true,
         description: 'A date (optionally date+time) field. Submits ISO 8601.',
         props: {
@@ -115,6 +120,7 @@ const RICH_INPUT_SPECS = {
         defaultStyle: { span: 6 },
     },
     input_relation: {
+        parts: ['root', 'label', 'chips', 'chip', 'control', 'menu', 'option', 'error'],
         label: 'Relation', category: 'Input', isInput: true,
         description: 'Pick record(s) from a data table. `displayField` labels each option; `filter` is a formula that narrows the choices.',
         props: {
@@ -130,6 +136,7 @@ const RICH_INPUT_SPECS = {
         defaultStyle: { span: 6 },
     },
     input_person: {
+        parts: ['root', 'label', 'chips', 'chip', 'control', 'menu', 'option', 'error'],
         label: 'Person', category: 'Input', isInput: true,
         description: 'Pick a member of the organisation. Submits their user id, so "assigned to me" can compare against currentUser.id. ALSO publishes <name>_label with the display name — write both, because there are no joins to look the name up later. Needs model.directory.orgMembers = true.',
         props: {
@@ -143,6 +150,7 @@ const RICH_INPUT_SPECS = {
         defaultStyle: { span: 6 },
     },
     input_multiselect: {
+        parts: ['root', 'label', 'chips', 'chip', 'control', 'error'],
         label: 'Multi-select', category: 'Input', isInput: true,
         description: 'A dropdown that accepts multiple fixed options. Submits an array of values.',
         events: ['onChange'],

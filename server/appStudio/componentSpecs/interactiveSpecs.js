@@ -12,6 +12,7 @@ const { COLOR_ROLES } = require('./styleKnobs');
 const INTERACTIVE_SPECS = {
     // ── v2.1 interactive data ────────────────────────────────────────────
     filter_bar: {
+        parts: ['root', 'field', 'label', 'control'],
         label: 'Filter bar', category: 'Data',
         description: 'A row of filter controls (search, select, toggle, date). Each control writes vars.filters.<name>, for use in records-binding filter formulas.',
         props: {

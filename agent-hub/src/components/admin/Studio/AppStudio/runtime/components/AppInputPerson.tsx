@@ -109,6 +109,7 @@ export default function AppInputPerson({ node }: NodeProps<InputPersonProps>) {
                 error={error}
                 options={options}
                 pinned={pinned}
+                part="input_person"
                 selectedIds={selectedIds}
                 multiple={multiple}
                 placeholder={t('studio_apps_runtime.inputs.search_people', 'Search people…')}
