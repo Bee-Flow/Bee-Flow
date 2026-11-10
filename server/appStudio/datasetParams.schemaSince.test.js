@@ -7,7 +7,9 @@
  * base, canonicalize keeps it and the validator checks it. What is new lives in the saved
  * dataset's descriptor (`descriptor.params`, a filter value `{ param }`), which is app data next
  * to the definition, not part of it, and has no schema version (like field types and field
- * options). So a definition that uses parameterised datasets keeps the version it had, the
+ * options). The binding-key marks (componentSpecs/queryMarks.js) refuse a mark on `params` for
+ * that reason: a mark never claims a key the base canonicalizer already kept, or apps that hold
+ * it would move to version 3 on their next save. So a definition that uses parameterised datasets keeps the version it had, the
  * extension index lists nothing for it, and the AI learns it from the two data tools
  * (app_upsert_dataset, app_query_data) whose pinned hashes were updated for it.
  *
@@ -60,6 +62,15 @@ test('the dataset-params corpus app keeps schema version 2, stored and canonical
     assert.equal(definition.schemaVersion, SCHEMA_VERSION_BASE);
     assert.equal(since.requiredSchemaVersion(definition), SCHEMA_VERSION_BASE);
     assert.equal(canonicalizeAppDefinition(definition).def.schemaVersion, SCHEMA_VERSION_BASE);
+});
+
+test('`params` is a base key of a dataset binding: a binding-key mark for it is refused', () => {
+    const { BINDING_BASE_KEYS, bindingMarkProblems } = require('./componentSpecs/queryMarks');
+    assert.ok(BINDING_BASE_KEYS.dataset.includes('params'));
+    const mark = { since: 3, kinds: ['dataset'], shape: 'object', description: 'Values for the dataset params.', clean: (/** @type {unknown} */ v) => v };
+    const problems = bindingMarkProblems('params', mark);
+    assert.equal(problems.length, 1);
+    assert.match(problems[0], /is a base key of dataset bindings/);
 });
 
 test('the extension index lists nothing for dataset parameters', () => {
