@@ -3045,6 +3045,17 @@
     "GET /api/teams-notes-settings/user/me": {
       "gate": "auth"
     },
+    "GET /api/teams-setup/org/app-import": {
+      "gate": "scope",
+      "via": "orgAdminOfSessionOrg"
+    },
+    "GET /api/teams-setup/org/overview": {
+      "gate": "scope",
+      "via": "orgAdminOfSessionOrg"
+    },
+    "GET /api/teams-setup/requirements": {
+      "gate": "auth"
+    },
     "GET /api/templates": {
       "gate": "auth"
     },
@@ -6237,6 +6248,17 @@
       "gate": "middleware",
       "via": "requireStaffSupport"
     },
+    "POST /api/teams-setup/me/diagnostics": {
+      "gate": "auth"
+    },
+    "POST /api/teams-setup/org/app-import/diagnostics": {
+      "gate": "scope",
+      "via": "orgAdminOfSessionOrg"
+    },
+    "POST /api/teams-setup/org/consent-link": {
+      "gate": "scope",
+      "via": "orgAdminOfSessionOrg"
+    },
     "POST /api/templates/:id/fill": {
       "gate": "auth"
     },
@@ -7326,6 +7348,10 @@
     },
     "PUT /api/teams-notes-settings/user/me": {
       "gate": "auth"
+    },
+    "PUT /api/teams-setup/org/app-import": {
+      "gate": "scope",
+      "via": "orgAdminOfSessionOrg"
     },
     "PUT /api/templates/:id": {
       "gate": "auth"

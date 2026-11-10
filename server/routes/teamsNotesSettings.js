@@ -38,7 +38,12 @@ router.get('/user/me', requireAuth, async (req, res) => {
     try {
         credential = await require('../stores/automationCredentialStore').getCredential(userId, 'microsoft');
     } catch (err) { fallback('routes/teamsNotesSettings:anon', err); /* no stored credential */ }
-    res.json({ ...config, connection: teamsNotes.deriveConnectionStatus({ session: req.session, credential }) });
+    // Whether the organisation's app import (option B) covers the caller now: stored state only, no Graph call.
+    let orgImport = { active: false };
+    try {
+        orgImport = { active: await require('../core/meetingNotes/teamsAppImport/coverage.mts').orgImportActive(userId) };
+    } catch (err) { fallback('routes/teamsNotesSettings:orgImport', err); }
+    res.json({ ...config, connection: teamsNotes.deriveConnectionStatus({ session: req.session, credential }), orgImport });
 });
 
 router.put('/user/me', requireAuth, validate({ body: SettingsBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof SettingsBody>, import('qs').ParsedQs>} */ req, res) => {

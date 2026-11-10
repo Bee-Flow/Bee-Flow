@@ -18,7 +18,18 @@
  *
  * Stable failure codes (job `error_code` + API `code`): not_connected,
  * needs_teams_scopes, needs_reauth, not_organizer, no_recording,
- * recording_too_large, transcript_access_disabled, failed.
+ * recording_too_large, transcript_access_disabled, speaker_attribution_disabled,
+ * graph_forbidden, meeting_not_available, application_access_policy_missing,
+ * calendar_forbidden, failed. graph_throttled and graph_unavailable retry.
+ *
+ * A user discovery skips (not licensed, no usable stored connection, missing
+ * scopes) is remembered per user in teamsImportSkipState.mts, so the setup
+ * screens can say why nothing is imported; it is cleared once a session works.
+ *
+ * Token source: the user's own delegated grant with the Teams scopes first.
+ * Without one, the organisation app token of option B (teamsAppImport/), only
+ * for a user it covers, decided again at discovery and at every job claim.
+ * It changes nothing about who is a candidate or which meetings are imported.
  */
 
 const { lazyDeps } = require('./lazyDeps');
@@ -34,11 +45,14 @@ const { deps: d, init } = lazyDeps({
     meetingPrefs: () => require('../../stores/meetingPrefsStore'),
     recordOptIn: () => require('../../stores/meetingPrefsOptIn'),
     automationAuth: () => require('../../auth/automationAuth'),
+    credentialStore: () => require('../../stores/automationCredentialStore'),
+    skipState: () => require('./teamsImportSkipState.mts'),
     resolveMicrosoftSession: () => require('../../auth/microsoftSessionHydration').resolveMicrosoftSession,
     hasCapability: () => require('../entitlements/entitlements').hasCapability,
     graphFetch: () => require('../integrations/integrationClients').integrationClient('msGraph').graphFetch,
     resolveTeamsNotesSettings: () => require('./teamsNotesSettings').resolveTeamsNotesSettings,
     hasTeamsScopes: () => require('./teamsNotesSettings').hasTeamsScopes,
+    missingTeamsPermissions: () => require('./teamsNotesSettings').missingTeamsPermissions,
     hasTranscriptScope: () => require('./teamsNotesSettings').hasTranscriptScope,
     listRecentlyEndedTeamsMeetings: () => require('./teamsCalendar').listRecentlyEndedTeamsMeetings,
     getOnlineMeetingByJoinUrl: () => require('./teamsArtifacts').getOnlineMeetingByJoinUrl,
@@ -46,11 +60,15 @@ const { deps: d, init } = lazyDeps({
     listTranscripts: () => require('./teamsArtifacts').listTranscripts,
     pickArtifactForSlot: () => require('./teamsArtifacts').pickArtifactForSlot,
     artifactsForSlot: () => require('./teamsArtifacts').artifactsForSlot,
+    graphUserBase: () => require('./teamsArtifacts').graphUserBase,
     ingestTeamsMeeting: () => require('./ingestTeamsRecording').ingestTeamsMeeting,
+    appImport: () => require('./teamsAppImport/appToken.mts'),
 });
 
 const log = require('../../telemetry/log');
 const kit = require('./importJobKit');
+// Who an import runs for and with which session (delegated grant first, then option B).
+const access = require('./teamsImportAccess.mts');
 const { fallback: fallbackSwallowed } = require('../../utils/bestEffort');
 
 const { codedError, backoffMsFor, meetingEndMs } = kit;
@@ -72,16 +90,14 @@ const TERMINAL_CODES = new Set([
     // retry changes that, and the 409's sentence (ask them to share it) is the
     // answer the user needs instead of "try again in a moment".
     'already_imported', 'provider_not_allowed',
+    // Microsoft refused for a reason no retry changes (a permission, licence
+    // or Teams policy), has no online meeting for the calendar entry, has no
+    // application access policy for the app (option B), or refused the calendar.
+    'graph_forbidden', 'meeting_not_available', 'application_access_policy_missing', 'calendar_forbidden',
 ]);
-const QUIET_CODES = new Set(['no_recording', 'not_organizer']);
-
-/**
- * A Microsoft-only session over a vault credential; refreshes write back to the vault.
- * @param {string | null} userId
- */
-async function vaultSession(auth, userId) {
-    return d.resolveMicrosoftSession({ automationProviders: { microsoft: auth } }, userId);
-}
+// Expected outcomes the poller does not log as failures (the members overview
+// does not count them as failed imports either).
+const QUIET_CODES = new Set(require('./teamsImportOutcomes.mts').TEAMS_EXPECTED_OUTCOME_CODES);
 
 /**
  * Users with their own Teams settings, plus members of orgs that turned autoImport on,
@@ -119,19 +135,16 @@ async function discoverUser(userId) {
     const prefs = await meetingPrefs.loadMeetingPrefs({ provider: 'teams', userId, orgId });
     // With autoImport off only a live, explicit "record" mark imports a meeting
     // (it overrides an org-level off). Without one, stop before anything that
-    // refreshes tokens, writes to the database or calls Graph.
-    if (!settings.autoImport && !d.recordOptIn.hasLiveRecordOptIn(prefs.rows)) return;
+    // refreshes tokens or calls Graph. A stored skip says nothing about a user
+    // who is not a candidate: drop it (a cached read, and a delete only when
+    // one is stored). The setup screens apply the same rule to users the
+    // poller does not visit at all (teamsSetup/autoImportCandidate.mts).
+    if (!settings.autoImport && !d.recordOptIn.hasLiveRecordOptIn(prefs.rows)) {
+        await d.skipState.clearSkip(userId);
+        return;
+    }
 
-    // The background path bypasses the route gates: check the licence here.
-    if (!await d.hasCapability('meeting_notes', { userId, orgId })) return;
-
-    const auth = await d.automationAuth.getProviderAuth(userId, 'microsoft');
-    if (!auth || !d.hasTeamsScopes(auth.scope)) return;
-
-    await d.teamsImportStore.unparkForUser(userId)
-        .catch((err) => log.warn(`[TeamsAutoImport] unpark failed for user ${userId}: ${err.message}`));
-
-    const session = await vaultSession(auth, userId);
+    const session = await access.discoverySession(d, userId, orgId);
     if (!session) return;
 
     const ended = await d.listRecentlyEndedTeamsMeetings({ session, lookbackHours: settings.lookbackHours });
@@ -173,7 +186,7 @@ const discover = kit.makeDiscovery({
  */
 async function fetchEventAttendees(session, job) {
     try {
-        const event = await d.graphFetch(`/me/events/${encodeURIComponent(job.calendarEventId)}?$select=attendees`, session);
+        const event = await d.graphFetch(`${d.graphUserBase(session)}/events/${encodeURIComponent(job.calendarEventId)}?$select=attendees`, session);
         return (event?.attendees || [])
             .filter(a => String(a?.type || '').toLowerCase() !== 'resource'
                 && String(a?.status?.response || '').toLowerCase() !== 'declined')
@@ -256,7 +269,10 @@ async function processJobInline({ job, session, settings = null, language = null
     try {
         if (!meetingId) {
             const meeting = await d.getOnlineMeetingByJoinUrl(session, job.joinUrl);
-            if (!meeting) throw codedError('Only the organizer of this Teams meeting can import it', 'not_organizer');
+            // The calendar says this user organises it, so an empty lookup is
+            // a meeting Graph does not have (expired, or not created as a
+            // Teams meeting from the calendar), not "not the organiser".
+            if (!meeting) throw codedError('Microsoft has no online meeting for this calendar entry', 'meeting_not_available');
             meetingId = meeting.id;
             await d.teamsImportStore.updateJob(job.id, { onlineMeetingId: meetingId });
         }
@@ -324,23 +340,9 @@ async function processJobInline({ job, session, settings = null, language = null
     return { transcription: saved };
 }
 
-/**
- * May this job's owner still have a meeting imported? Checked again at claim
- * time, not only at discovery: a job can wait up to 48 h for its recording,
- * and a user deactivated, or an org whose licence lapsed, in that window must
- * not still get a note transcribed, stored and shared.
- * @returns {Promise<string | null>} why not, or null when they may
- */
-async function ownerBarredReason(job) {
-    // A failed lookup throws: the claim lease retries the job instead of skipping it for good.
-    const user = await d.userStore.getUser(job.userId);
-    if (!user || (user.status ?? 'active') !== 'active') return 'the account is no longer active';
-    if (!await d.hasCapability('meeting_notes', { userId: job.userId, orgId: job.orgId })) return 'Meeting Notes is not licensed for this account';
-    return null;
-}
-
 async function processClaimedJob(job) {
-    const barred = await ownerBarredReason(job);
+    // The owner is checked again at claim time (teamsImportAccess.mts ownerBarredReason).
+    const barred = await access.ownerBarredReason(d, job);
     if (barred) {
         await d.teamsImportStore.updateJob(job.id, { status: 'skipped', lastError: `Skipped: ${barred}` });
         return;
@@ -362,13 +364,12 @@ async function processClaimedJob(job) {
         return;
     }
 
-    const auth = await d.automationAuth.getProviderAuth(job.userId, 'microsoft');
-    const session = auth ? await vaultSession(auth, job.userId) : null;
-    if (!session) {
+    const claimed = await access.claimSession(d, job);
+    if (!claimed) {
         await d.teamsImportStore.parkNeedsReauth(job.id);
         return;
     }
-    await processJobInline({ job, session, settings, transcriptAllowed: d.hasTranscriptScope(auth.scope) });
+    await processJobInline({ job, session: claimed.session, settings, transcriptAllowed: claimed.transcriptAllowed });
 }
 
 /** Phase B: claim and process due jobs (every pod may run this). */
