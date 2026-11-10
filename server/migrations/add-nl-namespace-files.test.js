@@ -20,7 +20,12 @@ const { loadNamespaceFiles, sourceHash } = require('../i18n/defaults/nl');
 const { checksumOf } = require('../boot/migrationChecksum');
 const { NL_TRANSLATIONS: LADDER, LOOSE_MIGRATIONS } = require('../boot/bootMigrations');
 
-const sha = (/** @type {Buffer | string} */ b) => crypto.createHash('sha256').update(b).digest('hex');
+/** sha256 of a migration file's bytes, optionally followed by more input. */
+function fileSha(/** @type {string} */ name, /** @type {string[]} */ ...more) {
+    const hash = crypto.createHash('sha256').update(fs.readFileSync(path.join(__dirname, `${name}.js`)));
+    for (const m of more) hash.update(m);
+    return hash.digest('hex');
+}
 
 test('it seeds exactly what the data files hold', () => {
     const loaded = loadNamespaceFiles();
@@ -46,15 +51,13 @@ test('the boot ladder runs it, after every other Dutch catalogue', () => {
 });
 
 test('its ledger checksum covers the data files, so a new or changed file runs it again', () => {
-    const own = fs.readFileSync(path.join(__dirname, 'add-nl-namespace-files.js'));
-    const want = crypto.createHash('sha256').update(own).update(`\0${sourceHash()}`).digest('hex');
-    assert.strictEqual(checksumOf('add-nl-namespace-files'), want);
-    assert.notStrictEqual(checksumOf('add-nl-namespace-files'), sha(own));
+    assert.strictEqual(checksumOf('add-nl-namespace-files'), fileSha('add-nl-namespace-files', `\0${sourceHash()}`));
+    assert.notStrictEqual(checksumOf('add-nl-namespace-files'), fileSha('add-nl-namespace-files'));
 });
 
 test('every other entry\'s checksum is still the sha256 of its own file, so nothing already recorded runs again', () => {
     for (const name of [...LOOSE_MIGRATIONS, ...LADDER]) {
         if (name === 'add-nl-namespace-files') continue;
-        assert.strictEqual(checksumOf(name), sha(fs.readFileSync(path.join(__dirname, `${name}.js`))), name);
+        assert.strictEqual(checksumOf(name), fileSha(name), name);
     }
 });
