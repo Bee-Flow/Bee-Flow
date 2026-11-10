@@ -159,7 +159,7 @@ async function executeSupportActionTool(toolName, args, context, thread) {
             const userId = String(args.userId || '').trim();
             if (!userId) return { error: 'userId required' };
             const { _eligibleStaffForOrg } = require('../services/supportAutoAssigner');
-            const eligible = await _eligibleStaffForOrg(thread.organization_id || null).catch((e) => fallback('integrations/supportTools:executeSupportActionTool', e, []));
+            const eligible = await _eligibleStaffForOrg(thread.organization_id || null, { tenantInbox: !!thread.inbox_id }).catch((e) => fallback('integrations/supportTools:executeSupportActionTool', e, []));
             if (!eligible.includes(userId)) return { error: 'Not an eligible teammate for this organisation.' };
             // On a group-restricted inbox the assignee must be able to work it,
             // otherwise the ticket is stranded with someone who'd be 403'd.
@@ -186,7 +186,7 @@ async function executeSupportActionTool(toolName, args, context, thread) {
                 if (fresh && !fresh.assignee_user_id) {
                     const { pickNextAssignee } = require('../services/supportAutoAssigner');
                     const sharedGroups = await _inboxSharedGroups(thread);
-                    const next = await pickNextAssignee(thread.organization_id || null, { sharedGroups });
+                    const next = await pickNextAssignee(thread.organization_id || null, { sharedGroups, tenantInbox: !!thread.inbox_id });
                     if (next) await supportStore.updateThread(thread.id, { assignee_user_id: next, auto_assigned: true });
                 }
             } catch (err) { bestEffort('integrations/supportTools:executeSupportActionTool#3', err); /* auto-assign best-effort */ }

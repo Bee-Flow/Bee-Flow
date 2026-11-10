@@ -15,7 +15,7 @@ toc_max_heading_level: 2
 
 ### `GET /api/support/agent`
 
-**Access:** middleware `requireStaffSupport`
+**Access:** Permission `admin_support`
 
 No request schema.
 
@@ -39,13 +39,13 @@ No request schema.
 
 ### `GET /api/support/canned`
 
-**Access:** middleware `requireStaffSupport`
+**Access:** Permission `admin_support`
 
 No request schema.
 
 ### `POST /api/support/canned`
 
-**Access:** middleware `requireStaffSupport`
+**Access:** Permission `admin_support`
 
 **Body**
 
@@ -57,7 +57,7 @@ No request schema.
 
 ### `PUT /api/support/canned/:id`
 
-**Access:** middleware `requireStaffSupport`
+**Access:** Permission `admin_support`
 
 **Body**
 
@@ -69,13 +69,13 @@ No request schema.
 
 ### `DELETE /api/support/canned/:id`
 
-**Access:** middleware `requireStaffSupport`
+**Access:** Permission `admin_support`
 
 No request schema.
 
 ### `POST /api/support/canned/:id/render`
 
-**Access:** middleware `requireStaffSupport`
+**Access:** Permission `admin_support`
 
 **Body**
 
@@ -87,7 +87,7 @@ No request schema.
 
 ### `GET /api/support/config`
 
-**Access:** middleware `requireStaffSupport`
+**Access:** Permission `admin_support`
 
 No request schema.
 
@@ -122,7 +122,7 @@ No request schema.
 
 ### `GET /api/support/insights`
 
-**Access:** middleware `requireStaffSupport`
+**Access:** Permission `admin_support`
 
 No request schema.
 
@@ -130,7 +130,7 @@ No request schema.
 
 ### `GET /api/support/mailbox`
 
-**Access:** middleware `requireStaffSupport`
+**Access:** Permission `admin_support`
 
 No request schema.
 
@@ -144,13 +144,13 @@ No request schema.
 
 ### `GET /api/support/notifications`
 
-**Access:** middleware `requireStaffSupport`
+**Access:** Permission `admin_support`
 
 No request schema.
 
 ### `PUT /api/support/notifications`
 
-**Access:** middleware `requireStaffSupport`
+**Access:** Permission `admin_support`
 
 **Body**
 
@@ -163,7 +163,7 @@ No request schema.
 
 ### `POST /api/support/notifications/test`
 
-**Access:** middleware `requireStaffSupport`
+**Access:** Permission `admin_support`
 
 **Body:** object (no other keys)
 
@@ -171,7 +171,7 @@ No request schema.
 
 ### `POST /api/support/preview`
 
-**Access:** middleware `requireStaffSupport`
+**Access:** Permission `admin_support`
 
 **Body**
 
@@ -183,13 +183,13 @@ No request schema.
 
 ### `GET /api/support/sla-policies`
 
-**Access:** middleware `requireStaffSupport`
+**Access:** Permission `admin_support`
 
 No request schema.
 
 ### `PUT /api/support/sla-policies`
 
-**Access:** middleware `requireStaffSupport`
+**Access:** Permission `admin_support`
 
 **Body**
 
@@ -230,7 +230,7 @@ No request schema.
 
 ### `POST /api/support/tags`
 
-**Access:** middleware `requireStaffSupport`
+**Access:** Permission `admin_support`
 
 **Body**
 
@@ -250,7 +250,7 @@ No request schema.
 
 ### `GET /api/support/threads`
 
-**Access:** middleware `requireStaffSupport`
+**Access:** Permission `admin_support`
 
 **Query**
 
@@ -291,7 +291,7 @@ No request schema.
 
 ### `PATCH /api/support/threads/:id`
 
-**Access:** middleware `requireStaffSupport`
+**Access:** Permission `admin_support`
 
 **Body**
 
@@ -305,7 +305,7 @@ No request schema.
 
 ### `POST /api/support/threads/:id/escalate`
 
-**Access:** middleware `requireStaffSupport`
+**Access:** Permission `admin_support`
 
 **Body**
 
@@ -317,25 +317,25 @@ No request schema.
 
 ### `GET /api/support/threads/:id/events`
 
-**Access:** middleware `requireStaffSupport`
+**Access:** Permission `admin_support`
 
 No request schema.
 
 ### `POST /api/support/threads/:id/followup-done`
 
-**Access:** middleware `requireStaffSupport`
+**Access:** Permission `admin_support`
 
 **Body:** object (no other keys)
 
 ### `GET /api/support/threads/:id/issues`
 
-**Access:** middleware `requireStaffSupport`
+**Access:** Permission `admin_support`
 
 No request schema.
 
 ### `POST /api/support/threads/:id/issues`
 
-**Access:** middleware `requireStaffSupport`
+**Access:** Permission `admin_support`
 
 **Body**
 
@@ -347,13 +347,13 @@ No request schema.
 
 ### `DELETE /api/support/threads/:id/issues/:issueId`
 
-**Access:** middleware `requireStaffSupport`
+**Access:** Permission `admin_support`
 
 No request schema.
 
 ### `POST /api/support/threads/:id/issues/create`
 
-**Access:** middleware `requireStaffSupport`
+**Access:** Permission `admin_support`
 
 **Body**
 
@@ -366,7 +366,7 @@ No request schema.
 
 ### `POST /api/support/threads/:id/issues/refresh`
 
-**Access:** middleware `requireStaffSupport`
+**Access:** Permission `admin_support`
 
 **Body:** object (no other keys)
 
@@ -389,7 +389,7 @@ No request schema.
 
 ### `POST /api/support/threads/bulk`
 
-**Access:** middleware `requireStaffSupport`
+**Access:** Permission `admin_support`
 
 **Body**
 
@@ -413,7 +413,7 @@ No request schema.
 
 ### `PUT /api/support/youtrack/connection`
 
-**Access:** middleware `requireStaffSupport`
+**Access:** Permission `admin_support`
 
 **Body**
 
@@ -426,13 +426,13 @@ No request schema.
 
 ### `GET /api/support/youtrack/issues/:issueId/threads`
 
-**Access:** middleware `requireStaffSupport`
+**Access:** Permission `admin_support`
 
 No request schema.
 
 ### `GET /api/support/youtrack/search`
 
-**Access:** middleware `requireStaffSupport`
+**Access:** Permission `admin_support`
 
 **Query**
 
@@ -443,7 +443,7 @@ No request schema.
 
 ### `GET /api/support/youtrack/status`
 
-**Access:** middleware `requireStaffSupport`
+**Access:** Permission `admin_support`
 
 No request schema.
 

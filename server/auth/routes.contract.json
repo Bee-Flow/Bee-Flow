@@ -97,48 +97,48 @@
       "via": "route"
     },
     "DELETE /api/cms/admin/pages/:id": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "DELETE /api/cms/admin/pages/:id/locale/:locale": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "DELETE /api/cms/admin/site/locale/:locale": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "DELETE /api/cms/admin/templates/:id": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "DELETE /api/cms/sites/:siteId": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "DELETE /api/cms/sites/:siteId/pages/:id": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "DELETE /api/cms/sites/:siteId/pages/:id/locale/:locale": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "DELETE /api/cms/sites/:siteId/posts/:postId": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "DELETE /api/cms/sites/:siteId/posts/:postId/locale/:locale": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "DELETE /api/cms/sites/:siteId/redirects/:id": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "DELETE /api/cms/sites/:siteId/site/locale/:locale": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "DELETE /api/compliance/chat-monitoring/counts": {
       "gate": "permission",
@@ -258,8 +258,8 @@
       ]
     },
     "DELETE /api/languages/:code": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "DELETE /api/license/deactivate": {
       "gate": "handler",
@@ -385,8 +385,8 @@
       "via": "requireVisitor"
     },
     "DELETE /api/release-notes/admin/:id": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "DELETE /api/reminders/:id": {
       "gate": "middleware",
@@ -476,16 +476,20 @@
       "via": "router"
     },
     "DELETE /api/support/canned/:id": {
-      "gate": "middleware",
-      "via": "requireStaffSupport"
+      "gate": "permission",
+      "anyOf": [
+        "admin_support"
+      ]
     },
     "DELETE /api/support/tags/:id": {
       "gate": "handler",
       "via": "handler"
     },
     "DELETE /api/support/threads/:id/issues/:issueId": {
-      "gate": "middleware",
-      "via": "requireStaffSupport"
+      "gate": "permission",
+      "anyOf": [
+        "admin_support"
+      ]
     },
     "DELETE /api/templates/:id": {
       "gate": "auth"
@@ -1228,36 +1232,36 @@
       "via": "superAdmin"
     },
     "GET /api/cms/admin/assets": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "GET /api/cms/admin/form-automations": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "GET /api/cms/admin/graph": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "GET /api/cms/admin/pages/:id": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "GET /api/cms/admin/site": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "GET /api/cms/admin/templates": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "GET /api/cms/blog/posts": {
       "gate": "open",
       "reason": "published blog posts of the live site, for the public blog page (routes/cmsBlog.js reads the published snapshot only)"
     },
     "GET /api/cms/builder/session/:siteId": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "GET /api/cms/forms/:blockId": {
       "gate": "handler",
@@ -1268,36 +1272,36 @@
       "reason": "gepubliceerde CMS-site-payload voor de marketingpagina — de rest van /api/cms zit achter router.use('/admin'|'/sites', requireAdmin)"
     },
     "GET /api/cms/sites": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "GET /api/cms/sites/:siteId": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "GET /api/cms/sites/:siteId/export": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "GET /api/cms/sites/:siteId/graph": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "GET /api/cms/sites/:siteId/pages/:id": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "GET /api/cms/sites/:siteId/posts": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "GET /api/cms/sites/:siteId/posts/:postId": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "GET /api/cms/sites/:siteId/redirects": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "GET /api/cms/stories": {
       "gate": "open",
@@ -2147,36 +2151,36 @@
       "gate": "auth"
     },
     "GET /api/languages": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "GET /api/languages/:code/email-templates": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "GET /api/languages/:code/export": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "GET /api/languages/:code/gui": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "GET /api/languages/:code/prompts": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "GET /api/languages/:code/prompts/:promptId": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "GET /api/languages/defaults/gui": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "GET /api/languages/defaults/prompts": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "GET /api/languages/org/default": {
       "gate": "middleware",
@@ -2519,8 +2523,8 @@
       "reason": "anoniem marketing-endpoint (github-stats-blok op de publieke site), zegt het al in zijn mountnaam"
     },
     "GET /api/release-notes/admin": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "GET /api/release-notes/public": {
       "gate": "open",
@@ -2954,16 +2958,22 @@
       "via": "router"
     },
     "GET /api/support/agent": {
-      "gate": "middleware",
-      "via": "requireStaffSupport"
+      "gate": "permission",
+      "anyOf": [
+        "admin_support"
+      ]
     },
     "GET /api/support/canned": {
-      "gate": "middleware",
-      "via": "requireStaffSupport"
+      "gate": "permission",
+      "anyOf": [
+        "admin_support"
+      ]
     },
     "GET /api/support/config": {
-      "gate": "middleware",
-      "via": "requireStaffSupport"
+      "gate": "permission",
+      "anyOf": [
+        "admin_support"
+      ]
     },
     "GET /api/support/csat/:threadId": {
       "gate": "handler",
@@ -2974,20 +2984,28 @@
       "reason": "tokenloze bedankpagina na een CSAT-stem: vaste tekst uit het score-getal in de query, leest en schrijft geen thread. Bestaat zodat de stem-URL (mét token) na gebruik wordt vervangen door een URL zonder."
     },
     "GET /api/support/insights": {
-      "gate": "middleware",
-      "via": "requireStaffSupport"
+      "gate": "permission",
+      "anyOf": [
+        "admin_support"
+      ]
     },
     "GET /api/support/mailbox": {
-      "gate": "middleware",
-      "via": "requireStaffSupport"
+      "gate": "permission",
+      "anyOf": [
+        "admin_support"
+      ]
     },
     "GET /api/support/notifications": {
-      "gate": "middleware",
-      "via": "requireStaffSupport"
+      "gate": "permission",
+      "anyOf": [
+        "admin_support"
+      ]
     },
     "GET /api/support/sla-policies": {
-      "gate": "middleware",
-      "via": "requireStaffSupport"
+      "gate": "permission",
+      "anyOf": [
+        "admin_support"
+      ]
     },
     "GET /api/support/stream": {
       "gate": "handler",
@@ -3002,36 +3020,48 @@
       "via": "handler"
     },
     "GET /api/support/threads": {
-      "gate": "middleware",
-      "via": "requireStaffSupport"
+      "gate": "permission",
+      "anyOf": [
+        "admin_support"
+      ]
     },
     "GET /api/support/threads/:id": {
       "gate": "handler",
       "via": "handler"
     },
     "GET /api/support/threads/:id/events": {
-      "gate": "middleware",
-      "via": "requireStaffSupport"
+      "gate": "permission",
+      "anyOf": [
+        "admin_support"
+      ]
     },
     "GET /api/support/threads/:id/issues": {
-      "gate": "middleware",
-      "via": "requireStaffSupport"
+      "gate": "permission",
+      "anyOf": [
+        "admin_support"
+      ]
     },
     "GET /api/support/threads/mine": {
       "gate": "open",
       "reason": "de eigen supporttickets van de ingelogde gebruiker. Geen keten-gate omdat /api/support ook anonieme marketing-intake draagt, maar de handler weigert zelf: geen userId → 401, en de query is gescoped op requesterUserId — er is niets van een ander te lezen. De handler-probe ziet dit patroon niet omdat getUserId(req) buiten haar werkwoordenlijst valt en er geen req.session in de body staat; dat is een gat in de PROBE, niet in de route."
     },
     "GET /api/support/youtrack/issues/:issueId/threads": {
-      "gate": "middleware",
-      "via": "requireStaffSupport"
+      "gate": "permission",
+      "anyOf": [
+        "admin_support"
+      ]
     },
     "GET /api/support/youtrack/search": {
-      "gate": "middleware",
-      "via": "requireStaffSupport"
+      "gate": "permission",
+      "anyOf": [
+        "admin_support"
+      ]
     },
     "GET /api/support/youtrack/status": {
-      "gate": "middleware",
-      "via": "requireStaffSupport"
+      "gate": "permission",
+      "anyOf": [
+        "admin_support"
+      ]
     },
     "GET /api/talk-notes-settings/:orgId": {
       "gate": "auth"
@@ -3830,8 +3860,8 @@
       "via": "superAdmin"
     },
     "PATCH /api/cms/sites/:siteId": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "PATCH /api/compliance/incidents/:id": {
       "gate": "permission",
@@ -3878,8 +3908,8 @@
       ]
     },
     "PATCH /api/languages/:code/gui": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "PATCH /api/mcp-library/org/servers/:id": {
       "gate": "scope",
@@ -3986,8 +4016,10 @@
       "via": "router"
     },
     "PATCH /api/support/threads/:id": {
-      "gate": "middleware",
-      "via": "requireStaffSupport"
+      "gate": "permission",
+      "anyOf": [
+        "admin_support"
+      ]
     },
     "PATCH /api/transcriptions/:id": {
       "gate": "auth"
@@ -4620,80 +4652,80 @@
       "via": "superAdmin"
     },
     "POST /api/cms/admin/pages": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "POST /api/cms/admin/pages/:id/ai-translate/:locale": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "POST /api/cms/admin/publish": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "POST /api/cms/admin/site/ai-translate/:locale": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "POST /api/cms/admin/templates": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "POST /api/cms/admin/upload": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "POST /api/cms/admin/upload-clip": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "POST /api/cms/builder/stream": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "POST /api/cms/forms/:blockId": {
       "gate": "open",
       "reason": "public form submission from a published page: honeypot, HMAC token with issue time, nonce replay refusal, per-IP and per-form limits (routes/cmsForms.js)"
     },
     "POST /api/cms/sites": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "POST /api/cms/sites/:siteId/duplicate": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "POST /api/cms/sites/:siteId/link-check": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "POST /api/cms/sites/:siteId/pages": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "POST /api/cms/sites/:siteId/pages/:id/ai-translate/:locale": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "POST /api/cms/sites/:siteId/posts": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "POST /api/cms/sites/:siteId/publish": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "POST /api/cms/sites/:siteId/redirects": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "POST /api/cms/sites/:siteId/site/ai-translate/:locale": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "POST /api/cms/sites/import": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "POST /api/compliance/auto-detect-settings": {
       "gate": "permission",
@@ -5294,32 +5326,32 @@
       "gate": "auth"
     },
     "POST /api/languages": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "POST /api/languages/:code/ai-translate": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "POST /api/languages/:code/ai-translate-emails": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "POST /api/languages/:code/ai-translate-prompts": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "POST /api/languages/:code/email-templates/:templateId/preview": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "POST /api/languages/:code/email-templates/:templateId/test": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "POST /api/languages/:code/import": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "POST /api/license/activate": {
       "gate": "handler",
@@ -5795,12 +5827,12 @@
       "via": "requireShareBridgeToken"
     },
     "POST /api/release-notes/admin/:id/publish": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "POST /api/release-notes/admin/:id/unpublish": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "POST /api/release-notes/ingest": {
       "gate": "middleware",
@@ -6182,60 +6214,82 @@
       "via": "router"
     },
     "POST /api/support/canned": {
-      "gate": "middleware",
-      "via": "requireStaffSupport"
+      "gate": "permission",
+      "anyOf": [
+        "admin_support"
+      ]
     },
     "POST /api/support/canned/:id/render": {
-      "gate": "middleware",
-      "via": "requireStaffSupport"
+      "gate": "permission",
+      "anyOf": [
+        "admin_support"
+      ]
     },
     "POST /api/support/mailbox/disconnect": {
       "gate": "handler",
       "via": "handler"
     },
     "POST /api/support/notifications/test": {
-      "gate": "middleware",
-      "via": "requireStaffSupport"
+      "gate": "permission",
+      "anyOf": [
+        "admin_support"
+      ]
     },
     "POST /api/support/preview": {
-      "gate": "middleware",
-      "via": "requireStaffSupport"
+      "gate": "permission",
+      "anyOf": [
+        "admin_support"
+      ]
     },
     "POST /api/support/tags": {
-      "gate": "middleware",
-      "via": "requireStaffSupport"
+      "gate": "permission",
+      "anyOf": [
+        "admin_support"
+      ]
     },
     "POST /api/support/threads": {
       "gate": "handler",
       "via": "handler"
     },
     "POST /api/support/threads/:id/escalate": {
-      "gate": "middleware",
-      "via": "requireStaffSupport"
+      "gate": "permission",
+      "anyOf": [
+        "admin_support"
+      ]
     },
     "POST /api/support/threads/:id/followup-done": {
-      "gate": "middleware",
-      "via": "requireStaffSupport"
+      "gate": "permission",
+      "anyOf": [
+        "admin_support"
+      ]
     },
     "POST /api/support/threads/:id/issues": {
-      "gate": "middleware",
-      "via": "requireStaffSupport"
+      "gate": "permission",
+      "anyOf": [
+        "admin_support"
+      ]
     },
     "POST /api/support/threads/:id/issues/create": {
-      "gate": "middleware",
-      "via": "requireStaffSupport"
+      "gate": "permission",
+      "anyOf": [
+        "admin_support"
+      ]
     },
     "POST /api/support/threads/:id/issues/refresh": {
-      "gate": "middleware",
-      "via": "requireStaffSupport"
+      "gate": "permission",
+      "anyOf": [
+        "admin_support"
+      ]
     },
     "POST /api/support/threads/:id/messages": {
       "gate": "handler",
       "via": "handler"
     },
     "POST /api/support/threads/bulk": {
-      "gate": "middleware",
-      "via": "requireStaffSupport"
+      "gate": "permission",
+      "anyOf": [
+        "admin_support"
+      ]
     },
     "POST /api/templates/:id/fill": {
       "gate": "auth"
@@ -6811,92 +6865,92 @@
       "via": "superAdmin"
     },
     "PUT /api/cms/admin/default-locale": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "PUT /api/cms/admin/enabled": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "PUT /api/cms/admin/form-automations/:automationId": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "PUT /api/cms/admin/form-automations/:automationId/blocks/:blockId": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "PUT /api/cms/admin/pages/:id": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "PUT /api/cms/admin/pages/:id/homepage": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "PUT /api/cms/admin/pages/:id/locale/:locale": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "PUT /api/cms/admin/pages/:id/meta": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "PUT /api/cms/admin/pages/order": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "PUT /api/cms/admin/site": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "PUT /api/cms/admin/site/locale/:locale": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "PUT /api/cms/sites/:siteId": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "PUT /api/cms/sites/:siteId/live": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "PUT /api/cms/sites/:siteId/pages/:id": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "PUT /api/cms/sites/:siteId/pages/:id/homepage": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "PUT /api/cms/sites/:siteId/pages/:id/locale/:locale": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "PUT /api/cms/sites/:siteId/pages/:id/meta": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "PUT /api/cms/sites/:siteId/pages/order": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "PUT /api/cms/sites/:siteId/posts/:postId": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "PUT /api/cms/sites/:siteId/posts/:postId/locale/:locale": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "PUT /api/cms/sites/:siteId/redirects/hosts": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "PUT /api/cms/sites/:siteId/site/locale/:locale": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "PUT /api/compliance/ai-act/assessments/:kind/:id": {
       "gate": "permission",
@@ -7055,20 +7109,20 @@
       "via": "kbManager"
     },
     "PUT /api/languages/:code/default": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "PUT /api/languages/:code/email-templates": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "PUT /api/languages/:code/gui": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "PUT /api/languages/:code/prompts/:promptId": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "PUT /api/languages/org/default": {
       "gate": "platform",
@@ -7185,8 +7239,8 @@
       "gate": "auth"
     },
     "PUT /api/release-notes/admin/:id": {
-      "gate": "middleware",
-      "via": "requireAdmin"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "PUT /api/reminders/:id": {
       "gate": "middleware",
@@ -7296,24 +7350,32 @@
       "via": "requireSuperAdmin"
     },
     "PUT /api/support/canned/:id": {
-      "gate": "middleware",
-      "via": "requireStaffSupport"
+      "gate": "permission",
+      "anyOf": [
+        "admin_support"
+      ]
     },
     "PUT /api/support/config": {
       "gate": "middleware",
       "via": "requireSuperAdmin"
     },
     "PUT /api/support/notifications": {
-      "gate": "middleware",
-      "via": "requireStaffSupport"
+      "gate": "permission",
+      "anyOf": [
+        "admin_support"
+      ]
     },
     "PUT /api/support/sla-policies": {
-      "gate": "middleware",
-      "via": "requireStaffSupport"
+      "gate": "permission",
+      "anyOf": [
+        "admin_support"
+      ]
     },
     "PUT /api/support/youtrack/connection": {
-      "gate": "middleware",
-      "via": "requireStaffSupport"
+      "gate": "permission",
+      "anyOf": [
+        "admin_support"
+      ]
     },
     "PUT /api/talk-notes-settings/:orgId": {
       "gate": "auth"

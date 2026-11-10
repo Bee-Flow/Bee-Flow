@@ -11,7 +11,7 @@ const assert = require('node:assert/strict');
 const http = require('node:http');
 const express = require('express');
 
-const { makeRouter } = require('./mcpCms');
+const { makeRouter, isCmsAdmin } = require('./mcpCms');
 const cmsMcp = require('../cms/mcp');
 
 const PNG = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47]), Buffer.alloc(2000, 5)]);
@@ -226,4 +226,10 @@ test('the route is unmounted by default: the flag is exactly "1"', () => {
     } finally {
         if (saved === undefined) delete process.env.CMS_MCP_ENABLED; else process.env.CMS_MCP_ENABLED = saved;
     }
+});
+
+test('isCmsAdmin: the token owner must be a platform admin; the all permission alone is not enough', async () => {
+    assert.strictEqual(await isCmsAdmin({ id: 'u1', role: 'admin' }), true);
+    assert.strictEqual(await isCmsAdmin({ id: 'u2', role: 'user', permissions: ['all'] }), false);
+    assert.strictEqual(await isCmsAdmin(null), false);
 });

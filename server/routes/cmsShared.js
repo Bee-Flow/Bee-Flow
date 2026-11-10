@@ -11,7 +11,7 @@
 
 const cmsStore = require('../stores/cmsStore');
 const configStore = require('../stores/configStore');
-const { hasPermission } = require('../auth/permissions');
+const { requireSuperAdmin } = require('../auth/permissions');
 const log = require('../telemetry/log');
 const { HttpError } = require('../core/http/errors');
 
@@ -21,29 +21,25 @@ const KEY_CMS_LIVE_SITE_ID = 'cms_live_site_id';
 const KEY_CMS_ENABLED      = 'cms_enabled';   // legacy, read-only after migration
 
 /**
- * The CMS admin test, as a function: an admin session/role, or the 'all'
- * permission. requireAdmin applies it to the session of a request; the CMS MCP
- * server applies it to the user its token belongs to, so a token can never do
- * more to the website than that user could in the admin panel.
+ * The CMS admin test, as a function: a platform admin, which is a session
+ * flagged `isAdmin` or a user whose role is 'admin'. The 'all' permission does
+ * not count: the site, the release notes and the AI builder are instance-wide
+ * content. requireAdmin applies the test to the session of a request; the CMS
+ * MCP server applies it to the user its token belongs to, so a token can never
+ * do more to the website than that user could in the admin panel.
  * @param {{ isAdmin?: boolean, user?: { id?: string, role?: string } }} session
+ * @returns {Promise<boolean>}
  */
-async function canAdminCms(session) {
-    if (!session?.user) return false;
-    if (session.isAdmin || session.user.role === 'admin') return true;
-    const userId = session.user.id;
-    return !!(userId && await hasPermission(userId, 'all', session));
+function canAdminCms(session) {
+    return Promise.resolve(!!session?.user && !!(session.isAdmin || session.user.role === 'admin'));
 }
 
 /**
- * @param {import('express').Request} req
- * @param {import('express').Response} res
- * @param {import('express').NextFunction} next
+ * The gate of the CMS admin routes: the platform-admin gate itself (tagged for
+ * the route contract), so the REST routes and the release notes admin share
+ * one decision with requireSuperAdmin.
  */
-async function requireAdmin(req, res, next) {
-    if (!req.session?.user) return res.status(401).json({ error: 'Unauthorized' });
-    if (await canAdminCms(req.session)) return next();
-    return res.status(403).json({ error: 'Admin access required' });
-}
+const requireAdmin = requireSuperAdmin;
 
 /**
  * The site the request is about: attachSiteIdFromParam (or the live-site middleware)

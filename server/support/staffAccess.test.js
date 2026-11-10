@@ -42,10 +42,10 @@ test.beforeEach(() => {
 
 test('hasSupportPerms: array + Set shapes, all-wildcard, garbage', () => {
     assert.strictEqual(hasSupportPerms(['admin_support']), true);
-    assert.strictEqual(hasSupportPerms(['all']), true);
+    assert.strictEqual(hasSupportPerms(['all']), false, 'the all wildcard is not staff');
     assert.strictEqual(hasSupportPerms(['other']), false);
     assert.strictEqual(hasSupportPerms(new Set(['admin_support'])), true);
-    assert.strictEqual(hasSupportPerms(new Set(['all'])), true);
+    assert.strictEqual(hasSupportPerms(new Set(['all'])), false);
     assert.strictEqual(hasSupportPerms(new Set(['x'])), false);
     assert.strictEqual(hasSupportPerms(null), false);
     assert.strictEqual(hasSupportPerms('admin_support'), false);
@@ -70,6 +70,13 @@ test('hasAdminSupport: permission path passes userId + session through', async (
 
     fx.perms = ['something_else'];
     assert.strictEqual(await hasAdminSupport(req, 'u1'), false);
+});
+
+test('hasAdminSupport: a user whose permissions are only the all wildcard is not staff', async () => {
+    fx.perms = ['all'];
+    assert.strictEqual(await hasAdminSupport({ session: { user: { id: 'u1' } } }, 'u1'), false);
+    fx.superAdmin = true;
+    assert.strictEqual(await hasAdminSupport({ session: { user: { id: 'u1' } } }, 'u1'), true, 'a platform admin stays staff');
 });
 
 test('hasAdminSupport: lookup failure warns and fails closed', async () => {
