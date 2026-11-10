@@ -5,6 +5,7 @@ import useAppTables, { fieldsForTable } from '@/components/admin/Studio/AppStudi
 import type { BindingDraft, TableBindingProps } from '../BindingField.types';
 import { normSort } from './BindingField.helpers';
 import { PickValueField } from './AggregateBinding';
+import { MatchMode, SearchOption } from './ReadOptions';
 
 export function TableBinding({ binding, onChange, appId, disabled, definition, node, singleValue = false }: TableBindingProps) {
     const { t } = useTranslation();
@@ -47,6 +48,19 @@ export function TableBinding({ binding, onChange, appId, disabled, definition, n
                         onChange={(filter) => patch({ filter: filter.length ? filter : undefined })}
                         allowFormula
                         allowGroups
+                        allowIgnoreCase
+                        disabled={disabled}
+                        definition={definition}
+                        node={node}
+                    />
+
+                    {Array.isArray(binding.filter) && binding.filter.length > 1 ? (
+                        <MatchMode match={binding.match} onChange={(match) => patch({ match })} disabled={disabled} />
+                    ) : null}
+                    <SearchOption
+                        search={binding.search}
+                        fields={fields}
+                        onChange={(search) => patch({ search })}
                         disabled={disabled}
                         definition={definition}
                         node={node}

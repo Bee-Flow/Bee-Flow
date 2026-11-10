@@ -17,10 +17,13 @@ export const AGGS = [
     { value: 'avg', label: 'Average', labelKey: 'studio_apps_bi.query.agg_avg' },
     { value: 'min', label: 'Lowest', labelKey: 'studio_apps_bi.query.agg_min' },
     { value: 'max', label: 'Highest', labelKey: 'studio_apps_bi.query.agg_max' },
+    { value: 'p50', label: 'Median', labelKey: 'studio_apps_dataread.agg_p50' },
+    { value: 'p90', label: '90th percentile', labelKey: 'studio_apps_dataread.agg_p90' },
 ];
 
 export const DATE_BUCKETS = [
     { value: '', label: 'Exact', labelKey: 'studio_apps_bi.query.bucket_exact' },
+    { value: 'hour', label: 'By hour', labelKey: 'studio_apps_dataread.bucket_hour' },
     { value: 'day', label: 'By day', labelKey: 'studio_apps_bi.query.bucket_day' },
     { value: 'week', label: 'By week', labelKey: 'studio_apps_bi.query.bucket_week' },
     { value: 'month', label: 'By month', labelKey: 'studio_apps_bi.query.bucket_month' },

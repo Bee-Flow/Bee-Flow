@@ -16,7 +16,13 @@ type Binding = Record<string, unknown> & { kind?: unknown };
 type Scope = Record<string, unknown> | null | undefined;
 
 const shapeOf = (b: Binding, keys: readonly string[]) =>
-    stableStringify(Object.fromEntries(keys.map((k) => [k, b[k] ?? null])));
+    stableStringify({ ...Object.fromEntries(keys.map((k) => [k, b[k] ?? null])), ...readExtras(b) });
+
+/** `match` and `search` belong to the key only when the binding sets them (a search only on record/records). */
+const readExtras = (b: Binding): Record<string, unknown> => ({
+    ...(b.match ? { match: b.match } : {}),
+    ...(b.search && b.kind !== 'aggregate' ? { search: b.search } : {}),
+});
 
 /**
  * The cache key a record/records/aggregate/dataset/connector binding's result
@@ -81,6 +87,32 @@ const FILTERED_KINDS = new Set(['record', 'records', 'aggregate']);
  * when none is left (null when it is required). Same loop as the web.
  */
 export function resolveBindingFilters<B>(binding: B, scope: Scope): B | null {
+    const filtered = resolveFilterClauses(binding, scope);
+    return filtered === null ? null : resolveBindingSearch(filtered, scope);
+}
+
+/** A search value as the compiler takes it: a non-blank text (a finite number spelled out), or undefined. */
+function searchText(value: unknown): string | undefined {
+    const text = typeof value === 'number' && Number.isFinite(value) ? String(value) : value;
+    return typeof text === 'string' && text.trim() !== '' ? text : undefined;
+}
+
+/**
+ * A record/records binding's `search.value` made literal; a value that is no text leaves the
+ * search out (an empty search box shows every row). Same rule as the web's binding planner.
+ */
+function resolveBindingSearch<B>(binding: B, scope: Scope): B {
+    if (!binding || typeof binding !== 'object') return binding;
+    const b = binding as Binding;
+    const search = b.search as Record<string, unknown> | undefined;
+    if ((b.kind !== 'record' && b.kind !== 'records') || !search || typeof search !== 'object' || Array.isArray(search)) return binding;
+    const text = searchText(resolveFilterValue(search.value, scope));
+    if (text === search.value) return binding;
+    const { search: _old, ...rest } = b;
+    return (text === undefined ? rest : { ...rest, search: { ...search, value: text } }) as B;
+}
+
+function resolveFilterClauses<B>(binding: B, scope: Scope): B | null {
     if (!binding || typeof binding !== 'object') return binding;
     const b = binding as Binding;
     if (!FILTERED_KINDS.has(b.kind as string)) return binding;

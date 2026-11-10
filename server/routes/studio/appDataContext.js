@@ -269,7 +269,20 @@ function parseListQuery(req) {
     if (typeof q.filter === 'string' && q.filter) { try { filters = JSON.parse(q.filter); } catch (err) { fallback('routes/studio/appDataContext:parseListQuery', err); /* ignore */ } }
     if (typeof q.sort === 'string' && q.sort) { try { sort = JSON.parse(q.sort); } catch (err) { fallback('routes/studio/appDataContext:parseListQuery#2', err); /* ignore */ } }
     if (filters !== undefined && !Array.isArray(filters)) filters = [filters];
-    return { filters, sort };
+    return { filters, sort, ...optionalListQuery(q) };
+}
+
+/**
+ * The query fields that exist only when the request sends them: how the filters join and a free
+ * search. Absent means absent, so a request without them compiles exactly as it always did.
+ * @param {import('qs').ParsedQs} q
+ */
+function optionalListQuery(q) {
+    /** @type {{ match?: string, search?: unknown }} */
+    const out = {};
+    if (typeof q.match === 'string' && q.match) out.match = q.match;
+    if (typeof q.search === 'string' && q.search) { try { out.search = JSON.parse(q.search); } catch (err) { fallback('routes/studio/appDataContext:optionalListQuery', err); /* the compiler validates */ } }
+    return out;
 }
 
 // The cache invalidation + row count after a write used to live here as
@@ -380,4 +393,4 @@ async function readOne(ctx, recordId) {
     const { rows } = await plan.query(sql, params);
     return rows && rows.length ? rows[0] : null;
 }
-module.exports = { readLimiter, writeLimiter, readDescriptorLimiter, MAX_BATCH_READS, jsonBody, requireJson, bodySizeGuard, audienceFor, loadVisibleApp, loadOwnedApp, handleErr, resolveDataContext, buildViewer, publicTable, parseListQuery, kickStaleSync, LINK_REFUSED, linkedTableFlags, readOne };
+module.exports = { readLimiter, writeLimiter, readDescriptorLimiter, MAX_BATCH_READS, jsonBody, requireJson, bodySizeGuard, audienceFor, loadVisibleApp, loadOwnedApp, handleErr, resolveDataContext, buildViewer, publicTable, parseListQuery, optionalListQuery, kickStaleSync, LINK_REFUSED, linkedTableFlags, readOne };

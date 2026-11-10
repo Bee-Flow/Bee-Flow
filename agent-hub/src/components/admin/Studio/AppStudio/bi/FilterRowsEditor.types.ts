@@ -54,6 +54,8 @@ export interface FilterRow {
     op: string;
     value: FilterValue;
     required?: boolean;
+    /** `eq` on text without regard to upper/lower case. Written only when switched on. */
+    ci?: boolean;
 }
 
 /** An `{ any: [...] }` OR group: its rows OR each other, the group ANDs with the other entries. */
@@ -90,6 +92,8 @@ export interface FilterRowsEditorProps {
     definition?: AppDefinition | null;
     node?: AppNode | null;
     allowFormula?: boolean;
+    /** Offer "ignore upper/lower case" on an `is` row over a text column (reads only: bindings). */
+    allowIgnoreCase?: boolean;
     label?: string;
     disabled?: boolean;
 }

@@ -143,7 +143,9 @@ function readPlan(ctx, table) {
  * and must not be copied into each router.
  *
  * `opts` is a read descriptor; recordListDescriptor picks the query fields the
- * compiler takes, so a caller may hand over a whole batch read.
+ * compiler takes, so a caller may hand over a whole batch read. `match` (how the
+ * filters join) and `search` (a free search over some columns) travel only when
+ * the request carries them, so a read without them compiles as it always did.
  */
 async function runRecordList(ctx, table, opts = {}) {
     const plan = await readPlan(ctx, table);

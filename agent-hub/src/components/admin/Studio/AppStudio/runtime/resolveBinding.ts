@@ -49,7 +49,7 @@ import { tryEvaluate } from '@shared/expr/engine.mjs';
 import { getRelativePath } from '@shared/expr/path.mjs';
 import { CLIENT_PLAN, planFilters, planParams, planShape } from '@shared/appDefinition/bindingPlan.mjs';
 import type { BindingPlan } from '@shared/appDefinition/bindingPlan.mjs';
-import type { Binding, BindingInput, DataMap, ResolveResult, Scope } from './resolveBinding.types';
+import type { Binding, BindingInput, DataBinding, DataMap, ResolveResult, Scope } from './resolveBinding.types';
 import { isRelativePath, stableStringify, normalizeBag, fromDataEntry, applyPick } from './resolveBinding.helpers';
 
 /**
@@ -72,6 +72,14 @@ export function walkPath(value: unknown, path?: unknown): unknown {
         : undefined;
 }
 
+/** `match` and `search` belong to the cache key only when the binding sets them, so every other key is what it was. */
+function readExtras(binding: DataBinding): { match?: string; search?: unknown } {
+    return {
+        ...(binding.match ? { match: binding.match } : {}),
+        ...(binding.search && binding.kind !== 'aggregate' ? { search: binding.search } : {}),
+    };
+}
+
 /**
  * Stable cache key for a record/records/dataset binding — the SAME key the
  * DataContext fetch hook stores results under. record/records key on the
@@ -88,6 +96,7 @@ export function dataCacheKey(binding: Binding | null | undefined): string | null
             filter: binding.filter ?? null,
             sort: binding.sort ?? null,
             limit: binding.limit ?? null,
+            ...readExtras(binding),
         });
         return `${binding.kind}:${binding.tableId ?? ''}:${shape}`;
     }
@@ -98,6 +107,7 @@ export function dataCacheKey(binding: Binding | null | undefined): string | null
             aggregates: binding.aggregates ?? null,
             sort: binding.sort ?? null,
             limit: binding.limit ?? null,
+            ...readExtras(binding),
         });
         return `aggregate:${binding.tableId ?? ''}:${shape}`;
     }
@@ -134,7 +144,9 @@ export function resolveBindingShape(binding: Binding | null | undefined, scope: 
  * filter_bar field nobody filled in). It is exactly wrong for a filter that
  * SCOPES a component to a selection: drop "belongs to the open ticket" and the
  * component lists every row in the table. `required` says so out loud: no
- * value, no query, no rows (null here).
+ * value, no query, no rows (null here). A record/records `search` value (a
+ * search box) is made literal in the same step; one that holds no text leaves
+ * the search out, so an empty box shows every row.
  */
 export function resolveBindingFilters(binding: Binding | null | undefined, scope: Scope): Binding | null | undefined {
     return clientBinding(planFilters(binding, scope, CLIENT_PLAN));

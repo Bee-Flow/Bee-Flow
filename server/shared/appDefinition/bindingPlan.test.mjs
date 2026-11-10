@@ -29,6 +29,7 @@ const T = { kind: 'records', tableId: 't1' };
 const clause = (value, extra = {}) => ({ field: 'x', op: 'eq', value, ...extra });
 const recs = (filter) => ({ ...T, filter });
 const agg = (extra) => ({ kind: 'aggregate', tableId: 't1', ...extra });
+const S = (value, extra = {}) => ({ ...T, search: { value, fields: ['x'] }, ...extra });
 
 // [name, binding, client, render, dryRun]. Client and render go through
 // planBinding (shape, then filters: AppDataScope's and buildDataState's order);
@@ -59,6 +60,16 @@ const CASES = [
     ['aggregate shape with an item root', agg({ sort: f('item.id') }), agg({ sort: 'i1' }), 'needsScope', agg({ sort: f('item.id') })],
     ['aggregate literal shape and filter', agg({ groupBy: [{ field: 'x' }], filter: [clause(f('vars.q'))] }), agg({ groupBy: [{ field: 'x' }], filter: [clause('abc')] }), agg({ groupBy: [{ field: 'x' }], filter: [clause('abc')] }), agg({ groupBy: [{ field: 'x' }], filter: [clause('abc')] })],
     ['dataset', { kind: 'dataset', datasetId: 'd1' }, 'same', 'same', { kind: 'dataset', datasetId: 'd1' }],
+    // search (a marked binding key): its value is made literal after the filters, in every option set
+    ['search literal', S('fixed'), 'same', 'same', S('fixed')],
+    ['search formula', S(f('vars.q')), S('abc'), S('abc'), S('abc')],
+    ['search formula resolving to nothing', S(f('vars.none'), { match: 'any' }), { ...T, match: 'any' }, { ...T, match: 'any' }, { ...T, match: 'any' }],
+    ['search number', S(7), S('7'), S('7'), S('7')],
+    ['search blank literal', S('  '), T, T, T],
+    ['search with an item root', S(f('item.id')), S('i1'), 'needsScope', 'needsScope'],
+    ['search and a filter', { ...S(f('vars.q')), filter: [clause(f('vars.q'))] }, { ...S('abc'), filter: [clause('abc')] }, { ...S('abc'), filter: [clause('abc')] }, { ...S('abc'), filter: [clause('abc')] }],
+    ['search on a record', { ...S(f('vars.q')), kind: 'record' }, { ...S('abc'), kind: 'record' }, { ...S('abc'), kind: 'record' }, { ...S('abc'), kind: 'record' }],
+    ['search on an aggregate is not read', agg({ search: { value: f('vars.q'), fields: ['x'] } }), 'same', 'same', agg({ search: { value: f('vars.q'), fields: ['x'] } })],
 ];
 
 /** @param {import('./bindingPlan.mjs').BindingPlan} plan */

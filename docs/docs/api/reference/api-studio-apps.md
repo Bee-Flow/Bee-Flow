@@ -461,6 +461,8 @@ No request schema.
 |-------|------|:--------:|-------|
 | `filter` | string |  | max length 20000 |
 | `sort` | string |  | max length 20000 |
+| `match` | one of `"all"`, `"any"` |  |  |
+| `search` | string |  | max length 20000 |
 | `cursor` | string |  | max length 500 |
 | `limit` | integer |  | min 1; max 9007199254740991 |
 | `sample` | one of `"0"`, `"1"` |  |  |

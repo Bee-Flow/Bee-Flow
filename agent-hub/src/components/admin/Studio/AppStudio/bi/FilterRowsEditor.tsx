@@ -9,7 +9,7 @@ import type { AppDefinition, AppNode } from '../inspector/appDefinition';
 import type { FormulaValue, FilterValue, Stash, FilterRow, FilterField, FilterRowsEditorProps, FilterEntry } from './FilterRowsEditor.types';
 import { AddAnyGroupButton, FilterAnyGroup, isAnyGroupRow, newAnyGroup } from './FilterAnyGroup';
 import { logger } from '@/utils/logger';
-import { allowedOps, opsFor, isFormulaValue, choicesOf, valueControlFor, isNumeric, emptyValueFor, reKeySet, reKeyMap } from './FilterRowsEditor.helpers';
+import { allowedOps, offersIgnoreCase, withOperator, opsFor, isFormulaValue, choicesOf, valueControlFor, isNumeric, emptyValueFor, reKeySet, reKeyMap } from './FilterRowsEditor.helpers';
 import { ValueControl } from './ValueControl';
 export type { FilterRow, FilterEntry } from './FilterRowsEditor.types';
 
@@ -17,7 +17,7 @@ export const NO_VALUE_OPS = new Set(['isNull', 'isNotNull']);
 
 // Ops whose value is a LIST, not a scalar (queryCompiler: `in` takes an array,
 // `between` a [min, max] pair).
-const LIST_OPS = new Set(['in', 'between']);
+const LIST_OPS = new Set(['in', 'notIn', 'between']);
 
 // Controls whose value is a SHAPE (an array, a pair) rather than a scalar, so
 // the raw-text escape cannot represent them without corrupting the filter.
@@ -85,6 +85,7 @@ export default function FilterRowsEditor({
     definition = null,
     node = null,
     allowGroups = false,
+    allowIgnoreCase = false,
 }: FilterRowsEditorProps) {
     const { t } = useTranslation();
     const fieldName = (key: string) => (fields.find((f) => f.key === key) || {}).name || key || t('studio_apps_bi.filter.filter', 'Filter');
@@ -126,7 +127,7 @@ export default function FilterRowsEditor({
                                 onChange={(next) => (next ? rawEntryUpdate(next) : onChange(rows.filter((r) => r !== entry)))}
                                 renderMembers={(members, change) => (
                                     <FilterRowsEditor fields={fields} filters={members} onChange={(next) => change(next.filter((m) => !isAnyGroupRow(m)) as FilterRow[])}
-                                        allowFormula={allowFormula} disabled={disabled} definition={definition} node={node} label={t('studio_apps_bi.filter.any_group', 'Any of these')} />
+                                        allowFormula={allowFormula} allowIgnoreCase={allowIgnoreCase} disabled={disabled} definition={definition} node={node} label={t('studio_apps_bi.filter.any_group', 'Any of these')} />
                                 )}
                             />
                         );
@@ -235,7 +236,7 @@ export default function FilterRowsEditor({
                                         const shapeChanged = LIST_OPS.has(op) !== LIST_OPS.has(f.op)
                                             || (op === 'between') !== (f.op === 'between');
                                         update({
-                                            ...f,
+                                            ...withOperator(f, op),
                                             op,
                                             ...(usesFormula || !shapeChanged ? {} : { value: emptyValueFor(nextControl) }),
                                         });
@@ -261,6 +262,7 @@ export default function FilterRowsEditor({
                               * where a value can fail to resolve.
                               */}
                             {allowFormula && needsValue ? <FilterRequiredToggle f={f} idx={idx} update={update} t={t} /> : null}
+                            {offersIgnoreCase(allowIgnoreCase, f.op, field) ? <FilterIgnoreCaseToggle f={f} update={update} t={t} /> : null}
                         </div>
                     );
                 }}
@@ -330,6 +332,22 @@ function FilterValueRow({ f, field, control, usesFormula, canEscape, allowFormul
                 </button>
             ) : null}
         </div>
+    );
+}
+
+/** "Ignore upper/lower case" — writes the row's `ci` flag, or drops it. */
+function FilterIgnoreCaseToggle({ f, update, t }: { f: FilterRow; update: (next: FilterRow) => void; t: TranslateFn }) {
+    return (
+        <Toggle
+            size="sm"
+            label={t('studio_apps_dataread.ignore_case', 'Ignore upper and lower case')}
+            checked={!!f.ci}
+            onChange={(v) => {
+                const { ci: _drop, ...rest } = f;
+                update(v ? { ...rest, ci: true } : rest);
+            }}
+            ariaLabel={t('studio_apps_dataread.ignore_case_aria', 'Ignore upper and lower case for this filter')}
+        />
     );
 }
 

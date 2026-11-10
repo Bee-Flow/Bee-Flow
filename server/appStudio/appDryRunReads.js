@@ -57,12 +57,17 @@ function syntheticScope(currentUser, variables) {
  *   • a formula that resolves to undefined/null has its entry OMITTED;
  *   • literals pass through, `required` is not enforced;
  *   • a legacy whole-filter formula string references live scope → skipped.
- * Returns { filters } (an array, possibly empty) or { skipped:true }.
+ * A binding's `search` resolves the same way (a value of no text leaves it out).
+ * Returns { filters } (an array, possibly empty), with `search` beside it when
+ * the binding has one, or { skipped:true }.
+ * @returns {{ skipped: true, filters?: undefined, search?: undefined } | { skipped?: undefined, filters: unknown[], search?: unknown }}
  */
 function resolveDryRunFilters(binding, scope) {
     const step = planFilters(binding, scope, DRY_RUN_PLAN);
     if (step.plan !== 'fetch') return { skipped: true };
-    return { filters: /** @type {{ filter?: unknown[] }} */ (step.binding).filter };
+    const planned = /** @type {{ filter: unknown[], search?: unknown }} */ (step.binding);
+    if (binding && binding.search !== undefined) return { filters: planned.filter, search: planned.search };
+    return { filters: planned.filter };
 }
 
 const GENERIC_READ_FAILURE = 'The data read failed on the server (details are in the server log).';
@@ -104,7 +109,8 @@ function linkedReadCtx(app, ownerScope, dataModel, roleArg, viewer) {
 async function runRecordBinding(binding, table, { roleArg, viewer, scope, app, ownerScope, deps, dataModel }) {
     const resolved = resolveDryRunFilters(binding, scope);
     if (resolved.skipped) return { ok: true, skipped: 'dynamic' };
-    const descriptor = recordListDescriptor(binding, { filters: resolved.filters, limit: DRY_RUN_LIMIT });
+    const searched = 'search' in resolved ? { search: resolved.search } : {};
+    const descriptor = recordListDescriptor(binding, { filters: resolved.filters, ...searched, limit: DRY_RUN_LIMIT });
     try {
         if (isDatatableBacked(table)) {
             // The rows are in a Studio table, not the per-app database: read them

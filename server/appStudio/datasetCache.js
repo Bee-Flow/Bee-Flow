@@ -178,9 +178,10 @@ async function runDataset(app, model, datasetOrDescriptor, viewer, { refresh = f
         }
     }
 
-    // Miss / forced refresh / inline → compile (scoped) and run live.
+    // Miss / forced refresh / inline → compile (scoped) and run live. A saved
+    // dataset joins its filters as it always did: `match` is a key of a binding.
     const { sql, params } = queryCompiler.compileAggregate(table,
-        aggregateDescriptor(descriptor, { limit: descriptor.limit }), accessFilter);
+        aggregateDescriptor(descriptor, { limit: descriptor.limit, match: undefined }), accessFilter);
 
     const out = await studioAppDbStore.query(app.userId, app.id, sql, params);
     const result = {

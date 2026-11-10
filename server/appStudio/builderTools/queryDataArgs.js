@@ -33,7 +33,7 @@ const bad = (error, _fixHint) => ({ error, _fixHint });
  *
  * @typedef {{
  *   error?: string, _fixHint?: string, tableId?: string|null, datasetId?: string|null, limit?: number,
- *   limitClamped?: boolean, requestedLimit?: number, sort?: { field: string, dir: string }, filter?: any[], cursor?: string|null,
+ *   limitClamped?: boolean, requestedLimit?: number, sort?: { field: string, dir: string }, filter?: any[], match?: string, search?: { value: string, fields: any[] }, cursor?: string|null,
  * }} QueryArgs
  */
 
@@ -85,10 +85,24 @@ function parseQueryArgs(args) {
         filter = a.filter;
     }
 
+    let match;
+    if (a.match !== undefined && a.match !== null) {
+        if (a.match !== 'all' && a.match !== 'any') return bad('match must be "all" or "any".', '"any" returns a row when ONE of the filters matches; "all" (the default) needs every one.');
+        match = a.match;
+    }
+    let search;
+    if (a.search !== undefined && a.search !== null) {
+        const s = a.search;
+        if (!s || typeof s !== 'object' || Array.isArray(s) || typeof s.value !== 'string' || !s.value || !Array.isArray(s.fields) || !s.fields.length) {
+            return bad('search must be { value: <text>, fields: [<field keys>] }.', 'It finds rows where ANY of the fields contains the text; it ANDs with filter.');
+        }
+        search = { value: s.value, fields: s.fields };
+    }
+
     if (a.cursor !== undefined && a.cursor !== null && typeof a.cursor !== 'string') {
         return bad('cursor must be the nextCursor string of the previous call.');
     }
-    return { tableId, datasetId, limit, limitClamped, requestedLimit, sort, filter, cursor: a.cursor || null };
+    return { tableId, datasetId, limit, limitClamped, requestedLimit, sort, filter, ...(match ? { match } : {}), ...(search ? { search } : {}), cursor: a.cursor || null };
 }
 
 /** A row without the internal ids a model has no use for. */
