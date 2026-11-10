@@ -22,7 +22,7 @@ import {
     CANCELLED, MAX_LOOP_ITERATIONS, SEQ_ABORT, SERVER_STEP_KINDS, buildStepIndexMap, caseMatches, failureMessage,
     mergeAppEffects, normalizeSequence, sequenceHasServerStep, showToast, sleep,
 } from './core';
-import type { RunOpts, RunStep, RunnableAction } from './core';
+import type { ActionEntry, RunOpts, RunStep, RunnableAction } from './core';
 import type { RunnerContext } from './runnerContext';
 import { StepFailure, dispatchBrowseStep, dispatchServerStep } from './serverSteps';
 import type { ErrorScope, SeqState } from './serverSteps';
@@ -317,6 +317,12 @@ async function prepareServerRun(ctx: RunnerContext, actionId: string): Promise<b
 
 type RunOutcome = 'success' | 'error' | 'cancelled' | 'aborted';
 
+/** The failed action's state; a field rule's per-field sentences ride along only when there are any. */
+function errorEntry(message: string, e: unknown): ActionEntry {
+    const fieldErrors = e instanceof StepFailure ? e.fieldErrors : null;
+    return { status: 'error', result: undefined, error: message, ...(fieldErrors ? { fieldErrors } : {}) };
+}
+
 /**
  * The run log of this click (./runEnd): one run key for every server step, and the one end report
  * when it settles. `aborted` (a declined confirm or onError stop) ends as success when a handler
@@ -362,7 +368,7 @@ export async function runSequence(ctx: RunnerContext, actionId: string, action: 
         // A server-touching sequence surfaces the error on the triggering
         // control (status:'error'); every failed sequence also toasts so the
         // abort is never silent. onError effects (if any) apply afterwards.
-        if (hasServer) setEntry(actionId, { status: 'error', result: undefined, error: message });
+        if (hasServer) setEntry(actionId, errorEntry(message, e));
         showToast('danger', message);
         await applyEffects(action.onError, { formId: opts.formId, formName: opts.formName });
     }

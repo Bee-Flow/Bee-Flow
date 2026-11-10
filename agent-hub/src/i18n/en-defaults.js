@@ -38780,6 +38780,22 @@ const EN_DEFAULTS = {
     "studio_misc.toolbar.view_cards": "Cards",
     "studio_misc.toolbar.view_list": "List",
     "studio_apps_schema.newer_than_install": "This app was saved by a newer version of Bee Flow. Update this installation to open or change it.",
+    "studio_apps_validation.heading": "Rules",
+    "studio_apps_validation.hint": "Checked every time this field is saved. Rows already stored are not checked again.",
+    "studio_apps_validation.min": "Minimum",
+    "studio_apps_validation.max": "Maximum",
+    "studio_apps_validation.min_length": "Minimum length",
+    "studio_apps_validation.max_length": "Maximum length",
+    "studio_apps_validation.pattern": "Pattern",
+    "studio_apps_validation.pattern_hint": "A regular expression the text must match, for example ^[0-9]{4}$",
+    "studio_apps_validation.enforce_options": "Only the listed choices",
+    "studio_apps_validation.message": "Error message",
+    "studio_apps_validation.message_hint": "Shown instead of the generated message when a rule is not met.",
+    "studio_apps_validation.dynamic_default": "Fill when a record is created",
+    "studio_apps_validation.dynamic_none": "Nothing",
+    "studio_apps_validation.dynamic_now": "The current date and time",
+    "studio_apps_validation.dynamic_today": "Today's date",
+    "studio_apps_validation.dynamic_user": "The signed-in user",
 };
 
 export default EN_DEFAULTS;

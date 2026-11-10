@@ -5,6 +5,8 @@ import { RepeatableList } from '@/components/admin/product-website/fields';
 import FormulaField from '../inspector/logic/FormulaField';
 import { NumberField, TextField } from '../inspector/panels/kit';
 import { safeTargetTypes } from './fieldConversions';
+import FieldRulesEditor from './FieldRulesEditor';
+import { withoutRules } from './fieldRules';
 import type { ModelField, ModelTable } from './tablesManagerModel';
 import type { TranslateFn } from '@/hooks/useTranslation';
 
@@ -13,8 +15,9 @@ import type { TranslateFn } from '@/hooks/useTranslation';
  *
  * Edits the table's display name and its fields (key/name/type + per-type
  * options: required, unique, default, a relation target, or a computed
- * expression). Pure controlled component: every change bubbles the next table
- * object through onChange; the parent (TablesManager) owns the model + Save.
+ * expression, and the optional field rules in FieldRulesEditor). Pure
+ * controlled component: every change bubbles the next table object through
+ * onChange; the parent (TablesManager) owns the model + Save.
  *
  * Field keys follow the server grammar (KEY_RE: a lowercase letter then
  * letters/digits/underscore) — a key is a real SQLite column name, so it is
@@ -169,7 +172,7 @@ function FieldEditor({ field, update, tables, currentTableId, saved, savedType, 
                 <select
                     className={FIELD_CLS}
                     value={field.type || 'text'}
-                    onChange={(e) => set(typePatch(field, e.target.value))}
+                    onChange={(e) => update({ ...withoutRules(field), ...typePatch(field, e.target.value) })}
                     disabled={disabled}
                     aria-label={t('studio_apps_tables.designer.field_type', 'Field type')}
                 >
@@ -248,7 +251,7 @@ function FieldEditor({ field, update, tables, currentTableId, saved, savedType, 
                         {t('studio_apps_tables.designer.computed_stored', 'Save as a column (filter and sort on it)')}
                     </label>
                 </div>
-            ) : field.type !== 'bool' && field.type !== 'file' ? (
+            ) : field.type !== 'bool' && field.type !== 'file' && !field.dynamicDefault ? (
                 field.type === 'number' ? (
                     <NumberField
                         label={t('studio_apps_tables.designer.default', 'Default')}
@@ -265,6 +268,8 @@ function FieldEditor({ field, update, tables, currentTableId, saved, savedType, 
                     />
                 )
             ) : null}
+
+            <FieldRulesEditor field={field} update={update} disabled={disabled} />
         </div>
     );
 }

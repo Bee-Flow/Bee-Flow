@@ -1,0 +1,22 @@
+{
+  "translations": {
+    "studio_apps_validation.heading": "Regels",
+    "studio_apps_validation.hint": "Wordt gecontroleerd bij elke keer dat dit veld wordt opgeslagen. Rijen die al zijn opgeslagen worden niet opnieuw gecontroleerd.",
+    "studio_apps_validation.min_length": "Minimale lengte",
+    "studio_apps_validation.max_length": "Maximale lengte",
+    "studio_apps_validation.pattern": "Patroon",
+    "studio_apps_validation.pattern_hint": "Een reguliere expressie waaraan de tekst moet voldoen, bijvoorbeeld ^[0-9]{4}$",
+    "studio_apps_validation.enforce_options": "Alleen de opgegeven keuzes",
+    "studio_apps_validation.message": "Foutmelding",
+    "studio_apps_validation.message_hint": "Wordt getoond in plaats van de standaardmelding als niet aan een regel is voldaan.",
+    "studio_apps_validation.dynamic_default": "Invullen bij het aanmaken van een record",
+    "studio_apps_validation.dynamic_none": "Niets",
+    "studio_apps_validation.dynamic_now": "De huidige datum en tijd",
+    "studio_apps_validation.dynamic_today": "De datum van vandaag",
+    "studio_apps_validation.dynamic_user": "De ingelogde gebruiker"
+  },
+  "sameAsEnglish": [
+    "studio_apps_validation.min",
+    "studio_apps_validation.max"
+  ]
+}
