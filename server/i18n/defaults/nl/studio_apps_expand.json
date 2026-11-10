@@ -1,0 +1,11 @@
+{
+  "translations": {
+    "studio_apps_expand.access_hint": "Een gekoppeld record dat de kijker niet mag zien, blijft leeg.",
+    "studio_apps_expand.column_hint": "Gebruik ze in een kolom als {example}.",
+    "studio_apps_expand.fields_hint": "Vink niets aan om alle kolommen te laden.",
+    "studio_apps_expand.fields_legend": "Te laden kolommen",
+    "studio_apps_expand.no_relations": "Deze tabel heeft geen veld dat naar een andere tabel van de app verwijst.",
+    "studio_apps_expand.relation_legend": "{relation}: velden van {table}",
+    "studio_apps_expand.title": "Gekoppelde records en kolommen"
+  }
+}

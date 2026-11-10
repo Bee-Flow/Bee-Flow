@@ -81,6 +81,8 @@ function dataCacheKey(binding) {
             sort: binding.sort ?? null,
             limit: binding.limit ?? null,
             ...(binding.orderBy === undefined || binding.orderBy === null ? {} : { orderBy: binding.orderBy }),
+            ...(binding.expand === undefined || binding.expand === null ? {} : { expand: binding.expand }),
+            ...(binding.fields === undefined || binding.fields === null ? {} : { fields: binding.fields }),
         });
         return `${binding.kind}:${binding.tableId ?? ''}:${shape}`;
     }

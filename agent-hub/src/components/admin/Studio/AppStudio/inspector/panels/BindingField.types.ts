@@ -30,6 +30,10 @@ export interface BindingDraft {
     sort?: unknown;
     /** Up to three `{ field, dir }` entries; replaces `sort` when present. */
     orderBy?: unknown;
+    /** record / records: `[{ field: <relation field>, pick?, as? }]`, the linked record of each row. */
+    expand?: unknown;
+    /** record / records: the columns to load (all when absent). */
+    fields?: unknown;
     limit?: number;
     groupBy?: Array<DatasetGroup | null>;
     aggregates?: Array<DatasetAggregate | null>;

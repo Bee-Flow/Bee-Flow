@@ -123,7 +123,7 @@ export type Binding =
     | { kind: 'actionResult'; actionId: string; path?: string }
     | { kind: 'formula'; expr: string }
     | { kind: 'record'; tableId: string; recordId?: string; path?: string }
-    | { kind: 'records'; tableId: string; filter?: unknown; sort?: unknown; orderBy?: unknown; limit?: number }
+    | { kind: 'records'; tableId: string; filter?: unknown; sort?: unknown; orderBy?: unknown; expand?: unknown; fields?: unknown; limit?: number }
     | { kind: 'dataset'; datasetId: string; params?: Record<string, unknown> }
     | { kind: 'connector'; [key: string]: unknown }
     | { kind: 'aggregate'; [key: string]: unknown };

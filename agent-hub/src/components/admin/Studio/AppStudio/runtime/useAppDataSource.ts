@@ -82,6 +82,12 @@ function recordLimit(binding: DataBinding, sample: boolean) {
 }
 
 /**
+ * The optional parts of a record read (several sort columns, the related rows to bring along, the
+ * columns to load): each travels only when the binding has it, on both roads.
+ */
+const recordReadExtras = (b: DataBinding) => ({ orderBy: b.orderBy ?? undefined, expand: b.expand ?? undefined, fields: b.fields ?? undefined });
+
+/**
  * The batch descriptor for a binding, or null if this kind never batches.
  *
  * Connectors are excluded because they are not a read: another router, another
@@ -118,7 +124,7 @@ function batchDescriptor(id: string, binding: FetchBinding, limit: unknown) {
         tableId: binding.tableId,
         filters: binding.filter ?? undefined,
         sort: binding.sort ?? undefined,
-            orderBy: binding.orderBy ?? undefined,
+        ...recordReadExtras(binding),
         limit,
     };
 }
@@ -246,7 +252,7 @@ async function fetchBinding(appId: string | null, binding: FetchBinding, { sampl
     const query = qs({
         filter: binding.filter,
         sort: binding.sort,
-        orderBy: binding.orderBy ?? undefined,
+        ...recordReadExtras(binding),
         limit,
         sample: sample ? 1 : undefined,
     });

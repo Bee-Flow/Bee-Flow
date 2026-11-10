@@ -1,0 +1,489 @@
+{
+  "about": {
+    "source": "written for record reads through a relation (since 3): expand (picked fields, the display field, an `as`, a relation to the same table), fields, and <relation>.<field> filters (in a list, in groups and on an aggregate), with a row rule on the related table; next to a plain records binding on the same table",
+    "stored": "definition = canonicalizeAppDefinition(the authored definition).def; dataModel = canonicalizeDataModel(the authored model).model",
+    "captured": "2026-11-10"
+  },
+  "definition": {
+    "schemaVersion": 2,
+    "meta": {
+      "name": "Orders with customers",
+      "description": "Reads through a relation: expand, fields and a relation.field filter.",
+      "icon": "LayoutGrid"
+    },
+    "theme": {
+      "primary": "#0F766E",
+      "radius": "md",
+      "density": "comfortable",
+      "fontScale": "md",
+      "appearance": "auto"
+    },
+    "roles": [
+      {
+        "id": "member",
+        "name": "Member"
+      }
+    ],
+    "screens": [
+      {
+        "id": "scr_flexdh",
+        "name": "Orders",
+        "icon": null,
+        "showInNav": true,
+        "maxWidth": "medium",
+        "sections": [
+          {
+            "id": "sec_flexdh",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_flexdhtbl",
+                "type": "table",
+                "props": {
+                  "source": {
+                    "kind": "records",
+                    "tableId": "tbl_flexdhord",
+                    "filter": [
+                      {
+                        "field": "customer.region",
+                        "op": "eq",
+                        "value": "north"
+                      },
+                      {
+                        "field": "status",
+                        "op": "eq",
+                        "value": "open"
+                      }
+                    ],
+                    "orderBy": [
+                      {
+                        "field": "amount",
+                        "dir": "desc"
+                      }
+                    ],
+                    "limit": 50,
+                    "expand": [
+                      {
+                        "field": "customer",
+                        "pick": [
+                          "name",
+                          "city"
+                        ]
+                      }
+                    ],
+                    "fields": [
+                      "amount",
+                      "status",
+                      "customer"
+                    ]
+                  },
+                  "columns": [
+                    {
+                      "key": "customer",
+                      "label": "Customer",
+                      "format": "relation"
+                    },
+                    {
+                      "key": "customer_record.city",
+                      "label": "City"
+                    },
+                    {
+                      "key": "amount",
+                      "label": "Amount",
+                      "format": "number"
+                    },
+                    {
+                      "key": "status",
+                      "label": "Status",
+                      "format": "badge"
+                    }
+                  ],
+                  "emptyText": "Nothing to show yet.",
+                  "rowLimit": 25,
+                  "look": "default"
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_flexdhgrid",
+                "type": "data_grid",
+                "props": {
+                  "source": {
+                    "kind": "records",
+                    "tableId": "tbl_flexdhord",
+                    "filter": [
+                      {
+                        "any": [
+                          {
+                            "field": "customer.name",
+                            "op": "contains",
+                            "value": {
+                              "kind": "formula",
+                              "expr": "vars.search"
+                            },
+                            "required": true
+                          },
+                          {
+                            "not": {
+                              "field": "previous.status",
+                              "op": "eq",
+                              "value": "paid"
+                            }
+                          }
+                        ]
+                      }
+                    ],
+                    "sort": [
+                      {
+                        "field": "created_at",
+                        "dir": "desc"
+                      }
+                    ],
+                    "expand": [
+                      {
+                        "field": "customer",
+                        "as": "buyer"
+                      },
+                      {
+                        "field": "previous",
+                        "pick": [
+                          "amount",
+                          "status"
+                        ]
+                      }
+                    ]
+                  },
+                  "columns": [
+                    {
+                      "key": "buyer",
+                      "label": "Buyer",
+                      "format": "relation"
+                    },
+                    {
+                      "key": "amount",
+                      "label": "Amount",
+                      "format": "number"
+                    },
+                    {
+                      "key": "previous_record.amount",
+                      "label": "Previous amount",
+                      "format": "number"
+                    }
+                  ],
+                  "pageSize": 25,
+                  "selectable": "none",
+                  "searchable": false,
+                  "rowActions": [],
+                  "toolbarActions": [],
+                  "addRowLabel": null,
+                  "addRowActionId": null,
+                  "bulkActions": [],
+                  "density": "comfortable",
+                  "clamp": "off",
+                  "rowTone": [],
+                  "groupBy": null,
+                  "groupOrder": [],
+                  "activeWhen": null,
+                  "zebra": false,
+                  "emptyText": "Nothing to show yet.",
+                  "look": "default"
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_flexdhdet",
+                "type": "record_detail",
+                "props": {
+                  "source": {
+                    "kind": "record",
+                    "tableId": "tbl_flexdhord",
+                    "filter": [
+                      {
+                        "field": "id",
+                        "op": "eq",
+                        "value": {
+                          "kind": "formula",
+                          "expr": "vars.orderId"
+                        },
+                        "required": true
+                      }
+                    ],
+                    "expand": [
+                      {
+                        "field": "customer",
+                        "pick": [
+                          "name",
+                          "city"
+                        ]
+                      }
+                    ],
+                    "fields": [
+                      "amount",
+                      "status"
+                    ]
+                  },
+                  "fields": [
+                    {
+                      "key": "amount",
+                      "label": "Amount"
+                    },
+                    {
+                      "key": "customer_record.name",
+                      "label": "Customer"
+                    },
+                    {
+                      "key": "customer_record.city",
+                      "label": "City"
+                    }
+                  ],
+                  "columns": 2,
+                  "emptyText": "No record selected.",
+                  "layout": "stacked"
+                },
+                "style": {
+                  "span": 6
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_flexdhcnt",
+                "type": "stat",
+                "props": {
+                  "label": "Open orders in the north",
+                  "value": {
+                    "kind": "aggregate",
+                    "tableId": "tbl_flexdhord",
+                    "filter": [
+                      {
+                        "field": "customer.region",
+                        "op": "eq",
+                        "value": "north"
+                      },
+                      {
+                        "field": "status",
+                        "op": "eq",
+                        "value": "open"
+                      }
+                    ],
+                    "aggregates": [
+                      {
+                        "fn": "count",
+                        "as": "n"
+                      }
+                    ],
+                    "pick": {
+                      "row": "first",
+                      "column": "n"
+                    }
+                  },
+                  "caption": null,
+                  "captionSegments": [],
+                  "icon": null,
+                  "delta": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "deltaFormat": "number",
+                  "trend": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "positiveIsGood": true,
+                  "look": "plain"
+                },
+                "style": {
+                  "span": 3
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_flexdhplain",
+                "type": "table",
+                "props": {
+                  "source": {
+                    "kind": "records",
+                    "tableId": "tbl_flexdhord",
+                    "sort": [
+                      {
+                        "field": "amount",
+                        "dir": "desc"
+                      }
+                    ],
+                    "limit": 5
+                  },
+                  "columns": [
+                    {
+                      "key": "customer",
+                      "label": "Customer",
+                      "format": "relation"
+                    },
+                    {
+                      "key": "amount",
+                      "label": "Amount"
+                    }
+                  ],
+                  "emptyText": "Nothing to show yet.",
+                  "rowLimit": 25,
+                  "look": "default"
+                },
+                "style": {
+                  "span": 6
+                },
+                "visible": true
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "actions": {},
+    "homeScreenId": "scr_flexdh"
+  },
+  "dataModel": {
+    "modelVersion": 1,
+    "tables": [
+      {
+        "id": "tbl_flexdhcus",
+        "key": "customers",
+        "name": "Customers",
+        "icon": "Users",
+        "fields": [
+          {
+            "id": "fld_flexdhname",
+            "key": "name",
+            "name": "Name",
+            "type": "text",
+            "required": true,
+            "unique": false
+          },
+          {
+            "id": "fld_flexdhcity",
+            "key": "city",
+            "name": "City",
+            "type": "text",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_flexdhregn",
+            "key": "region",
+            "name": "Region",
+            "type": "select",
+            "options": [
+              "north",
+              "south",
+              "internal"
+            ],
+            "required": false,
+            "unique": false
+          }
+        ],
+        "access": {
+          "default": "role",
+          "roles": {
+            "member": {
+              "read": "all",
+              "create": false,
+              "update": "none",
+              "delete": "none"
+            }
+          },
+          "rowFilters": {
+            "member": "record.region != \"internal\""
+          }
+        }
+      },
+      {
+        "id": "tbl_flexdhord",
+        "key": "orders",
+        "name": "Orders",
+        "icon": "Receipt",
+        "fields": [
+          {
+            "id": "fld_flexdhamnt",
+            "key": "amount",
+            "name": "Amount",
+            "type": "number",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_flexdhstat",
+            "key": "status",
+            "name": "Status",
+            "type": "select",
+            "options": [
+              "open",
+              "paid"
+            ],
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_flexdhcust",
+            "key": "customer",
+            "name": "Customer",
+            "type": "relation",
+            "relation": {
+              "table": "tbl_flexdhcus",
+              "displayField": "name"
+            },
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_flexdhprev",
+            "key": "previous",
+            "name": "Previous order",
+            "type": "relation",
+            "relation": {
+              "table": "tbl_flexdhord"
+            },
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_flexdhnote",
+            "key": "note",
+            "name": "Internal note",
+            "type": "text",
+            "required": false,
+            "unique": false
+          }
+        ],
+        "access": {
+          "default": "role",
+          "roles": {
+            "member": {
+              "read": "own",
+              "create": true,
+              "update": "own",
+              "delete": "none"
+            }
+          },
+          "rowFilters": {}
+        }
+      }
+    ],
+    "roles": [
+      {
+        "key": "member",
+        "label": "member"
+      }
+    ],
+    "roleMapping": {
+      "default": "member",
+      "byGroup": {}
+    }
+  }
+}

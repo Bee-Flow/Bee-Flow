@@ -165,11 +165,23 @@ function listQueryOf(query) {
     /** @type {{ filters: unknown, sort: unknown, orderBy?: unknown, expand?: unknown, fields?: unknown }} */
     const out = { filters: filter !== undefined && !Array.isArray(filter) ? [filter] : filter, sort: parsed('sort') };
     if (orderBy !== undefined) out.orderBy = orderBy;
+    return { ...out, ...relationQueryOf(query) };
+}
+
+/**
+ * `expand` and `fields` of a table page, each only when the request sent one. RecordsQuery
+ * already refused text that is not JSON; the compiler validates the shapes.
+ * @param {Record<string, unknown>} query
+ * @returns {{ expand?: unknown, fields?: unknown }}
+ */
+function relationQueryOf(query) {
+    /** @type {{ expand?: unknown, fields?: unknown }} */
+    const out = {};
     for (const name of /** @type {const} */ (['expand', 'fields'])) {
-        const value = parsed(name);
-        if (value !== undefined) out[name] = value;
+        const text = query[name];
+        if (typeof text === 'string' && text) out[name] = JSON.parse(text);
     }
     return out;
 }
 
-module.exports = { listQueryOf, DraftQuery, StepBody, RunBody, RunEndBody, BackgroundBody, JobParams, JobsQuery, ChatBody, RecordsQuery, ErrorScope };
+module.exports = { listQueryOf, relationQueryOf, DraftQuery, StepBody, RunBody, RunEndBody, BackgroundBody, JobParams, JobsQuery, ChatBody, RecordsQuery, ErrorScope };

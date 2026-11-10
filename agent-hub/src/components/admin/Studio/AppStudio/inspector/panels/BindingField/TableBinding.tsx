@@ -5,6 +5,8 @@ import useAppTables, { fieldsForTable } from '@/components/admin/Studio/AppStudi
 import type { BindingDraft, TableBindingProps } from '../BindingField.types';
 import { SortLevels } from './SortLevels';
 import { PickValueField } from './AggregateBinding';
+import { RelatedFields } from './RelatedFields';
+import { relationFilterFields } from '@/components/admin/Studio/AppStudio/bi/relationRead';
 
 export function TableBinding({ binding, onChange, appId, disabled, definition, node, singleValue = false }: TableBindingProps) {
     const { t } = useTranslation();
@@ -41,7 +43,7 @@ export function TableBinding({ binding, onChange, appId, disabled, definition, n
             {tableId ? (
                 <>
                     <FilterRowsEditor
-                        fields={fields}
+                        fields={[...fields, ...relationFilterFields(tables, tableId)]}
                         filters={Array.isArray(binding.filter) ? binding.filter : []}
                         onChange={(filter) => patch({ filter: filter.length ? filter : undefined })}
                         allowFormula
@@ -59,6 +61,20 @@ export function TableBinding({ binding, onChange, appId, disabled, definition, n
                             // `orderBy` exists only on a binding that sorts on several columns.
                             const { orderBy: _dropped, ...rest } = binding;
                             onChange(orderBy === undefined ? { ...rest, sort } : { ...rest, sort, orderBy });
+                        }}
+                    />
+
+                    <RelatedFields
+                        binding={binding}
+                        tables={tables}
+                        fields={fields}
+                        disabled={disabled}
+                        onPatch={(p) => {
+                            // `expand` and `fields` exist only on a binding that uses them.
+                            const next = { ...binding, ...p };
+                            if (next.expand === undefined) delete next.expand;
+                            if (next.fields === undefined) delete next.fields;
+                            onChange(next);
                         }}
                     />
 

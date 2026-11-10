@@ -25,8 +25,7 @@ const { getSpec } = require('../componentSpecs');
 const { suggestTableId } = require('./tableHints');
 const { forEachFilterClause } = require('../../shared/expr/filterGroups.mjs');
 const { groupByAlias } = require('../validate/aggregateChecks.mts');
-const { expandAlias } = require('../validate/relationReadChecks.mts');
-const { EXPAND_LABEL_KEY } = require('../../core/dataEngine/dataModel/vocabulary');
+const { relationChecks } = require('./bindingGuardRelations.mts');
 
 // What the model reads when a table is not there: both ways to get one. The
 // 2026-09-13 trace saw "create the table first" from a menu that had no
@@ -87,78 +86,8 @@ function checkComponentDataRefs(entries, model) {
         });
     };
 
-    /** The table a relation field of `table` points at, or null. */
-    const relationTarget = (table, key) => {
-        const relation = (table.fields || []).find((f) => f && f.key === key && f.type === 'relation');
-        return (relation && relation.relation && byRef.get(relation.relation.table)) || null;
-    };
-
-    /**
-     * `<relation field>.<field of the related table>` (a filter through a relation): the head must
-     * be a relation field of `table` and the tail a field of the table it points at. False for a
-     * plain name, which the caller checks.
-     * @param {number} index
-     * @param {string} path
-     * @param {string} what
-     */
-    const throughRelation = (index, path, table, key, what) => {
-        if (typeof key !== 'string' || !key.includes('.')) return false;
-        const [head, tail, more] = key.split('.');
-        const target = relationTarget(table, head);
-        if (!target || !tail || more !== undefined) {
-            const relations = (table.fields || []).filter((f) => f && f.type === 'relation').map((f) => f.key);
-            errors.push({
-                index, path, suggestion: null,
-                message: `${what} names ${JSON.stringify(key)}, which is not <relation field>.<field of the related table> on table ${table.id} (${table.key}).`,
-                hint: `Relation fields on ${table.key}: ${relations.join(', ') || '(none)'}. A read goes one relation deep.`,
-            });
-            return true;
-        }
-        fieldCheck(index, path, target, tail, what);
-        return true;
-    };
-
-    /**
-     * One `expand` entry: a relation field of `table`, and picked fields of the table it points at.
-     * @param {number} index
-     * @param {string} path
-     */
-    const checkExpandEntry = (index, path, table, e) => {
-        const target = relationTarget(table, e.field);
-        if (!target) {
-            const relations = (table.fields || []).filter((f) => f && f.type === 'relation').map((f) => f.key);
-            errors.push({
-                index, path: `${path}.field`, suggestion: pickClosestId(e.field, relations) || null,
-                message: `expand names ${JSON.stringify(e.field)}, which is not a relation field of table ${table.id} (${table.key}) to another table of this app.`,
-                hint: `Relation fields on ${table.key}: ${relations.join(', ') || '(none)'}.`,
-            });
-            return;
-        }
-        (Array.isArray(e.pick) ? e.pick : []).forEach((k, j) => fieldCheck(index, `${path}.pick[${j}]`, target, k, 'expand pick'));
-    };
-
-    /**
-     * A grid column on an expanded relation (`<expand name>.<field of the related table>`): the
-     * head must be an expansion of the grid's binding. False for a plain column key.
-     * @param {number} index
-     * @param {string} path
-     */
-    const expandedColumn = (index, path, table, data, key) => {
-        if (!key.includes('.')) return false;
-        const [head, tail] = key.split('.');
-        const entry = (Array.isArray(data.expand) ? data.expand : []).find((e) => isObject(e) && expandAlias(e) === head);
-        const target = entry ? relationTarget(table, entry.field) : null;
-        if (!target) {
-            errors.push({
-                index, path, suggestion: null,
-                message: `grid column ${JSON.stringify(key)} reads a related row, but the grid's binding has no expand named ${JSON.stringify(head)}.`,
-                hint: 'Add expand: [{ field: <relation field>, pick: [<fields>] }] to the binding; the related row then sits under <relation field>_record (or the entry\'s `as`), e.g. column key "customer_record.name".',
-            });
-            return true;
-        }
-        if (tail !== EXPAND_LABEL_KEY) fieldCheck(index, path, target, tail, 'grid column');
-        return true;
-    };
+    // Reads through a relation: checked against the table each name belongs to.
+    const { throughRelation, checkRelationRead, expandedColumn } = relationChecks({ byRef, errors, fieldCheck });
 
     /**
      * @param {string} path
@@ -201,8 +130,7 @@ function checkComponentDataRefs(entries, model) {
             fieldCheck(index, `${path}.filter${at}.field`, table, f.field, `${b.kind} filter`);
             if (typeof f.otherField === 'string') fieldCheck(index, `${path}.filter${at}.otherField`, table, f.otherField, `${b.kind} filter`);
         });
-        (Array.isArray(b.fields) ? b.fields : []).forEach((k, i) => fieldCheck(index, `${path}.fields[${i}]`, table, k, `${b.kind} fields`));
-        (Array.isArray(b.expand) ? b.expand : []).forEach((e, i) => { if (isObject(e)) checkExpandEntry(index, `${path}.expand[${i}]`, table, e); });
+        checkRelationRead(index, path, table, b);
         const sorts = Array.isArray(b.sort) ? b.sort : (isObject(b.sort) ? [b.sort] : []);
         const aliases = new Set();
         if (b.kind === 'aggregate') {
@@ -275,11 +203,7 @@ function checkComponentDataRefs(entries, model) {
         if (table && Array.isArray(props.columns)) {
             props.columns.forEach((c, i) => {
                 const key = isObject(c) ? (c.key || c.field) : c;
-                if (typeof key !== 'string') return;
-                // The related row itself (shown by its display field) or one of its fields.
-                if ((Array.isArray(data.expand) ? data.expand : []).some((e) => isObject(e) && expandAlias(e) === key)) return;
-                if (expandedColumn(index, `${path}.props.columns[${i}].key`, table, data, key)) return;
-                fieldCheck(index, `${path}.props.columns[${i}].key`, table, key, 'grid column');
+                if (typeof key === 'string' && !expandedColumn(index, `${path}.props.columns[${i}].key`, table, data, key)) fieldCheck(index, `${path}.props.columns[${i}].key`, table, key, 'grid column');
             });
         }
         (Array.isArray(entry.children) ? entry.children : []).forEach((ch, i) => walk(ch, index, `${path}.children[${i}]`));

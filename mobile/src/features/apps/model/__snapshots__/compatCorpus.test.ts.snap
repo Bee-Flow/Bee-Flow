@@ -458,6 +458,38 @@ exports[`compat corpus: what the phone plans for every stored app flex-filter-tr
 }
 `;
 
+exports[`compat corpus: what the phone plans for every stored app flex-relation-expand 1`] = `
+{
+  "defaultScreen": "scr_flexdh",
+  "navigable": [
+    "scr_flexdh",
+  ],
+  "screens": [
+    {
+      "id": "scr_flexdh",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [],
+            "screen": "scr_flexdh",
+            "unsupported": [
+              "table",
+              "data_grid",
+              "record_detail",
+              "stat",
+            ],
+          },
+          "roles": [
+            "(no role)",
+            "member",
+          ],
+        },
+      ],
+    },
+  ],
+}
+`;
+
 exports[`compat corpus: what the phone plans for every stored app legacy-onerror-array 1`] = `
 {
   "defaultScreen": "scr_lgh001",

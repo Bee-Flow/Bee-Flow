@@ -41,6 +41,10 @@ export interface DataBinding {
     limit?: FilterValue;
     groupBy?: FilterValue;
     aggregates?: FilterValue;
+    /** record / records only: `[{ field: <relation field>, pick?, as? }]`, the related row of each record (under `as`, or `<field>_record`). */
+    expand?: unknown;
+    /** record / records only: the columns to return (next to `id`). */
+    fields?: unknown;
     /** Aggregate only: `[{ field: <aggregate alias>, op, value }]`, the groups to keep. */
     groupFilter?: unknown;
     pick?: PickSpec | null;

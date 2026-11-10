@@ -33,8 +33,9 @@ function compareKind(field: FilterField | null | undefined): string | null {
 /** The other columns `field` can be compared with. */
 function comparableFields(field: FilterField | null, fields: FilterField[]): FilterField[] {
     const kind = compareKind(field);
-    if (!kind) return [];
-    return fields.filter((x) => x.key !== field?.key && compareKind(x) === kind);
+    // A field of a linked record (`customer.city`) compares with a value only: never offered on either side.
+    if (!kind || field?.key.includes('.')) return [];
+    return fields.filter((x) => x.key !== field?.key && !x.key.includes('.') && compareKind(x) === kind);
 }
 
 /** The row switched to comparing with another field: no value, no `required`, an op a comparison can carry. */

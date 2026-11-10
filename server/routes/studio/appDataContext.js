@@ -22,6 +22,7 @@ const { resolveAudienceContext } = require('../../auth/audience');
 const { perUserRateLimit } = require('../../utils/perUserRateLimit');
 const { fallback } = require('../../utils/bestEffort');
 const { sessionUser } = require('../../core/http/sessionUser');
+const { relationQueryOf } = require('./appRuntimeSchemas');
 
 /**
  * @typedef {import('../../appStudio/builderTools/dataTools').DataTable} DataTable
@@ -254,7 +255,9 @@ function publicTable(t) {
             required: !!f.required,
             unique: !!f.unique,
             ...(Array.isArray(f.options) ? { options: f.options } : {}),
-            ...(f.relation && typeof f.relation === 'object' ? { relation: { table: f.relation.table } } : {}),
+            // The relation's display field rides along when the model names one: the editor offers it,
+            // and an expansion of the relation carries its value as the label.
+            ...(f.relation && typeof f.relation === 'object' ? { relation: { table: f.relation.table, ...(typeof f.relation.displayField === 'string' && f.relation.displayField ? { displayField: f.relation.displayField } : {}) } } : {}),
         })),
     };
 }
@@ -272,21 +275,7 @@ function parseListQuery(req) {
     /** @type {unknown} */
     let orderBy;
     if (typeof q.orderBy === 'string' && q.orderBy) { try { orderBy = JSON.parse(q.orderBy); } catch (err) { fallback('routes/studio/appDataContext:parseListQuery#3', err); /* ignore */ } }
-    return { ...(orderBy === undefined ? { filters, sort } : { filters, sort, orderBy }), ...relationQuery(q) };
-}
-
-/**
- * `expand` and `fields` of a table page, each only when the request sent one. RecordsQuery
- * already refused text that is not JSON; the compiler validates the shapes.
- * @param {import('qs').ParsedQs} q
- * @returns {{ expand?: unknown, fields?: unknown }}
- */
-function relationQuery(q) {
-    /** @type {{ expand?: unknown, fields?: unknown }} */
-    const out = {};
-    if (typeof q.expand === 'string' && q.expand) out.expand = JSON.parse(q.expand);
-    if (typeof q.fields === 'string' && q.fields) out.fields = JSON.parse(q.fields);
-    return out;
+    return { ...(orderBy === undefined ? { filters, sort } : { filters, sort, orderBy }), ...relationQueryOf(q) };
 }
 
 // The cache invalidation + row count after a write used to live here as
