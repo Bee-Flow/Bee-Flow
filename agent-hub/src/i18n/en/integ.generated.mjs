@@ -446,4 +446,10 @@ export default {
     "integ.org_nc_pairing_how_to_use_this_code_on_the_new": "How to use this code on the new Nextcloud",
     "integ.org_nc_pairing_on_the_new_nextcloud_server_run": "On the new Nextcloud server, run:",
     "integ.org_nc_pairing_the_connector_picks_up_the_code_on": "The connector picks up the code on next boot, redeems it once, and binds this Nextcloud to your existing Bee Flow organisation.",
+    "integ.features_section_hint": "Switch platform features on or off for everyone on this server.",
+    "integ.email_account_group": "Sender account",
+    "integ.services_section_hint": "Apps and cloud services that integrations and knowledge bases connect through.",
+    "integ.transcription_configuration": "Configuration",
+    "integ.transcription_use_engine": "Use this provider",
+    "integ.transcription_engines_nav": "Transcription providers",
 };

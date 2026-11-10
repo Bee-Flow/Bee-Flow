@@ -1,8 +1,8 @@
 import { useMemo } from 'react';
+import SideDrawer from '@/components/shared/SideDrawer';
+import { useViewport } from '@/hooks/useViewport';
 import { DrawerBreakdown, DrawerStats, RelatedCalls } from './drawer/DrawerSections';
-import { S } from './drawer/drawerTypes';
 import type { DrawerDetail, ModelRate, UsageRow } from './drawer/drawerTypes';
-import { COLORS } from './shared';
 
 interface DetailDrawerProps {
     detail: DrawerDetail;
@@ -12,62 +12,43 @@ interface DetailDrawerProps {
     onClose: () => void;
 }
 
-/** Side drawer with one model's or agent's totals, token breakdown and recent calls. */
+/**
+ * One model's or agent's totals, token breakdown and recent calls, in the
+ * shared SideDrawer: a card over the right of the page (its host is the
+ * positioned content pane), a right-side dialog on a phone.
+ */
 export function DetailDrawer({ detail, modelCosts, costPerModel, recent, onClose }: DetailDrawerProps) {
     const { type, data } = detail;
+    const { isMobile } = useViewport();
+    const eyebrow = type === 'model' ? 'Model Details' : 'Agent Details';
 
     // Get recent calls related to this item
     const relatedCalls = useMemo(() => {
-        if (type === 'model') {
-            return recent.filter((r) => r.model === data.model).slice(0, 20);
-        }
-        if (type === 'agent') {
-            return recent
-                .filter((r) => r.agent_name === data.agent_name)
-                .slice(0, 20);
-        }
+        if (type === 'model') return recent.filter((r) => r.model === data.model).slice(0, 20);
+        if (type === 'agent') return recent.filter((r) => r.agent_name === data.agent_name).slice(0, 20);
         return [];
     }, [type, data, recent]);
 
     return (
-        <>
-            <div style={S.overlay} onClick={onClose} />
-            <div style={S.drawer}>
-                {/* Header */}
-                <div style={S.header}>
-                    <div>
-                        <div
-                            style={{
-                                fontSize: '10px',
-                                fontWeight: 600,
-                                color: COLORS.primary,
-                                textTransform: 'uppercase',
-                                letterSpacing: '0.1em',
-                                marginBottom: '4px',
-                            }}
-                        >
-                            {type === 'model' ? 'Model Details' : 'Agent Details'}
-                        </div>
-                        <div className="[font-size:18px] [font-weight:700] [color:var(--text-primary,#fff)]">
-                            {type === 'model' ? data.model : data.agent_name || 'Unknown'}
-                        </div>
+        <SideDrawer
+            open
+            onClose={onClose}
+            mode={isMobile ? 'modal' : 'overlay'}
+            width={440}
+            ariaLabel={eyebrow}
+            testId="monitoring-detail"
+            header={(
+                <div className="min-w-0">
+                    <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-tertiary)]">{eyebrow}</div>
+                    <div className="truncate text-sm font-semibold text-[var(--text-primary)]">
+                        {type === 'model' ? data.model : data.agent_name || 'Unknown'}
                     </div>
-                    <button onClick={onClose} style={S.closeButton}>
-                        ×
-                    </button>
                 </div>
-
-                <DrawerStats type={type} data={data} costPerModel={costPerModel} />
-                <DrawerBreakdown type={type} data={data} modelCosts={modelCosts} />
-                <RelatedCalls type={type} calls={relatedCalls} modelCosts={modelCosts} />
-            </div>
-
-            <style>{`
-                @keyframes slideInRight {
-                    from { transform: translateX(100%); }
-                    to { transform: translateX(0); }
-                }
-            `}</style>
-        </>
+            )}
+        >
+            <DrawerStats type={type} data={data} costPerModel={costPerModel} />
+            <DrawerBreakdown type={type} data={data} modelCosts={modelCosts} />
+            <RelatedCalls type={type} calls={relatedCalls} modelCosts={modelCosts} />
+        </SideDrawer>
     );
 }

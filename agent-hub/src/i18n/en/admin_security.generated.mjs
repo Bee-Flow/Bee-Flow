@@ -71,4 +71,5 @@ export default {
     "admin_security.sso_ms_connection_n": "Tenant {n}",
     "admin_security.sso_ms_secret_ph": "Client Secret Value",
     "admin_security.sso_ms_connection_label_hint": "Shown on the button, for example the name of the subsidiary.",
+    "admin_security.sso_section_hint": "Let people sign in with an account they already have.",
 };

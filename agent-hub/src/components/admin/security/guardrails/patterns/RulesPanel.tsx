@@ -69,7 +69,7 @@ export default function RulesPanel({ rules, setRules, collections, setCollection
                             onClick={() => removeRule(rule.id)}
                             aria-label={t('admin.gr_delete_rule', 'Delete rule')}
                             title={t('admin.gr_delete_rule', 'Delete rule')}
-                            className="shrink-0 p-1.5 rounded-md text-[var(--text-tertiary)] hover:text-red-400 hover:bg-white/10 transition-all opacity-0 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
+                            className="shrink-0 p-1.5 rounded-md text-[var(--text-tertiary)] hover:text-[var(--error-ink)] hover:bg-[var(--bg-tertiary)] transition-all opacity-0 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--error)]"
                         >
                             <Trash2 size={16} />
                         </button>

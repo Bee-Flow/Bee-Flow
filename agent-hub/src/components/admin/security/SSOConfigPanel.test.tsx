@@ -1,4 +1,4 @@
-import { cleanup, screen, waitFor } from '@testing-library/react';
+import { cleanup, screen, waitFor, within } from '@testing-library/react';
 import { renderWithClient } from '@/test/render';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -38,6 +38,18 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe('SSOConfigPanel', () => {
+    it('lists the providers beside the form, the enabled ones counted and Nextcloud selected', async () => {
+        const user = userEvent.setup();
+        renderWithClient(<SSOConfigPanel />);
+        const nav = await screen.findByRole('navigation', { name: 'SSO Providers' });
+        const group = within(nav).getByRole('region', { name: 'SSO Providers' });
+        expect(within(group).getByText('1')).toBeTruthy();
+        expect(within(nav).getByRole('button', { name: /Nextcloud/ }).getAttribute('aria-current')).toBe('true');
+        await user.click(within(nav).getByRole('button', { name: /Google/ }));
+        expect(within(nav).getByRole('button', { name: /Google/ }).getAttribute('aria-current')).toBe('true');
+        expect(await screen.findByText('Google OAuth 2.0')).toBeTruthy();
+    });
+
     it('shows the Nextcloud form with its redirect URI and hides enterprise providers on Community', async () => {
         hasFeature.mockReturnValue(false);
         renderWithClient(<SSOConfigPanel />);

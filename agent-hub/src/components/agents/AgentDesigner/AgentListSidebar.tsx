@@ -2,6 +2,8 @@
 // delete. Split out of AgentDesigner/index.jsx without a change in behaviour.
 import { useTranslation } from '@/hooks/useTranslation';
 import { isImageAvatar, resolveAvatarSrc, pickAgentAvatar } from '@/utils/agentAvatar';
+import { QUIET_BTN, SECONDARY_BTN } from '@/components/mcpLibrary/ui';
+import Spinner from '@/components/shared/Spinner';
 
 export interface DesignerAgent {
     id: string;
@@ -39,21 +41,17 @@ export default function AgentListSidebar(p: AgentListSidebarProps) {
     let body;
     if (p.loading) {
         body = (
-            <div className="p-8 text-center text-muted text-sm">
-                <div className="spinner-sm mx-auto mb-2"></div>
-                Loading...
+            <div className="flex justify-center p-8">
+                <Spinner size="sm" label={t('common.loading', 'Loading...')} />
             </div>
         );
     } else if (p.agents.length === 0) {
         body = (
-            <div className="p-8 text-center text-muted text-sm flex flex-col items-center">
-                <span className="text-2xl mb-2">🤖</span>
-                <p className="mb-3">{t('agent_studio.agent_designer_no_agents_found', 'No agents found')}</p>
+            <div className="flex flex-col items-center p-8 text-center text-sm text-[var(--text-tertiary)]">
+                <span className="mb-2 text-2xl" aria-hidden="true">🤖</span>
+                <p className="m-0 mb-3">{t('agent_studio.agent_designer_no_agents_found', 'No agents found')}</p>
                 {canCreate && (
-                    <button
-                        onClick={p.onCreate}
-                        className="text-xs font-medium px-3 py-1.5 rounded-lg border bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] transition-all border-[var(--border-default)] text-[var(--text-secondary)]"
-                    >
+                    <button type="button" onClick={p.onCreate} className={SECONDARY_BTN}>
                         {t('agent_studio.agent_designer_create_first_agent', 'Create First Agent')}
                     </button>
                 )}
@@ -63,24 +61,26 @@ export default function AgentListSidebar(p: AgentListSidebarProps) {
         body = p.agents.map((agent) => <AgentRow key={agent.id} agent={agent} p={p} />);
     }
     return (
-        <div className="w-64 border-r flex flex-col flex-shrink-0 border-[var(--border-subtle)] bg-[var(--bg-primary)]">
-            <div className="px-3 h-9 border-b flex items-center justify-between border-[var(--border-default)]">
-                <span className="text-[13px] font-semibold tracking-normal text-[var(--text-primary)]">
+        <div className="flex w-64 flex-shrink-0 flex-col border-r border-[var(--border-default)] bg-[var(--bg-primary)]">
+            <div className="flex items-center justify-between border-b border-[var(--border-default)] px-4 py-3">
+                <span className="truncate text-sm font-semibold text-[var(--text-primary)]">
                     {p.systemMode ? 'System Agents' : 'Agents'}
                 </span>
                 {canCreate && (
                     <div className="flex items-center gap-1">
                         <button
+                            type="button"
                             onClick={openWizard}
-                            className="px-2 py-1 rounded-lg hover:bg-[var(--item-hover-bg)] transition-colors flex items-center gap-1 text-[11px] text-[var(--text-tertiary)]"
+                            className={QUIET_BTN}
                             title={t('agent_studio.agent_designer_create_with_ai', 'Create with AI')}
                         >
                             <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l1.9 5.8L20 11l-6.1 2.2L12 19l-1.9-5.8L4 11l6.1-2.2L12 3z"/></svg>
                             {t('agent_studio.agent_designer_ai', 'AI')}
                         </button>
                         <button
+                            type="button"
                             onClick={p.onCreate}
-                            className="p-1 rounded-lg hover:bg-[var(--item-hover-bg)] transition-colors text-[var(--text-tertiary)]"
+                            className={QUIET_BTN}
                             title={t('agent_studio.agent_designer_create_new_agent_empty', 'Create New Agent (empty)')}
                         >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -91,7 +91,7 @@ export default function AgentListSidebar(p: AgentListSidebarProps) {
                 )}
             </div>
 
-            <div className="flex-1 overflow-y-auto custom-scrollbar px-1.5 py-1">
+            <div className="custom-scrollbar flex-1 overflow-y-auto p-2">
                 {body}
             </div>
         </div>
@@ -109,26 +109,24 @@ function AgentRow({ agent, p }: { agent: DesignerAgent; p: AgentListSidebarProps
             onClick={() => p.onSelect(agent)}
             role="button"
             tabIndex={0}
-            className="w-full flex items-center gap-2.5 px-3 h-9 rounded-lg transition-all duration-150 text-left relative group hover:bg-[var(--item-hover-bg)] cursor-pointer"
+            aria-current={sel ? 'true' : undefined}
+            className={`group relative flex h-9 w-full cursor-pointer items-center gap-2.5 rounded-md px-2 text-left transition-colors ${sel ? 'bg-[var(--bg-tertiary)]' : 'hover:bg-[var(--bg-secondary)]'}`}
         >
-            {sel && (
-                <div className="absolute left-0 top-1 bottom-1 w-[3px] rounded-r-full bg-[var(--accent-primary)]" />
-            )}
-            <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-base flex-shrink-0 transition-transform ${sel ? 'scale-110' : ''}`}>
+            <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center overflow-hidden rounded-md text-sm">
                 {isImageAvatar(av) ? (
                     <img src={resolveAvatarSrc(av) as string} alt="" className="w-full h-full object-cover" />
                 ) : (
                     av || agent.name?.[0]?.toUpperCase()
                 )}
             </div>
-            <span className={`text-[13px] truncate flex-1 ${sel ? 'font-bold text-black' : 'text-black hover:text-black transition-colors'}`}>
+            <span className={`flex-1 truncate text-[13px] text-[var(--text-primary)] ${sel ? 'font-medium' : ''}`}>
                 {agent.name}
             </span>
             {!p.systemMode && p.canManage && (
                 <div className="flex items-center gap-0.5 flex-shrink-0">
                     <button
                         onClick={(e) => { e.stopPropagation(); p.onDuplicate(agent); }}
-                        className="opacity-0 group-hover:opacity-100 p-1 text-[var(--text-tertiary)] hover:text-blue-400 transition-all rounded disabled:opacity-0 disabled:cursor-not-allowed"
+                        className="rounded p-1 text-[var(--text-tertiary)] opacity-0 transition-all hover:text-[var(--text-primary)] focus-visible:opacity-100 group-hover:opacity-100 disabled:cursor-not-allowed disabled:opacity-0"
                         title={t('agent_studio.agent_designer_duplicate_agent', 'Duplicate agent')}
                         disabled={locked}
                     >
@@ -138,7 +136,7 @@ function AgentRow({ agent, p }: { agent: DesignerAgent; p: AgentListSidebarProps
                     </button>
                     <button
                         onClick={(e) => { e.stopPropagation(); p.onDelete(agent.id); }}
-                        className="opacity-0 group-hover:opacity-100 p-1 text-[var(--text-tertiary)] hover:text-red-500 transition-all rounded disabled:opacity-0 disabled:cursor-not-allowed"
+                        className="rounded p-1 text-[var(--text-tertiary)] opacity-0 transition-all hover:text-[var(--error-ink)] focus-visible:opacity-100 group-hover:opacity-100 disabled:cursor-not-allowed disabled:opacity-0"
                         title={t('agent_studio.agent_designer_delete_agent', 'Delete agent')}
                         disabled={locked}
                     >

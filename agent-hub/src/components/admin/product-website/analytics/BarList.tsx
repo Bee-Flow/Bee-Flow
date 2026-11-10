@@ -1,8 +1,19 @@
 import { useTranslation } from '@/hooks/useTranslation';
+import { CHART_SERIES } from '@/components/shared/charts/chartChrome';
 import { Empty, fmt } from '../../monitoring/shared/SvgAreaChart';
 import type { BarListProps, ShareBarProps } from './ui.types';
 
-export const ACCENT = '#14b8a6';                                  // teal
+/**
+ * The dashboard's primary series: the theme's first chart slot
+ * (`--chart-1`, components/shared/charts/chartChrome). Bars, lines and the
+ * active marks read it; text and chrome stay on the text/border tokens.
+ */
+export const ACCENT = CHART_SERIES[0];
+
+/** A series colour at `pct`% over the surface behind it (a tinted band, a soft fill). */
+export function tint(color: string, pct: number): string {
+    return `color-mix(in srgb, ${color} ${pct}%, transparent)`;
+}
 
 /** Max of a numeric list without spreading it — `Math.max(...arr)` blows the
  *  argument limit (and throws RangeError) somewhere around 100k entries, which
@@ -15,20 +26,18 @@ export function maxOf(values: Iterable<number>, initial = 1): number {
 
 /**
  * The "bar in a table cell" every section wanted its own table for. It is a
- * cell renderer, not a table — `SortableTable` stays the only table.
+ * cell renderer, not a table — `SortableTable` stays the only table. The
+ * width and fill are the data; everything else is a class.
  */
 export function ShareBar({ value, of, color = ACCENT, height = 5, width, label }: ShareBarProps) {
     const pct = of > 0 ? Math.max(0, Math.min(100, (Number(value) / of) * 100)) : 0;
     return (
         <span
             title={label || `${pct.toFixed(1)}%`}
-            style={{
-                display: 'inline-block', width: width || '100%', height,
-                borderRadius: 99, background: 'var(--bg-tertiary, rgba(255,255,255,0.08))',
-                overflow: 'hidden', verticalAlign: 'middle', flexShrink: 0,
-            }}
+            className="inline-block shrink-0 overflow-hidden rounded-full bg-[var(--bg-tertiary)] align-middle"
+            style={{ width: width || '100%', height }}
         >
-            <span style={{ display: 'block', width: `${pct}%`, height: '100%', borderRadius: 99, background: color }} />
+            <span className="block h-full rounded-full" style={{ width: `${pct}%`, background: color }} />
         </span>
     );
 }
@@ -50,21 +59,22 @@ export function BarList({
     if (!items.length) return <Empty text={emptyText ?? t('cms_site.analytics.common.no_data', 'No data')} />;
     const peak = peakProp || maxOf(items.map(r => r.y || 0));
     return (
-        <div className="[display:flex] [flex-direction:column] [gap:7px]">
+        <div className="flex flex-col gap-2">
             {items.map((r, i) => {
                 const isBlank = !r.x;
                 const label = isBlank ? (blankLabel ?? t('cms_site.analytics.common.unknown', 'Unknown')) : r.x;
                 const clickable = !!onDrill && !isBlank;
                 return (
                     <button
+                        type="button"
                         key={`${i}-${label}`}
                         onClick={clickable ? () => onDrill(label) : undefined}
                         title={clickable ? t('cms_site.analytics.common.filter_by', 'Filter by {value}', { value: label }) : label}
-                        className={`[display:block] [width:100%] [text-align:left] [background:transparent] [border:none] [padding:0] ${clickable ? '[cursor:pointer]' : '[cursor:default]'}`}
+                        className={`block w-full rounded-md bg-transparent p-0 text-left ${clickable ? 'cursor-pointer hover:bg-[var(--bg-secondary)]' : 'cursor-default'}`}
                     >
-                        <div className="[display:flex] [justify-content:space-between] [gap:10px] [margin-bottom:3px]">
-                            <span className={`[font-size:12px] [overflow:hidden] [text-overflow:ellipsis] [white-space:nowrap] ${isBlank ? '[color:var(--text-muted,_#888)] [font-style:italic]' : '[color:var(--text-primary,_#fff)] [font-style:normal]'}`}>{label}</span>
-                            <span style={{ fontSize: 12, fontWeight: 700, color: ACCENT, flexShrink: 0 }}>{formatValue(r.y || 0)}</span>
+                        <div className="mb-1 flex justify-between gap-2.5">
+                            <span className={`truncate text-xs ${isBlank ? 'italic text-[var(--text-tertiary)]' : 'text-[var(--text-primary)]'}`}>{label}</span>
+                            <span className="shrink-0 text-xs font-semibold tabular-nums text-[var(--text-primary)]">{formatValue(r.y || 0)}</span>
                         </div>
                         <ShareBar value={r.y || 0} of={peak} color={color} />
                     </button>

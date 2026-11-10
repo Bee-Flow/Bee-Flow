@@ -1,6 +1,8 @@
+import { Brain, Database } from 'lucide-react';
 import { useTranslation } from '@/hooks/useTranslation';
+import { CHART_SERIES, chartSeriesVar } from '@/components/shared/charts/chartChrome';
 import type { InOutBarProps, ModelRowProps } from '../shared.types';
-import { fmt, COLORS } from './SvgAreaChart';
+import { fmt } from './SvgAreaChart';
 
 // Costs are amounts in the organisation's currency; the product prices in euro.
 const CURRENCY = '€';
@@ -19,51 +21,57 @@ export function shortModel(m: string | null | undefined) {
         .replace(/-\d{4}-\d{2}-\d{2}$/, '');
 }
 
-export const MODEL_COLORS = [
-    '#6366f1', '#8b5cf6', '#3b82f6', '#06b6d4', '#10b981',
-    '#f59e0b', '#f97316', '#ec4899', '#f43f5e', '#14b8a6',
-];
+/** One colour per model, in rank order: the theme's chart slots. */
+export const MODEL_COLORS = CHART_SERIES;
 
-export function InOutBar({ input, output, height = 5, style }: InOutBarProps) {
+/** Input (slot 1) against output (slot 4) as one thin bar; the widths are the data. */
+export function InOutBar({ input, output, className = '' }: InOutBarProps) {
     const total = (input || 0) + (output || 0);
-    if (total === 0) return <div style={{ width: '100%', height, borderRadius: 99, background: 'var(--bg-tertiary, rgba(255,255,255,0.06))', ...style }} />;
-    const inputPct = ((input || 0) / total) * 100;
+    const inputPct = total === 0 ? 0 : ((input || 0) / total) * 100;
     return (
-        <div style={{ width: '100%', height, borderRadius: 99, background: 'var(--bg-tertiary, rgba(255,255,255,0.06))', overflow: 'hidden', display: 'flex', ...style }}>
-            <div style={{ height: '100%', width: `${inputPct}%`, background: COLORS.blue, borderRadius: '99px 0 0 99px', transition: 'width 0.4s ease' }} />
-            <div style={{ height: '100%', flex: 1, background: COLORS.amber, borderRadius: '0 99px 99px 0', transition: 'width 0.4s ease' }} />
+        <div className={`flex h-1 w-full overflow-hidden rounded-full bg-[var(--bg-tertiary)] ${className}`} aria-hidden="true">
+            {total > 0 && (
+                <>
+                    <div className="h-full bg-[var(--chart-1)]" style={{ width: `${inputPct}%` }} />
+                    <div className="h-full flex-1 bg-[var(--chart-4)]" />
+                </>
+            )}
         </div>
     );
 }
 
-export function ModelRow({ model: m, index, maxTokens, cost }: ModelRowProps) {
+/** A coloured dot that marks a series (model rank, termination type) next to its name. */
+export function SeriesDot({ color, square = false }: { color: string; square?: boolean }) {
+    return <span aria-hidden="true" className={`inline-block h-2 w-2 shrink-0 ${square ? 'rounded-sm' : 'rounded-full'}`} style={{ background: color }} />;
+}
+
+export function ModelRow({ model: m, index, cost, onClick }: ModelRowProps) {
     const { t } = useTranslation();
     const cached = m.cached_tokens || 0;
     const reasoning = m.reasoning_tokens || 0;
     return (
-        <div className="[display:flex] [align-items:center] [gap:10px] [padding:10px_0] [border-bottom:1px_solid_var(--border-default,rgba(255,255,255,0.05))]">
-            <div style={{
-                width: '6px', height: '6px', borderRadius: '50%',
-                background: MODEL_COLORS[index % MODEL_COLORS.length], flexShrink: 0,
-            }} />
-            <div className="[flex:1] min-w-[0]">
-                <div className="[font-size:12px] [font-weight:600] [color:var(--text-primary,#fff)] [overflow:hidden] [text-overflow:ellipsis] [white-space:nowrap]">
-                    {shortModel(m.model || 'unknown')}
-                </div>
-                <InOutBar input={m.prompt_tokens} output={m.completion_tokens} height={3} style={{ marginTop: '4px', maxWidth: '120px' }} />
+        <button
+            type="button"
+            onClick={onClick}
+            className="flex w-full items-center gap-2.5 border-b border-[var(--border-default)] py-2.5 text-left last:border-b-0 hover:bg-[var(--bg-secondary)] focus-visible:outline-2 focus-visible:outline-[var(--focus-ring)]"
+        >
+            <SeriesDot color={chartSeriesVar(index)} />
+            <div className="min-w-0 flex-1">
+                <div className="truncate text-xs font-semibold text-[var(--text-primary)]">{shortModel(m.model || 'unknown')}</div>
+                <InOutBar input={m.prompt_tokens} output={m.completion_tokens} className="mt-1 max-w-[120px]" />
                 {(cached > 0 || reasoning > 0) && (
-                    <div className="[font-size:10px] [color:var(--text-muted,#888)] [margin-top:2px] [display:flex] [gap:8px]">
-                        {cached > 0 && <span title={t('admin_monitoring.shared_cached_title', 'Cached input tokens')}>💾 {fmt(cached)}</span>}
-                        {reasoning > 0 && <span title={t('admin_monitoring.shared_reasoning_title', 'Reasoning / thinking tokens (billed at output rate)')}>🧠 {fmt(reasoning)}</span>}
+                    <div className="mt-0.5 flex gap-2 text-[10px] text-[var(--text-tertiary)]">
+                        {cached > 0 && <span className="inline-flex items-center gap-0.5" title={t('admin_monitoring.shared_cached_title', 'Cached input tokens')}><Database className="h-2.5 w-2.5" aria-hidden="true" /> {fmt(cached)}</span>}
+                        {reasoning > 0 && <span className="inline-flex items-center gap-0.5" title={t('admin_monitoring.shared_reasoning_title', 'Reasoning / thinking tokens (billed at output rate)')}><Brain className="h-2.5 w-2.5" aria-hidden="true" /> {fmt(reasoning)}</span>}
                     </div>
                 )}
             </div>
-            <div className="[text-align:right] [flex-shrink:0]">
-                <div style={{ fontSize: '12px', fontWeight: 600, color: COLORS.green }}>{fmt(m.total_tokens)}</div>
-                <div className="[font-size:10px] [color:var(--text-muted,#888)]">
+            <div className="shrink-0 text-right">
+                <div className="text-xs font-semibold tabular-nums text-[var(--text-primary)]">{fmt(m.total_tokens)}</div>
+                <div className="text-[10px] tabular-nums text-[var(--text-tertiary)]">
                     {t('admin_monitoring.shared_n_calls', '{n} calls', { n: m.calls })}{cost ? ` · ${fmtCost(cost)}` : ''}
                 </div>
             </div>
-        </div>
+        </button>
     );
 }

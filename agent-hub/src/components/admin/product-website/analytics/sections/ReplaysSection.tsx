@@ -19,12 +19,13 @@ import React, { useMemo, useState } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { sessionSignals } from '../model';
 import { rich } from '../rich';
-import { SERIES, Empty, StatGrid, StatTile, fmt, fmtDurationMs, fmtAgo } from '../ui';
+import { SERIES, Empty, StatGrid, StatTile, fmt, fmtDurationMs, fmtAgo, pillClass } from '../ui';
 import { Card, ErrorNote, Skeleton } from '../AsyncCard';
 import { ACCENT } from '../BarList';
 import { useAnalyticsQuery } from '../useAnalyticsQuery';
 import type { AnalyticsScope, AnalyticsSite } from '../../analyticsApi';
 import type { DrillHandler } from '../ui.types';
+import { SECONDARY_BTN, DOT_LIVE, QUIET_BTN } from '@/components/mcpLibrary/ui';
 
 /** A visit as `/query/sessions` returns it. */
 type SessionRecord = {
@@ -105,7 +106,7 @@ export default function ReplaysSection({ scope, site, settings, onOpenSettings, 
     }), [rows]);
 
     if (sessions.loading) {
-        return <div className="[display:flex] [flex-direction:column] [gap:14px]"><Skeleton height={100} /><Skeleton height={320} /></div>;
+        return <div className="flex flex-col gap-3.5"><Skeleton height={100} /><Skeleton height={320} /></div>;
     }
     if (sessions.error) return <ErrorNote message={sessions.error} onRetry={sessions.reload} />;
 
@@ -113,7 +114,7 @@ export default function ReplaysSection({ scope, site, settings, onOpenSettings, 
     const websiteId = site?.websiteId;
 
     return (
-        <div className="[display:flex] [flex-direction:column] [gap:14px]">
+        <div className="flex flex-col gap-3.5">
             <RecordingStrip recording={recording} totals={totals} site={site} onOpenSettings={onOpenSettings} />
 
             <StatGrid>
@@ -126,14 +127,9 @@ export default function ReplaysSection({ scope, site, settings, onOpenSettings, 
             </StatGrid>
 
             <Card title={t('cms_site.analytics.replays.visits', 'Visits')} icon={Users} action={
-                <div className="[display:flex] [gap:4px]">
+                <div className="flex gap-1">
                     {FILTERS.map(f => (
-                        <button key={f.id} onClick={() => setFilter(f.id)} style={{
-                            fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 6, cursor: 'pointer',
-                            border: `1px solid ${filter === f.id ? `${ACCENT}66` : 'var(--border-subtle, rgba(255,255,255,0.1))'}`,
-                            background: filter === f.id ? `${ACCENT}14` : 'transparent',
-                            color: filter === f.id ? ACCENT : 'var(--text-muted, #888)',
-                        }}>{t(f.labelKey, f.label)}</button>
+                        <button key={f.id} onClick={() => setFilter(f.id)} aria-pressed={filter === f.id} className={pillClass(filter === f.id)}>{t(f.labelKey, f.label)}</button>
                     ))}
                 </div>
             }>
@@ -142,21 +138,21 @@ export default function ReplaysSection({ scope, site, settings, onOpenSettings, 
                         ? t('cms_site.analytics.replays.no_sessions', 'No sessions in this period.')
                         : t('cms_site.analytics.replays.no_match', 'No sessions match that filter in this period.')} />
                 ) : (
-                    <div className="[display:flex] [flex-direction:column] [gap:5px] max-h-[560px] [overflow-y:auto]">
+                    <div className="flex flex-col gap-[5px] max-h-[560px] overflow-y-auto">
                         {shown.slice(0, 100).map(r => (
                             <SessionRow key={r.session.id} row={r} base={base} websiteId={websiteId} onDrill={onDrill} />
                         ))}
                     </div>
                 )}
                 {shown.length > 100 && (
-                    <p className="[font-size:11px] [color:var(--text-muted,#777)] [margin:10px_0_0]">
+                    <p className="text-[11px] text-[var(--text-tertiary)] mt-2.5 mx-0 mb-0">
                         {t('cms_site.analytics.replays.showing', 'Showing the 100 most notable of {n} — narrow the date range to see the rest.', { n: fmt(shown.length) })}
                     </p>
                 )}
             </Card>
 
             {recording && (
-                <p className="[font-size:11px] [color:var(--text-muted,#777)] [margin:0]">
+                <p className="text-[11px] text-[var(--text-tertiary)] m-0">
                     {t('cms_site.analytics.replays.playback', 'Playback opens in Umami — the player itself is not embedded here.')}
                 </p>
             )}
@@ -172,29 +168,25 @@ function SessionRow({ row, base, websiteId, onDrill }: { row: SessionListRow; ba
         : null;
 
     return (
-        <div style={{
-            display: 'flex', alignItems: 'center', gap: 12, padding: '9px 11px', borderRadius: 9,
-            background: 'var(--bg-tertiary, rgba(255,255,255,0.03))',
-            borderLeft: `2px solid ${events > 0 ? ACCENT : 'transparent'}`,
-        }}>
-            <div className="[flex:1] min-w-[0]">
-                <div className="[display:flex] [gap:8px] [align-items:baseline] [flex-wrap:wrap]">
-                    <span className="[font-size:12px] [color:var(--text-primary,#fff)]">
+        <div className={`flex items-center gap-3 rounded-lg border-l-2 bg-[var(--bg-secondary)] px-3 py-2 ${events > 0 ? 'border-[var(--chart-1)]' : 'border-transparent'}`}>
+            <div className="flex-1 min-w-[0]">
+                <div className="flex gap-2 items-baseline flex-wrap">
+                    <span className="text-xs text-[var(--text-primary)]">
                         {fmtAgo(s.lastAt, undefined, t)}
                     </span>
                     {reasons.map(rs => (
-                        <span key={rs} className="[font-size:10px] [padding:1px_6px] [border-radius:5px] [background:var(--bg-secondary,rgba(255,255,255,0.05))] [color:var(--text-muted,#999)]">{rs}</span>
+                        <span key={rs} className="text-[10px] py-[1px] px-1.5 rounded bg-[var(--bg-secondary)] text-[var(--text-tertiary)]">{rs}</span>
                     ))}
                 </div>
-                <div className="[font-size:11px] [color:var(--text-muted,#888)] [display:flex] [gap:10px] [flex-wrap:wrap] [margin-top:2px]">
-                    <span className="[display:inline-flex] [align-items:center] [gap:4px]">
+                <div className="text-[11px] text-[var(--text-tertiary)] flex gap-2.5 flex-wrap mt-0.5">
+                    <span className="inline-flex items-center gap-1">
                         <Monitor className="w-[11px] h-[11px]" />
                         {[s.browser, s.os, s.device].filter(Boolean).join(' · ') || t('cms_site.analytics.replays.unknown_device', 'unknown device')}
                         {s.screen ? ` · ${s.screen}` : ''}
                     </span>
                     {s.country && (
                         <button onClick={() => onDrill?.('country', s.country)}
-                            className="[display:inline-flex] [align-items:center] [gap:4px] [background:transparent] [border:none] [padding:0] [cursor:pointer] [font-size:11px] [color:var(--text-muted,#888)]">
+                            className="inline-flex items-center gap-1 bg-transparent border-0 p-0 cursor-pointer text-[11px] text-[var(--text-tertiary)]">
                             <Globe className="w-[11px] h-[11px]" />{s.country}
                         </button>
                     )}
@@ -205,15 +197,11 @@ function SessionRow({ row, base, websiteId, onDrill }: { row: SessionListRow; ba
                 </div>
             </div>
             {href ? (
-                <a href={href} target="_blank" rel="noreferrer" style={{
-                    display: 'inline-flex', alignItems: 'center', gap: 5, flexShrink: 0,
-                    fontSize: 11, fontWeight: 700, color: ACCENT, textDecoration: 'none',
-                    border: `1px solid ${ACCENT}44`, borderRadius: 7, padding: '4px 9px',
-                }}>
+                <a href={href} target="_blank" rel="noreferrer" className={`${SECONDARY_BTN} shrink-0`}>
                     {t('cms_site.analytics.replays.play', 'Play')} <ExternalLink className="w-[11px] h-[11px]" />
                 </a>
             ) : (
-                <span className="[font-size:10px] [color:var(--text-muted,#666)] [flex-shrink:0]">{t('cms_site.analytics.replays.not_recorded', 'not recorded')}</span>
+                <span className="text-[10px] text-[var(--text-tertiary)] shrink-0">{t('cms_site.analytics.replays.not_recorded', 'not recorded')}</span>
             )}
         </div>
     );
@@ -234,35 +222,32 @@ function RecordingStrip({ recording, totals, site, onOpenSettings }: RecordingSt
     const { t } = useTranslation();
     if (!recording) {
         return (
-            <div className="[display:flex] [gap:10px] [align-items:flex-start] [padding:12px_15px] [border-radius:10px] [background:rgba(245,158,11,0.08)] [border:1px_solid_rgba(245,158,11,0.25)] [font-size:12px] [color:#fcd34d]">
-                <ShieldAlert className="w-[14px] h-[14px] [margin-top:1px] [flex-shrink:0]" />
-                <span className="[flex:1]">
+            <div className="flex gap-2.5 items-start py-3 px-[15px] rounded-lg border border-[color-mix(in_srgb,var(--warning)_40%,transparent)] bg-[color-mix(in_srgb,var(--warning)_10%,transparent)] text-xs text-[var(--warning-ink)]">
+                <ShieldAlert className="w-[14px] h-[14px] mt-[1px] shrink-0" />
+                <span className="flex-1">
                     <strong>{site?.name
                         ? t('cms_site.analytics.replays.off_named', 'Session recording is off for “{name}”.', { name: site.name })
                         : t('cms_site.analytics.replays.off_site', 'Session recording is off for this site.')}</strong>{' '}
                     {t('cms_site.analytics.replays.off_body', 'Every visit below is still being counted — recording only adds replay and heatmaps on top. It captures clicks, scrolling and page structure, so it runs only for visitors who accepted your cookie banner, in every consent mode, and form inputs are masked.')}
                 </span>
-                <button onClick={onOpenSettings} className="[flex-shrink:0] [padding:6px_12px] [border-radius:8px] [background:#f59e0b] [color:#2a1a00] [border:none] [font-size:11px] [font-weight:800] [cursor:pointer]">{t('cms_site.analytics.replays.turn_on', 'Turn it on')}</button>
+                <button onClick={onOpenSettings} className="shrink-0 py-1.5 px-3 rounded-lg border border-[color-mix(in_srgb,var(--warning)_40%,transparent)] bg-[var(--bg-card)] text-[var(--warning-ink)] text-[11px] font-semibold cursor-pointer">{t('cms_site.analytics.replays.turn_on', 'Turn it on')}</button>
             </div>
         );
     }
 
     const pct = totals.sessions ? Math.round((totals.recorded / totals.sessions) * 100) : 0;
     return (
-        <div className="[display:flex] [gap:10px] [align-items:center] [padding:9px_14px] [border-radius:10px] [background:var(--bg-secondary,#1a1a2e)] [border:1px_solid_var(--border-subtle,rgba(255,255,255,0.08))] [font-size:12px] [color:var(--text-secondary,#aaa)]">
-            <span style={{ width: 7, height: 7, borderRadius: 99, background: ACCENT, flexShrink: 0 }} />
-            <span className="[flex:1]">
+        <div className="flex gap-2.5 items-center py-[9px] px-3.5 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-default)] text-xs text-[var(--text-secondary)]">
+            <span aria-hidden="true" className={DOT_LIVE} />
+            <span className="flex-1">
                 {rich(t('cms_site.analytics.replays.on_status', 'Recording on, inputs masked · {count} sessions recorded ({pct}%). The rest declined the cookie banner — that is expected, not a fault.'), {
-                    count: <strong className="[color:var(--text-primary,#fff)]">
+                    count: <strong className="text-[var(--text-primary)]">
                         {t('cms_site.analytics.replays.on_count', '{recorded} of {total}', { recorded: fmt(totals.recorded), total: fmt(totals.sessions) })}
                     </strong>,
                     pct,
                 })}
             </span>
-            <button onClick={onOpenSettings} style={{
-                background: 'transparent', border: 'none', color: ACCENT,
-                fontSize: 11, fontWeight: 700, cursor: 'pointer', flexShrink: 0,
-            }}>{t('cms_site.analytics.replays.settings_link', 'Recording settings →')}</button>
+            <button type="button" onClick={onOpenSettings} className={`${QUIET_BTN} shrink-0`}>{t('cms_site.analytics.replays.settings_link', 'Recording settings →')}</button>
         </div>
     );
 }

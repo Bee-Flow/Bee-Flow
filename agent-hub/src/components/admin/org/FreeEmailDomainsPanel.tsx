@@ -1,8 +1,12 @@
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { freeEmailDomainsKey, useFreeEmailDomains, type FreeEmailDomains } from '@/api/queries/orgAdminReads';
 import type { KeyboardEvent } from 'react';
-import { TranslateParams, useTranslation } from '@/hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
+import { ALERT_ERROR, ALERT_SUCCESS, CHIP, PRIMARY_BTN, QUIET_BTN } from '@/components/mcpLibrary/ui';
+import SectionHeader from '@/components/shared/SectionHeader';
+import { FIELD_INPUT, SettingsGroup, SettingsList } from '@/components/shared/SettingsList';
+import Spinner from '@/components/shared/Spinner';
 import { API_BASE } from '@/utils/helpers';
 import { Loader2, Plus, Trash2, AtSign, ChevronDown, ChevronRight, ShieldCheck } from 'lucide-react';
 import { mutate, errorBody, RefusedError } from '@/api/mutate';
@@ -103,116 +107,79 @@ export default function FreeEmailDomainsPanel() {
 
     if (loading) {
         return (
-            <div className="[display:flex] [align-items:center] [gap:0.5rem] [color:var(--text-secondary,#6b7280)] [padding:1rem]">
-                <Loader2 size={18} className="animate-spin" />
+            <div className="flex items-center gap-2 p-4 text-sm text-[var(--text-tertiary)]">
+                <Spinner size="sm" />
                 {t('admin.fed_loading', 'Loading email domains…')}
             </div>
         );
     }
 
     return (
-        <div className="max-w-[760px]">
+        <div className="flex max-w-3xl flex-col gap-6">
+            <SectionHeader
+                title={t('admin.fed_title', 'Free email-provider domains')}
+                description={t('admin.fed_desc', 'Users signing in with an address at one of these domains are never automatically added to an organisation by email-domain matching. This stops a shared consumer domain (like gmail.com) from binding a stranger into someone else’s workspace. The built-in list always applies; add any extra domains your organisation should also treat as public.')}
+            />
             {message && (
-                <div style={{
-                    position: 'sticky', top: 0, zIndex: 10, marginBottom: '1rem',
-                    padding: '0.65rem 0.9rem', borderRadius: 8, fontSize: '0.875rem',
-                    background: message.type === 'success' ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)',
-                    color: message.type === 'success' ? '#059669' : '#dc2626',
-                    border: `1px solid ${message.type === 'success' ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)'}`,
-                }}>
-                    {message.text}
-                </div>
+                <div role="status" className={message.type === 'success' ? ALERT_SUCCESS : ALERT_ERROR}>{message.text}</div>
             )}
 
-            <div className="[display:flex] [align-items:center] [gap:0.6rem] [margin-bottom:0.35rem]">
-                <AtSign size={20} className="[color:#8b5cf6]" />
-                <h2 className="[font-size:1.15rem] [font-weight:600] [margin:0]">
-                    {t('admin.fed_title', 'Free email-provider domains')}
-                </h2>
-            </div>
-            <p className="[color:var(--text-secondary,#6b7280)] [font-size:0.9rem] [line-height:1.5] [margin-top:0] [margin-bottom:1.25rem]">
-                {t('admin.fed_desc', 'Users signing in with an address at one of these domains are never automatically added to an organisation by email-domain matching. This stops a shared consumer domain (like gmail.com) from binding a stranger into someone else’s workspace. The built-in list always applies; add any extra domains your organisation should also treat as public.')}
-            </p>
+            <SettingsGroup title={<>{t('admin.fed_custom', 'Custom domains')} ({extra.length})</>}>
+                <SettingsList>
+                    <div className="flex gap-2 px-4 py-3">
+                        <input
+                            type="text"
+                            value={newDomain}
+                            onChange={(e) => setNewDomain(e.target.value)}
+                            onKeyDown={onKeyDown}
+                            placeholder={t('admin.fed_placeholder', 'e.g. proton.me or someone@proton.me')}
+                            disabled={saving}
+                            className={FIELD_INPUT}
+                        />
+                        <button type="button" onClick={addDomain} disabled={saving || !newDomain.trim()} className={`${PRIMARY_BTN} shrink-0`}>
+                            {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : <Plus className="h-3.5 w-3.5" aria-hidden="true" />}
+                            {t('admin.fed_add', 'Add')}
+                        </button>
+                    </div>
+                    <div className="px-4 py-3">
+                        {extra.length === 0 ? (
+                            <p className="m-0 text-xs text-[var(--text-tertiary)]">{t('admin.fed_none', 'No custom domains added.')}</p>
+                        ) : (
+                            <div className="flex flex-wrap gap-1.5">
+                                {extra.map(domain => (
+                                    <span key={domain} className={`${CHIP} text-[var(--text-primary)]`}>
+                                        <AtSign className="h-3 w-3 text-[var(--text-tertiary)]" aria-hidden="true" />
+                                        {domain}
+                                        <button
+                                            type="button"
+                                            onClick={() => removeDomain(domain)}
+                                            disabled={saving}
+                                            title={t('admin.fed_remove', 'Remove')}
+                                            aria-label={`${t('admin.fed_remove', 'Remove')} ${domain}`}
+                                            className="ml-0.5 inline-flex text-[var(--text-tertiary)] hover:text-[var(--error-ink)] disabled:opacity-50"
+                                        >
+                                            <Trash2 className="h-3 w-3" aria-hidden="true" />
+                                        </button>
+                                    </span>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </SettingsList>
+            </SettingsGroup>
 
-            {/* Add domain */}
-            <div className="[display:flex] [gap:0.5rem] [margin-bottom:1.25rem]">
-                <input
-                    type="text"
-                    value={newDomain}
-                    onChange={(e) => setNewDomain(e.target.value)}
-                    onKeyDown={onKeyDown}
-                    placeholder={t('admin.fed_placeholder', 'e.g. proton.me or someone@proton.me')}
-                    disabled={saving}
-                    className="[flex:1] [padding:0.55rem_0.75rem] [border-radius:8px] [border:1px_solid_var(--border-color,#d1d5db)] [font-size:0.9rem] [background:var(--bg-tertiary)] [color:var(--text-primary,#111827)]"
-                />
-                <button
-                    onClick={addDomain}
-                    disabled={saving || !newDomain.trim()}
-                    style={{
-                        display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
-                        padding: '0.55rem 0.9rem', borderRadius: 8, border: 'none',
-                        background: '#8b5cf6', color: '#fff', fontSize: '0.9rem', fontWeight: 500,
-                        cursor: saving || !newDomain.trim() ? 'not-allowed' : 'pointer',
-                        opacity: saving || !newDomain.trim() ? 0.6 : 1,
-                    }}
-                >
-                    {saving ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
-                    {t('admin.fed_add', 'Add')}
-                </button>
-            </div>
-
-            {/* Extra (editable) domains */}
-            <FreeEmailDomainsPanelSection t={t} extra={extra} removeDomain={removeDomain} saving={saving} />
-
-            {/* Built-in (read-only) domains */}
-            <div>
-                <button
-                    onClick={() => setShowBuiltin(v => !v)}
-                    className="[display:inline-flex] [align-items:center] [gap:0.4rem] [border:none] [background:transparent] [cursor:pointer] [font-size:0.8rem] [font-weight:600] [text-transform:uppercase] [letter-spacing:0.03em] [color:var(--text-secondary,#6b7280)] [padding:0]"
-                >
-                    {showBuiltin ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                    <ShieldCheck size={14} />
+            <section className="flex flex-col gap-2">
+                <button type="button" onClick={() => setShowBuiltin(v => !v)} aria-expanded={showBuiltin} className={`${QUIET_BTN} self-start`}>
+                    {showBuiltin ? <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" /> : <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />}
+                    <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
                     {t('admin.fed_builtin', 'Built-in domains')} ({builtin.length})
                 </button>
                 {showBuiltin && (
-                    <div className="[display:flex] [flex-wrap:wrap] [gap:0.4rem] [margin-top:0.6rem]">
-                        {builtin.map(domain => (
-                            <span key={domain} className="[padding:0.3rem_0.55rem] [border-radius:999px] [font-size:0.8rem] [background:var(--surface-2,#f3f4f6)] [color:var(--text-secondary,#6b7280)] [border:1px_solid_var(--border-color,#e5e7eb)]">
-                                {domain}
-                            </span>
-                        ))}
+                    <div className="flex flex-wrap gap-1.5">
+                        {builtin.map(domain => <span key={domain} className={CHIP}>{domain}</span>)}
                     </div>
                 )}
-            </div>
+            </section>
         </div>
     );
-}
-
-function FreeEmailDomainsPanelSection({ t, extra, removeDomain, saving }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; extra: string[]; removeDomain: (domain: string) => Promise<void>; saving: boolean; }) {
-    return <div className="[margin-bottom:1.5rem]">
-        <div className="[font-size:0.8rem] [font-weight:600] [text-transform:uppercase] [letter-spacing:0.03em] [color:var(--text-secondary,#6b7280)] [margin-bottom:0.5rem]">
-            {t('admin.fed_custom', 'Custom domains')} ({extra.length})
-        </div>
-        {extra.length === 0 ? (
-            <div className="[color:var(--text-secondary,#9ca3af)] [font-size:0.875rem] [font-style:italic]">
-                {t('admin.fed_none', 'No custom domains added.')}
-            </div>
-        ) : (
-            <div className="[display:flex] [flex-wrap:wrap] [gap:0.5rem]">
-                {extra.map(domain => (
-                    <span key={domain} className="[display:inline-flex] [align-items:center] [gap:0.4rem] [padding:0.35rem_0.6rem] [border-radius:999px] [font-size:0.85rem] [background:rgba(139,92,246,0.12)] [color:#7c3aed] [border:1px_solid_rgba(139,92,246,0.3)]">
-                        {domain}
-                        <button
-                            onClick={() => removeDomain(domain)}
-                            disabled={saving}
-                            title={t('admin.fed_remove', 'Remove')}
-                            className="[display:inline-flex] [border:none] [background:transparent] [cursor:pointer] [color:#7c3aed] [padding:0]"
-                        >
-                            <Trash2 size={14} />
-                        </button>
-                    </span>
-                ))}
-            </div>
-        )}
-    </div>;
 }

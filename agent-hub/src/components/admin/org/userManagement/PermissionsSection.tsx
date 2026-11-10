@@ -1,5 +1,6 @@
 import { Key } from 'lucide-react';
 import type { AdminPermission } from './types';
+import { EntityList, EntityRow, EntitySectionHeader } from './EntityRows';
 import { useTranslation } from '@/hooks/useTranslation';
 
 export interface PermissionsSectionProps {
@@ -9,19 +10,22 @@ export interface PermissionsSectionProps {
 export default function PermissionsSection({ permissions }: PermissionsSectionProps) {
     const { t } = useTranslation();
     return (
-        <div className="space-y-4">
-            <div className="mb-6"><h3 className="text-lg font-semibold text-[var(--text-primary)]">{t('admin_org.permissions_section_title', 'Permissions')}</h3><p className="text-sm text-[var(--text-muted)]">{t('admin_org.permissions_section_subtitle', 'Available permissions for roles and groups')}</p></div>
-            <div className="grid gap-3">
+        <div>
+            <EntitySectionHeader
+                title={t('admin_org.permissions_section_title', 'Permissions')}
+                description={t('admin_org.permissions_section_subtitle', 'Available permissions for roles and groups')}
+            />
+            <EntityList>
                 {permissions.map(perm => (
-                    <div key={perm.id} className="p-4 rounded-xl border flex items-center justify-between bg-[var(--bg-secondary)] border-[var(--border-default)]">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-lg flex items-center justify-center [background:rgba(59,130,246,0.15)]"><Key className="w-5 h-5 text-blue-400" /></div>
-                            <div><h4 className="font-medium text-[var(--text-primary)]">{perm.name}</h4><p className="text-sm text-[var(--text-muted)]">{perm.description}</p></div>
-                        </div>
-                        <code className="text-xs px-2 py-1 rounded bg-[var(--bg-tertiary)] text-[var(--text-muted)]">{perm.id}</code>
-                    </div>
+                    <EntityRow
+                        key={perm.id}
+                        icon={<Key className="h-4 w-4" />}
+                        title={perm.name}
+                        description={perm.description}
+                        actions={<code className="rounded bg-[var(--bg-tertiary)] px-2 py-1 text-xs text-[var(--text-tertiary)]">{perm.id}</code>}
+                    />
                 ))}
-            </div>
+            </EntityList>
         </div>
     );
 }

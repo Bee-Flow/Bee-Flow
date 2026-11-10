@@ -76,54 +76,63 @@ beforeEach(() => {
 });
 afterEach(() => { vi.restoreAllMocks(); });
 
-/** The panel whose heading contains `title`. */
-const panel = (title: string): HTMLElement => {
-    const heading = screen.getAllByRole('heading', { level: 3 }).find((h) => h.textContent?.includes(title));
-    const root = heading?.closest('.rounded-2xl');
-    if (!(root instanceof HTMLElement)) throw new Error(`no panel ${title}`);
-    return root;
-};
+/** The list of engines on the left. */
+const list = (): HTMLElement => screen.getByRole('navigation', { name: 'Transcription providers' });
 
-/** The picker card of a provider, found by the name it shows. */
-const card = (name: string): HTMLElement => {
-    const button = within(panel('Active Provider')).getByText(name).closest('button');
-    if (!button) throw new Error(`no card ${name}`);
-    return button;
+/** Select an engine in the list and return its detail pane. */
+const open = async (name: string): Promise<HTMLElement> => {
+    await userEvent.setup().click(within(list()).getByRole('button', { name: new RegExp(`^${name.replace(/[()]/g, '\\$&')}`) }));
+    return screen.getByRole('region', { name });
 };
 
 describe('TranscriptionSection: layout', () => {
-    it('shows the heading, the provider cards and the how-it-works steps', () => {
+    it('shows the heading, the engines with the active one selected, and the how-it-works steps', () => {
         renderSection();
         expect(screen.getByRole('heading', { level: 2, name: /Meeting Transcription/ })).toBeInTheDocument();
-        const picker = panel('Active Provider');
         for (const name of ['Voxtral', 'Azure Speech', 'Azure Whisper', 'WhisperX', 'Scaleway (hybrid)', 'pyannoteAI']) {
-            expect(within(picker).getByText(name)).toBeInTheDocument();
+            expect(within(list()).getByRole('button', { name: new RegExp(name.replace(/[()]/g, '\\$&')) })).toBeInTheDocument();
         }
-        expect(within(picker).getByText('Mistral Cloud')).toBeInTheDocument();
-        expect(within(picker).getAllByText('✓ Configured')).toHaveLength(1);
-        expect(within(picker).getByText('⚠ Needs: Azure Speech key + region')).toBeInTheDocument();
-        expect(within(picker).getByText('⚠ Needs: Scaleway API key + WhisperX URL (for speakers)')).toBeInTheDocument();
-        expect(within(picker).getByText('⚠ Needs: pyannoteAI API key')).toBeInTheDocument();
-        const how = panel('How Transcription Works');
-        expect(within(how).getAllByRole('listitem')).toHaveLength(4);
-        expect(within(how).getByText('Upload audio')).toBeInTheDocument();
+        expect(within(list()).getByRole('button', { name: /Voxtral/ })).toHaveAttribute('aria-current', 'true');
+        const detail = screen.getByRole('region', { name: 'Voxtral' });
+        expect(within(detail).getByText('Mistral Cloud')).toBeInTheDocument();
+        expect(within(detail).getByText('✓ Configured')).toBeInTheDocument();
+        expect(within(detail).getByText('Active')).toBeInTheDocument();
+        expect(within(detail).queryByRole('button', { name: 'Use this provider' })).toBeNull();
+        expect(screen.getByText('Upload audio')).toBeInTheDocument();
+        expect(screen.getAllByRole('listitem').filter(li => li.closest('ol'))).toHaveLength(4);
         expect(screen.getByText('Open Mistral Console').closest('a')).toHaveAttribute('href', 'https://console.mistral.ai');
     });
 
-    it('marks configured providers and drops the WhisperX hint from the Scaleway card', () => {
-        renderSection({ hasAzureSpeechKey: true, hasWhisperxUrl: true, hasScalewayKey: true, hasPyannoteKey: true, transcriptionProvider: 'azure' });
-        const picker = panel('Active Provider');
-        expect(within(picker).getAllByText('✓ Configured')).toHaveLength(6);
-        expect(screen.getAllByText('Key saved 🔒')).toHaveLength(3);
-        expect(screen.getByText('URL saved 🔒')).toBeInTheDocument();
-        expect(within(panel('Azure AI Speech')).getByText('Active')).toBeInTheDocument();
-        expect(within(panel('Voxtral')).queryByText('Active')).toBeNull();
-        expect(screen.queryByText(/No WhisperX URL configured/)).toBeNull();
+    it('says what an engine still needs', async () => {
+        renderSection();
+        expect(within(await open('Azure Speech')).getByText('⚠ Needs: Azure Speech key + region')).toBeInTheDocument();
+        expect(within(await open('Scaleway (hybrid)')).getByText('⚠ Needs: Scaleway API key + WhisperX URL (for speakers)')).toBeInTheDocument();
+        expect(within(await open('pyannoteAI')).getByText('⚠ Needs: pyannoteAI API key')).toBeInTheDocument();
     });
 
-    it('warns on the Scaleway panel when no WhisperX URL is set', () => {
+    it('marks configured engines, shows saved keys and drops the WhisperX hint from Scaleway', async () => {
+        renderSection({ hasAzureSpeechKey: true, hasWhisperxUrl: true, hasScalewayKey: true, hasPyannoteKey: true, transcriptionProvider: 'azure' });
+        const azure = screen.getByRole('region', { name: 'Azure Speech' });
+        expect(within(azure).getByText('Active')).toBeInTheDocument();
+        expect(within(azure).getByText('✓ Configured')).toBeInTheDocument();
+        expect(within(azure).getByText('Key saved 🔒')).toBeInTheDocument();
+        expect(within(await open('WhisperX')).getByText('URL saved 🔒')).toBeInTheDocument();
+        const scaleway = await open('Scaleway (hybrid)');
+        expect(within(scaleway).getByText('✓ Configured')).toBeInTheDocument();
+        expect(within(scaleway).getByText('Key saved 🔒')).toBeInTheDocument();
+        expect(screen.queryByText(/No WhisperX URL configured/)).toBeNull();
+        expect(within(await open('pyannoteAI')).getByText('Key saved 🔒')).toBeInTheDocument();
+        expect(within(await open('Voxtral')).queryByText('Active')).toBeNull();
+    });
+
+    it('warns on the Scaleway pane when no WhisperX URL is set', async () => {
         renderSection();
-        expect(within(panel('Scaleway Whisper')).getByText(/No WhisperX URL configured/)).toBeInTheDocument();
+        expect(within(await open('Scaleway (hybrid)')).getByText(/No WhisperX URL configured/)).toBeInTheDocument();
+    });
+
+    it('shows the Azure Speech credentials for Azure Whisper too', async () => {
+        renderSection();
+        expect(within(await open('Azure Whisper')).getByRole('button', { name: 'Save credentials' })).toBeInTheDocument();
     });
 });
 
@@ -132,7 +141,7 @@ describe('TranscriptionSection: provider picker', () => {
         const timeouts = vi.spyOn(globalThis, 'setTimeout');
         const user = userEvent.setup();
         renderSection();
-        await user.click(card('Azure Speech'));
+        await user.click(within(await open('Azure Speech')).getByRole('button', { name: 'Use this provider' }));
         await waitFor(() => expect(setMessage).toHaveBeenCalledWith({ type: 'success', text: 'Active provider set to Azure Speech' }));
         expect(authFetch).toHaveBeenCalledWith('https://api.test/ai/config', expect.objectContaining({ method: 'POST', headers: { 'Content-Type': 'application/json' } }));
         expect(lastBody()).toEqual({ transcriptionProvider: 'azure' });
@@ -142,13 +151,14 @@ describe('TranscriptionSection: provider picker', () => {
         (clear?.[0] as () => void)();
         expect(setMessage).toHaveBeenLastCalledWith(null);
         // the new provider is now the active one
-        expect(within(panel('Azure AI Speech')).getByText('Active')).toBeInTheDocument();
+        expect(within(screen.getByRole('region', { name: 'Azure Speech' })).getByText('Active')).toBeInTheDocument();
+        expect(within(list()).getByRole('button', { name: /Azure Speech/ })).toHaveTextContent('Active');
     });
 
-    it('does nothing when the active provider is clicked again', async () => {
-        const user = userEvent.setup();
+    it('offers no switch on the active provider, and selecting it saves nothing', async () => {
         renderSection();
-        await user.click(card('Voxtral'));
+        const voxtral = await open('Voxtral');
+        expect(within(voxtral).queryByRole('button', { name: 'Use this provider' })).toBeNull();
         expect(authFetch).not.toHaveBeenCalled();
         expect(saving.provider).toBeUndefined();
     });
@@ -157,35 +167,36 @@ describe('TranscriptionSection: provider picker', () => {
         authFetch.mockImplementation(() => fail(500));
         const user = userEvent.setup();
         renderSection();
-        await user.click(card('WhisperX'));
+        const pane = await open('WhisperX');
+        await user.click(within(pane).getByRole('button', { name: 'Use this provider' }));
         await waitFor(() => expect(saving.provider).toEqual([true, false]));
         expect(setMessage).not.toHaveBeenCalled();
-        expect(within(panel('WhisperX')).queryByText('Active')).toBeNull();
+        expect(within(screen.getByRole('region', { name: 'WhisperX' })).queryByText('Active')).toBeNull();
     });
 
     it('reports a request that throws', async () => {
         authFetch.mockImplementation(() => Promise.reject(new Error('down')));
         const user = userEvent.setup();
         renderSection();
-        await user.click(card('pyannoteAI'));
+        await user.click(within(await open('pyannoteAI')).getByRole('button', { name: 'Use this provider' }));
         await waitFor(() => expect(setMessage).toHaveBeenCalledWith({ type: 'error', text: 'Failed to save provider' }));
     });
 });
 
 describe('TranscriptionSection: Azure Speech', () => {
-    const save = () => within(panel('Azure AI Speech')).getByRole('button', { name: 'Save credentials' });
+    const save = async () => within(await open('Azure Speech')).getByRole('button', { name: 'Save credentials' });
 
     it('normalises the region, starts disabled and saves trimmed credentials', async () => {
         const user = userEvent.setup();
         renderSection();
-        const box = within(panel('Azure AI Speech'));
-        expect(save()).toBeDisabled();
+        const box = within(await open('Azure Speech'));
+        expect(await save()).toBeDisabled();
         const region = box.getByPlaceholderText('westeurope');
         await user.type(region, ' West_Europe-1 ');
         expect(region).toHaveValue('westeurope-1');
         await user.type(box.getByPlaceholderText('Paste your subscription key'), '  k3y ');
-        expect(save()).toBeEnabled();
-        await user.click(save());
+        expect(await save()).toBeEnabled();
+        await user.click(await save());
         await waitFor(() => expect(setMessage).toHaveBeenCalledWith({ type: 'success', text: 'Azure Speech credentials saved securely' }));
         expect(lastBody()).toEqual({ azureSpeechRegion: 'westeurope-1', azureSpeechKey: 'k3y' });
         expect(saving.azure).toEqual([true, false]);
@@ -196,8 +207,8 @@ describe('TranscriptionSection: Azure Speech', () => {
     it('sends only the region when no key is typed, and does not mark a key as saved', async () => {
         const user = userEvent.setup();
         renderSection();
-        await user.type(within(panel('Azure AI Speech')).getByPlaceholderText('westeurope'), 'eastus');
-        await user.click(save());
+        await user.type(within(await open('Azure Speech')).getByPlaceholderText('westeurope'), 'eastus');
+        await user.click(await save());
         await waitFor(() => expect(setMessage).toHaveBeenCalledWith(expect.objectContaining({ type: 'success' })));
         expect(lastBody()).toEqual({ azureSpeechRegion: 'eastus' });
         expect(screen.queryByText('Key saved 🔒')).toBeNull();
@@ -207,41 +218,41 @@ describe('TranscriptionSection: Azure Speech', () => {
         authFetch.mockImplementation(() => fail(400, { error: 'bad region' }));
         const user = userEvent.setup();
         renderSection({ azureSpeechRegion: 'x' });
-        await user.click(save());
+        await user.click(await save());
         await waitFor(() => expect(setMessage).toHaveBeenCalledWith({ type: 'error', text: 'bad region' }));
         authFetch.mockImplementation(() => fail(400));
-        await user.click(save());
+        await user.click(await save());
         await waitFor(() => expect(setMessage).toHaveBeenCalledWith({ type: 'error', text: 'Failed to save credentials' }));
         authFetch.mockImplementation(() => Promise.reject(new Error('x')));
-        await user.click(save());
+        await user.click(await save());
         await waitFor(() => expect(setMessage.mock.calls.filter(([m]) => m?.text === 'Failed to save credentials')).toHaveLength(2));
     });
 });
 
 describe('TranscriptionSection: WhisperX', () => {
-    const save = () => within(panel('WhisperX')).getByRole('button', { name: 'Save server config' });
-    const box = () => within(panel('WhisperX'));
+    const save = async () => within(await open('WhisperX')).getByRole('button', { name: 'Save server config' });
+    const box = async () => within(await open('WhisperX'));
 
     it('saves the URL and token and clears the form', async () => {
         const user = userEvent.setup();
         renderSection();
-        expect(save()).toBeDisabled();
-        await user.type(box().getByPlaceholderText('http://whisperx:9000'), ' http://w:9000 ');
-        await user.type(box().getByPlaceholderText('Leave empty if your server is internal-only'), ' tok ');
-        await user.click(save());
+        expect(await save()).toBeDisabled();
+        await user.type((await box()).getByPlaceholderText('http://whisperx:9000'), ' http://w:9000 ');
+        await user.type((await box()).getByPlaceholderText('Leave empty if your server is internal-only'), ' tok ');
+        await user.click(await save());
         await waitFor(() => expect(setMessage).toHaveBeenCalledWith({ type: 'success', text: 'WhisperX server URL saved securely' }));
         expect(lastBody()).toEqual({ whisperxUrl: 'http://w:9000', whisperxToken: ' tok ' });
         expect(saving.whisperx).toEqual([true, false]);
         expect(screen.getByText('URL saved 🔒')).toBeInTheDocument();
-        expect(box().getAllByPlaceholderText('••••••••••••••••')).toHaveLength(2);
+        expect((await box()).getAllByPlaceholderText('••••••••••••••••')).toHaveLength(2);
     });
 
     it('sends only the URL when the token stays empty, and reports a refusal', async () => {
         authFetch.mockImplementation(() => fail(400, { error: 'no' }));
         const user = userEvent.setup();
         renderSection();
-        await user.type(box().getByPlaceholderText('http://whisperx:9000'), 'http://w');
-        await user.click(save());
+        await user.type((await box()).getByPlaceholderText('http://whisperx:9000'), 'http://w');
+        await user.click(await save());
         await waitFor(() => expect(setMessage).toHaveBeenCalledWith({ type: 'error', text: 'no' }));
         expect(lastBody()).toEqual({ whisperxUrl: 'http://w' });
         expect(screen.queryByText('URL saved 🔒')).toBeNull();
@@ -250,18 +261,18 @@ describe('TranscriptionSection: WhisperX', () => {
     it('does not mark a token as saved when only the URL was sent', async () => {
         const user = userEvent.setup();
         renderSection();
-        await user.type(box().getByPlaceholderText('http://whisperx:9000'), 'http://w');
-        await user.click(save());
+        await user.type((await box()).getByPlaceholderText('http://whisperx:9000'), 'http://w');
+        await user.click(await save());
         await waitFor(() => expect(setMessage).toHaveBeenCalledWith(expect.objectContaining({ type: 'success' })));
-        expect(box().getByPlaceholderText('Leave empty if your server is internal-only')).toBeInTheDocument();
-        expect(box().getByPlaceholderText('••••••••••••••••')).toBeInTheDocument();
+        expect((await box()).getByPlaceholderText('Leave empty if your server is internal-only')).toBeInTheDocument();
+        expect((await box()).getByPlaceholderText('••••••••••••••••')).toBeInTheDocument();
     });
 
     it('reports a request that throws', async () => {
         authFetch.mockImplementation(() => Promise.reject(new Error('x')));
         const user = userEvent.setup();
         renderSection({ whisperxToken: 't' });
-        await user.click(save());
+        await user.click(await save());
         await waitFor(() => expect(setMessage).toHaveBeenCalledWith({ type: 'error', text: 'Failed to save WhisperX settings' }));
     });
 });
@@ -270,7 +281,7 @@ describe('TranscriptionSection: Scaleway and pyannoteAI keys', () => {
     it('saves the Scaleway key trimmed and marks it saved', async () => {
         const user = userEvent.setup();
         renderSection();
-        const box = within(panel('Scaleway Whisper'));
+        const box = within(await open('Scaleway (hybrid)'));
         const save = box.getByRole('button', { name: 'Save API key' });
         expect(save).toBeDisabled();
         await user.type(box.getByPlaceholderText('Paste your Scaleway secret key'), '  sk ');
@@ -285,7 +296,7 @@ describe('TranscriptionSection: Scaleway and pyannoteAI keys', () => {
         authFetch.mockImplementation(() => fail(400));
         const user = userEvent.setup();
         renderSection({ scalewayApiKey: 'sk' });
-        const save = within(panel('Scaleway Whisper')).getByRole('button', { name: 'Save API key' });
+        const save = within(await open('Scaleway (hybrid)')).getByRole('button', { name: 'Save API key' });
         await user.click(save);
         await waitFor(() => expect(setMessage).toHaveBeenCalledWith({ type: 'error', text: 'Failed to save Scaleway key' }));
         authFetch.mockImplementation(() => Promise.reject(new Error('x')));
@@ -296,7 +307,7 @@ describe('TranscriptionSection: Scaleway and pyannoteAI keys', () => {
     it('saves the pyannoteAI key trimmed and reports failures', async () => {
         const user = userEvent.setup();
         renderSection();
-        const box = within(panel('pyannoteAI'));
+        const box = within(await open('pyannoteAI'));
         await user.type(box.getByPlaceholderText('Paste your pyannoteAI API key'), ' pk ');
         await user.click(box.getByRole('button', { name: 'Save API key' }));
         await waitFor(() => expect(setMessage).toHaveBeenCalledWith({ type: 'success', text: 'pyannoteAI API key saved securely' }));
@@ -313,7 +324,7 @@ describe('TranscriptionSection: Scaleway and pyannoteAI keys', () => {
         authFetch.mockImplementation(() => Promise.reject(new Error('x')));
         const user = userEvent.setup();
         renderSection({ pyannoteApiKey: 'pk' });
-        await user.click(within(panel('pyannoteAI')).getByRole('button', { name: 'Save API key' }));
+        await user.click(within(await open('pyannoteAI')).getByRole('button', { name: 'Save API key' }));
         await waitFor(() => expect(setMessage).toHaveBeenCalledWith({ type: 'error', text: 'Failed to save pyannoteAI key' }));
     });
 });
@@ -322,7 +333,7 @@ describe('TranscriptionSection: pyannoteAI model and voiceprints', () => {
     it('hands the chosen speech model to the writer', async () => {
         const user = userEvent.setup();
         renderSection({ pyannoteTranscriptionModel: '' });
-        const select = within(panel('pyannoteAI')).getByRole('combobox');
+        const select = within(await open('pyannoteAI')).getByRole('combobox');
         expect(select).toHaveValue('');
         await user.selectOptions(select, 'parakeet-tdt-0.6b-v3');
         expect(saveTranscriptionModel).toHaveBeenCalledWith('parakeet-tdt-0.6b-v3');
@@ -331,9 +342,9 @@ describe('TranscriptionSection: pyannoteAI model and voiceprints', () => {
     it('toggles voiceprint matching and shows the threshold only while it is on', async () => {
         const user = userEvent.setup();
         renderSection();
-        const box = within(panel('pyannoteAI'));
-        const toggle = box.getByRole('switch');
-        expect(toggle).toHaveAttribute('aria-checked', 'false');
+        const box = within(await open('pyannoteAI'));
+        const toggle = box.getByRole('checkbox', { name: 'Recognise speakers by voice' });
+        expect(toggle).not.toBeChecked();
         expect(box.queryByRole('spinbutton')).toBeNull();
         await user.click(toggle);
         expect(saveVoiceprintSettings).toHaveBeenCalledWith({ voiceprintMatchingEnabled: true });
@@ -342,8 +353,8 @@ describe('TranscriptionSection: pyannoteAI model and voiceprints', () => {
     it('shows the switch as on, and a click turns it off', async () => {
         const user = userEvent.setup();
         renderSection({ voiceprintMatchingEnabled: true });
-        const toggle = within(panel('pyannoteAI')).getByRole('switch');
-        expect(toggle).toHaveAttribute('aria-checked', 'true');
+        const toggle = within(await open('pyannoteAI')).getByRole('checkbox', { name: 'Recognise speakers by voice' });
+        expect(toggle).toBeChecked();
         await user.click(toggle);
         expect(saveVoiceprintSettings).toHaveBeenCalledWith({ voiceprintMatchingEnabled: false });
     });
@@ -351,7 +362,7 @@ describe('TranscriptionSection: pyannoteAI model and voiceprints', () => {
     it('saves the threshold on blur', async () => {
         const user = userEvent.setup();
         renderSection({ voiceprintMatchingEnabled: true });
-        const input = within(panel('pyannoteAI')).getByRole('spinbutton');
+        const input = within(await open('pyannoteAI')).getByRole('spinbutton');
         expect(input).toHaveValue(50);
         await user.clear(input);
         await user.type(input, '70');
@@ -363,7 +374,7 @@ describe('TranscriptionSection: pyannoteAI model and voiceprints', () => {
     it('does not save 0 when the threshold field is emptied', async () => {
         const user = userEvent.setup();
         renderSection({ voiceprintMatchingEnabled: true });
-        const input = within(panel('pyannoteAI')).getByRole('spinbutton');
+        const input = within(await open('pyannoteAI')).getByRole('spinbutton');
         await user.clear(input);
         await user.tab();
         expect(saveVoiceprintSettings).not.toHaveBeenCalled();
@@ -373,7 +384,7 @@ describe('TranscriptionSection: pyannoteAI model and voiceprints', () => {
     it('clamps an out-of-range threshold to 0-100 before saving', async () => {
         const user = userEvent.setup();
         renderSection({ voiceprintMatchingEnabled: true });
-        const input = within(panel('pyannoteAI')).getByRole('spinbutton');
+        const input = within(await open('pyannoteAI')).getByRole('spinbutton');
         await user.clear(input);
         await user.type(input, '250');
         await user.tab();

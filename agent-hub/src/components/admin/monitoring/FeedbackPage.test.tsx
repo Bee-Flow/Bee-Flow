@@ -25,7 +25,7 @@ describe('FeedbackPage', () => {
         expect(screen.getByText('50% approval')).toBeTruthy();
         expect(screen.getByText('alice')).toBeTruthy();
         expect(screen.getByText('bob')).toBeTruthy();
-        await user.click(screen.getByRole('button', { name: '👎 Negative' }));
+        await user.click(screen.getByRole('button', { name: 'Negative' }));
         expect(screen.queryByText('alice')).toBeNull();
         await user.click(screen.getByRole('button', { name: 'All' }));
         await user.type(screen.getByPlaceholderText('Search feedback...'), 'great');
@@ -37,17 +37,18 @@ describe('FeedbackPage', () => {
         const user = userEvent.setup();
         const many: FeedbackItem[] = Array.from({ length: 25 }, (_, i) => ({ id: `m${i}`, rating: 'up', user_id: `member-${i}` }));
         const { rerender } = render(<FeedbackPage feedback={many} summary={null} />);
-        await user.click(screen.getByRole('button', { name: '→' }));
-        await user.click(screen.getByRole('button', { name: '→' }));
-        expect(screen.getByText('3 / 3')).toBeTruthy();
+        await user.click(screen.getByRole('button', { name: 'Next' }));
+        await user.click(screen.getByRole('button', { name: 'Next' }));
+        expect(screen.getByText('Rows 21–25 of 25')).toBeTruthy();
         expect(screen.getByText('member-24')).toBeTruthy();
         // A shorter range (or the minute refresh) hands the page fewer entries.
         rerender(<FeedbackPage feedback={many.slice(0, 12)} summary={null} />);
         expect(screen.queryByText('No feedback entries')).toBeNull();
-        expect(screen.getByText('2 / 2')).toBeTruthy();
+        expect(screen.getByText('Rows 11–12 of 12')).toBeTruthy();
         expect(screen.getByText('member-11')).toBeTruthy();
-        await user.click(screen.getByRole('button', { name: '←' }));
-        expect(screen.getByText('1 / 2')).toBeTruthy();
+        expect((screen.getByRole('button', { name: 'Next' }) as HTMLButtonElement).disabled).toBe(true);
+        await user.click(screen.getByRole('button', { name: 'Previous' }));
+        expect(screen.getByText('Rows 1–10 of 12')).toBeTruthy();
         expect(screen.getByText('member-0')).toBeTruthy();
     });
 

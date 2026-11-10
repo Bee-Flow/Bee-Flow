@@ -1,18 +1,20 @@
 import { useState, useEffect, useMemo } from 'react';
 import MicrosoftIdentityPanel from './MicrosoftIdentityPanel';
 import MicrosoftSsoTab from './sso/MicrosoftSsoTab';
-import { ProviderStatus } from './sso/SsoFormParts';
 import { GoogleSsoTab, NextcloudSsoTab } from './sso/SsoProviderTabs';
 import useSsoProviders from './sso/useSsoProviders';
 import type { SsoProviderId, SsoProvidersState } from './sso/useSsoProviders';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useLicenseContext } from '../../licensing/LicenseContext';
+import { ALERT_ERROR, ALERT_SUCCESS } from '@/components/mcpLibrary/ui';
+import { DetailLayout, DetailListGroup, DetailListNav, DetailListRow } from '@/components/shared/DetailList';
+import SectionHeader from '@/components/shared/SectionHeader';
+import Spinner from '@/components/shared/Spinner';
 
 interface NavItem {
     id: SsoProviderId;
     label: string;
     icon: string;
-    color: string;
 }
 
 interface SidebarProps {
@@ -22,49 +24,30 @@ interface SidebarProps {
     providers: SsoProvidersState['providers'];
 }
 
+/** The providers as a list: a dot when a provider is enabled. */
 function SsoSidebar({ navItems, activeTab, onSelect, providers }: SidebarProps) {
     const { t } = useTranslation();
+    const title = t('admin_security.sso_providers_title', 'SSO Providers');
     return (
-        <div className="w-64 flex flex-col p-2 border-r border-[var(--border-default)] bg-[var(--bg-secondary)]">
-            <div className="p-4 mb-2">
-                <h3 className="text-xs font-semibold uppercase tracking-wider text-muted">{t('admin_security.sso_providers_title', 'SSO Providers')}</h3>
-            </div>
-            <div className="space-y-1">
+        <DetailListNav label={title}>
+            <DetailListGroup title={title} count={navItems.filter(item => providers[item.id]?.enabled).length}>
                 {navItems.map(item => (
-                    <button
+                    <DetailListRow
                         key={item.id}
+                        icon={item.icon}
+                        name={item.label}
+                        live={!!providers[item.id]?.enabled}
+                        active={activeTab === item.id}
                         onClick={() => onSelect(item.id)}
-                        className={`w-full flex items-center justify-between px-4 py-3 rounded-lg text-sm font-medium transition-all text-left ${activeTab === item.id
-                            ? 'bg-[var(--accent-primary)] text-white shadow-md'
-                            : 'text-[var(--text-secondary)] hover:bg-white/5 hover:text-[var(--text-primary)]'
-                            }`}
-                    >
-                        <div className="flex items-center gap-3">
-                            <span className="text-lg">{item.icon}</span>
-                            {item.label}
-                        </div>
-                        {activeTab !== item.id && <ProviderStatus config={providers[item.id]} />}
-                    </button>
+                    />
                 ))}
-            </div>
-
-            {/* Overall Status */}
-            <div className="mt-auto p-4 border-t [border-color:var(--border-default)]!">
-                <p className="text-xs text-muted mb-2">{t('admin_security.sso_configured_providers', 'Configured providers')}</p>
-                <div className="flex gap-2 flex-wrap">
-                    {Object.entries(providers).filter(([_, v]) => v.enabled).map(([key]) => (
-                        <span key={key} className="px-2 py-1 rounded text-xs bg-green-500/10 text-green-400 capitalize">{key}</span>
-                    ))}
-                    {!Object.values(providers).some(p => p.enabled) && (
-                        <span className="text-xs text-muted">{t('admin_security.sso_none', 'None')}</span>
-                    )}
-                </div>
-            </div>
-        </div>
+            </DetailListGroup>
+        </DetailListNav>
     );
 }
 
 const SSOConfigPanel = () => {
+    const { t } = useTranslation();
     // SSO tiering: Nextcloud OAuth login is Community (`nextcloud_oauth`);
     // Google / Microsoft / SAML SSO are Enterprise (`sso_saml`). On Community
     // only the Nextcloud provider is shown (the server also 403s the
@@ -77,11 +60,11 @@ const SSOConfigPanel = () => {
     const [activeTab, setActiveTab] = useState<SsoProviderId>('nextcloud');
 
     const navItems = useMemo<NavItem[]>(() => [
-        { id: 'nextcloud', label: 'Nextcloud', icon: '☁️', color: '#0082c9' },
+        { id: 'nextcloud', label: 'Nextcloud', icon: '☁️' },
         // Google / Microsoft require the `sso_saml` enterprise feature.
         ...(ssoSaml ? [
-            { id: 'google' as const, label: 'Google', icon: '🔍', color: '#4285f4' },
-            { id: 'microsoft' as const, label: 'Microsoft', icon: '🪟', color: '#00a4ef' },
+            { id: 'google' as const, label: 'Google', icon: '🔍' },
+            { id: 'microsoft' as const, label: 'Microsoft', icon: '🪟' },
         ] : []),
     ], [ssoSaml]);
 
@@ -90,41 +73,48 @@ const SSOConfigPanel = () => {
     // config form never renders on Community.
     if (activeTab !== 'nextcloud' && !navItems.some(n => n.id === activeTab)) setActiveTab('nextcloud');
 
+    const header = (
+        <SectionHeader
+            title={t('admin.sec_sso')}
+            description={t('admin_security.sso_section_hint', 'Let people sign in with an account they already have.')}
+        />
+    );
+
     if (loading) {
         return (
-            <div className="flex h-full border rounded-xl overflow-hidden shadow-sm border-[var(--border-default)] bg-[var(--bg-secondary)]">
-                <div className="flex-1 flex items-center justify-center">
-                    <div className="text-muted">Loading...</div>
-                </div>
+            <div className="flex max-w-5xl flex-col gap-6">
+                {header}
+                <div className="flex items-center gap-2 text-sm text-[var(--text-tertiary)]"><Spinner size="sm" /> {t('common.loading', 'Loading...')}</div>
             </div>
         );
     }
 
     return (
-        <div className="flex h-full border rounded-xl overflow-hidden shadow-sm border-[var(--border-default)] bg-[var(--bg-secondary)]">
-            <SsoSidebar
-                navItems={navItems}
-                activeTab={activeTab}
-                onSelect={(id) => { setActiveTab(id); setMessage(null); }}
-                providers={providers}
-            />
-
-            {/* Content Area */}
-            <div className="flex-1 overflow-y-auto p-8 bg-[var(--bg-primary)]">
-                {message && (
-                    <div className={`mb-6 p-3 rounded-lg text-sm ${message.type === 'success'
-                        ? 'bg-green-500/10 text-green-400 border border-green-500/20'
-                        : 'bg-red-500/10 text-red-400 border border-red-500/20'
-                        }`}>
-                        {message.text}
-                    </div>
+        <div className="flex max-w-5xl flex-col gap-6">
+            {header}
+            <DetailLayout
+                list={(
+                    <SsoSidebar
+                        navItems={navItems}
+                        activeTab={activeTab}
+                        onSelect={(id) => { setActiveTab(id); setMessage(null); }}
+                        providers={providers}
+                    />
                 )}
+            >
+                <div className="overflow-y-auto">
+                    {message && (
+                        <div role="status" className={`mb-4 ${message.type === 'success' ? ALERT_SUCCESS : ALERT_ERROR}`}>
+                            {message.text}
+                        </div>
+                    )}
 
-                {activeTab === 'nextcloud' && <NextcloudSsoTab sso={sso} />}
-                {activeTab === 'google' && <GoogleSsoTab sso={sso} />}
-                {activeTab === 'microsoft' && <MicrosoftSsoTab sso={sso} />}
-                {activeTab === 'microsoft' && <MicrosoftIdentityPanel />}
-            </div>
+                    {activeTab === 'nextcloud' && <NextcloudSsoTab sso={sso} />}
+                    {activeTab === 'google' && <GoogleSsoTab sso={sso} />}
+                    {activeTab === 'microsoft' && <MicrosoftSsoTab sso={sso} />}
+                    {activeTab === 'microsoft' && <MicrosoftIdentityPanel />}
+                </div>
+            </DetailLayout>
         </div>
     );
 };

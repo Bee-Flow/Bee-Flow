@@ -3,6 +3,7 @@
 // AgentDesigner/index.jsx without a change in behaviour.
 import type { Dispatch, SetStateAction } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
+import { PRIMARY_BTN } from '@/components/mcpLibrary/ui';
 
 export interface OrgGroup { id: string; name?: string; description?: string | null }
 
@@ -20,7 +21,7 @@ export interface PublishMenuProps {
     togglePublish: (groups: string[]) => void;
 }
 
-const CHECK = <svg className="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>;
+const CHECK = <svg className="w-4 h-4 text-[var(--success-ink)]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>;
 const CHEVRON = <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>;
 const LOCK_PATH = 'M12 11c1.657 0 3-1.343 3-3V6a3 3 0 10-6 0v2c0 1.657 1.343 3 3 3zM5 21v-2a4 4 0 014-4h6a4 4 0 014 4v2';
 
@@ -31,10 +32,12 @@ export default function PublishMenu(p: PublishMenuProps) {
             {!p.isReadonly && (
                 <button
                     onClick={() => { p.setShowPublishMenu(!p.showPublishMenu); p.setPublishError(''); }}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 border ${
-                        p.isPublished ? 'bg-emerald-500 text-white border-emerald-500 hover:bg-emerald-600' : 'text-[var(--text-secondary)] bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)]'
+                    type="button"
+                    className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-all ${
+                        p.isPublished
+                            ? 'border-[color-mix(in_srgb,var(--success)_40%,transparent)] bg-[color-mix(in_srgb,var(--success)_14%,transparent)] text-[var(--success-ink)]'
+                            : 'border-[var(--border-default)] bg-[var(--bg-card)] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'
                     }`}
-                    style={!p.isPublished ? { borderColor: 'var(--border-default)' } : {}}
                 >
                     {p.isPublished ? (
                         <>
@@ -95,7 +98,7 @@ function PublishDropdown(p: PublishMenuProps) {
                 className="w-full px-4 py-3 flex items-center gap-3 hover:bg-[var(--bg-tertiary)] transition-colors text-left border-t border-[var(--border-subtle)]"
             >
                 <div className="w-8 h-8 rounded-lg flex items-center justify-center [background:rgba(16,185,129,0.15)]">
-                    <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4 text-[var(--success-ink)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                     </svg>
                 </div>
@@ -115,7 +118,7 @@ function PublishDropdown(p: PublishMenuProps) {
             {/* Inline publish error (BFSF-220) — replaces alert(), which
                 sandboxed iframes suppress */}
             {p.publishError && (
-                <div role="alert" className="px-3 py-2 border-t text-xs text-red-500 bg-red-500/10 border-[var(--border-subtle)]">
+                <div role="alert" className="border-t border-[var(--border-default)] bg-[color-mix(in_srgb,var(--error)_10%,transparent)] px-3 py-2 text-xs text-[var(--error-ink)]">
                     {p.publishError}
                 </div>
             )}
@@ -175,7 +178,7 @@ function GroupChooser({ orgGroups, sharedGroups, setSharedGroups, togglePublish 
                 <div className="p-3 border-t border-[var(--border-subtle)]">
                     <button
                         onClick={() => togglePublish(sharedGroups)}
-                        className="w-full px-4 py-2 rounded-lg text-sm font-medium bg-emerald-500 text-white hover:bg-emerald-600 transition-colors"
+                        className={`${PRIMARY_BTN} w-full`}
                     >
                         {t('agent_studio.agent_designer_publish_to_count_group', 'Publish to {count} group', { count: sharedGroups.length })}
                         {sharedGroups.length > 1 ? 's' : ''}

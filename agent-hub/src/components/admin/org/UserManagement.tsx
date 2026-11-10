@@ -1,4 +1,4 @@
-import { Building, Cloud, Key, Loader2, Shield, Tag, Users } from 'lucide-react';
+import { Building, Cloud, Key, Shield, Tag, Users } from 'lucide-react';
 import React, { useState } from 'react';
 import PeopleDirectory from './people/PeopleDirectory';
 
@@ -20,6 +20,10 @@ import useUserManagementData, { type UserManagementData } from './userManagement
 import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
 import { useDeploymentMode } from '@/hooks/useDeploymentMode';
 import ConfirmDialog from '../../shared/ConfirmDialog';
+import Spinner from '@/components/shared/Spinner';
+import Tabs from '@/components/shared/Tabs';
+import { ALERT_ERROR, ALERT_SUCCESS } from '@/components/mcpLibrary/ui';
+import { OrgIcon } from './userManagement/EntityRows';
 import type { AdminCurrentUser, ConfirmOptions } from './userManagement/types';
 
 interface UserManagementProps {
@@ -32,7 +36,7 @@ interface UserManagementProps {
 function sectionsFor(isFullAdmin: boolean | undefined, hasOrg: boolean) {
     return isFullAdmin ? [
         { key: 'users', labelKey: 'admin.users_tab_users', icon: Users },
-        { key: 'organizations', labelKey: 'admin.users_tab_organizations', icon: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z" /><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2" /><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2" /><path d="M10 6h4" /><path d="M10 10h4" /><path d="M10 14h4" /><path d="M10 18h4" /></svg> },
+        { key: 'organizations', labelKey: 'admin.users_tab_organizations', icon: OrgIcon },
         { key: 'nextcloud', labelKey: 'admin.users_tab_nextcloud', icon: Cloud },
         { key: 'groups', labelKey: 'admin.users_tab_groups', icon: Shield },
         { key: 'roles', labelKey: 'admin.users_tab_roles', icon: Tag },
@@ -82,34 +86,26 @@ const UserManagement = ({ activeSection: activeSectionProp = '', onNavigate, use
 
     return (
         <div className="h-full flex flex-col">
-            {/* Section Tabs */}
-            <div className="px-6 py-4 border-b flex items-center gap-4 border-[var(--border-subtle)]">
-                {sections.map(({ key, labelKey, icon: Icon }) => (
-                    <button
-                        key={key}
-                        onClick={() => { if (onNavigate) onNavigate(`admin/security/users/${key}`); }}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${activeSection === key
-                            ? 'bg-[var(--accent-primary)] text-white'
-                            : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'
-                            }`}
-                    >
-                        <Icon className="w-4 h-4" />
-                        {t(labelKey)}
-                    </button>
-                ))}
-                <div className="flex-1" />
+            {/* Section tabs: the section is the URL (admin/security/users/<key>). */}
+            <div className="flex flex-col gap-3 px-6 pt-4">
+                <Tabs
+                    ariaLabel={t('admin.sec_users')}
+                    value={activeSection}
+                    onChange={(key) => { if (onNavigate) onNavigate(`admin/security/users/${key}`); }}
+                    items={sections.map(({ key, labelKey, icon: Icon }) => ({ id: key, label: t(labelKey), icon: <Icon className="h-4 w-4" aria-hidden="true" /> }))}
+                />
                 {message && (
-                    <span className={`text-sm ${message.type === 'success' ? 'text-green-500' : 'text-red-500'}`}>
+                    <div role="status" className={message.type === 'success' ? ALERT_SUCCESS : ALERT_ERROR}>
                         {typeof message.text === 'string' ? message.text : JSON.stringify(message.text)}
-                    </span>
+                    </div>
                 )}
             </div>
 
             {/* Content */}
             <div className="flex-1 overflow-auto p-6">
                 {loading ? (
-                    <div className="flex items-center justify-center h-full text-[var(--text-muted)]">
-                        <Loader2 className="w-6 h-6 animate-spin mr-2" /> {t('admin_org.user_mgmt_loading', 'Loading data...')}
+                    <div className="flex h-full items-center justify-center gap-2 text-sm text-[var(--text-tertiary)]">
+                        <Spinner size="sm" /> {t('admin_org.user_mgmt_loading', 'Loading data...')}
                     </div>
                 ) : (
                     <>

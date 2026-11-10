@@ -11,6 +11,7 @@ import type { ReactNode } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { fmt } from '../ui';
 import { ACCENT } from '../BarList';
+import { CHART_SERIES } from '@/components/shared/charts/chartChrome';
 
 /** One minute of the strip: `t` is the bucket start (ms); `overlay` is the second measure (0 when there is none).
  * Required: `toMinuteStrip` always fills it; the `!= null` at the tooltip predates the type. */
@@ -30,7 +31,7 @@ interface MinuteBarsProps {
 }
 
 export default function MinuteBars({
-    buckets = [], height = 72, color = ACCENT, overlayColor = '#3b82f6',
+    buckets = [], height = 72, color = ACCENT, overlayColor = CHART_SERIES[2],
     caption, formatLabel = (t: number) => new Date(t).toISOString().slice(11, 16),
 }: MinuteBarsProps) {
     const { t: tr } = useTranslation();
@@ -42,17 +43,15 @@ export default function MinuteBars({
 
     if (!buckets.length) {
         return (
-            <div style={{
-                height, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 12, color: 'var(--text-muted, #888)',
-                background: 'var(--bg-tertiary, rgba(255,255,255,0.02))', borderRadius: 10,
-            }}>{tr('cms_site.analytics.minute_bars.empty', 'Nothing in the last few minutes.')}</div>
+            <div className="flex items-center justify-center rounded-lg border border-dashed border-[var(--border-default)] text-xs text-[var(--text-tertiary)]" style={{ height }}>
+                {tr('cms_site.analytics.minute_bars.empty', 'Nothing in the last few minutes.')}
+            </div>
         );
     }
 
     return (
         <div>
-            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height }}>
+            <div className="flex items-end gap-0.5" style={{ height }}>
                 {buckets.map((b, i) => {
                     const h = Math.max(b.value > 0 ? 2 : 0, (b.value / peak) * height);
                     const oh = b.overlay ? Math.max(2, (b.overlay / peak) * height) : 0;
@@ -60,23 +59,17 @@ export default function MinuteBars({
                         <div
                             key={b.t ?? i}
                             title={`${formatLabel(b.t)} — ${fmt(b.value)}${b.overlay != null ? ` views, ${fmt(b.overlay)} visitors` : ''}`}
-                            style={{ flex: 1, minWidth: 2, position: 'relative', height, display: 'flex', alignItems: 'flex-end' }}
+                            className="relative flex h-full min-w-[2px] flex-1 items-end"
                         >
-                            <div style={{
-                                width: '100%', height: h, borderRadius: 2, background: color,
-                                opacity: b.value ? 1 : 0,
-                            }} />
+                            <div className={`w-full rounded-sm ${b.value ? '' : 'opacity-0'}`} style={{ height: h, background: color }} />
                             {oh > 0 && (
-                                <div style={{
-                                    position: 'absolute', bottom: 0, left: 0, width: '100%',
-                                    height: oh, borderRadius: 2, background: overlayColor, opacity: 0.75,
-                                }} />
+                                <div className="absolute bottom-0 left-0 w-full rounded-sm opacity-75" style={{ height: oh, background: overlayColor }} />
                             )}
                         </div>
                     );
                 })}
             </div>
-            <div className="[display:flex] [justify-content:space-between] [margin-top:5px] [font-size:10px] [color:var(--text-muted,#777)]">
+            <div className="flex justify-between mt-[5px] text-[10px] text-[var(--text-tertiary)]">
                 <span>{formatLabel(buckets[0].t)}</span>
                 {caption && <span>{caption}</span>}
                 <span>{tr('cms_site.analytics.minute_bars.now', 'now')}</span>

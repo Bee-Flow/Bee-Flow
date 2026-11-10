@@ -14,7 +14,11 @@ const { GUI_DEFAULTS } = require('../i18n/defaults/en');
 
 const OWNED_PREFIXES = ['admin_subscriptions.', 'admin_org.', 'admin_ai_config.', 'admin_monitoring.', 'admin_languages.', 'admin_security.', 'admin_shared.'];
 
-const OWNED_ELSEWHERE = new Set();
+// Keys in these namespaces whose Dutch another catalogue seeds (each has its own test).
+const OWNED_ELSEWHERE = new Set([
+    'admin_security.sso_section_hint', // add-nl-admin-studio-3a-2026-11-translations
+    'admin_monitoring.range_label', // add-nl-admin-studio-3b-2026-11-translations
+]);
 
 test('every English key in the admin namespaces has Dutch (or is declared identical)', () => {
     const same = new Set(SAME_AS_ENGLISH);

@@ -1,27 +1,21 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { TranslateParams, useTranslation, type TranslateFn } from '@/hooks/useTranslation';
-import { Activity, RefreshCw, ChevronRight, Calendar } from 'lucide-react';
-import { rowCost, type AgentUsage, type ChartPoint, type ModelUsage, type ToolUsage, type UsageRecord, type UsageSummary, type UserUsage } from './shared';
-import { COLORS } from './shared/SvgAreaChart';
+import { useMemo, useState } from 'react';
+import SectionHeader from '@/components/shared/SectionHeader';
+import SectionNav from '@/components/shared/SectionNav';
+import StudioShell from '@/components/shared/StudioShell';
+import { useTranslation } from '@/hooks/useTranslation';
+import { rowCost, type UsageSummary } from './shared';
 import { OverviewPage, type UsageDeltas } from './OverviewPage';
 import { UsageExplorerPage } from './UsageExplorerPage';
 import { FeedbackPage } from './FeedbackPage';
 import { ActivityPage } from './ActivityPage';
 import { TerminationsPage } from './TerminationsPage';
 import { DetailDrawer } from './DetailDrawer';
-import { monitoringUrl } from './monitoringUrl';
-import type { DrawerDetail, ModelRate } from './drawer/drawerTypes';
-import type { FeedbackItem } from './feedback/feedbackModel';
+import { RangeControls } from './RangeControls';
+import { useMonitoringData, type MonitoringData } from './useMonitoringData';
+import type { DrawerDetail } from './drawer/drawerTypes';
 import type { MonitoringPanelProps } from './index.types';
-import { logger } from '@/utils/logger';
-import { API, AI_API, FEEDBACK_API, RANGES, PAGES, styles } from './monitoring.constants';
-import { rangeToFilter, prevPeriodFilter, autoInterval, toLocalInput, fetchJson } from './monitoring.helpers';
-
-// authFetch, not raw fetch. Both send credentials, but authFetch also sets the
-// no-store handling that exists because the Nextcloud proxy path was replaying
-// stale per-user API responses from the browser cache — and usage figures are
-// exactly that kind of per-org, always-changing response. It is also the seam
-// the public demo transport hooks, so a raw fetch here silently bypasses it.
+import { PAGES, monitoringPageOf } from './monitoring.constants';
+import { toLocalInput } from './monitoring.helpers';
 
 /** Change against the previous period, in percent (null where the previous period had none). */
 function usageDeltas(summary: UsageSummary | null, prevSummary: UsageSummary | null): UsageDeltas {
@@ -35,313 +29,124 @@ function usageDeltas(summary: UsageSummary | null, prevSummary: UsageSummary | n
     };
 }
 
-/**
- * Marks the start of a read and returns "has a newer read started since?".
- * Only the newest read may land: a slow answer for the range that was left
- * must not overwrite the figures of the range that is shown now.
- */
-function useLatestOnly() {
-    const latest = useRef(0);
-    return useCallback(() => {
-        const id = ++latest.current;
-        return () => latest.current !== id;
-    }, []);
-}
+const DELTA_LABELS: Record<string, string> = { today: 'vs yesterday', '7d': 'vs prev 7d', '30d': 'vs prev 30d', custom: 'vs prev period' };
 
-export default function MonitoringPanel({ activeSection = '', onNavigate }: MonitoringPanelProps) {
-    const { t } = useTranslation();
-    const VALID_IDS = PAGES.map(p => p.id);
-    const page = VALID_IDS.includes(activeSection) ? activeSection : 'overview';
-    const [range, setRange] = useState('7d');
-    const [customStart, setCustomStart] = useState(() => {
-        const d = new Date(); d.setDate(d.getDate() - 7); d.setHours(0, 0, 0, 0); return toLocalInput(d);
-    });
-    const [customEnd, setCustomEnd] = useState(() => toLocalInput(new Date()));
-    const [loading, setLoading] = useState(true);
-    const [detailDrawer, setDetailDrawer] = useState<DrawerDetail | null>(null);
-
-    // ── Data stores ──
-    const [summary, setSummary] = useState<UsageSummary | null>(null);
-    const [prevSummary, setPrevSummary] = useState<UsageSummary | null>(null);
-    const [byModel, setByModel] = useState<ModelUsage[]>([]);
-    const [byAgent, setByAgent] = useState<AgentUsage[]>([]);
-    const [byUser, setByUser] = useState<UserUsage[]>([]);
-    const [timeline, setTimeline] = useState<ChartPoint[]>([]);
-    const [costTimeline, setCostTimeline] = useState<ChartPoint[]>([]);
-    const [tools, setTools] = useState<ToolUsage[]>([]);
-    const [recent, setRecent] = useState<UsageRecord[]>([]);
-    const [modelCosts, setModelCosts] = useState<Record<string, ModelRate>>({});
-    const [byConversation, setByConversation] = useState<UsageRecord[]>([]);
-    const [filterSources, setFilterSources] = useState<string[]>([]);
-    const [filterModels, setFilterModels] = useState<string[]>([]);
-    const [feedback, setFeedback] = useState<FeedbackItem[]>([]);
-    const [feedbackSummary, setFeedbackSummary] = useState({ total: 0, thumbs_up: 0, thumbs_down: 0, with_comments: 0 });
-    const beginFetch = useLatestOnly();
-    const fetchData = useCallback(async () => {
-        const superseded = beginFetch();
-        setLoading(true);
-        const filters = rangeToFilter(range, customStart, customEnd);
-        const qs = new URLSearchParams(filters).toString();
-        const q = qs ? '?' + qs : '';
-        const interval = autoInterval(range, customStart, customEnd);
-        try {
-            // Core data (always needed)
-            const [s, m, a, u, tl, ct, mc, t, r, fs, fm, bc] = await Promise.all([
-                fetchJson(`${API}/summary${q}`),
-                fetchJson(`${API}/by-model${q}`),
-                fetchJson(`${API}/by-agent${q}`),
-                fetchJson(`${API}/by-user${q}`),
-                fetchJson(monitoringUrl(`${API}/timeline`, { ...filters, interval })),
-                fetchJson(monitoringUrl(`${API}/cost-timeline`, { ...filters, interval })),
-                fetchJson(`${AI_API}/model-costs`),
-                fetchJson(`${API}/tools${q}`),
-                fetchJson(`${API}/recent?limit=100`),
-                fetchJson(`${API}/filters/sources`),
-                fetchJson(`${API}/filters/models`),
-                fetchJson(`${API}/by-conversation${q}`),
-            ]);
-            if (superseded()) return;
-            setSummary(s || { total_calls: 0, total_tokens: 0, total_estimated_cost: 0, total_billed_cost: 0, avg_duration_ms: 0 });
-            setByModel(Array.isArray(m) ? m : []);
-            setByAgent(Array.isArray(a) ? a : []);
-            setByUser(Array.isArray(u) ? u : []);
-            setTimeline(Array.isArray(tl) ? tl : []);
-            setCostTimeline(Array.isArray(ct) ? ct : []);
-            setModelCosts(mc && typeof mc === 'object' ? mc : {});
-            setTools(Array.isArray(t) ? t : []);
-            setRecent(Array.isArray(r) ? r : []);
-            setFilterSources(Array.isArray(fs) ? fs : []);
-            setFilterModels(Array.isArray(fm) ? fm : []);
-            setByConversation(Array.isArray(bc) ? bc : []);
-
-            // Previous period for delta comparison
-            const prevFilter = prevPeriodFilter(range, customStart, customEnd);
-            if (prevFilter) {
-                const prevQs = new URLSearchParams(prevFilter).toString();
-                const ps = await fetchJson(`${API}/summary?${prevQs}`);
-                if (superseded()) return;
-                setPrevSummary(ps);
-            } else {
-                setPrevSummary(null);
-            }
-
-            // Feedback
-            try {
-                const fbQs = qs ? '?' + qs : '';
-                const [fbData, fbSum] = await Promise.all([
-                    fetchJson(`${FEEDBACK_API}${fbQs}`),
-                    fetchJson(`${FEEDBACK_API}/summary${fbQs}`),
-                ]);
-                if (superseded()) return;
-                setFeedback(Array.isArray(fbData) ? fbData : []);
-                setFeedbackSummary(fbSum || { total: 0, thumbs_up: 0, thumbs_down: 0, with_comments: 0 });
-            } catch (err) { logger.debug('ignore', err); }
-        } catch (e) {
-            console.error('[Monitoring] fetch error:', e);
-        }
-        if (!superseded()) setLoading(false);
-    }, [range, customStart, customEnd, beginFetch]);
-
-    useEffect(() => { fetchData(); }, [fetchData]);
-    useEffect(() => {
-        const iv = setInterval(fetchData, 60000); // reduced from 30s to 60s
-        return () => clearInterval(iv);
-    }, [fetchData]);
-
-    // Computed costs per model (cache-aware — see rowCost in shared.jsx)
-    const totalCost = useMemo(() => byModel.reduce((sum, m) => {
-        const c = modelCosts[m.model];
-        if (!c) return sum;
-        return sum + rowCost(m, c);
-    }, 0), [byModel, modelCosts]);
-
-    const costPerModel = useMemo(() => {
-        const map: Record<string, number> = {};
+/** Cost per model from its rates (cache-aware — see rowCost), and their sum. */
+function useModelCosts({ byModel, modelCosts }: MonitoringData) {
+    return useMemo(() => {
+        const costPerModel: Record<string, number> = {};
+        let totalCost = 0;
         byModel.forEach(m => {
             const c = modelCosts[m.model];
-            if (c) map[m.model] = rowCost(m, c);
+            if (!c) return;
+            costPerModel[m.model] = rowCost(m, c);
+            totalCost += costPerModel[m.model];
         });
-        return map;
+        return { costPerModel, totalCost };
     }, [byModel, modelCosts]);
-
-    // Deltas
-    const deltas = useMemo(() => usageDeltas(summary, prevSummary), [summary, prevSummary]);
-
-    const deltaLabel = range === 'today' ? 'vs yesterday' : range === '7d' ? 'vs prev 7d' : range === '30d' ? 'vs prev 30d' : range === 'custom' ? 'vs prev period' : '';
-
-    return (
-        <div style={styles.container}>
-            {/* ── Sidebar ── */}
-            <MonitoringPanelSection t={t} onNavigate={onNavigate} page={page} />
-
-            {/* ── Main Content ── */}
-            <div style={styles.main}>
-                {/* Top bar */}
-                <div style={styles.topBar}>
-                    <div>
-                        <h2 style={styles.pageTitle}>
-                            {t(PAGES.find(p => p.id === page)?.labelKey)}
-                        </h2>
-                        <p style={styles.pageDesc}>
-                            {t(PAGES.find(p => p.id === page)?.descriptionKey, PAGES.find(p => p.id === page)?.description)}
-                        </p>
-                    </div>
-                    <RangeControls
-                        t={t} range={range} setRange={setRange} customStart={customStart} setCustomStart={setCustomStart}
-                        customEnd={customEnd} setCustomEnd={setCustomEnd} loading={loading} onRefresh={fetchData}
-                    />
-                </div>
-
-                {/* Page Content */}
-                <div style={styles.content}>
-                    {page === 'overview' && (
-                        <OverviewPage
-                            summary={summary} prevSummary={prevSummary} deltas={deltas} deltaLabel={deltaLabel}
-                            byModel={byModel} byAgent={byAgent} timeline={timeline}
-                            costTimeline={costTimeline} tools={tools} totalCost={totalCost}
-                            costPerModel={costPerModel} modelCosts={modelCosts} range={range}
-                            onSelectModel={m => setDetailDrawer({ type: 'model', data: m })}
-                            onSelectAgent={a => setDetailDrawer({ type: 'agent', data: a })}
-                            onNavigate={onNavigate}
-                        />
-                    )}
-                    {page === 'usage' && (
-                        <UsageExplorerPage
-                            byModel={byModel} byAgent={byAgent} byUser={byUser}
-                            byConversation={byConversation} costPerModel={costPerModel}
-                            modelCosts={modelCosts}
-                            onSelectModel={m => setDetailDrawer({ type: 'model', data: m })}
-                            onSelectAgent={a => setDetailDrawer({ type: 'agent', data: a })}
-                        />
-                    )}
-                    {page === 'feedback' && (
-                        <FeedbackPage feedback={feedback} summary={feedbackSummary} />
-                    )}
-                    {page === 'activity' && (
-                        <ActivityPage
-                            recent={recent} modelCosts={modelCosts}
-                            filterSources={filterSources} filterModels={filterModels}
-                        />
-                    )}
-                    {page === 'terminations' && (
-                        <TerminationsPage
-                            range={range}
-                            customStart={customStart}
-                            customEnd={customEnd}
-                        />
-                    )}
-                </div>
-            </div>
-
-            {/* Detail Drawer */}
-            {detailDrawer && (
-                <DetailDrawer detail={detailDrawer} modelCosts={modelCosts} costPerModel={costPerModel}
-                    recent={recent} onClose={() => setDetailDrawer(null)} />
-            )}
-
-            <style>{`
-                @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-                @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
-                @keyframes slideIn { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: translateX(0); } }
-                @keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 0.15; } }
-            `}</style>
-        </div>
-    );
 }
 
-
-function MonitoringPanelSection({ t, onNavigate, page }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; onNavigate: ((path: string) => void) | undefined; page: string; }) {
-    return <div style={styles.sidebar}>
-        <div style={styles.sidebarHeader}>
-            <Activity style={{ width: 20, height: 20, color: COLORS.primary }} />
-            <span style={styles.sidebarTitle}>{t('admin_monitoring.title', 'AI Monitor')}</span>
-        </div>
-
-        <nav style={styles.nav}>
-            {PAGES.map(p => (
-                <button
-                    key={p.id}
-                    onClick={() => { if (onNavigate) onNavigate(`admin/monitoring/${p.id}`); } }
-                    style={{
-                        ...styles.navItem,
-                        ...(page === p.id ? styles.navItemActive : {}),
-                    }}
-                >
-                    <p.icon style={{
-                        width: 18, height: 18,
-                        color: page === p.id ? COLORS.primary : 'var(--text-muted, #666)',
-                        flexShrink: 0
-                    }} />
-                    <div className="[flex:1] [text-align:left]">
-                        <div className={`[font-size:13px] ${page === p.id ? '[font-weight:600] [color:var(--text-primary,_#fff)]' : '[font-weight:500] [color:var(--text-secondary,_#aaa)]'}`}>{t(p.labelKey)}</div>
-                    </div>
-                    {page === p.id && <ChevronRight style={{ width: 14, height: 14, color: COLORS.primary, flexShrink: 0 }} />}
-                </button>
-            ))}
-        </nav>
-    </div>;
+function defaultStart() {
+    const d = new Date(); d.setDate(d.getDate() - 7); d.setHours(0, 0, 0, 0); return toLocalInput(d);
 }
 
-interface RangeControlsProps {
-    t: TranslateFn;
+interface PageProps {
+    page: string;
+    data: MonitoringData;
     range: string;
-    setRange: (range: string) => void;
     customStart: string;
-    setCustomStart: (value: string) => void;
     customEnd: string;
-    setCustomEnd: (value: string) => void;
-    loading: boolean;
-    onRefresh: () => void;
+    refreshKey: number;
+    onDetail: (detail: DrawerDetail) => void;
+    onNavigate?: (path: string) => void;
 }
 
-/** The range chips, the custom from/to pickers, and Refresh. */
-function RangeControls({ t, range, setRange, customStart, setCustomStart, customEnd, setCustomEnd, loading, onRefresh }: RangeControlsProps) {
+/** The page the URL names, fed from the shared read. */
+function MonitoringPage({ page, data, range, customStart, customEnd, refreshKey, onDetail, onNavigate }: PageProps) {
+    const { costPerModel, totalCost } = useModelCosts(data);
+    const deltas = useMemo(() => usageDeltas(data.summary, data.prevSummary), [data.summary, data.prevSummary]);
+    const onSelectModel = (m: DrawerDetail['data']) => onDetail({ type: 'model', data: m });
+    const onSelectAgent = (a: DrawerDetail['data']) => onDetail({ type: 'agent', data: a });
+    switch (page) {
+        case 'usage':
+            return (
+                <UsageExplorerPage
+                    byModel={data.byModel} byAgent={data.byAgent} byUser={data.byUser}
+                    byConversation={data.byConversation} costPerModel={costPerModel}
+                    onSelectModel={onSelectModel}
+                />
+            );
+        case 'feedback':
+            return <FeedbackPage feedback={data.feedback} summary={data.feedbackSummary} />;
+        case 'activity':
+            return <ActivityPage recent={data.recent} />;
+        case 'terminations':
+            return <TerminationsPage range={range} customStart={customStart} customEnd={customEnd} refreshKey={refreshKey} />;
+        default:
+            return (
+                <OverviewPage
+                    summary={data.summary} deltas={deltas} deltaLabel={DELTA_LABELS[range] || ''}
+                    byModel={data.byModel} byAgent={data.byAgent} timeline={data.timeline}
+                    costTimeline={data.costTimeline} tools={data.tools} totalCost={totalCost}
+                    costPerModel={costPerModel}
+                    onSelectModel={onSelectModel} onSelectAgent={onSelectAgent} onNavigate={onNavigate}
+                />
+            );
+    }
+}
+
+/**
+ * AI Monitor: usage, cost, feedback, the call log and terminations, one page
+ * per URL (admin/monitoring/<page>; bare admin/monitoring is Overview), with
+ * the period chosen once for all of them in the page header.
+ */
+export default function MonitoringPanel({ activeSection = '', onNavigate }: MonitoringPanelProps) {
+    const { t } = useTranslation();
+    const page = monitoringPageOf(activeSection);
+    const meta = PAGES.find(p => p.id === page) ?? PAGES[0];
+    const [range, setRange] = useState('7d');
+    const [customStart, setCustomStart] = useState(defaultStart);
+    const [customEnd, setCustomEnd] = useState(() => toLocalInput(new Date()));
+    const [detail, setDetail] = useState<DrawerDetail | null>(null);
+    const { data, loading, reload, refreshKey } = useMonitoringData(range, customStart, customEnd);
+    const title = t('admin_monitoring.title', 'AI Monitor');
+    const { costPerModel } = useModelCosts(data);
+
+    const sidebar = (
+        <SectionNav
+            label={title}
+            items={PAGES.map(p => ({ id: p.id, icon: p.icon, label: t(p.labelKey) }))}
+            activeId={page}
+            onSelect={(id) => onNavigate?.(`admin/monitoring/${id}`)}
+        />
+    );
+
     return (
-        <div className="[display:flex] [gap:8px] [align-items:center] [flex-wrap:wrap]">
-            <div style={styles.rangeGroup}>
-                {RANGES.map(r => (
-                    <button
-                        key={r.id}
-                        onClick={() => setRange(r.id)}
-                        style={{
-                            ...styles.rangeBtn,
-                            ...(range === r.id ? styles.rangeBtnActive : {}),
-                            ...(r.id === 'custom' ? { display: 'flex', alignItems: 'center', gap: '5px' } : {}),
-                        }}
-                    >
-                        {r.id === 'custom' && <Calendar className="w-[12px] h-[12px]" />}
-                        {r.labelKey ? t(r.labelKey, r.label) : r.label}
-                    </button>
-                ))}
-            </div>
-            {range === 'custom' && (
-                <div style={styles.datePickerRow}>
-                    <div style={styles.datePickerField}>
-                        <span style={styles.datePickerLabel}>{t('admin_monitoring.from', 'From')}</span>
-                        <input
-                            type="datetime-local"
-                            value={customStart}
-                            onChange={e => setCustomStart(e.target.value)}
-                            max={customEnd}
-                            style={styles.dateInput}
+        <StudioShell responsive sidebarTitle={title} sidebar={sidebar}>
+            <div className="relative h-full">
+                <div className="absolute inset-0 overflow-y-auto">
+                    <div className="mx-auto flex max-w-[1400px] flex-col gap-5 p-4 md:p-6">
+                        <SectionHeader
+                            title={t(meta.labelKey)}
+                            description={t(meta.descriptionKey, meta.description)}
+                            status={(
+                                <RangeControls
+                                    range={range} setRange={setRange} customStart={customStart} setCustomStart={setCustomStart}
+                                    customEnd={customEnd} setCustomEnd={setCustomEnd} loading={loading} onRefresh={reload}
+                                />
+                            )}
                         />
-                    </div>
-                    <span className="[color:var(--text-muted,#666)] [font-size:12px] [padding:0_2px]">→</span>
-                    <div style={styles.datePickerField}>
-                        <span style={styles.datePickerLabel}>{t('admin_monitoring.to', 'To')}</span>
-                        <input
-                            type="datetime-local"
-                            value={customEnd}
-                            onChange={e => setCustomEnd(e.target.value)}
-                            min={customStart}
-                            style={styles.dateInput}
+                        <MonitoringPage
+                            page={page} data={data} range={range} customStart={customStart} customEnd={customEnd}
+                            refreshKey={refreshKey} onDetail={setDetail} onNavigate={onNavigate}
                         />
                     </div>
                 </div>
-            )}
-            <button onClick={onRefresh} style={styles.refreshBtn} title={t('admin_monitoring.refresh', 'Refresh')}>
-                <RefreshCw className={`[width:15px] [height:15px] ${loading ? '[animation:spin_1s_linear_infinite]' : '[animation:none]'}`} />
-            </button>
-        </div>
+                {detail && (
+                    <DetailDrawer detail={detail} modelCosts={data.modelCosts} costPerModel={costPerModel}
+                        recent={data.recent} onClose={() => setDetail(null)} />
+                )}
+            </div>
+        </StudioShell>
     );
 }

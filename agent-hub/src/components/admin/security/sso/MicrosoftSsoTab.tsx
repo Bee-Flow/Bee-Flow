@@ -62,9 +62,9 @@ function TenantIdField({ value, onChange, withHelp, id }: TenantIdFieldProps) {
             <label htmlFor={id} className={LABEL}>
                 {t('admin_security.sso_tenant_id', 'Tenant ID')}
                 {isMultiTenant ? (
-                    <span className="text-blue-400 text-xs ml-2">{t('admin_security.sso_multi_tenant', '(multi-tenant)')}</span>
+                    <span className="text-[var(--info-ink)] text-xs ml-2">{t('admin_security.sso_multi_tenant', '(multi-tenant)')}</span>
                 ) : tenantIdValid ? (
-                    <span className="text-green-400 text-xs ml-2">{t('admin_security.sso_single_tenant', '(single-tenant)')}</span>
+                    <span className="text-[var(--success-ink)] text-xs ml-2">{t('admin_security.sso_single_tenant', '(single-tenant)')}</span>
                 ) : (
                     <span className="text-orange-400 text-xs ml-2">{t('admin_security.sso_tenant_invalid', '(invalid format: should be a GUID or "common")')}</span>
                 )}
@@ -128,7 +128,7 @@ function LogoField({ value, onChange, inputId }: LogoFieldProps) {
                     </button>
                 )}
             </div>
-            <p className={`mt-1.5 text-xs ${problem ? 'text-orange-400' : 'text-muted'}`}>
+            <p className={`mt-1.5 text-xs ${problem ? 'text-[var(--warning-ink)]' : 'text-muted'}`}>
                 {problem === 'size' ? t('admin_security.sso_ms_logo_too_large', 'That image is larger than 100 KB.')
                     : problem === 'type' ? t('admin_security.sso_ms_logo_type', 'Choose a PNG, JPEG, SVG or WebP image.')
                         : t('admin_security.sso_ms_logo_hint', 'PNG, JPEG, SVG or WebP, at most 100 KB.')}
@@ -187,7 +187,7 @@ function ConnectionCard({ index, connection, secret, onChange, onSecret, onRemov
             <div className="flex items-center justify-between">
                 <h4 className="font-semibold text-primary">{t('admin_security.sso_ms_connection_n', 'Tenant {n}', { n: index + 1 })}</h4>
                 <button type="button" onClick={onRemove}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs border border-[var(--border-default)] text-[var(--text-secondary)] hover:text-red-400">
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs border border-[var(--border-default)] text-[var(--text-secondary)] hover:text-[var(--error-ink)]">
                     <Trash2 className="w-3.5 h-3.5" /> {t('admin_security.sso_ms_connection_remove', 'Remove')}
                 </button>
             </div>
@@ -204,7 +204,7 @@ function ConnectionCard({ index, connection, secret, onChange, onSecret, onRemov
                 </div>
                 <div>
                     <label htmlFor={`${idPrefix}-secret`} className={LABEL}>
-                        {t('admin.sso_client_secret')} {connection.clientSecretSet && <span className="text-green-400 text-xs">{t('admin.sso_secret_configured')}</span>}
+                        {t('admin.sso_client_secret')} {connection.clientSecretSet && <span className="text-[var(--success-ink)] text-xs">{t('admin.sso_secret_configured')}</span>}
                     </label>
                     <input id={`${idPrefix}-secret`} type="password" value={secret}
                         onChange={(e) => onSecret(e.target.value)}
@@ -255,7 +255,7 @@ function MicrosoftSetupSteps({ redirectBase }: { redirectBase: string }) {
     const { t } = useTranslation();
     return (
         <SetupInstructions>
-            <li>{t('admin_security.sso_go_to', 'Go to')} <a href="https://portal.azure.com/#blade/Microsoft_AAD_RegisteredApps/ApplicationsListBlade" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">{t('admin_security.sso_ms_portal', 'Azure Portal → App registrations')}</a></li>
+            <li>{t('admin_security.sso_go_to', 'Go to')} <a href="https://portal.azure.com/#blade/Microsoft_AAD_RegisteredApps/ApplicationsListBlade" target="_blank" rel="noopener noreferrer" className="text-[var(--info-ink)] hover:underline">{t('admin_security.sso_ms_portal', 'Azure Portal → App registrations')}</a></li>
             <li>{t('admin_security.sso_ms_step2', 'Register a new application or select an existing one')}</li>
             <li>{t('admin_security.sso_ms_step3', 'Add a redirect URI (Web):')} <code className={CODE}>{redirectBase}/auth/callback/microsoft</code></li>
             <li>{t('admin_security.sso_ms_step4', 'Create a client secret under "Certificates & secrets"')}</li>
@@ -276,7 +276,6 @@ export default function MicrosoftSsoTab({ sso }: { sso: SsoProvidersState }) {
         <div className="space-y-6">
             <div className={CARD}>
                 <ProviderHeader
-                    logoBackground="rgba(0, 164, 239, 0.15)"
                     logo={<svg className="w-7 h-7" viewBox="0 0 23 23"><path fill="#f35325" d="M1 1h10v10H1z" /><path fill="#81bc06" d="M12 1h10v10H12z" /><path fill="#05a6f0" d="M1 12h10v10H1z" /><path fill="#ffba08" d="M12 12h10v10H12z" /></svg>}
                     title={t('admin_security.sso_ms_title', 'Microsoft / Azure AD')}
                     description={t('admin_security.sso_ms_desc', 'Allow users to sign in with Microsoft accounts')}

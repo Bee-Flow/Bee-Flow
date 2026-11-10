@@ -120,8 +120,21 @@ describe('UserManagement', () => {
         const user = userEvent.setup();
         const onNavigate = vi.fn();
         render(<UserManagement user={fullAdmin} onNavigate={onNavigate} />);
-        await user.click(await screen.findByText('admin.users_tab_groups'));
+        await user.click(await screen.findByRole('tab', { name: 'admin.users_tab_groups' }));
         expect(onNavigate).toHaveBeenCalledWith('admin/security/users/groups');
+    });
+
+    it('marks the section from the URL as the selected tab', async () => {
+        render(<UserManagement user={fullAdmin} activeSection="roles" />);
+        const tabs = await screen.findByRole('tablist', { name: 'admin.sec_users' });
+        expect(within(tabs).getByRole('tab', { name: 'admin.users_tab_roles' })).toHaveAttribute('aria-selected', 'true');
+        expect(within(tabs).getByRole('tab', { name: 'admin.users_tab_users' })).toHaveAttribute('aria-selected', 'false');
+    });
+
+    it('names the row actions of a role after the role', async () => {
+        render(<UserManagement user={fullAdmin} activeSection="roles" />);
+        expect(await screen.findByRole('button', { name: 'common.edit Org admin' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'common.delete Org admin' })).toBeInTheDocument();
     });
 
     it('falls back to the users section for an unknown activeSection', async () => {
@@ -152,6 +165,6 @@ describe('UserManagement', () => {
         asMock(authFetch).mockReset();
         asMock(authFetch).mockRejectedValue(new Error('offline'));
         render(<UserManagement user={fullAdmin} />);
-        expect(await screen.findByText('Failed to load data. Ensure you are admin.')).toBeInTheDocument();
+        expect((await screen.findByText('Failed to load data. Ensure you are admin.')).closest('[role="status"]')).not.toBeNull();
     });
 });

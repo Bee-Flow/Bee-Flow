@@ -19,7 +19,7 @@ import type { PeopleRowProps, PeopleUser } from './PeopleRow';
  * rgba(255,255,255,.06) and effectively vanishes in the high-contrast theme.
  */
 const ORG_STATUS_CHIP: Record<string, string> = {
-    suspended: 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/40',
+    suspended: 'bg-[color-mix(in_srgb,var(--warning)_14%,transparent)] text-[var(--warning-ink)] border border-[color-mix(in_srgb,var(--warning)_40%,transparent)]',
     archived: 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] border border-[var(--border-default)]',
 };
 

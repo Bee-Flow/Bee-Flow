@@ -99,6 +99,7 @@ export default {
     "admin_monitoring.overview_total_tokens": "Total Tokens",
     "admin_monitoring.overview_trend_billed_raw": "{period} · {billed} billed · {raw} raw",
     "admin_monitoring.range_custom": "Custom",
+    "admin_monitoring.range_label": "Period",
     "admin_monitoring.refresh": "Refresh",
     "admin_monitoring.shared_all_agents": "All Agents",
     "admin_monitoring.shared_all_users": "All Users",

@@ -1,5 +1,5 @@
 import type { DonutChartProps } from '../shared.types';
-import { MODEL_COLORS } from './ModelRow';
+import { MODEL_COLORS, SeriesDot } from './ModelRow';
 
 export function DonutChart({ items, size = 160, centerLabel, centerValue }: DonutChartProps) {
     const total = items.reduce((s, i) => s + (i.value || 0), 0) || 1;
@@ -21,36 +21,31 @@ export function DonutChart({ items, size = 160, centerLabel, centerValue }: Donu
         return { ...item, path, pct, color: item.color || MODEL_COLORS[idx % MODEL_COLORS.length] };
     });
     return (
-        <div className="[display:flex] [align-items:center] [gap:20px]">
-            <svg width={size} height={size} viewBox="0 0 100 100">
+        <div className="flex flex-wrap items-center gap-5">
+            <svg width={size} height={size} viewBox="0 0 100 100" className="shrink-0">
                 {arcs.map((arc, i) => (
-                    <path key={i} d={arc.path} fill="none" stroke={arc.color} strokeWidth="14" strokeLinecap="round"
-                        className="[transition:stroke-dashoffset_0.4s_ease]" />
+                    <path key={i} d={arc.path} fill="none" stroke={arc.color} strokeWidth="14" strokeLinecap="round" />
                 ))}
                 {centerLabel && (
                     <>
-                        <text x="50" y="46" textAnchor="middle" fill="var(--text-muted, #888)" fontSize="6" fontWeight="600" className="[text-transform:uppercase] [letter-spacing:0.05em]">
+                        <text x="50" y="46" textAnchor="middle" fill="var(--text-tertiary)" fontSize="6" fontWeight="600" className="uppercase tracking-[0.05em]">
                             {centerLabel}
                         </text>
-                        <text x="50" y="58" textAnchor="middle" fill="var(--text-primary, #fff)" fontSize="12" fontWeight="800">
+                        <text x="50" y="58" textAnchor="middle" fill="var(--text-primary)" fontSize="12" fontWeight="700">
                             {centerValue}
                         </text>
                     </>
                 )}
             </svg>
-            <div className="[display:flex] [flex-direction:column] [gap:6px] min-w-[0]">
+            <ul className="flex min-w-0 flex-col gap-1.5">
                 {arcs.map((arc, i) => (
-                    <div key={i} className="[display:flex] [align-items:center] [gap:6px] [font-size:11px]">
-                        <span style={{ width: 8, height: 8, borderRadius: 2, background: arc.color, flexShrink: 0 }} />
-                        <span className="[color:var(--text-secondary,#aaa)] [overflow:hidden] [text-overflow:ellipsis] [white-space:nowrap] max-w-[110px]">
-                            {arc.label}
-                        </span>
-                        <span className="[color:var(--text-muted,#888)] [font-weight:600] [margin-left:auto]">
-                            {(arc.pct * 100).toFixed(0)}%
-                        </span>
-                    </div>
+                    <li key={i} className="flex items-center gap-1.5 text-[11px]">
+                        <SeriesDot color={arc.color} square />
+                        <span className="max-w-[140px] truncate text-[var(--text-secondary)]">{arc.label}</span>
+                        <span className="ml-auto pl-2 font-semibold tabular-nums text-[var(--text-tertiary)]">{(arc.pct * 100).toFixed(0)}%</span>
+                    </li>
                 ))}
-            </div>
+            </ul>
         </div>
     );
 }
