@@ -43,4 +43,19 @@ function computedBits(f, withId, tableFields = []) {
     return out;
 }
 
-module.exports = { computedBits };
+/**
+ * A field's rules (validation, dynamicDefault, format, display), on app_get_data_model only and
+ * only when declared. Kept here next to the computed marks so builderPrompt.js stays small.
+ * @param {Record<string, unknown>} f
+ * @returns {string[]}
+ */
+function fieldRuleBits(f) {
+    return [
+        f.validation && typeof f.validation === 'object' ? `validation=${JSON.stringify(f.validation)}` : '',
+        typeof f.dynamicDefault === 'string' ? `dynamicDefault=${f.dynamicDefault}` : '',
+        typeof f.format === 'string' ? `format=${f.format}` : '',
+        f.display && typeof f.display === 'object' ? `display=${JSON.stringify(f.display)}` : '',
+    ].filter(Boolean);
+}
+
+module.exports = { computedBits, fieldRuleBits };

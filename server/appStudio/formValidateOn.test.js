@@ -60,7 +60,8 @@ test('a form using validateOn is stamped schemaVersion 3, one without keeps 2', 
 
 test('validateOn is in the extension index and served by app_inspect_catalog', () => {
     assert.ok(renderExtensionIndex().includes('form.validateOn'));
-    const res = applyInspectCatalog({ extensions: ['form.validateOn'] });
+    // A call that names something is never the "nothing asked" error.
+    const res = /** @type {{ extensions?: Record<string, string>, unknown?: string[] }} */ (applyInspectCatalog({ extensions: ['form.validateOn'] }));
     assert.ok(JSON.stringify(res.extensions || {}).includes('validateOn'), JSON.stringify(res).slice(0, 300));
     assert.ok(!res.unknown || res.unknown.length === 0);
 });

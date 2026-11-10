@@ -26,7 +26,7 @@ const { renderCatalogText, renderCompactCatalogText } = require('./builderPrompt
 const { renderExtensionIndex } = require('./builderPrompt/extensionIndex.mts');
 const { buildCoreSystemPrompt } = require('./builderPrompt/corePrompt');
 const { buildFewShotMessages } = require('./builderPrompt/fewShots');
-const { computedBits } = require('./builderPrompt/computedMarks');
+const { computedBits, fieldRuleBits } = require('./builderPrompt/computedMarks');
 
 // The machine note that carries the owner's automations and documents. Defined
 // here (with the renderer) and listed in routes/ai/appStudioBuilder/turnLoop.js
@@ -593,8 +593,6 @@ function renderDataField(f, withId = false, tableFields = []) {
     if (withId) bits.push(...fieldRuleBits(f));
     return bits.join(' ');
 }
-/** A field's rules (validation, dynamicDefault, format, display), on app_get_data_model only and only when declared. */
-const fieldRuleBits = (f) => [f.validation && typeof f.validation === 'object' ? `validation=${JSON.stringify(f.validation)}` : '', typeof f.dynamicDefault === 'string' ? `dynamicDefault=${f.dynamicDefault}` : '', typeof f.format === 'string' ? `format=${f.format}` : '', f.display && typeof f.display === 'object' ? `display=${JSON.stringify(f.display)}` : ''].filter(Boolean);
 
 /**
  * The `data:` block appended to the draft state when a data model was loaded

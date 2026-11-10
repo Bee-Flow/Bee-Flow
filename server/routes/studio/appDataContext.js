@@ -21,10 +21,9 @@ const dataReadRunner = require('../../appStudio/dataReadRunner');
 const datatableSource = require('../../appStudio/datatableSource');
 const { resolveAudienceContext } = require('../../auth/audience');
 const { perUserRateLimit } = require('../../utils/perUserRateLimit');
-const { fallback } = require('../../utils/bestEffort');
 const { sessionUser } = require('../../core/http/sessionUser');
 const { withViewerAttributes } = require('../../appStudio/viewerAttributes.mts');
-const { relationQueryOf } = require('./appRuntimeSchemas');
+const { parseListQuery, optionalListQuery } = require('./appListQuery');
 
 /**
  * @typedef {import('../../appStudio/builderTools/dataTools').DataTable} DataTable
@@ -271,35 +270,6 @@ function publicTable(t) {
             ...(f.relation && typeof f.relation === 'object' ? { relation: { table: f.relation.table, ...(typeof f.relation.displayField === 'string' && f.relation.displayField ? { displayField: f.relation.displayField } : {}) } } : {}),
         })),
     };
-}
-
-// Parse list filters/sort from the query string (JSON-encoded). Bad JSON is
-// ignored rather than 400 — the compiler validates the resulting shapes.
-/** @param {import('express').Request} req */
-function parseListQuery(req) {
-    const q = req.query || {};
-    let filters;
-    let sort;
-    if (typeof q.filter === 'string' && q.filter) { try { filters = JSON.parse(q.filter); } catch (err) { fallback('routes/studio/appDataContext:parseListQuery', err); /* ignore */ } }
-    if (typeof q.sort === 'string' && q.sort) { try { sort = JSON.parse(q.sort); } catch (err) { fallback('routes/studio/appDataContext:parseListQuery#2', err); /* ignore */ } }
-    if (filters !== undefined && !Array.isArray(filters)) filters = [filters];
-    /** @type {unknown} */
-    let orderBy;
-    if (typeof q.orderBy === 'string' && q.orderBy) { try { orderBy = JSON.parse(q.orderBy); } catch (err) { fallback('routes/studio/appDataContext:parseListQuery#3', err); /* ignore */ } }
-    return { ...(orderBy === undefined ? { filters, sort } : { filters, sort, orderBy }), ...optionalListQuery(q), ...relationQueryOf(q) };
-}
-
-/**
- * The query fields that exist only when the request sends them: how the filters join and a free
- * search. Absent means absent, so a request without them compiles exactly as it always did.
- * @param {import('qs').ParsedQs} q
- */
-function optionalListQuery(q) {
-    /** @type {{ match?: string, search?: unknown }} */
-    const out = {};
-    if (typeof q.match === 'string' && q.match) out.match = q.match;
-    if (typeof q.search === 'string' && q.search) { try { out.search = JSON.parse(q.search); } catch (err) { fallback('routes/studio/appDataContext:optionalListQuery', err); /* the compiler validates */ } }
-    return out;
 }
 
 // The cache invalidation + row count after a write used to live here as
