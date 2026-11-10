@@ -1,0 +1,478 @@
+{
+  "corpus": "logic-parallel",
+  "canonical": {
+    "sha256": "4b1d3d698a0dc30c2c4130b46e974af70e2cf79f69c803d1f0c7df2745007466",
+    "bytes": 5736,
+    "inputIsCanonical": true,
+    "idempotent": true,
+    "keys": [
+      "schemaVersion",
+      "meta",
+      "theme",
+      "roles",
+      "variables",
+      "screens",
+      "actions",
+      "homeScreenId",
+      "publicAccess"
+    ],
+    "parts": {
+      "schemaVersion": "4e07408562bedb8b",
+      "meta": "71f024cfbfa6415c",
+      "theme": "762a67c8502d6b6b",
+      "roles": "49e59d81818fcd49",
+      "variables": "9575283d3f594003",
+      "screens[0] scr_pubfrm": "97ff860a7a5ea32c",
+      "screens[1] scr_pubthx": "cb24a8f556f8b1a3",
+      "screens[2] scr_pubbck": "1e51e488e3172ad3",
+      "actions.act_pubsub": "d009776c1be6faea",
+      "actions.act_publog": "5c0fd89753c57ba1",
+      "actions.act_pubcls": "1a323ba256a37a4b",
+      "homeScreenId": "661b0b4ccd14020b",
+      "publicAccess": "67bfb9f221d902a4"
+    }
+  },
+  "schemaVersion": {
+    "stored": 3,
+    "canonical": 3
+  },
+  "validation": {
+    "strict": {
+      "errors": [],
+      "warnings": []
+    },
+    "save": {
+      "errors": [],
+      "warnings": []
+    }
+  },
+  "ordinals": {
+    "stored": {
+      "act_pubsub": [
+        "0 try",
+        "1 parallel",
+        "2 create_record",
+        "3 condition",
+        "4 call_action",
+        "5 set_variable",
+        "6 toast",
+        "7 return",
+        "8 navigate"
+      ],
+      "act_publog": [
+        "0 create_record",
+        "1 set_variable",
+        "2 return",
+        "3 return"
+      ],
+      "act_pubcls": [
+        "0 parallel",
+        "1 update_record",
+        "2 loop",
+        "3 condition",
+        "4 break",
+        "5 set_variable",
+        "6 refresh",
+        "7 set_variable"
+      ]
+    },
+    "canonical": "same as stored"
+  },
+  "publicDefinition": {
+    "actionIds": [
+      "act_pubsub"
+    ],
+    "sha256": "61a655dfa63aa3f16f08dd81a06f7d7f10ad9b22db855d331c30285012157847",
+    "definition": {
+      "schemaVersion": 3,
+      "meta": {
+        "name": "Send us a request",
+        "description": "",
+        "icon": "Inbox"
+      },
+      "theme": {
+        "primary": "#B45309",
+        "radius": "md",
+        "density": "comfortable",
+        "fontScale": "md",
+        "appearance": "light"
+      },
+      "homeScreenId": "scr_pubfrm",
+      "roles": [],
+      "screens": [
+        {
+          "id": "scr_pubfrm",
+          "name": "Request",
+          "icon": "FilePlus2",
+          "showInNav": false,
+          "maxWidth": "narrow",
+          "sections": [
+            {
+              "id": "sec_pubfrm",
+              "style": {
+                "padding": 4,
+                "gap": 3,
+                "background": "none"
+              },
+              "children": [
+                {
+                  "id": "cmp_pubhdr",
+                  "type": "heading",
+                  "props": {
+                    "text": "How can we help?",
+                    "level": 1,
+                    "accent": "none"
+                  },
+                  "style": {
+                    "span": 12
+                  },
+                  "visible": true
+                },
+                {
+                  "id": "cmp_pubfrm",
+                  "type": "form",
+                  "props": {
+                    "name": "request",
+                    "submitLabel": "Send",
+                    "showReset": false,
+                    "showSubmit": true,
+                    "resetKey": null
+                  },
+                  "style": {
+                    "span": 6,
+                    "gap": 3,
+                    "padding": 0
+                  },
+                  "visible": true,
+                  "onSubmit": "act_pubsub",
+                  "children": [
+                    {
+                      "id": "cmp_pubnam",
+                      "type": "input_text",
+                      "props": {
+                        "name": "name",
+                        "label": "Your name",
+                        "placeholder": null,
+                        "required": true,
+                        "defaultValue": null,
+                        "inputType": "text",
+                        "valueFrom": {
+                          "kind": "static",
+                          "value": null
+                        }
+                      },
+                      "style": {
+                        "span": 12
+                      },
+                      "visible": true
+                    },
+                    {
+                      "id": "cmp_pubdet",
+                      "type": "input_textarea",
+                      "props": {
+                        "name": "details",
+                        "label": "What do you need?",
+                        "placeholder": null,
+                        "required": true,
+                        "rows": 4,
+                        "valueFrom": {
+                          "kind": "static",
+                          "value": null
+                        },
+                        "snippets": {
+                          "kind": "static",
+                          "value": null
+                        },
+                        "snippetKey": "shortcut",
+                        "snippetBody": "body",
+                        "snippetLabel": "title"
+                      },
+                      "style": {
+                        "span": 12
+                      },
+                      "visible": true
+                    },
+                    {
+                      "id": "cmp_pubchk",
+                      "type": "input_checkbox",
+                      "props": {
+                        "name": "urgent",
+                        "label": "This is urgent",
+                        "defaultChecked": false
+                      },
+                      "style": {
+                        "span": 12
+                      },
+                      "visible": true
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "scr_pubthx",
+          "name": "Thanks",
+          "icon": null,
+          "showInNav": false,
+          "maxWidth": "narrow",
+          "sections": [
+            {
+              "id": "sec_pubthx",
+              "style": {
+                "padding": 4,
+                "gap": 3,
+                "background": "none"
+              },
+              "children": [
+                {
+                  "id": "cmp_pubthx",
+                  "type": "callout",
+                  "props": {
+                    "title": "Thank you",
+                    "text": "We will get back to you.",
+                    "textFrom": {
+                      "kind": "static",
+                      "value": null
+                    },
+                    "tone": "success",
+                    "toneFrom": {
+                      "kind": "static",
+                      "value": null
+                    },
+                    "meta": null,
+                    "metaFrom": {
+                      "kind": "static",
+                      "value": null
+                    },
+                    "collapsible": false
+                  },
+                  "style": {
+                    "span": 12
+                  },
+                  "visible": true
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "actions": {
+        "act_pubsub": {
+          "kind": "sequence",
+          "steps": [
+            {
+              "kind": "try",
+              "steps": [
+                {
+                  "kind": "parallel",
+                  "branches": [
+                    {
+                      "steps": [
+                        {
+                          "kind": "create_record",
+                          "resultVar": "created",
+                          "retry": {
+                            "times": 1,
+                            "delayMs": 200
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "steps": [
+                        {
+                          "kind": "condition",
+                          "expr": "form.urgent == true",
+                          "then": [
+                            {
+                              "kind": "call_action",
+                              "actionId": "act_publog"
+                            }
+                          ],
+                          "else": []
+                        }
+                      ]
+                    }
+                  ],
+                  "failFast": true
+                }
+              ],
+              "catch": [
+                {
+                  "kind": "set_variable",
+                  "name": "problem",
+                  "value": {
+                    "kind": "formula",
+                    "expr": "error.message"
+                  }
+                },
+                {
+                  "kind": "toast",
+                  "message": "Sending failed, please try again.",
+                  "tone": "danger"
+                },
+                {
+                  "kind": "return"
+                }
+              ]
+            },
+            {
+              "kind": "navigate",
+              "screenId": "scr_pubthx"
+            }
+          ]
+        },
+        "act_publog": {
+          "kind": "sequence",
+          "steps": [
+            {
+              "kind": "create_record",
+              "onError": {
+                "steps": [
+                  {
+                    "kind": "return",
+                    "value": {
+                      "kind": "static",
+                      "value": 0
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "kind": "set_variable",
+              "name": "tries",
+              "value": {
+                "kind": "formula",
+                "expr": "vars.tries + 1"
+              }
+            },
+            {
+              "kind": "return",
+              "value": {
+                "kind": "formula",
+                "expr": "vars.tries"
+              }
+            }
+          ]
+        }
+      },
+      "design": {
+        "font": "poppins"
+      },
+      "variables": [
+        {
+          "name": "tries",
+          "label": "tries",
+          "type": "number",
+          "default": 0,
+          "description": ""
+        },
+        {
+          "name": "problem",
+          "label": "problem",
+          "type": "text",
+          "default": "",
+          "description": ""
+        },
+        {
+          "name": "closed",
+          "label": "closed",
+          "type": "number",
+          "default": 0,
+          "description": ""
+        }
+      ]
+    }
+  },
+  "reads": [
+    {
+      "at": "cmp_pubgrd.source",
+      "kind": "records",
+      "table": "tbl_pubreq",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"requests\" WHERE (1=1) AND \"status\" = ? ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "new",
+            51
+          ]
+        },
+        "agent": {
+          "sql": "SELECT * FROM \"requests\" WHERE (1=1) AND \"status\" = ? ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "new",
+            51
+          ]
+        },
+        "public": {
+          "note": "no read access for this role"
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"requests\" WHERE (1=1) AND \"status\" = ? ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "new",
+            51
+          ]
+        },
+        "agent": {
+          "sql": "SELECT * FROM \"requests\" WHERE (1=1) AND \"status\" = ? ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "new",
+            51
+          ]
+        },
+        "public": {
+          "note": "no read access for this role"
+        }
+      }
+    },
+    {
+      "at": "cmp_pubcnt.value",
+      "kind": "aggregate",
+      "table": "tbl_pubreq",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"requests\" WHERE (1=1) AND \"urgent\" = ? LIMIT ?",
+          "params": [
+            1,
+            50
+          ]
+        },
+        "agent": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"requests\" WHERE (1=1) AND \"urgent\" = ? LIMIT ?",
+          "params": [
+            1,
+            50
+          ]
+        },
+        "public": {
+          "note": "no read access for this role"
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"requests\" WHERE (1=1) AND \"urgent\" = ? LIMIT ?",
+          "params": [
+            true,
+            50
+          ]
+        },
+        "agent": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"requests\" WHERE (1=1) AND \"urgent\" = ? LIMIT ?",
+          "params": [
+            true,
+            50
+          ]
+        },
+        "public": {
+          "note": "no read access for this role"
+        }
+      }
+    }
+  ]
+}
