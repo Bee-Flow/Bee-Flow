@@ -298,11 +298,13 @@ function baseToolSchemaHashes() {
     const { TOOL_SCHEMAS } = require('../appStudio/builderTools/schemas');
     const { selectToolMenu } = require('../appStudio/builderModelProfiles');
     const { stripExtensionTier } = require('../appStudio/builderTools/schemaTiers.mts');
+    const { stripThemeDesignExtensions } = require('../appStudio/builderTools/themeDesignSchema.mts');
     const sha = (/** @type {unknown} */ tool) => crypto.createHash('sha256').update(JSON.stringify(tool)).digest('hex');
     const byName = (/** @type {any[]} */ tools) => Object.fromEntries(tools.map((tool) => [tool.function.name, sha(tool)]));
     const stripped = TOOL_SCHEMAS.map((/** @type {unknown} */ tool) => {
         const copy = JSON.parse(JSON.stringify(tool));
         stripExtensionTier(copy);
+        stripThemeDesignExtensions(copy); // a theme or design key marked since 3 is a property of its own
         return copy;
     });
     return { full: byName(stripped), core: byName(selectToolMenu({ toolset: 'core' }, TOOL_SCHEMAS)) };

@@ -2,7 +2,8 @@
 'use strict';
 // Part 2 of the TOOL_SCHEMAS array (split out of schemas.js; order is preserved there).
 
-const { LIMITS, THEME_SPEC, DESIGN_SPEC, VARIABLE_TYPES } = require('../componentSpecs');
+const { LIMITS, VARIABLE_TYPES } = require('../componentSpecs');
+const { themeDesignProps } = require('./themeDesignSchema.mts');
 const { FIELD_TYPES, ACCESS_MODES } = require('../dataModel');
 // Enums take the whole list; a description names the base words only, so a word added later
 // (vocabularySince.js) moves no pinned text.
@@ -202,27 +203,14 @@ const TOOL_SCHEMAS_PART_2 = [
                             theme: {
                                 type: 'object',
                                 description: 'The public page\'s own theme, merged over the app theme. Name only what differs — e.g. { canvas: "#ffda00", accent: "#009b3e", primary: "#0064b0" } for a customer whose brand is a yellow ground, green buttons and blue headings.',
-                                properties: {
-                                    primary: { type: 'string', description: '#rrggbb — headings, links, progress, badges.' },
-                                    accent: { type: 'string', description: '#rrggbb — primary buttons and form submits. Unset = the primary.' },
-                                    canvas: { type: 'string', description: '#rrggbb — the page ground behind the sections.' },
-                                    radius: { type: 'string', enum: [...THEME_SPEC.radius.values] },
-                                    density: { type: 'string', enum: [...THEME_SPEC.density.values] },
-                                    fontScale: { type: 'string', enum: [...THEME_SPEC.fontScale.values] },
-                                    appearance: { type: 'string', enum: [...THEME_SPEC.appearance.values] },
-                                },
+                                // From THEME_SPEC (themeDesignSchema.mts): a key marked since 3 joins by itself.
+                                properties: themeDesignProps('publicTheme'),
                             },
                             design: {
                                 type: 'object',
                                 description: 'The public page\'s own design knobs, merged over the app design. Typically just the typeface and a logo.',
-                                properties: {
-                                    font: { type: 'string', enum: [...DESIGN_SPEC.font.values] },
-                                    logoUrl: { type: 'string', description: 'https:// URL of the customer\'s logo.' },
-                                    surface: { type: 'string', enum: [...DESIGN_SPEC.surface.values] },
-                                    motion: { type: 'string', enum: [...DESIGN_SPEC.motion.values] },
-                                    accentEdge: { type: 'string', enum: [...DESIGN_SPEC.accentEdge.values] },
-                                    chartPalette: { type: 'string', enum: [...DESIGN_SPEC.chartPalette.values] },
-                                },
+                                // From DESIGN_SPEC, the same way.
+                                properties: themeDesignProps('publicDesign'),
                             },
                         },
                         required: ['entryScreenId'],

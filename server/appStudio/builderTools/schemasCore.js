@@ -31,6 +31,7 @@
 
 const { MAX_BATCH_PATCHES_PER_CALL } = require('./schemas');
 const { stripExtensionTier } = require('./schemaTiers.mts');
+const { stripThemeDesignExtensions } = require('./themeDesignSchema.mts');
 
 const CORE_PRUNE = {
     app_set_theme: {
@@ -125,6 +126,7 @@ function projectOne(tool) {
     // below is on the clone.
     const out = JSON.parse(JSON.stringify(tool));
     stripExtensionTier(out); // the small band is the base catalogue only
+    stripThemeDesignExtensions(out); // ... and the base theme and design keys only
     if (!rule) return out;
     const fn = out.function;
     if (typeof rule.description === 'string') fn.description = rule.description;
