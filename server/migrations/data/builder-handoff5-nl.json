@@ -1118,7 +1118,22 @@
     "automations.library.loadFailed": "Je automatiseringen konden niet worden geladen.",
     "automations.library.retry": "Opnieuw proberen",
     "runs.tab.load_retry": "Opnieuw proberen",
-    "runs.timeline.simulated": "Nagebootst: {what}"
+    "runs.timeline.simulated": "Nagebootst: {what}",
+    "automations.golive.anyway": "Toch live zetten",
+    "automations.golive.anyway_failed": "De laatste test is mislukt.",
+    "automations.golive.anyway_none": "Deze automatisering is nog niet getest.",
+    "automations.golive.anyway_unknown": "De controles konden niet worden geladen, dus deze versie geldt als niet getest.",
+    "automations.golive.changes_title": "Wat er verandert",
+    "automations.golive.checks_failed": "De controles konden niet worden geladen.",
+    "automations.golive.checks_title": "Voordat hij live gaat",
+    "automations.golive.tested_on": "De laatste test draaide op v{tested}, niet op v{version}.",
+    "automations.golive.title_activate": "Deze automatisering weer aanzetten?",
+    "automations.golive.title_publish": "v{version} live zetten?",
+    "automations.golive.what_first": "Deze automatisering is nog nooit live geweest. Hiermee gaat v{version} live en wordt hij aangezet.",
+    "automations.golive.what_publish": "v{live} is live. Hiermee gaat v{version} live.",
+    "automations.golive.what_publish_first": "Hiermee wordt v{version} de live versie.",
+    "automations.golive.what_resume": "Hiermee zet je de automatisering weer aan. Runs gebruiken v{live}, de live versie.",
+    "automations.golive.what_resume_pending": "Hiermee zet je de automatisering weer aan met v{live}. Je wijzigingen in v{version} blijven in de werkkopie tot je ze live zet."
   },
   "sameAsEnglish": [
     "automations.agent_step.group_automations",
