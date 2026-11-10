@@ -27,7 +27,7 @@ Use HaRP for a new install. The reason is under
 
 | Your Nextcloud | Deploy daemon | What you add | Verified by us |
 |---|---|---|---|
-| **Nextcloud All-in-One** | The HaRP container of All-in-One. AppAPI has the matching daemon `harp_aio` ("AIO HaRP"). | Tick **HaRP** in the All-in-One interface. No reverse-proxy rule: see [All-in-One](#aio). | Routing read in the All-in-One source. An install on All-in-One: not verified by us. |
+| **Nextcloud All-in-One** | The HaRP container of All-in-One. AppAPI has the matching daemon `harp_aio` ("AIO HaRP"). | Tick **HaRP** in the All-in-One interface. No reverse-proxy rule: see [All-in-One](#aio). | Routing read in the All-in-One source. There is a [local test setup](../getting-started/local-development.md#testing-on-a-local-nextcloud-aio-harp--a-self-signed-certificate); this release on All-in-One: not verified by us. |
 | **Community Docker image with compose**, behind your own reverse proxy | HaRP, as one more container on the same Docker engine | The HaRP container, the daemon registration, and the [`/exapps/` rule](#exapps-rule) in the reverse proxy in front of Nextcloud | Our development sandbox runs this shape with nginx. Other proxies: not verified by us. |
 | **Bare metal or a virtual machine**, with Docker on the host | HaRP, as a container on that host | Docker, the HaRP container, the daemon registration, and the [`/exapps/` rule](#exapps-rule) in the web server or proxy that serves Nextcloud | Not verified by us. |
 | **Snap** | HaRP, when Docker runs on the host | The same as bare metal. Where the `/exapps/` rule goes on a snap is not verified by us. | Not verified by us. |
@@ -141,7 +141,9 @@ What the All-in-One source shows:
   and opens the app through Nextcloud's AppAPI proxy path, so
   [what holds for the Docker Socket Proxy](#why-harp) holds here too.
 
-Not verified by us: an install of the connector on a running All-in-One, with either container.
+Not verified by us: this release of the connector on a running All-in-One, with either container.
+For a local All-in-One with a self-signed certificate see
+[Local development](../getting-started/local-development.md#testing-on-a-local-nextcloud-aio-harp--a-self-signed-certificate).
 
 All-in-One also still offers the **Docker Socket Proxy** container, with the daemon `docker_aio`.
 To move from it to HaRP see [Migrate to HaRP](troubleshooting.md#migrate-to-harp).

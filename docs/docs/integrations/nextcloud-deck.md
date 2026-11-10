@@ -9,7 +9,7 @@ title: Nextcloud — Deck
 | | |
 |---|---|
 | Integration ID | `nextcloud-deck` |
-| Auth | NC session |
+| Auth | NC session (through the connector), or an app password. An OAuth sign-in alone is not enough for Deck: see [No Docker on your Nextcloud host?](nextcloud.md#no-docker) |
 | Required NC app | `deck` |
 | Source | `server/integrations/nextcloudDeckTools.js` |
 
