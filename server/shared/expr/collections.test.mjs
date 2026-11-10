@@ -180,3 +180,8 @@ test('objects: false keeps a brace the error it was, wherever it stands', () => 
     assert.equal(evaluate('"{" + len([1, 2]) + (missing ?? "}")', {}, { objects: false }), '{2}');
     assert.equal(exprSince('{}', { objects: false }), 0);
 });
+
+test('groupBy keeps a text apart from a list or object whose JSON it spells', () => {
+    const groups = evaluate('groupBy(["o:[1]", "[1]", [1], [1], { a: 1 }, "{\\"a\\":1}"], "")', {});
+    assert.deepEqual(groups.map((g) => [g['key'], g.items.length]), [['o:[1]', 1], ['[1]', 1], [[1], 2], [{ a: 1 }, 1], ['{"a":1}', 1]]);
+});

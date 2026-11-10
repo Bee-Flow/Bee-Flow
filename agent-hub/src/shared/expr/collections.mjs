@@ -99,12 +99,17 @@ export function sliceOf(list, start, end) {
     return list.slice(position(start, 0), position(end, list.length));
 }
 
-/** How groupBy() tells two keys apart: like unique(), scalars strictly, the rest by JSON text. @param {unknown} v */
+/**
+ * How groupBy() tells two keys apart: scalars strictly, lists and objects by
+ * their JSON text. The two kinds never share a group (a text that happens to
+ * spell an object's JSON is still a text), so each has its own table.
+ * @param {unknown} v @returns {{ object: boolean, id: unknown }}
+ */
 function groupIdentity(v) {
     if (v !== null && typeof v === 'object') {
-        try { return `o:${JSON.stringify(v)}`; } catch { return v; }
+        try { return { object: true, id: JSON.stringify(v) }; } catch { return { object: false, id: v }; }
     }
-    return v === undefined ? null : v;
+    return { object: false, id: v === undefined ? null : v };
 }
 
 /**
@@ -115,16 +120,22 @@ function groupIdentity(v) {
 export function groupByOf(list, key) {
     if (!Array.isArray(list)) return [];
     const k = keyName(key);
-    /** @type {Map<unknown, { key: unknown, items: unknown[] }>} */
-    const groups = new Map();
+    /** @typedef {{ key: unknown, items: unknown[] }} Group */
+    /** @type {Map<unknown, Group>} */
+    const scalars = new Map();
+    /** @type {Map<unknown, Group>} */
+    const objects = new Map();
+    /** @type {Group[]} */
+    const out = [];
     for (const item of list) {
         const value = k == null ? item : ownField(item, k);
-        const id = groupIdentity(value);
-        let group = groups.get(id);
-        if (!group) { group = { key: value === undefined ? null : value, items: [] }; groups.set(id, group); }
+        const { object, id } = groupIdentity(value);
+        const table = object ? objects : scalars;
+        let group = table.get(id);
+        if (!group) { group = { key: value === undefined ? null : value, items: [] }; table.set(id, group); out.push(group); }
         group.items.push(item);
     }
-    return [...groups.values()];
+    return out;
 }
 
 /**
