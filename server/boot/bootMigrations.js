@@ -305,9 +305,9 @@ const MANUAL_MIGRATIONS = [
     // Publishes KBs that hang on org agents — a visibility widening that you
     // do not want to silently repeat on every boot.
     'publish-kbs-linked-to-org-agents',
-    // Eénmalige backfill van agents.published_config; stores/agent/initSchema.js
-    // zegt er expliciet bij dat hij NIET bij boot draait.
+    // One-off agents.published_config backfill; stores/agent/initSchema.js: NOT at boot.
     'agents-published-config',
+    'stale-free-limits-repair-2026-11', // BFSF-249: a deliberate 5/3 override looks the same, --dry-run first
 ];
 
 const { LEDGER_TABLE, ensureLedgerTable } = require('../stores/lib/ddlLedgerTable');
