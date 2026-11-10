@@ -5,6 +5,7 @@ import { appDesignProps } from '../../components/admin/Studio/AppStudio/runtime/
 import AppFontLoader from '../../components/admin/Studio/AppStudio/runtime/AppFontLoader';
 import { createPublicAppTransport } from '../../components/admin/Studio/AppStudio/runtime/publicAppTransport';
 import { CANVAS_GROUND, themeVars } from '../../components/admin/Studio/AppStudio/runtime/themeVars';
+import { openingRoute, previewRoleFor, type ScreenParams } from '@/components/admin/Studio/AppStudio/runtime/screenRoute';
 import EmptyState from '../../components/shared/EmptyState';
 import { useTranslation } from '../../hooks/useTranslation';
 import { API_BASE, setPublicAppTransport } from '../../utils/helpers';
@@ -105,9 +106,15 @@ function NotAvailable({ error, onRetry }: { error: unknown; onRetry: () => void 
     );
 }
 
+/** Where the visitor starts, and where an empty or refused screen link lands. */
+function entryScreenOf(payload: PublicAppPayload | null | undefined): string | null {
+    return payload?.entryScreenId || payload?.definition?.homeScreenId || null;
+}
+
 export default function PublicAppPage({ token }: { token: string }) {
     const [state, setState] = useState<PageState>({ status: 'loading', payload: null, error: null });
     const [screenId, setScreenId] = useState<string | null>(null);
+    const [entryParams, setEntryParams] = useState<ScreenParams | null>(null);
 
     // The live visitor token, read through a ref so the transport installed
     // once below always sees the CURRENT one.
@@ -145,7 +152,11 @@ export default function PublicAppPage({ token }: { token: string }) {
                 visitorRef.current = payload.visitorToken;
                 storeVisitor(token, payload.visitorToken);
             }
-            setScreenId(payload?.entryScreenId || payload?.definition?.homeScreenId || null);
+            // A screen link (#/s/<id>) can only name a screen this page was
+            // served: the definition holds the public screens and nothing else.
+            const entry = openingRoute(payload?.definition, entryScreenOf(payload), previewRoleFor(null));
+            setScreenId(entry.screenId);
+            setEntryParams(entry.params);
             setState({ status: 'ready', payload, error: null });
         } catch (err) {
             setState({ status: 'error', payload: null, error: err });
@@ -197,6 +208,9 @@ export default function PublicAppPage({ token }: { token: string }) {
                 viewer={null}
                 onNavigate={setScreenId}
                 chrome="bare"
+                urlRoute
+                homeScreenId={entryScreenOf(state.payload)}
+                initialScreenParams={entryParams}
             />
         </div>
     );

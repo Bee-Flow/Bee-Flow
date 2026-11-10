@@ -106,6 +106,12 @@ export interface RunSurfaceProps {
     versionBanner?: React.JSX.Element | null;
     hideExit?: boolean;
     chrome?: string;
+    /** Mirror the screen into the URL (#/s/<id>?p.<key>=…) so Back/Forward and links work. */
+    urlRoute?: boolean;
+    /** Where an empty or refused screen link lands. */
+    homeScreenId?: string | null;
+    /** The params of the screen the host opened first (from a screen link). */
+    initialScreenParams?: Record<string, unknown> | null;
 }
 
 /**
