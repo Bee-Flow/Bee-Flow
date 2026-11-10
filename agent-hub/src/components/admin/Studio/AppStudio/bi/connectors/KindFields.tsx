@@ -108,7 +108,7 @@ function RestAuthFields({ connector, setOpt, disabled }: { connector: Connector;
 }
 
 /** A REST connector: the URL template, and auth and paging one disclosure deeper. */
-export function RestFields({ connector, setOpt, disabled }: { connector: Connector; setOpt: SetOpt; disabled?: boolean }) {
+export function RestFields({ connector, setOpt, patch, disabled }: { connector: Connector; setOpt: SetOpt; patch: PatchConnector; disabled?: boolean }) {
     const { t } = useTranslation();
     return (
         <>
@@ -116,6 +116,25 @@ export function RestFields({ connector, setOpt, disabled }: { connector: Connect
             <p className="-mt-1 text-xs text-[var(--text-tertiary)]">{t('studio_apps_bi.connectors.url_hint', 'Use {placeholder} placeholders for declared params. The host is fixed — it may not be templated.', { placeholder: '{param}' })}</p>
             <Disclosure title={t('studio_apps_bi.connectors.advanced', 'Advanced settings')}>
                 <div className="flex flex-col gap-3">
+                    <label className="flex flex-col gap-1">
+                        <span className={LABEL}>{t('studio_apps_connectorpost.method', 'Request method')}</span>
+                        <select
+                            className={INPUT}
+                            value={connector.method === 'POST' ? 'POST' : 'GET'}
+                            onChange={(e) => patch(e.target.value === 'POST' ? { method: 'POST' } : { method: '', body: undefined })}
+                            disabled={disabled}
+                            aria-label={t('studio_apps_connectorpost.method', 'Request method')}
+                        >
+                            <option value="GET">{t('studio_apps_connectorpost.method_get', 'GET')}</option>
+                            <option value="POST">{t('studio_apps_connectorpost.method_post', 'POST (JSON body)')}</option>
+                        </select>
+                    </label>
+                    {connector.method === 'POST' ? (
+                        <>
+                            <JsonObjectField label={t('studio_apps_connectorpost.body', 'Request body (JSON)')} value={connector.body} onChange={(v) => setOpt('body', v)} disabled={disabled} placeholder={'{ "query": "{q}" }'} />
+                            <p className="-mt-2 text-xs text-[var(--text-tertiary)]">{t('studio_apps_connectorpost.body_hint', 'Use {placeholder} placeholders for declared params. A value that is only a placeholder keeps the param’s type.', { placeholder: '{param}' })}</p>
+                        </>
+                    ) : null}
                     <JsonObjectField label={t('studio_apps_bi.connectors.static_headers', 'Static headers')} value={connector.headers} onChange={(v) => setOpt('headers', v)} disabled={disabled} placeholder={'{ "X-Api-Version": "2" }'} />
                     <RestAuthFields connector={connector} setOpt={setOpt} disabled={disabled} />
                     <div className="grid grid-cols-3 gap-2">
@@ -128,8 +147,7 @@ export function RestFields({ connector, setOpt, disabled }: { connector: Connect
                                 className={INPUT}
                                 value={connector.maxRows ?? ''}
                                 min={1}
-                                max={500}
-                                onChange={(e) => { const n = Number(e.target.value); setOpt('maxRows', e.target.value === '' || !Number.isFinite(n) ? '' : Math.max(1, Math.min(500, Math.round(n)))); }}
+                                onChange={(e) => { const n = Number(e.target.value); setOpt('maxRows', e.target.value === '' || !Number.isFinite(n) ? '' : Math.max(1, Math.round(n))); }}
                                 disabled={disabled}
                                 aria-label={t('studio_apps_bi.connectors.max_rows', 'Max rows')}
                             />

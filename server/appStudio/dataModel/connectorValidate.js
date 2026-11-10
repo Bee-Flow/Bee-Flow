@@ -8,6 +8,7 @@
 
 const { isPlainObject } = require('./shared');
 const { planRetention } = require('./retentionPlan');
+const { validateRestBody } = require('../connectors/restBody.mts');
 const { validateSyncChildren, validateSyncDependents } = require('./connectorSyncTables');
 const {
     CONNECTOR_KINDS,
@@ -363,6 +364,10 @@ function validateConnectors(model, errors) {
             errors.push(`${where}.chain is only supported for app connectors (integration_tool)`);
         }
 
+        if (c.kind !== 'rest' && (c.method !== undefined || c.body !== undefined)) {
+            errors.push(`${where}.method and .body are only supported for rest connectors`);
+        }
+
         // Per-kind required fields.
         if (c.kind === 'integration_tool') {
             if (typeof c.tool !== 'string' || !c.tool) errors.push(`${where} (integration_tool) requires a tool name`);
@@ -390,6 +395,11 @@ function validateConnectors(model, errors) {
                 } else if (c.maxRows > MAX_CONNECTOR_ROWS) {
                     errors.push(`${where}.maxRows ${c.maxRows} exceeds the cap of ${MAX_CONNECTOR_ROWS}`);
                 }
+            }
+            if (c.method !== undefined && c.method !== 'GET' && c.method !== 'POST') errors.push(`${where}.method must be 'GET' or 'POST'`);
+            if (c.body !== undefined) {
+                if (c.method !== 'POST') errors.push(`${where}.body needs method: 'POST'`);
+                else validateRestBody(c.body, declaredKeys, where, errors);
             }
             if (c.rowsPath !== undefined && typeof c.rowsPath !== 'string') errors.push(`${where}.rowsPath must be a string dot-path`);
             if (c.nextPagePath !== undefined && typeof c.nextPagePath !== 'string') errors.push(`${where}.nextPagePath must be a string dot-path`);
@@ -539,6 +549,6 @@ module.exports = { validateConnectors };
  * @typedef {{ tableId?: string, retentionField?: string, retentionCascade?: boolean, parentTableId?: string, relationField?: string }} SyncDependentCfg
  * @typedef {{ tableId?: string, mode?: string, keyField?: string, incremental?: { field?: string, param?: string | null, format?: string } | null, schedule?: { cron?: string | null, tz?: string, everyMinutes?: number } | null, refreshOnView?: boolean, retentionField?: string, retentionDays?: number | null, children?: SyncChildCfg[], dependents?: SyncDependentCfg[] }} SyncCfg
  * @typedef {{ tool?: string, argsFrom?: Record<string, unknown>, fixedArgs?: Record<string, unknown>, expand?: string | null, ownTable?: boolean, merge?: string, alias?: string }} ChainStepCfg
- * @typedef {{ id?: string, kind?: string, name?: string, params?: Array<{ key?: string, type?: unknown }>, headers?: Record<string, unknown>, chain?: ChainStepCfg[], auth?: { type?: string, header?: string, credentialProvider?: unknown, [k: string]: unknown }, sync?: SyncCfg, tool?: string, fixedArgs?: Record<string, unknown>, integrationId?: string, runAs?: string, rowsPath?: string, automationId?: string, url?: string, maxRows?: number, nextPagePath?: string, provider?: string, mode?: string, address?: string, sharedMode?: string | null, folder?: string, query?: string, lookbackDays?: number, maxPerRun?: number, groupIntoThreads?: boolean, [k: string]: unknown }} ConnectorCfg
+ * @typedef {{ id?: string, kind?: string, name?: string, params?: Array<{ key?: string, type?: unknown }>, headers?: Record<string, unknown>, chain?: ChainStepCfg[], auth?: { type?: string, header?: string, credentialProvider?: unknown, [k: string]: unknown }, sync?: SyncCfg, tool?: string, fixedArgs?: Record<string, unknown>, integrationId?: string, runAs?: string, rowsPath?: string, automationId?: string, url?: string, maxRows?: number, nextPagePath?: string, method?: string, body?: unknown, provider?: string, mode?: string, address?: string, sharedMode?: string | null, folder?: string, query?: string, lookbackDays?: number, maxPerRun?: number, groupIntoThreads?: boolean, [k: string]: unknown }} ConnectorCfg
  * @typedef {{ id?: string, key: string, fields?: Array<{ key?: string, type?: string, relation?: { table?: string } }> }} ConnectorTableCfg
  */
