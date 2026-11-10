@@ -19,13 +19,15 @@ const { cleanAiChecks } = require('../aiReliability.mts');
 
 /**
  * call_action's { name: binding } params (as in cleanStep), or modelTier: a tier
- * name (as the string field was) or a binding. undefined = drop the field.
+ * name (as the string field was) or a binding, or an AI step's answer checks
+ * (aiReliability.mts). undefined = drop the field.
  * @param {{ type: string, maxLen?: number }} fs
  * @param {string} p
  * @param {(arg0: string, arg1: string, arg2: string) => void} push
  */
 function cleanCallField(fs, v, p, push) {
     if (fs.type === 'callParams') return cleanCallParams(v, p, push);
+    if (fs.type === 'aiChecks') return cleanAiChecks(v, p, push);
     return cleanTierChoice(v, fs.maxLen || LIMITS.MAX_STRING, p, push, 'action.field_invalid');
 }
 
@@ -102,11 +104,9 @@ function canonAction(raw, path, push) {
             // ai_extract.source / ai_generate.attachments / kb_query.query — the
             // first actions to carry a binding. Same treatment as in cleanStep.
             if (v !== undefined) out[field] = cleanBinding(v, p, push);
-        } else if (fs.type === 'callParams' || fs.type === 'tierChoice') {
+        } else if (fs.type === 'callParams' || fs.type === 'tierChoice' || fs.type === 'aiChecks') {
             const c = v === undefined ? undefined : cleanCallField(fs, v, p, push);
             if (c !== undefined) out[field] = c;
-        } else if (fs.type === 'aiChecks') {
-            if (v !== undefined) { const c = cleanAiChecks(v, p, push); if (c !== undefined) out[field] = c; }
         } else if (fs.type === 'int' || fs.type === 'number') {
             if (typeof v === 'string' && v.trim() !== '' && Number.isFinite(Number(v))) {
                 push('props.coerced', p, `Coerced numeric string ${JSON.stringify(v)} to ${Number(v)}.`);
