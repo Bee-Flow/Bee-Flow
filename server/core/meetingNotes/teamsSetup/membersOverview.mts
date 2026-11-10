@@ -64,6 +64,14 @@ export function init(overrides: Partial<MembersOverviewDeps> = {}): void { lazy.
 
 export type MicrosoftState = 'none' | 'active' | 'needs_reauth' | 'revoked';
 
+/** Why the last automatic import run did not use this member's account. */
+type MemberSkip = { reason: string; missingPermissions: string[]; at: string };
+/** One teams_import_jobs error code and how often it occurred in the window. */
+type MemberFailure = { code: string; count: number };
+/** The organisation document; null = members decide. */
+type OrgTeamsChoices = { autoImport: boolean | null; autoRecordConfig: boolean | null };
+type OverviewTotals = { members: number; connected: number; missingPermissions: number; needsReauth: number; skipped: number; failedImports: number };
+
 export interface TeamsMemberRow {
     userId: string;
     displayName: string | null;
@@ -73,8 +81,8 @@ export interface TeamsMemberRow {
     missingPermissions: string[];
     teamsReady: boolean;
     verifiedMicrosoftIdentity: boolean;
-    autoImportSkip: { reason: string; missingPermissions: string[]; at: string } | null;
-    failures: { code: string; count: number }[];
+    autoImportSkip: MemberSkip | null;
+    failures: MemberFailure[];
     appImportCovered: boolean;
 }
 
@@ -82,9 +90,9 @@ export interface TeamsOrgOverview {
     windowDays: number;
     generatedAt: string;
     truncated: boolean;
-    settings: { autoImport: boolean | null; autoRecordConfig: boolean | null };
+    settings: OrgTeamsChoices;
     checks: TeamsCheck[];
-    totals: { members: number; connected: number; missingPermissions: number; needsReauth: number; skipped: number; failedImports: number };
+    totals: OverviewTotals;
     members: TeamsMemberRow[];
 }
 
