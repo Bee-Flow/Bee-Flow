@@ -1,15 +1,18 @@
 import { tryEvaluate } from '@shared/expr/engine.mjs';
 import { EyeOff, FileQuestion, TriangleAlert } from 'lucide-react';
 import { useMemo, type JSX } from 'react';
-import './runtime.css';
+import './css/layout.css';
+import './css/look.css';
+import './css/motion.css';
 import './app-tokens.css';
 import { appDesignProps } from './appDesign';
+import AppSection from './AppSection';
 import { APP_COMPONENT_TYPES } from './componentRegistry';
 import { FieldDisabledContext } from './formContext';
 import NodeErrorBoundary from './nodeError';
 import { resolveBinding } from './resolveBinding';
 import { RuntimeProvider, ScopeProvider, DEFAULT_RUNTIME, buildScope, rowKey, useRuntime, type ExpressionScope, type RuntimeValue } from './RuntimeContext';
-import { resolveNodeStyle, resolveSectionStyle } from './styleResolver';
+import { resolveNodeStyle } from './styleResolver';
 import { themeVars } from './themeVars';
 import useTranslation from '@/hooks/useTranslation';
 import type React from 'react';
@@ -369,6 +372,7 @@ export default function AppRenderer({
     setVar = null,
     forms,
     screenParams,
+    initialUi = null,
 }: AppRendererProps) {
     const screen = useMemo(() => {
         const screens = definition?.screens || [];
@@ -429,8 +433,9 @@ export default function AppRenderer({
         // Resolved ONCE here; null when the app has no design, so every
         // consumer's fallback is today's behaviour.
         appDesign: appDesignContext,
+        initialUi: initialUi && typeof initialUi === 'object' ? initialUi : null,
         scope: baseScope,
-    }), [mode, selectedNodeId, selectedNodeIds, onSelectNode, recentlyAddedIds, actionState, dataState, runAction, registerFormValue, currentUser, previewRole, setVar, appDesignContext, baseScope]);
+    }), [mode, selectedNodeId, selectedNodeIds, onSelectNode, recentlyAddedIds, actionState, dataState, runAction, registerFormValue, currentUser, previewRole, setVar, appDesignContext, initialUi, baseScope]);
 
     if (!definition) return null;
     if (!screen) return null;
@@ -500,15 +505,8 @@ export default function AppRenderer({
                             </span>
                         </div>
                     ) : null}
-                    {!screenHidden && (screen.sections || []).map((section) => {
-                        const sectionStyle = resolveSectionStyle(section);
-                        return (
-                        <section
-                            key={section.id}
-                            data-section-id={section.id}
-                            className={sectionStyle.className}
-                            style={sectionStyle.style}
-                        >
+                    {!screenHidden && (screen.sections || []).map((section) => (
+                        <AppSection key={section.id} section={section}>
                             {(section.children || []).map((node) => (
                                 <RenderNode
                                     key={node.id}
@@ -518,9 +516,8 @@ export default function AppRenderer({
                                     mode={mode}
                                 />
                             ))}
-                        </section>
-                        );
-                    })}
+                        </AppSection>
+                    ))}
                 </div>
             </div>
         </RuntimeProvider>

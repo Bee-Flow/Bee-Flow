@@ -123,6 +123,12 @@
       "exports",
       "types"
     ],
+    "src/components/admin/Studio/AppStudio/runtime/styleResolver/box.ts": [
+      "exports"
+    ],
+    "src/components/admin/Studio/AppStudio/runtime/styleResolver/text.ts": [
+      "exports"
+    ],
     "src/components/admin/Studio/AppStudio/state/clipboard.ts": [
       "exports",
       "types"

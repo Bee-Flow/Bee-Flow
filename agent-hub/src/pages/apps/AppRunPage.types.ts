@@ -120,7 +120,7 @@ export interface RunSurfaceProps {
  * live action engine. Toasts fired by actions surface through the shared
  * <Toaster /> that main.jsx mounts once at the app root — standalone pages
  * never mount their own copy (a second Toaster would render every toast
- * twice). Responsive by default: runtime.css stacks the grid below 640px.
+ * twice). Responsive by default: css/layout.css stacks the grid below 640px.
  */
 export interface AppRunPageProps {
     appId: string | null;

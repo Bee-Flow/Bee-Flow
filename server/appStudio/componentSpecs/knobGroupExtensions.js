@@ -23,14 +23,18 @@
 'use strict';
 
 const { listRegistryFiles, requireSince } = require('./registryDir');
+const { VALUE_TYPES, valueTypeOf } = require('./valueTypes');
 
 /**
  * @typedef {import('./styleKnobs').StyleKnob & { since?: number }} ExtensionKnob  A knob as a group file declares it.
  * @typedef {{ since?: number, grantedBy?: string, knobs?: Record<string, ExtensionKnob> }} KnobGroupFile  A group file's export.
  */
 
-/** The value kinds canonicalize/style.js and validate/nodes.js already know how to clean. */
-const EXTENSION_KNOB_TYPES = Object.freeze(['enum', 'int', 'colorOrRole']);
+/**
+ * The value kinds canonicalize/style.js and validate/nodes.js know how to clean: three of the
+ * base kinds, then every value type of valueTypes.js.
+ */
+const EXTENSION_KNOB_TYPES = Object.freeze(['enum', 'int', 'colorOrRole', ...Object.keys(VALUE_TYPES)]);
 
 /**
  * @param {string} name
@@ -45,6 +49,13 @@ function checkKnob(name, knob, taken, where) {
     if (!EXTENSION_KNOB_TYPES.includes(knob.type)) throw new Error(`${where}: knob "${name}" has type ${JSON.stringify(knob.type)}; use one of ${EXTENSION_KNOB_TYPES.join(', ')}`);
     if (knob.type === 'enum' && (!Array.isArray(knob.values) || knob.values[0] !== knob.default)) {
         throw new Error(`${where}: enum knob "${name}" lists its values with the default (the identity) first`);
+    }
+    const valueType = valueTypeOf(knob);
+    if (valueType) {
+        // Unset is the only default of a value-typed knob, so it can never be written for a
+        // style that did not set it.
+        if (knob.default !== null) throw new Error(`${where}: knob "${name}" (${knob.type}) has default null`);
+        valueType.check(knob, `${where} (knob ${name})`);
     }
 }
 
