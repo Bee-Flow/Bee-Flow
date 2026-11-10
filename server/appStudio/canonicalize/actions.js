@@ -6,7 +6,7 @@
 'use strict';
 
 const { LIMITS, ACTION_SPECS } = require('../componentSpecs');
-const { deepCopy, truncate } = require('./shared');
+const { deepCopy, truncate, isLateEntry } = require('./shared');
 const { cleanBinding } = require('./bindings');
 const { cleanInputMapping, cleanEffects, cleanNavParams, cleanCallParams } = require('./mappings');
 const { cleanStringList, cleanAiSchema, cleanAiWriteTo, cleanTierChoice } = require('./aiFields');
@@ -43,6 +43,7 @@ function canonAction(raw, path, push) {
     for (const [field, fs] of Object.entries(spec.fields)) {
         const p = `${path}.${field}`;
         const v = raw[field];
+        if (v === undefined && isLateEntry(fs)) continue; // a field added after the base: only when the action carries it
         if (fs.type === 'steps') {
             out[field] = cleanSteps(v, p, 0, push);
             continue;

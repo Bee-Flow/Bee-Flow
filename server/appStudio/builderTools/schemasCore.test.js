@@ -25,7 +25,10 @@ const path = require('node:path');
 const { TOOL_SCHEMAS } = require('./schemas');
 const { projectCoreToolSchemas, CORE_PRUNE, nodeAt } = require('./schemasCore');
 const { APP_CORE_TOOL_NAMES, selectToolMenu, getProfileForModel } = require('../builderModelProfiles');
-const { ACTION_KINDS, STEP_KINDS, emptyDefinition } = require('../componentSpecs');
+const { emptyDefinition } = require('../componentSpecs');
+const FULL = require('../componentSpecs');
+// The core projection carries the BASE vocabulary only (schemaTiers.mts).
+const { ACTION_KINDS, STEP_KINDS } = require('../catalogTiers.mts').baseCatalogue();
 
 const isObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 const coreList = () => TOOL_SCHEMAS.filter((t) => APP_CORE_TOOL_NAMES.has(t.function.name));
@@ -55,7 +58,8 @@ test('the projection is a strict subset: every core property path exists in the 
             const inFull = nodeAt(full.function.parameters, p);
             assert.ok(inFull, `${tool.function.name}: ${p} is not in the full schema`);
             assert.equal(node.type, inFull.type, `${tool.function.name}: ${p} keeps the full schema's type`);
-            if (node.enum) assert.deepEqual(node.enum, inFull.enum, `${tool.function.name}: ${p} keeps the full enum`);
+            // The full enum, in its order, without the extension values (schemaTiers.test.js says which those are).
+            if (node.enum) assert.deepEqual(node.enum, inFull.enum.filter((/** @type {unknown} */ v) => node.enum.includes(v)), `${tool.function.name}: ${p} keeps the full enum`);
         }
         // required ⊆ properties, always.
         const req = tool.function.parameters.required || [];
@@ -113,7 +117,7 @@ test('app_set_action.action carries a real properties block whose enums are the 
     assert.equal(item.properties, undefined);
     assert.match(item.description, /Same shape as `action`/);
     // Same on the full schema — the fix is generic.
-    assert.deepEqual(byName(TOOL_SCHEMAS, 'app_set_action').function.parameters.properties.action.properties.kind.enum, [...ACTION_KINDS]);
+    assert.deepEqual(byName(TOOL_SCHEMAS, 'app_set_action').function.parameters.properties.action.properties.kind.enum, [...FULL.ACTION_KINDS]);
 });
 
 test('app_update_component is batch-only on the core menu, and the tool still reads a stray single form', async () => {

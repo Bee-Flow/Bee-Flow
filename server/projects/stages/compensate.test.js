@@ -121,3 +121,14 @@ test('a removal that failed before its commit switches the stage back on', async
     assert.deepStrictEqual(h.log, [['page_published', 'u-web-1', true], ['reactivate', 'u-aut-1']]);
     assert.strictEqual(out.undone, 2);
 });
+
+test('an app is reset to its published definition whatever the definition gate says about it', async () => {
+    const { SCHEMA_VERSION_CURRENT } = require('../../appStudio/componentSpecs');
+    for (const published of [{ schemaVersion: SCHEMA_VERSION_CURRENT + 1, screens: [] }, { screens: 'not a list' }]) {
+        const h = harness([{ seq: 1, action: 'write_definition', kind: 'app', ref: 'app_1', entityId: 'u-app-1', status: 'done', before: {} }]);
+        h.deps.studioAppStore.getStudioApp = async (id) => ({ id, name: 'Desk', publishedDefinition: published });
+        const out = await compensate({ deployment: DEPLOYMENT, stage: STAGE }, h.deps);
+        assert.deepStrictEqual(h.log.filter(e => e[0] === 'reset_app').map(e => e[2]), [published]);
+        assert.strictEqual(out.undone, 1);
+    }
+});

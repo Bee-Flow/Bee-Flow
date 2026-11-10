@@ -6,6 +6,7 @@
 'use strict';
 
 const { HEX_RE, STYLE_KNOBS, unitSpan } = require('../componentSpecs');
+const { valueTypeOf } = require('../componentSpecs/valueTypes');
 const { isObject } = require('./shared');
 
 // ---------------------------------------------------------------------------
@@ -80,6 +81,18 @@ function cleanStyle(raw, allowedKeys, defaults, path, push, { recordMissing = fa
             if (v === null || (typeof v === 'string' && (knob.roles.includes(v) || HEX_RE.test(v)))) { out[k] = v; continue; }
             push('style.invalid', `${path}.${k}`, `${k}: ${JSON.stringify(v)} is neither a role (${knob.roles.join(', ')}) nor #rrggbb — reset to ${JSON.stringify(knob.default)}.`);
             out[k] = knob.default;
+        } else {
+            // A value type added after the base four (componentSpecs/valueTypes.js). Unset is
+            // the only default such a knob has, so null, absent and an unacceptable value all
+            // leave the key out: a style that never set it stores nothing.
+            const valueType = valueTypeOf(knob);
+            if (!valueType || v === null || v === undefined) continue;
+            const cleaned = valueType.clean(v, knob);
+            if (cleaned === undefined) {
+                push('style.invalid', `${path}.${k}`, `${k}: not an acceptable value — dropped. ${valueType.hint(knob)}`);
+                continue;
+            }
+            out[k] = cleaned;
         }
     }
     if (unknown.length) {

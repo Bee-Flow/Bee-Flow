@@ -13,15 +13,11 @@ const { LIMITS } = nodeRequire('../componentSpecs/limits.js') as {
     LIMITS: { MAX_STEP_RETRY_TIMES: number; MAX_STEP_RETRY_DELAY_MS: number; DEFAULT_STEP_RETRY_DELAY_MS: number; MAX_TRANSACTION_STEPS: number };
 };
 
-type FieldSpec = { envelope?: boolean; since?: unknown } & Record<string, unknown>;
+type FieldSpec = { envelope?: boolean } & Record<string, unknown>;
 
-/**
- * A kind's own fields: the envelope (retry / onError) is left out, the lead below explains it.
- * Fields marked `since: 3` (or later) are left out too: they are not part of the pinned base
- * catalogue text (DESIGN-foundation 2.1).
- */
+/** A kind's own fields: the envelope (retry / onError) is left out, the lead below explains it. */
 export function ownFields<T extends FieldSpec>(fields: Record<string, T>): Record<string, T> {
-    return Object.fromEntries(Object.entries(fields).filter(([, fs]) => !fs.envelope && !(typeof fs.since === 'number' && fs.since >= 3)));
+    return Object.fromEntries(Object.entries(fields).filter(([, fs]) => !fs.envelope));
 }
 
 /** The two lines of the steps lead: the envelope, and the transaction step. */

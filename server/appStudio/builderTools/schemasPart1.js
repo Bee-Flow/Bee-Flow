@@ -3,7 +3,7 @@
 // Part 1 of the TOOL_SCHEMAS array (split out of schemas.js; order is preserved there).
 
 const { THEME_SPEC, DESIGN_SPEC, NAV_STYLES, MAX_NAV_GROUPS, MAX_NAV_GROUP_LABEL, STYLE_KNOBS, SCREEN_SPEC, EVENT_NAMES, LIMITS } = require('../componentSpecs');
-const { MAX_COMPONENTS_PER_CALL, TEMP_ID_MAX, MAX_BATCH_PATCHES_PER_CALL, orList, PRESET_IDS, STYLE_HINT, SECTION_HEIGHT_MODES, unitList, SIZING_HINT, ADD_NODE_LOGIC_PROPS, UPDATE_COMPONENT_PATCH_PROPS, ACTION_OBJECT_SCHEMA, batchHint } = require('./schemaFragments');
+const { MAX_COMPONENTS_PER_CALL, TEMP_ID_MAX, MAX_BATCH_PATCHES_PER_CALL, orList, PRESET_IDS, STYLE_HINT, BASE_STYLE_KNOBS, SECTION_HEIGHT_MODES, BASE_SECTION_HEIGHT_MODES, unitList, SIZING_HINT, ADD_NODE_LOGIC_PROPS, UPDATE_COMPONENT_PATCH_PROPS, ACTION_OBJECT_SCHEMA, batchHint } = require('./schemaFragments');
 
 /** @type {Array<{ type: string, function: { name: string, description: string, parameters: object } }>} */
 const TOOL_SCHEMAS_PART_1 = [
@@ -150,7 +150,7 @@ const TOOL_SCHEMAS_PART_1 = [
                     index: { type: 'number', description: 'Insert position among the screen\'s sections (omit to append).' },
                     style: {
                         type: 'object',
-                        description: `Section style: { padding ${STYLE_KNOBS.padding.min}-${STYLE_KNOBS.padding.max}, gap ${STYLE_KNOBS.gap.min}-${STYLE_KNOBS.gap.max}, background ${orList(STYLE_KNOBS.background.values)}, height ${orList(STYLE_KNOBS.height.values)}, heightMode ${orList(SECTION_HEIGHT_MODES)} + heightValue (${unitList('heightValue', SECTION_HEIGHT_MODES)}) }. background "panel" = a recessed grouping surface, "gradient" = a soft wash from the app primary. height "fill" makes the section take the whole screen height — combine it with two pane components for a sidebar + detail layout that scroll independently. heightMode overrides the preset for an EXACT section height: "px" for a fixed band, "vh" for a share of the viewport ("vh" 50 = half the screen). A section can never take "pct" — it is auto-height in the screen's stack, so a percentage has nothing to measure.`,
+                        description: `Section style: { padding ${STYLE_KNOBS.padding.min}-${STYLE_KNOBS.padding.max}, gap ${STYLE_KNOBS.gap.min}-${STYLE_KNOBS.gap.max}, background ${orList(BASE_STYLE_KNOBS.background.values)}, height ${orList(BASE_STYLE_KNOBS.height.values)}, heightMode ${orList(BASE_SECTION_HEIGHT_MODES)} + heightValue (${unitList('heightValue', BASE_SECTION_HEIGHT_MODES)}) }. background "panel" = a recessed grouping surface, "gradient" = a soft wash from the app primary. height "fill" makes the section take the whole screen height — combine it with two pane components for a sidebar + detail layout that scroll independently. heightMode overrides the preset for an EXACT section height: "px" for a fixed band, "vh" for a share of the viewport ("vh" 50 = half the screen). A section can never take "pct" — it is auto-height in the screen's stack, so a percentage has nothing to measure.`,
                         properties: {
                             padding: { type: 'number' },
                             gap: { type: 'number' },

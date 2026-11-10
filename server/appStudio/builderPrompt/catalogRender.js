@@ -28,36 +28,21 @@
 
 const {
     LIMITS,
-    THEME_SPEC,
-    STYLE_KNOBS,
     COLOR_ROLES,
-    ACTION_KINDS,
-    ACTION_SPECS,
-    STEP_KINDS,
-    STEP_SPECS,
-    DATA_MUTATING_STEP_KINDS,
     FORMULA_SCOPE_ROOTS,
     VARIABLE_TYPES,
     VARIABLE_NAME_RE,
     RESERVED_VARIABLE_NAMES,
     TOAST_TONES,
-    SCREEN_SPEC,
-    SECTION_STYLE_KNOBS,
     SECTION_STYLE_DEFAULTS,
-    COMPONENT_SPECS,
-    DESIGN_SPEC,
-    NAV_STYLES,
     NAV_DEFAULT_STYLE,
     ADVANCED_WIDTH_KNOBS,
     ADVANCED_HEIGHT_KNOBS,
 } = require('../componentSpecs');
+const { valueTypeOf } = require('../componentSpecs/valueTypes');
 const { ownFields, errorHandlingLines } = require('./stepErrorText.mts');
 const { APP_DESIGN_PRESETS } = require('../appDesignPresets');
 const {
-    FIELD_TYPES,
-    FILTER_OPS,
-    AGG_FNS,
-    DATE_BUCKETS,
     ACCESS_MODES,
     DATA_LIMITS,
     SYSTEM_COLUMNS,
@@ -68,6 +53,26 @@ const { renderFormulaFunctions, LIST_FORMS_TEXT, ANY_GROUP_TEXT } = require('./f
 // The validation-rule vocabulary, from the same module that declares it to the
 // tool schemas — so the catalog and the tool surface cannot teach two lists.
 const { NODE_VALIDATION_TYPES } = require('../builderTools/schemas');
+const { baseCatalogue, fullCatalogue, catalogueGeneration } = require('../catalogTiers.mts');
+
+// The tables that have two tiers (catalogTiers.mts): the BASE while a prompt text renders, so
+// an entry marked `since: 3` never moves those bytes, and the whole catalogue while ONE entry
+// is served (inFull). Fixed per process; a test that swaps the catalogue moves the generation.
+// That goes for the screen, theme and design tables, the nav styles, the section knobs and the
+// data vocabulary (FIELD_TYPES, FILTER_OPS, AGG_FNS, DATE_BUCKETS) too: read them from T.
+let T = baseCatalogue();
+let _generation = catalogueGeneration();
+function syncTier() {
+    if (_generation === catalogueGeneration()) return;
+    [_generation, T, _sections, _cached, _compact] = [catalogueGeneration(), baseCatalogue(), null, null, null];
+}
+/** @template R @param {() => R} fn @returns {R} */
+function inFull(fn) {
+    syncTier();
+    const base = T;
+    T = fullCatalogue();
+    try { return fn(); } finally { T = base; }
+}
 
 /**
  * The default annotation — or null for the defaults that teach nothing.
@@ -130,7 +135,7 @@ function renderPropSpec(key, fs) {
  * @param {string} key
  */
 function renderStyleKnob(key) {
-    const knob = STYLE_KNOBS[key];
+    const knob = T.STYLE_KNOBS[key];
     if (knob.type === 'int') return `${key}(${knob.min}..${knob.max})`;
     if (knob.type === 'enum') return `${key}(${knob.values.map((v) => (v === null ? 'null' : v)).join('|')})`;
     if (knob.type === 'colorOrRole') return `${key}(null|role|#rrggbb)`;
@@ -138,6 +143,8 @@ function renderStyleKnob(key) {
         const ranges = Object.entries(knob.units).map(([unit, r]) => `${unit} ${r.min}..${r.max}`).join(', ');
         return `${key}(int, by ${knob.modeKnob}: ${ranges})`;
     }
+    const valueType = valueTypeOf(knob);
+    if (valueType) return valueType.render(key, knob);
     return key;
 }
 
@@ -145,7 +152,7 @@ function renderStyleKnob(key) {
  * @param {string} type
  */
 function renderComponent(type) {
-    const spec = COMPONENT_SPECS[type];
+    const spec = T.COMPONENT_SPECS[type];
     const flags = [
         spec.container ? 'CONTAINER' : null,
         spec.isInput ? 'input(in-form)' : null,
@@ -220,9 +227,9 @@ const renderSpecFields = (fields) => Object.entries(ownFields(fields)).map(([k, 
  * @param {string} kind
  */
 function renderActionKind(kind) {
-    const full = `${kind}: { ${renderSpecFields(ACTION_SPECS[kind].fields)} }`;
-    const step = STEP_SPECS[kind];
-    if (step && JSON.stringify(ownFields(step.fields)) === JSON.stringify(ownFields(ACTION_SPECS[kind].fields))) {
+    const full = `${kind}: { ${renderSpecFields(T.ACTION_SPECS[kind].fields)} }`;
+    const step = T.STEP_SPECS[kind];
+    if (step && JSON.stringify(ownFields(step.fields)) === JSON.stringify(T.ACTION_SPECS[kind].fields)) {
         const ref = `${kind}: { …fields exactly as the ${kind} step below (### Sequence steps) }`;
         if (ref.length < full.length) return ref;
     }
@@ -233,8 +240,8 @@ function renderActionKind(kind) {
  * @param {string} kind
  */
 function renderStepKind(kind) {
-    const spec = STEP_SPECS[kind];
-    const side = DATA_MUTATING_STEP_KINDS.includes(kind) ? 'SERVER' : 'client';
+    const spec = T.STEP_SPECS[kind];
+    const side = T.DATA_MUTATING_STEP_KINDS.includes(kind) ? 'SERVER' : 'client';
     return `${kind} [${side}]: { ${renderSpecFields(spec.fields)} }`;
 }
 
@@ -244,8 +251,8 @@ const COMPACT_OMIT_FIELDS = new Set(['filter', 'limit']);
 
 /** The compact form of a step line: the full line without COMPACT_OMIT_FIELDS. */
 function renderStepKindCompactLine(kind) {
-    const spec = STEP_SPECS[kind];
-    const side = DATA_MUTATING_STEP_KINDS.includes(kind) ? 'SERVER' : 'client';
+    const spec = T.STEP_SPECS[kind];
+    const side = T.DATA_MUTATING_STEP_KINDS.includes(kind) ? 'SERVER' : 'client';
     const fields = Object.fromEntries(Object.entries(spec.fields).filter(([k]) => !COMPACT_OMIT_FIELDS.has(k)));
     return `${kind} [${side}]: { ${renderSpecFields(fields)} }`;
 }
@@ -259,10 +266,11 @@ let _sections = null;
  * swaps `components` / `steps` for their one-line forms.
  */
 function buildCatalogSections() {
+    syncTier();
     if (_sections) return _sections;
 
     const theme = [
-        ...Object.entries(THEME_SPEC).map(([k, spec]) => {
+        ...Object.entries(T.THEME_SPEC).map(([k, spec]) => {
             if (spec.type === 'color') {
                 if (spec.optional) return `${k}: #rrggbb or unset — ${spec.description}`;
                 return `${k}: #rrggbb (default ${spec.default}; presets: ${spec.presets.join(' ')})`;
@@ -276,15 +284,15 @@ function buildCatalogSections() {
     // Rendered from the same specs so the model can never learn a stale enum.
     const design = [
         `preset: ${APP_DESIGN_PRESETS.map((p) => p.id).join('|')} — one call sets theme + design + navStyle together (an app with no preset renders as classic).`,
-        ...Object.entries(/** @type {Record<string, any>} */ (DESIGN_SPEC))
+        ...Object.entries(/** @type {Record<string, any>} */ (T.DESIGN_SPEC))
             .filter(([k]) => k !== 'preset')
             .map(([k, spec]) => (spec.type === 'enum'
                 ? `${k}: ${spec.values.join('|')} (default ${spec.default})`
                 : `${k}: https:// URL or null (default null)`)),
-        `navStyle: ${NAV_STYLES.join('|')} (default ${NAV_DEFAULT_STYLE}) — sidebar/rail/mega group screens; mega shows each screen's description and needs groups.`,
+        `navStyle: ${T.NAV_STYLES.join('|')} (default ${NAV_DEFAULT_STYLE}) — sidebar/rail/mega group screens; mega shows each screen's description and needs groups.`,
     ].join('\n');
 
-    const knobs = Object.keys(STYLE_KNOBS).map(renderStyleKnob).join(', ');
+    const knobs = Object.keys(T.STYLE_KNOBS).map(renderStyleKnob).join(', ');
 
     // Advanced sizing. Availability is DERIVED (componentSpecs.expandStyleKnobs:
     // the width pair follows `span`, the height pair follows `height`), so it is
@@ -298,7 +306,7 @@ function buildCatalogSections() {
     // (and is an ERROR, not a no-op, when it does not have one), and that an
     // exact width is capped on mobile so it can never overflow a phone.
     const advancedSizing = [
-        `Advanced sizing — widthMode/widthValue and heightMode/heightValue are NOT listed per component: a type takes the WIDTH pair exactly when its \`style:\` line below includes \`span\`, and the HEIGHT pair exactly when it includes \`height\` (sections included). Their defaults (widthMode "${STYLE_KNOBS.widthMode.default}", heightMode "${STYLE_KNOBS.heightMode.default}") ARE the ordinary column behaviour — omit all four unless a span or a height preset genuinely cannot express the box.`,
+        `Advanced sizing — widthMode/widthValue and heightMode/heightValue are NOT listed per component: a type takes the WIDTH pair exactly when its \`style:\` line below includes \`span\`, and the HEIGHT pair exactly when it includes \`height\` (sections included). Their defaults (widthMode "${T.STYLE_KNOBS.widthMode.default}", heightMode "${T.STYLE_KNOBS.heightMode.default}") ARE the ordinary column behaviour — omit all four unless a span or a height preset genuinely cannot express the box.`,
         // The one layout the grid genuinely cannot express. A pct width is a
         // fraction of the CELL, so "fixed sidebar + the rest" is unreachable
         // with span alone — and a model that does not know the pane trick
@@ -318,11 +326,11 @@ function buildCatalogSections() {
         `hideBelow/hideAbove (none|sm|md|lg, default none) follow \`span\` the same way: hideBelow "md" hides the component on viewports narrower than 1024px, hideAbove "md" at 1024px and wider (sm=640, md=1024, lg=1280). CSS-only — prefer them over duplicate screens for a narrow/wide variant.`,
     ].join('\n');
 
-    const screen = Object.entries(SCREEN_SPEC)
+    const screen = Object.entries(T.SCREEN_SPEC)
         .map(([k, fs]) => renderPropSpec(k, fs))
         .join('; ');
 
-    const components = Object.keys(COMPONENT_SPECS).map(renderComponent).join('\n');
+    const components = Object.keys(T.COMPONENT_SPECS).map(renderComponent).join('\n');
 
     // Node logic — the fields that sit BESIDE props/style on a component node.
     // `computed` is the important one and was invisible for a release: most
@@ -340,22 +348,22 @@ function buildCatalogSections() {
     const nodeLogic = nodeLogicLines.join('\n');
 
     const actions = [
-        `Kinds: ${ACTION_KINDS.join(' | ')}. The actions map key IS the action id (act_…); \`kind\` is the discriminator.`,
-        ...ACTION_KINDS.map(renderActionKind),
+        `Kinds: ${T.ACTION_KINDS.join(' | ')}. The actions map key IS the action id (act_…); \`kind\` is the discriminator.`,
+        ...T.ACTION_KINDS.map(renderActionKind),
         `Effects (bounded, never chain): { toast?: {message ≤500, tone ${TOAST_TONES.join('|')}}, navigateTo?: <screenId>|null }`,
         `open_modal/close_modal target a \`modal\` component's cmp_… id — end a save sequence with close_modal so the dialog does not stay open over the form it just submitted. A sequence runs its steps in order (max ${LIMITS.MAX_ACTION_STEPS} steps, nesting ≤${LIMITS.MAX_ACTION_DEPTH}).`,
         `call_action runs another action as a subroutine: its params.<name> come from \`params\`, it shares vars/form (not item/index/value), its result is the called action's last server result (→ resultVar), its own effects are not applied. ≤${LIMITS.MAX_CALL_DEPTH} calls deep, never recursive; access is the clicked action's (a called action runs on its own only for a role that can reach a caller). On a public page the called actions ship to the browser with the root, so their navigate/open_modal/toast targets are visible there: keep back-office screens out of them.`,
     ].join('\n');
 
     const stepsLead = [
-        `A Step is { kind, …fields }. Kinds: ${STEP_KINDS.join(' | ')}.`,
-        `[SERVER] steps (${DATA_MUTATING_STEP_KINDS.join(', ')}) read/write persistent data and run on the API; [client] steps are chrome/navigation/flow-control and may NEVER carry data fields (tableId/values/recordId/automationId/inputMapping).`,
+        `A Step is { kind, …fields }. Kinds: ${T.STEP_KINDS.join(' | ')}.`,
+        `[SERVER] steps (${T.DATA_MUTATING_STEP_KINDS.join(', ')}) read/write persistent data and run on the API; [client] steps are chrome/navigation/flow-control and may NEVER carry data fields (tableId/values/recordId/automationId/inputMapping).`,
     ];
     const steps = [
         ...stepsLead,
         ...errorHandlingLines(), // the error-handling envelope and transaction: full catalog only
         ...bulkWriteLines(), // filter-mode record writes and idempotent writeTo: full catalog only
-        ...STEP_KINDS.map(renderStepKind),
+        ...T.STEP_KINDS.map(renderStepKind),
     ].join('\n');
 
     const bindingLines = [
@@ -365,10 +373,10 @@ function buildCatalogSections() {
         `  { "kind": "formula", "expr": "<expr>" } — computed from live scope. Roots: ${FORMULA_SCOPE_ROOTS.join(', ')}. Callable names + operators: see ### Formulas.`,
         `  { "kind": "record", "tableId": "<tbl_…>", "recordId"?, "filter"?, "sort"?, "limit"?, "path"? } — ONE row from an app data table (first match).`,
         `  { "kind": "records", "tableId": "<tbl_…>", "filter"?, "sort"?, "limit"? } — an array of rows from an app data table.`,
-        `  { "kind": "aggregate", "tableId": "<tbl_…>", "filter"?, "groupBy"?: [{ "field", "bucket"?: ${DATE_BUCKETS.join('|')}, "as"? }], "aggregates"?: [{ "fn": ${AGG_FNS.join('|')}, "field"?, "as"? }], "sort"?, "limit"?, "pick"? } — counts/totals per group; add "pick":{"row":"first","column":"<as>"} for ONE number.`,
+        `  { "kind": "aggregate", "tableId": "<tbl_…>", "filter"?, "groupBy"?: [{ "field", "bucket"?: ${T.DATE_BUCKETS.join('|')}, "as"? }], "aggregates"?: [{ "fn": ${T.AGG_FNS.join('|')}, "field"?, "as"? }], "sort"?, "limit"?, "pick"? } — counts/totals per group; add "pick":{"row":"first","column":"<as>"} for ONE number.`,
         `  { "kind": "dataset", "datasetId": "<ds_…>", "params"? } — a saved dataset's rows (grouped/aggregated queries).`,
         `  { "kind": "connector", "connectorId": "<conn_…>", "params"? } — rows from an owner-authored EXTERNAL connector (run acts-as-owner). params: { <key>: <literal> | {"kind":"formula","expr":"<expr>"} }. You WIRE existing connectors (app_list_connectors) — you never author them or their credentials.`,
-        `filter: [{ "field": "<field key>", "op": ${FILTER_OPS.join('|')}, "value"?: <literal> | [<literals>] | {"kind":"formula","expr":"<expr>"} }] — formula values resolve client-side against live scope before the fetch (e.g. {"field":"created_by","op":"eq","value":{"kind":"formula","expr":"currentUser.id"}}).${ANY_GROUP_TEXT}`,
+        `filter: [{ "field": "<field key>", "op": ${T.FILTER_OPS.join('|')}, "value"?: <literal> | [<literals>] | {"kind":"formula","expr":"<expr>"} }] — formula values resolve client-side against live scope before the fetch (e.g. {"field":"created_by","op":"eq","value":{"kind":"formula","expr":"currentUser.id"}}).${ANY_GROUP_TEXT}`,
         `sort: [{ "field": "<field key>", "dir": "asc"|"desc" }] (default created_at desc). System columns ${SYSTEM_COLUMNS.join('/')} are filterable/sortable on every table.`,
         `inputMapping values (run_automation) accept ONLY:`,
         `  { "kind": "static", "value": <any JSON> }`,
@@ -393,7 +401,7 @@ function buildCatalogSections() {
 
     const dataModel = [
         `Every app can carry its own database: tables → fields → rows, plus roles and per-table access rules (RLS).`,
-        `Field types: ${FIELD_TYPES.join(', ')}. number takes subtype "integer"; select/multiselect need an options array; relation needs relation:{tableId}; computed is read-only.`,
+        `Field types: ${T.FIELD_TYPES.join(', ')}. number takes subtype "integer"; select/multiselect need an options array; relation needs relation:{tableId}; computed is read-only.`,
         `Table/field keys match ${String(KEY_RE)} (lowercase snake_case). System columns on EVERY table (server-managed, never declared or written): ${SYSTEM_COLUMNS.join(', ')}.`,
         `Access modes per table: ${ACCESS_MODES.join(' | ')} — "app" = every member reads/writes, "owner" = rows scoped to created_by, "role" = per-role rules, "none" = owner only. Prefer "app" for shared/demo data (owner-seeded rows are invisible to members under "owner").`,
         `Caps: ${DATA_LIMITS.MAX_TABLES_PER_APP} tables/app, ${DATA_LIMITS.MAX_FIELDS_PER_TABLE} fields/table, ${DATA_LIMITS.MAX_ROWS_PER_TABLE} rows/table, ${DATA_LIMITS.MAX_ROWS_PER_APP} rows/app, ${Math.round(DATA_LIMITS.MAX_DB_BYTES / (1024 * 1024))}MB per app database.`,
@@ -420,6 +428,7 @@ let _cached = null;
  * once per process (the spec is immutable) — byte-stable by construction.
  */
 function renderCatalogText() {
+    syncTier();
     if (_cached) return _cached;
     const s = buildCatalogSections();
 
@@ -436,9 +445,9 @@ ${s.advancedSizing}
 
 ### Screens (app_add_screen / app_update_screen)
 ${s.screen}
-Sections: style knobs ${SECTION_STYLE_KNOBS.join(', ')} (defaults ${JSON.stringify(SECTION_STYLE_DEFAULTS)}).
+Sections: style knobs ${T.SECTION_STYLE_KNOBS.join(', ')} (defaults ${JSON.stringify(SECTION_STYLE_DEFAULTS)}).
 
-### Components (${Object.keys(COMPONENT_SPECS).length} types — the ONLY legal types)
+### Components (${Object.keys(T.COMPONENT_SPECS).length} types — the ONLY legal types)
 A prop with no (default …) note is simply empty/off until set — everywhere in this catalog.
 ${s.components}
 
@@ -568,7 +577,7 @@ function pickCompactProps(spec) {
  * @param {string} type
  */
 function renderComponentCompact(type) {
-    const spec = COMPONENT_SPECS[type];
+    const spec = T.COMPONENT_SPECS[type];
     const flags = [
         spec.container ? 'CONTAINER' : null,
         spec.isInput ? 'input' : null,
@@ -595,8 +604,8 @@ const COMPACT_STEP_KINDS = [
 ];
 
 function renderStepKindCompact() {
-    const full = COMPACT_STEP_KINDS.filter((k) => STEP_SPECS[k]).map(renderStepKindCompactLine);
-    const rest = STEP_KINDS.filter((k) => !COMPACT_STEP_KINDS.includes(k));
+    const full = COMPACT_STEP_KINDS.filter((k) => T.STEP_SPECS[k]).map(renderStepKindCompactLine);
+    const rest = T.STEP_KINDS.filter((k) => !COMPACT_STEP_KINDS.includes(k));
     return [
         ...full,
         `Other step kinds (full shape via app_inspect_catalog {steps:[…]}): ${rest.join(', ')}.`,
@@ -613,14 +622,15 @@ let _compact = null;
  * (a name a small model cannot see is a name it will not use).
  */
 function renderCompactCatalogText() {
+    syncTier();
     if (_compact) return _compact;
     const s = buildCatalogSections();
     // The advanced-sizing knobs are dropped from the vocabulary line: the
     // core prompt says "layout is spans only", and a knob the prompt forbids
     // has no business in the list of legal keys.
     const advanced = new Set([...ADVANCED_WIDTH_KNOBS, ...ADVANCED_HEIGHT_KNOBS]);
-    const knobs = Object.keys(STYLE_KNOBS).filter((k) => !advanced.has(k)).map(renderStyleKnob).join(', ');
-    const components = Object.keys(COMPONENT_SPECS).map(renderComponentCompact).join('\n');
+    const knobs = Object.keys(T.STYLE_KNOBS).filter((k) => !advanced.has(k)).map(renderStyleKnob).join(', ');
+    const components = Object.keys(T.COMPONENT_SPECS).map(renderComponentCompact).join('\n');
     // Node logic: computed and visibleWhen only — the two node fields the
     // core app_add_components / app_update_component schemas declare
     // (builderTools/schemasCore.js). enabledWhen and readOnly are pruned
@@ -643,18 +653,18 @@ function renderCompactCatalogText() {
     // twin; the compact step list does not carry four of those twins, so the
     // rule is stated once instead. Derived from the same specs (renderActionKind
     // decides inline-vs-twin), so a kind that stops being a twin renders inline.
-    const twinKinds = ACTION_KINDS.filter((k) => STEP_SPECS[k] && JSON.stringify(STEP_SPECS[k].fields) === JSON.stringify(ACTION_SPECS[k].fields));
-    const ownKinds = ACTION_KINDS.filter((k) => !twinKinds.includes(k));
+    const twinKinds = T.ACTION_KINDS.filter((k) => T.STEP_SPECS[k] && JSON.stringify(T.STEP_SPECS[k].fields) === JSON.stringify(T.ACTION_SPECS[k].fields));
+    const ownKinds = T.ACTION_KINDS.filter((k) => !twinKinds.includes(k));
     const actions = [
-        `Kinds: ${ACTION_KINDS.join(' | ')}. The actions map key IS the action id (act_…); \`kind\` is the discriminator. ${twinKinds.join(', ')} take exactly the fields of the step of the same name (### Sequence steps).`,
-        ...ownKinds.map((kind) => `${kind}: { ${renderSpecFields(kind === 'sequence' ? { steps: ACTION_SPECS.sequence.fields.steps } : ACTION_SPECS[kind].fields)} }`), // a sequence without its run options (budget)
+        `Kinds: ${T.ACTION_KINDS.join(' | ')}. The actions map key IS the action id (act_…); \`kind\` is the discriminator. ${twinKinds.join(', ')} take exactly the fields of the step of the same name (### Sequence steps).`,
+        ...ownKinds.map((kind) => `${kind}: { ${renderSpecFields(kind === 'sequence' ? { steps: T.ACTION_SPECS.sequence.fields.steps } : T.ACTION_SPECS[kind].fields)} }`), // a sequence without its run options (budget)
         `Effects (bounded, never chain): { toast?: {message ≤500, tone ${TOAST_TONES.join('|')}}, navigateTo?: <screenId>|null }`,
         `open_modal/close_modal target a \`modal\` component's cmp_… id — end a save sequence with close_modal. A sequence runs its steps in order (max ${LIMITS.MAX_ACTION_STEPS} steps, nesting ≤${LIMITS.MAX_ACTION_DEPTH}).`,
     ].join('\n');
     // Screens: the fields the core app_add_screen declares (maxWidth and
     // refreshInterval are pruned from that menu; `kind` is not on any menu);
     // sections cannot be styled from the core menu at all (no app_add_section).
-    const screen = Object.entries(SCREEN_SPEC)
+    const screen = Object.entries(T.SCREEN_SPEC)
         .filter(([k]) => ['name', 'icon', 'showInNav', 'description'].includes(k))
         .map(([k, fs]) => renderPropSpec(k, fs))
         .join('; ');
@@ -671,7 +681,7 @@ Exact sizing (widthMode/widthValue/heightMode/heightValue) is not for this menu 
 ### Screens (app_add_screen)
 ${screen}
 
-### Components (${Object.keys(COMPONENT_SPECS).length} types — the ONLY legal types; one line each)
+### Components (${Object.keys(T.COMPONENT_SPECS).length} types — the ONLY legal types; one line each)
 Line grammar: type [category] CONTAINER|input events:… — what it is. props: name*:type (* = required; +N = more props not shown — fetch them with app_inspect_catalog {components:[…]} BEFORE using a type's rarer props) style: knob=default,knob. A prop with no default is empty/off until set.
 ${components}
 
@@ -704,8 +714,7 @@ ${s.limits}`;
  * @param {string} type
  */
 function renderComponentEntry(type) {
-    if (!COMPONENT_SPECS[type]) return null;
-    return renderComponent(type);
+    return inFull(() => (T.COMPONENT_SPECS[type] ? renderComponent(type) : null));
 }
 
 /**
@@ -713,8 +722,7 @@ function renderComponentEntry(type) {
  * @param {string} kind
  */
 function renderStepEntry(kind) {
-    if (!STEP_SPECS[kind]) return null;
-    return renderStepKind(kind);
+    return inFull(() => (T.STEP_SPECS[kind] ? renderStepKind(kind) : null));
 }
 
 module.exports = {
@@ -728,6 +736,8 @@ module.exports = {
     COMPACT_STEP_KINDS,
     renderStepKindCompactLine,
     COMPACT_KEY_PROP_NAMES,
+    // One fragment of an entry, for builderPrompt/extensionIndex.mts. The first three are pure in the spec they are handed.
+    renderPropSpec, renderActionField, renderSpecFields, renderStyleKnobEntry: (/** @type {string} */ key) => inFull(() => renderStyleKnob(key)),
 };
 
 /**

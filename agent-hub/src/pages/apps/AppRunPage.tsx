@@ -59,7 +59,7 @@ function ConnectionsPreflight({ appId }: ConnectionsPreflightProps) {
 function RunBody({
     appId, definition, screenId, onNavigate, onExit, viewer, previewRole,
     actionState, runAction, vars, setVar, forms, screenParams, registerFormValue,
-    dataState, refresh, onDataState, refreshRef, versionBanner = null, chrome = 'app',
+    dataState, refresh, onDataState, refreshRef, versionBanner = null, chrome = 'app', publicHeader = null,
 }: RunBodyProps) {
     useEffect(() => { onDataState(dataState); }, [onDataState, dataState]);
     useEffect(() => { refreshRef.current = refresh; }, [refreshRef, refresh]);
@@ -92,6 +92,7 @@ function RunBody({
         return (
             <div className="h-full min-h-0 flex flex-col" style={{ background: CANVAS_GROUND, color: 'var(--text-primary)' }}>
                 {versionBanner}
+                {publicHeader}
                 <div className="flex-1 min-h-0 overflow-auto">{renderer}</div>
             </div>
         );
@@ -113,7 +114,7 @@ function RunBody({
     );
 }
 
-export function RunSurface({ appId, draft, definition, screenId, viewer, onNavigate, versionBanner = null, hideExit = false, chrome = 'app' }: RunSurfaceProps) {
+export function RunSurface({ appId, draft, definition, screenId, viewer, onNavigate, versionBanner = null, hideExit = false, chrome = 'app', publicHeader = null }: RunSurfaceProps) {
     const { confirm, dialog } = useConfirmDialog();
     const [forms, setForms] = useState<Record<string, Record<string, unknown>>>({});
     const [screenParams, setScreenParams] = useState<{ recordId?: string }>({});
@@ -221,7 +222,7 @@ export function RunSurface({ appId, draft, definition, screenId, viewer, onNavig
                         onDataState={setRunnerDataState}
                         refreshRef={refreshRef}
                         versionBanner={versionBanner}
-                        chrome={chrome}
+                        chrome={chrome} publicHeader={publicHeader}
                     />
                 )}
             </AppDataScope>

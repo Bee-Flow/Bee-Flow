@@ -20,6 +20,11 @@
  * This suite runs whenever the set can change: every file in it is in the
  * filter by construction, and so are mobile/** and ci.yml.
  *
+ * The test helpers that take a path relative to a fixed directory (loadWeb,
+ * readRepo, requireServer, requireWeb, loadWebModule, webSourceText, ...; see
+ * PATH_HELPERS) are read the same way, and a web file named at a call site, or
+ * read as text, must be in the filter too.
+ *
  * The other direction fails too: a server pattern that covers nothing mobile
  * reads is a stale entry that runs the job for nothing.
  *
@@ -44,6 +49,37 @@ const WORKFLOW = path.join(REPO, '.github/workflows/ci.yml');
  * assembles the manifest names to forbid them, and this file is the checker.
  */
 const NAMES_ONLY = new Set(['src/meta/ciTriggers.test.ts', 'src/meta/serverClosure.test.ts']);
+
+const AGENT_HUB_SRC = path.join(REPO, 'agent-hub/src');
+
+/**
+ * The test helpers that take a path relative to a fixed directory, so the
+ * literal at the call site is the only place the file is named:
+ * name -> [the directory it resolves against, how the file is used].
+ *
+ * - `required`: a server module run as-is; its own requires join the closure.
+ * - `text`: read as text, or an agent-hub module run through Babel. Only the
+ *   named file counts. An agent-hub module's own imports are NOT followed:
+ *   Babel drops the ones used only as types, so a static scan of its imports
+ *   pulls in most of the web runtime, which the test never loads. Those
+ *   imports are listed by hand in the second `mobile:` block of ci.yml.
+ */
+const PATH_HELPERS: Readonly<Record<string, readonly [string, 'required' | 'text']>> = {
+    // src/features/app-studio/core/testing/loadWeb.ts
+    loadWeb: [path.join(AGENT_HUB_SRC, 'components/admin/Studio/AppStudio'), 'text'],
+    readRepo: [REPO, 'text'],
+    // src/features/forms/testing/sources.ts
+    requireServer: [SERVER, 'required'],
+    readServer: [SERVER, 'text'],
+    serverPath: [SERVER, 'text'],
+    requireWeb: [AGENT_HUB_SRC, 'text'],
+    readWeb: [AGENT_HUB_SRC, 'text'],
+    webPath: [AGENT_HUB_SRC, 'text'],
+    // src/shared/testing/webModule.ts (reads the source as text and evaluates it)
+    loadWebModule: [AGENT_HUB_SRC, 'text'],
+    loadWebFunctions: [AGENT_HUB_SRC, 'text'],
+    webSourceText: [AGENT_HUB_SRC, 'text'],
+};
 
 /** Directories under mobile/ that hold no source of ours. */
 const SKIP_DIRS = new Set(['node_modules', 'android', 'ios', 'coverage', 'dist']);
@@ -165,13 +201,20 @@ function whatMobileReads(): { required: ReadSet; text: ReadSet; unresolved: stri
         const handles = new Set<string>();
         for (const s of literals) {
             const target = path.resolve(dir, s);
-            if (target === REPO || target === SERVER) handles.add(target);
+            if (target === REPO || target === SERVER || target === AGENT_HUB_SRC) handles.add(target);
         }
         if (handles.has(REPO) && literals.some((s) => path.resolve(REPO, s) === SERVER)) handles.add(SERVER);
+        if (handles.has(REPO) && literals.some((s) => path.resolve(REPO, s) === AGENT_HUB_SRC)) handles.add(AGENT_HUB_SRC);
 
+        const why = `read as text by mobile/${reader}`;
         const named = (target: string) => {
+            // A web FILE only: a literal naming an agent-hub directory is a root
+            // the test joins paths onto, not a read of everything under it.
+            if (inside(target, AGENT_HUB_SRC) && isFile(target)) {
+                if (!text.has(target)) text.set(target, why);
+                return;
+            }
             if (target === SERVER || !inside(target, SERVER) || !fs.existsSync(target)) return;
-            const why = `read as text by mobile/${reader}`;
             for (const f of isDir(target) ? filesUnder(target) : [target]) {
                 if (!text.has(f)) text.set(f, why);
             }
@@ -181,8 +224,37 @@ function whatMobileReads(): { required: ReadSet; text: ReadSet; unresolved: stri
             if (!/\/|\.[a-z]+$/i.test(s)) continue;
             for (const handle of handles) named(path.resolve(handle, s));
         }
+
+        // `require(path.join(REPO, 'server/x.js'))`: run, not only read, so its own requires count too.
+        for (const m of codeOf(file).matchAll(/\brequire(?:Actual)?\(\s*path\.(?:join|resolve)\(\s*[A-Za-z_$][\w$]*\s*,\s*(['"])([^'"\n]+)\1\s*\)\s*\)/g)) {
+            for (const handle of handles) {
+                const target = resolveModule(path.join(handle, '_'), `./${m[2] ?? ''}`);
+                if (target && inside(target, SERVER)) required.set(target, `required by mobile/${reader}`);
+            }
+        }
+
+        for (const { helper, arg } of helperCalls(file)) {
+            const [base, kind] = PATH_HELPERS[helper] as readonly [string, 'required' | 'text'];
+            const target = resolveModule(path.join(base, '_'), `./${arg}`);
+            if (kind === 'text') {
+                // A path that names nothing (webFileExists asking about a file that is gone) reads nothing.
+                if (target) named(target);
+                continue;
+            }
+            if (target) required.set(target, `required through ${helper}() by mobile/${reader}`);
+            else unresolved.push(`mobile/${reader} loads ${helper}('${arg}')`);
+        }
     }
     return { required, text, unresolved };
+}
+
+/** Each `helper('literal')` (a type argument allowed) of a helper in PATH_HELPERS. */
+function helperCalls(file: string): { helper: string; arg: string }[] {
+    const names = Object.keys(PATH_HELPERS).join('|');
+    const re = new RegExp(`\\b(${names})\\s*(?:<[^;]*?>)?\\(\\s*(['"\`])([^'"\`\\n]+)\\2`, 'g');
+    return [...codeOf(file).matchAll(re)]
+        .filter((m) => !(m[3] ?? '').includes('${'))
+        .map((m) => ({ helper: m[1] ?? '', arg: m[3] ?? '' }));
 }
 
 /** The static require closure of the seeds, with the file that pulled each one in. */
@@ -283,7 +355,7 @@ describe("ci.yml's mobile filter covers everything mobile reads from server/", (
         expect(uncovered).toEqual([]);
     });
 
-    it('lists every server file read as text', () => {
+    it('lists every server or web file read as text', () => {
         const uncovered = [...reads.text]
             .filter(([file]) => !covered(rel(file)))
             .map(([file, why]) => `${rel(file)} (${why}) matches no pattern under \`mobile:\` in ci.yml`);

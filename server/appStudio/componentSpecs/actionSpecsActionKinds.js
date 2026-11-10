@@ -10,7 +10,8 @@ const ACTION_KINDS = ['run_automation', 'ai_extract', 'ai_generate', 'kb_query',
 // and mutatesData — the executor runs client steps in the browser and server
 // steps on the API; validation enforces that a client-only kind carries no
 // data-mutation fields (the client/server partition invariant).
-const STEP_KINDS = [
+// These are the BASE kinds; the step registry (steps/<kind>.js) adds its kinds after them.
+const BASE_STEP_KINDS = [
     'navigate', 'toast', 'open_url', 'open_modal', 'close_modal', 'reset_form', 'download_file', 'confirm', 'set_variable', 'refresh',
     'run_automation', 'create_record', 'update_record', 'delete_record', 'request_approval',
     'ai_extract', 'ai_generate', 'kb_query', 'send_email', 'generate_file', 'fill_document', 'generate_presentation', 'redact_pdf', 'file_intake', 'dataset_query', 'ai_browse', 'copy_document', 'kb_log_query', 'kb_log_review',
@@ -22,11 +23,10 @@ const STEP_KINDS = [
 // The native AI steps resolve the OWNER's model tier and run acts-as-owner, so
 // they belong here (server-executed) alongside the record kinds. generate_file
 // and file_intake write bytes into the owner's storage envelope — server-side
-// by definition, and so are fill_document and generate_presentation, which
-// render one, and redact_pdf, which writes a cleaned copy of one. copy_document
-// writes a new document into the owner's library.
-const DATA_MUTATING_STEP_KINDS = ['run_automation', 'create_record', 'update_record', 'delete_record', 'request_approval', 'ai_extract', 'ai_generate', 'kb_query', 'send_email', 'generate_file', 'fill_document', 'generate_presentation', 'redact_pdf', 'file_intake', 'dataset_query', 'ai_browse', 'copy_document', 'kb_log_query', 'kb_log_review', 'transaction'];
-
+// by definition, and so are fill_document and generate_presentation, which render one, and
+// redact_pdf, which writes a cleaned copy of one. copy_document writes a new document into the owner's library.
+const BASE_DATA_MUTATING_STEP_KINDS = ['run_automation', 'create_record', 'update_record', 'delete_record', 'request_approval', 'ai_extract', 'ai_generate', 'kb_query', 'send_email', 'generate_file', 'fill_document', 'generate_presentation', 'redact_pdf', 'file_intake', 'dataset_query', 'ai_browse', 'copy_document', 'kb_log_query', 'kb_log_review', 'transaction'];
+const { STEP_KINDS, DATA_MUTATING_STEP_KINDS } = require('./stepRegistry').extendKindLists(BASE_STEP_KINDS, BASE_DATA_MUTATING_STEP_KINDS);
 const CLIENT_STEP_KINDS = STEP_KINDS.filter((k) => !DATA_MUTATING_STEP_KINDS.includes(k));
 
 const TOAST_TONES = ['info', 'success', 'warning', 'danger'];
@@ -397,4 +397,4 @@ const DATASET_QUERY_FIELDS = {
     resultVar: { type: 'string', required: true, maxLen: 60 },
 };
 
-module.exports = { ACTION_KINDS, STEP_KINDS, DATA_MUTATING_STEP_KINDS, CLIENT_STEP_KINDS, TOAST_TONES, AI_SCHEMA_FIELD_TYPES, AI_EXTRACT_FIELDS, AI_GENERATE_FIELDS, KB_QUERY_FIELDS, SEND_EMAIL_FIELDS, GENERATE_FILE_FIELDS, FILL_DOCUMENT_FIELDS, GENERATE_PRESENTATION_FORMATS, GENERATE_PRESENTATION_FIELDS, REDACT_PDF_FIELDS, FILE_INTAKE_FIELDS, DATASET_QUERY_FIELDS };
+module.exports = { ACTION_KINDS, BASE_STEP_KINDS, BASE_DATA_MUTATING_STEP_KINDS, STEP_KINDS, DATA_MUTATING_STEP_KINDS, CLIENT_STEP_KINDS, TOAST_TONES, AI_SCHEMA_FIELD_TYPES, AI_EXTRACT_FIELDS, AI_GENERATE_FIELDS, KB_QUERY_FIELDS, SEND_EMAIL_FIELDS, GENERATE_FILE_FIELDS, FILL_DOCUMENT_FIELDS, GENERATE_PRESENTATION_FORMATS, GENERATE_PRESENTATION_FIELDS, REDACT_PDF_FIELDS, FILE_INTAKE_FIELDS, DATASET_QUERY_FIELDS };

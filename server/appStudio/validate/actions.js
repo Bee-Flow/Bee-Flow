@@ -245,10 +245,10 @@ function checkRecordValueColumns(kind, tableId, values, path, ctx, label) {
 
 /**
  * The step kinds that CHANGE ROWS — the only ones for which `mode:'read'` is an error and not
- * merely a property. Listed explicitly and not derived from `mutatesData`: that flag is ALSO on
+ * merely a property. The kinds flagged `writesRecords` in the step catalogue, not `mutatesData`: that flag is ALSO on
  * run_automation and request_approval, which do not write a `tableId` but CAN NAME one.
  */
-const RECORD_WRITE_STEP_KINDS = new Set(['create_record', 'update_record', 'delete_record']);
+const RECORD_WRITE_STEP_KINDS = new Set(require('../componentSpecs/stepRegistry').STEP_POLICY_LISTS.recordWriteKinds);
 
 /**
  * @param {string} kind

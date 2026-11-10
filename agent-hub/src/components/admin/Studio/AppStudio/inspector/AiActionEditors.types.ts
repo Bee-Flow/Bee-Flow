@@ -1,10 +1,10 @@
 import type { SchemaField, FormulaBinding, TableColumn } from './aiFieldMatching';
-import type { AppAction, FormFieldRef } from './appDefinition';
+import type { AppAction, AppDefinition, AppNode, FormFieldRef } from './appDefinition';
 import type { AppTable } from '../bi/useAppTables';
 import type { AiCheck } from './AiChecksField';
 
 /** A binding that reads a source: a form field, an expression, or (kb_query) a fixed text. */
-export type SourceBinding = { kind: string; expr?: unknown; value?: string };
+type SourceBinding = { kind: string; expr?: unknown; value?: string };
 
 /**
  * The writeTo of ai_extract (and file_intake / dataset_query). Every edit spreads the existing
@@ -104,6 +104,12 @@ export interface WriteToEditorProps {
     schemaFields: SchemaField[] | undefined;
     tables: AppTable[];
     disabled: boolean;
+    /** The fields are the step's fixed outputs (file_intake, dataset_query): never derive or adopt a schema. */
+    fixedOutputs?: boolean;
+    hint?: string;
+    /** For formula values in the replaceWhere clauses. */
+    definition?: AppDefinition | null;
+    node?: AppNode | null;
 }
 
 export interface ResultVarFieldProps {
