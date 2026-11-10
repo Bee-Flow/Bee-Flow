@@ -15,8 +15,6 @@ const { pgliteDb } = require('../testUtils/pgliteDb');
 const { makeActionRunStore } = require('../stores/studioAppData/actionRuns.mts');
 const BG = require('./backgroundRun.mts');
 const { backgroundLimits } = require('./backgroundRunPolicy.mts');
-const { guardedAiCall } = require('./aiCallGuard.mts');
-const { describeStepError } = require('./actionExecutor/stepErrors.mts');
 
 const { pg, db } = pgliteDb();
 const store = makeActionRunStore(db);

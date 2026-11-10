@@ -77,6 +77,21 @@ function cleanSwitchCases(raw, path, depth, push) {
 }
 
 /**
+ * A code step's source text, kept whole: a cut would leave broken code; validate refuses past maxLen.
+ * undefined = no value (absent, or dropped with a note).
+ *
+ * @param {string} field
+ * @param {string} path
+ * @param {(arg0: string, arg1: string, arg2: string) => void} push
+ * @returns {string | undefined}
+ */
+function cleanCodeField(field, v, path, push) {
+    if (typeof v === 'string') return v;
+    if (v !== undefined) push('step.field_invalid', path, `${field} must be a string of JavaScript — dropped.`);
+    return undefined;
+}
+
+/**
  * The branches of a parallel step: `[{ steps }]`. A branch keeps only its steps.
  *
  * @param {string} path
@@ -173,9 +188,7 @@ function cleanStep(raw, path, depth, push) {
         } else if (fs.type === 'tierChoice') {
             if (v !== undefined) { const t = cleanTierChoice(v, fs.maxLen || LIMITS.MAX_STRING, p, push); if (t !== undefined) out[field] = t; }
         } else if (fs.type === 'code') {
-            // Source text, kept whole: a cut would leave broken code; validate refuses past maxLen.
-            if (typeof v === 'string') out[field] = v;
-            else if (v !== undefined) push('step.field_invalid', p, `${field} must be a string of JavaScript — dropped.`);
+            const c = cleanCodeField(field, v, p, push); if (c !== undefined) out[field] = c;
         } else if (fs.type === 'errorHandler' || fs.type === 'retry') {
             if (v !== undefined) { const e = cleanEnvelopeField(fs.type, v, p, depth, push); if (e !== undefined) out[field] = e; }
         }

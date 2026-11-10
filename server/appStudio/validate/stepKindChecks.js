@@ -57,6 +57,11 @@ function containsSendEmail(steps) {
     return false;
 }
 
+/** The step lists of a switch's cases (each case that is an object). */
+function caseStepLists(s) {
+    return Array.isArray(s.cases) ? s.cases.filter(isObject).map((c) => c.steps) : [];
+}
+
 // Same whole-subtree walk, for any kind. (containsSendEmail predates this and
 // stays as-is — its call site is the single most important guard in the file
 // and not worth churning.)
@@ -69,11 +74,7 @@ function containsStepKind(steps, kind) {
         if (!isObject(s)) continue;
         if (s.kind === kind) return true;
         if (containsStepKind(s.steps, kind) || containsStepKind(s.then, kind) || containsStepKind(s.else, kind)) return true;
-        if (Array.isArray(s.cases)) {
-            for (const c of s.cases) {
-                if (isObject(c) && containsStepKind(c.steps, kind)) return true;
-            }
-        }
+        if (caseStepLists(s).some((list) => containsStepKind(list, kind))) return true;
         if (containsStepKind(s.default, kind)) return true;
         // A step's onError handler runs too (automationRefs.walkSteps descends into it as well).
         if (containsStepKind(s.onError?.steps, kind)) return true;
