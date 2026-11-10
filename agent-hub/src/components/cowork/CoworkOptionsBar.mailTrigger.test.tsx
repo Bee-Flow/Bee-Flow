@@ -61,6 +61,18 @@ describe('CoworkOptionsBar: when a new email arrives', () => {
         expect(props.onMailTriggerChange).toHaveBeenCalledWith({ provider: 'gmail', event: 'mail.new', filter: {} });
     });
 
+    it('starts an Outlook trigger when only Outlook is connected', async () => {
+        const user = userEvent.setup();
+        const props = setup({ agentId: 'a1' });
+        stubMailProviders(['msgraph']);
+        await user.click(screen.getByTestId('cowork-repeat-chip'));
+        await waitFor(() => expect(fetch).toHaveBeenCalled());
+        await waitFor(async () => {
+            await user.click(screen.getByText('When a new email arrives…'));
+            expect(props.onMailTriggerChange).toHaveBeenLastCalledWith({ provider: 'msgraph', event: 'mail.new', filter: {} });
+        });
+    });
+
     it('drops the trigger again when a clock option is picked', async () => {
         const user = userEvent.setup();
         const props = setup({ agentId: 'a1', mailTrigger: defaultMailTrigger('gmail') });

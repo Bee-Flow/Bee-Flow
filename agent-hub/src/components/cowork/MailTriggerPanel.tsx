@@ -94,6 +94,15 @@ export default function MailTriggerPanel({ value, onChange, disabled = false }: 
     );
 }
 
+/**
+ * Hands its child the first connected mail app (undefined while unknown), so the
+ * place that starts a trigger starts it on the app the user has, not on the Gmail default.
+ */
+export function FirstConnectedMailApp({ children }: { children: (first: MailProvider | undefined) => React.ReactNode }) {
+    const connected = useCoworkMailProvidersQuery().data;
+    return <>{children(MAIL_PROVIDERS.find(id => connected?.includes(id)))}</>;
+}
+
 interface FilterFieldsProps {
     provider: MailProvider;
     filter: MailTriggerFilter;
