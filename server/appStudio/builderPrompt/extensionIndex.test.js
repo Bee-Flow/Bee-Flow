@@ -16,7 +16,7 @@ const assert = require('node:assert/strict');
 const { buildSystemPrompt } = require('../builderPrompt');
 const { renderCatalogText, renderCompactCatalogText } = require('./catalogRender');
 const { renderExtensionIndex, renderIndexOf, gloss, GLOSS_MAX_CHARS } = require('./extensionIndex.mts');
-const { INSPECT_MAX_EXTENSIONS } = require('../builderTools/schemaTiers.mts');
+const { INSPECT_MAX_EXTENSIONS, INSPECT_MAX_FAMILY_ENTRIES } = require('../builderTools/schemaTiers.mts');
 const { applyToolCall } = require('../builderTools');
 const { applyInspectCatalog } = require('../builderTools/inspectionTools');
 const { emptyDefinition } = require('../componentSpecs');
@@ -253,10 +253,7 @@ test('app_inspect_catalog serves the keys outside the component and kind tables,
         const answered = (/** @type {string} */ family) => {
             const out = applyInspectCatalog({ family });
             assert.equal(out.unknown, undefined, family);
-            // A family past INSPECT_MAX_FAMILY_ENTRIES names the rest in its note; those are asked by name.
-            const rest = /ask for the others by name \(([^)]*)\)/.exec(out.note || '');
-            const more = rest ? applyInspectCatalog({ extensions: rest[1].split(', ') }).extensions : {};
-            return Object.fromEntries(Object.entries({ ...out.extensions, ...more }).filter(([name]) => isFixtureName(name)));
+            return Object.fromEntries(Object.entries(out.extensions).filter(([name]) => isFixtureName(name)));
         };
         assert.deepEqual(answered('itemKeys'), {
             'table.columns[].toneMap[].zz_icon': 'table.columns[].toneMap[].zz_icon: icon — An icon shown before the label.',
@@ -315,6 +312,19 @@ test('app_inspect_catalog answers an unknown name or family without failing the 
     // Asked the way it always was, the tool answers the way it always did.
     assert.match(applyInspectCatalog({}).error, /Name at least one component type/);
     assert.deepEqual(Object.keys(applyInspectCatalog({ components: ['heading'] })), ['components']);
+});
+
+test('every shipped family is answered whole by one call, within the builder\'s tool-result limit', () => {
+    const { truncateJson } = require('../../routes/ai/appStudioBuilder/turnLoop');
+    const families = [...new Set(extensionItems().map((item) => item.family))];
+    for (const family of families) {
+        const out = applyInspectCatalog({ family });
+        const names = extensionItems().filter((item) => item.family === family).map((item) => item.name);
+        assert.ok(names.length <= INSPECT_MAX_FAMILY_ENTRIES, `${family} has ${names.length} items, past the family cap`);
+        for (const name of names) assert.ok(Object.hasOwn(out.extensions, name), `${family}: ${name} is answered`);
+        assert.equal(out.note, undefined, `${family}: nothing is left for a second call`);
+        assert.ok(!truncateJson(out).includes('"_truncated":true'), `${family}: the answer reaches the model whole`);
+    }
 });
 
 // ── Tool calls: accepted, and a rejection carries the entry ─────────────────

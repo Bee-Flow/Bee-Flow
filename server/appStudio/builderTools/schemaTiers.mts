@@ -21,9 +21,13 @@ import type { ExtensionItem } from '../catalogTiers.mts';
 
 const fragments = createRequire(import.meta.url)('./schemaFragments.js') as { SECTION_HEIGHT_MODES: string[]; BASE_SECTION_HEIGHT_MODES: string[] };
 
-/** Entries one app_inspect_catalog call answers by name, and of one family. */
+/**
+ * Entries one app_inspect_catalog call answers by name, and of one family. The family cap holds
+ * the largest shipped family whole (stepFields, 33 items) with room for a few more; a whole
+ * family answer stays under the builder's tool-result limit (extensionIndex.test.js).
+ */
 export const INSPECT_MAX_EXTENSIONS = 12;
-export const INSPECT_MAX_FAMILY_ENTRIES = 25;
+export const INSPECT_MAX_FAMILY_ENTRIES = 36;
 
 /** The plain lists a schema enum is built from, and the tables whose entries carry an enum. */
 const TIERED_LISTS = ['NAV_STYLES', 'FIELD_TYPES', 'FILTER_OPS', 'AGG_FNS', 'DATE_BUCKETS'] as const;
