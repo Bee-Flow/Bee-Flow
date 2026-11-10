@@ -2,33 +2,18 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type React from 'react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { jsonAnswer } from '@/test/http';
+import AppRunPage, { RunSurface } from './AppRunPage';
 
 /**
  * A URL per screen of a running app (#/s/<screenId>?p.<key>=…).
  *
- * Everything below getRuntime is real: AppShell's nav, the action runner's
- * navigate, RunSurface's one navigation callback and the browser history of
- * jsdom. Back and Forward are the real history.back()/forward(), which fire
- * popstate the way a browser does.
+ * Only the network is stubbed. Everything above it is real: the api client,
+ * AppShell's nav, the action runner's navigate, RunSurface's one navigation
+ * callback and the browser history of jsdom. Back and Forward are the real
+ * history.back()/forward(), which fire popstate the way a browser does.
  */
-
-vi.mock('../../components/admin/Studio/AppStudio/studioAppsApi', () => {
-    const studioAppsApi = { getRuntime: vi.fn() };
-    return { studioAppsApi, default: studioAppsApi };
-});
-
-vi.mock('@/utils/helpers', async (importOriginal) => {
-    const actual = await importOriginal<typeof import('@/utils/helpers')>();
-    return { ...actual, authFetch: vi.fn() };
-});
-
-import { authFetch } from '@/utils/helpers';
-import AppRunPage, { RunSurface } from './AppRunPage';
-import { studioAppsApi } from '../../components/admin/Studio/AppStudio/studioAppsApi';
-
-const getRuntime = studioAppsApi.getRuntime as unknown as ReturnType<typeof vi.fn>;
-const authFetchMock = authFetch as unknown as ReturnType<typeof vi.fn>;
 
 interface Viewer { id: string; name: string; email: string; isOwner: boolean; roleKey: string | null }
 const MEMBER: Viewer = { id: 'u-1', name: 'Vera Viewer', email: 'vera@example.test', isOwner: false, roleKey: 'member' };
@@ -70,8 +55,17 @@ const DEFINITION = {
     },
 };
 
+let runtimeLoads = 0;
+
 function renderPage(viewer: Viewer = MEMBER, definition: unknown = DEFINITION) {
-    getRuntime.mockResolvedValue({ id: 'app-1', name: 'Route probe', icon: null, accentColor: null, definition, viewer });
+    const payload = { id: 'app-1', name: 'Route probe', icon: null, accentColor: null, definition, viewer };
+    vi.stubGlobal('fetch', vi.fn(async (url: unknown) => {
+        if (String(url).includes('/app-1/runtime')) {
+            runtimeLoads += 1;
+            return jsonAnswer(payload);
+        }
+        return jsonAnswer({ connectors: [], records: [] });
+    }));
     const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
     return render(<QueryClientProvider client={client}><AppRunPage appId="app-1" /></QueryClientProvider>);
 }
@@ -90,10 +84,10 @@ async function traverse(step: 'back' | 'forward') {
 
 beforeEach(() => {
     window.history.replaceState(null, '', '/app/apps/app-1');
-    getRuntime.mockReset();
-    authFetchMock.mockReset();
-    authFetchMock.mockResolvedValue({ ok: true, status: 200, json: async () => ({ connectors: [], records: [] }) });
+    runtimeLoads = 0;
 });
+
+afterEach(() => vi.unstubAllGlobals());
 
 describe('AppRunPage — a URL per screen', () => {
     it('opens on the home screen and leaves the URL alone until the viewer moves', async () => {
@@ -157,7 +151,7 @@ describe('AppRunPage — a URL per screen', () => {
         expect(await screen.findByText('rec_7')).toBeTruthy();
         expect(shownScreen(container)).toBe('scr_detail1');
         expect(screen.queryByRole('heading', { name: 'Main screen' })).toBeNull();
-        expect(getRuntime).toHaveBeenCalledTimes(1);
+        expect(runtimeLoads).toBe(1);
     });
 
     it('a link to a screen the viewer’s role may not see opens the home screen and drops the fragment', async () => {
@@ -244,6 +238,7 @@ describe('RunSurface without urlRoute', () => {
     it('never touches the URL: hosts that did not ask keep today’s behaviour', async () => {
         const user = userEvent.setup();
         const onNavigate = vi.fn();
+        vi.stubGlobal('fetch', vi.fn(async () => jsonAnswer({ connectors: [], records: [] })));
         const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
         render(<QueryClientProvider client={client}><Host onNavigate={onNavigate} /></QueryClientProvider>);
         await screen.findByRole('heading', { name: 'Main screen' });
