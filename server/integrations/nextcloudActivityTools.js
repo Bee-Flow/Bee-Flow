@@ -109,13 +109,16 @@ function mapActivity(a) {
 }
 
 /**
- * The ids of the files and folders that are shared with this user right now
- * (Sharing API, incoming shares). The activity triggers use it to tell a
- * received share from a withdrawn one, which the feed describes alike.
+ * What is shared with this user right now (Sharing API, incoming shares): per
+ * share its path in the user's files, the ids of the file or folder, and when
+ * the share was made (unix seconds). The activity triggers use it to tell a
+ * received share from a withdrawn one, which the feed describes alike. The
+ * answer has the shape of `nextcloud_list_shares`, so the caller runs it under
+ * that tool's access policy (core/integrations/ncScopeGuard.guardedNcCall).
  * @param {string} userId
- * @returns {Promise<Set<string> | null>}  null when the list cannot be read
+ * @returns {Promise<{ count: number, shares: Array<{ path: string | null, fileIds: string[], sharedAt: number | null }> } | null>}  null when the list cannot be read
  */
-async function incomingShareFileIds(userId, session) {
+async function incomingShares(userId, session) {
     const { baseUrl, fetch: ncFetch } = await ncClient.resolveAuth(session, userId);
     const res = await ncFetch(`${baseUrl}/ocs/v2.php/apps/files_sharing/api/v1/shares?format=json&shared_with_me=true`, {
         headers: { 'Accept': 'application/json', 'OCS-APIRequest': 'true' },
@@ -123,13 +126,16 @@ async function incomingShareFileIds(userId, session) {
     if (!res.ok) return null;
     const data = await readJsonSafe(res);
     if (!Array.isArray(data?.ocs?.data)) return null;
-    /** @type {Set<string>} */
-    const ids = new Set();
+    const shares = [];
     for (const share of data.ocs.data) {
-        if (share?.file_source != null) ids.add(String(share.file_source));
-        if (share?.item_source != null) ids.add(String(share.item_source));
+        if (!share || typeof share !== 'object') continue;
+        const fileIds = [...new Set([share.file_source, share.item_source].filter((v) => v != null).map(String))];
+        const at = Number(share.stime);
+        const path = typeof share.path === 'string' && share.path ? share.path
+            : (typeof share.file_target === 'string' && share.file_target ? share.file_target : null);
+        shares.push({ path, fileIds, sharedAt: Number.isFinite(at) && at > 0 ? at : null });
     }
-    return ids;
+    return { count: shares.length, shares };
 }
 
 /**
@@ -197,7 +203,7 @@ module.exports = {
     NEXTCLOUD_ACTIVITY_TOOLS,
     executeNextcloudActivityTool,
     isNextcloudActivityTool,
-    incomingShareFileIds,
+    incomingShares,
 };
 
 /**

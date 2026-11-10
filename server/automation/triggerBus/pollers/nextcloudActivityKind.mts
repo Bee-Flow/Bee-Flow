@@ -9,7 +9,8 @@
  *
  * One pair the feed does not tell apart: a share the user received and a share
  * that was withdrawn have the same type and the same parameters. For those rows
- * `confirmReceivedShares` asks which files are shared with the user right now.
+ * `confirmReceivedShares` asks what is shared with the user right now, and when
+ * each of those shares was made.
  */
 
 import { createRequire } from 'node:module';
@@ -45,10 +46,35 @@ export interface NcPolledPayload {
     [key: string]: unknown;
 }
 
+/** One incoming share, as integrations/nextcloudActivityTools.incomingShares maps it. */
+export interface IncomingShare {
+    path?: string | null;
+    fileIds?: string[];
+    /** when the share was made, unix seconds */
+    sharedAt?: number | null;
+}
+
 export interface ShareConfirmCtx {
     nextcloudActivityTools: () => {
-        incomingShareFileIds: (userId: string, session: NcPollSession) => Promise<Set<string> | null>;
+        incomingShares: (userId: string, session: NcPollSession) => Promise<{ shares: IncomingShare[] } | null>;
     };
+    /** core/integrations/ncScopeGuard: the read runs under the access settings of the Files family. */
+    ncScopeGuard: () => {
+        guardedNcCall: (
+            toolName: string, toolArgs: Record<string, unknown>,
+            who: { userId: string; session: NcPollSession }, run: () => Promise<unknown>,
+        ) => Promise<unknown>;
+    };
+}
+
+/**
+ * How many seconds a share may be older than the activity row that announces
+ * it (AUTOMATION_NC_SHARE_CONFIRM_MARGIN_SECONDS, default 10; 0 = not older at
+ * all). Nextcloud writes both in one request, so they are seconds apart at most.
+ */
+export function shareConfirmMarginMs(): number {
+    const raw = parseInt(String(process.env.AUTOMATION_NC_SHARE_CONFIRM_MARGIN_SECONDS ?? ''), 10);
+    return (Number.isFinite(raw) && raw >= 0 ? raw : 10) * 1000;
 }
 
 /**
@@ -136,11 +162,36 @@ export function classifyActivity(row: NcActivityRow, session: NcPollSession) {
     };
 }
 
+function isRecord(v: unknown): v is Record<string, unknown> {
+    return typeof v === 'object' && v !== null && !Array.isArray(v);
+}
+
+/** file id → when its newest incoming share was made (ms); null when the answer is not a share list. */
+function newestShareTimes(answer: unknown): Map<string, number> | null {
+    if (!isRecord(answer) || !Array.isArray(answer.shares)) return null;
+    const times = new Map<string, number>();
+    for (const share of answer.shares as IncomingShare[]) {
+        const at = Number(share?.sharedAt);
+        if (!Number.isFinite(at) || at <= 0 || !Array.isArray(share.fileIds)) continue;
+        for (const id of share.fileIds) {
+            const key = String(id);
+            if (at * 1000 > (times.get(key) ?? 0)) times.set(key, at * 1000);
+        }
+    }
+    return times;
+}
+
 /**
- * share.received, for the rows the subject text does not settle: they are
- * checked against the files that are shared with the user right now. Per file
- * only the newest row counts. One read per tick, and only when such a row is
- * new; when the read fails those rows stay unrecognised.
+ * share.received, for the rows the subject text does not settle. Such a row is
+ * a received share when a share of that file with the user exists right now
+ * and was made when the row was written (shareConfirmMarginMs); a row about a
+ * file that an older share still keeps visible is not. Per file only the
+ * newest row counts. One read per tick, and only when such a row is new.
+ *
+ * The read is the Files family's share listing and runs under the user's and
+ * the organisation's access settings (ncScopeGuard): shares outside them are
+ * not listed, and when the listing is not allowed at all, or fails, those rows
+ * stay unrecognised.
  *
  * @param payloads  the new rows of this tick, oldest first
  */
@@ -155,18 +206,25 @@ export async function confirmReceivedShares(
     }
     const open = [...newest].filter(([, p]) => !p._isShareReceived);
     if (!open.length) return;
-    let shared: Set<string> | null = null;
+    let answer: unknown = null;
     try {
-        shared = await ctx.nextcloudActivityTools().incomingShareFileIds(userId, session);
+        answer = await ctx.ncScopeGuard().guardedNcCall('nextcloud_list_shares', { shared_with_me: true }, { userId, session },
+            () => ctx.nextcloudActivityTools().incomingShares(userId, session));
     } catch (e) {
         warnActivityRead(userId, 'incoming share list', (e as Error).message);
         return;
     }
-    if (!shared) {
-        warnActivityRead(userId, 'incoming share list', 'no answer');
+    // The access settings do not allow the listing: a setting, not a failure.
+    if (isRecord(answer) && answer.nc_scope_denied) return;
+    const times = newestShareTimes(answer);
+    if (!times) {
+        warnActivityRead(userId, 'incoming share list', isRecord(answer) && answer.error ? answer.error : 'no answer');
         return;
     }
+    const margin = shareConfirmMarginMs();
     for (const [fileId, p] of open) {
-        if (shared.has(fileId)) p._isShareReceived = true;
+        const sharedAt = times.get(fileId);
+        const rowAt = Date.parse(String(p.raw?.datetime ?? ''));
+        if (sharedAt !== undefined && Number.isFinite(rowAt) && sharedAt >= rowAt - margin) p._isShareReceived = true;
     }
 }

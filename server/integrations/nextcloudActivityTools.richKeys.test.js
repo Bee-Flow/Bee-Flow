@@ -2,7 +2,8 @@
 /**
  * The activity rows carry the parameter names of the rich subject, which are
  * the same in every language, in both shapes the Activity API sends
- * `subject_rich` in. The incoming-share read returns the shared file ids.
+ * `subject_rich` in. The incoming-share read returns, per share, its path, its
+ * file ids and when it was made.
  *
  * Run: cd server && node --test integrations/nextcloudActivityTools.richKeys.test.js
  */
@@ -11,7 +12,7 @@ const assert = require('node:assert');
 
 require('../testUtils/routeHarness').recordDb();
 const { installFakeNc, resetFakeNc } = require('./nextcloudToolFakes');
-const { executeNextcloudActivityTool, incomingShareFileIds } = require('./nextcloudActivityTools');
+const { executeNextcloudActivityTool, incomingShares } = require('./nextcloudActivityTools');
 
 test.after(() => resetFakeNc());
 
@@ -40,14 +41,23 @@ test('nextcloud_activity_list: rich parameter names are passed on for the array 
     assert.ok(!('richKeys' in out.activities[4]), 'a row without rich parameters gains no key');
 });
 
-test('incomingShareFileIds: the ids of the files shared with the user; null when the list cannot be read', async () => {
-    const calls = installFakeNc(() => json(200, { ocs: { data: [{ id: '3', file_source: 55, item_source: 55 }, { id: '4', file_source: 60 }] } }));
-    const ids = await incomingShareFileIds('user-1', {});
-    assert.deepStrictEqual([...(ids || [])].sort(), ['55', '60']);
+test('incomingShares: path, file ids and time of every share with the user; null when the list cannot be read', async () => {
+    const calls = installFakeNc(() => json(200, { ocs: { data: [
+        { id: '3', file_source: 55, item_source: 55, path: '/Plan.docx', stime: 1762768800 },
+        { id: '4', file_source: 60, item_source: 61, file_target: '/Shared/Notes' },
+        { id: '5', path: '/x', stime: 'soon' },
+        null,
+    ] } }));
+    const out = await incomingShares('user-1', {});
+    assert.deepStrictEqual(out, { count: 3, shares: [
+        { path: '/Plan.docx', fileIds: ['55'], sharedAt: 1762768800 },
+        { path: '/Shared/Notes', fileIds: ['60', '61'], sharedAt: null },
+        { path: '/x', fileIds: [], sharedAt: null },
+    ] });
     assert.match(calls[0].url, /\/apps\/files_sharing\/api\/v1\/shares\?format=json&shared_with_me=true$/);
 
     installFakeNc(() => json(404, {}));
-    assert.strictEqual(await incomingShareFileIds('user-1', {}), null);
+    assert.strictEqual(await incomingShares('user-1', {}), null);
     installFakeNc(() => json(200, { ocs: { data: null } }));
-    assert.strictEqual(await incomingShareFileIds('user-1', {}), null);
+    assert.strictEqual(await incomingShares('user-1', {}), null);
 });

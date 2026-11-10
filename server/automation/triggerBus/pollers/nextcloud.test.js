@@ -164,19 +164,39 @@ test('activity channel: an error answer from the activity read is logged, once p
 
 // ── share.received in any language: asked from the incoming shares ──────
 
-/** A share.received ctx: `shared` = file ids shared with the user now (null = the read fails). */
-function shareCtx(activities, shared) {
+const ROW_TIME = '2026-11-10T10:00:00+00:00';
+const secondsOf = (iso) => Math.floor(Date.parse(iso) / 1000);
+
+/**
+ * A share.received ctx. `shared` = what is shared with the user now (null = the
+ * read fails): a file id (a share made when the rows were written) or
+ * `[file id, when the share was made]`. `guard` replaces the access guard.
+ */
+function shareCtx(activities, shared, guard = null) {
     const made = ncCtx({ activities });
     let reads = 0;
+    const guarded = [];
     made.ctx.nextcloudActivityTools = () => ({
         executeNextcloudActivityTool: async () => ({ activities: activities.slice() }),
-        incomingShareFileIds: async () => { reads += 1; return shared ? new Set(shared) : null; },
+        incomingShares: async () => {
+            reads += 1;
+            if (!shared) return null;
+            const shares = shared.map((s) => (Array.isArray(s) ? s : [s, ROW_TIME]))
+                .map(([id, at]) => ({ path: `/in/${id}`, fileIds: [String(id)], sharedAt: secondsOf(at) }));
+            return { count: shares.length, shares };
+        },
     });
-    return { ...made, reads: () => reads };
+    made.ctx.ncScopeGuard = () => ({
+        guardedNcCall: async (name, args, who, run) => {
+            guarded.push({ name, args, userId: who.userId });
+            return guard ? guard(name, run) : run();
+        },
+    });
+    return { ...made, reads: () => reads, guarded };
 }
 
 const ME = { nextcloudUid: 'alice' };
-const shareRow = (id, subject, extra = {}) => ({ id, type: 'shared', actor: 'bob', subject, richKeys: ['file', 'actor'], objectId: 55, objectName: '/Plan.docx', ...extra });
+const shareRow = (id, subject, extra = {}) => ({ id, type: 'shared', actor: 'bob', subject, richKeys: ['file', 'actor'], objectId: 55, objectName: '/Plan.docx', datetime: ROW_TIME, ...extra });
 
 test('share.received: a Dutch, German and French received share fires', async () => {
     const { ctx, reads } = shareCtx([
@@ -216,6 +236,73 @@ test('share.received: per file only the newest row counts', async () => {
     const enOut = await createNextcloudPollers(en.ctx)['share.received']({ id: 's-en', userId: 'nc-share-en', lastCursor: '10' }, ME);
     assert.deepStrictEqual(enOut.map(e => e.activityId), [12]);
     assert.strictEqual(en.reads(), 0, 'English subjects need no read');
+});
+
+test('share.received: a withdrawn share does not fire while an older share keeps the file with the user', async () => {
+    // The file is still shared (through a group, or by someone else) since the day before.
+    const older = [['55', '2026-11-09T08:00:00+00:00']];
+    for (const subject of [
+        'bob removed you from the share named Plan.docx',
+        'bob verwijderde je van share Plan.docx',
+        'bob hat dich aus der Freigabe von Plan.docx entfernt',
+    ]) {
+        const { ctx, reads } = shareCtx([shareRow(11, subject)], older);
+        const out = await createNextcloudPollers(ctx)['share.received']({ id: 's-w', userId: `nc-share-withdrawn-${subject.length}`, lastCursor: '10' }, ME);
+        assert.deepStrictEqual(out, [], subject);
+        assert.strictEqual(reads(), 1);
+    }
+});
+
+test('share.received: the share is as old as the row, within AUTOMATION_NC_SHARE_CONFIRM_MARGIN_SECONDS (default 10, 0 = not older)', async (t) => {
+    const prev = process.env.AUTOMATION_NC_SHARE_CONFIRM_MARGIN_SECONDS;
+    t.after(() => { if (prev === undefined) delete process.env.AUTOMATION_NC_SHARE_CONFIRM_MARGIN_SECONDS; else process.env.AUTOMATION_NC_SHARE_CONFIRM_MARGIN_SECONDS = prev; });
+    delete process.env.AUTOMATION_NC_SHARE_CONFIRM_MARGIN_SECONDS;
+    const poll = async (userId, madeAt, row = {}) => {
+        const { ctx } = shareCtx([shareRow(11, 'bob heeft Plan.docx met je gedeeld', row)], [['55', madeAt]]);
+        return (await createNextcloudPollers(ctx)['share.received']({ id: 's-m', userId, lastCursor: '10' }, ME)).length;
+    };
+    assert.strictEqual(await poll('nc-share-m1', '2026-11-10T09:59:52+00:00'), 1, '8 seconds before the row');
+    assert.strictEqual(await poll('nc-share-m2', '2026-11-10T09:59:40+00:00'), 0, '20 seconds before the row');
+    assert.strictEqual(await poll('nc-share-m3', '2026-11-10T10:00:03+00:00'), 1, 'after the row');
+    assert.strictEqual(await poll('nc-share-m4', ROW_TIME, { datetime: undefined }), 0, 'a row without a time is not confirmed');
+    process.env.AUTOMATION_NC_SHARE_CONFIRM_MARGIN_SECONDS = '0';
+    assert.strictEqual(await poll('nc-share-m5', '2026-11-10T09:59:59+00:00'), 0);
+    assert.strictEqual(await poll('nc-share-m6', ROW_TIME), 1);
+    process.env.AUTOMATION_NC_SHARE_CONFIRM_MARGIN_SECONDS = '60';
+    assert.strictEqual(await poll('nc-share-m7', '2026-11-10T09:59:40+00:00'), 1);
+});
+
+test('share.received: the incoming shares are read as the Files share listing, under the access settings', async (t) => {
+    const log = require('../../../telemetry/log');
+    const warn = t.mock.method(log, 'warn', () => {});
+    const rows = [
+        shareRow(11, 'bob heeft Plan.docx met je gedeeld', { objectId: 55 }),
+        shareRow(12, 'bob heeft Notes.md met je gedeeld', { objectId: 56 }),
+    ];
+    const sub = (userId) => ({ id: 's-g', userId, lastCursor: '10' });
+
+    // Allowed: one guarded call, by the name of the share-listing tool.
+    const open = shareCtx(rows, ['55', '56']);
+    assert.strictEqual((await createNextcloudPollers(open.ctx)['share.received'](sub('nc-share-g1'), ME)).length, 2);
+    assert.deepStrictEqual(open.guarded.filter((g) => g.name !== 'nextcloud_activity_list'),
+        [{ name: 'nextcloud_list_shares', args: { shared_with_me: true }, userId: 'nc-share-g1' }]);
+
+    // A selection that leaves one share out: only the other row fires.
+    const trimming = async (name, run) => {
+        const result = await run();
+        return name === 'nextcloud_list_shares' ? { ...result, shares: result.shares.filter((s) => s.path === '/in/56') } : result;
+    };
+    const narrowed = shareCtx(rows, ['55', '56'], trimming);
+    const some = await createNextcloudPollers(narrowed.ctx)['share.received'](sub('nc-share-g2'), ME);
+    assert.deepStrictEqual(some.map((e) => e.activityId), [12]);
+
+    // Not allowed at all: nothing is read, nothing fires, nothing is logged, the cursor moves on.
+    const denying = async (name, run) => (name === 'nextcloud_list_shares' ? { error: 'limited', nc_scope_denied: true } : run());
+    const denied = shareCtx(rows, ['55', '56'], denying);
+    assert.deepStrictEqual(await createNextcloudPollers(denied.ctx)['share.received'](sub('nc-share-g3'), ME), []);
+    assert.strictEqual(denied.reads(), 0);
+    assert.deepStrictEqual(denied.updates, [{ id: 's-g', lastCursor: '12' }]);
+    assert.strictEqual(warn.mock.callCount(), 0);
 });
 
 test('share.received: the incoming shares cannot be read → those rows stay unrecognised, the cursor moves on', async (t) => {
