@@ -91,6 +91,20 @@ describe('BuilderSplit (decomposed layout smoke)', () => {
         expect(screen.getByText('Skills')).toBeTruthy();
     });
 
+    // The apps pill opens the tool chooser of "Can use": the one list of apps, read from the server's
+    // catalogue. It used to open a popover of its own that guessed availability in the browser.
+    it('opens the tool chooser from the apps pill', async () => {
+        const user = userEvent.setup();
+        answerWith([['/agents/tool-catalog', {
+            apps: [{ id: 'gmail', label: 'Gmail', available: true, actionsKnown: true, provider: 'google', actions: [{ name: 'gmail_search', effect: 'reads' }] }],
+            degraded: false, providersKnown: true, lendingEnabled: false,
+        }]]);
+        render(<BuilderSplit {...baseProps} />);
+        await user.click(screen.getByText('agent_wizard.builder.browse_apps'));
+        expect(await screen.findByRole('dialog', { name: 'Choose apps & actions' })).toBeTruthy();
+        expect(screen.getByTestId('agent-tools-card')).toBeTruthy();
+    });
+
     it('routes name edits through the extracted field updaters', async () => {
         const user = userEvent.setup();
         render(<BuilderSplit {...baseProps} />);
@@ -345,7 +359,7 @@ describe('BuilderSplit — de Tools-kaart', () => {
         answerWith([['/agents/tool-catalog', CATALOG]]);
         render(<BuilderSplit {...baseProps} agent={{
             ...agent,
-            config: { enabledIntegrations: [], tools: { 'google-drive': { actions: [] } } },
+            config: { enabledIntegrations: [], tools: { 'google-drive': { actions: ['drive_search'] } } },
         }} />);
         await openCanUse();
 
