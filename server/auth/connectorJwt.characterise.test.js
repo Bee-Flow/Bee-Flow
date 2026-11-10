@@ -422,15 +422,23 @@ test('the id is taken by another account: 409 nc_user_id_conflict, a response an
     assert.ok(rec.warns.some((m) => m.startsWith('[ConnectorJWT] auto-provision failed userId=nc_org1_john-doe reason=duplicate_id')));
 });
 
+/** The store creates every user and finds one by id only once it is created: the row `rowOf(id, data)` gives. */
+function createdUsers(rowOf, onCreate = () => {}) {
+    const created = new Map();
+    userStore.createUserWithSeatCheck = async (u, opts) => { created.set(u.id, u); onCreate(u, opts); return { created: true }; };
+    userStore.getUser = async (id) => (created.has(id) ? rowOf(id, created.get(id)) : null);
+}
+
 test('uids that differ only in punctuation are provisioned under different ids, each in the token\'s organisation', async () => {
     const seen = [];
-    userStore.createUserWithSeatCheck = async (u) => { seen.push(u); return { created: true }; };
-    userStore.getUser = async (id) => ({ id, email: 'x@acme.example', organizationId: ORG });
+    createdUsers((id, u) => ({ id, email: u.email, organizationId: ORG, nc_uid: u.ncUid }), (u) => seen.push(u));
     await run(connectorReq({ email: 'john.doe@acme.example', sub: 'john.doe' }));
     await run(connectorReq({ email: 'john_doe@acme.example', sub: 'john_doe' }));
     await run(connectorReq({ email: 'john-doe@acme.example', sub: 'john-doe' }));
     assert.equal(new Set(seen.map((u) => u.id)).size, 3);
-    assert.equal(seen[2].id, 'nc_org1_john-doe');
+    assert.equal(seen[0].id, 'nc_org1_john-doe');
+    assert.match(seen[1].id, /^nc_org1_john-doe-[0-9a-f]{8}$/);
+    assert.match(seen[2].id, /^nc_org1_john-doe-[0-9a-f]{8}$/);
     assert.ok(seen.every((u) => u.id.startsWith('nc_org1_') && u.organizationId === ORG));
     assert.deepEqual(seen.map((u) => u.ncUid), ['john.doe', 'john_doe', 'john-doe']);
 });
@@ -448,8 +456,10 @@ test('createUserWithSeatCheck throwing: 401 Invalid connector token', async () =
 
 test('auto-provision (active): created with pinned fields, session built, one next()', async () => {
     let created;
-    userStore.createUserWithSeatCheck = async (u, opts) => { created = { u, opts }; return { created: true }; };
-    userStore.getUser = async (id) => ({ id, email: 'ann@acme.example', displayName: 'Ann', role: 'user', orgRole: 'agent_editor', organizationId: ORG, nc_uid: 'ann', provider: 'nextcloud_connector' });
+    createdUsers(
+        (id) => ({ id, email: 'ann@acme.example', displayName: 'Ann', role: 'user', orgRole: 'agent_editor', organizationId: ORG, nc_uid: 'ann', provider: 'nextcloud_connector' }),
+        (u, opts) => { created = { u, opts }; },
+    );
     const req = connectorReq(goodPayload({ name: 'Ann' }));
     const out = await run(req);
     assertNextOnce(out);
@@ -470,23 +480,21 @@ test('auto-provision (active): created with pinned fields, session built, one ne
 
 test('auto-provision: default org role honours a valid org override, ignores an invalid one; uid from email when no sub', async () => {
     const seen = [];
-    userStore.createUserWithSeatCheck = async (u) => { seen.push(u); return { created: true }; };
-    userStore.getUser = async (id) => ({ id, email: 'a@b.c', organizationId: ORG });
+    createdUsers((id) => ({ id, email: 'a@b.c', organizationId: ORG }), (u) => seen.push(u));
     userStore.getOrganization = async () => ({ id: ORG, nc_new_user_default_org_role: 'org_admin' });
     await run(connectorReq({ email: 'a@b.c' }));
     userStore.getOrganization = async () => ({ id: ORG, nc_new_user_default_org_role: 'not-a-role' });
     await run(connectorReq({ email: 'a@b.c' }));
     assert.equal(seen[0].orgRole, 'org_admin');
     assert.equal(seen[1].orgRole, 'agent_editor');
-    assert.equal(seen[0].id, `nc_org1_a-b-c-${crypto.createHash('sha256').update('a@b.c').digest('hex').slice(0, 8)}`);
+    assert.equal(seen[0].id, 'nc_org1_a-b-c');
     assert.equal(seen[0].ncUid, null);
     assert.equal(seen[0].displayName, 'a@b.c');
 });
 
 test('X-Beeflow-NC-Uid header is only used when the signed sub is absent', async () => {
     const seen = [];
-    userStore.createUserWithSeatCheck = async (u) => { seen.push(u); return { created: true }; };
-    userStore.getUser = async (id) => ({ id, email: 'a@b.c', organizationId: ORG });
+    createdUsers((id) => ({ id, email: 'a@b.c', organizationId: ORG }), (u) => seen.push(u));
     await run(connectorReq({ email: 'a@b.c' }, { headers: { 'x-beeflow-nc-uid': 'hdr' } }));
     await run(connectorReq({ email: 'a@b.c', sub: 'signed' }, { headers: { 'x-beeflow-nc-uid': 'hdr' } }));
     assert.equal(seen[0].ncUid, 'hdr');
@@ -495,8 +503,7 @@ test('X-Beeflow-NC-Uid header is only used when the signed sub is absent', async
 
 test('auto-provision (pending): 403 approval message, problem, async admin notification + audit seed', async () => {
     const audits = [];
-    userStore.createUserWithSeatCheck = async () => ({ created: true });
-    userStore.getUser = async (id) => ({ id, email: 'ann@acme.example', status: 'pending', organizationId: ORG });
+    createdUsers((id) => ({ id, email: 'ann@acme.example', status: 'pending', organizationId: ORG }));
     userStore.logAccessAudit = async (...a) => { audits.push(a); };
     userStore.getOrganization = async () => ({ id: ORG, nc_new_user_default_status: 'pending' });
     const out = await run(connectorReq(goodPayload()));

@@ -16,7 +16,7 @@
 const crypto = require('crypto');
 const log = require('../../telemetry/log');
 const { fallback } = require('../../utils/bestEffort');
-const { ncUserId } = require('../../utils/ncUserId.mts');
+const { resolveNcUserId } = require('../../utils/ncUserId.mts');
 const userStore = require('../../stores/userStore');
 const configStore = require('../../stores/configStore');
 const { invalidateTenantKeyCache } = require('../connectorJwt');
@@ -231,8 +231,12 @@ async function ncUidIsHeld(org, ncUid) {
  */
 async function createOrgAdminUser(org, { ncAdminEmail, ncAdminUid, ncAdminDisplayName }) {
     if (await ncUidIsHeld(org, ncAdminUid)) return null;
-    const userId = ncUserId(org.id, ncAdminUid, { lowercase: true, fallback: 'nc' });
-    const r = await userStore.createUserWithSeatCheck({
+    const resolved = await resolveNcUserId(
+        { orgId: org.id, ncUid: ncAdminUid, form: 'admin' },
+        { getUser: (id) => userStore.getUser(id) },
+    );
+    const userId = resolved.id;
+    const r = resolved.state !== 'free' ? { created: false, reason: 'duplicate_id' } : await userStore.createUserWithSeatCheck({
         id: userId,
         username: ncAdminEmail,
         email: ncAdminEmail,

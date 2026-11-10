@@ -35,7 +35,7 @@ const log = require('../telemetry/log');
 const { fallback } = require('../utils/bestEffort');
 
 const { summarizeSyncError, classifySyncFailure, NC_SYNC_FAILED, APP_REMOVED, KEY_DIVERGENCE } = require('./ncSyncFailure');
-const { ncUserId } = require('../utils/ncUserId.mts');
+const { resolveNcUserId } = require('../utils/ncUserId.mts');
 const { fetchAccountState, fetchDisabledUids, shouldMirrorUser, skipsNewGuest, isActiveStatus, firstSighting, ADMIN_RIGHTS_MISSING } = require('./ncAccountState.mts');
 const { syncModeChosen, fullSyncHold, SKIP_NOT_CHOSEN } = require('./ncSyncStart.mts');
 
@@ -269,18 +269,17 @@ async function _applyUserCreated(org, ncUid, state) {
         }
         return { action: 'skip', reason: 'no_email' };
     }
-    if (!shouldMirrorUser(org, ncGroups)) {
-        return { action: 'skip', reason: 'sync_mode_excludes' };
-    }
+    if (!shouldMirrorUser(org, ncGroups)) return { action: 'skip', reason: 'sync_mode_excludes' };
     if (skipsNewGuest(org, ncUser, ncGroups)) return { action: 'skip', reason: 'guest' };
     const status = (org.nc_new_user_default_status === 'pending') ? 'pending' : 'active';
-    const userId = ncUserId(org.id, ncUid);
+    // The id of a new user row; the rule is in utils/ncUserId.mts.
+    const resolved = await resolveNcUserId({ orgId: org.id, ncUid }, { getUser: (id) => userStore.getUser(id) });
+    if (resolved.state !== 'free') return { action: 'skip', reason: 'duplicate_id' };
+    const userId = resolved.id;
     // Map NC group memberships to Bee Flow group ids — relies on mirrorGroups
     // having populated the groups table for this org. NC's `admin` group is
     // intentionally not mirrored, so it gets dropped here.
-    const bfGroupIds = (ncGroups || [])
-        .filter(g => g !== 'admin')
-        .map(g => ncGroupToBfId(org.id, g));
+    const bfGroupIds = (ncGroups || []).filter(g => g !== 'admin').map(g => ncGroupToBfId(org.id, g));
     const r = await userStore.createUserWithSeatCheck({
         id: userId,
         username: ncUser.email,

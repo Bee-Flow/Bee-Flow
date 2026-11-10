@@ -348,11 +348,45 @@ test('an admin whose uid is held by a user of the organisation under another add
     }
 });
 
+test('an admin gets the id nc_<organisation>_<uid in lower case with dashes, none at the ends, cut to 40>', async () => {
+    const uids = ['Root', 'john.doe', 'Jane_Roe', 'Ann@Acme.Example', 'Jan de Vries', '.dotted.', 'Q'.repeat(64)];
+    for (const [i, uid] of uids.entries()) {
+        await helpers.ensureOrgAdminUser(ORG, { ncAdminEmail: `admin${i}@example.com`, ncAdminUid: uid });
+        const main = String(uid || 'nc').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'nc';
+        assert.equal(state.creates[i].id, `nc_${ORG.id}_${main}`, uid);
+    }
+    assert.deepEqual(state.creates.map(u => u.id), [
+        'nc_org-1_root', 'nc_org-1_john-doe', 'nc_org-1_jane-roe', 'nc_org-1_ann-acme-example', 'nc_org-1_jan-de-vries', 'nc_org-1_dotted', `nc_org-1_${'q'.repeat(40)}`,
+    ]);
+});
+
+test('admins john.doe then john_doe are two users: the second id carries a hash of its uid', async () => {
+    const first = await helpers.ensureOrgAdminUser(ORG, { ncAdminEmail: 'dot@example.com', ncAdminUid: 'john.doe' });
+    const second = await helpers.ensureOrgAdminUser(ORG, { ncAdminEmail: 'underscore@example.com', ncAdminUid: 'john_doe' });
+    assert.equal(first.id, 'nc_org-1_john-doe');
+    assert.match(second.id, /^nc_org-1_john-doe-[0-9a-f]{8}$/);
+    assert.deepEqual(state.creates.map(u => u.ncUid), ['john.doe', 'john_doe']);
+});
+
+test('both ids are rows of other accounts: no admin is created, the health row says duplicate_id', async () => {
+    await helpers.ensureOrgAdminUser(ORG, { ncAdminEmail: 'dot@example.com', ncAdminUid: 'john.doe' });
+    const second = await helpers.ensureOrgAdminUser(ORG, { ncAdminEmail: 'underscore@example.com', ncAdminUid: 'john_doe' });
+    state.usersById.get(second.id).nc_uid = 'someone-else';
+    fx.calls.length = 0;
+    const user = await helpers.ensureOrgAdminUser(ORG, { ncAdminEmail: 'third@example.com', ncAdminUid: 'john_doe' });
+    assert.equal(user, null);
+    assert.equal(state.creates.length, 2);
+    const problems = callsOf('problem');
+    assert.equal(problems.length, 1);
+    assert.equal(problems[0][1], 'bootstrap.admin_provision_failed');
+    assert.equal(problems[0][2].meta.reason, 'duplicate_id');
+});
+
 test('the same uid in another organisation does not stand in the way', async () => {
     state.usersById.set('nc_org-2_john-doe', { id: 'nc_org-2_john-doe', email: 'old@example.com', organizationId: 'org-2', nc_uid: 'john.doe' });
     const user = await helpers.ensureOrgAdminUser(ORG, { ncAdminEmail: 'new@example.com', ncAdminUid: 'john.doe' });
     assert.equal(state.creates.length, 1);
-    assert.ok(user);
+    assert.equal(user.id, 'nc_org-1_john-doe');
 });
 
 test('resolveProvisioningMode fails closed to pairing_only when the stored mode cannot be read, even on an open-by-default host', async () => {

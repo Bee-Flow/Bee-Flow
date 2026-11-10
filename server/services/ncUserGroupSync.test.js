@@ -723,31 +723,68 @@ test('an enabled account activates users of its own organisation only', async ()
 
 // ── The Bee Flow id of a new user ───────────────────────────────────────────
 
-test('a plain uid keeps the id nc_<organisation>_<uid>; uids that differ only in punctuation get different ids', async () => {
-    const r1 = await sync.applyUserCreated(MIRROR_ALL, 'alice');
-    const r2 = await sync.applyUserCreated(MIRROR_ALL, 'john.doe');
-    const r3 = await sync.applyUserCreated(MIRROR_ALL, 'john_doe');
-    assert.equal(r1.userId, 'nc_org-1_alice');
-    assert.match(r2.userId, /^nc_org-1_john-doe-[0-9a-f]{8}$/);
-    assert.match(r3.userId, /^nc_org-1_john-doe-[0-9a-f]{8}$/);
-    assert.notEqual(r2.userId, r3.userId);
-    assert.deepEqual(state.creates.map(u => u.id), [r1.userId, r2.userId, r3.userId]);
+/** Mirror one account and keep its row, as the store does. */
+async function mirror(org, ncUid) {
+    const r = await sync.applyUserCreated(org, ncUid);
+    if (r.action === 'create') {
+        const row = { ...state.creates.at(-1), nc_uid: ncUid };
+        state.users.set(row.id, row);
+        state.byNcUid.set(`${org.id}|${ncUid}`, row);
+    }
+    return r;
+}
+const mainId = (org, uid) => `nc_${org.id}_${String(uid || '').replace(/[^a-zA-Z0-9]+/g, '-').slice(0, 40) || 'user'}`;
+
+test('a new user gets the id nc_<organisation>_<uid with dashes, cut to 40>', async () => {
+    const uids = ['alice', 'john.doe', 'jane_roe', 'ann@acme.example', 'Jan de Vries', 'q'.repeat(64)];
+    for (const uid of uids) {
+        const r = await mirror(MIRROR_ALL, uid);
+        assert.equal(r.action, 'create', uid);
+        assert.equal(r.userId, mainId(MIRROR_ALL, uid), uid);
+    }
+    assert.deepEqual(state.creates.map(u => u.id), [
+        'nc_org-1_alice', 'nc_org-1_john-doe', 'nc_org-1_jane-roe', 'nc_org-1_ann-acme-example', 'nc_org-1_Jan-de-Vries', `nc_org-1_${'q'.repeat(40)}`,
+    ]);
 });
 
-test('two 64-character uids that share their first 40 characters are both mirrored', async () => {
-    const a = `${'f'.repeat(40)}${'1'.repeat(24)}`;
-    const b = `${'f'.repeat(40)}${'2'.repeat(24)}`;
-    const ra = await sync.applyUserCreated(MIRROR_ALL, a);
-    const rb = await sync.applyUserCreated(MIRROR_ALL, b);
-    assert.equal(ra.action, 'create');
-    assert.equal(rb.action, 'create');
-    assert.notEqual(ra.userId, rb.userId);
+test('john.doe then john_doe are two users: the second id carries a hash of its uid', async () => {
+    const r1 = await mirror(MIRROR_ALL, 'john.doe');
+    const r2 = await mirror(MIRROR_ALL, 'john_doe');
+    assert.equal(r1.userId, 'nc_org-1_john-doe');
+    assert.match(r2.userId, /^nc_org-1_john-doe-[0-9a-f]{8}$/);
+    assert.deepEqual(state.creates.map(u => [u.id, u.ncUid]), [[r1.userId, 'john.doe'], [r2.userId, 'john_doe']]);
+    // Each is found again by its uid: nobody is created a second time.
+    assert.equal((await mirror(MIRROR_ALL, 'john.doe')).userId, r1.userId);
+    assert.equal((await mirror(MIRROR_ALL, 'john_doe')).userId, r2.userId);
+    assert.equal(state.creates.length, 2);
+});
+
+test('a user row with the id nc_<organisation>_john-doe and the uid john.doe is that account: it is updated, nobody is created', async () => {
+    const row = { id: 'nc_org-1_john-doe', nc_uid: 'john.doe', status: 'active', email: 'old@example.com', displayName: 'john.doe', groups: [], organizationId: ORG.id, provider: 'nextcloud_connector' };
+    state.users.set(row.id, row);
+    state.byNcUid.set(`${ORG.id}|john.doe`, row);
+    const r = await sync.applyUserCreated(MIRROR_ALL, 'john.doe');
+    assert.equal(r.action, 'update');
+    assert.equal(r.userId, 'nc_org-1_john-doe');
+    assert.deepEqual(state.creates, []);
+});
+
+test('both ids belong to other accounts: nobody is created, the answer says duplicate_id', async () => {
+    const first = await mirror(MIRROR_ALL, 'john.doe');
+    const second = await mirror(MIRROR_ALL, 'john_doe');
+    // Give the second row to another uid, then mirror john_doe as a new account.
+    state.byNcUid.delete(`${ORG.id}|john_doe`);
+    state.users.get(second.userId).nc_uid = 'someone-else';
+    const r = await sync.applyUserCreated(MIRROR_ALL, 'john_doe');
+    assert.deepEqual(r, { action: 'skip', reason: 'duplicate_id' });
+    assert.equal(state.creates.length, 2);
+    assert.equal(first.userId, 'nc_org-1_john-doe');
 });
 
 test('the same uid in two organisations gets one id per organisation', async () => {
     const other = { ...MIRROR_ALL, id: 'org-2' };
     const mine = await sync.applyUserCreated(MIRROR_ALL, 'john.doe');
-    assert.match(mine.userId, /^nc_org-1_/);
+    assert.equal(mine.userId, 'nc_org-1_john-doe');
     // org-2 has no tenant key in this file: its sync reads nothing and creates nobody.
     const theirs = await sync.applyUserCreated(other, 'john.doe');
     assert.equal(theirs.action, 'error');

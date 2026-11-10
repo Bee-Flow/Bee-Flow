@@ -9,6 +9,9 @@
  * address finds no user, while a user of the organisation holds its uid, is
  * answered 409 nc_user_id_conflict and creates nobody.
  *
+ * And: the id of a new user is `nc_<organisation>_<uid with dashes, cut to
+ * 40>`; when that id is the row of another account, the id with a hash.
+ *
  * Run: cd server && node --test --test-force-exit auth/connectorJwt.provision.test.js
  */
 process.env.NODE_ENV = 'test';
@@ -87,8 +90,7 @@ test('a failed auto-provision is 500 "Failed to provision user" and does not rea
     assert.equal(reached, false);
 });
 
-// The row's id has the shape `nc_<org>_<uid with dashes>`; the helper's id for
-// the same uid is another one, so the id alone would not find it.
+// The row's id has the shape `nc_<org>_<uid with dashes>`.
 for (const [id, uid] of [['nc_org1_john-doe', 'john.doe'], ['nc_org1_jdoe', 'jdoe'], ['nc_org1_a-b-nl', 'a@b.nl'], ['nc_org1_Jan-de-Vries', 'Jan de Vries']]) {
     test(`a token with a new address for uid "${uid}", which a user of the organisation holds: 409, nobody is created`, async () => {
         users = [{ id, email: 'old@acme.example', organizationId: 'org1', nc_uid: uid, provider: 'nextcloud_connector', status: 'active' }];
@@ -110,5 +112,42 @@ test('the same uid held in another organisation does not stand in the way: the u
     assert.equal(creates.length, 1);
     assert.equal(creates[0].ncUid, 'john.doe');
     assert.equal(creates[0].organizationId, 'org1');
+    assert.equal(creates[0].id, 'nc_org1_john-doe');
     assert.equal(reached, true);
+});
+
+test('a new user gets the id nc_<organisation>_<uid with dashes, cut to 40>', async () => {
+    createAnswer = { created: true };
+    const uids = ['jdoe', 'john.doe', 'jane_roe', 'ann@acme.example', 'Jan de Vries', 'q'.repeat(64)];
+    for (const [i, uid] of uids.entries()) {
+        const { res } = await signIn({ email: `user${i}@acme.example`, sub: uid });
+        assert.equal(res.status, 200, uid);
+        assert.equal(creates[i].id, `nc_org1_${uid.replace(/[^a-zA-Z0-9]+/g, '-').slice(0, 40)}`, uid);
+    }
+    assert.deepEqual(creates.map((u) => u.id), [
+        'nc_org1_jdoe', 'nc_org1_john-doe', 'nc_org1_jane-roe', 'nc_org1_ann-acme-example', 'nc_org1_Jan-de-Vries', `nc_org1_${'q'.repeat(40)}`,
+    ]);
+});
+
+test('john.doe then john_doe are two users: the second id carries a hash of its uid', async () => {
+    createAnswer = { created: true };
+    assert.equal((await signIn({ email: 'dot@acme.example', sub: 'john.doe' })).res.status, 200);
+    assert.equal((await signIn({ email: 'underscore@acme.example', sub: 'john_doe' })).res.status, 200);
+    const hash = crypto.createHash('sha256').update('john_doe').digest('hex').slice(0, 8);
+    assert.deepEqual(creates.map((u) => [u.id, u.ncUid]), [['nc_org1_john-doe', 'john.doe'], [`nc_org1_john-doe-${hash}`, 'john_doe']]);
+    assert.equal(users.length, 2);
+});
+
+test('both ids are rows of other accounts: 409 nc_user_id_conflict, nobody is created', async () => {
+    const hash = crypto.createHash('sha256').update('john_doe').digest('hex').slice(0, 8);
+    users = [
+        { id: 'nc_org1_john-doe', email: 'dot@acme.example', organizationId: 'org1', nc_uid: 'john.doe' },
+        { id: `nc_org1_john-doe-${hash}`, email: 'local@acme.example', organizationId: 'org1', provider: 'local' },
+    ];
+    createAnswer = { created: true };
+    const { res, body } = await signIn({ email: 'underscore@acme.example', sub: 'john_doe' });
+    assert.equal(res.status, 409);
+    assert.equal(body.code, 'nc_user_id_conflict');
+    assert.deepEqual(creates, []);
+    assert.equal(reached, false);
 });
