@@ -64,6 +64,26 @@ export function isActiveStatus(status: unknown): boolean {
     return !status || status === 'active';
 }
 
+// ── Once per key ────────────────────────────────────────────────────────────
+
+const SIGHTINGS_MAX = 20000;
+const sightings = new Set<string>();
+
+/**
+ * True the first time a key is seen in this process, false after that. Used
+ * to report one thing about one account once instead of on every sync run.
+ * The memory is bounded: past SIGHTINGS_MAX keys it starts again.
+ */
+export function firstSighting(key: string): boolean {
+    if (sightings.has(key)) return false;
+    if (sightings.size >= SIGHTINGS_MAX) sightings.clear();
+    sightings.add(key);
+    return true;
+}
+
+/** Test hook: forget every key. */
+export function resetSightings(): void { sightings.clear(); }
+
 // ── Sync mode ───────────────────────────────────────────────────────────────
 
 /** Does the organisation's sync mode, with its lists of groups, admit a user in these groups? */

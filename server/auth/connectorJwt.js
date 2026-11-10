@@ -294,7 +294,7 @@ async function _authenticateConnectorToken(req, token) {
             orgId, source: 'connectorJwt', req,
             meta: { sub: payload.sub || null, reason: 'jwt_missing_email_claim' },
         });
-        return reject(400, { error: 'Connector token missing email claim' });
+        return reject(400, { error: 'Connector token missing email claim', code: 'nc_no_email' });
     }
 
     let user = await userStore.getUserByEmail(payload.email);

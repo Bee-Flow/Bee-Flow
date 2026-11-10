@@ -322,7 +322,7 @@ test('missing email claim: 400, auth.missing_email, no user lookup', async () =>
     let looked = false;
     userStore.getUserByEmail = async () => { looked = true; return null; };
     const out = await run(connectorReq({ sub: 'ann', email: '' }));
-    assertRejected(out, 400, { error: 'Connector token missing email claim' });
+    assertRejected(out, 400, { error: 'Connector token missing email claim', code: 'nc_no_email' });
     assert.deepEqual(problemCodes(), ['auth.missing_email']);
     assert.deepEqual(rec.problems[0].opts.meta, { sub: 'ann', reason: 'jwt_missing_email_claim' });
     assert.equal(rec.problems[0].opts.orgId, ORG);

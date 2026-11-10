@@ -36,7 +36,7 @@ const { fallback } = require('../utils/bestEffort');
 
 const { summarizeSyncError, classifySyncFailure, NC_SYNC_FAILED, APP_REMOVED, KEY_DIVERGENCE } = require('./ncSyncFailure');
 const { ncUserId } = require('../utils/ncUserId.mts');
-const { fetchAccountState, fetchDisabledUids, shouldMirrorUser, skipsNewGuest, isActiveStatus } = require('./ncAccountState.mts');
+const { fetchAccountState, fetchDisabledUids, shouldMirrorUser, skipsNewGuest, isActiveStatus, firstSighting } = require('./ncAccountState.mts');
 
 /**
  * The organisation fields this module reads (an organizations row).
@@ -260,6 +260,10 @@ async function _applyUserCreated(org, ncUid, state) {
     }
     if (!ncUser?.email) {
         log.warn(`[ncSync] Skipping NC user ${ncUid} — no email`);
+        // The same health row a sign-in without an address opens; once per user.
+        if (firstSighting(`no_email|${org.id}|${ncUid}`)) {
+            orgHealth.problem('auth.missing_email', { orgId: org.id, source: 'ncSync', meta: { sub: ncUid, reason: 'sync_no_email' } });
+        }
         return { action: 'skip', reason: 'no_email' };
     }
     if (!shouldMirrorUser(org, ncGroups)) {

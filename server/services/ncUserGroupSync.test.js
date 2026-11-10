@@ -747,3 +747,70 @@ test('the same uid in two organisations gets one id per organisation', async () 
     assert.equal(theirs.action, 'error');
     assert.deepEqual(state.creates.map(u => u.organizationId), ['org-1']);
 });
+
+// ── A user without an e-mail address ────────────────────────────────────────
+
+const { resetSightings } = require('./ncAccountState.mts');
+const settle = () => new Promise((resolve) => setImmediate(resolve));
+
+test('a user without an e-mail address is skipped and opens auth.missing_email for the organisation', async () => {
+    resetSightings();
+    const calls = stubHealthStore();
+    usersByUid.nomail = { displayname: 'No Mail' };
+    const r = await sync.applyUserCreated(MIRROR_ALL, 'nomail');
+    await settle();
+    assert.deepEqual(r, { action: 'skip', reason: 'no_email' });
+    assert.deepEqual(state.creates, []);
+    assert.equal(calls.upsert.length, 1);
+    const p = calls.upsert[0];
+    assert.equal(p.code, 'auth.missing_email');
+    assert.equal(p.organizationId, 'org-1');
+    assert.equal(p.subjectKey, 'org-1');
+    assert.equal(p.source, 'ncSync');
+    assert.deepEqual(p.meta, { sub: 'nomail', reason: 'sync_no_email' });
+});
+
+test('the health event is raised once per user, however often the sync meets that user', async () => {
+    resetSightings();
+    const calls = stubHealthStore();
+    usersByUid.nomail = { displayname: 'No Mail' };
+    usersByUid.other = { displayname: 'Other', email: '' };
+    ncUserList = ['nomail', 'other', 'alice'];
+    await sync.runFullSync(MIRROR_ALL);
+    await sync.runFullSync(MIRROR_ALL);
+    await sync.applyUserCreated(MIRROR_ALL, 'nomail');
+    await settle();
+    const raised = calls.upsert.filter(p => p.code === 'auth.missing_email');
+    assert.deepEqual(raised.map(p => p.meta.sub), ['nomail', 'other']);
+    // The fake store keeps no created rows, so each run creates alice again.
+    assert.deepEqual([...new Set(state.creates.map(u => u.ncUid))], ['alice']);
+});
+
+test('a user with an e-mail address raises nothing', async () => {
+    resetSightings();
+    const calls = stubHealthStore();
+    await sync.applyUserCreated(MIRROR_ALL, 'alice');
+    await settle();
+    assert.deepEqual(calls.upsert, []);
+});
+
+test('the same uid without an address in a second organisation is reported for that organisation, not this one', async () => {
+    resetSightings();
+    const calls = stubHealthStore();
+    usersByUid.nomail = { displayname: 'No Mail' };
+    await sync.applyUserCreated(MIRROR_ALL, 'nomail');
+    // A second organisation with its own key and Nextcloud.
+    const OTHER = { ...MIRROR_ALL, id: 'org-2', connector_callback_url: 'https://other.example.com/index.php/apps/app_api/proxy/bee_flow' };
+    const configStore = require('../stores/configStore.js');
+    const usualSecret = configStore.getSecret;
+    configStore.getSecret = async (k) => (k === 'connector_tenant_key_org-2' ? 'o'.repeat(64) : usualSecret(k));
+    try {
+        await sync.applyUserCreated(OTHER, 'nomail');
+        await sync.applyUserCreated(OTHER, 'nomail');
+    } finally { configStore.getSecret = usualSecret; }
+    await settle();
+    assert.deepEqual(calls.upsert.map(p => [p.organizationId, p.subjectKey, p.meta.sub]), [
+        ['org-1', 'org-1', 'nomail'],
+        ['org-2', 'org-2', 'nomail'],
+    ]);
+});
