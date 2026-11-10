@@ -404,17 +404,17 @@ function getPendingState() { return pendingState; }
 /** @type {Record<string, string | (() => string)>} */
 const REMEDIATION = {
     saas_unreachable: () =>
-        `The Bee Flow server is not reachable from this Nextcloud. Test with \`curl ${config.apiBaseUrl || '<your Bee Flow server>'}/api/health\` from the connector container and allow that hostname in your egress firewall.`,
+        `Your Bee Flow server is not reachable from this Nextcloud. Test with \`curl ${config.apiBaseUrl || '<your Bee Flow server>'}/api/health\` from the connector container and allow that hostname in your egress firewall.`,
     nc_not_publicly_reachable: () =>
-        `The Bee Flow server (${config.apiBaseUrl || 'not chosen yet'}) cannot reach this Nextcloud for user-sync callbacks. Set the public Nextcloud URL on the Bee Flow setup page (or BEEFLOW_NC_PUBLIC_URL), or choose a Bee Flow server that can reach this Nextcloud.`,
+        `Your Bee Flow server (${config.apiBaseUrl || 'not chosen yet'}) cannot reach this Nextcloud at the address the connector reports. Bee Flow Cloud needs a Nextcloud that is reachable from the internet, directly or through a tunnel: set that address as the public Nextcloud URL on the Bee Flow setup page. A Nextcloud on a private network needs a self-hosted Bee Flow server that can reach it and has NEXTCLOUD_ALLOW_PRIVATE_HOSTS=1 set.`,
     admin_lookup_failed:
         'No admin user found in this Nextcloud. Add one with `occ user:add --group admin <uid>` then redeploy the connector.',
     admin_email_missing:
         'Your Nextcloud admin user has no email address. Set an email on the admin account (Settings → Users) and redeploy the connector, or bind this Nextcloud to an existing Bee Flow organisation with a pairing code.',
     saas_auth_rejected:
-        'The Bee Flow service rejected our credentials. Check that this NC instance has not been disabled in your Bee Flow organisation.',
+        'Your Bee Flow server rejected the connector\'s credentials. Check that this Nextcloud has not been disabled in your Bee Flow organisation.',
     tenant_already_provisioned:
-        'This Nextcloud was bootstrapped previously and the tenant-key cache was lost. Recover the key from the Bee Flow admin UI, then register the app again with that key as the install-time value BEEFLOW_TENANT_KEY.',
+        'Your Bee Flow server answered that this Nextcloud, or its administrator, is already known there. To connect this Nextcloud to the existing organisation, ask a Bee Flow organisation admin to generate a pairing code (Settings → Organisation → Pair a new Nextcloud) and enter it on the Bee Flow setup page.',
     pairing_required:
         'This Bee Flow server does not create an organisation by itself. Ask your Bee Flow organisation admin to generate a pairing code (Settings → Organisation → Pair a new Nextcloud) and enter it on the Bee Flow setup page.',
     version_mismatch:
@@ -475,6 +475,10 @@ async function clearErrorFile() {
 /** @type {Record<string, string>} */
 const SAAS_CODE_TO_CATEGORY = {
     nc_capabilities_unreachable: 'nc_not_publicly_reachable',
+    // The server refuses the address the connector reports for this Nextcloud
+    // (a private or loopback address, for one): the same situation, and the
+    // server's own remediation text names the setting.
+    invalid_callback_url: 'nc_not_publicly_reachable',
     nc_capabilities_mismatch: 'nc_capabilities_mismatch',
     missing_headers: 'connector_outdated',
     invalid_admin_email: 'admin_email_invalid',
@@ -1427,6 +1431,7 @@ module.exports = {
     getPendingState,
     getLastErrorState,
     remediationFor,
+    categoriseError,
     invalidateAndRebootstrap,
     rotateTenantKey,
     submitVerificationCode,
