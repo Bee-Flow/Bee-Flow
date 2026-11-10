@@ -50,7 +50,7 @@ function FormInspector({ node, definition, onCommit, disabled = false }: PanelPr
                     onChange={(e) => patch({ validateOn: e.target.value === 'submit' ? undefined : e.target.value as 'blur' | 'change' })}
                     disabled={disabled}
                     aria-label={t('studio_apps_validate.form.validate_on', 'Show field errors')}
-                    className="w-full px-2 py-1.5 text-sm rounded-md border border-[var(--border)] bg-[var(--bg-primary)]"
+                    className="w-full px-2 py-1.5 text-sm rounded-md border border-[var(--border-default)] bg-[var(--bg-primary)]"
                 >
                     <option value="submit">{t('studio_apps_validate.form.on_submit', 'On submit')}</option>
                     <option value="blur">{t('studio_apps_validate.form.on_blur', 'When leaving a field')}</option>

@@ -142,9 +142,9 @@ export default function AssetPicker({ open, onClose, appId, definition, kind, on
             ) : (
                 <div className="flex flex-col gap-3">
                     <UploadButton kind={kind} pending={upload.isPending} onFile={(file) => upload.mutate(file)} />
-                    {error ? <p role="alert" className="text-xs text-[var(--danger,#dc2626)]">{error}</p> : null}
+                    {error ? <p role="alert" className="text-xs text-[var(--error)]">{error}</p> : null}
                     {list.isLoading ? <Spinner size="sm" /> : null}
-                    {list.isError ? <p role="alert" className="text-xs text-[var(--danger,#dc2626)]">{t('studio_apps_assets.error_list', 'The uploaded files could not be loaded.')}</p> : null}
+                    {list.isError ? <p role="alert" className="text-xs text-[var(--error)]">{t('studio_apps_assets.error_list', 'The uploaded files could not be loaded.')}</p> : null}
                     {list.isSuccess && !shown.length ? <p className="text-sm text-[var(--text-secondary)]">{t('studio_apps_assets.empty', 'No files uploaded yet.')}</p> : null}
                     {shown.length ? (
                         <ul className="grid grid-cols-3 gap-2">
