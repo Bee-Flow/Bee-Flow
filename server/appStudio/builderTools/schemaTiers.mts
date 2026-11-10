@@ -17,6 +17,7 @@
 
 import { createRequire } from 'node:module';
 import { EXTENSION_FAMILIES, baseCatalogue, extensionItems, fullCatalogue } from '../catalogTiers.mts';
+import type { ExtensionItem } from '../catalogTiers.mts';
 
 const fragments = createRequire(import.meta.url)('./schemaFragments.js') as { SECTION_HEIGHT_MODES: string[]; BASE_SECTION_HEIGHT_MODES: string[] };
 
@@ -33,7 +34,11 @@ const isObject = (v: unknown): v is SchemaNode => v !== null && typeof v === 'ob
 
 /** `{ extensions, family }` for app_inspect_catalog, or `{}` when the catalogue is the base. */
 export function inspectExtensionProps(): SchemaNode {
-    const items = extensionItems();
+    return inspectExtensionPropsOf(extensionItems());
+}
+
+/** The same for a given item list. Pure: `{}` for none, so the schema is then the base one to the byte. */
+export function inspectExtensionPropsOf(items: readonly ExtensionItem[]): SchemaNode {
     if (!items.length) return {};
     const families = EXTENSION_FAMILIES.filter((family) => items.some((item) => item.family === family));
     const examples = items.slice(0, 2).map((item) => JSON.stringify(item.name)).join(', ');

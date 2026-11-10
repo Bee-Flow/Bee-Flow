@@ -45,9 +45,28 @@ const RULE = 'Each line below only says that an item exists. BEFORE you use one,
 
 const text = (v: unknown): string => (typeof v === 'string' ? v.trim() : '');
 
-/** The first sentence of a description, cut at a word boundary past the cap. No trailing full stop. */
+/** True for a character that could start a new line in the prompt: C0/C1 controls and the Unicode line separators. */
+function breaksLine(code: number): boolean {
+    return code < 0x20 || (code >= 0x7f && code <= 0x9f) || code === 0x2028 || code === 0x2029;
+}
+
+/** `value` on one line: every control character or line separator becomes a space. */
+export function oneLine(value: string): string {
+    let out = '';
+    for (const ch of value) out += breaksLine(ch.codePointAt(0) as number) ? ' ' : ch;
+    return out.trim();
+}
+
+/**
+ * The first sentence of a description, cut at a word boundary past the cap. No trailing full stop.
+ * Always ONE line and ONE index entry: a line break is flattened, and the text stops at a ';'
+ * (the separator between entries), so a description can never write a second entry or a line of
+ * its own into the prompt.
+ */
 export function gloss(description: string, max: number = GLOSS_MAX_CHARS): string {
-    const flat = description.split('\n').join(' ').trim();
+    const whole = oneLine(description);
+    const semi = whole.indexOf(';');
+    const flat = (semi >= 0 ? whole.slice(0, semi) : whole).trim();
     const stop = flat.indexOf('. ');
     const first = stop >= 0 ? flat.slice(0, stop) : (flat.endsWith('.') ? flat.slice(0, -1) : flat);
     if (first.length <= max) return first;
@@ -64,7 +83,8 @@ export function renderIndexOf(items: readonly ExtensionItem[], { compact = false
         if (!members.length) continue;
         const entries = members.map((item) => {
             const short = compact ? '' : gloss(item.description);
-            return short ? `${item.name} — ${short}` : item.name;
+            const name = oneLine(item.name);
+            return short ? `${name} — ${short}` : name;
         });
         lines.push(`${family}: ${entries.join(compact ? ', ' : '; ')}`);
     }

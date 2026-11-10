@@ -25,6 +25,18 @@ const assert = require('node:assert/strict');
 
 const pinned = require('./__tests__/toolSchemaHashes.base.json');
 const { baseToolSchemaHashes, pinnedOnly } = require('../../testUtils/appCatalogExtensions.testkit');
+const { hasExtensions } = require('../catalogTiers.mts');
+const { inspectExtensionPropsOf } = require('./schemaTiers.mts');
+
+test('with no extension entry the schemas AS SENT are the capture: nothing is stripped to get there', (t) => {
+    // app_inspect_catalog gains nothing from an empty tier (pure, so this holds whatever ships).
+    assert.deepEqual(inspectExtensionPropsOf([]), {});
+    if (hasExtensions()) return t.skip('the shipped catalogue has extension entries: the stripped comparison below is the pin');
+    const crypto = require('node:crypto');
+    const { TOOL_SCHEMAS } = require('./schemas');
+    const raw = Object.fromEntries(TOOL_SCHEMAS.map((/** @type {any} */ tool) => [tool.function.name, crypto.createHash('sha256').update(JSON.stringify(tool)).digest('hex')]));
+    assert.deepEqual(pinnedOnly(raw, pinned.full), pinned.full);
+});
 
 test('every pinned tool schema of the full menu is byte-identical to the capture', () => {
     assert.ok(Object.keys(pinned.full).length >= 47);
