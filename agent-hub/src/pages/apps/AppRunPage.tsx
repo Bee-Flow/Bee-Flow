@@ -89,9 +89,18 @@ function RunBody({
     // about per-viewer integrations, which an anonymous visitor cannot connect
     // (and the public transport 404s the call anyway).
     if (chrome === 'bare') {
+        const publicLogoUrl = definition?.design?.logoUrl || null;
         return (
             <div className="h-full min-h-0 flex flex-col" style={{ background: CANVAS_GROUND, color: 'var(--text-primary)' }}>
                 {versionBanner}
+                {publicLogoUrl ? (
+                    // The page's own logo (publicAccess.design.logoUrl, merged
+                    // into the served design by the server). Same size as the
+                    // shell brand: 24 px high, 120 px wide at most.
+                    <div className="shrink-0 px-4 pt-3" data-app-public-logo="true">
+                        <img src={publicLogoUrl} alt={definition?.meta?.name || 'App'} className="h-6 max-w-[120px] object-contain" />
+                    </div>
+                ) : null}
                 <div className="flex-1 min-h-0 overflow-auto">{renderer}</div>
             </div>
         );
