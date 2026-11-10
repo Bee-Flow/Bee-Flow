@@ -29,18 +29,31 @@
 /** @typedef {{ severity: 'error' | 'warning', code: string, message: string, hint: string }} InLoopFinding */
 /** @typedef {{ field: string, as?: string, where?: string, loop?: boolean }} VarWrite */
 /**
- * @typedef {object} StepMeta
- * @property {StepSide} side          client: browser chrome; control: flow the walkers evaluate; server: executed on the API
- * @property {StepPolicy} policy
- * @property {boolean} retrySafe      a failed step may be tried again (false: its effect leaves Bee Flow or waits on a person)
- * @property {'ai' | 'heavy' | 'light'} [budget]  server kinds: the limiter bucket (routes/studioAppStepBudget.mts)
- * @property {'builtin' | 'file'} [handler]      server kinds: a case in actionExecutor/dispatch.js, or actionExecutor/steps/<kind>.mts
- * @property {boolean} [writesRecords] writes rows of the app table its `tableId` names
- * @property {boolean} [noLoop]        may never sit inside a loop (an error)
- * @property {InLoopFinding} [inLoop]  the finding a loop holding this kind gets
- * @property {(step: Record<string, unknown>) => string} [summary]  its text in the builder's one-line step summary (default: the kind)
- * @property {readonly VarWrite[]} [writesVars]  fields naming a variable the step writes (next to `resultVar`)
- * @property {number} [since]          the schema version that introduced it (registry kinds only)
+ * What the catalogue says about one step kind:
+ *   side           client: browser chrome; control: flow the walkers evaluate; server: executed on the API
+ *   retrySafe      a failed step may be tried again (false: its effect leaves Bee Flow or waits on a person)
+ *   budget         server kinds: the limiter bucket (routes/studioAppStepBudget.mts)
+ *   handler        server kinds: a case in actionExecutor/dispatch.js, or actionExecutor/steps/<kind>.mts
+ *   writesRecords  writes rows of the app table its `tableId` names
+ *   noLoop         may never sit inside a loop (an error)
+ *   inLoop         the finding a loop holding this kind gets
+ *   summary        its text in the builder's one-line step summary (default: the kind)
+ *   writesVars     fields naming a variable the step writes (next to `resultVar`)
+ *   since          the schema version that introduced it (registry kinds only)
+ *
+ * @typedef {{
+ *   side: StepSide,
+ *   policy: StepPolicy,
+ *   retrySafe: boolean,
+ *   budget?: 'ai' | 'heavy' | 'light',
+ *   handler?: 'builtin' | 'file',
+ *   writesRecords?: boolean,
+ *   noLoop?: boolean,
+ *   inLoop?: InLoopFinding,
+ *   summary?: (step: Record<string, unknown>) => string,
+ *   writesVars?: readonly VarWrite[],
+ *   since?: number,
+ * }} StepMeta
  */
 
 /** The values a policy row may hold, per execution form. */
