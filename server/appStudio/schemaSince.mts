@@ -49,10 +49,8 @@ import {
     QUERY_FAMILY,
     emptySinceIndex,
     requiredSchemaVersion as requiredWithIndex,
-    isNewerSchemaVersion,
-    envelopeVersionForRequired,
-    supportedEnvelopeVersions,
 } from '../shared/appDefinition/schemaVersion.mjs';
+import { isNewerSchemaVersion, envelopeVersionForRequired, supportedEnvelopeVersions } from '../shared/appDefinition/schemaEnvelope.mjs';
 import { definitionKeys } from './definitionKeyRegistry.mts';
 import { ASSET_REF_SINCE, hasAssetRef } from './appAssets.mts';
 import { ACTION_LIST_SINCE, hasActionListSlot } from '../shared/appDefinition/clientTriggers.mjs';
