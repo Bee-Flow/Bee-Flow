@@ -37,7 +37,7 @@ const ORG = {
     ncSyncGroups: ['staff'],
 };
 
-const state = { users: new Map(), byNcUid: new Map(), updates: [], groups: new Map() };
+const state = { users: new Map(), byNcUid: new Map(), updates: [], groups: new Map(), creates: [] };
 
 function inject(rel, exports) {
     const resolved = require.resolve(path.join(__dirname, rel));
@@ -49,7 +49,7 @@ inject('../stores/userStore.js', {
     getAllUsers: async () => [...state.users.values()],
     getAllGroups: async () => [...state.groups.values()],
     updateUser: async (id, updates) => { state.updates.push({ id, updates }); },
-    createUserWithSeatCheck: async () => ({ created: true }),
+    createUserWithSeatCheck: async (u) => { state.creates.push(u); return { created: true }; },
     updateOrganization: async () => {},
     createGroup: async () => {},
 });
@@ -59,39 +59,63 @@ inject('../stores/configStore.js', {
 });
 
 const sync = require('./ncUserGroupSync');
+const USERS_PATH = '/apps/app_api/api/v1/users';
 
 // ── fetch stub ──────────────────────────────────────────────────────────────
 let requests = [];
 let groupsByUid = {};
 let usersByUid = {};
+let ncUserList = [];   // what AppAPI's user list answers
+let disabledUids = []; // what Nextcloud reports as disabled, to its admin
 const realFetch = global.fetch;
+
+const json = (body) => ({ ok: true, status: 200, json: async () => body });
+
+// Nextcloud keys the disabled list by uid, and sends an empty one as [].
+function disabledAnswer(u) {
+    const limit = Number(u.searchParams.get('limit')) || disabledUids.length;
+    const page = disabledUids.slice(Number(u.searchParams.get('offset')) || 0).slice(0, limit);
+    return { ocs: { data: { users: page.length ? Object.fromEntries(page.map((id) => [id, { id }])) : [] } } };
+}
 
 function installFetch() {
     global.fetch = async (url, options = {}) => {
         const u = new URL(url);
-        requests.push({ url: u.pathname + u.search, headers: options.headers || {} });
+        const headers = options.headers || {};
+        requests.push({ url: u.pathname + u.search, headers });
+        if (u.pathname.endsWith('/cloud/users/disabled')) return json(disabledAnswer(u));
         const uidMatch = u.pathname.match(/\/cloud\/users\/([^/]+)(\/groups)?/);
         if (uidMatch) {
             const uid = decodeURIComponent(uidMatch[1]);
-            const body = uidMatch[2]
-                ? { ocs: { data: { groups: groupsByUid[uid] || [] } } }
-                : { ocs: { data: usersByUid[uid] || { email: `${uid}@example.com`, displayname: uid } } };
-            return { ok: true, status: 200, json: async () => body };
+            if (uidMatch[2]) return json({ ocs: { data: { groups: groupsByUid[uid] || [] } } });
+            const data = usersByUid[uid] || { email: `${uid}@example.com`, displayname: uid };
+            // Only an administrator is told whether an account is enabled.
+            const asAdmin = headers['X-Beeflow-NC-Uid'] === ORG.nc_admin_uid;
+            return json({ ocs: { data: asAdmin ? { id: uid, enabled: !disabledUids.includes(uid), ...data } : data } });
         }
-        return { ok: true, status: 200, json: async () => ({ ocs: { data: [] } }) };
+        if (u.pathname.endsWith(USERS_PATH)) return json({ ocs: { data: ncUserList } });
+        return json({ ocs: { data: [] } });
     };
 }
 
-function seedExistingUser({ ncUid, status }) {
-    const user = { id: `nc_${ORG.id}_${ncUid}`, nc_uid: ncUid, status, email: `${ncUid}@example.com`, displayName: ncUid, groups: [], organizationId: ORG.id, provider: 'nextcloud_connector' };
+/** Let one kind of request fail (or answer something else), the rest as usual. */
+function intercept(matches, answer) {
+    const usual = global.fetch;
+    global.fetch = async (url, options) => (matches(String(url), options?.headers || {}) ? answer() : usual(url, options));
+}
+const statusWrites = () => state.updates.filter(u => 'status' in u.updates);
+
+function seedExistingUser({ ncUid, status, orgId = ORG.id }) {
+    const user = { id: `nc_${orgId}_${ncUid}`, nc_uid: ncUid, status, email: `${ncUid}@example.com`, displayName: ncUid, groups: [], organizationId: orgId, provider: 'nextcloud_connector' };
     state.users.set(user.id, user);
-    state.byNcUid.set(`${ORG.id}|${ncUid}`, user);
+    state.byNcUid.set(`${orgId}|${ncUid}`, user);
     return user;
 }
 
 beforeEach(() => {
-    state.users.clear(); state.byNcUid.clear(); state.updates.length = 0; state.groups.clear();
-    requests = []; groupsByUid = {}; usersByUid = {};
+    state.users.clear(); state.byNcUid.clear(); state.updates.length = 0; state.groups.clear(); state.creates.length = 0;
+    requests = []; groupsByUid = { admin: ['admin'] }; usersByUid = {}; ncUserList = []; disabledUids = [];
+    delete process.env.NEXTCLOUD_SYNC_DISABLED_PAGE_SIZE;
     installFetch();
 });
 
@@ -279,8 +303,6 @@ function stubHealthStore() {
 }
 test.after(() => { orgHealth._setStore(null); });
 
-const USERS_PATH = '/apps/app_api/api/v1/users';
-
 function failUsersList(status) {
     const ok = global.fetch;
     global.fetch = async (url, options) => {
@@ -368,4 +390,327 @@ test('summarizeSyncError classifies from an allow-list and never echoes the mess
     const s = sync.summarizeSyncError(odd);
     assert.deepEqual(s, { stage: 'list_users', reason: 'error' });
     assert.ok(!JSON.stringify(s).includes('secret.example.com'));
+});
+
+// ── Accounts that are disabled in Nextcloud ─────────────────────────────────
+//
+// A disabled account counts as gone: deactivated, and active again once
+// Nextcloud reports it enabled. A status changes only on a definite answer.
+
+const MIRROR_ALL = { ...ORG, nc_sync_mode: 'mirror_all', ncSyncGroups: [] };
+const DISABLED_PATH = '/cloud/users/disabled';
+const fails = (status) => () => ({ ok: false, status, json: async () => ({}) });
+
+test('full sync: a disabled account is deactivated and no account is created for one', async () => {
+    stubHealthStore();
+    const bob = seedExistingUser({ ncUid: 'bob', status: 'active' });
+    seedExistingUser({ ncUid: 'alice', status: 'active' });
+    ncUserList = ['alice', 'bob', 'newdisabled', 'newenabled'];
+    disabledUids = ['bob', 'newdisabled'];
+
+    const result = await sync.runFullSync(MIRROR_ALL);
+
+    assert.deepEqual(statusWrites(), [{ id: bob.id, updates: { status: 'inactive' } }]);
+    assert.deepEqual(state.creates.map(u => u.ncUid), ['newenabled']);
+    assert.equal(result.deactivated, 1);
+    assert.equal(result.created, 1);
+    assert.deepEqual(result.errors, []);
+    assert.ok(!requests.some(r => r.headers['X-Beeflow-NC-Uid'] === 'bob'), 'a disabled account is not read any further');
+});
+
+test('full sync: an account that is enabled again is activated again', async () => {
+    stubHealthStore();
+    const bob = seedExistingUser({ ncUid: 'bob', status: 'inactive' });
+    ncUserList = ['bob'];
+    disabledUids = [];
+
+    const result = await sync.runFullSync(MIRROR_ALL);
+
+    assert.deepEqual(statusWrites(), [{ id: bob.id, updates: { status: 'active' } }]);
+    assert.equal(result.reactivated, 1);
+    assert.equal(result.deactivated, 0);
+});
+
+test('full sync: an account that is still disabled stays inactive', async () => {
+    stubHealthStore();
+    seedExistingUser({ ncUid: 'bob', status: 'inactive' });
+    ncUserList = ['bob'];
+    disabledUids = ['bob'];
+    await sync.runFullSync(MIRROR_ALL);
+    assert.deepEqual(statusWrites(), []);
+});
+
+test('full sync: a failed read of the disabled accounts changes no status', async () => {
+    for (const answer of [
+        fails(503),
+        fails(403),
+        () => { throw new Error('socket hang up'); },
+        () => json({ ocs: { data: {} } }),                         // no list in the answer
+        () => json({ ocs: { data: { users: 'none' } } }),          // not a list
+        () => json({ ocs: { data: { users: [{ name: 'bob' }] } } }), // entries without an id
+    ]) {
+        state.updates.length = 0;
+        const calls = stubHealthStore();
+        seedExistingUser({ ncUid: 'bob', status: 'active' });     // disabled in Nextcloud
+        seedExistingUser({ ncUid: 'carol', status: 'inactive' }); // enabled in Nextcloud
+        ncUserList = ['bob', 'carol'];
+        disabledUids = ['bob'];
+        installFetch();
+        intercept((url) => url.includes(DISABLED_PATH), answer);
+
+        const result = await sync.runFullSync(MIRROR_ALL);
+
+        assert.deepEqual(statusWrites(), [], 'nobody is deactivated and nobody is activated again');
+        assert.deepEqual(result.errors, [{ stage: 'disabled_accounts', error: 'lookup_failed' }]);
+        assert.equal(result.error, undefined, 'the sync itself still completes');
+        assert.equal(calls.resolve.length, 1);
+    }
+});
+
+test('full sync: a list that stops halfway changes no status', async () => {
+    stubHealthStore();
+    process.env.NEXTCLOUD_SYNC_DISABLED_PAGE_SIZE = '2';
+    for (const uid of ['a', 'b', 'c']) seedExistingUser({ ncUid: uid, status: 'active' });
+    seedExistingUser({ ncUid: 'carol', status: 'inactive' });
+    ncUserList = ['a', 'b', 'c', 'carol'];
+    disabledUids = ['a', 'b', 'c'];
+    intercept((url) => url.includes(DISABLED_PATH) && url.includes('offset=2'), fails(500));
+
+    const result = await sync.runFullSync(MIRROR_ALL);
+
+    assert.deepEqual(statusWrites(), [], 'the first page alone is not acted on');
+    assert.deepEqual(result.errors, [{ stage: 'disabled_accounts', error: 'lookup_failed' }]);
+});
+
+test('full sync: the disabled accounts are read page by page, the page size is configurable, 0 reads all at once', async () => {
+    for (const [size, expected] of [['2', ['limit=2&offset=0', 'limit=2&offset=2']], ['0', ['']], [undefined, ['limit=500&offset=0']]]) {
+        stubHealthStore();
+        state.updates.length = 0; requests = [];
+        if (size === undefined) delete process.env.NEXTCLOUD_SYNC_DISABLED_PAGE_SIZE;
+        else process.env.NEXTCLOUD_SYNC_DISABLED_PAGE_SIZE = size;
+        for (const uid of ['a', 'b', 'c']) seedExistingUser({ ncUid: uid, status: 'active' });
+        ncUserList = ['a', 'b', 'c'];
+        disabledUids = ['a', 'b', 'c'];
+
+        await sync.runFullSync(MIRROR_ALL);
+
+        const pages = requests.filter(r => r.url.includes(DISABLED_PATH));
+        assert.deepEqual(pages.map(r => r.url.split('format=json')[1].replace(/^&/, '')), expected, `page size ${size}`);
+        assert.ok(pages.every(r => r.headers['X-Beeflow-NC-Uid'] === 'admin'), 'read as the stored admin');
+        assert.deepEqual(statusWrites().map(u => u.updates.status), ['inactive', 'inactive', 'inactive'], `page size ${size}`);
+    }
+});
+
+test('full sync: the list of a stored admin who is not a Nextcloud admin is not acted on', async () => {
+    // Nextcloud answers a non-admin with an empty list, which says nothing.
+    stubHealthStore();
+    groupsByUid.admin = ['staff'];
+    seedExistingUser({ ncUid: 'carol', status: 'inactive' });
+    ncUserList = ['carol'];
+    const result = await sync.runFullSync(MIRROR_ALL);
+    assert.deepEqual(statusWrites(), []);
+    assert.deepEqual(result.errors, [{ stage: 'disabled_accounts', error: 'lookup_failed' }]);
+    assert.ok(!requests.some(r => r.url.includes(DISABLED_PATH)));
+});
+
+test('full sync: without a stored admin no status changes for being disabled or enabled', async () => {
+    stubHealthStore();
+    seedExistingUser({ ncUid: 'carol', status: 'inactive' });
+    ncUserList = ['carol'];
+    await sync.runFullSync({ ...MIRROR_ALL, nc_admin_uid: '' });
+    assert.deepEqual(statusWrites(), []);
+});
+
+test('full sync: a disabled account that is pending or suspended keeps that status', async () => {
+    stubHealthStore();
+    seedExistingUser({ ncUid: 'pat', status: 'pending' });
+    seedExistingUser({ ncUid: 'sam', status: 'suspended' });
+    ncUserList = ['pat', 'sam'];
+    disabledUids = ['pat', 'sam'];
+    await sync.runFullSync(MIRROR_ALL);
+    assert.deepEqual(statusWrites(), []);
+});
+
+test('full sync: an account gone from Nextcloud is still deactivated when the disabled accounts cannot be read', async () => {
+    stubHealthStore();
+    const gone = seedExistingUser({ ncUid: 'gone', status: 'active' });
+    ncUserList = [];
+    intercept((url) => url.includes(DISABLED_PATH), fails(503));
+    await sync.runFullSync(MIRROR_ALL);
+    assert.deepEqual(statusWrites(), [{ id: gone.id, updates: { status: 'inactive' } }]);
+});
+
+test('user event: a disabled account is deactivated, with one read as the stored admin', async () => {
+    const bob = seedExistingUser({ ncUid: 'bob', status: 'active' });
+    disabledUids = ['bob'];
+
+    const r = await sync.applyUserCreated(MIRROR_ALL, 'bob');
+
+    assert.deepEqual(r, { action: 'deactivate', userId: bob.id, reason: 'nc_disabled' });
+    assert.deepEqual(state.updates, [{ id: bob.id, updates: { status: 'inactive' } }]);
+    assert.deepEqual(requests.map(q => q.headers['X-Beeflow-NC-Uid']), ['admin']);
+});
+
+test('user event: no account is created for a disabled account', async () => {
+    disabledUids = ['newbie'];
+    const r = await sync.applyUserCreated(MIRROR_ALL, 'newbie');
+    assert.deepEqual(r, { action: 'skip', reason: 'nc_disabled' });
+    assert.deepEqual(state.creates, []);
+});
+
+test('user event: an account that is enabled again is activated again', async () => {
+    const bob = seedExistingUser({ ncUid: 'bob', status: 'inactive' });
+    await sync.applyUserCreated(MIRROR_ALL, 'bob');
+    assert.deepEqual(statusWrites(), [{ id: bob.id, updates: { status: 'active' } }]);
+});
+
+test('user event: a disabled account that is pending or suspended keeps that status', async () => {
+    for (const status of ['pending', 'suspended', 'inactive']) {
+        state.updates.length = 0;
+        seedExistingUser({ ncUid: 'pat', status });
+        disabledUids = ['pat'];
+        assert.deepEqual(await sync.applyUserCreated(MIRROR_ALL, 'pat'), { action: 'noop' });
+        assert.deepEqual(state.updates, []);
+    }
+});
+
+test('user event: a failed or incomplete read of the account changes no status', async () => {
+    const adminRead = (url, headers) => url.includes('/cloud/users/bob?') && headers['X-Beeflow-NC-Uid'] === 'admin';
+    for (const answer of [
+        fails(503),
+        fails(404),
+        () => { throw new Error('timeout'); },
+        () => json({ ocs: { data: { id: 'bob', email: 'bob@example.com' } } }),         // no `enabled`
+        () => json({ ocs: { data: { id: 'bob', enabled: 'maybe' } } }),                 // not a yes or no
+        () => json({ ocs: { data: { id: 'someone-else', enabled: false } } }),          // about another account
+        () => json({ ocs: {} }),
+    ]) {
+        for (const status of ['active', 'inactive']) {
+            state.updates.length = 0;
+            seedExistingUser({ ncUid: 'bob', status });
+            disabledUids = status === 'active' ? ['bob'] : [];
+            installFetch();
+            intercept(adminRead, answer);
+            await sync.applyUserCreated(MIRROR_ALL, 'bob');
+            assert.deepEqual(statusWrites(), [], `status ${status} must stay`);
+        }
+    }
+});
+
+test('user event: without a stored admin an inactive account is not activated', async () => {
+    seedExistingUser({ ncUid: 'bob', status: 'inactive' });
+    await sync.applyUserCreated({ ...MIRROR_ALL, nc_admin_uid: '' }, 'bob');
+    assert.deepEqual(statusWrites(), []);
+});
+
+test('group event: a disabled account is not activated by a change of groups', async () => {
+    seedExistingUser({ ncUid: 'bob', status: 'inactive' });
+    groupsByUid.bob = ['staff'];
+    disabledUids = ['bob'];
+    assert.deepEqual(await sync.applyGroupMemberChange(ORG, 'bob', 'staff'), { action: 'noop' });
+    assert.deepEqual(state.updates, []);
+
+    // Not known either way: no change.
+    intercept((url, headers) => url.includes('/cloud/users/bob?') && headers['X-Beeflow-NC-Uid'] === 'admin', fails(503));
+    assert.deepEqual(await sync.applyGroupMemberChange(ORG, 'bob', 'staff'), { action: 'noop' });
+    assert.deepEqual(state.updates, []);
+});
+
+test('group event: an enabled account that enters a synced group is activated', async () => {
+    const bob = seedExistingUser({ ncUid: 'bob', status: 'inactive' });
+    groupsByUid.bob = ['staff'];
+    const r = await sync.applyGroupMemberChange(ORG, 'bob', 'staff');
+    assert.deepEqual(r, { action: 'reactivate', userId: bob.id });
+});
+
+// ── Guests ──────────────────────────────────────────────────────────────────
+
+test('a guest gets no new account by default', async () => {
+    groupsByUid['guest@partner.example'] = ['guest_app'];
+    const r = await sync.applyUserCreated(MIRROR_ALL, 'guest@partner.example');
+    assert.deepEqual(r, { action: 'skip', reason: 'guest' });
+    assert.deepEqual(state.creates, []);
+});
+
+test('a guest is recognised by the guests backend when the group is not reported', async () => {
+    usersByUid.visitor = { email: 'visitor@partner.example', displayname: 'Visitor', backend: 'Guests' };
+    const r = await sync.applyUserCreated(MIRROR_ALL, 'visitor');
+    assert.deepEqual(r, { action: 'skip', reason: 'guest' });
+    assert.deepEqual(state.creates, []);
+});
+
+test('a guest gets an account when the groups to sync name the guests group', async () => {
+    groupsByUid.visitor = ['guest_app'];
+    for (const org of [
+        { ...MIRROR_ALL, ncSyncGroups: ['guest_app'] },
+        { ...ORG, nc_sync_mode: 'selective_groups', ncSyncGroups: ['staff', 'guest_app'] },
+    ]) {
+        state.creates.length = 0;
+        const r = await sync.applyUserCreated(org, 'visitor');
+        assert.equal(r.action, 'create');
+        assert.equal(state.creates.length, 1);
+    }
+});
+
+test('a guest in another synced group still gets no account unless the guests group is named', async () => {
+    groupsByUid.visitor = ['guest_app', 'staff'];
+    const r = await sync.applyUserCreated(ORG, 'visitor'); // selective_groups: ['staff']
+    assert.deepEqual(r, { action: 'skip', reason: 'guest' });
+});
+
+test('an excluded guests group keeps guests out even when it is also named for sync', async () => {
+    groupsByUid.visitor = ['guest_app'];
+    const r = await sync.applyUserCreated({ ...MIRROR_ALL, ncSyncGroups: ['guest_app'], ncSyncExcludedGroups: ['guest_app'] }, 'visitor');
+    assert.deepEqual(r, { action: 'skip', reason: 'sync_mode_excludes' });
+});
+
+test('a full sync creates accounts for regular users and none for guests', async () => {
+    stubHealthStore();
+    ncUserList = ['alice', 'guest@partner.example'];
+    groupsByUid['guest@partner.example'] = ['guest_app'];
+    const result = await sync.runFullSync(MIRROR_ALL);
+    assert.deepEqual(state.creates.map(u => u.ncUid), ['alice']);
+    assert.equal(result.created, 1);
+});
+
+test('a guest who already has an account keeps it', async () => {
+    stubHealthStore();
+    seedExistingUser({ ncUid: 'visitor', status: 'active' });
+    groupsByUid.visitor = ['guest_app'];
+    ncUserList = ['visitor'];
+
+    await sync.runFullSync(MIRROR_ALL);
+    await sync.applyUserCreated(MIRROR_ALL, 'visitor');
+    await sync.applyGroupMemberChange(MIRROR_ALL, 'visitor', 'guest_app');
+
+    assert.deepEqual(statusWrites(), []);
+});
+
+// ── One organisation at a time ──────────────────────────────────────────────
+
+test('a disabled account changes users of its own organisation only', async () => {
+    stubHealthStore();
+    const mine = seedExistingUser({ ncUid: 'bob', status: 'active' });
+    const theirs = seedExistingUser({ ncUid: 'bob', status: 'active', orgId: 'org-2' });
+    ncUserList = ['bob'];
+    disabledUids = ['bob'];
+
+    await sync.runFullSync(MIRROR_ALL);
+    assert.deepEqual(state.updates, [{ id: mine.id, updates: { status: 'inactive' } }]);
+
+    state.updates.length = 0;
+    mine.status = 'active';
+    await sync.applyUserCreated(MIRROR_ALL, 'bob');
+    assert.deepEqual(state.updates, [{ id: mine.id, updates: { status: 'inactive' } }]);
+    assert.equal(theirs.status, 'active');
+    assert.ok(requests.every(r => r.url.startsWith(new URL(ORG.connector_callback_url).pathname)), 'every read goes to this organisation\'s Nextcloud');
+});
+
+test('an enabled account activates users of its own organisation only', async () => {
+    stubHealthStore();
+    const mine = seedExistingUser({ ncUid: 'bob', status: 'inactive' });
+    seedExistingUser({ ncUid: 'bob', status: 'inactive', orgId: 'org-2' });
+    ncUserList = ['bob'];
+    await sync.runFullSync(MIRROR_ALL);
+    assert.deepEqual(state.updates.map(u => u.id), [mine.id]);
 });
