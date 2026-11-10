@@ -55,6 +55,10 @@ export {
     collectIds,
 } from './tree.mjs';
 
+// Rearranging sections and screens (updateSection, moveSection, duplicateSection, moveScreen,
+// duplicateScreen): structureOps.mjs.
+export { updateSection, moveSection, duplicateSection, moveScreen, duplicateScreen } from './structureOps.mjs';
+
 // ---------------------------------------------------------------------------
 // Node ops
 // ---------------------------------------------------------------------------

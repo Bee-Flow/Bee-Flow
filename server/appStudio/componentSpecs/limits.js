@@ -99,6 +99,8 @@ const LIMITS = {
     MAX_VARIABLE_DEFAULT_BYTES: 2048,  // one seeded record/list. Exists so the
                                        // error can name the variable instead of
                                        // "your app is too big" at 512KB.
+    MAX_SECTION_TITLE_LEN: 80,         // section.title, the heading drawn above a section
+    MAX_SECTION_NAME_LEN: 60,          // section.name, the builder-only label (as a screen name)
 };
 
 module.exports = {

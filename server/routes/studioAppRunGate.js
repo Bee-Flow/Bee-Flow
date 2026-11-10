@@ -63,8 +63,8 @@ function roleAllows(nodeOrScreen, role) {
 // Can `role` reach `actionId` through the UI? Walks screens → sections → node
 // trees for an event wiring (EVENT_NAMES) OR a per-row action
 // (props.rowActions on data_grid, props.itemActions on repeater) naming the
-// action; a wiring counts only when its screen AND every ancestor container
-// clear the gate too. referenced:false means NO node wires the action and no
+// action; a wiring counts only when its screen, its section (section.visibleToRoles)
+// AND every ancestor container clear the gate too. referenced:false means NO node wires the action and no
 // other action calls it — it is programmatic (an onSuccess chain), which role
 // gating never described, so the caller keeps running it.
 /**
@@ -102,7 +102,7 @@ function wiredRoleAccess(def, actionId, role) {
     for (const screen of (Array.isArray(def?.screens) ? def.screens : [])) {
         const screenVisible = roleAllows(screen, role);
         for (const section of (Array.isArray(screen?.sections) ? screen.sections : [])) {
-            walk(section?.children, screenVisible);
+            walk(section?.children, screenVisible && roleAllows(section, role));
         }
     }
     return { referenced, allowed };
