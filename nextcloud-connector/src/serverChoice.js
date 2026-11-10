@@ -45,8 +45,8 @@ const { errMessage } = require('./errors');
 const CLOUD_API_BASE_URL = 'https://server.beeflow.nl';
 // The word that selects Bee Flow Cloud in BEEFLOW_API_BASE_URL.
 const CLOUD_KEYWORD = 'cloud';
-// The value AppAPI replays on installs made before the variable lost its
-// default. Never a lock, and by itself never a choice.
+// A value AppAPI can replay without anybody having typed it. Never a lock,
+// and by itself never a choice.
 const LEGACY_CLOUD_ENV = CLOUD_API_BASE_URL;
 const CACHE_FILE = 'tenant-key.json';
 // What every refusal in the not-chosen state carries, so the embedded app and

@@ -77,9 +77,12 @@ Named failures, shown in the administrator's Nextcloud language (English and Dut
 option, **No change (keep the current connection)**, is the default; with it selected the form asks
 for nothing.
 
-- A server counts as chosen there once an administrator changes the deployment mode or the
-  self-hosted API URL. The values the form already holds when the connector starts are not a choice,
-  and the web app URL alone never chooses a server.
+- A server counts as chosen there once an administrator makes the form name another server than it
+  did: by changing the deployment mode, or the self-hosted API URL while **Self-hosted server** is
+  selected. The server the form already names while none is chosen is not a choice. It stays without
+  effect after a choice on the setup page and after a restart, until the form names another one.
+  An address typed next to **Bee Flow Cloud** or **No change**, and the web app URL alone, never
+  choose a server.
 - A first choice made in the form checks the address in the same way as the setup page. When no
   Bee Flow server answers, nothing is saved and nothing is sent, and the connector looks again at its
   next poll (every 60 seconds).
@@ -180,4 +183,4 @@ OAuth flows initiated by the connector (e.g. linking Google or Microsoft from in
 
 — routed through NC's AppAPI proxy path, not the Docker-internal address of the connector container.
 
-If OAuth round-trips break with `redirect_uri_mismatch` or land on a blank page, check the public Nextcloud URL on the setup page (or the install-time value `BEEFLOW_NC_PUBLIC_URL`, or NC's `overwrite.cli.url` / `trusted_domains`). It needs to match the URL users actually browse to. The connector logs the resolved callback URL on every OAuth start — grep for `[OAuth] callback resolved to` in `docker logs nc_app_bee_flow`.
+If OAuth round-trips break with `redirect_uri_mismatch` or land on a blank page, check the public Nextcloud URL on the setup page (or the install-time value `BEEFLOW_NC_PUBLIC_URL`, or NC's `overwrite.cli.url` / `trusted_domains`). It needs to match the URL users actually browse to.

@@ -11,7 +11,8 @@ description: Why the connector ships without a default server, why the choice is
 situations, opens no connection to any host other than Nextcloud and writes no file),
 `test/serverChoice.test.js` (the resolver, rule by rule, and that it writes nothing),
 `test/firstChoice.test.js` and `test/settingsFormChoice.test.js` (a first choice is checked before
-anything is saved or sent) and `test/infoXmlDefaults.test.js` (no install-time default holds a
+anything is saved or sent), `test/restartKeepsChoice.test.js` (the real process, twice on one volume:
+a restart does not turn a value in the settings form into a choice) and `test/infoXmlDefaults.test.js` (no install-time default holds a
 Bee Flow address).
 
 ## Context
@@ -44,7 +45,9 @@ manifest is therefore indistinguishable, later, from a value somebody typed.
   picker at the app's own URL; everybody else gets a notice that makes no request. Nothing is
   preselected, and the page states what connecting sends and to which host before the button is
   pressed. The settings form under Administration → Artificial Intelligence carries the same sentence,
-  and only a value an administrator changes there counts.
+  and it counts only once an administrator makes it name another server than it did. The server it
+  names while none is chosen is kept as noted next to the saved choice, so it stays without effect
+  after a restart.
 - **A first choice is checked first.** The connector asks the address for `/api/health`; when no
   Bee Flow server answers, nothing is saved and nothing is sent.
 - **What is typed at install time is fixed.** `BEEFLOW_API_BASE_URL` holding the word `cloud` or a
@@ -57,8 +60,8 @@ manifest is therefore indistinguishable, later, from a value somebody typed.
 
 ## Consequences
 
-- One-click install no longer ends in a working chat. An administrator has to open Bee Flow once and
-  choose; until then every user sees "not set up yet".
+- A one-click install ends at the setup page. An administrator opens Bee Flow once and chooses; until
+  then every user sees "not set up yet".
 - An install that never finished connecting has no server after the update and shows the picker. A
   code that was e-mailed before cannot be entered; a new one is sent after the choice.
 - An install with a tenant key given at install and no server address needs one click: the key is
