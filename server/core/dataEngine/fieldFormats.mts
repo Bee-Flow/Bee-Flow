@@ -1,5 +1,5 @@
 /**
- * The schema-3 field shapes (vocabulary.js FIELD_TYPE_SINCE, TEXT_FORMATS, FIELD_DISPLAY):
+ * The late field shapes (vocabularySince.js marks, vocabulary.js TEXT_FORMATS, FIELD_DISPLAY):
  * what the model validator checks on save, and what a record write checks per value.
  *
  *   field.format   'email' | 'url' | 'phone' on a text field: every written value must be one.

@@ -187,12 +187,13 @@ test('schema-3 fields: autonumber is made unique, format and display are stored 
     assert.ok(bad.errors.some((e) => /format applies to a text field/.test(e)), JSON.stringify(bad));
 });
 
-test('the tool schema takes the schema-3 field shapes (enums from the vocabulary)', () => {
+test('the tool schema takes the late field types in its enum; the field options come from app_inspect_catalog', () => {
     const { TOOL_SCHEMAS_PART_2 } = require('./schemasPart2');
     const upsert = TOOL_SCHEMAS_PART_2.find((s) => s.function.name === 'app_upsert_table');
     assert.ok(upsert, 'app_upsert_table is in part 2');
     const items = upsert.function.parameters.properties.fields.items.properties;
     assert.ok(items.type.enum.includes('autonumber') && items.type.enum.includes('json') && items.type.enum.includes('user'));
-    assert.deepStrictEqual(items.format.enum, ['email', 'url', 'phone']);
-    assert.deepStrictEqual(items.display.properties.dateStyle.enum, ['short', 'medium', 'long', 'full']);
+    // The options are no schema properties (that would move the pinned bytes): the schema stays
+    // open and the handler reads them (the test above writes all four through it).
+    for (const key of ['validation', 'dynamicDefault', 'format', 'display']) assert.equal(items[key], undefined, key);
 });

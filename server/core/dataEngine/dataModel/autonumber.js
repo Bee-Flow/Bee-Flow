@@ -1,6 +1,6 @@
 // @typecheck strict
 /**
- * The autonumber field type (schema 3, vocabulary.js FIELD_TYPE_SINCE): a whole number the SERVER
+ * The autonumber field type (marked in vocabularySince.js): a whole number the SERVER
  * assigns per table, 1, 2, 3 … in creation order. Two statements, the same SQL in both dialects:
  *
  *   autonumberValueSql     the value an INSERT writes (queryCompilerWrite.compileInsert)

@@ -74,12 +74,13 @@ test('TablesManager noemt dezelfde ENE schrijfbare mode en dezelfde kind', () =>
 });
 
 test('app-only field types stay out of the datatable column types', () => {
-    const { FIELD_TYPES, FIELD_TYPE_SINCE, APP_ONLY_FIELD_TYPES } = require('./vocabulary');
+    const { FIELD_TYPES, APP_ONLY_FIELD_TYPES } = require('./vocabulary');
+    const { DATA_VOCABULARY_MARKS } = require('./vocabularySince');
     const { DATATABLE_FIELD_TYPES } = require('./datatableFields');
     for (const t of DATATABLE_FIELD_TYPES) assert.ok(!APP_ONLY_FIELD_TYPES.includes(t), `${t} is app-only`);
-    // Every schema-3 type is a known type AND app-only: automation datatables, the phone's
+    // Every type added after the base is a known type AND app-only: automation datatables, the phone's
     // datatable screens (mobile COLUMN_TYPE_IDS) and the datatable designer (COLUMN_TYPES) know none.
-    for (const t of Object.keys(FIELD_TYPE_SINCE)) {
+    for (const t of Object.keys(DATA_VOCABULARY_MARKS.fieldTypes)) {
         assert.ok(FIELD_TYPES.includes(t), `${t} is a field type`);
         assert.ok(APP_ONLY_FIELD_TYPES.includes(t), `${t} is app-only`);
     }

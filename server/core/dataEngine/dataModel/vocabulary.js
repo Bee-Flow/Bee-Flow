@@ -26,8 +26,9 @@ const FIELD_TYPES = Object.freeze([
 ]);
 
 /**
- * The field types that arrived with schema 3 (optional, additive). A model that never names one
- * plans, compiles and renders exactly as before.
+ * The field types after `computed` came after the frozen base (their marks and descriptions are
+ * in vocabularySince.js DATA_VOCABULARY_MARKS.fieldTypes). A model that never names one plans,
+ * compiles and renders exactly as before.
  *
  *   autonumber  a whole number the SERVER assigns on create (1, 2, 3 … per table); never written
  *               by a client, always unique. INTEGER on SQLite, BIGINT on Postgres.
@@ -37,26 +38,25 @@ const FIELD_TYPES = Object.freeze([
  * All three are APP-ONLY: an automation datatable cannot hold them (datatableFields.js
  * DATATABLE_FIELD_TYPES leaves them out, vocabulary.lockstep.test.js pins that).
  */
-const FIELD_TYPE_SINCE = Object.freeze({ autonumber: 3, json: 3, user: 3 });
 const APP_ONLY_FIELD_TYPES = Object.freeze(['relation', 'computed', 'autonumber', 'json', 'user']);
 
 /**
- * `field.format` on a text field (schema 3, optional): what kind of text it holds. A value written
- * to a field with a format is checked on every write (core/dataEngine/fieldFormats.mts); the
- * column stays TEXT, so adding or removing a format never migrates anything.
+ * `field.format` on a text field (optional, a field option marked in vocabularySince.js): what
+ * kind of text it holds. A value written to a field with a format is checked on every write
+ * (core/dataEngine/fieldFormats.mts); the column stays TEXT, so adding or removing a format never
+ * migrates anything.
  */
-const TEXT_FORMATS = Object.freeze({ since: 3, values: Object.freeze(['email', 'url', 'phone']) });
+const TEXT_FORMATS = Object.freeze({ values: Object.freeze(['email', 'url', 'phone']) });
 
 /**
- * `field.display` (schema 3, optional): how a value is SHOWN, never how it is stored. Nothing of it
- * reaches the DDL or the write path.
+ * `field.display` (optional, a field option marked in vocabularySince.js): how a value is SHOWN,
+ * never how it is stored. Nothing of it reaches the DDL or the write path.
  *   currency   ISO 4217 code (three capital letters)  number and computed fields
  *   decimals   0 … MAX_DECIMALS                         number and computed fields
  *   unit       a short suffix ("kg", "h")               number and computed fields; not with currency
  *   dateStyle  one of DATE_STYLES (Intl dateStyle)       date and datetime fields
  */
 const FIELD_DISPLAY = Object.freeze({
-    since: 3,
     keys: Object.freeze(['currency', 'decimals', 'unit', 'dateStyle']),
     dateStyles: Object.freeze(['short', 'medium', 'long', 'full']),
     MAX_DECIMALS: 10,
@@ -178,7 +178,8 @@ const DATA_LIMITS = Object.freeze({
 });
 
 /**
- * Field rules (schema 3 vocabulary, optional): `field.validation` and `field.dynamicDefault`.
+ * Field rules (optional field options, marked in vocabularySince.js): `field.validation` and
+ * `field.dynamicDefault`.
  *
  * Both are APPLICATION-level. Nothing of them reaches the DDL: a rule is checked by
  * core/dataEngine/fieldRules.mts before a write is compiled, so adding, changing or removing one
@@ -194,11 +195,9 @@ const DATA_LIMITS = Object.freeze({
  *                   now → datetime, today → date (UTC), currentUser.id → text
  */
 const FIELD_VALIDATION = Object.freeze({
-    since: 3,
     keys: Object.freeze(['min', 'max', 'minLength', 'maxLength', 'pattern', 'enforceOptions', 'message']),
 });
 const DYNAMIC_DEFAULTS = Object.freeze({
-    since: 3,
     // value → the field types it may sit on
     types: Object.freeze({
         now: Object.freeze(['datetime']),
@@ -298,7 +297,6 @@ const MAX_MAILBOX_RETENTION_DAYS = 730;
 
 module.exports = {
     FIELD_TYPES,
-    FIELD_TYPE_SINCE,
     APP_ONLY_FIELD_TYPES,
     TEXT_FORMATS,
     FIELD_DISPLAY,
