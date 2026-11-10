@@ -13,7 +13,7 @@
  *
  * Sync mode per org (organizations.nc_sync_mode):
  *   - 'mirror_all'        Every NC user gets a Bee Flow account on creation.
- *                         Default for newly bootstrapped orgs.
+ * Synchronisation starts once the sync mode is chosen: ./ncSyncStart.mts.
  *   - 'selective_groups'  Only users in nc_sync_groups[] are mirrored.
  *   - 'manual'            No auto-sync. Org-admin invites users one by one.
  *
@@ -37,6 +37,7 @@ const { fallback } = require('../utils/bestEffort');
 const { summarizeSyncError, classifySyncFailure, NC_SYNC_FAILED, APP_REMOVED, KEY_DIVERGENCE } = require('./ncSyncFailure');
 const { ncUserId } = require('../utils/ncUserId.mts');
 const { fetchAccountState, fetchDisabledUids, shouldMirrorUser, skipsNewGuest, isActiveStatus, firstSighting } = require('./ncAccountState.mts');
+const { syncModeChosen, fullSyncHold, SKIP_NOT_CHOSEN } = require('./ncSyncStart.mts');
 
 /**
  * The organisation fields this module reads (an organizations row).
@@ -176,6 +177,8 @@ async function fetchNcUserGroups(org, ncUid) {
  */
 async function applyUserCreated(org, ncUid, opts = {}) {
     return await _withSyncingUid(org, ncUid, async () => {
+        // An event; the full sync (which passes accountState) has asked already.
+        if (!opts.accountState && !(await syncModeChosen(org))) return SKIP_NOT_CHOSEN;
         const state = opts.accountState || await fetchAccountState(org, ncUid, ncProxyFetch);
         return state === 'disabled' ? _applyUserDisabled(org, ncUid) : _applyUserCreated(org, ncUid, state);
     });
@@ -323,6 +326,7 @@ async function applyUserDeleted(org, ncUid) {
  * @type {(org: NcOrg, ncUid: string, groupId?: string | null) => ReturnType<typeof _applyGroupMemberChange>}
  */
 async function applyGroupMemberChange(org, ncUid /* , groupId */) {
+    if (!(await syncModeChosen(org))) return SKIP_NOT_CHOSEN;
     return await _withSyncingUid(org, ncUid, () => _applyGroupMemberChange(org, ncUid));
 }
 
@@ -419,7 +423,8 @@ async function mirrorGroups(org) {
 /** @param {NcOrg} org */
 async function runFullSync(org) {
     if (!org?.id) return { error: 'no_org' };
-    if ((org.nc_sync_mode || 'mirror_all') === 'manual') return { skipped: 'manual_mode' };
+    const hold = await fullSyncHold(org);
+    if (hold) return { skipped: hold };
     /** @type {{ created: number, deactivated: number, reactivated: number, groupsCreated: number, errors: Array<Record<string, string>> }} */
     const result = { created: 0, deactivated: 0, reactivated: 0, groupsCreated: 0, errors: [] };
 

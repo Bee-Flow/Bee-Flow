@@ -35,6 +35,7 @@ const ORG = {
     nc_admin_uid: 'admin',
     nc_sync_mode: 'selective_groups',
     ncSyncGroups: ['staff'],
+    nc_onboarding_completed_at: '2026-01-05T09:00:00Z', // the sync mode is chosen
 };
 
 const state = { users: new Map(), byNcUid: new Map(), updates: [], groups: new Map(), creates: [] };
@@ -47,6 +48,8 @@ inject('../stores/userStore.js', {
     getUserByNcUid: async (orgId, ncUid) => state.byNcUid.get(`${orgId}|${ncUid}`) || null,
     getUser: async (id) => state.users.get(id) || null,
     getAllUsers: async () => [...state.users.values()],
+    hasMirroredNcUsers: async (orgId) => [...state.users.values()].some(u => u.organizationId === orgId
+        && u.provider === 'nextcloud_connector' && u.nc_uid && !['org_admin', 'admin'].includes(u.orgRole || '')),
     getAllGroups: async () => [...state.groups.values()],
     updateUser: async (id, updates) => { state.updates.push({ id, updates }); },
     createUserWithSeatCheck: async (u) => { state.creates.push(u); return { created: true }; },
@@ -813,4 +816,115 @@ test('the same uid without an address in a second organisation is reported for t
         ['org-1', 'org-1', 'nomail'],
         ['org-2', 'org-2', 'nomail'],
     ]);
+});
+
+// ── Synchronisation starts once the sync mode is chosen ─────────────────────
+//
+// A newly bound organisation holds the column's own 'mirror_all' and nothing
+// else: no completed onboarding, no earlier sync, no mirrored users. Its
+// administrators exist already; they are provisioned when it is bound.
+
+const NEWLY_BOUND = { ...MIRROR_ALL, nc_onboarding_completed_at: null, nc_last_sync_at: null };
+const NOT_CHOSEN = { action: 'skip', reason: 'sync_mode_not_chosen' };
+
+function seedBootstrapAdmin(org) {
+    const admin = seedExistingUser({ ncUid: 'admin', status: 'active', orgId: org.id });
+    admin.orgRole = 'org_admin';
+    return admin;
+}
+
+for (const [label, org] of [['the column default', NEWLY_BOUND], ['no stored mode', { ...NEWLY_BOUND, nc_sync_mode: null }]]) {
+    test(`a newly bound organisation (${label}) is not synchronised by a full sync, a user event or a group event`, async () => {
+        const calls = stubHealthStore();
+        seedBootstrapAdmin(org);
+        ncUserList = ['admin', 'alice', 'bob'];
+        groupsByUid.alice = ['staff'];
+
+        assert.deepEqual(await sync.runFullSync(org), { skipped: 'sync_mode_not_chosen' });
+        assert.deepEqual(await sync.applyUserCreated(org, 'alice'), NOT_CHOSEN);
+        assert.deepEqual(await sync.applyGroupMemberChange(org, 'alice', 'staff'), NOT_CHOSEN);
+        await settle();
+
+        assert.deepEqual(requests, [], 'nothing is asked of Nextcloud');
+        assert.deepEqual(state.creates, []);
+        assert.deepEqual(state.updates, []);
+        assert.deepEqual(calls.upsert, []);
+    });
+}
+
+test('a newly bound organisation: the administrator provisioned at binding does not count as a mirrored user', async () => {
+    seedBootstrapAdmin(NEWLY_BOUND);
+    const legacyAdmin = seedExistingUser({ ncUid: 'second', status: 'active' });
+    legacyAdmin.orgRole = 'admin';
+    ncUserList = ['admin', 'second', 'alice'];
+    assert.deepEqual(await sync.runFullSync(NEWLY_BOUND), { skipped: 'sync_mode_not_chosen' });
+    assert.deepEqual(state.creates, []);
+});
+
+test('an existing organisation without a stored mode keeps synchronising when it has synchronised before', async () => {
+    stubHealthStore();
+    const org = { ...NEWLY_BOUND, nc_sync_mode: null, nc_last_sync_at: '2026-03-01T06:00:00Z' };
+    ncUserList = ['alice'];
+    const result = await sync.runFullSync(org);
+    assert.equal(result.created, 1);
+    assert.equal((await sync.applyUserCreated(org, 'carol')).action, 'create');
+    assert.deepEqual(state.creates.map(u => u.ncUid), ['alice', 'carol']);
+});
+
+test('an existing organisation without a stored mode keeps synchronising when it has users mirrored from Nextcloud', async () => {
+    stubHealthStore();
+    const org = { ...NEWLY_BOUND, nc_sync_mode: null };
+    seedBootstrapAdmin(org);
+    seedExistingUser({ ncUid: 'bob', status: 'active' });
+    ncUserList = ['admin', 'bob', 'alice'];
+    groupsByUid.dave = ['staff'];
+
+    const result = await sync.runFullSync(org);
+    assert.equal(result.created, 1);
+    assert.equal((await sync.applyUserCreated(org, 'carol')).action, 'create');
+    assert.equal((await sync.applyGroupMemberChange(org, 'dave', 'staff')).action, 'create');
+    assert.deepEqual(state.creates.map(u => u.ncUid), ['alice', 'carol', 'dave']);
+});
+
+test('mirrored users of another organisation do not start this one', async () => {
+    seedExistingUser({ ncUid: 'bob', status: 'active', orgId: 'org-2' });
+    ncUserList = ['alice'];
+    assert.deepEqual(await sync.runFullSync(NEWLY_BOUND), { skipped: 'sync_mode_not_chosen' });
+    assert.deepEqual(await sync.applyUserCreated(NEWLY_BOUND, 'alice'), NOT_CHOSEN);
+    assert.deepEqual(state.creates, []);
+});
+
+test('choosing a mode starts the sync: completed onboarding, or a stored mode other than the column default', async () => {
+    stubHealthStore();
+    ncUserList = ['alice'];
+    groupsByUid.alice = ['staff'];
+    assert.deepEqual(await sync.runFullSync(NEWLY_BOUND), { skipped: 'sync_mode_not_chosen' });
+
+    const onboarded = { ...NEWLY_BOUND, nc_onboarding_completed_at: '2026-11-10T10:00:00Z' };
+    assert.equal((await sync.runFullSync(onboarded)).created, 1);
+
+    const selective = { ...NEWLY_BOUND, nc_sync_mode: 'selective_groups', ncSyncGroups: ['staff'] };
+    assert.equal((await sync.runFullSync(selective)).created, 1);
+    assert.equal((await sync.applyUserCreated(selective, 'alice')).action, 'create');
+});
+
+test('manual mode still holds the full sync, chosen or not', async () => {
+    assert.deepEqual(await sync.runFullSync({ ...ORG, nc_sync_mode: 'manual' }), { skipped: 'manual_mode' });
+    assert.deepEqual(await sync.runFullSync({ ...NEWLY_BOUND, nc_sync_mode: 'manual' }), { skipped: 'manual_mode' });
+    assert.deepEqual(requests, []);
+});
+
+test('a lookup of mirrored users that fails counts as not chosen', async () => {
+    const userStore = require('../stores/userStore.js');
+    const usual = userStore.hasMirroredNcUsers;
+    userStore.hasMirroredNcUsers = async () => { throw new Error('db down'); };
+    try {
+        seedExistingUser({ ncUid: 'bob', status: 'active' });
+        assert.deepEqual(await sync.runFullSync(NEWLY_BOUND), { skipped: 'sync_mode_not_chosen' });
+    } finally { userStore.hasMirroredNcUsers = usual; }
+});
+
+test('a user deleted in Nextcloud is deactivated whether or not the mode is chosen', async () => {
+    const admin = seedBootstrapAdmin(NEWLY_BOUND);
+    assert.deepEqual(await sync.applyUserDeleted(NEWLY_BOUND, 'admin'), { action: 'deactivate', userId: admin.id });
 });

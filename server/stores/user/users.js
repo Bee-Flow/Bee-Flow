@@ -204,6 +204,15 @@ async function getUserByNcUid(organizationId, ncUid) {
     return { ...u, groups: parseJSON(u.groups, []), appPassword: parseJSON(u.appPassword, u.appPassword) };
 }
 
+/** Does the organisation have users mirrored from Nextcloud (its administrators aside)? */
+async function hasMirroredNcUsers(organizationId) {
+    if (!organizationId) return false;
+    await initDB();
+    return !!(await getOne(
+        `SELECT 1 AS hit FROM users WHERE "organizationId" = $1 AND provider = 'nextcloud_connector' AND "nc_uid" IS NOT NULL
+           AND COALESCE("orgRole", '') NOT IN ('org_admin', 'admin') LIMIT 1`, [organizationId]));
+}
+
 // ── Solution stages: the run-as wall (design 3.1, 3.4) ─────────────
 //
 // A Solution's UAT and PRD stages run as one account (`run_as_user_id`, in
@@ -380,7 +389,7 @@ async function replacePasswordHash(userId, expectedHash, newHash) {
 module.exports = {
     getAllUsers, getAllUserAvatars, getUserAvatarsByIds, getOrgMembersForDirectory,
     getUser, getUserByEmail, getUserByPasswordResetToken, getUserByEmailVerificationToken,
-    createUser, updateUser, deleteUser, eraseSuggestionTraces, eraseCmsUploadTickets, getUserByNcUid, findOrgMemberIdByEmail,
+    createUser, updateUser, deleteUser, eraseSuggestionTraces, eraseCmsUploadTickets, getUserByNcUid, hasMirroredNcUsers, findOrgMemberIdByEmail,
     stagesRunBy, assertNotStageRunAs,
     createUserWithSeatCheck, SeatCapExceededError,
     touchLastSeen, isNewCredential, replacePasswordHash,

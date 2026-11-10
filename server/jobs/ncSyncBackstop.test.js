@@ -235,3 +235,15 @@ test('a removed app (404) backs off 7 days instead of 24 hours', async () => {
     await tickAt(T0 + 7 * 24 * HOUR);
     assert.deepEqual(syncCalls, ['org-a', 'org-a'], 'after 7 days it is tried again');
 });
+
+test('an org that runFullSync answers "skipped" (sync mode not chosen yet) is asked again each tick, quietly', async () => {
+    const usual = ncUserGroupSync.runFullSync;
+    ncUserGroupSync.runFullSync = /** @type {any} */ (async (org) => { syncCalls.push(org.id); return { skipped: 'sync_mode_not_chosen' }; });
+    try {
+        await tickAt(T0);
+        assert.equal(logs.length, 0, 'nothing to report');
+        await tickAt(T0 + 6 * HOUR);
+        assert.deepEqual(syncCalls, ['org-a', 'org-a'], 'no backoff: the sync starts on the first tick after the mode is chosen');
+        assert.equal((await memStore.listProblems({ code: NC_SYNC_FAILED })).length, 0);
+    } finally { ncUserGroupSync.runFullSync = usual; }
+});
