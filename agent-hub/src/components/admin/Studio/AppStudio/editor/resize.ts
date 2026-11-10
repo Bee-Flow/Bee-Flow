@@ -51,20 +51,49 @@ const cssPx = (value: string | undefined): number => parseFloat(value ?? '') || 
  * unmeasurable, including jsdom, where every layout metric reads 0.
  */
 export function measureColumnWidth(gridEl: HTMLElement | null | undefined) {
-    if (!gridEl || typeof gridEl.getBoundingClientRect !== 'function') return 0;
+    return measureGrid(gridEl).columnWidth;
+}
+
+/**
+ * How many column tracks a computed `grid-template-columns` value holds.
+ *
+ * A browser resolves the template to one length per track ("81.5px 81.5px …"), so the count
+ * is the number of lengths. jsdom hands back the authored text instead, so `repeat(N, …)` is
+ * read too. Anything else (no grid, "none") is the 12 columns every grid had before a grid
+ * could set its own count.
+ */
+export function trackCount(template: string | null | undefined): number {
+    const text = (template ?? '').trim();
+    if (text.startsWith('repeat(')) {
+        const n = parseInt(text.slice('repeat('.length), 10);
+        return Number.isInteger(n) && n >= 1 && n <= MAX_SPAN ? n : GRID_COLUMNS;
+    }
+    const tracks = text.split(' ').filter((part) => part.endsWith('px')).length;
+    return tracks >= 1 && tracks <= MAX_SPAN ? tracks : GRID_COLUMNS;
+}
+
+/**
+ * Measure a live grid: the pixels one span step covers and the number of column tracks the
+ * grid really has (12, or what its `columns` knob says). The drag divides by the real count,
+ * so a step is one track in a 5-column grid as much as in a 12-column one.
+ */
+export function measureGrid(gridEl: HTMLElement | null | undefined): { columnWidth: number; columns: number } {
+    if (!gridEl || typeof gridEl.getBoundingClientRect !== 'function') return { columnWidth: 0, columns: GRID_COLUMNS };
     const view = gridEl.ownerDocument?.defaultView;
     const cs = view?.getComputedStyle?.(gridEl);
     const padLeft = cssPx(cs?.paddingLeft);
     const padRight = cssPx(cs?.paddingRight);
     const columnGap = cssPx(cs?.columnGap);
+    const columns = trackCount(cs?.gridTemplateColumns);
     // clientWidth drops borders and the scrollbar gutter but keeps padding.
     const outer = gridEl.clientWidth || gridEl.getBoundingClientRect().width || 0;
-    return columnStepPx({ innerWidth: outer - padLeft - padRight, columnGap });
+    return { columnWidth: columnStepPx({ innerWidth: outer - padLeft - padRight, columnGap, columns }), columns };
 }
 
-function clampSpan(n: number | undefined) {
-    const v = n !== undefined && Number.isFinite(n) ? Math.round(n) : MAX_SPAN;
-    return Math.max(MIN_SPAN, Math.min(MAX_SPAN, v));
+function clampSpan(n: number | undefined, max: number = MAX_SPAN) {
+    const top = Number.isInteger(max) && max >= MIN_SPAN && max <= MAX_SPAN ? max : MAX_SPAN;
+    const v = n !== undefined && Number.isFinite(n) ? Math.round(n) : top;
+    return Math.max(MIN_SPAN, Math.min(top, v));
 }
 
 /**
@@ -79,12 +108,14 @@ interface SpanFromDragArgs {
     startSpan?: number;
     dx?: number;
     columnWidth?: number;
+    /** The grid's column count: the widest span a drag can reach. 12 when left out. */
+    columns?: number;
 }
 
-export function spanFromDrag({ startSpan, dx, columnWidth }: SpanFromDragArgs = {}) {
-    const base = clampSpan(startSpan);
+export function spanFromDrag({ startSpan, dx, columnWidth, columns }: SpanFromDragArgs = {}) {
+    const base = clampSpan(startSpan, columns);
     if (columnWidth === undefined || !Number.isFinite(columnWidth) || columnWidth <= 0 || dx === undefined || !Number.isFinite(dx)) return base;
-    return clampSpan(base + Math.round(dx / columnWidth));
+    return clampSpan(base + Math.round(dx / columnWidth), columns);
 }
 
 /**

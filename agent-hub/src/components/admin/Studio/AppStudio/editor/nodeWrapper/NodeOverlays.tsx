@@ -157,7 +157,7 @@ interface ResizeGripsProps {
 /** WIDTH grip on the right edge (only where `span` is real); HEIGHT grip on the bottom (height-capable types only). */
 export function ResizeGrips({ resize, showWidth, showHeight }: ResizeGripsProps) {
     const { t } = useTranslation();
-    const { widthPreview, heightPreview, currentSpan, currentHeight } = resize;
+    const { widthPreview, heightPreview, currentSpan, currentHeight, columns } = resize;
     return (
         <>
             {showWidth ? (
@@ -166,7 +166,7 @@ export function ResizeGrips({ resize, showWidth, showHeight }: ResizeGripsProps)
                     aria-label={t('app_studio.canvas.resize_width', 'Resize width')}
                     aria-orientation="horizontal"
                     aria-valuemin={1}
-                    aria-valuemax={12}
+                    aria-valuemax={columns}
                     aria-valuenow={widthPreview ?? currentSpan}
                     tabIndex={0}
                     title={t('app_studio.canvas.resize_width_title', 'Drag to resize width · ←/→ to adjust')}
@@ -176,7 +176,7 @@ export function ResizeGrips({ resize, showWidth, showHeight }: ResizeGripsProps)
                 >
                     <span className="ase-resize-grip-x" aria-hidden="true" />
                     {widthPreview != null ? (
-                        <span className="ase-resize-badge" aria-hidden="true">{widthPreview} / 12</span>
+                        <span className="ase-resize-badge" aria-hidden="true">{widthPreview} / {columns}</span>
                     ) : null}
                 </div>
             ) : null}

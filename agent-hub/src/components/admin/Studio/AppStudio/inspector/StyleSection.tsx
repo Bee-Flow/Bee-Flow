@@ -12,6 +12,7 @@ import {
     knobLabel,
     valueLabel,
 } from './styleKnobMeta';
+import LayoutSection, { layoutTypeOf } from './LayoutSection';
 import { STYLE_VALUE_CONTROLS, isBaseValueType } from './styleValueControls';
 import TokenColorField from './TokenColorField';
 import Disclosure from '@/components/shared/Disclosure';
@@ -88,7 +89,6 @@ export function updateSectionStyle(def: AppDefinition, sectionId: string, patch:
 // ---------------------------------------------------------------------------
 // Knob presentation
 // ---------------------------------------------------------------------------
-
 
 // SegmentedControl values must be string|number — the radius knob's null
 // ("inherit the theme") rides a sentinel and is mapped back on commit.
@@ -394,6 +394,7 @@ export default function StyleSection({
 
             <AdvancedSizing knobs={knobs} style={style} isSection={isSection} patch={patch} disabled={disabled} />
             <ResponsiveVisibility knobs={knobs} style={style} patch={patch} disabled={disabled} />
+            <LayoutSection type={layoutTypeOf(isSection, node)} knobs={knobs} style={style} patch={patch} disabled={disabled} />
         </div>
     );
 }

@@ -2,7 +2,7 @@ import React from 'react';
 import useTranslation from '@/hooks/useTranslation';
 import { resolveBinding } from '../resolveBinding';
 import { rowKey, useRuntime } from '../RuntimeContext';
-import { gridTemplate, spaceSteps } from '../styleResolver';
+import { gridClasses, gridColumnStyle, spaceSteps } from '../styleResolver';
 import { EmptyText, SkeletonLines } from '../uiBits';
 import type { NodeStyle } from '../../inspector/appDefinition';
 import type { BindingInput } from '../resolveBinding.types';
@@ -75,8 +75,8 @@ export default function AppRepeater({ node, children }: NodeProps<RepeaterProps>
             {items.map((item, i) => (
                 <div key={rowKey(item, i)} className="app-repeater-item" data-app-repeater-item={i}>
                     <div
-                        className="app-grid"
-                        style={{ gridTemplateColumns: gridTemplate(), gap: spaceSteps(gap) }}
+                        className={`app-grid${gridClasses(node)}`}
+                        style={{ ...gridColumnStyle(node.style), gap: spaceSteps(gap) }}
                     >
                         {groupFor(i, rowKey(item, i))}
                     </div>

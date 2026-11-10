@@ -13,6 +13,7 @@ import type { TranslateFn } from '@/hooks/useTranslation';
 import type { AppDefinition, AppNode } from '../inspector/appDefinition';
 import { getKnobsForType } from '../inspector/styleKnobMeta';
 import { getComponentEntry } from '../runtime/componentRegistry';
+import { GRID_CONTAINER_TYPES } from '../runtime/styleResolver';
 import { useRuntime } from '../runtime/RuntimeContext';
 import { isFill } from '../runtime/styleResolver.helpers';
 import { useAppEditorState } from '../state/appEditorState';
@@ -176,14 +177,23 @@ export default function EditorNodeWrapper({ node, className, style, children, on
     // containers lay their children out with FLEX, where the cell's inline
     // gridColumn is ignored — span is inert in that POSITION even for a type
     // that carries the knob.
-    const parentLaysOutWithFlex = useMemo(
-        () => (editMode ? SPAN_INERT_PARENTS.has(findNode(definition, node.id)?.parent?.type as string) : false),
+    const parentNode = useMemo(
+        () => (editMode ? findNode(definition, node.id) : null),
         [editMode, definition, node.id],
     );
+    const parentLaysOutWithFlex = SPAN_INERT_PARENTS.has(parentNode?.parent?.type as string);
+    // The grid this cell sits in (a section, or a container that lays its children out on the
+    // column grid): the width grip counts in its columns.
+    const parentGrid = useMemo(() => {
+        const parent = parentNode?.parent;
+        if (!parent) return null;
+        const isGrid = parent.id === parentNode.section.id || GRID_CONTAINER_TYPES.includes(parent.type as string);
+        return { isGrid, style: (parent as { style?: Record<string, unknown> }).style, children: parent.children };
+    }, [parentNode]);
     const showHandles = selected && !streamLock;
     const { logicMarks, logicPill } = useLogicMarks(node, definition, editMode && primary, selected, t);
 
-    const resize = useNodeResize({ nodeId: node.id, nodeStyle: node.style, definition, streamLock, cellRef, onCommit });
+    const resize = useNodeResize({ nodeId: node.id, nodeStyle: node.style, nodeType: node.type, parent: parentGrid, definition, streamLock, cellRef, onCommit });
 
     // --- selection / node actions --------------------------------------------
     const { onPointerDown: dndPointerDown, ...restListeners } = listeners || {};
@@ -241,7 +251,7 @@ export default function EditorNodeWrapper({ node, className, style, children, on
             data-app-type={node.type}
             data-selected={inSelection || undefined}
             data-drop-edge={dropEdge || undefined}
-            className={`${className} ase-cell ${recent ? 'ase-added-pulse' : ''}`}
+            className={`${className}${resize.previewClass} ase-cell ${recent ? 'ase-added-pulse' : ''}`}
             style={{
                 ...style,
                 ...resize.previewStyle,

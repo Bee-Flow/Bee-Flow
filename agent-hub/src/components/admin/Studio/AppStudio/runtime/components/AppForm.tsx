@@ -9,7 +9,7 @@ import { FormContext, registerFormReset } from '../formContext';
 import type { FormFieldMeta } from '../formContext';
 import { resolveBinding } from '../resolveBinding';
 import { useRuntime } from '../RuntimeContext';
-import { gridTemplate, spaceSteps } from '../styleResolver';
+import { gridClasses, gridColumnStyle, spaceSteps } from '../styleResolver';
 import type { NodeProps } from './appNode.types';
 
 /**
@@ -289,8 +289,8 @@ function FormBody({ node, children }: NodeProps<FormProps>) {
         <FormContext.Provider value={ctx}>
             <form onSubmit={handleSubmit} noValidate className="flex flex-col" style={{ gap: spaceSteps(gap) }}>
                 <div
-                    className="app-grid"
-                    style={{ gridTemplateColumns: gridTemplate(), gap: spaceSteps(gap) }}
+                    className={`app-grid${gridClasses(node)}`}
+                    style={{ ...gridColumnStyle(node.style), gap: spaceSteps(gap) }}
                 >
                     {children}
                 </div>

@@ -444,6 +444,216 @@ exports[`compat corpus: what the phone plans for every stored app fixture-calcul
 }
 `;
 
+exports[`compat corpus: what the phone plans for every stored app layout-v2 1`] = `
+{
+  "defaultScreen": "scr_layout1",
+  "navigable": [
+    "scr_layout1",
+  ],
+  "screens": [
+    {
+      "id": "scr_layout1",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "id": "cmp_fivehd",
+                "kind": "heading",
+                "level": 1,
+                "text": "Five across",
+              },
+              {
+                "id": "cmp_fives1",
+                "kind": "stat",
+                "label": "One",
+                "value": "12",
+              },
+              {
+                "id": "cmp_fives2",
+                "kind": "stat",
+                "label": "Two",
+                "value": "12",
+              },
+              {
+                "id": "cmp_fives3",
+                "kind": "stat",
+                "label": "Three",
+                "value": "12",
+              },
+              {
+                "id": "cmp_fives4",
+                "kind": "stat",
+                "label": "Four",
+                "value": "12",
+              },
+              {
+                "id": "cmp_fives5",
+                "kind": "stat",
+                "label": "Five",
+                "value": "12",
+              },
+              {
+                "id": "cmp_tallt1",
+                "kind": "text",
+                "muted": false,
+                "text": "A quarter",
+              },
+              {
+                "id": "cmp_tallt2",
+                "kind": "text",
+                "muted": false,
+                "text": "Three quarters",
+              },
+              {
+                "id": "cmp_tallt3",
+                "kind": "text",
+                "muted": false,
+                "text": "Whole row",
+              },
+              {
+                "id": "cmp_short1",
+                "kind": "stat",
+                "label": "Short one",
+                "value": "12",
+              },
+              {
+                "id": "cmp_short2",
+                "kind": "stat",
+                "label": "Short two",
+                "value": "12",
+              },
+              {
+                "id": "cmp_stickt",
+                "kind": "text",
+                "muted": false,
+                "text": "Stays in view beside the tall block.",
+              },
+              {
+                "id": "cmp_p3m5lq",
+                "kind": "text",
+                "muted": false,
+                "text": "Third",
+              },
+              {
+                "id": "cmp_t5awao",
+                "kind": "text",
+                "muted": false,
+                "text": "Third",
+              },
+              {
+                "id": "cmp_lqzlp4",
+                "kind": "text",
+                "muted": false,
+                "text": "Third",
+              },
+              {
+                "action": null,
+                "description": null,
+                "id": "cmp_form01",
+                "inputs": [
+                  {
+                    "initial": null,
+                    "inputType": "text",
+                    "label": "First name",
+                    "max": null,
+                    "min": null,
+                    "name": "first",
+                    "nodeId": "cmp_first1",
+                    "options": [],
+                    "placeholder": null,
+                    "required": false,
+                    "rows": 4,
+                    "type": "input_text",
+                  },
+                  {
+                    "initial": null,
+                    "inputType": "text",
+                    "label": "Last name",
+                    "max": null,
+                    "min": null,
+                    "name": "last",
+                    "nodeId": "cmp_last01",
+                    "options": [],
+                    "placeholder": null,
+                    "required": false,
+                    "rows": 4,
+                    "type": "input_text",
+                  },
+                  {
+                    "initial": null,
+                    "inputType": "text",
+                    "label": "Note",
+                    "max": null,
+                    "min": null,
+                    "name": "note",
+                    "nodeId": "cmp_note01",
+                    "options": [],
+                    "placeholder": null,
+                    "required": false,
+                    "rows": 4,
+                    "type": "input_textarea",
+                  },
+                ],
+                "kind": "form",
+                "submitLabel": "Send",
+                "title": "contact",
+              },
+              {
+                "id": "cmp_puwybl",
+                "kind": "text",
+                "muted": false,
+                "text": "One",
+              },
+              {
+                "id": "cmp_rh0uvb",
+                "kind": "text",
+                "muted": false,
+                "text": "Two",
+              },
+              {
+                "id": "cmp_9rcbt0",
+                "kind": "text",
+                "muted": false,
+                "text": "A third",
+              },
+              {
+                "id": "cmp_ejpbvz",
+                "kind": "text",
+                "muted": false,
+                "text": "Two thirds",
+              },
+              {
+                "id": "cmp_repnam",
+                "kind": "text",
+                "muted": false,
+                "text": "Name",
+              },
+              {
+                "id": "cmp_reprol",
+                "kind": "text",
+                "muted": false,
+                "text": "Role",
+              },
+            ],
+            "screen": "scr_layout1",
+            "unsupported": [
+              "tabs",
+              "tab",
+              "modal",
+              "repeater",
+            ],
+          },
+          "roles": [
+            "(no role)",
+          ],
+        },
+      ],
+    },
+  ],
+}
+`;
+
 exports[`compat corpus: what the phone plans for every stored app legacy-onerror-array 1`] = `
 {
   "defaultScreen": "scr_lgh001",

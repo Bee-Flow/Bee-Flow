@@ -1,0 +1,709 @@
+{
+  "about": {
+    "source": "hand-made for package LK4 (layout v2): columns and responsive on a section, card, container, form, tab, modal and repeater; spanMd, spanSm, rowSpan, alignSelf, sticky and stickyOffset on nodes",
+    "captured": "2026-11-10"
+  },
+  "definition": {
+    "schemaVersion": 3,
+    "meta": {
+      "name": "Layout v2",
+      "description": "Own column counts, per-breakpoint spans, row span, alignment and sticky.",
+      "icon": "LayoutGrid"
+    },
+    "theme": {
+      "primary": "#0F766E",
+      "radius": "md",
+      "density": "comfortable",
+      "fontScale": "md",
+      "appearance": "auto"
+    },
+    "roles": [],
+    "screens": [
+      {
+        "id": "scr_layout1",
+        "name": "Layout",
+        "icon": null,
+        "showInNav": true,
+        "maxWidth": "wide",
+        "sections": [
+          {
+            "id": "sec_fivecol",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none",
+              "columns": 5
+            },
+            "children": [
+              {
+                "id": "cmp_fivehd",
+                "type": "heading",
+                "props": {
+                  "text": "Five across",
+                  "level": 1,
+                  "accent": "none"
+                },
+                "style": {
+                  "span": 5
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_fives1",
+                "type": "stat",
+                "props": {
+                  "label": "One",
+                  "value": {
+                    "kind": "static",
+                    "value": 12
+                  },
+                  "caption": null,
+                  "captionSegments": [],
+                  "icon": null,
+                  "delta": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "deltaFormat": "number",
+                  "trend": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "positiveIsGood": true,
+                  "look": "plain"
+                },
+                "style": {
+                  "span": 1,
+                  "spanSm": 2
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_fives2",
+                "type": "stat",
+                "props": {
+                  "label": "Two",
+                  "value": {
+                    "kind": "static",
+                    "value": 12
+                  },
+                  "caption": null,
+                  "captionSegments": [],
+                  "icon": null,
+                  "delta": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "deltaFormat": "number",
+                  "trend": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "positiveIsGood": true,
+                  "look": "plain"
+                },
+                "style": {
+                  "span": 1,
+                  "spanSm": 3
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_fives3",
+                "type": "stat",
+                "props": {
+                  "label": "Three",
+                  "value": {
+                    "kind": "static",
+                    "value": 12
+                  },
+                  "caption": null,
+                  "captionSegments": [],
+                  "icon": null,
+                  "delta": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "deltaFormat": "number",
+                  "trend": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "positiveIsGood": true,
+                  "look": "plain"
+                },
+                "style": {
+                  "span": 1,
+                  "spanMd": 2
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_fives4",
+                "type": "stat",
+                "props": {
+                  "label": "Four",
+                  "value": {
+                    "kind": "static",
+                    "value": 12
+                  },
+                  "caption": null,
+                  "captionSegments": [],
+                  "icon": null,
+                  "delta": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "deltaFormat": "number",
+                  "trend": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "positiveIsGood": true,
+                  "look": "plain"
+                },
+                "style": {
+                  "span": 1,
+                  "spanMd": 3
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_fives5",
+                "type": "stat",
+                "props": {
+                  "label": "Five",
+                  "value": {
+                    "kind": "static",
+                    "value": 12
+                  },
+                  "caption": null,
+                  "captionSegments": [],
+                  "icon": null,
+                  "delta": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "deltaFormat": "number",
+                  "trend": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "positiveIsGood": true,
+                  "look": "plain"
+                },
+                "style": {
+                  "span": 1
+                },
+                "visible": true
+              }
+            ]
+          },
+          {
+            "id": "sec_manual1",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none",
+              "responsive": "manual"
+            },
+            "children": [
+              {
+                "id": "cmp_tallcd",
+                "type": "card",
+                "props": {
+                  "title": "Tall",
+                  "description": null,
+                  "look": "default"
+                },
+                "style": {
+                  "span": 6,
+                  "padding": 3,
+                  "gap": 3,
+                  "background": "surface",
+                  "rowSpan": 2,
+                  "columns": 4
+                },
+                "visible": true,
+                "children": [
+                  {
+                    "id": "cmp_tallt1",
+                    "type": "text",
+                    "props": {
+                      "text": "A quarter",
+                      "muted": false
+                    },
+                    "style": {
+                      "span": 1
+                    },
+                    "visible": true
+                  },
+                  {
+                    "id": "cmp_tallt2",
+                    "type": "text",
+                    "props": {
+                      "text": "Three quarters",
+                      "muted": false
+                    },
+                    "style": {
+                      "span": 3,
+                      "spanMd": 4
+                    },
+                    "visible": true
+                  },
+                  {
+                    "id": "cmp_tallt3",
+                    "type": "text",
+                    "props": {
+                      "text": "Whole row",
+                      "muted": false
+                    },
+                    "style": {
+                      "span": 12
+                    },
+                    "visible": true
+                  }
+                ]
+              },
+              {
+                "id": "cmp_short1",
+                "type": "stat",
+                "props": {
+                  "label": "Short one",
+                  "value": {
+                    "kind": "static",
+                    "value": 12
+                  },
+                  "caption": null,
+                  "captionSegments": [],
+                  "icon": null,
+                  "delta": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "deltaFormat": "number",
+                  "trend": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "positiveIsGood": true,
+                  "look": "plain"
+                },
+                "style": {
+                  "span": 3,
+                  "alignSelf": "start"
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_short2",
+                "type": "stat",
+                "props": {
+                  "label": "Short two",
+                  "value": {
+                    "kind": "static",
+                    "value": 12
+                  },
+                  "caption": null,
+                  "captionSegments": [],
+                  "icon": null,
+                  "delta": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "deltaFormat": "number",
+                  "trend": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "positiveIsGood": true,
+                  "look": "plain"
+                },
+                "style": {
+                  "span": 3,
+                  "alignSelf": "end",
+                  "spanMd": 6,
+                  "spanSm": 6
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_sticky",
+                "type": "card",
+                "props": {
+                  "title": "Summary",
+                  "description": null,
+                  "look": "default"
+                },
+                "style": {
+                  "span": 6,
+                  "padding": 3,
+                  "gap": 3,
+                  "background": "surface",
+                  "sticky": "top",
+                  "stickyOffset": 2
+                },
+                "visible": true,
+                "children": [
+                  {
+                    "id": "cmp_stickt",
+                    "type": "text",
+                    "props": {
+                      "text": "Stays in view beside the tall block.",
+                      "muted": false
+                    },
+                    "style": {
+                      "span": 12
+                    },
+                    "visible": true
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "sec_grids1",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_cont01",
+                "type": "container",
+                "props": {
+                  "look": "plain"
+                },
+                "style": {
+                  "span": 12,
+                  "gap": 3,
+                  "columns": 3
+                },
+                "visible": true,
+                "children": [
+                  {
+                    "id": "cmp_p3m5lq",
+                    "type": "text",
+                    "props": {
+                      "text": "Third",
+                      "muted": false
+                    },
+                    "style": {
+                      "span": 1
+                    },
+                    "visible": true
+                  },
+                  {
+                    "id": "cmp_t5awao",
+                    "type": "text",
+                    "props": {
+                      "text": "Third",
+                      "muted": false
+                    },
+                    "style": {
+                      "span": 1,
+                      "alignSelf": "center"
+                    },
+                    "visible": true
+                  },
+                  {
+                    "id": "cmp_lqzlp4",
+                    "type": "text",
+                    "props": {
+                      "text": "Third",
+                      "muted": false
+                    },
+                    "style": {
+                      "span": 1,
+                      "alignSelf": "stretch"
+                    },
+                    "visible": true
+                  }
+                ]
+              },
+              {
+                "id": "cmp_form01",
+                "type": "form",
+                "props": {
+                  "name": "contact",
+                  "submitLabel": "Send",
+                  "showReset": false,
+                  "showSubmit": true,
+                  "resetKey": null
+                },
+                "style": {
+                  "span": 6,
+                  "gap": 3,
+                  "padding": 0,
+                  "columns": 2
+                },
+                "visible": true,
+                "children": [
+                  {
+                    "id": "cmp_first1",
+                    "type": "input_text",
+                    "props": {
+                      "name": "first",
+                      "label": "First name",
+                      "placeholder": null,
+                      "required": false,
+                      "defaultValue": null,
+                      "inputType": "text",
+                      "valueFrom": {
+                        "kind": "static",
+                        "value": null
+                      }
+                    },
+                    "style": {
+                      "span": 1,
+                      "spanSm": 1
+                    },
+                    "visible": true
+                  },
+                  {
+                    "id": "cmp_last01",
+                    "type": "input_text",
+                    "props": {
+                      "name": "last",
+                      "label": "Last name",
+                      "placeholder": null,
+                      "required": false,
+                      "defaultValue": null,
+                      "inputType": "text",
+                      "valueFrom": {
+                        "kind": "static",
+                        "value": null
+                      }
+                    },
+                    "style": {
+                      "span": 1,
+                      "spanSm": 1
+                    },
+                    "visible": true
+                  },
+                  {
+                    "id": "cmp_note01",
+                    "type": "input_textarea",
+                    "props": {
+                      "name": "note",
+                      "label": "Note",
+                      "placeholder": null,
+                      "required": false,
+                      "rows": 4,
+                      "valueFrom": {
+                        "kind": "static",
+                        "value": null
+                      },
+                      "snippets": {
+                        "kind": "static",
+                        "value": null
+                      },
+                      "snippetKey": "shortcut",
+                      "snippetBody": "body",
+                      "snippetLabel": "title"
+                    },
+                    "style": {
+                      "span": 2
+                    },
+                    "visible": true
+                  }
+                ]
+              },
+              {
+                "id": "cmp_tabs01",
+                "type": "tabs",
+                "props": {
+                  "look": "underline"
+                },
+                "style": {
+                  "span": 6,
+                  "gap": 3,
+                  "padding": 0
+                },
+                "visible": true,
+                "children": [
+                  {
+                    "id": "cmp_tab001",
+                    "type": "tab",
+                    "props": {
+                      "label": "Grid of three",
+                      "icon": null,
+                      "badge": null,
+                      "badgeTone": "neutral"
+                    },
+                    "style": {
+                      "gap": 3,
+                      "padding": 0,
+                      "columns": 3
+                    },
+                    "visible": true,
+                    "children": [
+                      {
+                        "id": "cmp_puwybl",
+                        "type": "text",
+                        "props": {
+                          "text": "One",
+                          "muted": false
+                        },
+                        "style": {
+                          "span": 1
+                        },
+                        "visible": true
+                      },
+                      {
+                        "id": "cmp_rh0uvb",
+                        "type": "text",
+                        "props": {
+                          "text": "Two",
+                          "muted": false
+                        },
+                        "style": {
+                          "span": 2
+                        },
+                        "visible": true
+                      }
+                    ]
+                  },
+                  {
+                    "id": "cmp_tab002",
+                    "type": "tab",
+                    "props": {
+                      "label": "Kept on tablet",
+                      "icon": null,
+                      "badge": null,
+                      "badgeTone": "neutral"
+                    },
+                    "style": {
+                      "gap": 3,
+                      "padding": 0,
+                      "responsive": "manual"
+                    },
+                    "visible": true,
+                    "children": [
+                      {
+                        "id": "cmp_9rcbt0",
+                        "type": "text",
+                        "props": {
+                          "text": "A third",
+                          "muted": false
+                        },
+                        "style": {
+                          "span": 4
+                        },
+                        "visible": true
+                      },
+                      {
+                        "id": "cmp_ejpbvz",
+                        "type": "text",
+                        "props": {
+                          "text": "Two thirds",
+                          "muted": false
+                        },
+                        "style": {
+                          "span": 8
+                        },
+                        "visible": true
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "cmp_modal1",
+                "type": "modal",
+                "props": {
+                  "title": "Two columns",
+                  "size": "md",
+                  "placement": "center",
+                  "triggerLabel": "Open"
+                },
+                "style": {
+                  "gap": 3,
+                  "padding": 4,
+                  "columns": 2
+                },
+                "visible": true,
+                "children": [
+                  {
+                    "id": "cmp_woaiks",
+                    "type": "text",
+                    "props": {
+                      "text": "Left",
+                      "muted": false
+                    },
+                    "style": {
+                      "span": 1
+                    },
+                    "visible": true
+                  },
+                  {
+                    "id": "cmp_ndxpii",
+                    "type": "text",
+                    "props": {
+                      "text": "Right",
+                      "muted": false
+                    },
+                    "style": {
+                      "span": 1
+                    },
+                    "visible": true
+                  }
+                ]
+              },
+              {
+                "id": "cmp_rep001",
+                "type": "repeater",
+                "props": {
+                  "source": {
+                    "kind": "static",
+                    "value": []
+                  },
+                  "itemActions": [],
+                  "emptyText": "Nothing to show yet."
+                },
+                "style": {
+                  "span": 12,
+                  "gap": 3,
+                  "padding": 0,
+                  "columns": 4
+                },
+                "visible": true,
+                "children": [
+                  {
+                    "id": "cmp_repnam",
+                    "type": "text",
+                    "props": {
+                      "text": "Name",
+                      "muted": false
+                    },
+                    "style": {
+                      "span": 1,
+                      "spanSm": 2
+                    },
+                    "visible": true
+                  },
+                  {
+                    "id": "cmp_reprol",
+                    "type": "text",
+                    "props": {
+                      "text": "Role",
+                      "muted": false
+                    },
+                    "style": {
+                      "span": 3,
+                      "spanSm": 2
+                    },
+                    "visible": true
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "actions": {},
+    "homeScreenId": "scr_layout1"
+  }
+}
