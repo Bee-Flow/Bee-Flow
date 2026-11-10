@@ -159,7 +159,7 @@ test('the flags of the base kinds say what the code did by name', () => {
 // ── The shipped registry and its generated projection ───────────────────────
 
 test('the generated step-kind file is what the registry says today', () => {
-    assert.equal(fs.readFileSync(STEP_KINDS_FILE, 'utf8'), renderStepKindsFile(), 'run `node server/appStudio/stepKindsGen.mts`, then `npm run gen:shared`');
+    assert.equal(fs.readFileSync(STEP_KINDS_FILE, 'utf8'), renderStepKindsFile(), 'run `npm run gen:shared`');
     assert.deepEqual(EXTENSION_STEP_KINDS, registry.stepFlowProjection(registry.EXTENSION_STEP_ENTRIES));
 });
 

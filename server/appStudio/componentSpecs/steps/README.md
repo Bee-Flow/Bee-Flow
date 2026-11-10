@@ -6,7 +6,8 @@ at load). A server kind also has its executor in `../../actionExecutor/steps/<ki
 (`export async function runStep(app, model, step, ctx)`), and the editor shows a kind through
 `agent-hub/src/components/admin/Studio/AppStudio/flow/steps/<kind>.ts`.
 
-After adding or changing a file: `node server/appStudio/stepKindsGen.mts`, then `npm run gen:shared`.
+After adding or changing a file: `npm run gen:shared` (it rewrites `server/shared/appDefinition/stepKinds.generated.mjs`
+and the browser's copy; `npm run lint:shared-mirror`, part of `check:fast`, fails on a stale one).
 
 The AI builder's prompt does not render a registry kind: it lists the kind in its extension index
 and serves the full field list through `app_inspect_catalog` (`../../catalogTiers.mts`). Give the

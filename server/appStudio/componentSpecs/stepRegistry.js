@@ -19,7 +19,7 @@
  *
  * A file that leaves out or misspells any of it fails the load, so a kind can
  * never reach a route with a missing answer. After adding or changing a file:
- * `node server/appStudio/stepKindsGen.mts`, then `npm run gen:shared`.
+ * `npm run gen:shared` (scripts/gen-step-kinds.mjs writes the generated projection).
  *
  * Plain .js like the rest of componentSpecs (see stepEnvelope.js).
  */
