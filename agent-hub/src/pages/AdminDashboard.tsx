@@ -6,8 +6,10 @@ import AdminAccessDenied from '../components/admin/dashboard/AdminAccessDenied';
 import AdminRail from '../components/admin/dashboard/AdminRail';
 import type { AdminRailGroup } from '../components/admin/dashboard/AdminRail';
 import AdminTabContent from '../components/admin/dashboard/AdminTabContent';
-import { ADMIN_TABS, canOpenAdminTab, groupAdminTabs, resolveAdminTab } from '../components/admin/dashboard/adminTabs';
-import type { AdminTab } from '../components/admin/dashboard/adminTabs';
+import { ADMIN_TABS, canOpenAdminTab, groupAdminTabs, resolveAdminTab, shownAdminScope } from '../components/admin/dashboard/adminTabs';
+import type { AdminScope, AdminTab } from '../components/admin/dashboard/adminTabs';
+import ScopeBadge from '../components/admin/dashboard/ScopeBadge';
+import { AdminScopeOverrideProvider } from '../components/admin/dashboard/useAdminScopeOverride';
 import Modal from '../components/shared/Modal';
 import { useDeploymentMode } from '../hooks/useDeploymentMode';
 import { useLicenseContext } from '../components/licensing/LicenseContext';
@@ -36,6 +38,7 @@ const AdminDashboard = ({ user, onBack, adminPath = {}, onNavigate }: AdminDashb
     const { serverOverride, tier } = useLicenseContext();
     const isPlatformAdmin = user?.isAdmin || user?.role === 'admin';
     const [drawerOpen, setDrawerOpen] = useState(false);
+    const [scopeOverride, setScopeOverride] = useState<AdminScope | null>(null);
 
     // Permission helper - checks if user has a specific permission
     const hasPermission = (perm: string) => {
@@ -91,6 +94,7 @@ const AdminDashboard = ({ user, onBack, adminPath = {}, onNavigate }: AdminDashb
         tabs: group.tabs.map(tab => ({ id: tab.id, label: labelOf(tab), icon: tab.icon })),
     }));
     const activeDef = ADMIN_TABS.find(tab => tab.id === activeTab);
+    const activeScope = isTabAllowed ? scopeForView(activeDef, scopeOverride, user, activeTab === 'agents' ? agentSection : adminPath.seg2) : null;
     const railProps = {
         title: t('admin.dashboard_title'),
         groups,
@@ -112,9 +116,14 @@ const AdminDashboard = ({ user, onBack, adminPath = {}, onNavigate }: AdminDashb
                     drawerOpen={drawerOpen}
                     onOpen={() => setDrawerOpen(true)}
                 />
+                {activeScope && <AdminScopeBar scope={activeScope} isPlatformAdmin={!!isPlatformAdmin} multiOrg={hasSeveralOrgs(user)} />}
                 <div className="relative min-h-0 flex-1">
                     {isTabAllowed
-                        ? <AdminTabContent activeTab={activeTab} user={user} hasPermission={hasPermission} agentSection={agentSection} onNavigate={onNavigate} adminPath={adminPath} />
+                        ? (
+                            <AdminScopeOverrideProvider value={setScopeOverride}>
+                                <AdminTabContent activeTab={activeTab} user={user} hasPermission={hasPermission} agentSection={agentSection} onNavigate={onNavigate} adminPath={adminPath} />
+                            </AdminScopeOverrideProvider>
+                        )
                         : <AdminAccessDenied scope="section" />}
                 </div>
             </div>
@@ -134,6 +143,31 @@ const AdminDashboard = ({ user, onBack, adminPath = {}, onNavigate }: AdminDashb
 };
 
 export default AdminDashboard;
+
+/** Does the viewer have an organisation of their own? */
+function hasHomeOrg(user: AdminCurrentUser | null): boolean {
+    const id = user?.organizationId ?? user?.orgId;
+    return typeof id === 'string' && id !== '';
+}
+
+/** Is the viewer in more than one organisation, so their lists are the union? */
+function hasSeveralOrgs(user: AdminCurrentUser | null): boolean {
+    return (user?.organizations?.length ?? 0) > 1;
+}
+
+/** The scope the strip shows for the active tab, or null for none. */
+function scopeForView(tab: AdminTab | undefined, override: AdminScope | null, user: AdminCurrentUser | null, section?: string): AdminScope | null {
+    return shownAdminScope({ tab, override, section, hasHomeOrg: hasHomeOrg(user) });
+}
+
+/** The strip above the tab content that says whose data the section is about. */
+function AdminScopeBar({ scope, isPlatformAdmin, multiOrg }: { scope: AdminScope; isPlatformAdmin: boolean; multiOrg: boolean }) {
+    return (
+        <div className="flex h-9 shrink-0 items-center border-b border-[var(--border-subtle)] px-4 md:px-6" data-testid="admin-scope-bar">
+            <ScopeBadge scope={scope} isPlatformAdmin={isPlatformAdmin} multiOrg={multiOrg} />
+        </div>
+    );
+}
 
 interface AdminTopBarProps {
     onBack?: React.MouseEventHandler<HTMLButtonElement>;

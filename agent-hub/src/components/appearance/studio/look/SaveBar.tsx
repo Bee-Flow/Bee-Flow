@@ -59,7 +59,7 @@ export default function SaveBar({
                     className={PRIMARY_BTN}
                 >
                     {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                    {saving ? 'Saving…' : 'Save as organisation default'}
+                    {saving ? 'Saving…' : 'Save as server default'}
                 </button>
             </div>
         </div>

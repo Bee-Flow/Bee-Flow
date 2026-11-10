@@ -3900,11 +3900,6 @@
       "count": 1
     }
   },
-  "src/components/agents/AgentConfigHub.tsx": {
-    "complexity": {
-      "count": 1
-    }
-  },
   "src/components/agents/AgentDesigner/hooks/useAgentApi.ts": {
     "complexity": {
       "count": 2

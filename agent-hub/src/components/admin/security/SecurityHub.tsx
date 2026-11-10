@@ -10,6 +10,8 @@ import { useLicenseContext } from '../../licensing/LicenseContext';
 import type { AdminCurrentUser } from '../org/userManagement/types';
 import SectionNav from '@/components/shared/SectionNav';
 import StudioShell from '@/components/shared/StudioShell';
+import { adminSectionScope } from '@/components/admin/dashboard/adminTabs';
+import { useAdminScopeOverride } from '@/components/admin/dashboard/useAdminScopeOverride';
 
 /**
  * SecurityHub — Unified security configuration page
@@ -51,6 +53,8 @@ const SecurityHub = ({ activeSection: activeProp = 'users', userSection = '', on
         .filter(s => !s.enterpriseOnly || isEnterprise);
     const VALID_IDS = visibleSections.map(s => s.id);
     const active = VALID_IDS.includes(activeProp) ? activeProp : 'users';
+    // The URL may name a section this viewer cannot see; the scope follows what is rendered.
+    useAdminScopeOverride(adminSectionScope('security', active));
 
     return (
         <StudioShell

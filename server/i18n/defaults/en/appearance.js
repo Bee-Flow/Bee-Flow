@@ -39,7 +39,7 @@ module.exports = {
     'appearance.icons_editor_nano_banana_2_5_flash': 'Nano Banana — 2.5 Flash',
     'appearance.icons_editor_overwrite_existing_customised_icons': 'Overwrite existing customised icons ({custom_count} currently set)',
     'appearance.look_editor_look': 'Look',
-    'appearance.look_editor_set_the_look_that_everyone_in_your': 'Set the look that everyone in your organisation sees by default. Changes preview live in the pane on the right.',
+    'appearance.look_editor_set_the_look_that_everyone_in_your': 'Set the look that everyone on this server sees by default. Changes preview live in the pane on the right.',
     'appearance.look_section_nav_look_editor_sections': 'Look editor sections',
     'appearance.look_nav_accent': 'Accent',
     'appearance.look_nav_radius': 'Radius',

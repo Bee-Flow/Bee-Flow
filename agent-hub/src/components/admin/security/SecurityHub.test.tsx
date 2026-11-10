@@ -1,7 +1,12 @@
 import { render, screen, cleanup } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type { Mock } from 'vitest';
 import SecurityHub from './SecurityHub';
+import { AdminScopeOverrideProvider } from '../dashboard/useAdminScopeOverride';
+import type { AdminScope } from '../dashboard/adminTabs';
+
+type SetScope = Mock<(scope: AdminScope | null) => void>;
 
 const hasTier = vi.hoisted(() => vi.fn());
 
@@ -135,5 +140,25 @@ describe('SecurityHub', () => {
         expect(screen.getByRole('navigation', { name: 'admin.tab_security' })).toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'admin.sec_sso' })).toHaveAttribute('aria-current', 'page');
         expect(screen.getByRole('button', { name: 'admin.sec_users' })).not.toHaveAttribute('aria-current');
+    });
+
+    describe('scope reported to the dashboard', () => {
+        const lastScope = (set: SetScope) => set.mock.calls.filter(c => c[0] !== null).at(-1)?.[0];
+        const renderIn = (set: SetScope, props: React.ComponentProps<typeof SecurityHub>) => render(
+            <AdminScopeOverrideProvider value={set}><SecurityHub {...props} /></AdminScopeOverrideProvider>,
+        );
+
+        it('guardrails are server-wide for whoever opens them', () => {
+            const set: SetScope = vi.fn<(scope: AdminScope | null) => void>();
+            renderIn(set, { user: orgAdmin, activeSection: 'guardrails' });
+            expect(lastScope(set)).toBe('instance');
+        });
+
+        it('a section the viewer cannot see falls back to users, and the scope follows what is rendered', () => {
+            const set: SetScope = vi.fn<(scope: AdminScope | null) => void>();
+            renderIn(set, { user: orgAdmin, activeSection: 'sso' });
+            expect(screen.getByTestId('user-management')).toBeInTheDocument();
+            expect(lastScope(set)).toBe('mixed');
+        });
     });
 });

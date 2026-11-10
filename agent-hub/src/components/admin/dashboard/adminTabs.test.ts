@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ADMIN_TAB_GROUPS, ADMIN_TABS, canOpenAdminTab, groupAdminTabs, resolveAdminTab } from './adminTabs';
+import { ADMIN_TAB_GROUPS, ADMIN_TABS, adminScopeOf, adminSectionScope, canOpenAdminTab, groupAdminTabs, resolveAdminTab, shownAdminScope } from './adminTabs';
 import type { AdminAccess, AdminTab } from './adminTabs';
 
 const access = (over: Partial<AdminAccess> = {}): AdminAccess => ({
@@ -44,5 +44,44 @@ describe('groupAdminTabs', () => {
         const groupIds = new Set(ADMIN_TAB_GROUPS.map(g => g.id));
         expect(ADMIN_TABS.every(t => groupIds.has(t.group))).toBe(true);
         expect(groupAdminTabs([tab('security'), tab('modules')]).map(g => g.id)).toEqual(['security', 'platform']);
+    });
+});
+
+describe('scope', () => {
+    const SCOPES = ['instance', 'org', 'mixed', 'user'];
+
+    it('every tab and every sub-section has a known scope', () => {
+        for (const t of ADMIN_TABS) {
+            if (t.scope !== null) expect(SCOPES, t.id).toContain(t.scope);
+            for (const scope of Object.values(t.sections ?? {})) expect(SCOPES, t.id).toContain(scope);
+        }
+    });
+
+    it('a sub-section overrides the tab scope only where it is listed', () => {
+        expect(adminScopeOf(tab('agents'), 'system')).toBe('instance');
+        expect(adminScopeOf(tab('agents'), 'chat')).toBe('mixed');
+        expect(adminScopeOf(tab('monitoring'))).toBe('mixed');
+        expect(adminScopeOf(tab('monitoring'), 'feedback')).toBe('instance');
+        expect(adminScopeOf(tab('security'), 'constructor')).toBe('mixed');
+        expect(adminScopeOf(tab('compliance'), 'anything')).toBe('org');
+    });
+
+    it('the server-wide guardrails section is "instance", the users section stays "mixed"', () => {
+        expect(adminSectionScope('security', 'guardrails')).toBe('instance');
+        expect(adminSectionScope('security', 'users')).toBe('mixed');
+        expect(adminSectionScope('nope', 'users')).toBeNull();
+    });
+
+    it('Access names no scope: its panel picks the organisation itself', () => {
+        expect(adminScopeOf(tab('access'))).toBeNull();
+        expect(shownAdminScope({ tab: tab('access'), override: null, hasHomeOrg: true })).toBeNull();
+    });
+
+    it('an organisation scope is shown only to a viewer with a home organisation; an override wins', () => {
+        const compliance = tab('compliance');
+        expect(shownAdminScope({ tab: compliance, override: null, hasHomeOrg: true })).toBe('org');
+        expect(shownAdminScope({ tab: compliance, override: null, hasHomeOrg: false })).toBeNull();
+        expect(shownAdminScope({ tab: tab('appearance'), override: 'user', hasHomeOrg: false })).toBe('user');
+        expect(shownAdminScope({ tab: undefined, override: null, hasHomeOrg: true })).toBeNull();
     });
 });
