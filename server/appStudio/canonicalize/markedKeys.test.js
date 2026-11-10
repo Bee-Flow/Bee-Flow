@@ -51,8 +51,7 @@ function clean(raw) {
 
 const search = { since: 3, kinds: ['record', 'records'], shape: 'string ≤5', description: 'Free text.', clean: (/** @type {unknown} */ v) => (typeof v === 'string' ? v.slice(0, 5) : undefined) };
 
-test('with nothing marked an unknown key of a binding is dropped, as it always was', () => {
-    assert.deepEqual(Object.keys(specs.KEY_MARKS.binding), []);
+test('a key nothing marks is dropped from a binding, as it always was', () => {
     assert.deepEqual(clean({ kind: 'records', tableId: 'tbl_x', zz_search: 'abc', limit: 3 }).out, { kind: 'records', tableId: 'tbl_x', limit: 3 });
     assert.deepEqual(clean({ kind: 'aggregate', tableId: 'tbl_x', groupBy: [{ field: 'a', zz_step: 5 }] }).out, { kind: 'aggregate', tableId: 'tbl_x', groupBy: [{ field: 'a' }] });
 });

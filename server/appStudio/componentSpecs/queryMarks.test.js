@@ -4,7 +4,7 @@
  * binding newly takes, `keys/queryShape/<key>.<name>.js` a form the value under a key newly takes.
  *
  * The mechanism is proved with directories written per test and with the test-only fixtures
- * (testUtils/appCatalogExtensions.testkit.js); the registries ship empty.
+ * (testUtils/appCatalogExtensions.testkit.js), whatever the registries ship.
  * Run: node --test appStudio/componentSpecs/queryMarks.test.js
  */
 
@@ -39,9 +39,9 @@ const SEARCH = `{ since: 3, kinds: ['record', 'records'], shape: 'string ≤200'
 const NESTED = `{ since: 3, shape: '{ all: […] }', description: 'Groups inside groups.', uses: (list) => Array.isArray(list) && list.some((e) => e !== null && typeof e === 'object' && Array.isArray(e.all)) }`;
 const RELATED = `{ since: 4, entryKey: true, shape: 'string', description: 'Groups by a field of the related row.', clean: (v) => (typeof v === 'string' && v ? v : undefined) }`;
 
-test('the registries ship empty', () => {
-    assert.deepEqual(Object.keys(KEY_MARKS.binding), []);
-    assert.deepEqual(Object.keys(KEY_MARKS.queryShape), []);
+test('every mark the registries ship is a complete mark', () => {
+    for (const [key, mark] of Object.entries(KEY_MARKS.binding)) assert.deepEqual(marks.bindingMarkProblems(key, mark), [], key);
+    for (const [name, mark] of Object.entries(KEY_MARKS.queryShape)) assert.deepEqual(marks.queryShapeProblems(name, mark), [], name);
 });
 
 test('loads a binding key and both kinds of query shape, the file name being the name the index lists', () => {

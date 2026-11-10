@@ -1,9 +1,9 @@
 {
   "corpus": "flex-filter-tree-order-by",
   "canonical": {
-    "sha256": "4c590e321683c5654ddbf9fc4b8f2a3a5d8315785f3904d22241ad75263d4516",
+    "sha256": "4854308cbda5e2a41a8019db66d34a83a628b6096d120cde0bf50c7d9a62ebc3",
     "bytes": 2383,
-    "inputIsCanonical": true,
+    "inputIsCanonical": false,
     "idempotent": true,
     "keys": [
       "schemaVersion",
@@ -15,17 +15,17 @@
       "homeScreenId"
     ],
     "parts": {
-      "schemaVersion": "d4735e3a265e16ee",
+      "schemaVersion": "4e07408562bedb8b",
       "meta": "8dafbf8521e5bc33",
       "theme": "5d7eeb0111b89897",
       "roles": "4f53cda18c2baa0c",
-      "screens[0] scr_flexdf": "10d32de6316f0e13",
+      "screens[0] scr_flexdf": "c6e68c14796ccb09",
       "homeScreenId": "dc210cd37016e9a6"
     }
   },
   "schemaVersion": {
     "stored": 2,
-    "canonical": 2
+    "canonical": 3
   },
   "validation": {
     "strict": {

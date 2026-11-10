@@ -1,9 +1,9 @@
 {
   "corpus": "flex-relation-expand",
   "canonical": {
-    "sha256": "66ad8a13d7967a614e58c546578968ea9914fcc41271c11de7dbffb713fb83c2",
+    "sha256": "a8dcfc0881a44689ab32b05fa456721dfeb6acab94452835d81a72aa4ad04b1b",
     "bytes": 3635,
-    "inputIsCanonical": true,
+    "inputIsCanonical": false,
     "idempotent": true,
     "keys": [
       "schemaVersion",
@@ -15,17 +15,17 @@
       "homeScreenId"
     ],
     "parts": {
-      "schemaVersion": "d4735e3a265e16ee",
+      "schemaVersion": "4e07408562bedb8b",
       "meta": "e928625e59a6d620",
       "theme": "5d7eeb0111b89897",
       "roles": "335bd906a0438921",
-      "screens[0] scr_flexdh": "623a846566ebc1cf",
+      "screens[0] scr_flexdh": "97367a7cadf88b89",
       "homeScreenId": "e7e8a031e0f34c9e"
     }
   },
   "schemaVersion": {
     "stored": 2,
-    "canonical": 2
+    "canonical": 3
   },
   "validation": {
     "strict": {
