@@ -97,6 +97,8 @@ function renderPage() {
 
 describe('AppRunPage — run-view formula scope (GA gate)', () => {
     beforeEach(() => {
+        // A screen change writes #/s/<id> into the URL; start every test without one.
+        window.history.replaceState(null, '', '/');
         studioAppsApi.getRuntime.mockReset();
         studioAppsApi.getRuntime.mockResolvedValue({
             id: 'app-1',
