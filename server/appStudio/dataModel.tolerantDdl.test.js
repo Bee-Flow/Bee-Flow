@@ -215,6 +215,27 @@ test('a renamed stored computed field drops its OLD column (no "no such column")
     assert.ok(!db.prepare('PRAGMA table_info(lines)').all().some((c) => c.name === 'dbl'));
 });
 
+test('replaying a plan that renamed a stored computed field skips the DROP of the gone column (#588)', (t) => {
+    if (skipIfNoSqlite(t)) return;
+    const before = LINES([QTY, computedField('qty * 2')]);
+    const db = populated(before, [{ qty: 3 }]);
+    t.after(() => db.close());
+    const planned = planMigration(before, LINES([QTY, computedField('qty * 2', 'twice')]), { dialect: 'sqlite' });
+    applyPlanned(db, planned);
+
+    // SQLite is ahead of Postgres: the reconcile replays the same plan.
+    const replay = applyPlanned(db, planned);
+    assert.deepStrictEqual(replay.skipped.map((s) => s.reason).sort(), ['column already added', 'column already dropped']);
+    assert.deepStrictEqual(db.prepare('SELECT twice FROM lines').get(), { twice: 6 });
+});
+
+test('a DROP COLUMN on a missing table still throws', (t) => {
+    if (skipIfNoSqlite(t)) return;
+    const db = freshDb();
+    t.after(() => db.close());
+    assert.throws(() => applyPlanTolerantly(db, ['ALTER TABLE "ghost" DROP COLUMN "x"'], { log: silentLog }), /no such table/i);
+});
+
 test('text → number converts in place (shadow-column swap), sorts numerically, keeps the dependent stored field', (t) => {
     if (skipIfNoSqlite(t)) return;
     const AMOUNT = { id: 'fld_amt', key: 'amount', type: 'text', unique: true };
