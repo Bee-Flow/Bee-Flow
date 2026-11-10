@@ -1,0 +1,162 @@
+# sample-kitchen-sink
+## screen scr_dash01 (Dashboard)
+<div class="app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(15, 118, 110, 0.1); --app-accent: #0F766E; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(15, 118, 110, 0.1); --app-primary: #0F766E; --app-radius: 8px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-size: 15px; min-height: 100vh">
+  <main class="flex flex-1 flex-col min-h-0">
+    <div class="app-runtime app-screen-enter w-full" data-app-appearance="auto" data-app-screen="scr_dash01" data-app-screen-kind="page" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(15, 118, 110, 0.1); --app-accent: #0F766E; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(15, 118, 110, 0.1); --app-primary: #0F766E; --app-radius: 8px; --app-space: 1; color: var(--text-primary); font-size: 15px">
+      <div class="flex flex-col w-full" style="margin: 0px auto; max-width: 1280px">
+        <section class="app-grid" data-section-id="sec_dash01" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="heading" data-node-id="cmp_headg1" style="grid-column: span 12 / span 12; text-align: left">
+            <h1 class="break-words font-semibold text-2xl">
+              "Team dashboard"
+          <div class="app-node app-span-12 min-w-0" data-app-type="text" data-node-id="cmp_intro1" style="font-weight: 400; grid-column: span 12 / span 12; text-align: left">
+            <p class="break-words leading-relaxed text-sm" style="color: var(--text-secondary)">
+              "Live overview of"
+              <strong>
+                "open requests"
+              ", refreshed by an automation."
+          <div class="app-node app-span-3 min-w-0" data-app-type="stat" data-node-id="cmp_stat01" style="color: var(--app-primary); grid-column: span 3 / span 3; text-align: left">
+            <div class="app-stat flex gap-2.5 items-start">
+              <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-8 inline-flex items-center justify-center mt-0.5 rounded-md shrink-0 w-8">
+                <svg class="h-4 lucide lucide-activity w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-[var(--text-secondary)] text-xs">
+                  "Open requests"
+                <div class="flex gap-2 items-baseline min-w-0">
+                  <div class="font-semibold leading-tight text-2xl truncate" title="—">
+                    "—"
+                <div class="text-[var(--text-muted)] text-xs">
+                  "right now"
+          <div class="app-node app-span-3 min-w-0" data-app-type="stat" data-node-id="cmp_stat02" style="color: rgb(16, 185, 129); grid-column: span 3 / span 3; text-align: left">
+            <div class="app-stat flex gap-2.5 items-start">
+              <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-8 inline-flex items-center justify-center mt-0.5 rounded-md shrink-0 w-8">
+                <svg class="h-4 lucide lucide-check-circle-2 lucide-circle-check w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-[var(--text-secondary)] text-xs">
+                  "Resolved this week"
+                <div class="flex gap-2 items-baseline min-w-0">
+                  <div class="font-semibold leading-tight text-2xl truncate" title="12">
+                    "12"
+          <div class="app-node app-span-3 min-w-0" data-app-type="button" data-node-id="cmp_refre1" style="grid-column: span 3 / span 3; text-align: right">
+            <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm transition-opacity" type="button" style="background: var(--bg-card); border-radius: var(--app-radius); border: 1px solid var(--border-default); color: var(--text-primary)">
+              <svg class="h-3.5 lucide lucide-refresh-cw w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <span>
+                "Refresh"
+          <div class="app-node app-span-12 min-w-0" data-app-type="divider" data-node-id="cmp_divid1" style="grid-column: span 12 / span 12">
+            <hr class="border-t w-full" style="border-color: var(--border-default)">
+          <div class="app-node app-span-12 min-w-0" data-app-type="table" data-node-id="cmp_table1" style="grid-column: span 12 / span 12">
+            <div class="flex h-full items-center justify-center min-h-0 py-1 text-[var(--text-muted)] text-center text-sm">
+              "Nothing to show yet."
+        <section class="app-grid" data-section-id="sec_dash02" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-6 min-w-0" data-app-type="list" data-node-id="cmp_list01" style="grid-column: span 6 / span 6">
+            <ul class="flex flex-col gap-2" data-app-list="true">
+              <li data-app-list-row="0">
+                <div class="border flex gap-2.5 items-center px-3 py-2 text-left w-full" style="background: var(--bg-card); border-color: var(--border-default); border-radius: var(--app-radius)">
+                  <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-7 inline-flex items-center justify-center rounded-md shrink-0 w-7">
+                    <svg class="h-3.5 lucide lucide-file-text w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                  <div class="flex-1 min-w-0">
+                    <div class="flex gap-2 items-baseline">
+                      <span class="font-medium text-sm truncate">
+                        "Welcome"
+                    <div class="text-[var(--text-secondary)] text-xs truncate">
+                      "Start here"
+          <div class="app-node app-span-6 min-w-0" data-app-type="keyValue" data-node-id="cmp_keyva1" style="grid-column: span 6 / span 6">
+            <div class="flex h-full items-center justify-center min-h-0 py-1 text-[var(--text-muted)] text-center text-sm">
+              "No data yet."
+        <section class="app-grid" data-section-id="sec_dash03" style="background: var(--bg-card); border-radius: var(--app-radius); gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 app-surface min-w-0" data-app-type="card" data-node-id="cmp_card01" style="background: var(--bg-card); border-radius: 8px; grid-column: span 12 / span 12; padding: calc(12px * var(--app-space, 1))">
+            <div class="app-card flex flex-col" style="gap: calc(8px * var(--app-space, 1))">
+              <div>
+                <div class="font-medium">
+                  "Getting started"
+                <div class="text-[var(--text-secondary)] text-sm">
+                  "A container on its own 12-column grid."
+              <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                <div class="app-node app-span-4 min-w-0" data-app-type="image" data-node-id="cmp_image1" style="border-radius: 8px; grid-column: span 4 / span 4; height: 200px; overflow: auto; text-align: left">
+                  <img class="[border-radius:inherit] [height:100%] [object-fit:cover] block w-full" alt="Bee Flow" src="https://beeflow.nl/logo.png">
+                <div class="app-node app-span-8 min-w-0" data-app-type="callout" data-node-id="cmp_callo1" style="grid-column: span 8 / span 8">
+                  <div class="flex gap-2.5 items-start px-3 py-2.5 text-sm" data-app-callout="info" style="background: rgba(14, 165, 233, 0.1); border-left: 3px solid rgb(14, 165, 233); border-radius: var(--app-radius); color: var(--text-primary)">
+                    <svg class="h-4 lucide lucide-info mt-0.5 shrink-0 w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg" style="color: rgb(14, 165, 233)">
+                    <div class="min-w-0">
+                      <div class="font-medium">
+                        "Heads up"
+                      <div class="app-callout__body text-[var(--text-secondary)]">
+                        "Submit a request on the"
+                        <em>
+                          "New request"
+                        "screen."
+                <div class="app-node app-span-12 min-w-0" data-app-type="spacer" data-node-id="cmp_space1" style="grid-column: span 12 / span 12">
+                  <div aria-hidden="true" style="height: calc(16px * var(--app-space, 1))">
+                <div class="app-node app-span-3 min-w-0" data-app-type="button" data-node-id="cmp_docsb1" style="font-size: 0.875em; grid-column: span 3 / span 3; text-align: left">
+                  <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-2.5 py-1 text-xs transition-opacity" type="button" style="background: transparent; border-radius: var(--app-radius); color: var(--app-primary)">
+                    <svg class="h-3.5 lucide lucide-book-open w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                    <span>
+                      "Open the docs"
+                <div class="app-node app-span-3 min-w-0" data-app-type="button" data-node-id="cmp_gofrm1" style="grid-column: span 3 / span 3; text-align: right">
+                  <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm transition-opacity" type="button" style="background: var(--app-accent, var(--app-primary)); border-radius: var(--app-radius); color: var(--app-accent-contrast, var(--app-primary-contrast))">
+                    <svg class="h-3.5 lucide lucide-plus w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                    <span>
+                      "New request"
+## screen scr_form01 (New request)
+<div class="app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(15, 118, 110, 0.1); --app-accent: #0F766E; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(15, 118, 110, 0.1); --app-primary: #0F766E; --app-radius: 8px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-size: 15px; min-height: 100vh">
+  <main class="flex flex-1 flex-col min-h-0">
+    <div class="app-runtime app-screen-enter w-full" data-app-appearance="auto" data-app-screen="scr_form01" data-app-screen-kind="page" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(15, 118, 110, 0.1); --app-accent: #0F766E; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(15, 118, 110, 0.1); --app-primary: #0F766E; --app-radius: 8px; --app-space: 1; color: var(--text-primary); font-size: 15px">
+      <div class="flex flex-col w-full" style="margin: 0px auto; max-width: 640px">
+        <section class="app-grid" data-section-id="sec_form01" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="heading" data-node-id="cmp_head21" style="grid-column: span 12 / span 12; text-align: left">
+            <h2 class="break-words font-semibold text-xl">
+              "New request"
+          <div class="app-node app-span-12 min-w-0" data-app-type="form" data-node-id="cmp_form01" style="grid-column: span 12 / span 12">
+            <form class="flex flex-col" novalidate="" style="gap: calc(12px * var(--app-space, 1))">
+              <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                <div class="app-node app-span-12 min-w-0" data-app-type="input_text" data-node-id="cmp_insub1" style="grid-column: span 12 / span 12">
+                  <div class="flex flex-col gap-1 text-left">
+                    <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_insub1-input">
+                      "Subject"
+                      <span class="[color:var(--error)]" aria-hidden="true">
+                        "*"
+                    <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-required="true" id="cmp_insub1-input" name="subject" placeholder="Short summary" type="text" value="" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                <div class="app-node app-span-12 min-w-0" data-app-type="input_textarea" data-node-id="cmp_indet1" style="grid-column: span 12 / span 12">
+                  <div class="flex flex-col gap-1 text-left">
+                    <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_indet1-input">
+                      "Details"
+                    <div class="relative">
+                      <textarea class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 resize-y text-sm w-full" id="cmp_indet1-input" name="details" placeholder="What do you need?" rows="4" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                <div class="app-node app-span-6 min-w-0" data-app-type="input_number" data-node-id="cmp_inqty1" style="grid-column: span 6 / span 6">
+                  <div class="flex flex-col gap-1 text-left">
+                    <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_inqty1-input">
+                      "Quantity"
+                    <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" id="cmp_inqty1-input" max="100" min="1" name="quantity" step="1" type="number" value="1" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                <div class="app-node app-span-6 min-w-0" data-app-type="input_select" data-node-id="cmp_inpri1" style="grid-column: span 6 / span 6">
+                  <div class="flex flex-col gap-1 text-left">
+                    <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_inpri1-input">
+                      "Priority"
+                      <span class="[color:var(--error)]" aria-hidden="true">
+                        "*"
+                    <select class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-required="true" id="cmp_inpri1-input" name="priority" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                      <option disabled="" value="">
+                        "Choose…"
+                      <option value="low">
+                        "Low"
+                      <option value="normal">
+                        "Normal"
+                      <option value="high">
+                        "High"
+                <div class="app-node app-span-6 min-w-0" data-app-type="input_date" data-node-id="cmp_indue1" style="grid-column: span 6 / span 6">
+                  <div class="flex flex-col gap-1 text-left">
+                    <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_indue1-input">
+                      "Due date"
+                    <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" id="cmp_indue1-input" name="due" type="date" value="" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                <div class="app-node app-span-6 min-w-0" data-app-type="input_checkbox" data-node-id="cmp_intfy1" style="grid-column: span 6 / span 6">
+                  <div class="flex flex-col gap-1 text-left">
+                    <label class="cursor-pointer gap-2 inline-flex items-center select-none text-sm" for="cmp_intfy1-input">
+                      <input class="[accent-color:var(--app-primary)] h-4 w-4" checked="" id="cmp_intfy1-input" name="notify" type="checkbox">
+                      <span>
+                        "Email me when done"
+              <div class="flex gap-2 items-center">
+                <button class="[background:var(--app-accent,var(--app-primary))] [border-radius:var(--app-radius)] [color:var(--app-accent-contrast,var(--app-primary-contrast))]! disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm" type="submit">
+                  <span>
+                    "Send request"
+          <div class="app-node app-span-4 min-w-0" data-app-type="button" data-node-id="cmp_toast1" style="font-size: 0.875em; grid-column: span 4 / span 4; text-align: left">
+            <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-2.5 py-1 text-xs transition-opacity" type="button" style="background: transparent; border-radius: var(--app-radius); color: var(--app-primary)">
+              <span>
+                "Test notification"

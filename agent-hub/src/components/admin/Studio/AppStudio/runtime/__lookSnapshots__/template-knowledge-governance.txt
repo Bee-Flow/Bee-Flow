@@ -1,0 +1,921 @@
+# template-knowledge-governance
+## screen scr_register (Register)
+<div class="app-design--surface-soft app-motion--full app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(3, 105, 161, 0.1); --app-accent: #0369A1; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(3, 105, 161, 0.1); --app-primary: #0369A1; --app-radius: 12px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-family: "Inter", system-ui, -apple-system, sans-serif; font-size: 15px; min-height: 100vh">
+  <main class="flex flex-1 flex-col min-h-0">
+    <div class="app-design--surface-soft app-motion--full app-runtime app-screen-enter flex flex-1 flex-col h-full min-h-0 w-full" data-app-appearance="auto" data-app-screen="scr_register" data-app-screen-kind="page" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(3, 105, 161, 0.1); --app-accent: #0369A1; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(3, 105, 161, 0.1); --app-primary: #0369A1; --app-radius: 12px; --app-space: 1; color: var(--text-primary); font-family: "Inter", system-ui, -apple-system, sans-serif; font-size: 15px">
+      <div class="flex flex-1 flex-col min-h-0 w-full" style="margin: 0px auto; max-width: none">
+        <section class="app-grid" data-section-id="sec_rgtop" style="background: linear-gradient(135deg, color-mix(in srgb, var(--app-primary) 12%, transparent), color-mix(in srgb, var(--app-primary) 2%, transparent)); border-radius: var(--app-radius); gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="page_header" data-node-id="cmp_rghdr" style="grid-column: span 12 / span 12">
+            <header class="app-pageheader--split min-w-0 w-full" data-app-pageheader="true" data-app-pageheader-look="split">
+              <div class="flex flex-wrap items-start" style="gap: calc(12px * var(--app-space, 1))">
+                <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-9 inline-flex items-center justify-center rounded-md shrink-0 w-9" aria-hidden="true">
+                  <svg class="h-4.5 lucide lucide-shield-check w-4.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                <h1 class="basis-48 font-semibold grow min-w-0 text-[var(--text-primary)] text-xl truncate" title="Knowledge register">
+                  "Knowledge register"
+                <p class="[color:var(--text-muted)]! line-clamp-2 max-w-[45%] min-w-0 mt-0.5 text-right text-sm" title="Every source an assistant may repeat. Pick a base to narrow the numbers; with none picked these are the whole organisation.">
+                  "Every source an assistant may repeat. Pick a base to narrow the numbers; with none picked these are the whole organisation."
+                <div class="flex flex-wrap items-center justify-end ml-auto" data-app-pageheader-actions="true" style="gap: calc(8px * var(--app-space, 1))">
+          <div class="app-node app-span-3 min-w-0" data-app-type="stat" data-node-id="cmp_rgstat1" style="grid-column: span 3 / span 3">
+            <div class="app-stat app-stat--accent flex gap-2.5 items-start" style="background: var(--bg-card); border-left: 3px solid var(--app-primary); border-radius: var(--app-radius, 8px); box-shadow: var(--app-shadow-1); padding: calc(16px * var(--app-space, 1))">
+              <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-8 inline-flex items-center justify-center mt-0.5 rounded-md shrink-0 w-8">
+                <svg class="h-4 lucide lucide-book-open w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-[var(--text-secondary)] text-xs">
+                  "Answering now"
+                <div class="flex gap-2 items-baseline min-w-0">
+                  <div class="font-semibold leading-tight text-2xl truncate" title="—">
+                    "—"
+                <div class="text-[var(--text-muted)] text-xs">
+                  "sources in the retrieval index"
+          <div class="app-node app-span-3 min-w-0" data-app-type="stat" data-node-id="cmp_rgstat2" style="color: rgb(239, 68, 68); grid-column: span 3 / span 3">
+            <div class="app-stat app-stat--accent flex gap-2.5 items-start" style="background: var(--bg-card); border-left: 3px solid var(--app-primary); border-radius: var(--app-radius, 8px); box-shadow: var(--app-shadow-1); padding: calc(16px * var(--app-space, 1))">
+              <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-8 inline-flex items-center justify-center mt-0.5 rounded-md shrink-0 w-8">
+                <svg class="h-4 lucide lucide-alert-triangle lucide-triangle-alert w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-[var(--text-secondary)] text-xs">
+                  "Past review, still answering"
+                <div class="flex gap-2 items-baseline min-w-0">
+                  <div class="font-semibold leading-tight text-2xl truncate" title="—">
+                    "—"
+                <div class="text-[var(--text-muted)] text-xs">
+                  "approved once, never re-checked"
+          <div class="app-node app-span-3 min-w-0" data-app-type="stat" data-node-id="cmp_rgstat3" style="color: rgb(245, 158, 11); grid-column: span 3 / span 3">
+            <div class="app-stat app-stat--accent flex gap-2.5 items-start" style="background: var(--bg-card); border-left: 3px solid var(--app-primary); border-radius: var(--app-radius, 8px); box-shadow: var(--app-shadow-1); padding: calc(16px * var(--app-space, 1))">
+              <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-8 inline-flex items-center justify-center mt-0.5 rounded-md shrink-0 w-8">
+                <svg class="h-4 lucide lucide-search w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-[var(--text-secondary)] text-xs">
+                  "Never scanned"
+                <div class="flex gap-2 items-baseline min-w-0">
+                  <div class="font-semibold leading-tight text-2xl truncate" title="—">
+                    "—"
+                <div class="text-[var(--text-muted)] text-xs">
+                  "indexed without a personal-data scan"
+          <div class="app-node app-span-3 min-w-0" data-app-type="stat" data-node-id="cmp_rgstat4" style="color: rgb(239, 68, 68); grid-column: span 3 / span 3">
+            <div class="app-stat app-stat--accent flex gap-2.5 items-start" style="background: var(--bg-card); border-left: 3px solid var(--app-primary); border-radius: var(--app-radius, 8px); box-shadow: var(--app-shadow-1); padding: calc(16px * var(--app-space, 1))">
+              <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-8 inline-flex items-center justify-center mt-0.5 rounded-md shrink-0 w-8">
+                <svg class="h-4 lucide lucide-history lucide-rotate-ccw-clock w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-[var(--text-secondary)] text-xs">
+                  "Retired but indexed"
+                <div class="flex gap-2 items-baseline min-w-0">
+                  <div class="font-semibold leading-tight text-2xl truncate" title="—">
+                    "—"
+                <div class="text-[var(--text-muted)] text-xs">
+                  "closed in the register, live in the index"
+          <div class="app-node app-span-12 min-w-0" data-app-type="callout" data-node-id="cmp_rgwarn" style="grid-column: span 12 / span 12">
+            <div class="flex gap-2.5 items-start px-3 py-2.5 text-sm" data-app-callout="danger" style="background: rgba(239, 68, 68, 0.1); border-left: 3px solid rgb(239, 68, 68); border-radius: var(--app-radius); color: var(--text-primary)">
+              <svg class="h-4 lucide lucide-alert-circle lucide-circle-alert mt-0.5 shrink-0 w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg" style="color: rgb(239, 68, 68)">
+              <div class="min-w-0">
+                <div class="font-medium">
+                  "Why this list is the point"
+                <div class="app-callout__body text-[var(--text-secondary)]">
+                  "A source below is"
+                  <strong>
+                    "approved"
+                  ","
+                  <strong>
+                    "in the index"
+                  "and"
+                  <strong>
+                    "past its review date"
+                  ". Nothing is broken and no alarm has fired — it is simply still answering questions on material nobody has re-checked. Open one to re-review it, or request its removal."
+        <section class="app-grid app-section-fill" data-section-id="sec_rgmain" style="flex: 1 1 0px; gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); grid-template-rows: minmax(0, 1fr); min-height: 0px; padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-4 min-w-0" data-app-type="list" data-node-id="cmp_rgbases" style="flex: 1 1 0px; grid-column: span 4 / span 4; min-height: 0px; min-width: 0px">
+            <div class="flex flex-col gap-1.5 h-full items-center justify-center min-h-0 py-6 text-center">
+              <span class="mb-1 text-[var(--text-tertiary)]">
+                <svg class="block" aria-hidden="true" fill="none" role="presentation" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 96 72" style="height: auto; opacity: 0.9; width: 5.5rem">
+              <span class="font-medium text-[var(--text-primary)] text-sm">
+                "Nothing here yet"
+              <span class="max-w-xs text-[var(--text-muted)] text-sm">
+                "No knowledge bases yet — add one on Setup."
+          <div class="app-node app-span-8 min-w-0" data-app-type="data_grid" data-node-id="cmp_rggrid" style="flex: 1 1 0px; grid-column: span 8 / span 8; min-height: 0px; min-width: 0px">
+            <div class="w-full" data-app-datagrid="true">
+              <div class="flex flex-col gap-1.5 h-full items-center justify-center min-h-0 py-6 text-center">
+                <span class="mb-1 text-[var(--text-tertiary)]">
+                  <svg class="block" aria-hidden="true" fill="none" role="presentation" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 96 72" style="height: auto; opacity: 0.9; width: 5.5rem">
+                <span class="font-medium text-[var(--text-primary)] text-sm">
+                  "Nothing here yet"
+                <span class="max-w-xs text-[var(--text-muted)] text-sm">
+                  "Nothing is answering past its review date. That is the state this register is for."
+### outside the screen (portal)
+<span aria-hidden="true" id="recharts_measurement_span" style="border: medium; font-size: 15px; left: 0px; letter-spacing: normal; margin: 0px; padding: 0px; position: absolute; top: -20000px; white-space: pre">
+  "0"
+## screen scr_sources (Sources)
+<div class="app-design--surface-soft app-motion--full app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(3, 105, 161, 0.1); --app-accent: #0369A1; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(3, 105, 161, 0.1); --app-primary: #0369A1; --app-radius: 12px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-family: "Inter", system-ui, -apple-system, sans-serif; font-size: 15px; min-height: 100vh">
+  <main class="flex flex-1 flex-col min-h-0">
+    <div class="app-design--surface-soft app-motion--full app-runtime app-screen-enter flex flex-1 flex-col h-full min-h-0 w-full" data-app-appearance="auto" data-app-screen="scr_sources" data-app-screen-kind="page" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(3, 105, 161, 0.1); --app-accent: #0369A1; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(3, 105, 161, 0.1); --app-primary: #0369A1; --app-radius: 12px; --app-space: 1; color: var(--text-primary); font-family: "Inter", system-ui, -apple-system, sans-serif; font-size: 15px">
+      <div class="flex flex-1 flex-col min-h-0 w-full" style="margin: 0px auto; max-width: none">
+        <section class="app-grid" data-section-id="sec_sctop" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="page_header" data-node-id="cmp_schdr" style="grid-column: span 12 / span 12">
+            <header class="app-pageheader--split min-w-0 w-full" data-app-pageheader="true" data-app-pageheader-look="split">
+              <div class="flex flex-wrap items-start" style="gap: calc(12px * var(--app-space, 1))">
+                <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-9 inline-flex items-center justify-center rounded-md shrink-0 w-9" aria-hidden="true">
+                  <svg class="h-4.5 lucide lucide-file-check w-4.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                <h1 class="basis-48 font-semibold grow min-w-0 text-[var(--text-primary)] text-xl truncate" title="Sources">
+                  "Sources"
+                <p class="[color:var(--text-muted)]! line-clamp-2 max-w-[45%] min-w-0 mt-0.5 text-right text-sm" title="Origin, legal basis and review date are editable inline — click a cell. Changing what a source COUNTS AS happens on its own screen.">
+                  "Origin, legal basis and review date are editable inline — click a cell. Changing what a source COUNTS AS happens on its own screen."
+                <div class="flex flex-wrap items-center justify-end ml-auto" data-app-pageheader-actions="true" style="gap: calc(8px * var(--app-space, 1))">
+                  <div class="app-node app-span-3 min-w-0" data-app-type="button" data-node-id="cmp_scnew" style="grid-column: span 3 / span 3">
+                    <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm transition-opacity" type="button" style="background: var(--app-accent, var(--app-primary)); border-radius: var(--app-radius); color: var(--app-accent-contrast, var(--app-primary-contrast))">
+                      <svg class="h-3.5 lucide lucide-plus w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                      <span>
+                        "Add a source"
+          <div class="app-node app-span-12 min-w-0" data-app-type="filter_bar" data-node-id="cmp_scfilt" style="grid-column: span 12 / span 12">
+            <div class="flex flex-wrap gap-3 items-end" data-app-filterbar="true">
+              <div class="flex flex-col gap-1 min-w-0" data-app-filter="q">
+                <label class="font-medium text-[var(--text-secondary)] text-xs" for="cmp_scfilt-flt-q">
+                  "Search titles"
+                <div class="relative">
+                  <svg class="-translate-y-1/2 absolute h-3.5 left-2.5 lucide lucide-search text-[var(--text-muted)] top-1/2 w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                  <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none pl-8 px-2.5 py-1.5 text-sm w-full" aria-label="Search titles" id="cmp_scfilt-flt-q" placeholder="Search titles" type="text" value="" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+              <div class="flex flex-col gap-1 min-w-0" data-app-filter="stage">
+                <label class="font-medium text-[var(--text-secondary)] text-xs" for="cmp_scfilt-flt-stage">
+                  "Stage"
+                <select class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-label="Stage" id="cmp_scfilt-flt-stage" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                  <option value="">
+                    "All"
+                  <option value="intake">
+                    "Intake — submitted"
+                  <option value="in_review">
+                    "In review"
+                  <option value="live">
+                    "Live — may answer"
+                  <option value="closed">
+                    "Closed — must not answer"
+              <div class="flex flex-col gap-1 min-w-0" data-app-filter="index_state">
+                <label class="font-medium text-[var(--text-secondary)] text-xs" for="cmp_scfilt-flt-index_state">
+                  "In the index"
+                <select class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-label="In the index" id="cmp_scfilt-flt-index_state" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                  <option value="">
+                    "All"
+                  <option value="not_indexed">
+                    "Not indexed"
+                  <option value="indexed">
+                    "Indexed — answering now"
+                  <option value="removal_pending">
+                    "Removal pending"
+                  <option value="failed">
+                    "Indexing failed"
+              <div class="flex flex-col gap-1 min-w-0" data-app-filter="overdue">
+                <label class="cursor-pointer gap-2 inline-flex items-center py-1.5 text-sm" for="cmp_scfilt-flt-overdue">
+                  <input class="accent-[var(--app-primary)]" id="cmp_scfilt-flt-overdue" type="checkbox">
+                  <span class="text-[var(--text-primary)]">
+                    "Past review date"
+        <section class="app-grid app-section-fill" data-section-id="sec_scmain" style="flex: 1 1 0px; gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); grid-template-rows: minmax(0, 1fr); min-height: 0px; padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-3 min-w-0" data-app-type="list" data-node-id="cmp_scbases" style="flex: 1 1 0px; grid-column: span 3 / span 3; min-height: 0px; min-width: 0px">
+            <div class="flex flex-col gap-1.5 h-full items-center justify-center min-h-0 py-6 text-center">
+              <span class="mb-1 text-[var(--text-tertiary)]">
+                <svg class="block" aria-hidden="true" fill="none" role="presentation" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 96 72" style="height: auto; opacity: 0.9; width: 5.5rem">
+              <span class="font-medium text-[var(--text-primary)] text-sm">
+                "Nothing here yet"
+              <span class="max-w-xs text-[var(--text-muted)] text-sm">
+                "No knowledge bases yet — add one on Setup."
+          <div class="app-node app-span-9 min-w-0" data-app-type="data_grid" data-node-id="cmp_scgrid" style="flex: 1 1 0px; grid-column: span 9 / span 9; min-height: 0px; min-width: 0px">
+            <div class="w-full" data-app-datagrid="true">
+              <div class="flex flex-col gap-1.5 h-full items-center justify-center min-h-0 py-6 text-center">
+                <span class="mb-1 text-[var(--text-tertiary)]">
+                  <svg class="block" aria-hidden="true" fill="none" role="presentation" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 96 72" style="height: auto; opacity: 0.9; width: 5.5rem">
+                <span class="font-medium text-[var(--text-primary)] text-sm">
+                  "Nothing here yet"
+                <span class="max-w-xs text-[var(--text-muted)] text-sm">
+                  "No sources match. Clear the filters, or add the first source to this base."
+        <section class="app-grid" data-section-id="sec_scdlg" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: 0px">
+### outside the screen (portal)
+<span aria-hidden="true" id="recharts_measurement_span" style="border: medium; font-size: 15px; left: 0px; letter-spacing: normal; margin: 0px; padding: 0px; position: absolute; top: -20000px; white-space: pre">
+  "0"
+## screen scr_source (Source)
+<div class="app-design--surface-soft app-motion--full app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(3, 105, 161, 0.1); --app-accent: #0369A1; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(3, 105, 161, 0.1); --app-primary: #0369A1; --app-radius: 12px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-family: "Inter", system-ui, -apple-system, sans-serif; font-size: 15px; min-height: 100vh">
+  <main class="flex flex-1 flex-col min-h-0">
+    <div class="app-design--surface-soft app-motion--full app-runtime app-screen-enter flex flex-1 flex-col h-full min-h-0 w-full" data-app-appearance="auto" data-app-screen="scr_source" data-app-screen-kind="page" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(3, 105, 161, 0.1); --app-accent: #0369A1; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(3, 105, 161, 0.1); --app-primary: #0369A1; --app-radius: 12px; --app-space: 1; color: var(--text-primary); font-family: "Inter", system-ui, -apple-system, sans-serif; font-size: 15px">
+      <div class="flex flex-1 flex-col min-h-0 w-full" style="margin: 0px auto; max-width: 1280px">
+        <section class="app-grid" data-section-id="sec_sotop" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="page_header" data-node-id="cmp_sohdr" style="grid-column: span 12 / span 12">
+            <header class="min-w-0 w-full" data-app-pageheader="true">
+              <div class="flex flex-wrap items-start" style="gap: calc(12px * var(--app-space, 1))">
+                <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-9 inline-flex items-center justify-center rounded-md shrink-0 w-9" aria-hidden="true">
+                  <svg class="h-4.5 lucide lucide-file-text w-4.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                <div class="basis-64 flex-1 min-w-0">
+                  <h1 class="font-semibold text-[var(--text-primary)] text-xl truncate" title="Source">
+                    "Source"
+                <div class="flex flex-wrap items-center justify-end ml-auto" data-app-pageheader-actions="true" style="gap: calc(8px * var(--app-space, 1))">
+                  <div class="app-node app-span-3 min-w-0" data-app-type="button" data-node-id="cmp_soback" style="grid-column: span 3 / span 3">
+                    <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm transition-opacity" type="button" style="background: transparent; border-radius: var(--app-radius); color: var(--app-primary)">
+                      <svg class="h-3.5 lucide lucide-arrow-left w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                      <span>
+                        "Back to sources"
+              <hr class="[background:var(--border-default)] border-0 h-px mt-3 w-full" aria-hidden="true">
+          <div class="app-node app-span-4 min-w-0" data-app-type="stat" data-node-id="cmp_sostat1" style="grid-column: span 4 / span 4">
+            <div class="app-stat app-stat--accent flex gap-2.5 items-start" style="background: var(--bg-card); border-left: 3px solid var(--app-primary); border-radius: var(--app-radius, 8px); box-shadow: var(--app-shadow-1); padding: calc(16px * var(--app-space, 1))">
+              <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-8 inline-flex items-center justify-center mt-0.5 rounded-md shrink-0 w-8">
+                <svg class="h-4 lucide lucide-alert-triangle lucide-triangle-alert w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-[var(--text-secondary)] text-xs">
+                  "Open findings"
+                <div class="flex gap-2 items-baseline min-w-0">
+                  <div class="font-semibold leading-tight text-2xl truncate" title="—">
+                    "—"
+                <div class="text-[var(--text-muted)] text-xs">
+                  "personal data nobody has ruled on"
+          <div class="app-node app-span-4 min-w-0" data-app-type="stat" data-node-id="cmp_sostat2" style="color: rgb(239, 68, 68); grid-column: span 4 / span 4">
+            <div class="app-stat app-stat--accent flex gap-2.5 items-start" style="background: var(--bg-card); border-left: 3px solid var(--app-primary); border-radius: var(--app-radius, 8px); box-shadow: var(--app-shadow-1); padding: calc(16px * var(--app-space, 1))">
+              <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-8 inline-flex items-center justify-center mt-0.5 rounded-md shrink-0 w-8">
+                <svg class="h-4 lucide lucide-calendar-clock w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-[var(--text-secondary)] text-xs">
+                  "Answering past its review date"
+                <div class="flex gap-2 items-baseline min-w-0">
+                  <div class="font-semibold leading-tight text-2xl truncate" title="—">
+                    "—"
+                <div class="text-[var(--text-muted)] text-xs">
+                  "1 means this source is the problem"
+          <div class="app-node app-span-4 min-w-0" data-app-type="stat" data-node-id="cmp_sostat3" style="color: rgb(239, 68, 68); grid-column: span 4 / span 4">
+            <div class="app-stat app-stat--accent flex gap-2.5 items-start" style="background: var(--bg-card); border-left: 3px solid var(--app-primary); border-radius: var(--app-radius, 8px); box-shadow: var(--app-shadow-1); padding: calc(16px * var(--app-space, 1))">
+              <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-8 inline-flex items-center justify-center mt-0.5 rounded-md shrink-0 w-8">
+                <svg class="h-4 lucide lucide-history lucide-rotate-ccw-clock w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-[var(--text-secondary)] text-xs">
+                  "Closed but still indexed"
+                <div class="flex gap-2 items-baseline min-w-0">
+                  <div class="font-semibold leading-tight text-2xl truncate" title="—">
+                    "—"
+                <div class="text-[var(--text-muted)] text-xs">
+                  "1 means it is still being retrieved"
+          <div class="app-node app-span-12 min-w-0" data-app-type="record_detail" data-node-id="cmp_sodet" style="grid-column: span 12 / span 12">
+            <div class="flex h-full items-center justify-center min-h-0 py-1 text-[var(--text-muted)] text-center text-sm">
+              "Open a source from the Register or the Sources screen."
+        <section class="app-grid app-section-fill" data-section-id="sec_somain" style="flex: 1 1 0px; gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); grid-template-rows: minmax(0, 1fr); min-height: 0px; padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-3 min-w-0" data-app-type="list" data-node-id="cmp_sostates" style="flex: 1 1 0px; grid-column: span 3 / span 3; min-height: 0px; min-width: 0px">
+            <div class="flex flex-col gap-1.5 h-full items-center justify-center min-h-0 py-6 text-center">
+              <span class="mb-1 text-[var(--text-tertiary)]">
+                <svg class="block" aria-hidden="true" fill="none" role="presentation" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 96 72" style="height: auto; opacity: 0.9; width: 5.5rem">
+              <span class="font-medium text-[var(--text-primary)] text-sm">
+                "Nothing here yet"
+              <span class="max-w-xs text-[var(--text-muted)] text-sm">
+                "No review states configured — add them on Setup."
+          <div class="app-node app-span-5 min-w-0" data-app-type="data_grid" data-node-id="cmp_sofinds" style="flex: 1 1 0px; grid-column: span 5 / span 5; min-height: 0px; min-width: 0px">
+            <div class="w-full" data-app-datagrid="true">
+              <div class="flex flex-col gap-1.5 h-full items-center justify-center min-h-0 py-6 text-center">
+                <span class="mb-1 text-[var(--text-tertiary)]">
+                  <svg class="block" aria-hidden="true" fill="none" role="presentation" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 96 72" style="height: auto; opacity: 0.9; width: 5.5rem">
+                <span class="font-medium text-[var(--text-primary)] text-sm">
+                  "Nothing here yet"
+                <span class="max-w-xs text-[var(--text-muted)] text-sm">
+                  "No personal-data findings recorded. If the scan date above is empty, that means nobody has looked."
+          <div class="app-node app-span-4 min-w-0" data-app-type="timeline" data-node-id="cmp_sohist" style="flex: 1 1 0px; grid-column: span 4 / span 4; min-height: 0px; min-width: 0px">
+            <div class="flex flex-col gap-1.5 h-full items-center justify-center min-h-0 py-6 text-center">
+              <span class="mb-1 text-[var(--text-tertiary)]">
+                <svg class="block" aria-hidden="true" fill="none" role="presentation" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 96 72" style="height: auto; opacity: 0.9; width: 5.5rem">
+              <span class="font-medium text-[var(--text-primary)] text-sm">
+                "Nothing logged yet"
+              <span class="max-w-xs text-[var(--text-muted)] text-sm">
+                "Never proposed for removal."
+        <section class="app-grid" data-section-id="sec_sorq" style="background: var(--bg-card); border-radius: var(--app-radius); gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="form" data-node-id="cmp_sorform" style="grid-column: span 12 / span 12">
+            <form class="flex flex-col" novalidate="" style="gap: calc(12px * var(--app-space, 1))">
+              <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                <div class="app-node app-span-4 min-w-0" data-app-type="input_select" data-node-id="cmp_sorf1" style="grid-column: span 4 / span 4">
+                  <div class="flex flex-col gap-1 text-left">
+                    <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_sorf1-input">
+                      "Reason for removal"
+                      <span class="[color:var(--error)]" aria-hidden="true">
+                        "*"
+                    <select class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-required="true" id="cmp_sorf1-input" name="reason" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                      <option disabled="" value="">
+                        "Choose…"
+                      <option value="review_overdue">
+                        "Review overdue"
+                      <option value="permission_withdrawn">
+                        "Permission withdrawn"
+                      <option value="superseded">
+                        "Superseded by a newer source"
+                      <option value="pii_unresolved">
+                        "Unresolved personal data"
+                      <option value="duplicate">
+                        "Duplicate"
+                      <option value="other">
+                        "Other"
+                <div class="app-node app-span-8 min-w-0" data-app-type="input_text" data-node-id="cmp_sorf2" style="grid-column: span 8 / span 8">
+                  <div class="flex flex-col gap-1 text-left">
+                    <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_sorf2-input">
+                      "What changed"
+                    <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" id="cmp_sorf2-input" name="note" type="text" value="" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+              <div class="flex gap-2 items-center">
+                <button class="[background:var(--app-accent,var(--app-primary))] [border-radius:var(--app-radius)] [color:var(--app-accent-contrast,var(--app-primary-contrast))]! disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm" type="submit">
+                  <span>
+                    "Propose removal"
+          <div class="app-node app-span-12 min-w-0" data-app-type="text" data-node-id="cmp_sorhint" style="grid-column: span 12 / span 12">
+            <p class="break-words leading-relaxed text-sm" style="color: var(--text-secondary)">
+              "Proposing a removal marks the source"
+              <strong>
+                "removal pending"
+              "and logs it. It is not gone from the index until somebody confirms that on the Retirements screen — which is the gap this register exists to close."
+        <section class="app-grid" data-section-id="sec_sofd" style="background: var(--bg-card); border-radius: var(--app-radius); gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="form" data-node-id="cmp_sofform" style="grid-column: span 12 / span 12">
+            <form class="flex flex-col" novalidate="" style="gap: calc(12px * var(--app-space, 1))">
+              <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                <div class="app-node app-span-3 min-w-0" data-app-type="input_select" data-node-id="cmp_soff1" style="grid-column: span 3 / span 3">
+                  <div class="flex flex-col gap-1 text-left">
+                    <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_soff1-input">
+                      "What kind of personal data"
+                      <span class="[color:var(--error)]" aria-hidden="true">
+                        "*"
+                    <select class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-required="true" id="cmp_soff1-input" name="category" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                      <option disabled="" value="">
+                        "Choose…"
+                      <option value="name">
+                        "Name"
+                      <option value="contact">
+                        "Contact details"
+                      <option value="national_id">
+                        "National identifier"
+                      <option value="financial">
+                        "Financial details"
+                      <option value="health">
+                        "Health data (Art. 9)"
+                      <option value="biometric">
+                        "Biometric data (Art. 9)"
+                      <option value="location">
+                        "Location"
+                      <option value="credential">
+                        "Credential or secret"
+                      <option value="other">
+                        "Other"
+                <div class="app-node app-span-2 min-w-0" data-app-type="input_select" data-node-id="cmp_soff2" style="grid-column: span 2 / span 2">
+                  <div class="flex flex-col gap-1 text-left">
+                    <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_soff2-input">
+                      "Severity"
+                    <select class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" id="cmp_soff2-input" name="severity" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                      <option value="">
+                        "Choose…"
+                      <option value="low">
+                        "Low"
+                      <option value="medium">
+                        "Medium"
+                      <option value="high">
+                        "High"
+                <div class="app-node app-span-4 min-w-0" data-app-type="input_text" data-node-id="cmp_soff3" style="grid-column: span 4 / span 4">
+                  <div class="flex flex-col gap-1 text-left">
+                    <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_soff3-input">
+                      "What was flagged — describe it, never paste it"
+                      <span class="[color:var(--error)]" aria-hidden="true">
+                        "*"
+                    <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-required="true" id="cmp_soff3-input" name="finding" type="text" value="" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                <div class="app-node app-span-3 min-w-0" data-app-type="input_text" data-node-id="cmp_soff4" style="grid-column: span 3 / span 3">
+                  <div class="flex flex-col gap-1 text-left">
+                    <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_soff4-input">
+                      "Where in the source"
+                    <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" id="cmp_soff4-input" name="location" type="text" value="" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                <div class="app-node app-span-12 min-w-0" data-app-type="input_checkbox" data-node-id="cmp_soff5" style="grid-column: span 12 / span 12">
+                  <div class="flex flex-col gap-1 text-left">
+                    <label class="cursor-pointer gap-2 inline-flex items-center select-none text-sm" for="cmp_soff5-input">
+                      <input class="[accent-color:var(--app-primary)] h-4 w-4" id="cmp_soff5-input" name="is_special_category" type="checkbox">
+                      <span>
+                        "Special category (Art. 9) — beliefs, union membership, sex life, ethnicity"
+              <div class="flex gap-2 items-center">
+                <button class="[background:var(--app-accent,var(--app-primary))] [border-radius:var(--app-radius)] [color:var(--app-accent-contrast,var(--app-primary-contrast))]! disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm" type="submit">
+                  <span>
+                    "Record finding"
+          <div class="app-node app-span-12 min-w-0" data-app-type="text" data-node-id="cmp_sofhint" style="grid-column: span 12 / span 12">
+            <p class="break-words leading-relaxed text-sm" style="color: var(--text-secondary)">
+              "A finding says WHAT was found and WHERE — never the value itself, or this register becomes a second copy of the data it is meant to police. Health and biometric findings are marked Art. 9 whether or not the box is ticked. Recording one does not mean the whole source has been checked: set"
+              <strong>
+                "Scanned"
+              "on the Sources screen once it has."
+### outside the screen (portal)
+<span aria-hidden="true" id="recharts_measurement_span" style="border: medium; font-size: 15px; left: 0px; letter-spacing: normal; margin: 0px; padding: 0px; position: absolute; top: -20000px; white-space: pre">
+  "0"
+## screen scr_queue (Review queue)
+<div class="app-design--surface-soft app-motion--full app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(3, 105, 161, 0.1); --app-accent: #0369A1; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(3, 105, 161, 0.1); --app-primary: #0369A1; --app-radius: 12px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-family: "Inter", system-ui, -apple-system, sans-serif; font-size: 15px; min-height: 100vh">
+  <main class="flex flex-1 flex-col min-h-0">
+    <div class="app-design--surface-soft app-motion--full app-runtime app-screen-enter flex flex-1 flex-col h-full min-h-0 w-full" data-app-appearance="auto" data-app-screen="scr_queue" data-app-screen-kind="page" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(3, 105, 161, 0.1); --app-accent: #0369A1; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(3, 105, 161, 0.1); --app-primary: #0369A1; --app-radius: 12px; --app-space: 1; color: var(--text-primary); font-family: "Inter", system-ui, -apple-system, sans-serif; font-size: 15px">
+      <div class="flex flex-1 flex-col min-h-0 w-full" style="margin: 0px auto; max-width: none">
+        <section class="app-grid" data-section-id="sec_qutop" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="page_header" data-node-id="cmp_quhdr" style="grid-column: span 12 / span 12">
+            <header class="app-pageheader--split min-w-0 w-full" data-app-pageheader="true" data-app-pageheader-look="split">
+              <div class="flex flex-wrap items-start" style="gap: calc(12px * var(--app-space, 1))">
+                <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-9 inline-flex items-center justify-center rounded-md shrink-0 w-9" aria-hidden="true">
+                  <svg class="h-4.5 lucide lucide-inbox w-4.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                <h1 class="basis-48 font-semibold grow min-w-0 text-[var(--text-primary)] text-xl truncate" title="Review queue">
+                  "Review queue"
+                <p class="[color:var(--text-muted)]! line-clamp-2 max-w-[45%] min-w-0 mt-0.5 text-right text-sm" title="Everything a human still has to decide about. Open a source to move it up the ladder — approval is a decision, so it happens on the record, not from a row menu.">
+                  "Everything a human still has to decide about. Open a source to move it up the ladder — approval is a decision, so it happens on the record, not from a row menu."
+          <div class="app-node app-span-4 min-w-0" data-app-type="stat" data-node-id="cmp_qustat1" style="grid-column: span 4 / span 4">
+            <div class="app-stat app-stat--accent flex gap-2.5 items-start" style="background: var(--bg-card); border-left: 3px solid var(--app-primary); border-radius: var(--app-radius, 8px); box-shadow: var(--app-shadow-1); padding: calc(16px * var(--app-space, 1))">
+              <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-8 inline-flex items-center justify-center mt-0.5 rounded-md shrink-0 w-8">
+                <svg class="h-4 lucide lucide-inbox w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-[var(--text-secondary)] text-xs">
+                  "Waiting for a decision"
+                <div class="flex gap-2 items-baseline min-w-0">
+                  <div class="font-semibold leading-tight text-2xl truncate" title="—">
+                    "—"
+                <div class="text-[var(--text-muted)] text-xs">
+                  "submitted or under review"
+          <div class="app-node app-span-4 min-w-0" data-app-type="stat" data-node-id="cmp_qustat2" style="color: rgb(245, 158, 11); grid-column: span 4 / span 4">
+            <div class="app-stat app-stat--accent flex gap-2.5 items-start" style="background: var(--bg-card); border-left: 3px solid var(--app-primary); border-radius: var(--app-radius, 8px); box-shadow: var(--app-shadow-1); padding: calc(16px * var(--app-space, 1))">
+              <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-8 inline-flex items-center justify-center mt-0.5 rounded-md shrink-0 w-8">
+                <svg class="h-4 lucide lucide-search w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-[var(--text-secondary)] text-xs">
+                  "Waiting, never scanned"
+                <div class="flex gap-2 items-baseline min-w-0">
+                  <div class="font-semibold leading-tight text-2xl truncate" title="—">
+                    "—"
+                <div class="text-[var(--text-muted)] text-xs">
+                  "approving one of these is the risk"
+          <div class="app-node app-span-4 min-w-0" data-app-type="stat" data-node-id="cmp_qustat3" style="color: rgb(245, 158, 11); grid-column: span 4 / span 4">
+            <div class="app-stat app-stat--accent flex gap-2.5 items-start" style="background: var(--bg-card); border-left: 3px solid var(--app-primary); border-radius: var(--app-radius, 8px); box-shadow: var(--app-shadow-1); padding: calc(16px * var(--app-space, 1))">
+              <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-8 inline-flex items-center justify-center mt-0.5 rounded-md shrink-0 w-8">
+                <svg class="h-4 lucide lucide-shield-check w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-[var(--text-secondary)] text-xs">
+                  "Waiting, no legal basis"
+                <div class="flex gap-2 items-baseline min-w-0">
+                  <div class="font-semibold leading-tight text-2xl truncate" title="—">
+                    "—"
+                <div class="text-[var(--text-muted)] text-xs">
+                  "nobody said why we may use it"
+          <div class="app-node app-span-12 min-w-0" data-app-type="callout" data-node-id="cmp_quwarn" style="grid-column: span 12 / span 12">
+            <div class="flex gap-2.5 items-start px-3 py-2.5 text-sm" data-app-callout="warning" style="background: rgba(245, 158, 11, 0.1); border-left: 3px solid rgb(245, 158, 11); border-radius: var(--app-radius); color: var(--text-primary)">
+              <svg class="h-4 lucide lucide-alert-triangle lucide-triangle-alert mt-0.5 shrink-0 w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg" style="color: rgb(245, 158, 11)">
+              <div class="min-w-0">
+                <div class="font-medium">
+                  "Before you approve"
+                <div class="app-callout__body text-[var(--text-secondary)]">
+                  "The list on the right is everything in this queue that has"
+                  <strong>
+                    "never been scanned for personal data"
+                  ". Approving one of those puts unchecked material in front of every assistant that may read the base."
+        <section class="app-grid app-section-fill" data-section-id="sec_qumain" style="flex: 1 1 0px; gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); grid-template-rows: minmax(0, 1fr); min-height: 0px; padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-8 min-w-0" data-app-type="data_grid" data-node-id="cmp_qugrid" style="flex: 1 1 0px; grid-column: span 8 / span 8; min-height: 0px; min-width: 0px">
+            <div class="w-full" data-app-datagrid="true">
+              <div class="flex flex-col gap-1.5 h-full items-center justify-center min-h-0 py-6 text-center">
+                <span class="mb-1 text-[var(--text-tertiary)]">
+                  <svg class="block" aria-hidden="true" fill="none" role="presentation" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 96 72" style="height: auto; opacity: 0.9; width: 5.5rem">
+                <span class="font-medium text-[var(--text-primary)] text-sm">
+                  "Nothing here yet"
+                <span class="max-w-xs text-[var(--text-muted)] text-sm">
+                  "Nothing is waiting. Every source has been decided about."
+          <div class="app-node app-span-4 min-w-0" data-app-type="list" data-node-id="cmp_quunsc" style="flex: 1 1 0px; grid-column: span 4 / span 4; min-height: 0px; min-width: 0px">
+            <div class="flex flex-col gap-1.5 h-full items-center justify-center min-h-0 py-6 text-center">
+              <span class="mb-1 text-[var(--text-tertiary)]">
+                <svg class="block" aria-hidden="true" fill="none" role="presentation" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 96 72" style="height: auto; opacity: 0.9; width: 5.5rem">
+              <span class="font-medium text-[var(--text-primary)] text-sm">
+                "Nothing here yet"
+              <span class="max-w-xs text-[var(--text-muted)] text-sm">
+                "Everything in the queue has been scanned."
+### outside the screen (portal)
+<span aria-hidden="true" id="recharts_measurement_span" style="border: medium; font-size: 15px; left: 0px; letter-spacing: normal; margin: 0px; padding: 0px; position: absolute; top: -20000px; white-space: pre">
+  "0"
+## screen scr_reten (Review calendar)
+<div class="app-design--surface-soft app-motion--full app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(3, 105, 161, 0.1); --app-accent: #0369A1; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(3, 105, 161, 0.1); --app-primary: #0369A1; --app-radius: 12px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-family: "Inter", system-ui, -apple-system, sans-serif; font-size: 15px; min-height: 100vh">
+  <main class="flex flex-1 flex-col min-h-0">
+    <div class="app-design--surface-soft app-motion--full app-runtime app-screen-enter flex flex-1 flex-col h-full min-h-0 w-full" data-app-appearance="auto" data-app-screen="scr_reten" data-app-screen-kind="page" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(3, 105, 161, 0.1); --app-accent: #0369A1; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(3, 105, 161, 0.1); --app-primary: #0369A1; --app-radius: 12px; --app-space: 1; color: var(--text-primary); font-family: "Inter", system-ui, -apple-system, sans-serif; font-size: 15px">
+      <div class="flex flex-1 flex-col min-h-0 w-full" style="margin: 0px auto; max-width: none">
+        <section class="app-grid" data-section-id="sec_rttop" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="page_header" data-node-id="cmp_rthdr" style="grid-column: span 12 / span 12">
+            <header class="app-pageheader--split min-w-0 w-full" data-app-pageheader="true" data-app-pageheader-look="split">
+              <div class="flex flex-wrap items-start" style="gap: calc(12px * var(--app-space, 1))">
+                <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-9 inline-flex items-center justify-center rounded-md shrink-0 w-9" aria-hidden="true">
+                  <svg class="h-4.5 lucide lucide-calendar-clock w-4.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                <h1 class="basis-48 font-semibold grow min-w-0 text-[var(--text-primary)] text-xl truncate" title="Review calendar">
+                  "Review calendar"
+                <p class="[color:var(--text-muted)]! line-clamp-2 max-w-[45%] min-w-0 mt-0.5 text-right text-sm" title="An approval is a decision about a moment in time. This is when each of them runs out.">
+                  "An approval is a decision about a moment in time. This is when each of them runs out."
+          <div class="app-node app-span-4 min-w-0" data-app-type="stat" data-node-id="cmp_rtstat1" style="color: rgb(239, 68, 68); grid-column: span 4 / span 4">
+            <div class="app-stat app-stat--accent flex gap-2.5 items-start" style="background: var(--bg-card); border-left: 3px solid var(--app-primary); border-radius: var(--app-radius, 8px); box-shadow: var(--app-shadow-1); padding: calc(16px * var(--app-space, 1))">
+              <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-8 inline-flex items-center justify-center mt-0.5 rounded-md shrink-0 w-8">
+                <svg class="h-4 lucide lucide-alert-triangle lucide-triangle-alert w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-[var(--text-secondary)] text-xs">
+                  "Already overdue"
+                <div class="flex gap-2 items-baseline min-w-0">
+                  <div class="font-semibold leading-tight text-2xl truncate" title="—">
+                    "—"
+                <div class="text-[var(--text-muted)] text-xs">
+                  "review date has passed"
+          <div class="app-node app-span-4 min-w-0" data-app-type="stat" data-node-id="cmp_rtstat2" style="color: rgb(245, 158, 11); grid-column: span 4 / span 4">
+            <div class="app-stat app-stat--accent flex gap-2.5 items-start" style="background: var(--bg-card); border-left: 3px solid var(--app-primary); border-radius: var(--app-radius, 8px); box-shadow: var(--app-shadow-1); padding: calc(16px * var(--app-space, 1))">
+              <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-8 inline-flex items-center justify-center mt-0.5 rounded-md shrink-0 w-8">
+                <svg class="h-4 lucide lucide-calendar-days w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-[var(--text-secondary)] text-xs">
+                  "No review date set"
+                <div class="flex gap-2 items-baseline min-w-0">
+                  <div class="font-semibold leading-tight text-2xl truncate" title="—">
+                    "—"
+                <div class="text-[var(--text-muted)] text-xs">
+                  "these will never come up again"
+          <div class="app-node app-span-4 min-w-0" data-app-type="stat" data-node-id="cmp_rtstat3" style="grid-column: span 4 / span 4">
+            <div class="app-stat app-stat--accent flex gap-2.5 items-start" style="background: var(--bg-card); border-left: 3px solid var(--app-primary); border-radius: var(--app-radius, 8px); box-shadow: var(--app-shadow-1); padding: calc(16px * var(--app-space, 1))">
+              <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-8 inline-flex items-center justify-center mt-0.5 rounded-md shrink-0 w-8">
+                <svg class="h-4 lucide lucide-file-check w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-[var(--text-secondary)] text-xs">
+                  "Sources in the register"
+                <div class="flex gap-2 items-baseline min-w-0">
+                  <div class="font-semibold leading-tight text-2xl truncate" title="—">
+                    "—"
+                <div class="text-[var(--text-muted)] text-xs">
+                  "across every state"
+        <section class="app-grid app-section-fill" data-section-id="sec_rtmain" style="flex: 1 1 0px; gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); grid-template-rows: minmax(0, 1fr); min-height: 0px; padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-8 min-w-0" data-app-type="calendar" data-node-id="cmp_rtcal" style="flex: 1 1 0px; grid-column: span 8 / span 8; min-height: 0px; min-width: 0px">
+            <div class="flex h-full items-center justify-center min-h-0 py-1 text-[var(--text-muted)] text-center text-sm">
+              "No source has a review date yet."
+          <div class="app-node app-span-4 min-w-0" data-app-type="list" data-node-id="cmp_rtover" style="flex: 1 1 0px; grid-column: span 4 / span 4; min-height: 0px; min-width: 0px">
+            <div class="flex flex-col gap-1.5 h-full items-center justify-center min-h-0 py-6 text-center">
+              <span class="mb-1 text-[var(--text-tertiary)]">
+                <svg class="block" aria-hidden="true" fill="none" role="presentation" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 96 72" style="height: auto; opacity: 0.9; width: 5.5rem">
+              <span class="font-medium text-[var(--text-primary)] text-sm">
+                "Nothing here yet"
+              <span class="max-w-xs text-[var(--text-muted)] text-sm">
+                "Nothing is overdue."
+### outside the screen (portal)
+<span aria-hidden="true" id="recharts_measurement_span" style="border: medium; font-size: 15px; left: 0px; letter-spacing: normal; margin: 0px; padding: 0px; position: absolute; top: -20000px; white-space: pre">
+  "0"
+## screen scr_findings (Personal data)
+<div class="app-design--surface-soft app-motion--full app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(3, 105, 161, 0.1); --app-accent: #0369A1; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(3, 105, 161, 0.1); --app-primary: #0369A1; --app-radius: 12px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-family: "Inter", system-ui, -apple-system, sans-serif; font-size: 15px; min-height: 100vh">
+  <main class="flex flex-1 flex-col min-h-0">
+    <div class="app-design--surface-soft app-motion--full app-runtime app-screen-enter flex flex-1 flex-col h-full min-h-0 w-full" data-app-appearance="auto" data-app-screen="scr_findings" data-app-screen-kind="page" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(3, 105, 161, 0.1); --app-accent: #0369A1; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(3, 105, 161, 0.1); --app-primary: #0369A1; --app-radius: 12px; --app-space: 1; color: var(--text-primary); font-family: "Inter", system-ui, -apple-system, sans-serif; font-size: 15px">
+      <div class="flex flex-1 flex-col min-h-0 w-full" style="margin: 0px auto; max-width: none">
+        <section class="app-grid" data-section-id="sec_pitop" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="page_header" data-node-id="cmp_pihdr" style="grid-column: span 12 / span 12">
+            <header class="app-pageheader--split min-w-0 w-full" data-app-pageheader="true" data-app-pageheader-look="split">
+              <div class="flex flex-wrap items-start" style="gap: calc(12px * var(--app-space, 1))">
+                <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-9 inline-flex items-center justify-center rounded-md shrink-0 w-9" aria-hidden="true">
+                  <svg class="h-4.5 lucide lucide-alert-triangle lucide-triangle-alert w-4.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                <h1 class="basis-48 font-semibold grow min-w-0 text-[var(--text-primary)] text-xl truncate" title="Personal-data findings">
+                  "Personal-data findings"
+                <p class="[color:var(--text-muted)]! line-clamp-2 max-w-[45%] min-w-0 mt-0.5 text-right text-sm" title="Decision and rationale are editable inline. A finding is never deleted — an accepted one is a decision on the record, not an absence.">
+                  "Decision and rationale are editable inline. A finding is never deleted — an accepted one is a decision on the record, not an absence."
+                <div class="flex flex-wrap items-center justify-end ml-auto" data-app-pageheader-actions="true" style="gap: calc(8px * var(--app-space, 1))">
+                  <div class="app-node app-span-3 min-w-0" data-app-type="button" data-node-id="cmp_piscan" style="grid-column: span 3 / span 3">
+                    <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm transition-opacity" type="button" style="background: var(--bg-card); border-radius: var(--app-radius); border: 1px solid var(--border-default); color: var(--text-primary)">
+                      <svg class="h-3.5 lucide lucide-refresh-cw w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                      <span>
+                        "Run the scan"
+          <div class="app-node app-span-4 min-w-0" data-app-type="stat" data-node-id="cmp_pistat1" style="grid-column: span 4 / span 4">
+            <div class="app-stat app-stat--accent flex gap-2.5 items-start" style="background: var(--bg-card); border-left: 3px solid var(--app-primary); border-radius: var(--app-radius, 8px); box-shadow: var(--app-shadow-1); padding: calc(16px * var(--app-space, 1))">
+              <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-8 inline-flex items-center justify-center mt-0.5 rounded-md shrink-0 w-8">
+                <svg class="h-4 lucide lucide-inbox w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-[var(--text-secondary)] text-xs">
+                  "Open findings"
+                <div class="flex gap-2 items-baseline min-w-0">
+                  <div class="font-semibold leading-tight text-2xl truncate" title="—">
+                    "—"
+                <div class="text-[var(--text-muted)] text-xs">
+                  "flagged, nobody has ruled"
+          <div class="app-node app-span-4 min-w-0" data-app-type="stat" data-node-id="cmp_pistat2" style="color: rgb(239, 68, 68); grid-column: span 4 / span 4">
+            <div class="app-stat app-stat--accent flex gap-2.5 items-start" style="background: var(--bg-card); border-left: 3px solid var(--app-primary); border-radius: var(--app-radius, 8px); box-shadow: var(--app-shadow-1); padding: calc(16px * var(--app-space, 1))">
+              <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-8 inline-flex items-center justify-center mt-0.5 rounded-md shrink-0 w-8">
+                <svg class="h-4 lucide lucide-shield-check w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-[var(--text-secondary)] text-xs">
+                  "Special category, open"
+                <div class="flex gap-2 items-baseline min-w-0">
+                  <div class="font-semibold leading-tight text-2xl truncate" title="—">
+                    "—"
+                <div class="text-[var(--text-muted)] text-xs">
+                  "health, biometric and the like (Art. 9)"
+          <div class="app-node app-span-4 min-w-0" data-app-type="stat" data-node-id="cmp_pistat3" style="color: rgb(245, 158, 11); grid-column: span 4 / span 4">
+            <div class="app-stat app-stat--accent flex gap-2.5 items-start" style="background: var(--bg-card); border-left: 3px solid var(--app-primary); border-radius: var(--app-radius, 8px); box-shadow: var(--app-shadow-1); padding: calc(16px * var(--app-space, 1))">
+              <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-8 inline-flex items-center justify-center mt-0.5 rounded-md shrink-0 w-8">
+                <svg class="h-4 lucide lucide-search w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-[var(--text-secondary)] text-xs">
+                  "Indexed, never scanned"
+                <div class="flex gap-2 items-baseline min-w-0">
+                  <div class="font-semibold leading-tight text-2xl truncate" title="—">
+                    "—"
+                <div class="text-[var(--text-muted)] text-xs">
+                  "the gap these findings cannot describe"
+          <div class="app-node app-span-12 min-w-0" data-app-type="callout" data-node-id="cmp_pinote" style="grid-column: span 12 / span 12">
+            <div class="flex gap-2.5 items-start px-3 py-2.5 text-sm" data-app-callout="info" style="background: rgba(14, 165, 233, 0.1); border-left: 3px solid rgb(14, 165, 233); border-radius: var(--app-radius); color: var(--text-primary)">
+              <svg class="h-4 lucide lucide-info mt-0.5 shrink-0 w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg" style="color: rgb(14, 165, 233)">
+              <div class="min-w-0">
+                <div class="font-medium">
+                  "The scan is an automation you wire up"
+                <div class="app-callout__body text-[var(--text-secondary)]">
+                  "This app records findings; it does not detect them."
+                  <strong>
+                    "Run the scan"
+                  "fires an automation which is not connected yet — point it at your PII detection service (Bee Flow ships one) in Automations, and its results land in this table. Until then, open a source and record findings by hand at the bottom of its screen; the "never scanned" number above is the honest picture, and the Scanned date is yours to set on the Sources screen."
+          <div class="app-node app-span-12 min-w-0" data-app-type="filter_bar" data-node-id="cmp_pifilt" style="grid-column: span 12 / span 12">
+            <div class="flex flex-wrap gap-3 items-end" data-app-filterbar="true">
+              <div class="flex flex-col gap-1 min-w-0" data-app-filter="q">
+                <label class="font-medium text-[var(--text-secondary)] text-xs" for="cmp_pifilt-flt-q">
+                  "Search findings"
+                <div class="relative">
+                  <svg class="-translate-y-1/2 absolute h-3.5 left-2.5 lucide lucide-search text-[var(--text-muted)] top-1/2 w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                  <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none pl-8 px-2.5 py-1.5 text-sm w-full" aria-label="Search findings" id="cmp_pifilt-flt-q" placeholder="Search findings" type="text" value="" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+              <div class="flex flex-col gap-1 min-w-0" data-app-filter="category">
+                <label class="font-medium text-[var(--text-secondary)] text-xs" for="cmp_pifilt-flt-category">
+                  "Category"
+                <select class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-label="Category" id="cmp_pifilt-flt-category" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                  <option value="">
+                    "All"
+                  <option value="name">
+                    "Name"
+                  <option value="contact">
+                    "Contact details"
+                  <option value="national_id">
+                    "National identifier"
+                  <option value="financial">
+                    "Financial details"
+                  <option value="health">
+                    "Health data (Art. 9)"
+                  <option value="biometric">
+                    "Biometric data (Art. 9)"
+                  <option value="location">
+                    "Location"
+                  <option value="credential">
+                    "Credential or secret"
+                  <option value="other">
+                    "Other"
+              <div class="flex flex-col gap-1 min-w-0" data-app-filter="decision">
+                <label class="font-medium text-[var(--text-secondary)] text-xs" for="cmp_pifilt-flt-decision">
+                  "Decision"
+                <select class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-label="Decision" id="cmp_pifilt-flt-decision" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                  <option value="">
+                    "All"
+                  <option value="open">
+                    "Open — not yet decided"
+                  <option value="redacted">
+                    "Redacted in the source"
+                  <option value="accepted">
+                    "Accepted — lawful and necessary"
+                  <option value="removed">
+                    "Source removed"
+        <section class="app-grid app-section-fill" data-section-id="sec_pimain" style="flex: 1 1 0px; gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); grid-template-rows: minmax(0, 1fr); min-height: 0px; padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="data_grid" data-node-id="cmp_pigrid" style="flex: 1 1 0px; grid-column: span 12 / span 12; min-height: 0px; min-width: 0px">
+            <div class="w-full" data-app-datagrid="true">
+              <div class="flex flex-col gap-1.5 h-full items-center justify-center min-h-0 py-6 text-center">
+                <span class="mb-1 text-[var(--text-tertiary)]">
+                  <svg class="block" aria-hidden="true" fill="none" role="presentation" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 96 72" style="height: auto; opacity: 0.9; width: 5.5rem">
+                <span class="font-medium text-[var(--text-primary)] text-sm">
+                  "Nothing here yet"
+                <span class="max-w-xs text-[var(--text-muted)] text-sm">
+                  "No findings recorded. That is either good news or nobody has scanned anything — the third number above tells you which."
+### outside the screen (portal)
+<span aria-hidden="true" id="recharts_measurement_span" style="border: medium; font-size: 15px; left: 0px; letter-spacing: normal; margin: 0px; padding: 0px; position: absolute; top: -20000px; white-space: pre">
+  "0"
+## screen scr_access (Access)
+<div class="app-design--surface-soft app-motion--full app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(3, 105, 161, 0.1); --app-accent: #0369A1; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(3, 105, 161, 0.1); --app-primary: #0369A1; --app-radius: 12px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-family: "Inter", system-ui, -apple-system, sans-serif; font-size: 15px; min-height: 100vh">
+  <main class="flex flex-1 flex-col min-h-0">
+    <div class="app-design--surface-soft app-motion--full app-runtime app-screen-enter flex flex-1 flex-col h-full min-h-0 w-full" data-app-appearance="auto" data-app-screen="scr_access" data-app-screen-kind="page" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(3, 105, 161, 0.1); --app-accent: #0369A1; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(3, 105, 161, 0.1); --app-primary: #0369A1; --app-radius: 12px; --app-space: 1; color: var(--text-primary); font-family: "Inter", system-ui, -apple-system, sans-serif; font-size: 15px">
+      <div class="flex flex-1 flex-col min-h-0 w-full" style="margin: 0px auto; max-width: none">
+        <section class="app-grid" data-section-id="sec_actop" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="page_header" data-node-id="cmp_achdr" style="grid-column: span 12 / span 12">
+            <header class="app-pageheader--split min-w-0 w-full" data-app-pageheader="true" data-app-pageheader-look="split">
+              <div class="flex flex-wrap items-start" style="gap: calc(12px * var(--app-space, 1))">
+                <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-9 inline-flex items-center justify-center rounded-md shrink-0 w-9" aria-hidden="true">
+                  <svg class="h-4.5 lucide lucide-user-check w-4.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                <h1 class="basis-48 font-semibold grow min-w-0 text-[var(--text-primary)] text-xl truncate" title="Who may ask">
+                  "Who may ask"
+                <p class="[color:var(--text-muted)]! line-clamp-2 max-w-[45%] min-w-0 mt-0.5 text-right text-sm" title="A knowledge base becomes a breach at the moment somebody is granted access to it who should not have been. Every grant here says who, why, and until when.">
+                  "A knowledge base becomes a breach at the moment somebody is granted access to it who should not have been. Every grant here says who, why, and until when."
+                <div class="flex flex-wrap items-center justify-end ml-auto" data-app-pageheader-actions="true" style="gap: calc(8px * var(--app-space, 1))">
+                  <div class="app-node app-span-3 min-w-0" data-app-type="button" data-node-id="cmp_acnew" style="grid-column: span 3 / span 3">
+                    <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm transition-opacity" type="button" style="background: var(--app-accent, var(--app-primary)); border-radius: var(--app-radius); color: var(--app-accent-contrast, var(--app-primary-contrast))">
+                      <svg class="h-3.5 lucide lucide-plus w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                      <span>
+                        "Grant access"
+          <div class="app-node app-span-4 min-w-0" data-app-type="stat" data-node-id="cmp_acstat1" style="grid-column: span 4 / span 4">
+            <div class="app-stat app-stat--accent flex gap-2.5 items-start" style="background: var(--bg-card); border-left: 3px solid var(--app-primary); border-radius: var(--app-radius, 8px); box-shadow: var(--app-shadow-1); padding: calc(16px * var(--app-space, 1))">
+              <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-8 inline-flex items-center justify-center mt-0.5 rounded-md shrink-0 w-8">
+                <svg class="h-4 lucide lucide-users w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-[var(--text-secondary)] text-xs">
+                  "Active grants"
+                <div class="flex gap-2 items-baseline min-w-0">
+                  <div class="font-semibold leading-tight text-2xl truncate" title="—">
+                    "—"
+                <div class="text-[var(--text-muted)] text-xs">
+                  "can ask right now"
+          <div class="app-node app-span-4 min-w-0" data-app-type="stat" data-node-id="cmp_acstat2" style="color: rgb(239, 68, 68); grid-column: span 4 / span 4">
+            <div class="app-stat app-stat--accent flex gap-2.5 items-start" style="background: var(--bg-card); border-left: 3px solid var(--app-primary); border-radius: var(--app-radius, 8px); box-shadow: var(--app-shadow-1); padding: calc(16px * var(--app-space, 1))">
+              <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-8 inline-flex items-center justify-center mt-0.5 rounded-md shrink-0 w-8">
+                <svg class="h-4 lucide lucide-alert-triangle lucide-triangle-alert w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-[var(--text-secondary)] text-xs">
+                  "Expired but still active"
+                <div class="flex gap-2 items-baseline min-w-0">
+                  <div class="font-semibold leading-tight text-2xl truncate" title="—">
+                    "—"
+                <div class="text-[var(--text-muted)] text-xs">
+                  "past their end date and never revoked"
+          <div class="app-node app-span-4 min-w-0" data-app-type="stat" data-node-id="cmp_acstat3" style="color: rgb(245, 158, 11); grid-column: span 4 / span 4">
+            <div class="app-stat app-stat--accent flex gap-2.5 items-start" style="background: var(--bg-card); border-left: 3px solid var(--app-primary); border-radius: var(--app-radius, 8px); box-shadow: var(--app-shadow-1); padding: calc(16px * var(--app-space, 1))">
+              <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-8 inline-flex items-center justify-center mt-0.5 rounded-md shrink-0 w-8">
+                <svg class="h-4 lucide lucide-external-link w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-[var(--text-secondary)] text-xs">
+                  "May hand back the document"
+                <div class="flex gap-2 items-baseline min-w-0">
+                  <div class="font-semibold leading-tight text-2xl truncate" title="—">
+                    "—"
+                <div class="text-[var(--text-muted)] text-xs">
+                  "not just answer from it"
+        <section class="app-grid app-section-fill" data-section-id="sec_acmain" style="flex: 1 1 0px; gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); grid-template-rows: minmax(0, 1fr); min-height: 0px; padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-3 min-w-0" data-app-type="list" data-node-id="cmp_acbases" style="flex: 1 1 0px; grid-column: span 3 / span 3; min-height: 0px; min-width: 0px">
+            <div class="flex flex-col gap-1.5 h-full items-center justify-center min-h-0 py-6 text-center">
+              <span class="mb-1 text-[var(--text-tertiary)]">
+                <svg class="block" aria-hidden="true" fill="none" role="presentation" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 96 72" style="height: auto; opacity: 0.9; width: 5.5rem">
+              <span class="font-medium text-[var(--text-primary)] text-sm">
+                "Nothing here yet"
+              <span class="max-w-xs text-[var(--text-muted)] text-sm">
+                "No knowledge bases yet — add one on Setup."
+          <div class="app-node app-span-9 min-w-0" data-app-type="data_grid" data-node-id="cmp_acgrid" style="flex: 1 1 0px; grid-column: span 9 / span 9; min-height: 0px; min-width: 0px">
+            <div class="w-full" data-app-datagrid="true">
+              <div class="flex flex-col gap-1.5 h-full items-center justify-center min-h-0 py-6 text-center">
+                <span class="mb-1 text-[var(--text-tertiary)]">
+                  <svg class="block" aria-hidden="true" fill="none" role="presentation" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 96 72" style="height: auto; opacity: 0.9; width: 5.5rem">
+                <span class="font-medium text-[var(--text-primary)] text-sm">
+                  "Nothing here yet"
+                <span class="max-w-xs text-[var(--text-muted)] text-sm">
+                  "Nobody has been granted access to this base yet."
+        <section class="app-grid" data-section-id="sec_acdlg" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: 0px">
+### outside the screen (portal)
+<span aria-hidden="true" id="recharts_measurement_span" style="border: medium; font-size: 15px; left: 0px; letter-spacing: normal; margin: 0px; padding: 0px; position: absolute; top: -20000px; white-space: pre">
+  "0"
+## screen scr_retire (Retirements)
+<div class="app-design--surface-soft app-motion--full app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(3, 105, 161, 0.1); --app-accent: #0369A1; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(3, 105, 161, 0.1); --app-primary: #0369A1; --app-radius: 12px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-family: "Inter", system-ui, -apple-system, sans-serif; font-size: 15px; min-height: 100vh">
+  <main class="flex flex-1 flex-col min-h-0">
+    <div class="app-design--surface-soft app-motion--full app-runtime app-screen-enter flex flex-1 flex-col h-full min-h-0 w-full" data-app-appearance="auto" data-app-screen="scr_retire" data-app-screen-kind="page" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(3, 105, 161, 0.1); --app-accent: #0369A1; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(3, 105, 161, 0.1); --app-primary: #0369A1; --app-radius: 12px; --app-space: 1; color: var(--text-primary); font-family: "Inter", system-ui, -apple-system, sans-serif; font-size: 15px">
+      <div class="flex flex-1 flex-col min-h-0 w-full" style="margin: 0px auto; max-width: none">
+        <section class="app-grid" data-section-id="sec_rrtop" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="page_header" data-node-id="cmp_rrhdr" style="grid-column: span 12 / span 12">
+            <header class="app-pageheader--split min-w-0 w-full" data-app-pageheader="true" data-app-pageheader-look="split">
+              <div class="flex flex-wrap items-start" style="gap: calc(12px * var(--app-space, 1))">
+                <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-9 inline-flex items-center justify-center rounded-md shrink-0 w-9" aria-hidden="true">
+                  <svg class="h-4.5 lucide lucide-history lucide-rotate-ccw-clock w-4.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                <h1 class="basis-48 font-semibold grow min-w-0 text-[var(--text-primary)] text-xl truncate" title="Retirements">
+                  "Retirements"
+                <p class="[color:var(--text-muted)]! line-clamp-2 max-w-[45%] min-w-0 mt-0.5 text-right text-sm" title="Deciding to remove a source and the index having dropped it are two events. Confirm the second one here.">
+                  "Deciding to remove a source and the index having dropped it are two events. Confirm the second one here."
+          <div class="app-node app-span-4 min-w-0" data-app-type="stat" data-node-id="cmp_rrstat1" style="color: rgb(239, 68, 68); grid-column: span 4 / span 4">
+            <div class="app-stat app-stat--accent flex gap-2.5 items-start" style="background: var(--bg-card); border-left: 3px solid var(--app-primary); border-radius: var(--app-radius, 8px); box-shadow: var(--app-shadow-1); padding: calc(16px * var(--app-space, 1))">
+              <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-8 inline-flex items-center justify-center mt-0.5 rounded-md shrink-0 w-8">
+                <svg class="h-4 lucide lucide-alert-triangle lucide-triangle-alert w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-[var(--text-secondary)] text-xs">
+                  "Awaiting removal"
+                <div class="flex gap-2 items-baseline min-w-0">
+                  <div class="font-semibold leading-tight text-2xl truncate" title="—">
+                    "—"
+                <div class="text-[var(--text-muted)] text-xs">
+                  "decided, not yet out of the index"
+          <div class="app-node app-span-4 min-w-0" data-app-type="stat" data-node-id="cmp_rrstat2" style="grid-column: span 4 / span 4">
+            <div class="app-stat app-stat--accent flex gap-2.5 items-start" style="background: var(--bg-card); border-left: 3px solid var(--app-primary); border-radius: var(--app-radius, 8px); box-shadow: var(--app-shadow-1); padding: calc(16px * var(--app-space, 1))">
+              <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-8 inline-flex items-center justify-center mt-0.5 rounded-md shrink-0 w-8">
+                <svg class="h-4 lucide lucide-check-circle-2 lucide-circle-check w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-[var(--text-secondary)] text-xs">
+                  "Removed"
+                <div class="flex gap-2 items-baseline min-w-0">
+                  <div class="font-semibold leading-tight text-2xl truncate" title="—">
+                    "—"
+                <div class="text-[var(--text-muted)] text-xs">
+                  "confirmed out of the index"
+          <div class="app-node app-span-4 min-w-0" data-app-type="stat" data-node-id="cmp_rrstat3" style="color: rgb(239, 68, 68); grid-column: span 4 / span 4">
+            <div class="app-stat app-stat--accent flex gap-2.5 items-start" style="background: var(--bg-card); border-left: 3px solid var(--app-primary); border-radius: var(--app-radius, 8px); box-shadow: var(--app-shadow-1); padding: calc(16px * var(--app-space, 1))">
+              <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-8 inline-flex items-center justify-center mt-0.5 rounded-md shrink-0 w-8">
+                <svg class="h-4 lucide lucide-book-open w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-[var(--text-secondary)] text-xs">
+                  "Closed but still indexed"
+                <div class="flex gap-2 items-baseline min-w-0">
+                  <div class="font-semibold leading-tight text-2xl truncate" title="—">
+                    "—"
+                <div class="text-[var(--text-muted)] text-xs">
+                  "sources, however they got there"
+          <div class="app-node app-span-12 min-w-0" data-app-type="callout" data-node-id="cmp_rrwarn" style="grid-column: span 12 / span 12">
+            <div class="flex gap-2.5 items-start px-3 py-2.5 text-sm" data-app-callout="danger" style="background: rgba(239, 68, 68, 0.1); border-left: 3px solid rgb(239, 68, 68); border-radius: var(--app-radius); color: var(--text-primary)">
+              <svg class="h-4 lucide lucide-alert-circle lucide-circle-alert mt-0.5 shrink-0 w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg" style="color: rgb(239, 68, 68)">
+              <div class="min-w-0">
+                <div class="font-medium">
+                  "A retired source that is still indexed is the failure this register exists to prevent"
+                <div class="app-callout__body text-[var(--text-secondary)]">
+                  "Confirming a removal here marks the log entry"
+                  <strong>
+                    "removed"
+                  ", and sets the source back to"
+                  <strong>
+                    "not indexed"
+                  "so no screen claims it is still answering. Do it only once the retrieval index has genuinely dropped the material."
+        <section class="app-grid app-section-fill" data-section-id="sec_rrmain" style="flex: 1 1 0px; gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); grid-template-rows: minmax(0, 1fr); min-height: 0px; padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="data_grid" data-node-id="cmp_rrgrid" style="flex: 1 1 0px; grid-column: span 12 / span 12; min-height: 0px; min-width: 0px">
+            <div class="w-full" data-app-datagrid="true">
+              <div class="flex flex-col gap-1.5 h-full items-center justify-center min-h-0 py-6 text-center">
+                <span class="mb-1 text-[var(--text-tertiary)]">
+                  <svg class="block" aria-hidden="true" fill="none" role="presentation" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 96 72" style="height: auto; opacity: 0.9; width: 5.5rem">
+                <span class="font-medium text-[var(--text-primary)] text-sm">
+                  "Nothing here yet"
+                <span class="max-w-xs text-[var(--text-muted)] text-sm">
+                  "Nothing has been proposed for removal. Propose one from a source, or from the Register."
+### outside the screen (portal)
+<span aria-hidden="true" id="recharts_measurement_span" style="border: medium; font-size: 15px; left: 0px; letter-spacing: normal; margin: 0px; padding: 0px; position: absolute; top: -20000px; white-space: pre">
+  "0"
+## screen scr_setup (Setup)
+<div class="app-design--surface-soft app-motion--full app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(3, 105, 161, 0.1); --app-accent: #0369A1; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(3, 105, 161, 0.1); --app-primary: #0369A1; --app-radius: 12px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-family: "Inter", system-ui, -apple-system, sans-serif; font-size: 15px; min-height: 100vh">
+  <main class="flex flex-1 flex-col min-h-0">
+    <div class="app-design--surface-soft app-motion--full app-runtime app-screen-enter flex flex-1 flex-col h-full min-h-0 w-full" data-app-appearance="auto" data-app-screen="scr_setup" data-app-screen-kind="page" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(3, 105, 161, 0.1); --app-accent: #0369A1; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(3, 105, 161, 0.1); --app-primary: #0369A1; --app-radius: 12px; --app-space: 1; color: var(--text-primary); font-family: "Inter", system-ui, -apple-system, sans-serif; font-size: 15px">
+      <div class="flex flex-1 flex-col min-h-0 w-full" style="margin: 0px auto; max-width: 1280px">
+        <section class="app-grid" data-section-id="sec_sutop" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="page_header" data-node-id="cmp_suhdr" style="grid-column: span 12 / span 12">
+            <header class="min-w-0 w-full" data-app-pageheader="true">
+              <div class="flex flex-wrap items-start" style="gap: calc(12px * var(--app-space, 1))">
+                <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-9 inline-flex items-center justify-center rounded-md shrink-0 w-9" aria-hidden="true">
+                  <svg class="h-4.5 lucide lucide-table-properties w-4.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                <div class="basis-64 flex-1 min-w-0">
+                  <h1 class="font-semibold text-[var(--text-primary)] text-xl truncate" title="Setup">
+                    "Setup"
+                  <p class="line-clamp-2 mt-0.5 text-sm" title="The approval ladder and the legal bases are data, not code — add a rung here and it appears as a control on every source." style="color: var(--text-secondary)">
+                    "The approval ladder and the legal bases are data, not code — add a rung here and it appears as a control on every source."
+          <div class="app-node app-span-12 min-w-0" data-app-type="callout" data-node-id="cmp_sunote" style="grid-column: span 12 / span 12">
+            <div class="flex gap-2.5 items-start px-3 py-2.5 text-sm" data-app-callout="info" style="background: rgba(14, 165, 233, 0.1); border-left: 3px solid rgb(14, 165, 233); border-radius: var(--app-radius); color: var(--text-primary)">
+              <svg class="h-4 lucide lucide-info mt-0.5 shrink-0 w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg" style="color: rgb(14, 165, 233)">
+              <div class="min-w-0">
+                <div class="font-medium">
+                  "Three things to know"
+                <div class="app-callout__body text-[var(--text-secondary)]">
+                  <strong>
+                    "Counts as"
+                  "is what the app reasons in — only `live` may answer, and `closed` must not be in the index. Rename a state freely; change what it counts as and sources already in it keep their old rung until someone sets their state again. The Stage and Legal basis dropdowns in the filter bars and the add-a-source form are fixed lists. A rung or a basis you add here shows up on every source and in every grid, but not in those dropdowns until an editor adds it there too. A rung or a legal basis can be deleted — sources keep the key they already store, so nothing moves screens. A knowledge base cannot: its sources, grants and findings carry its name as a copy, and deleting it would leave them answering with nothing to reach them by. Untick"
+                  <strong>
+                    "Active"
+                  "instead."
+        <section class="app-grid app-section-fill" data-section-id="sec_sumain" style="flex: 1 1 0px; gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); grid-template-rows: minmax(0, 1fr); min-height: 0px; padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="tabs" data-node-id="cmp_sutabs" style="grid-column: span 12 / span 12">
+            <div class="min-w-0 w-full" data-app-tabs="true">
+              <div class="app-scroll-x border-b flex gap-1 items-center overflow-x-auto" aria-label="Tabs" role="tablist" style="border-color: var(--border-default)">
+                <button class="-mb-px font-medium gap-1.5 inline-flex items-center px-3 py-2 shrink-0 text-sm whitespace-nowrap" aria-selected="true" role="tab" type="button" style="border-bottom: 2px solid var(--app-primary); color: var(--app-primary)">
+                  <svg class="h-3.5 lucide lucide-book-open w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                  <span>
+                    "Knowledge bases"
+                <button class="-mb-px font-medium gap-1.5 inline-flex items-center px-3 py-2 shrink-0 text-sm whitespace-nowrap" aria-selected="false" role="tab" type="button" style="border-bottom: 2px solid transparent; color: var(--text-secondary)">
+                  <svg class="h-3.5 lucide lucide-list-checks w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                  <span>
+                    "Review ladder"
+                <button class="-mb-px font-medium gap-1.5 inline-flex items-center px-3 py-2 shrink-0 text-sm whitespace-nowrap" aria-selected="false" role="tab" type="button" style="border-bottom: 2px solid transparent; color: var(--text-secondary)">
+                  <svg class="h-3.5 lucide lucide-shield-check w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                  <span>
+                    "Legal bases"
+              <div class="pt-3" data-app-tabpanel="active" role="tabpanel">
+                <div class="app-node app-span-12 min-w-0" data-app-type="tab" data-node-id="cmp_sutab1" style="grid-column: span 12 / span 12">
+                  <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                    <div class="app-node app-span-12 min-w-0" data-app-type="data_grid" data-node-id="cmp_sukb" style="grid-column: span 12 / span 12">
+                      <div class="w-full" data-app-datagrid="true">
+                        <div class="flex flex-col gap-1.5 h-full items-center justify-center min-h-0 py-6 text-center">
+                          <span class="mb-1 text-[var(--text-tertiary)]">
+                            <svg class="block" aria-hidden="true" fill="none" role="presentation" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 96 72" style="height: auto; opacity: 0.9; width: 5.5rem">
+                          <span class="font-medium text-[var(--text-primary)] text-sm">
+                            "Nothing here yet"
+                          <span class="max-w-xs text-[var(--text-muted)] text-sm">
+                            "No knowledge bases yet — add one below."
+                    <div class="app-node app-span-4 min-w-0" data-app-type="button" data-node-id="cmp_sukbadd" style="grid-column: span 4 / span 4">
+                      <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm transition-opacity" type="button" style="background: var(--app-accent, var(--app-primary)); border-radius: var(--app-radius); color: var(--app-accent-contrast, var(--app-primary-contrast))">
+                        <svg class="h-3.5 lucide lucide-plus w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                        <span>
+                          "Add knowledge base"
+              <div class="pt-3" data-app-tabpanel="inactive" hidden="" role="tabpanel" style="display: none">
+                <div class="app-node app-span-12 min-w-0" data-app-type="tab" data-node-id="cmp_sutab2" style="grid-column: span 12 / span 12">
+                  <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                    <div class="app-node app-span-12 min-w-0" data-app-type="data_grid" data-node-id="cmp_surs" style="grid-column: span 12 / span 12">
+                      <div class="w-full" data-app-datagrid="true">
+                        <div class="flex flex-col gap-1.5 h-full items-center justify-center min-h-0 py-6 text-center">
+                          <span class="mb-1 text-[var(--text-tertiary)]">
+                            <svg class="block" aria-hidden="true" fill="none" role="presentation" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 96 72" style="height: auto; opacity: 0.9; width: 5.5rem">
+                          <span class="font-medium text-[var(--text-primary)] text-sm">
+                            "Nothing here yet"
+                          <span class="max-w-xs text-[var(--text-muted)] text-sm">
+                            "No review states configured — add one below."
+                    <div class="app-node app-span-4 min-w-0" data-app-type="button" data-node-id="cmp_sursadd" style="grid-column: span 4 / span 4">
+                      <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm transition-opacity" type="button" style="background: var(--app-accent, var(--app-primary)); border-radius: var(--app-radius); color: var(--app-accent-contrast, var(--app-primary-contrast))">
+                        <svg class="h-3.5 lucide lucide-plus w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                        <span>
+                          "Add review state"
+              <div class="pt-3" data-app-tabpanel="inactive" hidden="" role="tabpanel" style="display: none">
+                <div class="app-node app-span-12 min-w-0" data-app-type="tab" data-node-id="cmp_sutab3" style="grid-column: span 12 / span 12">
+                  <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                    <div class="app-node app-span-12 min-w-0" data-app-type="data_grid" data-node-id="cmp_sulb" style="grid-column: span 12 / span 12">
+                      <div class="w-full" data-app-datagrid="true">
+                        <div class="flex flex-col gap-1.5 h-full items-center justify-center min-h-0 py-6 text-center">
+                          <span class="mb-1 text-[var(--text-tertiary)]">
+                            <svg class="block" aria-hidden="true" fill="none" role="presentation" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 96 72" style="height: auto; opacity: 0.9; width: 5.5rem">
+                          <span class="font-medium text-[var(--text-primary)] text-sm">
+                            "Nothing here yet"
+                          <span class="max-w-xs text-[var(--text-muted)] text-sm">
+                            "No legal bases configured — add one below."
+                    <div class="app-node app-span-4 min-w-0" data-app-type="button" data-node-id="cmp_sulbadd" style="grid-column: span 4 / span 4">
+                      <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm transition-opacity" type="button" style="background: var(--app-accent, var(--app-primary)); border-radius: var(--app-radius); color: var(--app-accent-contrast, var(--app-primary-contrast))">
+                        <svg class="h-3.5 lucide lucide-plus w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                        <span>
+                          "Add legal basis"
+        <section class="app-grid" data-section-id="sec_sudlg" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: 0px">
+### outside the screen (portal)
+<span aria-hidden="true" id="recharts_measurement_span" style="border: medium; font-size: 15px; left: 0px; letter-spacing: normal; margin: 0px; padding: 0px; position: absolute; top: -20000px; white-space: pre">
+  "0"

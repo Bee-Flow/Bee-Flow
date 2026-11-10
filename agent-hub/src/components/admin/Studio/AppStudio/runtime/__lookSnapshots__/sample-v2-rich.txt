@@ -1,0 +1,370 @@
+# sample-v2-rich
+## screen scr_rich01 (Rich)
+<div class="app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(15, 118, 110, 0.1); --app-accent: #0F766E; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(15, 118, 110, 0.1); --app-primary: #0F766E; --app-radius: 8px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-size: 15px; min-height: 100vh">
+  <main class="flex flex-1 flex-col min-h-0">
+    <div class="app-runtime app-screen-enter w-full" data-app-appearance="auto" data-app-screen="scr_rich01" data-app-screen-kind="page" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(15, 118, 110, 0.1); --app-accent: #0F766E; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(15, 118, 110, 0.1); --app-primary: #0F766E; --app-radius: 8px; --app-space: 1; color: var(--text-primary); font-size: 15px">
+      <div class="flex flex-col w-full" style="margin: 0px auto; max-width: 1280px">
+        <section class="app-grid" data-section-id="sec_rich01" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-3 min-w-0" data-app-type="stat" data-node-id="cmp_rstat1" style="color: var(--app-primary); grid-column: span 3 / span 3; text-align: left">
+            <div class="app-stat flex gap-2.5 items-start">
+              <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-8 inline-flex items-center justify-center mt-0.5 rounded-md shrink-0 w-8">
+                <svg class="h-4 lucide lucide-activity w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-[var(--text-secondary)] text-xs">
+                  "Revenue"
+                <div class="flex gap-2 items-baseline min-w-0">
+                  <div class="font-semibold leading-tight text-2xl truncate" title="1,240">
+                    "1,240"
+                  <span class="font-medium gap-0.5 inline-flex items-center text-xs" data-app-stat-delta="true" style="color: rgb(16, 185, 129)">
+                    <svg class="h-3.5 lucide lucide-arrow-up-right w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                    "8%"
+                <div class="text-[var(--text-muted)] text-xs">
+                  "this week"
+                <div class="mt-1.5" data-app-stat-trend="true">
+                  <div class="recharts-wrapper" height="28" width="96" style="cursor: default; height: 28px; position: relative; width: 96px">
+                    <svg class="recharts-surface" height="28" role="application" tabindex="0" viewBox="0 0 96 28" width="96" style="display: block; height: 100%; width: 100%">
+          <div class="app-node app-span-9 min-w-0" data-app-type="chart" data-node-id="cmp_rchrt1" style="grid-column: span 9 / span 9; height: 200px; overflow: auto">
+            <div class="flex flex-col h-full min-h-0 min-w-0 w-full" data-app-chart="bar" data-app-chart-fitted="true" data-app-chart-xtype="category">
+              <div class="font-semibold mb-2 shrink-0 text-[var(--text-primary)] text-sm">
+                "By person"
+              <div class="flex-1 min-h-0 overflow-hidden w-full">
+                <div class="recharts-wrapper" height="172" width="600" style="cursor: default; height: 172px; position: relative; width: 600px">
+                  <div class="recharts-tooltip-wrapper" tabindex="-1" xmlns="http://www.w3.org/1999/xhtml" style="left: 0px; pointer-events: none; position: absolute; top: 0px; visibility: hidden">
+                    <div class="recharts-default-tooltip" aria-live="assertive" role="status" style="background: var(--bg-primary); border-radius: 8px; border: 1px solid var(--border-default); color: var(--text-primary); font-size: 12px; margin: 0px; padding: 10px; white-space: nowrap">
+                      <p class="recharts-tooltip-label" style="margin: 0px">
+                  <div class="recharts-legend-wrapper" style="bottom: 5px; font-size: 11px; height: auto; left: 5px; position: absolute; width: 590px">
+                    <ul class="recharts-default-legend" style="margin: 0px; padding: 0px; text-align: center">
+                      <li class="legend-item-0 recharts-legend-item" style="display: inline-block; margin-right: 10px; white-space: nowrap">
+                        <svg class="recharts-surface" aria-label="Amount legend icon" height="14" viewBox="0 0 32 32" width="14" style="display: inline-block; margin-right: 4px; vertical-align: middle">
+                        <span class="recharts-legend-item-text" style="color: rgb(59, 130, 246); overflow-wrap: break-word; white-space: normal">
+                          "Amount"
+                      <li class="legend-item-1 recharts-legend-item" style="display: inline-block; margin-right: 10px; white-space: nowrap">
+                        <svg class="recharts-surface" aria-label="Open legend icon" height="14" viewBox="0 0 32 32" width="14" style="display: inline-block; margin-right: 4px; vertical-align: middle">
+                        <span class="recharts-legend-item-text" style="color: rgb(34, 197, 94); overflow-wrap: break-word; white-space: normal">
+                          "Open"
+                  <svg class="recharts-surface" height="172" role="application" tabindex="0" viewBox="0 0 600 172" width="600" style="display: block; height: 100%; width: 100%">
+          <div class="app-node app-span-12 min-w-0" data-app-type="data_grid" data-node-id="cmp_rgrid1" style="grid-column: span 12 / span 12">
+            <div class="flex flex-col gap-2 min-w-0 w-full" data-app-datagrid="true">
+              <div class="flex flex-wrap gap-x-3 gap-y-2 items-center">
+                <div class="flex-1 max-w-xs min-w-[9rem] relative">
+                  <svg class="-translate-y-1/2 absolute h-3.5 left-2.5 lucide lucide-search text-[var(--text-muted)] top-1/2 w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                  <input class="[background:var(--bg-primary)] [border-color:var(--border-default)]! [border-radius:var(--app-radius)] [color:var(--text-primary)]! border focus:border-[var(--app-primary)] outline-none pl-8 pr-2.5 py-1.5 text-sm w-full" aria-label="Search rows" placeholder="Search…" value="">
+                <div class="flex gap-2 items-center ml-auto">
+                  <div class="relative shrink-0" data-app-grid-viewmenu="true">
+                    <button class="border font-medium gap-1.5 inline-flex items-center px-2 py-1.5 text-xs" aria-expanded="false" aria-haspopup="dialog" title="How this table is shown" type="button" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-secondary)">
+                      <svg class="h-3.5 lucide lucide-settings-2 w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                      <span>
+                        "View"
+              <div class="app-scroll-edges overflow-x-auto w-full">
+                <table class="app-grid-base text-sm w-full" style="table-layout: auto">
+                  <thead class="[background:var(--bg-card)] sticky top-0 z-[1]">
+                    <tr>
+                      <th class="border-b px-2.5 py-1.5 w-9" style="border-color: var(--border-default)">
+                        <input class="accent-[var(--app-primary)]" aria-label="Select all rows" type="checkbox">
+                      <th class="border-b font-medium px-2.5 py-1.5 select-none text-left" scope="col" style="border-color: var(--border-default); color: var(--text-secondary)">
+                        <button class="cursor-pointer gap-1 hover:text-[var(--text-primary)] inline-flex items-center" type="button">
+                          <span>
+                            "Name"
+                          <svg class="h-3 lucide lucide-chevrons-up-down opacity-40 w-3" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                      <th class="border-b font-medium px-2.5 py-1.5 select-none text-right" scope="col" style="border-color: var(--border-default); color: var(--text-secondary)">
+                        <button class="cursor-pointer flex-row-reverse gap-1 hover:text-[var(--text-primary)] inline-flex items-center" type="button">
+                          <span>
+                            "Amount"
+                          <svg class="h-3 lucide lucide-chevrons-up-down opacity-40 w-3" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                      <th class="border-b font-medium px-2.5 py-1.5 select-none text-left" scope="col" style="border-color: var(--border-default); color: var(--text-secondary)">
+                        <button class="cursor-pointer gap-1 hover:text-[var(--text-primary)] inline-flex items-center" type="button">
+                          <span>
+                            "Region"
+                          <svg class="h-3 lucide lucide-chevrons-up-down opacity-40 w-3" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                      <th class="border-b px-2.5 py-1.5" aria-label="Actions" style="border-color: var(--border-default)">
+                    <tr class="[background:var(--bg-secondary)]" data-app-grid-filterrow="true">
+                      <th class="border-b px-2.5 py-1.5" style="border-color: var(--border-default)">
+                      <th class="border-b font-normal px-2.5 py-1.5" style="border-color: var(--border-default)">
+                        <div class="border flex focus-within:border-[var(--app-primary)] items-center min-w-0 text-xs transition-colors w-full" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                          <input class="bg-transparent flex-1 min-w-0 outline-none placeholder:text-[var(--text-muted)] px-1.5 py-0.5 text-xs" aria-label="Filter Name" placeholder="Contains…" value="">
+                      <th class="border-b font-normal px-2.5 py-1.5" style="border-color: var(--border-default)">
+                      <th class="border-b font-normal px-2.5 py-1.5" style="border-color: var(--border-default)">
+                      <th class="border-b px-2.5 py-1.5" style="border-color: var(--border-default)">
+                  <tbody>
+                    <tr class="app-focusable app-grid-row-clickable cursor-pointer" role="button" tabindex="0">
+                      <td class="align-middle border-b px-2.5 py-1.5" style="border-color: var(--border-default)">
+                        <input class="accent-[var(--app-primary)]" aria-label="Select row" type="checkbox">
+                      <td class="align-middle border-b px-2.5 py-1.5 text-left" style="border-color: var(--border-default)">
+                        "Ann"
+                      <td class="align-middle border-b px-2.5 py-1.5 text-right" style="border-color: var(--border-default)">
+                        <button class="app-focusable app-grid-editable w-full" aria-label="Edit Amount" type="button" style="text-align: inherit">
+                          <span class="tabular-nums">
+                            "10"
+                      <td class="align-middle border-b px-2.5 py-1.5 text-left" style="border-color: var(--border-default)">
+                        <span class="font-medium inline-flex items-center px-2 py-0.5 rounded-full text-xs" data-app-cell-tone="neutral" style="background: var(--bg-tertiary); color: var(--text-secondary)">
+                          "EU"
+                      <td class="align-middle border-b px-2.5 py-1.5" style="border-color: var(--border-default)">
+                        <div class="flex gap-1.5 items-center">
+                          <button class="border font-medium px-2 py-0.5 text-xs" type="button" style="border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-secondary)">
+                            "Ping"
+                    <tr class="app-focusable app-grid-row-clickable cursor-pointer" role="button" tabindex="0">
+                      <td class="align-middle border-b px-2.5 py-1.5" style="border-color: var(--border-default)">
+                        <input class="accent-[var(--app-primary)]" aria-label="Select row" type="checkbox">
+                      <td class="align-middle border-b px-2.5 py-1.5 text-left" style="border-color: var(--border-default)">
+                        "Bo"
+                      <td class="align-middle border-b px-2.5 py-1.5 text-right" style="border-color: var(--border-default)">
+                        <button class="app-focusable app-grid-editable w-full" aria-label="Edit Amount" type="button" style="text-align: inherit">
+                          <span class="tabular-nums">
+                            "20"
+                      <td class="align-middle border-b px-2.5 py-1.5 text-left" style="border-color: var(--border-default)">
+                        <span class="font-medium inline-flex items-center px-2 py-0.5 rounded-full text-xs" data-app-cell-tone="neutral" style="background: var(--bg-tertiary); color: var(--text-secondary)">
+                          "US"
+                      <td class="align-middle border-b px-2.5 py-1.5" style="border-color: var(--border-default)">
+                        <div class="flex gap-1.5 items-center">
+                          <button class="border font-medium px-2 py-0.5 text-xs" type="button" style="border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-secondary)">
+                            "Ping"
+                    <tr class="app-focusable app-grid-row-clickable cursor-pointer" role="button" tabindex="0">
+                      <td class="align-middle border-b px-2.5 py-1.5" style="border-color: var(--border-default)">
+                        <input class="accent-[var(--app-primary)]" aria-label="Select row" type="checkbox">
+                      <td class="align-middle border-b px-2.5 py-1.5 text-left" style="border-color: var(--border-default)">
+                        "Cy"
+                      <td class="align-middle border-b px-2.5 py-1.5 text-right" style="border-color: var(--border-default)">
+                        <button class="app-focusable app-grid-editable w-full" aria-label="Edit Amount" type="button" style="text-align: inherit">
+                          <span class="tabular-nums">
+                            "5"
+                      <td class="align-middle border-b px-2.5 py-1.5 text-left" style="border-color: var(--border-default)">
+                        <span class="font-medium inline-flex items-center px-2 py-0.5 rounded-full text-xs" data-app-cell-tone="neutral" style="background: var(--bg-tertiary); color: var(--text-secondary)">
+                          "EU"
+                      <td class="align-middle border-b px-2.5 py-1.5" style="border-color: var(--border-default)">
+                        <div class="flex gap-1.5 items-center">
+                          <button class="border font-medium px-2 py-0.5 text-xs" type="button" style="border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-secondary)">
+                            "Ping"
+          <div class="app-node app-span-12 min-w-0" data-app-type="pivot" data-node-id="cmp_rpiv1" style="grid-column: span 12 / span 12">
+            <div class="app-scroll-edges overflow-auto w-full" data-app-pivot="true">
+              <table class="text-sm w-full">
+                <thead>
+                  <tr>
+                    <th class="border-b font-medium px-2.5 py-1.5 text-left" rowspan="1" scope="col" style="border-color: var(--border-default); color: var(--text-secondary)">
+                      "Region"
+                    <th class="border-b font-medium px-2.5 py-1.5 text-right" scope="col" style="border-color: var(--border-default); color: var(--text-secondary)">
+                      "Amount"
+                <tbody>
+                  <tr>
+                    <th class="[border-color:var(--border-default)]! [color:var(--text-primary)]! border-b font-medium px-2.5 py-1.5 text-left" scope="row">
+                      "EU"
+                    <td class="border-b px-2.5 py-1.5 tabular-nums text-right" style="border-color: var(--border-default)">
+                      "15"
+                  <tr>
+                    <th class="[border-color:var(--border-default)]! [color:var(--text-primary)]! border-b font-medium px-2.5 py-1.5 text-left" scope="row">
+                      "US"
+                    <td class="border-b px-2.5 py-1.5 tabular-nums text-right" style="border-color: var(--border-default)">
+                      "20"
+                  <tr class="[background:var(--bg-tertiary)]">
+                    <th class="[border-color:var(--border-default)]! [color:var(--text-primary)]! border-b font-semibold px-2.5 py-1.5 text-left" colspan="1" scope="row">
+                      "Total"
+                    <td class="border-b px-2.5 py-1.5 tabular-nums text-right" style="border-color: var(--border-default); font-weight: 600">
+                      "35"
+          <div class="app-node app-span-12 min-w-0" data-app-type="tabs" data-node-id="cmp_rtabs1" style="grid-column: span 12 / span 12">
+            <div class="min-w-0 w-full" data-app-tabs="true">
+              <div class="app-scroll-x border-b flex gap-1 items-center overflow-x-auto" aria-label="Tabs" role="tablist" style="border-color: var(--border-default)">
+                <button class="-mb-px font-medium gap-1.5 inline-flex items-center px-3 py-2 shrink-0 text-sm whitespace-nowrap" aria-selected="true" role="tab" type="button" style="border-bottom: 2px solid var(--app-primary); color: var(--app-primary)">
+                  <svg class="h-3.5 lucide lucide-home lucide-house w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                  <span>
+                    "One"
+                <button class="-mb-px font-medium gap-1.5 inline-flex items-center px-3 py-2 shrink-0 text-sm whitespace-nowrap" aria-selected="false" role="tab" type="button" style="border-bottom: 2px solid transparent; color: var(--text-secondary)">
+                  <span>
+                    "Two"
+              <div class="pt-3" data-app-tabpanel="active" role="tabpanel">
+                <div class="app-node app-span-12 min-w-0" data-app-type="tab" data-node-id="cmp_rtaba" style="grid-column: span 12 / span 12">
+                  <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                    <div class="app-node app-span-12 min-w-0" data-app-type="heading" data-node-id="cmp_rth1" style="grid-column: span 12 / span 12">
+                      <h3 class="break-words font-medium text-lg">
+                        "Tab one"
+              <div class="pt-3" data-app-tabpanel="inactive" hidden="" role="tabpanel" style="display: none">
+                <div class="app-node app-span-12 min-w-0" data-app-type="tab" data-node-id="cmp_rtabb" style="grid-column: span 12 / span 12">
+                  <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                    <div class="app-node app-span-12 min-w-0" data-app-type="heading" data-node-id="cmp_rth2" style="grid-column: span 12 / span 12">
+                      <h3 class="break-words font-medium text-lg">
+                        "Tab two"
+          <button class="[background:var(--app-primary)] [border-radius:var(--app-radius)] [color:var(--app-primary-contrast)]! font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm" data-app-modal-trigger="cmp_rmod1" type="button">
+            "Open"
+          <div class="app-node app-span-12 min-w-0" data-app-type="repeater" data-node-id="cmp_rrep1" style="grid-column: span 12 / span 12">
+            <div class="flex flex-col" data-app-repeater="true" style="gap: calc(12px * var(--app-space, 1))">
+              <div class="app-repeater-item" data-app-repeater-item="0">
+                <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                  <div class="app-node app-span-12 min-w-0" data-app-type="text" data-node-id="cmp_rri1" style="grid-column: span 12 / span 12">
+                    <p class="break-words leading-relaxed text-sm">
+                      "Ann"
+                <div class="flex gap-1.5 items-center mt-1.5">
+                  <button class="[border-color:var(--border-default)] [border-radius:var(--app-radius)] [color:var(--text-secondary)]! border font-medium px-2 py-0.5 text-xs" type="button">
+                    "Go"
+              <div class="app-repeater-item" data-app-repeater-item="1">
+                <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                  <div class="app-node app-span-12 min-w-0" data-app-type="text" data-node-id="cmp_rri1" style="grid-column: span 12 / span 12">
+                    <p class="break-words leading-relaxed text-sm">
+                      "Bo"
+                <div class="flex gap-1.5 items-center mt-1.5">
+                  <button class="[border-color:var(--border-default)] [border-radius:var(--app-radius)] [color:var(--text-secondary)]! border font-medium px-2 py-0.5 text-xs" type="button">
+                    "Go"
+              <div class="app-repeater-item" data-app-repeater-item="2">
+                <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                  <div class="app-node app-span-12 min-w-0" data-app-type="text" data-node-id="cmp_rri1" style="grid-column: span 12 / span 12">
+                    <p class="break-words leading-relaxed text-sm">
+                      "Cy"
+                <div class="flex gap-1.5 items-center mt-1.5">
+                  <button class="[border-color:var(--border-default)] [border-radius:var(--app-radius)] [color:var(--text-secondary)]! border font-medium px-2 py-0.5 text-xs" type="button">
+                    "Go"
+          <div class="app-node app-span-12 min-w-0" data-app-type="form" data-node-id="cmp_rform1" style="grid-column: span 12 / span 12">
+            <form class="flex flex-col" novalidate="" style="gap: calc(12px * var(--app-space, 1))">
+              <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                <div class="app-node app-span-6 min-w-0" data-app-type="input_file" data-node-id="cmp_rif1" style="grid-column: span 6 / span 6">
+                  <div class="flex flex-col gap-1 text-left">
+                    <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_rif1-input">
+                      "File"
+                    <div class="flex flex-col gap-2">
+                      <label class="border cursor-pointer focus-within:outline focus-within:outline-2 focus-within:outline-[var(--text-secondary)] focus-within:outline-offset-1 gap-2 inline-flex items-center px-3 py-1.5 relative text-sm w-fit" style="background: var(--bg-card); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary); opacity: 0.6">
+                        <svg class="h-3.5 lucide lucide-paperclip w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                        <span>
+                          "Choose a file"
+                        <input class="absolute h-px opacity-0 w-px" disabled="" id="cmp_rif1-input" name="file" type="file">
+                <div class="app-node app-span-12 min-w-0" data-app-type="input_dataset" data-node-id="cmp_rids1" style="grid-column: span 12 / span 12">
+                  <div class="[border-color:var(--border-default)]! [border-radius:var(--app-radius)] [color:var(--text-muted)]! border border-dashed flex gap-2 items-start px-3 py-2 text-sm" data-app-node-error="input_dataset" role="alert">
+                    <svg class="h-4 lucide lucide-alert-triangle lucide-triangle-alert mt-0.5 shrink-0 w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                    <span class="flex flex-col gap-0.5 min-w-0 text-left">
+                      <span>
+                        "This component failed"
+                      <span class="text-xs" data-app-node-error-type="true">
+                        "input_dataset"
+                <div class="app-node app-span-12 min-w-0" data-app-type="browser_view" data-node-id="cmp_rbv1" style="grid-column: span 12 / span 12">
+                  <div class="[background:var(--bg-tertiary)] [border-color:var(--border-default)] [border-radius:var(--app-radius)] border overflow-hidden w-full" data-app-browser-view="act_rtoast">
+                    <div class="[border-color:var(--border-default)]! [color:var(--text-secondary)]! border-b flex gap-1.5 items-center px-2.5 py-1.5 text-xs truncate">
+                      <svg class="flex-shrink-0 h-3.5 lucide lucide-globe w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                      <span class="truncate">
+                        "Live browser"
+                    <div class="flex items-center justify-center px-4 text-center text-sm" style="aspect-ratio: 16 / 10; color: var(--text-secondary)">
+                      "The live browser appears here while the agent works."
+                <div class="app-node app-span-12 min-w-0" data-app-type="input_richtext" data-node-id="cmp_rirt1" style="grid-column: span 12 / span 12">
+                  <div class="flex flex-col gap-1 text-left">
+                    <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_rirt1-input">
+                      "Body"
+                    <div class="border flex flex-col overflow-hidden" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius)">
+                      <div class="[background:var(--bg-tertiary)] [border-color:var(--border-default)]! border-b flex gap-0.5 items-center px-1.5 py-1" aria-label="Formatting" role="toolbar">
+                        <button class="[border-radius:var(--app-radius)] [color:var(--text-secondary)] h-7 inline-flex items-center justify-center w-7" aria-label="Bold" title="Bold" type="button">
+                          <svg class="h-3.5 lucide lucide-bold w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                        <button class="[border-radius:var(--app-radius)] [color:var(--text-secondary)] h-7 inline-flex items-center justify-center w-7" aria-label="Italic" title="Italic" type="button">
+                          <svg class="h-3.5 lucide lucide-italic w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                        <button class="[border-radius:var(--app-radius)] [color:var(--text-secondary)] h-7 inline-flex items-center justify-center w-7" aria-label="Bulleted list" title="Bulleted list" type="button">
+                          <svg class="h-3.5 lucide lucide-list w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                        <button class="[border-radius:var(--app-radius)] [color:var(--text-secondary)] h-7 inline-flex items-center justify-center w-7" aria-label="Numbered list" title="Numbered list" type="button">
+                          <svg class="h-3.5 lucide lucide-list-ordered w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                        <button class="[border-radius:var(--app-radius)] [color:var(--text-secondary)] h-7 inline-flex items-center justify-center w-7" aria-label="Link" title="Link" type="button">
+                          <svg class="h-3.5 lucide lucide-link-2 w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                      <div class="app-richtext min-h-[6rem] outline-none overflow-auto px-2.5 py-2 text-[var(--text-primary)] text-sm w-full" aria-label="Body" aria-multiline="true" contenteditable="true" data-app-richtext="true" data-placeholder="Write here…" id="cmp_rirt1-input" role="textbox">
+                        <div>
+                          "Hello"
+                          <strong>
+                            "world"
+                      <input name="body" readonly="" type="hidden" value="Hello **world**">
+                <div class="app-node app-span-12 min-w-0" data-app-type="input_html" data-node-id="cmp_rihm1" style="grid-column: span 12 / span 12">
+                  <div class="flex flex-col gap-1 text-left">
+                    <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_rihm1-input">
+                      "Mail body"
+                    <div class="border flex flex-col overflow-hidden" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius)">
+                      <div class="[background:var(--bg-tertiary)] [border-color:var(--border-default)]! border-b flex flex-wrap gap-0.5 items-center px-1.5 py-1" aria-label="Formatting" role="toolbar">
+                        <button class="[border-radius:var(--app-radius)] [color:var(--text-secondary)] h-7 inline-flex items-center justify-center w-7" aria-label="Bold" title="Bold" type="button">
+                          <svg class="h-3.5 lucide lucide-bold w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                        <button class="[border-radius:var(--app-radius)] [color:var(--text-secondary)] h-7 inline-flex items-center justify-center w-7" aria-label="Italic" title="Italic" type="button">
+                          <svg class="h-3.5 lucide lucide-italic w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                        <button class="[border-radius:var(--app-radius)] [color:var(--text-secondary)] h-7 inline-flex items-center justify-center w-7" aria-label="Underline" title="Underline" type="button">
+                          <svg class="h-3.5 lucide lucide-underline w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                        <button class="[border-radius:var(--app-radius)] [color:var(--text-secondary)] h-7 inline-flex items-center justify-center w-7" aria-label="Bulleted list" title="Bulleted list" type="button">
+                          <svg class="h-3.5 lucide lucide-list w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                        <button class="[border-radius:var(--app-radius)] [color:var(--text-secondary)] h-7 inline-flex items-center justify-center w-7" aria-label="Numbered list" title="Numbered list" type="button">
+                          <svg class="h-3.5 lucide lucide-list-ordered w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                        <button class="[border-radius:var(--app-radius)] [color:var(--text-secondary)] h-7 inline-flex items-center justify-center w-7" aria-label="Link" title="Link" type="button">
+                          <svg class="h-3.5 lucide lucide-link-2 w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                        <button class="[border-radius:var(--app-radius)] [color:var(--text-secondary)] h-7 inline-flex items-center justify-center w-7" aria-label="Image" title="Image" type="button">
+                          <svg class="h-3.5 lucide lucide-image w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                        <span class="[background:var(--border-default)] h-4 mx-1 w-px" aria-hidden="true">
+                        <select class="[background:transparent] [border-radius:var(--app-radius)] [color:var(--text-secondary)]! h-7 outline-none px-1 text-xs" aria-label="Font" title="Font">
+                          <option selected="" value="">
+                            "Font"
+                          <option value="Calibri">
+                            "Calibri"
+                          <option value="Arial">
+                            "Arial"
+                          <option value="Helvetica">
+                            "Helvetica"
+                          <option value="Georgia">
+                            "Georgia"
+                          <option value="Times New Roman">
+                            "Times New Roman"
+                          <option value="Verdana">
+                            "Verdana"
+                        <select class="[background:transparent] [border-radius:var(--app-radius)] [color:var(--text-secondary)]! h-7 outline-none px-1 text-xs" aria-label="Size" title="Size">
+                          <option selected="" value="">
+                            "Size"
+                          <option value="2">
+                            "Small"
+                          <option value="3">
+                            "Normal"
+                          <option value="5">
+                            "Large"
+                        <select class="[background:transparent] [border-radius:var(--app-radius)] [color:var(--text-secondary)]! h-7 outline-none px-1 text-xs" aria-label="Color" title="Color">
+                          <option selected="" value="">
+                            "Color"
+                          <option value="#1a1a1a">
+                            "Black"
+                          <option value="#6b7280">
+                            "Grey"
+                          <option value="#0369a1">
+                            "Blue"
+                          <option value="#15803d">
+                            "Green"
+                          <option value="#b91c1c">
+                            "Red"
+                      <div class="app-richtext outline-none overflow-auto px-2.5 py-2 text-sm w-full" aria-label="Mail body" aria-multiline="true" contenteditable="true" data-app-html-editor="true" data-placeholder="Write your message…" id="cmp_rihm1-input" role="textbox" style="color: var(--text-primary); min-height: 12rem">
+                        <p>
+                          "Hallo"
+                          <b>
+                            "wereld"
+                      <input class="hidden" accept="image/png,image/jpeg,image/gif,image/webp" aria-hidden="true" tabindex="-1" type="file">
+                      <input name="mailbody" readonly="" type="hidden" value="<p>Hallo <b>wereld</b></p>">
+                <div class="app-node app-span-6 min-w-0" data-app-type="input_datetime" data-node-id="cmp_ridt1" style="grid-column: span 6 / span 6">
+                  <div class="flex flex-col gap-1 text-left">
+                    <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_ridt1-input">
+                      "When"
+                    <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" id="cmp_ridt1-input" name="when" type="datetime-local" value="<datetime>" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                <div class="app-node app-span-6 min-w-0" data-app-type="input_relation" data-node-id="cmp_rirl1" style="grid-column: span 6 / span 6">
+                  <div class="flex flex-col gap-1 text-left">
+                    <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_rirl1-input">
+                      "Owner"
+                    <div class="flex flex-col gap-2">
+                      <div class="relative">
+                        <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none pr-7 px-2.5 py-1.5 text-sm w-full" aria-controls="cmp_rirl1-input-listbox" aria-expanded="false" aria-label="Search Owner" autocomplete="off" id="cmp_rirl1-input" placeholder="Search records…" role="combobox" type="text" value="" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                        <svg class="-translate-y-1/2 absolute h-4 lucide lucide-chevron-down pointer-events-none right-2 text-[var(--text-muted)] top-1/2 w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                <div class="app-node app-span-6 min-w-0" data-app-type="input_person" data-node-id="cmp_ripr1" style="grid-column: span 6 / span 6">
+                  <div class="flex flex-col gap-1 text-left">
+                    <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_ripr1-input">
+                      "Assignee"
+                    <div class="flex flex-col gap-2">
+                      <div class="relative">
+                        <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none pr-7 px-2.5 py-1.5 text-sm w-full" aria-controls="cmp_ripr1-input-listbox" aria-expanded="false" aria-label="Search Assignee" autocomplete="off" id="cmp_ripr1-input" placeholder="Search people…" role="combobox" type="text" value="" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                        <svg class="-translate-y-1/2 absolute h-4 lucide lucide-chevron-down pointer-events-none right-2 text-[var(--text-muted)] top-1/2 w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                <div class="app-node app-span-6 min-w-0" data-app-type="input_multiselect" data-node-id="cmp_rims1" style="grid-column: span 6 / span 6">
+                  <div class="flex flex-col gap-1 text-left">
+                    <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_rims1-input">
+                      "Tags"
+                    <div class="flex flex-col gap-2">
+                      <ul class="flex flex-wrap gap-1.5" aria-label="Tags selected">
+                        <li class="[background:var(--app-primary-soft)] [border-radius:var(--app-radius)] [color:var(--app-primary)]! font-medium gap-1 inline-flex items-center pl-2 pr-1 py-0.5 text-xs">
+                          "A"
+                          <button class="[color:inherit]" aria-label="Remove A" type="button">
+                            <svg class="h-3 lucide lucide-x w-3" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                      <select class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-label="Add to Tags" id="cmp_rims1-input" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                        <option disabled="" value="">
+                          "Add an option…"
+                        <option value="b">
+                          "B"
+              <div class="flex gap-2 items-center">
+                <button class="[background:var(--app-accent,var(--app-primary))] [border-radius:var(--app-radius)] [color:var(--app-accent-contrast,var(--app-primary-contrast))]! disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm" type="submit">
+                  <span>
+                    "Save"
+### outside the screen (portal)
+<span aria-hidden="true" id="recharts_measurement_span" style="border: medium; font-size: 15px; left: 0px; letter-spacing: normal; margin: 0px; padding: 0px; position: absolute; top: -20000px; white-space: pre">
+  "0"

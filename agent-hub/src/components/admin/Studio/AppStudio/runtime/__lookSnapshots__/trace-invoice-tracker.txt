@@ -1,0 +1,103 @@
+# trace-invoice-tracker
+## screen scr_qrtfpm (Suppliers)
+<div class="app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(15, 118, 110, 0.1); --app-accent: #0F766E; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(15, 118, 110, 0.1); --app-primary: #0F766E; --app-radius: 8px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-size: 15px; min-height: 100vh">
+  <main class="flex flex-1 flex-col min-h-0">
+    <div class="app-runtime app-screen-enter w-full" data-app-appearance="auto" data-app-screen="scr_qrtfpm" data-app-screen-kind="page" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(15, 118, 110, 0.1); --app-accent: #0F766E; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(15, 118, 110, 0.1); --app-primary: #0F766E; --app-radius: 8px; --app-space: 1; color: var(--text-primary); font-size: 15px">
+      <div class="flex flex-col w-full" style="margin: 0px auto; max-width: 960px">
+        <section class="app-grid" data-section-id="sec_2k8qqe" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 app-surface min-w-0" data-app-type="card" data-node-id="cmp_7g3ss4" style="background: var(--bg-card); grid-column: span 12 / span 12; padding: calc(12px * var(--app-space, 1))">
+            <div class="app-card flex flex-col" style="gap: calc(8px * var(--app-space, 1))">
+              <div>
+                <div class="font-medium">
+                  "Add New Supplier"
+              <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                <div class="app-node app-span-12 min-w-0" data-app-type="form" data-node-id="cmp_vuqre9" style="grid-column: span 12 / span 12">
+                  <form class="flex flex-col" novalidate="" style="gap: calc(12px * var(--app-space, 1))">
+                    <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                      <div class="app-node app-span-12 min-w-0" data-app-type="input_text" data-node-id="cmp_6bc9i7" style="grid-column: span 12 / span 12">
+                        <div class="flex flex-col gap-1 text-left">
+                          <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_6bc9i7-input">
+                            "Supplier Name"
+                            <span class="[color:var(--error)]" aria-hidden="true">
+                              "*"
+                          <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-required="true" id="cmp_6bc9i7-input" name="name" type="text" value="" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                      <div class="app-node app-span-12 min-w-0" data-app-type="input_text" data-node-id="cmp_vc8rlj" style="grid-column: span 12 / span 12">
+                        <div class="flex flex-col gap-1 text-left">
+                          <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_vc8rlj-input">
+                            "Contact Email"
+                            <span class="[color:var(--error)]" aria-hidden="true">
+                              "*"
+                          <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-required="true" id="cmp_vc8rlj-input" name="email" type="text" value="" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                      <div class="app-node app-span-12 min-w-0" data-app-type="input_select" data-node-id="cmp_d9howb" style="grid-column: span 12 / span 12">
+                        <div class="flex flex-col gap-1 text-left">
+                          <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_d9howb-input">
+                            "Category"
+                          <select class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" id="cmp_d9howb-input" name="category" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                            <option value="">
+                              "Choose…"
+                            <option value="utilities">
+                              "Utilities"
+                            <option value="hardware">
+                              "Hardware"
+                            <option value="software">
+                              "Software"
+                            <option value="services">
+                              "Services"
+                    <div class="flex gap-2 items-center">
+                      <button class="[background:var(--app-accent,var(--app-primary))] [border-radius:var(--app-radius)] [color:var(--app-accent-contrast,var(--app-primary-contrast))]! disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm" data-app-submit-inert="true" disabled="" title="This form has no submit action yet." type="submit">
+                        <span>
+                          "Save Supplier"
+          <div class="app-node app-span-12 app-surface min-w-0" data-app-type="card" data-node-id="cmp_o5ooh7" style="background: var(--bg-card); grid-column: span 12 / span 12; padding: calc(12px * var(--app-space, 1))">
+            <div class="app-card flex flex-col" style="gap: calc(8px * var(--app-space, 1))">
+              <div>
+                <div class="font-medium">
+                  "New Invoice Entry"
+              <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                <div class="app-node app-span-12 min-w-0" data-app-type="form" data-node-id="cmp_ii5mty" style="grid-column: span 12 / span 12">
+                  <form class="flex flex-col" novalidate="" style="gap: calc(12px * var(--app-space, 1))">
+                    <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                      <div class="app-node app-span-6 min-w-0" data-app-type="input_relation" data-node-id="cmp_xkg0df" style="grid-column: span 6 / span 6">
+                        <div class="flex flex-col gap-1 text-left">
+                          <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_xkg0df-input">
+                            "Supplier"
+                            <span class="[color:var(--error)]" aria-hidden="true">
+                              "*"
+                          <div class="flex flex-col gap-2">
+                            <div class="relative">
+                              <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none pr-7 px-2.5 py-1.5 text-sm w-full" aria-controls="cmp_xkg0df-input-listbox" aria-expanded="false" aria-label="Search Supplier" aria-required="true" autocomplete="off" id="cmp_xkg0df-input" placeholder="Search records…" role="combobox" type="text" value="" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                              <svg class="-translate-y-1/2 absolute h-4 lucide lucide-chevron-down pointer-events-none right-2 text-[var(--text-muted)] top-1/2 w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                      <div class="app-node app-span-6 min-w-0" data-app-type="input_text" data-node-id="cmp_smu84y" style="grid-column: span 6 / span 6">
+                        <div class="flex flex-col gap-1 text-left">
+                          <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_smu84y-input">
+                            "Invoice Number"
+                            <span class="[color:var(--error)]" aria-hidden="true">
+                              "*"
+                          <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-required="true" id="cmp_smu84y-input" name="invoice_no" type="text" value="" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                      <div class="app-node app-span-6 min-w-0" data-app-type="input_number" data-node-id="cmp_f2wnfy" style="grid-column: span 6 / span 6">
+                        <div class="flex flex-col gap-1 text-left">
+                          <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_f2wnfy-input">
+                            "Amount"
+                            <span class="[color:var(--error)]" aria-hidden="true">
+                              "*"
+                          <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-required="true" id="cmp_f2wnfy-input" name="amount" step="1" type="number" value="" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                      <div class="app-node app-span-6 min-w-0" data-app-type="input_date" data-node-id="cmp_mid2xj" style="grid-column: span 6 / span 6">
+                        <div class="flex flex-col gap-1 text-left">
+                          <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_mid2xj-input">
+                            "Due Date"
+                            <span class="[color:var(--error)]" aria-hidden="true">
+                              "*"
+                          <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-required="true" id="cmp_mid2xj-input" name="due_date" type="date" value="" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                      <div class="app-node app-span-12 min-w-0" data-app-type="input_file" data-node-id="cmp_q3wldj" style="grid-column: span 12 / span 12">
+                        <div class="flex flex-col gap-1 text-left">
+                          <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_q3wldj-input">
+                            "Attachment"
+                          <div class="flex flex-col gap-2">
+                            <label class="border cursor-pointer focus-within:outline focus-within:outline-2 focus-within:outline-[var(--text-secondary)] focus-within:outline-offset-1 gap-2 inline-flex items-center px-3 py-1.5 relative text-sm w-fit" style="background: var(--bg-card); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary); opacity: 0.6">
+                              <svg class="h-3.5 lucide lucide-paperclip w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                              <span>
+                                "Choose a file"
+                              <input class="absolute h-px opacity-0 w-px" disabled="" id="cmp_q3wldj-input" name="file" type="file">
+                    <div class="flex gap-2 items-center">
+                      <button class="[background:var(--app-accent,var(--app-primary))] [border-radius:var(--app-radius)] [color:var(--app-accent-contrast,var(--app-primary-contrast))]! disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm" data-app-submit-inert="true" disabled="" title="This form has no submit action yet." type="submit">
+                        <span>
+                          "Register Invoice"

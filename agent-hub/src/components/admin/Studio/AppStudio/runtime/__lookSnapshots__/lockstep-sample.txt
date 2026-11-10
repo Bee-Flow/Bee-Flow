@@ -1,0 +1,39 @@
+# lockstep-sample
+## screen scr_home01 (Home)
+<div class="app-shell flex flex-col w-full" data-app-appearance="light" style="--app-accent-contrast: #000000; --app-accent-soft: rgba(14, 165, 233, 0.1); --app-accent: #0ea5e9; --app-primary-contrast: #000000; --app-primary-soft: rgba(14, 165, 233, 0.1); --app-primary: #0ea5e9; --app-radius: 8px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color-scheme: light; color: var(--text-primary); font-size: 15px; min-height: 100vh">
+  <main class="flex flex-1 flex-col min-h-0">
+    <div class="app-runtime app-screen-enter w-full" data-app-appearance="light" data-app-screen="scr_home01" data-app-screen-kind="page" style="--app-accent-contrast: #000000; --app-accent-soft: rgba(14, 165, 233, 0.1); --app-accent: #0ea5e9; --app-primary-contrast: #000000; --app-primary-soft: rgba(14, 165, 233, 0.1); --app-primary: #0ea5e9; --app-radius: 8px; --app-space: 1; color-scheme: light; color: var(--text-primary); font-size: 15px">
+      <div class="flex flex-col w-full" style="margin: 0px auto; max-width: 960px">
+        <section class="app-grid" data-section-id="sec_top001" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="heading" data-node-id="cmp_title1" style="grid-column: span 12 / span 12">
+            <h2 class="break-words font-semibold text-xl">
+              "Orders"
+          <div class="app-node app-span-12 min-w-0" data-app-type="table" data-node-id="cmp_table1" style="grid-column: span 12 / span 12">
+            <div class="flex h-full items-center justify-center min-h-0 py-1 text-[var(--text-muted)] text-center text-sm">
+              "Nothing to show yet."
+          <div class="app-node app-span-12 min-w-0" data-app-type="container" data-node-id="cmp_box001" style="grid-column: span 12 / span 12">
+            <div class="app-grid" data-app-container="true" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+              <div class="app-node app-span-12 min-w-0" data-app-type="button" data-node-id="cmp_btn001" style="grid-column: span 12 / span 12">
+                <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm transition-opacity" type="button" style="background: var(--app-accent, var(--app-primary)); border-radius: var(--app-radius); color: var(--app-accent-contrast, var(--app-primary-contrast))">
+                  <span>
+                    "Save"
+              <div class="app-node app-span-12 min-w-0" data-app-type="button" data-node-id="cmp_btn002" style="grid-column: span 12 / span 12">
+                <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm transition-opacity" type="button" style="background: var(--app-accent, var(--app-primary)); border-radius: var(--app-radius); color: var(--app-accent-contrast, var(--app-primary-contrast))">
+                  <span>
+                    "Go"
+              <div class="app-node app-span-12 min-w-0" data-app-type="container" data-node-id="cmp_inner1" style="grid-column: span 12 / span 12">
+                <div class="app-grid" data-app-container="true" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+        <section class="app-grid" data-section-id="sec_bot001" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(8px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="button" data-node-id="cmp_btn003" style="grid-column: span 12 / span 12">
+            <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm transition-opacity" type="button" style="background: var(--app-accent, var(--app-primary)); border-radius: var(--app-radius); color: var(--app-accent-contrast, var(--app-primary-contrast))">
+              <span>
+                "Edit"
+## screen scr_detl01 (Detail)
+<div class="app-shell flex flex-col w-full" data-app-appearance="light" style="--app-accent-contrast: #000000; --app-accent-soft: rgba(14, 165, 233, 0.1); --app-accent: #0ea5e9; --app-primary-contrast: #000000; --app-primary-soft: rgba(14, 165, 233, 0.1); --app-primary: #0ea5e9; --app-radius: 8px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color-scheme: light; color: var(--text-primary); font-size: 15px; min-height: 100vh">
+  <main class="flex flex-1 flex-col min-h-0">
+    <div class="app-runtime app-screen-enter w-full" data-app-appearance="light" data-app-screen="scr_detl01" data-app-screen-kind="page" style="--app-accent-contrast: #000000; --app-accent-soft: rgba(14, 165, 233, 0.1); --app-accent: #0ea5e9; --app-primary-contrast: #000000; --app-primary-soft: rgba(14, 165, 233, 0.1); --app-primary: #0ea5e9; --app-radius: 8px; --app-space: 1; color-scheme: light; color: var(--text-primary); font-size: 15px">
+      <div class="flex flex-col w-full" style="margin: 0px auto; max-width: 1280px">
+        <section class="app-grid" data-section-id="sec_det001" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="text" data-node-id="cmp_dtext1" style="grid-column: span 12 / span 12">
+            <p class="break-words leading-relaxed text-sm">
+              "Detail"

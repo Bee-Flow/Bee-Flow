@@ -1,0 +1,478 @@
+# template-sprint-board
+## screen scr_board (Board)
+<div class="app-design--surface-soft app-motion--full app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(29, 78, 216, 0.1); --app-accent: #1D4ED8; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(29, 78, 216, 0.1); --app-primary: #1D4ED8; --app-radius: 12px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-family: "Geist", system-ui, -apple-system, sans-serif; font-size: 15px; min-height: 100vh">
+  <main class="flex flex-1 flex-col min-h-0">
+    <div class="app-design--surface-soft app-motion--full app-runtime app-screen-enter flex flex-1 flex-col h-full min-h-0 w-full" data-app-appearance="auto" data-app-screen="scr_board" data-app-screen-kind="page" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(29, 78, 216, 0.1); --app-accent: #1D4ED8; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(29, 78, 216, 0.1); --app-primary: #1D4ED8; --app-radius: 12px; --app-space: 1; color: var(--text-primary); font-family: "Geist", system-ui, -apple-system, sans-serif; font-size: 15px">
+      <div class="flex flex-1 flex-col min-h-0 w-full" style="margin: 0px auto; max-width: none">
+        <section class="app-grid" data-section-id="sec_bdtop" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="page_header" data-node-id="cmp_bdhdr" style="grid-column: span 12 / span 12">
+            <header class="app-pageheader--banner min-w-0 w-full" data-app-pageheader="true" data-app-pageheader-look="banner" style="background: var(--app-primary-soft); border-radius: var(--app-radius, 8px); padding: calc(20px * var(--app-space, 1))">
+              <div class="flex flex-wrap items-start" style="gap: calc(12px * var(--app-space, 1))">
+                <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-9 inline-flex items-center justify-center rounded-md shrink-0 w-9" aria-hidden="true">
+                  <svg class="h-4.5 lucide lucide-kanban-square lucide-square-kanban w-4.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                <div class="basis-64 flex-1 min-w-0">
+                  <h1 class="font-semibold text-[var(--text-primary)] text-xl truncate" title="Board">
+                    "Board"
+                  <p class="line-clamp-2 mt-0.5 text-sm" title="Pick a board on the left. Drag a card to change its state — where you drop it also sets its order." style="color: var(--text-secondary)">
+                    "Pick a board on the left. Drag a card to change its state — where you drop it also sets its order."
+          <div class="app-node app-span-12 min-w-0" data-app-type="filter_bar" data-node-id="cmp_bdfilt" style="grid-column: span 12 / span 12">
+            <div class="flex flex-wrap gap-3 items-end" data-app-filterbar="true">
+              <div class="flex flex-col gap-1 min-w-0" data-app-filter="q">
+                <label class="font-medium text-[var(--text-secondary)] text-xs" for="cmp_bdfilt-flt-q">
+                  "Search"
+                <div class="relative">
+                  <svg class="-translate-y-1/2 absolute h-3.5 left-2.5 lucide lucide-search text-[var(--text-muted)] top-1/2 w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                  <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none pl-8 px-2.5 py-1.5 text-sm w-full" aria-label="Search" id="cmp_bdfilt-flt-q" placeholder="Search" type="text" value="" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+              <div class="flex flex-col gap-1 min-w-0" data-app-filter="item_type">
+                <label class="font-medium text-[var(--text-secondary)] text-xs" for="cmp_bdfilt-flt-item_type">
+                  "Type"
+                <select class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-label="Type" id="cmp_bdfilt-flt-item_type" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                  <option value="">
+                    "All"
+                  <option value="epic">
+                    "Epic"
+                  <option value="feature">
+                    "Feature"
+                  <option value="story">
+                    "User story"
+                  <option value="bug">
+                    "Bug"
+                  <option value="task">
+                    "Task"
+              <div class="flex flex-col gap-1 min-w-0" data-app-filter="mine">
+                <label class="cursor-pointer gap-2 inline-flex items-center py-1.5 text-sm" for="cmp_bdfilt-flt-mine">
+                  <input class="accent-[var(--app-primary)]" id="cmp_bdfilt-flt-mine" type="checkbox">
+                  <span class="text-[var(--text-primary)]">
+                    "Only mine"
+        <section class="app-grid app-section-fill" data-section-id="sec_bdmain" style="flex: 1 1 0px; gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); grid-template-rows: minmax(0, 1fr); min-height: 0px; padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="pane" data-node-id="cmp_bdpane" style="flex: 1 1 0px; grid-column: span 12 / span 12; min-height: 0px; min-width: 0px">
+            <div class="flex flex-row h-full min-h-0 min-w-0 overflow-hidden" data-app-pane="horizontal" style="gap: calc(12px * var(--app-space, 1))">
+              <div class="app-node app-span-3 min-w-0" data-app-type="list" data-node-id="cmp_bdbrds" style="flex: 1 1 0px; grid-column: span 3 / span 3; max-width: 100%; min-height: 0px; min-width: 0px; width: 280px">
+                <div class="flex flex-col gap-1.5 h-full items-center justify-center min-h-0 py-6 text-center">
+                  <span class="mb-1 text-[var(--text-tertiary)]">
+                    <svg class="block" aria-hidden="true" fill="none" role="presentation" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 96 72" style="height: auto; opacity: 0.9; width: 5.5rem">
+                  <span class="font-medium text-[var(--text-primary)] text-sm">
+                    "Nothing here yet"
+                  <span class="max-w-xs text-[var(--text-muted)] text-sm">
+                    "No boards yet — add one on Setup."
+              <div class="app-node app-span-9 min-w-0" data-app-type="kanban" data-node-id="cmp_bdkb" style="flex: 1 1 0px; grid-column: span 9 / span 9; min-height: 0px; min-width: 0px">
+                <div class="flex h-full items-center justify-center min-h-0 py-1 text-[var(--text-muted)] text-center text-sm">
+                  "Nothing on this board yet."
+        <section class="app-grid" data-section-id="sec_bddlg" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: 0px">
+## screen scr_backlog (Backlog)
+<div class="app-design--surface-soft app-motion--full app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(29, 78, 216, 0.1); --app-accent: #1D4ED8; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(29, 78, 216, 0.1); --app-primary: #1D4ED8; --app-radius: 12px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-family: "Geist", system-ui, -apple-system, sans-serif; font-size: 15px; min-height: 100vh">
+  <main class="flex flex-1 flex-col min-h-0">
+    <div class="app-design--surface-soft app-motion--full app-runtime app-screen-enter flex flex-1 flex-col h-full min-h-0 w-full" data-app-appearance="auto" data-app-screen="scr_backlog" data-app-screen-kind="page" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(29, 78, 216, 0.1); --app-accent: #1D4ED8; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(29, 78, 216, 0.1); --app-primary: #1D4ED8; --app-radius: 12px; --app-space: 1; color: var(--text-primary); font-family: "Geist", system-ui, -apple-system, sans-serif; font-size: 15px">
+      <div class="flex flex-1 flex-col min-h-0 w-full" style="margin: 0px auto; max-width: none">
+        <section class="app-grid" data-section-id="sec_bltop" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="page_header" data-node-id="cmp_blhdr" style="grid-column: span 12 / span 12">
+            <header class="min-w-0 w-full" data-app-pageheader="true">
+              <div class="flex flex-wrap items-start" style="gap: calc(12px * var(--app-space, 1))">
+                <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-9 inline-flex items-center justify-center rounded-md shrink-0 w-9" aria-hidden="true">
+                  <svg class="h-4.5 lucide lucide-list-checks w-4.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                <div class="basis-64 flex-1 min-w-0">
+                  <h1 class="font-semibold text-[var(--text-primary)] text-xl truncate" title="Backlog">
+                    "Backlog"
+                  <p class="line-clamp-2 mt-0.5 text-sm" title="Points and state are editable inline — click a cell." style="color: var(--text-secondary)">
+                    "Points and state are editable inline — click a cell."
+                <div class="flex flex-wrap items-center justify-end ml-auto" data-app-pageheader-actions="true" style="gap: calc(8px * var(--app-space, 1))">
+                  <div class="app-node app-span-3 min-w-0" data-app-type="button" data-node-id="cmp_blnew" style="grid-column: span 3 / span 3">
+                    <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm transition-opacity" type="button" style="background: var(--app-accent, var(--app-primary)); border-radius: var(--app-radius); color: var(--app-accent-contrast, var(--app-primary-contrast))">
+                      <svg class="h-3.5 lucide lucide-plus w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                      <span>
+                        "New work item"
+          <div class="app-node app-span-3 min-w-0" data-app-type="stat" data-node-id="cmp_blstat1" style="grid-column: span 3 / span 3">
+            <div class="app-stat app-stat--tile flex gap-2.5 items-start" style="background: var(--bg-card); border-radius: var(--app-radius, 8px); border: 1px solid var(--app-hairline, var(--border-default)); box-shadow: var(--app-shadow-1); padding: calc(16px * var(--app-space, 1))">
+              <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-8 inline-flex items-center justify-center mt-0.5 rounded-md shrink-0 w-8">
+                <svg class="h-4 lucide lucide-list-checks w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-[var(--text-secondary)] text-xs">
+                  "Items"
+                <div class="flex gap-2 items-baseline min-w-0">
+                  <div class="font-semibold leading-tight text-2xl truncate" title="—">
+                    "—"
+                <div class="text-[var(--text-muted)] text-xs">
+                  "on this board"
+          <div class="app-node app-span-3 min-w-0" data-app-type="stat" data-node-id="cmp_blstat2" style="grid-column: span 3 / span 3">
+            <div class="app-stat app-stat--tile flex gap-2.5 items-start" style="background: var(--bg-card); border-radius: var(--app-radius, 8px); border: 1px solid var(--app-hairline, var(--border-default)); box-shadow: var(--app-shadow-1); padding: calc(16px * var(--app-space, 1))">
+              <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-8 inline-flex items-center justify-center mt-0.5 rounded-md shrink-0 w-8">
+                <svg class="h-4 lucide lucide-gauge w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-[var(--text-secondary)] text-xs">
+                  "Points"
+                <div class="flex gap-2 items-baseline min-w-0">
+                  <div class="font-semibold leading-tight text-2xl truncate" title="—">
+                    "—"
+                <div class="text-[var(--text-muted)] text-xs">
+                  "estimated in total"
+          <div class="app-node app-span-3 min-w-0" data-app-type="stat" data-node-id="cmp_blstat3" style="grid-column: span 3 / span 3">
+            <div class="app-stat app-stat--tile flex gap-2.5 items-start" style="background: var(--bg-card); border-radius: var(--app-radius, 8px); border: 1px solid var(--app-hairline, var(--border-default)); box-shadow: var(--app-shadow-1); padding: calc(16px * var(--app-space, 1))">
+              <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-8 inline-flex items-center justify-center mt-0.5 rounded-md shrink-0 w-8">
+                <svg class="h-4 lucide lucide-percent w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-[var(--text-secondary)] text-xs">
+                  "Unestimated"
+                <div class="flex gap-2 items-baseline min-w-0">
+                  <div class="font-semibold leading-tight text-2xl truncate" title="—">
+                    "—"
+                <div class="text-[var(--text-muted)] text-xs">
+                  "need a number before planning"
+          <div class="app-node app-span-3 min-w-0" data-app-type="stat" data-node-id="cmp_blstat4" style="grid-column: span 3 / span 3">
+            <div class="app-stat app-stat--tile flex gap-2.5 items-start" style="background: var(--bg-card); border-radius: var(--app-radius, 8px); border: 1px solid var(--app-hairline, var(--border-default)); box-shadow: var(--app-shadow-1); padding: calc(16px * var(--app-space, 1))">
+              <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-8 inline-flex items-center justify-center mt-0.5 rounded-md shrink-0 w-8">
+                <svg class="h-4 lucide lucide-user-2 lucide-user-round w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-[var(--text-secondary)] text-xs">
+                  "Mine"
+                <div class="flex gap-2 items-baseline min-w-0">
+                  <div class="font-semibold leading-tight text-2xl truncate" title="—">
+                    "—"
+                <div class="text-[var(--text-muted)] text-xs">
+                  "assigned to you on this board"
+        <section class="app-grid app-section-fill" data-section-id="sec_blgrid" style="flex: 1 1 0px; gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); grid-template-rows: minmax(0, 1fr); min-height: 0px; padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="data_grid" data-node-id="cmp_blgrid" style="flex: 1 1 0px; grid-column: span 12 / span 12; min-height: 0px; min-width: 0px">
+            <div class="w-full" data-app-datagrid="true">
+              <div class="flex flex-col gap-1.5 h-full items-center justify-center min-h-0 py-6 text-center">
+                <span class="mb-1 text-[var(--text-tertiary)]">
+                  <svg class="block" aria-hidden="true" fill="none" role="presentation" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 96 72" style="height: auto; opacity: 0.9; width: 5.5rem">
+                <span class="font-medium text-[var(--text-primary)] text-sm">
+                  "Nothing here yet"
+                <span class="max-w-xs text-[var(--text-muted)] text-sm">
+                  "Nothing here — pick a board, or raise the first item."
+        <section class="app-grid" data-section-id="sec_bldlg" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: 0px">
+## screen scr_sprints (Sprints)
+<div class="app-design--surface-soft app-motion--full app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(29, 78, 216, 0.1); --app-accent: #1D4ED8; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(29, 78, 216, 0.1); --app-primary: #1D4ED8; --app-radius: 12px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-family: "Geist", system-ui, -apple-system, sans-serif; font-size: 15px; min-height: 100vh">
+  <main class="flex flex-1 flex-col min-h-0">
+    <div class="app-design--surface-soft app-motion--full app-runtime app-screen-enter flex flex-1 flex-col h-full min-h-0 w-full" data-app-appearance="auto" data-app-screen="scr_sprints" data-app-screen-kind="page" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(29, 78, 216, 0.1); --app-accent: #1D4ED8; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(29, 78, 216, 0.1); --app-primary: #1D4ED8; --app-radius: 12px; --app-space: 1; color: var(--text-primary); font-family: "Geist", system-ui, -apple-system, sans-serif; font-size: 15px">
+      <div class="flex flex-1 flex-col min-h-0 w-full" style="margin: 0px auto; max-width: 1280px">
+        <section class="app-grid" data-section-id="sec_sptop" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="page_header" data-node-id="cmp_sphdr" style="grid-column: span 12 / span 12">
+            <header class="min-w-0 w-full" data-app-pageheader="true">
+              <div class="flex flex-wrap items-start" style="gap: calc(12px * var(--app-space, 1))">
+                <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-9 inline-flex items-center justify-center rounded-md shrink-0 w-9" aria-hidden="true">
+                  <svg class="h-4.5 lucide lucide-calendar-clock w-4.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                <div class="basis-64 flex-1 min-w-0">
+                  <h1 class="font-semibold text-[var(--text-primary)] text-xl truncate" title="Sprints">
+                    "Sprints"
+                  <p class="line-clamp-2 mt-0.5 text-sm" title="Picking a sprint scopes the Board and Backlog to it. Clear it to see the whole board again." style="color: var(--text-secondary)">
+                    "Picking a sprint scopes the Board and Backlog to it. Clear it to see the whole board again."
+                <div class="flex flex-wrap items-center justify-end ml-auto" data-app-pageheader-actions="true" style="gap: calc(8px * var(--app-space, 1))">
+                  <div class="app-node app-span-3 min-w-0" data-app-type="button" data-node-id="cmp_spnew" style="grid-column: span 3 / span 3">
+                    <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm transition-opacity" type="button" style="background: var(--app-accent, var(--app-primary)); border-radius: var(--app-radius); color: var(--app-accent-contrast, var(--app-primary-contrast))">
+                      <svg class="h-3.5 lucide lucide-plus w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                      <span>
+                        "New sprint"
+        <section class="app-grid app-section-fill" data-section-id="sec_spmain" style="flex: 1 1 0px; gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); grid-template-rows: minmax(0, 1fr); min-height: 0px; padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-5 min-w-0" data-app-type="list" data-node-id="cmp_splist" style="flex: 1 1 0px; grid-column: span 5 / span 5; min-height: 0px; min-width: 0px">
+            <div class="flex flex-col gap-1.5 h-full items-center justify-center min-h-0 py-6 text-center">
+              <span class="mb-1 text-[var(--text-tertiary)]">
+                <svg class="block" aria-hidden="true" fill="none" role="presentation" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 96 72" style="height: auto; opacity: 0.9; width: 5.5rem">
+              <span class="font-medium text-[var(--text-primary)] text-sm">
+                "Nothing here yet"
+              <span class="max-w-xs text-[var(--text-muted)] text-sm">
+                "No sprints on this board yet."
+          <div class="app-node app-span-7 min-w-0" data-app-type="data_grid" data-node-id="cmp_spgrid" style="flex: 1 1 0px; grid-column: span 7 / span 7; min-height: 0px; min-width: 0px">
+            <div class="w-full" data-app-datagrid="true">
+              <div class="flex flex-col gap-1.5 h-full items-center justify-center min-h-0 py-6 text-center">
+                <span class="mb-1 text-[var(--text-tertiary)]">
+                  <svg class="block" aria-hidden="true" fill="none" role="presentation" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 96 72" style="height: auto; opacity: 0.9; width: 5.5rem">
+                <span class="font-medium text-[var(--text-primary)] text-sm">
+                  "Nothing here yet"
+                <span class="max-w-xs text-[var(--text-muted)] text-sm">
+                  "Pick a sprint to see what is planned into it."
+        <section class="app-grid" data-section-id="sec_spdlg" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: 0px">
+## screen scr_item (Work item)
+<div class="app-design--surface-soft app-motion--full app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(29, 78, 216, 0.1); --app-accent: #1D4ED8; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(29, 78, 216, 0.1); --app-primary: #1D4ED8; --app-radius: 12px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-family: "Geist", system-ui, -apple-system, sans-serif; font-size: 15px; min-height: 100vh">
+  <main class="flex flex-1 flex-col min-h-0">
+    <div class="app-design--surface-soft app-motion--full app-runtime app-screen-enter flex flex-1 flex-col h-full min-h-0 w-full" data-app-appearance="auto" data-app-screen="scr_item" data-app-screen-kind="page" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(29, 78, 216, 0.1); --app-accent: #1D4ED8; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(29, 78, 216, 0.1); --app-primary: #1D4ED8; --app-radius: 12px; --app-space: 1; color: var(--text-primary); font-family: "Geist", system-ui, -apple-system, sans-serif; font-size: 15px">
+      <div class="flex flex-1 flex-col min-h-0 w-full" style="margin: 0px auto; max-width: 1280px">
+        <section class="app-grid" data-section-id="sec_itop" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="page_header" data-node-id="cmp_ihdr" style="grid-column: span 12 / span 12">
+            <header class="min-w-0 w-full" data-app-pageheader="true">
+              <div class="flex flex-wrap items-start" style="gap: calc(12px * var(--app-space, 1))">
+                <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-9 inline-flex items-center justify-center rounded-md shrink-0 w-9" aria-hidden="true">
+                  <svg class="h-4.5 lucide lucide-id-card w-4.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                <div class="basis-64 flex-1 min-w-0">
+                  <h1 class="font-semibold text-[var(--text-primary)] text-xl truncate" title="Work item">
+                    "Work item"
+                <div class="flex flex-wrap items-center justify-end ml-auto" data-app-pageheader-actions="true" style="gap: calc(8px * var(--app-space, 1))">
+                  <div class="app-node app-span-3 min-w-0" data-app-type="button" data-node-id="cmp_iback" style="grid-column: span 3 / span 3">
+                    <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm transition-opacity" type="button" style="background: transparent; border-radius: var(--app-radius); color: var(--app-primary)">
+                      <svg class="h-3.5 lucide lucide-arrow-left w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                      <span>
+                        "Back to board"
+                  <div class="app-node app-span-3 min-w-0" data-app-type="button" data-node-id="cmp_imine" style="grid-column: span 3 / span 3">
+                    <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm transition-opacity" type="button" style="background: var(--app-primary-soft); border-radius: var(--app-radius); color: var(--app-primary)">
+                      <svg class="h-3.5 lucide lucide-user-2 lucide-user-round w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                      <span>
+                        "Assign to me"
+              <hr class="[background:var(--border-default)] border-0 h-px mt-3 w-full" aria-hidden="true">
+          <div class="app-node app-span-12 min-w-0" data-app-type="record_detail" data-node-id="cmp_idet" style="grid-column: span 12 / span 12">
+            <dl class="gap-x-6 gap-y-3 grid" data-app-recorddetail="true" style="grid-template-columns: repeat(3, minmax(0, 1fr))">
+              <div class="min-w-0">
+                <dt class="font-medium text-[var(--text-muted)] text-xs tracking-wide uppercase">
+                  "Type"
+                <dd class="break-words mt-0.5 text-[var(--text-primary)] text-sm">
+                  <span class="text-[var(--text-muted)]">
+                    "—"
+              <div class="min-w-0">
+                <dt class="font-medium text-[var(--text-muted)] text-xs tracking-wide uppercase">
+                  "State"
+                <dd class="break-words mt-0.5 text-[var(--text-primary)] text-sm">
+                  <span class="text-[var(--text-muted)]">
+                    "—"
+              <div class="min-w-0">
+                <dt class="font-medium text-[var(--text-muted)] text-xs tracking-wide uppercase">
+                  "Priority"
+                <dd class="break-words mt-0.5 text-[var(--text-primary)] text-sm">
+                  <span class="text-[var(--text-muted)]">
+                    "—"
+              <div class="min-w-0">
+                <dt class="font-medium text-[var(--text-muted)] text-xs tracking-wide uppercase">
+                  "Points"
+                <dd class="break-words mt-0.5 text-[var(--text-primary)] text-sm">
+                  <span class="text-[var(--text-muted)]">
+                    "—"
+              <div class="min-w-0">
+                <dt class="font-medium text-[var(--text-muted)] text-xs tracking-wide uppercase">
+                  "Assignee"
+                <dd class="break-words mt-0.5 text-[var(--text-primary)] text-sm">
+                  <span class="text-[var(--text-muted)]">
+                    "—"
+              <div class="min-w-0">
+                <dt class="font-medium text-[var(--text-muted)] text-xs tracking-wide uppercase">
+                  "Due"
+                <dd class="break-words mt-0.5 text-[var(--text-primary)] text-sm">
+                  <span class="text-[var(--text-muted)]">
+                    "—"
+              <div class="min-w-0">
+                <dt class="font-medium text-[var(--text-muted)] text-xs tracking-wide uppercase">
+                  "Epic"
+                <dd class="break-words mt-0.5 text-[var(--text-primary)] text-sm">
+                  <span class="text-[var(--text-muted)]">
+                    "—"
+              <div class="min-w-0">
+                <dt class="font-medium text-[var(--text-muted)] text-xs tracking-wide uppercase">
+                  "Closed"
+                <dd class="break-words mt-0.5 text-[var(--text-primary)] text-sm">
+                  <span class="text-[var(--text-muted)]">
+                    "—"
+              <div class="min-w-0">
+                <dt class="font-medium text-[var(--text-muted)] text-xs tracking-wide uppercase">
+                  "Description"
+                <dd class="break-words mt-0.5 text-[var(--text-primary)] text-sm">
+                  <span class="text-[var(--text-muted)]">
+                    "—"
+        <section class="app-grid app-section-fill" data-section-id="sec_imain" style="flex: 1 1 0px; gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); grid-template-rows: minmax(0, 1fr); min-height: 0px; padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-6 min-w-0" data-app-type="list" data-node-id="cmp_ikids" style="flex: 1 1 0px; grid-column: span 6 / span 6; min-height: 0px; min-width: 0px">
+            <div class="flex flex-col gap-1.5 h-full items-center justify-center min-h-0 py-6 text-center">
+              <span class="mb-1 text-[var(--text-tertiary)]">
+                <svg class="block" aria-hidden="true" fill="none" role="presentation" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 96 72" style="height: auto; opacity: 0.9; width: 5.5rem">
+              <span class="font-medium text-[var(--text-primary)] text-sm">
+                "Nothing here yet"
+              <span class="max-w-xs text-[var(--text-muted)] text-sm">
+                "No child items."
+          <div class="app-node app-span-6 min-w-0" data-app-type="list" data-node-id="cmp_inotes" style="flex: 1 1 0px; grid-column: span 6 / span 6; min-height: 0px; min-width: 0px">
+            <div class="flex flex-col gap-1.5 h-full items-center justify-center min-h-0 py-6 text-center">
+              <span class="mb-1 text-[var(--text-tertiary)]">
+                <svg class="block" aria-hidden="true" fill="none" role="presentation" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 96 72" style="height: auto; opacity: 0.9; width: 5.5rem">
+              <span class="font-medium text-[var(--text-primary)] text-sm">
+                "Nothing here yet"
+              <span class="max-w-xs text-[var(--text-muted)] text-sm">
+                "No notes yet."
+        <section class="app-grid app-surface" data-section-id="sec_inote" style="background: var(--bg-card); border-radius: var(--app-radius); box-shadow: var(--app-shadow-1, none); gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="form" data-node-id="cmp_inform" style="grid-column: span 12 / span 12">
+            <form class="flex flex-col" novalidate="" style="gap: calc(12px * var(--app-space, 1))">
+              <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                <div class="app-node app-span-12 min-w-0" data-app-type="input_textarea" data-node-id="cmp_inf1" style="grid-column: span 12 / span 12">
+                  <div class="flex flex-col gap-1 text-left">
+                    <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_inf1-input">
+                      "Note"
+                      <span class="[color:var(--error)]" aria-hidden="true">
+                        "*"
+                    <div class="relative">
+                      <textarea class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 resize-y text-sm w-full" aria-required="true" id="cmp_inf1-input" name="body" rows="3" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+              <div class="flex gap-2 items-center">
+                <button class="[background:var(--app-accent,var(--app-primary))] [border-radius:var(--app-radius)] [color:var(--app-accent-contrast,var(--app-primary-contrast))]! disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm" type="submit">
+                  <span>
+                    "Add note"
+          <div class="app-node app-span-12 min-w-0" data-app-type="form" data-node-id="cmp_iasgform" style="grid-column: span 12 / span 12">
+            <form class="flex flex-col" novalidate="" style="gap: calc(12px * var(--app-space, 1))">
+              <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                <div class="app-node app-span-12 min-w-0" data-app-type="input_person" data-node-id="cmp_iasg1" style="grid-column: span 12 / span 12">
+                  <div class="flex flex-col gap-1 text-left">
+                    <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_iasg1-input">
+                      "Give this to"
+                      <span class="[color:var(--error)]" aria-hidden="true">
+                        "*"
+                    <div class="flex flex-col gap-2">
+                      <div class="relative">
+                        <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none pr-7 px-2.5 py-1.5 text-sm w-full" aria-controls="cmp_iasg1-input-listbox" aria-expanded="false" aria-label="Search Give this to" aria-required="true" autocomplete="off" id="cmp_iasg1-input" placeholder="Search people…" role="combobox" type="text" value="" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                        <svg class="-translate-y-1/2 absolute h-4 lucide lucide-chevron-down pointer-events-none right-2 text-[var(--text-muted)] top-1/2 w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <div class="flex gap-2 items-center">
+                <button class="[background:var(--app-accent,var(--app-primary))] [border-radius:var(--app-radius)] [color:var(--app-accent-contrast,var(--app-primary-contrast))]! disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm" type="submit">
+                  <span>
+                    "Assign"
+## screen scr_epics (Epics)
+<div class="app-design--surface-soft app-motion--full app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(29, 78, 216, 0.1); --app-accent: #1D4ED8; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(29, 78, 216, 0.1); --app-primary: #1D4ED8; --app-radius: 12px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-family: "Geist", system-ui, -apple-system, sans-serif; font-size: 15px; min-height: 100vh">
+  <main class="flex flex-1 flex-col min-h-0">
+    <div class="app-design--surface-soft app-motion--full app-runtime app-screen-enter flex flex-1 flex-col h-full min-h-0 w-full" data-app-appearance="auto" data-app-screen="scr_epics" data-app-screen-kind="page" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(29, 78, 216, 0.1); --app-accent: #1D4ED8; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(29, 78, 216, 0.1); --app-primary: #1D4ED8; --app-radius: 12px; --app-space: 1; color: var(--text-primary); font-family: "Geist", system-ui, -apple-system, sans-serif; font-size: 15px">
+      <div class="flex flex-1 flex-col min-h-0 w-full" style="margin: 0px auto; max-width: 1280px">
+        <section class="app-grid" data-section-id="sec_eptop" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="page_header" data-node-id="cmp_ephdr" style="grid-column: span 12 / span 12">
+            <header class="min-w-0 w-full" data-app-pageheader="true">
+              <div class="flex flex-wrap items-start" style="gap: calc(12px * var(--app-space, 1))">
+                <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-9 inline-flex items-center justify-center rounded-md shrink-0 w-9" aria-hidden="true">
+                  <svg class="h-4.5 lucide lucide-layout-template w-4.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                <div class="basis-64 flex-1 min-w-0">
+                  <h1 class="font-semibold text-[var(--text-primary)] text-xl truncate" title="Epics">
+                    "Epics"
+                  <p class="line-clamp-2 mt-0.5 text-sm" title="Work grouped by the epic each item names. An epic with no items under it is a plan nobody started." style="color: var(--text-secondary)">
+                    "Work grouped by the epic each item names. An epic with no items under it is a plan nobody started."
+        <section class="app-grid app-section-fill" data-section-id="sec_epmain" style="flex: 1 1 0px; gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); grid-template-rows: minmax(0, 1fr); min-height: 0px; padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-6 min-w-0" data-app-type="data_grid" data-node-id="cmp_epgrid" style="flex: 1 1 0px; grid-column: span 6 / span 6; min-height: 0px; min-width: 0px">
+            <div class="w-full" data-app-datagrid="true">
+              <div class="flex flex-col gap-1.5 h-full items-center justify-center min-h-0 py-6 text-center">
+                <span class="mb-1 text-[var(--text-tertiary)]">
+                  <svg class="block" aria-hidden="true" fill="none" role="presentation" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 96 72" style="height: auto; opacity: 0.9; width: 5.5rem">
+                <span class="font-medium text-[var(--text-primary)] text-sm">
+                  "Nothing here yet"
+                <span class="max-w-xs text-[var(--text-muted)] text-sm">
+                  "No epics on this board."
+          <div class="app-node app-span-6 min-w-0" data-app-type="chart" data-node-id="cmp_epchart" style="flex: 1 1 0px; grid-column: span 6 / span 6; min-height: 0px; min-width: 0px">
+            <div class="flex h-full items-center justify-center min-h-0 py-1 text-[var(--text-muted)] text-center text-sm">
+              "No chart data yet."
+## screen scr_setup (Setup)
+<div class="app-design--surface-soft app-motion--full app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(29, 78, 216, 0.1); --app-accent: #1D4ED8; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(29, 78, 216, 0.1); --app-primary: #1D4ED8; --app-radius: 12px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-family: "Geist", system-ui, -apple-system, sans-serif; font-size: 15px; min-height: 100vh">
+  <main class="flex flex-1 flex-col min-h-0">
+    <div class="app-design--surface-soft app-motion--full app-runtime app-screen-enter flex flex-1 flex-col h-full min-h-0 w-full" data-app-appearance="auto" data-app-screen="scr_setup" data-app-screen-kind="page" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(29, 78, 216, 0.1); --app-accent: #1D4ED8; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(29, 78, 216, 0.1); --app-primary: #1D4ED8; --app-radius: 12px; --app-space: 1; color: var(--text-primary); font-family: "Geist", system-ui, -apple-system, sans-serif; font-size: 15px">
+      <div class="flex flex-1 flex-col min-h-0 w-full" style="margin: 0px auto; max-width: 1280px">
+        <section class="app-grid" data-section-id="sec_sutop" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="page_header" data-node-id="cmp_suhdr" style="grid-column: span 12 / span 12">
+            <header class="min-w-0 w-full" data-app-pageheader="true">
+              <div class="flex flex-wrap items-start" style="gap: calc(12px * var(--app-space, 1))">
+                <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-9 inline-flex items-center justify-center rounded-md shrink-0 w-9" aria-hidden="true">
+                  <svg class="h-4.5 lucide lucide-table-properties w-4.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                <div class="basis-64 flex-1 min-w-0">
+                  <h1 class="font-semibold text-[var(--text-primary)] text-xl truncate" title="Setup">
+                    "Setup"
+                  <p class="line-clamp-2 mt-0.5 text-sm" title="Everything here is data, not code — add a state and the boards that use it grow a column." style="color: var(--text-secondary)">
+                    "Everything here is data, not code — add a state and the boards that use it grow a column."
+          <div class="app-node app-span-12 min-w-0" data-app-type="callout" data-node-id="cmp_sunote" style="grid-column: span 12 / span 12">
+            <div class="flex gap-2.5 items-start px-3 py-2.5 text-sm" data-app-callout="info" style="background: rgba(14, 165, 233, 0.1); border-left: 3px solid rgb(14, 165, 233); border-radius: var(--app-radius); color: var(--text-primary)">
+              <svg class="h-4 lucide lucide-info mt-0.5 shrink-0 w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg" style="color: rgb(14, 165, 233)">
+              <div class="min-w-0">
+                <div class="font-medium">
+                  "One thing to know"
+                <div class="app-callout__body text-[var(--text-secondary)]">
+                  "Boards read their columns, states and types from these tables live, so anything you add here shows up on the board straight away. The one exception is the Type dropdown in the Backlog filter bar: that list is fixed in the app design, so a new type appears on the board and in the grids but not in that dropdown until an editor adds it there."
+        <section class="app-grid app-section-fill" data-section-id="sec_sumain" style="flex: 1 1 0px; gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); grid-template-rows: minmax(0, 1fr); min-height: 0px; padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="tabs" data-node-id="cmp_sutabs" style="grid-column: span 12 / span 12">
+            <div class="min-w-0 w-full" data-app-tabs="true" data-app-tabs-look="pills">
+              <div class="flex flex-wrap gap-1.5 items-center" aria-label="Tabs" role="tablist">
+                <button class="font-medium gap-1.5 inline-flex items-center px-3 py-1.5 rounded-full shrink-0 text-sm whitespace-nowrap" aria-selected="true" role="tab" type="button" style="background: var(--app-primary-soft); color: var(--app-primary); transition: background-color var(--app-motion-fast, 0ms) var(--app-ease, ease-out), color var(--app-motion-fast, 0ms) var(--app-ease, ease-out)">
+                  <svg class="h-3.5 lucide lucide-kanban-square lucide-square-kanban w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                  <span>
+                    "Boards"
+                <button class="font-medium gap-1.5 inline-flex items-center px-3 py-1.5 rounded-full shrink-0 text-sm whitespace-nowrap" aria-selected="false" role="tab" type="button" style="background: transparent; color: var(--text-secondary); transition: background-color var(--app-motion-fast, 0ms) var(--app-ease, ease-out), color var(--app-motion-fast, 0ms) var(--app-ease, ease-out)">
+                  <svg class="h-3.5 lucide lucide-columns lucide-columns-2 w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                  <span>
+                    "Columns"
+                <button class="font-medium gap-1.5 inline-flex items-center px-3 py-1.5 rounded-full shrink-0 text-sm whitespace-nowrap" aria-selected="false" role="tab" type="button" style="background: transparent; color: var(--text-secondary); transition: background-color var(--app-motion-fast, 0ms) var(--app-ease, ease-out), color var(--app-motion-fast, 0ms) var(--app-ease, ease-out)">
+                  <svg class="h-3.5 lucide lucide-list-checks w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                  <span>
+                    "States"
+                <button class="font-medium gap-1.5 inline-flex items-center px-3 py-1.5 rounded-full shrink-0 text-sm whitespace-nowrap" aria-selected="false" role="tab" type="button" style="background: transparent; color: var(--text-secondary); transition: background-color var(--app-motion-fast, 0ms) var(--app-ease, ease-out), color var(--app-motion-fast, 0ms) var(--app-ease, ease-out)">
+                  <svg class="h-3.5 lucide lucide-tags w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                  <span>
+                    "Types"
+                <button class="font-medium gap-1.5 inline-flex items-center px-3 py-1.5 rounded-full shrink-0 text-sm whitespace-nowrap" aria-selected="false" role="tab" type="button" style="background: transparent; color: var(--text-secondary); transition: background-color var(--app-motion-fast, 0ms) var(--app-ease, ease-out), color var(--app-motion-fast, 0ms) var(--app-ease, ease-out)">
+                  <svg class="h-3.5 lucide lucide-id-card w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                  <span>
+                    "Team"
+              <div class="pt-3" data-app-tabpanel="active" role="tabpanel">
+                <div class="app-node app-span-12 min-w-0" data-app-type="tab" data-node-id="cmp_sutab0" style="grid-column: span 12 / span 12">
+                  <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                    <div class="app-node app-span-12 min-w-0" data-app-type="data_grid" data-node-id="cmp_suboards" style="grid-column: span 12 / span 12">
+                      <div class="w-full" data-app-datagrid="true">
+                        <div class="flex flex-col gap-1.5 h-full items-center justify-center min-h-0 py-6 text-center">
+                          <span class="mb-1 text-[var(--text-tertiary)]">
+                            <svg class="block" aria-hidden="true" fill="none" role="presentation" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 96 72" style="height: auto; opacity: 0.9; width: 5.5rem">
+                          <span class="font-medium text-[var(--text-primary)] text-sm">
+                            "Nothing here yet"
+                          <span class="max-w-xs text-[var(--text-muted)] text-sm">
+                            "No boards yet — add one below."
+                    <div class="app-node app-span-3 min-w-0" data-app-type="button" data-node-id="cmp_subdadd" style="grid-column: span 3 / span 3">
+                      <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm transition-opacity" type="button" style="background: var(--app-accent, var(--app-primary)); border-radius: var(--app-radius); color: var(--app-accent-contrast, var(--app-primary-contrast))">
+                        <svg class="h-3.5 lucide lucide-plus w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                        <span>
+                          "Add board"
+              <div class="pt-3" data-app-tabpanel="inactive" hidden="" role="tabpanel" style="display: none">
+                <div class="app-node app-span-12 min-w-0" data-app-type="tab" data-node-id="cmp_sutab1" style="grid-column: span 12 / span 12">
+                  <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                    <div class="app-node app-span-12 min-w-0" data-app-type="data_grid" data-node-id="cmp_sucols" style="grid-column: span 12 / span 12">
+                      <div class="w-full" data-app-datagrid="true">
+                        <div class="flex flex-col gap-1.5 h-full items-center justify-center min-h-0 py-6 text-center">
+                          <span class="mb-1 text-[var(--text-tertiary)]">
+                            <svg class="block" aria-hidden="true" fill="none" role="presentation" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 96 72" style="height: auto; opacity: 0.9; width: 5.5rem">
+                          <span class="font-medium text-[var(--text-primary)] text-sm">
+                            "Nothing here yet"
+                          <span class="max-w-xs text-[var(--text-muted)] text-sm">
+                            "Pick a board on the Board screen, then add its columns here."
+                    <div class="app-node app-span-3 min-w-0" data-app-type="button" data-node-id="cmp_sucoladd" style="grid-column: span 3 / span 3">
+                      <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm transition-opacity" type="button" style="background: var(--app-accent, var(--app-primary)); border-radius: var(--app-radius); color: var(--app-accent-contrast, var(--app-primary-contrast))">
+                        <svg class="h-3.5 lucide lucide-plus w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                        <span>
+                          "Add column"
+              <div class="pt-3" data-app-tabpanel="inactive" hidden="" role="tabpanel" style="display: none">
+                <div class="app-node app-span-12 min-w-0" data-app-type="tab" data-node-id="cmp_sutab2" style="grid-column: span 12 / span 12">
+                  <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                    <div class="app-node app-span-12 min-w-0" data-app-type="data_grid" data-node-id="cmp_sustates" style="grid-column: span 12 / span 12">
+                      <div class="w-full" data-app-datagrid="true">
+                        <div class="flex flex-col gap-1.5 h-full items-center justify-center min-h-0 py-6 text-center">
+                          <span class="mb-1 text-[var(--text-tertiary)]">
+                            <svg class="block" aria-hidden="true" fill="none" role="presentation" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 96 72" style="height: auto; opacity: 0.9; width: 5.5rem">
+                          <span class="font-medium text-[var(--text-primary)] text-sm">
+                            "Nothing here yet"
+                          <span class="max-w-xs text-[var(--text-muted)] text-sm">
+                            "No states configured."
+                    <div class="app-node app-span-3 min-w-0" data-app-type="button" data-node-id="cmp_sustadd" style="grid-column: span 3 / span 3">
+                      <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm transition-opacity" type="button" style="background: var(--app-accent, var(--app-primary)); border-radius: var(--app-radius); color: var(--app-accent-contrast, var(--app-primary-contrast))">
+                        <svg class="h-3.5 lucide lucide-plus w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                        <span>
+                          "Add state"
+              <div class="pt-3" data-app-tabpanel="inactive" hidden="" role="tabpanel" style="display: none">
+                <div class="app-node app-span-12 min-w-0" data-app-type="tab" data-node-id="cmp_sutab3" style="grid-column: span 12 / span 12">
+                  <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                    <div class="app-node app-span-12 min-w-0" data-app-type="data_grid" data-node-id="cmp_sutypes" style="grid-column: span 12 / span 12">
+                      <div class="w-full" data-app-datagrid="true">
+                        <div class="flex flex-col gap-1.5 h-full items-center justify-center min-h-0 py-6 text-center">
+                          <span class="mb-1 text-[var(--text-tertiary)]">
+                            <svg class="block" aria-hidden="true" fill="none" role="presentation" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 96 72" style="height: auto; opacity: 0.9; width: 5.5rem">
+                          <span class="font-medium text-[var(--text-primary)] text-sm">
+                            "Nothing here yet"
+                          <span class="max-w-xs text-[var(--text-muted)] text-sm">
+                            "No work item types configured."
+                    <div class="app-node app-span-3 min-w-0" data-app-type="button" data-node-id="cmp_sutyadd" style="grid-column: span 3 / span 3">
+                      <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm transition-opacity" type="button" style="background: var(--app-accent, var(--app-primary)); border-radius: var(--app-radius); color: var(--app-accent-contrast, var(--app-primary-contrast))">
+                        <svg class="h-3.5 lucide lucide-plus w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                        <span>
+                          "Add type"
+              <div class="pt-3" data-app-tabpanel="inactive" hidden="" role="tabpanel" style="display: none">
+                <div class="app-node app-span-12 min-w-0" data-app-type="tab" data-node-id="cmp_sutab4" style="grid-column: span 12 / span 12">
+                  <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                    <div class="app-node app-span-12 min-w-0" data-app-type="data_grid" data-node-id="cmp_sumem" style="grid-column: span 12 / span 12">
+                      <div class="w-full" data-app-datagrid="true">
+                        <div class="flex flex-col gap-1.5 h-full items-center justify-center min-h-0 py-6 text-center">
+                          <span class="mb-1 text-[var(--text-tertiary)]">
+                            <svg class="block" aria-hidden="true" fill="none" role="presentation" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 96 72" style="height: auto; opacity: 0.9; width: 5.5rem">
+                          <span class="font-medium text-[var(--text-primary)] text-sm">
+                            "Nothing here yet"
+                          <span class="max-w-xs text-[var(--text-muted)] text-sm">
+                            "Nobody on the team yet."
+                    <div class="app-node app-span-3 min-w-0" data-app-type="button" data-node-id="cmp_sumemadd" style="grid-column: span 3 / span 3">
+                      <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm transition-opacity" type="button" style="background: var(--app-accent, var(--app-primary)); border-radius: var(--app-radius); color: var(--app-accent-contrast, var(--app-primary-contrast))">
+                        <svg class="h-3.5 lucide lucide-plus w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                        <span>
+                          "Add person"
+        <section class="app-grid" data-section-id="sec_sudlg" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: 0px">

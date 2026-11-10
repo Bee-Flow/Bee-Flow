@@ -1,0 +1,741 @@
+# template-ai-act-register
+## screen scr_register (Register)
+<div class="app-design--surface-soft app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(4, 120, 87, 0.1); --app-accent: #047857; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(4, 120, 87, 0.1); --app-primary: #047857; --app-radius: 12px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-family: "General Sans", system-ui, -apple-system, sans-serif; font-size: 15px; min-height: 100vh">
+  <main class="flex flex-1 flex-col min-h-0">
+    <div class="app-design--surface-soft app-runtime app-screen-enter flex flex-1 flex-col h-full min-h-0 w-full" data-app-appearance="auto" data-app-screen="scr_register" data-app-screen-kind="page" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(4, 120, 87, 0.1); --app-accent: #047857; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(4, 120, 87, 0.1); --app-primary: #047857; --app-radius: 12px; --app-space: 1; color: var(--text-primary); font-family: "General Sans", system-ui, -apple-system, sans-serif; font-size: 15px">
+      <div class="flex flex-1 flex-col min-h-0 w-full" style="margin: 0px auto; max-width: none">
+        <section class="app-grid" data-section-id="sec_regtop" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="page_header" data-node-id="cmp_reghdr" style="grid-column: span 12 / span 12">
+            <header class="app-pageheader--banner min-w-0 w-full" data-app-pageheader="true" data-app-pageheader-look="banner" style="background: var(--app-primary-soft); border-radius: var(--app-radius, 8px); padding: calc(20px * var(--app-space, 1))">
+              <div class="flex flex-wrap items-start" style="gap: calc(12px * var(--app-space, 1))">
+                <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-9 inline-flex items-center justify-center rounded-md shrink-0 w-9" aria-hidden="true">
+                  <svg class="h-4.5 lucide lucide-table w-4.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                <div class="basis-64 flex-1 min-w-0">
+                  <h1 class="font-semibold text-[var(--text-primary)] text-xl truncate" title="AI system register (verwerkingsregister voor AI-systemen)">
+                    "AI system register (verwerkingsregister voor AI-systemen)"
+                  <p class="line-clamp-2 mt-0.5 text-sm" title="What we run, what it is for, and which risk tier it falls in. A new system enters unclassified on purpose — classifying it is a decision someone has to make." style="color: var(--text-secondary)">
+                    "What we run, what it is for, and which risk tier it falls in. A new system enters unclassified on purpose — classifying it is a decision someone has to make."
+                <div class="flex flex-wrap items-center justify-end ml-auto" data-app-pageheader-actions="true" style="gap: calc(8px * var(--app-space, 1))">
+                  <div class="app-node app-span-3 min-w-0" data-app-type="button" data-node-id="cmp_regnew" style="grid-column: span 3 / span 3">
+                    <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm transition-opacity" type="button" style="background: var(--app-accent, var(--app-primary)); border-radius: var(--app-radius); color: var(--app-accent-contrast, var(--app-primary-contrast))">
+                      <svg class="h-3.5 lucide lucide-plus w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                      <span>
+                        "Register a system"
+                  <div class="app-node app-span-3 min-w-0" data-app-type="button" data-node-id="cmp_regrem" style="grid-column: span 3 / span 3">
+                    <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm transition-opacity" type="button" style="background: transparent; border-radius: var(--app-radius); color: var(--app-primary)">
+                      <svg class="h-3.5 lucide lucide-mail w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                      <span>
+                        "Chase overdue reviews"
+          <div class="app-node app-span-12 min-w-0" data-app-type="filter_bar" data-node-id="cmp_regfilt" style="grid-column: span 12 / span 12">
+            <div class="flex flex-wrap gap-3 items-end" data-app-filterbar="true">
+              <div class="flex flex-col gap-1 min-w-0" data-app-filter="q">
+                <label class="font-medium text-[var(--text-secondary)] text-xs" for="cmp_regfilt-flt-q">
+                  "Search"
+                <div class="relative">
+                  <svg class="-translate-y-1/2 absolute h-3.5 left-2.5 lucide lucide-search text-[var(--text-muted)] top-1/2 w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                  <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none pl-8 px-2.5 py-1.5 text-sm w-full" aria-label="Search" id="cmp_regfilt-flt-q" placeholder="Search" type="text" value="" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+              <div class="flex flex-col gap-1 min-w-0" data-app-filter="tier">
+                <label class="font-medium text-[var(--text-secondary)] text-xs" for="cmp_regfilt-flt-tier">
+                  "Risk tier"
+                <select class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-label="Risk tier" id="cmp_regfilt-flt-tier" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                  <option value="">
+                    "All"
+                  <option value="unclassified">
+                    "Unclassified"
+                  <option value="prohibited">
+                    "Prohibited"
+                  <option value="high">
+                    "High risk"
+                  <option value="limited">
+                    "Limited risk"
+                  <option value="minimal">
+                    "Minimal risk"
+              <div class="flex flex-col gap-1 min-w-0" data-app-filter="status">
+                <label class="font-medium text-[var(--text-secondary)] text-xs" for="cmp_regfilt-flt-status">
+                  "Status"
+                <select class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-label="Status" id="cmp_regfilt-flt-status" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                  <option value="">
+                    "All"
+                  <option value="planned">
+                    "Planned"
+                  <option value="in_use">
+                    "In use"
+                  <option value="paused">
+                    "Paused"
+                  <option value="retired">
+                    "Retired"
+              <div class="flex flex-col gap-1 min-w-0" data-app-filter="hosting">
+                <label class="font-medium text-[var(--text-secondary)] text-xs" for="cmp_regfilt-flt-hosting">
+                  "Hosting"
+                <select class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-label="Hosting" id="cmp_regfilt-flt-hosting" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                  <option value="">
+                    "All"
+                  <option value="self_hosted">
+                    "Self-hosted — our own infrastructure"
+                  <option value="external_eu">
+                    "External vendor — hosted in the EU"
+                  <option value="external_other">
+                    "External vendor — hosted outside the EU"
+          <div class="app-node app-span-3 min-w-0" data-app-type="stat" data-node-id="cmp_regs1" style="grid-column: span 3 / span 3">
+            <div class="app-stat app-stat--gradient flex gap-2.5 items-start" style="background: linear-gradient(135deg, color-mix(in srgb, var(--app-primary) 16%, transparent), color-mix(in srgb, var(--app-primary) 3%, transparent)); border-radius: var(--app-radius, 8px); padding: calc(16px * var(--app-space, 1))">
+              <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-8 inline-flex items-center justify-center mt-0.5 rounded-md shrink-0 w-8">
+                <svg class="h-4 lucide lucide-boxes w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-[var(--text-secondary)] text-xs">
+                  "Systems on the register"
+                <div class="flex gap-2 items-baseline min-w-0">
+                  <div class="font-semibold leading-tight text-2xl truncate" title="—" style="color: var(--app-primary)">
+                    "—"
+                <div class="text-[var(--text-muted)] text-xs">
+                  "including planned and retired"
+          <div class="app-node app-span-3 min-w-0" data-app-type="stat" data-node-id="cmp_regs2" style="grid-column: span 3 / span 3">
+            <div class="app-stat app-stat--gradient flex gap-2.5 items-start" style="background: linear-gradient(135deg, color-mix(in srgb, var(--app-primary) 16%, transparent), color-mix(in srgb, var(--app-primary) 3%, transparent)); border-radius: var(--app-radius, 8px); padding: calc(16px * var(--app-space, 1))">
+              <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-8 inline-flex items-center justify-center mt-0.5 rounded-md shrink-0 w-8">
+                <svg class="h-4 lucide lucide-shield-check w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-[var(--text-secondary)] text-xs">
+                  "High risk"
+                <div class="flex gap-2 items-baseline min-w-0">
+                  <div class="font-semibold leading-tight text-2xl truncate" title="—" style="color: var(--app-primary)">
+                    "—"
+                <div class="text-[var(--text-muted)] text-xs">
+                  "Chapter III obligations apply"
+          <div class="app-node app-span-3 min-w-0" data-app-type="stat" data-node-id="cmp_regs3" style="grid-column: span 3 / span 3">
+            <div class="app-stat app-stat--gradient flex gap-2.5 items-start" style="background: linear-gradient(135deg, color-mix(in srgb, var(--app-primary) 16%, transparent), color-mix(in srgb, var(--app-primary) 3%, transparent)); border-radius: var(--app-radius, 8px); padding: calc(16px * var(--app-space, 1))">
+              <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-8 inline-flex items-center justify-center mt-0.5 rounded-md shrink-0 w-8">
+                <svg class="h-4 lucide lucide-alert-triangle lucide-triangle-alert w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-[var(--text-secondary)] text-xs">
+                  "Unclassified"
+                <div class="flex gap-2 items-baseline min-w-0">
+                  <div class="font-semibold leading-tight text-2xl truncate" title="—" style="color: var(--app-primary)">
+                    "—"
+                <div class="text-[var(--text-muted)] text-xs">
+                  "nobody has decided yet — start on Triage"
+          <div class="app-node app-span-3 min-w-0" data-app-type="stat" data-node-id="cmp_regs4" style="grid-column: span 3 / span 3">
+            <div class="app-stat app-stat--gradient flex gap-2.5 items-start" style="background: linear-gradient(135deg, color-mix(in srgb, var(--app-primary) 16%, transparent), color-mix(in srgb, var(--app-primary) 3%, transparent)); border-radius: var(--app-radius, 8px); padding: calc(16px * var(--app-space, 1))">
+              <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-8 inline-flex items-center justify-center mt-0.5 rounded-md shrink-0 w-8">
+                <svg class="h-4 lucide lucide-calendar-clock w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-[var(--text-secondary)] text-xs">
+                  "Reviews overdue"
+                <div class="flex gap-2 items-baseline min-w-0">
+                  <div class="font-semibold leading-tight text-2xl truncate" title="—" style="color: var(--app-primary)">
+                    "—"
+                <div class="text-[var(--text-muted)] text-xs">
+                  "past the date the tier asks for"
+        <section class="app-grid app-section-fill" data-section-id="sec_regmain" style="flex: 1 1 0px; gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); grid-template-rows: minmax(0, 1fr); min-height: 0px; padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="data_grid" data-node-id="cmp_reggrid" style="flex: 1 1 0px; grid-column: span 12 / span 12; min-height: 0px; min-width: 0px">
+            <div class="w-full" data-app-datagrid="true">
+              <div class="flex flex-col gap-1.5 h-full items-center justify-center min-h-0 py-6 text-center">
+                <span class="mb-1 text-[var(--text-tertiary)]">
+                  <svg class="block" aria-hidden="true" fill="none" role="presentation" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 96 72" style="height: auto; opacity: 0.9; width: 5.5rem">
+                <span class="font-medium text-[var(--text-primary)] text-sm">
+                  "Nothing here yet"
+                <span class="max-w-xs text-[var(--text-muted)] text-sm">
+                  "Nothing on the register yet — register the first system."
+        <section class="app-grid" data-section-id="sec_regdlg" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: 0px">
+## screen scr_triage (Triage)
+<div class="app-design--surface-soft app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(4, 120, 87, 0.1); --app-accent: #047857; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(4, 120, 87, 0.1); --app-primary: #047857; --app-radius: 12px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-family: "General Sans", system-ui, -apple-system, sans-serif; font-size: 15px; min-height: 100vh">
+  <main class="flex flex-1 flex-col min-h-0">
+    <div class="app-design--surface-soft app-runtime app-screen-enter flex flex-1 flex-col h-full min-h-0 w-full" data-app-appearance="auto" data-app-screen="scr_triage" data-app-screen-kind="page" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(4, 120, 87, 0.1); --app-accent: #047857; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(4, 120, 87, 0.1); --app-primary: #047857; --app-radius: 12px; --app-space: 1; color: var(--text-primary); font-family: "General Sans", system-ui, -apple-system, sans-serif; font-size: 15px">
+      <div class="flex flex-1 flex-col min-h-0 w-full" style="margin: 0px auto; max-width: none">
+        <section class="app-grid" data-section-id="sec_trtop" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="page_header" data-node-id="cmp_trhdr" style="grid-column: span 12 / span 12">
+            <header class="min-w-0 w-full" data-app-pageheader="true">
+              <div class="flex flex-wrap items-start" style="gap: calc(12px * var(--app-space, 1))">
+                <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-9 inline-flex items-center justify-center rounded-md shrink-0 w-9" aria-hidden="true">
+                  <svg class="h-4.5 lucide lucide-layers lucide-layers-3 w-4.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                <div class="basis-64 flex-1 min-w-0">
+                  <h1 class="font-semibold text-[var(--text-primary)] text-xl truncate" title="Risk triage (risicoclassificatie)">
+                    "Risk triage (risicoclassificatie)"
+                  <p class="line-clamp-2 mt-0.5 text-sm" title="Drag a system into the tier it belongs to. The first column is everything nobody has decided about yet." style="color: var(--text-secondary)">
+                    "Drag a system into the tier it belongs to. The first column is everything nobody has decided about yet."
+          <div class="app-node app-span-9 min-w-0" data-app-type="callout" data-node-id="cmp_trnote" style="grid-column: span 9 / span 9">
+            <div class="flex gap-2.5 items-start px-3 py-2.5 text-sm" data-app-callout="warning" style="background: rgba(245, 158, 11, 0.1); border-left: 3px solid rgb(245, 158, 11); border-radius: var(--app-radius); color: var(--text-primary)">
+              <svg class="h-4 lucide lucide-alert-triangle lucide-triangle-alert mt-0.5 shrink-0 w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg" style="color: rgb(245, 158, 11)">
+              <div class="min-w-0">
+                <div class="font-medium">
+                  "Unclassified is not a neutral state"
+                <div class="app-callout__body text-[var(--text-secondary)]">
+                  "A system nobody has classified is a system nobody has checked against Article 5 or Annex III. It sits in the red column until someone decides — which is the whole point of the column being there."
+          <div class="app-node app-span-3 min-w-0" data-app-type="stat" data-node-id="cmp_trstat" style="grid-column: span 3 / span 3">
+            <div class="app-stat flex gap-2.5 items-start">
+              <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-8 inline-flex items-center justify-center mt-0.5 rounded-md shrink-0 w-8">
+                <svg class="h-4 lucide lucide-alert-triangle lucide-triangle-alert w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-[var(--text-secondary)] text-xs">
+                  "Waiting on a decision"
+                <div class="flex gap-2 items-baseline min-w-0">
+                  <div class="font-semibold leading-tight text-2xl truncate" title="—">
+                    "—"
+                <div class="text-[var(--text-muted)] text-xs">
+                  "systems, right now"
+        <section class="app-grid app-section-fill" data-section-id="sec_trmain" style="flex: 1 1 0px; gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); grid-template-rows: minmax(0, 1fr); min-height: 0px; padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-3 min-w-0" data-app-type="list" data-node-id="cmp_trtiers" style="flex: 1 1 0px; grid-column: span 3 / span 3; min-height: 0px; min-width: 0px">
+            <div class="flex flex-col gap-1.5 h-full items-center justify-center min-h-0 py-6 text-center">
+              <span class="mb-1 text-[var(--text-tertiary)]">
+                <svg class="block" aria-hidden="true" fill="none" role="presentation" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 96 72" style="height: auto; opacity: 0.9; width: 5.5rem">
+              <span class="font-medium text-[var(--text-primary)] text-sm">
+                "Nothing here yet"
+              <span class="max-w-xs text-[var(--text-muted)] text-sm">
+                "No tiers configured — add them on Setup."
+          <div class="app-node app-span-9 min-w-0" data-app-type="kanban" data-node-id="cmp_trboard" style="flex: 1 1 0px; grid-column: span 9 / span 9; min-height: 0px; min-width: 0px">
+            <div class="flex h-full items-center justify-center min-h-0 py-1 text-[var(--text-muted)] text-center text-sm">
+              "Nothing on the register yet."
+        <section class="app-grid app-surface" data-section-id="sec_trtier" style="background: var(--bg-card); border-radius: var(--app-radius); box-shadow: var(--app-shadow-1, none); gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="record_detail" data-node-id="cmp_trobl" style="grid-column: span 12 / span 12">
+            <div class="flex h-full items-center justify-center min-h-0 py-1 text-[var(--text-muted)] text-center text-sm">
+              "Pick a tier on the left to read what it obliges you to do."
+## screen scr_system (System)
+<div class="app-design--surface-soft app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(4, 120, 87, 0.1); --app-accent: #047857; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(4, 120, 87, 0.1); --app-primary: #047857; --app-radius: 12px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-family: "General Sans", system-ui, -apple-system, sans-serif; font-size: 15px; min-height: 100vh">
+  <main class="flex flex-1 flex-col min-h-0">
+    <div class="app-design--surface-soft app-runtime app-screen-enter flex flex-1 flex-col h-full min-h-0 w-full" data-app-appearance="auto" data-app-screen="scr_system" data-app-screen-kind="page" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(4, 120, 87, 0.1); --app-accent: #047857; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(4, 120, 87, 0.1); --app-primary: #047857; --app-radius: 12px; --app-space: 1; color: var(--text-primary); font-family: "General Sans", system-ui, -apple-system, sans-serif; font-size: 15px">
+      <div class="flex flex-1 flex-col min-h-0 w-full" style="margin: 0px auto; max-width: 1280px">
+        <section class="app-grid" data-section-id="sec_systop" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="page_header" data-node-id="cmp_syshdr" style="grid-column: span 12 / span 12">
+            <header class="min-w-0 w-full" data-app-pageheader="true">
+              <div class="flex flex-wrap items-start" style="gap: calc(12px * var(--app-space, 1))">
+                <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-9 inline-flex items-center justify-center rounded-md shrink-0 w-9" aria-hidden="true">
+                  <svg class="h-4.5 lucide lucide-box w-4.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                <div class="basis-64 flex-1 min-w-0">
+                  <h1 class="font-semibold text-[var(--text-primary)] text-xl truncate" title="AI system">
+                    "AI system"
+                <div class="flex flex-wrap items-center justify-end ml-auto" data-app-pageheader-actions="true" style="gap: calc(8px * var(--app-space, 1))">
+                  <div class="app-node app-span-3 min-w-0" data-app-type="button" data-node-id="cmp_sysback" style="grid-column: span 3 / span 3">
+                    <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm transition-opacity" type="button" style="background: transparent; border-radius: var(--app-radius); color: var(--app-primary)">
+                      <svg class="h-3.5 lucide lucide-arrow-left w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                      <span>
+                        "Back to the register"
+              <hr class="[background:var(--border-default)] border-0 h-px mt-3 w-full" aria-hidden="true">
+          <div class="app-node app-span-12 min-w-0" data-app-type="record_detail" data-node-id="cmp_sysdet" style="grid-column: span 12 / span 12">
+            <div class="flex h-full items-center justify-center min-h-0 py-1 text-[var(--text-muted)] text-center text-sm">
+              "Open a system from the register or the triage board."
+        <section class="app-grid app-section-fill" data-section-id="sec_sysmain" style="flex: 1 1 0px; gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); grid-template-rows: minmax(0, 1fr); min-height: 0px; padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="tabs" data-node-id="cmp_systabs" style="grid-column: span 12 / span 12">
+            <div class="min-w-0 w-full" data-app-tabs="true">
+              <div class="app-scroll-x border-b flex gap-1 items-center overflow-x-auto" aria-label="Tabs" role="tablist" style="border-color: var(--border-default)">
+                <button class="-mb-px font-medium gap-1.5 inline-flex items-center px-3 py-2 shrink-0 text-sm whitespace-nowrap" aria-selected="true" role="tab" type="button" style="border-bottom: 2px solid var(--app-primary); color: var(--app-primary)">
+                  <svg class="h-3.5 lucide lucide-shield-check w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                  <span>
+                    "Classification"
+                <button class="-mb-px font-medium gap-1.5 inline-flex items-center px-3 py-2 shrink-0 text-sm whitespace-nowrap" aria-selected="false" role="tab" type="button" style="border-bottom: 2px solid transparent; color: var(--text-secondary)">
+                  <svg class="h-3.5 lucide lucide-user-check w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                  <span>
+                    "Human oversight"
+                <button class="-mb-px font-medium gap-1.5 inline-flex items-center px-3 py-2 shrink-0 text-sm whitespace-nowrap" aria-selected="false" role="tab" type="button" style="border-bottom: 2px solid transparent; color: var(--text-secondary)">
+                  <svg class="h-3.5 lucide lucide-alert-triangle lucide-triangle-alert w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                  <span>
+                    "Incidents"
+                <button class="-mb-px font-medium gap-1.5 inline-flex items-center px-3 py-2 shrink-0 text-sm whitespace-nowrap" aria-selected="false" role="tab" type="button" style="border-bottom: 2px solid transparent; color: var(--text-secondary)">
+                  <svg class="h-3.5 lucide lucide-file-check w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                  <span>
+                    "Assessments"
+              <div class="pt-3" data-app-tabpanel="active" role="tabpanel">
+                <div class="app-node app-span-12 min-w-0" data-app-type="tab" data-node-id="cmp_systab1" style="grid-column: span 12 / span 12">
+                  <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                    <div class="app-node app-span-12 min-w-0" data-app-type="callout" data-node-id="cmp_syscnot" style="grid-column: span 12 / span 12">
+                      <div class="flex gap-2.5 items-start px-3 py-2.5 text-sm" data-app-callout="info" style="background: rgba(14, 165, 233, 0.1); border-left: 3px solid rgb(14, 165, 233); border-radius: var(--app-radius); color: var(--text-primary)">
+                        <svg class="h-4 lucide lucide-info mt-0.5 shrink-0 w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg" style="color: rgb(14, 165, 233)">
+                        <div class="min-w-0">
+                          <div class="font-medium">
+                            "Picking the use case sets the tier"
+                          <div class="app-callout__body text-[var(--text-secondary)]">
+                            "Each use case carries the tier it triggers, so choosing the row that matches this system classifies it and records which Annex III point (or Article 50 duty) the classification rests on. Change the rule itself on Setup."
+                    <div class="app-node app-span-12 min-w-0" data-app-type="list" data-node-id="cmp_syscase" style="grid-column: span 12 / span 12; height: 320px; overflow: auto">
+                      <div class="flex flex-col gap-1.5 h-full items-center justify-center min-h-0 py-6 text-center">
+                        <span class="mb-1 text-[var(--text-tertiary)]">
+                          <svg class="block" aria-hidden="true" fill="none" role="presentation" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 96 72" style="height: auto; opacity: 0.9; width: 5.5rem">
+                        <span class="font-medium text-[var(--text-primary)] text-sm">
+                          "Nothing here yet"
+                        <span class="max-w-xs text-[var(--text-muted)] text-sm">
+                          "No use cases configured — add them on Setup."
+              <div class="pt-3" data-app-tabpanel="inactive" hidden="" role="tabpanel" style="display: none">
+                <div class="app-node app-span-12 min-w-0" data-app-type="tab" data-node-id="cmp_systab2" style="grid-column: span 12 / span 12">
+                  <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                    <div class="app-node app-span-12 min-w-0" data-app-type="data_grid" data-node-id="cmp_sysovg" style="grid-column: span 12 / span 12">
+                      <div class="w-full" data-app-datagrid="true">
+                        <div class="flex flex-col gap-1.5 h-full items-center justify-center min-h-0 py-6 text-center">
+                          <span class="mb-1 text-[var(--text-tertiary)]">
+                            <svg class="block" aria-hidden="true" fill="none" role="presentation" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 96 72" style="height: auto; opacity: 0.9; width: 5.5rem">
+                          <span class="font-medium text-[var(--text-primary)] text-sm">
+                            "Nothing here yet"
+                          <span class="max-w-xs text-[var(--text-muted)] text-sm">
+                            "Nobody is recorded as watching this system. For a high-risk system that is a finding, not a blank."
+                    <div class="app-node app-span-12 min-w-0" data-app-type="form" data-node-id="cmp_sysovf" style="grid-column: span 12 / span 12">
+                      <form class="flex flex-col" novalidate="" style="gap: calc(12px * var(--app-space, 1))">
+                        <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                          <div class="app-node app-span-4 min-w-0" data-app-type="input_text" data-node-id="cmp_sysov1" style="grid-column: span 4 / span 4">
+                            <div class="flex flex-col gap-1 text-left">
+                              <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_sysov1-input">
+                                "Who reviews the output"
+                                <span class="[color:var(--error)]" aria-hidden="true">
+                                  "*"
+                              <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-required="true" id="cmp_sysov1-input" name="reviewer" placeholder="A role — e.g. Recruitment team lead" type="text" value="" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                          <div class="app-node app-span-4 min-w-0" data-app-type="input_text" data-node-id="cmp_sysov2" style="grid-column: span 4 / span 4">
+                            <div class="flex flex-col gap-1 text-left">
+                              <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_sysov2-input">
+                                "Contact address"
+                              <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" id="cmp_sysov2-input" name="reviewer_email" type="email" value="" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                          <div class="app-node app-span-4 min-w-0" data-app-type="input_select" data-node-id="cmp_sysov3" style="grid-column: span 4 / span 4">
+                            <div class="flex flex-col gap-1 text-left">
+                              <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_sysov3-input">
+                                "What may they do?"
+                                <span class="[color:var(--error)]" aria-hidden="true">
+                                  "*"
+                              <select class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-required="true" id="cmp_sysov3-input" name="authority" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                                <option disabled="" value="">
+                                  "Choose…"
+                                <option value="stop_system">
+                                  "May stop the system"
+                                <option value="override_output">
+                                  "May override an individual output"
+                                <option value="escalate_only">
+                                  "May only escalate"
+                          <div class="app-node app-span-4 min-w-0" data-app-type="input_select" data-node-id="cmp_sysov4" style="grid-column: span 4 / span 4">
+                            <div class="flex flex-col gap-1 text-left">
+                              <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_sysov4-input">
+                                "How often"
+                                <span class="[color:var(--error)]" aria-hidden="true">
+                                  "*"
+                              <select class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-required="true" id="cmp_sysov4-input" name="frequency" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                                <option disabled="" value="">
+                                  "Choose…"
+                                <option value="continuous">
+                                  "Every output"
+                                <option value="daily">
+                                  "Daily"
+                                <option value="weekly">
+                                  "Weekly"
+                                <option value="monthly">
+                                  "Monthly"
+                                <option value="quarterly">
+                                  "Quarterly"
+                          <div class="app-node app-span-4 min-w-0" data-app-type="input_date" data-node-id="cmp_sysov5" style="grid-column: span 4 / span 4">
+                            <div class="flex flex-col gap-1 text-left">
+                              <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_sysov5-input">
+                                "Arrangement confirmed on"
+                              <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" id="cmp_sysov5-input" name="last_confirmed_on" type="date" value="<date>" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                          <div class="app-node app-span-4 min-w-0" data-app-type="input_checkbox" data-node-id="cmp_sysov6" style="grid-column: span 4 / span 4">
+                            <div class="flex flex-col gap-1 text-left">
+                              <label class="cursor-pointer gap-2 inline-flex items-center select-none text-sm" for="cmp_sysov6-input">
+                                <input class="[accent-color:var(--app-primary)] h-4 w-4" id="cmp_sysov6-input" name="trained" type="checkbox">
+                                <span>
+                                  "They have been trained on this system"
+                          <div class="app-node app-span-12 min-w-0" data-app-type="input_textarea" data-node-id="cmp_sysov7" style="grid-column: span 12 / span 12">
+                            <div class="flex flex-col gap-1 text-left">
+                              <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_sysov7-input">
+                                "How the review actually happens"
+                              <div class="relative">
+                                <textarea class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 resize-y text-sm w-full" id="cmp_sysov7-input" name="procedure" rows="2" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                        <div class="flex gap-2 items-center">
+                          <button class="[background:var(--app-accent,var(--app-primary))] [border-radius:var(--app-radius)] [color:var(--app-accent-contrast,var(--app-primary-contrast))]! disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm" type="submit">
+                            <span>
+                              "Record this reviewer"
+              <div class="pt-3" data-app-tabpanel="inactive" hidden="" role="tabpanel" style="display: none">
+                <div class="app-node app-span-12 min-w-0" data-app-type="tab" data-node-id="cmp_systab3" style="grid-column: span 12 / span 12">
+                  <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                    <div class="app-node app-span-12 min-w-0" data-app-type="data_grid" data-node-id="cmp_sysing" style="grid-column: span 12 / span 12">
+                      <div class="w-full" data-app-datagrid="true">
+                        <div class="flex flex-col gap-1.5 h-full items-center justify-center min-h-0 py-6 text-center">
+                          <span class="mb-1 text-[var(--text-tertiary)]">
+                            <svg class="block" aria-hidden="true" fill="none" role="presentation" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 96 72" style="height: auto; opacity: 0.9; width: 5.5rem">
+                          <span class="font-medium text-[var(--text-primary)] text-sm">
+                            "Nothing here yet"
+                          <span class="max-w-xs text-[var(--text-muted)] text-sm">
+                            "No incidents recorded for this system."
+                    <div class="app-node app-span-12 min-w-0" data-app-type="form" data-node-id="cmp_sysinf" style="grid-column: span 12 / span 12">
+                      <form class="flex flex-col" novalidate="" style="gap: calc(12px * var(--app-space, 1))">
+                        <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                          <div class="app-node app-span-12 min-w-0" data-app-type="input_text" data-node-id="cmp_sysin1" style="grid-column: span 12 / span 12">
+                            <div class="flex flex-col gap-1 text-left">
+                              <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_sysin1-input">
+                                "What happened"
+                                <span class="[color:var(--error)]" aria-hidden="true">
+                                  "*"
+                              <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-required="true" id="cmp_sysin1-input" name="title" type="text" value="" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                          <div class="app-node app-span-4 min-w-0" data-app-type="input_date" data-node-id="cmp_sysin2" style="grid-column: span 4 / span 4">
+                            <div class="flex flex-col gap-1 text-left">
+                              <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_sysin2-input">
+                                "It happened on"
+                              <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" id="cmp_sysin2-input" name="occurred_on" type="date" value="" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                          <div class="app-node app-span-4 min-w-0" data-app-type="input_date" data-node-id="cmp_sysin3" style="grid-column: span 4 / span 4">
+                            <div class="flex flex-col gap-1 text-left">
+                              <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_sysin3-input">
+                                "We became aware on"
+                                <span class="[color:var(--error)]" aria-hidden="true">
+                                  "*"
+                              <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-required="true" id="cmp_sysin3-input" name="became_aware_on" type="date" value="<date>" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                          <div class="app-node app-span-4 min-w-0" data-app-type="input_select" data-node-id="cmp_sysin4" style="grid-column: span 4 / span 4">
+                            <div class="flex flex-col gap-1 text-left">
+                              <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_sysin4-input">
+                                "Severity"
+                                <span class="[color:var(--error)]" aria-hidden="true">
+                                  "*"
+                              <select class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-required="true" id="cmp_sysin4-input" name="severity" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                                <option disabled="" value="">
+                                  "Choose…"
+                                <option value="minor">
+                                  "Minor — no reporting duty"
+                                <option value="significant">
+                                  "Significant — worth recording"
+                                <option value="serious">
+                                  "Serious incident (Art. 73) — report within 15 days"
+                                <option value="serious_death">
+                                  "Serious — a person died — report within 10 days"
+                                <option value="serious_infra">
+                                  "Serious — critical infrastructure or widespread infringement — report within 2 days"
+                          <div class="app-node app-span-12 min-w-0" data-app-type="input_textarea" data-node-id="cmp_sysin5" style="grid-column: span 12 / span 12">
+                            <div class="flex flex-col gap-1 text-left">
+                              <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_sysin5-input">
+                                "What went wrong, and to whom"
+                                <span class="[color:var(--error)]" aria-hidden="true">
+                                  "*"
+                              <div class="relative">
+                                <textarea class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 resize-y text-sm w-full" aria-required="true" id="cmp_sysin5-input" name="description" rows="3" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                          <div class="app-node app-span-12 min-w-0" data-app-type="input_textarea" data-node-id="cmp_sysin6" style="grid-column: span 12 / span 12">
+                            <div class="flex flex-col gap-1 text-left">
+                              <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_sysin6-input">
+                                "What was done about it"
+                              <div class="relative">
+                                <textarea class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 resize-y text-sm w-full" id="cmp_sysin6-input" name="action_taken" rows="2" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                          <div class="app-node app-span-12 min-w-0" data-app-type="callout" data-node-id="cmp_sysinno" style="grid-column: span 12 / span 12">
+                            <div class="flex gap-2.5 items-start px-3 py-2.5 text-sm" data-app-callout="warning" style="background: rgba(245, 158, 11, 0.1); border-left: 3px solid rgb(245, 158, 11); border-radius: var(--app-radius); color: var(--text-primary)">
+                              <svg class="h-4 lucide lucide-alert-triangle lucide-triangle-alert mt-0.5 shrink-0 w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg" style="color: rgb(245, 158, 11)">
+                              <div class="min-w-0">
+                                <div class="font-medium">
+                                  "The reporting deadline is set for you"
+                                <div class="app-callout__body text-[var(--text-secondary)]">
+                                  "Pick a serious severity and the register computes the Article 73 deadline from the date you became aware: 15 days normally, 10 where a person died, 2 for a widespread infringement or a serious disruption of critical infrastructure."
+                        <div class="flex gap-2 items-center">
+                          <button class="[background:var(--app-accent,var(--app-primary))] [border-radius:var(--app-radius)] [color:var(--app-accent-contrast,var(--app-primary-contrast))]! disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm" type="submit">
+                            <span>
+                              "Log the incident"
+              <div class="pt-3" data-app-tabpanel="inactive" hidden="" role="tabpanel" style="display: none">
+                <div class="app-node app-span-12 min-w-0" data-app-type="tab" data-node-id="cmp_systab4" style="grid-column: span 12 / span 12">
+                  <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                    <div class="app-node app-span-12 min-w-0" data-app-type="data_grid" data-node-id="cmp_sysasg" style="grid-column: span 12 / span 12">
+                      <div class="w-full" data-app-datagrid="true">
+                        <div class="flex flex-col gap-1.5 h-full items-center justify-center min-h-0 py-6 text-center">
+                          <span class="mb-1 text-[var(--text-tertiary)]">
+                            <svg class="block" aria-hidden="true" fill="none" role="presentation" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 96 72" style="height: auto; opacity: 0.9; width: 5.5rem">
+                          <span class="font-medium text-[var(--text-primary)] text-sm">
+                            "Nothing here yet"
+                          <span class="max-w-xs text-[var(--text-muted)] text-sm">
+                            "This system has never been assessed."
+                    <div class="app-node app-span-12 min-w-0" data-app-type="form" data-node-id="cmp_sysasf" style="grid-column: span 12 / span 12">
+                      <form class="flex flex-col" novalidate="" style="gap: calc(12px * var(--app-space, 1))">
+                        <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                          <div class="app-node app-span-4 min-w-0" data-app-type="input_select" data-node-id="cmp_sysas1" style="grid-column: span 4 / span 4">
+                            <div class="flex flex-col gap-1 text-left">
+                              <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_sysas1-input">
+                                "Kind of review"
+                                <span class="[color:var(--error)]" aria-hidden="true">
+                                  "*"
+                              <select class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-required="true" id="cmp_sysas1-input" name="assessment_type" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                                <option disabled="" value="">
+                                  "Choose…"
+                                <option value="fria">
+                                  "Fundamental-rights impact assessment (Art. 27)"
+                                <option value="conformity">
+                                  "Conformity assessment (Art. 43)"
+                                <option value="dpia">
+                                  "Data protection impact assessment (GDPR Art. 35)"
+                                <option value="periodic">
+                                  "Periodic review"
+                          <div class="app-node app-span-4 min-w-0" data-app-type="input_date" data-node-id="cmp_sysas2" style="grid-column: span 4 / span 4">
+                            <div class="flex flex-col gap-1 text-left">
+                              <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_sysas2-input">
+                                "Carried out on"
+                                <span class="[color:var(--error)]" aria-hidden="true">
+                                  "*"
+                              <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-required="true" id="cmp_sysas2-input" name="performed_on" type="date" value="<date>" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                          <div class="app-node app-span-4 min-w-0" data-app-type="input_select" data-node-id="cmp_sysas3" style="grid-column: span 4 / span 4">
+                            <div class="flex flex-col gap-1 text-left">
+                              <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_sysas3-input">
+                                "Outcome"
+                                <span class="[color:var(--error)]" aria-hidden="true">
+                                  "*"
+                              <select class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-required="true" id="cmp_sysas3-input" name="outcome" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                                <option disabled="" value="">
+                                  "Choose…"
+                                <option value="passed">
+                                  "Passed"
+                                <option value="passed_with_actions">
+                                  "Passed with actions"
+                                <option value="failed">
+                                  "Failed"
+                                <option value="not_applicable">
+                                  "Not applicable"
+                          <div class="app-node app-span-6 min-w-0" data-app-type="input_text" data-node-id="cmp_sysas4" style="grid-column: span 6 / span 6">
+                            <div class="flex flex-col gap-1 text-left">
+                              <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_sysas4-input">
+                                "Carried out by"
+                              <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" id="cmp_sysas4-input" name="performed_by" type="text" value="" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                          <div class="app-node app-span-6 min-w-0" data-app-type="input_date" data-node-id="cmp_sysas5" style="grid-column: span 6 / span 6">
+                            <div class="flex flex-col gap-1 text-left">
+                              <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_sysas5-input">
+                                "Next one due"
+                              <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" id="cmp_sysas5-input" name="next_due_on" type="date" value="" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                          <div class="app-node app-span-12 min-w-0" data-app-type="input_textarea" data-node-id="cmp_sysas6" style="grid-column: span 12 / span 12">
+                            <div class="flex flex-col gap-1 text-left">
+                              <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_sysas6-input">
+                                "Findings and actions"
+                              <div class="relative">
+                                <textarea class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 resize-y text-sm w-full" id="cmp_sysas6-input" name="findings" rows="3" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                        <div class="flex gap-2 items-center">
+                          <button class="[background:var(--app-accent,var(--app-primary))] [border-radius:var(--app-radius)] [color:var(--app-accent-contrast,var(--app-primary-contrast))]! disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm" type="submit">
+                            <span>
+                              "Record the assessment"
+## screen scr_incident (Incidents)
+<div class="app-design--surface-soft app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(4, 120, 87, 0.1); --app-accent: #047857; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(4, 120, 87, 0.1); --app-primary: #047857; --app-radius: 12px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-family: "General Sans", system-ui, -apple-system, sans-serif; font-size: 15px; min-height: 100vh">
+  <main class="flex flex-1 flex-col min-h-0">
+    <div class="app-design--surface-soft app-runtime app-screen-enter flex flex-1 flex-col h-full min-h-0 w-full" data-app-appearance="auto" data-app-screen="scr_incident" data-app-screen-kind="page" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(4, 120, 87, 0.1); --app-accent: #047857; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(4, 120, 87, 0.1); --app-primary: #047857; --app-radius: 12px; --app-space: 1; color: var(--text-primary); font-family: "General Sans", system-ui, -apple-system, sans-serif; font-size: 15px">
+      <div class="flex flex-1 flex-col min-h-0 w-full" style="margin: 0px auto; max-width: none">
+        <section class="app-grid" data-section-id="sec_intop" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="page_header" data-node-id="cmp_inhdr" style="grid-column: span 12 / span 12">
+            <header class="min-w-0 w-full" data-app-pageheader="true">
+              <div class="flex flex-wrap items-start" style="gap: calc(12px * var(--app-space, 1))">
+                <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-9 inline-flex items-center justify-center rounded-md shrink-0 w-9" aria-hidden="true">
+                  <svg class="h-4.5 lucide lucide-alert-triangle lucide-triangle-alert w-4.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                <div class="basis-64 flex-1 min-w-0">
+                  <h1 class="font-semibold text-[var(--text-primary)] text-xl truncate" title="Incidents (ernstige incidenten)">
+                    "Incidents (ernstige incidenten)"
+                  <p class="line-clamp-2 mt-0.5 text-sm" title="Log incidents on the system itself. This screen is where you see which ones are still owed to a supervisory authority." style="color: var(--text-secondary)">
+                    "Log incidents on the system itself. This screen is where you see which ones are still owed to a supervisory authority."
+          <div class="app-node app-span-6 min-w-0" data-app-type="callout" data-node-id="cmp_innote" style="grid-column: span 6 / span 6">
+            <div class="flex gap-2.5 items-start px-3 py-2.5 text-sm" data-app-callout="warning" style="background: rgba(245, 158, 11, 0.1); border-left: 3px solid rgb(245, 158, 11); border-radius: var(--app-radius); color: var(--text-primary)">
+              <svg class="h-4 lucide lucide-alert-triangle lucide-triangle-alert mt-0.5 shrink-0 w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg" style="color: rgb(245, 158, 11)">
+              <div class="min-w-0">
+                <div class="font-medium">
+                  "Article 73 — reporting a serious incident"
+                <div class="app-callout__body text-[var(--text-secondary)]">
+                  "The deadline runs from the day you became"
+                  <strong>
+                    "aware"
+                  ", not the day it happened: 15 days as a rule, 10 days where a person died, 2 days for a widespread infringement or a serious and irreversible disruption of critical infrastructure. Record the notification here so the register shows it was made."
+          <div class="app-node app-span-2 min-w-0" data-app-type="stat" data-node-id="cmp_ins1" style="grid-column: span 2 / span 2">
+            <div class="app-stat flex gap-2.5 items-start">
+              <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-8 inline-flex items-center justify-center mt-0.5 rounded-md shrink-0 w-8">
+                <svg class="h-4 lucide lucide-inbox w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-[var(--text-secondary)] text-xs">
+                  "Still open"
+                <div class="flex gap-2 items-baseline min-w-0">
+                  <div class="font-semibold leading-tight text-2xl truncate" title="—">
+                    "—"
+                <div class="text-[var(--text-muted)] text-xs">
+                  "open or under investigation"
+          <div class="app-node app-span-2 min-w-0" data-app-type="stat" data-node-id="cmp_ins2" style="grid-column: span 2 / span 2">
+            <div class="app-stat flex gap-2.5 items-start">
+              <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-8 inline-flex items-center justify-center mt-0.5 rounded-md shrink-0 w-8">
+                <svg class="h-4 lucide lucide-file-text w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-[var(--text-secondary)] text-xs">
+                  "Notification owed"
+                <div class="flex gap-2 items-baseline min-w-0">
+                  <div class="font-semibold leading-tight text-2xl truncate" title="—">
+                    "—"
+                <div class="text-[var(--text-muted)] text-xs">
+                  "serious, not yet reported"
+          <div class="app-node app-span-2 min-w-0" data-app-type="stat" data-node-id="cmp_ins3" style="grid-column: span 2 / span 2">
+            <div class="app-stat flex gap-2.5 items-start">
+              <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-8 inline-flex items-center justify-center mt-0.5 rounded-md shrink-0 w-8">
+                <svg class="h-4 lucide lucide-timer w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-[var(--text-secondary)] text-xs">
+                  "Past the deadline"
+                <div class="flex gap-2 items-baseline min-w-0">
+                  <div class="font-semibold leading-tight text-2xl truncate" title="—">
+                    "—"
+                <div class="text-[var(--text-muted)] text-xs">
+                  "report these today"
+        <section class="app-grid app-section-fill" data-section-id="sec_inmain" style="flex: 1 1 0px; gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); grid-template-rows: minmax(0, 1fr); min-height: 0px; padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-8 min-w-0" data-app-type="data_grid" data-node-id="cmp_ingrid" style="flex: 1 1 0px; grid-column: span 8 / span 8; min-height: 0px; min-width: 0px">
+            <div class="w-full" data-app-datagrid="true">
+              <div class="flex flex-col gap-1.5 h-full items-center justify-center min-h-0 py-6 text-center">
+                <span class="mb-1 text-[var(--text-tertiary)]">
+                  <svg class="block" aria-hidden="true" fill="none" role="presentation" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 96 72" style="height: auto; opacity: 0.9; width: 5.5rem">
+                <span class="font-medium text-[var(--text-primary)] text-sm">
+                  "Nothing here yet"
+                <span class="max-w-xs text-[var(--text-muted)] text-sm">
+                  "No incidents recorded. Log one from the system it happened on."
+          <div class="app-node app-span-4 min-w-0" data-app-type="chart" data-node-id="cmp_inchart" style="flex: 1 1 0px; grid-column: span 4 / span 4; min-height: 0px; min-width: 0px">
+            <div class="flex h-full items-center justify-center min-h-0 py-1 text-[var(--text-muted)] text-center text-sm">
+              "No chart data yet."
+        <section class="app-grid" data-section-id="sec_indlg" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: 0px">
+## screen scr_setup (Setup)
+<div class="app-design--surface-soft app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(4, 120, 87, 0.1); --app-accent: #047857; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(4, 120, 87, 0.1); --app-primary: #047857; --app-radius: 12px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-family: "General Sans", system-ui, -apple-system, sans-serif; font-size: 15px; min-height: 100vh">
+  <main class="flex flex-1 flex-col min-h-0">
+    <div class="app-design--surface-soft app-runtime app-screen-enter flex flex-1 flex-col h-full min-h-0 w-full" data-app-appearance="auto" data-app-screen="scr_setup" data-app-screen-kind="page" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(4, 120, 87, 0.1); --app-accent: #047857; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(4, 120, 87, 0.1); --app-primary: #047857; --app-radius: 12px; --app-space: 1; color: var(--text-primary); font-family: "General Sans", system-ui, -apple-system, sans-serif; font-size: 15px">
+      <div class="flex flex-1 flex-col min-h-0 w-full" style="margin: 0px auto; max-width: 1280px">
+        <section class="app-grid" data-section-id="sec_sutop" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="page_header" data-node-id="cmp_suhdr" style="grid-column: span 12 / span 12">
+            <header class="min-w-0 w-full" data-app-pageheader="true">
+              <div class="flex flex-wrap items-start" style="gap: calc(12px * var(--app-space, 1))">
+                <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-9 inline-flex items-center justify-center rounded-md shrink-0 w-9" aria-hidden="true">
+                  <svg class="h-4.5 lucide lucide-table-properties w-4.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                <div class="basis-64 flex-1 min-w-0">
+                  <h1 class="font-semibold text-[var(--text-primary)] text-xl truncate" title="Setup">
+                    "Setup"
+                  <p class="line-clamp-2 mt-0.5 text-sm" title="The tiers and the use cases are data, not code. Add a tier and the triage board grows a column; change a use case's tier and the next system classified against it follows the new rule." style="color: var(--text-secondary)">
+                    "The tiers and the use cases are data, not code. Add a tier and the triage board grows a column; change a use case's tier and the next system classified against it follows the new rule."
+          <div class="app-node app-span-12 min-w-0" data-app-type="callout" data-node-id="cmp_sunote" style="grid-column: span 12 / span 12">
+            <div class="flex gap-2.5 items-start px-3 py-2.5 text-sm" data-app-callout="info" style="background: rgba(14, 165, 233, 0.1); border-left: 3px solid rgb(14, 165, 233); border-radius: var(--app-radius); color: var(--text-primary)">
+              <svg class="h-4 lucide lucide-info mt-0.5 shrink-0 w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg" style="color: rgb(14, 165, 233)">
+              <div class="min-w-0">
+                <div class="font-medium">
+                  "Two things to know"
+                <div class="app-callout__body text-[var(--text-secondary)]">
+                  "A tier added here appears on the triage board immediately, but the tier dropdown in the register's filter bar is a fixed list — it only grows when an editor adds it. And changing a use case's tier does not reclassify the systems already pointing at it: classification is a decision with a date on it, so it is re-made on the system, never rewritten underneath you."
+        <section class="app-grid app-section-fill" data-section-id="sec_sumain" style="flex: 1 1 0px; gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); grid-template-rows: minmax(0, 1fr); min-height: 0px; padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="tabs" data-node-id="cmp_sutabs" style="grid-column: span 12 / span 12">
+            <div class="min-w-0 w-full" data-app-tabs="true">
+              <div class="app-scroll-x border-b flex gap-1 items-center overflow-x-auto" aria-label="Tabs" role="tablist" style="border-color: var(--border-default)">
+                <button class="-mb-px font-medium gap-1.5 inline-flex items-center px-3 py-2 shrink-0 text-sm whitespace-nowrap" aria-selected="true" role="tab" type="button" style="border-bottom: 2px solid var(--app-primary); color: var(--app-primary)">
+                  <svg class="h-3.5 lucide lucide-layers lucide-layers-3 w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                  <span>
+                    "Risk tiers"
+                <button class="-mb-px font-medium gap-1.5 inline-flex items-center px-3 py-2 shrink-0 text-sm whitespace-nowrap" aria-selected="false" role="tab" type="button" style="border-bottom: 2px solid transparent; color: var(--text-secondary)">
+                  <svg class="h-3.5 lucide lucide-book-open w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                  <span>
+                    "Use cases"
+              <div class="pt-3" data-app-tabpanel="active" role="tabpanel">
+                <div class="app-node app-span-12 min-w-0" data-app-type="tab" data-node-id="cmp_sutab1" style="grid-column: span 12 / span 12">
+                  <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                    <div class="app-node app-span-12 min-w-0" data-app-type="data_grid" data-node-id="cmp_sutiers" style="grid-column: span 12 / span 12">
+                      <div class="w-full" data-app-datagrid="true">
+                        <div class="flex flex-col gap-1.5 h-full items-center justify-center min-h-0 py-6 text-center">
+                          <span class="mb-1 text-[var(--text-tertiary)]">
+                            <svg class="block" aria-hidden="true" fill="none" role="presentation" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 96 72" style="height: auto; opacity: 0.9; width: 5.5rem">
+                          <span class="font-medium text-[var(--text-primary)] text-sm">
+                            "Nothing here yet"
+                          <span class="max-w-xs text-[var(--text-muted)] text-sm">
+                            "No tiers configured."
+              <div class="pt-3" data-app-tabpanel="inactive" hidden="" role="tabpanel" style="display: none">
+                <div class="app-node app-span-12 min-w-0" data-app-type="tab" data-node-id="cmp_sutab2" style="grid-column: span 12 / span 12">
+                  <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                    <div class="app-node app-span-12 min-w-0" data-app-type="data_grid" data-node-id="cmp_sucases" style="grid-column: span 12 / span 12">
+                      <div class="w-full" data-app-datagrid="true">
+                        <div class="flex flex-col gap-1.5 h-full items-center justify-center min-h-0 py-6 text-center">
+                          <span class="mb-1 text-[var(--text-tertiary)]">
+                            <svg class="block" aria-hidden="true" fill="none" role="presentation" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 96 72" style="height: auto; opacity: 0.9; width: 5.5rem">
+                          <span class="font-medium text-[var(--text-primary)] text-sm">
+                            "Nothing here yet"
+                          <span class="max-w-xs text-[var(--text-muted)] text-sm">
+                            "No use cases configured."
+        <section class="app-grid" data-section-id="sec_sunew" style="background: var(--bg-card); border-radius: var(--app-radius); gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-6 min-w-0" data-app-type="form" data-node-id="cmp_sutform" style="grid-column: span 6 / span 6">
+            <form class="flex flex-col" novalidate="" style="gap: calc(12px * var(--app-space, 1))">
+              <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                <div class="app-node app-span-6 min-w-0" data-app-type="input_text" data-node-id="cmp_sut1" style="grid-column: span 6 / span 6">
+                  <div class="flex flex-col gap-1 text-left">
+                    <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_sut1-input">
+                      "Key (stored on every system)"
+                      <span class="[color:var(--error)]" aria-hidden="true">
+                        "*"
+                    <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-required="true" id="cmp_sut1-input" name="key" type="text" value="" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                <div class="app-node app-span-6 min-w-0" data-app-type="input_text" data-node-id="cmp_sut2" style="grid-column: span 6 / span 6">
+                  <div class="flex flex-col gap-1 text-left">
+                    <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_sut2-input">
+                      "Shown as"
+                      <span class="[color:var(--error)]" aria-hidden="true">
+                        "*"
+                    <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-required="true" id="cmp_sut2-input" name="label" type="text" value="" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                <div class="app-node app-span-6 min-w-0" data-app-type="input_select" data-node-id="cmp_sut3" style="grid-column: span 6 / span 6">
+                  <div class="flex flex-col gap-1 text-left">
+                    <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_sut3-input">
+                      "Colour"
+                      <span class="[color:var(--error)]" aria-hidden="true">
+                        "*"
+                    <select class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-required="true" id="cmp_sut3-input" name="color" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                      <option disabled="" value="">
+                        "Choose…"
+                      <option value="primary">
+                        "Primary"
+                      <option value="neutral">
+                        "Neutral"
+                      <option value="success">
+                        "Green"
+                      <option value="warning">
+                        "Amber"
+                      <option value="danger">
+                        "Red"
+                      <option value="info">
+                        "Blue"
+                <div class="app-node app-span-6 min-w-0" data-app-type="input_number" data-node-id="cmp_sut4" style="grid-column: span 6 / span 6">
+                  <div class="flex flex-col gap-1 text-left">
+                    <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_sut4-input">
+                      "Order"
+                    <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" id="cmp_sut4-input" max="99" min="0" name="position" step="1" type="number" value="9" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                <div class="app-node app-span-12 min-w-0" data-app-type="input_textarea" data-node-id="cmp_sut5" style="grid-column: span 12 / span 12">
+                  <div class="flex flex-col gap-1 text-left">
+                    <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_sut5-input">
+                      "What it obliges us to do"
+                    <div class="relative">
+                      <textarea class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 resize-y text-sm w-full" id="cmp_sut5-input" name="obligations" rows="3" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+              <div class="flex gap-2 items-center">
+                <button class="[background:var(--app-accent,var(--app-primary))] [border-radius:var(--app-radius)] [color:var(--app-accent-contrast,var(--app-primary-contrast))]! disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm" type="submit">
+                  <span>
+                    "Add tier"
+          <div class="app-node app-span-6 min-w-0" data-app-type="form" data-node-id="cmp_sucform" style="grid-column: span 6 / span 6">
+            <form class="flex flex-col" novalidate="" style="gap: calc(12px * var(--app-space, 1))">
+              <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                <div class="app-node app-span-6 min-w-0" data-app-type="input_text" data-node-id="cmp_suc1" style="grid-column: span 6 / span 6">
+                  <div class="flex flex-col gap-1 text-left">
+                    <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_suc1-input">
+                      "Key"
+                      <span class="[color:var(--error)]" aria-hidden="true">
+                        "*"
+                    <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-required="true" id="cmp_suc1-input" name="key" type="text" value="" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                <div class="app-node app-span-6 min-w-0" data-app-type="input_text" data-node-id="cmp_suc2" style="grid-column: span 6 / span 6">
+                  <div class="flex flex-col gap-1 text-left">
+                    <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_suc2-input">
+                      "Use case"
+                      <span class="[color:var(--error)]" aria-hidden="true">
+                        "*"
+                    <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-required="true" id="cmp_suc2-input" name="name" type="text" value="" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                <div class="app-node app-span-6 min-w-0" data-app-type="input_text" data-node-id="cmp_suc3" style="grid-column: span 6 / span 6">
+                  <div class="flex flex-col gap-1 text-left">
+                    <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_suc3-input">
+                      "Legal reference"
+                    <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" id="cmp_suc3-input" name="legal_reference" placeholder="e.g. Annex III, 4(a)" type="text" value="" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                <div class="app-node app-span-6 min-w-0" data-app-type="input_text" data-node-id="cmp_suc4" style="grid-column: span 6 / span 6">
+                  <div class="flex flex-col gap-1 text-left">
+                    <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_suc4-input">
+                      "Area"
+                    <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" id="cmp_suc4-input" name="area" type="text" value="" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                <div class="app-node app-span-6 min-w-0" data-app-type="input_select" data-node-id="cmp_suc5" style="grid-column: span 6 / span 6">
+                  <div class="flex flex-col gap-1 text-left">
+                    <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_suc5-input">
+                      "Triggers tier"
+                      <span class="[color:var(--error)]" aria-hidden="true">
+                        "*"
+                    <select class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-required="true" id="cmp_suc5-input" name="default_tier" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                      <option disabled="" value="">
+                        "Choose…"
+                      <option value="unclassified">
+                        "Unclassified"
+                      <option value="prohibited">
+                        "Prohibited"
+                      <option value="high">
+                        "High risk"
+                      <option value="limited">
+                        "Limited risk"
+                      <option value="minimal">
+                        "Minimal risk"
+                <div class="app-node app-span-6 min-w-0" data-app-type="input_number" data-node-id="cmp_suc6" style="grid-column: span 6 / span 6">
+                  <div class="flex flex-col gap-1 text-left">
+                    <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_suc6-input">
+                      "Order"
+                    <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" id="cmp_suc6-input" max="99" min="0" name="position" step="1" type="number" value="90" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                <div class="app-node app-span-12 min-w-0" data-app-type="input_textarea" data-node-id="cmp_suc7" style="grid-column: span 12 / span 12">
+                  <div class="flex flex-col gap-1 text-left">
+                    <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_suc7-input">
+                      "Description"
+                    <div class="relative">
+                      <textarea class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 resize-y text-sm w-full" id="cmp_suc7-input" name="description" rows="2" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+              <div class="flex gap-2 items-center">
+                <button class="[background:var(--app-accent,var(--app-primary))] [border-radius:var(--app-radius)] [color:var(--app-accent-contrast,var(--app-primary-contrast))]! disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm" type="submit">
+                  <span>
+                    "Add use case"

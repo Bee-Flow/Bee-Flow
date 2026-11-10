@@ -1,0 +1,581 @@
+# template-bi-reports
+## screen scr_bidash (Dashboard)
+<div class="app-design--surface-soft app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #000000; --app-accent-soft: rgba(8, 145, 178, 0.1); --app-accent: #0891B2; --app-primary-contrast: #000000; --app-primary-soft: rgba(8, 145, 178, 0.1); --app-primary: #0891B2; --app-radius: 8px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-family: "Satoshi", system-ui, -apple-system, sans-serif; font-size: 15px; min-height: 100vh">
+  <main class="flex flex-1 flex-col min-h-0">
+    <div class="app-design--surface-soft app-runtime app-screen-enter w-full" data-app-appearance="auto" data-app-screen="scr_bidash" data-app-screen-kind="dashboard" style="--app-accent-contrast: #000000; --app-accent-soft: rgba(8, 145, 178, 0.1); --app-accent: #0891B2; --app-primary-contrast: #000000; --app-primary-soft: rgba(8, 145, 178, 0.1); --app-primary: #0891B2; --app-radius: 8px; --app-space: 1; color: var(--text-primary); font-family: "Satoshi", system-ui, -apple-system, sans-serif; font-size: 15px">
+      <div class="flex flex-col w-full" style="margin: 0px auto; max-width: 1280px">
+        <section class="app-grid" data-section-id="sec_bidtop" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="page_header" data-node-id="cmp_bidhdr" style="grid-column: span 12 / span 12">
+            <header class="min-w-0 w-full" data-app-pageheader="true">
+              <div class="flex flex-wrap items-start" style="gap: calc(12px * var(--app-space, 1))">
+                <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-9 inline-flex items-center justify-center rounded-md shrink-0 w-9" aria-hidden="true">
+                  <svg class="h-4.5 lucide lucide-layout-dashboard w-4.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                <div class="basis-64 flex-1 min-w-0">
+                  <h1 class="font-semibold text-[var(--text-primary)] text-xl truncate" title="Dashboard">
+                    "Dashboard"
+                  <p class="line-clamp-2 mt-0.5 text-sm" title="Slots 1–6 render saved reports. Build new ones in the designer; a slot updates the moment a report is saved into it." style="color: var(--text-secondary)">
+                    "Slots 1–6 render saved reports. Build new ones in the designer; a slot updates the moment a report is saved into it."
+                <div class="flex flex-wrap items-center justify-end ml-auto" data-app-pageheader-actions="true" style="gap: calc(8px * var(--app-space, 1))">
+                  <div class="app-node app-span-3 min-w-0" data-app-type="button" data-node-id="cmp_bidsync" style="grid-column: span 3 / span 3; text-align: left">
+                    <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm transition-opacity" type="button" style="background: var(--bg-card); border-radius: var(--app-radius); border: 1px solid var(--border-default); color: var(--text-primary)">
+                      <svg class="h-3.5 lucide lucide-refresh-cw w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                      <span>
+                        "Show saved reports"
+                  <div class="app-node app-span-3 min-w-0" data-app-type="button" data-node-id="cmp_bidnew" style="grid-column: span 3 / span 3; text-align: left">
+                    <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm transition-opacity" type="button" style="background: var(--app-accent, var(--app-primary)); border-radius: var(--app-radius); color: var(--app-accent-contrast, var(--app-primary-contrast))">
+                      <svg class="h-3.5 lucide lucide-plus w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                      <span>
+                        "New report"
+          <div class="app-node app-span-3 min-w-0" data-app-type="stat" data-node-id="cmp_bidkpi1" style="grid-column: span 3 / span 3; text-align: left">
+            <div class="app-stat flex gap-2.5 items-start">
+              <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-8 inline-flex items-center justify-center mt-0.5 rounded-md shrink-0 w-8">
+                <svg class="h-4 lucide lucide-database w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-[var(--text-secondary)] text-xs">
+                  "Warehouse rows"
+                <div class="flex gap-2 items-baseline min-w-0">
+                  <div class="font-semibold leading-tight text-2xl truncate" title="—">
+                    "—"
+                <div class="text-[var(--text-muted)] text-xs">
+                  "facts in the warehouse"
+          <div class="app-node app-span-3 min-w-0" data-app-type="stat" data-node-id="cmp_bidkpi2" style="grid-column: span 3 / span 3; text-align: left">
+            <div class="app-stat flex gap-2.5 items-start">
+              <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-8 inline-flex items-center justify-center mt-0.5 rounded-md shrink-0 w-8">
+                <svg class="h-4 lucide lucide-sigma w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-[var(--text-secondary)] text-xs">
+                  "Total amount"
+                <div class="flex gap-2 items-baseline min-w-0">
+                  <div class="font-semibold leading-tight text-2xl truncate" title="—">
+                    "—"
+                <div class="text-[var(--text-muted)] text-xs">
+                  "summed over every fact row"
+          <div class="app-node app-span-3 min-w-0" data-app-type="stat" data-node-id="cmp_bidkpi3" style="grid-column: span 3 / span 3; text-align: left">
+            <div class="app-stat flex gap-2.5 items-start">
+              <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-8 inline-flex items-center justify-center mt-0.5 rounded-md shrink-0 w-8">
+                <svg class="h-4 lucide lucide-inbox w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-[var(--text-secondary)] text-xs">
+                  "Staged, waiting"
+                <div class="flex gap-2 items-baseline min-w-0">
+                  <div class="font-semibold leading-tight text-2xl truncate" title="—">
+                    "—"
+                <div class="text-[var(--text-muted)] text-xs">
+                  "rows ready to load"
+          <div class="app-node app-span-3 min-w-0" data-app-type="stat" data-node-id="cmp_bidkpi4" style="grid-column: span 3 / span 3; text-align: left">
+            <div class="app-stat flex gap-2.5 items-start">
+              <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-8 inline-flex items-center justify-center mt-0.5 rounded-md shrink-0 w-8">
+                <svg class="h-4 lucide lucide-history lucide-rotate-ccw-clock w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-[var(--text-secondary)] text-xs">
+                  "Load runs"
+                <div class="flex gap-2 items-baseline min-w-0">
+                  <div class="font-semibold leading-tight text-2xl truncate" title="—">
+                    "—"
+                <div class="text-[var(--text-muted)] text-xs">
+                  "loads into the warehouse"
+        <section class="app-grid" data-section-id="sec_bidrow1" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-4 min-w-0" data-app-type="container" data-node-id="cmp_bislot1" style="grid-column: span 4 / span 4">
+            <div class="app-grid" data-app-container="true" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+              <div class="app-node app-span-12 min-w-0" data-app-type="chart" data-node-id="cmp_bisch1" style="grid-column: span 12 / span 12; height: 200px; overflow: auto">
+                <div class="flex h-full items-center justify-center min-h-0 py-1 text-[var(--text-muted)] text-center text-sm">
+                  "No chart data yet."
+          <div class="app-node app-span-4 min-w-0" data-app-type="container" data-node-id="cmp_bislot2" style="grid-column: span 4 / span 4">
+            <div class="app-grid" data-app-container="true" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+              <div class="app-node app-span-12 min-w-0" data-app-type="chart" data-node-id="cmp_bisch2" style="grid-column: span 12 / span 12; height: 200px; overflow: auto">
+                <div class="flex h-full items-center justify-center min-h-0 py-1 text-[var(--text-muted)] text-center text-sm">
+                  "No chart data yet."
+          <div class="app-node app-span-4 min-w-0" data-app-type="container" data-node-id="cmp_bislot3" style="grid-column: span 4 / span 4">
+            <div class="app-grid" data-app-container="true" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+              <div class="app-node app-span-12 min-w-0" data-app-type="chart" data-node-id="cmp_bisch3" style="grid-column: span 12 / span 12; height: 200px; overflow: auto">
+                <div class="flex h-full items-center justify-center min-h-0 py-1 text-[var(--text-muted)] text-center text-sm">
+                  "No chart data yet."
+        <section class="app-grid" data-section-id="sec_bidrow2" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-4 min-w-0" data-app-type="container" data-node-id="cmp_bislot4" style="grid-column: span 4 / span 4">
+            <div class="app-grid" data-app-container="true" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+              <div class="app-node app-span-12 min-w-0" data-app-type="text" data-node-id="cmp_bishint4" style="font-size: 0.875em; font-weight: 400; grid-column: span 12 / span 12; text-align: left">
+                <p class="break-words leading-relaxed text-sm" style="color: var(--text-secondary)">
+                  "Slot 4 is empty. Save a report with dashboard slot 4, or press “Show saved reports”."
+          <div class="app-node app-span-4 min-w-0" data-app-type="container" data-node-id="cmp_bislot5" style="grid-column: span 4 / span 4">
+            <div class="app-grid" data-app-container="true" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+              <div class="app-node app-span-12 min-w-0" data-app-type="text" data-node-id="cmp_bishint5" style="font-size: 0.875em; font-weight: 400; grid-column: span 12 / span 12; text-align: left">
+                <p class="break-words leading-relaxed text-sm" style="color: var(--text-secondary)">
+                  "Slot 5 is empty. Save a report with dashboard slot 5, or press “Show saved reports”."
+          <div class="app-node app-span-4 min-w-0" data-app-type="container" data-node-id="cmp_bislot6" style="grid-column: span 4 / span 4">
+            <div class="app-grid" data-app-container="true" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+              <div class="app-node app-span-12 min-w-0" data-app-type="text" data-node-id="cmp_bishint6" style="font-size: 0.875em; font-weight: 400; grid-column: span 12 / span 12; text-align: left">
+                <p class="break-words leading-relaxed text-sm" style="color: var(--text-secondary)">
+                  "Slot 6 is empty. Save a report with dashboard slot 6, or press “Show saved reports”."
+        <section class="app-grid" data-section-id="sec_bidlib" style="background: var(--bg-card); border-radius: var(--app-radius); gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="list" data-node-id="cmp_bidlib" style="grid-column: span 12 / span 12">
+            <div class="flex flex-col gap-1.5 h-full items-center justify-center min-h-0 py-6 text-center">
+              <span class="mb-1 text-[var(--text-tertiary)]">
+                <svg class="block" aria-hidden="true" fill="none" role="presentation" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 96 72" style="height: auto; opacity: 0.9; width: 5.5rem">
+              <span class="font-medium text-[var(--text-primary)] text-sm">
+                "Nothing here yet"
+              <span class="max-w-xs text-[var(--text-muted)] text-sm">
+                "No saved reports yet — build the first one in the designer."
+### outside the screen (portal)
+<span aria-hidden="true" id="recharts_measurement_span" style="border: medium; font-size: 15px; left: 0px; letter-spacing: normal; margin: 0px; padding: 0px; position: absolute; top: -20000px; white-space: pre">
+  "0"
+## screen scr_bidsg (Report designer)
+<div class="app-design--surface-soft app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #000000; --app-accent-soft: rgba(8, 145, 178, 0.1); --app-accent: #0891B2; --app-primary-contrast: #000000; --app-primary-soft: rgba(8, 145, 178, 0.1); --app-primary: #0891B2; --app-radius: 8px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-family: "Satoshi", system-ui, -apple-system, sans-serif; font-size: 15px; min-height: 100vh">
+  <main class="flex flex-1 flex-col min-h-0">
+    <div class="app-design--surface-soft app-runtime app-screen-enter flex flex-1 flex-col h-full min-h-0 w-full" data-app-appearance="auto" data-app-screen="scr_bidsg" data-app-screen-kind="page" style="--app-accent-contrast: #000000; --app-accent-soft: rgba(8, 145, 178, 0.1); --app-accent: #0891B2; --app-primary-contrast: #000000; --app-primary-soft: rgba(8, 145, 178, 0.1); --app-primary: #0891B2; --app-radius: 8px; --app-space: 1; color: var(--text-primary); font-family: "Satoshi", system-ui, -apple-system, sans-serif; font-size: 15px">
+      <div class="flex flex-1 flex-col min-h-0 w-full" style="margin: 0px auto; max-width: 1280px">
+        <section class="app-grid" data-section-id="sec_bigtop" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="page_header" data-node-id="cmp_bighdr" style="grid-column: span 12 / span 12">
+            <header class="min-w-0 w-full" data-app-pageheader="true">
+              <div class="flex flex-wrap items-start" style="gap: calc(12px * var(--app-space, 1))">
+                <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-9 inline-flex items-center justify-center rounded-md shrink-0 w-9" aria-hidden="true">
+                  <svg class="h-4.5 lucide lucide-pencil-ruler w-4.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                <div class="basis-64 flex-1 min-w-0">
+                  <h1 class="font-semibold text-[var(--text-primary)] text-xl truncate" title="Report designer">
+                    "Report designer"
+                  <p class="line-clamp-2 mt-0.5 text-sm" title="The preview runs the exact query the saved report will run — same table, same fields, same access rules." style="color: var(--text-secondary)">
+                    "The preview runs the exact query the saved report will run — same table, same fields, same access rules."
+        <section class="app-grid" data-section-id="sec_bigmain" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-7 min-w-0" data-app-type="form" data-node-id="cmp_bigform" style="grid-column: span 7 / span 7">
+            <form class="flex flex-col" novalidate="" style="gap: calc(12px * var(--app-space, 1))">
+              <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                <div class="app-node app-span-8 min-w-0" data-app-type="input_text" data-node-id="cmp_bigf1" style="grid-column: span 8 / span 8">
+                  <div class="flex flex-col gap-1 text-left">
+                    <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_bigf1-input">
+                      "Report name"
+                      <span class="[color:var(--error)]" aria-hidden="true">
+                        "*"
+                    <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-required="true" id="cmp_bigf1-input" name="name" placeholder="e.g. Amount by category" type="text" value="" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                <div class="app-node app-span-4 min-w-0" data-app-type="input_select" data-node-id="cmp_bigf2" style="grid-column: span 4 / span 4">
+                  <div class="flex flex-col gap-1 text-left">
+                    <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_bigf2-input">
+                      "Dashboard slot"
+                      <span class="[color:var(--error)]" aria-hidden="true">
+                        "*"
+                    <select class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-required="true" id="cmp_bigf2-input" name="slot" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                      <option disabled="" value="">
+                        "Choose…"
+                      <option value="0">
+                        "Not on the dashboard"
+                      <option value="1">
+                        "Dashboard slot 1"
+                      <option value="2">
+                        "Dashboard slot 2"
+                      <option value="3">
+                        "Dashboard slot 3"
+                      <option value="4">
+                        "Dashboard slot 4"
+                      <option value="5">
+                        "Dashboard slot 5"
+                      <option value="6">
+                        "Dashboard slot 6"
+                <div class="app-node app-span-4 min-w-0" data-app-type="input_select" data-node-id="cmp_bigf3" style="grid-column: span 4 / span 4">
+                  <div class="flex flex-col gap-1 text-left">
+                    <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_bigf3-input">
+                      "Group by"
+                      <span class="[color:var(--error)]" aria-hidden="true">
+                        "*"
+                    <select class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-required="true" id="cmp_bigf3-input" name="group_field" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                      <option disabled="" value="">
+                        "Choose…"
+                      <option value="category_key">
+                        "Category"
+                      <option value="entity_key">
+                        "Entity"
+                      <option value="source">
+                        "Source system"
+                      <option value="month">
+                        "Month (record date)"
+                <div class="app-node app-span-4 min-w-0" data-app-type="input_select" data-node-id="cmp_bigf4" style="grid-column: span 4 / span 4">
+                  <div class="flex flex-col gap-1 text-left">
+                    <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_bigf4-input">
+                      "Measure"
+                      <span class="[color:var(--error)]" aria-hidden="true">
+                        "*"
+                    <select class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-required="true" id="cmp_bigf4-input" name="measure_fn" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                      <option disabled="" value="">
+                        "Choose…"
+                      <option value="sum">
+                        "Sum"
+                      <option value="avg">
+                        "Average"
+                      <option value="count">
+                        "Row count"
+                <div class="app-node app-span-4 min-w-0" data-app-type="input_select" data-node-id="cmp_bigf5" style="grid-column: span 4 / span 4">
+                  <div class="flex flex-col gap-1 text-left">
+                    <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_bigf5-input">
+                      "Of field"
+                    <select class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" id="cmp_bigf5-input" name="measure_field" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                      <option value="">
+                        "Choose…"
+                      <option value="amount">
+                        "Amount"
+                      <option value="quantity">
+                        "Quantity"
+                <div class="app-node app-span-4 min-w-0" data-app-type="input_select" data-node-id="cmp_bigf6" style="grid-column: span 4 / span 4">
+                  <div class="flex flex-col gap-1 text-left">
+                    <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_bigf6-input">
+                      "Chart type"
+                      <span class="[color:var(--error)]" aria-hidden="true">
+                        "*"
+                    <select class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-required="true" id="cmp_bigf6-input" name="chart_type" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                      <option disabled="" value="">
+                        "Choose…"
+                      <option value="bar">
+                        "Bar"
+                      <option value="line">
+                        "Line"
+                      <option value="area">
+                        "Area"
+                      <option value="pie">
+                        "Pie"
+                      <option value="donut">
+                        "Donut"
+                <div class="app-node app-span-4 min-w-0" data-app-type="input_date" data-node-id="cmp_bigf7" style="grid-column: span 4 / span 4">
+                  <div class="flex flex-col gap-1 text-left">
+                    <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_bigf7-input">
+                      "Only rows since (optional)"
+                    <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" id="cmp_bigf7-input" name="since" type="date" value="" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                <div class="app-node app-span-8 min-w-0" data-app-type="input_text" data-node-id="cmp_bigf8" style="grid-column: span 8 / span 8">
+                  <div class="flex flex-col gap-1 text-left">
+                    <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_bigf8-input">
+                      "Description"
+                    <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" id="cmp_bigf8-input" name="description" placeholder="What question does this answer?" type="text" value="" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+              <div class="flex gap-2 items-center">
+                <button class="[background:var(--app-accent,var(--app-primary))] [border-radius:var(--app-radius)] [color:var(--app-accent-contrast,var(--app-primary-contrast))]! disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm" type="submit">
+                  <span>
+                    "Save report"
+          <div class="app-node app-span-5 min-w-0" data-app-type="container" data-node-id="cmp_bigprev" style="grid-column: span 5 / span 5">
+            <div class="app-grid" data-app-container="true" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+              <div class="app-node app-span-12 min-w-0" data-app-type="text" data-node-id="cmp_bighint" style="font-size: 0.875em; font-weight: 400; grid-column: span 12 / span 12; text-align: left">
+                <p class="break-words leading-relaxed text-sm" style="color: var(--text-secondary)">
+                  "Pick a group-by on the left and the preview answers immediately."
+        <section class="app-grid app-section-fill" data-section-id="sec_biglib" style="flex: 1 1 0px; gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); grid-template-rows: minmax(0, 1fr); min-height: 0px; padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="data_grid" data-node-id="cmp_biggrid" style="flex: 1 1 0px; grid-column: span 12 / span 12; min-height: 0px; min-width: 0px">
+            <div class="w-full" data-app-datagrid="true">
+              <div class="flex flex-col gap-1.5 h-full items-center justify-center min-h-0 py-6 text-center">
+                <span class="mb-1 text-[var(--text-tertiary)]">
+                  <svg class="block" aria-hidden="true" fill="none" role="presentation" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 96 72" style="height: auto; opacity: 0.9; width: 5.5rem">
+                <span class="font-medium text-[var(--text-primary)] text-sm">
+                  "Nothing here yet"
+                <span class="max-w-xs text-[var(--text-muted)] text-sm">
+                  "Nothing saved yet — compose a report above and press Save."
+### outside the screen (portal)
+<span aria-hidden="true" id="recharts_measurement_span" style="border: medium; font-size: 15px; left: 0px; letter-spacing: normal; margin: 0px; padding: 0px; position: absolute; top: -20000px; white-space: pre">
+  "0"
+## screen scr_biload (Load data)
+<div class="app-design--surface-soft app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #000000; --app-accent-soft: rgba(8, 145, 178, 0.1); --app-accent: #0891B2; --app-primary-contrast: #000000; --app-primary-soft: rgba(8, 145, 178, 0.1); --app-primary: #0891B2; --app-radius: 8px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-family: "Satoshi", system-ui, -apple-system, sans-serif; font-size: 15px; min-height: 100vh">
+  <main class="flex flex-1 flex-col min-h-0">
+    <div class="app-design--surface-soft app-runtime app-screen-enter flex flex-1 flex-col h-full min-h-0 w-full" data-app-appearance="auto" data-app-screen="scr_biload" data-app-screen-kind="page" style="--app-accent-contrast: #000000; --app-accent-soft: rgba(8, 145, 178, 0.1); --app-accent: #0891B2; --app-primary-contrast: #000000; --app-primary-soft: rgba(8, 145, 178, 0.1); --app-primary: #0891B2; --app-radius: 8px; --app-space: 1; color: var(--text-primary); font-family: "Satoshi", system-ui, -apple-system, sans-serif; font-size: 15px">
+      <div class="flex flex-1 flex-col min-h-0 w-full" style="margin: 0px auto; max-width: 1280px">
+        <section class="app-grid" data-section-id="sec_biltop" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="page_header" data-node-id="cmp_bilhdr" style="grid-column: span 12 / span 12">
+            <header class="min-w-0 w-full" data-app-pageheader="true">
+              <div class="flex flex-wrap items-start" style="gap: calc(12px * var(--app-space, 1))">
+                <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-9 inline-flex items-center justify-center rounded-md shrink-0 w-9" aria-hidden="true">
+                  <svg class="h-4.5 lucide lucide-cloud-download lucide-download-cloud w-4.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                <div class="basis-64 flex-1 min-w-0">
+                  <h1 class="font-semibold text-[var(--text-primary)] text-xl truncate" title="Load data">
+                    "Load data"
+                  <p class="line-clamp-2 mt-0.5 text-sm" title="Staging is the landing zone: connectors write here, and “Load staged rows” moves everything pending into the fact table." style="color: var(--text-secondary)">
+                    "Staging is the landing zone: connectors write here, and “Load staged rows” moves everything pending into the fact table."
+                <div class="flex flex-wrap items-center justify-end ml-auto" data-app-pageheader-actions="true" style="gap: calc(8px * var(--app-space, 1))">
+                  <div class="app-node app-span-3 min-w-0" data-app-type="button" data-node-id="cmp_bilrun" style="grid-column: span 3 / span 3; text-align: left">
+                    <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm transition-opacity" type="button" style="background: var(--app-accent, var(--app-primary)); border-radius: var(--app-radius); color: var(--app-accent-contrast, var(--app-primary-contrast))">
+                      <svg class="h-3.5 lucide lucide-cloud-download lucide-download-cloud w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                      <span>
+                        "Load staged rows"
+          <div class="app-node app-span-12 min-w-0" data-app-type="callout" data-node-id="cmp_bilhow" style="grid-column: span 12 / span 12">
+            <div class="flex gap-2.5 items-start px-3 py-2.5 text-sm" data-app-callout="info" style="background: rgba(14, 165, 233, 0.1); border-left: 3px solid rgb(14, 165, 233); border-radius: var(--app-radius); color: var(--text-primary)">
+              <svg class="h-4 lucide lucide-info mt-0.5 shrink-0 w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg" style="color: rgb(14, 165, 233)">
+              <div class="min-w-0">
+                <div class="font-medium">
+                  "Wire your connector here"
+                <div class="app-callout__body text-[var(--text-secondary)]">
+                  "This app ships without a connector on purpose — connectors are yours. Open the app’s"
+                  <strong>
+                    "Data panel → Connectors"
+                  ", create one (or pick an existing one), and point its sync at the"
+                  <strong>
+                    "Staging rows"
+                  "table: date → `record_date`, description → `label`, your two dimension values → `category_key` / `entity_key`, numbers → `amount` / `quantity`, and let `status` default to `pending`. Every synced row appears below;"
+                  <strong>
+                    "Load staged rows"
+                  "moves it into the warehouse and logs a load run. No connector yet? The manual form below feeds the exact same flow."
+        <section class="app-grid app-section-fill" data-section-id="sec_bilmain" style="flex: 1 1 0px; gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); grid-template-rows: minmax(0, 1fr); min-height: 0px; padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-7 min-w-0" data-app-type="data_grid" data-node-id="cmp_bilstg" style="flex: 1 1 0px; grid-column: span 7 / span 7; min-height: 0px; min-width: 0px">
+            <div class="w-full" data-app-datagrid="true">
+              <div class="flex flex-col gap-1.5 h-full items-center justify-center min-h-0 py-6 text-center">
+                <span class="mb-1 text-[var(--text-tertiary)]">
+                  <svg class="block" aria-hidden="true" fill="none" role="presentation" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 96 72" style="height: auto; opacity: 0.9; width: 5.5rem">
+                <span class="font-medium text-[var(--text-primary)] text-sm">
+                  "Nothing here yet"
+                <span class="max-w-xs text-[var(--text-muted)] text-sm">
+                  "Nothing pending. Sync your connector into Staging rows, or add a row with the form below."
+          <div class="app-node app-span-5 min-w-0" data-app-type="list" data-node-id="cmp_bilruns" style="flex: 1 1 0px; grid-column: span 5 / span 5; min-height: 0px; min-width: 0px">
+            <div class="flex flex-col gap-1.5 h-full items-center justify-center min-h-0 py-6 text-center">
+              <span class="mb-1 text-[var(--text-tertiary)]">
+                <svg class="block" aria-hidden="true" fill="none" role="presentation" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 96 72" style="height: auto; opacity: 0.9; width: 5.5rem">
+              <span class="font-medium text-[var(--text-primary)] text-sm">
+                "Nothing here yet"
+              <span class="max-w-xs text-[var(--text-muted)] text-sm">
+                "No loads yet — the first run appears here with its row count."
+        <section class="app-grid" data-section-id="sec_bilform" style="background: var(--bg-card); border-radius: var(--app-radius); gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="form" data-node-id="cmp_bilform" style="grid-column: span 12 / span 12">
+            <form class="flex flex-col" novalidate="" style="gap: calc(12px * var(--app-space, 1))">
+              <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                <div class="app-node app-span-2 min-w-0" data-app-type="input_date" data-node-id="cmp_bilf1" style="grid-column: span 2 / span 2">
+                  <div class="flex flex-col gap-1 text-left">
+                    <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_bilf1-input">
+                      "Date"
+                      <span class="[color:var(--error)]" aria-hidden="true">
+                        "*"
+                    <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-required="true" id="cmp_bilf1-input" name="record_date" type="date" value="<date>" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                <div class="app-node app-span-4 min-w-0" data-app-type="input_text" data-node-id="cmp_bilf2" style="grid-column: span 4 / span 4">
+                  <div class="flex flex-col gap-1 text-left">
+                    <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_bilf2-input">
+                      "Label"
+                      <span class="[color:var(--error)]" aria-hidden="true">
+                        "*"
+                    <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-required="true" id="cmp_bilf2-input" name="label" placeholder="What is this row?" type="text" value="" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                <div class="app-node app-span-2 min-w-0" data-app-type="input_select" data-node-id="cmp_bilf3" style="grid-column: span 2 / span 2">
+                  <div class="flex flex-col gap-1 text-left">
+                    <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_bilf3-input">
+                      "Category"
+                      <span class="[color:var(--error)]" aria-hidden="true">
+                        "*"
+                    <select class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-required="true" id="cmp_bilf3-input" name="category_key" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                      <option disabled="" value="">
+                        "Choose…"
+                      <option value="hardware">
+                        "Hardware"
+                      <option value="software">
+                        "Software"
+                      <option value="services">
+                        "Services"
+                      <option value="support">
+                        "Support"
+                      <option value="training">
+                        "Training"
+                      <option value="licenses">
+                        "Licenses"
+                <div class="app-node app-span-2 min-w-0" data-app-type="input_select" data-node-id="cmp_bilf4" style="grid-column: span 2 / span 2">
+                  <div class="flex flex-col gap-1 text-left">
+                    <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_bilf4-input">
+                      "Entity"
+                      <span class="[color:var(--error)]" aria-hidden="true">
+                        "*"
+                    <select class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-required="true" id="cmp_bilf4-input" name="entity_key" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                      <option disabled="" value="">
+                        "Choose…"
+                      <option value="north">
+                        "North"
+                      <option value="south">
+                        "South"
+                      <option value="east">
+                        "East"
+                      <option value="west">
+                        "West"
+                      <option value="online">
+                        "Online"
+                      <option value="partner">
+                        "Partner"
+                <div class="app-node app-span-1 min-w-0" data-app-type="input_number" data-node-id="cmp_bilf5" style="grid-column: span 1 / span 1">
+                  <div class="flex flex-col gap-1 text-left">
+                    <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_bilf5-input">
+                      "Amount"
+                    <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" id="cmp_bilf5-input" max="1000000" min="0" name="amount" step="0.01" type="number" value="" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                <div class="app-node app-span-1 min-w-0" data-app-type="input_number" data-node-id="cmp_bilf6" style="grid-column: span 1 / span 1">
+                  <div class="flex flex-col gap-1 text-left">
+                    <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_bilf6-input">
+                      "Qty"
+                    <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" id="cmp_bilf6-input" max="100000" min="0" name="quantity" step="1" type="number" value="" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+              <div class="flex gap-2 items-center">
+                <button class="[background:var(--app-accent,var(--app-primary))] [border-radius:var(--app-radius)] [color:var(--app-accent-contrast,var(--app-primary-contrast))]! disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm" type="submit">
+                  <span>
+                    "Stage row"
+### outside the screen (portal)
+<span aria-hidden="true" id="recharts_measurement_span" style="border: medium; font-size: 15px; left: 0px; letter-spacing: normal; margin: 0px; padding: 0px; position: absolute; top: -20000px; white-space: pre">
+  "0"
+## screen scr_biwh (Warehouse)
+<div class="app-design--surface-soft app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #000000; --app-accent-soft: rgba(8, 145, 178, 0.1); --app-accent: #0891B2; --app-primary-contrast: #000000; --app-primary-soft: rgba(8, 145, 178, 0.1); --app-primary: #0891B2; --app-radius: 8px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-family: "Satoshi", system-ui, -apple-system, sans-serif; font-size: 15px; min-height: 100vh">
+  <main class="flex flex-1 flex-col min-h-0">
+    <div class="app-design--surface-soft app-runtime app-screen-enter flex flex-1 flex-col h-full min-h-0 w-full" data-app-appearance="auto" data-app-screen="scr_biwh" data-app-screen-kind="page" style="--app-accent-contrast: #000000; --app-accent-soft: rgba(8, 145, 178, 0.1); --app-accent: #0891B2; --app-primary-contrast: #000000; --app-primary-soft: rgba(8, 145, 178, 0.1); --app-primary: #0891B2; --app-radius: 8px; --app-space: 1; color: var(--text-primary); font-family: "Satoshi", system-ui, -apple-system, sans-serif; font-size: 15px">
+      <div class="flex flex-1 flex-col min-h-0 w-full" style="margin: 0px auto; max-width: none">
+        <section class="app-grid" data-section-id="sec_biwtop" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="page_header" data-node-id="cmp_biwhdr" style="grid-column: span 12 / span 12">
+            <header class="min-w-0 w-full" data-app-pageheader="true">
+              <div class="flex flex-wrap items-start" style="gap: calc(12px * var(--app-space, 1))">
+                <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-9 inline-flex items-center justify-center rounded-md shrink-0 w-9" aria-hidden="true">
+                  <svg class="h-4.5 lucide lucide-database w-4.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                <div class="basis-64 flex-1 min-w-0">
+                  <h1 class="font-semibold text-[var(--text-primary)] text-xl truncate" title="Warehouse">
+                    "Warehouse"
+                  <p class="line-clamp-2 mt-0.5 text-sm" title="One fact table, two dimensions, one load log. Amounts and labels are editable inline — click a cell." style="color: var(--text-secondary)">
+                    "One fact table, two dimensions, one load log. Amounts and labels are editable inline — click a cell."
+          <div class="app-node app-span-12 min-w-0" data-app-type="filter_bar" data-node-id="cmp_biwfilt" style="grid-column: span 12 / span 12">
+            <div class="flex flex-wrap gap-3 items-end" data-app-filterbar="true">
+              <div class="flex flex-col gap-1 min-w-0" data-app-filter="q">
+                <label class="font-medium text-[var(--text-secondary)] text-xs" for="cmp_biwfilt-flt-q">
+                  "Search label"
+                <div class="relative">
+                  <svg class="-translate-y-1/2 absolute h-3.5 left-2.5 lucide lucide-search text-[var(--text-muted)] top-1/2 w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                  <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none pl-8 px-2.5 py-1.5 text-sm w-full" aria-label="Search label" id="cmp_biwfilt-flt-q" placeholder="Search label" type="text" value="" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+              <div class="flex flex-col gap-1 min-w-0" data-app-filter="category">
+                <label class="font-medium text-[var(--text-secondary)] text-xs" for="cmp_biwfilt-flt-category">
+                  "Category"
+                <select class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-label="Category" id="cmp_biwfilt-flt-category" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                  <option value="">
+                    "All"
+                  <option value="hardware">
+                    "Hardware"
+                  <option value="software">
+                    "Software"
+                  <option value="services">
+                    "Services"
+                  <option value="support">
+                    "Support"
+                  <option value="training">
+                    "Training"
+                  <option value="licenses">
+                    "Licenses"
+              <div class="flex flex-col gap-1 min-w-0" data-app-filter="entity">
+                <label class="font-medium text-[var(--text-secondary)] text-xs" for="cmp_biwfilt-flt-entity">
+                  "Entity"
+                <select class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-label="Entity" id="cmp_biwfilt-flt-entity" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                  <option value="">
+                    "All"
+                  <option value="north">
+                    "North"
+                  <option value="south">
+                    "South"
+                  <option value="east">
+                    "East"
+                  <option value="west">
+                    "West"
+                  <option value="online">
+                    "Online"
+                  <option value="partner">
+                    "Partner"
+        <section class="app-grid app-section-fill" data-section-id="sec_biwmain" style="flex: 1 1 0px; gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); grid-template-rows: minmax(0, 1fr); min-height: 0px; padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="tabs" data-node-id="cmp_biwtabs" style="grid-column: span 12 / span 12">
+            <div class="min-w-0 w-full" data-app-tabs="true">
+              <div class="app-scroll-x border-b flex gap-1 items-center overflow-x-auto" aria-label="Tabs" role="tablist" style="border-color: var(--border-default)">
+                <button class="-mb-px font-medium gap-1.5 inline-flex items-center px-3 py-2 shrink-0 text-sm whitespace-nowrap" aria-selected="true" role="tab" type="button" style="border-bottom: 2px solid var(--app-primary); color: var(--app-primary)">
+                  <svg class="h-3.5 lucide lucide-database w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                  <span>
+                    "Fact records"
+                <button class="-mb-px font-medium gap-1.5 inline-flex items-center px-3 py-2 shrink-0 text-sm whitespace-nowrap" aria-selected="false" role="tab" type="button" style="border-bottom: 2px solid transparent; color: var(--text-secondary)">
+                  <svg class="h-3.5 lucide lucide-history lucide-rotate-ccw-clock w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                  <span>
+                    "Load runs"
+              <div class="pt-3" data-app-tabpanel="active" role="tabpanel">
+                <div class="app-node app-span-12 min-w-0" data-app-type="tab" data-node-id="cmp_biwtab1" style="grid-column: span 12 / span 12">
+                  <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                    <div class="app-node app-span-12 min-w-0" data-app-type="data_grid" data-node-id="cmp_biwfacts" style="flex: 1 1 0px; grid-column: span 12 / span 12; min-height: 0px; min-width: 0px">
+                      <div class="w-full" data-app-datagrid="true">
+                        <div class="flex flex-col gap-1.5 h-full items-center justify-center min-h-0 py-6 text-center">
+                          <span class="mb-1 text-[var(--text-tertiary)]">
+                            <svg class="block" aria-hidden="true" fill="none" role="presentation" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 96 72" style="height: auto; opacity: 0.9; width: 5.5rem">
+                          <span class="font-medium text-[var(--text-primary)] text-sm">
+                            "Nothing here yet"
+                          <span class="max-w-xs text-[var(--text-muted)] text-sm">
+                            "The warehouse is empty — load staged rows on the Load data screen."
+              <div class="pt-3" data-app-tabpanel="inactive" hidden="" role="tabpanel" style="display: none">
+                <div class="app-node app-span-12 min-w-0" data-app-type="tab" data-node-id="cmp_biwtab2" style="grid-column: span 12 / span 12">
+                  <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                    <div class="app-node app-span-12 min-w-0" data-app-type="data_grid" data-node-id="cmp_biwloads" style="flex: 1 1 0px; grid-column: span 12 / span 12; min-height: 0px; min-width: 0px">
+                      <div class="w-full" data-app-datagrid="true">
+                        <div class="flex flex-col gap-1.5 h-full items-center justify-center min-h-0 py-6 text-center">
+                          <span class="mb-1 text-[var(--text-tertiary)]">
+                            <svg class="block" aria-hidden="true" fill="none" role="presentation" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 96 72" style="height: auto; opacity: 0.9; width: 5.5rem">
+                          <span class="font-medium text-[var(--text-primary)] text-sm">
+                            "Nothing here yet"
+                          <span class="max-w-xs text-[var(--text-muted)] text-sm">
+                            "No load runs yet."
+### outside the screen (portal)
+<span aria-hidden="true" id="recharts_measurement_span" style="border: medium; font-size: 15px; left: 0px; letter-spacing: normal; margin: 0px; padding: 0px; position: absolute; top: -20000px; white-space: pre">
+  "0"
+## screen scr_bisetup (Setup)
+<div class="app-design--surface-soft app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #000000; --app-accent-soft: rgba(8, 145, 178, 0.1); --app-accent: #0891B2; --app-primary-contrast: #000000; --app-primary-soft: rgba(8, 145, 178, 0.1); --app-primary: #0891B2; --app-radius: 8px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-family: "Satoshi", system-ui, -apple-system, sans-serif; font-size: 15px; min-height: 100vh">
+  <main class="flex flex-1 flex-col min-h-0">
+    <div class="app-design--surface-soft app-runtime app-screen-enter w-full" data-app-appearance="auto" data-app-screen="scr_bisetup" data-app-screen-kind="page" style="--app-accent-contrast: #000000; --app-accent-soft: rgba(8, 145, 178, 0.1); --app-accent: #0891B2; --app-primary-contrast: #000000; --app-primary-soft: rgba(8, 145, 178, 0.1); --app-primary: #0891B2; --app-radius: 8px; --app-space: 1; color: var(--text-primary); font-family: "Satoshi", system-ui, -apple-system, sans-serif; font-size: 15px">
+      <div class="flex flex-col w-full" style="margin: 0px auto; max-width: 1280px">
+        <section class="app-grid" data-section-id="sec_bistop" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="page_header" data-node-id="cmp_bishdr" style="grid-column: span 12 / span 12">
+            <header class="min-w-0 w-full" data-app-pageheader="true">
+              <div class="flex flex-wrap items-start" style="gap: calc(12px * var(--app-space, 1))">
+                <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-9 inline-flex items-center justify-center rounded-md shrink-0 w-9" aria-hidden="true">
+                  <svg class="h-4.5 lucide lucide-settings-2 w-4.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                <div class="basis-64 flex-1 min-w-0">
+                  <h1 class="font-semibold text-[var(--text-primary)] text-xl truncate" title="Setup">
+                    "Setup"
+                  <p class="line-clamp-2 mt-0.5 text-sm" title="Rename the dimensions to whatever your data really splits by — the model does not care what they are called." style="color: var(--text-secondary)">
+                    "Rename the dimensions to whatever your data really splits by — the model does not care what they are called."
+          <div class="app-node app-span-12 min-w-0" data-app-type="markdown" data-node-id="cmp_bisdoc" style="grid-column: span 12 / span 12">
+            <div class="flex flex-col gap-2 text-sm" data-app-markdown="true">
+              <h2 class="font-semibold text-xl">
+                "How this warehouse works"
+              <p>
+                "It is a small"
+                <strong>
+                  "star schema"
+                "— one fact table with two dimensions and a load log:"
+              <ul class="flex flex-col gap-1 list-disc pl-5">
+                <li>
+                  <strong>
+                    "Fact records"
+                  "— one row per thing that happened: a date, an amount, a quantity, and two dimension keys."
+                <li>
+                  <strong>
+                    "Dimension: categories"
+                  "and"
+                  <strong>
+                    "Dimension: entities"
+                  "— the two axes reports group by. They are deliberately generic: product lines and regions, cost centres and teams, projects and customers — rename the rows here and the meaning follows."
+                <li>
+                  <strong>
+                    "Load runs"
+                  "— every load is logged with a timestamp and a row count, so “where did these numbers come from?” always has an answer."
+              <p>
+                "Because every query reads"
+                <strong>
+                  "one table"
+                "(no joins), each fact row carries a text copy of its dimension keys (`category_key`, `entity_key`) next to the real relations — the copies are what reports group by, the relations are what makes the model relational."
+              <p>
+                "One seam to know about: the"
+                <strong>
+                  "dropdowns"
+                "in the staging form and the warehouse filter bar are fixed lists in the app design. A dimension row added below shows up in reports and grids immediately, but an editor has to add it to those dropdowns."
+        <section class="app-grid" data-section-id="sec_bisdims" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-6 min-w-0" data-app-type="data_grid" data-node-id="cmp_bisdim1" style="grid-column: span 6 / span 6">
+            <div class="w-full" data-app-datagrid="true">
+              <div class="flex flex-col gap-1.5 h-full items-center justify-center min-h-0 py-6 text-center">
+                <span class="mb-1 text-[var(--text-tertiary)]">
+                  <svg class="block" aria-hidden="true" fill="none" role="presentation" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 96 72" style="height: auto; opacity: 0.9; width: 5.5rem">
+                <span class="font-medium text-[var(--text-primary)] text-sm">
+                  "Nothing here yet"
+                <span class="max-w-xs text-[var(--text-muted)] text-sm">
+                  "No categories yet — add the first below."
+          <div class="app-node app-span-6 min-w-0" data-app-type="data_grid" data-node-id="cmp_bisdim2" style="grid-column: span 6 / span 6">
+            <div class="w-full" data-app-datagrid="true">
+              <div class="flex flex-col gap-1.5 h-full items-center justify-center min-h-0 py-6 text-center">
+                <span class="mb-1 text-[var(--text-tertiary)]">
+                  <svg class="block" aria-hidden="true" fill="none" role="presentation" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 96 72" style="height: auto; opacity: 0.9; width: 5.5rem">
+                <span class="font-medium text-[var(--text-primary)] text-sm">
+                  "Nothing here yet"
+                <span class="max-w-xs text-[var(--text-muted)] text-sm">
+                  "No entities yet — add the first below."
+          <div class="app-node app-span-3 min-w-0" data-app-type="button" data-node-id="cmp_bisadd1" style="grid-column: span 3 / span 3; text-align: left">
+            <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm transition-opacity" type="button" style="background: var(--app-accent, var(--app-primary)); border-radius: var(--app-radius); color: var(--app-accent-contrast, var(--app-primary-contrast))">
+              <svg class="h-3.5 lucide lucide-plus w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <span>
+                "Add category"
+          <div class="app-node app-span-3 min-w-0" data-app-type="button" data-node-id="cmp_bisadd2" style="grid-column: span 3 / span 3; text-align: left">
+            <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm transition-opacity" type="button" style="background: var(--app-accent, var(--app-primary)); border-radius: var(--app-radius); color: var(--app-accent-contrast, var(--app-primary-contrast))">
+              <svg class="h-3.5 lucide lucide-plus w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <span>
+                "Add entity"
+        <section class="app-grid" data-section-id="sec_bisdlg" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: 0px">
+### outside the screen (portal)
+<span aria-hidden="true" id="recharts_measurement_span" style="border: medium; font-size: 15px; left: 0px; letter-spacing: normal; margin: 0px; padding: 0px; position: absolute; top: -20000px; white-space: pre">
+  "0"
