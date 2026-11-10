@@ -1,0 +1,19 @@
+{
+  "translations": {
+    "studio_apps_step_http.blurb": "Stuur een verzoek naar een dienst via een van de REST-koppelingen van deze app.",
+    "studio_apps_step_http.field_body_format": "Indeling van de inhoud",
+    "studio_apps_step_http.field_expect": "Antwoord lezen als",
+    "studio_apps_step_http.field_idempotency_key": "Idempotentiesleutel",
+    "studio_apps_step_http.field_query": "Queryparameters",
+    "studio_apps_step_http.hint_body": "Wat een POST, PUT, PATCH of DELETE verstuurt. Een vaste tekst mag plaatshouders bevatten zoals {{form.note}}; schrijf bij de JSON-indeling JSON.",
+    "studio_apps_step_http.hint_connector": "Een REST-koppeling uit Gegevens · Koppelingen. Die bepaalt de host en de inloggegevens; een stap kan geen ander adres aanroepen.",
+    "studio_apps_step_http.hint_idempotency_key": "Een waarde die deze ene schrijfactie benoemt, zoals een ordernummer. Een schrijfactie wordt alleen opnieuw geprobeerd als ze er een heeft.",
+    "studio_apps_step_http.hint_method": "GET leest. De andere methoden veranderen iets aan de andere kant.",
+    "studio_apps_step_http.hint_path": "Het pad op de host van de koppeling, zoals /v1/orders/{{form.orderId}}. Een plaatshouder leest form, vars, item of params.",
+    "studio_apps_step_http.hint_result_var": "De variabele die het antwoord krijgt: vars.<naam>.status en vars.<naam>.body.",
+    "studio_apps_step_http.label": "Een webdienst aanroepen"
+  },
+  "sameAsEnglish": [
+    "studio_apps_step_http.field_headers"
+  ]
+}

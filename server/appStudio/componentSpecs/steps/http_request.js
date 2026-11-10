@@ -18,7 +18,7 @@ module.exports = {
     fields: {
         connectorId: { type: 'string', required: true, maxLen: 80, description: 'The id of a `rest` connector of this app (app_list_connectors lists them). It fixes the host and the credential.' },
         method: { type: 'enum', values: HTTP_METHODS, default: 'GET', description: 'GET reads. POST, PUT, PATCH and DELETE change something on the other side.' },
-        path: { type: 'string', maxLen: 2000, description: 'The path on the connector\'s host, starting with "/". {{form.x}}, {{vars.x}}, {{item.x}} and {{params.x}} are filled in URL-encoded. No "?" or "#" (use `query`).' },
+        path: { type: 'string', maxLen: 500, description: 'The path on the connector\'s host, starting with "/". {{form.x}}, {{vars.x}}, {{item.x}} and {{params.x}} are filled in URL-encoded. No "?" or "#" (use `query`).' },
         query: { type: 'recordValues', description: 'Query parameters: { <name>: binding }. A list sends the name once per item, an empty value is left out.' },
         headers: { type: 'recordValues', description: 'Extra request headers: { <name>: binding }. Authorization, Cookie and the headers the connector sets are refused.' },
         body: { type: 'binding', description: 'The request body of a POST, PUT, PATCH or DELETE. A static value is a template: a record, list or JSON text whose text values may hold {{form.x}}, {{vars.x}}, {{item.x}}, {{params.x}} (a value that is exactly one placeholder keeps its type). A formula or field binding is sent as the value it yields.' },

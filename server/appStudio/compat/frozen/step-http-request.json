@@ -1,0 +1,66 @@
+{
+  "corpus": "step-http-request",
+  "canonical": {
+    "sha256": "dd6cedac123010280ce2933802635f7748b1b2cfbfbc0833f64d157f3001ecdf",
+    "bytes": 3202,
+    "inputIsCanonical": true,
+    "idempotent": true,
+    "keys": [
+      "schemaVersion",
+      "meta",
+      "theme",
+      "roles",
+      "variables",
+      "screens",
+      "actions",
+      "homeScreenId"
+    ],
+    "parts": {
+      "schemaVersion": "4e07408562bedb8b",
+      "meta": "449052c1a23f6f2d",
+      "theme": "5d7eeb0111b89897",
+      "roles": "4f53cda18c2baa0c",
+      "variables": "b0ea382cb08da42c",
+      "screens[0] scr_htp001": "82a705485eca59e7",
+      "actions.act_htplok": "ae9f093f835fb403",
+      "actions.act_htpnot": "2eafc2b3eb33cb9d",
+      "actions.act_htpcan": "9b45662749cdb11c",
+      "homeScreenId": "580870fdeeee905a"
+    }
+  },
+  "schemaVersion": {
+    "stored": 3,
+    "canonical": 3
+  },
+  "validation": {
+    "strict": {
+      "errors": [],
+      "warnings": []
+    },
+    "save": {
+      "errors": [],
+      "warnings": []
+    }
+  },
+  "ordinals": {
+    "stored": {
+      "act_htplok": [
+        "0 http_request",
+        "1 toast",
+        "2 toast"
+      ],
+      "act_htpnot": [
+        "0 http_request",
+        "1 reset_form",
+        "2 toast"
+      ],
+      "act_htpcan": [
+        "0 confirm",
+        "1 http_request",
+        "2 http_request"
+      ]
+    },
+    "canonical": "same as stored"
+  },
+  "reads": []
+}

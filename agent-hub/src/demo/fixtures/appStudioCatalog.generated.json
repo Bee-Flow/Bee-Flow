@@ -3866,7 +3866,7 @@
                     },
                     "path": {
                         "type": "string",
-                        "maxLen": 2000,
+                        "maxLen": 500,
                         "description": "The path on the connector's host, starting with \"/\". {{form.x}}, {{vars.x}}, {{item.x}} and {{params.x}} are filled in URL-encoded. No \"?\" or \"#\" (use `query`)."
                     },
                     "query": {
