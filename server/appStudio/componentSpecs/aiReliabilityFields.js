@@ -27,7 +27,7 @@ const AI_RELIABILITY_FIELDS = {
 /**
  * The field table with the reliability fields added at its end, in place: ACTION_SPECS and
  * STEP_SPECS share the AI field tables, so both get the same fields.
- * @template {object} T
+ * @template {Record<string, unknown>} T
  * @param {T} fields
  * @returns {T & typeof AI_RELIABILITY_FIELDS}
  */
