@@ -1,7 +1,7 @@
 import { Handle, Position } from '@xyflow/react';
 import { AlertTriangle, CornerDownRight, Plus, Server } from 'lucide-react';
 import { NODE_W } from '../layout';
-import { stepMeta } from '../stepCatalog';
+import { stepMeta } from '../stepKinds';
 import { scopesOf } from '../stepGraph';
 import useTranslation from '@/hooks/useTranslation';
 import StepNodeBase from '@/components/automation/Builder/flow/nodes/StepNodeBase';

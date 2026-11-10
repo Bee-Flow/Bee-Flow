@@ -1,3 +1,4 @@
+import type { ComponentType } from 'react';
 import type { AppAction, AppDefinition, AppNode, AppScreen, FormFieldRef } from '../inspector/appDefinition';
 import type useStepReferences from './useStepReferences';
 import type { RefOption, ReferenceKind } from './stepReferences';
@@ -47,6 +48,8 @@ export interface StepFieldProps {
     references: StepReferences;
     formFields: FormFieldRef[];
     disabled: boolean;
+    /** Controls by field type, in place of the registered ones (fieldTypes.ts). Left out everywhere but in tests. */
+    fieldControls?: Record<string, ComponentType<StepFieldProps & { label: string; hint?: string; required: boolean }>>;
 }
 
 /**

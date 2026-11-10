@@ -3,7 +3,7 @@
  *
  * The server's flattenSteps (server/appStudio/actionSequence.js) cannot be
  * required here (its module pulls in the action executor), so it is lifted out
- * of the file's text and run. The web runner's buildStepIndexMap,
+ * of the file's text and run, with the two pure child-slot helpers it calls. The web runner's buildStepIndexMap,
  * sequenceHasServerStep, caseMatches and resolveNavParams come from its pure
  * step-walk module (runtime/actionRunner/stepWalk.ts). All run on the same
  * action trees as the port.
@@ -18,10 +18,16 @@ import * as port from './stepIndex';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const actionSpecs = require('../../../../../../server/appStudio/componentSpecs/actionSpecs.js') as Record<string, string[]>;
 
+// flattenSteps reads which fields of a kind hold numbered steps from the shared child-slot table
+// (server/shared/appDefinition/stepFlow.mjs, pure), so those two helpers are passed in.
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const stepFlow = require('../../../../../../server/shared/appDefinition/stepFlow.mjs') as Record<string, unknown>;
+
 const serverSrc = readRepo('server/appStudio/actionSequence.js');
 const server = evalSource<{ flattenSteps: (s: unknown) => unknown[]; normalizeSequence: (a: unknown) => unknown[] }>(
     [functionSource(serverSrc, 'flattenSteps'), functionSource(serverSrc, 'normalizeSequence')],
     ['flattenSteps', 'normalizeSequence'],
+    { numberedChildLists: stepFlow.numberedChildLists, handlerStepsOf: stepFlow.handlerStepsOf },
 );
 
 // The web runner's pure step walk lives in its own React-free module, so it is
