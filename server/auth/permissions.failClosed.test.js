@@ -19,6 +19,8 @@ const ROWS = {
     legacy: { id: 'legacy', role: 'user' },                       // from before the column: active
     suspended: { id: 'suspended', role: 'user', status: 'suspended' },
     'suspended-admin': { id: 'suspended-admin', role: 'admin', status: 'suspended' },
+    inactive: { id: 'inactive', role: 'user', status: 'inactive' },
+    'inactive-org-admin': { id: 'inactive-org-admin', role: 'user', orgRole: 'org_admin', status: 'inactive' },
     held: { id: 'held', role: 'user', status: 'pending' },
     waitlisted: { id: 'waitlisted', role: 'user', status: 'waitlist' },
     founder: { id: 'founder', role: 'user', status: 'pending', orgRole: 'org_admin' },
@@ -192,6 +194,25 @@ test('a suspended platform admin is no exception', async () => {
     const { res, nexted } = await callAs('suspended-admin', true);
     assert.equal(nexted, false);
     assert.equal(res.statusCode, 401);
+});
+
+test('an inactive account is signed out on its next request, with the answer a suspended account gets', async () => {
+    for (const id of ['inactive', 'inactive-org-admin']) {
+        const { res, nexted, destroyed } = await callAs(id);
+        assert.equal(nexted, false, id);
+        assert.equal(res.statusCode, 401, id);
+        assert.equal(destroyed, true, id);
+        assert.deepEqual(res.body, (await callAs('suspended')).res.body, id);
+    }
+});
+
+test('an account that is active again passes on its next request', async () => {
+    ROWS.inactive.status = 'active';
+    try {
+        assert.equal((await callAs('inactive')).nexted, true);
+    } finally {
+        ROWS.inactive.status = 'inactive';
+    }
 });
 
 // ── Held for approval ────────────────────────────────────────────────────

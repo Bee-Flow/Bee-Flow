@@ -126,6 +126,24 @@ test('a suspended row is blocked, and the ordinary ones are not', () => {
     assert.strictEqual(isLoginBlockedAccount(undefined), false);
 });
 
+test('an inactive row is blocked like a suspended one, and is not once it is active again', () => {
+    const { isLoginBlockedAccount, isActiveAccount } = require('./accountStatusGate');
+    const row = { id: 'u1', status: 'inactive', role: 'admin', orgRole: 'org_admin' };
+    assert.strictEqual(isLoginBlockedAccount(row), true, 'no role is an exception');
+    assert.strictEqual(isActiveAccount(row), false);
+    row.status = 'active';
+    assert.strictEqual(isLoginBlockedAccount(row), false);
+    assert.strictEqual(isActiveAccount(row), true);
+});
+
+test('every blocked status gets the one refusal, which names none of them', () => {
+    const { HARD_BLOCKED_STATUSES, REFUSAL } = require('./accountStatusGate');
+    assert.deepStrictEqual([...HARD_BLOCKED_STATUSES].sort(), ['inactive', 'suspended']);
+    for (const status of HARD_BLOCKED_STATUSES) {
+        assert.ok(!JSON.stringify(REFUSAL).toLowerCase().includes(status), status);
+    }
+});
+
 test('the suspended refusal is shaped like a wrong password', () => {
     const { REFUSAL } = require('./accountStatusGate');
     assert.strictEqual(REFUSAL.status, 401);

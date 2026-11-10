@@ -619,6 +619,25 @@ test('existing suspended user: 403 Account is not active', async () => {
     assert.equal(req.session.isAuthenticated, undefined);
 });
 
+test('existing inactive user: 403 Account is not active, the answer a suspended account gets', async () => {
+    userStore.getUserByEmail = async () => ({ id: 'u9', email: 'ann@acme.example', organizationId: ORG, status: 'inactive' });
+    const req = connectorReq(goodPayload());
+    assertRejected(await run(req), 403, { error: 'Account is not active' });
+    assert.deepEqual(rec.problems[0].opts.meta, { lastUserId: 'u9', reason: 'existing_user_inactive' });
+    assert.equal(req.session.isAuthenticated, undefined);
+});
+
+test('an account that is active again signs in through the connector', async () => {
+    const row = { id: 'u9', email: 'ann@acme.example', organizationId: ORG, status: 'inactive' };
+    userStore.getUserByEmail = async () => row;
+    assertRejected(await run(connectorReq(goodPayload())), 403, { error: 'Account is not active' });
+    row.status = 'active';
+    const req = connectorReq(goodPayload());
+    await run(req);
+    assert.equal(req.session.isAuthenticated, true);
+    assert.equal(req.session.user.id, 'u9');
+});
+
 test('getUserByEmail throwing: 401 Invalid connector token + warn with method/url/message', async () => {
     userStore.getUserByEmail = async () => { throw new Error('db gone'); };
     assertRejected(await run(connectorReq(goodPayload())), 401, INVALID);

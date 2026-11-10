@@ -79,6 +79,7 @@ test('isActiveAccount: active, no status and a missing row', () => {
     assert.equal(isActiveAccount({ status: 'active' }), true);
     assert.equal(isActiveAccount({}), true, 'a row from before the status column');
     assert.equal(isActiveAccount({ status: 'suspended' }), false);
+    assert.equal(isActiveAccount({ status: 'inactive' }), false);
     assert.equal(isActiveAccount({ status: 'offboarded' }), false);
     assert.equal(isActiveAccount({ status: 'pending' }), false);
     assert.equal(isActiveAccount(null), false);

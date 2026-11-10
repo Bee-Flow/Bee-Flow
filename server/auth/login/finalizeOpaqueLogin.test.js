@@ -44,3 +44,13 @@ test('an active account, an org founder and a platform admin get no flag', async
         assert.equal(res.body.pendingApproval, undefined, user.id);
     }
 });
+
+test('a suspended or inactive account gets the wrong-password answer and no session', async () => {
+    for (const status of ['suspended', 'inactive']) {
+        const { res, extra } = await finalize({ id: 'u1', role: 'admin', status });
+        assert.equal(res.statusCode, 401, status);
+        assert.deepEqual(res.body, { error: 'Invalid credentials' }, status);
+        assert.equal(established.length, 0, status);
+        assert.equal(extra, undefined, status);
+    }
+});

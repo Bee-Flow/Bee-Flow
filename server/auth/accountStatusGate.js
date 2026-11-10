@@ -3,35 +3,45 @@
  * "May this account start a session at all?" — one answer, for every way in.
  *
  * WHY THIS FILE EXISTS
- * The status column already decided who may sign in, but only one of the four
- * login-completion paths ever asked. `login/finalizeLogin.js` (password, and
- * MFA through it) blocked `unverified`, `waitlist` and `pending`. The OPAQUE
- * finish, the OAuth/SSO callback and the Nextcloud legacy callback each built
- * a session without reading `status` at all — and none of the four blocked
- * `suspended`, on any path.
+ * The status column decides who may sign in, and every path that completes a
+ * sign-in asks the same predicate here: `login/finalizeLogin.js` (password,
+ * and MFA through it), the OPAQUE finish and `login/finalizeOpaqueLogin.js`
+ * (after a second factor), the OAuth/SSO callback, the Nextcloud legacy
+ * callback and the Nextcloud connector's token exchange
+ * (`connectorJwtPhases.js`). `permissionsRequireAuth.js` asks it again on
+ * every request, so a session that is already running ends on its next
+ * request once the account's status forbids one.
  *
- * So suspending an account did not end its access. An admin could set
- * `status='suspended'` from the user screen, watch the row change, and the
- * person could still sign in. `auth/admin/orgAdminGuards.js` even stated the
- * opposite in a comment ("suspended accounts are refused too"), which is the
- * worst kind of wrong: it reads like the check exists and stops the next
- * person from looking for it.
+ * One predicate in one file: a copy per path is a rule that drifts.
+ * `accountStatusGate.paths.test.js` holds the list of paths to the tree.
  *
- * The fix is one predicate in one file, because four copies of an
- * access-control rule is how three of them end up out of date.
+ * ── THE STATUSES THAT CANNOT SIGN IN ─────────────────────────────────
+ *   `suspended`  set by an administrator on the user screen: this person
+ *                stops having access.
+ *   `inactive`   set by the Nextcloud user sync (services/ncUserGroupSync.js)
+ *                when the account is removed from Nextcloud, is disabled
+ *                there, or falls outside the organisation's sync selection.
+ *                The sync sets it back to `active` when Nextcloud reports the
+ *                account as enabled and the selection admits it again, and
+ *                the account can then sign in as before; an administrator
+ *                can do the same on the user screen.
  *
- * ── WHY `suspended` HAS NO EXEMPTION ─────────────────────────────────
+ * Adding a status is one entry in HARD_BLOCKED_STATUSES below. It then holds
+ * on every path above and for running sessions.
+ *
+ * ── WHY THESE HAVE NO EXEMPTION ──────────────────────────────────────
  * The other blocked statuses carry exemptions: an org founder skips approval
  * (`canSkipApproval`), and some admins skip email verification. Those exist
  * because waitlist/pending/unverified are states on the way IN — they gate a
  * person who is not set up yet, and the founder of an org has nobody above
  * them to do the approving.
  *
- * `suspended` is the opposite: it is a state applied ON PURPOSE to someone who
- * already had access, by someone who decided they should stop having it. An
- * exemption there would mean "you can suspend anyone except the people most
- * worth suspending". So this gate takes no isAdmin, no isOwner, and no
- * override argument — there is nothing to pass that could weaken it.
+ * `suspended` and `inactive` are the opposite: a state applied to someone who
+ * already had access, by an administrator or by the directory the
+ * organisation chose to follow. An exemption there would mean "access ends
+ * for anyone except the accounts with the most of it". So this gate takes no
+ * isAdmin, no isOwner, and no override argument — there is nothing to pass
+ * that could weaken it.
  *
  * ── WHAT IT DELIBERATELY DOES NOT DO ─────────────────────────────────
  * It does not add unverified/waitlist/pending to the OAuth and OPAQUE paths.
@@ -44,12 +54,13 @@
 'use strict';
 
 /**
- * Statuses that must never reach a session, whoever the caller is.
+ * Statuses that must never reach a session, whoever the caller is (the header
+ * says who sets each).
  *
- * A Set rather than a comparison so a second value (say `deactivated`, or
- * `offboarded`) is one line and lands on all four paths at once.
+ * A Set rather than a comparison so another value is one line and lands on
+ * every path at once.
  */
-const HARD_BLOCKED_STATUSES = new Set(['suspended']);
+const HARD_BLOCKED_STATUSES = new Set(['suspended', 'inactive']);
 
 /**
  * Does this stored user row hold a status that forbids signing in?
@@ -139,14 +150,14 @@ const PENDING_REFUSAL = Object.freeze({
 });
 
 /**
- * The single refusal shape, so the four paths cannot answer differently.
+ * The single refusal shape, so the paths cannot answer differently, and the
+ * same for every blocked status.
  *
  * Deliberately the SAME body as a wrong password ("Invalid credentials", 401).
- * A distinct "your account is suspended" message would confirm to anyone
- * holding a working password that the account exists and was singled out; the
- * person themselves learns it from whoever suspended them, not from a login
- * form. No session is written, and nothing is preserved from the pre-auth
- * session.
+ * A message that names the status would confirm to anyone holding a working
+ * password that the account exists and what state it is in; the person
+ * themselves learns it from their administrator, not from a login form. No
+ * session is written, and nothing is preserved from the pre-auth session.
  */
 const REFUSAL = Object.freeze({ status: 401, body: Object.freeze({ error: 'Invalid credentials' }) });
 
