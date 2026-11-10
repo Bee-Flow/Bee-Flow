@@ -3,6 +3,7 @@ import { describe, it, expect } from 'vitest';
 import AppRenderer from './AppRenderer';
 import EditorNodeWrapper from '../editor/EditorNodeWrapper';
 import { AppEditorProvider } from '../state/AppEditorContext';
+import { withoutPartClasses } from '@/test/appPartClasses';
 
 /**
  * The height chain, tested as a CHAIN.
@@ -160,8 +161,8 @@ describe('full-height screens', () => {
             <AppRenderer definition={definitionWith(PLAIN_SECTION)} screenId="scr_1" mode="run" />,
         );
         const runtime = container.querySelector('.app-runtime');
-        expect(runtime.className).toBe('app-runtime app-screen-enter w-full');
-        expect(runtime.firstElementChild.className).toBe('w-full flex flex-col');
+        expect(withoutPartClasses(runtime.className)).toBe('app-runtime app-screen-enter w-full');
+        expect(withoutPartClasses(runtime.firstElementChild.className)).toBe('w-full flex flex-col');
     });
 
     it('maps maxWidth, falling back to medium for anything unknown', () => {
@@ -203,9 +204,9 @@ describe('full-height screens', () => {
         const { container } = render(
             <AppRenderer definition={definitionWith(plainTabs)} screenId="scr_1" mode="run" />,
         );
-        expect(container.querySelector('[data-app-tabs]').className).toBe('w-full min-w-0');
-        expect(container.querySelector('[role="tabpanel"]').className).toBe('pt-3');
-        expect(container.querySelector('[data-app-tabs] .app-grid').className).toBe('app-grid');
+        expect(withoutPartClasses(container.querySelector('[data-app-tabs]').className)).toBe('w-full min-w-0');
+        expect(withoutPartClasses(container.querySelector('[role="tabpanel"]').className)).toBe('pt-3');
+        expect(withoutPartClasses(container.querySelector('[data-app-tabs] .app-grid').className)).toBe('app-grid');
     });
 
     it('behaves identically in edit mode — preview == production', () => {

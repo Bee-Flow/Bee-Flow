@@ -11,6 +11,7 @@ const { VALUE_FROM } = require('./styleKnobs');
 
 const FORM_SPECS = {
     card: {
+        parts: ['root', 'header', 'title', 'description', 'body'],
         label: 'Card', category: 'Layout',
         description: 'A surface that groups other components. Children lay out on the card’s own 12-column grid.',
         container: true,

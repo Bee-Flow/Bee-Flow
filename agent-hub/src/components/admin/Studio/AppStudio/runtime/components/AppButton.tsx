@@ -96,13 +96,13 @@ export default function AppButton({ node }: NodeProps<ButtonProps>) {
             aria-disabled={ruleDisabled || undefined}
             title={orphanSubmit ? 'This button is not inside a form, so it has nothing to submit.' : undefined}
             data-app-orphan-submit={orphanSubmit ? 'true' : undefined}
-            className={`inline-flex items-center gap-1.5 font-medium transition-opacity disabled:opacity-60 ${SIZE_CLASSES[size] || SIZE_CLASSES.md}`}
+            className={`inline-flex items-center gap-1.5 font-medium transition-opacity disabled:opacity-60 ${SIZE_CLASSES[size] || SIZE_CLASSES.md} bfa-button__root`}
             style={{ ...(VARIANT_STYLES[variant] || VARIANT_STYLES.primary), borderRadius: 'var(--app-radius)' }}
         >
             {pending
-                ? <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" />
-                : (iconLeft ? <AppIcon name={iconLeft} className="w-3.5 h-3.5" /> : null)}
-            <span>{label}</span>
+                ? <Loader2 className="w-3.5 h-3.5 animate-spin bfa-button__icon" aria-hidden="true" />
+                : (iconLeft ? <AppIcon name={iconLeft} className="w-3.5 h-3.5 bfa-button__icon" /> : null)}
+            <span className="bfa-button__label">{label}</span>
         </button>
     );
 }

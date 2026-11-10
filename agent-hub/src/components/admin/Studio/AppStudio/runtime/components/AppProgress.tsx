@@ -38,9 +38,9 @@ function ProgressRing({ dimSpec, pct, clamped, ceiling, color, caption, label }:
     const r = (dim - stroke) / 2;
     const c = 2 * Math.PI * r;
     return (
-        <div className="min-w-0 inline-flex flex-col items-center gap-1" data-app-progress="true" data-app-progress-look="ring">
+        <div className="min-w-0 inline-flex flex-col items-center gap-1 bfa-progress__root" data-app-progress="true" data-app-progress-look="ring">
             <div
-                className="relative inline-flex"
+                className="relative inline-flex bfa-progress__track"
                 role="progressbar"
                 aria-valuenow={Math.round(clamped)}
                 aria-valuemin={0}
@@ -61,12 +61,12 @@ function ProgressRing({ dimSpec, pct, clamped, ceiling, color, caption, label }:
                         strokeDashoffset={c * (1 - pct / 100)}
                         // Start the sweep at 12 o'clock, not 3 o'clock.
                         transform={`rotate(-90 ${dim / 2} ${dim / 2})`}
-                        className="[transition:stroke-dashoffset_var(--app-motion-slow,0ms)_var(--app-ease,ease-out)]"
+                        className="[transition:stroke-dashoffset_var(--app-motion-slow,0ms)_var(--app-ease,ease-out)] bfa-progress__fill"
                     />
                 </svg>
                 {caption ? (
                     <span
-                        className="absolute inset-0 flex items-center justify-center text-xs font-semibold text-[var(--text-primary)]"
+                        className="absolute inset-0 flex items-center justify-center text-xs font-semibold text-[var(--text-primary)] bfa-progress__caption"
                         data-app-progress-caption="true"
                     >
                         {caption}
@@ -74,7 +74,7 @@ function ProgressRing({ dimSpec, pct, clamped, ceiling, color, caption, label }:
                 ) : null}
             </div>
             {label ? (
-                <span className="text-xs font-medium truncate max-w-full text-[var(--text-secondary)]">{label}</span>
+                <span className="text-xs font-medium truncate max-w-full text-[var(--text-secondary)] bfa-progress__label">{label}</span>
             ) : null}
         </div>
     );
@@ -173,18 +173,18 @@ export default function AppProgress({ node }: NodeProps<ProgressProps>) {
         const sum = parts.reduce((acc, p) => acc + p.value, 0);
         return (
             <div
-                className="w-full min-w-0 flex flex-col gap-1"
+                className="w-full min-w-0 flex flex-col gap-1 bfa-progress__root"
                 data-app-progress="true"
                 data-app-progress-look={slim ? 'slim' : undefined}
                 data-app-progress-segments={parts.length}
             >
                 {label ? (
                     <div className="flex items-baseline justify-between gap-2 text-xs text-[var(--text-secondary)]">
-                        <span className="truncate font-medium text-[var(--text-primary)]">{label}</span>
+                        <span className="truncate font-medium text-[var(--text-primary)] bfa-progress__label">{label}</span>
                     </div>
                 ) : null}
                 <div
-                    className={`w-full ${slim ? '' : `${barH} `}rounded-full overflow-hidden`}
+                    className={`w-full ${slim ? '' : `${barH} `}rounded-full overflow-hidden bfa-progress__track`}
                     style={slim ? { background: 'var(--bg-tertiary)', height: '2px' } : { background: 'var(--bg-tertiary)' }}
                     role="progressbar"
                     aria-valuenow={Math.round(sum)}
@@ -197,7 +197,7 @@ export default function AppProgress({ node }: NodeProps<ProgressProps>) {
                             {parts.map((p, i) => (p.value > 0 ? (
                                 <div
                                     key={i}
-                                    className="h-full"
+                                    className="h-full bfa-progress__segment"
                                     title={`${p.label || p.tone}: ${p.value.toLocaleString()}`}
                                     data-app-progress-segment={p.tone}
                                     style={{ width: `${(p.value / sum) * 100}%`, background: ROLE_COLORS[p.tone] }}
@@ -212,18 +212,18 @@ export default function AppProgress({ node }: NodeProps<ProgressProps>) {
 
     return (
         <div
-            className="w-full min-w-0 flex flex-col gap-1"
+            className="w-full min-w-0 flex flex-col gap-1 bfa-progress__root"
             data-app-progress="true"
             data-app-progress-look={slim ? 'slim' : undefined}
         >
             {(label || caption) ? (
                 <div className="flex items-baseline justify-between gap-2 text-xs text-[var(--text-secondary)]">
-                    <span className="truncate font-medium text-[var(--text-primary)]">{label}</span>
-                    {caption ? <span data-app-progress-caption="true">{caption}</span> : null}
+                    <span className="truncate font-medium text-[var(--text-primary)] bfa-progress__label">{label}</span>
+                    {caption ? <span className="bfa-progress__caption" data-app-progress-caption="true">{caption}</span> : null}
                 </div>
             ) : null}
             <div
-                className={`w-full ${slim ? '' : `${barH} `}rounded-full overflow-hidden`}
+                className={`w-full ${slim ? '' : `${barH} `}rounded-full overflow-hidden bfa-progress__track`}
                 style={slim ? { background: 'var(--bg-tertiary)', height: '2px' } : { background: 'var(--bg-tertiary)' }}
                 role="progressbar"
                 aria-valuenow={Math.round(clamped)}
@@ -231,7 +231,7 @@ export default function AppProgress({ node }: NodeProps<ProgressProps>) {
                 aria-valuemax={Math.round(ceiling)}
                 aria-label={label || t('studio_apps_runtime.progress.label', 'Progress')}
             >
-                <div className="h-full rounded-full" style={{ width: `${pct}%`, background: color }} />
+                <div className="h-full rounded-full bfa-progress__fill" style={{ width: `${pct}%`, background: color }} />
             </div>
         </div>
     );

@@ -82,7 +82,7 @@ export default function AppKeyValue({ node }: NodeProps<KeyValueProps>) {
         const cols = Math.min(4, Math.max(1, Number.isInteger(columns) ? columns : 2));
         return (
             <dl
-                className={`grid gap-y-2 ${size === 'sm' ? 'text-xs' : 'text-sm'}`}
+                className={`grid gap-y-2 ${size === 'sm' ? 'text-xs' : 'text-sm'} bfa-keyValue__root`}
                 style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
                 data-app-keyvalue-layout="grid"
             >
@@ -92,13 +92,13 @@ export default function AppKeyValue({ node }: NodeProps<KeyValueProps>) {
                     return (
                         <div
                             key={field.key}
-                            className={`flex flex-col gap-0.5 min-w-0 ${bordered ? 'pl-3' : ''}`}
+                            className={`flex flex-col gap-0.5 min-w-0 ${bordered ? 'pl-3' : ''} bfa-keyValue__row`}
                             style={bordered ? { borderLeftWidth: '1px', borderLeftStyle: 'solid', borderLeftColor: 'var(--border-default)' } : undefined}
                         >
-                            <dt className="text-[11px] text-[var(--text-muted)]">
+                            <dt className="text-[11px] text-[var(--text-muted)] bfa-keyValue__label">
                                 {field.label || field.key}
                             </dt>
-                            <dd className="break-words min-w-0">{readableLeaf(walkPath(record, field.key))}</dd>
+                            <dd className="break-words min-w-0 bfa-keyValue__value">{readableLeaf(walkPath(record, field.key))}</dd>
                         </div>
                     );
                 })}
@@ -107,13 +107,13 @@ export default function AppKeyValue({ node }: NodeProps<KeyValueProps>) {
     }
 
     return (
-        <dl className={`flex flex-col ${size === 'sm' ? 'text-xs gap-1' : 'text-sm gap-1.5'}`}>
+        <dl className={`flex flex-col ${size === 'sm' ? 'text-xs gap-1' : 'text-sm gap-1.5'} bfa-keyValue__root`}>
             {rows.map((field) => (
-                <div key={field.key} className="flex items-baseline justify-between gap-3">
-                    <dt className="shrink-0 font-medium text-[var(--text-secondary)]">
+                <div key={field.key} className="flex items-baseline justify-between gap-3 bfa-keyValue__row">
+                    <dt className="shrink-0 font-medium text-[var(--text-secondary)] bfa-keyValue__label">
                         {field.label || field.key}
                     </dt>
-                    <dd className="text-right break-words min-w-0">{readableLeaf(walkPath(record, field.key))}</dd>
+                    <dd className="text-right break-words min-w-0 bfa-keyValue__value">{readableLeaf(walkPath(record, field.key))}</dd>
                 </div>
             ))}
         </dl>

@@ -40,17 +40,17 @@ export default function AppCard({ node, children }: NodeProps<CardProps>) {
     // takes the rest.
     const fill = isFill(node);
     return (
-        <div className={`app-card flex flex-col${fill ? ' app-fill h-full min-h-0' : ''}${lookClass}`} style={{ gap: spaceSteps(2) }}>
+        <div className={`app-card flex flex-col${fill ? ' app-fill h-full min-h-0' : ''}${lookClass} bfa-card__root`} style={{ gap: spaceSteps(2) }}>
             {(title || description) ? (
-                <div className={fill ? 'shrink-0' : undefined}>
-                    {title ? <div className="font-medium">{title}</div> : null}
+                <div className={fill ? 'shrink-0 bfa-card__header' : 'bfa-card__header'}>
+                    {title ? <div className="font-medium bfa-card__title">{title}</div> : null}
                     {description ? (
-                        <div className="text-sm text-[var(--text-secondary)]">{description}</div>
+                        <div className="text-sm text-[var(--text-secondary)] bfa-card__description">{description}</div>
                     ) : null}
                 </div>
             ) : null}
             <div
-                className={`app-grid${gridClasses(node)}${fill ? ' flex-1 min-h-0' : ''}`}
+                className={`app-grid${gridClasses(node)}${fill ? ' flex-1 min-h-0' : ''} bfa-card__body`}
                 style={{
                     ...gridColumnStyle(node.style),
                     gap: spaceSteps(gap),

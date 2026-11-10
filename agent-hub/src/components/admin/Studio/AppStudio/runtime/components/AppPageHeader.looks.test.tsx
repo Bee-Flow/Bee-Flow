@@ -3,6 +3,7 @@ import { describe, it, expect } from 'vitest';
 import AppPageHeader from './AppPageHeader';
 import { RuntimeProvider, buildScope, DEFAULT_RUNTIME } from '../RuntimeContext';
 import type { ReactElement } from 'react';
+import { withoutPartClasses } from '@/test/appPartClasses';
 
 /**
  * AppPageHeader — the look pass (props.look, spec componentSpecs.js).
@@ -32,7 +33,7 @@ describe('AppPageHeader looks', () => {
             <AppPageHeader node={headerNode({ look: 'plain' })}><button type="button">New</button></AppPageHeader>,
         );
         const root = rootOf(container);
-        expect(root!.className).toBe('w-full min-w-0');
+        expect(withoutPartClasses(root!.className)).toBe('w-full min-w-0');
         expect(root!.getAttribute('data-app-pageheader-look')).toBeNull();
         expect(root!.getAttribute('style')).toBeNull();
         expect(container.querySelector('hr')).toBeTruthy();
@@ -41,7 +42,7 @@ describe('AppPageHeader looks', () => {
     it('an absent look renders the identity too (stored definitions)', () => {
         const { container } = withRuntime(<AppPageHeader node={headerNode()} />);
         const root = rootOf(container);
-        expect(root!.className).toBe('w-full min-w-0');
+        expect(withoutPartClasses(root!.className)).toBe('w-full min-w-0');
         expect(root!.getAttribute('data-app-pageheader-look')).toBeNull();
         expect(root!.getAttribute('style')).toBeNull();
     });
@@ -49,7 +50,7 @@ describe('AppPageHeader looks', () => {
     it('an unknown look value falls back to the identity render', () => {
         const { container } = withRuntime(<AppPageHeader node={headerNode({ look: 'shout' })} />);
         const root = rootOf(container);
-        expect(root!.className).toBe('w-full min-w-0');
+        expect(withoutPartClasses(root!.className)).toBe('w-full min-w-0');
         expect(root!.getAttribute('style')).toBeNull();
     });
 

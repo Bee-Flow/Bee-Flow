@@ -19,7 +19,7 @@ export default function AppTab({ node, children }: NodeProps) {
     const fill = isFill(node);
     return (
         <div
-            className={`app-grid${gridClasses(node)}${fill ? ' app-fill h-full min-h-0' : ''}`}
+            className={`app-grid${gridClasses(node)}${fill ? ' app-fill h-full min-h-0' : ''} bfa-tab__root`}
             style={{
                 ...gridColumnStyle(node.style),
                 gap: spaceSteps(gap),

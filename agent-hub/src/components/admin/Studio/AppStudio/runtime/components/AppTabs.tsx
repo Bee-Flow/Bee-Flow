@@ -219,7 +219,7 @@ export default function AppTabs({ node, children }: NodeProps<TabProps>) {
 
     return (
         <div
-            className={`w-full min-w-0${fill ? ' app-fill flex flex-col h-full min-h-0' : ''}`}
+            className={`w-full min-w-0${fill ? ' app-fill flex flex-col h-full min-h-0' : ''} bfa-tabs__root`}
             data-app-tabs="true"
             data-app-tabs-look={look === 'underline' ? undefined : look}
         >
@@ -232,7 +232,7 @@ export default function AppTabs({ node, children }: NodeProps<TabProps>) {
                     // with scroll "auto" does: without it a tab whose content
                     // names a fixed height taller than the leftover space
                     // would paint straight out of the box it was given.
-                    className={fill ? 'pt-3 flex flex-col flex-1 min-h-0 overflow-auto' : 'pt-3'}
+                    className={`${fill ? 'pt-3 flex flex-col flex-1 min-h-0 overflow-auto' : 'pt-3'} bfa-tabs__panel`}
                     // `hidden` (not unmounting) keeps the panel's fields
                     // registered with the enclosing form; it also takes the
                     // subtree out of the accessibility tree and the tab order,
@@ -252,7 +252,7 @@ function AppTabsSection({ t, fill, stripCls, stripStyle, shown, tabs, activeIdx,
     return <div
         role="tablist"
         aria-label={t('studio_apps_runtime.tabs.label', 'Tabs')}
-        className={fill ? `${stripCls} shrink-0` : stripCls}
+        className={`${fill ? `${stripCls} shrink-0` : stripCls} bfa-tabs__list`}
         style={stripStyle}
     >
         {shown.map((i) => {
@@ -276,21 +276,21 @@ function AppTabsSection({ t, fill, stripCls, stripStyle, shown, tabs, activeIdx,
                     role="tab"
                     aria-selected={isActive}
                     onClick={() => setActive(i)}
-                    className={button.className}
+                    className={`${button.className} bfa-tabs__tab`}
                     style={button.style}
                 >
-                    {tab.props?.icon ? <AppIcon name={tab.props.icon} className="w-3.5 h-3.5" /> : null}
-                    <span>{label}</span>
+                    {tab.props?.icon ? <AppIcon name={tab.props.icon} className="w-3.5 h-3.5 bfa-tabs__icon" /> : null}
+                    <span className="bfa-tabs__label">{label}</span>
                     {badge === null ? null : badgeTone === 'neutral' ? (
                         <span
-                            className="text-xs font-normal text-[var(--text-muted)]"
+                            className="text-xs font-normal text-[var(--text-muted)] bfa-tabs__badge"
                             data-app-tab-badge="neutral"
                         >
                             {badge}
                         </span>
                     ) : (
                         <span
-                            className="inline-flex items-center rounded-full px-1.5 font-medium leading-none"
+                            className="inline-flex items-center rounded-full px-1.5 font-medium leading-none bfa-tabs__badge"
                             style={{
                                 height: '17px',
                                 fontSize: '11px',

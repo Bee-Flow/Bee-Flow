@@ -71,9 +71,9 @@ export default function AppRepeater({ node, children }: NodeProps<RepeaterProps>
     };
 
     return (
-        <div className="flex flex-col" style={{ gap: spaceSteps(gap) }} data-app-repeater="true">
+        <div className="flex flex-col bfa-repeater__root" style={{ gap: spaceSteps(gap) }} data-app-repeater="true">
             {items.map((item, i) => (
-                <div key={rowKey(item, i)} className="app-repeater-item" data-app-repeater-item={i}>
+                <div key={rowKey(item, i)} className="app-repeater-item bfa-repeater__item" data-app-repeater-item={i}>
                     <div
                         className={`app-grid${gridClasses(node)}`}
                         style={{ ...gridColumnStyle(node.style), gap: spaceSteps(gap) }}
@@ -81,13 +81,13 @@ export default function AppRepeater({ node, children }: NodeProps<RepeaterProps>
                         {groupFor(i, rowKey(item, i))}
                     </div>
                     {itemActions.length ? (
-                        <div className="flex items-center gap-1.5 mt-1.5">
+                        <div className="flex items-center gap-1.5 mt-1.5 bfa-repeater__actions">
                             {itemActions.map((a, ai) => (
                                 <button
                                     key={ai}
                                     type="button"
                                     onClick={() => { if (mode === 'run' && a.actionId) runAction(a.actionId, { formValues: item, item }); }}
-                                    className="px-2 py-0.5 text-xs font-medium border [border-color:var(--border-default)] [border-radius:var(--app-radius)] [color:var(--text-secondary)]!"
+                                    className="px-2 py-0.5 text-xs font-medium border [border-color:var(--border-default)] [border-radius:var(--app-radius)] [color:var(--text-secondary)]! bfa-repeater__action"
                                 >
                                     {a.label}
                                 </button>

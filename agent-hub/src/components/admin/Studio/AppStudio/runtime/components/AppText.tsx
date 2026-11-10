@@ -7,7 +7,7 @@ export default function AppText({ node }: NodeProps<{ text?: string; muted?: boo
     const { text = '', muted = false } = node.props || {};
     return (
         <p
-            className="text-sm leading-relaxed break-words"
+            className="text-sm leading-relaxed break-words bfa-text__root"
             style={muted ? { color: 'var(--text-secondary)' } : undefined}
         >
             {renderInlineMarkdown(text)}

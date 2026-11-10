@@ -871,7 +871,11 @@
             },
             "defaultStyle": {
                 "span": 12
-            }
+            },
+            "parts": [
+                "root",
+                "mark"
+            ]
         },
         "text": {
             "label": "Text",
@@ -882,7 +886,10 @@
             },
             "defaultStyle": {
                 "span": 12
-            }
+            },
+            "parts": [
+                "root"
+            ]
         },
         "button": {
             "label": "Button",
@@ -896,7 +903,12 @@
             },
             "defaultStyle": {
                 "span": 3
-            }
+            },
+            "parts": [
+                "root",
+                "icon",
+                "label"
+            ]
         },
         "image": {
             "label": "Image",
@@ -909,7 +921,11 @@
             "defaultStyle": {
                 "span": 6,
                 "height": "md"
-            }
+            },
+            "parts": [
+                "root",
+                "placeholder"
+            ]
         },
         "file_preview": {
             "label": "File preview",
@@ -927,7 +943,14 @@
             "defaultStyle": {
                 "span": 12,
                 "height": "lg"
-            }
+            },
+            "parts": [
+                "root",
+                "header",
+                "name",
+                "download",
+                "frame"
+            ]
         },
         "pdf_compare": {
             "label": "PDF compare",
@@ -950,7 +973,10 @@
             "defaultStyle": {
                 "span": 12,
                 "height": "xl"
-            }
+            },
+            "parts": [
+                "root"
+            ]
         },
         "browser_view": {
             "label": "Live browser",
@@ -962,7 +988,14 @@
             },
             "defaultStyle": {
                 "span": 12
-            }
+            },
+            "parts": [
+                "root",
+                "header",
+                "frame",
+                "placeholder",
+                "status"
+            ]
         },
         "divider": {
             "label": "Divider",
@@ -972,7 +1005,10 @@
             },
             "defaultStyle": {
                 "span": 12
-            }
+            },
+            "parts": [
+                "root"
+            ]
         },
         "spacer": {
             "label": "Spacer",
@@ -982,7 +1018,10 @@
             },
             "defaultStyle": {
                 "span": 12
-            }
+            },
+            "parts": [
+                "root"
+            ]
         },
         "callout": {
             "label": "Callout",
@@ -1008,7 +1047,14 @@
             },
             "defaultStyle": {
                 "span": 12
-            }
+            },
+            "parts": [
+                "root",
+                "icon",
+                "title",
+                "body",
+                "meta"
+            ]
         },
         "stat": {
             "label": "Stat",
@@ -1036,7 +1082,16 @@
             },
             "defaultStyle": {
                 "span": 3
-            }
+            },
+            "parts": [
+                "root",
+                "icon",
+                "label",
+                "value",
+                "delta",
+                "caption",
+                "trend"
+            ]
         },
         "keyValue": {
             "label": "Key–value",
@@ -1053,7 +1108,13 @@
             },
             "defaultStyle": {
                 "span": 6
-            }
+            },
+            "parts": [
+                "root",
+                "row",
+                "label",
+                "value"
+            ]
         },
         "table": {
             "label": "Table",
@@ -1142,7 +1203,14 @@
                 "padding": 3,
                 "gap": 3,
                 "background": "surface"
-            }
+            },
+            "parts": [
+                "root",
+                "header",
+                "title",
+                "description",
+                "body"
+            ]
         },
         "form": {
             "label": "Form",
@@ -1507,7 +1575,16 @@
                 "span": 12,
                 "gap": 3,
                 "padding": 0
-            }
+            },
+            "parts": [
+                "root",
+                "list",
+                "tab",
+                "icon",
+                "label",
+                "badge",
+                "panel"
+            ]
         },
         "tab": {
             "label": "Tab",
@@ -1522,7 +1599,10 @@
             "defaultStyle": {
                 "gap": 3,
                 "padding": 0
-            }
+            },
+            "parts": [
+                "root"
+            ]
         },
         "modal": {
             "label": "Modal",
@@ -1537,7 +1617,13 @@
             "defaultStyle": {
                 "gap": 3,
                 "padding": 4
-            }
+            },
+            "parts": [
+                "root",
+                "trigger",
+                "close",
+                "body"
+            ]
         },
         "repeater": {
             "label": "Repeater",
@@ -1555,7 +1641,13 @@
                 "span": 12,
                 "gap": 3,
                 "padding": 0
-            }
+            },
+            "parts": [
+                "root",
+                "item",
+                "actions",
+                "action"
+            ]
         },
         "container": {
             "label": "Container",
@@ -1567,7 +1659,10 @@
             "defaultStyle": {
                 "span": 6,
                 "gap": 3
-            }
+            },
+            "parts": [
+                "root"
+            ]
         },
         "pane": {
             "label": "Pane",
@@ -1581,7 +1676,10 @@
                 "span": 12,
                 "gap": 3,
                 "height": "fill"
-            }
+            },
+            "parts": [
+                "root"
+            ]
         },
         "page_header": {
             "label": "Page header",
@@ -1610,7 +1708,16 @@
                 "span": 12,
                 "gap": 3,
                 "padding": 0
-            }
+            },
+            "parts": [
+                "root",
+                "icon",
+                "title",
+                "subtitle",
+                "tags",
+                "actions",
+                "divider"
+            ]
         },
         "markdown": {
             "label": "Markdown",
@@ -1624,7 +1731,15 @@
             },
             "defaultStyle": {
                 "span": 12
-            }
+            },
+            "parts": [
+                "root",
+                "heading",
+                "paragraph",
+                "list",
+                "item",
+                "code"
+            ]
         },
         "badge_list": {
             "label": "Badge list",
@@ -1644,7 +1759,12 @@
             },
             "defaultStyle": {
                 "span": 12
-            }
+            },
+            "parts": [
+                "root",
+                "badge",
+                "count"
+            ]
         },
         "progress": {
             "label": "Progress",
@@ -1668,7 +1788,15 @@
             },
             "defaultStyle": {
                 "span": 6
-            }
+            },
+            "parts": [
+                "root",
+                "label",
+                "caption",
+                "track",
+                "fill",
+                "segment"
+            ]
         },
         "stepper": {
             "label": "Stepper",
@@ -1685,7 +1813,16 @@
             },
             "defaultStyle": {
                 "span": 12
-            }
+            },
+            "parts": [
+                "root",
+                "item",
+                "step",
+                "marker",
+                "label",
+                "hint",
+                "line"
+            ]
         },
         "file_gallery": {
             "label": "File gallery",
