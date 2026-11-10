@@ -24,7 +24,7 @@ export interface ActionResultBinding {
     path?: unknown;
 }
 
-export interface FormulaBinding {
+interface FormulaBinding {
     kind: 'formula';
     expr?: unknown;
     value?: unknown;
