@@ -39,7 +39,6 @@ router.use(requireActiveOrgForMutations());
 
 // ============ Agent CRUD ============
 
-// List all agents for current user
 router.get('/', async (req, res) => {
     const userId = getEffectiveUserId(req);
     const agents = await agentStore.getAgents(userId);
