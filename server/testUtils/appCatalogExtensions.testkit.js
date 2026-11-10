@@ -299,12 +299,14 @@ function baseToolSchemaHashes() {
     const { selectToolMenu } = require('../appStudio/builderModelProfiles');
     const { stripExtensionTier } = require('../appStudio/builderTools/schemaTiers.mts');
     const { stripThemeDesignExtensions } = require('../appStudio/builderTools/themeDesignSchema.mts');
+    const { stripNavGroupExtensions } = require('../appStudio/builderTools/navGroupSchema.mts');
     const sha = (/** @type {unknown} */ tool) => crypto.createHash('sha256').update(JSON.stringify(tool)).digest('hex');
     const byName = (/** @type {any[]} */ tools) => Object.fromEntries(tools.map((tool) => [tool.function.name, sha(tool)]));
     const stripped = TOOL_SCHEMAS.map((/** @type {unknown} */ tool) => {
         const copy = JSON.parse(JSON.stringify(tool));
         stripExtensionTier(copy);
         stripThemeDesignExtensions(copy); // a theme or design key marked since 3 is a property of its own
+        stripNavGroupExtensions(copy); // ... and so is a marked nav-group key
         return copy;
     });
     return { full: byName(stripped), core: byName(selectToolMenu({ toolset: 'core' }, TOOL_SCHEMAS)) };

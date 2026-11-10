@@ -3,7 +3,8 @@
 // Part 1 of the TOOL_SCHEMAS array (split out of schemas.js; order is preserved there).
 
 const { themeDesignProps } = require('./themeDesignSchema.mts');
-const { NAV_STYLES, MAX_NAV_GROUPS, MAX_NAV_GROUP_LABEL, STYLE_KNOBS, SCREEN_SPEC, EVENT_NAMES, LIMITS } = require('../componentSpecs');
+const { navGroupItemProps } = require('./navGroupSchema.mts');
+const { NAV_STYLES, MAX_NAV_GROUPS, STYLE_KNOBS, SCREEN_SPEC, EVENT_NAMES, LIMITS } = require('../componentSpecs');
 const { MAX_COMPONENTS_PER_CALL, TEMP_ID_MAX, MAX_BATCH_PATCHES_PER_CALL, orList, PRESET_IDS, STYLE_HINT, BASE_STYLE_KNOBS, SECTION_HEIGHT_MODES, BASE_SECTION_HEIGHT_MODES, unitList, SIZING_HINT, ADD_NODE_LOGIC_PROPS, UPDATE_COMPONENT_PATCH_PROPS, ACTION_OBJECT_SCHEMA, batchHint } = require('./schemaFragments');
 
 /** @type {Array<{ type: string, function: { name: string, description: string, parameters: object } }>} */
@@ -60,16 +61,8 @@ const TOOL_SCHEMAS_PART_1 = [
                         items: {
                             type: 'object',
                             required: ['label', 'screens'],
-                            properties: {
-                                id: { type: 'string', description: 'Existing group id (nvg_...) — keep it to preserve a group across edits.' },
-                                label: { type: 'string', description: `The heading shown in the nav (max ${MAX_NAV_GROUP_LABEL} chars).` },
-                                icon: { type: 'string', description: 'Lucide icon name, e.g. "BarChart3", "Settings".' },
-                                screens: {
-                                    type: 'array',
-                                    items: { type: 'string' },
-                                    description: 'Screen ids (scr_...) in the order they should appear under the heading.',
-                                },
-                            },
+                            // id, label, icon, screens, then a nav-group key marked since 3 (navGroupSchema.mts).
+                            properties: navGroupItemProps(),
                         },
                     },
                 },
