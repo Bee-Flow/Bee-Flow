@@ -5,7 +5,7 @@ import Illustration from '@/components/shared/illustrations';
 import type { IllustrationName } from '@/components/shared/illustrations';
 
 /**
- * App Studio runtime — tiny shared visual primitives for the 19 components.
+ * App Studio runtime — tiny shared visual primitives for the runtime components.
  * Everything uses platform tokens for text/surfaces and --app-* vars for
  * accent/radius/spacing, per the runtime theming contract (see themeVars.js).
  */
