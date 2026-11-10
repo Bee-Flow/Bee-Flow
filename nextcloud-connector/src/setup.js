@@ -34,6 +34,8 @@ const { assertAllowedUrl, parseAllowedUrl } = require('./remoteHost');
 const { ncTlsMode, pinStore } = require('./ncTls'); // NC TLS posture for diagnostics, and its pins
 const { shellBaseUrl } = require('./embedTarget');
 const ncProxy = require('./ncProxy');
+const webhookListeners = require('./webhookListeners'); // push-trigger state for diagnostics
+const automationEventsWebhook = require('./automationEventsWebhook');
 const log = require('./log'); // callback-signature health for diagnostics
 const { errMessage, errCode, asError } = require('./errors');
 const { NOT_CHOSEN_CODE, NOT_CHOSEN_MESSAGE, envLock } = require('./serverChoice');
@@ -360,6 +362,12 @@ router.get('/diagnostics', requireNcAdmin, (req, res) => {
         connectError: named ? connectError(req, named) : null,
         ncInstanceId: config.ncInstanceId || null,
         ncTls,
+        // Push triggers: whether the webhook rows are registered, and the
+        // deliveries Nextcloud made since this connector process started
+        // (`since`). Kept in memory, so a restart begins again; `registered`
+        // with no delivery after an event in Nextcloud points at Nextcloud's
+        // background jobs or its log (`Webhook(<id>) call failed`).
+        webhooks: { registered: webhookListeners.isRegistered(), ...automationEventsWebhook.deliveryStats() },
         // Callback-signature health. Repeated rejections mean the Bee Flow
         // server and this host disagree about the tenant key or the clock —
         // and under HaRP a run of them gets the SaaS's egress IP banned

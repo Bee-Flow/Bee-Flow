@@ -97,8 +97,20 @@ test('the hook secret is derived from the tenant key, never equal to it', () => 
     config.tenantKey = null;
 });
 
-test('the callback URI routes through AppAPI\'s ExApp proxy', () => {
+test('the callback URI is relative, so Nextcloud delivers through AppAPI to this app', () => {
+    // WebhookCall hands a row to AppAPI when it has an app id and its uri
+    // starts with "/"; anything else is called with Nextcloud's HTTP client.
     const uri = wl.hookUri();
+    assert.equal(uri, '/hooks/nextcloud');
+    assert.equal(uri, wl.HOOK_PATH);
+    const body = wl.webhookBody(wl.EVENTS[0], 'secret');
+    assert.equal(body.uri, '/hooks/nextcloud');
+    assert.equal(body.authMethod, 'header');
+    assert.deepEqual(body.authData, { 'X-Beeflow-Hook-Secret': 'secret' });
+});
+
+test('the absolute form routes through AppAPI\'s ExApp proxy on the Nextcloud host', () => {
+    const uri = wl.absoluteHookUri();
     assert.ok(uri.startsWith(config.nextcloudUrl), 'must target the Nextcloud host, not the container');
     assert.ok(uri.endsWith(`/index.php/apps/app_api/proxy/${config.appId}/hooks/nextcloud`));
 });
