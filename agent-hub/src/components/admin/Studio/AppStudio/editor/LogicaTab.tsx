@@ -15,6 +15,7 @@ import type { TranslateParams } from '@/hooks/useTranslation';
 import type { LogicTableRow, RowStatus, LogicaTabProps } from './LogicaTab.types';
 import { request, RefusedError } from '@/api/mutate';
 import { LogicTable } from './LogicTable';
+import NewActionMenu from './NewActionMenu';
 
 /**
  * The Logic tab — When · Happens · Status · ↗, across all screens.
@@ -225,15 +226,25 @@ export default function LogicaTab({
                             {t('app_studio.views.logic_desc', 'Every component that does something, by screen. Select one to change it.')}
                         </p>
                     </div>
-                    <button
-                        type="button"
-                        onClick={() => setPickerOpen(true)}
-                        disabled={disabled}
-                        className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-dashed px-2.5 py-1.5 text-xs font-medium transition-colors hover:bg-[var(--bg-tertiary)] disabled:cursor-not-allowed disabled:opacity-50 border-[var(--border-default)] text-[var(--text-secondary)]"
-                    >
-                        <Plus className="h-3.5 w-3.5" aria-hidden="true" />
-                        {t('app_studio.logic.add_automation', 'Add an automation')}
-                    </button>
+                    <div className="flex shrink-0 flex-wrap items-center gap-2">
+                        {definition && typeof onCommit === 'function' ? (
+                            <NewActionMenu
+                                definition={definition}
+                                onCommit={onCommit}
+                                onPickAutomation={() => setPickerOpen(true)}
+                                disabled={disabled}
+                            />
+                        ) : null}
+                        <button
+                            type="button"
+                            onClick={() => setPickerOpen(true)}
+                            disabled={disabled}
+                            className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-dashed px-2.5 py-1.5 text-xs font-medium transition-colors hover:bg-[var(--bg-tertiary)] disabled:cursor-not-allowed disabled:opacity-50 border-[var(--border-default)] text-[var(--text-secondary)]"
+                        >
+                            <Plus className="h-3.5 w-3.5" aria-hidden="true" />
+                            {t('app_studio.logic.add_automation', 'Add an automation')}
+                        </button>
+                    </div>
                 </div>
 
                 {empty ? (

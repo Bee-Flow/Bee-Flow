@@ -94,6 +94,7 @@ export const VERBS: VerbTable = {
     app_get_data_model: { key: 'app_studio.builder.act.get_data_model', en: 'Read the data model' },
     app_query_data: { key: 'app_studio.builder.act.query_data', en: 'Looked at the data' },
     app_list_connectors: { key: 'app_studio.builder.act.list_connectors', en: 'Listed the connectors' },
+    app_list_assets: { key: 'studio_apps_assets.builder_act_list', en: 'Listed the uploaded files' },
     app_dry_run: { key: 'app_studio.builder.act.dry_run', en: 'Checked the data' },
     app_screenshot: { key: 'app_studio.builder.act.screenshot', en: 'Took a screenshot' },
     app_get_draft: { key: 'app_studio.builder.act.get_draft', en: 'Re-read the app' },

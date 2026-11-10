@@ -82,6 +82,9 @@ export interface BuildScopeInput {
     today?: unknown;
 }
 
+/** Per node id, the UI state that node starts in. The node's component decides what it reads. */
+export type InitialUi = Readonly<Record<string, unknown>>;
+
 /** What every rendered component reads through useRuntime(). */
 export interface RuntimeValue {
     mode: 'edit' | 'run';
@@ -95,6 +98,11 @@ export interface RuntimeValue {
     registerFormValue: ((formName: string, values: Record<string, unknown>) => void) | null;
     currentUser: unknown;
     appDesign: AppDesign | null;
+    /**
+     * UI state a host wants in place on the first paint (for example which modal is open or
+     * which tab is active), keyed by node id. null = none, which is every host today.
+     */
+    initialUi: InitialUi | null;
     scope: Partial<ExpressionScope>;
     /** Editor-only members (selection, preview role, …) that the canvas adds. */
     [key: string]: unknown;
@@ -224,6 +232,7 @@ export const DEFAULT_RUNTIME: RuntimeValue = Object.freeze({
     // primary } or null. Components read it for looks only — never for data.
     // null means "no design authored", which is identity rendering.
     appDesign: null,
+    initialUi: null,
     scope: Object.freeze(buildScope({ now: '1970-01-01T00:00:00.000Z' })),
 });
 

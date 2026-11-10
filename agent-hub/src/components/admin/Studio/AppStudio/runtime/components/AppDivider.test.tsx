@@ -6,7 +6,7 @@ import AppDivider from './AppDivider';
  * divider.orientation (spec: server/appStudio/componentSpecs.js).
  * 'horizontal' — and absent props, and any unknown value — is the identity
  * path: the exact original full-width <hr>. 'vertical' is a 1px upright rule
- * that stretches in a flex row (page_header actions); runtime.css stretches
+ * that stretches in a flex row (page_header actions); css/layout.css stretches
  * its wrapper cell, the component fills it.
  */
 

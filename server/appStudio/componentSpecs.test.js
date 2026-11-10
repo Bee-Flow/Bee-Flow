@@ -43,9 +43,10 @@ const {
 
 // ── Version + limits ────────────────────────────────────────────────────────
 
-test('schema version is 2 and both 1 and 2 are accepted', () => {
-    assert.equal(SCHEMA_VERSION_CURRENT, 2);
-    assert.deepEqual(SCHEMA_VERSIONS_ACCEPTED, [1, 2]);
+test('the base schema version is 2, the newest is 3, and 1, 2 and 3 are accepted', () => {
+    assert.equal(specs.SCHEMA_VERSION_BASE, 2);
+    assert.equal(SCHEMA_VERSION_CURRENT, 3);
+    assert.deepEqual(SCHEMA_VERSIONS_ACCEPTED, [1, 2, 3]);
 });
 
 test('v2 limits are present with the contracted values', () => {
@@ -83,8 +84,47 @@ test('formula scope roots include every documented root', () => {
 
 // ── Component catalog ───────────────────────────────────────────────────────
 
-test('catalog grew from 19 (v1) to 57 types, all earlier types retained', () => {
-    assert.equal(COMPONENT_TYPES.length, 57); // +input_dataset, +browser_view, +approval_list, +input_html (HTML mail editor), +pdf_compare, +document_viewer, +document_compare, +input_document
+// The frozen base, in catalog order (palette, AI catalog and canonical output follow it).
+// It never changes: a new type is a file in componentSpecs/types/ (since >= 3), appended
+// after this list, and brings its own test file. Nothing here is edited per addition.
+const BASE_TYPES = [
+    'heading', 'text', 'button', 'image', 'file_preview', 'pdf_compare', 'browser_view', 'divider', 'spacer', 'callout',
+    'stat', 'keyValue', 'table', 'list', 'approval_list', 'card', 'form', 'input_text', 'input_textarea', 'input_number',
+    'input_select', 'input_checkbox', 'input_date', 'data_grid', 'chart', 'pivot', 'input_file', 'input_dataset', 'input_richtext', 'input_html',
+    'input_datetime', 'input_relation', 'input_person', 'input_multiselect', 'tabs', 'tab', 'modal', 'repeater', 'container', 'pane',
+    'page_header', 'markdown', 'badge_list', 'progress', 'stepper', 'file_gallery', 'connector_status', 'timeline', 'message_thread', 'record_detail',
+    'filter_bar', 'kanban', 'calendar', 'ai_chat', 'document_viewer', 'document_compare', 'input_document',
+];
+const BASE_STYLE_KNOB_NAMES = [
+    'span', 'size', 'align', 'color', 'radius', 'padding', 'gap', 'weight', 'height', 'background', 'border',
+    'hideBelow', 'hideAbove', 'widthMode', 'widthValue', 'heightMode', 'heightValue',
+];
+
+/** `actual` starts with exactly `base`; what follows is an extension. */
+function assertBasePrefix(actual, base, label) {
+    assert.deepEqual(actual.slice(0, base.length), base, `${label}: the base drifted`);
+}
+
+test('the base catalog is frozen exactly; every type after it is an extension (since >= 3)', () => {
+    assert.equal(BASE_TYPES.length, 57);
+    assert.deepEqual(specs.BASE_COMPONENT_TYPES, BASE_TYPES);
+    assertBasePrefix(COMPONENT_TYPES, BASE_TYPES, 'COMPONENT_TYPES');
+    for (const t of BASE_TYPES) assert.equal(COMPONENT_SPECS[t].since, undefined, `${t} is base: no since`);
+    for (const t of COMPONENT_TYPES.slice(BASE_TYPES.length)) {
+        assert.ok(Number.isInteger(COMPONENT_SPECS[t].since) && COMPONENT_SPECS[t].since >= 3, `${t} is an extension: since >= 3`);
+    }
+});
+
+test('the base style knobs are frozen exactly; every knob after them is an extension (since >= 3)', () => {
+    const names = Object.keys(STYLE_KNOBS);
+    assertBasePrefix(names, BASE_STYLE_KNOB_NAMES, 'STYLE_KNOBS');
+    for (const k of BASE_STYLE_KNOB_NAMES) assert.equal(STYLE_KNOBS[k].since, undefined, `${k} is base: no since`);
+    for (const k of names.slice(BASE_STYLE_KNOB_NAMES.length)) {
+        assert.ok(Number.isInteger(STYLE_KNOBS[k].since) && STYLE_KNOBS[k].since >= 3, `${k} is an extension: since >= 3`);
+    }
+});
+
+test('catalog grew from 19 (v1) to the 57 base types, all earlier types retained', () => {
     const v1 = ['heading', 'text', 'button', 'image', 'divider', 'spacer', 'callout', 'stat', 'keyValue', 'table', 'list', 'card', 'form', 'input_text', 'input_textarea', 'input_number', 'input_select', 'input_checkbox', 'input_date'];
     for (const t of v1) assert.ok(COMPONENT_TYPES.includes(t), `dropped v1 type ${t}`);
     for (const t of ['data_grid', 'chart', 'pivot', 'input_file', 'input_richtext', 'input_html', 'input_datetime', 'input_relation', 'input_person', 'input_multiselect', 'tabs', 'tab', 'modal', 'repeater']) {
@@ -228,7 +268,8 @@ test('step kinds are partitioned into client-only and data-mutating', () => {
     // every record write — server by definition.
     // copy_document writes a new document into the OWNER's library, read
     // through the app's document pool: server by definition.
-    assert.deepEqual(DATA_MUTATING_STEP_KINDS, ['run_automation', 'create_record', 'update_record', 'delete_record', 'request_approval', 'ai_extract', 'ai_generate', 'kb_query', 'send_email', 'generate_file', 'fill_document', 'generate_presentation', 'redact_pdf', 'file_intake', 'dataset_query', 'ai_browse', 'copy_document', 'kb_log_query', 'kb_log_review', 'transaction']);
+    // The base server kinds, in order; a kind of the step registry (componentSpecs/steps/) comes after them.
+    assertBasePrefix(DATA_MUTATING_STEP_KINDS, ['run_automation', 'create_record', 'update_record', 'delete_record', 'request_approval', 'ai_extract', 'ai_generate', 'kb_query', 'send_email', 'generate_file', 'fill_document', 'generate_presentation', 'redact_pdf', 'file_intake', 'dataset_query', 'ai_browse', 'copy_document', 'kb_log_query', 'kb_log_review', 'transaction'], 'DATA_MUTATING_STEP_KINDS');
     // kb_log_query / kb_log_review read and review the owner's knowledge-base query log: server by definition.
     // …and none of the new file/dataset/browse steps is a bare v1 ACTION kind —
     // they are sequence steps only, which is what keeps the v1 action editors untouched.
@@ -257,10 +298,10 @@ test('every step spec has a fields table', () => {
 
 // ── Serialized catalog + empty def ──────────────────────────────────────────
 
-test('buildCatalog is JSON-serializable and advertises v2', () => {
+test('buildCatalog is JSON-serializable and advertises the base version for new definitions', () => {
     const cat = buildCatalog();
     assert.equal(cat.schemaVersion, 2);
-    assert.deepEqual(cat.acceptedSchemaVersions, [1, 2]);
+    assert.deepEqual(cat.acceptedSchemaVersions, [1, 2, 3]);
     assert.deepEqual(cat.events, EVENT_NAMES);
     assert.ok(cat.actions.stepKinds && cat.actions.stepSpecs, 'catalog exposes step schema');
     assert.deepEqual(cat.bindings.formulaScopeRoots, FORMULA_SCOPE_ROOTS);
@@ -410,12 +451,14 @@ const LOOK_CONTRACT = {
     badge_list: { prop: 'look', values: ['soft', 'outline', 'solid'] },
 };
 
-test('look pass: every look/accent/cardLook enum matches the contract, default = first value', () => {
+// The lists below are the BASE values: a later look value is appended after them (never
+// inserted, never renamed), so these pins hold as prefixes and no addition edits them.
+test('look pass: every look/accent/cardLook enum starts with the contract, default = first value', () => {
     for (const [type, { prop, values }] of Object.entries(LOOK_CONTRACT)) {
         const fs = COMPONENT_SPECS[type].props[prop];
         assert.ok(fs, `${type}.${prop} missing`);
         assert.equal(fs.type, 'enum', `${type}.${prop} must be an enum`);
-        assert.deepEqual(fs.values, values, `${type}.${prop} value list drifted`);
+        assertBasePrefix(fs.values, values, `${type}.${prop}`);
         assert.equal(fs.default, values[0], `${type}.${prop} default must be the identity (first) value`);
         assert.equal(typeof fs.description, 'string', `${type}.${prop} needs its catalog description`);
         assert.ok(fs.description.length > 0 && fs.description.length <= 300, `${type}.${prop} description length`);
@@ -424,7 +467,7 @@ test('look pass: every look/accent/cardLook enum matches the contract, default =
 
 test('look pass: button variant gained outline and soft, default untouched', () => {
     const fs = COMPONENT_SPECS.button.props.variant;
-    assert.deepEqual(fs.values, ['primary', 'secondary', 'ghost', 'danger', 'outline', 'soft']);
+    assertBasePrefix(fs.values, ['primary', 'secondary', 'ghost', 'danger', 'outline', 'soft'], 'button.variant');
     assert.equal(fs.default, 'primary');
 });
 
@@ -432,7 +475,7 @@ test('look pass: background style knob gained panel and gradient, default untouc
     // Order matters twice over: 'none' first keeps the identity default, and
     // the originals keep their positions so nothing keyed off the old list
     // shifts meaning.
-    assert.deepEqual(STYLE_KNOBS.background.values, ['none', 'surface', 'tint', 'panel', 'gradient']);
+    assertBasePrefix(STYLE_KNOBS.background.values, ['none', 'surface', 'tint', 'panel', 'gradient'], 'background');
     assert.equal(STYLE_KNOBS.background.default, 'none');
     // Section styles reach background through SECTION_STYLE_KNOBS; the section
     // default must stay 'none' so stored sections keep rendering identically.
@@ -528,8 +571,9 @@ test('expandStyleKnobs derives width from span and height from height — per-ty
     for (const k of ADVANCED_HEIGHT_KNOBS) assert.ok(sectionKnobs.includes(k));
     for (const k of ADVANCED_WIDTH_KNOBS) assert.ok(!sectionKnobs.includes(k));
 
-    // A type with neither (modal: gap/padding) earns nothing.
-    assert.deepEqual(expandStyleKnobs(COMPONENT_SPECS.modal.styleKnobs), COMPONENT_SPECS.modal.styleKnobs);
+    // A type with neither (modal: gap/padding) earns nothing from the base groups (a later
+    // '*' group may grant it a knob; that group's own test file says so).
+    assert.deepEqual(expandStyleKnobs(COMPONENT_SPECS.modal.styleKnobs, specs.BASE_STYLE_KNOB_GROUPS), COMPONENT_SPECS.modal.styleKnobs);
     assert.deepEqual(expandStyleKnobs(null), []);
 });
 
@@ -636,7 +680,9 @@ test('containerPassesHeightDown — having a height and handing one down are dif
     // nothing else may — so adding a height knob to `form` (or a fourth
     // height-bearing container) forces an explicit answer here instead of
     // silently defaulting to "refuses everything" or "accepts everything".
-    const heightBearing = CONTAINER_TYPES.filter((t) => COMPONENT_SPECS[t].styleKnobs.includes('height'));
+    // Base types only: an extension container with a height knob gets no route (null: it
+    // passes no height down, the safe answer) until its own package gives it one.
+    const heightBearing = CONTAINER_TYPES.filter((t) => BASE_TYPES.includes(t) && COMPONENT_SPECS[t].styleKnobs.includes('height'));
     assert.deepEqual(heightBearing.slice().sort(), Object.keys(CONTAINER_HEIGHT_ROUTES).sort());
 
     // styleIsFill mirrors the runtime's isFill(), which is what the 'fill'

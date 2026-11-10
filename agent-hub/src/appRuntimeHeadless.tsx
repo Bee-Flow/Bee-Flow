@@ -3,6 +3,7 @@ import { flushSync } from 'react-dom';
 import { createRoot, type Container } from 'react-dom/client';
 import type { AppDefinition } from './components/admin/Studio/AppStudio/inspector/appDefinition';
 import { appDesignProps } from './components/admin/Studio/AppStudio/runtime/appDesign';
+import AppCustomCss from './components/admin/Studio/AppStudio/runtime/AppCustomCss';
 import AppRenderer from './components/admin/Studio/AppStudio/runtime/AppRenderer';
 import { seedVariableDefaults } from './components/admin/Studio/AppStudio/runtime/appVariables';
 import type { DataState } from './components/admin/Studio/AppStudio/runtime/DataContext';
@@ -76,6 +77,7 @@ function HeadlessScreen({ definition, screenId, dataState, currentUser, previewR
             }}
         >
             <main className="flex flex-col flex-1 min-h-0">
+                <AppCustomCss definition={definition} />
                 <AppRenderer
                     definition={definition}
                     screenId={screenId}

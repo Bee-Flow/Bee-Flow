@@ -3,7 +3,10 @@
 // Part 2 of the TOOL_SCHEMAS array (split out of schemas.js; order is preserved there).
 
 const { LIMITS, THEME_SPEC, DESIGN_SPEC, VARIABLE_TYPES } = require('../componentSpecs');
-const { FIELD_TYPES, FILTER_OPS, AGG_FNS, DATE_BUCKETS, ACCESS_MODES } = require('../dataModel');
+const { FIELD_TYPES, ACCESS_MODES } = require('../dataModel');
+// Enums take the whole list; a description names the base words only, so a word added later
+// (vocabularySince.js) moves no pinned text.
+const { BASE_FILTER_OPS: FILTER_OPS, BASE_AGG_FNS: AGG_FNS, BASE_DATE_BUCKETS: DATE_BUCKETS } = require('../../core/dataEngine/dataModel/vocabularySince');
 const { MAX_SEED_RECORDS } = require('./schemaFragments');
 const { MAX_QUERY_LIMIT } = require('./queryDataArgs');
 const { HOOK_TARGETS } = require('../mailboxHookPolicy.mts');
