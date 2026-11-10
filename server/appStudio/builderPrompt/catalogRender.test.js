@@ -307,7 +307,10 @@ test('all step kinds are rendered from STEP_SPECS with the client/server partiti
 test('the data-model contract section is rendered from dataModel.js constants', () => {
     const text = renderCatalogText();
     assert.ok(text.includes('### Data model'), 'section present');
-    assert.ok(text.includes(FIELD_TYPES.join(', ')), 'FIELD_TYPES listed');
+    // The pinned text names the classic types; the schema-3 ones (FIELD_TYPE_SINCE) are served by the tool schema.
+    const { FIELD_TYPE_SINCE } = require('../../core/dataEngine/dataModel/vocabulary');
+    assert.ok(text.includes(`Field types: ${FIELD_TYPES.filter((t) => !FIELD_TYPE_SINCE[t]).join(', ')}.`), 'classic FIELD_TYPES listed');
+    for (const t of Object.keys(FIELD_TYPE_SINCE)) assert.ok(!text.includes(`, ${t}`), `${t} (since 3) stays out of the pinned text`);
     assert.ok(text.includes(ACCESS_MODES.join(' | ')), 'ACCESS_MODES listed');
     assert.ok(text.includes(SYSTEM_COLUMNS.join(', ')), 'system columns listed');
     assert.ok(/\d+ tables\/app/.test(text), 'DATA_LIMITS caps rendered');

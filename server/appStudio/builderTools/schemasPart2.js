@@ -4,7 +4,7 @@
 
 const { LIMITS, THEME_SPEC, DESIGN_SPEC, VARIABLE_TYPES } = require('../componentSpecs');
 const { FIELD_TYPES, FILTER_OPS, AGG_FNS, DATE_BUCKETS, ACCESS_MODES } = require('../dataModel');
-const { MAX_SEED_RECORDS, FIELD_VALIDATION_PROP, DYNAMIC_DEFAULT_PROP } = require('./schemaFragments');
+const { MAX_SEED_RECORDS, FIELD_VALIDATION_PROP, DYNAMIC_DEFAULT_PROP, FIELD_FORMAT_PROP, FIELD_DISPLAY_PROP } = require('./schemaFragments');
 const { MAX_QUERY_LIMIT } = require('./queryDataArgs');
 const { HOOK_TARGETS } = require('../mailboxHookPolicy.mts');
 
@@ -50,7 +50,7 @@ const TOOL_SCHEMAS_PART_2 = [
                                 fieldId: { type: 'string', description: 'Existing field id (fld_…) — pass it to rename a field (same id, new key). Omit for new fields; same-key fields match automatically.' },
                                 key: { type: 'string', description: 'Column key: lowercase snake_case (derived from `name` when omitted). Never a system column (id, created_at, updated_at, created_by, org_id — those exist automatically).' },
                                 name: { type: 'string', description: 'Human label (defaults to the key; a key is derived from it when the key is omitted).' },
-                                type: { type: 'string', enum: [...FIELD_TYPES] },
+                                type: { type: 'string', enum: [...FIELD_TYPES], description: 'autonumber: a number the server assigns on create (1, 2, 3 …), read-only and always unique. json: a JSON value. user: a member\'s user id (dynamicDefault "currentUser.id" fills the creator).' },
                                 subtype: { type: 'string', nullable: true, description: 'number only: "integer" for whole numbers; null turns an integer field back into a plain number.' },
                                 required: { type: 'boolean' },
                                 unique: { type: 'boolean' },
@@ -58,6 +58,8 @@ const TOOL_SCHEMAS_PART_2 = [
                                 options: { type: 'array', items: { type: 'string' }, description: 'select/multiselect: the allowed values (strings; {value,label} objects are accepted too).' },
                                 validation: FIELD_VALIDATION_PROP,
                                 dynamicDefault: DYNAMIC_DEFAULT_PROP,
+                                format: FIELD_FORMAT_PROP,
+                                display: FIELD_DISPLAY_PROP,
                                 relation: {
                                     type: 'object',
                                     description: 'relation only: the table this field points at.',

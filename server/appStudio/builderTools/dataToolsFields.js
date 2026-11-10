@@ -177,9 +177,12 @@ function fieldDefault(raw, sameTypeOld, at) {
  * @param {DataField|null} sameTypeOld
  */
 function applyFieldRules(field, raw, sameTypeOld) {
-    const pick = (/** @type {'validation' | 'dynamicDefault'} */ key) => (raw[key] !== undefined ? raw[key] : sameTypeOld?.[key]);
-    const validation = pick('validation');
-    if (validation !== undefined && validation !== null) field.validation = validation;
+    const pick = (/** @type {'validation' | 'dynamicDefault' | 'format' | 'display'} */ key) => (raw[key] !== undefined ? raw[key] : sameTypeOld?.[key]);
+    // validation, and the schema-3 text format and display (fieldFormats.mts): same rule.
+    for (const key of /** @type {const} */ (['validation', 'format', 'display'])) {
+        const value = pick(key);
+        if (value !== undefined && value !== null) field[key] = value;
+    }
     const dynamicDefault = raw.default !== undefined && raw.default !== null && raw.dynamicDefault === undefined ? undefined : pick('dynamicDefault');
     if (dynamicDefault !== undefined && dynamicDefault !== null) field.dynamicDefault = dynamicDefault;
 }
@@ -278,7 +281,7 @@ function applyComputed(field, raw, old, at) {
  *   subtype?: string, default?: unknown, options?: unknown,
  *   relation?: { tableId?: string, table?: string, displayFieldKey?: string, displayField?: string },
  *   computed?: { expr?: unknown, type?: string, stored?: unknown },
- *   validation?: unknown, dynamicDefault?: unknown,
+ *   validation?: unknown, dynamicDefault?: unknown, format?: unknown, display?: unknown,
  * }} FieldSpec  one entry of app_upsert_table's fields[] as authored
  * @typedef {FieldSpec & { key: string, type: string }} CheckedFieldSpec  a spec past checkFieldSpec: a valid key and type
  */

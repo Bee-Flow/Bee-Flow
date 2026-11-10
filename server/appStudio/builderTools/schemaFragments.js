@@ -1,7 +1,7 @@
 // @typecheck
 const { LIMITS, STYLE_KNOBS, ACTION_KINDS, STEP_KINDS, TOAST_TONES } = require('../componentSpecs');
 const { APP_DESIGN_PRESETS } = require('../appDesignPresets');
-const { DYNAMIC_DEFAULTS } = require('../../core/dataEngine/dataModel/vocabulary');
+const { DYNAMIC_DEFAULTS, TEXT_FORMATS, FIELD_DISPLAY } = require('../../core/dataEngine/dataModel/vocabulary');
 
 const MAX_COMPONENTS_PER_CALL = 40; // top-level entries per app_add_components
 
@@ -211,7 +211,26 @@ const DYNAMIC_DEFAULT_PROP = {
     type: 'string',
     nullable: true,
     enum: Object.keys(DYNAMIC_DEFAULTS.types),
-    description: 'Filled when a record is CREATED without a value: "now" on a datetime field, "today" (UTC date) on a date field, "currentUser.id" (the signed-in user\'s id) on a text field. Not together with default; null removes it.',
+    description: 'Filled when a record is CREATED without a value: "now" on a datetime field, "today" (UTC date) on a date field, "currentUser.id" (the signed-in user\'s id) on a text or user field. Not together with default; null removes it.',
 };
 
-module.exports = { MAX_COMPONENTS_PER_CALL, MAX_SEED_RECORDS, MAX_UPDATE_RECORDS, MAX_FILTER_UPDATE_ROWS, DEFAULT_FILTER_UPDATE_ROWS, MAX_GET_ACTIONS, TEMP_ID_MAX, TEMP_ID_RX, MAX_BATCH_PATCHES_PER_CALL, INSPECT_CATALOG_MAX_COMPONENTS, INSPECT_CATALOG_MAX_STEPS, NODE_VALIDATION_TYPES, orList, PRESET_IDS, STYLE_HINT, SECTION_HEIGHT_MODES, unitList, SIZING_HINT, ADD_NODE_LOGIC_PROPS, UPDATE_COMPONENT_PATCH_PROPS, ACTION_OBJECT_DESC, ACTION_STEP_PROPS, ACTION_OBJECT_PROPS, ACTION_OBJECT_SCHEMA, batchHint, FIELD_VALIDATION_PROP, DYNAMIC_DEFAULT_PROP };
+// app_upsert_table fields[]: the schema-3 text format and display (core/dataEngine/fieldFormats.mts).
+const FIELD_FORMAT_PROP = {
+    type: 'string',
+    nullable: true,
+    enum: [...TEXT_FORMATS.values],
+    description: 'text fields only: every written value must be an e-mail address, a web address (https:// or http://) or a phone number. null removes it.',
+};
+const FIELD_DISPLAY_PROP = {
+    type: 'object',
+    nullable: true,
+    description: 'How the value is shown, never how it is stored. number/computed: currency (ISO code like "EUR"), decimals (0-10), unit (a short suffix like "kg"; not with currency). date/datetime: dateStyle. null removes it.',
+    properties: {
+        currency: { type: 'string' },
+        decimals: { type: 'integer' },
+        unit: { type: 'string' },
+        dateStyle: { type: 'string', enum: [...FIELD_DISPLAY.dateStyles] },
+    },
+};
+
+module.exports = { FIELD_FORMAT_PROP, FIELD_DISPLAY_PROP, MAX_COMPONENTS_PER_CALL, MAX_SEED_RECORDS, MAX_UPDATE_RECORDS, MAX_FILTER_UPDATE_ROWS, DEFAULT_FILTER_UPDATE_ROWS, MAX_GET_ACTIONS, TEMP_ID_MAX, TEMP_ID_RX, MAX_BATCH_PATCHES_PER_CALL, INSPECT_CATALOG_MAX_COMPONENTS, INSPECT_CATALOG_MAX_STEPS, NODE_VALIDATION_TYPES, orList, PRESET_IDS, STYLE_HINT, SECTION_HEIGHT_MODES, unitList, SIZING_HINT, ADD_NODE_LOGIC_PROPS, UPDATE_COMPONENT_PATCH_PROPS, ACTION_OBJECT_DESC, ACTION_STEP_PROPS, ACTION_OBJECT_PROPS, ACTION_OBJECT_SCHEMA, batchHint, FIELD_VALIDATION_PROP, DYNAMIC_DEFAULT_PROP };

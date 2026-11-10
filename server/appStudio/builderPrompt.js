@@ -588,8 +588,8 @@ function renderDataField(f, withId = false) {
     if (withId) bits.push(...fieldRuleBits(f));
     return bits.join(' ');
 }
-/** A field's rules (validation, dynamicDefault), on app_get_data_model only and only when declared. */
-const fieldRuleBits = (f) => [f.validation && typeof f.validation === 'object' ? `validation=${JSON.stringify(f.validation)}` : '', typeof f.dynamicDefault === 'string' ? `dynamicDefault=${f.dynamicDefault}` : ''].filter(Boolean);
+/** A field's rules (validation, dynamicDefault, format, display), on app_get_data_model only and only when declared. */
+const fieldRuleBits = (f) => [f.validation && typeof f.validation === 'object' ? `validation=${JSON.stringify(f.validation)}` : '', typeof f.dynamicDefault === 'string' ? `dynamicDefault=${f.dynamicDefault}` : '', typeof f.format === 'string' ? `format=${f.format}` : '', f.display && typeof f.display === 'object' ? `display=${JSON.stringify(f.display)}` : ''].filter(Boolean);
 
 /**
  * The `data:` block appended to the draft state when a data model was loaded

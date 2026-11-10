@@ -63,6 +63,7 @@ const {
     SYSTEM_COLUMNS,
     KEY_RE,
 } = require('../dataModel');
+const { FIELD_TYPE_SINCE } = require('../../core/dataEngine/dataModel/vocabulary');
 // The formula vocabulary, DERIVED from the shared expression engine (formulaGuide.js).
 const { renderFormulaFunctions, LIST_FORMS_TEXT, ANY_GROUP_TEXT } = require('./formulaGuide');
 // The validation-rule vocabulary, from the same module that declares it to the
@@ -393,7 +394,8 @@ function buildCatalogSections() {
 
     const dataModel = [
         `Every app can carry its own database: tables → fields → rows, plus roles and per-table access rules (RLS).`,
-        `Field types: ${FIELD_TYPES.join(', ')}. number takes subtype "integer"; select/multiselect need an options array; relation needs relation:{tableId}; computed is read-only.`,
+        // The pinned text names the classic types; the schema-3 ones (FIELD_TYPE_SINCE) are in the tool schema enum.
+        `Field types: ${FIELD_TYPES.filter((t) => !FIELD_TYPE_SINCE[t]).join(', ')}. number takes subtype "integer"; select/multiselect need an options array; relation needs relation:{tableId}; computed is read-only.`,
         `Table/field keys match ${String(KEY_RE)} (lowercase snake_case). System columns on EVERY table (server-managed, never declared or written): ${SYSTEM_COLUMNS.join(', ')}.`,
         `Access modes per table: ${ACCESS_MODES.join(' | ')} — "app" = every member reads/writes, "owner" = rows scoped to created_by, "role" = per-role rules, "none" = owner only. Prefer "app" for shared/demo data (owner-seeded rows are invisible to members under "owner").`,
         `Caps: ${DATA_LIMITS.MAX_TABLES_PER_APP} tables/app, ${DATA_LIMITS.MAX_FIELDS_PER_TABLE} fields/table, ${DATA_LIMITS.MAX_ROWS_PER_TABLE} rows/table, ${DATA_LIMITS.MAX_ROWS_PER_APP} rows/app, ${Math.round(DATA_LIMITS.MAX_DB_BYTES / (1024 * 1024))}MB per app database.`,

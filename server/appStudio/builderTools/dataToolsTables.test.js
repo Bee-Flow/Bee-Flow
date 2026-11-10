@@ -164,3 +164,35 @@ test('field rules: a valid rule is stored as given, a bad one is refused with th
     assert.ok(bad.error, 'refused');
     assert.ok(bad.errors.some((e) => /validation\.pattern does not apply to a number field/.test(e)), JSON.stringify(bad.errors));
 });
+
+test('schema-3 fields: autonumber is made unique, format and display are stored and shown, a bad one is refused', async () => {
+    const wrap = reset();
+    const r = await applyUpsertTable(wrap, { key: 'orders', name: 'Orders', fields: [
+        { key: 'no', type: 'autonumber' },
+        { key: 'mail', type: 'text', format: 'email' },
+        { key: 'price', type: 'number', display: { currency: 'EUR', decimals: 2 } },
+        { key: 'meta', type: 'json' },
+        { key: 'owner', type: 'user', dynamicDefault: 'currentUser.id' },
+    ] });
+    assert.ok(!r.error, JSON.stringify(r));
+    const [no, mail, price] = wrap.dataModel.tables[0].fields;
+    assert.deepStrictEqual([no.unique, no.required], [true, false]);
+    assert.strictEqual(mail.format, 'email');
+    assert.deepStrictEqual(price.display, { currency: 'EUR', decimals: 2 });
+    const full = renderDataBlock(wrap.dataModel, [], {}, null, { fieldIds: true });
+    assert.match(full, /mail text id=fld_\w+ format=email/);
+    assert.match(full, /price number id=fld_\w+ display=\{"currency":"EUR","decimals":2\}/);
+    assert.doesNotMatch(renderDataBlock(wrap.dataModel, [], {}), /format=|display=/, 'the per-turn block stays as it was');
+    const bad = await applyUpsertTable(wrap, { tableId: r.tableId, fields: [{ key: 'mail', type: 'number', format: 'email' }] });
+    assert.ok(bad.errors.some((e) => /format applies to a text field/.test(e)), JSON.stringify(bad));
+});
+
+test('the tool schema takes the schema-3 field shapes (enums from the vocabulary)', () => {
+    const { TOOL_SCHEMAS_PART_2 } = require('./schemasPart2');
+    const upsert = TOOL_SCHEMAS_PART_2.find((s) => s.function.name === 'app_upsert_table');
+    assert.ok(upsert, 'app_upsert_table is in part 2');
+    const items = upsert.function.parameters.properties.fields.items.properties;
+    assert.ok(items.type.enum.includes('autonumber') && items.type.enum.includes('json') && items.type.enum.includes('user'));
+    assert.deepStrictEqual(items.format.enum, ['email', 'url', 'phone']);
+    assert.deepStrictEqual(items.display.properties.dateStyle.enum, ['short', 'medium', 'long', 'full']);
+});
