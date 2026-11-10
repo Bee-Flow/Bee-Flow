@@ -423,6 +423,57 @@ test('an expired Microsoft grant is the reconnect state, not a 500', async () =>
         (err) => err.status === 409 && err.code === 'needs_reauth');
 });
 
+const graphFailure = (status) => Object.assign(new Error(`Microsoft Graph API error: ${status}`), { graphStatus: status, graphCode: 'X' });
+
+test('a failed calendar listing is classified instead of a generic 500', async () => {
+    const cases = [
+        [403, 403, 'calendar_forbidden'],
+        [429, 503, 'graph_throttled'],
+        [503, 503, 'graph_throttled'],
+        [504, 503, 'graph_throttled'],
+        [500, 502, 'graph_unavailable'],
+        [400, 502, 'graph_unavailable'],
+        [401, 409, 'needs_reauth'],
+    ];
+    for (const [graphStatus, status, code] of cases) {
+        resetFx();
+        connected();
+        fx.upcomingThrows = graphFailure(graphStatus);
+        fx.endedThrows = graphFailure(graphStatus);
+        const label = `Graph ${graphStatus}`;
+        await assert.rejects(dispatch({ url: '/teams-meetings' }), (err) => err.status === status && err.code === code, label);
+        await assert.rejects(dispatch({ url: '/teams-recordings' }), (err) => err.status === status && err.code === code, label);
+        await assert.rejects(dispatch({ method: 'POST', url: '/from-teams', body: { event_id: 'ev1' } }),
+            (err) => err.status === status && err.code === code, label);
+    }
+});
+
+test('a calendar error without a Graph status is passed on unchanged', async () => {
+    connected();
+    const bug = new TypeError('a bug, not Graph');
+    fx.upcomingThrows = bug;
+    fx.endedThrows = bug;
+    await assert.rejects(dispatch({ url: '/teams-meetings' }), (err) => err === bug);
+    await assert.rejects(dispatch({ url: '/teams-recordings' }), (err) => err === bug);
+    await assert.rejects(dispatch({ method: 'POST', url: '/from-teams', body: { event_id: 'ev1' } }), (err) => err === bug);
+});
+
+test('from-teams: the new classified codes are kept on the job, an unknown one becomes failed', async () => {
+    const codes = ['graph_forbidden', 'meeting_not_available', 'application_access_policy_missing', 'calendar_forbidden',
+        'graph_throttled', 'graph_unavailable', 'download_failed', 'provider_not_allowed', 'too_many_imports'];
+    for (const code of [...codes, 'something_new']) {
+        resetFx();
+        connected();
+        fx.ended = [meeting()];
+        fx.fresh = { id: 'job-new', status: 'pending', errorCode: null };
+        fx.inline = async () => { throw Object.assign(new Error(`refused: ${code}`), { code }); };
+        await dispatch({ method: 'POST', url: '/from-teams', body: { event_id: 'ev1' } });
+        await settle(() => fx.failures.length === 1);
+        assert.strictEqual(fx.failures[0].errorCode, code === 'something_new' ? 'failed' : code, code);
+        assert.strictEqual(fx.failures[0].terminal, true);
+    }
+});
+
 test('PATCH: switching a meeting off switches Teams auto-record off again', async () => {
     connected();
     fx.settings.autoRecordConfig = true;

@@ -11,6 +11,9 @@
 
 const { lazyDeps } = require('./lazyDeps');
 const log = require('../../telemetry/log');
+const { graphUserBase } = require('./teamsArtifacts');
+
+/** @typedef {import('../../integrations/msGraphClient').MsSession} MsSession */
 
 /** Collaborators; tests swap them through init(). */
 const { deps, init } = lazyDeps({
@@ -82,7 +85,9 @@ async function listTeamsEvents(session, { timeMin, timeMax, newestFirst = false 
     const out = [];
     // A "recently ended" scan reads newest first, so if the page bound is ever
     // reached it is the OLDEST meetings that are left out, not today's.
-    let next = `/me/calendarView?startDateTime=${encodeURIComponent(timeMin.toISOString())}`
+    // `/me` for a delegated session; `/users/<object id>` for an app-token one (graphUserBase).
+    const userBase = graphUserBase(/** @type {MsSession | undefined} */ (session));
+    let next = `${userBase}/calendarView?startDateTime=${encodeURIComponent(timeMin.toISOString())}`
         + `&endDateTime=${encodeURIComponent(timeMax.toISOString())}`
         + `&$top=100&$orderby=${newestFirst ? 'start/dateTime%20desc' : 'start/dateTime'}&$select=${EVENT_FIELDS}`;
     for (let page = 0; next && page < MAX_PAGES; page++) {

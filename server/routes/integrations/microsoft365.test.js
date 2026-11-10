@@ -114,6 +114,8 @@ test.after(() => {
 });
 
 function resetFx() {
+    fx.orgAdmin = true;
+    fx.scopeOrg = 'orgA';
     fx.clientId = 'mid';
     fx.user = { id: 'u1', organizationId: 'orgA', email: 'tom@example.com' };
     fx.upserts.length = 0;
@@ -367,6 +369,104 @@ test('disconnect: clears the vault and the session, and admits it is local only'
     // to the user about where their data stands.
     assert.strictEqual(res.body.providerRevokeSupported, false);
     assert.match(res.body.revokeHint, /myaccount\.microsoft\.com/);
+});
+
+// ═══ Teams admin consent answer ═════════════════════════════════════
+
+const consent = require('../../core/meetingNotes/teamsSetup/consent.mts');
+const { CONNECT_EXTRA_SCOPES } = require('../../core/meetingNotes/teamsSetup/permissions.mts');
+const CONSENT_TENANT = '11111111-2222-3333-4444-555555555555';
+const STATE = 'a'.repeat(64);
+const consentRecords = new Map();
+consent.init({
+    configStore: { getConfig: async (k) => consentRecords.get(k) ?? null, setConfig: async (k, v) => { consentRecords.set(k, v); } },
+    isOrgAdminForOrg: async (req, orgId) => fx.orgAdmin && orgId === fx.scopeOrg,
+    orgScope: async () => ({ orgId: fx.scopeOrg, identityError: null }),
+    log: { info() {}, warn() {} },
+});
+test.after(() => consent.init());
+
+function consentSession(extra = {}) {
+    return makeSession({
+        user: { id: 'u1', organizationId: 'orgA' },
+        teamsAdminConsent: { state: STATE, orgId: 'orgA', tenantId: CONSENT_TENANT, expiresAt: Date.now() + 60_000 },
+        ...extra,
+    });
+}
+const recorded = () => consentRecords.get('org_orgA_teams_admin_consent') || null;
+
+test('the connect scopes are the sign-in scopes plus the extras the Teams setup lists', () => {
+    assert.deepStrictEqual([...router.MS_CONNECT_SCOPES], [...MOCKS['../../auth/permissions'].MICROSOFT_SCOPES, ...CONNECT_EXTRA_SCOPES]);
+    assert.strictEqual(typeof router.buildRedirectUri, 'function');
+    assert.strictEqual(router.buildRedirectUri({ headers: { host: 'app.example' }, protocol: 'https' }), 'https://app.example/api/integrations/microsoft/callback');
+});
+
+test('admin consent: a matching state records granted, once, and clears the pending request', async () => {
+    resetFx();
+    consentRecords.clear();
+    const session = consentSession();
+    const res = await dispatch({ url: '/callback', session, query: { admin_consent: 'True', tenant: CONSENT_TENANT.toUpperCase(), state: STATE, scope: 'https://graph.microsoft.com/.default' } });
+    assert.match(res.body, /Admin consent recorded/);
+    assert.match(res.body, /"teams-admin-consent"/, 'the opener hears its own message type');
+    assert.strictEqual(recorded().outcome, 'granted');
+    assert.strictEqual(recorded().tenantId, CONSENT_TENANT);
+    assert.strictEqual(session.teamsAdminConsent, undefined, 'one pending request, used once');
+    assert.strictEqual(fx.upserts.length, 0, 'no connect token exchange');
+});
+
+test('admin consent: wrong or expired state, no session, other org or no longer admin record nothing', async () => {
+    const cases = [
+        ['wrong state', consentSession(), { state: 'b'.repeat(64) }],
+        ['expired', consentSession({ teamsAdminConsent: { state: STATE, orgId: 'orgA', tenantId: CONSENT_TENANT, expiresAt: Date.now() - 1 } }), {}],
+        ['no session user', { save() {}, teamsAdminConsent: { state: STATE, orgId: 'orgA', tenantId: CONSENT_TENANT, expiresAt: Date.now() + 60_000 } }, {}],
+        ['nothing pending', makeSession(), {}],
+        ['not admin any more', consentSession(), {}, () => { fx.orgAdmin = false; }],
+        ['moved to another org', consentSession(), {}, () => { fx.scopeOrg = 'orgB'; }],
+    ];
+    for (const [what, session, query, arrange] of cases) {
+        resetFx();
+        consentRecords.clear();
+        if (arrange) arrange();
+        const res = await dispatch({ url: '/callback', session, query: { admin_consent: 'True', tenant: CONSENT_TENANT, state: STATE, ...query } });
+        assert.match(res.body, /Return to Bee Flow and run the Teams test again/, what);
+        assert.strictEqual(recorded(), null, `${what}: nothing recorded`);
+        assert.strictEqual(session.teamsAdminConsent, undefined, `${what}: the pending request is gone`);
+    }
+});
+
+test('admin consent: a different tenant is a mismatch, never trusted from the query', async () => {
+    resetFx();
+    consentRecords.clear();
+    const res = await dispatch({ url: '/callback', session: consentSession(), query: { admin_consent: 'True', tenant: '99999999-8888-7777-6666-555555555555', state: STATE } });
+    assert.match(res.body, /Admin consent was not completed/);
+    assert.strictEqual(recorded().outcome, 'tenant_mismatch');
+    assert.strictEqual(recorded().tenantId, CONSENT_TENANT, 'the tenant of the pending request');
+});
+
+test('admin consent: a refusal records denied with the AADSTS code and without the description', async () => {
+    resetFx();
+    consentRecords.clear();
+    await dispatch({
+        url: '/callback',
+        session: consentSession(),
+        query: { admin_consent: 'True', error: 'access_denied', error_description: 'AADSTS65004: The resource owner denied the request for member@fixture.test', state: STATE },
+    });
+    const r = recorded();
+    assert.strictEqual(r.outcome, 'denied');
+    assert.strictEqual(r.error, 'access_denied');
+    assert.strictEqual(r.aadsts, 'AADSTS65004');
+    assert.doesNotMatch(JSON.stringify(r), /resource owner|fixture\.test|u1/);
+});
+
+test('admin consent: the normal connect callback is unchanged by the new branch', async () => {
+    resetFx();
+    consentRecords.clear();
+    const session = makeSession({ microsoftConnectState: 'st', microsoftConnectVerifier: 'v' });
+    const res = await dispatch({ url: '/callback', session, query: { code: 'c', state: 'st' } });
+    assert.match(res.body, /"microsoft-callback"/);
+    assert.match(res.body, /Connected as/);
+    assert.strictEqual(fx.upserts.length, 1);
+    assert.strictEqual(recorded(), null);
 });
 
 test('disconnect: a Google SSO session keeps its own tokens', async () => {

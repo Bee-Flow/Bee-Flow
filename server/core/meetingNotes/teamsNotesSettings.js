@@ -51,6 +51,39 @@ function scopeSet(scopeString) {
 }
 
 /**
+ * One delegated Graph permission Teams meeting notes use.
+ * @typedef {{ name: string, role: 'required' | 'optional', adminConsent: boolean, purpose: 'calendar' | 'recordings' | 'transcripts' | 'auto_record' }} TeamsDelegatedPermission
+ */
+
+/**
+ * The delegated permissions Teams meeting notes use, in the order the setup
+ * screens list them. `required` ones gate hasTeamsScopes; `adminConsent` per
+ * Microsoft's permissions reference (delegated column).
+ * @type {ReadonlyArray<Readonly<TeamsDelegatedPermission>>}
+ */
+const TEAMS_DELEGATED_PERMISSIONS = Object.freeze([
+    Object.freeze(/** @type {TeamsDelegatedPermission} */ ({ name: SCOPE_CALENDAR, role: 'required', adminConsent: false, purpose: 'calendar' })),
+    Object.freeze(/** @type {TeamsDelegatedPermission} */ ({ name: SCOPE_RECORDINGS, role: 'required', adminConsent: true, purpose: 'recordings' })),
+    Object.freeze(/** @type {TeamsDelegatedPermission} */ ({ name: SCOPE_TRANSCRIPTS, role: 'optional', adminConsent: true, purpose: 'transcripts' })),
+    Object.freeze(/** @type {TeamsDelegatedPermission} */ ({ name: SCOPE_MEETINGS_WRITE, role: 'optional', adminConsent: false, purpose: 'auto_record' })),
+]);
+
+/**
+ * Names from TEAMS_DELEGATED_PERMISSIONS missing in the scope string, in list
+ * order (same last-segment, case-insensitive compare as scopeSet). Only the
+ * required ones unless `includeOptional`.
+ * @param {string | null | undefined} scopeString
+ * @param {{ includeOptional?: boolean }} [opts]
+ * @returns {string[]}
+ */
+function missingTeamsPermissions(scopeString, { includeOptional = false } = {}) {
+    const set = scopeSet(scopeString);
+    return TEAMS_DELEGATED_PERMISSIONS
+        .filter(p => (includeOptional || p.role === 'required') && !set.has(p.name.toLowerCase()))
+        .map(p => p.name);
+}
+
+/**
  * True when the granted scopes allow reading calendar + recordings.
  * @param {string | null | undefined} scopeString
  */
@@ -212,6 +245,8 @@ async function saveUserSettings(userId, patch) {
 module.exports = {
     init,
     DEFAULTS,
+    TEAMS_DELEGATED_PERMISSIONS,
+    missingTeamsPermissions,
     hasTeamsScopes,
     hasMeetingWriteScope,
     hasTranscriptScope,

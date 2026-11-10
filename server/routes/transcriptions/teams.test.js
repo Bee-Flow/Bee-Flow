@@ -24,6 +24,7 @@ function reset() {
     fx.artifact = null;
     fx.artifactError = false;
     fx.job = null;
+    fx.calendarError = null;
 }
 reset();
 
@@ -35,8 +36,8 @@ router.init({
         deriveConnectionStatus: () => ({ teamsScopesGranted: true, hasTranscriptScope: true }),
     },
     calendar: {
-        listUpcomingTeamsMeetings: async () => fx.upcoming,
-        listRecentlyEndedTeamsMeetings: async () => fx.ended,
+        listUpcomingTeamsMeetings: async () => { if (fx.calendarError) throw fx.calendarError; return fx.upcoming; },
+        listRecentlyEndedTeamsMeetings: async () => { if (fx.calendarError) throw fx.calendarError; return fx.ended; },
     },
     artifacts: { getOnlineMeetingByJoinUrl: async () => fx.meeting },
     autoImport: { findArtifact: async () => { if (fx.artifactError) throw new Error('graph'); return fx.artifact; }, NO_RECORDING_DEADLINE_MS: realAutoImport.NO_RECORDING_DEADLINE_MS },
@@ -99,6 +100,30 @@ test('teams-recordings: ended recently without artifact is processing, not none'
 test('teams-recordings: past the 48 h deadline without artifact is none', async () => {
     fx.ended = [ended({ start: hoursAgo(50), end: hoursAgo(49) })];
     assert.strictEqual((await getJson('/teams-recordings')).items[0].recordingState, 'none');
+});
+
+test('calendar errors answer a classified status and code over HTTP, never a bare 500', async () => {
+    const graphFailure = (status) => Object.assign(new Error(`Microsoft Graph API error: ${status}`), { graphStatus: status });
+    const cases = [[403, 403, 'calendar_forbidden'], [429, 503, 'graph_throttled'], [502, 502, 'graph_unavailable']];
+    for (const [graphStatus, status, code] of cases) {
+        fx.calendarError = graphFailure(graphStatus);
+        for (const p of ['/teams-meetings', '/teams-recordings']) {
+            const res = await fetch(`${baseUrl}/api/transcriptions${p}`);
+            const body = await res.json();
+            assert.strictEqual(res.status, status, `${p} ${graphStatus}`);
+            assert.strictEqual(body.code, code, `${p} ${graphStatus}`);
+            assert.ok(!JSON.stringify(body).includes('Microsoft Graph API error'), 'the raw Graph message is not passed on');
+        }
+    }
+});
+
+test('a gone grant on the calendar still answers 200 with needsReauth', async () => {
+    fx.calendarError = new Error('NOT_CONNECTED');
+    for (const p of ['/teams-meetings', '/teams-recordings']) {
+        const res = await fetch(`${baseUrl}/api/transcriptions${p}`);
+        assert.strictEqual(res.status, 200, p);
+        assert.strictEqual((await res.json()).connection.needsReauth, true, p);
+    }
 });
 
 test('teams-recordings: artifact kinds; no online meeting is none; a Graph error stays processing', async () => {

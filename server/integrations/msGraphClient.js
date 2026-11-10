@@ -19,7 +19,10 @@ const GRAPH_BASE = 'https://graph.microsoft.com/v1.0';
 
 /**
  * The session fields the Graph client reads and writes (an Express session or an automation's vault session).
- * @typedef {{ accessToken?: string, refreshToken?: string, oauthScope?: string, oauthConnectionId?: string, save?: () => void }} MsSession
+ * `graphUserPath` (`/users/<object id>`) makes the Teams meeting-notes helpers address that user instead of
+ * `/me` (teamsArtifacts graphUserBase); `appOnly` marks an application-token session (no refresh token).
+ * The Graph client itself reads neither.
+ * @typedef {{ accessToken?: string, refreshToken?: string, oauthScope?: string, oauthConnectionId?: string, save?: () => void, graphUserPath?: string, appOnly?: boolean }} MsSession
  * @typedef {Omit<RequestInit, 'headers'> & { headers?: Record<string, string> }} GraphRequestOptions
  */
 

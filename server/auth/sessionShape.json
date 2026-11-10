@@ -53,6 +53,7 @@
     "securityKeyRegistration",
     "serviceEmailConnect",
     "supportMailbox",
+    "teamsAdminConsent",
     "user",
     "withingsConnectRedirectUri",
     "withingsConnectState"

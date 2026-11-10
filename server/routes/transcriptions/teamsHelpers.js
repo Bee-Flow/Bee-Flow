@@ -84,6 +84,28 @@ function asNeedsReauth(err) {
 }
 
 /**
+ * A failed calendar listing (msGraphClient.graphFetch carries Graph's status
+ * as `graphStatus`) as the classified answer the client can act on, instead
+ * of a generic 500. A grant that is gone is the reconnect state (409); an
+ * error without a Graph status (a bug, a network failure) is returned as it
+ * is. Returns the error to throw; the list routes answer a gone grant with
+ * their own 200 + needsReauth before they get here.
+ * @param {unknown} err
+ * @returns {unknown}
+ */
+function asTeamsCalendarError(err) {
+    if (isGrantGone(err)) return asNeedsReauth(err);
+    const status = /** @type {{ graphStatus?: unknown }} */ (err)?.graphStatus;
+    if (typeof status !== 'number' || !Number.isFinite(status)) return err;
+    if (status === 401) return new HttpError(409, 'needs_reauth', 'Microsoft access expired; reconnect your Microsoft 365 account');
+    if (status === 403) return new HttpError(403, 'calendar_forbidden', 'Microsoft refused access to the calendar');
+    if (status === 429 || status === 503 || status === 504) {
+        return new HttpError(503, 'graph_throttled', 'Microsoft Graph is throttling requests; try again in a few minutes');
+    }
+    return new HttpError(502, 'graph_unavailable', 'Microsoft Graph answered with an error');
+}
+
+/**
  * A copy of the session for work that outlives the request. msGraphClient
  * writes refreshed tokens onto the session it is given and calls `save()`; on
  * the live express-session object that write-back re-creates a session the
@@ -190,5 +212,5 @@ async function teamsRecordingState(session, m, connection) {
 }
 
 module.exports = {
-    deps: d, init, resolveTeamsSession, isGrantGone, asNeedsReauth, detachedSession, noteStillExists, configureTeamsAutoRecord, teamsRecordingState,
+    deps: d, init, resolveTeamsSession, isGrantGone, asNeedsReauth, asTeamsCalendarError, detachedSession, noteStillExists, configureTeamsAutoRecord, teamsRecordingState,
 };

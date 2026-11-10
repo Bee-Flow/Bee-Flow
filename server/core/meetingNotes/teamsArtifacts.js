@@ -81,30 +81,81 @@ function assertId(value, what) {
     return encodeURIComponent(value);
 }
 
-/** @param {Response} response */
-async function readGraphError(response) {
-    const body = await response.text().catch(() => '');
-    try {
-        const parsed = JSON.parse(body);
-        return { code: String(parsed?.error?.code || ''), message: String(parsed?.error?.message || '') };
-    } catch (_) {
-        return { code: '', message: body.slice(0, 300) };
-    }
+// How deep readGraphError follows nested innerError objects.
+const MAX_INNER_ERROR_DEPTH = 5;
+
+// `/users/<object id>`: the only user path a session may carry besides `/me`.
+const GRAPH_USER_PATH_RE = /^\/users\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * The Graph user segment every Teams path starts with: `/me` for a delegated
+ * session, or the `/users/<object id>` an application-token session names
+ * (option B). Any other value is refused, so a session can never point a call
+ * at an arbitrary Graph path.
+ * @param {MsSession | null | undefined} session
+ * @returns {string}
+ */
+function graphUserBase(session) {
+    const userPath = session?.graphUserPath;
+    if (userPath === undefined || userPath === null) return '/me';
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- GRAPH_USER_PATH_RE is a constant anchored pattern of fixed-length classes: linear
+    if (typeof userPath === 'string' && GRAPH_USER_PATH_RE.test(userPath)) return userPath;
+    throw codedError('Invalid Graph user path', 'failed');
 }
 
 /**
- * Map a failed Graph response onto a stable code.
+ * @typedef {{ code?: unknown, message?: unknown, innerError?: GraphErrorNode | null, innererror?: GraphErrorNode | null }} GraphErrorNode
+ */
+
+/**
+ * The error codes and message of a failed Graph response. `codes` holds the
+ * lower-cased `error.code` and every nested `innerError.code` /
+ * `innererror.code` (Graph's guidance: loop through all nested codes, the
+ * specific one is often inside); `message` is `error.message`, or the first
+ * 300 characters of a body that is not JSON.
+ * @param {Response} response
+ * @returns {Promise<{ codes: string[], message: string }>}
+ */
+async function readGraphError(response) {
+    const body = await response.text().catch(() => '');
+    /** @type {{ error?: GraphErrorNode | null } | null} */
+    let parsed;
+    try {
+        parsed = JSON.parse(body);
+    } catch (_) {
+        return { codes: [], message: body.slice(0, 300) };
+    }
+    const error = parsed?.error;
+    /** @type {string[]} */
+    const codes = [];
+    /** @type {GraphErrorNode | null | undefined} */
+    let node = error;
+    for (let depth = 0; node && typeof node === 'object' && depth <= MAX_INNER_ERROR_DEPTH; depth++) {
+        if (typeof node.code === 'string' && node.code) codes.push(node.code.toLowerCase());
+        node = node.innerError || node.innererror || null;
+    }
+    return { codes, message: String(error?.message || '') };
+}
+
+/**
+ * Map a failed Graph response onto a stable code (first match wins).
  *   403 + GraphAccessToTranscriptsDisabled → transcript_access_disabled
  *   403 + SpeakerAttributionNotAllowed     → speaker_attribution_disabled
+ *   403 naming an application access policy → application_access_policy_missing
  *   403 mentioning scope / consent          → needs_teams_scopes
- *   403 otherwise                            → not_organizer
+ *   403 otherwise                            → graph_forbidden
  *   404                                      → not_found
+ *   429 / 503 / 504 (after msGraphClient's own retries) → graph_throttled
+ *   anything else                            → failed
+ * Every call here is for a meeting the calendar says the user organises, so a
+ * plain 403 is a permission, licence or Teams policy, not "not the organiser".
  * @param {Response} response
  * @param {string} context
  */
 async function classifyGraphFailure(response, context) {
-    const { code, message } = await readGraphError(response);
-    const text = `${code} ${message}`.toLowerCase();
+    const { codes, message } = await readGraphError(response);
+    const lowerMessage = message.toLowerCase();
+    const text = `${codes.join(' ')} ${lowerMessage}`;
     if (response.status === 403) {
         if (text.includes('graphaccesstotranscriptsdisabled')) {
             return codedError('Your Teams admin has turned off API access to meeting transcripts', 'transcript_access_disabled', 403);
@@ -112,15 +163,21 @@ async function classifyGraphFailure(response, context) {
         if (text.includes('speakerattributionnotallowed')) {
             return codedError('Your Teams admin does not allow speaker names in transcripts', 'speaker_attribution_disabled', 403);
         }
+        if (lowerMessage.includes('application access policy')) {
+            return codedError(`${context}: no Teams application access policy allows this app for this user`, 'application_access_policy_missing', 403);
+        }
         // Scope or consent only: "permission" also appears in 403s that no
         // reconnect can fix (a file this account may not open), and labelling
         // those "reconnect to grant access" sent users round in circles.
         if (text.includes('scope') || text.includes('consent')) {
             return codedError(`${context}: Microsoft did not grant the Teams meeting permissions`, 'needs_teams_scopes', 403);
         }
-        return codedError(`${context}: only the meeting organizer can read this`, 'not_organizer', 403);
+        return codedError(`${context}: Microsoft refused access (a permission, licence or Teams policy blocks it)`, 'graph_forbidden', 403);
     }
     if (response.status === 404) return codedError(`${context}: not found`, 'not_found', 404);
+    if (response.status === 429 || response.status === 503 || response.status === 504) {
+        return codedError(`${context}: Microsoft Graph is throttling requests`, 'graph_throttled', 503);
+    }
     return codedError(`${context}: Microsoft Graph returned ${response.status}${message ? ` (${message})` : ''}`, 'failed', 502);
 }
 
@@ -151,7 +208,7 @@ async function graphJson(path, session, context, options = {}) {
 async function getOnlineMeetingByJoinUrl(session, joinUrl) {
     if (!joinUrl) return null;
     const filter = `JoinWebUrl eq '${String(joinUrl).replace(/'/g, "''")}'`;
-    const data = await graphJson(`/me/onlineMeetings?$filter=${encodeURIComponent(filter)}`, session, 'Looking up the Teams meeting');
+    const data = await graphJson(`${graphUserBase(session)}/onlineMeetings?$filter=${encodeURIComponent(filter)}`, session, 'Looking up the Teams meeting');
     const meeting = (data?.value || [])[0] || null;
     return meeting && meeting.id ? meeting : null;
 }
@@ -164,7 +221,7 @@ async function getOnlineMeetingByJoinUrl(session, joinUrl) {
 async function listCollection(session, meetingId, collection) {
     const id = assertId(meetingId, 'meeting');
     const items = [];
-    let next = `/me/onlineMeetings/${id}/${collection}`;
+    let next = `${graphUserBase(session)}/onlineMeetings/${id}/${collection}`;
     for (let page = 0; next && page < 5; page++) {
         const data = await graphJson(next, session, `Listing Teams ${collection}`);
         items.push(...(data?.value || []));
@@ -249,7 +306,7 @@ function artifactsForSlot(items, { meetingStart, meetingEnd } = {}) {
  * @param {{ meetingId: string, recordingId: string, destPath: string, maxBytes?: number }} opts
  */
 async function downloadRecordingToFile(session, { meetingId, recordingId, destPath, maxBytes = DEFAULT_MAX_VIDEO_BYTES }) {
-    const path = `/me/onlineMeetings/${assertId(meetingId, 'meeting')}/recordings/${assertId(recordingId, 'recording')}/content`;
+    const path = `${graphUserBase(session)}/onlineMeetings/${assertId(meetingId, 'meeting')}/recordings/${assertId(recordingId, 'recording')}/content`;
     const response = await deps.graphRequest(path, session, {});
     if (!response.ok) throw await classifyGraphFailure(response, 'Downloading the Teams recording');
     const declared = Number(response.headers.get('content-length')) || 0;
@@ -283,7 +340,7 @@ async function downloadRecordingToFile(session, { meetingId, recordingId, destPa
  * @param {{ meetingId: string, transcriptId: string }} opts
  */
 async function fetchTranscriptVtt(session, { meetingId, transcriptId }) {
-    const path = `/me/onlineMeetings/${assertId(meetingId, 'meeting')}/transcripts/${assertId(transcriptId, 'transcript')}/content?$format=text/vtt`;
+    const path = `${graphUserBase(session)}/onlineMeetings/${assertId(meetingId, 'meeting')}/transcripts/${assertId(transcriptId, 'transcript')}/content?$format=text/vtt`;
     const response = await deps.graphRequest(path, session, { headers: { Accept: 'text/vtt' } });
     if (!response.ok) throw await classifyGraphFailure(response, 'Downloading the Teams transcript');
     return response.text();
@@ -293,6 +350,8 @@ async function fetchTranscriptVtt(session, { meetingId, transcriptId }) {
  * Turn Teams' own "record automatically" on or off for a meeting the user
  * organizes (needs OnlineMeetings.ReadWrite). Never throws.
  * → { ok: true } | { error: 'not_organizer'|'needs_teams_scopes'|'not_found'|'error' }
+ * The vocabulary is what its callers map: a meeting Graph does not list is
+ * 'not_organizer'; any other failure (graph_forbidden, throttling) is 'error'.
  * @param {MsSession} session
  * @param {{ joinUrl: string, enabled: boolean }} opts
  */
@@ -300,7 +359,7 @@ async function setRecordAutomatically(session, { joinUrl, enabled }) {
     try {
         const meeting = await getOnlineMeetingByJoinUrl(session, joinUrl);
         if (!meeting) return { error: 'not_organizer' };
-        await graphJson(`/me/onlineMeetings/${assertId(meeting.id, 'meeting')}`, session, 'Updating the Teams meeting', {
+        await graphJson(`${graphUserBase(session)}/onlineMeetings/${assertId(meeting.id, 'meeting')}`, session, 'Updating the Teams meeting', {
             method: 'PATCH',
             body: JSON.stringify({ recordAutomatically: !!enabled }),
         });
@@ -314,6 +373,7 @@ async function setRecordAutomatically(session, { joinUrl, enabled }) {
 
 module.exports = {
     init,
+    graphUserBase,
     getOnlineMeetingByJoinUrl,
     listRecordings,
     listTranscripts,

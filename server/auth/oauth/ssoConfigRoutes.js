@@ -381,16 +381,9 @@ router.post('/providers/:provider/test', requireSuperAdmin, requireSsoProvider, 
         }
 
     } else if (provider === 'microsoft') {
-        const providerConfig = config.providers?.microsoft || {};
-        if (!providerConfig.clientId) {
-            return res.status(400).json({ error: 'Microsoft Client ID not configured' });
-        }
-        const guidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-        if (guidRegex.test(providerConfig.clientId)) {
-            res.json({ success: true, message: 'Microsoft OAuth credentials configured (format valid)' });
-        } else {
-            res.status(400).json({ error: 'Invalid Microsoft Client ID format (should be a GUID)' });
-        }
+        // A real client-credentials token request (routes/teamsSetup.mts): same answer shape plus the check report.
+        const { status, body } = await require('../../routes/teamsSetup.mts').answerMicrosoftProviderTest(req, config);
+        res.status(status).json(body);
 
     } else {
         res.status(404).json({ error: 'Unknown provider' });

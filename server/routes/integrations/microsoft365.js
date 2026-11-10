@@ -143,8 +143,16 @@ router.get('/auth-url', requireAuth, async (req, res) => {
     res.json({ url: `${OAUTH_PROVIDERS.microsoft.authUrl(tenantId)}?${params}` });
 });
 
+// Teams admin consent answer (same redirect URI): consent.mts records it only for the session that asked.
+/** @param {import('express').Request} req @param {import('express').Response} res */
+async function handleTeamsAdminConsent(req, res) {
+    const { recorded, granted } = await require('../../core/meetingNotes/teamsSetup/consent.mts').answerAdminConsent(req);
+    res.send(callbackHTML(!recorded ? 'Thank you. Return to Bee Flow and run the Teams test again.' : granted ? 'Admin consent recorded. You can close this window.' : 'Admin consent was not completed. You can close this window.', recorded && granted, 'teams-admin-consent'));
+}
+
 // ─── OAuth Callback ──────────────────────────────────────────────
 router.get('/callback', /** @param {import('express').Request<{}, any, any, { code?: string, state?: string, error?: string, error_description?: string }>} req */ async (req, res) => {
+    if (Object.prototype.hasOwnProperty.call(req.query, 'admin_consent')) return handleTeamsAdminConsent(/** @type {import('express').Request} */ (/** @type {unknown} */ (req)), res);
     const { code, state, error, error_description: errorDescription } = req.query;
     const userId = req.session?.user?.id;
 
@@ -355,8 +363,8 @@ function escapeHtml(value) {
     return String(value).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 }
 
-/** @param {string} message @param {boolean} success */
-function callbackHTML(message, success) {
+/** @param {string} message @param {boolean} success @param {string} [type] the postMessage type the opener listens for */
+function callbackHTML(message, success, type = 'microsoft-callback') {
     return `<!DOCTYPE html>
 <html><head><title>Microsoft 365</title>
 <style>
@@ -374,7 +382,7 @@ function callbackHTML(message, success) {
 </div>
 <script>
   if (window.opener) {
-    try { window.opener.postMessage({ type: 'microsoft-callback', success: ${success} }, ${JSON.stringify(openerTargetOrigin())}); } catch (e) { console.debug("opener gone", e); }
+    try { window.opener.postMessage({ type: ${JSON.stringify(type)}, success: ${success} }, ${JSON.stringify(openerTargetOrigin())}); } catch (e) { console.debug("opener gone", e); }
     setTimeout(() => window.close(), 1500);
   }
 </script>
@@ -385,3 +393,4 @@ function callbackHTML(message, success) {
 module.exports = router;
 /** @type {RouterExports} */ (module.exports).MS_CONNECT_SCOPES = MS_CONNECT_SCOPES;
 /** @type {RouterExports} */ (module.exports).hasSharedMailboxScopes = hasSharedMailboxScopes;
+/** @type {RouterExports} */ (module.exports).buildRedirectUri = buildRedirectUri; // also the Teams admin consent redirect
