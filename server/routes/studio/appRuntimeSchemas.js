@@ -146,4 +146,19 @@ const RecordsQuery = queryOf({
     sample: choice(['0', '1'], 'sample is 1 for an editor preview.').optional(),
 }, 'A table page');
 
-module.exports = { DraftQuery, StepBody, RunBody, RunEndBody, BackgroundBody, JobParams, JobsQuery, ChatBody, RecordsQuery, ErrorScope };
+/**
+ * filter / sort / orderBy of a table page, from the JSON text RecordsQuery let through. The
+ * compiler validates the shapes; `orderBy` is present only when the request sent one.
+ * @param {Record<string, unknown>} query
+ * @returns {{ filters: unknown, sort: unknown, orderBy?: unknown }}
+ */
+function listQueryOf(query) {
+    /** @param {string} name */
+    const parsed = (name) => (typeof query[name] === 'string' && query[name] ? JSON.parse(/** @type {string} */ (query[name])) : undefined);
+    const filter = parsed('filter');
+    const orderBy = parsed('orderBy');
+    const out = { filters: filter !== undefined && !Array.isArray(filter) ? [filter] : filter, sort: parsed('sort') };
+    return orderBy === undefined ? out : { ...out, orderBy };
+}
+
+module.exports = { listQueryOf, DraftQuery, StepBody, RunBody, RunEndBody, BackgroundBody, JobParams, JobsQuery, ChatBody, RecordsQuery, ErrorScope };

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * App Studio validator: the filter grammar of the record / records / aggregate
  * bindings and of the filter-mode record writes. Clauses, the `any` / `all` /
@@ -9,10 +9,12 @@
 
 const { FORMULA_SCOPE_ROOTS } = require('../componentSpecs');
 const { FILTER_OPS } = require('../dataModel');
-const { isObject } = require('./shared');
 const { countFilterLeaves, MAX_FILTER_CLAUSES: MAX_FILTERS, MAX_FILTER_DEPTH, FIELD_COMPARE_OPS } = require('../../shared/expr/filterGroups.mjs');
 const { validateFormula } = require('./formulas');
 const { checkFieldRef } = require('./refs');
+
+/** @param {unknown} v @returns {v is Record<string, unknown>} */
+function isObject(v) { return v !== null && typeof v === 'object' && !Array.isArray(v); }
 
 // ---------------------------------------------------------------------------
 // record/records binding filter & sort — the exact query-descriptor grammar
@@ -24,7 +26,9 @@ const { checkFieldRef } = require('./refs');
 // ---------------------------------------------------------------------------
 
 /**
+ * @param {unknown} v
  * @param {string} path
+ * @param {ValidationCtx} ctx
  */
 function validateFilterValue(v, path, ctx) {
     const { pushE } = ctx;
@@ -44,7 +48,10 @@ function validateFilterValue(v, path, ctx) {
 }
 
 /**
+ * @param {unknown} filter
  * @param {string} path
+ * @param {ValidationCtx} ctx
+ * @param {unknown} tableId
  * @param {string} label
  */
 function validateBindingFilter(filter, path, ctx, tableId, label) {
@@ -66,6 +73,20 @@ function validateBindingFilter(filter, path, ctx, tableId, label) {
 }
 
 /**
+ * Which group an entry is: `any` whenever it has one (as before), `all` or
+ * `not` only without a `field` (an entry with a field stays a clause).
+ * @param {unknown} entry
+ * @returns {'any' | 'all' | 'not' | null}
+ */
+function groupOf(entry) {
+    if (!isObject(entry)) return null;
+    if (entry.any !== undefined) return 'any';
+    if (entry.field !== undefined) return null;
+    if (entry.all !== undefined) return 'all';
+    return entry.not !== undefined ? 'not' : null;
+}
+
+/**
  * One entry of a filter list or of a group: an `any` / `all` / `not` group
  * (nested to MAX_FILTER_DEPTH) or a clause.
  * @param {unknown} entry
@@ -74,12 +95,8 @@ function validateBindingFilter(filter, path, ctx, tableId, label) {
  * @param {number} depth groups above this entry
  */
 function validateFilterEntry(entry, p, scope, depth) {
-    const group = !isObject(entry) ? null
-        : entry.any !== undefined ? 'any'
-            : entry.field !== undefined ? null
-                : entry.all !== undefined ? 'all'
-                    : entry.not !== undefined ? 'not' : null;
-    if (group === null) { validateFilterClause(entry, p, scope.ctx, scope.tableId, scope.label); return; }
+    const group = groupOf(entry);
+    if (group === null || !isObject(entry)) { validateFilterClause(entry, p, scope.ctx, scope.tableId, scope.label); return; }
     if (depth >= MAX_FILTER_DEPTH) {
         scope.ctx.pushE({ code: 'binding.filter_too_deep', severity: 'error', path: p, message: `Filter groups nest at most ${MAX_FILTER_DEPTH} deep.`, hint: 'Flatten the innermost group: (a AND (b AND c)) is (a AND b AND c).' });
         return;
@@ -99,7 +116,7 @@ function validateFilterEntry(entry, p, scope, depth) {
 function validateAllGroup(entry, p, scope, depth) {
     const { pushE } = scope.ctx;
     if (entry.op !== undefined || entry.value !== undefined || entry.not !== undefined) {
-        pushE({ code: 'binding.filter_invalid', severity: 'error', path: p, message: 'A filter entry is either a clause { field, op, value? } or one group ({ any }, { all } or { not }), not both.', hint: 'Give each group its own entry.' });
+        pushE({ code: 'binding.filter_invalid', severity: 'error', path: p, message: 'A filter entry is either a clause { field, op, value? } or one group (any, all or not), not both.', hint: 'Give each group its own entry.' });
     }
     if (!Array.isArray(entry.all) || entry.all.length === 0) {
         pushE({ code: 'binding.filter_group_empty', severity: 'error', path: `${p}.all`, message: 'An AND group needs a non-empty all list.', hint: '{ "all": [{ "field": "status", "op": "eq", "value": "open" }, { "field": "priority", "op": "eq", "value": "high" }] }' });
@@ -119,7 +136,7 @@ function validateAllGroup(entry, p, scope, depth) {
 function validateNotGroup(entry, p, scope, depth) {
     const { pushE } = scope.ctx;
     if (entry.op !== undefined || entry.value !== undefined) {
-        pushE({ code: 'binding.filter_invalid', severity: 'error', path: p, message: 'A filter entry is either a clause { field, op, value? } or one group ({ any }, { all } or { not }), not both.', hint: 'Give each group its own entry.' });
+        pushE({ code: 'binding.filter_invalid', severity: 'error', path: p, message: 'A filter entry is either a clause { field, op, value? } or one group (any, all or not), not both.', hint: 'Give each group its own entry.' });
     }
     if (!isObject(entry.not)) {
         pushE({ code: 'binding.filter_group_empty', severity: 'error', path: `${p}.not`, message: '`not` takes one clause or one group, not a list.', hint: '{ "not": { "field": "status", "op": "eq", "value": "done" } }, or { "not": { "any": [...] } } for several.' });
@@ -129,7 +146,7 @@ function validateNotGroup(entry, p, scope, depth) {
     validateFilterEntry(entry.not, `${p}.not`, scope, depth + 1);
 }
 
-/** @param {Record<string, unknown>} entry @param {string} p */
+/** @param {Record<string, unknown>} entry @param {string} p @param {ValidationCtx} ctx */
 function checkGroupRequired(entry, p, ctx) {
     if (entry.required !== undefined && typeof entry.required !== 'boolean') {
         ctx.pushE({ code: 'binding.filter_invalid', severity: 'error', path: `${p}.required`, message: '`required` must be true or false.', hint: 'Set required:true when the component should show nothing until the group has a value.' });
@@ -168,7 +185,10 @@ function validateAnyGroup(entry, p, scope, depth) {
 
 /**
  * One filter clause { field, op, value?, required? }.
+ * @param {unknown} entry
  * @param {string} p
+ * @param {ValidationCtx} ctx
+ * @param {unknown} tableId
  * @param {string} label
  */
 function validateFilterClause(entry, p, ctx, tableId, label) {
@@ -180,9 +200,9 @@ function validateFilterClause(entry, p, ctx, tableId, label) {
     if (typeof entry.field !== 'string' || !entry.field) {
         pushE({ code: 'binding.filter_invalid', severity: 'error', path: `${p}.field`, message: 'Each filter entry needs a non-empty string `field`.', hint: 'Use a field key from the bound table (system columns id/created_at/updated_at/created_by/org_id also resolve).' });
     } else {
-        checkFieldRef(tableId, entry.field, `${p}.field`, ctx, `${label} filter`);
+        checkFieldRef(tableId, /** @type {string} */ (entry.field), `${p}.field`, ctx, `${label} filter`);
     }
-    if (!FILTER_OPS.includes(entry.op)) {
+    if (!FILTER_OPS.includes(/** @type {string} */ (entry.op))) {
         pushE({ code: 'binding.filter_invalid', severity: 'error', path: `${p}.op`, message: `Unknown filter op ${JSON.stringify(entry.op)}.`, hint: `Use one of: ${FILTER_OPS.join(', ')}.` });
     }
     if (entry.required !== undefined && typeof entry.required !== 'boolean') {
@@ -196,6 +216,8 @@ function validateFilterClause(entry, p, ctx, tableId, label) {
  * The `otherField` of a clause: another column of the same row, compared with one of FIELD_COMPARE_OPS, and no value.
  * @param {Record<string, unknown>} entry
  * @param {string} p
+ * @param {ValidationCtx} ctx
+ * @param {unknown} tableId
  * @param {string} label
  */
 function validateOtherField(entry, p, ctx, tableId, label) {
@@ -205,7 +227,8 @@ function validateOtherField(entry, p, ctx, tableId, label) {
     } else {
         checkFieldRef(tableId, entry.otherField, `${p}.otherField`, ctx, `${label} filter`);
     }
-    if (FILTER_OPS.includes(entry.op) && !FIELD_COMPARE_OPS.includes(entry.op)) {
+    const op = /** @type {string} */ (entry.op);
+    if (FILTER_OPS.includes(op) && !FIELD_COMPARE_OPS.includes(op)) {
         pushE({ code: 'binding.filter_invalid', severity: 'error', path: `${p}.op`, message: `A comparison with otherField cannot use op ${JSON.stringify(entry.op)}.`, hint: `Use one of: ${FIELD_COMPARE_OPS.join(', ')}.` });
     }
     if (entry.value !== undefined && entry.value !== null) {
@@ -216,4 +239,4 @@ function validateOtherField(entry, p, ctx, tableId, label) {
 module.exports = { validateBindingFilter };
 
 /** @typedef {import('./shared').ValidationCtx} ValidationCtx */
-/** @typedef {{ ctx: any, tableId: unknown, label: string }} FilterScope  what every entry of one filter is checked against */
+/** @typedef {{ ctx: ValidationCtx, tableId: unknown, label: string }} FilterScope  what every entry of one filter is checked against */

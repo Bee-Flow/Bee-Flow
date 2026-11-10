@@ -188,7 +188,7 @@ const LIST_CASES = [
 for (const [name, clause] of OP_CLAUSES) LIST_CASES.push([`op-${name}`, { filters: [clause] }]);
 for (const [name, clause] of OP_CLAUSES) LIST_CASES.push([`op-${name}-in-any`, { filters: [{ any: [clause, { field: 'title', op: 'isNull' }] }] }]);
 
-// Filter trees ({ all } / { any } / { not } to depth 3), column comparisons
+// Filter trees (`all` / `any` / `not` groups to depth 3), column comparisons
 // ({ field, op, otherField }) and orderBy (up to 3 columns, expanded keyset).
 // Added after the cases above; none of those changed.
 const T = (/** @type {string} */ v) => ({ field: 'title', op: 'eq', value: v });

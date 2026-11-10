@@ -63,7 +63,7 @@ function validateBindingOrderBy(value, path, ctx, label, allowedAliases) {
     }
     validateBindingSort(orderBy, path, ctx, value.tableId, label, allowedAliases);
     // A groupBy or aggregates formula names its output columns only when it runs.
-    const isFormula = (/** @type {unknown} */ v) => isObject(v) && v.kind === 'formula';
+    const isFormula = (/** @type {unknown} */ v) => isObject(v) && /** @type {{ kind?: unknown }} */ (v).kind === 'formula';
     const strictAliases = Boolean(allowedAliases) && !isFormula(value.groupBy) && !isFormula(value.aggregates);
     const seen = new Set();
     orderBy.forEach((entry, i) => {

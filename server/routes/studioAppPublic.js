@@ -89,7 +89,7 @@ const { DATA_LIMITS } = require('../appStudio/dataModel');
 const { perUserRateLimit } = require('../utils/perUserRateLimit');
 const { issueVisitorToken, verifyVisitorToken } = require('../auth/publicShareToken');
 const { resolveRequestedStep, sanitizeBag, sanitizeErrorScope, stepNotes, stepFailureExtras } = require('../appStudio/actionSequence');
-const { bestEffort, fallback } = require('../utils/bestEffort');
+const { bestEffort } = require('../utils/bestEffort');
 const { attachmentResponseHeaders } = require('./studioAppAttachmentHeaders.mts');
 const uploadDelete = require('./studioAppUploadDeleteToken.mts');
 
@@ -398,23 +398,6 @@ router.post('/:token/actions/:actionId/step', ipLimiter, tokenLimiter, jsonBody,
     });
 });
 
-/**
- * filter / sort / orderBy of a table page, from the JSON in the query string. Text that is
- * not JSON is left out; the compiler validates the shapes.
- * @param {Record<string, unknown>} query
- */
-function listQueryOf(query) {
-    /** @type {Record<string, unknown>} */
-    const out = { filters: undefined, sort: undefined };
-    for (const [param, field] of [['filter', 'filters'], ['sort', 'sort'], ['orderBy', 'orderBy']]) {
-        const text = query[param];
-        if (typeof text !== 'string' || !text) continue;
-        try { out[field] = JSON.parse(text); } catch (err) { fallback('routes/studioAppPublic:listQueryOf', err); /* compiler validates */ }
-    }
-    if (out.filters !== undefined && !Array.isArray(out.filters)) out.filters = [out.filters];
-    return out;
-}
-
 // ═══════════════════════════════════════════════════════════════════
 // Reads — RLS-scoped to this visitor
 // ═══════════════════════════════════════════════════════════════════
@@ -429,7 +412,7 @@ router.get('/:token/data/tables/:tableId/records', ipLimiter, tokenLimiter, requ
         if (!rlsGateway.canRead(ctx.table, ctx.role)) return res.status(403).json({ error: 'Forbidden' });
 
         const out = await dataReadRunner.runRecordList(ctx, ctx.table, {
-            ...listQueryOf(req.query), cursor: req.query.cursor, limit: req.query.limit,
+            ...R.listQueryOf(req.query), cursor: req.query.cursor, limit: req.query.limit,
         });
         return res.json(out);
     } catch (err) { return handleErr(res, err, 'records.list'); }
