@@ -268,10 +268,13 @@ async function executeKbSearchTool(toolName, args, context = {}) {
 
     // Per-conversation cache: if the agent re-asks the same question later in
     // this conversation, skip the whole retrieval stack. Cache key is
-    // (conversationId, normalized query, sorted kb_ids).
+    // (conversationId, normalized query, sorted kb_ids). One key for get and set,
+    // or a hit never happens. A hit is not logged in the KB query log: it is no new search.
     const kbQueryCache = require('../core/agentRuntime/kbQueryCache');
     const { conversationId } = context;
-    const cached = kbQueryCache.get(conversationId, `${query}|top_k=${topK}`, kbIds);
+    const previewMode = process.env.KB_PREVIEW_MODE === 'true';
+    const cacheKey = `${query}|top_k=${topK}|preview=${previewMode}`;
+    const cached = kbQueryCache.get(conversationId, cacheKey, kbIds);
     if (cached) {
         log.info(`[KBSearch] Cache HIT: conv=${conversationId} "${query}" → ${cached._sources?.length || 0} chunks`);
         return cached;
@@ -330,8 +333,6 @@ async function executeKbSearchTool(toolName, args, context = {}) {
         // The rows first learn which base their document sits in and whether its file is kept: what lets a chip offer the download.
         const annotated = labelSections(await withOriginalFlags(dedupResults));
 
-        const previewMode = process.env.KB_PREVIEW_MODE === 'true';
-
         // Stash every chunk in the per-conversation cache so kb_fetch can
         // resolve full content by chunk_id on a later tool call.
         kbQueryCache.setChunks(conversationId, annotated.map(({ r, sectionLabel }) => ({
@@ -376,7 +377,7 @@ async function executeKbSearchTool(toolName, args, context = {}) {
                 return { ...base, content: r.content };
             }),
         };
-        kbQueryCache.set(conversationId, `${query}|top_k=${topK}|preview=${previewMode}`, kbIds, payload);
+        kbQueryCache.set(conversationId, cacheKey, kbIds, payload);
         // The cached object stays handle-free: a cache hit is not a new search.
         return queryLogHandle ? attachHandle({ ...payload }, queryLogHandle) : payload;
 

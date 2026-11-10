@@ -32,6 +32,22 @@ test('kb_search results carry the chunk id kb_fetch resolves, and the source uri
     assert.strictEqual(kbQueryCache.getChunk(ctx.conversationId, CHUNK.id).source_uri, 'handbook.pdf');
 });
 
+test('#603: the same kb_search twice in one conversation runs retrieval once', async () => {
+    let searches = 0;
+    preloadStubs(require, {
+        '../stores/agentStore': { getForRuntime: async () => ({ config: { knowledge_base_ids: ['kb1'] } }) },
+        '../core/agentRuntime/testAs': { visibleKbIdsFor: async (/** @type {string[]} */ ids) => ids },
+        '../core/kb/resolveProvider': { resolveKbProvider: async () => 'local' },
+        '../core/kb/localKBIngest': { searchLocally: async () => { searches++; return Object.assign([{ ...CHUNK }], { _orphanFiltered: true }); } },
+    });
+    const tool = require('./kbSearchTools');
+    const ctx = { userId: 'u1', agentId: 'a1', conversationId: 'conv-kbsearch-cache-603' };
+    const first = await tool.executeKbSearchTool('kb_search', { query: 'leave policy' }, ctx);
+    const second = await tool.executeKbSearchTool('kb_search', { query: 'leave policy' }, ctx);
+    assert.strictEqual(searches, 1, 'the second call is a cache hit');
+    assert.deepStrictEqual(second.results, first.results);
+});
+
 test('Z-N3: kb_fetch never reads a chunk id outside this conversation\'s search results', async () => {
     /** @type {unknown[][]} */
     const queries = [];
