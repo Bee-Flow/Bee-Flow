@@ -13,6 +13,7 @@ export {
     compile,
     evaluate,
     tryEvaluate,
+    exprSince,
     collectHostCalls,
     collectEachCalls,
     collectRefs,
@@ -23,6 +24,8 @@ export {
     EXPR_FUNCTION_NAMES,
     EACH_FUNCTIONS,
 } from './engine.mjs';
+export { compileUserFunctions, isFunctionIdentifier } from './userFunctions.mjs';
+export { MAX_USER_FUNCTIONS, MAX_USER_FUNCTION_PARAMS, MAX_RANGE_ITEMS, MAX_LITERAL_DEPTH } from './limits.mjs';
 export { MAX_REGEX_PATTERN_CHARS, regexProblem, hasNestedQuantifier } from './regex.mjs';
 export {
     MAX_FILTER_CLAUSES,

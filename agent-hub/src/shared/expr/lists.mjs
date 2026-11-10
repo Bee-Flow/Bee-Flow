@@ -8,6 +8,7 @@
  */
 import { assertTextSize } from './limits.mjs';
 import { compiledRegex, expandReplacement } from './regex.mjs';
+import { COLLECTION_FUNCTIONS } from './collections.mjs';
 
 const hasOwn = (/** @type {unknown} */ o, /** @type {string} */ k) => o != null && typeof o === 'object' && Object.prototype.hasOwnProperty.call(o, k);
 
@@ -118,7 +119,7 @@ export function sumOf(list, field, toNum) {
 export const LIST_FUNCTIONS = {
     unique: (/** @type {unknown} */ arr, /** @type {unknown} */ key) => uniqueOf(arr, key),
     regexMatch: (/** @type {unknown} */ text, /** @type {unknown} */ pattern, /** @type {unknown} */ flags) => regexMatchOf(text, pattern, flags),
-    regexReplace: (/** @type {unknown} */ text, /** @type {unknown} */ pattern, /** @type {unknown} */ repl, /** @type {unknown} */ flags) => regexReplaceOf(text, pattern, repl, flags),
+    regexReplace: (/** @type {unknown} */ text, /** @type {unknown} */ pattern, /** @type {unknown} */ repl, /** @type {unknown} */ flags) => regexReplaceOf(text, pattern, repl, flags),    ...COLLECTION_FUNCTIONS, // sort, reverse, slice, groupBy, keys, values, merge, range
 };
 
 /**

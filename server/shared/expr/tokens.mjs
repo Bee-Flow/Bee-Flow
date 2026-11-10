@@ -16,13 +16,20 @@ export const TOKEN = {
     LT: '<', LTE: '<=', GT: '>', GTE: '>=',
     PLUS: '+', MINUS: '-', STAR: '*', SLASH: '/', PERCENT: '%', CARET: '^',
     BANG: '!', ASSIGN: '=', EOF: 'EOF',
+    // `??`, and the braces of an object literal. Before they existed `??` was
+    // two question marks (always a parse error) and a brace an "Unexpected
+    // character", so no stored expression can contain either outside a text.
+    NULLISH: '??', LBRACE: '{', RBRACE: '}',
 };
 
 /**
  * @param {unknown} src
+ * @param {{ objects?: boolean } | null} [opts] `objects: false` keeps a brace
+ *   the "Unexpected character" it was before object literals existed: the
+ *   automation builder tells its author to build an object with a set step.
  * @returns {Array<{ t: string, v?: string | number | boolean, raw?: string, i: number }>}
  */
-export function tokenize(src) {
+export function tokenize(src, opts) {
     if (typeof src !== 'string') throw new ExprError('Expression must be a string', 0);
     const tokens = [];
     let i = 0;
@@ -31,7 +38,7 @@ export function tokenize(src) {
         const c = src[i];
         if (c === ' ' || c === '\t' || c === '\n' || c === '\r') { i++; continue; }
         const prev = tokens[tokens.length - 1];
-        const memberDot = c === '.' && prev && (prev.t === TOKEN.IDENT || prev.t === TOKEN.RBRACK || prev.t === TOKEN.RPAREN);
+        const memberDot = c === '.' && prev && (prev.t === TOKEN.IDENT || prev.t === TOKEN.RBRACK || prev.t === TOKEN.RPAREN || prev.t === TOKEN.RBRACE);
         if (memberDot) { tokens.push({ t: TOKEN.DOT, i }); i++; continue; }
         // Right after a member dot, a name is a KEY whatever it looks like:
         // `items.0.subject` (digits), `flags.true`, `naam.prénom`. The same
@@ -83,6 +90,7 @@ export function tokenize(src) {
         const three = src.slice(i, i + 3);
         if (three === '===') { tokens.push({ t: TOKEN.SEQ, i }); i += 3; continue; }
         if (three === '!==') { tokens.push({ t: TOKEN.SNEQ, i }); i += 3; continue; }
+        if (two === '??') { tokens.push({ t: TOKEN.NULLISH, i }); i += 2; continue; }
         if (two === '||') { tokens.push({ t: TOKEN.OR, i }); i += 2; continue; }
         if (two === '&&') { tokens.push({ t: TOKEN.AND, i }); i += 2; continue; }
         if (two === '==') { tokens.push({ t: TOKEN.EQ, i }); i += 2; continue; }
@@ -100,11 +108,13 @@ export function tokenize(src) {
             // non-programmer who types 2^10 means 1024. Before this it was an
             // "Unexpected character", so no stored expression can contain one.
             '^': TOKEN.CARET,
+            '{': TOKEN.LBRACE, '}': TOKEN.RBRACE,
         };
         // A single `=` only exists inside a path's brackets, as the match
         // segment `headers[name="Subject"]` (path.mjs). Anywhere else it is
         // still the old error, so `a = b` keeps telling the author to write ==.
         if (c === '=' && brackets > 0) { tokens.push({ t: TOKEN.ASSIGN, i }); i++; continue; }
+        if ((c === '{' || c === '}') && opts?.objects === false) throw new ExprError(`Unexpected character in expression: ${c}`, i);
         if (c === '[') brackets++;
         else if (c === ']' && brackets > 0) brackets--;
         if (single[c]) { tokens.push({ t: single[c], i }); i++; continue; }

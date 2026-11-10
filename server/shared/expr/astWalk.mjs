@@ -57,9 +57,11 @@ export function collectEachCalls(node, out = []) {
  */
 export function readsItem(node) {
     if (!node || typeof node !== 'object') return false;
-    if (node.kind === 'path' && node.segments?.[0]?.kind === 'local') return true;
+    const head = node.kind === 'path' ? node.segments?.[0] : undefined;
+    if (head && head.kind === 'local' && head.v !== 'acc') return true;
     // A nested list function's body reads ITS item, not this one.
     if (node.kind === 'each') return readsItem(node.args?.[0]);
+    if (node.kind === 'reduce') return readsItem(node.args?.[0]) || readsItem(node.args?.[2]);
     return childNodes(node).some(readsItem);
 }
 
@@ -91,4 +93,37 @@ export function collectHostCalls(node, out = []) {
     // `cond` first: a ternary's condition comes before its branches.
     for (const child of childNodes(node)) collectHostCalls(child, out);
     return out;
+}
+
+/**
+ * Every call of a pure host function (an author's own function) in an AST,
+ * in source order: what userFunctions.mjs follows to refuse recursion.
+ * @param {ExprNode | null | undefined} node
+ * @param {ExprCallNode[]} [out]
+ * @returns {ExprCallNode[]}
+ */
+export function collectUserCalls(node, out = []) {
+    if (!node || typeof node !== 'object') return out;
+    if (node.kind === 'usercall') out.push(/** @type {ExprCallNode} */ (node));
+    for (const child of childNodes(node)) collectUserCalls(child, out);
+    return out;
+}
+
+/** Node kinds that did not exist before schema version 3 of the app definition. */
+const SINCE_3_KINDS = new Set(['list', 'object', 'reduce', 'usercall']);
+
+/**
+ * The schema version an expression needs: 3 when it uses anything that was a
+ * parse error before version 3 (a list or object literal, `??`, reduce(), an
+ * author's function, or a function whose doc entry says `since: 3`), else 0.
+ * @param {ExprNode | null | undefined} node
+ * @param {ReadonlyMap<string, number>} sinceByName the `since` of every function that has one
+ * @returns {number}
+ */
+export function sinceOf(node, sinceByName) {
+    if (!node || typeof node !== 'object') return 0;
+    let since = SINCE_3_KINDS.has(node.kind) || (node.kind === 'binop' && /** @type {{ op?: string }} */ (node).op === '??') ? 3 : 0;
+    if (node.kind === 'call' && node.name) since = Math.max(since, sinceByName.get(node.name) || 0);
+    for (const child of childNodes(node)) since = Math.max(since, sinceOf(child, sinceByName));
+    return since;
 }

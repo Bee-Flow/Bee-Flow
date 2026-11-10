@@ -106,3 +106,97 @@ export function tickEach(budget) {
         throw new ExprLimitError(`List functions visited more than ${maxEachSteps} items in one formula (EXPR_MAX_EACH_STEPS=${maxEachSteps})`);
     }
 }
+
+// ── Collections (collections.mjs, the list and object literals) ─────────────
+
+/** range() never builds a longer list. A definition limit, not a budget. */
+export const MAX_RANGE_ITEMS = 10_000;
+
+/** How deep list and object literals may nest in one formula. */
+export const MAX_LITERAL_DEPTH = 32;
+
+/** How many functions an author may define, and how many parameters one takes. */
+export const MAX_USER_FUNCTIONS = 30;
+export const MAX_USER_FUNCTION_PARAMS = 8;
+
+/**
+ * How many values (a list, an object, and everything inside them, counted as
+ * if written out) a literal, a reduce() step or an author's function may
+ * produce. `[acc, acc]` in a reduce() doubles what it holds every step while
+ * building only one new list, so the item budget alone would not see it. Read
+ * once from EXPR_MAX_VALUE_NODES when there is an environment; 0 means unlimited.
+ */
+export const DEFAULT_MAX_VALUE_NODES = 1_000_000;
+
+let maxValueNodes = readEnvCap('EXPR_MAX_VALUE_NODES', DEFAULT_MAX_VALUE_NODES);
+
+/** The current cap; Infinity when unlimited. */
+export function getMaxValueNodes() { return maxValueNodes; }
+
+/**
+ * Set the cap for this process (tests, a host with its own setting); 0 or Infinity = unlimited.
+ * @param {number} n
+ */
+export function setMaxValueNodes(n) {
+    maxValueNodes = (n === 0 || n === Infinity) ? Infinity : Math.max(1, Math.trunc(Number(n) || DEFAULT_MAX_VALUE_NODES));
+}
+
+/** @param {object} v @returns {unknown[]} */
+function childrenOf(v) {
+    return Array.isArray(v) ? v : Object.values(v);
+}
+
+/**
+ * The written-out size of a value: 1 for a scalar, 1 plus its children for a
+ * list or an object. A list that holds the same object twice counts it twice,
+ * but visits it once: `sizes` remembers every list and object already
+ * measured, for the whole evaluation (values are never changed after they are
+ * built). Iterative, so a deeply nested value cannot exhaust the stack; a
+ * value that contains itself counts the inner reference as 0.
+ * @param {unknown} value
+ * @param {WeakMap<object, number>} sizes
+ * @returns {number}
+ */
+function writtenSize(value, sizes) {
+    if (value === null || typeof value !== 'object') return 1;
+    const known = sizes.get(value);
+    if (known !== undefined) return known;
+    /** @type {Array<{ node: object, kids: unknown[], next: number, total: number }>} */
+    const stack = [{ node: value, kids: childrenOf(value), next: 0, total: 1 }];
+    sizes.set(value, 0);
+    let result = 0;
+    while (stack.length > 0) {
+        const top = /** @type {{ node: object, kids: unknown[], next: number, total: number }} */ (stack[stack.length - 1]);
+        if (top.next >= top.kids.length) {
+            sizes.set(top.node, top.total);
+            stack.pop();
+            const parent = stack[stack.length - 1];
+            if (parent) parent.total += top.total; else result = top.total;
+            continue;
+        }
+        const kid = top.kids[top.next++];
+        if (kid === null || typeof kid !== 'object') { top.total += 1; continue; }
+        const seen = sizes.get(kid);
+        if (seen !== undefined) { top.total += seen; continue; }
+        sizes.set(kid, 0);
+        stack.push({ node: kid, kids: childrenOf(kid), next: 0, total: 1 });
+    }
+    return result;
+}
+
+/**
+ * The value a literal, a reduce() step or an author's function produced:
+ * refused when written out it holds more values than the cap.
+ * @template T
+ * @param {T} value
+ * @param {{ sizes?: WeakMap<object, number> }} budget the evaluation's budget (engine.mjs newEnv)
+ * @returns {T}
+ */
+export function guardSize(value, budget) {
+    if (value === null || typeof value !== 'object') return value;
+    if (!budget.sizes) budget.sizes = new WeakMap();
+    if (writtenSize(value, budget.sizes) > maxValueNodes) {
+        throw new ExprLimitError(`A formula built a value of more than ${maxValueNodes} items (EXPR_MAX_VALUE_NODES=${maxValueNodes})`);
+    }
+    return value;
+}

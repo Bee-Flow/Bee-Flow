@@ -39,6 +39,7 @@
                 "sheetDates.mjs",
                 "sheetFill.mjs",
                 "corpusLists.mjs",
+                "corpusCollections.mjs",
                 "regexEngine.mjs"
             ],
             "keep": [
