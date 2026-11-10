@@ -111,7 +111,7 @@ test('the index lists the items by family, with a gloss in the full form and nam
             'actionFields: toast.zz_sticky — Keeps the toast up until it is dismissed',
             'bindingKinds: zz_lookup — ONE value from another table, matched on a field',
             'topLevelKeys: zzNotes — A note the author keeps with the app',
-            'data: aggFn.zz_median — The middle value of the group; dateBucket.zz_fortnight — Two-week periods, starting on a Monday; fieldOption.zz_mask — An input mask for a text field; fieldType.zz_money — An amount with its currency; filterOp.zz_near — Matches values within a distance of the given one',
+            'data: aggFn.zz_median — The middle value of the group; binding.zz_expand — Related rows a read takes along; binding.zz_having — A filter on the groups of an aggregate; dateBucket.zz_fortnight — Two-week periods, starting on a Monday; fieldOption.zz_mask — An input mask for a text field; fieldType.zz_money — An amount with its currency; filter.zz_all — A group whose clauses must all match; filterOp.zz_near — Matches values within a distance of the given one; groupBy.zz_step — The width of a number bin',
         ]);
         assert.ok(full.startsWith(HEADING));
         assert.match(full.split('\n')[1], /BEFORE you use one, call app_inspect_catalog/);
@@ -133,7 +133,7 @@ test('the index lists the items by family, with a gloss in the full form and nam
             'actionFields: toast.zz_sticky',
             'bindingKinds: zz_lookup',
             'topLevelKeys: zzNotes',
-            'data: aggFn.zz_median, dateBucket.zz_fortnight, fieldOption.zz_mask, fieldType.zz_money, filterOp.zz_near',
+            'data: aggFn.zz_median, binding.zz_expand, binding.zz_having, dateBucket.zz_fortnight, fieldOption.zz_mask, fieldType.zz_money, filter.zz_all, filterOp.zz_near, groupBy.zz_step',
         ]);
         assert.deepEqual(compact.split('\n').slice(0, 2), full.split('\n').slice(0, 2), 'the same heading and rule');
         // The live index is that of every item, and carries each of these.
@@ -277,10 +277,14 @@ test('app_inspect_catalog serves the keys outside the component and kind tables,
         assert.deepEqual(answered('actionFields'), { 'toast.zz_sticky': 'toast action field zz_sticky: boolean — Keeps the toast up until it is dismissed.' });
         assert.deepEqual(answered('data'), {
             'aggFn.zz_median': 'aggregate fn "zz_median" — The middle value of the group.',
+            'binding.zz_expand': 'binding.zz_expand: [<relation field key>] ≤5 — binding kinds: record, records — Related rows a read takes along.',
+            'binding.zz_having': 'binding.zz_having: [clause] — binding kinds: aggregate — A filter on the groups of an aggregate.',
             'dateBucket.zz_fortnight': 'date bucket "zz_fortnight" — Two-week periods, starting on a Monday.',
             'fieldOption.zz_mask': 'field.zz_mask: string ≤40 — An input mask for a text field.',
             'fieldType.zz_money': 'field type "zz_money" — An amount with its currency. Stored as a number of cents.',
+            'filter.zz_all': 'filter.zz_all: { "zz_all": [clause, …] } — A group whose clauses must all match.',
             'filterOp.zz_near': 'filter op "zz_near" — Matches values within a distance of the given one.',
+            'groupBy.zz_step': 'groupBy.zz_step: number > 0 — The width of a number bin.',
         });
         // An enum value is answered with the entry of the key that holds it.
         const values = applyInspectCatalog({ extensions: KEY_FIXTURE_NAMES.enumValues }).extensions;

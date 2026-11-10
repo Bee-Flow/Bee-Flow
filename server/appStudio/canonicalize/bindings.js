@@ -9,6 +9,7 @@
 
 const { LIMITS } = require('../componentSpecs');
 const { isObject, deepCopy, truncate, isFormulaObj } = require('./shared');
+const { keepMarkedBindingKeys, keepMarkedEntryKeys } = require('./markedKeys');
 
 // ---------------------------------------------------------------------------
 // Bindings — wrap bare values as static, infer actionResult from actionId.
@@ -137,6 +138,7 @@ function cleanAggGroupBy(raw, path, push) {
             else push('binding.aggregate_invalid', `${path}.groupBy`, `Unknown date bucket "${g.bucket}" — dropped.`);
         }
         if (typeof g.as === 'string' && g.as) entry.as = g.as;
+        keepMarkedEntryKeys('groupBy', g, entry, `${path}.groupBy`, push);
         out.push(entry);
     }
     return out.length ? out : undefined;
@@ -163,6 +165,7 @@ function cleanAggregates(raw, path, push) {
         const entry = { fn: a.fn };
         if (typeof a.field === 'string' && a.field) entry.field = a.field;
         if (typeof a.as === 'string' && a.as) entry.as = a.as;
+        keepMarkedEntryKeys('aggregates', a, entry, `${path}.aggregates`, push);
         out.push(entry);
     }
     return out.length ? out : undefined;
@@ -203,12 +206,14 @@ function cleanBinding(raw, path, push) {
                 push('binding.record_id_to_filter', path,
                     'record binding: folded `recordId` into filter id == <value> (nothing reads recordId).');
             }
+            keepMarkedBindingKeys(raw, out, path, push);
             return out;
         }
         if (raw.kind === 'records') {
             const out = { kind: 'records', tableId: raw.tableId };
             copyRecordsQuery(raw, out, path, push);
             cleanPick(raw, out);
+            keepMarkedBindingKeys(raw, out, path, push);
             return out;
         }
         if (raw.kind === 'aggregate') {
@@ -232,12 +237,14 @@ function cleanBinding(raw, path, push) {
                 if (aggregates) out.aggregates = aggregates;
             }
             cleanPick(raw, out);
+            keepMarkedBindingKeys(raw, out, path, push);
             return out;
         }
         if (raw.kind === 'dataset') {
             const out = { kind: 'dataset', datasetId: raw.datasetId };
             if (raw.params !== undefined && raw.params !== null) out.params = deepCopy(raw.params);
             cleanPick(raw, out);
+            keepMarkedBindingKeys(raw, out, path, push);
             return out;
         }
         if (raw.kind === 'connector') {
