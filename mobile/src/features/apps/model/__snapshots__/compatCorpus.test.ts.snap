@@ -672,6 +672,140 @@ exports[`compat corpus: what the phone plans for every stored app lockstep-sampl
 }
 `;
 
+exports[`compat corpus: what the phone plans for every stored app logic-control-flow 1`] = `
+{
+  "defaultScreen": "scr_pubbck",
+  "navigable": [
+    "scr_pubbck",
+  ],
+  "screens": [
+    {
+      "id": "scr_pubfrm",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "id": "cmp_pubhdr",
+                "kind": "heading",
+                "level": 1,
+                "text": "How can we help?",
+              },
+              {
+                "action": {
+                  "actionId": "act_pubsub",
+                  "kind": "sequence",
+                  "label": "Submit",
+                  "runnable": false,
+                },
+                "description": null,
+                "id": "cmp_pubfrm",
+                "inputs": [
+                  {
+                    "initial": null,
+                    "inputType": "text",
+                    "label": "Your name",
+                    "max": null,
+                    "min": null,
+                    "name": "name",
+                    "nodeId": "cmp_pubnam",
+                    "options": [],
+                    "placeholder": null,
+                    "required": true,
+                    "rows": 4,
+                    "type": "input_text",
+                  },
+                  {
+                    "initial": null,
+                    "inputType": "text",
+                    "label": "What do you need?",
+                    "max": null,
+                    "min": null,
+                    "name": "details",
+                    "nodeId": "cmp_pubdet",
+                    "options": [],
+                    "placeholder": null,
+                    "required": true,
+                    "rows": 4,
+                    "type": "input_textarea",
+                  },
+                  {
+                    "initial": false,
+                    "inputType": "text",
+                    "label": "This is urgent",
+                    "max": null,
+                    "min": null,
+                    "name": "urgent",
+                    "nodeId": "cmp_pubchk",
+                    "options": [],
+                    "placeholder": null,
+                    "required": false,
+                    "rows": 4,
+                    "type": "input_checkbox",
+                  },
+                ],
+                "kind": "form",
+                "submitLabel": "Send",
+                "title": "request",
+              },
+            ],
+            "screen": "scr_pubfrm",
+            "unsupported": [],
+          },
+          "roles": [
+            "(no role)",
+            "agent",
+          ],
+        },
+      ],
+    },
+    {
+      "id": "scr_pubthx",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "body": "We will get back to you.",
+                "id": "cmp_pubthx",
+                "kind": "callout",
+                "title": "Thank you",
+                "tone": "success",
+              },
+            ],
+            "screen": "scr_pubthx",
+            "unsupported": [],
+          },
+          "roles": [
+            "(no role)",
+            "agent",
+          ],
+        },
+      ],
+    },
+    {
+      "id": "scr_pubbck",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [],
+            "screen": "scr_pubbck",
+            "unsupported": [
+              "data_grid",
+              "stat",
+            ],
+          },
+          "roles": [
+            "(no role)",
+            "agent",
+          ],
+        },
+      ],
+    },
+  ],
+}
+`;
+
 exports[`compat corpus: what the phone plans for every stored app public-intake 1`] = `
 {
   "defaultScreen": "scr_pubbck",

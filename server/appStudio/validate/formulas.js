@@ -49,7 +49,7 @@ function validateFormula(expr, path, ctx, allowedRoots) {
     }
     // `error` is only filled inside a step's onError handler.
     if (refs.includes('error') && roots.includes('error') && !ctx.inErrorHandler) {
-        pushW({ code: 'formula.error_outside_handler', severity: 'warning', path, message: 'This formula reads `error`, which only has a value inside a step\'s onError handler — here it is null.', hint: 'Read error.message / error.step in a step of onError.steps, or set a variable there and read that.' });
+        pushW({ code: 'formula.error_outside_handler', severity: 'warning', path, message: 'This formula reads `error`, which only has a value inside a step\'s onError handler — here it is null.', hint: 'Read error.message / error.step in a step of onError.steps (or of a try\'s catch), or set a variable there and read that.' });
     }
     checkVariableReads(expr, path, ctx);
     checkEachBodies(ast, path, ctx);

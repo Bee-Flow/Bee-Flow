@@ -17,5 +17,5 @@ module.exports = {
     retrySafe: true,
     policy: { click: 'browser', background: 'run', mailboxHook: 'run', unattended: 'run', mcpRun: 'run', mcpDryRun: 'run', public: 'browser' },
     summary: () => 'return',
-    description: 'Ends the action here and hands back an optional value. The steps after it do not run and the action still counts as succeeded (its onSuccess effects apply). Inside an action run through call_action only that action ends: the caller goes on with its next step and reads `value` through the call\'s resultVar. A `finally` list of an enclosing try still runs first. Use it as an early exit inside a condition ("nothing to do") instead of nesting the rest of the action in the else branch.',
+    description: 'Ends the action here and hands back an optional value. The steps after it do not run and the action still counts as succeeded. `value` (optional) is a binding, a static value or a formula, and becomes the result of the action (actions.<id>.result). Inside an action run through call_action only that action ends: the caller goes on with its next step and reads `value` through the call\'s resultVar. A `finally` list of an enclosing try still runs first. Use it as an early exit inside a condition ("nothing to do") instead of nesting the rest of the action in the else branch.',
 };

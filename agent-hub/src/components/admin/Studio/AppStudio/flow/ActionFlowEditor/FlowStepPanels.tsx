@@ -4,6 +4,7 @@ import { paletteGroups, stepMeta } from '../stepKinds';
 import type { StepNode } from '../stepGraph';
 import StepSettings from '../StepSettings';
 import { ON_ERROR_SCOPE, SEP } from '../stepGraph';
+import { CATCH_SCOPE } from '../stepGraphSlots';
 import StudioScopeProvider, { errorScopeGroup } from '../../inspector/logic/StudioScopeProvider';
 import useTranslation, { type TranslateFn } from '@/hooks/useTranslation';
 import IconButton from '@/components/shared/IconButton';
@@ -35,8 +36,9 @@ interface SelectedStepPanelProps {
 export function SelectedStepPanel({
     t, selected, disabled, canMoveEarlier, canMoveLater, onMove, onRemove, onPatch, definition, node, screens, formFields, actionId = null,
 }: SelectedStepPanelProps) {
-    // A step inside an "If it fails" branch reads the failure as error.*.
-    const inHandler = selected.prefix.split(SEP).includes(ON_ERROR_SCOPE);
+    // A step inside an "If it fails" branch, or inside a try's catch, reads the failure as error.*.
+    const scopes = selected.prefix.split(SEP);
+    const inHandler = scopes.includes(ON_ERROR_SCOPE) || scopes.includes(CATCH_SCOPE);
     const settings = (
         <StepSettings
             step={selected.step}

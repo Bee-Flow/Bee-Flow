@@ -48,6 +48,7 @@
 
 const { nodeActionRefs, ACTION_LIST_PROPS } = require('./nodeActionRefs.mts');
 const { nodeOwnText } = require('./appRefLookup');
+const { extraChildLists } = require('../shared/appDefinition/stepFlow.mjs');
 
 /** Het voorvoegsel van `ref_id`. Zie de kop: de ACTIE is de sleutel. */
 const REF_PREFIX = 'act:';

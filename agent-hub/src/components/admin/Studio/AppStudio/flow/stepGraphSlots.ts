@@ -18,6 +18,9 @@ import { childSlotSpecs, isExtensionStepKind } from '@shared/appDefinition/stepF
 
 export { isExtensionStepKind };
 
+/** The scope key of a try's `catch`: like an "If it fails" branch, its steps read the failure as error.*. */
+export const CATCH_SCOPE = 'catch';
+
 type Step = { kind: string; [key: string]: unknown };
 type Label = (key: string, en: string) => string;
 

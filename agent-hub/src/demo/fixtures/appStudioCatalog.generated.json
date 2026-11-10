@@ -3897,6 +3897,7 @@
                     },
                     "catch": {
                         "type": "steps",
+                        "errorScope": true,
                         "description": "Runs when a step in `steps` fails, with error.message, error.step, error.code and error.attempts in scope. Present (even empty): the failure is handled and the action goes on. Left out: the failure still ends the action after `finally`."
                     },
                     "finally": {
