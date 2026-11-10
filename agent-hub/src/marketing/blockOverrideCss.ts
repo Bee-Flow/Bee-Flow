@@ -6,6 +6,16 @@ import type { BlockStyle } from './ProductWebsite.types';
 
 const ID_CHARS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-';
 
+/** `id` as the text of a CSS string: '"' left out, other characters outside ID_CHARS hex-escaped. */
+function selectorString(id: string): string {
+    let out = '';
+    for (const ch of id) {
+        if (ch === '"') continue;
+        out += ID_CHARS.includes(ch) ? ch : `\\${(ch.codePointAt(0) ?? 0).toString(16)} `;
+    }
+    return out;
+}
+
 // Build a CSS rule string that scopes color-token overrides to a single
 // block's wrapper via [data-cms-block-id="..."]. Returns null when there's
 // nothing to override (so the rendered <style> stays empty).
@@ -38,9 +48,10 @@ export function buildBlockOverrideCss(blockId: string | undefined, style: BlockS
     if (co.textSecondary) decls.push(`--brand-text-secondary: ${co.textSecondary};`);
     if (decls.length === 0) return null;
 
-    // The id goes into an attribute selector: only its letters, digits, "_" and "-" are written
-    // (the store's ids hold nothing else).
-    const safeId = Array.from(String(blockId)).filter((ch) => ID_CHARS.includes(ch)).join('');
+    // The id goes into a quoted attribute selector: '"' is left out (as it always was), letters,
+    // digits, "_" and "-" are written as they are, and any other character as a CSS hex escape,
+    // which names the same character, so the selector still matches the block's attribute.
+    const safeId = selectorString(String(blockId));
     if (!safeId) return null;
     const sel = `[data-cms-block-id="${safeId}"]`;
 

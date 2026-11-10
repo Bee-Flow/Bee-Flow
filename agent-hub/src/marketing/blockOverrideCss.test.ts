@@ -40,9 +40,20 @@ describe('buildBlockOverrideCss', () => {
         }
     });
 
-    it('writes only the letters, digits, "_" and "-" of the id into the selector', () => {
-        const out = css({ primary: '#112233' }, 'blk"] , * { color: red } [x="');
-        expect(out).toBe(`[data-cms-block-id="blkcolorredx"] { --brand-primary: #112233; ${ALIASES} }${tail('[data-cms-block-id="blkcolorredx"]')}`);
-        expect(css({ primary: '#112233' }, '"]{}')).toBeNull();
+    it('writes letters, digits, "_" and "-" of the id as they are and escapes every other character', () => {
+        const out = css({ primary: '#112233' }, 'blk"] {x}\\');
+        const sel = '[data-cms-block-id="blk\\5d \\20 \\7b x\\7d \\5c "]';
+        expect(out).toBe(`${sel} { --brand-primary: #112233; ${ALIASES} }${tail(sel)}`);
+        expect(css({ primary: '#112233' }, '"""')).toBeNull();
+    });
+
+    it('the escaped selector still matches the block whose id it names', () => {
+        for (const id of ['blk.main', 'hero section', 'blk\\x', 'blk]', 'blök']) {
+            const el = document.createElement('div');
+            el.setAttribute('data-cms-block-id', id);
+            const rule = css({ primary: '#112233' }, id) as string;
+            const selector = rule.slice(0, rule.indexOf(' {'));
+            expect(el.matches(selector), id).toBe(true);
+        }
     });
 });
