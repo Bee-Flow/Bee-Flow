@@ -114,6 +114,7 @@ const AdvancedSettings = ({ onNavigate, onLogout, user, onUpdateUser, onClose }:
     const {
         canSeeOrg, canUseLearning, entitlementsLoading, inCeiling, entitlementsUnknown, projectsOn, canSeeCompliance,
         showComplianceNav, canManageUsers, isSelfHosted, isConsumerAccount, isNcConnectorUser, isNcOrg, showNcSync,
+        isPlatformAdmin,
     } = useSettingsAccess(user);
     // The badge on the Compliance row: ONE cheap call, no poll, `attention_open`
     // only; an unknown or zero count renders nothing (NavCountBadge): a "0"
@@ -147,10 +148,10 @@ const AdvancedSettings = ({ onNavigate, onLogout, user, onUpdateUser, onClose }:
     const { memoryStats, memoryStatsStatus, agents, statuses, orgAuthLocked, fetchMemoryStats, fetchSettingsStatuses } = useSettingsData(user, canSeeOrg);
     const orgSubItems = useMemo(() => {
         return filterOrgSubItems(BASE_ORG_SUB_ITEMS, AZURE_SUB_ITEM, {
-            canSeeOrg, canManageUsers, canUseLearning, showComplianceNav, isSelfHosted, isNcConnectorUser, isNcOrg, showNcSync,
+            canSeeOrg, canManageUsers, canUseLearning, showComplianceNav, isSelfHosted, isPlatformAdmin, isNcConnectorUser, isNcOrg, showNcSync,
             githubConnected: statuses.githubConnected, orgAuthLocked, entitlementsLoading, entitlementsUnknown, inCeiling,
         });
-    }, [canSeeOrg, canManageUsers, canUseLearning, showComplianceNav, isSelfHosted, isNcConnectorUser, isNcOrg, showNcSync, statuses.githubConnected, orgAuthLocked, entitlementsLoading, entitlementsUnknown, inCeiling]);
+    }, [canSeeOrg, canManageUsers, canUseLearning, showComplianceNav, isSelfHosted, isPlatformAdmin, isNcConnectorUser, isNcOrg, showNcSync, statuses.githubConnected, orgAuthLocked, entitlementsLoading, entitlementsUnknown, inCeiling]);
 
     // The rows as the sidebar draws them: ORG_NAV_GROUPS order, empty groups dropped.
     const orgNavGroups = useMemo(() => groupOrgNavItems(orgSubItems, ORG_NAV_GROUPS), [orgSubItems]);
@@ -181,7 +182,7 @@ const AdvancedSettings = ({ onNavigate, onLogout, user, onUpdateUser, onClose }:
 
     const renderContent = () => renderSettingsContent({
         user, activeTab, setActiveTab, isMobile, phoneExemptTab, isOrgSubTab, canSeeOrg, canSeeCompliance, canUseLearning,
-        isConsumerAccount, isSelfHosted, projectsOn, entitlementsUnknown, orgDeepSegs,
+        isConsumerAccount, isSelfHosted, isPlatformAdmin, projectsOn, entitlementsUnknown, orgDeepSegs,
         // On a phone the hub owns the way back to the section list (its own top bar).
         complianceHub: (
             <ComplianceHub

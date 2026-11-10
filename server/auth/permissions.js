@@ -67,7 +67,6 @@ const resolve = require('./permissionsResolve');
 const orgGates = require('./permissionsOrgGates');
 const studioScope = require('./permissionsStudioScope');
 const platformAdmin = require('./requirePlatformAdmin').createPlatformAdminGate({
-    hasPermission: resolve.hasPermission,
     isSuperAdmin: orgGates.isSuperAdmin,
 });
 

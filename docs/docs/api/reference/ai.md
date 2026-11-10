@@ -21,7 +21,7 @@ No request schema.
 
 ### `PUT /ai/agent-search/defaults`
 
-**Access:** Signed-in user · the handler also checks who the caller is
+**Access:** Signed-in user · Platform admin
 
 **Body**
 
@@ -186,7 +186,7 @@ No request schema.
 
 ### `POST /ai/config`
 
-**Access:** Signed-in user · the handler also checks who the caller is
+**Access:** Signed-in user · Platform admin
 
 **Body**
 
@@ -257,13 +257,13 @@ No request schema.
 
 ### `GET /ai/config/ai-step-model`
 
-**Access:** Signed-in user · middleware `requireAdmin`
+**Access:** Signed-in user · Platform admin
 
 No request schema.
 
 ### `POST /ai/config/ai-step-model`
 
-**Access:** Signed-in user · middleware `requireAdmin`
+**Access:** Signed-in user · Platform admin
 
 **Body**
 
@@ -273,13 +273,13 @@ No request schema.
 
 ### `GET /ai/config/auto-classifier`
 
-**Access:** Signed-in user · middleware `requireAdmin`
+**Access:** Signed-in user · Platform admin
 
 No request schema.
 
 ### `POST /ai/config/auto-classifier`
 
-**Access:** Signed-in user · middleware `requireAdmin`
+**Access:** Signed-in user · Platform admin
 
 **Body**
 
@@ -289,13 +289,13 @@ No request schema.
 
 ### `GET /ai/config/builder-narration-model`
 
-**Access:** Signed-in user · middleware `requireAdmin`
+**Access:** Signed-in user · Platform admin
 
 No request schema.
 
 ### `POST /ai/config/builder-narration-model`
 
-**Access:** Signed-in user · middleware `requireAdmin`
+**Access:** Signed-in user · Platform admin
 
 **Body**
 
@@ -311,7 +311,7 @@ No request schema.
 
 ### `POST /ai/config/chat-models`
 
-**Access:** Signed-in user · middleware `requireAdmin`
+**Access:** Signed-in user · Platform admin
 
 No request schema.
 
@@ -323,7 +323,7 @@ No request schema.
 
 ### `POST /ai/config/chat-models-eu`
 
-**Access:** Signed-in user · middleware `requireAdmin`
+**Access:** Signed-in user · Platform admin
 
 No request schema.
 
@@ -335,7 +335,7 @@ No request schema.
 
 ### `POST /ai/config/claude-settings`
 
-**Access:** Signed-in user · middleware `requireAdmin`
+**Access:** Signed-in user · Platform admin
 
 **Body**
 
@@ -345,13 +345,13 @@ No request schema.
 
 ### `GET /ai/config/custom-chat-models`
 
-**Access:** Signed-in user · middleware `requireAdmin`
+**Access:** Signed-in user · Platform admin
 
 No request schema.
 
 ### `POST /ai/config/custom-chat-models`
 
-**Access:** Signed-in user · middleware `requireAdmin`
+**Access:** Signed-in user · Platform admin
 
 No request schema.
 
@@ -363,13 +363,13 @@ No request schema.
 
 ### `GET /ai/config/data-extraction-model`
 
-**Access:** Signed-in user · middleware `requireAdmin`
+**Access:** Signed-in user · Platform admin
 
 No request schema.
 
 ### `POST /ai/config/data-extraction-model`
 
-**Access:** Signed-in user · middleware `requireAdmin`
+**Access:** Signed-in user · Platform admin
 
 **Body**
 
@@ -385,7 +385,7 @@ No request schema.
 
 ### `POST /ai/config/direct-chat`
 
-**Access:** Signed-in user · middleware `requireAdmin`
+**Access:** Signed-in user · Platform admin
 
 **Body**
 
@@ -395,13 +395,13 @@ No request schema.
 
 ### `GET /ai/config/direct-chat-tool-params`
 
-**Access:** Signed-in user · middleware `requireAdmin`
+**Access:** Signed-in user · Platform admin
 
 No request schema.
 
 ### `POST /ai/config/direct-chat-tool-params`
 
-**Access:** Signed-in user · middleware `requireAdmin`
+**Access:** Signed-in user · Platform admin
 
 **Body:** object
 
@@ -413,7 +413,7 @@ No request schema.
 
 ### `POST /ai/config/direct-chat-tools`
 
-**Access:** Signed-in user · middleware `requireAdmin`
+**Access:** Signed-in user · Platform admin
 
 **Body:** object
 
@@ -425,7 +425,7 @@ No request schema.
 
 ### `POST /ai/config/hidden-models`
 
-**Access:** Signed-in user · middleware `requireAdmin`
+**Access:** Signed-in user · Platform admin
 
 **Body**
 
@@ -435,19 +435,19 @@ No request schema.
 
 ### `DELETE /ai/config/key/:keyName`
 
-**Access:** Signed-in user · the handler also checks who the caller is
+**Access:** Signed-in user · Platform admin
 
 No request schema.
 
 ### `GET /ai/config/memory-extraction-model`
 
-**Access:** Signed-in user · middleware `requireAdmin`
+**Access:** Signed-in user · Platform admin
 
 No request schema.
 
 ### `POST /ai/config/memory-extraction-model`
 
-**Access:** Signed-in user · middleware `requireAdmin`
+**Access:** Signed-in user · Platform admin
 
 **Body**
 
@@ -469,31 +469,31 @@ No request schema.
 
 ### `POST /ai/config/service-email/disconnect`
 
-**Access:** Signed-in user · the handler also checks who the caller is
+**Access:** Signed-in user · Platform admin
 
 No request schema.
 
 ### `GET /ai/config/service-email/oauth/start`
 
-**Access:** Signed-in user · the handler also checks who the caller is
+**Access:** Signed-in user · Platform admin
 
 No request schema.
 
 ### `DELETE /ai/config/setting/:keyName`
 
-**Access:** Signed-in user · the handler also checks who the caller is
+**Access:** Signed-in user · Platform admin
 
 No request schema.
 
 ### `POST /ai/config/test-reranker`
 
-**Access:** Signed-in user · the handler also checks who the caller is
+**Access:** Signed-in user · Platform admin
 
 No request schema.
 
 ### `POST /ai/config/test-service-email`
 
-**Access:** Signed-in user · the handler also checks who the caller is
+**Access:** Signed-in user · Platform admin
 
 **Body**
 
@@ -509,13 +509,13 @@ No request schema.
 
 ### `GET /ai/config/title-model`
 
-**Access:** Signed-in user · middleware `requireAdmin`
+**Access:** Signed-in user · Platform admin
 
 No request schema.
 
 ### `POST /ai/config/title-model`
 
-**Access:** Signed-in user · middleware `requireAdmin`
+**Access:** Signed-in user · Platform admin
 
 **Body**
 
@@ -525,13 +525,13 @@ No request schema.
 
 ### `GET /ai/config/web-search-inference`
 
-**Access:** Signed-in user · middleware `requireAdmin`
+**Access:** Signed-in user · Platform admin
 
 No request schema.
 
 ### `POST /ai/config/web-search-inference`
 
-**Access:** Signed-in user · middleware `requireAdmin`
+**Access:** Signed-in user · Platform admin
 
 **Body**
 
@@ -550,7 +550,7 @@ No request schema.
 
 ### `GET /ai/config/web-search-inference/effective`
 
-**Access:** Signed-in user · middleware `requireAdmin`
+**Access:** Signed-in user · Platform admin
 
 No request schema.
 
@@ -660,7 +660,7 @@ No request schema.
 
 ### `POST /ai/generate-regex`
 
-**Access:** Signed-in user · middleware `requireAdmin`
+**Access:** Signed-in user · Platform admin
 
 **Body**
 
@@ -923,7 +923,7 @@ No request schema.
 
 ### `POST /ai/local-runtimes/:id/pull`
 
-**Access:** Signed-in user · middleware `requireAdmin`
+**Access:** Signed-in user · Platform admin
 
 **Body**
 
@@ -933,7 +933,7 @@ No request schema.
 
 ### `POST /ai/local-runtimes/detect`
 
-**Access:** Signed-in user · middleware `requireAdmin`
+**Access:** Signed-in user · Platform admin
 
 No request schema.
 
@@ -945,7 +945,7 @@ No request schema.
 
 ### `POST /ai/local-runtimes/test`
 
-**Access:** Signed-in user · middleware `requireAdmin`
+**Access:** Signed-in user · Platform admin
 
 **Body**
 
@@ -1068,7 +1068,7 @@ No request schema.
 
 ### `POST /ai/model-costs`
 
-**Access:** Signed-in user · middleware `requireAdmin`
+**Access:** Signed-in user · Platform admin
 
 **Body**
 
@@ -1180,7 +1180,7 @@ No request schema.
 
 ### `POST /ai/providers`
 
-**Access:** Signed-in user · middleware `requireAdmin`
+**Access:** Signed-in user · Platform admin
 
 **Body**
 
@@ -1198,7 +1198,7 @@ No request schema.
 
 ### `PUT /ai/providers/:id`
 
-**Access:** Signed-in user · middleware `requireAdmin`
+**Access:** Signed-in user · Platform admin
 
 **Body**
 
@@ -1216,13 +1216,13 @@ No request schema.
 
 ### `DELETE /ai/providers/:id`
 
-**Access:** Signed-in user · middleware `requireAdmin`
+**Access:** Signed-in user · Platform admin
 
 No request schema.
 
 ### `PUT /ai/providers/:id/default`
 
-**Access:** Signed-in user · middleware `requireAdmin`
+**Access:** Signed-in user · Platform admin
 
 No request schema.
 
@@ -1238,7 +1238,7 @@ No request schema.
 
 ### `PUT /ai/providers/:id/region`
 
-**Access:** Signed-in user · middleware `requireAdmin`
+**Access:** Signed-in user · Platform admin
 
 **Body**
 

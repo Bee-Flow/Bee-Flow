@@ -176,13 +176,11 @@ router.get('/organizations/:id', requireOrgAdmin('id'), async (/** @type {import
 // each value, so switching a surface on leaves older plaintext rows readable,
 // and switching it off leaves older ciphertext rows readable. Nothing is
 // re-encrypted by flipping these, and nothing needs to be.
-// Authorisation note: these two routes use the STRICT, group-permission-aware
-// org-admin decider from permissions.js, not the local requireOrgAdmin above.
-// The local one accepts org-role plus plain group *membership*, so a user who
-// is org_admin of org A and merely a member of any group belonging to org B
-// would pass for org B. Every other org-scoped config route (orgPrivacyShield,
-// orgAzureConfig, houseStyles, talkNotesSettings) uses the strict decider;
-// choosing an org's encryption posture belongs in that company.
+// Authorisation note: these routes call permissions.isOrgAdminForOrg in the
+// handler, after the body schema where there is one. It is the same decision as
+// the requireOrgAdmin above (permissions._evalOrgAdmin): an admin of their own
+// org, or through a group of this org that carries admin rights. Membership of
+// an ordinary group of the org is not enough.
 /**
  * @param {import('express').Request<{ id: string }>} req
  * @param {import('express').Response} res

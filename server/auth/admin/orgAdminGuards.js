@@ -7,6 +7,23 @@
  * user-mutation routes are built on. Split out of auth/adminRoutes.js; the
  * facade re-exports isOrgAdminForOrg and requireOrgAdmin unchanged.
  *
+ * Who administers an organisation is decided in one place:
+ * permissions._evalOrgAdmin (auth/permissionsOrgGates.js). A person administers
+ * org X when X is their own organisation and their orgRole is an admin role, or
+ * when they belong to a group OF X that carries an admin permission or role.
+ * Belonging to some group of X is membership, not administration. Every gate in
+ * this file asks that question.
+ *
+ * The anti-orphan count (countOrgMembers) counts a narrower set: the people
+ * whose every way out of administering X is itself guarded. That is the
+ * org-admin orgRole in X as their own organisation. Demoting, moving,
+ * suspending or deleting such a person, and their leave-org, all run the
+ * guard. An admin-carrying group grants administration too, but leaving that
+ * group or editing it runs no guard, so a group member is never counted as
+ * the cover that lets the last guarded admin go.
+ * (Decision record: docs/docs/contributing/decisions/, "An organisation admin
+ * is not a platform admin".)
+ *
  * No request schema lives here: this file declares no route. The guards read
  * `role`, `organizationId` and `groups` from the user routes that mount them
  * (userRoutes.js), and run BEFORE that route's schema: the authorization
@@ -14,10 +31,9 @@
  */
 
 const userStore = require('../../stores/userStore');
-const { isOrgAdminRole, invalidatePermissionCache } = require('../permissions');
+const { _evalOrgAdmin, isOrgAdminRole, invalidatePermissionCache } = require('../permissions');
 const { tagGate } = require('../gateMeta');
 const log = require('../../telemetry/log');
-const { fallback } = require('../../utils/bestEffort');
 const {
     orgsAdministeredBy, normaliseOrgId, groupsOutsideCallerOrg, globalGroupWithinCaller, defaultGroupsRefused,
 } = require('./groupAssignGuards');
@@ -51,8 +67,12 @@ function isActiveUserStatus(status) {
  * {"orgRole":"owner"} returned 200, and from the next request on the tenant's
  * only administrator was 403'd out of user management for good.
  *
- * "Can administer" mirrors isOrgAdminForOrg(): an org-admin orgRole plus
- * membership of the org, directly or through one of its groups. Super-admins are
+ * "Could still administer" counts only the guarded shape (see the header): the
+ * org is their own and their orgRole is an admin role, which is the direct half
+ * of _evalOrgAdmin. Someone who administers the org only through an
+ * admin-carrying group is not counted: they can leave or lose that group
+ * without any guard running, so they cannot be what makes a demotion safe. A
+ * member is anyone in the org, directly or through one of its groups. Super-admins are
  * deliberately NOT counted — they are platform operators, not a tenant's
  * administrator, and on a self-hosted install the tenant may be the only party
  * with any access at all.
@@ -61,8 +81,9 @@ function isActiveUserStatus(status) {
  */
 async function countOrgMembers(orgId, excludeUserId) {
     if (!orgId) return { admins: 0, members: 0 };
-    const [users, groups] = await Promise.all([userStore.getAllUsers(), userStore.getAllGroups()]);
-    const orgGroupIds = new Set((groups || []).filter(g => g?.organizationId === orgId).map(g => g.id));
+    const [users, allGroups] = await Promise.all([userStore.getAllUsers(), userStore.getAllGroups()]);
+    const groups = allGroups || [];
+    const orgGroupIds = new Set(groups.filter(g => g?.organizationId === orgId).map(g => g.id));
     let admins = 0;
     let members = 0;
     for (const u of users || []) {
@@ -77,7 +98,7 @@ async function countOrgMembers(orgId, excludeUserId) {
         }
         if (!inOrg) continue;
         members++;
-        if (isOrgAdminRole(u.orgRole)) admins++;
+        if (u.organizationId === orgId && isOrgAdminRole(u.orgRole)) admins++;
     }
     return { admins, members };
 }
@@ -174,38 +195,23 @@ function refuseLastOrgAdmin(res, what) {
 }
 
 /**
- * Check if the current user is an org admin for a given organization.
- * Super admins always pass. Org admins must have orgRole='org_admin' and belong to the target org.
+ * Is the current user an admin of `orgId`? Super admins always pass. Anyone
+ * else passes only on _evalOrgAdmin (see the header): their own organisation
+ * with an admin orgRole, or a group of `orgId` that carries admin rights.
+ * Membership of an ordinary group of `orgId` is not enough.
  * @param {Request} req
  * @param {string | string[]} orgId
  */
 async function isOrgAdminForOrg(req, orgId) {
-    // Super admin — always allowed
     if (req.session?.isAdmin || req.session?.user?.role === 'admin') return true;
+    // A repeated path or query parameter arrives as an array: it names no single org.
+    if (typeof orgId !== 'string' || !orgId) return false;
 
     const userId = req.session?.user?.id;
     if (!userId) return false;
-
     const user = await userStore.getUser(userId);
     if (!user) return false;
-
-    // Must be org_admin role (or legacy 'admin' value pre-rename)
-    if (!isOrgAdminRole(user.orgRole)) return false;
-
-    // Must belong to the target org
-    if (user.organizationId === orgId) return true;
-
-    // Check group-based membership as fallback
-    /** @type {string[]} */
-    let groupIds = [];
-    if (Array.isArray(user.groups)) groupIds = user.groups;
-    else { try { groupIds = JSON.parse(user.groups || '[]'); } catch (e) { fallback('orgAdminGuards:groups-json', e); } }
-
-    const allGroups = await userStore.getAllGroups();
-    return groupIds.some(gid => {
-        const g = allGroups.find(gr => gr.id === gid);
-        return g?.organizationId === orgId;
-    });
+    return _evalOrgAdmin(user, (await userStore.getAllGroups()) || [], orgId);
 }
 
 /**
@@ -308,12 +314,13 @@ async function _requireOrgAdminForUser(req, res, next) {
         }
     }
 
-    // Same hole, second key. isOrgAdminForOrg treats membership of ANY group as
-    // membership of that group's org (see its group fallback), so an unvalidated
-    // `groups` array reaches another tenant without touching organizationId at
-    // all — and group ids are slugified names, so they are guessable. The
-    // reciprocal route (POST /groups/:id/members) already refuses this; the
-    // forward one, which its own comment calls the same operation, did not.
+    // The destination again, second key. A group of another organisation makes
+    // its members part of that organisation, and a group there that carries
+    // admin rights makes them its administrator, so `groups` may only name
+    // groups of an organisation the caller administers (or a global group
+    // within the caller's own grants). Group ids are slugified names, so they
+    // are guessable. The reciprocal route (POST /groups/:id/members) applies
+    // the same check.
     if (Array.isArray(req.body?.groups)) {
         const denied = await groupsOutsideCallerOrg(req, req.body.groups, {
             existing: Array.isArray(targetUser?.groups) ? targetUser.groups : [],
@@ -330,10 +337,9 @@ async function _requireOrgAdminForUser(req, res, next) {
 }
 
 // Tagged so the route walk (auth/routeWalk.cli.js) can see what this enforces.
-// This is a LOCAL org-admin gate, deliberately distinct from permissions.js's
-// requireOrgAdmin — permissions.js:745-751 warns the two semantics must not be
-// merged (this one resolves the org from the TARGET USER, not from a path param).
-// The tag records that distinction rather than papering over it.
+// It decides org-admin exactly as permissions.js's requireOrgAdmin does
+// (_evalOrgAdmin); it differs in WHICH org it asks about: the org of the
+// TARGET USER (or the body's organizationId on create), not a path param.
 const requireOrgAdminForUser = tagGate(_requireOrgAdminForUser, {
     axis: 'scope',
     kind: 'orgAdminOfTargetUser',

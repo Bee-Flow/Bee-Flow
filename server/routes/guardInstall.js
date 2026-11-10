@@ -6,10 +6,8 @@
  * Mounted at /api/admin/guard.
  *
  * The installer acts on the whole instance (one guard service for every
- * organisation), so the gate is auth/requirePlatformAdmin: the
- * `admin_security` permission on a self-hosted install (same bar as the
- * Guardrails panel that hosts the install card in the UI), a platform admin
- * elsewhere.
+ * organisation), so the gate is auth/requirePlatformAdmin: a platform admin,
+ * in every deployment mode.
  */
 
 const express = require('express');

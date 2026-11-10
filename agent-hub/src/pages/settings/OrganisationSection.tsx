@@ -129,7 +129,10 @@ const OrganisationSection = ({ user, activeSection = 'license', usageInitialRepo
 
     const ei = user?.enabledIntegrations;
     const showN8n = !ei || ei.includes('n8n');
-    const showGoogleMaps = !ei || ei.includes('google-maps');
+    // The Maps key is instance-wide (POST /ai/config takes a platform admin), so
+    // only a platform admin gets the row; for anyone else every save is refused.
+    const isPlatformAdmin = user?.isAdmin === true || user?.role === 'admin';
+    const showGoogleMaps = isPlatformAdmin && (!ei || ei.includes('google-maps'));
     // NC-bound orgs get an additional org-admin panel for Nextcloud
     // integration management (Fase G). Standalone orgs never see it.
     const isNcOrg = !!user?.ncOrg?.instanceId;

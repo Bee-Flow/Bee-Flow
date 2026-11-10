@@ -150,6 +150,15 @@ describe('UserManagement', () => {
         expect(await screen.findByDisplayValue('Acme B.V.')).toBeInTheDocument();
     });
 
+    // The organisations arrive in id order; the caller's own organisation wins
+    // over one they only belong to through a group, whatever its id.
+    it('seeds the my-organization form from the home org, not the first org in the list', async () => {
+        const memberOfBoth = { ...orgScoped, organizationId: 'o2', organizations: ['o1', 'o2'] };
+        render(<UserManagement user={memberOfBoth} activeSection="my-organization" />);
+        expect(await screen.findByDisplayValue('Legacy Org')).toBeInTheDocument();
+        expect(screen.queryByDisplayValue('Acme B.V.')).not.toBeInTheDocument();
+    });
+
     // BFSF-286: every org card shows its registration source; orgs from before
     // the backfill (no registrationSource) surface as "unknown" instead of
     // being silently mislabelled. Connector orgs also name their terms channel.

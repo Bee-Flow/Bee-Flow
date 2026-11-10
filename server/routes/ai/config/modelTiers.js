@@ -296,13 +296,18 @@ const VALID_TASK_TYPES = ['direct_chat', 'agent_chat'];
 const STANDARD_TIER_KEYS = ['fast', 'standard', 'swarm', 'thinking', 'writer', 'pro'];
 
 // ── Custom tier helpers ──────────────────────────────────────────
-/** @param {import('express').Request} req */
-async function isOrgAdmin(req) {
-    if (await isAdminUser(req)) return true;
-    const userId = req.session.user?.id;
-    if (!userId) return false;
-    const perms = await require('../../../auth/permissions').getUserPermissions(userId, req.session);
-    return perms.includes('all') || perms.includes('org_admin') || perms.includes('manage_users');
+/**
+ * The organisation whose own custom tiers the caller may use: the one named (`requested`), else the
+ * caller's own, for an admin of THAT organisation (auth isOrgAdminForOrg: a platform admin, or the
+ * strict org-admin check). Only a platform admin learns that no organisation resolved.
+ * @param {import('express').Request} req @param {unknown} requested
+ * @returns {Promise<{ orgId: string } | { status: 400 | 403, error: string }>}
+ */
+async function resolveOrgTierTarget(req, requested) {
+    const orgId = (typeof requested === 'string' && requested) || await resolveSessionOrgId(req);
+    const refused = { status: /** @type {403} */ (403), error: 'Org admin access required' };
+    if (!orgId) return await isAdminUser(req) ? { status: 400, error: 'No organisation resolved for this user' } : refused;
+    return await require('../../../auth/permissions').isOrgAdminForOrg(req, orgId) ? { orgId } : refused;
 }
 
 /** @param {import('express').Request} req */
@@ -423,15 +428,12 @@ router.get('/config/custom-tiers-list', requireAuth, async (/** @type {import('e
 });
 
 // ─── Org-scoped Custom Tiers (org admin) ─────────────────────────
-// Operates on custom_chat_model_tiers_org_{orgId}. Org admins may create/edit
-// tiers that are scoped to their organization. Super admins may use this on
-// any org by passing ?orgId=xxx; org admins implicitly target their own org.
+// custom_chat_model_tiers_org_{orgId}: the caller's own org, or the one named by ?orgId (GET) /
+// body orgId (POST), for a platform admin or an admin of that org (resolveOrgTierTarget).
 router.get('/config/org-custom-chat-models', requireAuth, async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
-    if (!(await isOrgAdmin(req))) return res.status(403).json({ error: 'Org admin access required' });
-    let orgId = await isAdminUser(req) && typeof req.query.orgId === 'string' && req.query.orgId
-        ? req.query.orgId
-        : await resolveSessionOrgId(req);
-    if (!orgId) return res.status(400).json({ error: 'No organisation resolved for this user' });
+    const target = await resolveOrgTierTarget(req, req.query.orgId);
+    if (!('orgId' in target)) return res.status(target.status).json({ error: target.error });
+    const { orgId } = target;
     const globalTiers = await loadGlobalCustomTiers();
     const orgTiers = await loadOrgCustomTiers(orgId);
     res.json({
@@ -447,11 +449,9 @@ router.get('/config/org-custom-chat-models', requireAuth, async (/** @type {impo
 });
 
 router.post('/config/org-custom-chat-models', requireAuth, async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
-    if (!(await isOrgAdmin(req))) return res.status(403).json({ error: 'Org admin access required' });
-    let orgId = await isAdminUser(req) && typeof req.body.orgId === 'string' && req.body.orgId
-        ? req.body.orgId
-        : await resolveSessionOrgId(req);
-    if (!orgId) return res.status(400).json({ error: 'No organisation resolved for this user' });
+    const target = await resolveOrgTierTarget(req, req.body?.orgId);
+    if (!('orgId' in target)) return res.status(target.status).json({ error: target.error });
+    const { orgId } = target;
 
     const { tiers } = req.body;
     if (!Array.isArray(tiers)) {

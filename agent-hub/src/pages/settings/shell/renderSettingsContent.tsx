@@ -35,6 +35,8 @@ export interface SettingsContentContext {
     canUseLearning: boolean;
     isConsumerAccount: boolean;
     isSelfHosted: boolean;
+    /** The server's platform-admin test (session isAdmin or role 'admin'). */
+    isPlatformAdmin: boolean;
     projectsOn: boolean;
     entitlementsUnknown: boolean;
     orgDeepSegs: OrgDeepSegs;
@@ -66,7 +68,7 @@ function orgActiveSectionFor(activeTab: string, isOrgSubTab: boolean): string {
 export function renderSettingsContent(ctx: SettingsContentContext): React.ReactNode {
     const {
         user, activeTab, setActiveTab, isMobile, phoneExemptTab, isOrgSubTab, canSeeOrg, canSeeCompliance, canUseLearning,
-        isConsumerAccount, isSelfHosted, projectsOn, entitlementsUnknown, orgDeepSegs, complianceHub,
+        isConsumerAccount, isSelfHosted, isPlatformAdmin, projectsOn, entitlementsUnknown, orgDeepSegs, complianceHub,
         defaultAgentMode, setDefaultAgentMode, defaultAgentId, setDefaultAgentId, agents, onLogout, onUpdateUser,
         memoryStats, memoryStatsStatus, fetchMemoryStats, openMemoryPanel, statuses, handleIntegrationSaved,
     } = ctx;
@@ -88,7 +90,8 @@ export function renderSettingsContent(ctx: SettingsContentContext): React.ReactN
                 </RequireTier>
             );
         }
-        if (activeTab === 'org_azure' && canSeeOrg) return <OrgAzureConfigPanel user={user} />;
+        // The instance-wide Azure setup: a platform admin's, like its API.
+        if (activeTab === 'org_azure') return isPlatformAdmin ? <OrgAzureConfigPanel user={user} /> : null;
         if (isOrgSubTab && canSeeOrg) return <OrganisationSection user={user} activeSection={orgActiveSection} usageInitialReport={activeTab === 'org_usage' ? (orgDeepSegs.seg1 || '') : ''} />;
         // Consumer account tabs
         if (activeTab === 'consumer_license' && isConsumerAccount) return <ConsumerLicenseSection user={user} />;

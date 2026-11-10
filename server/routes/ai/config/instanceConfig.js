@@ -1,7 +1,13 @@
+// @typecheck
 /**
  * AI Config — the /config resource: general AI config CRUD, API-key and
  * setting deletion, service-email connect/test and the Azure reranker
  * connection test.
+ *
+ * Every write here is instance-wide, so it sits behind requireAdmin (the
+ * platform-admin gate, ../requireAdminUser). GET /config is the one route that
+ * answers both: a platform admin gets the whole configuration, anyone else
+ * memberConfigView's cut, so it asks isAdminUser in the handler.
  */
 
 const express = require('express');
@@ -10,6 +16,7 @@ const router = express.Router();
 const { getAIConfig, saveAIConfig } = require('../../../core/aiAgent');
 const configStore = require('../../../stores/configStore');
 const { isAdminUser } = require('./shared');
+const { requireAdminUser } = require('../requireAdminUser');
 const { RegexGuardrailsBody } = require('../../../core/privacy/regexGuardrailsBody');
 const { memberConfigView } = require('./memberConfigView');
 const { safeFetch } = require('../../../utils/ssrfGuard');
@@ -66,6 +73,8 @@ const TestEmailBody = bodyOf({
 // user still exists in the DB, cached 5s, and destroys deleted-user sessions).
 const { requireAuth } = require('../../../auth/permissions');
 const { fallback } = require('../../../utils/bestEffort');
+
+const requireAdmin = requireAdminUser(isAdminUser);
 
 // ─── General AI Config ───────────────────────────────────────────
 
@@ -204,10 +213,7 @@ router.get('/config', requireAuth, async (req, res) => {
     res.json(await isAdminUser(req) ? payload : memberConfigView(payload));
 });
 
-router.post('/config', requireAuth, validate({ body: ConfigBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof ConfigBody>, import('qs').ParsedQs>} */ req, res) => {
-    if (!(await isAdminUser(req))) {
-        return res.status(403).json({ error: 'Admin access required' });
-    }
+router.post('/config', requireAuth, requireAdmin, validate({ body: ConfigBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof ConfigBody>, import('qs').ParsedQs>} */ req, res) => {
     const { url, model, apiKey, mistralApiKey, openaiApiKey, claudeApiKey, googleApiKey, eugptApiKey, ionosApiKey, elevenlabsApiKey, googleVertexProject, googleVertexLocation, googleVertexServiceAccountKey, azureEndpoint, azureApiKey, azureModels, agentSearchUrl, lakeraApiKey, regexGuardrails, piiDetectionEnabled, piiDetectionCategories, piiDetectionConfidenceThreshold, piiDetectionScope, piiDetectionAction, embeddingModel, embeddingProviderId, allowedModelsByAgentType, directChatRegexGuardrails, googleMapsApiKey, serperApiKey, azureDocIntelligenceEndpoint, azureDocIntelligenceKey, azureOpenaiEmbeddingEndpoint, azureOpenaiEmbeddingKey, azureOpenaiEmbeddingModel, useAzureDocProcessing, serviceEmailDisplayName, azureSpeechKey, azureSpeechRegion, transcriptionProvider, notebooksEnabled, projectsEnabled, askAiEnabled, exportEnabled, openInNotebookEnabled, notebooksMenuEnabled, azureRerankerEndpoint, azureRerankerKey, azureRerankerModel, rerankProviderId, rerankModel, stripeSecretKey, stripeWebhookSecret, stripePublishableKey, stripeEnabled, stripeTaxEnabled, stripeTaxCountry, subscriptionNotifyEmail } = req.body;
     // The instance-wide PII action. It was stored as given, and 'allow' — a
     // per-call override for trusted first-party flows in piiDetection/validate
@@ -527,11 +533,7 @@ const DELETABLE_KEYS = [
     'azure_reranker_key', 'stripe_secret_key', 'stripe_webhook_secret',
 ];
 
-router.delete('/config/key/:keyName', requireAuth, async (req, res) => {
-    if (!(await isAdminUser(req))) {
-        return res.status(403).json({ error: 'Admin access required' });
-    }
-
+router.delete('/config/key/:keyName', requireAuth, requireAdmin, async (/** @type {import('express').Request<{ keyName: string }>} */ req, res) => {
     const { keyName } = req.params;
     if (!DELETABLE_KEYS.includes(keyName)) {
         return res.status(400).json({ error: `Key "${keyName}" cannot be deleted via this endpoint` });
@@ -555,11 +557,7 @@ const DELETABLE_CONFIG_KEYS = [
     'pyannote_transcription_model', 'pyannote_identify_threshold',
 ];
 
-router.delete('/config/setting/:keyName', requireAuth, async (req, res) => {
-    if (!(await isAdminUser(req))) {
-        return res.status(403).json({ error: 'Admin access required' });
-    }
-
+router.delete('/config/setting/:keyName', requireAuth, requireAdmin, async (/** @type {import('express').Request<{ keyName: string }>} */ req, res) => {
     const { keyName } = req.params;
     if (!DELETABLE_CONFIG_KEYS.includes(keyName)) {
         return res.status(400).json({ error: `Setting "${keyName}" cannot be deleted via this endpoint` });
@@ -574,8 +572,7 @@ router.delete('/config/setting/:keyName', requireAuth, async (req, res) => {
 
 // Admin-only: it makes the installation's own service mailbox send mail to any
 // address. requireAuth alone would let any signed-in user do it.
-router.post('/config/test-service-email', requireAuth, validate({ body: TestEmailBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof TestEmailBody>, import('qs').ParsedQs>} */ req, res) => {
-    if (!(await isAdminUser(req))) return res.status(403).json({ error: 'Admin access required' });
+router.post('/config/test-service-email', requireAuth, requireAdmin, validate({ body: TestEmailBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof TestEmailBody>, import('qs').ParsedQs>} */ req, res) => {
     const { testRecipient } = req.body;
     if (!testRecipient || !testRecipient.trim()) {
         return res.status(400).json({ error: 'Test recipient email is required' });
@@ -631,20 +628,18 @@ function _serviceEmailRedirectUri(req) {
     return `${protocol}://${host}/api/support-inbox/oauth/callback`;
 }
 
-router.get('/config/service-email/oauth/start', requireAuth, async (req, res) => {
-    if (!(await isAdminUser(req))) return res.status(403).json({ error: 'Admin access required' });
+router.get('/config/service-email/oauth/start', requireAuth, requireAdmin, async (req, res) => {
     const crypto = require('crypto');
     const state = crypto.randomBytes(24).toString('hex');
     const redirectUri = _serviceEmailRedirectUri(req);
     req.session.serviceEmailConnect = { state, redirectUri, ts: Date.now() };
     const { buildConnectUrl } = require('../../../utils/emailService');
     const url = await buildConnectUrl({ redirectUri, state });
-    await new Promise((r) => req.session.save(() => r()));
+    await /** @type {Promise<void>} */ (new Promise((r) => req.session.save(() => r())));
     res.json({ url });
 });
 
-router.post('/config/service-email/disconnect', requireAuth, async (req, res) => {
-    if (!(await isAdminUser(req))) return res.status(403).json({ error: 'Admin access required' });
+router.post('/config/service-email/disconnect', requireAuth, requireAdmin, async (req, res) => {
     const { disconnectServiceEmail } = require('../../../utils/emailService');
     await disconnectServiceEmail();
     res.json({ success: true });
@@ -652,11 +647,7 @@ router.post('/config/service-email/disconnect', requireAuth, async (req, res) =>
 
 // ─── Test Azure Cohere Reranker ──────────────────────────────────
 
-router.post('/config/test-reranker', requireAuth, async (req, res) => {
-    if (!(await isAdminUser(req))) {
-        return res.status(403).json({ error: 'Admin access required' });
-    }
-
+router.post('/config/test-reranker', requireAuth, requireAdmin, async (req, res) => {
     const endpoint = (await configStore.getConfig('azure_reranker_endpoint') || process.env.AZURE_RERANKER_ENDPOINT || '').replace(/\/+$/, '');
     const key = await configStore.getSecret('azure_reranker_key') || process.env.AZURE_RERANKER_KEY;
     const model = await configStore.getConfig('azure_reranker_model') || process.env.AZURE_RERANKER_MODEL || 'Cohere-rerank-v4.0-fast';
@@ -696,7 +687,7 @@ router.post('/config/test-reranker', requireAuth, async (req, res) => {
         const latencyMs = Date.now() - start;
 
         if (rerankerRes.ok) {
-            const data = await rerankerRes.json();
+            const data = /** @type {{ results?: unknown[] }} */ (await rerankerRes.json());
             return res.json({ success: true, latencyMs, results: data.results?.length || 0, path });
         }
         lastError = await rerankerRes.text().catch(() => '');

@@ -4,20 +4,22 @@
  * the Privacy Shield defaults every organisation falls back to, the guard
  * installer, platform branding, operational metrics.
  *
- * Two deployment shapes, one rule:
- *   - self-hosted: the install IS one customer, so an admin permission that
- *     the organisation's roles grant (admin_ai_config, admin_security,
- *     manage_users) is the right bar: the permission each of these routes
- *     checks. Behaviour there is the permission check alone.
- *   - any other mode (cloud): organisations are tenants of a shared instance,
- *     and an org-level role must not reach instance-wide state. Only a
- *     platform admin (the super-admin session flag or the `admin` user role)
- *     passes.
+ * One rule, in every deployment mode: only a platform admin passes (the
+ * super-admin session flag or the `admin` user role, auth/permissionsOrgGates
+ * isSuperAdmin). An organisation role or permission never reaches
+ * instance-wide state, on a self-hosted install as much as on a shared one:
+ * one server can hold many organisations, and an admin of one of them is not
+ * the operator of the server. State that belongs to ONE organisation has its
+ * own gate, the org-admin check for that organisation
+ * (permissionsOrgGates.isOrgAdminForOrg).
  *
- * Same shape as orgAzureConfig's platformConfigGate, generalised over the
- * permission so each router keeps the one it always checked.
+ * The `permission` argument is the permission the route's organisation-level
+ * counterpart uses; it is kept so every call site reads as before, and it
+ * admits nobody. The middleware is tagged on the platform axis, so the route
+ * contract (auth/routeContract.js) and the access-registry drift test read it
+ * as the platform gate it is.
  *
- * Built by the permissions.js barrel with the real collaborators (the split
+ * Built by the permissions.js barrel with the real isSuperAdmin (the split
  * modules of the barrel are not required from here: see permissionsDeps.js);
  * a test builds it with its own.
  */
@@ -25,53 +27,49 @@
 const { tagGate } = require('./gateMeta');
 
 /**
+ * The tag every platform-admin gate carries: the same axis and kind as
+ * requireSuperAdmin, whose decision it is.
+ */
+const PLATFORM_GATE = Object.freeze({ axis: 'platform', kind: 'superAdmin' });
+
+/**
  * @typedef {{
- *   hasPermission: (userId: string, permission: string, session?: import('express').Request['session']) => Promise<boolean>,
  *   isSuperAdmin: (req: import('express').Request) => boolean,
- *   deploymentMode?: () => string,
- * }} PlatformAdminDeps `deploymentMode` defaults to license.deploymentMode, required at call time
+ * }} PlatformAdminDeps
  */
 
 /**
  * @param {PlatformAdminDeps} deps
  */
-function createPlatformAdminGate({ hasPermission, isSuperAdmin, deploymentMode }) {
-    // Lazy by default: license/index pulls the licence store and tiers, which
-    // the auth layer must not load at require time (see orgAzureConfig's gate).
-    const mode = deploymentMode || (() => require('../license').deploymentMode());
-
+function createPlatformAdminGate({ isSuperAdmin }) {
     /**
-     * Whether the caller may change instance-wide settings guarded by `permission`.
+     * Whether the caller may change instance-wide settings: a platform admin only.
      * @param {import('express').Request} req
-     * @param {string} permission the org-level permission that suffices on a self-hosted install
+     * @param {string} [_permission] the organisation-level permission of the call site; it admits nobody
      * @returns {Promise<boolean>}
      */
-    async function hasPlatformAdminAccess(req, permission) {
-        if (isSuperAdmin(req)) return true;
-        if (mode() !== 'self-hosted') return false;
-        const userId = req.session?.user?.id;
-        if (!userId) return false;
-        return hasPermission(userId, permission, req.session);
+    async function hasPlatformAdminAccess(req, _permission) {
+        return isSuperAdmin(req);
     }
 
     /**
-     * Middleware form: 401 without a session, 403 unless hasPlatformAdminAccess.
+     * Middleware form: 401 without a session, 403 unless a platform admin.
      * The 403 body matches the AI admin routers' existing refusal so no client
      * has to learn a new message.
-     * @param {string} permission
+     * @param {string} [_permission] the organisation-level permission of the call site; it admits nobody
      * @returns {import('express').RequestHandler}
      */
-    function requirePlatformAdmin(permission) {
+    function requirePlatformAdmin(_permission) {
         return tagGate(async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) => {
             if (!req.session || !req.session.isAuthenticated || !req.session.user) {
                 return res.status(401).json({ error: 'Not authenticated' });
             }
-            if (await hasPlatformAdminAccess(req, permission)) return next();
+            if (await hasPlatformAdminAccess(req)) return next();
             return res.status(403).json({ error: 'Admin access required' });
-        }, { axis: 'rbac', anyOf: [permission, 'all'], platform: true });
+        }, PLATFORM_GATE);
     }
 
     return { hasPlatformAdminAccess, requirePlatformAdmin };
 }
 
-module.exports = { createPlatformAdminGate };
+module.exports = { createPlatformAdminGate, PLATFORM_GATE };

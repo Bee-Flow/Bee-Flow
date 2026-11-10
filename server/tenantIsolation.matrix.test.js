@@ -8,7 +8,10 @@
  * org B by user B. Every route the fixture lists is then called as user A with
  * B's id and must answer 403 or 404: never 200, never a 500 (a crash is not a
  * refusal). The first route is also called as B and must answer 200, so a kind
- * whose routes refuse everyone cannot pass by accident.
+ * whose routes refuse everyone cannot pass by accident. A kind gated on
+ * org-admin (`orgAdminCaller`) is also called as the organisation admin of org A
+ * who is a plain member of a group of org B: a member of B, not its admin, so
+ * the same 403 or 404.
  *
  * The routers are the real ones, served behind their real gates by
  * testUtils/routeHarness.js; the stores are the real ones over
@@ -43,6 +46,11 @@ const ORG_A = 'org-matrix-a';
 const ORG_B = 'org-matrix-b';
 const USER_A = { id: 'u-matrix-a', username: 'matrix-a', email: 'a@matrix.test', organizationId: ORG_A, role: 'user', orgRole: 'member', groups: [] };
 const USER_B = { id: 'u-matrix-b', username: 'matrix-b', email: 'b@matrix.test', organizationId: ORG_B, role: 'user', orgRole: 'member', groups: [] };
+// The second caller shape, for kinds with `orgAdminCaller`: the organisation
+// admin of org A who is also a plain member of a group of org B. Belonging to
+// org B is not administering it.
+const GROUP_B_PLAIN = 'g-matrix-b-plain';
+const ADMIN_A = { id: 'u-matrix-a-admin', username: 'matrix-a-admin', email: 'a-admin@matrix.test', organizationId: ORG_A, role: 'user', orgRole: 'org_admin', groups: [GROUP_B_PLAIN] };
 
 /** @type {Map<string, { id: string, api: ReturnType<typeof h.serve> }>} */
 const created = new Map();
@@ -59,7 +67,8 @@ before(async () => {
         await userStore.createOrganization({ id, name }, { autoGrantTrial: false });
         await userStore.setOrgSubscription(id, { plan_id: plan.id, status: 'active' });
     }
-    for (const u of [USER_A, USER_B]) await userStore.createUser({ ...u, passwordHash: 'x' });
+    await userStore.createGroup({ id: GROUP_B_PLAIN, organizationId: ORG_B, name: 'Org B plain group', permissions: [], roles: [] });
+    for (const u of [USER_A, USER_B, ADMIN_A]) await userStore.createUser({ ...u, passwordHash: 'x' });
     // Stores initialise their schema on first use; PGlite is one session, so one at a time.
     for (const store of ['agentStore', 'webpageStore', 'automationStore', 'datatableStore', 'notebookStore', 'studioAppStore']) {
         const s = require(`./stores/${store}`);
@@ -89,16 +98,20 @@ for (const f of FIXTURES) {
         assert.equal(res.status, f.ownerStatus || 200, `${f.routes[0]} as the owner: ${res.status} ${res.text.slice(0, 200)}`);
     });
 
-    test(`${f.kind}: a member of org A cannot reach it by id`, async () => {
-        const { id, api } = created.get(f.kind);
-        const leaks = [];
-        for (const r of f.routes) {
-            const [method, route] = r.split(' ');
-            const res = await api.call(method, fill(route, id), { user: USER_A, body: method === 'GET' || method === 'DELETE' ? undefined : {} });
-            if (res.status !== 403 && res.status !== 404) leaks.push(`${r} → ${res.status}`);
-        }
-        assert.deepEqual(leaks, [], `org A reached org B's ${f.kind}:\n  ${leaks.join('\n  ')}`);
-    });
+    const callers = [['a member of org A', USER_A]];
+    if (f.orgAdminCaller) callers.push(['an admin of org A who is a plain group member of org B', ADMIN_A]);
+    for (const [who, caller] of callers) {
+        test(`${f.kind}: ${who} cannot reach it by id`, async () => {
+            const { id, api } = created.get(f.kind);
+            const leaks = [];
+            for (const r of f.routes) {
+                const [method, route] = r.split(' ');
+                const res = await api.call(method, fill(route, id), { user: caller, body: method === 'GET' || method === 'DELETE' ? undefined : {} });
+                if (res.status !== 403 && res.status !== 404) leaks.push(`${r} → ${res.status}`);
+            }
+            assert.deepEqual(leaks, [], `${who} reached org B's ${f.kind}:\n  ${leaks.join('\n  ')}`);
+        });
+    }
 }
 
 // ── The inventory half ──────────────────────────────────────────────────────

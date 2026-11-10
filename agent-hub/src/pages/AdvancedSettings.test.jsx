@@ -497,9 +497,9 @@ describe('AdvancedSettings — organisation sub-items', () => {
         expect(subRows(container)).toContain('Sign-in Method');
     });
 
-    it('swaps License & Usage for Azure Configuration on self-hosted', async () => {
+    it('swaps License & Usage for Azure Configuration on self-hosted, for a platform admin', async () => {
         const { container } = await mount({
-            user: { ...ORG_ADMIN, ...SELF_HOSTED },
+            user: { ...SUPER_ADMIN, ...SELF_HOSTED },
             path: '/app/settings/preferences',
         });
         await expand(container);
@@ -634,7 +634,7 @@ describe('AdvancedSettings — the panel a segment opens', () => {
     });
 
     it('opens the Azure panel on its own segment, not OrganisationSection', async () => {
-        await mount({ user: { ...ORG_ADMIN, ...SELF_HOSTED }, path: '/app/settings/organisation/azure' });
+        await mount({ user: { ...SUPER_ADMIN, ...SELF_HOSTED }, path: '/app/settings/organisation/azure' });
         expect(panel()).toBe('section-azure');
     });
 

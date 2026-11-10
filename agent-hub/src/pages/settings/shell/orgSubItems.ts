@@ -7,6 +7,8 @@ export interface OrgSubItemFacts {
     canUseLearning: boolean;
     showComplianceNav: boolean;
     isSelfHosted: boolean;
+    /** session isAdmin or role 'admin': the server's platform-admin test. */
+    isPlatformAdmin: boolean;
     isNcConnectorUser: boolean;
     isNcOrg: boolean;
     showNcSync: boolean;
@@ -19,7 +21,7 @@ export interface OrgSubItemFacts {
 
 /** The org sub-menu rows this person gets, from the full list plus the self-hosted Azure row. */
 export function filterOrgSubItems(baseItems: OrgSubItem[], azureItem: OrgSubItem, {
-    canSeeOrg, canManageUsers, canUseLearning, showComplianceNav, isSelfHosted, isNcConnectorUser, isNcOrg, showNcSync,
+    canSeeOrg, canManageUsers, canUseLearning, showComplianceNav, isSelfHosted, isPlatformAdmin, isNcConnectorUser, isNcOrg, showNcSync,
     githubConnected, orgAuthLocked, entitlementsLoading, entitlementsUnknown, inCeiling,
 }: OrgSubItemFacts): OrgSubItem[] {
     const items = baseItems.filter(s => {
@@ -70,8 +72,9 @@ export function filterOrgSubItems(baseItems: OrgSubItem[], azureItem: OrgSubItem
 
         return true;
     });
-    // Azure services config — self-hosted operator surface for org admins.
-    if (isSelfHosted && canSeeOrg) {
+    // Azure services config: the instance-wide Azure setup, which
+    // /api/org-azure-config/:orgId reads and writes for a platform admin only.
+    if (isSelfHosted && isPlatformAdmin) {
         items.push(azureItem);
     }
     return items;

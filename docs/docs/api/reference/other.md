@@ -767,13 +767,13 @@ No request schema.
 
 ### `GET /api/org-azure-config/:orgId`
 
-**Access:** Signed-in user · middleware `platformConfigGate` · the handler also checks who the caller is
+**Access:** Signed-in user · Platform admin · the handler also checks who the caller is
 
 No request schema.
 
 ### `PUT /api/org-azure-config/:orgId`
 
-**Access:** Signed-in user · middleware `platformConfigGate` · the handler also checks who the caller is
+**Access:** Signed-in user · Platform admin · the handler also checks who the caller is
 
 **Body:** object
 

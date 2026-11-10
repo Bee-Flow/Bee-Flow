@@ -73,8 +73,12 @@ const UserManagement = ({ activeSection: activeSectionProp = '', onNavigate, use
     const askConfirm = (opts: ConfirmOptions) => setConfirmState(opts);
 
     // The caller's own organisation — used by the my-organization section and by
-    // the org-actions hook, which seeds its form from it.
-    const myOrg = organizations.find(o => userOrgIds.includes(o.id));
+    // the org-actions hook, which seeds its form from it. The home org first
+    // (useOrgDirectory does the same): `organizations` comes in id order, and an
+    // org the caller only belongs to through a group is not one they administer.
+    const homeOrgId = typeof currentUser?.organizationId === 'string' ? currentUser.organizationId : '';
+    const myOrg = (homeOrgId ? organizations.find(o => o.id === homeOrgId) : undefined)
+        ?? organizations.find(o => userOrgIds.includes(o.id));
 
     const { isSelfHosted } = useDeploymentMode();
     const userActions = useUserActions({ loadData, setMessage, askConfirm, t, isSelfHosted });

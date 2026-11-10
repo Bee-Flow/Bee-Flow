@@ -39,10 +39,12 @@
       "gate": "auth"
     },
     "DELETE /ai/config/key/:keyName": {
-      "gate": "auth"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "DELETE /ai/config/setting/:keyName": {
-      "gate": "auth"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "DELETE /ai/direct/conversations/:id": {
       "gate": "auth"
@@ -62,7 +64,8 @@
       "via": "superAdmin"
     },
     "DELETE /ai/providers/:id": {
-      "gate": "auth"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "DELETE /api/automation/:id": {
       "gate": "auth"
@@ -89,12 +92,11 @@
       "gate": "auth"
     },
     "DELETE /api/branding/user": {
-      "gate": "handler",
-      "via": "route,handler"
+      "gate": "auth"
     },
     "DELETE /api/branding/wallpaper": {
-      "gate": "handler",
-      "via": "route"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "DELETE /api/cms/admin/pages/:id": {
       "gate": "middleware",
@@ -733,13 +735,16 @@
       "gate": "auth"
     },
     "GET /ai/config/ai-step-model": {
-      "gate": "auth"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "GET /ai/config/auto-classifier": {
-      "gate": "auth"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "GET /ai/config/builder-narration-model": {
-      "gate": "auth"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "GET /ai/config/chat-models": {
       "gate": "auth"
@@ -751,19 +756,22 @@
       "gate": "auth"
     },
     "GET /ai/config/custom-chat-models": {
-      "gate": "auth"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "GET /ai/config/custom-tiers-list": {
       "gate": "auth"
     },
     "GET /ai/config/data-extraction-model": {
-      "gate": "auth"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "GET /ai/config/direct-chat": {
       "gate": "auth"
     },
     "GET /ai/config/direct-chat-tool-params": {
-      "gate": "auth"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "GET /ai/config/direct-chat-tools": {
       "gate": "auth"
@@ -772,25 +780,30 @@
       "gate": "auth"
     },
     "GET /ai/config/memory-extraction-model": {
-      "gate": "auth"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "GET /ai/config/org-custom-chat-models": {
       "gate": "auth"
     },
     "GET /ai/config/service-email/oauth/start": {
-      "gate": "auth"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "GET /ai/config/tiers-for-user": {
       "gate": "auth"
     },
     "GET /ai/config/title-model": {
-      "gate": "auth"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "GET /ai/config/web-search-inference": {
-      "gate": "auth"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "GET /ai/config/web-search-inference/effective": {
-      "gate": "auth"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "GET /ai/direct/conversations": {
       "gate": "auth"
@@ -899,7 +912,7 @@
     },
     "GET /api/admin/guard/status": {
       "gate": "platform",
-      "via": "platformAdmin"
+      "via": "superAdmin"
     },
     "GET /api/admin/licenses": {
       "gate": "platform",
@@ -911,7 +924,7 @@
     },
     "GET /api/admin/metrics": {
       "gate": "platform",
-      "via": "platformAdmin"
+      "via": "superAdmin"
     },
     "GET /api/admin/modules": {
       "gate": "platform",
@@ -1176,16 +1189,15 @@
       "reason": "publieke prijstabel voor de marketing-/signup-flow; de rest van /api/billing is requireAuth per route"
     },
     "GET /api/branding/admin": {
-      "gate": "handler",
-      "via": "route"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "GET /api/branding/debug": {
-      "gate": "handler",
-      "via": "route"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "GET /api/branding/effective": {
-      "gate": "handler",
-      "via": "route"
+      "gate": "auth"
     },
     "GET /api/branding/public": {
       "gate": "open",
@@ -2306,7 +2318,8 @@
       "gate": "auth"
     },
     "GET /api/org-azure-config/:orgId": {
-      "gate": "auth"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "GET /api/org-azure-config/:orgId/sync-groups/status": {
       "gate": "auth"
@@ -4158,64 +4171,83 @@
       "gate": "auth"
     },
     "POST /ai/config": {
-      "gate": "auth"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "POST /ai/config/ai-step-model": {
-      "gate": "auth"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "POST /ai/config/auto-classifier": {
-      "gate": "auth"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "POST /ai/config/builder-narration-model": {
-      "gate": "auth"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "POST /ai/config/chat-models": {
-      "gate": "auth"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "POST /ai/config/chat-models-eu": {
-      "gate": "auth"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "POST /ai/config/claude-settings": {
-      "gate": "auth"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "POST /ai/config/custom-chat-models": {
-      "gate": "auth"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "POST /ai/config/data-extraction-model": {
-      "gate": "auth"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "POST /ai/config/direct-chat": {
-      "gate": "auth"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "POST /ai/config/direct-chat-tool-params": {
-      "gate": "auth"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "POST /ai/config/direct-chat-tools": {
-      "gate": "auth"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "POST /ai/config/hidden-models": {
-      "gate": "auth"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "POST /ai/config/memory-extraction-model": {
-      "gate": "auth"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "POST /ai/config/org-custom-chat-models": {
       "gate": "auth"
     },
     "POST /ai/config/service-email/disconnect": {
-      "gate": "auth"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "POST /ai/config/test-reranker": {
-      "gate": "auth"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "POST /ai/config/test-service-email": {
-      "gate": "auth"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "POST /ai/config/title-model": {
-      "gate": "auth"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "POST /ai/config/web-search-inference": {
-      "gate": "auth"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "POST /ai/direct/conversations/:id/session-skills/:skillId/import": {
       "gate": "auth"
@@ -4227,7 +4259,8 @@
       "gate": "auth"
     },
     "POST /ai/generate-regex": {
-      "gate": "auth"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "POST /ai/labels": {
       "gate": "auth"
@@ -4263,13 +4296,16 @@
       "gate": "auth"
     },
     "POST /ai/local-runtimes/:id/pull": {
-      "gate": "auth"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "POST /ai/local-runtimes/detect": {
-      "gate": "auth"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "POST /ai/local-runtimes/test": {
-      "gate": "auth"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "POST /ai/mcp-servers": {
       "gate": "platform",
@@ -4287,7 +4323,8 @@
       "gate": "auth"
     },
     "POST /ai/model-costs": {
-      "gate": "auth"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "POST /ai/n8n/enable-for-org": {
       "gate": "middleware",
@@ -4298,7 +4335,8 @@
       "via": "requireOrgAdminForN8n"
     },
     "POST /ai/providers": {
-      "gate": "auth"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "POST /ai/user-settings": {
       "gate": "auth"
@@ -4311,11 +4349,11 @@
     },
     "POST /api/admin/guard/install": {
       "gate": "platform",
-      "via": "platformAdmin"
+      "via": "superAdmin"
     },
     "POST /api/admin/guard/uninstall": {
       "gate": "platform",
-      "via": "platformAdmin"
+      "via": "superAdmin"
     },
     "POST /api/admin/licenses/:id/extend": {
       "gate": "platform",
@@ -4602,8 +4640,8 @@
       "via": "mount,handler"
     },
     "POST /api/branding/wallpaper": {
-      "gate": "handler",
-      "via": "route"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "POST /api/chat/dlp-decision": {
       "gate": "auth"
@@ -6711,7 +6749,8 @@
       "gate": "auth"
     },
     "PUT /ai/agent-search/defaults": {
-      "gate": "auth"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "PUT /ai/direct/conversations/:id/workspace": {
       "gate": "auth"
@@ -6745,13 +6784,16 @@
       "via": "requireOrgAdminForN8n"
     },
     "PUT /ai/providers/:id": {
-      "gate": "auth"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "PUT /ai/providers/:id/default": {
-      "gate": "auth"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "PUT /ai/providers/:id/region": {
-      "gate": "auth"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "PUT /api/ai-participation/me": {
       "gate": "middleware",
@@ -6795,12 +6837,11 @@
       "gate": "auth"
     },
     "PUT /api/branding/admin": {
-      "gate": "handler",
-      "via": "route"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "PUT /api/branding/user": {
-      "gate": "handler",
-      "via": "route,handler"
+      "gate": "auth"
     },
     "PUT /api/cms/admin/analytics/recorder": {
       "gate": "platform",
@@ -7114,7 +7155,8 @@
       "gate": "auth"
     },
     "PUT /api/org-azure-config/:orgId": {
-      "gate": "auth"
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "PUT /api/org-azure-config/:orgId/sync-groups/settings": {
       "gate": "auth"
