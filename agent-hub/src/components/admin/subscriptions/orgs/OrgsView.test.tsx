@@ -106,7 +106,28 @@ describe('OrgsView', () => {
         await user.click(screen.getByRole('button', { name: 'Save changes' }));
         await waitFor(() => expect(saved).toHaveLength(1));
         // The server coerces '' to the number 0, which would lock the organisation out.
-        expect(saved[0].max_users).toBeNull();
-        expect(saved[0].max_agents).toBeNull();
+        // Empty is "no override", the same as before, so nothing is sent for it.
+        expect(saved[0]).toEqual({});
+    });
+
+    it('does not send the loaded stale limits back on save (BFSF-249)', async () => {
+        const user = userEvent.setup();
+        const saved: Array<Record<string, unknown>> = [];
+        setDemoTransport(async (url: unknown, options?: RequestInit) => {
+            const address = String(url);
+            if (options?.method === 'PUT') { saved.push(JSON.parse(String(options.body))); return json({}); }
+            if (address.endsWith('/auth/organizations')) return json([{ id: 'o1', name: 'Acme' }]);
+            if (address.endsWith('/api/subscriptions/orgs')) return json([{ organization_id: 'o1', org_name: 'Acme', plan_id: 'p1', plan_name: 'Free', status: 'active', max_agents: 5, max_knowledge_sources: 3 }]);
+            if (address.endsWith('/api/subscriptions/plans')) return json([{ id: 'p1', name: 'Free' }, { id: 'p2', name: 'Launch' }]);
+            return json({ features: [] });
+        });
+        render(<OrgsView />);
+        await user.click(await screen.findByText('Acme'));
+        await screen.findByText('Organization subscription');
+        await user.selectOptions(screen.getAllByRole('combobox')[0], 'p2');
+        await user.click(screen.getByRole('button', { name: 'Save changes' }));
+        await waitFor(() => expect(saved).toHaveLength(1));
+        // Without explicit limits in the body the server clears the old overrides.
+        expect(saved[0]).toEqual({ plan_id: 'p2' });
     });
 });

@@ -5,6 +5,7 @@ import { Button } from '@/components/shared/Button';
 import { toast } from '@/components/shared/Toast';
 import { LIMIT_FIELDS } from '../constants';
 import { useResource } from '../hooks/useApi';
+import { orgSavePayload, type OrgForm } from './orgSavePayload';
 import type { PlanRecord } from '../plans/usePlanForm';
 import { Banner } from '../ui/Banner';
 import { Card } from '../ui/Card';
@@ -30,17 +31,6 @@ interface OrgSubscription {
     effective_limits?: { max_messages_per_month?: number | null; max_tokens_per_month?: number | null; max_cost_per_month?: number | null } | null;
 }
 
-interface OrgForm {
-    plan_id: string;
-    status: string;
-    max_cost_per_month: number | null;
-    max_users: number | null;
-    max_agents: number | null;
-    max_knowledge_sources: number | null;
-    allowed_features: string[] | null;
-    notes: string;
-}
-
 /** `GET /api/subscriptions/orgs/:id/effective-access`. */
 interface EffectiveAccess {
     tier?: string;
@@ -58,7 +48,7 @@ interface OrgEditorProps {
 
 export function OrgEditor({ orgSub, plans, onBack, onSave, onRemove, onStartTrial }: OrgEditorProps) {
     const { t } = useTranslation();
-    const [form, setForm] = useState<OrgForm>({
+    const [initialForm] = useState<OrgForm>({
         plan_id:                orgSub?.plan_id || '',
         status:                 orgSub?.status || 'active',
         max_cost_per_month:     orgSub?.max_cost_per_month     ?? null,
@@ -68,6 +58,7 @@ export function OrgEditor({ orgSub, plans, onBack, onSave, onRemove, onStartTria
         allowed_features:       orgSub?.allowed_features       || null,
         notes:                  orgSub?.notes                  || '',
     });
+    const [form, setForm] = useState<OrgForm>(initialForm);
     const [saving, setSaving]       = useState(false);
     const [trialBusy, setTrialBusy] = useState(false);
 
@@ -105,10 +96,9 @@ export function OrgEditor({ orgSub, plans, onBack, onSave, onRemove, onStartTria
     const handleSave = async () => {
         setSaving(true);
         try {
-            // "Override" on a limit the plan leaves open starts as an empty field ('').
-            // Left empty it is no override: the server would read '' as a cap of 0.
-            const limits = Object.fromEntries(LIMIT_FIELDS.map(({ key: name }) => [name, (form[name] as number | '' | null) === '' ? null : form[name]]));
-            await onSave({ ...form, ...limits });
+            // Only what the admin changed: echoing the loaded limits back would
+            // keep stale overrides alive (BFSF-249).
+            await onSave(orgSavePayload(initialForm, form));
         } finally {
             setSaving(false);
         }

@@ -87,10 +87,11 @@ function holdDunningCap(updateData, current) {
  * audit rows and mails, and a redelivery repeats nothing.
  * @param {{ scope: string, id: string }} target
  * @param {Record<string, unknown>} payload
+ * @param {{ resetLimits?: boolean }} [opts]  for an organisation: clear the limit overrides the payload does not write
  */
-async function storeForTarget(target, payload) {
+async function storeForTarget(target, payload, opts) {
     const stored = target.scope === 'organization'
-        ? await userStore.setOrgSubscription(target.id, payload)
+        ? await userStore.setOrgSubscription(target.id, payload, opts)
         : await userStore.setConsumerSubscription(target.id, payload);
     assertStored(stored, `subscription of ${target.scope} ${target.id}`);
 }

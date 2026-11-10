@@ -46,8 +46,9 @@ function bustPaygCache(orgId, userId) {
  * @param {string} orgId
  * @param {Record<string, any>} data
  * @param {{ plan_id?: string|null } | null} existing  the current row, null to insert
+ * @param {{ resetLimits?: boolean }} [opts]  see the limit columns below
  */
-async function writeOrgSubscription(exec, orgId, data, existing) {
+async function writeOrgSubscription(exec, orgId, data, existing, { resetLimits = false } = {}) {
     const now = new Date().toISOString();
     if (existing) {
         const updateMap = {};
@@ -80,21 +81,17 @@ async function writeOrgSubscription(exec, orgId, data, existing) {
         if (data.payment_attempt_count !== undefined) updateMap.payment_attempt_count = data.payment_attempt_count;
         if (data.last_payment_failure_at !== undefined) updateMap.last_payment_failure_at = data.last_payment_failure_at;
         if (data.past_due_since !== undefined) updateMap.past_due_since = data.past_due_since;
-        // BFSF-245/249: assigning or changing a plan must re-provision the
-        // org's usage limits. The per-row max_* columns are *overrides* that
-        // getEffectiveLimits prefers over the plan, so stale values left from
-        // a previous (e.g. Free) plan would otherwise cap a paying subscriber
-        // at the old limits (€2 cost cap, 5 agents, 3 KB). When a plan is
-        // (re)assigned and the caller passed no explicit per-org override,
-        // clear the override columns so the newly-assigned plan governs.
-        // Deliberate admin overrides — which pass these fields explicitly, or
-        // edit limits without changing plan_id — are preserved untouched.
+        // BFSF-245/249: the max_* columns are *overrides* that getEffectiveLimits
+        // prefers over the plan, so values left from a previous (Free) plan
+        // would cap a paying subscriber (€2 cost cap, 5 agents, 3 KB). On a plan
+        // change, or a deliberate (re)assignment of the same plan (resetLimits:
+        // admin PUT, checkout, trial), every limit the caller does not write is
+        // cleared so the plan governs. Not on any write that carries plan_id:
+        // Stripe's subscription.updated re-sends it and must keep overrides.
         const LIMIT_OVERRIDE_COLS = ['max_messages_per_month', 'max_messages_by_type', 'max_tokens_per_month', 'max_cost_per_month', 'max_users', 'max_agents', 'max_knowledge_sources'];
-        const callerSetAnyLimit = LIMIT_OVERRIDE_COLS.some(c => data[c] !== undefined);
         const planIsChanging = data.plan_id !== undefined && data.plan_id !== existing.plan_id;
-        if (planIsChanging && !callerSetAnyLimit) {
-            for (const c of LIMIT_OVERRIDE_COLS) updateMap[c] = null;
-        }
+        const resetting = data.plan_id !== undefined && (planIsChanging || resetLimits);
+        for (const c of LIMIT_OVERRIDE_COLS) if (resetting && data[c] === undefined) updateMap[c] = null;
         updateMap.updated_at = now;
         const colMap = { plan_id: 'plan_id', status: 'status', max_messages_per_month: 'max_messages_per_month', max_messages_by_type: 'max_messages_by_type', max_tokens_per_month: 'max_tokens_per_month', max_cost_per_month: 'max_cost_per_month', max_users: 'max_users', max_agents: 'max_agents', max_knowledge_sources: 'max_knowledge_sources', allowed_features: 'allowed_features', allowed_models: 'allowed_models', billing_cycle_start: 'billing_cycle_start', notes: 'notes', trial_end_date: 'trial_end_date', stripe_customer_id: 'stripe_customer_id', stripe_subscription_id: 'stripe_subscription_id', payment_status: 'payment_status', manual_override_until: 'manual_override_until', manual_override_by: 'manual_override_by', stripe_seat_quantity: 'stripe_seat_quantity', cancel_at_period_end: 'cancel_at_period_end', cancel_at: 'cancel_at', current_period_end: 'current_period_end', pending_plan_id: 'pending_plan_id', pending_plan_effective: 'pending_plan_effective', stripe_schedule_id: 'stripe_schedule_id', payment_attempt_count: 'payment_attempt_count', last_payment_failure_at: 'last_payment_failure_at', past_due_since: 'past_due_since', updated_at: 'updated_at' };
         const q = dynamicUpdate('organization_subscriptions', orgId, updateMap, colMap, 'organization_id');
@@ -115,12 +112,12 @@ async function writeOrgSubscription(exec, orgId, data, existing) {
     }
 }
 
-async function setOrgSubscription(orgId, data) {
+async function setOrgSubscription(orgId, data, { resetLimits = false } = {}) {
     await initDB();
     assertValidStatus(data);
     const existing = await getOrgSubscription(orgId);
     try {
-        await writeOrgSubscription(run, orgId, data, existing);
+        await writeOrgSubscription(run, orgId, data, existing, { resetLimits });
         bustPaygCache(orgId, null);
         return true;
     } catch (e) { log.error('[UserStore] setOrgSubscription error:', e); return false; }
@@ -326,9 +323,10 @@ const LOCKED = {
  * @param {'organization'|'consumer'} scope
  * @param {string} id
  * @param {(row: Record<string, any> | null) => Record<string, any> | null | undefined} choose
+ * @param {{ resetLimits?: boolean }} [opts]  handed to the row write (organisations only)
  * @returns {Promise<boolean>} whether a payload was written
  */
-async function writeUnderRowLock(scope, id, choose) {
+async function writeUnderRowLock(scope, id, choose, opts) {
     await initDB();
     const { sql, write, bust } = LOCKED[scope];
     const wrote = await withTransaction(async (client) => {
@@ -337,7 +335,7 @@ async function writeUnderRowLock(scope, id, choose) {
         // An empty payload (the stripped one removed everything) writes nothing.
         if (!payload || Object.keys(payload).length === 0) return false;
         assertValidStatus(payload);
-        await write((text, params) => client.query(text, params), id, payload, row);
+        await write((text, params) => client.query(text, params), id, payload, row, opts);
         return true;
     });
     if (wrote) bust(id);
@@ -354,7 +352,7 @@ async function writeUnderRowLock(scope, id, choose) {
  * @param {string} orgId
  * @param {Record<string, unknown>} payload  fields to write
  */
-async function setOrgSubscriptionWithLock(orgId, payload) {
+async function setOrgSubscriptionWithLock(orgId, payload, { resetLimits = false } = {}) {
     assertValidStatus(payload);
     let snapshot = null;
     let displaced = false;
@@ -366,7 +364,7 @@ async function setOrgSubscriptionWithLock(orgId, payload) {
         return payload;
     };
     try {
-        await writeUnderRowLock('organization', orgId, choose);
+        await writeUnderRowLock('organization', orgId, choose, { resetLimits });
         return { ok: true, snapshot, displaced };
     } catch (e) {
         log.error('[UserStore] setOrgSubscriptionWithLock error:', e);

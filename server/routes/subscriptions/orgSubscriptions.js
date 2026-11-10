@@ -334,8 +334,8 @@ router.put('/orgs/:orgId', validate({ body: OrgSubscriptionBody }), async (/** @
 
         // Atomic read-modify-write: serialises two admins racing on the same
         // org and reports when this write displaced another admin's active
-        // override. Both attempts are then visible in the audit log.
-        const lockResult = await userStore.setOrgSubscriptionWithLock(req.params.orgId, payload);
+        // override. Both attempts are then visible in the audit log. A plan_id (re)assigns: stale limits reset (BFSF-249).
+        const lockResult = await userStore.setOrgSubscriptionWithLock(req.params.orgId, payload, { resetLimits: payload.plan_id !== undefined });
         if (!lockResult.ok) return res.status(400).json({ error: 'Failed to set subscription' });
         const oldSub = lockResult.snapshot;
 
