@@ -11,6 +11,7 @@
  *       grantedBy: 'span',          // a knob the list already has, or '*' for every list
  *                                   // (every component type AND the section)
  *       knobs: { myKnob: { type: 'enum', values: ['none', 'a'], default: 'none', since: 3 } },
+ *       withheldFrom: ['button'],   // optional: component types the rule skips, by name
  *   };
  *
  * The knobs join STYLE_KNOBS after the base knobs, so canonicalize, validate and the catalogue
@@ -27,8 +28,25 @@ const { VALUE_TYPES, valueTypeOf } = require('./valueTypes');
 
 /**
  * @typedef {import('./styleKnobs').StyleKnob & { since?: number }} ExtensionKnob  A knob as a group file declares it.
- * @typedef {{ since?: number, grantedBy?: string, knobs?: Record<string, ExtensionKnob> }} KnobGroupFile  A group file's export.
+ * @typedef {{ since?: number, grantedBy?: string, knobs?: Record<string, ExtensionKnob>, withheldFrom?: unknown }} KnobGroupFile  A group file's export.
  */
+
+/**
+ * A group's optional `withheldFrom`: the component types its rule skips (a type whose
+ * component draws the same thing itself). Whether each name is a type is checked by the
+ * group's test, since the types load after the knobs.
+ * @param {unknown} list
+ * @param {string} file
+ * @returns {readonly string[] | null}
+ */
+function readWithheldFrom(list, file) {
+    if (list === undefined) return null;
+    const ok = Array.isArray(list) && list.length > 0
+        && list.every((t) => typeof t === 'string' && t.length > 0)
+        && new Set(list).size === list.length;
+    if (!ok) throw new Error(`${file}: withheldFrom lists distinct component type names, or is left out`);
+    return Object.freeze([...list]);
+}
 
 /**
  * The value kinds canonicalize/style.js and validate/nodes.js know how to clean: three of the
@@ -63,7 +81,7 @@ function checkKnob(name, knob, taken, where) {
  * The extension knob groups in `dir`, in file-name order.
  * @param {string} dir
  * @param {{ styleKnobs: Record<string, unknown>, baseGroupNames: readonly string[] }} ctx
- * @returns {Array<{ name: string, since: number, grantedBy: string, knobs: string[], specs: Record<string, ExtensionKnob> }>}
+ * @returns {Array<{ name: string, since: number, grantedBy: string, knobs: string[], specs: Record<string, ExtensionKnob>, withheldFrom?: readonly string[] }>}
  */
 function loadKnobGroupExtensions(dir, ctx) {
     /** @type {Record<string, unknown>} */
@@ -85,7 +103,8 @@ function loadKnobGroupExtensions(dir, ctx) {
             checkKnob(knob, spec, taken, file);
             taken[knob] = spec;
         }
-        out.push({ name, since, grantedBy, knobs: Object.keys(specs), specs });
+        const withheldFrom = readWithheldFrom(group.withheldFrom, file);
+        out.push({ name, since, grantedBy, knobs: Object.keys(specs), specs, ...(withheldFrom ? { withheldFrom } : {}) });
     }
     return out;
 }

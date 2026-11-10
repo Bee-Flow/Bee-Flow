@@ -177,25 +177,39 @@ const _loadedGroups = loadKnobGroupExtensions(path.join(__dirname, 'styleKnobGro
 // as is, so its `since` travels with it into the catalogue.
 for (const group of _loadedGroups) Object.assign(STYLE_KNOBS, group.specs);
 const EXTENSION_STYLE_KNOB_GROUPS = Object.freeze(_loadedGroups.map((g) =>
-    Object.freeze({ name: g.name, since: g.since, grantedBy: g.grantedBy, knobs: Object.freeze(g.knobs) })));
+    Object.freeze({ name: g.name, since: g.since, grantedBy: g.grantedBy, knobs: Object.freeze(g.knobs), ...(g.withheldFrom ? { withheldFrom: g.withheldFrom } : {}) })));
 
 const STYLE_KNOB_GROUPS = Object.freeze([...BASE_STYLE_KNOB_GROUPS, ...EXTENSION_STYLE_KNOB_GROUPS]);
 
 const _expandedKnobCache = new WeakMap();
 
 /**
- * A type's (or the section's) style knobs plus the knobs its groups grant it.
- * @param {WeakKey} knobs
- * @param {readonly { grantedBy: string, knobs: readonly string[] }[]} [groups]  the rule set (a test passes its own)
+ * Does `group` skip the component type `type`?
+ * @param {{ withheldFrom?: readonly string[] }} group
+ * @param {string | undefined} type
  */
-function expandStyleKnobs(knobs, groups = STYLE_KNOB_GROUPS) {
+const isWithheld = (group, type) => type !== undefined && Array.isArray(group.withheldFrom) && group.withheldFrom.includes(type);
+
+/**
+ * A type's (or the section's) style knobs plus the knobs its groups grant it.
+ *
+ * `type` names the component type the list belongs to: a group that lists it in
+ * `withheldFrom` skips it. Without a type (a section, or a caller that only has the list)
+ * no group is withheld.
+ * @param {WeakKey} knobs
+ * @param {readonly { grantedBy: string, knobs: readonly string[], withheldFrom?: readonly string[] }[]} [groups]  the rule set (a test passes its own)
+ * @param {string} [type]
+ */
+function expandStyleKnobs(knobs, groups = STYLE_KNOB_GROUPS, type = undefined) {
     if (!Array.isArray(knobs)) return [];
-    const cache = groups === STYLE_KNOB_GROUPS ? _expandedKnobCache : null;
+    const withheld = groups.some((g) => isWithheld(g, type));
+    const cache = groups === STYLE_KNOB_GROUPS && !withheld ? _expandedKnobCache : null;
     const cached = cache && cache.get(knobs);
     if (cached) return cached;
     let out = knobs;
     for (const group of groups) {
         if (group.grantedBy !== '*' && !knobs.includes(group.grantedBy)) continue;
+        if (withheld && isWithheld(group, type)) continue;
         const earned = group.knobs.filter((k) => !out.includes(k));
         if (earned.length) out = out.concat(earned);
     }

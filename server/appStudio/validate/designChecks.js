@@ -11,6 +11,7 @@ const { DESIGN_SPEC, NAV_STYLES, MAX_NAV_GROUPS, MAX_NAV_GROUP_LABEL } = require
 const { validateTheme } = require('../../core/cms/themeSpec');
 const { isObject } = require('./shared');
 const { isAssetRef } = require('../componentSpecs/valueTypes');
+const { checkBoxContrast } = require('./boxContrast.mts');
 
 /**
  * design / nav (App Design v2 — OPTIONAL top-level keys).
@@ -18,6 +19,8 @@ const { isAssetRef } = require('../componentSpecs/valueTypes');
  * @param {(value: { code: string; severity: string; path: string; message: string; hint: string; }) => void} pushW
  */
 function checkDesignAndNav(def, screens, pushE, pushW) {
+    // A hex box fill against the theme text it carries (style knob group "box").
+    checkBoxContrast(def, screens, pushW);
     // ── design / nav (App Design v2 — OPTIONAL top-level keys) ────────────
     // Canonicalize already normalizes these; validation here is the defensive
     // gate for canonical bytes handed in directly, mirroring the theme checks.

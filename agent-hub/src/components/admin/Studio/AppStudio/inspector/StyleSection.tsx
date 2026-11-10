@@ -14,6 +14,7 @@ import {
 } from './styleKnobMeta';
 import { STYLE_VALUE_CONTROLS, isBaseValueType } from './styleValueControls';
 import TokenColorField from './TokenColorField';
+import ExtensionKnobGroups from './ExtensionKnobGroups';
 import Disclosure from '@/components/shared/Disclosure';
 import FormField from '@/components/shared/FormField';
 import SegmentedControl from '@/components/shared/SegmentedControl';
@@ -392,6 +393,7 @@ export default function StyleSection({
                 );
             })}
 
+            <ExtensionKnobGroups knobs={knobs} node={node} isSection={isSection} style={style} patch={patch} definition={definition} disabled={disabled} />
             <AdvancedSizing knobs={knobs} style={style} isSection={isSection} patch={patch} disabled={disabled} />
             <ResponsiveVisibility knobs={knobs} style={style} patch={patch} disabled={disabled} />
         </div>

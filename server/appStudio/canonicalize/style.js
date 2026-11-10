@@ -78,7 +78,10 @@ function cleanStyle(raw, allowedKeys, defaults, path, push, { recordMissing = fa
             push('style.invalid', `${path}.${k}`, `${k}: unknown value ${JSON.stringify(v)} — reset to ${JSON.stringify(knob.default)}. Legal: ${knob.values.map((x) => JSON.stringify(x)).join(', ')}.`);
             out[k] = knob.default;
         } else if (knob.type === 'colorOrRole') {
-            if (v === null || (typeof v === 'string' && (knob.roles.includes(v) || HEX_RE.test(v)))) { out[k] = v; continue; }
+            // A colour knob added after the base (since-marked) has no colour to inherit
+            // by name: null is "not set" and stays out, like the value types below.
+            if (v === null && knob.since !== undefined) continue;
+            if (v === null ||(typeof v === 'string' && (knob.roles.includes(v) || HEX_RE.test(v)))) { out[k] = v; continue; }
             push('style.invalid', `${path}.${k}`, `${k}: ${JSON.stringify(v)} is neither a role (${knob.roles.join(', ')}) nor #rrggbb — reset to ${JSON.stringify(knob.default)}.`);
             out[k] = knob.default;
         } else {
