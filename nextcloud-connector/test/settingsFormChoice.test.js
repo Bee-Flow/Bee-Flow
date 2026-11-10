@@ -483,6 +483,45 @@ test('a first choice typed with a trailing slash is kept without it, and the nex
     }
 });
 
+test('a refused switch the form no longer asks for is no longer reported', async () => {
+    const binding = { tenantKey: 'own-key', organizationId: 'org-own', ncInstanceId: 'inst-1', boundApiBaseUrl: OWN, provisionedAt: '2026-01-01T00:00:00.000Z' };
+    const DOWN = 'https://nowhere.example';
+    const OTHER = 'https://other-down.example';
+    const down = () => { throw new TypeError('fetch failed'); };
+    const unreachable = { 'GET /api/health': down, 'POST /auth/connector/bootstrap': down };
+    const DOWN_FORM = [{ configkey: 'deployment_mode', configvalue: 'self-hosted' }, { configkey: 'api_base_url', configvalue: `${DOWN}/` }];
+    for (const [what, withdrawn] of [['"No change"', KEEP_FORM], ['the server in use', OWN_FORM]]) {
+        assert.equal(start({ 'tenant-key.json': binding }).source, 'binding');
+        await bootstrap.bootstrapIfNeeded();
+        const form = { values: DOWN_FORM };
+        const world = worldWith({ [OWN]: BINDS('must-not-be-asked'), [DOWN]: unreachable, [OTHER]: unreachable }, form);
+        try {
+            await poll();
+            assert.equal(bootstrap.getRejectedSwitch()?.apiBaseUrl, DOWN);
+            await poll();
+            assert.equal(bootstrap.getRejectedSwitch()?.apiBaseUrl, DOWN, 'kept while the form still names that server');
+
+            form.values = withdrawn;
+            await poll();
+            assert.equal(bootstrap.getRejectedSwitch(), null, `the form is back on ${what}`);
+            assert.equal(config.apiBaseUrl, OWN);
+            assert.equal(config.tenantKey, 'own-key');
+            assert.equal(world.count((c) => c.url.startsWith(`${OWN}/`)), 0, 'the server in use is asked for nothing');
+
+            // A switch refused on the setup page is not the form's to withdraw.
+            form.values = DOWN_FORM;
+            await poll();
+            await chooseOnSetupPage('self-hosted', OTHER).catch(() => {});
+            assert.equal(bootstrap.getRejectedSwitch()?.apiBaseUrl, OTHER);
+            form.values = withdrawn;
+            await poll();
+            assert.equal(bootstrap.getRejectedSwitch()?.apiBaseUrl, OTHER);
+        } finally {
+            world.restore();
+        }
+    }
+});
+
 test('the form names a server that does not answer: the switch is tried once, then the connection in use is left alone until a server answers there', async () => {
     const binding = { tenantKey: 'own-key', organizationId: 'org-own', ncInstanceId: 'inst-1', boundApiBaseUrl: OWN, provisionedAt: '2026-01-01T00:00:00.000Z' };
     assert.equal(start({ 'tenant-key.json': binding }).source, 'binding');

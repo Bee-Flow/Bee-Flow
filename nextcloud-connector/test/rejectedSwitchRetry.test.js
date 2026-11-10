@@ -103,8 +103,17 @@ test('an install without a key still retries a first connect that got no answer'
     const world = installFakeWorld({
         servers: { [OWN]: { 'POST /auth/connector/bootstrap': () => (up ? { tenantKey: 'first-key', organizationId: 'org' } : down()) } },
     });
+    const lines = [];
+    const realLog = console.log;
+    console.log = (...a) => lines.push(a.join(' '));
     try {
-        await bootstrap.invalidateAndRebootstrap({ apiBaseUrl: OWN }).catch(() => {});
+        try {
+            await bootstrap.invalidateAndRebootstrap({ apiBaseUrl: OWN }).catch(() => {});
+        } finally {
+            console.log = realLog;
+        }
+        assert.ok(lines.some((l) => l.includes('no tenant key is held yet')), 'the log says what the install holds');
+        assert.ok(!lines.some((l) => l.includes('Invalidated cached tenant key')), 'and names no key that was never there');
         assert.equal(config.apiBaseUrl, OWN, 'a first choice stays');
         assert.equal(config.tenantKey, null);
         // The retry is under way by itself (it may be between two attempts
