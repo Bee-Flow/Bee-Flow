@@ -10,6 +10,7 @@ const log = require('../../telemetry/log');
 const studioAppStore = require('../../stores/studioAppStore');
 const { LIMITS } = require('../../appStudio/componentSpecs');
 const { canonicalizeAppDefinition } = require('../../appStudio/canonicalize');
+const { schemaNewerBody } = require('../../appStudio/schemaSince.mts');
 const { installTemplate } = require('../../appStudio/templateInstall');
 const { sanitizeAppImport } = require('../../appStudio/appPortability');
 const { installAppContent } = require('../../appStudio/appContentInstall');
@@ -72,7 +73,9 @@ router.post('/import', requireAuth, requireManageApps, appImportLimiter, async (
 
         const copy = JSON.parse(JSON.stringify(template.definition));
         copy.meta = { ...(copy.meta || {}), name };
-        const definition = canonicalizeAppDefinition(copy).def;
+        const canon = canonicalizeAppDefinition(copy);
+        if (canon.refused) return res.status(422).json(schemaNewerBody(copy));
+        const definition = canon.def;
 
         // Owner and organisation are facts of THIS installation, read from the
         // session and never from the file.

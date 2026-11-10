@@ -11,13 +11,25 @@ const {
     SECTION_STYLE_DEFAULTS,
     expandStyleKnobs,
 } = require('../componentSpecs');
-const { isObject, truncate } = require('./shared');
+const { isObject, truncate, emitOptionalKeys } = require('./shared');
 const { cleanStyle } = require('./style');
 const { canonNode, cleanRoleRefs } = require('./nodes');
 
 // ---------------------------------------------------------------------------
 // Screens & sections
 // ---------------------------------------------------------------------------
+
+/**
+ * The section keys beyond id, style and children, each with the function that cleans it.
+ * Every one is optional: emitOptionalKeys writes a key only when the section carries a value
+ * its cleaner keeps, after the three base keys, so a section stored without it keeps its
+ * bytes. Empty: a section has no such key yet. A key that needs ids or references resolved
+ * also needs the second pass in canonicalize/references.js. Every key here also has its mark
+ * file componentSpecs/keys/section/<key>.js (since: 3, shape, description): that is what
+ * raises the schema version of a definition using it and lists it for the AI builder.
+ * @type {Readonly<Record<string, import('./shared').OptionalKeyCleaner>>}
+ */
+const SECTION_OPTIONAL_KEYS = Object.freeze({});
 
 /**
  * @param {string} path
@@ -113,10 +125,10 @@ function canonScreen(screen, path, ids, push) {
             }
             children.push(...canonNode(child, `${sp}.children[${ci}]`, 2, ids, push));
         });
-        out.sections.push({ id: sid, style, children });
+        out.sections.push(emitOptionalKeys({ id: sid, style, children }, section, SECTION_OPTIONAL_KEYS, sp, push));
     });
 
     return out;
 }
 
-module.exports = { canonScreen };
+module.exports = { canonScreen, SECTION_OPTIONAL_KEYS };

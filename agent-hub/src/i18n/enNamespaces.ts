@@ -12,7 +12,10 @@ type Loader = () => Promise<{ default: NamespaceCatalogue }>;
 
 const SUFFIX = '.generated.mjs';
 const LOADERS: Record<string, Loader> = {};
-for (const [file, load] of Object.entries(import.meta.glob<{ default: NamespaceCatalogue }>('./en/*.generated.mjs'))) {
+// No type argument on the call, on purpose: vitest keeps a transformed module on disk
+// between runs unless its text holds the call exactly as `import.meta.glob(`, and a
+// kept copy would not see a file added to the folder.
+for (const [file, load] of Object.entries(import.meta.glob('./en/*.generated.mjs') as Record<string, () => Promise<{ default: NamespaceCatalogue }>>)) {
     const name = file.slice(file.lastIndexOf('/') + 1);
     LOADERS[name.slice(0, -SUFFIX.length)] = load;
 }

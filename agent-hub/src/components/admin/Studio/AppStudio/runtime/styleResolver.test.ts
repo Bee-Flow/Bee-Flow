@@ -164,7 +164,7 @@ describe('resolveNodeStyle — the same knob on a component node', () => {
 //       never touches gridColumn — `span` still decides which columns the cell
 //       occupies, the width sizes the element inside it.
 //   (b) the MOBILE STACK KEEPS WINNING. Every emitted width is paired with
-//       max-width:100%, and runtime.css re-asserts that with !important below
+//       max-width:100%, and css/layout.css re-asserts that with !important below
 //       640px, so a 900px block on a 390px phone can never push a horizontal
 //       scrollbar across the app.
 // ═══════════════════════════════════════════════════════════════════════════
@@ -310,7 +310,7 @@ describe('advanced sizing — RULE (b): the mobile stack keeps winning', () => {
         expect(style.maxWidth).toBe('100%');
     });
 
-    it('runtime.css re-asserts the cap with the authority inline styles cannot outrank', () => {
+    it('css/layout.css re-asserts the cap with the authority inline styles cannot outrank', () => {
         // An inline width beats any stylesheet declaration WITHOUT !important,
         // so the resolver's pairing is necessary but not sufficient — the
         // sub-640px block has to carry the cap too, next to the grid-column
@@ -318,7 +318,7 @@ describe('advanced sizing — RULE (b): the mobile stack keeps winning', () => {
         // The stylesheet as TEXT: rule (b) lives half in the resolver and half
         // in the cascade, and jsdom applies no stylesheet at all — so the CSS
         // half has to be asserted on the source.
-        const runtimeCss = readFileSync(resolve(RUNTIME_DIR, 'runtime.css'), 'utf8');
+        const runtimeCss = readFileSync(resolve(RUNTIME_DIR, 'css/layout.css'), 'utf8');
         const mobile = runtimeCss.slice(runtimeCss.indexOf('@media (max-width: 639.98px)'));
         expect(mobile).toContain('@media (max-width: 639.98px)');
         const nodeRule = mobile.slice(mobile.indexOf('.app-grid > .app-node'));
@@ -330,7 +330,7 @@ describe('advanced sizing — RULE (b): the mobile stack keeps winning', () => {
 
 /**
  * Responsive visibility — hideBelow/hideAbove ride along as CLASSES (only a
- * stylesheet can read the viewport), and the media rules live in runtime.css.
+ * stylesheet can read the viewport), and the media rules live in css/layout.css.
  * jsdom applies no stylesheet, so like the mobile-cap test above the CSS half
  * is asserted on the source text.
  */
@@ -353,8 +353,8 @@ describe('responsive visibility — hideBelow/hideAbove', () => {
             .toBe('app-node min-w-0 app-span-12');
     });
 
-    it('runtime.css hides each class in its band, and never inside the edit canvas', () => {
-        const css = readFileSync(resolve(RUNTIME_DIR, 'runtime.css'), 'utf8');
+    it('css/layout.css hides each class in its band, and never inside the edit canvas', () => {
+        const css = readFileSync(resolve(RUNTIME_DIR, 'css/layout.css'), 'utf8');
         // The media line directly governing a class's hide rule.
         const mediaOf = (cls: string) => {
             const i = css.indexOf(`.${cls}:not([data-app-edit] *) { display: none !important; }`);
@@ -364,7 +364,7 @@ describe('responsive visibility — hideBelow/hideAbove', () => {
             return css.slice(start, css.indexOf(nl, start));
         };
         // hideBelow 'md' = hidden NARROWER than 1024px; hideAbove 'md' = hidden
-        // at 1024px and wider. Bands are the runtime.css breakpoints.
+        // at 1024px and wider. Bands are the css/layout.css breakpoints.
         expect(mediaOf('app-hide-below-sm')).toContain('(max-width: 639.98px)');
         expect(mediaOf('app-hide-below-md')).toContain('(max-width: 1023.98px)');
         expect(mediaOf('app-hide-below-lg')).toContain('(max-width: 1279.98px)');

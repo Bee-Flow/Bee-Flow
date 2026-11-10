@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { layoutGraph } from '../layout';
-import { newStep, type ActionStep } from '../stepCatalog';
+import { newStep, type ActionStep } from '../stepKinds';
 import { canConnect, graphToSteps, makeId, parseId, stepsToGraph, stripStepIds, withStepIds, type FlowStep, type GraphNode, type StepNode } from '../stepGraph';
 import useStepReferences from '../useStepReferences';
 import useTranslation, { type TranslateFn } from '@/hooks/useTranslation';

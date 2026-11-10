@@ -72,6 +72,9 @@ async function loadDataRefs(appId, ownerId) {
         dataModel: (meta && meta.model) ? meta.model : null,
         datasets: (datasets || []).map(d => d.id),
         datatables: await require('../../appStudio/datatableSource').listOwnerDatatableIds(ownerId),
+        // The app's uploaded files, for the `asset.missing` warning; a failed read leaves them unchecked.
+        assetIds: await require('../../appStudio/appAssetStore.mts').listAssetIds({ id: appId, userId: ownerId })
+            .catch((/** @type {unknown} */ e) => require('../../utils/bestEffort').fallback('routes/studioApps/appHelpers:assetIds', e, undefined)),
     };
 }
 

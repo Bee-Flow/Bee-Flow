@@ -32,7 +32,7 @@ const { recordListDescriptor, aggregateDescriptor } = require('../core/dataEngin
 const rlsGateway = require('../appStudio/rlsGateway');
 const { seedVariableDefaults } = require('../appStudio/componentSpecs');
 const { ROLE_PROBE_VIEWER_ID } = require('../appStudio/appDryRun');
-const { compile, tryEvaluate, resolveFilterList, FILTER_SKIP } = require('../shared/expr/index.mjs');
+const { RENDER_PLAN, planShape, planFilters } = require('../shared/appDefinition/bindingPlan.mjs');
 const { fallback, bestEffort } = require('../utils/bestEffort');
 
 const RUNTIME_DIR = path.join(__dirname, '..', 'vendor', 'app-runtime');
@@ -94,66 +94,31 @@ function dataCacheKey(binding) {
     return null;
 }
 
-// The scope roots our screen-level synthetic scope can populate identically to
-// the mounted runtime's scope. `item`/`index` (repeater rows), a live `form`,
-// action results — those resolve per-instance at render time, so a binding
-// referencing them is skipped (its entry key can't be precomputed). `now` is
-// also excluded: it drifts by milliseconds between our key and the renderer's,
-// which would split the key anyway (the client docs tell authors to avoid it).
-const RESOLVABLE_ROOTS = new Set(['currentUser', 'vars', 'forms', 'screen', 'today']);
-const AGGREGATE_SHAPE_FIELDS = ['groupBy', 'aggregates', 'sort', 'limit'];
+// The fetch-or-skip decision is the shared binding planner's, with the render's
+// own option set (RENDER_PLAN: only the scope roots our screen-level synthetic
+// scope fills identically to the mounted runtime's; `item`/`index`, a live
+// `form`, action results and `now` are not among them). Its omission/required
+// semantics are the client's EXACTLY, because they shape the cache key.
 
-function formulaRefsResolvable(expr) {
-    try { return compile(String(expr || '')).refs.every((r) => RESOLVABLE_ROOTS.has(r)); }
-    catch { return false; }
-}
-
-function evalFormula(v, scope) {
-    const expr = v.expr;
-    if (typeof expr !== 'string' || !expr.trim()) return undefined;
-    return tryEvaluate(expr, scope || {}).value;
-}
-
-/** Port of the client resolveBindingShape (aggregate descriptor formulas). */
+/**
+ * The client resolveBindingShape (aggregate descriptor formulas) under the
+ * render's roots. Returns { binding } or { skipped:true }.
+ */
 function resolveShape(binding, scope) {
-    if (binding.kind !== 'aggregate') return { binding };
-    let changed = false;
-    const out = { ...binding };
-    for (const field of AGGREGATE_SHAPE_FIELDS) {
-        const raw = binding[field];
-        if (!raw || typeof raw !== 'object' || raw.kind !== 'formula') continue;
-        if (!formulaRefsResolvable(raw.expr)) return { skipped: true };
-        changed = true;
-        const value = evalFormula(raw, scope);
-        if (value === undefined || value === null) delete out[field];
-        else out[field] = value;
-    }
-    return { binding: changed ? out : binding };
+    const step = planShape(binding, scope, RENDER_PLAN);
+    return step.plan === 'fetch' ? { binding: step.binding } : { skipped: true };
 }
 
 /**
- * Port of the client resolveBindingFilters, plus the dynamic-skip guard: the
- * omission/required semantics must match EXACTLY (they shape the cache key).
- * Returns { binding } or { skipped:true } (no query, no entry — the renderer
- * lands on the same "no key / different key" outcome for that component).
+ * The client resolveBindingFilters under the render's roots. Returns
+ * { binding } or { skipped:true } (no query, no entry — the renderer lands on
+ * the same "no key / different key" outcome for that component). Client:
+ * required + unresolved → the whole binding resolves to null (no query at
+ * all); optional → the entry is omitted.
  */
 function resolveFilters(binding, scope) {
-    if (!Array.isArray(binding.filter) || binding.filter.length === 0) return { binding };
-    const res = resolveFilterList(binding.filter, (raw) => {
-        const v = /** @type {{ kind?: unknown, expr?: unknown } | null} */ (raw);
-        const isFormula = !!v && typeof v === 'object' && v.kind === 'formula';
-        if (isFormula && !formulaRefsResolvable(v.expr)) return FILTER_SKIP;
-        return isFormula ? evalFormula(v, scope) : raw;
-    });
-    // Client: required + unresolved → the whole binding resolves to null (no
-    // query at all); optional → the entry is omitted.
-    if (res.status !== 'ok') return { skipped: true };
-    if (!res.changed) return { binding };
-    if (res.filters.length === 0) {
-        const { filter: _dropped, ...rest } = binding;
-        return { binding: rest };
-    }
-    return { binding: { ...binding, filter: res.filters } };
+    const step = planFilters(binding, scope, RENDER_PLAN);
+    return step.plan === 'fetch' ? { binding: step.binding } : { skipped: true };
 }
 
 // ── Data pass — real rows through the sanctioned read paths ─────────

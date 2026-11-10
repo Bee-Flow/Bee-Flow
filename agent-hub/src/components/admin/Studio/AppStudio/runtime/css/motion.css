@@ -1,0 +1,29 @@
+/*
+ * App Studio runtime: motion. Animations and their keyframes.
+ *
+ * Imported by AppRenderer after layout.css and look.css.
+ */
+
+/* Shimmering placeholder while a bound action is running. */
+.app-skeleton {
+    position: relative;
+    overflow: hidden;
+    background: var(--bg-tertiary, rgba(128, 128, 128, 0.15));
+    border-radius: var(--app-radius, 8px);
+    min-height: 0.75rem;
+}
+
+.app-skeleton::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.25), transparent);
+    animation: app-skeleton-shimmer 1.4s infinite;
+}
+
+@keyframes app-skeleton-shimmer {
+    to {
+        transform: translateX(100%);
+    }
+}

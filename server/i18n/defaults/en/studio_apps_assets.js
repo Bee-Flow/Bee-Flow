@@ -1,0 +1,36 @@
+// @typecheck strict
+// English GUI defaults — namespace "studio_apps_assets": every key whose part before the first "." is "studio_apps_assets".
+// Merged into GUI_DEFAULTS by ./index.js, which finds this file by itself (no list to edit). The frontend copy
+// (agent-hub/src/i18n/en-defaults.js) is GENERATED from these files: after an edit, run `node scripts/gen-i18n-defaults.mjs`.
+// Dutch: ../nl/studio_apps_assets.json. App Studio uploaded files (logo, pictures, fonts): the picker, the
+// image and logo fields, and the builder's tool row.
+module.exports = {
+    "studio_apps_assets.builder_act_list": "Listed the uploaded files",
+    "studio_apps_assets.choose": "Choose an uploaded file",
+    "studio_apps_assets.clear": "Remove",
+    "studio_apps_assets.delete": "Delete",
+    "studio_apps_assets.delete_title": "Delete this file?",
+    "studio_apps_assets.delete_unused": "Nothing in this app uses it.",
+    "studio_apps_assets.delete_used": "Still used in {draft} place(s) of this draft and {published} of the published app ({paths}). Those images show an empty placeholder after deleting.",
+    "studio_apps_assets.empty": "No files uploaded yet.",
+    "studio_apps_assets.error_full": "This app's file storage is full. Delete a file you no longer use.",
+    "studio_apps_assets.error_generic": "The upload failed ({status}).",
+    "studio_apps_assets.error_list": "The uploaded files could not be loaded.",
+    "studio_apps_assets.error_scan": "The file failed a malware scan and was refused.",
+    "studio_apps_assets.error_size": "The file is too large (at most {mb} MB).",
+    "studio_apps_assets.error_type": "Only PNG, JPEG, WebP and GIF images and WOFF2 fonts can be uploaded.",
+    "studio_apps_assets.font_label": "Font",
+    "studio_apps_assets.image_from": "Image from data",
+    "studio_apps_assets.image_from_hint": "A field or variable holding an https URL or an uploaded file wins over the image above.",
+    "studio_apps_assets.image_hint": "An https URL, or a file uploaded to this app. Broken sources show a neutral placeholder.",
+    "studio_apps_assets.no_app": "Save the app first to upload files.",
+    "studio_apps_assets.picker_description": "PNG, JPEG, WebP and GIF images and WOFF2 fonts of this app, up to {mb} MB each. No SVG.",
+    "studio_apps_assets.picker_title": "Uploaded files",
+    "studio_apps_assets.size_kb": "{size} KB",
+    "studio_apps_assets.unused": "not used",
+    "studio_apps_assets.upload": "Upload a file",
+    "studio_apps_assets.uploaded_value": "Uploaded file",
+    "studio_apps_assets.uploading": "Uploading…",
+    "studio_apps_assets.use": "Use",
+    "studio_apps_assets.used_count": "used in {count} place(s)",
+};

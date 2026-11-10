@@ -28,7 +28,10 @@ interface RelationRecord {
 }
 
 /** The label a relation cell shows for a row of the table it points at. */
-function relationLabel(record: RelationRecord, targetTable: ImportTable | null | undefined) {
+function relationLabel(record: RelationRecord, targetTable: ImportTable | null | undefined, displayField?: string) {
+    // The column the author picked on the relation, when this record has a value in it.
+    const chosen = displayField ? record?.[displayField] : null;
+    if (chosen != null && chosen !== '') return String(chosen);
     const textField = importableFields(targetTable?.fields)
         .find((f) => (f.type === 'text' || f.type === 'select') && record?.[f.key]);
     if (textField) return String(record[textField.key]);
@@ -212,7 +215,7 @@ export default function RowCellEditor({
         );
     }
     if (field.type === 'relation') {
-        const choices = (relationRows || []).map((r) => ({ value: String(r.id), label: relationLabel(r, relationTable) }));
+        const choices = (relationRows || []).map((r) => ({ value: String(r.id), label: relationLabel(r, relationTable, (field as { relation?: { displayField?: string } | null }).relation?.displayField) }));
         return (
             <ChoiceCell
                 field={{ ...field, options: choices }}

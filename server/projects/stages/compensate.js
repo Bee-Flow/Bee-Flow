@@ -86,6 +86,9 @@ const UNDO = {
             await s.studioAppStore.updateStudioApp(step.entityId, meta, runAs, { managedWrite });
         }
         if (!app.publishedDefinition) return Object.keys(meta).length ? 'done' : 'skipped';
+        // No gate: these bytes are already live and the reset must not fail. What the gate would say is only logged.
+        const gate = require('../appDefinitionGate.mts').gateDefinition(app.publishedDefinition);
+        if (gate.verdict !== 'ok') log.warn(`[stages/compensate] app ${step.entityId} is reset to a published definition the gate marks "${gate.verdict}" (${gate.errors.length} finding(s))`);
         await s.studioAppStore.saveDefinition(step.entityId, runAs, app.publishedDefinition, { managedWrite });
         return 'done';
     },
