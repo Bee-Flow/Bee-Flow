@@ -15,7 +15,7 @@ const path = require('node:path');
 const registry = require('./stepRegistry');
 const { BASE_STEP_META, POLICY_FORMS } = require('./stepMeta');
 const kinds = require('./actionSpecsActionKinds');
-const { STEP_SPECS } = require('./actionSpecs');
+const STEP_SPECS = /** @type {Record<string, any>} */ (require('./actionSpecs').STEP_SPECS);
 const { withErrorEnvelope } = require('./stepEnvelope');
 const stepFlow = require('../../shared/appDefinition/stepFlow.mjs');
 const { EXTENSION_STEP_KINDS } = require('../../shared/appDefinition/stepKinds.generated.mjs');
@@ -58,7 +58,7 @@ test('a kind nobody declared is refused in every execution form', () => {
     for (const form of Object.keys(POLICY_FORMS)) {
         const expected = form === 'mcpDryRun' ? 'skip' : 'refuse';
         for (const kind of ['never_heard_of', 'constructor', '__proto__', '', null, undefined, 7]) {
-            assert.equal(registry.stepPolicy(kind, form), expected, `${String(kind)} / ${form}`);
+            assert.equal(registry.stepPolicy(kind, /** @type {any} */ (form)), expected, `${String(kind)} / ${form}`);
         }
     }
     assert.equal(registry.stepMetaOf('toString'), null);
@@ -198,7 +198,7 @@ test('its policy rows put it in the derived lists, and nowhere it did not ask fo
 });
 
 test('its spec entry carries since, and the envelope follows retrySafe', () => {
-    const specs = withErrorEnvelope(registry.stepSpecsOf(fixtures));
+    const specs = /** @type {Record<string, any>} */ (withErrorEnvelope(registry.stepSpecsOf(fixtures)));
     assert.equal(specs.zz_probe.since, 3);
     assert.equal(specs.zz_probe.mutatesData, true);
     assert.deepEqual(Object.keys(specs.zz_probe.fields), ['tableId', 'input', 'resultVar', 'onError']);
@@ -279,14 +279,14 @@ test('flattenSteps numbers the children of a registry container in pre-order, ha
 });
 
 test('flattenSteps numbers the base kinds from the same table as before', () => {
-    const steps = [
+    const steps = /** @type {any[]} */ ([
         { kind: 'loop', steps: [{ kind: 'switch', cases: [null, { steps: [{ kind: 'create_record' }] }, { value: 1 }], default: [{ kind: 'condition', then: [{ kind: 'ai_browse' }], else: [{ kind: 'toast' }] }] }] },
         null, 7, [],
         { kind: 'condition', then: 'x', else: [{ kind: 'send_email' }] },
         { kind: 'transaction', steps: [{ kind: 'create_record' }, { kind: 'delete_record' }], onError: { steps: [{ kind: 'refresh' }] } },
         { kind: 'kb_query', onError: [{ kind: 'confirm', onError: { steps: [{ kind: 'set_variable' }] } }] },
         { kind: 'toast', then: [{ kind: 'navigate' }], steps: [{ kind: 'navigate' }] },
-    ];
+    ]);
     assert.deepEqual(flattenSteps(steps).map((s) => (Array.isArray(s) ? 'array' : s.kind)), [
         'loop', 'switch', 'create_record', 'condition', 'ai_browse', 'toast', 'array', 'condition', 'send_email', 'transaction', 'kb_query', 'toast',
         'refresh', 'confirm', 'set_variable',

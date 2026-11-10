@@ -1,6 +1,6 @@
 import { ChevronDown, ChevronUp, Plus, Trash2 } from 'lucide-react';
 import type { ComponentProps } from 'react';
-import { paletteGroups, stepMeta } from '../stepCatalog';
+import { paletteGroups, stepMeta } from '../stepKinds';
 import type { StepNode } from '../stepGraph';
 import StepSettings from '../StepSettings';
 import { ON_ERROR_SCOPE, SEP } from '../stepGraph';

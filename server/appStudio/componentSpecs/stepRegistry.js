@@ -42,6 +42,34 @@ const BUDGETS = ['ai', 'heavy', 'light'];
 /** @param {unknown} v @returns {v is Record<string, unknown>} */
 const isObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 
+/** @typedef {[bad: boolean, text: string]} Check */
+
+/** @param {Record<string, unknown>} entry @param {string} name @returns {Check[]} */
+function shapeChecks(entry, name) {
+    return [
+        [entry.kind !== name || !KIND_RE.test(name), '`kind` must equal the file name (lower case, digits, underscores)'],
+        [Object.hasOwn(BASE_STEP_META, name), 'is a base step kind; the registry only adds kinds'],
+        [!Number.isInteger(entry.since) || /** @type {number} */ (entry.since) < 3, '`since` must be the schema version that introduced it (3 or later)'],
+        [!SIDES.includes(/** @type {string} */ (entry.side)), `\`side\` must be one of ${SIDES.join(', ')}`],
+        [!isObject(entry.fields), '`fields` must be the field table'],
+        [typeof entry.retrySafe !== 'boolean', '`retrySafe` must be true or false'],
+        [entry.summary !== undefined && typeof entry.summary !== 'function', '`summary` must be a function of the step'],
+    ];
+}
+
+/** What only a server kind has, and what it may not have. @param {Record<string, unknown>} entry @returns {Check[]} */
+function sideChecks(entry) {
+    const server = entry.side === 'server';
+    const click = isObject(entry.policy) ? entry.policy.click : undefined;
+    return [
+        [server && !BUDGETS.includes(/** @type {string} */ (entry.budget)), `a server kind needs \`budget\`: ${BUDGETS.join(', ')}`],
+        [server && entry.handler !== 'file', "a server kind needs `handler: 'file'`"],
+        [!server && (entry.budget !== undefined || entry.handler !== undefined), 'only a server kind has `budget` and `handler`'],
+        [server && click === 'browser', 'a server kind cannot run in the browser (`policy.click`)'],
+        [!server && (click === 'step' || click === 'stream'), 'only a server kind is posted to the server (`policy.click`)'],
+    ];
+}
+
 /**
  * Why `entry` is not a usable registry kind, as sentences; empty when it is.
  *
@@ -51,24 +79,8 @@ const isObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v)
  */
 function stepKindProblems(entry, name) {
     if (!isObject(entry)) return [`${name}: must export an object`];
-    /** @type {string[]} */
-    const out = [];
-    const say = (/** @type {string} */ text) => out.push(`${name}: ${text}`);
-    if (entry.kind !== name || !KIND_RE.test(name)) say('`kind` must equal the file name (lower case, digits, underscores)');
-    if (Object.hasOwn(BASE_STEP_META, name)) say('is a base step kind; the registry only adds kinds');
-    if (!Number.isInteger(entry.since) || /** @type {number} */ (entry.since) < 3) say('`since` must be the schema version that introduced it (3 or later)');
-    if (!SIDES.includes(/** @type {string} */ (entry.side))) say(`\`side\` must be one of ${SIDES.join(', ')}`);
-    if (!isObject(entry.fields)) say('`fields` must be the field table');
-    if (typeof entry.retrySafe !== 'boolean') say('`retrySafe` must be true or false');
-    out.push(...policyProblems(entry, name), ...slotProblems(entry, name));
-    const server = entry.side === 'server';
-    if (server && !BUDGETS.includes(/** @type {string} */ (entry.budget))) say(`a server kind needs \`budget\`: ${BUDGETS.join(', ')}`);
-    if (server && entry.handler !== 'file') say("a server kind needs `handler: 'file'`");
-    if (!server && (entry.budget !== undefined || entry.handler !== undefined)) say('only a server kind has `budget` and `handler`');
-    if (server && isObject(entry.policy) && entry.policy.click === 'browser') say('a server kind cannot run in the browser (`policy.click`)');
-    if (!server && isObject(entry.policy) && (entry.policy.click === 'step' || entry.policy.click === 'stream')) say('only a server kind is posted to the server (`policy.click`)');
-    if (entry.summary !== undefined && typeof entry.summary !== 'function') say('`summary` must be a function of the step');
-    return out;
+    const failed = [...shapeChecks(entry, name), ...sideChecks(entry)].filter(([bad]) => bad).map(([, text]) => `${name}: ${text}`);
+    return [...failed, ...policyProblems(entry, name), ...slotProblems(entry, name)];
 }
 
 /** @param {Record<string, unknown>} entry @param {string} name @returns {string[]} */
@@ -86,27 +98,27 @@ function policyProblems(entry, name) {
     return out;
 }
 
+/** @param {unknown} slot @param {Record<string, unknown>} entry @param {Record<string, unknown>} fields @param {string} name @returns {string[]} */
+function oneSlotProblems(slot, entry, fields, name) {
+    if (!isObject(slot) || typeof slot.field !== 'string' || !Object.hasOwn(fields, slot.field)) return [`${name}: every child slot names one of its own fields`];
+    /** @type {string[]} */
+    const out = [];
+    if (slot.each !== undefined && (typeof slot.each !== 'string' || !KIND_RE.test(slot.each))) out.push(`${name}: childSlots.${slot.field}.each must be a key name`);
+    // A server step is ONE step for the browser: children it walked itself would get ordinals nobody posts.
+    if (entry.side === 'server' && slot.walked !== false) out.push(`${name}: a server kind keeps its children (childSlots.${slot.field} needs walked: false)`);
+    if (slot.field === 'onError' || slot.field === 'retry') out.push(`${name}: onError and retry belong to the step envelope`);
+    return out;
+}
+
 /** @param {Record<string, unknown>} entry @param {string} name @returns {string[]} */
 function slotProblems(entry, name) {
     if (!Array.isArray(entry.childSlots)) return [`${name}: \`childSlots\` must list the fields that hold steps ([] for none)`];
     const fields = isObject(entry.fields) ? entry.fields : {};
-    /** @type {string[]} */
-    const out = [];
-    const declared = new Set();
-    for (const slot of entry.childSlots) {
-        if (!isObject(slot) || typeof slot.field !== 'string' || !Object.hasOwn(fields, slot.field)) {
-            out.push(`${name}: every child slot names one of its own fields`);
-            continue;
-        }
-        declared.add(slot.field);
-        if (slot.each !== undefined && (typeof slot.each !== 'string' || !KIND_RE.test(slot.each))) out.push(`${name}: childSlots.${slot.field}.each must be a key name`);
-        // A server step is ONE step for the browser: children it walked itself would get ordinals nobody posts.
-        if (entry.side === 'server' && slot.walked !== false) out.push(`${name}: a server kind keeps its children (childSlots.${slot.field} needs walked: false)`);
-    }
+    const out = entry.childSlots.flatMap((slot) => oneSlotProblems(slot, entry, fields, name));
+    const declared = new Set(entry.childSlots.map((slot) => (isObject(slot) ? slot.field : null)));
     for (const [field, fs] of Object.entries(fields)) {
         if (isObject(fs) && fs.type === 'steps' && !declared.has(field)) out.push(`${name}: field "${field}" holds steps but is not in childSlots`);
     }
-    if (declared.has('onError') || declared.has('retry')) out.push(`${name}: onError and retry belong to the step envelope`);
     return out;
 }
 
