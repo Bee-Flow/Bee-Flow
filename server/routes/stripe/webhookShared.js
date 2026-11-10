@@ -10,6 +10,7 @@
  */
 
 const userStore = require('../../stores/userStore');
+const { assertStored } = require('../../stores/user/assertStored');
 
 // ═══════════════════════════════════════════
 //  Webhook Event Handlers
@@ -79,6 +80,21 @@ function holdDunningCap(updateData, current) {
     }
 }
 
+/**
+ * The plain (not override-aware) subscription write of a webhook handler. A
+ * write the database refuses throws, so webhook.js releases the event and
+ * Stripe delivers it again; a handler therefore does this write BEFORE its
+ * audit rows and mails, and a redelivery repeats nothing.
+ * @param {{ scope: string, id: string }} target
+ * @param {Record<string, unknown>} payload
+ */
+async function storeForTarget(target, payload) {
+    const stored = target.scope === 'organization'
+        ? await userStore.setOrgSubscription(target.id, payload)
+        : await userStore.setConsumerSubscription(target.id, payload);
+    assertStored(stored, `subscription of ${target.scope} ${target.id}`);
+}
+
 /** @param {string | null | undefined} stripeSubscriptionId */
 async function findSubscriptionTargetBySubId(stripeSubscriptionId) {
     if (!stripeSubscriptionId) return null;
@@ -108,6 +124,7 @@ module.exports = {
     verifyMetadataMatchesLocal,
     stripOverriddenFields,
     holdDunningCap,
+    storeForTarget,
     findSubscriptionTargetBySubId,
     findSubscriptionTargetByCustomerId,
 };

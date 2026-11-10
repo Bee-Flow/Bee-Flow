@@ -6,6 +6,7 @@ const { run, getOne, getAll } = require('../../db');
 const { initDB } = require('./schema');
 const { getOrgSubscription, setOrgSubscription, setConsumerSubscription, isManualOverrideActive } = require('./subscriptions');
 const { logSubscriptionAudit } = require('./audit');
+const { assertStored } = require('./assertStored');
 const billingPorts = require('./billingPorts');
 const log = require('../../telemetry/log');
 const { bestEffort } = require('../../utils/bestEffort');
@@ -386,48 +387,47 @@ async function downgradeOrgToFreePlan(orgId, { changedBy = 'system', reason = 'd
 // Stripe's own expiry semantics. Idempotent and safe to call from a tick.
 /**
  * @param {number} [thresholdDays]
+ * @returns {Promise<{ orgs: number, consumers: number, failed: number }>} the
+ *   rows cancelled per scope, and the rows whose write was refused (still
+ *   `incomplete`, so the next tick tries them again)
  */
 async function cancelStaleIncompleteSubscriptions(thresholdDays = 14) {
     await initDB();
     const cutoffIso = new Date(Date.now() - Math.max(0, Number(thresholdDays)) * 86400 * 1000).toISOString();
 
-    const orgs = await getAll(
-        `SELECT organization_id FROM organization_subscriptions
-          WHERE status = 'incomplete' AND created_at < $1`,
-        [cutoffIso]
-    );
-    for (const r of orgs) {
+    const orgs = await getAll(`SELECT organization_id AS id FROM organization_subscriptions WHERE status = 'incomplete' AND created_at < $1`, [cutoffIso]);
+    const consumers = await getAll(`SELECT user_id AS id FROM consumer_subscriptions WHERE status = 'incomplete' AND created_at < $1`, [cutoffIso]);
+    // setOrgSubscription / setConsumerSubscription validate the status and
+    // bust the PAYG cache; reused for consistency.
+    const o = await cancelStaleRows(orgs, 'organization', setOrgSubscription, thresholdDays);
+    const c = await cancelStaleRows(consumers, 'consumer', setConsumerSubscription, thresholdDays);
+    const failed = o.failed + c.failed;
+    if (failed > 0) log.error(`[UserStore] cancelStaleIncompleteSubscriptions: ${failed} subscription(s) could not be cancelled and stay incomplete`);
+    return { orgs: o.cancelled, consumers: c.cancelled, failed };
+}
+
+/**
+ * Cancel each row. A row whose write is refused is logged and counted, and
+ * the rows after it are still cancelled.
+ * @param {Array<{ id: string }>} rows
+ * @param {'organization' | 'consumer'} type
+ * @param {(id: string, data: Record<string, unknown>) => Promise<boolean>} set
+ * @param {number} thresholdDays
+ */
+async function cancelStaleRows(rows, type, set, thresholdDays) {
+    let cancelled = 0;
+    let failed = 0;
+    for (const r of rows) {
         try {
-            // setOrgSubscription validates status, audits via the column-update
-            // path, and busts the PAYG cache; reuse it for consistency.
-            await setOrgSubscription(r.organization_id, { status: 'cancelled', payment_status: 'failed' });
-            await logSubscriptionAudit(
-                'cancel_stale_incomplete', 'organization', r.organization_id, 'system', null,
-                { threshold_days: thresholdDays }
-            );
+            assertStored(await set(r.id, { status: 'cancelled', payment_status: 'failed' }), `stale incomplete subscription of ${type} ${r.id}`);
+            await logSubscriptionAudit('cancel_stale_incomplete', type, r.id, 'system', null, { threshold_days: thresholdDays });
+            cancelled++;
         } catch (e) {
-            log.error('[UserStore] cancelStaleIncompleteSubscriptions org error:', r.organization_id, /** @type {Error} */ (e).message);
+            failed++;
+            log.error(`[UserStore] cancelStaleIncompleteSubscriptions ${type} error:`, r.id, /** @type {Error} */ (e).message);
         }
     }
-
-    const consumers = await getAll(
-        `SELECT user_id FROM consumer_subscriptions
-          WHERE status = 'incomplete' AND created_at < $1`,
-        [cutoffIso]
-    );
-    for (const r of consumers) {
-        try {
-            await setConsumerSubscription(r.user_id, { status: 'cancelled', payment_status: 'failed' });
-            await logSubscriptionAudit(
-                'cancel_stale_incomplete', 'consumer', r.user_id, 'system', null,
-                { threshold_days: thresholdDays }
-            );
-        } catch (e) {
-            log.error('[UserStore] cancelStaleIncompleteSubscriptions consumer error:', r.user_id, /** @type {Error} */ (e).message);
-        }
-    }
-
-    return { orgs: orgs.length, consumers: consumers.length };
+    return { cancelled, failed };
 }
 
 module.exports = {

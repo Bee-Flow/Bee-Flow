@@ -11,8 +11,7 @@
  * Three seams, all on objects the product shares (testUtils/swaps.js): the
  * signature check of stripeService answers the event `deliver` was given, the
  * billing mails of utils/emailService are collected in `mails` instead of
- * sent, and `failWrites(/regex/)` makes the pool refuse the statements that
- * match, the way a database error would.
+ * sent, and the pool is `guardedPglitePool()`'s, which can refuse a write.
  */
 
 'use strict';
@@ -28,16 +27,21 @@ const TABLES = ['organization_subscriptions', 'consumer_subscriptions', 'subscri
  * @typedef {Record<string, unknown>} Row
  * @typedef {(sql: string | { text?: string }, params?: unknown[]) => Promise<unknown>} Query
  * @typedef {{ query: Query, connect: () => Promise<{ query: Query, release: () => void }> }} PoolSeam
+ * @typedef {{ test: (sql: string) => boolean }} Refusal  a RegExp, or anything that decides per statement
  */
 
-function stripeWebhookKit() {
-    const { pg, query, close: closePool } = usePglitePool();
+/**
+ * The real db.js pool on a fresh PGlite (testUtils/pglitePool.js), with one
+ * addition: `failWrites(/regex/)` makes it refuse every statement that
+ * matches (a RegExp, or any `{ test(sql) }`), the way a database error
+ * would, until `failWrites(null)`.
+ * `STATUS_WRITE` matches the row write of setOrgSubscription and
+ * setConsumerSubscription.
+ */
+function guardedPglitePool() {
+    const { pg, query, close } = usePglitePool();
     const pool = /** @type {PoolSeam} */ (/** @type {unknown} */ (require('../db').pool));
-    const stripeService = require('../services/stripeService');
-    const emailService = require('../utils/emailService');
-    const { swap, restore } = makeSwaps();
-
-    /** @type {RegExp | null} */
+    /** @type {Refusal | null} */
     let refused = null;
     /** @type {Query} */
     const guarded = async (sql, params) => {
@@ -47,6 +51,16 @@ function stripeWebhookKit() {
     };
     pool.query = guarded;
     pool.connect = async () => ({ query: guarded, release() {} });
+    return { pg, close, failWrites: (/** @type {Refusal | null} */ re) => { refused = re; } };
+}
+
+const STATUS_WRITE = /UPDATE "?(organization|consumer)_subscriptions"? SET "/;
+
+function stripeWebhookKit() {
+    const { pg, close: closePool, failWrites } = guardedPglitePool();
+    const stripeService = require('../services/stripeService');
+    const emailService = require('../utils/emailService');
+    const { swap, restore } = makeSwaps();
 
     /** @type {Row[]} */
     const mails = [];
@@ -85,8 +99,7 @@ function stripeWebhookKit() {
     return {
         pg, mails, deliver, swap,
         init: () => require('../stores/user/schema').initDB(),
-        /** Refuse every statement matching `re` until `failWrites(null)`. */
-        failWrites: (/** @type {RegExp | null} */ re) => { refused = re; },
+        failWrites,
         orgSub: rowOf('organization_subscriptions', 'organization_id'),
         consumerSub: rowOf('consumer_subscriptions', 'user_id'),
         /** The audit actions written for a target, sorted. */
@@ -94,7 +107,7 @@ function stripeWebhookKit() {
         /** Whether the ledger holds the event as processed. */
         processed: async (/** @type {string} */ eventId) => (await rows('SELECT 1 FROM stripe_processed_events WHERE event_id = $1', [eventId])).length > 0,
         async reset() {
-            refused = null;
+            failWrites(null);
             mails.length = 0;
             for (const t of TABLES) await pg.query(`DELETE FROM ${t}`);
         },
@@ -106,4 +119,4 @@ function stripeWebhookKit() {
     };
 }
 
-module.exports = { stripeWebhookKit };
+module.exports = { stripeWebhookKit, guardedPglitePool, STATUS_WRITE };

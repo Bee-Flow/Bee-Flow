@@ -10,6 +10,7 @@ const express = require('express');
 const userStore = require('../../stores/userStore');
 const { isNcOrg } = require('../../auth/ncAudience');
 const { getAdminId } = require('./shared');
+const { storedAfterStripe } = require('./storedWrites');
 const log = require('../../telemetry/log');
 const { HttpError } = require('../../core/http/errors');
 const { validate } = require('../../core/http/validate');
@@ -135,7 +136,7 @@ async function performOrgPlanChange(orgId, planId, adminId) {
 
         // Optimistic local mirror — the customer.subscription.updated webhook
         // will re-confirm shortly. Clear any pending-downgrade bookkeeping.
-        await userStore.setOrgSubscription(orgId, {
+        storedAfterStripe(await userStore.setOrgSubscription(orgId, {
             plan_id: newPlan.id,
             status: 'active',
             payment_status: 'paid',
@@ -146,7 +147,7 @@ async function performOrgPlanChange(orgId, planId, adminId) {
             ...(stripeSub.current_period_end
                 ? { current_period_end: new Date(stripeSub.current_period_end * 1000).toISOString() }
                 : {}),
-        });
+        }), 'upgrade', `organization ${orgId}`, sub.stripe_subscription_id);
 
         try {
             await require('../../services/planEntitlements').applyPlanToOrg(orgId, newPlan.id, { mode: 'reset' });
@@ -169,11 +170,11 @@ async function performOrgPlanChange(orgId, planId, adminId) {
         newPriceId: newPlan.stripe_price_id,
         quantity,
     });
-    await userStore.setOrgSubscription(orgId, {
+    storedAfterStripe(await userStore.setOrgSubscription(orgId, {
         pending_plan_id: newPlan.id,
         pending_plan_effective: result.effective,
         stripe_schedule_id: result.scheduleId,
-    });
+    }), 'schedule_downgrade', `organization ${orgId}`, sub.stripe_subscription_id);
     await userStore.logSubscriptionAudit(
         'downgrade_scheduled', 'organization', orgId, adminId,
         { plan_id: currentPlan.id },
@@ -248,7 +249,7 @@ router.post('/orgs/:orgId/cancel-downgrade', validate({ body: NoBody }), async (
     if (!sub) return res.status(404).json({ error: 'No subscription found' });
     if (!sub.pending_plan_id) return res.status(409).json({ error: 'no_pending_change', message: 'No scheduled change to cancel.' });
     if (sub.stripe_schedule_id) await stripeService.releaseSubscriptionSchedule(sub.stripe_schedule_id);
-    await userStore.setOrgSubscription(orgId, { pending_plan_id: null, pending_plan_effective: null, stripe_schedule_id: null });
+    storedAfterStripe(await userStore.setOrgSubscription(orgId, { pending_plan_id: null, pending_plan_effective: null, stripe_schedule_id: null }), 'cancel_downgrade', `organization ${orgId}`, sub.stripe_subscription_id);
     await userStore.logSubscriptionAudit(
         'downgrade_cancelled', 'organization', orgId, getAdminId(req),
         { pending_plan_id: sub.pending_plan_id }, null
@@ -268,15 +269,15 @@ router.post('/orgs/:orgId/cancel', validate({ body: NoBody }), async (/** @type 
     // refuses to cancel a schedule-governed subscription.
     if (sub.stripe_schedule_id) {
         await stripeService.releaseSubscriptionSchedule(sub.stripe_schedule_id);
-        await userStore.setOrgSubscription(orgId, { pending_plan_id: null, pending_plan_effective: null, stripe_schedule_id: null });
+        storedAfterStripe(await userStore.setOrgSubscription(orgId, { pending_plan_id: null, pending_plan_effective: null, stripe_schedule_id: null }), 'release_schedule', `organization ${orgId}`, sub.stripe_subscription_id);
     }
 
     const stripeSub = await stripeService.cancelSubscriptionAtPeriodEnd(sub.stripe_subscription_id);
-    await userStore.setOrgSubscription(orgId, {
+    storedAfterStripe(await userStore.setOrgSubscription(orgId, {
         cancel_at_period_end: true,
         cancel_at: stripeSub.cancel_at ? new Date(stripeSub.cancel_at * 1000).toISOString() : null,
         current_period_end: stripeSub.current_period_end ? new Date(stripeSub.current_period_end * 1000).toISOString() : null,
-    });
+    }), 'cancel', `organization ${orgId}`, sub.stripe_subscription_id);
     await userStore.logSubscriptionAudit(
         'cancel_subscription_scheduled', 'organization', orgId, getAdminId(req), null,
         { stripe_subscription_id: sub.stripe_subscription_id, cancel_at: stripeSub.cancel_at }
@@ -293,10 +294,10 @@ router.post('/orgs/:orgId/reactivate', validate({ body: NoBody }), async (/** @t
     if (!sub.cancel_at_period_end) return res.status(409).json({ error: 'not_scheduled', message: 'Subscription is not scheduled to cancel.' });
 
     await stripeService.reactivateSubscription(sub.stripe_subscription_id);
-    await userStore.setOrgSubscription(orgId, {
+    storedAfterStripe(await userStore.setOrgSubscription(orgId, {
         cancel_at_period_end: false,
         cancel_at: null,
-    });
+    }), 'reactivate', `organization ${orgId}`, sub.stripe_subscription_id);
     await userStore.logSubscriptionAudit(
         'cancel_subscription_undone', 'organization', orgId, getAdminId(req), null,
         { stripe_subscription_id: sub.stripe_subscription_id }
@@ -304,9 +305,8 @@ router.post('/orgs/:orgId/reactivate', validate({ body: NoBody }), async (/** @t
     res.json(await userStore.getOrgSubscription(orgId));
 });
 
-// Consumer (individual) lifecycle — mirror of the org trio.
-
 /**
+ * Consumer (individual) lifecycle: mirror of the org trio.
  * @param {string} userId
  * @param {string} planId
  * @param {string} actorId
@@ -350,14 +350,14 @@ async function performConsumerUpgrade(userId, planId, actorId) {
         throw e;
     }
 
-    await userStore.setConsumerSubscription(userId, {
+    storedAfterStripe(await userStore.setConsumerSubscription(userId, {
         plan_id: newPlan.id,
         status: 'active',
         payment_status: 'paid',
         ...(stripeSub.current_period_end
             ? { current_period_end: new Date(stripeSub.current_period_end * 1000).toISOString() }
             : {}),
-    });
+    }), 'upgrade', `consumer ${userId}`, sub.stripe_subscription_id);
 
     await userStore.logSubscriptionAudit(
         'upgrade_subscription', 'consumer', userId, actorId,
@@ -390,11 +390,11 @@ router.post('/consumer/:userId/cancel', validate({ body: NoBody }), async (/** @
     if (sub.cancel_at_period_end) return res.status(409).json({ error: 'already_scheduled', message: 'Cancellation already scheduled.' });
 
     const stripeSub = await stripeService.cancelSubscriptionAtPeriodEnd(sub.stripe_subscription_id);
-    await userStore.setConsumerSubscription(userId, {
+    storedAfterStripe(await userStore.setConsumerSubscription(userId, {
         cancel_at_period_end: true,
         cancel_at: stripeSub.cancel_at ? new Date(stripeSub.cancel_at * 1000).toISOString() : null,
         current_period_end: stripeSub.current_period_end ? new Date(stripeSub.current_period_end * 1000).toISOString() : null,
-    });
+    }), 'cancel', `consumer ${userId}`, sub.stripe_subscription_id);
     await userStore.logSubscriptionAudit(
         'cancel_subscription_scheduled', 'consumer', userId, getAdminId(req), null,
         { stripe_subscription_id: sub.stripe_subscription_id, cancel_at: stripeSub.cancel_at }
@@ -411,10 +411,10 @@ router.post('/consumer/:userId/reactivate', validate({ body: NoBody }), async (/
     if (!sub.cancel_at_period_end) return res.status(409).json({ error: 'not_scheduled', message: 'Subscription is not scheduled to cancel.' });
 
     await stripeService.reactivateSubscription(sub.stripe_subscription_id);
-    await userStore.setConsumerSubscription(userId, {
+    storedAfterStripe(await userStore.setConsumerSubscription(userId, {
         cancel_at_period_end: false,
         cancel_at: null,
-    });
+    }), 'reactivate', `consumer ${userId}`, sub.stripe_subscription_id);
     await userStore.logSubscriptionAudit(
         'cancel_subscription_undone', 'consumer', userId, getAdminId(req), null,
         { stripe_subscription_id: sub.stripe_subscription_id }
