@@ -95,6 +95,9 @@ function cleanProps(node, spec, id, path, push) {
     for (const [key, fs] of Object.entries(spec.props)) {
         if (key in provided) {
             props[key] = cleanPropValue(fs, provided[key], `${path}.props.${key}`, push);
+        } else if (fs.since) {
+            // A prop added after schema 2 is emitted only when the author set it:
+            // no stored definition gains a key it never had.
         } else {
             props[key] = deepCopy(fs.default === undefined ? null : fs.default);
             filled.push(key);

@@ -45,10 +45,11 @@ const {
     SCREEN_SPEC,
 } = specs;
 
-/** The spec's per-prop defaults — exactly what canonicalize fills in. */
+/** The spec's per-prop defaults — exactly what canonicalize fills in (a `since` prop is never filled). */
 function specDefaultProps(spec) {
     const out = {};
     for (const [key, fs] of Object.entries(spec.props || {})) {
+        if (fs.since) continue;
         out[key] = fs.default === undefined ? null : fs.default;
     }
     return out;

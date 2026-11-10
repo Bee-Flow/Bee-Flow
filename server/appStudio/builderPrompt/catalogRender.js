@@ -152,7 +152,8 @@ function renderComponent(type) {
         spec.events && spec.events.length ? `events: ${spec.events.join(', ')}` : null,
     ].filter(Boolean).join(' · ');
     const lines = [`${type} [${spec.category}]${flags ? ` — ${flags}` : ''} — ${spec.description}`];
-    const props = Object.entries(spec.props);
+    // since>=3 props stay out of the byte-pinned text (served on demand later).
+    const props = Object.entries(spec.props).filter(([, fs]) => !fs.since);
     if (props.length) {
         lines.push(`  props: ${props.map(([k, fs]) => renderPropSpec(k, fs)).join('; ')}`);
     }
@@ -557,7 +558,7 @@ function compactPropType(fs) {
  * VALUES are what a small model cannot guess.
  */
 function pickCompactProps(spec) {
-    const all = Object.entries(spec.props || {});
+    const all = Object.entries(spec.props || {}).filter(([, fs]) => !fs.since);
     const wanted = new Set(COMPACT_KEY_PROP_NAMES);
     const picked = all.filter(([k, fs]) => fs.required || fs.type === 'binding' || wanted.has(k));
     return { picked: picked.slice(0, COMPACT_MAX_PROPS), total: all.length };

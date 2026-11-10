@@ -1,0 +1,10 @@
+{
+  "translations": {
+    "studio_apps_validate.form.on_blur": "Bij het verlaten van een veld",
+    "studio_apps_validate.form.on_change": "Tijdens het typen",
+    "studio_apps_validate.form.on_submit": "Bij het verzenden",
+    "studio_apps_validate.form.validate_on": "Veldfouten tonen",
+    "studio_apps_validate.form.validate_on_hint": "Wanneer een veld wordt gecontroleerd: alleen bij het verzenden (standaard), bij het verlaten van het veld of bij elke wijziging."
+  },
+  "sameAsEnglish": []
+}
