@@ -224,10 +224,10 @@ export default function AppInputFile({ node }: NodeProps<InputFileProps>) {
     };
 
     return (
-        <Field id={id} label={label} required={required} error={error || uploadError}>
+        <Field part="input_file" id={id} label={label} required={required} error={error || uploadError}>
             <div className="flex flex-col gap-2">
                 <label
-                    className="relative inline-flex w-fit items-center gap-2 px-3 py-1.5 text-sm cursor-pointer border focus-within:outline focus-within:outline-2 focus-within:outline-offset-1 focus-within:outline-[var(--text-secondary)]"
+                    className="relative inline-flex w-fit items-center gap-2 px-3 py-1.5 text-sm cursor-pointer border focus-within:outline focus-within:outline-2 focus-within:outline-offset-1 focus-within:outline-[var(--text-secondary)] bfa-input_file__button"
                     style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)', borderRadius: 'var(--app-radius)', color: 'var(--text-primary)', opacity: canUpload || mode !== 'run' ? undefined : 0.6 }}
                 >
                     {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" /> : <Paperclip className="w-3.5 h-3.5" aria-hidden="true" />}
@@ -266,7 +266,7 @@ export default function AppInputFile({ node }: NodeProps<InputFileProps>) {
                     />
                 </label>
                 {entries.length ? (
-                    <ul className="flex flex-col gap-2" data-preview-version={previewVersion}>
+                    <ul className="flex flex-col gap-2 bfa-input_file__items" data-preview-version={previewVersion}>
                         {entries.map((entry, i) => {
                             const href = entryHref(entry, appId);
                             const display = entryName(entry);
@@ -281,7 +281,7 @@ export default function AppInputFile({ node }: NodeProps<InputFileProps>) {
                             return (
                                 <li
                                     key={`${typeof entry === 'object' ? entry.fileId : entry}-${i}`}
-                                    className="flex items-center gap-2 p-1.5 text-xs border [background:var(--bg-tertiary)] [border-color:var(--border-default)] [border-radius:var(--app-radius)]"
+                                    className="flex items-center gap-2 p-1.5 text-xs border [background:var(--bg-tertiary)] [border-color:var(--border-default)] [border-radius:var(--app-radius)] bfa-input_file__item"
                                 >
                                     {src ? (
                                         <img
@@ -307,7 +307,7 @@ export default function AppInputFile({ node }: NodeProps<InputFileProps>) {
                                         type="button"
                                         onClick={() => removeAt(i)}
                                         aria-label={t('studio_apps_runtime.inputs.file_remove', 'Remove {name}', { name: display })}
-                                        className="ml-auto shrink-0 [color:var(--text-muted)]"
+                                        className="ml-auto shrink-0 [color:var(--text-muted)] bfa-input_file__remove"
                                     >
                                         <X className="w-3.5 h-3.5" aria-hidden="true" />
                                     </button>

@@ -87,7 +87,7 @@ export default function AppInputSelect({ node }: NodeProps<InputSelectProps>) {
     // rewrite the record's own value.
     const unlisted = !hasOption(opts, value) && value != null && value !== '';
     return (
-        <Field id={id} label={label} required={required} error={error}>
+        <Field part="input_select" id={id} label={label} required={required} error={error}>
             <select
                 id={id}
                 name={name}
@@ -96,7 +96,7 @@ export default function AppInputSelect({ node }: NodeProps<InputSelectProps>) {
                 aria-invalid={error ? true : undefined}
                 aria-describedby={error ? `${id}-error` : undefined}
                 onChange={(e) => { setValue(e.target.value); fireChange(e.target.value); }}
-                className={INPUT_CLASS}
+                className={`${INPUT_CLASS} bfa-input_select__control`}
                 style={inputStyle(error)}
             >
                 <option value="" disabled={required}>

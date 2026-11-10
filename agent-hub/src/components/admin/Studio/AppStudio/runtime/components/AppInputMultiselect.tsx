@@ -69,14 +69,14 @@ export default function AppInputMultiselect({ node }: NodeProps<InputMultiselect
     const remove = (v: string) => commit(selected.filter((x) => !same(x, v)));
 
     return (
-        <Field id={id} label={label} required={required} error={error}>
+        <Field part="input_multiselect" id={id} label={label} required={required} error={error}>
             <div className="flex flex-col gap-2">
                 {selected.length ? (
-                    <ul className="flex flex-wrap gap-1.5" aria-label={`${label} selected`}>
+                    <ul className="flex flex-wrap gap-1.5 bfa-input_multiselect__chips" aria-label={`${label} selected`}>
                         {selected.map((v) => (
                             <li
                                 key={v}
-                                className="inline-flex items-center gap-1 pl-2 pr-1 py-0.5 text-xs font-medium [background:var(--app-primary-soft)] [color:var(--app-primary)]! [border-radius:var(--app-radius)]"
+                                className="inline-flex items-center gap-1 pl-2 pr-1 py-0.5 text-xs font-medium [background:var(--app-primary-soft)] [color:var(--app-primary)]! [border-radius:var(--app-radius)] bfa-input_multiselect__chip"
                             >
                                 {labelFor(v)}
                                 <button type="button" onClick={() => remove(v)} aria-label={`Remove ${labelFor(v)}`} className="[color:inherit]">
@@ -94,7 +94,7 @@ export default function AppInputMultiselect({ node }: NodeProps<InputMultiselect
                     aria-invalid={error ? true : undefined}
                     aria-describedby={error ? `${id}-error` : undefined}
                     onChange={(e) => { add(e.target.value); e.target.value = ''; }}
-                    className={INPUT_CLASS}
+                    className={`${INPUT_CLASS} bfa-input_multiselect__control`}
                     style={inputStyle(error)}
                     disabled={available.length === 0}
                 >

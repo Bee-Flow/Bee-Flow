@@ -212,7 +212,7 @@ export default function AppInputHtml({ node }: NodeProps<InputHtmlProps>) {
             // Mousedown, not click: by click time the selection is already gone,
             // so Bold would have nothing to embolden.
             onMouseDown={(e) => { e.preventDefault(); onClick(); }}
-            className="inline-flex items-center justify-center w-7 h-7 [color:var(--text-secondary)] [border-radius:var(--app-radius)]"
+            className="inline-flex items-center justify-center w-7 h-7 [color:var(--text-secondary)] [border-radius:var(--app-radius)] bfa-input_html__tool"
         >
             <Icon className="w-3.5 h-3.5" aria-hidden="true" />
         </button>
@@ -226,7 +226,7 @@ export default function AppInputHtml({ node }: NodeProps<InputHtmlProps>) {
             defaultValue=""
             onMouseDown={(e) => e.stopPropagation()}
             onChange={(e) => { const v = e.target.value; e.target.value = ''; if (v) onPick(v); }}
-            className="h-7 px-1 text-xs outline-none [background:transparent] [color:var(--text-secondary)]! [border-radius:var(--app-radius)]"
+            className="h-7 px-1 text-xs outline-none [background:transparent] [color:var(--text-secondary)]! [border-radius:var(--app-radius)] bfa-input_html__tool"
         >
             <option value="">{title}</option>
             {options.map(([labelText, v]) => <option key={v} value={v}>{labelText}</option>)}
@@ -234,9 +234,9 @@ export default function AppInputHtml({ node }: NodeProps<InputHtmlProps>) {
     );
 
     return (
-        <Field id={id} label={label} required={required} error={error}>
+        <Field part="input_html" id={id} label={label} required={required} error={error}>
             <div
-                className="flex flex-col border overflow-hidden"
+                className="flex flex-col border overflow-hidden bfa-input_html__frame"
                 style={{ borderColor: error ? 'var(--error)' : 'var(--border-default)', borderRadius: 'var(--app-radius)', background: 'var(--bg-primary)' }}
             >
                 <AppInputHtmlSection2 t={t} btn={btn} exec={exec} setLinking={setLinking} allowImages={allowImages} pickImage={() => fileRef.current?.click()} select={select} SIZES={SIZES} COLORS={COLORS} />
@@ -299,7 +299,7 @@ export default function AppInputHtml({ node }: NodeProps<InputHtmlProps>) {
 
 function AppInputHtmlSection2({ t, btn, exec, setLinking, allowImages, pickImage, select, SIZES, COLORS }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; btn: (key: string, Icon: LucideIcon, onClick: () => void, title: string) => JSX.Element; exec: (cmd: string, arg?: string) => void; setLinking: Dispatch<SetStateAction<boolean>>; allowImages: boolean; pickImage: () => void; select: (key: string, title: string, options: string[][], onPick: (v: string) => void) => JSX.Element; SIZES: string[][]; COLORS: string[][]; }) {
     return <div
-        className="flex items-center flex-wrap gap-0.5 px-1.5 py-1 border-b [border-color:var(--border-default)]! [background:var(--bg-tertiary)]"
+        className="flex items-center flex-wrap gap-0.5 px-1.5 py-1 border-b [border-color:var(--border-default)]! [background:var(--bg-tertiary)] bfa-input_html__toolbar"
         role="toolbar"
         aria-label={t('studio_apps_runtime.rich_text.formatting', 'Formatting')}
     >
@@ -334,6 +334,6 @@ function AppInputHtmlSection({ boxRef, id, label, required, error, placeholder, 
         onInput={commit}
         onBlur={commit}
         onPaste={onPaste}
-        className="app-richtext w-full px-2.5 py-2 text-sm outline-none overflow-auto"
+        className="app-richtext w-full px-2.5 py-2 text-sm outline-none overflow-auto bfa-input_html__editor"
         style={{ color: 'var(--text-primary)', minHeight: `${Math.max(3, Math.min(30, minRows)) * 1.5}rem` }} />;
 }

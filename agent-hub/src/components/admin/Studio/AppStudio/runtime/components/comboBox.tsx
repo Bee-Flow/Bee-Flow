@@ -48,6 +48,8 @@ interface ComboBoxProps {
     renderOption?: ((option: ComboOption) => ReactNode) | null;
     renderChip?: ((option: ComboOption) => ReactNode) | null;
     pinned?: ComboOption | null;
+    /** Component type whose part classes (`bfa-<part>__chips|chip|control|menu|option`) this picker carries. */
+    part?: string;
 }
 
 /** Fetching needs a react-query provider; previews and the screenshot renderer have none. */
@@ -87,9 +89,10 @@ export default function ComboBox({
     isLoading = false, loadError = null,
     emptyText = null, disabledText = null,
     renderOption = null, renderChip = null,
-    pinned = null,
+    pinned = null, part,
 }: ComboBoxProps) {
     const { t } = useTranslation();
+    const pc = (name: string) => (part ? ` bfa-${part}__${name}` : '');
     const placeholderText = placeholder ?? t('studio_apps_runtime.inputs.combo_search', 'Search…');
     const emptyMessage = emptyText ?? t('studio_apps_runtime.inputs.combo_no_matches', 'No matches.');
     const [query, setQuery] = useState('');
@@ -145,14 +148,14 @@ export default function ComboBox({
     };
 
     return (
-        <Field id={id} label={label} required={required} error={error}>
+        <Field part={part} id={id} label={label} required={required} error={error}>
             <div className="flex flex-col gap-2">
                 {selectedIds.length ? (
-                    <ul className="flex flex-wrap gap-1.5" aria-label={`${label} selected`}>
+                    <ul className={`flex flex-wrap gap-1.5${pc('chips')}`} aria-label={`${label} selected`}>
                         {selectedIds.map((cid) => (
                             <li
                                 key={cid}
-                                className="inline-flex items-center gap-1 pl-2 pr-1 py-0.5 text-xs font-medium [background:var(--app-primary-soft)] [color:var(--app-primary)]! [border-radius:var(--app-radius)]"
+                                className={`inline-flex items-center gap-1 pl-2 pr-1 py-0.5 text-xs font-medium [background:var(--app-primary-soft)] [color:var(--app-primary)]! [border-radius:var(--app-radius)]${pc('chip')}`}
                             >
                                 {renderChip ? renderChip(byId.get(cid) || { id: cid, label: labelFor(cid) }) : labelFor(cid)}
                                 <button type="button" onClick={() => onRemove(cid)} aria-label={`Remove ${labelFor(cid)}`} className="[color:inherit]">
@@ -184,13 +187,13 @@ export default function ComboBox({
                         onBlur={() => setTimeout(() => setOpen(false), 150)}
                         onChange={(e) => { setQuery(e.target.value); setOpen(true); setActiveIndex(-1); }}
                         onKeyDown={onKeyDown}
-                        className={`${INPUT_CLASS} pr-7`}
+                        className={`${INPUT_CLASS} pr-7${pc('control')}`}
                         style={inputStyle(error)}
                     />
                     <ChevronDown className="w-4 h-4 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--text-muted)]" aria-hidden="true" />
                     {open ? (
                         <div
-                            className="absolute z-20 left-0 right-0 top-full mt-1 max-h-48 overflow-y-auto border shadow-lg [background:var(--bg-card)] [border-color:var(--border-default)] [border-radius:var(--app-radius)]"
+                            className={`absolute z-20 left-0 right-0 top-full mt-1 max-h-48 overflow-y-auto border shadow-lg [background:var(--bg-card)] [border-color:var(--border-default)] [border-radius:var(--app-radius)]${pc('menu')}`}
                             role="listbox"
                             id={`${id}-listbox`}
                         >
@@ -220,7 +223,7 @@ export default function ComboBox({
                                         // close the list before the pick lands.
                                         onMouseDown={(e) => { e.preventDefault(); pick(c.id); }}
                                         onMouseEnter={() => setActiveIndex(i)}
-                                        className="w-full text-left px-2.5 py-1.5 text-sm hover:bg-[var(--bg-tertiary)]"
+                                        className={`w-full text-left px-2.5 py-1.5 text-sm hover:bg-[var(--bg-tertiary)]${pc('option')}`}
                                         style={{
                                             color: 'var(--text-primary)',
                                             background: i === activeIndex ? 'var(--bg-tertiary)' : undefined,

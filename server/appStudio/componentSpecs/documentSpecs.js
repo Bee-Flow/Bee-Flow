@@ -43,6 +43,7 @@ const DOCUMENT_SPECS = {
         defaultStyle: { span: 12, height: 'xl' },
     },
     input_document: {
+        parts: ['root', 'label', 'chips', 'chip', 'control', 'menu', 'option', 'error'],
         label: 'Document picker', category: 'Input', isInput: true,
         description: 'Pick a Studio document. Offers documentIds and/or folderId (the owner\'s), narrowed by kind; submits its id.',
         props: {

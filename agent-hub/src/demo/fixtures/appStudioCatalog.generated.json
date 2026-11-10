@@ -744,6 +744,12 @@
             }
         },
         "filter_bar": {
+            "parts": [
+                "root",
+                "field",
+                "label",
+                "control"
+            ],
             "label": "Filter bar",
             "category": "Data",
             "description": "A row of filter controls (search, select, toggle, date). Each control writes vars.filters.<name>, for use in records-binding filter formulas.",
@@ -2348,6 +2354,14 @@
             }
         },
         "form": {
+            "parts": [
+                "root",
+                "body",
+                "error",
+                "actions",
+                "submit",
+                "reset"
+            ],
             "label": "Form",
             "category": "Input",
             "description": "Groups inputs and submits them to an action. Renders one built-in submit button; set showSubmit false for a form whose fields save on change.",
@@ -2394,6 +2408,12 @@
             }
         },
         "input_text": {
+            "parts": [
+                "root",
+                "label",
+                "control",
+                "error"
+            ],
             "label": "Text input",
             "category": "Input",
             "isInput": true,
@@ -2451,6 +2471,12 @@
             }
         },
         "input_select": {
+            "parts": [
+                "root",
+                "label",
+                "control",
+                "error"
+            ],
             "label": "Select",
             "category": "Input",
             "isInput": true,
