@@ -116,11 +116,6 @@ if (stored && !process.env.BEEFLOW_NC_PUBLIC_URL && stored.publicNcUrl) {
 }
 app.use('/setup', require('./setup'));
 
-// NC admin settings panel (Cloud vs self-hosted) — poll for changes every
-// 60s and apply to the live config. Started on every boot rather than only
-// on /init, since NC only calls /init on install/upgrade.
-require('./declarativeSettings').startPolling();
-
 registerLifecycle(app);
 
 // POST /trigger — Nextcloud calls this (AppAPI's ITriggerableProvider shim,
@@ -376,6 +371,12 @@ const { bootstrapIfNeeded } = require('./bootstrap');
 bootstrapIfNeeded().catch(err => {
     log.error(`[Bootstrap] Failed: ${errMessage(err)}. Will retry on /init.`);
 });
+
+// NC admin settings panel (Cloud vs self-hosted) — poll for changes every
+// 60s and apply to the live config. Started on every boot rather than only
+// on /init, since NC only calls /init on install/upgrade. Its first read
+// follows the bootstrap above.
+require('./declarativeSettings').startPolling();
 
 // HaRP-compatible: when HP_SHARED_KEY is set (HaRP daemon mode), bind to a
 // Unix domain socket that frpc tunnels back to HaRP. Otherwise bind TCP for

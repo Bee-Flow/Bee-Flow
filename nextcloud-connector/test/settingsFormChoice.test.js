@@ -3,9 +3,10 @@
 //
 // The form does not choose by itself. Its default is "No change". While no
 // server is chosen, the values Nextcloud holds at the first poll after a start
-// are only noted; a value counts as a choice once it is changed after that. A
-// first choice asks the address for /api/health before anything is saved or
-// sent.
+// are only noted; the form counts as a choice once it names another server,
+// and a noted server stays without effect after a choice on the setup page and
+// after a restart. A first choice asks the address for /api/health before
+// anything is saved or sent.
 //
 // The poll, the bootstrap and the setup route run for real; only the network
 // is replaced.
@@ -46,6 +47,11 @@ function start(files = {}) {
     setupConfig.clear();
     for (const name of fs.readdirSync(storage)) fs.rmSync(path.join(storage, name), { force: true });
     for (const [name, content] of Object.entries(files)) fs.writeFileSync(path.join(storage, name), JSON.stringify(content));
+    return restart();
+}
+
+/** The same volume, a new process: only what is on disk carries over. */
+function restart() {
     const choice = serverChoice.applyAtBoot(config, setupConfig.init(storage));
     config.organizationId = null;
     config.organizationName = null;
@@ -53,6 +59,12 @@ function start(files = {}) {
     config.pairingCode = null;
     declarativeSettings._resetForTests();
     return choice;
+}
+
+/** What POST /setup does with a choice that passed its checks. */
+async function chooseOnSetupPage(mode, apiBaseUrl) {
+    const saved = setupConfig.save({ mode, apiBaseUrl, embedBaseUrl: null });
+    await bootstrap.invalidateAndRebootstrap({ apiBaseUrl: saved.apiBaseUrl });
 }
 
 /**
@@ -266,6 +278,155 @@ test('an install that is connected follows the form as before, without a questio
         assert.equal(config.tenantKey, 'own-key');
         assert.equal(world.count((c) => c.url === `${OWN}/api/health`), 0);
     } finally {
+        world.restore();
+    }
+});
+
+const OWN_FORM_WITH_WEB = [...OWN_FORM, { configkey: 'web_app_url', configvalue: 'https://app.bee-flow.example' }];
+
+for (const [what, values, mode, chosen, key, noted] of [
+    ['Bee Flow Cloud', CLOUD_FORM, 'self-hosted', OWN, 'own-key', CLOUD],
+    ['an own server', OWN_FORM_WITH_WEB, 'cloud', CLOUD, 'cloud-key', OWN],
+]) {
+    test(`the form holds ${what}, another server is chosen on the setup page: after a restart the form value is still not a choice`, async () => {
+        assert.equal(start().source, 'none');
+        const world = worldWith({ [CLOUD]: BINDS('cloud-key'), [OWN]: BINDS('own-key') }, { values });
+        try {
+            await poll(); // noted
+            assert.deepEqual(fs.readdirSync(storage), [], 'noting writes no file while no server is chosen');
+            await chooseOnSetupPage(mode, chosen);
+            assert.equal(config.tenantKey, key);
+            for (let i = 0; i < 2; i++) await poll();
+
+            for (let round = 0; round < 2; round++) {
+                assert.equal(restart().source, 'binding');
+                await bootstrap.bootstrapIfNeeded();
+                for (let i = 0; i < 3; i++) await poll();
+            }
+
+            assert.deepEqual(outsideNextcloud(world).filter((c) => c.includes(noted)), [], 'nothing went to the server the form names');
+            assert.equal(world.count((c) => c.url.endsWith('/auth/connector/bootstrap')), 1, 'one bootstrap: the choice on the setup page');
+            assert.equal(adminReads(world), 1, 'the administrators were read for that one bootstrap');
+            assert.equal(config.apiBaseUrl, chosen);
+            assert.equal(config.tenantKey, key);
+            assert.equal(setupConfig.get()?.apiBaseUrl, chosen);
+            assert.equal(setupConfig.get()?.embedBaseUrl, undefined);
+        } finally {
+            world.restore();
+        }
+    });
+}
+
+test('a noted own server that is then chosen on the setup page: the form\'s web app address stays without effect, also after a restart', async () => {
+    start();
+    const world = worldWith({ [OWN]: BINDS('own-key') }, { values: OWN_FORM_WITH_WEB });
+    try {
+        await poll();
+        await chooseOnSetupPage('self-hosted', OWN);
+        await poll();
+        restart();
+        await bootstrap.bootstrapIfNeeded();
+        for (let i = 0; i < 3; i++) await poll();
+        assert.equal(config.apiBaseUrl, OWN);
+        assert.equal(setupConfig.get()?.embedBaseUrl, undefined, 'the shell host is the one chosen on the setup page');
+        assert.equal(world.count((c) => c.url === `${OWN}/auth/connector/bootstrap`), 1);
+    } finally {
+        world.restore();
+    }
+});
+
+test('after a restart the form is followed again once it names another server', async () => {
+    start();
+    const form = { values: OWN_FORM };
+    const world = worldWith({ [CLOUD]: BINDS('cloud-key'), [OWN]: BINDS('own-key') }, form);
+    try {
+        await poll(); // notes the own server
+        await chooseOnSetupPage('cloud', CLOUD);
+        restart();
+        await bootstrap.bootstrapIfNeeded();
+        await poll();
+        assert.equal(config.apiBaseUrl, CLOUD);
+
+        form.values = KEEP_FORM; // the administrator opens the form and sets "No change"
+        await poll();
+        assert.equal(config.apiBaseUrl, CLOUD);
+        form.values = OWN_FORM; // and later picks the own server
+        await poll();
+        assert.equal(config.apiBaseUrl, OWN);
+        assert.equal(config.tenantKey, 'own-key');
+
+        // That choice holds across the next start.
+        assert.equal(restart().url, OWN);
+        await bootstrap.bootstrapIfNeeded();
+        await poll();
+        assert.equal(config.apiBaseUrl, OWN);
+        assert.equal(world.count((c) => c.url === `${OWN}/auth/connector/bootstrap`), 1);
+    } finally {
+        world.restore();
+    }
+});
+
+test('an address typed next to a noted "Bee Flow Cloud" does not make Cloud the choice', async () => {
+    start();
+    const form = { values: CLOUD_FORM };
+    const world = worldWith({ [CLOUD]: BINDS('cloud-key'), [OWN]: BINDS('own-key') }, form);
+    try {
+        await poll(); // noted
+        // The address field is saved first; the radio still holds the noted value.
+        form.values = [...CLOUD_FORM, { configkey: 'api_base_url', configvalue: OWN }];
+        for (let i = 0; i < 3; i++) await poll();
+        assert.deepEqual(outsideNextcloud(world), [], 'nothing is asked or sent');
+        assert.equal(config.apiBaseUrl, null);
+        assert.deepEqual(fs.readdirSync(storage), []);
+
+        form.values = OWN_FORM; // then the radio
+        await poll();
+        assert.equal(config.apiBaseUrl, OWN);
+        assert.deepEqual(outsideNextcloud(world).filter((c) => c.includes(CLOUD)), []);
+    } finally {
+        world.restore();
+    }
+});
+
+test('the same edit on an install connected through the setup page leaves it where it is', async () => {
+    start();
+    const form = { values: CLOUD_FORM };
+    const world = worldWith({ [CLOUD]: BINDS('cloud-key'), [OWN]: BINDS('own-key') }, form);
+    try {
+        await poll();
+        await chooseOnSetupPage('self-hosted', OWN);
+        form.values = [...CLOUD_FORM, { configkey: 'api_base_url', configvalue: 'https://other.example' }];
+        for (let i = 0; i < 3; i++) await poll();
+        assert.equal(config.apiBaseUrl, OWN);
+        assert.equal(config.tenantKey, 'own-key');
+        assert.deepEqual(outsideNextcloud(world).filter((c) => !c.includes(OWN)), []);
+    } finally {
+        world.restore();
+    }
+});
+
+test('the first read of the form at a start follows the bootstrap of that start: a switch that does not bind leaves the key in use', async () => {
+    assert.equal(start({
+        'tenant-key.json': { tenantKey: 'own-key', organizationId: 'org-own', ncInstanceId: 'inst-1', boundApiBaseUrl: OWN },
+    }).source, 'binding');
+    const world = worldWith({
+        [OWN]: BINDS('own-key-2'),
+        [CLOUD]: { ...HEALTHY, 'POST /auth/connector/bootstrap': () => new Response('{"error":"no"}', { status: 400 }) },
+    }, { values: CLOUD_FORM });
+    try {
+        // The order of src/server.js.
+        const boot = bootstrap.bootstrapIfNeeded();
+        const firstRead = declarativeSettings.startPolling();
+        await Promise.all([boot, firstRead]);
+        declarativeSettings.stopPolling();
+
+        assert.equal(world.count((c) => c.url === `${CLOUD}/auth/connector/bootstrap`), 1, 'the switch was tried');
+        assert.equal(world.count((c) => c.url === `${OWN}/auth/connector/bootstrap`), 0, 'no new bootstrap at the bound server');
+        assert.equal(config.apiBaseUrl, OWN);
+        assert.equal(config.tenantKey, 'own-key');
+        assert.equal(JSON.parse(fs.readFileSync(path.join(storage, 'tenant-key.json'), 'utf8')).tenantKey, 'own-key');
+    } finally {
+        declarativeSettings.stopPolling();
         world.restore();
     }
 });

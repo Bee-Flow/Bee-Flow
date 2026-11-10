@@ -14,10 +14,14 @@
  * the new SaaS target.
  *
  * The form never makes the choice of a server by itself. Its default is
- * "No change", and while no server is chosen the values found at the first
- * poll after a start are only noted: a value counts as a choice once it is
- * changed after that. A first choice asks the address for /api/health before
- * anything is saved or sent, like the setup page does.
+ * "No change", and while no server is chosen the server the form names at the
+ * first poll after a start is only noted: it counts as a choice once the form
+ * names another one. A noted server stays without effect after a choice on the
+ * setup page and across restarts (it is kept in setup-config.json next to that
+ * choice). What is compared is the server the form resolves to, so an edit to a
+ * field that does not change that server is not a choice either. A first
+ * choice asks the address for /api/health before anything is saved or sent,
+ * like the setup page does.
  */
 
 const config = require('./config');
@@ -186,12 +190,13 @@ let _lastApplied = null;
 
 let _envPinLogged = false;
 
-// The baseline of an install without a server. `undefined`: no poll ran yet.
-// A string: the server fields of the form as they were at the first poll
-// after this start; they are not a choice until they change. `null`: no
-// baseline (a server was known at the first poll, or the fields changed since).
+// The server the form names without it being a choice. `undefined`: no poll
+// read the form yet. A string: the server the form named at the first poll of
+// a start without a server ('' when it named none), or the one setup-config.json
+// keeps from such a start; it is not a choice until the form names another.
+// `null`: nothing is noted, the form is followed.
 /** @type {string | null | undefined} */
-let _baseline;
+let _noted;
 /** @type {boolean | undefined} */
 let _baselineWanted;
 
@@ -201,12 +206,39 @@ let _baselineWanted;
 let _probeFailureLogged = null;
 
 /**
- * The fields of the form that name a server, as stored.
- * @param {StoredValues} values
- * @returns {string}
+ * Is the server the form names (`target`, null for none) only noted? Decides
+ * it at the first read after a start, and lifts it once the form names
+ * another server.
+ * @param {string | null} target
+ * @returns {boolean}
  */
-function _serverFields(values) {
-    return `${values[FIELD_MODE] || ''}|${(values[FIELD_URL] || '').trim()}`;
+function _isNoted(target) {
+    const named = (target || '').replace(/\/+$/, '');
+    if (_noted === undefined) {
+        if (_baselineWanted) {
+            // No server chosen at this start: whatever the form names now is
+            // noted, and kept for the starts after a choice on the setup page.
+            _noted = named;
+            _keepNoted(named || null);
+            log.info('[Settings] no Bee Flow server is chosen; the values in the settings form count as a choice once they are changed.');
+            return true;
+        }
+        _noted = setupConfig.notedFormTarget();
+    }
+    if (_noted === null) return false;
+    if (named === _noted) return true;
+    _noted = null;
+    _keepNoted(null);
+    return false;
+}
+
+/** @param {string | null} target */
+function _keepNoted(target) {
+    try {
+        setupConfig.noteFormTarget(target);
+    } catch (err) {
+        log.warn(`[Settings] the noted form value was not saved: ${errMessage(err)}`);
+    }
 }
 
 async function applyStoredValuesIfChanged() {
@@ -238,24 +270,13 @@ async function applyStoredValuesIfChanged() {
         log.warn(`[Settings] poll failed (non-fatal): ${errMessage(err)}`);
         return;
     }
-    // No server chosen at the first poll after a start: what the form holds
-    // at that moment is noted, not acted on. Only a change made after that is
-    // a choice, and the noted values stay without effect until then, also once
-    // a server is chosen on the setup page.
-    const serverFields = _serverFields(values);
-    if (_baseline === undefined) {
-        _baseline = _baselineWanted ? serverFields : null;
-        if (_baseline !== null) {
-            log.info('[Settings] no Bee Flow server is chosen; the values in the settings form count as a choice once they are changed.');
-            return;
-        }
-    }
-    if (_baseline !== null) {
-        if (serverFields === _baseline) return;
-        _baseline = null;
-    }
-
+    // No server chosen at the first poll after a start: the server the form
+    // names at that moment is noted, not acted on. Only when the form names
+    // another server is that a choice; the noted one stays without effect
+    // until then, also once a server is chosen on the setup page and after a
+    // restart.
     const target = _resolveTargetUrl(values);
+    if (_isNoted(target)) return;
     if (!target) return; // "No change", or self-hosted with an empty URL — no-op
 
     const webUrl = _resolveWebUrl(values);
@@ -333,15 +354,25 @@ async function applyStoredValuesIfChanged() {
 /** @type {NodeJS.Timeout | null} */
 let _pollTimer = null;
 
+/**
+ * Start the poll. The first read does not wait a full interval, so a value
+ * set in Nextcloud while the connector was down is honoured at once. It does
+ * wait for the bootstrap of this start: a switch then begins from the binding
+ * the install holds (its key loaded from disk), which is what the switch signs
+ * with and what it goes back to when the new server does not bind.
+ * @returns {Promise<void>} settles when that first read has been applied
+ */
 function startPolling() {
-    if (_pollTimer) return;
-    // Read once immediately so a value set in NC before the connector
-    // started is honoured without waiting a full poll interval.
-    applyStoredValuesIfChanged().catch(() => {});
+    if (_pollTimer) return Promise.resolve();
+    const first = require('./bootstrap').bootstrapIfNeeded()
+        .catch(() => {}) // reported and retried by the bootstrap itself
+        .then(() => applyStoredValuesIfChanged())
+        .catch(() => {});
     _pollTimer = setInterval(() => {
         applyStoredValuesIfChanged().catch(() => {});
     }, POLL_INTERVAL_MS);
     if (_pollTimer.unref) _pollTimer.unref();
+    return first;
 }
 
 function stopPolling() {
@@ -355,7 +386,7 @@ function stopPolling() {
 function _resetForTests() {
     _lastApplied = null;
     _envPinLogged = false;
-    _baseline = undefined;
+    _noted = undefined;
     _baselineWanted = undefined;
     _probeFailureLogged = null;
 }

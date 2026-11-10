@@ -37,12 +37,18 @@ const CLOUD_EMBED_URL = 'https://beeflow.nl';
  * @property {string} [embedBaseUrl]  the self-hosted web app (frontend) host that goes with apiBaseUrl (#401)
  * @property {string | null} [publicNcUrl]
  * @property {string} [savedAt]
+ * @property {string} [notedFormTarget]  the server the settings form named while no server was chosen
+ *   (declarativeSettings.js): without effect for as long as the form names that same server
  */
 
 /** @type {SetupConfig | null} */
 let cached = null;
 /** @type {string | null} */
 let storageDir = null;
+// A noted settings-form server that is not in the file yet: while no file
+// exists nothing is written for it, and it goes along with the first write.
+/** @type {string | undefined} */
+let pendingNoted;
 
 function _filePath() {
     if (!storageDir) throw new Error('setupConfig: storageDir not initialised');
@@ -55,6 +61,8 @@ function _filePath() {
  */
 function init(persistentStorage) {
     storageDir = persistentStorage;
+    cached = null;
+    pendingNoted = undefined;
     try {
         fs.mkdirSync(storageDir, { recursive: true });
     } catch (_) { /* dir may already exist */ }
@@ -74,6 +82,61 @@ function init(persistentStorage) {
 /** @returns {SetupConfig | null} */
 function get() {
     return cached;
+}
+
+/**
+ * What the file holds now, as the start of its next content. A noted
+ * settings-form server that waited for a write is part of it.
+ * @returns {SetupConfig}
+ */
+function _current() {
+    /** @type {SetupConfig} */
+    const next = { ...(cached || {}) };
+    if (pendingNoted !== undefined) next.notedFormTarget = pendingNoted;
+    return next;
+}
+
+/**
+ * @template {SetupConfig} T
+ * @param {T} next
+ * @returns {T}
+ */
+function _write(next) {
+    fs.writeFileSync(_filePath(), JSON.stringify(next, null, 2), { mode: 0o600 });
+    cached = next;
+    pendingNoted = undefined;
+    return next;
+}
+
+/**
+ * The server the settings form named while no server was chosen, or null.
+ * @returns {string | null}
+ */
+function notedFormTarget() {
+    if (pendingNoted !== undefined) return pendingNoted;
+    return typeof cached?.notedFormTarget === 'string' && cached.notedFormTarget ? cached.notedFormTarget : null;
+}
+
+/**
+ * Remember the server the settings form names without it being a choice, or
+ * forget it (null). It is kept across restarts in setup-config.json. While
+ * that file does not exist nothing is written: the value waits in memory and
+ * is stored by the write that records the administrator's choice.
+ * @param {string | null} target
+ */
+function noteFormTarget(target) {
+    if (!target) {
+        pendingNoted = undefined;
+        if (cached && 'notedFormTarget' in cached) {
+            const next = { ...cached };
+            delete next.notedFormTarget;
+            _write(next);
+        }
+        return;
+    }
+    if (!cached) { pendingNoted = target; return; }
+    if (cached.notedFormTarget === target) { pendingNoted = undefined; return; }
+    _write({ ...cached, notedFormTarget: target });
 }
 
 /**
@@ -100,15 +163,13 @@ function save({ mode, apiBaseUrl, embedBaseUrl }) {
     if (web) parseAllowedUrl(web, { label: 'Web app URL' });
     /** @type {SetupConfig & { mode: string, apiBaseUrl: string }} */
     const next = {
-        ...(cached || {}),
+        ..._current(),
         mode,
         apiBaseUrl: url,
         savedAt: new Date().toISOString(),
     };
     if (web) next.embedBaseUrl = web; else delete next.embedBaseUrl;
-    fs.writeFileSync(_filePath(), JSON.stringify(next, null, 2), { mode: 0o600 });
-    cached = next;
-    return next;
+    return _write(next);
 }
 
 /**
@@ -118,7 +179,7 @@ function save({ mode, apiBaseUrl, embedBaseUrl }) {
  */
 function restoreApiChoice(prev) {
     /** @type {SetupConfig} */
-    const next = { ...(cached || {}) };
+    const next = _current();
     if (prev?.apiBaseUrl) {
         next.mode = prev.mode;
         next.apiBaseUrl = prev.apiBaseUrl;
@@ -129,8 +190,7 @@ function restoreApiChoice(prev) {
     if (prev?.apiBaseUrl && prev.embedBaseUrl) next.embedBaseUrl = prev.embedBaseUrl;
     else delete next.embedBaseUrl;
     next.savedAt = new Date().toISOString();
-    fs.writeFileSync(_filePath(), JSON.stringify(next, null, 2), { mode: 0o600 });
-    cached = next;
+    _write(next);
 }
 
 // Persist the admin-supplied public NC URL — the one Bee Flow Cloud uses
@@ -145,13 +205,11 @@ function savePublicNcUrl(url) {
     const v = url ? String(url).trim().replace(/\/+$/, '') : null;
     if (v) parseAllowedUrl(v, { label: 'publicNcUrl' });
     const next = {
-        ...(cached || {}),
+        ..._current(),
         publicNcUrl: v,
         savedAt: new Date().toISOString(),
     };
-    fs.writeFileSync(_filePath(), JSON.stringify(next, null, 2), { mode: 0o600 });
-    cached = next;
-    return next;
+    return _write(next);
 }
 
 /** @returns {string | null} */
@@ -164,6 +222,7 @@ function clear() {
     const file = _filePath();
     if (fs.existsSync(file)) fs.unlinkSync(file);
     cached = null;
+    pendingNoted = undefined;
 }
 
 /**
@@ -176,4 +235,4 @@ function chosenApiBaseUrl() {
     return null;
 }
 
-module.exports = { init, get, save, restoreApiChoice, savePublicNcUrl, clear, chosenApiBaseUrl, chosenPublicNcUrl, CLOUD_URL, CLOUD_EMBED_URL, VALID_MODES };
+module.exports = { init, get, save, restoreApiChoice, notedFormTarget, noteFormTarget, savePublicNcUrl, clear, chosenApiBaseUrl, chosenPublicNcUrl, CLOUD_URL, CLOUD_EMBED_URL, VALID_MODES };
