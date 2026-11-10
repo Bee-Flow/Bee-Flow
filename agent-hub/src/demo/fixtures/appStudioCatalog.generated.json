@@ -2,7 +2,8 @@
     "schemaVersion": 2,
     "acceptedSchemaVersions": [
         1,
-        2
+        2,
+        3
     ],
     "limits": {
         "MAX_SCREENS": 40,
