@@ -38779,6 +38779,11 @@ const EN_DEFAULTS = {
     "studio_misc.toolbar.view_board": "Board",
     "studio_misc.toolbar.view_cards": "Cards",
     "studio_misc.toolbar.view_list": "List",
+    "studio_apps_connectorpost.body": "Request body (JSON)",
+    "studio_apps_connectorpost.body_hint": "Use {placeholder} placeholders for declared params. A value that is only a placeholder keeps the param’s type.",
+    "studio_apps_connectorpost.method": "Request method",
+    "studio_apps_connectorpost.method_get": "GET",
+    "studio_apps_connectorpost.method_post": "POST (JSON body)",
     "studio_apps_schema.newer_than_install": "This app was saved by a newer version of Bee Flow. Update this installation to open or change it.",
 };
 
