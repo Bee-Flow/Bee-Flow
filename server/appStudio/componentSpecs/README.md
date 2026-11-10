@@ -30,7 +30,7 @@ three things, and nothing else has to be edited for them:
 | a field on an existing step or action kind | the kind's `fields` | `since: 3`, `description` on the field | `stepFields` / `actionFields` · `<kind>.<field>` |
 | an enum value on a step or action field | the field's `values` (append) | `valuesSince: { <value>: 3 }` | `enumValues` · `step.<kind>.<field>=<value>` |
 | a binding kind | `bindings.js` `BINDING_KINDS` (append) | `BINDING_KIND_SINCE[kind] = 3`, `BINDING_KIND_DOCS[kind]` | `bindingKinds` · `<kind>` |
-| a top-level key | `../definitionKeys/<key>.js` (one file) | `since: 3`, `public`, `shape`, `description` | `topLevelKeys` · `<key>` |
+| a top-level key | `../definitionKeys/<key>.js` (one file) | `since: 3`, `public`, `description` (and `shape`) | `topLevelKeys` · `<key>` |
 | a screen key | `screenSpec.js` `SCREEN_SPEC` | `since: 3`, `description` | `screenKeys` · `screen.<key>` |
 | an enum value of a screen key | its `values` (append) | `valuesSince: { <value>: 3 }` | `enumValues` · `screen.<key>=<value>` |
 | a theme or design key | `THEME_SPEC` / `DESIGN_SPEC` | `since: 3`, `optional: true`, `description` | `themeKeys` / `designKeys` · `theme.<key>` / `design.<key>` |

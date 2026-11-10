@@ -240,14 +240,13 @@ test('every shipped knob of a knob group is new vocabulary with a description', 
     noProblems(problems, 'A knob group is incomplete');
 });
 
-test('every shipped top-level key declares whether a public page gets it, and how the AI builder writes it', () => {
+test('every shipped top-level key declares whether a public page gets it, and describes itself', () => {
     const problems = [];
     for (const entry of definitionKeys()) {
         const where = `definitionKeys/${entry.key}.js`;
         if (!isSince(entry.since)) problems.push(`${where}: since must be an integer of 3 or more`);
         if (typeof entry.public !== 'boolean') problems.push(`${where}: declare public: false (or true, after review): an anonymous visitor gets the key only with true`);
         if (BASE_DEFINITION_KEYS.includes(entry.key)) problems.push(`${where}: "${entry.key}" is a base key`);
-        if (typeof entry.shape !== 'string' || !entry.shape.trim()) problems.push(`${where}: add shape (the value's shape, as catalogue text)`);
         problems.push(...descriptionProblems(where, entry.description));
     }
     noProblems(problems, 'A top-level key is incomplete');

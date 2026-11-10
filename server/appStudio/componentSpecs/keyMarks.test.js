@@ -88,7 +88,7 @@ test('the base keys of each family are the keys the canonicalizer has always wri
     const { canonicalizeAppDefinition } = require('../canonicalize');
     const def = specs.emptyDefinition('Base keys');
     const screenId = def.screens[0].id;
-    def.screens[0].sections[0].style.height = 'fill';
+    /** @type {Record<string, unknown>} */ (def.screens[0].sections[0].style).height = 'fill';
     def.screens[0].sections[0].children = [{
         id: 'cmp_base0001', type: 'card', props: {}, visibleWhen: true, enabledWhen: true, readOnly: false,
         computed: { title: { kind: 'formula', expr: '1' } }, validations: [], visibleToRoles: [], children: [],

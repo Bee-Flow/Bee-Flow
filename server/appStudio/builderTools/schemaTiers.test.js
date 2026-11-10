@@ -49,6 +49,67 @@ test('the full schemas accept the extension values, after the base values', () =
     }
 });
 
+test('a screen, theme or design enum takes its extension value after the base values', () => {
+    const props = (/** @type {string} */ name) => tool(TOOL_SCHEMAS, name).parameters.properties;
+    const cases = /** @type {const} */ ([
+        [props('app_add_screen').maxWidth.enum, baseCatalogue().SCREEN_SPEC.maxWidth.values, 'zz_ultra'],
+        [props('app_update_screen').maxWidth.enum, baseCatalogue().SCREEN_SPEC.maxWidth.values, 'zz_ultra'],
+        [props('app_set_theme').radius.enum, baseCatalogue().THEME_SPEC.radius.values, 'zz_pill'],
+        [props('app_set_theme').motion.enum, baseCatalogue().DESIGN_SPEC.motion.values, 'zz_expressive'],
+    ]);
+    for (const [live, base, value] of cases) {
+        assert.deepEqual(live.slice(0, base.length), base, value);
+        assert.ok(live.indexOf(value) >= base.length, value);
+        assert.ok(!base.includes(value), value);
+    }
+});
+
+test('the core projection drops the extension words of the data vocabulary and the nav styles from any enum built from them', () => {
+    // Those lists are frozen, so their fixtures are an overlay the tiers read: a schema node
+    // holding the whole list stands in for the enums the real schemas build from it.
+    const { stripExtensionTier } = require('./schemaTiers.mts');
+    const full = fullCatalogue();
+    const base = baseCatalogue();
+    const node = {
+        function: {
+            name: 'fixture_tool',
+            parameters: {
+                type: 'object',
+                properties: {
+                    type: { type: 'string', enum: [...full.FIELD_TYPES] },
+                    filter: { type: 'array', items: { type: 'object', properties: { op: { type: 'string', enum: [...full.FILTER_OPS] } } } },
+                    fn: { type: 'string', enum: [...full.AGG_FNS] },
+                    bucket: { type: 'string', enum: [...full.DATE_BUCKETS] },
+                    navStyle: { type: 'string', enum: [...full.NAV_STYLES] },
+                    other: { type: 'string', enum: ['zz_keep', 'a'] },
+                },
+            },
+        },
+    };
+    assert.ok(full.FIELD_TYPES.includes('zz_money') && full.NAV_STYLES.includes('zz_dock'));
+    stripExtensionTier(node);
+    const out = node.function.parameters.properties;
+    assert.deepEqual(out.type.enum, [...base.FIELD_TYPES]);
+    assert.deepEqual(out.filter.items.properties.op.enum, [...base.FILTER_OPS]);
+    assert.deepEqual(out.fn.enum, [...base.AGG_FNS]);
+    assert.deepEqual(out.bucket.enum, [...base.DATE_BUCKETS]);
+    assert.deepEqual(out.navStyle.enum, [...base.NAV_STYLES]);
+    assert.deepEqual(out.other.enum, ['zz_keep', 'a'], 'an enum that is not a tiered list is left alone');
+    for (const list of [out.type.enum, out.filter.items.properties.op.enum, out.fn.enum, out.bucket.enum, out.navStyle.enum]) {
+        assert.ok(!list.some((/** @type {string} */ v) => v.startsWith('zz_')), JSON.stringify(list));
+    }
+});
+
+test('the wording of the data tools names the base words only', () => {
+    // The enums take the whole list; a description that listed it would move with every word added.
+    const vocabulary = require('../../core/dataEngine/dataModel/vocabularySince');
+    const text = JSON.stringify(TOOL_SCHEMAS);
+    assert.ok(text.includes(`ops ${vocabulary.BASE_FILTER_OPS.join(', ')}`));
+    assert.ok(text.includes(`A field type (${vocabulary.BASE_FIELD_TYPES.join(', ')}).`));
+    assert.ok(text.includes(`{fn: ${vocabulary.BASE_AGG_FNS.join('|')}, field?, as}`));
+    assert.ok(text.includes(`bucket for date fields: ${vocabulary.BASE_DATE_BUCKETS.join('|')}`));
+});
+
 test('no schema closes its property list: an extension prop, knob or step field is not refused', () => {
     assert.ok(!JSON.stringify(TOOL_SCHEMAS).includes('additionalProperties'));
 });
