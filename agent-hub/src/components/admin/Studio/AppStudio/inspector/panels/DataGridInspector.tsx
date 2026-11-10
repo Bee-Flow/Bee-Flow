@@ -10,6 +10,7 @@ import Slider from '@/components/shared/Slider';
 import Toggle from '@/components/shared/Toggle';
 import { RepeatableList, inputCls } from '@/components/admin/product-website/fields';
 import { actionOptions } from '../actionLabels';
+import GridActionSurfaces from './GridActionSurfaces';
 import { registerInspector } from '../registry';
 import type { PanelProps } from '../appDefinition';
 
@@ -246,6 +247,7 @@ export default function DataGridInspector({ node, definition, onCommit, disabled
                     )}
                 />
             </fieldset>
+            <GridActionSurfaces node={node} definition={definition} onCommit={onCommit} disabled={disabled} />
             <TextField label={t('studio_apps_panels.data_grid.empty_text', 'Empty text')} value={props.emptyText} onChange={(v) => patch({ emptyText: v })} disabled={disabled} />
         </div>
     );

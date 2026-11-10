@@ -20,6 +20,7 @@
  * a navigation or a toast is shown disabled rather than failing on tap.
  */
 
+import { hasFormulaGate, roleAllows } from './gates';
 import { collectInputs, type AppInput } from './inputs';
 import { bool, num, staticBinding, str } from './props';
 import type { AppAction, AppDefinition, AppNode, AppScreen } from './types';
@@ -82,7 +83,7 @@ function resolveAction(
 }
 
 const buildForm: BlockBuilder = (node, props, ctx) => {
-    const inputs = collectInputs(node, ctx.noteUnsupported);
+    const inputs = collectInputs(node, ctx.noteUnsupported, ctx.viewerRole);
     const action = resolveAction(ctx.definition, node.onSubmit ?? null, 'Submit');
     ctx.blocks.push({
         kind: 'form',
@@ -176,13 +177,6 @@ const buildUnknown: BlockBuilder = (node, _props, ctx) => {
     if (node.children?.length) ctx.walk(node.children);
 };
 
-/** Mirrors roleAllows() on the server: an absent or empty gate is open. */
-function roleAllows(node: AppNode, viewerRole: string | null | undefined): boolean {
-    const gate = node.visibleToRoles;
-    if (!Array.isArray(gate) || gate.length === 0) return true;
-    return typeof viewerRole === 'string' && gate.includes(viewerRole);
-}
-
 function planNode(node: AppNode, ctx: PlanContext): void {
     if (!node || typeof node !== 'object' || node.visible === false) return;
     // Hidden from this viewer. Not reported: naming it would tell them a thing
@@ -192,7 +186,7 @@ function planNode(node: AppNode, ctx: PlanContext): void {
     // in the wrong direction — the web treats visibleWhen as AUTHORITATIVE over
     // `visible`, so a node the owner conditioned off would appear here, and its
     // value would be submitted with the form. Reported rather than drawn.
-    if (node.visibleWhen != null || node.enabledWhen != null) {
+    if (hasFormulaGate(node)) {
         ctx.noteUnsupported(node.type);
         return;
     }

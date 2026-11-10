@@ -46,6 +46,7 @@ const TOOL_LABELS = {
     app_get_data_model: 'Read data model',
     app_query_data: 'Query data',
     app_list_connectors: 'List connectors',
+    app_list_assets: 'List uploaded files',
     app_dry_run: 'Dry-run app',
     app_screenshot: 'Screenshot',
     app_propose_plan: 'Propose a plan',
@@ -216,6 +217,7 @@ function summariseToolResult(name, args, result) {
         case 'app_upsert_dataset': return cap(`Dataset "${result?.name}" (${result?.datasetId}) — ${result?.rowCount ?? 0} preview row(s)`);
         case 'app_get_data_model': return 'Read the data model';
         case 'app_list_connectors': return cap(`${Array.isArray(result?.connectors) ? result.connectors.length : 0} connector(s) available`);
+        case 'app_list_assets': return cap(`${Array.isArray(result?.assets) ? result.assets.length : 0} uploaded file(s)`);
         case 'app_query_data': return cap(`${result?.rowCount ?? 0} row(s)${result?.more ? ' (more available)' : ''}`);
         case 'app_dry_run': {
             const errCount = Array.isArray(result?.static?.errors) ? result.static.errors.length : 0;

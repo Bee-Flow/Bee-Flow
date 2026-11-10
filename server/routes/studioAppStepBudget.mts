@@ -12,14 +12,19 @@ import { isBulkWriteStep } from '../appStudio/bulkWritePolicy.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 
+const { STEP_POLICY_LISTS } = nodeRequire('../appStudio/componentSpecs/stepRegistry.js') as {
+    STEP_POLICY_LISTS: { heavyStepKinds: readonly string[]; aiStepKinds: readonly string[] };
+};
+
 // Step kinds that cost what a /run costs: a full automation, a model call, or a write into the
 // owner's storage envelope. fill_document renders a page in Chromium; dataset_query is NOT
-// here (a bounded ranged read, its own bucket below).
-export const HEAVY_STEP_KINDS: readonly string[] = Object.freeze(['run_automation', 'ai_extract', 'ai_generate', 'kb_query', 'send_email', 'generate_file', 'fill_document', 'generate_presentation', 'redact_pdf', 'file_intake', 'copy_document']);
+// here (a bounded ranged read, its own bucket below). Derived: the server kinds whose `budget`
+// is 'heavy' or 'ai' (componentSpecs/stepMeta.js, or the kind's own registry file).
+export const HEAVY_STEP_KINDS: readonly string[] = STEP_POLICY_LISTS.heavyStepKinds;
 
-// The model calls among them: still heavy (role gate), budgeted on their own bucket, because an
-// action legitimately repeats them once per document.
-export const AI_STEP_KINDS: readonly string[] = Object.freeze(['ai_extract', 'ai_generate', 'kb_query', 'redact_pdf']);
+// The model calls among them (`budget: 'ai'`): still heavy (role gate), budgeted on their own
+// bucket, because an action legitimately repeats them once per document.
+export const AI_STEP_KINDS: readonly string[] = STEP_POLICY_LISTS.aiStepKinds;
 
 export type Limiter = {
     check: (req: unknown, res: unknown) => Promise<boolean>;

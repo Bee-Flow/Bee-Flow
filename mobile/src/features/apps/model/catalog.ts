@@ -7,6 +7,8 @@
  * not built yet — and fails when a new component belongs to none of the three.
  */
 
+import { EXTENSION_TYPE_MOBILE_REASONS } from './catalogExtensions.generated';
+
 /** The input types this client knows how to draw, from FORM_SPECS. */
 export const SUPPORTED_INPUTS = [
     'input_text',
@@ -44,11 +46,11 @@ export const HANDLED_TYPES = [
 ] as const;
 
 /**
- * Types deliberately left to the browser, with the reason. These are not a
+ * Base types deliberately left to the browser, with the reason. These are not a
  * to-do list: a fake kanban on a 390px screen is worse than an honest
  * "open this on a desktop".
  */
-export const BROWSER_ONLY_TYPES: Readonly<Record<string, string>> = {
+const BASE_BROWSER_ONLY_TYPES: Readonly<Record<string, string>> = {
     kanban: 'Cross-column drag needs a canvas; the phone answer is a status picker on the record.',
     pivot: 'A cross-tab needs two axes and one of them does not fit.',
     browser_view: 'A desktop viewport streamed as JPEG and scaled to phone width is unreadable.',
@@ -57,6 +59,31 @@ export const BROWSER_ONLY_TYPES: Readonly<Record<string, string>> = {
     document_viewer: 'Renders the Studio preview in a sandboxed srcDoc iframe (or a wide spreadsheet grid) — neither fits React Native.',
     document_compare: 'Two documents side by side, slide frames and spreadsheet grids need a desktop width and an iframe.',
 };
+
+/**
+ * The browser-only list: the base entries, then every type added after the base
+ * catalog (since >= 3) that the phone does not handle, with the reason its spec
+ * gives (mobile.reason). A new type is therefore accounted for without an edit
+ * here; drawing one on the phone means adding it to HANDLED_TYPES, which takes
+ * it off this list.
+ */
+export function browserOnlyTypes(
+    base: Readonly<Record<string, string>>,
+    extensions: Readonly<Record<string, string>>,
+    handled: readonly string[],
+): Readonly<Record<string, string>> {
+    const out: Record<string, string> = { ...base };
+    for (const [type, reason] of Object.entries(extensions)) {
+        if (!handled.includes(type) && !(type in out)) out[type] = reason;
+    }
+    return out;
+}
+
+export const BROWSER_ONLY_TYPES: Readonly<Record<string, string>> = browserOnlyTypes(
+    BASE_BROWSER_ONLY_TYPES,
+    EXTENSION_TYPE_MOBILE_REASONS,
+    HANDLED_TYPES,
+);
 
 export function isSupportedInput(type: string): type is SupportedInput {
     return (SUPPORTED_INPUTS as readonly string[]).includes(type);

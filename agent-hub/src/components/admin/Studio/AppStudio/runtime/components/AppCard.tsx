@@ -1,4 +1,4 @@
-import { spaceSteps } from '../styleResolver';
+import { gridTemplate, spaceSteps } from '../styleResolver';
 import { fillRowTemplate, isFill } from '../styleResolver.helpers';
 import './AppCard.css';
 import type { NodeStyle } from '../../inspector/appDefinition';
@@ -52,7 +52,7 @@ export default function AppCard({ node, children }: NodeProps<CardProps>) {
             <div
                 className={`app-grid${fill ? ' flex-1 min-h-0' : ''}`}
                 style={{
-                    gridTemplateColumns: 'repeat(12, minmax(0, 1fr))',
+                    gridTemplateColumns: gridTemplate(),
                     gap: spaceSteps(gap),
                     ...(fill ? { gridTemplateRows: fillRowTemplate(node) } : null),
                 }}

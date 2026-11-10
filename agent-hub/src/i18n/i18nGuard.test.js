@@ -265,7 +265,6 @@ const CARRIERS = [
  * and fixture files flip.
  */
 const FIELD_SELECTOR_FILES = [
-    'components/admin/Studio/AppStudio/runtime/componentRegistry.ts',
     'components/admin/Studio/AppStudio/state/sampleDefinitions.ts',
     'demo/fixtures/appStudio.ts',
 ];

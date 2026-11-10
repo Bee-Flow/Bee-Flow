@@ -13,6 +13,7 @@ import EditorNodeWrapper from './EditorNodeWrapper';
 import DeviceFrame from './DeviceFrame';
 import Marquee from './Marquee';
 import toast from '@/components/shared/Toast';
+import AppCustomCss from '../runtime/AppCustomCss';
 import AppRenderer from '../runtime/AppRenderer';
 import AppShell from '../runtime/AppShell';
 import AppFontLoader from '../runtime/AppFontLoader';
@@ -272,6 +273,7 @@ export function CanvasBody({
                         : undefined}
                 >
                     <Marquee surfaceRef={surfaceRef} />
+                    <AppCustomCss definition={definition} />
                     <SortableContext items={sortableIds} strategy={rectSortingStrategy}>
                         <AppRenderer
                             definition={definition}

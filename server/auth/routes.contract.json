@@ -409,6 +409,13 @@
         "manage_apps"
       ]
     },
+    "DELETE /api/studio-apps/:id/assets/:assetId": {
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_apps"
+      ]
+    },
     "DELETE /api/studio-apps/:id/data/attachments/:fileId": {
       "gate": "auth"
     },
@@ -2509,6 +2516,10 @@
       "gate": "open",
       "reason": "publieke intake van een Studio-app: het URL-token is de credential en ontsluit alleen de whitelist van schermen in de app-definitie (appStudio/publicAccess.js); bezoekers zijn per ontwerp anonieme derden"
     },
+    "GET /api/public-app/:token/assets/:assetId": {
+      "gate": "open",
+      "reason": "an uploaded image or font of a public Studio page, for <img> and @font-face (which cannot send the visitor bearer): the page token is the credential, as for GET /:token, and only an asset the served public definition refers to is answered; anything else is the same 404"
+    },
     "GET /api/public-app/:token/data/attachments/:fileId": {
       "gate": "middleware",
       "via": "requireVisitor"
@@ -2643,6 +2654,12 @@
       "gate": "auth"
     },
     "GET /api/studio-apps/:id/actions/runs/:runId": {
+      "gate": "auth"
+    },
+    "GET /api/studio-apps/:id/assets": {
+      "gate": "auth"
+    },
+    "GET /api/studio-apps/:id/assets/:assetId": {
       "gate": "auth"
     },
     "GET /api/studio-apps/:id/data/attachments/:fileId": {
@@ -5939,6 +5956,13 @@
     },
     "POST /api/studio-apps/:id/ai/chat": {
       "gate": "auth"
+    },
+    "POST /api/studio-apps/:id/assets": {
+      "gate": "permission",
+      "anyOf": [
+        "all",
+        "manage_apps"
+      ]
     },
     "POST /api/studio-apps/:id/check": {
       "gate": "auth"
