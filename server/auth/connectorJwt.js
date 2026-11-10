@@ -42,7 +42,8 @@ const { reject } = phases;
 // request and must not gain latency or new failure modes. Gate exits are
 // rollup-only problems (the store dedups the 30s SPA retry storm); the DB
 // write itself happens off this stack.
-const orgHealth = require('../services/orgHealth');
+// (via connector/serviceDeps: the single auth -> services edge, see layering.test.js)
+const { orgHealth } = require('./connector/serviceDeps');
 const log = require('../telemetry/log');
 const { fallback } = require('../utils/bestEffort');
 
@@ -308,6 +309,8 @@ async function _authenticateConnectorToken(req, token) {
     }
     const pending = phases.pendingApprovalGate(req, user, orgId);
     if (pending) return pending;
+    const conflict = await phases.ncUidConflictGate(req, user, orgId, payload);
+    if (conflict) return conflict;
     await phases.reconcileUserRecord(user, orgId, payload);
     return phases.establishConnectorSession(req, user, orgId, payload);
 }

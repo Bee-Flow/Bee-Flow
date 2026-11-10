@@ -23,7 +23,8 @@ const { suppressSessionPersistence } = require('./establishSession');
 // code runs on EVERY connector request and must not gain latency or failure
 // modes. See connectorJwt.js.
 // (via connector/serviceDeps: the single auth -> services edge, see layering.test.js)
-const { orgHealth } = require('./connector/serviceDeps');
+const serviceDeps = require('./connector/serviceDeps');
+const { orgHealth } = serviceDeps;
 const log = require('../telemetry/log');
 const { fallback } = require('../utils/bestEffort');
 const { isLoginBlockedAccount } = require('./accountStatusGate');
@@ -113,6 +114,41 @@ function pendingApprovalGate(req, user, orgId) {
 }
 
 /**
+ * Two Nextcloud accounts can carry one e-mail address, and the user is found
+ * by address. When the signed `sub` is not the uid stored on that user, ask
+ * Nextcloud about the stored uid: if it is a live account with this address,
+ * it is another account, the stored uid stays, and this sign-in is refused.
+ * Any other answer (the stored account is gone or disabled, it has another
+ * address, the read failed) is null = pass, and reconcileUserRecord then
+ * repairs the stored uid. The read stays inside the token's organisation: the
+ * user is a member of `orgId`, and the organisation row is `orgId`'s own.
+ */
+async function ncUidConflictGate(req, user, orgId, payload) {
+    if (!user.nc_uid || !payload.sub || user.nc_uid === payload.sub) return null;
+    // Nextcloud uids are unique without regard to case: the same account.
+    if (String(user.nc_uid).toLowerCase() === String(payload.sub).toLowerCase()) return null;
+    if (user.organizationId !== orgId) return null;
+    if (!user.email || !payload.email || String(user.email).toLowerCase() !== String(payload.email).toLowerCase()) return null;
+    let live = false;
+    try {
+        const org = await userStore.getOrganization(orgId);
+        live = !!org && org.id === orgId && await serviceDeps.storedUidIsLiveWithEmail(org, user.nc_uid, payload.email) === true;
+    } catch (e) {
+        log.warn(`[ConnectorJWT] Stored nc_uid check failed for user ${user.id}: ${/** @type {Error} */ (e).message}`);
+    }
+    if (!live) return null;
+    log.warn(`[ConnectorJWT] Sign-in refused for org ${orgId}: the e-mail address of user ${user.id} belongs to two live Nextcloud accounts`);
+    orgHealth.problem('auth.blocked_nc_uid_conflict', {
+        orgId, source: 'connectorJwt', req,
+        meta: { lastUserId: user.id, sub: payload.sub, reason: 'stored_uid_live_with_same_email' },
+    });
+    return reject(409, {
+        error: 'Your e-mail address is already linked to another Nextcloud account in Bee Flow. Ask your Nextcloud administrator to give each account its own e-mail address.',
+        code: 'nc_uid_conflict',
+    });
+}
+
+/**
  * Keep the DB row and the session coherent: log data anomalies, repair a
  * stale nc_uid, fill in a missing one. Each step swallows its own failure (warn, or silently for
  * the read-only anomaly lookup). The user reaching here is a member of
@@ -143,6 +179,8 @@ async function reconcileUserRecord(user, orgId, payload) {
     // disagrees with the stored one AND the email matches, the row is
     // stale — repair it. Email must match so a shared/recycled Bee Flow
     // account can never be rebound to a different person's NC identity.
+    // ncUidConflictGate ran first: a stored uid that is a live account with
+    // this address never reaches this point.
     if (user.nc_uid && payload.sub && user.nc_uid !== payload.sub
         && user.email && payload.email && user.email === payload.email) {
         try {
@@ -271,6 +309,7 @@ module.exports = {
     ok,
     crossTenantGate,
     pendingApprovalGate,
+    ncUidConflictGate,
     reconcileUserRecord,
     establishConnectorSession,
     _isOrgAdminRequester,

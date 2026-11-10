@@ -149,6 +149,10 @@ const CUSTOMER_SAFE_WORDING = {
         message: 'Some Nextcloud users have no email address and cannot receive an account.',
         remediation: 'Set an email address for those users in Nextcloud.',
     },
+    'auth.blocked_nc_uid_conflict': {
+        message: 'Two Nextcloud accounts share one email address, so one of them cannot sign in.',
+        remediation: 'Give each Nextcloud account its own email address, or disable the account that should not be used.',
+    },
     'auth.no_matching_tenant_key': {
         message: 'The Nextcloud connection needs attention.',
         remediation: 'Open the Bee Flow app settings in Nextcloud and run the connection check, or re-pair the instance.',
