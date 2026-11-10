@@ -39,7 +39,7 @@ module.exports = { isObject, pushDataRef, pickClosestId };
  *   dataTableSources: Map<string, any> | null, knownDatatables: Set<string> | null, dataDatasets: Set<string> | null,
  *   dataConnectors: Set<string> | null, dataMailboxConnectors: Set<string> | null, dataRestConnectors?: Set<string> | null, dataRefsAsWarnings: boolean,
  *   aiBrowsingEnabled: boolean, target?: { id?: string | null, title?: string }, actions?: Record<string, unknown> | null,
- *   inErrorHandler?: boolean,
+ *   inErrorHandler?: boolean, allowedLinkHosts?: string[], serverScopeWide?: boolean,
  *   uiNodes?: Map<string, { type: string, selectable: unknown }>, uiForms?: Map<string, string>,
  * }} ValidationCtx  The shared context every phase of the walk reads (built in validate.js).
  */

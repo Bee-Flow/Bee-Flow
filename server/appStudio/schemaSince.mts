@@ -14,6 +14,8 @@
  *   definitionKeys/<key>.js `since`                a top-level key
  *   STEP_SPECS[kind].fields[name].since / .valuesSince    a field added to an existing step kind
  *   ACTION_SPECS[kind].fields[name].since / .valuesSince  the same for an action kind
+ *   STEP_SPECS[kind].fields[name].itemSince                { [key]: n }, a key added to the items of a list field
+ *                                                  of a base step (a switch case's `when`)
  *   …props[name].itemShape[key].since / .valuesSince      a key of the items of a list prop
  *                                                  (and of a list nested in those items)
  *   COMPONENT_SPECS[type].eventsSince              { [event]: n }, an event an existing type newly fires
@@ -27,6 +29,8 @@
  *                                                  binding newly takes (queryMarks.js)
  *   componentSpecs/keys/queryShape/<key>.<name>.js a form the value under a key of a read newly
  *                                                  takes: a predicate, or a key of a groupBy entry
+ *
+ * An input mapping kind added after the base (`formula`) is read by schemaSinceMappings.mts.
  *
  * One VALUE form has a version too: `asset:<id>`, an uploaded file of the app, accepted in
  * props and design keys that took only an https URL before (appAssets.mts ASSET_REF_SINCE).
@@ -52,6 +56,7 @@ import {
 import { definitionKeys } from './definitionKeyRegistry.mts';
 import { ASSET_REF_SINCE, hasAssetRef } from './appAssets.mts';
 import { ACTION_LIST_SINCE, hasActionListSlot } from '../shared/appDefinition/clientTriggers.mjs';
+import { mappingKindSince } from './schemaSinceMappings.mts';
 import type { DefinitionKeyEntry } from './definitionKeyRegistry.mts';
 
 type SinceMap = Record<string, number>;
@@ -176,11 +181,23 @@ function readComponents(table: SpecTable | undefined, index: SinceIndex): void {
     }
 }
 
+/** The keys added to the items of a list field of a base step (`itemSince: { when: 3 }` on the field), per field. */
+function readItemKeys(kind: string, fields: Record<string, Spec> | undefined, into: Record<string, Record<string, SinceMap>>): void {
+    const perField: Record<string, SinceMap> = Object.create(null);
+    for (const [name, spec] of Object.entries(fields || {})) {
+        const keys = spec && typeof spec === 'object' ? valuesAbove((spec as { itemSince?: unknown }).itemSince) : null;
+        if (keys) perField[name] = keys;
+    }
+    if (Object.keys(perField).length) into[kind] = perField;
+}
+
 /** Step or action kinds: the kind itself, and the fields added to a kind. */
-function readKinds(table: SpecTable | undefined, kinds: SinceMap, fields: Record<string, SinceMap>, fieldValues: Record<string, Record<string, SinceMap>>): void {
+function readKinds(table: SpecTable | undefined, kinds: SinceMap, fields: Record<string, SinceMap>, fieldValues: Record<string, Record<string, SinceMap>>, itemKeys?: Record<string, Record<string, SinceMap>>): void {
     readTable(table, kinds, Object.create(null));
     for (const [kind, spec] of Object.entries(table || {})) {
-        if (spec && typeof spec === 'object') readOwned(kind, spec.fields, fields, fieldValues);
+        if (!spec || typeof spec !== 'object') continue;
+        readOwned(kind, spec.fields, fields, fieldValues);
+        if (itemKeys) readItemKeys(kind, spec.fields, itemKeys);
     }
 }
 
@@ -189,7 +206,7 @@ export function buildSinceIndex(catalogue: Catalogue): SinceIndex {
     const index = emptySinceIndex();
     readComponents(catalogue.componentSpecs, index);
     readTable(catalogue.styleKnobs, index.styleKnobs, index.styleValues);
-    readKinds(catalogue.stepSpecs, index.stepKinds, index.stepFields, index.stepFieldValues);
+    readKinds(catalogue.stepSpecs, index.stepKinds, index.stepFields, index.stepFieldValues, index.stepItemKeys);
     readKinds(catalogue.actionSpecs, index.actionKinds, index.actionFields, index.actionFieldValues);
     for (const [kind, since] of Object.entries(catalogue.bindingKindSince || {})) {
         if (above(since)) index.bindingKinds[kind] = above(since);
@@ -254,7 +271,8 @@ let override: typeof live | null = null;
 /** The lowest schema version `definition` can be stored as (2 unless it uses something marked since 3 or higher). */
 export function requiredSchemaVersion(definition: unknown): number {
     const { index, tests } = override || live;
-    let required = requiredWithIndex(definition, index, tests);
+    // A mapping kind added after the base (schemaSinceMappings.mts) is a value form too, like an asset reference.
+    let required = Math.max(requiredWithIndex(definition, index, tests), mappingKindSince(definition));
     if (required < ACTION_LIST_SINCE && hasActionListSlot(definition, specs.EVENT_NAMES)) required = ACTION_LIST_SINCE;
     return required >= ASSET_REF_SINCE || !hasAssetRef(definition) ? required : ASSET_REF_SINCE;
 }

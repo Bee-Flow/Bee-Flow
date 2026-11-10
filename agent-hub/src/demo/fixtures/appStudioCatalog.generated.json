@@ -64,7 +64,8 @@
         "MAX_TIMER_SECONDS": 3600,
         "MAX_SCREEN_TIMERS": 3,
         "MAX_WATCHERS": 10,
-        "MAX_WATCHER_DEBOUNCE_MS": 10000
+        "MAX_WATCHER_DEBOUNCE_MS": 10000,
+        "MAX_ALLOWED_LINK_HOSTS": 50
     },
     "theme": {
         "primary": {
@@ -2749,6 +2750,16 @@
                     "progressVar": {
                         "type": "string",
                         "maxLen": 60
+                    },
+                    "onSuccess": {
+                        "type": "effects",
+                        "since": 3,
+                        "description": "A toast and/or a screen to open after the sequence ends well. Effects are applied once and never chain, so use steps for anything longer. Same shape as on run_automation."
+                    },
+                    "onError": {
+                        "type": "effects",
+                        "since": 3,
+                        "description": "A toast and/or a screen to open after the sequence failed. The failure is toasted either way. Effects are applied once and never chain."
                     }
                 }
             }
@@ -2821,6 +2832,11 @@
                     },
                     "params": {
                         "type": "navParams"
+                    },
+                    "screenExpr": {
+                        "type": "formula",
+                        "since": 3,
+                        "description": "A formula that gives the id of the screen to open, instead of screenId. It must return the id of one of this app's own screens, any other result stops the sequence with an error. Leave screenId out when you use it."
                     }
                 }
             },
@@ -2841,6 +2857,11 @@
                             "danger"
                         ],
                         "default": "info"
+                    },
+                    "messageExpr": {
+                        "type": "formula",
+                        "since": 3,
+                        "description": "A formula that gives the message text, instead of message. Build the text with concat, for example concat('Saved ', vars.count, ' rows'). When it returns nothing, message is shown if there is one. Leave message out when you use it."
                     }
                 }
             },
@@ -2854,6 +2875,11 @@
                     "newTab": {
                         "type": "boolean",
                         "default": true
+                    },
+                    "urlExpr": {
+                        "type": "formula",
+                        "since": 3,
+                        "description": "A formula that gives the web address to open, instead of url. Only https addresses on a host listed in the app's allowedLinkHosts open, anything else stops the sequence with an error. Leave url out when you use it."
                     }
                 }
             },
@@ -2916,6 +2942,26 @@
                     "cancelLabel": {
                         "type": "string",
                         "maxLen": 80
+                    },
+                    "messageExpr": {
+                        "type": "formula",
+                        "since": 3,
+                        "description": "A formula that gives the question text, instead of message. When it returns nothing, message is shown if there is one. Leave message out when you use it."
+                    },
+                    "titleExpr": {
+                        "type": "formula",
+                        "since": 3,
+                        "description": "A formula that gives the dialog title, instead of title. When it returns nothing, title is used if there is one."
+                    },
+                    "confirmLabelExpr": {
+                        "type": "formula",
+                        "since": 3,
+                        "description": "A formula for the confirm button text, instead of confirmLabel. When it returns nothing, confirmLabel is used if there is one."
+                    },
+                    "cancelLabelExpr": {
+                        "type": "formula",
+                        "since": 3,
+                        "description": "A formula for the cancel button text, instead of cancelLabel. When it returns nothing, cancelLabel is used if there is one."
                     }
                 }
             },
@@ -2956,7 +3002,16 @@
                         "required": true
                     },
                     "inputMapping": {
-                        "type": "inputMapping"
+                        "type": "inputMapping",
+                        "values": [
+                            "static",
+                            "field",
+                            "formula"
+                        ],
+                        "valuesSince": {
+                            "formula": 3
+                        },
+                        "description": "Per automation input, where its value comes from: {kind:\"static\",value}, {kind:\"field\",name,formId?} or, since version 3, {kind:\"formula\",expr}. A formula is worked out on the server when the automation starts, from the roots a server step has (form, vars, item, index, value, params, currentUser, now, today), so it can send a variable, the loop item or a computed value. Only on a run_automation STEP of a sequence: a run_automation action on its own takes static and field."
                     },
                     "resultVar": {
                         "type": "string",
@@ -2965,6 +3020,12 @@
                     "onError": {
                         "type": "errorHandler",
                         "envelope": true
+                    },
+                    "guard": {
+                        "type": "formula",
+                        "since": 3,
+                        "envelope": true,
+                        "description": "Skips the step on the server when this formula is false. The server works it out before it runs the step. When it gives false or nothing, or cannot be worked out, the step is skipped: nothing is written or sent, its result is null and the sequence goes on. Use it for a rule the browser must not be able to switch off, for example currentUser.roleKey == \"manager\" or form.amount <= 500. A condition step decides in the browser, a guard decides on the server. It reads the roots a server step has (form, vars, item, index, value, params, currentUser, now, today), and screen, forms and actions only when the app sets serverScope to \"wide\". Only currentUser comes from the server: every other root is sent by the browser, so decide who may do something with currentUser, never with vars, form or actions. A guard covers its own step only, so each step that needs the rule carries it. Every server step kind takes it, the kinds added later too. A step inside a transaction takes no guard of its own: put it on the transaction."
                     }
                 }
             },
@@ -2990,6 +3051,12 @@
                     "onError": {
                         "type": "errorHandler",
                         "envelope": true
+                    },
+                    "guard": {
+                        "type": "formula",
+                        "since": 3,
+                        "envelope": true,
+                        "description": "Skips the step on the server when this formula is false. The server works it out before it runs the step. When it gives false or nothing, or cannot be worked out, the step is skipped: nothing is written or sent, its result is null and the sequence goes on. Use it for a rule the browser must not be able to switch off, for example currentUser.roleKey == \"manager\" or form.amount <= 500. A condition step decides in the browser, a guard decides on the server. It reads the roots a server step has (form, vars, item, index, value, params, currentUser, now, today), and screen, forms and actions only when the app sets serverScope to \"wide\". Only currentUser comes from the server: every other root is sent by the browser, so decide who may do something with currentUser, never with vars, form or actions. A guard covers its own step only, so each step that needs the rule carries it. Every server step kind takes it, the kinds added later too. A step inside a transaction takes no guard of its own: put it on the transaction."
                     }
                 }
             },
@@ -3029,6 +3096,12 @@
                     "onError": {
                         "type": "errorHandler",
                         "envelope": true
+                    },
+                    "guard": {
+                        "type": "formula",
+                        "since": 3,
+                        "envelope": true,
+                        "description": "Skips the step on the server when this formula is false. The server works it out before it runs the step. When it gives false or nothing, or cannot be worked out, the step is skipped: nothing is written or sent, its result is null and the sequence goes on. Use it for a rule the browser must not be able to switch off, for example currentUser.roleKey == \"manager\" or form.amount <= 500. A condition step decides in the browser, a guard decides on the server. It reads the roots a server step has (form, vars, item, index, value, params, currentUser, now, today), and screen, forms and actions only when the app sets serverScope to \"wide\". Only currentUser comes from the server: every other root is sent by the browser, so decide who may do something with currentUser, never with vars, form or actions. A guard covers its own step only, so each step that needs the rule carries it. Every server step kind takes it, the kinds added later too. A step inside a transaction takes no guard of its own: put it on the transaction."
                     }
                 }
             },
@@ -3061,6 +3134,12 @@
                     "onError": {
                         "type": "errorHandler",
                         "envelope": true
+                    },
+                    "guard": {
+                        "type": "formula",
+                        "since": 3,
+                        "envelope": true,
+                        "description": "Skips the step on the server when this formula is false. The server works it out before it runs the step. When it gives false or nothing, or cannot be worked out, the step is skipped: nothing is written or sent, its result is null and the sequence goes on. Use it for a rule the browser must not be able to switch off, for example currentUser.roleKey == \"manager\" or form.amount <= 500. A condition step decides in the browser, a guard decides on the server. It reads the roots a server step has (form, vars, item, index, value, params, currentUser, now, today), and screen, forms and actions only when the app sets serverScope to \"wide\". Only currentUser comes from the server: every other root is sent by the browser, so decide who may do something with currentUser, never with vars, form or actions. A guard covers its own step only, so each step that needs the rule carries it. Every server step kind takes it, the kinds added later too. A step inside a transaction takes no guard of its own: put it on the transaction."
                     }
                 }
             },
@@ -3161,6 +3240,12 @@
                     "onError": {
                         "type": "errorHandler",
                         "envelope": true
+                    },
+                    "guard": {
+                        "type": "formula",
+                        "since": 3,
+                        "envelope": true,
+                        "description": "Skips the step on the server when this formula is false. The server works it out before it runs the step. When it gives false or nothing, or cannot be worked out, the step is skipped: nothing is written or sent, its result is null and the sequence goes on. Use it for a rule the browser must not be able to switch off, for example currentUser.roleKey == \"manager\" or form.amount <= 500. A condition step decides in the browser, a guard decides on the server. It reads the roots a server step has (form, vars, item, index, value, params, currentUser, now, today), and screen, forms and actions only when the app sets serverScope to \"wide\". Only currentUser comes from the server: every other root is sent by the browser, so decide who may do something with currentUser, never with vars, form or actions. A guard covers its own step only, so each step that needs the rule carries it. Every server step kind takes it, the kinds added later too. A step inside a transaction takes no guard of its own: put it on the transaction."
                     }
                 }
             },
@@ -3241,6 +3326,12 @@
                     "onError": {
                         "type": "errorHandler",
                         "envelope": true
+                    },
+                    "guard": {
+                        "type": "formula",
+                        "since": 3,
+                        "envelope": true,
+                        "description": "Skips the step on the server when this formula is false. The server works it out before it runs the step. When it gives false or nothing, or cannot be worked out, the step is skipped: nothing is written or sent, its result is null and the sequence goes on. Use it for a rule the browser must not be able to switch off, for example currentUser.roleKey == \"manager\" or form.amount <= 500. A condition step decides in the browser, a guard decides on the server. It reads the roots a server step has (form, vars, item, index, value, params, currentUser, now, today), and screen, forms and actions only when the app sets serverScope to \"wide\". Only currentUser comes from the server: every other root is sent by the browser, so decide who may do something with currentUser, never with vars, form or actions. A guard covers its own step only, so each step that needs the rule carries it. Every server step kind takes it, the kinds added later too. A step inside a transaction takes no guard of its own: put it on the transaction."
                     }
                 }
             },
@@ -3326,6 +3417,12 @@
                     "onError": {
                         "type": "errorHandler",
                         "envelope": true
+                    },
+                    "guard": {
+                        "type": "formula",
+                        "since": 3,
+                        "envelope": true,
+                        "description": "Skips the step on the server when this formula is false. The server works it out before it runs the step. When it gives false or nothing, or cannot be worked out, the step is skipped: nothing is written or sent, its result is null and the sequence goes on. Use it for a rule the browser must not be able to switch off, for example currentUser.roleKey == \"manager\" or form.amount <= 500. A condition step decides in the browser, a guard decides on the server. It reads the roots a server step has (form, vars, item, index, value, params, currentUser, now, today), and screen, forms and actions only when the app sets serverScope to \"wide\". Only currentUser comes from the server: every other root is sent by the browser, so decide who may do something with currentUser, never with vars, form or actions. A guard covers its own step only, so each step that needs the rule carries it. Every server step kind takes it, the kinds added later too. A step inside a transaction takes no guard of its own: put it on the transaction."
                     }
                 }
             },
@@ -3357,6 +3454,12 @@
                     "onError": {
                         "type": "errorHandler",
                         "envelope": true
+                    },
+                    "guard": {
+                        "type": "formula",
+                        "since": 3,
+                        "envelope": true,
+                        "description": "Skips the step on the server when this formula is false. The server works it out before it runs the step. When it gives false or nothing, or cannot be worked out, the step is skipped: nothing is written or sent, its result is null and the sequence goes on. Use it for a rule the browser must not be able to switch off, for example currentUser.roleKey == \"manager\" or form.amount <= 500. A condition step decides in the browser, a guard decides on the server. It reads the roots a server step has (form, vars, item, index, value, params, currentUser, now, today), and screen, forms and actions only when the app sets serverScope to \"wide\". Only currentUser comes from the server: every other root is sent by the browser, so decide who may do something with currentUser, never with vars, form or actions. A guard covers its own step only, so each step that needs the rule carries it. Every server step kind takes it, the kinds added later too. A step inside a transaction takes no guard of its own: put it on the transaction."
                     }
                 }
             },
@@ -3417,6 +3520,12 @@
                     "onError": {
                         "type": "errorHandler",
                         "envelope": true
+                    },
+                    "guard": {
+                        "type": "formula",
+                        "since": 3,
+                        "envelope": true,
+                        "description": "Skips the step on the server when this formula is false. The server works it out before it runs the step. When it gives false or nothing, or cannot be worked out, the step is skipped: nothing is written or sent, its result is null and the sequence goes on. Use it for a rule the browser must not be able to switch off, for example currentUser.roleKey == \"manager\" or form.amount <= 500. A condition step decides in the browser, a guard decides on the server. It reads the roots a server step has (form, vars, item, index, value, params, currentUser, now, today), and screen, forms and actions only when the app sets serverScope to \"wide\". Only currentUser comes from the server: every other root is sent by the browser, so decide who may do something with currentUser, never with vars, form or actions. A guard covers its own step only, so each step that needs the rule carries it. Every server step kind takes it, the kinds added later too. A step inside a transaction takes no guard of its own: put it on the transaction."
                     }
                 }
             },
@@ -3483,6 +3592,12 @@
                     "onError": {
                         "type": "errorHandler",
                         "envelope": true
+                    },
+                    "guard": {
+                        "type": "formula",
+                        "since": 3,
+                        "envelope": true,
+                        "description": "Skips the step on the server when this formula is false. The server works it out before it runs the step. When it gives false or nothing, or cannot be worked out, the step is skipped: nothing is written or sent, its result is null and the sequence goes on. Use it for a rule the browser must not be able to switch off, for example currentUser.roleKey == \"manager\" or form.amount <= 500. A condition step decides in the browser, a guard decides on the server. It reads the roots a server step has (form, vars, item, index, value, params, currentUser, now, today), and screen, forms and actions only when the app sets serverScope to \"wide\". Only currentUser comes from the server: every other root is sent by the browser, so decide who may do something with currentUser, never with vars, form or actions. A guard covers its own step only, so each step that needs the rule carries it. Every server step kind takes it, the kinds added later too. A step inside a transaction takes no guard of its own: put it on the transaction."
                     }
                 }
             },
@@ -3535,6 +3650,12 @@
                     "onError": {
                         "type": "errorHandler",
                         "envelope": true
+                    },
+                    "guard": {
+                        "type": "formula",
+                        "since": 3,
+                        "envelope": true,
+                        "description": "Skips the step on the server when this formula is false. The server works it out before it runs the step. When it gives false or nothing, or cannot be worked out, the step is skipped: nothing is written or sent, its result is null and the sequence goes on. Use it for a rule the browser must not be able to switch off, for example currentUser.roleKey == \"manager\" or form.amount <= 500. A condition step decides in the browser, a guard decides on the server. It reads the roots a server step has (form, vars, item, index, value, params, currentUser, now, today), and screen, forms and actions only when the app sets serverScope to \"wide\". Only currentUser comes from the server: every other root is sent by the browser, so decide who may do something with currentUser, never with vars, form or actions. A guard covers its own step only, so each step that needs the rule carries it. Every server step kind takes it, the kinds added later too. A step inside a transaction takes no guard of its own: put it on the transaction."
                     }
                 }
             },
@@ -3655,6 +3776,12 @@
                     "onError": {
                         "type": "errorHandler",
                         "envelope": true
+                    },
+                    "guard": {
+                        "type": "formula",
+                        "since": 3,
+                        "envelope": true,
+                        "description": "Skips the step on the server when this formula is false. The server works it out before it runs the step. When it gives false or nothing, or cannot be worked out, the step is skipped: nothing is written or sent, its result is null and the sequence goes on. Use it for a rule the browser must not be able to switch off, for example currentUser.roleKey == \"manager\" or form.amount <= 500. A condition step decides in the browser, a guard decides on the server. It reads the roots a server step has (form, vars, item, index, value, params, currentUser, now, today), and screen, forms and actions only when the app sets serverScope to \"wide\". Only currentUser comes from the server: every other root is sent by the browser, so decide who may do something with currentUser, never with vars, form or actions. A guard covers its own step only, so each step that needs the rule carries it. Every server step kind takes it, the kinds added later too. A step inside a transaction takes no guard of its own: put it on the transaction."
                     }
                 }
             },
@@ -3694,6 +3821,12 @@
                     "onError": {
                         "type": "errorHandler",
                         "envelope": true
+                    },
+                    "guard": {
+                        "type": "formula",
+                        "since": 3,
+                        "envelope": true,
+                        "description": "Skips the step on the server when this formula is false. The server works it out before it runs the step. When it gives false or nothing, or cannot be worked out, the step is skipped: nothing is written or sent, its result is null and the sequence goes on. Use it for a rule the browser must not be able to switch off, for example currentUser.roleKey == \"manager\" or form.amount <= 500. A condition step decides in the browser, a guard decides on the server. It reads the roots a server step has (form, vars, item, index, value, params, currentUser, now, today), and screen, forms and actions only when the app sets serverScope to \"wide\". Only currentUser comes from the server: every other root is sent by the browser, so decide who may do something with currentUser, never with vars, form or actions. A guard covers its own step only, so each step that needs the rule carries it. Every server step kind takes it, the kinds added later too. A step inside a transaction takes no guard of its own: put it on the transaction."
                     }
                 }
             },
@@ -3746,6 +3879,12 @@
                     "onError": {
                         "type": "errorHandler",
                         "envelope": true
+                    },
+                    "guard": {
+                        "type": "formula",
+                        "since": 3,
+                        "envelope": true,
+                        "description": "Skips the step on the server when this formula is false. The server works it out before it runs the step. When it gives false or nothing, or cannot be worked out, the step is skipped: nothing is written or sent, its result is null and the sequence goes on. Use it for a rule the browser must not be able to switch off, for example currentUser.roleKey == \"manager\" or form.amount <= 500. A condition step decides in the browser, a guard decides on the server. It reads the roots a server step has (form, vars, item, index, value, params, currentUser, now, today), and screen, forms and actions only when the app sets serverScope to \"wide\". Only currentUser comes from the server: every other root is sent by the browser, so decide who may do something with currentUser, never with vars, form or actions. A guard covers its own step only, so each step that needs the rule carries it. Every server step kind takes it, the kinds added later too. A step inside a transaction takes no guard of its own: put it on the transaction."
                     }
                 }
             },
@@ -3804,6 +3943,12 @@
                     "onError": {
                         "type": "errorHandler",
                         "envelope": true
+                    },
+                    "guard": {
+                        "type": "formula",
+                        "since": 3,
+                        "envelope": true,
+                        "description": "Skips the step on the server when this formula is false. The server works it out before it runs the step. When it gives false or nothing, or cannot be worked out, the step is skipped: nothing is written or sent, its result is null and the sequence goes on. Use it for a rule the browser must not be able to switch off, for example currentUser.roleKey == \"manager\" or form.amount <= 500. A condition step decides in the browser, a guard decides on the server. It reads the roots a server step has (form, vars, item, index, value, params, currentUser, now, today), and screen, forms and actions only when the app sets serverScope to \"wide\". Only currentUser comes from the server: every other root is sent by the browser, so decide who may do something with currentUser, never with vars, form or actions. A guard covers its own step only, so each step that needs the rule carries it. Every server step kind takes it, the kinds added later too. A step inside a transaction takes no guard of its own: put it on the transaction."
                     }
                 }
             },
@@ -3833,6 +3978,12 @@
                     "onError": {
                         "type": "errorHandler",
                         "envelope": true
+                    },
+                    "guard": {
+                        "type": "formula",
+                        "since": 3,
+                        "envelope": true,
+                        "description": "Skips the step on the server when this formula is false. The server works it out before it runs the step. When it gives false or nothing, or cannot be worked out, the step is skipped: nothing is written or sent, its result is null and the sequence goes on. Use it for a rule the browser must not be able to switch off, for example currentUser.roleKey == \"manager\" or form.amount <= 500. A condition step decides in the browser, a guard decides on the server. It reads the roots a server step has (form, vars, item, index, value, params, currentUser, now, today), and screen, forms and actions only when the app sets serverScope to \"wide\". Only currentUser comes from the server: every other root is sent by the browser, so decide who may do something with currentUser, never with vars, form or actions. A guard covers its own step only, so each step that needs the rule carries it. Every server step kind takes it, the kinds added later too. A step inside a transaction takes no guard of its own: put it on the transaction."
                     }
                 }
             },
@@ -3858,6 +4009,12 @@
                     "onError": {
                         "type": "errorHandler",
                         "envelope": true
+                    },
+                    "guard": {
+                        "type": "formula",
+                        "since": 3,
+                        "envelope": true,
+                        "description": "Skips the step on the server when this formula is false. The server works it out before it runs the step. When it gives false or nothing, or cannot be worked out, the step is skipped: nothing is written or sent, its result is null and the sequence goes on. Use it for a rule the browser must not be able to switch off, for example currentUser.roleKey == \"manager\" or form.amount <= 500. A condition step decides in the browser, a guard decides on the server. It reads the roots a server step has (form, vars, item, index, value, params, currentUser, now, today), and screen, forms and actions only when the app sets serverScope to \"wide\". Only currentUser comes from the server: every other root is sent by the browser, so decide who may do something with currentUser, never with vars, form or actions. A guard covers its own step only, so each step that needs the rule carries it. Every server step kind takes it, the kinds added later too. A step inside a transaction takes no guard of its own: put it on the transaction."
                     }
                 }
             },
@@ -3896,6 +4053,12 @@
                     "onError": {
                         "type": "errorHandler",
                         "envelope": true
+                    },
+                    "guard": {
+                        "type": "formula",
+                        "since": 3,
+                        "envelope": true,
+                        "description": "Skips the step on the server when this formula is false. The server works it out before it runs the step. When it gives false or nothing, or cannot be worked out, the step is skipped: nothing is written or sent, its result is null and the sequence goes on. Use it for a rule the browser must not be able to switch off, for example currentUser.roleKey == \"manager\" or form.amount <= 500. A condition step decides in the browser, a guard decides on the server. It reads the roots a server step has (form, vars, item, index, value, params, currentUser, now, today), and screen, forms and actions only when the app sets serverScope to \"wide\". Only currentUser comes from the server: every other root is sent by the browser, so decide who may do something with currentUser, never with vars, form or actions. A guard covers its own step only, so each step that needs the rule carries it. Every server step kind takes it, the kinds added later too. A step inside a transaction takes no guard of its own: put it on the transaction."
                     }
                 }
             },
@@ -3924,6 +4087,12 @@
                     "onError": {
                         "type": "errorHandler",
                         "envelope": true
+                    },
+                    "guard": {
+                        "type": "formula",
+                        "since": 3,
+                        "envelope": true,
+                        "description": "Skips the step on the server when this formula is false. The server works it out before it runs the step. When it gives false or nothing, or cannot be worked out, the step is skipped: nothing is written or sent, its result is null and the sequence goes on. Use it for a rule the browser must not be able to switch off, for example currentUser.roleKey == \"manager\" or form.amount <= 500. A condition step decides in the browser, a guard decides on the server. It reads the roots a server step has (form, vars, item, index, value, params, currentUser, now, today), and screen, forms and actions only when the app sets serverScope to \"wide\". Only currentUser comes from the server: every other root is sent by the browser, so decide who may do something with currentUser, never with vars, form or actions. A guard covers its own step only, so each step that needs the rule carries it. Every server step kind takes it, the kinds added later too. A step inside a transaction takes no guard of its own: put it on the transaction."
                     }
                 }
             },
@@ -3978,7 +4147,10 @@
                     },
                     "cases": {
                         "type": "switchCases",
-                        "required": true
+                        "required": true,
+                        "itemSince": {
+                            "whenExpr": 3
+                        }
                     },
                     "default": {
                         "type": "steps"
@@ -4024,6 +4196,12 @@
                     "onError": {
                         "type": "errorHandler",
                         "envelope": true
+                    },
+                    "guard": {
+                        "type": "formula",
+                        "since": 3,
+                        "envelope": true,
+                        "description": "Skips the step on the server when this formula is false. The server works it out before it runs the step. When it gives false or nothing, or cannot be worked out, the step is skipped: nothing is written or sent, its result is null and the sequence goes on. Use it for a rule the browser must not be able to switch off, for example currentUser.roleKey == \"manager\" or form.amount <= 500. A condition step decides in the browser, a guard decides on the server. It reads the roots a server step has (form, vars, item, index, value, params, currentUser, now, today), and screen, forms and actions only when the app sets serverScope to \"wide\". Only currentUser comes from the server: every other root is sent by the browser, so decide who may do something with currentUser, never with vars, form or actions. A guard covers its own step only, so each step that needs the rule carries it. Every server step kind takes it, the kinds added later too. A step inside a transaction takes no guard of its own: put it on the transaction."
                     }
                 }
             },
@@ -4066,6 +4244,12 @@
                     "onError": {
                         "type": "errorHandler",
                         "envelope": true
+                    },
+                    "guard": {
+                        "type": "formula",
+                        "since": 3,
+                        "envelope": true,
+                        "description": "Skips the step on the server when this formula is false. The server works it out before it runs the step. When it gives false or nothing, or cannot be worked out, the step is skipped: nothing is written or sent, its result is null and the sequence goes on. Use it for a rule the browser must not be able to switch off, for example currentUser.roleKey == \"manager\" or form.amount <= 500. A condition step decides in the browser, a guard decides on the server. It reads the roots a server step has (form, vars, item, index, value, params, currentUser, now, today), and screen, forms and actions only when the app sets serverScope to \"wide\". Only currentUser comes from the server: every other root is sent by the browser, so decide who may do something with currentUser, never with vars, form or actions. A guard covers its own step only, so each step that needs the rule carries it. Every server step kind takes it, the kinds added later too. A step inside a transaction takes no guard of its own: put it on the transaction."
                     }
                 },
                 "since": 3,
@@ -4175,6 +4359,12 @@
                     "onError": {
                         "type": "errorHandler",
                         "envelope": true
+                    },
+                    "guard": {
+                        "type": "formula",
+                        "since": 3,
+                        "envelope": true,
+                        "description": "Skips the step on the server when this formula is false. The server works it out before it runs the step. When it gives false or nothing, or cannot be worked out, the step is skipped: nothing is written or sent, its result is null and the sequence goes on. Use it for a rule the browser must not be able to switch off, for example currentUser.roleKey == \"manager\" or form.amount <= 500. A condition step decides in the browser, a guard decides on the server. It reads the roots a server step has (form, vars, item, index, value, params, currentUser, now, today), and screen, forms and actions only when the app sets serverScope to \"wide\". Only currentUser comes from the server: every other root is sent by the browser, so decide who may do something with currentUser, never with vars, form or actions. A guard covers its own step only, so each step that needs the rule carries it. Every server step kind takes it, the kinds added later too. A step inside a transaction takes no guard of its own: put it on the transaction."
                     }
                 },
                 "since": 3,

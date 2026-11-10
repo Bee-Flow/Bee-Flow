@@ -1,10 +1,5 @@
 // @typecheck strict
-/**
- * App Studio catalog — the action and step tables: the top-level action kinds
- * (ACTION_SPECS) and the sequence-step kinds (STEP_SPECS), plus the native AI /
- * email / file field tables both of them share.
- */
-
+/** App Studio catalog — the action kinds (ACTION_SPECS) and sequence-step kinds (STEP_SPECS), plus the native AI / email / file field tables both share. */
 'use strict';
 
 const { LIMITS } = require('./limits');
@@ -383,6 +378,8 @@ const STEP_SPECS = {
 // Every server step (and call_action) also takes the error-handling envelope (stepEnvelope.js); the registry's kinds (steps/<kind>.js) join first.
 withErrorEnvelope(Object.assign(STEP_SPECS, require('./stepRegistry').EXTENSION_STEP_SPECS));
 
+require('./actionSpecsDynamic').extend(ACTION_SPECS, STEP_SPECS); // since-3 fields, appended at the end
+require('./actionSpecsServer').extend(STEP_SPECS); // since-3: guard on server steps, formula input mappings
 module.exports = {
     ACTION_KINDS,
     ACTION_SPECS,

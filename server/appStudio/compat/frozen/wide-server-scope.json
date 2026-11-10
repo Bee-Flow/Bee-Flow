@@ -1,0 +1,70 @@
+{
+  "corpus": "wide-server-scope",
+  "canonical": {
+    "sha256": "1f68bc7936ac868b004656a028ca064094c2e08b2a49f586344156c0fa7d447f",
+    "bytes": 2263,
+    "inputIsCanonical": true,
+    "idempotent": true,
+    "keys": [
+      "schemaVersion",
+      "meta",
+      "theme",
+      "roles",
+      "variables",
+      "screens",
+      "actions",
+      "homeScreenId",
+      "serverScope"
+    ],
+    "parts": {
+      "schemaVersion": "4e07408562bedb8b",
+      "meta": "a0c9d821d340d7ae",
+      "theme": "5d7eeb0111b89897",
+      "roles": "4f53cda18c2baa0c",
+      "variables": "e150b9c49be343fa",
+      "screens[0] scr_srv00001": "ec97915406475a5e",
+      "actions.act_srvseq01": "80867d6811ee7982",
+      "actions.act_srvseq02": "400cc154ac8cca94",
+      "homeScreenId": "e343566f33351ad6",
+      "serverScope": "42e78373a349542e"
+    }
+  },
+  "schemaVersion": {
+    "stored": 3,
+    "canonical": 3
+  },
+  "validation": {
+    "strict": {
+      "errors": [],
+      "warnings": [
+        "action.automation_unset @ actions.act_srvseq02.steps[0].automationId",
+        "action.mapping_field_unknown @ actions.act_srvseq02.steps[0].inputMapping.note.name",
+        "binding.table_unverified @ actions.act_srvseq01.steps[0].tableId",
+        "binding.table_unverified @ actions.act_srvseq01.steps[1].tableId"
+      ]
+    },
+    "save": {
+      "errors": [],
+      "warnings": [
+        "action.automation_unset @ actions.act_srvseq02.steps[0].automationId",
+        "action.mapping_field_unknown @ actions.act_srvseq02.steps[0].inputMapping.note.name",
+        "binding.table_unverified @ actions.act_srvseq01.steps[0].tableId",
+        "binding.table_unverified @ actions.act_srvseq01.steps[1].tableId"
+      ]
+    }
+  },
+  "ordinals": {
+    "stored": {
+      "act_srvseq01": [
+        "0 update_record",
+        "1 create_record",
+        "2 refresh",
+        "3 toast"
+      ],
+      "act_srvseq02": [
+        "0 run_automation"
+      ]
+    },
+    "canonical": "same as stored"
+  }
+}

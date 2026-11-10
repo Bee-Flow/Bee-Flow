@@ -88,7 +88,7 @@ export function StepField({
                         definition={definition}
                         node={node}
                         ariaLabel={label}
-                        expectsBoolean={fieldKey === 'expr'}
+                        expectsBoolean={fieldKey === 'expr' || fieldKey === 'guard'}
                         placeholder={t('studio_apps_edit.step_settings.formula_example', "e.g. vars.status == 'open'")}
                         disabled={disabled}
                     />
@@ -157,7 +157,7 @@ export function StepField({
         case 'errorHandler':
             return <ErrorHandlerField label={label} value={value} onChange={onChange} disabled={disabled} />;
         case 'switchCases':
-            return <SwitchCasesField label={t('studio_apps_edit.step_settings.cases', 'Cases')} value={value as SwitchCase[] | undefined} onChange={onChange} disabled={disabled} />;
+            return <SwitchCasesField label={t('studio_apps_edit.step_settings.cases', 'Cases')} value={value as SwitchCase[] | undefined} onChange={onChange} disabled={disabled} definition={definition} node={node} />;
         case 'navParams':
         case 'callParams':
         case 'recordValues':
@@ -303,19 +303,30 @@ function AutomationRefField({ label, hint, value, onChange, options, formFields,
     );
 }
 
-function SwitchCasesField({ label, value, onChange, disabled }: SwitchCasesFieldProps) {
+function SwitchCasesField({ label, value, onChange, disabled, definition, node }: SwitchCasesFieldProps) {
     const { t } = useTranslation();
     const cases: SwitchCase[] = Array.isArray(value) ? value : [];
     const commit = (next: SwitchCase[]) => onChange(next);
+    // A formula (`whenExpr`, since 3) picks a case instead of a value: setting one drops the value, and an empty
+    // formula is removed so a case without one stays exactly as it was.
+    const setWhen = (i: number, whenExpr: string) => commit(cases.map((x, j) => {
+        if (j !== i) return x;
+        const { whenExpr: _old, ...rest } = x;
+        if (!whenExpr) return rest;
+        const { value: _value, ...noValue } = rest;
+        return { ...noValue, whenExpr };
+    }));
 
     return (
         <div className="flex flex-col gap-2">
             <span className="text-[11px] font-medium text-[var(--text-secondary)]">{label}</span>
             <p className="text-[11px] text-[var(--text-secondary)]">
                 {t('studio_apps_edit.step_settings.cases_help', 'Each case runs when the value above equals what you type here. Anything that matches nothing runs “Otherwise”.')}
+                {' '}{t('studio_apps_dynamic_text.cases_when_help', 'A case with a formula runs when the formula is true instead; use it for ranges.')}
             </p>
             {cases.map((c, i) => (
-                <div key={i} className="flex items-center gap-1.5">
+                <div key={i} className="flex flex-col gap-1.5" data-switch-case={i}>
+                <div className="flex items-center gap-1.5">
                     <input
                         type="text"
                         className={INPUT_CLS}
@@ -335,6 +346,17 @@ function SwitchCasesField({ label, value, onChange, disabled }: SwitchCasesField
                     >
                         {t('studio_apps_edit.step_settings.remove', 'Remove')}
                     </button>
+                </div>
+                <ExpressionInput
+                    variant="inline"
+                    value={c?.whenExpr ?? ''}
+                    onChange={(expr: string) => setWhen(i, expr)}
+                    definition={definition}
+                    node={node}
+                    placeholder={t('studio_apps_dynamic_text.case_when_placeholder', 'Or a formula, e.g. vars.total >= 100')}
+                    ariaLabel={t('studio_apps_dynamic_text.case_when_aria', 'Case {n} formula', { n: i + 1 })}
+                    disabled={disabled}
+                />
                 </div>
             ))}
             <button

@@ -28,6 +28,7 @@ import {
 import type { ActionEntry, RunOpts, RunStep, RunnableAction } from './core';
 import type { RunnerContext } from './runnerContext';
 import { StepFailure, dispatchBrowseStep, dispatchServerStep } from './serverSteps';
+import { wideScopeBody } from './wideScope';
 import type { ErrorScope, SeqState } from './serverSteps';
 import { runCallStep } from './callStep';
 import { isFlowSignal, noteFailure, runActionSteps, runFlowStep, runLoop } from './controlFlow';
@@ -121,7 +122,7 @@ async function dispatchWithRetry(env: SeqEnv, step: RunStep, st: SeqState): Prom
     const plan = retryPlanOf(step);
     for (let attempt = 1; ; attempt++) {
         try {
-            return await dispatchServerStep(env.ctx, env.indexMap.get(step), st, echoedKind(env, step));
+            return await dispatchServerStep(env.ctx, env.indexMap.get(step), st, echoedKind(env, step), wideScopeBody(env.ctx, step, st));
         } catch (e) {
             const again = e instanceof StepFailure && e.retryable && attempt <= plan.times;
             if (e instanceof StepFailure) {
@@ -152,6 +153,15 @@ async function runServerStep(env: SeqEnv, step: RunStep, st: SeqState): Promise<
     recordServerResult(env, step, st, result);
 }
 
+type SwitchCase = { value?: unknown; whenExpr?: unknown };
+
+// A case with a `value` matches what the switch formula gave; a case with only a `whenExpr` formula (since 3)
+// matches when that formula is true. `value` wins when a case has both.
+function caseHits(c: SwitchCase, switched: unknown, scope: unknown): boolean {
+    if (c.value !== undefined || typeof c.whenExpr !== 'string' || !c.whenExpr) return caseMatches(c.value, switched);
+    return !!tryEvaluate(c.whenExpr, scope).value;
+}
+
 async function runControlStep(env: SeqEnv, step: RunStep, st: SeqState): Promise<void> {
     switch (step.kind) {
         case 'condition': {
@@ -162,7 +172,8 @@ async function runControlStep(env: SeqEnv, step: RunStep, st: SeqState): Promise
         case 'switch': {
             const { value } = tryEvaluate(step.expr, env.liveBag(st).scope);
             const cases: unknown[] = Array.isArray(step.cases) ? step.cases : [];
-            const hit = cases.find((c) => c && caseMatches((c as { value?: unknown }).value, value)) as { steps?: unknown } | undefined;
+            const scope = env.liveBag(st).scope;
+            const hit = cases.find((c) => c && caseHits(c as SwitchCase, value, scope)) as { steps?: unknown } | undefined;
             await execSteps(env, hit ? hit.steps : step.default, st);
             return;
         }
@@ -180,7 +191,7 @@ async function execStep(env: SeqEnv, step: RunStep | null | undefined, st: SeqSt
     // ai_browse is a SERVER kind but streams — it takes the dedicated
     // SSE path, not the plain JSON /step dispatch below.
     if (step.kind === 'ai_browse') {
-        recordServerResult(env, step, st, await dispatchBrowseStep(env.ctx, env.indexMap.get(step), st, echoedKind(env, step)));
+        recordServerResult(env, step, st, await dispatchBrowseStep(env.ctx, env.indexMap.get(step), st, echoedKind(env, step), wideScopeBody(env.ctx, step, st)));
         return;
     }
     // Server kinds are dispatched from the SET, not from a hand-written

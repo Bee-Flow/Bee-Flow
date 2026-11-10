@@ -92,7 +92,8 @@ export default function StepSettings({ step, onChange, definition, node = null, 
                     fs={fs}
                     value={step[key]}
                     step={step}
-                    onChange={(v) => set({ [key]: v })}
+                    // A formula added after the base is optional: emptied, it leaves the step (an empty formula is no formula).
+                    onChange={(v) => set({ [key]: fs.type === 'formula' && fs.since && v === '' ? undefined : v })}
                     onStepChange={onChange}
                     definition={definition}
                     node={node}

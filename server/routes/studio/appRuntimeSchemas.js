@@ -71,6 +71,12 @@ const StepBody = bodyOf({
     error: ErrorScope.optional(),
     // The run log: the key that ties the server steps of one click together (appStudio/runLog/clickRuns.mts).
     runKey: RunKey.optional(),
+    // Sent only by an app whose definition sets serverScope: 'wide', and read only for such an app
+    // (appStudio/actionExecutor/wideScope.mts bounds them): the screen params, the other forms and the
+    // action results this step's formulas name. Viewer input, like formValues and vars.
+    screenParams: bag('screenParams').nullish(),
+    forms: bag('forms').nullish(),
+    actionResults: bag('actionResults').nullish(),
 }, 'An action step');
 
 const RUN_END_TEXT = 'status is success, error or cancelled.';

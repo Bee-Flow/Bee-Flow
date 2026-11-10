@@ -2,6 +2,7 @@ import { Trash2 } from 'lucide-react';
 import { SetStateAction, Dispatch, useEffect, useRef, useState } from 'react';
 import ActionChoiceCards from './ActionChoiceCards';
 import ActionRunOptions from './ActionRunOptions';
+import SequenceEffects from './SequenceEffects';
 import { EDITOR_BY_KIND, defaultActionForKind } from './actionKindCatalog';
 import { stepCount } from './actionRefs';
 import AiActionEditor from './AiActionEditors';
@@ -177,6 +178,7 @@ function EventWiring({ event, node, definition, onCommit, onTestActionResult, di
                         <>
                             <SequenceSummary action={action} onOpen={() => setFlowFor(actionId)} disabled={disabled} />
                             <ActionRunOptions action={action} commitAction={commitAction} definition={definition} node={node} disabled={disabled} />
+                            <SequenceEffects action={action} commitAction={commitAction} definition={definition} disabled={disabled} />
                         </>
                     ) : null}
 

@@ -60,7 +60,8 @@
         "MAX_TIMER_SECONDS": 3600,
         "MAX_SCREEN_TIMERS": 3,
         "MAX_WATCHERS": 10,
-        "MAX_WATCHER_DEBOUNCE_MS": 10000
+        "MAX_WATCHER_DEBOUNCE_MS": 10000,
+        "MAX_ALLOWED_LINK_HOSTS": 50
     },
     "colorRoles": [
         "primary",

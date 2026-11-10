@@ -117,6 +117,7 @@ const LIMITS = {
     MAX_SCREEN_TIMERS: CLIENT_TRIGGER_LIMITS.MAX_SCREEN_TIMERS,
     MAX_WATCHERS: CLIENT_TRIGGER_LIMITS.MAX_WATCHERS,
     MAX_WATCHER_DEBOUNCE_MS: CLIENT_TRIGGER_LIMITS.MAX_WATCHER_DEBOUNCE_MS,
+    MAX_ALLOWED_LINK_HOSTS: 50,        // definition.allowedLinkHosts entries (hosts an open_url formula may open)
 };
 
 module.exports = {

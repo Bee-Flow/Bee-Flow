@@ -15,6 +15,10 @@ import type { AppDefinition, AppScreen } from './appDefinition';
 import type { ScreenView, ScreenPatch, ThemeValues, OptionalColorFieldProps, ScreenSettingsProps, ThemePanelProps } from './ThemePanel.types';
 import { designFields, fontLabels, widthLabels, refreshLabels, navStyleLabels, options, themeFields } from './ThemePanel.helpers';
 import { SectionTitle, AiBrowsingSettings } from './AiBrowsingSettings';
+import { LinkHostsSettings } from './LinkHostsSettings';
+import { updateAllowedLinkHosts } from '../state/linkHostOps';
+import { ServerScopeSettings } from './ServerScopeSettings';
+import { updateServerScope } from '../state/serverScopeOps';
 import { THEME_SECTIONS } from './themeSections';
 import AssetRefField from './assets/AssetRefField';
 import { useEditorChrome } from '../editor/EditorChromeContext';
@@ -152,6 +156,14 @@ export default function ThemePanel({ definition, onCommit, disabled = false, scr
         const next = updateAiBrowsing(definition, patch);
         if (next !== definition) onCommit(next);
     };
+    const commitLinkHosts = (hosts: string[]) => {
+        const next = updateAllowedLinkHosts(definition, hosts);
+        if (next !== definition) onCommit(next);
+    };
+    const commitServerScope = (wide: boolean) => {
+        const next = updateServerScope(definition, wide);
+        if (next !== definition) onCommit(next);
+    };
     // A design change makes the look the author's own — unless it IS a preset
     // being applied (that branch sets the provenance itself).
     const commitDesign = (patch: Record<string, string | null>) => {
@@ -287,6 +299,10 @@ export default function ThemePanel({ definition, onCommit, disabled = false, scr
                 onCommit={commitAiBrowsing}
                 disabled={disabled}
             />
+
+            <LinkHostsSettings value={definition?.allowedLinkHosts} onCommit={commitLinkHosts} disabled={disabled} />
+
+            <ServerScopeSettings value={definition?.serverScope} onCommit={commitServerScope} disabled={disabled} />
         </div>
     );
 }

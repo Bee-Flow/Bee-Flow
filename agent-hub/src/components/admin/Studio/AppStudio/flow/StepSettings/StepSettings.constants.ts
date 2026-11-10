@@ -51,9 +51,23 @@ export const FIELD_LABELS: Record<string, string[]> = {
     failFast: ['studio_apps_flow_parallel.settings.fail_fast', 'Stop the other branches when one fails'],
     timeoutMs: ['studio_apps_step_code.field.timeout_label', 'Time limit (ms)'],
     nodeId: ['studio_apps_ui_steps.fields.node', 'Component'],
+    messageExpr: ['studio_apps_dynamic_text.field_message_expr', 'Message (formula)'],
+    titleExpr: ['studio_apps_dynamic_text.field_title_expr', 'Title (formula)'],
+    confirmLabelExpr: ['studio_apps_dynamic_text.field_confirm_label_expr', 'Confirm button (formula)'],
+    cancelLabelExpr: ['studio_apps_dynamic_text.field_cancel_label_expr', 'Cancel button (formula)'],
+    screenExpr: ['studio_apps_dynamic_text.field_screen_expr', 'Screen (formula)'],
+    urlExpr: ['studio_apps_dynamic_text.field_url_expr', 'Address (formula)'],
+    guard: ['studio_apps_server_scope.field_guard', 'Only run when (checked on the server)'],
 };
 
 export const HINTS: Record<string, string[]> = {
+    guard: ['studio_apps_server_scope.hint_guard', 'A formula the server works out before this step. When it is not true the step is skipped and the rest goes on. Leave it empty to always run the step.'],
+    messageExpr: ['studio_apps_dynamic_text.hint_text_expr', 'Used instead of the text above when it gives a result.'],
+    titleExpr: ['studio_apps_dynamic_text.hint_text_expr', 'Used instead of the text above when it gives a result.'],
+    confirmLabelExpr: ['studio_apps_dynamic_text.hint_text_expr', 'Used instead of the text above when it gives a result.'],
+    cancelLabelExpr: ['studio_apps_dynamic_text.hint_text_expr', 'Used instead of the text above when it gives a result.'],
+    screenExpr: ['studio_apps_dynamic_text.hint_screen_expr', 'Gives the id of one of this app’s screens. Used instead of the screen above.'],
+    urlExpr: ['studio_apps_dynamic_text.hint_url_expr', 'Opens only https addresses on the hosts listed in the app settings under “Links from formulas”.'],
     resultVar: ['studio_apps_edit.step_settings.hint_result_var', 'The variable this step’s result lands in — formulas read it as vars.<name>.'],
     itemVar: ['studio_apps_edit.step_settings.hint_item_var', 'What each row is called inside the loop.'],
     indexVar: ['studio_apps_edit.step_settings.hint_index_var', 'What the position in the list is called (0, 1, 2…).'],

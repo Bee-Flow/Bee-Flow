@@ -79,9 +79,10 @@ export interface SeqState {
  * The body both step endpoints take: the ordinal plus the scope roots the server declares.
  * `kind` (the step's kind) rides along only for an action that holds a step kind of the
  * registry, where the server asks for it: every other action posts what it always did.
+ * `wide` is what ./wideScope adds for an app with the wide server scope ({} for every other app).
  */
-function stepBody(stepIndex: number | undefined, st: SeqState, kind?: string): Record<string, unknown> {
-    const body: Record<string, unknown> = { stepIndex, formValues: st.formValues || {}, vars: st.vars || {} };
+function stepBody(stepIndex: number | undefined, st: SeqState, kind?: string, wide: Record<string, unknown> = {}): Record<string, unknown> {
+    const body: Record<string, unknown> = { stepIndex, formValues: st.formValues || {}, vars: st.vars || {}, ...wide };
     if (kind) body.kind = kind;
     if (st.item !== undefined) body.item = st.item;
     // `index` is a declared server scope root and the loop tracks it,
@@ -138,7 +139,7 @@ function throwOnFailure(res: Response, payload: Record<string, unknown> | null, 
     }
 }
 
-export async function dispatchServerStep(ctx: RunnerContext, stepIndex: number | undefined, st: SeqState, kind?: string): Promise<unknown> {
+export async function dispatchServerStep(ctx: RunnerContext, stepIndex: number | undefined, st: SeqState, kind?: string, wide?: Record<string, unknown>): Promise<unknown> {
     const { appId, draft, tr } = ctx;
     const qs = draft ? '?draft=1' : '';
     // The deadline is longer than the server's own AI ceiling, so its message
@@ -147,7 +148,7 @@ export async function dispatchServerStep(ctx: RunnerContext, stepIndex: number |
     // the spinner up forever.
     const res = await postStep(
         `${actionsUrl(appId)}/${encodeURIComponent(st.actionId)}/step${qs}`,
-        stepBody(stepIndex, st, kind),
+        stepBody(stepIndex, st, kind, wide),
         STEP_DEADLINE_MS,
         () => tr('studio_apps_runtime.actions.step_too_long', 'That took too long and was stopped. Try again, or with fewer documents.'),
     );
@@ -176,10 +177,10 @@ async function readBrowseStream(res: Response, actionId: string, publish: Runner
 // server-side and pushes screenshot/action events, which we forward to
 // the live-preview store. The resultVar is resolved from the terminal
 // {type:'result'} frame, exactly like a plain /step result.
-export async function dispatchBrowseStep(ctx: RunnerContext, stepIndex: number | undefined, st: SeqState, kind?: string): Promise<unknown> {
+export async function dispatchBrowseStep(ctx: RunnerContext, stepIndex: number | undefined, st: SeqState, kind?: string, wide?: Record<string, unknown>): Promise<unknown> {
     const { appId, draft, tr } = ctx;
     const { actionId } = st;
-    const body = stepBody(stepIndex, st, kind);
+    const body = stepBody(stepIndex, st, kind, wide);
     const qs = draft ? '?draft=1' : '';
     const publish = ctx.live.current.onBrowseEvent;
     if (publish) publish(actionId, { type: 'reset' });

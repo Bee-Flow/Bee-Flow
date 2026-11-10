@@ -114,6 +114,21 @@ test('dryRun is the default: client steps skipped, a record write not executed, 
     assert.deepEqual(out.steps[1].result, { wouldWrite: { kind: 'create_record', tableId: 'tbl_a' } });
 });
 
+test('a server step whose guard is false is reported as skipped and never simulated or run; a true guard changes nothing', async () => {
+    const steps = [
+        { kind: 'create_record', tableId: 'tbl_a', values: {}, guard: 'vars.go == true' },
+        { kind: 'ai_generate', resultVar: 'summary', guard: 'vars.go == true' },
+    ];
+    const held = await run({ kind: 'sequence', steps }, { scope: { vars: { go: false } } });
+    assert.deepEqual(held.steps.map((s) => [s.kind, s.status]), [['create_record', 'skipped'], ['ai_generate', 'skipped']]);
+    assert.match(held.steps[0].error, /^guard: /);
+    assert.equal(held.steps[0].result, undefined, 'no wouldWrite for a step the server would skip');
+    assert.deepEqual(kindsRun(), []);
+    const open = await run({ kind: 'sequence', steps }, { scope: { vars: { go: true } } });
+    assert.deepEqual(open.steps.map((s) => [s.kind, s.status]), [['create_record', 'skipped'], ['ai_generate', 'ok']]);
+    assert.deepEqual(open.steps[0].result, { wouldWrite: { kind: 'create_record', tableId: 'tbl_a' } });
+});
+
 test('the step context says dryRun, so a dry run or a test writes no KB query log', async () => {
     const step = { kind: 'ai_generate', prompt: { kind: 'static', value: 'x' }, resultVar: 'r' };
     await run({ kind: 'sequence', steps: [step] });

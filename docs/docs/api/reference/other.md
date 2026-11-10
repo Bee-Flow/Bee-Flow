@@ -973,6 +973,9 @@ No request schema.
 | `error.attempts` | integer | yes | min 1; max 4 |
 | `error.stepIndex` | integer |  | min 0; max 9007199254740991 |
 | `runKey` | string |  | pattern `^rk_[A-Za-z0-9_-]{16,64}$` |
+| `screenParams` | object or null |  |  |
+| `forms` | object or null |  |  |
+| `actionResults` | object or null |  |  |
 
 ### `GET /api/public-app/:token/assets/:assetId`
 

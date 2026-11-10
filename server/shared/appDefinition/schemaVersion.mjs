@@ -23,6 +23,7 @@
  *     stepFields:        { [kind]: { [field]: n } },             a field added to an existing step kind
  *     stepFieldValues:   { [kind]: { [field]: { [value]: n } } }, an enum value added to a step field
  *     actionFields / actionFieldValues                          the same for an action kind
+ *     stepItemKeys:      { [kind]: { [field]: { [key]: n } } },   a key on the items of a base step's list field (a case's `whenExpr`)
  *     itemShapes:     { [type]: { [prop]: ShapeMarks } },      keys and enum values added to the items of a list prop
  *     typeNodeKeys:   { [type]: { [key]: n } },                a node key an existing type newly takes (an event)
  *     keys:           { [family]: { [key]: n } },               a key added to one of the fixed objects below
@@ -65,6 +66,7 @@ export const SCHEMA_VERSION_CURRENT = 3;
  *   stepFieldValues: Record<string, Record<string, SinceMap>>,
  *   actionFields: Record<string, SinceMap>,
  *   actionFieldValues: Record<string, Record<string, SinceMap>>,
+ *   stepItemKeys: Record<string, Record<string, SinceMap>>,
  *   itemShapes: Record<string, Record<string, ShapeMarks>>,
  *   typeNodeKeys: Record<string, SinceMap>,
  *   keys: Record<string, SinceMap>,
@@ -97,6 +99,7 @@ export function emptySinceIndex() {
         stepFieldValues: map(),
         actionFields: map(),
         actionFieldValues: map(),
+        stepItemKeys: map(),
         itemShapes: map(),
         typeNodeKeys: map(),
         keys: map(),
@@ -187,6 +190,15 @@ function shapeSince(list, marks) {
     return max;
 }
 
+/** The highest `since` of the keys on the items of a list field of this step (`stepItemKeys`). @param {Record<string, unknown>} step @param {SinceIndex} index */
+function stepItemsSince(step, index) {
+    let max = 0;
+    for (const [field, keys] of Object.entries(own(index.stepItemKeys, step.kind) || {})) {
+        for (const item of listOf(step[field])) if (isObject(item)) max = Math.max(max, bagSince(item, keys, undefined));
+    }
+    return max;
+}
+
 /**
  * What one object inside a binding or a step field needs: a binding kind and the keys added to it, a step kind with
  * the fields added to it, the query vocabulary (`op`, `fn`, `bucket`) and the forms of the values it holds.
@@ -203,6 +215,7 @@ function objectSince(value, index, steps, tests) {
             max,
             sinceOf(index.stepKinds, value.kind),
             bagSince(value, own(index.stepFields, value.kind), own(index.stepFieldValues, value.kind)),
+            stepItemsSince(value, index),
         );
     }
     return max;

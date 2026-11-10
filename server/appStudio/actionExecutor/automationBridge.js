@@ -18,6 +18,7 @@ const { fallback } = require('../../utils/bestEffort');
 // form/var bag sanitization).
 const MAX_FIELD_KEY_LEN = 100;
 const MAX_INPUT_FIELDS = 100;
+const MAPPING_FORMULA = './mappingFormula.mts'; // input mappings of kind `formula`
 
 // ── run_automation (owner-scoped) ───────────────────────────────────
 
@@ -39,7 +40,7 @@ const MAX_INPUT_FIELDS = 100;
  * silently — the validator rejects them at save time; a stale definition
  * shouldn't 500 here.
  */
-function resolveInputs(inputMapping, formValues) {
+function resolveInputs(inputMapping, formValues, evalFormula) {
     const values = (formValues && typeof formValues === 'object' && !Array.isArray(formValues)) ? formValues : {};
     const mapping = (inputMapping && typeof inputMapping === 'object' && !Array.isArray(inputMapping)) ? inputMapping : null;
     const inputs = {};
@@ -61,7 +62,7 @@ function resolveInputs(inputMapping, formValues) {
                     throw err;
                 }
                 inputs[param] = capString(v);
-            }
+            } else if (m.kind === 'formula') require(MAPPING_FORMULA).putFormulaInput(inputs, param, m, evalFormula, capString); // since 3
         }
         return inputs;
     }
@@ -143,8 +144,12 @@ async function expandFileInput(param, descriptor, app) {
  * Returns the FLAT validated inputs object (param names can't start with "_",
  * so the caller's audit keys can never be shadowed). Throws err.status=400
  * with a client-safe message on any violation.
+ *
+ * @param {{ definition?: unknown } | null | undefined} automation
+ * @param {unknown} inputMapping @param {unknown} formValues
+ * @param {{ app: unknown, evalFormula?: (expr: string) => unknown }} deps  evalFormula works out a `formula` mapping (a step has one)
  */
-async function resolveAppTriggerInputs(automation, inputMapping, formValues, { app }) {
+async function resolveAppTriggerInputs(automation, inputMapping, formValues, { app, evalFormula }) {
     const contract = require('../../core/automationModel/appTriggerContract');
     const params = contract.appTriggerParams(automation?.definition);
     const values = (formValues && typeof formValues === 'object' && !Array.isArray(formValues)) ? formValues : {};
@@ -155,6 +160,7 @@ async function resolveAppTriggerInputs(automation, inputMapping, formValues, { a
         if (m && typeof m === 'object') {
             if (m.kind === 'static') return m.value;
             if (m.kind === 'field') return values[m.name];
+            if (m.kind === 'formula') return require(MAPPING_FORMULA).formulaValue(m, evalFormula); // since 3: worked out on the server
             return undefined; // unknown mapping kind — validator rejects at save time
         }
         return values[param.name]; // identity mapping by declared name
@@ -344,8 +350,8 @@ async function runAutomationStep(app, step, ctx) {
     // runtime label in both cases — `app_trigger` is the DEFINITION's kind.
     const audit = { _viewerUserId: ctx.viewerId ?? null, _studioAppId: app.id, _stepKind: 'run_automation' };
     const triggerPayload = isAppTriggerAutomation(automation)
-        ? { ...(await resolveAppTriggerInputs(automation, step.inputMapping, ctx.formValues, { app })), ...audit }
-        : { inputs: resolveInputs(step.inputMapping, ctx.formValues), ...audit };
+        ? { ...(await resolveAppTriggerInputs(automation, step.inputMapping, ctx.formValues, { app, evalFormula: require(MAPPING_FORMULA).formulaEvaluator(ctx) })), ...audit }
+        : { inputs: resolveInputs(step.inputMapping, ctx.formValues, require(MAPPING_FORMULA).formulaEvaluator(ctx)), ...audit };
     const runner = require('../../core/automationRunner');
     const run = await runner.executeAutomation(automation, {
         triggerKind: 'studio_app',

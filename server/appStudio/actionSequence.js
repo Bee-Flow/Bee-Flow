@@ -195,11 +195,13 @@ function followCallPath(actions, root, rootId, callPath) {
  * there are any, so an answer without remarks keeps its old shape.
  *
  * @param {{ notes?: unknown } | null | undefined} result
- * @returns {{ notes?: string[] }}
+ * @returns {{ notes?: string[], skipped?: boolean }}
  */
 function stepNotes(result) {
     const notes = result && Array.isArray(result.notes) ? result.notes.filter((n) => typeof n === 'string').slice(0, 20) : [];
-    return notes.length ? { notes } : {};
+    // `skipped`: the step's guard held it back (actionExecutor/stepGuard.mts). Only then, so every other answer keeps its shape.
+    const skipped = result && /** @type {{ skipped?: unknown }} */ (result).skipped === true ? { skipped: true } : {};
+    return notes.length ? { notes, ...skipped } : skipped;
 }
 
 /**

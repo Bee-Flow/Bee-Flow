@@ -433,10 +433,10 @@ function buildValidationContext(def, opts, { pushE, pushW, actionIds, screenIds,
         dataMailboxConnectors: connectorIdsOfKind(opts.dataModel, 'mailbox'),
         dataRestConnectors: connectorIdsOfKind(opts.dataModel, 'rest'),
         dataRefsAsWarnings: !!opts.dataRefsAsWarnings,
-        // The per-app AI-browsing opt-in (HUMAN-set — see canonicalize).
-        // Consulted per ai_browse step: a step in an app whose flag is off is
-        // an authoring error the builder must surface, not a runtime surprise.
+        // The per-app AI-browsing opt-in (HUMAN-set — see canonicalize), consulted per ai_browse step: a step
+        // in an app whose flag is off is an authoring error the builder must surface, not a runtime surprise.
         aiBrowsingEnabled: def.aiBrowsing?.enabled === true,
+        ...require('./validate/serverScopeChecks.mts').since3Ctx(def), // allowedLinkHosts (HUMAN-set hosts an open_url formula may open), serverScopeWide
         actions: isObject(def.actions) ? def.actions : null,
     };
 }
