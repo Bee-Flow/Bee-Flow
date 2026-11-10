@@ -23,7 +23,7 @@ const { requireAuth, resolveUserOrgIds } = require('../../auth');
 const {
     getUserId,
     resolveUserGroups,
-    resolveIsOrgAdmin,
+    resolveAdminOrgIds,
     resolveEnabledSystemSlugs,
     listFilterFromQuery,
     VALID_USAGE_CONTEXTS,
@@ -68,13 +68,14 @@ const ListQuery = z.object({
 router.get('/', requireAuth, validate({ query: ListQuery }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof ListQuery>>} */ req, res) => {
     const userId = getUserId(req);
     const orgIds = await resolveUserOrgIds(req);
-    const isOrgAdmin = await resolveIsOrgAdmin(req);
+    const adminOrgIds = await resolveAdminOrgIds(req);
     const systemSlugs = await resolveEnabledSystemSlugs(req);
-    const kbs = await kbStore.listKBs(userId, orgIds, { ...listFilterFromQuery(req), systemSlugs, isOrgAdmin });
+    const kbs = await kbStore.listKBs(userId, orgIds, { ...listFilterFromQuery(req), systemSlugs, adminOrgIds });
     const userGroups = await resolveUserGroups(req);
-    // Owners always see drafts; org admins see every org KB (incl. drafts);
-    // regular org members see only published KBs that pass shared_groups.
-    const filtered = kbStore.filterByGroupAccess(kbs, userId, userGroups, { orgIds, isOrgAdmin });
+    // Owners always see drafts; org admins see every KB of the org they
+    // administer (incl. drafts); everywhere else only published KBs that pass
+    // shared_groups.
+    const filtered = kbStore.filterByGroupAccess(kbs, userId, userGroups, { orgIds, adminOrgIds });
     // sourceCount / autoRefreshCount / lastContentAt: the Knowledge list's
     // "N sources" and freshness cell read these, and without them every base
     // said "0 sources · no sources yet".

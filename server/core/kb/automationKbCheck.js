@@ -128,14 +128,24 @@ async function kbStepFindings(definition, { orgId, userId, stage = 'draft', deps
     const findings = [];
     const cache = new Map();
     const writeCache = new Map();
+    // The owner is the same for every write step: resolved once (on the first
+    // write step), not once per base.
+    /** @type {Promise<any> | null} */
+    let ownerContext = null;
 
     for (const step of steps) {
         if (step.access === 'write') {
             const kbId = step.kbIds[0];
             if (!writeCache.has(kbId)) {
-                const { canOwnerWriteToKb } = deps.writeAccess || require('./kbWriteAccess');
+                const { canOwnerWriteToKb, resolveOwnerWriteContext } = deps.writeAccess || require('./kbWriteAccess');
+                if (!ownerContext) {
+                    ownerContext = userId && typeof resolveOwnerWriteContext === 'function'
+                        ? resolveOwnerWriteContext(userId, { deps }).catch((err) => fallback('core/kb/automationKbCheck:ownerContext', err, null))
+                        : Promise.resolve(null);
+                }
+                const context = await ownerContext;
                 let verdict = { ok: false, reason: 'unknown' };
-                try { verdict = await canOwnerWriteToKb(kbId, userId, { deps }); } catch (err) { fallback('core/kb/automationKbCheck:kbStepFindings', err); /* refuse */ }
+                try { verdict = await canOwnerWriteToKb(kbId, userId, { deps, context }); } catch (err) { fallback('core/kb/automationKbCheck:kbStepFindings', err); /* refuse */ }
                 writeCache.set(kbId, verdict);
             }
             const verdict = writeCache.get(kbId);

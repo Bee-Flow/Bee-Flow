@@ -43,6 +43,16 @@ const ORG_A = 'org-matrix-a';
 const ORG_B = 'org-matrix-b';
 const USER_A = { id: 'u-matrix-a', username: 'matrix-a', email: 'a@matrix.test', organizationId: ORG_A, role: 'user', orgRole: 'member', groups: [] };
 const USER_B = { id: 'u-matrix-b', username: 'matrix-b', email: 'b@matrix.test', organizationId: ORG_B, role: 'user', orgRole: 'member', groups: [] };
+// An organisation admin of A who is also a plain member of a group IN org B: B is
+// in their organisation union, but no management right of theirs holds there.
+const GROUP_B = 'g-matrix-b-members';
+const USER_AB = { id: 'u-matrix-ab', username: 'matrix-ab', email: 'ab@matrix.test', organizationId: ORG_A, role: 'user', orgRole: 'org_admin', groups: [GROUP_B] };
+/** The kinds whose every route this caller is refused (the fixture is a draft of org B). */
+const ADMIN_ELSEWHERE = new Set(['agent', 'knowledgeBase']);
+// An organisation admin of B: the management rights of B hold for them.
+const USER_B_ADMIN = { id: 'u-matrix-b-admin', username: 'matrix-b-admin', email: 'b-admin@matrix.test', organizationId: ORG_B, role: 'user', orgRole: 'org_admin', groups: [] };
+/** A PUBLISHED base of org B shared with the whole organisation: every member of B, USER_AB included, may read it. */
+let publishedKbB = '';
 
 /** @type {Map<string, { id: string, api: ReturnType<typeof h.serve> }>} */
 const created = new Map();
@@ -59,7 +69,8 @@ before(async () => {
         await userStore.createOrganization({ id, name }, { autoGrantTrial: false });
         await userStore.setOrgSubscription(id, { plan_id: plan.id, status: 'active' });
     }
-    for (const u of [USER_A, USER_B]) await userStore.createUser({ ...u, passwordHash: 'x' });
+    await userStore.createGroup({ id: GROUP_B, organizationId: ORG_B, name: 'Org B members', permissions: [] });
+    for (const u of [USER_A, USER_B, USER_AB, USER_B_ADMIN]) await userStore.createUser({ ...u, passwordHash: 'x' });
     // Stores initialise their schema on first use; PGlite is one session, so one at a time.
     for (const store of ['agentStore', 'webpageStore', 'automationStore', 'datatableStore', 'notebookStore', 'studioAppStore']) {
         const s = require(`./stores/${store}`);
@@ -72,6 +83,10 @@ before(async () => {
         servers.push(api);
         created.set(f.kind, { id, api });
     }
+    const kbStore = require('./stores/knowledgeBases');
+    const kb = await kbStore.createKB(USER_B.id, 'Published KB of org B', 'matrix fixture', ORG_B, {});
+    await kbStore.setPublished(kb.id, true, []);
+    publishedKbB = kb.id;
 }, { timeout: 120_000 });
 
 after(async () => {
@@ -99,7 +114,81 @@ for (const f of FIXTURES) {
         }
         assert.deepEqual(leaks, [], `org A reached org B's ${f.kind}:\n  ${leaks.join('\n  ')}`);
     });
+
+    if (ADMIN_ELSEWHERE.has(f.kind)) {
+        // The fixture is a draft of org B owned by B: reading it needs the owner or an
+        // admin of org B, changing it a management right held IN org B.
+        test(`${f.kind}: an admin of org A who is a plain group member of org B cannot manage or read B's draft`, async () => {
+            const { id, api } = created.get(f.kind);
+            const leaks = [];
+            for (const r of f.routes) {
+                const [method, route] = r.split(' ');
+                const res = await api.call(method, fill(route, id), { user: USER_AB, body: method === 'GET' || method === 'DELETE' ? undefined : {} });
+                if (res.status !== 403 && res.status !== 404) leaks.push(`${r} → ${res.status}`);
+            }
+            assert.deepEqual(leaks, [], `an admin of org A reached org B's ${f.kind}:\n  ${leaks.join('\n  ')}`);
+        });
+    }
 }
+
+// ── A management right holds in the organisation it was granted in ─────────
+// USER_AB holds manage_knowledge and manage_agents in org A only. Org B is in
+// their organisation union (a plain group), so they READ B's published base;
+// they do not change its content, and they create nothing in B.
+
+const NO_DOC = '00000000-0000-4000-8000-000000000000';
+/** The routes that change a base's content, each with a body its schema accepts. */
+const CONTENT_WRITES = [
+    ['POST', '/ingest/text', { content: 'Text that must not land here.', title: 'Matrix' }],
+    ['POST', '/ingest/url', { url: 'https://example.com/' }],
+    ['POST', '/ingest/file', undefined],
+    ['POST', '/ingest/n8n', { workflowId: 'wf-matrix' }],
+    ['POST', '/ingest/sitemap', { url: 'https://example.com/' }],
+    ['POST', '/documents/bulk-delete', { documentIds: [NO_DOC] }],
+    ['DELETE', `/documents/${NO_DOC}`, undefined],
+    ['POST', '/reindex', {}],
+];
+
+test('knowledgeBase: an admin of org A who is a plain group member of org B reads B\'s published base but cannot change its content', async () => {
+    const { api } = created.get('knowledgeBase');
+    const read = await api.call('GET', `/api/kb/${publishedKbB}`, { user: USER_AB });
+    assert.equal(read.status, 200, `the published base is readable for a member of org B: ${read.status} ${read.text.slice(0, 200)}`);
+    const leaks = [];
+    for (const [method, suffix, body] of CONTENT_WRITES) {
+        const res = await api.call(method, `/api/kb/${publishedKbB}${suffix}`, { user: USER_AB, body });
+        if (res.status !== 403) leaks.push(`${method} ${suffix} → ${res.status} ${res.text.slice(0, 120)}`);
+    }
+    assert.deepEqual(leaks, [], `a right held in org A changed org B's base:\n  ${leaks.join('\n  ')}`);
+});
+
+test('knowledgeBase: an admin of org B changes the content of B\'s base', async () => {
+    const { api } = created.get('knowledgeBase');
+    const res = await api.call('POST', `/api/kb/${publishedKbB}/reindex`, { user: USER_B_ADMIN, body: {} });
+    assert.equal(res.status, 200, `${res.status} ${res.text.slice(0, 200)}`);
+});
+
+test('knowledgeBase: a base is created only in an organisation where manage_knowledge holds', async () => {
+    const { api } = created.get('knowledgeBase');
+    const inB = await api.call('POST', '/api/kb', { user: USER_AB, body: { name: 'Matrix KB in B', organizationId: ORG_B } });
+    assert.equal(inB.status, 403, `${inB.status} ${inB.text.slice(0, 200)}`);
+    const inA = await api.call('POST', '/api/kb', { user: USER_AB, body: { name: 'Matrix KB in A', organizationId: ORG_A } });
+    assert.equal(inA.status, 201, `${inA.status} ${inA.text.slice(0, 200)}`);
+    assert.equal(inA.body.organization_id, ORG_A);
+    // A copy of B's base is a personal copy, not a base of org B.
+    const copy = await api.call('POST', `/api/kb/${publishedKbB}/duplicate`, { user: USER_AB });
+    assert.equal(copy.status, 201, `${copy.status} ${copy.text.slice(0, 200)}`);
+    assert.equal(copy.body.organization_id, null);
+    assert.equal(copy.body.tenant_id, USER_AB.id);
+});
+
+test('agent: an agent is created only in an organisation where manage_agents holds', async () => {
+    const { api } = created.get('agent');
+    const inB = await api.call('POST', '/agents', { user: USER_AB, body: { name: 'Matrix agent in B', organizationId: ORG_B } });
+    assert.equal(inB.status, 403, `${inB.status} ${inB.text.slice(0, 200)}`);
+    const inA = await api.call('POST', '/agents', { user: USER_AB, body: { name: 'Matrix agent in A', organizationId: ORG_A } });
+    assert.equal(inA.status, 200, `${inA.status} ${inA.text.slice(0, 200)}`);
+    assert.equal(inA.body.organization_id, ORG_A);
+});
 
 // ── The inventory half ──────────────────────────────────────────────────────
 

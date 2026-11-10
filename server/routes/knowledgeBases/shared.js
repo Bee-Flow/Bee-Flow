@@ -14,7 +14,7 @@
  */
 
 const kbStore = require('../../stores/knowledgeBases');
-const { resolveUserOrgIds, hasPermission, resolveUserGroups: resolveUserGroupsById } = require('../../auth');
+const { resolveUserOrgIds, resolvePermissionsByOrg, resolveUserGroups: resolveUserGroupsById } = require('../../auth');
 const { userHasBetaFeature } = require('../../core/entitlements/betaFeatures');
 const { PROJECT_FILES_SOURCE_KIND } = require('../../core/kb/projectFilesKb');
 require('../../core/kb/kbIngestionHelpers');
@@ -128,11 +128,12 @@ const resolveUserGroups = (req) => resolveUserGroupsById(getUserId(req));
 // The KB access check + org-admin resolution now live in support/kbAccess.js so
 // that every router which lets a client name a kb id (this one, notebooks)
 // applies the identical policy and the guards can never drift.
-const { canAccessKB, resolveIsOrgAdmin } = require('../../support/kbAccess');
+const { canAccessKB, resolveAdminOrgIds } = require('../../support/kbAccess');
 
 /**
  * Management check for KB settings mutations. Mirrors the
- * publish route's owner-or-manager policy but adds same-org scoping.
+ * publish route's owner-or-manager policy but adds same-org scoping:
+ * manage_knowledge must hold IN the KB's organisation.
  * Does NOT grant content read access — GET/document/search routes keep
  * canAccessKB.
  * @param {import('express').Request} req
@@ -141,7 +142,8 @@ const { canAccessKB, resolveIsOrgAdmin } = require('../../support/kbAccess');
 async function canManageKB(req, kb) {
     const userId = getUserId(req);
     const orgIds = await resolveUserOrgIds(req);
-    const hasPerm = await hasPermission(userId, 'manage_knowledge', req.session);
+    const hasPerm = !!kb?.organization_id
+        && (await resolvePermissionsByOrg(userId, req.session)).holds('manage_knowledge', kb.organization_id);
     return kbStore.canUserManageKB(kb, userId, orgIds, hasPerm);
 }
 
@@ -229,7 +231,7 @@ module.exports = {
     getUserId,
     resolveUserGroups,
     canAccessKB,
-    resolveIsOrgAdmin,
+    resolveAdminOrgIds,
     canManageKB,
     blockIfSystemKB,
     ensureKbSource,

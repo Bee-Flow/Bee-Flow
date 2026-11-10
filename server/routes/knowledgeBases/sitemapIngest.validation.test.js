@@ -36,7 +36,7 @@ const MOCKS = {
     './shared': {
         getUserId: () => 'u1',
         guardedFetch: async () => { throw new Error('not reached'); },
-        canAccessKB: async () => true,
+        canManageKB: async () => true,
         blockIfSystemKB: () => false,
         ensureKbSource: async () => null,
     },

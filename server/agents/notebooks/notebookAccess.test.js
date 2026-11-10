@@ -72,7 +72,7 @@ test('a private notebook\'s own base carries no organisation, so an org admin ca
         const [row] = created;
         assert.strictEqual(row.organization_id, null);
         // The generic ACL's org-admin rule reads every base of the admin's org.
-        assert.strictEqual(kbStore.canUserAccessKB(row, 'olga-admin', new Set(['org1']), [], { isOrgAdmin: true }), false,
+        assert.strictEqual(kbStore.canUserAccessKB(row, 'olga-admin', new Set(['org1']), [], { adminOrgIds: new Set(['org1']) }), false,
             'an org admin of the notebook owner\'s org does not reach the base');
         assert.strictEqual(kbStore.canUserAccessKB(row, 'alice', new Set(['org1']), [], {}), true, 'the owner still does');
     } finally { undo.forEach((u) => u()); }

@@ -115,4 +115,10 @@ module.exports = {
     // here with the real collaborators.
     hasPlatformAdminAccess: platformAdmin.hasPlatformAdminAccess,
     requirePlatformAdmin: platformAdmin.requirePlatformAdmin,
+    // A permission IN one organisation (auth/permissionGrants.mts), for a
+    // decision about a resource that lives in that organisation.
+    resolvePermissionsByOrg: resolve.resolvePermissionsByOrg,
+    hasPermissionInOrg: resolve.hasPermissionInOrg,
+    // The organisations the caller administers (the _evalOrgAdmin rule).
+    resolveAdminOrgIds: orgGates.resolveAdminOrgIds,
 };

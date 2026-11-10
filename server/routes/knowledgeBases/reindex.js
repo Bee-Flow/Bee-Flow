@@ -47,7 +47,7 @@ const router = express.Router();
 const kbStore = require('../../stores/knowledgeBases');
 const kbSourcesStore = require('../../stores/kbSources');
 const { requireAuth, requirePermission } = require('../../auth');
-const { canAccessKB, blockIfSystemKB } = require('./shared');
+const { canManageKB, blockIfSystemKB } = require('./shared');
 const { validate } = require('../../core/http/validate');
 const { z } = require('../../utils/zod');
 
@@ -59,7 +59,8 @@ const NoBody = z.preprocess((v) => (v === undefined || v === null ? {} : v), z.o
 router.post('/:id/reindex', requireAuth, requirePermission('manage_knowledge'), validate({ body: NoBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof NoBody>, import('qs').ParsedQs>} */ req, res) => {
     const kb = await kbStore.getKB(req.params.id);
     if (!kb) return res.status(404).json({ error: 'KB not found' });
-    if (!(await canAccessKB(req, kb))) return res.status(403).json({ error: 'Access denied' });
+    // Re-indexing rewrites the content: managing the base (manage_knowledge in its own organisation).
+    if (!(await canManageKB(req, kb))) return res.status(403).json({ error: 'Access denied' });
     if (blockIfSystemKB(kb, res)) return;
 
     const { syncSource } = require('../../core/kb/sources');

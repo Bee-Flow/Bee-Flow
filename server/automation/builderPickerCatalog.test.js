@@ -26,7 +26,7 @@ let state;
 const reset = () => {
     state = {
         mine: [], published: [], agentsThrow: null, identityError: null, orgId: 'org1', groups: ['g1'],
-        kbs: [], kbThrow: null, canManage: false, isOrgAdmin: false, orgIds: new Set(['org1']), seenOrgIds: null,
+        kbs: [], kbThrow: null, manageIn: [], adminOrgIds: new Set(), orgIds: new Set(['org1']), seenOrgIds: null, seenOpts: null,
         features: { support_inbox: false, meeting_notes: false }, inboxes: [], publicBase: null, mcpIds: new Set(),
         steps: [], stepsThrow: null, stepArgs: null,
     };
@@ -40,14 +40,14 @@ const deps = {
     resolveUserGroups: async () => state.groups,
     resolvePrincipal: async () => ({ organizationId: state.orgId, identityError: state.identityError }),
     kbStore: () => ({
-        async listKBs(_u, orgIds) { state.seenOrgIds = orgIds; if (state.kbThrow) throw new Error(state.kbThrow); return state.kbs; },
+        async listKBs(_u, orgIds, opts) { state.seenOrgIds = orgIds; state.seenOpts = opts; if (state.kbThrow) throw new Error(state.kbThrow); return state.kbs; },
         filterByGroupAccess: (kbs) => kbs,
         canUserManageKB: (kb, _u, _o, canManage) => kb.managed === true || canManage === true,
         isSystemKB: (kb) => kb.tenant_id === 'system',
     }),
     askerContext: async () => ({ orgIds: state.orgIds, userGroups: state.groups }),
-    hasPermission: async () => state.canManage,
-    isOrgAdmin: async () => state.isOrgAdmin,
+    resolvePermissionsByOrg: async () => ({ holds: (perm, orgId) => perm === 'manage_knowledge' && state.manageIn.includes(orgId) }),
+    resolveAdminOrgIds: async () => state.adminOrgIds,
     hasFeature: async (_u, f) => state.features[f] === true,
     listInboxes: async () => state.inboxes,
     publicBaseUrl: () => state.publicBase,
@@ -111,15 +111,29 @@ test('knowledge bases: canWrite comes from canUserManageKB, system bases are dro
     assert.deepEqual(knowledgeBases.map(k => [k.id, k.canWrite, k.scope]), [['k1', true, 'org'], ['k2', false, 'org'], ['k4', true, 'personal']]);
 });
 
-test('knowledge bases: manage_knowledge turns every visible base writable', async () => {
+test('knowledge bases: manage_knowledge turns every visible base of that organisation writable', async () => {
     state.kbs = [{ id: 'k2', name: 'Wiki', organization_id: 'org1' }];
-    state.canManage = true;
+    state.manageIn = ['org1'];
     const { knowledgeBases } = await picker.buildKnowledgeBasePickerForUser('u1', { deps });
     assert.equal(knowledgeBases[0].canWrite, true);
 });
 
+test('knowledge bases: manage_knowledge held in another organisation does not make a base writable', async () => {
+    state.orgIds = new Set(['org1', 'org2']);
+    state.kbs = [{ id: 'k1', name: 'Home', organization_id: 'org1' }, { id: 'k2', name: 'Group org', organization_id: 'org2' }];
+    state.manageIn = ['org1'];
+    const { knowledgeBases } = await picker.buildKnowledgeBasePickerForUser('u1', { deps });
+    assert.deepEqual(knowledgeBases.map(k => [k.id, k.canWrite]), [['k1', true], ['k2', false]]);
+});
+
+test('knowledge bases: the administered organisations reach the listing', async () => {
+    state.adminOrgIds = new Set(['org1']);
+    await picker.buildKnowledgeBasePickerForUser('u1', { deps });
+    assert.deepEqual(state.seenOpts.adminOrgIds, new Set(['org1']));
+});
+
 test('knowledge bases: orgIds is always a Set (a null would read as super-admin)', async () => {
-    await picker.listKnowledgeBasePicker({ userId: 'u1', orgIds: null, userGroups: [], canManage: false, isOrgAdmin: false }, { deps });
+    await picker.listKnowledgeBasePicker({ userId: 'u1', orgIds: null, userGroups: [] }, { deps });
     assert.ok(state.seenOrgIds instanceof Set);
     assert.equal(state.seenOrgIds.size, 0);
 });

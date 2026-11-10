@@ -76,6 +76,7 @@ const CRUD_ONLY = {
         requireActiveOrgForMutations: mw,
         OrgRoles: { AGENT_EDITOR: 'agent_editor' }, SystemRoles: { SUPER_ADMIN: 'super_admin' },
         hasPermission: async () => fx.hasManage,
+        resolvePermissionsByOrg: async () => ({ holds: (perm, orgId) => fx.hasManage && perm === 'manage_agents' && orgId === 'orgA' }),
         resolveUserOrgIds: async () => new Set(['orgA']),
         canSeePublished: () => false,
         resolveUserGroups: async () => [],

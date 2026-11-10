@@ -64,10 +64,11 @@ const MOCKS = {
         requireActiveOrgForMutations: () => mw,
         resolveUserOrgIds: async () => new Set(['org1']),
         hasPermission: async () => true,
+        resolvePermissionsByOrg: async () => ({ holds: () => true }),
         resolveUserGroups: async () => [],
         validateSharedGroupsForOrg: async () => {},
     },
-    '../support/kbAccess': { canAccessKB: async () => fx.canAccess, resolveIsOrgAdmin: async () => false },
+    '../support/kbAccess': { canAccessKB: async () => fx.canAccess, resolveAdminOrgIds: async () => new Set() },
     '../core/agentRuntime/knowledgeSearch': {
         quickKBSearch: async (userId, kbIds, query, opts) => {
             fx.searchCalls.push({ userId, kbIds, query, opts });

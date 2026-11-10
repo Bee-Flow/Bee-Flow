@@ -519,10 +519,10 @@ function knowledgeBasesToActOn(req, d, ctx) {
         const visible = asArray(await visibleKnowledgeBasesFor(req, d));
         // Strict: an unreadable org read is not "member of nothing".
         const orgIds = await d.auth.resolveUserOrgIds(req, { strict: true });
-        // `permission` throws if the rights read is degraded — then we do not
-        // know who may manage this, and that is a gap, not an empty list.
-        const hasManage = await permission(d, req, 'manage_knowledge');
-        return visible.filter(kb => d.kbStore.canUserManageKB(kb, userId, orgIds, hasManage));
+        // `permission` throws if the rights read is degraded — a gap, not an empty list. The
+        // right must hold in the base's OWN organisation (resolvePermissionsByOrg), not in any of the caller's.
+        const byOrg = (await permission(d, req, 'manage_knowledge')) ? await d.permissions.resolvePermissionsByOrg(userId, req.session) : null;
+        return visible.filter(kb => d.kbStore.canUserManageKB(kb, userId, orgIds, !!byOrg && byOrg.holds('manage_knowledge', kb.organization_id)));
     });
 }
 

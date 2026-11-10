@@ -86,7 +86,7 @@ async function loadKnowledgeBases(/** @type {import('express').Request} */ req, 
      */
     let knowledgeBases = [];
     try {
-        const { resolveUserOrgIds, hasPermission, resolveUserGroups } = require('../../auth');
+        const { resolveUserOrgIds, resolvePermissionsByOrg, resolveUserGroups } = require('../../auth');
         // `userId` is the handler's own, from req.session.user — reaching
         // for req.user here would have been undefined, and an undefined
         // userId makes canUserManageKB's owner test silently false for
@@ -95,20 +95,26 @@ async function loadKnowledgeBases(/** @type {import('express').Request} */ req, 
         // and returns true for every base there is.
         const resolved = await resolveUserOrgIds(req);
         const orgIds = resolved instanceof Set ? resolved : new Set(Array.isArray(resolved) ? resolved : []);
-        const canManage = await hasPermission(userId, 'manage_knowledge').catch(() => false);
+        // manage_knowledge counts in the organisations where it is held, not
+        // in every organisation of the union. A failed read holds in none.
+        const byOrg = await Promise.resolve().then(() => resolvePermissionsByOrg(userId))
+            .catch((e) => fallback('routes/automation/catalogPickers:permissionsByOrg', e, null));
+        const manageOrgIds = new Set(byOrg ? [...orgIds].filter((o) => byOrg.holds('manage_knowledge', o)) : []);
         // resolveUserGroups takes a USER ID, not the request — the KB routes
         // wrap it for exactly this reason (routes/knowledgeBases/shared.js).
         // Called with `req` it resolved to [], so filterByGroupAccess dropped
         // every group-restricted base out of the picker, including ones the
         // author manages and the save-time gate would have allowed.
         const userGroups = await resolveUserGroups(userId).catch((e) => fallback('routes/automation/catalogPickers:loadKnowledgeBases', e, []));
-        // isOrgAdmin, like routes/knowledgeBases/list.js: without it an org
+        // adminOrgIds, like routes/knowledgeBases/list.js: without it an org
         // admin is shown fewer bases here than in the Knowledge Studio, and
         // the ones missing are exactly the unpublished ones they manage.
-        let isOrgAdmin = false;
-        try { isOrgAdmin = await require('../../support/kbAccess').resolveIsOrgAdmin(req); } catch (_) { isOrgAdmin = false; }
+        // A failed read is no organisation.
+        /** @type {Set<string>} */
+        let adminOrgIds = new Set();
+        try { adminOrgIds = await require('../../support/kbAccess').resolveAdminOrgIds(req); } catch (e) { adminOrgIds = fallback('routes/automation/catalogPickers:adminOrgIds', e, new Set()); }
         knowledgeBases = await require('../../automation/builderPickerCatalog')
-            .listKnowledgeBasePicker({ userId, orgIds, userGroups, canManage, isOrgAdmin });
+            .listKnowledgeBasePicker({ userId, orgIds, userGroups, manageOrgIds, adminOrgIds });
     } catch (e) {
         // Same posture as the datatables above: the picker renders its
         // empty state and every other node still works.

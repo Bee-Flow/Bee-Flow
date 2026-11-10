@@ -194,12 +194,12 @@ async function visibleSolutionsFor(req, d) {
 async function visibleKnowledgeBasesFor(req, d) {
     const userId = userIdOf(req);
     const orgIds = await d.auth.resolveUserOrgIds(req, { strict: true });
-    const isOrgAdmin = await d.kbShared.resolveIsOrgAdmin(req);
+    const adminOrgIds = await d.kbShared.resolveAdminOrgIds(req);
     const systemSlugs = await d.kbShared.resolveEnabledSystemSlugs(req);
     const filter = d.kbShared.listFilterFromQuery({ query: {} });
-    const kbs = await d.kbStore.listKBs(userId, orgIds, { ...filter, systemSlugs, isOrgAdmin });
+    const kbs = await d.kbStore.listKBs(userId, orgIds, { ...filter, systemSlugs, adminOrgIds });
     const userGroups = await d.kbShared.resolveUserGroups(req);
-    return d.kbStore.filterByGroupAccess(kbs, userId, userGroups, { orgIds, isOrgAdmin });
+    return d.kbStore.filterByGroupAccess(kbs, userId, userGroups, { orgIds, adminOrgIds });
 }
 
 module.exports = {

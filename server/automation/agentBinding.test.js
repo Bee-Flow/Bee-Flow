@@ -62,7 +62,10 @@ let writes;
 let logged;
 
 const agentAccess = makeAgentAccess({
-    hasPermission: async (userId, perm) => (PERMISSIONS[userId] || []).includes(perm),
+    // The PERMISSIONS of a user hold in their own organisation.
+    resolvePermissionsByOrg: async (userId) => ({
+        holds: (perm, orgId) => !!orgId && USERS[userId]?.organizationId === orgId && (PERMISSIONS[userId] || []).includes(perm),
+    }),
     resolveUserOrgIds: async (req) => new Set([USERS[req.session.user.id].organizationId]),
     getUser: async (id) => USERS[id] || null,
     roles: () => ({ SystemRoles: { SUPER_ADMIN: 'admin' }, OrgRoles: { AGENT_EDITOR: 'agent_editor' } }),
