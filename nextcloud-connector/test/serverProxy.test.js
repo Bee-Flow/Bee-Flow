@@ -21,11 +21,10 @@ const https = require('node:https');
 const net = require('node:net');
 const os = require('node:os');
 const path = require('node:path');
-const { execFile } = require('node:child_process');
+const { installValues } = require('./support/installValues');
+const { standIn: handler, listeners, runEgress } = require('./support/egressHarness');
 
-process.env.APP_SECRET = 'test-secret';
-process.env.NEXTCLOUD_URL = 'http://nc.test';
-process.env.BEEFLOW_API_BASE_URL = 'http://beeflow.test';
+installValues({ apiBaseUrl: 'http://beeflow.test' });
 
 const { certFactory } = require('./support/certs');
 const { parseProxyUrl, describeProxy, agentSupportsProxy } = require('../src/serverProxy');
@@ -37,25 +36,7 @@ const companyCa = certs.make({ isCa: true, cn: 'Company CA' });
 const beeflowCert = certs.make({ ca: companyCa });
 const nextcloudCert = certs.make({ ca: companyCa });
 
-/** A stand-in for either server: /api/health, and an event stream in two pieces 300 ms apart. */
-function handler(req, res) {
-    if (req.url === '/api/chat/stream') {
-        res.writeHead(200, { 'content-type': 'text/event-stream' });
-        res.write('data: one\n\n');
-        setTimeout(() => res.end('data: two\n\n'), 300);
-        return;
-    }
-    res.setHeader('content-type', 'application/json');
-    res.end(JSON.stringify({ status: 'ok', path: req.url }));
-}
-
-/** @type {import('node:net').Server[]} */
-const servers = [];
-async function listen(server) {
-    await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
-    servers.push(server);
-    return server.address().port;
-}
+const { listen, closeAll } = listeners();
 
 // The forward proxy: records every tunnel it is asked for.
 /** @type {{ target: string, authorization: string | null }[]} */
@@ -95,32 +76,14 @@ test.before(async () => {
 });
 
 test.after(async () => {
-    for (const server of servers) {
-        server.closeAllConnections();
-        await new Promise((resolve) => server.close(resolve));
-    }
+    await closeAll();
     fs.rmSync(work, { recursive: true, force: true });
 });
 
 test.beforeEach(() => { tunnels.length = 0; plainRequests.length = 0; });
 
 /** Run the connector's clients in a process of their own with these install-time values. */
-function run(env, targets) {
-    return new Promise((resolve, reject) => {
-        const childEnv = { ...process.env, ...env, RUNNER_TARGETS: JSON.stringify(targets) };
-        for (const name of ['BEEFLOW_NC_CA_FILE', 'BEEFLOW_NC_TLS_INSECURE', 'NODE_EXTRA_CA_CERTS', 'NODE_TLS_REJECT_UNAUTHORIZED',
-            'NODE_USE_ENV_PROXY', 'BEEFLOW_SERVER_CA_CERT', 'RUNNER_PROXY_NEXTCLOUD',
-            'HTTPS_PROXY', 'https_proxy', 'HTTP_PROXY', 'http_proxy', 'NO_PROXY', 'no_proxy']) {
-            if (!(name in env)) delete childEnv[name];
-        }
-        execFile(process.execPath, [path.join(__dirname, 'support', 'egressRunner.js')], { env: childEnv, timeout: 30_000 },
-            (err, stdout, stderr) => {
-                const line = stdout.split('\n').find((l) => l.startsWith('RESULT '));
-                if (!line) return reject(new Error(`runner gave no result: ${err || ''}\n${stdout}\n${stderr}`));
-                return resolve({ ...JSON.parse(line.slice(7)), log: `${stdout}\n${stderr}` });
-            });
-    });
-}
+const run = (env, targets) => runEgress(env, targets, ['NODE_USE_ENV_PROXY', 'BEEFLOW_SERVER_CA_CERT', 'RUNNER_PROXY_NEXTCLOUD']);
 
 // A Nextcloud and a Bee Flow server that both carry a certificate of the
 // company CA: Nextcloud is trusted through its own setting, the Bee Flow server

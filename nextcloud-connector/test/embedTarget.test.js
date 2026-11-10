@@ -20,7 +20,7 @@ process.env.BEEFLOW_EMBED_BASE_URL = 'https://beeflow.nl'; // likewise no lock
 process.env.APP_PERSISTENT_STORAGE = storage;
 process.env.BEEFLOW_BOOTSTRAP_RETRY_MS = '0';
 
-const express = require('express');
+const { postAsAdmin, until } = require('./support/setupRequests');
 const { installFakeWorld, json, ocs } = require('./support/fakeWorld');
 const config = require('../src/config');
 const setupConfig = require('../src/setupConfig');
@@ -82,29 +82,7 @@ async function getShell(pathname) {
     }
 }
 
-async function postSetup(body) {
-    const app = express();
-    app.use((req, _res, next) => { req.beeflow = { user: { uid: 'admin', isNcAdmin: true } }; next(); });
-    app.use('/setup', setupRouter);
-    const server = app.listen(0);
-    try {
-        const res = await realFetch(`http://127.0.0.1:${server.address().port}/setup`, {
-            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
-        });
-        return { status: res.status, body: await res.json() };
-    } finally {
-        server.close();
-    }
-}
-
-/** @param {() => boolean} cond */
-async function until(cond, ms = 3000) {
-    const t0 = Date.now();
-    while (!cond()) {
-        if (Date.now() - t0 > ms) throw new Error('condition not reached in time');
-        await new Promise((r) => setTimeout(r, 10));
-    }
-}
+const postSetup = (body) => postAsAdmin(setupRouter, '/setup', body);
 
 /** A fake world in which the self-hosted server answers the bootstrap with a fresh key. */
 function selfHostedBootstraps(t) {

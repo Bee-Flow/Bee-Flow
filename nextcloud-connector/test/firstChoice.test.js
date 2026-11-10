@@ -13,19 +13,14 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
-const os = require('node:os');
 const path = require('node:path');
+const { installWithStorage, NO_SERVER } = require('./support/installValues');
 
 const CLOUD = 'https://server.beeflow.nl';
 const OWN = 'https://bee-flow.example';
 const OTHER = 'https://other.bee-flow.example';
-const storage = fs.mkdtempSync(path.join(os.tmpdir(), 'bf-connector-first-choice-'));
-process.env.APP_SECRET = 'test-secret';
-process.env.NEXTCLOUD_URL = 'http://nc.test';
-process.env.BEEFLOW_TENANT_KEY = 'auto';
-delete process.env.BEEFLOW_API_BASE_URL; // nothing chosen at install time
-process.env.APP_PERSISTENT_STORAGE = storage;
-process.env.BEEFLOW_BOOTSTRAP_RETRY_MS = '0';
+// nothing chosen at install time
+const storage = installWithStorage('bf-connector-first-choice-', NO_SERVER);
 
 const express = require('express');
 const { installFakeWorld, json, ocs } = require('./support/fakeWorld');

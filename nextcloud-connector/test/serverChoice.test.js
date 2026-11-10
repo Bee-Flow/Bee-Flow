@@ -22,6 +22,7 @@ process.env.APP_PERSISTENT_STORAGE = path.join(root, 'boot');
 process.env.BEEFLOW_BOOTSTRAP_RETRY_MS = '0';
 fs.mkdirSync(process.env.APP_PERSISTENT_STORAGE);
 
+const { snapshot } = require('./support/connectorProcess');
 const serverChoice = require('../src/serverChoice');
 const { resolveServerChoice, applyAtBoot, envLock } = serverChoice;
 
@@ -40,14 +41,6 @@ function storageWith(files = {}) {
         fs.writeFileSync(path.join(dir, name), typeof content === 'string' ? content : JSON.stringify(content));
     }
     return dir;
-}
-
-/** Every file in a directory with its content and modification time. */
-function snapshot(dir) {
-    return fs.readdirSync(dir).sort().map((name) => {
-        const file = path.join(dir, name);
-        return { name, content: fs.readFileSync(file, 'utf8'), mtimeMs: fs.statSync(file).mtimeMs };
-    });
 }
 
 /** Resolve, and assert that the storage directory is byte for byte what it was. */

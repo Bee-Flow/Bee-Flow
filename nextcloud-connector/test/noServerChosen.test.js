@@ -16,14 +16,13 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const http = require('node:http');
 const net = require('node:net');
-const { fork } = require('node:child_process');
+const {
+    listen, close, freePort, until, snapshot, fakeNextcloud, connectorEnv, forkConnector, request, appApiHeaders,
+} = require('./support/connectorProcess');
 
 const SECRET = 'no-server-test-secret';
 const CLOUD = 'https://server.beeflow.nl';
-const RUNNER = path.join(__dirname, 'support', 'noServerRunner.js');
-const NET_GUARD = path.join(__dirname, 'support', 'netGuard.js');
 
 const ERROR_FILE = {
     status: 'failed', category: 'saas_unreachable', phase: 'saas_post', error: 'fetch failed',
@@ -82,46 +81,6 @@ const SITUATIONS = [
     },
 ];
 
-const listen = (server) => new Promise((resolve) => server.listen(0, '127.0.0.1', () => resolve(server.address().port)));
-const close = (server) => new Promise((resolve) => server.close(resolve));
-
-async function freePort() {
-    const probe = net.createServer();
-    const port = await listen(probe);
-    await close(probe);
-    return port;
-}
-
-function ocs(data) {
-    return JSON.stringify({ ocs: { meta: { status: 'ok', statuscode: 200 }, data } });
-}
-
-/** A Nextcloud that answers the OCS calls the connector makes, and records each one. */
-async function fakeNextcloud(form = []) {
-    const calls = [];
-    const server = http.createServer((req, res) => {
-        calls.push({ method: req.method, url: req.url });
-        req.resume();
-        res.setHeader('Content-Type', 'application/json');
-        const url = req.url || '';
-        if (url.includes('/cloud/capabilities')) {
-            return res.end(ocs({ version: { string: '34.0.0' }, capabilities: { theming: { name: 'NC', instanceid: 'inst-1' } } }));
-        }
-        if (url.includes('/cloud/groups/admin/users')) return res.end(ocs({ users: ['admin'] }));
-        if (url.includes('/ex-app/config/get-values')) return res.end(ocs(form));
-        const user = /\/cloud\/users\/([^?/]+)/.exec(url);
-        if (user) {
-            const uid = decodeURIComponent(user[1]);
-            return res.end(ocs({
-                id: uid, email: `${uid}@nc.test`, displayname: uid, groups: uid === 'admin' ? ['admin'] : ['users'],
-            }));
-        }
-        return res.end(ocs([]));
-    });
-    const port = await listen(server);
-    return { server, calls, port, url: `http://127.0.0.1:${port}` };
-}
-
 /** The listener that stands in for a Bee Flow host: it only counts. */
 async function beeFlowStandIn() {
     const seen = { connections: 0 };
@@ -134,50 +93,7 @@ async function beeFlowStandIn() {
     return { server, seen, port };
 }
 
-/** Every file under the storage directory with its content and modification time. */
-function snapshot(dir) {
-    return fs.readdirSync(dir).sort().map((name) => {
-        const file = path.join(dir, name);
-        return { name, content: fs.readFileSync(file, 'utf8'), mtimeMs: fs.statSync(file).mtimeMs };
-    });
-}
-
-/** @param {() => boolean | Promise<boolean>} cond */
-async function until(cond, what, ms = 15_000) {
-    const t0 = Date.now();
-    while (!(await cond())) {
-        if (Date.now() - t0 > ms) throw new Error(`not reached in time: ${what}`);
-        await new Promise((r) => setTimeout(r, 25));
-    }
-}
-
-/**
- * One request to the connector, the way a browser behind Nextcloud's proxy
- * sends it. Plain http, so the test decides every header (fetch sets
- * Sec-Fetch-Mode itself).
- * @returns {Promise<{ status: number, ok: boolean, headers: import('node:http').IncomingHttpHeaders, text: string, json: () => any }>}
- */
-function request(port, method, p, headers = {}, body) {
-    return new Promise((resolve, reject) => {
-        const payload = body === undefined ? null : JSON.stringify(body);
-        const req = http.request({
-            host: '127.0.0.1', port, method, path: p, agent: false,
-            headers: { ...headers, ...(payload === null ? {} : { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) }) },
-        }, (res) => {
-            let text = '';
-            res.setEncoding('utf8');
-            res.on('data', (d) => { text += d; });
-            res.on('end', () => resolve({
-                status: res.statusCode, ok: res.statusCode >= 200 && res.statusCode < 300,
-                headers: res.headers, text, json: () => JSON.parse(text),
-            }));
-        });
-        req.on('error', reject);
-        req.end(payload === null ? undefined : payload);
-    });
-}
-
-const authHeader = (uid) => ({ 'AUTHORIZATION-APP-API': Buffer.from(`${uid}:${SECRET}`).toString('base64'), 'EX-APP-ID': 'bee_flow' });
+const authHeader = (uid) => appApiHeaders(uid, SECRET);
 const NAVIGATE = { 'Sec-Fetch-Mode': 'navigate', Accept: 'text/html' };
 
 for (const situation of SITUATIONS) {
@@ -193,32 +109,11 @@ for (const situation of SITUATIONS) {
         const appPort = await freePort();
 
         // A clean environment: nothing of the developer's or CI's shell reaches the child.
-        const env = {
-            PATH: process.env.PATH,
-            NODE_ENV: 'test',
-            APP_ID: 'bee_flow',
-            APP_SECRET: SECRET,
-            APP_VERSION: '2.0.0-test',
-            APP_PORT: String(appPort),
-            APP_PERSISTENT_STORAGE: storage,
-            NEXTCLOUD_URL: nc.url,
-            NETGUARD_ALLOW: `127.0.0.1:${nc.port}`,
-            NETGUARD_SINK: `127.0.0.1:${standIn.port}`,
-            ...situation.env,
-        };
-        const child = fork(RUNNER, [], { env, execArgv: ['--require', NET_GUARD], stdio: ['ignore', 'ignore', 'pipe', 'ipc'] });
-        let stderr = '';
-        child.stderr.on('data', (d) => { stderr += d; });
-        const diverted = [];
-        const replies = [];
-        child.on('message', (m) => {
-            if (m.diverted) diverted.push(m.diverted);
-            else replies.push(m);
-        });
-        const exited = new Promise((resolve) => child.once('exit', resolve));
+        const env = connectorEnv({ secret: SECRET, appPort, storage, nc, sinkPort: standIn.port }, situation.env);
+        const proc = forkConnector(env);
+        const { child, diverted, replies } = proc;
         t.after(async () => {
-            child.kill('SIGKILL');
-            await exited;
+            await proc.stop();
             await close(nc.server);
             await close(standIn.server);
             fs.rmSync(storage, { recursive: true, force: true });
@@ -230,7 +125,7 @@ for (const situation of SITUATIONS) {
 
         // ── Boot ─────────────────────────────────────────────────────────────
         await until(async () => {
-            if (child.exitCode !== null) throw new Error(`the connector exited at boot:\n${stderr}`);
+            if (child.exitCode !== null) throw new Error(`the connector exited at boot:\n${proc.errorOutput()}`);
             try { return (await get('/heartbeat')).ok; } catch { return false; }
         }, 'the connector answers /heartbeat');
 
@@ -384,30 +279,13 @@ test('control — with a server chosen, the stand-in listener does see the conne
     const nc = await fakeNextcloud();
     const standIn = await beeFlowStandIn();
     const appPort = await freePort();
-    const child = fork(RUNNER, [], {
-        env: {
-            PATH: process.env.PATH,
-            NODE_ENV: 'test',
-            APP_ID: 'bee_flow',
-            APP_SECRET: SECRET,
-            APP_VERSION: '2.0.0-test',
-            APP_PORT: String(appPort),
-            APP_PERSISTENT_STORAGE: storage,
-            NEXTCLOUD_URL: nc.url,
-            NETGUARD_ALLOW: `127.0.0.1:${nc.port}`,
-            NETGUARD_SINK: `127.0.0.1:${standIn.port}`,
-            BEEFLOW_API_BASE_URL: 'https://bee-flow.example', // chosen at install time
-            BEEFLOW_BOOTSTRAP_RETRY_MS: '0',
-        },
-        execArgv: ['--require', NET_GUARD],
-        stdio: ['ignore', 'ignore', 'ignore', 'ipc'],
-    });
-    const diverted = [];
-    child.on('message', (m) => { if (m.diverted) diverted.push(m.diverted); });
-    const exited = new Promise((resolve) => child.once('exit', resolve));
+    const proc = forkConnector(connectorEnv({ secret: SECRET, appPort, storage, nc, sinkPort: standIn.port }, {
+        BEEFLOW_API_BASE_URL: 'https://bee-flow.example', // chosen at install time
+        BEEFLOW_BOOTSTRAP_RETRY_MS: '0',
+    }), { stderr: 'ignore' });
+    const { diverted } = proc;
     t.after(async () => {
-        child.kill('SIGKILL');
-        await exited;
+        await proc.stop();
         await close(nc.server);
         await close(standIn.server);
         fs.rmSync(storage, { recursive: true, force: true });

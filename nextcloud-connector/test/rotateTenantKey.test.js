@@ -20,37 +20,16 @@ process.env.BEEFLOW_API_BASE_URL = SAAS;
 process.env.APP_PERSISTENT_STORAGE = storage;
 process.env.BEEFLOW_BOOTSTRAP_RETRY_MS = '0';
 
-const express = require('express');
+const { postAsAdmin, until } = require('./support/setupRequests');
 const { installFakeWorld, json } = require('./support/fakeWorld');
 const config = require('../src/config');
 require('../src/heartbeat'); // key-dependent registrations follow a new key
 const setupRouter = require('../src/setup');
 
-const realFetch = globalThis.fetch;
 const fp = (k) => crypto.createHash('sha256').update(k).digest('hex').slice(0, 16);
 const secretFor = (key) => crypto.createHmac('sha256', key).update('beeflow:webhook-listener:v1').digest('hex');
 
-async function pressRotate() {
-    const app = express();
-    app.use((req, _res, next) => { req.beeflow = { user: { uid: 'admin', isNcAdmin: true } }; next(); });
-    app.use('/setup', setupRouter);
-    const server = app.listen(0);
-    try {
-        const { port } = server.address();
-        const res = await realFetch(`http://127.0.0.1:${port}/setup/rotate-tenant-key`, { method: 'POST' });
-        return { status: res.status, body: await res.json() };
-    } finally {
-        server.close();
-    }
-}
-
-async function until(cond, ms = 3000) {
-    const t0 = Date.now();
-    while (!cond()) {
-        if (Date.now() - t0 > ms) throw new Error('condition not reached in time');
-        await new Promise((r) => setTimeout(r, 10));
-    }
-}
+const pressRotate = () => postAsAdmin(setupRouter, '/setup/rotate-tenant-key');
 
 function bound(key = 'old-key') {
     fs.writeFileSync(path.join(storage, 'tenant-key.json'), JSON.stringify({

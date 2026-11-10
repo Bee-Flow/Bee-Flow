@@ -8,19 +8,13 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
-const os = require('node:os');
 const path = require('node:path');
 const http = require('node:http');
 const express = require('express');
+const { installWithStorage, NO_SERVER } = require('./support/installValues');
 
 const OWN = 'https://bee-flow.example';
-const storage = fs.mkdtempSync(path.join(os.tmpdir(), 'bf-connector-connect-failed-'));
-process.env.APP_SECRET = 'test-secret';
-process.env.NEXTCLOUD_URL = 'http://nc.test';
-process.env.BEEFLOW_TENANT_KEY = 'auto';
-delete process.env.BEEFLOW_API_BASE_URL;
-process.env.APP_PERSISTENT_STORAGE = storage;
-process.env.BEEFLOW_BOOTSTRAP_RETRY_MS = '0';
+const storage = installWithStorage('bf-connector-connect-failed-', NO_SERVER);
 
 const { installFakeWorld, json } = require('./support/fakeWorld');
 const config = require('../src/config');

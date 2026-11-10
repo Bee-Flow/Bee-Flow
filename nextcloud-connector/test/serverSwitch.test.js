@@ -13,20 +13,15 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
-const os = require('node:os');
 const path = require('node:path');
+const { installWithStorage, NO_SERVER } = require('./support/installValues');
 
 const OLD = 'http://old.beeflow.test';
 const NEW = 'http://new.beeflow.test';
-const storage = fs.mkdtempSync(path.join(os.tmpdir(), 'bf-connector-switch-'));
-process.env.APP_SECRET = 'test-secret';
-process.env.NEXTCLOUD_URL = 'http://nc.test';
-process.env.BEEFLOW_TENANT_KEY = 'auto';
-delete process.env.BEEFLOW_API_BASE_URL; // no install-time server: the binding on disk names it
-process.env.APP_PERSISTENT_STORAGE = storage;
-process.env.BEEFLOW_BOOTSTRAP_RETRY_MS = '0';
+// no install-time server: the binding on disk names it
+const storage = installWithStorage('bf-connector-switch-', NO_SERVER);
 
-const express = require('express');
+const { postAsAdmin, until } = require('./support/setupRequests');
 const { installFakeWorld, json, ocs } = require('./support/fakeWorld');
 const config = require('../src/config');
 const bootstrap = require('../src/bootstrap');
@@ -40,32 +35,7 @@ function readJsonOrNull(file) {
     try { return JSON.parse(fs.readFileSync(file, 'utf8')); } catch { return null; }
 }
 
-const realFetch = globalThis.fetch;
-
-async function post(pathname, body) {
-    const app = express();
-    app.use((req, _res, next) => { req.beeflow = { user: { uid: 'admin', isNcAdmin: true } }; next(); });
-    app.use('/setup', setupRouter);
-    const server = app.listen(0);
-    try {
-        const { port } = server.address();
-        const res = await realFetch(`http://127.0.0.1:${port}${pathname}`, {
-            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
-        });
-        return { status: res.status, body: await res.json() };
-    } finally {
-        server.close();
-    }
-}
-
-/** @param {() => boolean} cond */
-async function until(cond, ms = 3000) {
-    const t0 = Date.now();
-    while (!cond()) {
-        if (Date.now() - t0 > ms) throw new Error('condition not reached in time');
-        await new Promise((r) => setTimeout(r, 10));
-    }
-}
+const post = (pathname, body) => postAsAdmin(setupRouter, pathname, body);
 
 async function boundToOld() {
     fs.writeFileSync(path.join(storage, 'tenant-key.json'), JSON.stringify({
