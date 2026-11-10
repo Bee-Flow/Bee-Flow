@@ -99,6 +99,7 @@ const {
     FORMULA_SCOPE_ROOTS,
     CURRENT_USER_KEYS,
 } = require('./componentSpecs/bindings');
+const { KEY_MARKS } = require('./componentSpecs/keyMarks');
 const {
     VARIABLE_TYPES,
     VARIABLE_TYPE_DEFAULTS,
@@ -356,6 +357,7 @@ module.exports = {
     EVENT_NAMES,
     SECTION_STYLE_KNOBS,
     SECTION_STYLE_DEFAULTS,
+    KEY_MARKS,
     BASE_COMPONENT_TYPES,
     COMPONENT_SPECS,
     COMPONENT_TYPES,

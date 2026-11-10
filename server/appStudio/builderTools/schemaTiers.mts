@@ -25,6 +25,10 @@ const fragments = createRequire(import.meta.url)('./schemaFragments.js') as { SE
 export const INSPECT_MAX_EXTENSIONS = 12;
 export const INSPECT_MAX_FAMILY_ENTRIES = 25;
 
+/** The plain lists a schema enum is built from, and the tables whose entries carry an enum. */
+const TIERED_LISTS = ['NAV_STYLES', 'FIELD_TYPES', 'FILTER_OPS', 'AGG_FNS', 'DATE_BUCKETS'] as const;
+const TIERED_ENUM_TABLES = ['STYLE_KNOBS', 'SCREEN_SPEC', 'THEME_SPEC', 'DESIGN_SPEC'] as const;
+
 const INSPECT_TOOL = 'app_inspect_catalog';
 const INSPECT_EXTENSION_KEYS = ['extensions', 'family'];
 
@@ -57,10 +61,17 @@ function tieredLists(): [unknown[], unknown[]][] {
         [full.STEP_KINDS, base.STEP_KINDS], [full.ACTION_KINDS, base.ACTION_KINDS],
         [fragments.SECTION_HEIGHT_MODES, fragments.BASE_SECTION_HEIGHT_MODES], // a section takes every height mode but one
     ];
-    const baseKnobs = base.STYLE_KNOBS as unknown as Record<string, { values?: unknown[] } | undefined>;
-    for (const [knob, spec] of Object.entries(full.STYLE_KNOBS as unknown as Record<string, { values?: unknown[] }>)) {
-        const baseValues = baseKnobs[knob]?.values;
-        if (Array.isArray(spec.values) && Array.isArray(baseValues)) pairs.push([spec.values, baseValues]);
+    for (const list of TIERED_LISTS) {
+        const [whole, basePart] = [full[list], base[list]];
+        if (Array.isArray(whole) && Array.isArray(basePart)) pairs.push([whole as unknown[], basePart as unknown[]]);
+    }
+    // Every enum of a table whose entries can gain a value: the knobs, and the screen, theme and design keys.
+    for (const table of TIERED_ENUM_TABLES) {
+        const baseSpecs = (base[table] || {}) as unknown as Record<string, { values?: unknown[] } | undefined>;
+        for (const [key, spec] of Object.entries((full[table] || {}) as unknown as Record<string, { values?: unknown[] }>)) {
+            const baseValues = baseSpecs[key]?.values;
+            if (Array.isArray(spec?.values) && Array.isArray(baseValues)) pairs.push([spec.values, baseValues]);
+        }
     }
     return pairs.filter(([whole, basePart]) => whole.length !== basePart.length);
 }

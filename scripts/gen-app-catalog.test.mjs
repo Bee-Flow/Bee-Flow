@@ -69,6 +69,18 @@ test('the snapshot holds the trimmed slice, absent defaults as null', () => {
     assert.ok(!JSON.stringify(s).includes('not bundled'), 'descriptions stay out of the bundle');
 });
 
+test('a prop or screen key added after the base is not a default: a new node or screen does not carry it', () => {
+    const specs = fakeSpecs();
+    specs.COMPONENT_SPECS.heading.props.kicker = { type: 'string', default: 'Above', since: 3 };
+    specs.COMPONENT_SPECS.heading.props.old = { type: 'string', default: 'x', since: 2 };
+    specs.SCREEN_SPEC.layout = { type: 'enum', values: [null, 'split'], default: null, since: 3 };
+    const s = buildSnapshot(specs);
+    assert.deepStrictEqual(s.types.heading.defaultProps, { text: 'Hi', level: null, old: 'x' });
+    assert.deepStrictEqual(s.screenDefaults, { name: 'Screen', icon: null, maxWidth: 'wide' });
+    // Its values are still listed: the inspector offers them.
+    assert.deepStrictEqual(s.screenEnums.layout, [null, 'split']);
+});
+
 test('extension knob groups ride in the snapshot; the phone file lists each extension type with its reason', () => {
     const groups = [{ name: 'glow', since: 3, grantedBy: '*', knobs: ['glow'] }];
     assert.deepStrictEqual(buildSnapshot({ ...fakeSpecs(), EXTENSION_STYLE_KNOB_GROUPS: groups }).extensionKnobGroups, groups);

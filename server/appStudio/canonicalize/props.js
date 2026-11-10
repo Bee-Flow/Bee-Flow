@@ -6,7 +6,7 @@
 'use strict';
 
 const { LIMITS } = require('../componentSpecs');
-const { isObject, deepCopy, truncate } = require('./shared');
+const { isObject, deepCopy, truncate, isLateEntry } = require('./shared');
 const { cleanBinding } = require('./bindings');
 
 // ---------------------------------------------------------------------------
@@ -93,6 +93,8 @@ function cleanProps(node, spec, id, path, push) {
     /** @type {string[]} */
     const filled = [];
     for (const [key, fs] of Object.entries(spec.props)) {
+        // A prop added after the base is written only when the node carries a value for it.
+        if (isLateEntry(fs) && (provided[key] === undefined || provided[key] === null)) continue;
         if (key in provided) {
             props[key] = cleanPropValue(fs, provided[key], `${path}.props.${key}`, push);
         } else {

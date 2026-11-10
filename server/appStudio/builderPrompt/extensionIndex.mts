@@ -20,6 +20,7 @@ import { EXTENSION_FAMILIES, extensionItems, fullCatalogue } from '../catalogTie
 import type { ExtensionFamily, ExtensionItem } from '../catalogTiers.mts';
 import { definitionKeys } from '../definitionKeyRegistry.mts';
 import { INSPECT_MAX_EXTENSIONS, INSPECT_MAX_FAMILY_ENTRIES } from '../builderTools/schemaTiers.mts';
+import { renderKeyEntry } from './extensionEntriesKeys.mts';
 
 type FieldSpec = { description?: unknown } & Record<string, unknown>;
 
@@ -116,6 +117,9 @@ function knobEntry(knob: string): string {
 }
 
 function ownedEntry(item: ExtensionItem): string | null {
+    const keyed = renderKeyEntry(item); // screen, theme, design, item-shape, key-file and data items
+    if (keyed) return keyed;
+    if (item.ownerTable !== undefined && !['component', 'knob', 'step', 'action'].includes(item.ownerTable)) return null;
     if (item.ownerTable === 'knob') return knobEntry(item.key as string);
     if (item.ownerTable === 'step') return fieldEntry(item, 'step');
     if (item.ownerTable === 'action') return fieldEntry(item, 'action');

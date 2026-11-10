@@ -6,7 +6,16 @@
  * (appStudio/catalogTiers.mts) has nothing to show until a feature adds a file. These entries
  * prove the mechanism: a component type, a prop on an existing type, an enum value on an
  * existing prop, a style knob, an enum value on an existing knob, a step kind, a field on an
- * existing step kind, a binding kind and a top-level key.
+ * existing step kind, a binding kind and a top-level key; and (KEY_FIXTURE_NAMES) a field on an
+ * existing action kind, an enum value on a step field, a key and an enum value of the items of
+ * a list prop (also of a nested list), a screen key and value, a section key, a knob newly
+ * allowed on sections, a theme and a design key and value, a node key, a nav key, a nav group
+ * key, a nav style, an event an existing type newly fires, and a word of each family of the
+ * data vocabulary.
+ *
+ * DESIGN_SPEC, NAV_STYLES and the data vocabulary are frozen, so their fixtures live in an
+ * overlay only the catalogue tiers and the schema-version index read
+ * (catalogTiers._setCatalogueOverlay): canonicalize and the tool schemas never see those.
  *
  * In-process only (every test file runs in its own process), the way typeExtensions.test.js
  * does it: the spec-driven code reads the tables at call time.
@@ -50,8 +59,127 @@ const FIXTURE_NAMES = Object.freeze({
     topLevelKey: 'zzNotes',
 });
 
+/** The fixtures of the places outside the component, knob and kind tables, by index family. */
+const KEY_FIXTURE_NAMES = Object.freeze({
+    itemKeys: ['table.columns[].toneMap[].zz_icon', 'table.columns[].zz_note'],
+    enumValues: [
+        'design.motion=zz_expressive', 'nav.style=zz_dock', 'screen.maxWidth=zz_ultra', 'step.generate_file.format=zz_tsv',
+        'table.columns[].align=zz_justify', 'theme.radius=zz_pill',
+    ],
+    screenKeys: ['screen.zz_layout'],
+    sectionKeys: ['section.style.radius', 'section.zz_title'],
+    nodeKeys: ['heading.onClick', 'node.zz_styleWhen'],
+    themeKeys: ['theme.zz_tint'],
+    designKeys: ['design.zz_backdrop'],
+    navKeys: ['nav.groups[].zz_badge', 'nav.zz_footer'],
+    actionFields: ['toast.zz_sticky'],
+    data: ['aggFn.zz_median', 'dateBucket.zz_fortnight', 'fieldOption.zz_mask', 'fieldType.zz_money', 'filterOp.zz_near'],
+});
+const ALL_FIXTURE_NAMES = Object.freeze([...Object.values(FIXTURE_NAMES), ...Object.values(KEY_FIXTURE_NAMES).flat()]);
+
 /** True for the name of one of the fixture items (a test looks at these among whatever ships). */
-const isFixtureName = (/** @type {string} */ name) => Object.values(FIXTURE_NAMES).includes(name);
+const isFixtureName = (/** @type {string} */ name) => ALL_FIXTURE_NAMES.includes(name);
+
+const KEY_MARK_FIXTURES = Object.freeze({
+    section: { zz_title: { since: 3, shape: 'string ≤80', description: 'A title shown above the section. Empty hides it.' } },
+    sectionStyle: { radius: { since: 3, description: 'Rounds the corners of the section band.' } },
+    node: { zz_styleWhen: { since: 3, shape: '[{ when: formula, style: { <knob>: value } }]', description: 'Style overrides applied while a formula is true.' } },
+    nav: {
+        zz_footer: { since: 3, shape: 'string ≤120', description: 'A line of text under the navigation.' },
+        style: { valuesSince: { zz_dock: 3 }, shape: 'tabs|sidebar|mega|rail|zz_dock', description: 'zz_dock pins the screens to the bottom edge.' },
+    },
+    navGroup: { zz_badge: { since: 3, shape: 'formula', description: 'A count shown beside the group label.' } },
+});
+
+const DATA_MARK_FIXTURES = Object.freeze({
+    fieldTypes: { zz_money: { since: 3, description: 'An amount with its currency. Stored as a number of cents.' } },
+    fieldOptions: { zz_mask: { since: 3, shape: 'string ≤40', description: 'An input mask for a text field.' } },
+    filterOps: { zz_near: { since: 3, description: 'Matches values within a distance of the given one.' } },
+    aggFns: { zz_median: { since: 3, description: 'The middle value of the group.' } },
+    dateBuckets: { zz_fortnight: { since: 3, description: 'Two-week periods, starting on a Monday.' } },
+});
+
+/** @param {Record<string, any>} spec @param {string} value @returns {() => void} the undo */
+function addEnumValue(spec, value) {
+    const before = spec.valuesSince;
+    spec.values.push(value);
+    spec.valuesSince = { ...before, [value]: 3 };
+    return () => {
+        spec.values.splice(spec.values.indexOf(value), 1);
+        if (before) spec.valuesSince = before; else delete spec.valuesSince;
+    };
+}
+
+/** @param {Record<string, any>} table @param {string} key @param {unknown} entry @returns {() => void} the undo */
+function addKey(table, key, entry) {
+    table[key] = entry;
+    return () => { delete table[key]; };
+}
+
+/**
+ * The fixtures outside the component, knob and kind tables: the entries that can be written in
+ * place, and the overlay for the frozen tables. Returns the undo.
+ * @returns {() => void}
+ */
+function installKeyFixtures() {
+    const { _setCatalogueOverlay } = require('../appStudio/catalogTiers.mts');
+    const vocabulary = require('../core/dataEngine/dataModel/vocabulary');
+    const { COMPONENT_SPECS, STEP_SPECS, ACTION_SPECS, SCREEN_SPEC, THEME_SPEC, DESIGN_SPEC, NAV_STYLES, SECTION_STYLE_KNOBS, KEY_MARKS } = specs;
+    /** @type {Record<string, any>} */
+    const columns = COMPONENT_SPECS.table.props.columns.itemShape;
+    const undo = [
+        addKey(columns, 'zz_note', { type: 'string', maxLen: 80, since: 3, description: 'A footnote under the column header.' }),
+        addKey(columns.toneMap.itemShape, 'zz_icon', { type: 'icon', since: 3, description: 'An icon shown before the label.' }),
+        addEnumValue(columns.align, 'zz_justify'),
+        addKey(ACTION_SPECS.toast.fields, 'zz_sticky', { type: 'boolean', since: 3, description: 'Keeps the toast up until it is dismissed.' }),
+        addEnumValue(STEP_SPECS.generate_file.fields.format, 'zz_tsv'),
+        addKey(SCREEN_SPEC, 'zz_layout', { type: 'enum', values: [null, 'split'], default: null, since: 3, description: 'split = two columns of sections side by side.' }),
+        addEnumValue(SCREEN_SPEC.maxWidth, 'zz_ultra'),
+        addKey(THEME_SPEC, 'zz_tint', { type: 'color', optional: true, since: 3, description: 'A second brand colour for charts.' }),
+        addEnumValue(THEME_SPEC.radius, 'zz_pill'),
+        addEnumValue(DESIGN_SPEC.motion, 'zz_expressive'),
+    ];
+    // An existing type newly fires an existing event.
+    /** @type {Record<string, any>} */
+    const heading = COMPONENT_SPECS.heading;
+    const eventsBefore = { events: heading.events, eventsSince: heading.eventsSince };
+    heading.events = [...(heading.events || []), 'onClick'];
+    heading.eventsSince = { ...heading.eventsSince, onClick: 3 };
+    undo.push(() => {
+        for (const name of /** @type {const} */ (['events', 'eventsSince'])) {
+            if (eventsBefore[name] === undefined) delete heading[name]; else heading[name] = eventsBefore[name];
+        }
+    });
+    for (const [family, marks] of Object.entries(KEY_MARK_FIXTURES)) {
+        for (const [key, mark] of Object.entries(marks)) undo.push(addKey(KEY_MARKS[family], key, mark));
+    }
+    // expandStyleKnobs remembers its answer per list, so the knob goes onto that answer too.
+    const sectionLists = [...new Set([SECTION_STYLE_KNOBS, specs.expandStyleKnobs(SECTION_STYLE_KNOBS)])];
+    for (const list of sectionLists) list.push('radius');
+    undo.push(() => { for (const list of sectionLists) list.splice(list.indexOf('radius'), 1); });
+    _setCatalogueOverlay({
+        DESIGN_SPEC: { ...DESIGN_SPEC, zz_backdrop: { type: 'enum', values: ['none', 'dots'], default: 'none', optional: true, since: 3, description: 'A pattern behind the whole app.' } },
+        NAV_STYLES: [...NAV_STYLES, 'zz_dock'],
+        FIELD_TYPES: [...vocabulary.FIELD_TYPES, 'zz_money'],
+        FILTER_OPS: [...vocabulary.FILTER_OPS, 'zz_near'],
+        AGG_FNS: [...vocabulary.AGG_FNS, 'zz_median'],
+        DATE_BUCKETS: [...vocabulary.DATE_BUCKETS, 'zz_fortnight'],
+        dataMarks: DATA_MARK_FIXTURES,
+    });
+    return () => {
+        for (const fn of undo.reverse()) fn();
+        _setCatalogueOverlay(null);
+    };
+}
+
+/** The schema-version catalogue with every fixture in it: the live tables plus the overlay's. */
+function fixtureSinceCatalogue() {
+    const since = require('../appStudio/schemaSince.mts');
+    const { fullCatalogue } = require('../appStudio/catalogTiers.mts');
+    const { queryValuesSince } = require('../core/dataEngine/dataModel/vocabularySince');
+    const live = since.liveCatalogue();
+    return { ...live, keyTables: { ...live.keyTables, design: fullCatalogue().DESIGN_SPEC }, queryValuesSince: queryValuesSince(DATA_MARK_FIXTURES) };
+}
 
 const FIXTURE_KEY_ENTRY = {
     key: 'zzNotes',
@@ -90,9 +218,11 @@ function installExtensionFixtures() {
     BINDING_KINDS.push('zz_lookup');
     BINDING_KIND_SINCE.zz_lookup = 3;
     BINDING_KIND_DOCS.zz_lookup = { shape: '{ "kind": "zz_lookup", "tableId": "<tbl_…>", "match": "<field key>" }', description: 'ONE value from another table, matched on a field.' };
+    const uninstallKeys = installKeyFixtures();
     _catalogueChanged();
 
     return function uninstall() {
+        uninstallKeys();
         delete COMPONENT_SPECS.zz_gauge;
         COMPONENT_TYPES.splice(COMPONENT_TYPES.indexOf('zz_gauge'), 1);
         delete COMPONENT_SPECS.heading.props.zz_kicker;
@@ -126,10 +256,7 @@ function withExtensionFixtures(fn) {
     try {
         return registry._withDefinitionKeys([...registry.definitionKeys(), FIXTURE_KEY_ENTRY], () => {
             _catalogueChanged(); // the key registry changed after the tables did
-            return since._withCatalogue({
-                componentSpecs: specs.COMPONENT_SPECS, styleKnobs: specs.STYLE_KNOBS, stepSpecs: specs.STEP_SPECS,
-                actionSpecs: specs.ACTION_SPECS, bindingKindSince: specs.BINDING_KIND_SINCE, definitionKeys: registry.definitionKeys(),
-            }, fn);
+            return since._withCatalogue(fixtureSinceCatalogue(), fn);
         });
     } finally {
         uninstall();
@@ -166,4 +293,4 @@ function pinnedOnly(now, pinned) {
     return Object.fromEntries(Object.keys(pinned).map((name) => [name, now[name]]));
 }
 
-module.exports = { installExtensionFixtures, withExtensionFixtures, baseToolSchemaHashes, pinnedOnly, isFixtureName, FIXTURE_NAMES, FIXTURE_KEY_ENTRY };
+module.exports = { installExtensionFixtures, withExtensionFixtures, fixtureSinceCatalogue, baseToolSchemaHashes, pinnedOnly, isFixtureName, FIXTURE_NAMES, KEY_FIXTURE_NAMES, ALL_FIXTURE_NAMES, FIXTURE_KEY_ENTRY };

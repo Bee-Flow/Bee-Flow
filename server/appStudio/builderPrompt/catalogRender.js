@@ -28,18 +28,13 @@
 
 const {
     LIMITS,
-    THEME_SPEC,
     COLOR_ROLES,
     FORMULA_SCOPE_ROOTS,
     VARIABLE_TYPES,
     VARIABLE_NAME_RE,
     RESERVED_VARIABLE_NAMES,
     TOAST_TONES,
-    SCREEN_SPEC,
-    SECTION_STYLE_KNOBS,
     SECTION_STYLE_DEFAULTS,
-    DESIGN_SPEC,
-    NAV_STYLES,
     NAV_DEFAULT_STYLE,
     ADVANCED_WIDTH_KNOBS,
     ADVANCED_HEIGHT_KNOBS,
@@ -48,10 +43,6 @@ const { valueTypeOf } = require('../componentSpecs/valueTypes');
 const { ownFields, errorHandlingLines } = require('./stepErrorText.mts');
 const { APP_DESIGN_PRESETS } = require('../appDesignPresets');
 const {
-    FIELD_TYPES,
-    FILTER_OPS,
-    AGG_FNS,
-    DATE_BUCKETS,
     ACCESS_MODES,
     DATA_LIMITS,
     SYSTEM_COLUMNS,
@@ -67,6 +58,8 @@ const { baseCatalogue, fullCatalogue, catalogueGeneration } = require('../catalo
 // The tables that have two tiers (catalogTiers.mts): the BASE while a prompt text renders, so
 // an entry marked `since: 3` never moves those bytes, and the whole catalogue while ONE entry
 // is served (inFull). Fixed per process; a test that swaps the catalogue moves the generation.
+// That goes for the screen, theme and design tables, the nav styles, the section knobs and the
+// data vocabulary (FIELD_TYPES, FILTER_OPS, AGG_FNS, DATE_BUCKETS) too: read them from T.
 let T = baseCatalogue();
 let _generation = catalogueGeneration();
 function syncTier() {
@@ -277,7 +270,7 @@ function buildCatalogSections() {
     if (_sections) return _sections;
 
     const theme = [
-        ...Object.entries(THEME_SPEC).map(([k, spec]) => {
+        ...Object.entries(T.THEME_SPEC).map(([k, spec]) => {
             if (spec.type === 'color') {
                 if (spec.optional) return `${k}: #rrggbb or unset — ${spec.description}`;
                 return `${k}: #rrggbb (default ${spec.default}; presets: ${spec.presets.join(' ')})`;
@@ -291,12 +284,12 @@ function buildCatalogSections() {
     // Rendered from the same specs so the model can never learn a stale enum.
     const design = [
         `preset: ${APP_DESIGN_PRESETS.map((p) => p.id).join('|')} — one call sets theme + design + navStyle together (an app with no preset renders as classic).`,
-        ...Object.entries(/** @type {Record<string, any>} */ (DESIGN_SPEC))
+        ...Object.entries(/** @type {Record<string, any>} */ (T.DESIGN_SPEC))
             .filter(([k]) => k !== 'preset')
             .map(([k, spec]) => (spec.type === 'enum'
                 ? `${k}: ${spec.values.join('|')} (default ${spec.default})`
                 : `${k}: https:// URL or null (default null)`)),
-        `navStyle: ${NAV_STYLES.join('|')} (default ${NAV_DEFAULT_STYLE}) — sidebar/rail/mega group screens; mega shows each screen's description and needs groups.`,
+        `navStyle: ${T.NAV_STYLES.join('|')} (default ${NAV_DEFAULT_STYLE}) — sidebar/rail/mega group screens; mega shows each screen's description and needs groups.`,
     ].join('\n');
 
     const knobs = Object.keys(T.STYLE_KNOBS).map(renderStyleKnob).join(', ');
@@ -333,7 +326,7 @@ function buildCatalogSections() {
         `hideBelow/hideAbove (none|sm|md|lg, default none) follow \`span\` the same way: hideBelow "md" hides the component on viewports narrower than 1024px, hideAbove "md" at 1024px and wider (sm=640, md=1024, lg=1280). CSS-only — prefer them over duplicate screens for a narrow/wide variant.`,
     ].join('\n');
 
-    const screen = Object.entries(SCREEN_SPEC)
+    const screen = Object.entries(T.SCREEN_SPEC)
         .map(([k, fs]) => renderPropSpec(k, fs))
         .join('; ');
 
@@ -380,10 +373,10 @@ function buildCatalogSections() {
         `  { "kind": "formula", "expr": "<expr>" } — computed from live scope. Roots: ${FORMULA_SCOPE_ROOTS.join(', ')}. Callable names + operators: see ### Formulas.`,
         `  { "kind": "record", "tableId": "<tbl_…>", "recordId"?, "filter"?, "sort"?, "limit"?, "path"? } — ONE row from an app data table (first match).`,
         `  { "kind": "records", "tableId": "<tbl_…>", "filter"?, "sort"?, "limit"? } — an array of rows from an app data table.`,
-        `  { "kind": "aggregate", "tableId": "<tbl_…>", "filter"?, "groupBy"?: [{ "field", "bucket"?: ${DATE_BUCKETS.join('|')}, "as"? }], "aggregates"?: [{ "fn": ${AGG_FNS.join('|')}, "field"?, "as"? }], "sort"?, "limit"?, "pick"? } — counts/totals per group; add "pick":{"row":"first","column":"<as>"} for ONE number.`,
+        `  { "kind": "aggregate", "tableId": "<tbl_…>", "filter"?, "groupBy"?: [{ "field", "bucket"?: ${T.DATE_BUCKETS.join('|')}, "as"? }], "aggregates"?: [{ "fn": ${T.AGG_FNS.join('|')}, "field"?, "as"? }], "sort"?, "limit"?, "pick"? } — counts/totals per group; add "pick":{"row":"first","column":"<as>"} for ONE number.`,
         `  { "kind": "dataset", "datasetId": "<ds_…>", "params"? } — a saved dataset's rows (grouped/aggregated queries).`,
         `  { "kind": "connector", "connectorId": "<conn_…>", "params"? } — rows from an owner-authored EXTERNAL connector (run acts-as-owner). params: { <key>: <literal> | {"kind":"formula","expr":"<expr>"} }. You WIRE existing connectors (app_list_connectors) — you never author them or their credentials.`,
-        `filter: [{ "field": "<field key>", "op": ${FILTER_OPS.join('|')}, "value"?: <literal> | [<literals>] | {"kind":"formula","expr":"<expr>"} }] — formula values resolve client-side against live scope before the fetch (e.g. {"field":"created_by","op":"eq","value":{"kind":"formula","expr":"currentUser.id"}}).${ANY_GROUP_TEXT}`,
+        `filter: [{ "field": "<field key>", "op": ${T.FILTER_OPS.join('|')}, "value"?: <literal> | [<literals>] | {"kind":"formula","expr":"<expr>"} }] — formula values resolve client-side against live scope before the fetch (e.g. {"field":"created_by","op":"eq","value":{"kind":"formula","expr":"currentUser.id"}}).${ANY_GROUP_TEXT}`,
         `sort: [{ "field": "<field key>", "dir": "asc"|"desc" }] (default created_at desc). System columns ${SYSTEM_COLUMNS.join('/')} are filterable/sortable on every table.`,
         `inputMapping values (run_automation) accept ONLY:`,
         `  { "kind": "static", "value": <any JSON> }`,
@@ -408,7 +401,7 @@ function buildCatalogSections() {
 
     const dataModel = [
         `Every app can carry its own database: tables → fields → rows, plus roles and per-table access rules (RLS).`,
-        `Field types: ${FIELD_TYPES.join(', ')}. number takes subtype "integer"; select/multiselect need an options array; relation needs relation:{tableId}; computed is read-only.`,
+        `Field types: ${T.FIELD_TYPES.join(', ')}. number takes subtype "integer"; select/multiselect need an options array; relation needs relation:{tableId}; computed is read-only.`,
         `Table/field keys match ${String(KEY_RE)} (lowercase snake_case). System columns on EVERY table (server-managed, never declared or written): ${SYSTEM_COLUMNS.join(', ')}.`,
         `Access modes per table: ${ACCESS_MODES.join(' | ')} — "app" = every member reads/writes, "owner" = rows scoped to created_by, "role" = per-role rules, "none" = owner only. Prefer "app" for shared/demo data (owner-seeded rows are invisible to members under "owner").`,
         `Caps: ${DATA_LIMITS.MAX_TABLES_PER_APP} tables/app, ${DATA_LIMITS.MAX_FIELDS_PER_TABLE} fields/table, ${DATA_LIMITS.MAX_ROWS_PER_TABLE} rows/table, ${DATA_LIMITS.MAX_ROWS_PER_APP} rows/app, ${Math.round(DATA_LIMITS.MAX_DB_BYTES / (1024 * 1024))}MB per app database.`,
@@ -452,7 +445,7 @@ ${s.advancedSizing}
 
 ### Screens (app_add_screen / app_update_screen)
 ${s.screen}
-Sections: style knobs ${SECTION_STYLE_KNOBS.join(', ')} (defaults ${JSON.stringify(SECTION_STYLE_DEFAULTS)}).
+Sections: style knobs ${T.SECTION_STYLE_KNOBS.join(', ')} (defaults ${JSON.stringify(SECTION_STYLE_DEFAULTS)}).
 
 ### Components (${Object.keys(T.COMPONENT_SPECS).length} types — the ONLY legal types)
 A prop with no (default …) note is simply empty/off until set — everywhere in this catalog.
@@ -671,7 +664,7 @@ function renderCompactCatalogText() {
     // Screens: the fields the core app_add_screen declares (maxWidth and
     // refreshInterval are pruned from that menu; `kind` is not on any menu);
     // sections cannot be styled from the core menu at all (no app_add_section).
-    const screen = Object.entries(SCREEN_SPEC)
+    const screen = Object.entries(T.SCREEN_SPEC)
         .filter(([k]) => ['name', 'icon', 'showInNav', 'description'].includes(k))
         .map(([k, fs]) => renderPropSpec(k, fs))
         .join('; ');

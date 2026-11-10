@@ -21,7 +21,7 @@ const { applyToolCall } = require('../builderTools');
 const { applyInspectCatalog } = require('../builderTools/inspectionTools');
 const { emptyDefinition } = require('../componentSpecs');
 const { extensionItems, _catalogueChanged } = require('../catalogTiers.mts');
-const { installExtensionFixtures, withExtensionFixtures, isFixtureName, FIXTURE_NAMES } = require('../../testUtils/appCatalogExtensions.testkit');
+const { installExtensionFixtures, withExtensionFixtures, isFixtureName, FIXTURE_NAMES, KEY_FIXTURE_NAMES, ALL_FIXTURE_NAMES } = require('../../testUtils/appCatalogExtensions.testkit');
 
 const HEADING = '### Extensions';
 const FORMS = /** @type {const} */ ([
@@ -97,12 +97,21 @@ test('the index lists the items by family, with a gloss in the full form and nam
         assert.deepEqual(full.split('\n').slice(2), [
             'componentTypes: zz_gauge — A radial meter for one number',
             'props: heading.zz_kicker — A small line above the heading text',
+            'itemKeys: table.columns[].toneMap[].zz_icon — An icon shown before the label; table.columns[].zz_note — A footnote under the column header',
             'styleKnobs: zz_glow — A coloured halo around the box',
-            'enumValues: button.variant=zz_ghost; style.background=zz_mesh',
+            'enumValues: button.variant=zz_ghost; design.motion=zz_expressive; nav.style=zz_dock — zz_dock pins the screens to the bottom edge; screen.maxWidth=zz_ultra; step.generate_file.format=zz_tsv; style.background=zz_mesh; table.columns[].align=zz_justify; theme.radius=zz_pill',
+            'screenKeys: screen.zz_layout — split = two columns of sections side by side',
+            'sectionKeys: section.style.radius — Rounds the corners of the section band; section.zz_title — A title shown above the section',
+            'nodeKeys: heading.onClick; node.zz_styleWhen — Style overrides applied while a formula is true',
+            'themeKeys: theme.zz_tint — A second brand colour for charts',
+            'designKeys: design.zz_backdrop — A pattern behind the whole app',
+            'navKeys: nav.groups[].zz_badge — A count shown beside the group label; nav.zz_footer — A line of text under the navigation',
             'stepKinds: zz_wait — Pause the sequence for a moment',
             'stepFields: toast.zz_duration — Seconds the toast stays up',
+            'actionFields: toast.zz_sticky — Keeps the toast up until it is dismissed',
             'bindingKinds: zz_lookup — ONE value from another table, matched on a field',
             'topLevelKeys: zzNotes — A note the author keeps with the app',
+            'data: aggFn.zz_median — The middle value of the group; dateBucket.zz_fortnight — Two-week periods, starting on a Monday; fieldOption.zz_mask — An input mask for a text field; fieldType.zz_money — An amount with its currency; filterOp.zz_near — Matches values within a distance of the given one',
         ]);
         assert.ok(full.startsWith(HEADING));
         assert.match(full.split('\n')[1], /BEFORE you use one, call app_inspect_catalog/);
@@ -110,18 +119,27 @@ test('the index lists the items by family, with a gloss in the full form and nam
         assert.deepEqual(compact.split('\n').slice(2), [
             'componentTypes: zz_gauge',
             'props: heading.zz_kicker',
+            'itemKeys: table.columns[].toneMap[].zz_icon, table.columns[].zz_note',
             'styleKnobs: zz_glow',
-            'enumValues: button.variant=zz_ghost, style.background=zz_mesh',
+            'enumValues: button.variant=zz_ghost, design.motion=zz_expressive, nav.style=zz_dock, screen.maxWidth=zz_ultra, step.generate_file.format=zz_tsv, style.background=zz_mesh, table.columns[].align=zz_justify, theme.radius=zz_pill',
+            'screenKeys: screen.zz_layout',
+            'sectionKeys: section.style.radius, section.zz_title',
+            'nodeKeys: heading.onClick, node.zz_styleWhen',
+            'themeKeys: theme.zz_tint',
+            'designKeys: design.zz_backdrop',
+            'navKeys: nav.groups[].zz_badge, nav.zz_footer',
             'stepKinds: zz_wait',
             'stepFields: toast.zz_duration',
+            'actionFields: toast.zz_sticky',
             'bindingKinds: zz_lookup',
             'topLevelKeys: zzNotes',
+            'data: aggFn.zz_median, dateBucket.zz_fortnight, fieldOption.zz_mask, fieldType.zz_money, filterOp.zz_near',
         ]);
         assert.deepEqual(compact.split('\n').slice(0, 2), full.split('\n').slice(0, 2), 'the same heading and rule');
         // The live index is that of every item, and carries each of these.
         assert.equal(renderExtensionIndex(), renderIndexOf(extensionItems()));
         assert.equal(renderExtensionIndex({ compact: true }), renderIndexOf(extensionItems(), { compact: true }));
-        for (const name of Object.values(FIXTURE_NAMES)) assert.ok(renderExtensionIndex().includes(name) && renderExtensionIndex({ compact: true }).includes(name), name);
+        for (const name of ALL_FIXTURE_NAMES) assert.ok(renderExtensionIndex().includes(name) && renderExtensionIndex({ compact: true }).includes(name), name);
     });
 });
 
@@ -181,7 +199,7 @@ test('the index has its own budget: 150 items fit, in both forms', () => {
     /** @type {import('../catalogTiers.mts').ExtensionItem[]} */
     const items = [];
     const description = `${'A component that draws something useful for the screen '.repeat(3)}. More.`;
-    const families = /** @type {const} */ (['componentTypes', 'props', 'styleKnobs', 'enumValues', 'stepKinds', 'stepFields', 'bindingKinds', 'topLevelKeys']);
+    const families = /** @type {const} */ (['componentTypes', 'props', 'itemKeys', 'styleKnobs', 'enumValues', 'screenKeys', 'sectionKeys', 'nodeKeys', 'themeKeys', 'designKeys', 'navKeys', 'stepKinds', 'stepFields', 'bindingKinds', 'topLevelKeys', 'data']);
     for (let i = 0; i < 150; i += 1) {
         const family = families[i % families.length];
         items.push({ family, name: `extension_type_name_${String(i).padStart(3, '0')}.some_long_prop_name`, description: family === 'enumValues' ? '' : description });
@@ -220,13 +238,60 @@ test('app_inspect_catalog serves the full entry of every extension item by name'
 test('app_inspect_catalog serves a family, and an extension type or step kind under components / steps', () => {
     withExtensionFixtures(() => {
         const family = applyInspectCatalog({ family: 'enumValues' });
-        assert.deepEqual(Object.keys(family.extensions).filter(isFixtureName), ['button.variant=zz_ghost', 'style.background=zz_mesh']);
+        assert.deepEqual(Object.keys(family.extensions).filter(isFixtureName), [FIXTURE_NAMES.propValue, FIXTURE_NAMES.knobValue, ...KEY_FIXTURE_NAMES.enumValues].sort());
         const named = applyInspectCatalog({ components: ['zz_gauge', 'heading'], steps: ['zz_wait', 'toast'] });
         assert.match(named.components.zz_gauge, /^zz_gauge \[Content\]/);
         // The full entry of a BASE type carries the props added to it.
         assert.match(named.components.heading, /zz_kicker: string ≤60/);
         assert.match(named.steps.zz_wait, /^zz_wait \[client\]/);
         assert.match(named.steps.toast, /zz_duration: int 1\.\.30/);
+    });
+});
+
+test('app_inspect_catalog serves the keys outside the component and kind tables, and the data vocabulary, by family', () => {
+    withExtensionFixtures(() => {
+        const answered = (/** @type {string} */ family) => {
+            const out = applyInspectCatalog({ family });
+            assert.equal(out.unknown, undefined, family);
+            return Object.fromEntries(Object.entries(out.extensions).filter(([name]) => isFixtureName(name)));
+        };
+        assert.deepEqual(answered('itemKeys'), {
+            'table.columns[].toneMap[].zz_icon': 'table.columns[].toneMap[].zz_icon: icon — An icon shown before the label.',
+            'table.columns[].zz_note': 'table.columns[].zz_note: string ≤80 — A footnote under the column header.',
+        });
+        assert.deepEqual(answered('screenKeys'), { 'screen.zz_layout': 'screen.zz_layout: null|"split" — split = two columns of sections side by side.' });
+        assert.deepEqual(answered('sectionKeys'), {
+            'section.style.radius': 'section.style.radius(null|none|sm|md|lg|full) — Rounds the corners of the section band.',
+            'section.zz_title': 'section.zz_title: string ≤80 — A title shown above the section. Empty hides it.',
+        });
+        assert.deepEqual(answered('nodeKeys'), {
+            'heading.onClick': 'heading also fires onClick: bind an action to it with app_bind_action { event: "onClick" }',
+            'node.zz_styleWhen': 'node.zz_styleWhen: [{ when: formula, style: { <knob>: value } }] — Style overrides applied while a formula is true.',
+        });
+        assert.deepEqual(answered('themeKeys'), { 'theme.zz_tint': 'theme.zz_tint: #rrggbb or unset — A second brand colour for charts.' });
+        assert.deepEqual(answered('designKeys'), { 'design.zz_backdrop': 'design.zz_backdrop: none|dots — A pattern behind the whole app.' });
+        assert.deepEqual(answered('navKeys'), {
+            'nav.groups[].zz_badge': 'nav.groups[].zz_badge: formula — A count shown beside the group label.',
+            'nav.zz_footer': 'nav.zz_footer: string ≤120 — A line of text under the navigation.',
+        });
+        assert.deepEqual(answered('actionFields'), { 'toast.zz_sticky': 'toast action field zz_sticky: boolean — Keeps the toast up until it is dismissed.' });
+        assert.deepEqual(answered('data'), {
+            'aggFn.zz_median': 'aggregate fn "zz_median" — The middle value of the group.',
+            'dateBucket.zz_fortnight': 'date bucket "zz_fortnight" — Two-week periods, starting on a Monday.',
+            'fieldOption.zz_mask': 'field.zz_mask: string ≤40 — An input mask for a text field.',
+            'fieldType.zz_money': 'field type "zz_money" — An amount with its currency. Stored as a number of cents.',
+            'filterOp.zz_near': 'filter op "zz_near" — Matches values within a distance of the given one.',
+        });
+        // An enum value is answered with the entry of the key that holds it.
+        const values = applyInspectCatalog({ extensions: KEY_FIXTURE_NAMES.enumValues }).extensions;
+        assert.deepEqual(values, {
+            'design.motion=zz_expressive': 'design.motion: none|subtle|full|zz_expressive (default subtle)',
+            'nav.style=zz_dock': 'nav.style: tabs|sidebar|mega|rail|zz_dock — zz_dock pins the screens to the bottom edge.',
+            'screen.maxWidth=zz_ultra': 'screen.maxWidth: "narrow"|"medium"|"wide"|"full"|"zz_ultra" (default "medium")',
+            'step.generate_file.format=zz_tsv': 'generate_file step field format: "csv"|"xlsx"|"ods"|"zz_tsv" (default "csv")',
+            'table.columns[].align=zz_justify': 'table.columns[].align: "auto"|"left"|"right"|"center"|"zz_justify" (default "auto")',
+            'theme.radius=zz_pill': 'theme.radius: none|sm|md|lg|xl|zz_pill (default md)',
+        });
     });
 });
 
