@@ -57,3 +57,26 @@ describe('ExecutionRow — stopping a waiting run', () => {
         expect(screen.queryByRole('button', { name: 'Discard this test run' })).toBeNull();
     });
 });
+
+describe('ExecutionRow — which runs are called a dry run', () => {
+    it('a dry run wears the dry-run badge', () => {
+        renderRow(run({ status: 'success', mode: 'dry_run' }));
+        expect(screen.getByText('dry-run')).toBeTruthy();
+        expect(screen.queryByTestId('run-test-chip')).toBeNull();
+    });
+
+    it('a live test really sent what it sent: it is a test, not a dry run', () => {
+        renderRow(run({ status: 'success', mode: 'live', isTest: true }));
+        expect(screen.queryByText('dry-run')).toBeNull();
+        expect(screen.getByTestId('run-test-chip').textContent).toBe('test');
+    });
+
+    it('the stored profile decides before mode and isTest', () => {
+        renderRow(run({ status: 'success', mode: 'live', isTest: true, profile: { kind: 'dry' } }));
+        expect(screen.getByText('dry-run')).toBeTruthy();
+        cleanup();
+        renderRow(run({ status: 'success', mode: 'live', profile: { kind: 'production' } }));
+        expect(screen.queryByText('dry-run')).toBeNull();
+        expect(screen.queryByTestId('run-test-chip')).toBeNull();
+    });
+});

@@ -13,7 +13,8 @@ export type Tri = 'yes' | 'no' | 'unknown';
 
 export interface Readiness {
     stepsComplete: { ok: boolean; issues: number; firstIssue: { code: string; path: string | null; message: string } | null };
-    lastTest: { ok: boolean; at: string | null } | null;
+    /** `version`: the working version the test ran on; `status`: the run's own status word. Both null when the server did not say. */
+    lastTest: { ok: boolean; at: string | null; version: number | null; status: string | null } | null;
     aiAct: { required: boolean; status: AiActStatus; expiresAt: string | null; outcome: string | null };
     description: { ok: boolean };
     canActivate: boolean;
@@ -108,7 +109,12 @@ function parseReadiness(body: unknown): Readiness {
             issues,
             firstIssue: first ? { code: str(first.code) || '', path: str(first.path), message: str(first.message) || '' } : null,
         },
-        lastTest: test ? { ok: test.ok === true, at: dateOrNull(test.at) } : null,
+        lastTest: test ? {
+            ok: test.ok === true,
+            at: dateOrNull(test.at),
+            version: typeof test.version === 'number' && Number.isFinite(test.version) ? test.version : null,
+            status: str(test.status),
+        } : null,
         aiAct: {
             required: ai.required === true,
             status: statusOf(ai.status),

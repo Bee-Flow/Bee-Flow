@@ -8,6 +8,7 @@ import { readinessStamp } from '@/api/queries/automation/readiness';
 import { BuilderConfirmProvider } from './BuilderConfirmContext';
 import BuilderHeader from './BuilderHeader';
 import AiActQuestionsDialog from './settings/AiActQuestionsDialog';
+import GoLiveDialog, { type GoLiveKind } from './header/GoLiveDialog';
 import SettingsTab from './SettingsTab';
 import TriggerDiagnosePanel from './TriggerDiagnosePanel';
 
@@ -25,6 +26,10 @@ export interface BuilderShellLayoutProps {
     aiActGate: { action: GoLiveAction } | null;
     setAiActGate: (gate: { action: GoLiveAction } | null) => void;
     retryAfterAiAct: () => void;
+    /** Activate / Make live waiting for its confirmation (useBuilderLifecycle). */
+    goLive: { action: GoLiveKind } | null;
+    cancelGoLive: () => void;
+    confirmGoLive: () => void;
     serverAutomation: any;
     state: any;
     tab: BuilderTab;
@@ -59,7 +64,8 @@ export interface BuilderShellLayoutProps {
  * nothing here owns any.
  */
 export default function BuilderShellLayout({
-    confirm, confirmDialog, aiActGate, setAiActGate, retryAfterAiAct, serverAutomation, state, tab, setTab,
+    confirm, confirmDialog, aiActGate, setAiActGate, retryAfterAiAct, goLive, cancelGoLive, confirmGoLive,
+    serverAutomation, state, tab, setTab,
     headerProps, diagnoseOpen, diagnoseResult, diagnoseLoading, diagnoseError, setDiagnoseOpen, diagnoseAnchorRef,
     onSaveAutomation, settingsSection, workMode, setWorkMode, isStep, setServerAutomation, onDryRun, t,
     editor, versions, history,
@@ -80,6 +86,9 @@ export default function BuilderShellLayout({
                     onClose={() => setAiActGate(null)}
                     onAnswered={retryAfterAiAct}
                 />
+            )}
+            {goLive && (
+                <GoLiveDialog automation={serverAutomation} action={goLive.action} onCancel={cancelGoLive} onConfirm={confirmGoLive} />
             )}
             {/* On Build, BuildTab renders this same header (with the add-step
                 ribbon embedded in it); on the other tabs the shell renders it. */}

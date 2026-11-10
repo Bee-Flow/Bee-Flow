@@ -188,7 +188,7 @@ Step rows (`automation_run_steps`) record `step_id`, `step_type`, `attempts`, `s
 Every automation has two run modes:
 
 - **Dry-run** — invoked from the builder's `Dry run` button, the AI builder, MCP, mobile or the API. Steps that have side-effects (tools that send / create / update / delete) are not actually invoked; instead the runner synthesises a sample output from each tool's declared output schema ([`server/automation/outputSchemas.js`](https://github.com/Bee-Flow/beeflow)) so the variable tree stays connected. Read-only tools and pure utility nodes execute for real. The builder's dry run pauses at approvals and form pages for you to answer; a dry run nobody watches (AI builder, MCP, mobile, API) auto-approves approvals and answers form pages with blanks, and marks both as simulated.
-- **Live** — the trigger fires the automation and every step runs end-to-end. In the builder, **Run live (test)** runs the working copy for real after a confirmation on every run; its approvals go to you, never to the configured approvers.
+- **Live** — the trigger fires the automation and every step runs end-to-end. In the builder, **Run for real (sends and writes)** runs the working copy for real after a confirmation on every run; its approvals go to you, never to the configured approvers.
 
 [Testing automations → Run modes](automation-testing.md#run-modes) lists every way to start a run and how each one treats approvals, form pages and answers.
 

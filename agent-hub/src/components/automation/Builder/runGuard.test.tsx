@@ -32,7 +32,7 @@ describe('run guard — the header menu', () => {
         render(<TestRunMenu onDryRun={vi.fn()} onRunLive={vi.fn()} />);
         await user.click(screen.getByRole('button', { name: 'More ways to run' }));
         expect(screen.getByRole('menuitem', { name: /Dry run \(nothing sent\)/ })).toBeTruthy();
-        expect(screen.getByRole('menuitem', { name: /Run live \(test, real actions\)/ })).toBeTruthy();
+        expect(screen.getByRole('menuitem', { name: /Run for real \(sends and writes\)/ })).toBeTruthy();
     });
 });
 

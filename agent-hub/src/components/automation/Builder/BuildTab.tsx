@@ -8,9 +8,11 @@ import AssistantColumn from './build/AssistantColumn';
 import BuildDiagramColumn from './build/BuildCanvas';
 import type { BuildTabProps } from './build/buildTabTypes';
 import { AutomationSummary } from './build/jsComponents';
+import { editsBesideLiveVersion } from './build/workingCopyNote';
 import useBuildTabModel from './build/useBuildTabModel';
 import type { BuildTabModel } from './build/useBuildTabModel';
 import BuilderHeader from './BuilderHeader';
+import type { LiveRow } from './header/liveState';
 import AddStepRibbon from './flow/AddStepRibbon';
 import useAdjustOnChange from '@/hooks/useAdjustOnChange';
 
@@ -156,6 +158,7 @@ function composerProps(p: BuildTabProps, m: BuildTabModel) {
         setWorkMode: p.setWorkMode,
         alwaysPlanLarge: p.alwaysPlanLarge ?? true,
         setAlwaysPlanLarge: p.setAlwaysPlanLarge,
+        hasLiveVersion: editsBesideLiveVersion(p.automation as LiveRow | null),
         assistantContext: p.assistantContext || null,
         onClearAssistantContext: p.onClearAssistantContext,
         onAskAssistant: p.onAskAssistant,

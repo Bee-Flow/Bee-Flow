@@ -101,6 +101,28 @@ describe('automations demo: runs', () => {
     });
 });
 
+describe('automations demo: a dry run', () => {
+    it('answers as a dry run whose sending step was held back, and records it', async () => {
+        const { call } = demo();
+        const { body } = await call(`${SR}/dry-run`, { method: 'POST', body: '{}' });
+        expect(body.run).toMatchObject({ mode: 'dry_run', isTest: true, status: 'success', profile: { kind: 'dry' } });
+        const notify = body.steps.find((s: Json) => s.stepId === 'notify_finance');
+        expect(notify.output).toMatchObject({ _dryRun: true });
+        expect(body.steps.find((s: Json) => s.stepId === 'search_invoices').output).not.toHaveProperty('_dryRun');
+        // The same run, read back the way the Runs tab reads it.
+        const read = await call(`/api/automation/runs/${body.run.id}`);
+        expect(read.body.run.mode).toBe('dry_run');
+        const rows = await call(`/api/automation/runs/${body.run.id}/steps`);
+        expect(rows.body.steps.find((s: Json) => s.stepId === 'notify_finance').output).toMatchObject({ _dryRun: true });
+    });
+
+    it('a live run of the same flow carries no marker', async () => {
+        const { call } = demo();
+        const { body } = await call(`${SR}/run`, { method: 'POST', body: '{}' });
+        expect(body.steps.find((s: Json) => s.stepId === 'notify_finance').output).not.toHaveProperty('_dryRun');
+    });
+});
+
 describe('automations demo: versions', () => {
     it('is live on v3 while editing v5', async () => {
         const { body } = await demo().call(`${SR}/versions`);

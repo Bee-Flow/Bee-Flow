@@ -161,6 +161,8 @@ interface AssistantComposerProps {
     setWorkMode?: ((mode: string) => void) | null;
     alwaysPlanLarge: boolean;
     setAlwaysPlanLarge?: ((value: boolean) => void) | null;
+    /** The automation has a live version, so the assistant's changes land in the working copy beside it. */
+    hasLiveVersion?: boolean;
     assistantContext: AssistantContext | null;
     onClearAssistantContext?: (() => void) | null;
     onAskAssistant?: ((stepId?: string, field?: AssistantField | null) => void) | null;
@@ -177,7 +179,7 @@ function AssistantComposer(p: AssistantComposerProps) {
     const imageHint = imageStatusHint(state.images, t);
     let toolbarExtra: ReactNode = null;
     if (setWorkMode) {
-        toolbarExtra = <WorkModePicker anchor="composer" alwaysPlanLarge={p.alwaysPlanLarge} onAlwaysPlanLargeChange={p.setAlwaysPlanLarge} value={p.workMode} onChange={setWorkMode} disabled={state.running} planStatus={state.reviewPlan?.status} planVersion={state.reviewPlan?.version} />;
+        toolbarExtra = <WorkModePicker anchor="composer" alwaysPlanLarge={p.alwaysPlanLarge} onAlwaysPlanLargeChange={p.setAlwaysPlanLarge} value={p.workMode} onChange={setWorkMode} disabled={state.running} planStatus={state.reviewPlan?.status} planVersion={state.reviewPlan?.version} note={p.hasLiveVersion ? t('automations.assistant.working_copy_note', 'Changes go to your working copy. Runs keep using the live version until you make this one live.') : null} />;
     }
     return (
         <div className="w-full flex flex-col flex-shrink-0 p-3" onKeyDownCapture={e => {

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Lock } from 'lucide-react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useAutomationShares, type AutomationShares, type Share, type ShareRole } from '@/api/queries/automation/people';
+import ConnectionsNote from './ConnectionsNote';
 import SharingDialog from './SharingDialog';
 import { SectionHeading, type SaveFn, type SettingsAutomation } from './settingsUi';
 import { useSharingLocked } from './useSharingLocked';
@@ -59,7 +60,9 @@ function viewOf(data: AutomationShares | undefined, planLocked: boolean, isMine:
 }
 
 function automationFacts(a: SettingsAutomation | null) {
+    const policy = (a?.definition as { runPolicy?: { connections?: unknown } } | null | undefined)?.runPolicy;
     return {
+        callerMode: policy?.connections === 'caller',
         id: a?.id || null,
         title: a?.title || '',
         // A row without `myRole` predates sharing: only its owner could load it.
@@ -84,7 +87,7 @@ export default function SharingSection({ automation, onAutomationChange }: {
     const { t } = useTranslation();
     const planLocked = useSharingLocked();
     const [open, setOpen] = useState(false);
-    const { id, title, isMine, youOwn } = automationFacts(automation);
+    const { id, title, isMine, youOwn, callerMode } = automationFacts(automation);
     const shares = useAutomationShares(id);
     const { locked, canManage, ownerName } = viewOf(shares.data, planLocked, isMine, t);
     // Existing shares keep working after the plan lapses, and taking access
@@ -99,6 +102,7 @@ export default function SharingSection({ automation, onAutomationChange }: {
                 <Pill label={t('automations.sharing.role_owner', 'Owner')} value={ownerName} />
                 {showList && <RolePills list={existing} canChange={canManage} onChange={id ? () => setOpen(true) : undefined} />}
             </div>
+            {showList && <ConnectionsNote callerMode={callerMode} />}
             {locked && (
                 <p className="flex items-center gap-1.5 text-[var(--text-tertiary)]" data-testid="sharing-locked">
                     <Lock className="w-3 h-3" aria-hidden />
@@ -115,6 +119,7 @@ export default function SharingSection({ automation, onAutomationChange }: {
                     title={title}
                     isMine={canManage}
                     youOwn={youOwn}
+                    callerMode={callerMode}
                     canAdd={!locked}
                     onTransferred={(result) => {
                         if (result.automation && automation) onAutomationChange?.({ ...automation, ...result.automation });

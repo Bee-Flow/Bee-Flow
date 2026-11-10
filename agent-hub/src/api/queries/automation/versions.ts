@@ -51,6 +51,10 @@ export interface FieldChange {
 export interface FieldDiff {
     changes: FieldChange[];
     stepIds: { added: string[]; removed: string[]; changed: string[] };
+    /** The server's one-line summary of the changes ("Changed the prompt of step 3"), when it sent one. */
+    description: string | null;
+    /** True when only positions moved: nothing that affects how it runs. */
+    layoutOnly: boolean;
 }
 
 export interface VersionContext {
@@ -142,6 +146,8 @@ export function parseFieldDiff(body: unknown): FieldDiff {
     return {
         changes,
         stepIds: { added: strList(ids?.added), removed: strList(ids?.removed), changed: strList(ids?.changed) },
+        description: str(raw?.description),
+        layoutOnly: raw?.layoutOnly === true,
     };
 }
 
@@ -186,6 +192,23 @@ export function useFieldDiffQuery(automationId: string | null | undefined, versi
             await apiClient.get<unknown>(`${base(automationId!)}/${version}/fielddiff/${other}`, { signal })),
         enabled: !!automationId && version != null && other != null && version !== other,
         staleTime: 60_000,
+        retry: false,
+    });
+}
+
+/**
+ * What the working copy holds relative to the live version: the answer to
+ * "what goes live if I press Make vN live". The server resolves the two refs,
+ * so this needs no version numbers; `stamp` (the row's version and save time)
+ * keys the cache, so a save asks again.
+ */
+export function useWorkingVsLiveDiffQuery(automationId: string | null | undefined, stamp: string, enabled: boolean) {
+    return useQuery({
+        queryKey: ['automation', automationId ?? '', 'versions', 'fielddiff', 'working', 'live', stamp] as const,
+        queryFn: async ({ signal }) => parseFieldDiff(
+            await apiClient.get<unknown>(`${base(automationId!)}/working/fielddiff/live`, { signal })),
+        enabled: enabled && !!automationId,
+        staleTime: 15_000,
         retry: false,
     });
 }

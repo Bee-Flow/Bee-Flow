@@ -18,7 +18,7 @@ const { GUI_DEFAULTS } = require('../i18n/defaults/en');
 // `automations.repeating.` moved to add-nl-repeating-work-translations when the
 // "Find repeating work" page was rebuilt (2026-10); its test owns it now.
 const OWNED_PREFIXES = [
-    'automations.agent_step.', 'automations.aiact.', 'automations.header.',
+    'automations.agent_step.', 'automations.aiact.', 'automations.golive.', 'automations.header.',
     'automations.holidays.', 'automations.library.', 'automations.notify.', 'automations.people.',
     'automations.ready.', 'automations.role.', 'automations.schedule.', 'automations.settings.',
     'automations.sharing.', 'automations.status.', 'automations.step_error.', 'automations.templates.',

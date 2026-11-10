@@ -41,6 +41,8 @@ export interface RunRowData {
     startedBy?: { id?: string | null; name?: string | null } | null;
     howStarted?: string | null;
     isTest?: boolean;
+    /** The run's profile as stored (production | test | dry); null on a row from before it existed. */
+    profile?: { kind?: string | null; effects?: string | null } | null;
     awaitingStepId?: string | null;
     parentRunId?: string | null;
     /** The pending approval a waiting run waits on (rows with status awaiting_*). */

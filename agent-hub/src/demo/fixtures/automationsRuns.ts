@@ -34,6 +34,8 @@ export interface DemoRun {
     /** One letter per top-level step, in run order. */
     steps: string; outcome: Outcome; triggerKind: string;
     triggerPayload?: Obj | null; failure?: Failure; approvalId?: string; parentRunId?: string | null;
+    /** A dry run: its sending steps were held back, and their rows say so. */
+    dry?: boolean;
 }
 
 const hoursAgo = (n: number) => minutesAgo(n * 60);
@@ -228,8 +230,23 @@ function definitionFor(state: RunState, run: DemoRun): { trigger?: Obj; steps?: 
 
 const topSteps = (def: { steps?: Obj[] } | null) => (def?.steps || []).filter(s => s.type !== 'note');
 
+/**
+ * A step row as a dry run records it: a notification is not delivered, and its
+ * output carries the server's own marker (execNotification.js dryRunNotification).
+ */
+export function heldBackInDryRun<T extends { stepType: string; status: string; input: unknown; output: unknown }>(row: T): T {
+    if (row.stepType !== 'notification' || row.status !== 'success') return row;
+    const to = (row.input as Obj | null)?.to;
+    return { ...row, output: { _dryRun: true, wouldNotify: { title: 'Weekly AI/SaaS spend', body: typeof to === 'string' ? `To ${to}` : '', channels: ['email'] } } };
+}
+
 /** Every recorded step of one run: the trigger, then each step it reached. */
 function stepsFor(state: RunState, run: DemoRun, sample: Sample): StepRecord[] {
+    const rows = liveStepsFor(state, run, sample);
+    return run.dry ? rows.map(heldBackInDryRun) : rows;
+}
+
+function liveStepsFor(state: RunState, run: DemoRun, sample: Sample): StepRecord[] {
     const def = definitionFor(state, run);
     const statuses = statusesOf(run);
     let clock = new Date(run.startedAt).getTime();
@@ -264,13 +281,14 @@ export function rowOf(run: DemoRun) {
     const waiting = run.status.startsWith('awaiting');
     return {
         id: run.id, automationId: run.automationId, version: run.version, userId: ME.id,
-        triggerKind: run.triggerKind, triggerPayload: run.triggerPayload || null, mode: 'live', status: run.status,
+        triggerKind: run.triggerKind, triggerPayload: run.triggerPayload || null, mode: run.dry ? 'dry_run' : 'live', status: run.status,
         startedAt: run.startedAt, finishedAt, durationMs: run.durationMs,
         error: run.failure?.error || null, errorClass: run.failure?.errorClass || null, summary: null,
         parentRunId: run.parentRunId || null, rootRunId: run.id, awaitingStepId: waiting ? run.outcome.params.stepId : null,
         outcome: run.outcome, stepsTotal: statuses.length, stepsDone: statuses.filter(s => DONE.has(s)).length, stepStatuses: statuses,
         startedBy: run.startedBy ? ref(run.startedBy) : null, howStarted: run.howStarted, isTest: run.isTest,
         ...(waiting ? { approvalId: run.approvalId || null } : {}),
+        ...(run.dry ? { profile: { kind: 'dry', effects: 'simulated' } } : {}),
     };
 }
 
@@ -402,13 +420,13 @@ export function runRoutes(sample: Sample) {
 }
 
 /** A run the demo just made (Test, Run flow): newest in the list, so the Runs tab shows it. */
-export function recordRun(state: RunState, automationId: string, isTest: boolean): DemoRun {
+export function recordRun(state: RunState, automationId: string, isTest: boolean, dry = false): DemoRun {
     const a = state.automations.find(x => x.id === automationId);
     const count = topSteps((a?.definition || null) as { steps?: Obj[] } | null).length;
     const run: DemoRun = {
         id: `run_demo_new_${state.runs.length + 1}`, automationId, version: a?.version || 1, status: 'success', isTest,
         triggerKind: 'manual', howStarted: 'manual', startedBy: ME, startedAt: new Date(demoNow() - 1200).toISOString(), durationMs: 1200,
-        steps: 'S'.repeat(count), outcome: wentThrough(automationId),
+        steps: 'S'.repeat(count), outcome: wentThrough(automationId), ...(dry ? { dry: true } : {}),
     };
     state.runs.push(run);
     return run;

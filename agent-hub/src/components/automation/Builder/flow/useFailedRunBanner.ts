@@ -11,6 +11,8 @@ export interface RunIdentity {
     kind: 'test' | 'run' | null;
     id: string | null;
     startedAt: string | null;
+    /** A dry run that has finished: the canvas says that nothing was sent or written. */
+    dryFinished?: boolean;
     /** Open this run in Runs. Absent where the host has no Runs to open. */
     onOpen?: ((runId: string) => void) | null;
     /** Whose run it is and what may be done while it waits (flow/runPause.ts). Absent where the host does not know. */
@@ -53,8 +55,8 @@ interface Params {
  */
 export function useFailedRunBanner({ runSteps, runInFlight, definition, runIdentity = null, focusRef = null }: Params) {
     const focus = useMemo(
-        () => computeRunFocus({ runSteps, runInFlight, definition }),
-        [runSteps, runInFlight, definition],
+        () => computeRunFocus({ runSteps, runInFlight, definition, dryFinished: runIdentity?.dryFinished === true }),
+        [runSteps, runInFlight, definition, runIdentity?.dryFinished],
     );
     const runKey = runIdentity?.id ?? runIdentity?.startedAt ?? focus?.startedAt ?? null;
     const banner = useBannerMark(focus, definition, runKey);
@@ -71,12 +73,14 @@ export function useFailedRunBanner({ runSteps, runInFlight, definition, runIdent
 
 export function useBannerMark(runFocus: RunFocus | null, definition: FocusDefinition | undefined, runKey: string | null = null) {
     const failed = runFocus?.state === 'error';
+    // The dry-run notice is about one run as well, and goes when it is dismissed.
+    const dryDone = runFocus?.state === 'dry_done';
     const stepId = failed ? runFocus.stepId : null;
-    const key = failed ? `${stepId}|${runKey ?? runFocus.startedAt}` : null;
+    const key = failed ? `${stepId}|${runKey ?? runFocus.startedAt}` : (dryDone ? `dry|${runKey}` : null);
     const sig = useMemo(() => (failed ? stepSignature(definition, stepId) : ''), [failed, definition, stepId]);
     const [mark, setMark] = useState<BannerMark>({ key, sig, dismissed: false });
     if (mark.key !== key) setMark({ key, sig, dismissed: false });
-    const hidden = failed && (mark.key !== key || mark.dismissed || mark.sig !== sig);
+    const hidden = (failed || dryDone) && (mark.key !== key || mark.dismissed || mark.sig !== sig);
     const dismiss = useCallback(() => setMark(m => ({ ...m, dismissed: true })), []);
     return { runFocus: hidden ? null : runFocus, dismiss };
 }

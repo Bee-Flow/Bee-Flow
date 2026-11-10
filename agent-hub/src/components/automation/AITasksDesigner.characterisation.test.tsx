@@ -214,7 +214,7 @@ describe('AITasksDesigner — row actions', () => {
         const row = (await screen.findByText('Invoice sync')).closest('div[title]') as HTMLElement;
         await user.click(within(row).getByRole('button', { name: 'Move to trash' }));
         const dialog = await screen.findByRole('dialog');
-        expect(dialog).toHaveTextContent('Delete "Invoice sync"?');
+        expect(dialog).toHaveTextContent('Move "Invoice sync" to trash?');
         await user.click(within(dialog).getByRole('button', { name: 'Cancel' }));
         expect(sent('DELETE', '/api/automation/a1')).toHaveLength(0);
 
@@ -224,11 +224,11 @@ describe('AITasksDesigner — row actions', () => {
         await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     });
 
-    it('"View executions" opens the builder on the runs tab', async () => {
+    it('"View runs" opens the builder on the runs tab', async () => {
         const user = userEvent.setup();
         mountDesigner();
         await openMenu(user, 'Weekly report');
-        await user.click(await screen.findByText('View executions'));
+        await user.click(await screen.findByText('View runs'));
         const b = await screen.findByTestId('builder');
         expect(b).toHaveAttribute('data-id', 'a2');
         expect(b).toHaveAttribute('data-tab', 'history');

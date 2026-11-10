@@ -1,21 +1,14 @@
 import React from 'react';
-import { Circle, CircleCheck, CircleDashed, CircleX, UserCog } from 'lucide-react';
+import { UserCog } from 'lucide-react';
 import { useTranslation } from '@/hooks/useTranslation';
-import { readinessStamp, useReadiness, type Readiness } from '@/api/queries/automation/readiness';
-import { useAiActCheck, type AiActCheckResult } from '@/api/queries/automation/aiActCheck';
+import { readinessStamp, useReadiness } from '@/api/queries/automation/readiness';
+import { useAiActCheck } from '@/api/queries/automation/aiActCheck';
 import AiActAutoCard from './AiActAutoCard';
 import { aiActVisible, canRecordAiAct } from './AiActSection';
 import type { SettingsAutomation } from './settingsUi';
+import { ReadinessChecklist, readinessItems } from './ReadinessChecklist';
 
-type T = ReturnType<typeof useTranslation>['t'];
-type State = 'ok' | 'todo' | 'failed' | 'optional';
-
-const ICON: Record<State, { Icon: typeof Circle; tone: string }> = {
-    ok: { Icon: CircleCheck, tone: 'text-[var(--success)]' },
-    todo: { Icon: CircleDashed, tone: 'text-[var(--warning)]' },
-    failed: { Icon: CircleX, tone: 'text-[var(--error)]' },
-    optional: { Icon: Circle, tone: 'text-[var(--text-tertiary)]' },
-};
+export { agoText } from './ReadinessChecklist';
 
 const PREFERENCES_PATH = '/app/settings/preferences';
 
@@ -27,60 +20,6 @@ function openPreferences(e: React.MouseEvent<HTMLAnchorElement>) {
     window.dispatchEvent(new PopStateEvent('popstate'));
 }
 
-/** "11 min ago", in words the catalogue can translate. */
-export function agoText(iso: string | null, t: T, now = Date.now()): string {
-    if (!iso) return '';
-    const minutes = Math.max(0, Math.floor((now - Date.parse(iso)) / 60_000));
-    if (minutes < 1) return t('automations.ready.ago_now', 'just now');
-    if (minutes < 60) return t('automations.ready.ago_min', '{n} min ago', { n: minutes });
-    const hours = Math.floor(minutes / 60);
-    if (hours < 24) return t('automations.ready.ago_hours', '{n} h ago', { n: hours });
-    return t('automations.ready.ago_days', '{n} days ago', { n: Math.floor(hours / 24) });
-}
-
-interface Item { key: string; state: State; label: string; section?: string }
-
-/**
- * The AI Act row: Bee's own check when it has answered (it may have recorded
- * the check a moment ago, or found a question since), else the checklist.
- */
-function aiActState(r: Readiness, check: AiActCheckResult | undefined): State {
-    if (check && check.required) {
-        if (check.questions.length) return 'todo';
-        if (check.status === 'prohibited') return 'failed';
-        if (check.status === 'valid') return 'ok';
-    }
-    return r.aiAct.status === 'valid' ? 'ok' : r.aiAct.status === 'prohibited' ? 'failed' : 'todo';
-}
-
-function items(r: Readiness, t: T, check?: AiActCheckResult): Item[] {
-    const out: Item[] = [];
-    out.push(r.stepsComplete.ok
-        ? { key: 'steps', state: 'ok', label: t('automations.ready.steps_ok', 'All steps filled in') }
-        : { key: 'steps', state: 'todo', label: r.stepsComplete.issues > 0
-            ? t('automations.ready.steps_todo_n', '{n} steps still need something', { n: r.stepsComplete.issues })
-            : t('automations.ready.steps_todo', 'Some steps still need something') });
-    if (!r.lastTest) out.push({ key: 'test', state: 'todo', label: t('automations.ready.test_none', 'Not tested yet') });
-    else {
-        const ago = agoText(r.lastTest.at, t);
-        const base = r.lastTest.ok ? t('automations.ready.test_ok', 'Last test passed') : t('automations.ready.test_failed', 'Last test failed');
-        out.push({ key: 'test', state: r.lastTest.ok ? 'ok' : 'failed', label: ago ? `${base} · ${ago}` : base });
-    }
-    if (aiActVisible(r)) {
-        const state = aiActState(r, check);
-        out.push({
-            key: 'aiAct',
-            state,
-            label: t('automations.ready.aiact', 'AI Act check'),
-            section: state === 'ok' ? undefined : 'ai-act',
-        });
-    }
-    out.push(r.description.ok
-        ? { key: 'description', state: 'ok', label: t('automations.ready.description_ok', 'Description') }
-        : { key: 'description', state: 'optional', label: t('automations.ready.description', 'Description (recommended)'), section: 'general' });
-    return out;
-}
-
 function RailStatus({ saved, loading, failed }: { saved: boolean; loading: boolean; failed: boolean }) {
     const { t } = useTranslation();
     let text: string | null = null;
@@ -88,34 +27,6 @@ function RailStatus({ saved, loading, failed }: { saved: boolean; loading: boole
     else if (loading) text = t('automations.ready.loading', 'Checking…');
     else if (failed) text = t('automations.ready.error', 'Could not check right now.');
     return text ? <p className="text-[var(--text-tertiary)]">{text}</p> : null;
-}
-
-function Checklist({ items: list, onOpenSection }: { items: Item[]; onOpenSection?: (section: string) => void }) {
-    return (
-        <ul className="flex flex-col gap-2">
-            {list.map(item => {
-                const { Icon, tone } = ICON[item.state];
-                const body = (
-                    <>
-                        <Icon className={`w-3.5 h-3.5 shrink-0 ${tone}`} aria-hidden />
-                        <span className={item.state === 'optional' ? 'text-[var(--text-tertiary)]' : ''}>{item.label}</span>
-                    </>
-                );
-                const section = item.section;
-                return (
-                    <li key={item.key} data-state={item.state} data-testid={`ready-${item.key}`}>
-                        {section && onOpenSection ? (
-                            <button type="button" onClick={() => onOpenSection(section)} className="flex items-center gap-2 text-left hover:underline">
-                                {body}
-                            </button>
-                        ) : (
-                            <span className="flex items-center gap-2">{body}</span>
-                        )}
-                    </li>
-                );
-            })}
-        </ul>
-    );
 }
 
 /**
@@ -155,7 +66,7 @@ export default function ReadinessRail({ automation, onOpenSection, extrasClassNa
             <div className="p-3.5 rounded-xl bg-[var(--bg-secondary)] flex flex-col gap-2">
                 <h3 className="font-semibold">{t('automations.ready.title', 'Ready to activate?')}</h3>
                 <RailStatus saved={!!id} loading={readiness.isLoading} failed={readiness.isError} />
-                {r && <Checklist items={items(r, t, check.data)} onOpenSection={onOpenSection} />}
+                {r && <ReadinessChecklist items={readinessItems(r, t, check.data)} onOpenSection={onOpenSection} />}
             </div>
 
             <div className={extrasClassName}>

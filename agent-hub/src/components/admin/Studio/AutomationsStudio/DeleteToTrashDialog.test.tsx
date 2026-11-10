@@ -10,7 +10,7 @@ describe('DeleteToTrashDialog', () => {
         const user = userEvent.setup();
         const onConfirm = vi.fn();
         render(<DeleteToTrashDialog automation={{ title: 'Invoices' }} onConfirm={onConfirm} onCancel={vi.fn()} />);
-        expect(screen.getByText('Delete "Invoices"?')).toBeTruthy();
+        expect(screen.getByText('Move "Invoices" to trash?')).toBeTruthy();
         expect(screen.getByText(/Moves to the trash for 30 days; runs are kept\./)).toBeTruthy();
         expect(screen.queryByText(/cannot be undone/i)).toBeNull();
         await user.click(screen.getByRole('button', { name: 'Move to trash' }));

@@ -4,6 +4,8 @@ interface LookArgs {
     family: string | null;
     stepType: string | null;
     status: string | undefined;
+    /** A dry-run step that only pretended to send or write. */
+    simulated?: boolean;
     pinned: boolean | undefined;
     disabled: boolean | undefined;
     selected: boolean;
@@ -19,10 +21,10 @@ interface LookArgs {
 
 /** The card's outline, tile and box styles for one render, from its run status, selection and zoom level. */
 export function stepNodeLook({
-    family, stepType, status, pinned, disabled, selected, editing, isSource, isTarget, errorTone, tileColor, far, dim, branchHandleCount,
+    family, stepType, status, simulated = false, pinned, disabled, selected, editing, isSource, isTarget, errorTone, tileColor, far, dim, branchHandleCount,
 }: LookArgs) {
     const chrome = cardChrome({
-        group: family, type: stepType, status, pinned, disabled, selected: selected || editing, error: errorTone,
+        group: family, type: stepType, status, simulated, pinned, disabled, selected: selected || editing, error: errorTone,
     });
     const { tile: tileStyle, glyph: glyphStyle } = typeTileStyle(family, { type: stepType, error: errorTone });
     if (tileColor && !errorTone) {
