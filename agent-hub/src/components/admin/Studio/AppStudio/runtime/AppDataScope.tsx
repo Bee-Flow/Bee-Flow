@@ -201,7 +201,8 @@ function BindingFetcher({ binding, sample, scope, refreshMs, live }: {
     // whether it runs at all — re-evaluated on every render, so the polling
     // stops the moment the thing it was watching finishes.
     const ownMs = useMemo(() => {
-        if (!live || !live.seconds) return 0;
+        // Only a positive interval polls: a stray negative value never did and still does not.
+        if (!live || !(live.seconds > 0)) return 0;
         if (live.when != null && !resolveBinding(live.when, { scope }).value) return 0;
         return liveIntervalMs(live.seconds);
     }, [live, scope]);
