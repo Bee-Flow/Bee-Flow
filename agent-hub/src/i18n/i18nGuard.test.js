@@ -81,9 +81,10 @@
  *    identical — checks 3 and 7), and rebase-then-append.
  *  - A key you delete on purpose goes on
  *    server/i18n/defaults/removed-keys.txt, or the key guard fails the PR.
- *  - A new namespace is a new file: create en/<namespace>.js and list it in
- *    en/index.js (which throws on an unlisted file, on a key filed under the
- *    wrong namespace, and on a key defined twice).
+ *  - A new namespace is a new file: create en/<namespace>.js and nothing else
+ *    (en/index.js finds it, and throws on a badly named file, on a key filed
+ *    under the wrong namespace, and on a key defined twice); its Dutch is
+ *    server/i18n/defaults/nl/<namespace>.json.
  *  - Plural is a KEY choice, never a string choice: base key + `<key>_plural`,
  *    built by `pluralKey()`/`nOf()` (KnowledgeStudio/plural.ts). Never
  *    `problem${n === 1 ? '' : 's'}` — that is English grammar in JavaScript

@@ -6,20 +6,25 @@
  *
  * One file per namespace (the part of a key before the first "."), so two
  * branches adding keys to different namespaces never touch the same file.
- * Every namespace file is listed below explicitly; a file in this directory
- * that is NOT listed, a key filed under the wrong namespace, and a key defined
- * twice all THROW at require time rather than silently vanish.
+ * A key filed under the wrong namespace, a key defined twice, and a file whose
+ * name is not a namespace name all THROW at require time rather than silently
+ * vanish.
  *
  * Adding a namespace: create ./<namespace>.js (copy the header of any sibling)
- * and add it to NAMESPACES. After any change here, regenerate the frontend
- * copy: `node scripts/gen-i18n-defaults.mjs`.
+ * and nothing else. Files not in NAMESPACES below are found by reading this
+ * directory and merged after the listed ones, in file-name order, so two
+ * branches that each add a namespace touch no shared file (the generated
+ * frontend copy is regenerated after the merge). After any change here,
+ * regenerate the frontend copy: `node scripts/gen-i18n-defaults.mjs`.
  *
- * First written by scripts/i18n-split.mjs, which rewrites this file from the
- * namespace files present whenever it runs — so a hand edit is fine, as long
- * as it only adds or removes NAMESPACES entries.
+ * NAMESPACES is the order of the namespaces that existed before discovery: it
+ * fixes their position in GUI_DEFAULTS, and so the bytes of the generated
+ * copy. Do not add new namespaces to it, and do not reorder it.
  */
 
 const fs = require('node:fs');
+const path = require('node:path');
+const { isNamespaceName } = require('../namespaceName.js');
 
 const NAMESPACES = {
     "appearance":      require('./appearance.js'),
@@ -166,10 +171,44 @@ const NAMESPACES = {
     "studio_misc": require('./studio_misc.js'),
 };
 
+/**
+ * The namespace files in `dir` that NAMESPACES does not list, in file-name
+ * order. A `.js` file whose name is not a namespace name throws: it would
+ * otherwise be skipped, and its keys lost.
+ * @param {string} dir
+ * @param {Set<string>} listed namespace names already in NAMESPACES
+ * @returns {string[]}
+ */
+function discoverNamespaces(dir, listed) {
+    const found = [];
+    for (const file of fs.readdirSync(dir).sort()) {
+        if (!file.endsWith('.js') || file === 'index.js') continue;
+        const ns = file.slice(0, -'.js'.length);
+        if (!isNamespaceName(ns)) {
+            throw new Error(`i18n: ${file} in server/i18n/defaults/en/ is not a namespace file (name it <namespace>.js: letters, digits, underscores)`);
+        }
+        if (!listed.has(ns)) found.push(ns);
+    }
+    return found;
+}
+
+const LISTED_NAMESPACES = Object.freeze(Object.keys(NAMESPACES));
+const DISCOVERED_NAMESPACES = Object.freeze(discoverNamespaces(__dirname, new Set(LISTED_NAMESPACES)));
+
+/** @returns {Record<string, Record<string, string>>} every namespace: the listed ones first, then the discovered ones */
+function allNamespaces() {
+    /** @type {Record<string, Record<string, string>>} */
+    const all = { ...NAMESPACES };
+    for (const ns of DISCOVERED_NAMESPACES) {
+        all[ns] = require(path.join(__dirname, `${ns}.js`));
+    }
+    return all;
+}
+
 function build() {
     /** @type {Record<string, string>} */
     const merged = {};
-    for (const [ns, entries] of Object.entries(NAMESPACES)) {
+    for (const [ns, entries] of Object.entries(allNamespaces())) {
         for (const [key, value] of Object.entries(entries)) {
             const keyNs = key.split('.')[0];
             if (keyNs !== ns) {
@@ -180,12 +219,6 @@ function build() {
             }
             merged[key] = value;
         }
-    }
-    const listed = new Set(Object.keys(NAMESPACES).map((ns) => `${ns}.js`));
-    const unlisted = fs.readdirSync(__dirname)
-        .filter((f) => f.endsWith('.js') && f !== 'index.js' && !listed.has(f));
-    if (unlisted.length) {
-        throw new Error(`i18n: ${unlisted.join(', ')} in server/i18n/defaults/en/ is not listed in NAMESPACES (index.js) — its keys would be lost`);
     }
     return merged;
 }
@@ -205,4 +238,7 @@ function getGUINamespaces() {
 module.exports = {
     GUI_DEFAULTS,
     getGUINamespaces,
+    discoverNamespaces,
+    LISTED_NAMESPACES,
+    DISCOVERED_NAMESPACES,
 };
