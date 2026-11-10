@@ -44,6 +44,7 @@ const { withWarmupRetry } = require('./appApiClient');
 const { ncHostFromUrl, stableInstanceIdFallback } = require('./shared/orgNaming');
 const { errMessage, errCode, errText } = require('./errors');
 const { notChosenError } = require('./serverChoice');
+const { isCertificateError } = require('./serverProbe');
 
 /**
  * The part of an OCS user record the bootstrap reads.
@@ -403,6 +404,8 @@ function getPendingState() { return pendingState; }
 // server this connector is configured for, read when the text is asked for.
 /** @type {Record<string, string | (() => string)>} */
 const REMEDIATION = {
+    saas_cert_untrusted:
+        'The certificate of your Bee Flow server is not trusted by the connector. Give the server a certificate from a public certificate authority, or put the certificate of your own certificate authority (PEM) in the install-time value BEEFLOW_SERVER_CA_CERT. Certificate verification cannot be switched off.',
     saas_unreachable: () =>
         `Your Bee Flow server is not reachable from this Nextcloud. Test with \`curl ${config.apiBaseUrl || '<your Bee Flow server>'}/api/health\` from the connector container and allow that hostname in your egress firewall.`,
     nc_not_publicly_reachable: () =>
@@ -491,6 +494,19 @@ const SAAS_CODE_TO_CATEGORY = {
     NC_REBIND_PROOF_REQUIRED: 'pairing_required',
 };
 
+// The Bee Flow server's certificate does not verify (see serverTls.js).
+const CERT_UNTRUSTED = 'saas_cert_untrusted';
+
+/**
+ * The code of a request to the Bee Flow server that got no answer: a refused
+ * certificate has its own, everything else is "unreachable".
+ * @param {unknown} err
+ * @returns {string}
+ */
+function noAnswerCode(err) {
+    return isCertificateError(err) ? CERT_UNTRUSTED : 'saas_unreachable';
+}
+
 // Categorise a thrown error into one of the well-known buckets that the
 // SPA's error overlay knows how to render. Prefers a structured `code`
 // set on the error (from a parsed SaaS response) and falls back to
@@ -514,6 +530,9 @@ function categoriseError(err, phase) {
     const msg = errText(err);
     if (phase === 'capabilities' || /NC capabilities/i.test(msg)) return 'nc_not_publicly_reachable';
     if (phase === 'admin' || /admin/i.test(msg) && /No NC users|admin from user list/i.test(msg)) return 'admin_lookup_failed';
+    // The Bee Flow server answered the TLS handshake with a certificate that
+    // does not verify (fetch reports it as the cause of "fetch failed").
+    if (isCertificateError(err)) return CERT_UNTRUSTED;
     if (/HTTP 401|HTTP 403/i.test(msg)) return 'saas_auth_rejected';
     if (/HTTP 409/i.test(msg)) return 'tenant_already_provisioned';
     if (/ENOTFOUND|ECONNREFUSED|EHOSTUNREACH|fetch failed|network|AbortError|timeout/i.test(msg)) return 'saas_unreachable';
@@ -790,7 +809,7 @@ async function submitVerificationCode(code) {
         });
     } catch (e) {
         const err = new Error(`Could not reach Bee Flow to verify the code: ${errMessage(e)}`);
-        err.code = 'saas_unreachable';
+        err.code = noAnswerCode(e);
         throw err;
     }
     const json = /** @type {SaasBootstrapResponse} */ (await res.json().catch(() => ({})));
@@ -829,7 +848,7 @@ async function resendVerificationCode() {
         });
     } catch (e) {
         const err = new Error(`Could not reach Bee Flow to resend the code: ${errMessage(e)}`);
-        err.code = 'saas_unreachable';
+        err.code = noAnswerCode(e);
         throw err;
     }
     const json = /** @type {SaasBootstrapResponse} */ (await res.json().catch(() => ({})));
@@ -1351,7 +1370,7 @@ async function rotateTenantKey() {
         return { previousFingerprint: keyFingerprint(before), fingerprint: keyFingerprint(config.tenantKey) };
     }
     const e = new Error(`Could not rotate the tenant key: ${netErr ? errMessage(netErr) : `HTTP ${res?.status}`}. The current key is unchanged.`);
-    e.code = 'saas_unreachable';
+    e.code = netErr ? noAnswerCode(netErr) : 'saas_unreachable';
     throw e;
 }
 
@@ -1403,7 +1422,7 @@ async function requestVerificationCode({ uid, email, displayName }) {
         });
     } catch (e) {
         const err = new Error(`Could not reach Bee Flow to send the code: ${errMessage(e)}`);
-        err.code = 'saas_unreachable';
+        err.code = noAnswerCode(e);
         throw err;
     }
     const json = /** @type {SaasBootstrapResponse} */ (await res.json().catch(() => ({})));

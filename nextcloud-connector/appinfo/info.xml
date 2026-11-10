@@ -197,6 +197,11 @@ Questions, or want a hand getting set up? Email us at **info@beeflow.nl**. We su
                 <display-name>Allowed clock difference, in seconds (optional, advanced)</display-name>
                 <description>Leave blank in almost all cases (300). How far the timestamp of a signed request may differ from this host's clock. Accepted range: 30 to 900.</description>
             </variable>
+            <variable>
+                <name>BEEFLOW_SERVER_CA_CERT</name>
+                <display-name>Bee Flow server CA certificate (optional, advanced)</display-name>
+                <description>Leave blank when your Bee Flow server has a certificate from a public certificate authority. For a self-hosted Bee Flow server with a certificate from your own certificate authority, or a self-signed one: the PEM certificate (or chain) to trust, or the path of a PEM file inside the container. It is added to the default certificate authorities and used for the connection to the Bee Flow server only. Certificate verification stays on.</description>
+            </variable>
         </environment-variables>
         <!--
             Explicit allow-list of paths the connector serves. The previous

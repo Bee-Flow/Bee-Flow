@@ -35,7 +35,8 @@ const CONNECT_ERRORS = {
     server_unreachable: 'The Bee Flow server could not be reached from this Nextcloud. '
         + 'Check the address and that the server is running, then try again.',
     certificate_not_trusted: 'The certificate of the Bee Flow server is not trusted. '
-        + 'Give the server a certificate from a public certificate authority, then try again.',
+        + 'Give the server a certificate from a public certificate authority, or put the certificate of your own '
+        + 'certificate authority in the install-time value BEEFLOW_SERVER_CA_CERT, then try again.',
     version_mismatch: 'This Bee Flow server and this connector do not work together in these versions. '
         + 'Update both to their latest release, then try again.',
     pairing_code_required: 'This Bee Flow server asks for a pairing code. Generate one in Bee Flow '
@@ -47,6 +48,7 @@ const CONNECT_ERRORS = {
 /** @type {Record<string, ConnectErrorCode>} */
 const CATEGORY_TO_CONNECT_ERROR = {
     saas_unreachable: 'server_unreachable',
+    saas_cert_untrusted: 'certificate_not_trusted',
     pairing_required: 'pairing_code_required',
     connector_outdated: 'version_mismatch',
     version_mismatch: 'version_mismatch',

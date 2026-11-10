@@ -17,6 +17,8 @@ const { errMessage } = require('./errors');
 const { isExpressResponse } = require('./httpGuards');
 const { shellBaseUrl } = require('./embedTarget');
 const { NOT_CHOSEN_CODE, NOT_CHOSEN_MESSAGE } = require('./serverChoice');
+const serverTls = require('./serverTls');
+const { isCertificateError } = require('./serverProbe');
 
 // How long the SaaS may take to send RESPONSE HEADERS before we give up.
 // Deliberately not a whole-request timeout: an SSE chat turn legitimately
@@ -134,12 +136,17 @@ const AGENT_OPTS = {
     maxSockets: UPSTREAM_MAX_SOCKETS > 0 ? UPSTREAM_MAX_SOCKETS : Infinity,
 };
 const httpAgent = new http.Agent(AGENT_OPTS);
-const httpsAgent = new https.Agent(AGENT_OPTS);
+// The https agent also trusts the certificate BEEFLOW_SERVER_CA_CERT names, next
+// to the default roots (serverTls.js). Both proxies reach a Bee Flow host only.
+const httpsAgent = new https.Agent({ ...AGENT_OPTS, ...serverTls.httpsAgentOptions() });
 
 // Network-class errors where the socket/pool is suspect. Anything else
 // (protocol errors, aborts) is not a stale-pool symptom and never retried.
 /** @typedef {import('http-proxy-middleware').RequestHandler<import('express').Request, import('express').Response>} ProxyHandler */
 /** @typedef {import('http-proxy-middleware').Options<import('express').Request, import('express').Response>} ProxyOptions */
+
+// What a refused server certificate is called, here and in bootstrap.js.
+const CERT_UNTRUSTED_CODE = 'saas_cert_untrusted';
 
 const NETWORK_ERROR_CODES = new Set([
     'ECONNRESET', 'ECONNREFUSED', 'EPIPE', 'EHOSTUNREACH', 'ETIMEDOUT', 'EAI_AGAIN',
@@ -449,13 +456,23 @@ function buildApiProxyFor(target) {
             },
             error: (err, req, res) => {
                 if (!isExpressResponse(res)) return;
-                log.error(`[Proxy] ${req.method} ${req.url}: ${errMessage(err)}${req.__beeflowRetried ? ' (after retry)' : ''}`);
+                // A certificate the connector does not trust is not a blip: it
+                // gets its own code, and the log names the way out.
+                const untrusted = isCertificateError(err);
+                log.error(`[Proxy] ${req.method} ${req.url}: ${errMessage(err)}${req.__beeflowRetried ? ' (after retry)' : ''}`
+                    + (untrusted ? ` — the certificate of the Bee Flow server is not trusted; see ${serverTls.ENV_NAME}` : ''));
                 const respond502 = () => {
-                    if (!res.headersSent) {
+                    if (res.headersSent) return;
+                    if (untrusted) {
                         res.status(502).json({
-                            error: 'Bee Flow service is temporarily unavailable. Please try again.',
+                            code: CERT_UNTRUSTED_CODE,
+                            error: 'The certificate of the Bee Flow server is not trusted by the connector. Ask your administrator to check the Bee Flow setup page.',
                         });
+                        return;
                     }
+                    res.status(502).json({
+                        error: 'Bee Flow service is temporarily unavailable. Please try again.',
+                    });
                 };
                 if (retryOnceOnNetworkError({ err, req, res, agent, middleware: mw, onExhausted: respond502 })) {
                     log.warn(`[Proxy] retrying ${req.method} ${req.url} on a fresh socket (${err.code})`);

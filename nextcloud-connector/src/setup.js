@@ -739,7 +739,7 @@ router.post('/verify-email-code', requireNcAdmin, requireServerChosen, limits.ve
             : err.status === 410 ? 410
             : err.status === 429 ? 429
             : err.status === 404 ? 404
-            : (err.status && err.status >= 500) || err.code === 'saas_unreachable' ? 502
+            : (err.status && err.status >= 500) || err.code === 'saas_unreachable' || err.code === 'saas_cert_untrusted' ? 502
             : 400;
         return res.status(status).json({
             ok: false,
@@ -775,7 +775,7 @@ router.post('/request-verification-code', requireServerChosen, limits.sendCode, 
             : err.code === 'email_not_in_org' || err.status === 403 ? 403
             : err.status === 410 ? 410
             : err.status === 429 ? 429
-            : err.code === 'saas_unreachable' || (err.status && err.status >= 500) ? 502
+            : err.code === 'saas_unreachable' || err.code === 'saas_cert_untrusted' || (err.status && err.status >= 500) ? 502
             : 400;
         return res.status(status).json({ ok: false, code: err.code || 'request_failed', error: err.message });
     }
