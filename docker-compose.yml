@@ -127,6 +127,12 @@ services:
       - NEXTCLOUD_URL=${NEXTCLOUD_URL:-}
       - NEXTCLOUD_CLIENT_ID=${NEXTCLOUD_CLIENT_ID:-}
       - NEXTCLOUD_CLIENT_SECRET=${NEXTCLOUD_CLIENT_SECRET:-}
+      # Bee Flow connector (Nextcloud app). Both are empty unless set in .env:
+      # private Nextcloud addresses stay refused, a new Nextcloud needs a
+      # pairing code. NEXTCLOUD_ALLOW_PRIVATE_HOSTS=1 applies to the whole
+      # deployment; see .env.selfhost.example before setting it.
+      - NEXTCLOUD_ALLOW_PRIVATE_HOSTS=${NEXTCLOUD_ALLOW_PRIVATE_HOSTS:-}
+      - BEEFLOW_CONNECTOR_PROVISIONING=${BEEFLOW_CONNECTOR_PROVISIONING:-}
       # AI/LLM configuration (optional)
       - LLM_API_URL=${LLM_API_URL:-}
       - LLM_API_KEY=${LLM_API_KEY:-}

@@ -67,6 +67,7 @@ function createSkillActivationHandler({
                 agentConfig: agent.config,
                 agentId,
                 extraEnabledApps: skillApps.allowedApps,
+                hideAbsentNextcloudApps: true,
                 connectionPolicy: { ownerUserId: agent.owner_id || null, resourceType: 'agent', resourceId: agentId },
             }));
             // Diff against the first-pass snapshot + current tool list so

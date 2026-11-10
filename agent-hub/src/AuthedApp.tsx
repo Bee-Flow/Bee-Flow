@@ -22,7 +22,6 @@ import { logger } from './utils/logger';
  * statically — that would weld this chunk straight back into the entry.
  */
 const AgentHub = lazy(() => import('./AgentHub'));
-const LoginPage = lazy(() => import('./pages/LoginPage'));
 const MfaSetupGate = lazy(() => import('./pages/login/MfaSetupGate'));
 const EncryptionSetup = lazy(() => import('./pages/EncryptionSetup'));
 const DlpPreviewModal = lazy(() => import('./components/chat/DlpPreviewModal'));
@@ -36,7 +35,6 @@ import { EntitlementsProvider } from './components/licensing/EntitlementsContext
 const NcOnboardingWizard = lazy(() => import('./components/NcOnboardingWizard'));
 const NcOnboardingPending = lazy(() => import('./components/integrations/nextcloud/NcOnboardingPending'));
 const NcBindingApprovalModal = lazy(() => import('./components/integrations/nextcloud/NcBindingApprovalModal'));
-const EmailVerificationScreen = lazy(() => import('./components/onboarding/EmailVerificationScreen'));
 
 
 // Heavy admin / studio routes are loaded on demand so the initial chat
@@ -66,6 +64,8 @@ import { PAGE_ROUTES, pageFromPath, parseAdminPath, parseAgentDesignerUrl, parse
 import { MobileRouteGuard, SubscriptionGate } from './authedApp/guards';
 import { projectHistoryMode } from './authedApp/projectNavigation';
 import { AppBackdrop, LoadingScreen, NoOrganizationScreen, PendingApprovalScreen, RouteFallback, ServerUnavailableScreen, type BootstrapDiagnostics } from './authedApp/shellScreens';
+import { SignedOutGate } from './authedApp/SignedOutGate';
+import type { SignInRefusal } from './authedApp/signedOutScreen';
 import { useAuthSession } from './authedApp/useAuthSession';
 import { useNavigateToPage } from './authedApp/useNavigateToPage';
 import { parseStudioUrl, parseStudioQuery } from './components/admin/Studio/studioRoutes';
@@ -236,6 +236,8 @@ function App() {
     // overlay so admins know what to fix instead of staring at a generic
     // retry button. Admin-only data — see info.xml route gating.
     const [bootstrapDiagnostics, setBootstrapDiagnostics] = useState<BootstrapDiagnostics | null>(null);
+    // What a non-ok /auth/user answered at boot (the connector sign-in's reason).
+    const [signInRefusal, setSignInRefusal] = useState<SignInRefusal | null>(null);
     const profileMenuRef = useRef(null);
 
     // Parse initial agent/conversation from URL
@@ -259,6 +261,7 @@ function App() {
         setUser,
         setIsAuthenticated,
         setBootstrapDiagnostics,
+        setSignInRefusal,
         setServerAvailable,
         setIsLoading,
     });
@@ -436,17 +439,10 @@ function App() {
         );
     }
 
-    // Embedded connector awaiting in-app email verification — show the code
-    // screen instead of the login form. The connector has no tenant key yet, so
-    // /auth/user reports unauthenticated; the connector's /setup/diagnostics
-    // tells us a code was emailed to the org admin.
-    if (!isAuthenticated && bootstrapDiagnostics?.state === 'awaiting_email_verification') {
-        return <EmailVerificationScreen verification={(bootstrapDiagnostics as BootstrapDiagnostics & { verification?: { organizationName?: string } | null }).verification} t={t} />;
-    }
-
-    // Not authenticated → show login page directly
+    // Not authenticated → the login page, or inside Nextcloud what the
+    // connector's sign-in answered (./authedApp/SignedOutGate).
     if (!isAuthenticated) {
-        return <LoginPage onLogin={handleLogin} />;
+        return <SignedOutGate ncOnboardingState={ncOnboardingState} ncOrgName={ncOrgName} bootstrapDiagnostics={bootstrapDiagnostics} signInRefusal={signInRefusal} onLogin={handleLogin} t={t} />;
     }
 
     // Show encryption setup/unlock gate for SSO users

@@ -162,8 +162,8 @@ router.post('/connector/bootstrap', bootstrapLimiter, async (req, res) => {
                 error: 'Could not verify NC instance ownership: ' + e.message,
                 code: isUnreachable ? 'nc_capabilities_unreachable' : 'nc_capabilities_mismatch',
                 remediation: isUnreachable
-                    ? 'Bee Flow Cloud could not reach your Nextcloud at ' + ncBaseUrl + '. Your Nextcloud must be publicly reachable for SaaS-to-NC callbacks. Either expose it publicly, or set BEEFLOW_NC_PUBLIC_URL in the connector to an HTTPS tunnel or reverse-proxy URL we can reach.'
-                    : 'Your Nextcloud responded but its instance id does not match the one the connector sent. This usually means the connector was reinstalled while the SaaS still tracked the old instance. Contact support if it persists.',
+                    ? 'The Bee Flow server could not reach your Nextcloud at ' + ncBaseUrl + '. The server sends its requests to Nextcloud, so that address must be reachable from where the server runs. Make Nextcloud reachable there (a public address, a tunnel or a reverse proxy) and, if Nextcloud is reachable at another address than this one, set BEEFLOW_NC_PUBLIC_URL on the connector to it. A Nextcloud on a private network needs a self-hosted Bee Flow server on that network with NEXTCLOUD_ALLOW_PRIVATE_HOSTS=1 set on the server.'
+                    : 'Your Nextcloud responded but its instance id does not match the one the connector sent. This usually means the connector was reinstalled while the Bee Flow server still tracked the old instance. Contact support if it persists.',
             });
         }
     }

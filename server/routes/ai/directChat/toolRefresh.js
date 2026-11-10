@@ -83,6 +83,7 @@ async function onSkillsActivated(turn, justActivatedIds) {
             session: req.session,
             isAdmin: req.session?.isAdmin,
             extraEnabledApps: skillApps.allowedApps,
+            hideAbsentNextcloudApps: true,
         });
         const loadedNames = new Set(directChatTools.map(t => /** @type {string} */ (t.function?.name || t.name)));
         for (const def of fresh.tools) {

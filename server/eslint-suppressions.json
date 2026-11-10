@@ -1819,7 +1819,7 @@
   },
   "automation/triggerBus/pollers/nextcloud.js": {
     "complexity": {
-      "count": 3
+      "count": 2
     },
     "max-lines-per-function": {
       "count": 1
@@ -5826,7 +5826,7 @@
   },
   "integrations/nextcloudTalkTools.js": {
     "complexity": {
-      "count": 3
+      "count": 2
     },
     "max-lines-per-function": {
       "count": 1

@@ -20,6 +20,7 @@ const { validate } = require('../../core/http/validate');
 const { HttpError } = require('../../core/http/errors');
 const { z, typeError } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
+const { bestEffort } = require('../../utils/bestEffort');
 
 /** @typedef {import('express').Request<{ orgId: string }> & { org: Awaited<ReturnType<typeof import('../../stores/userStore').getOrganization>> }} OrgReq */
 
@@ -238,8 +239,22 @@ router.post('/admin/:orgId/nc-onboarding/complete', requireAuth, checkOrgAdmin, 
         meta: { syncMode, newUserDefaultStatus },
     });
     orgHealth.resolve(req.params.orgId, ['auth.blocked_onboarding_pending']);
+    // Synchronisation starts once the sync mode is chosen: now, in the
+    // background, so the wizard does not wait for it.
+    startSync(req.params.orgId).catch((e) => bestEffort('routes/admin/ncSync:startSync', e));
     res.json({ ok: true });
 });
+
+/**
+ * The first full sync after the mode was chosen, on the row as it is stored
+ * now. A failure is recorded on the organisation's health by the sync itself.
+ * @param {string} orgId
+ */
+async function startSync(orgId) {
+    const org = await userStore.getOrganization(orgId);
+    const result = org ? await sync.runFullSync(org) : null;
+    if (result && 'error' in result) log.warn(`[NcOnboarding] First sync for org ${orgId} did not complete`);
+}
 
 // Re-export so server/auth/index.js or routes/index.js can mount it under /auth.
 module.exports = router;

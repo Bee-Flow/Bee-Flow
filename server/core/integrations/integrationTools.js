@@ -90,12 +90,14 @@ function featureToolsets() {
  * 
  * @param {{ userId: string, session?: Partial<Express.Session>, isAdmin?: boolean,
  *   agentConfig?: import('./integrationToolFeatures').AgentConfig | null, agentId?: string | null,
- *   automationStep?: boolean,
+ *   automationStep?: boolean, hideAbsentNextcloudApps?: boolean,
  *   connectionPolicy?: { ownerUserId?: string, resourceType?: string | null, resourceId?: string | null } | null,
  *   enabledAppsOverride?: string[]|null, extraEnabledApps?: string[]|null }} options `userId`: Current
  *   user ID; `session`: Express session (for OAuth tokens); `isAdmin`: Whether user is admin;
  *   `agentConfig`: The agent's runtime config (its per-action grants narrow the toolbelt);
  *   `automationStep`: An automation step asks: strict app gating, no skill-scoped extras;
+ *   `hideAbsentNextcloudApps`: Chat and agent assembly ask: leave out the tool families of a
+ *   Nextcloud app the server reports as not installed (catalogues and automations list every family);
  *   `connectionPolicy`: Connection lending on a shared resource run; `enabledAppsOverride`: Stands in
  *   for the user's workspace-wide enabled-apps preference for this call. Used by a cowork item that
  *   carries its own, narrower list: the run may only touch what that item allows, regardless of what
@@ -106,7 +108,7 @@ function featureToolsets() {
  *   must never widen org entitlements or skip credential/session checks
  * @returns {Promise<{ tools: import('../agentRuntime/chatStream/turnState').ToolDef[], n8nOrgId: string | null }>}
  */
-async function getIntegrationTools({ userId, session, isAdmin, agentConfig, agentId = null, automationStep = false, connectionPolicy = null, extraEnabledApps = null, enabledAppsOverride = null }) {
+async function getIntegrationTools({ userId, session, isAdmin, agentConfig, agentId = null, automationStep = false, hideAbsentNextcloudApps = false, connectionPolicy = null, extraEnabledApps = null, enabledAppsOverride = null }) {
     const tools = [];
     const { T: TOOLSETS, D: GROUP_DEPS } = featureToolsets();
 
@@ -125,7 +127,7 @@ async function getIntegrationTools({ userId, session, isAdmin, agentConfig, agen
     // The run context every tool group reads (./integrationToolGroups,
     // ./integrationToolFeatures).
     const c = {
-        userId, session, isAdmin, agentConfig, automationStep, userSimpleMode, userOrgId, entSnapshot,
+        userId, session, isAdmin, agentConfig, automationStep, hideAbsentNextcloudApps, userSimpleMode, userOrgId, entSnapshot,
         isAppOn, addTools, T: TOOLSETS, D: GROUP_DEPS,
     };
 

@@ -170,13 +170,33 @@ async function addFirstPartyTools({ userId, session, isAdmin, agentConfig, autom
 }
 
 /**
+ * Which Nextcloud tool families to offer, by what the server says is
+ * installed (integrations/nextcloudCapabilities.mts). A family is left out
+ * only when the capabilities read succeeded and its app, one that publishes a
+ * capability, is not in it. A failed or slow read, and an app with no
+ * capability to look for (Mail), keep the family offered: a miss here costs a
+ * tool call that answers "not installed", never a missing tool.
+ * @param {{ userId: string, session?: unknown, D: GroupDeps }} c
+ * @returns {Promise<(appId: string) => boolean>}
+ */
+async function nextcloudAppInstalled({ userId, session, D }) {
+    try {
+        const presence = await D.nextcloudCapabilities().nextcloudFamilyPresence(session, userId);
+        return (appId) => presence(appId) !== 'absent';
+    } catch (err) {
+        fallback('core/integrations/integrationToolFeatures:nextcloudAppInstalled', err);
+        return () => true;
+    }
+}
+
+/**
  * Nextcloud — OAuth path (parity with Google/Microsoft) with app-password
  * fallback for users not logged in via Nextcloud OAuth. Once a Nextcloud
  * connection (either mode) is established, every sub-app (files, calendar,
  * contacts, Deck, notifications) gates on its own per-app toggle so admins
  * can disable individual surfaces.
  */
-async function addNextcloudTools({ userId, session, userOrgId, isAppOn, addTools, T, D }) {
+async function addNextcloudTools({ userId, session, userOrgId, hideAbsentNextcloudApps, isAppOn, addTools, T, D }) {
     try {
         const oauthCfg = (await D.configStore.getConfig('oauth')) || {};
         // Connector-bound user: NC tools route through the connector's /nc/*
@@ -225,8 +245,9 @@ async function addNextcloudTools({ userId, session, userOrgId, isAppOn, addTools
             const ncScope = await resolveNcScope({ userId, orgId: userOrgId });
             scopeOn = (id) => ncScope[id]?.mode !== 'off';
         } catch (err) { fallback('core/integrations/integrationToolFeatures:addNextcloudTools#2', err); /* Layer 2 still enforces — keep offering */ }
+        const installed = hideAbsentNextcloudApps ? await nextcloudAppInstalled({ userId, session, D }) : () => true;
         for (const [appId, toolset] of NEXTCLOUD_FAMILIES) {
-            if (scopeOn(appId) && isAppOn(appId)) addTools(T[toolset]);
+            if (scopeOn(appId) && isAppOn(appId) && installed(appId)) addTools(T[toolset]);
         }
     } catch (e) { fallback('core/integrations/integrationToolFeatures:addNextcloudTools', e); /* no Nextcloud tools offered */ }
 }

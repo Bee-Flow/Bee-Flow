@@ -114,6 +114,8 @@ async function assembleToolStack({ agent, agentId, userId, userAuth, messageMeta
                 // user hasn't connected it. The per-tool dispatch override below
                 // then runs those tools as the owner. Inert unless the flag is on.
                 connectionPolicy: { ownerUserId: agent.owner_id || null, resourceType: 'agent', resourceId: agentId },
+                // A Nextcloud app the server reports as not installed is not offered.
+                hideAbsentNextcloudApps: true,
             }));
             baseIntegrationToolNames = new Set(integrationResult.tools.map(t => t.function?.name).filter(Boolean));
             if (integrationResult.tools.length > 0) {

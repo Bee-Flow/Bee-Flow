@@ -185,3 +185,23 @@ test('"Sync now" goes straight to runFullSync: the backstop\'s 24h backoff never
     assert.strictEqual(res.statusCode, 200);
     assert.deepStrictEqual(fullSyncs, ['org1']);
 });
+
+// ═══ Synchronisation starts once the sync mode is chosen ════════════
+
+test('completing the onboarding starts a full sync in the background, on the stored row', async () => {
+    fullSyncs.length = 0;
+    touched.length = 0;
+    const res = await dispatch({ method: 'POST', url: '/admin/org1/nc-onboarding/complete', body: { ...ONBOARDING } });
+    assert.strictEqual(res.statusCode, 200);
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.deepStrictEqual(fullSyncs, ['org1']);
+    assert.ok(touched.some((t) => t.what === 'updateOrganization' && t.args[1].ncOnboardingCompletedAt), 'the choice is stored before the sync starts');
+});
+
+test('a refused onboarding starts no sync', async () => {
+    fullSyncs.length = 0;
+    const res = await dispatch({ method: 'POST', url: '/admin/org1/nc-onboarding/complete', body: { ...ONBOARDING, syncMode: 'everything' } });
+    assert.strictEqual(res.statusCode, 400);
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.deepStrictEqual(fullSyncs, []);
+});
