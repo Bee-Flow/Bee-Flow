@@ -175,9 +175,9 @@ function scanAst(node, report, listCtx) {
         if (tokens) report(tokens, listCtx);
         return;
     }
-    // map/filter/some/every: the list argument is a list read; the expression's reads (not `it`) count too.
-    if (node.kind === 'each') { visit(node.args[0], true); visit(node.args[1], false); return; }
-    if (node.kind === 'call' || node.kind === 'hostcall') {
+    // map/filter/some/every/reduce: the list argument is a list read; the reads of the rest (not `it`, `acc`) count too.
+    if (['each', 'reduce'].includes(node.kind)) { node.args.forEach((a, i) => visit(a, i === 0)); return; }
+    if (['call', 'hostcall', 'usercall', 'list', 'object'].includes(node.kind)) { // a literal reads its parts
         // count() of a field: a list, unless the field is also read whole or
         // as a record (count('abc') is 3) — a WEAK hint, settled in toSchema.
         /**

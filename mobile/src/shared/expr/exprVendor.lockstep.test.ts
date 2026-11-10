@@ -21,8 +21,10 @@ const VENDOR = path.join(__dirname, 'vendor');
 const ENGINE_FILES = [
     'astWalk.mjs',
     'codePoints.mjs',
+    'collections.mjs',
     'dates.mjs',
     'engine.mjs',
+    'evaluator.mjs',
     'fileTypes.mjs',
     'filterGroups.mjs',
     'flatten.mjs',
@@ -40,6 +42,7 @@ const ENGINE_FILES = [
     'templateText.mjs',
     'tokens.mjs',
     'topics.mjs',
+    'userFunctions.mjs',
     'wholeRun.mjs',
 ];
 const ORIGINALS = ['agent-hub/src/shared/expr', 'server/shared/expr'];

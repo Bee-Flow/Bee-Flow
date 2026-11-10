@@ -14,7 +14,8 @@
  *
  * Grammar:
  *   expr     := ternary
- *   ternary  := logical_or ('?' ternary ':' ternary)?
+ *   ternary  := nullish ('?' ternary ':' ternary)?
+ *   nullish  := logical_or ('??' logical_or)*
  *   logical_or := logical_and ('||' logical_and)*
  *   logical_and := equality ('&&' equality)*
  *   equality := compare (('=='|'!='|'==='|'!==') compare)*
@@ -23,9 +24,12 @@
  *   multiplicative := unary (('*'|'/'|'%') unary)*
  *   unary    := ('!'|'-'|'+') unary | power
  *   power    := primary ('^' unary)?
- *   primary  := number | string | bool | null | (call | each | '(' expr ')') segment* | identifier_path
+ *   primary  := number | string | bool | null | (call | each | reduce | list | object | '(' expr ')') segment* | identifier_path
  *   call     := (WHITELISTED_FN | HOST_FN) '(' (expr (',' expr)*)? ')'
  *   each     := ('map'|'filter'|'some'|'every') '(' expr ',' expr ')'
+ *   reduce   := 'reduce' '(' expr ',' expr ',' expr ')'
+ *   list     := '[' (expr (',' expr)*)? ','? ']'
+ *   object   := '{' (key ':' expr (',' key ':' expr)*)? ','? '}'      key := ident | string
  *   identifier_path := ident segment*
  *   segment  := '.' ident | '[' expr ']' | '[*]' | '[' key '=' literal ']'
  *
@@ -35,6 +39,16 @@
  * as every other step. A call without segments parses to the same tree as
  * before. In the second argument of map/filter/some/every the name `it` is
  * the item (`{ kind: 'local' }`); everywhere else `it` is an ordinary root.
+ *
+ * ADDED LATER, each a parse error before it existed, so no stored expression
+ * changed meaning: `a ?? b` (b when a is null or missing; binds looser than
+ * `||`, tighter than `?:`), list literals `[1, x]`, object literals
+ * `{ name: x, "a b": 1 }`, and `reduce(list, expr, start)`, whose second
+ * argument reads the item as `it` and the result so far as `acc`. A literal
+ * is only a literal where a value starts: after a name or a value `[` is
+ * still an index. Literals nest at most MAX_LITERAL_DEPTH deep; what a
+ * literal, a reduce() step or an author's function builds is measured
+ * (limits.mjs guardSize).
  *
  * HOST functions. A caller may pass `{ host }` to parseExpr/evaluate/
  * tryEvaluate: a small table of extra callables that only exist where that
@@ -48,16 +62,25 @@
  * validates the parsed arguments at parse time, `fn` answers at evaluation
  * time, and a host call evaluated without an `fn` throws `unanswered` instead
  * of guessing.
+ *
+ * A host entry with `pure: true` is answered from its arguments alone: it may
+ * be used inside map/filter/reduce and inside another call, it is a
+ * `usercall` node (collectHostCalls does not list it: there is nothing to ask
+ * first), and it either carries `fn` or `{ params, body }`, a parsed
+ * expression the engine evaluates with ONLY the parameters in scope. That is
+ * how an author's own functions run (userFunctions.mjs builds the table and
+ * refuses recursion).
  */
 
 import { FUNCTIONS, EXPR_FUNCTIONS as PLAIN_FUNCTION_DOCS, EXPR_FUNCTION_NAMES as PLAIN_FUNCTION_NAMES } from './functions.mjs';
-import { jsonCacheFor, stepInto, stepMatch, walkTokens } from './path.mjs';
 import { TOKEN, tokenize } from './tokens.mjs';
-import { collectRefs, collectHostCalls, collectEachCalls, readsItem } from './astWalk.mjs';
+import { collectRefs, collectHostCalls, collectEachCalls, readsItem, sinceOf } from './astWalk.mjs';
 import { checkRegexCall } from './regex.mjs';
 import { checkDateUnit } from './dates.mjs';
 import { LIST_FUNCTION_DOCS, EACH_FUNCTIONS } from './lists.mjs';
-import { ExprError, guardValue, tickEach } from './limits.mjs';
+import { COLLECTION_FUNCTION_DOCS, REDUCE_FN } from './collections.mjs';
+import { ExprError, MAX_LITERAL_DEPTH, asLimitError } from './limits.mjs';
+import { evalNode, newEnv } from './evaluator.mjs';
 
 export { ExprError }; // defined in limits.mjs so the functions can throw it
 
@@ -76,6 +99,9 @@ function parse(tokens, host, membership = false) {
     let pos = 0;
     // > 0 while parsing the second argument of map/filter/some/every: `it` is the item there.
     let eachDepth = 0;
+    // > 0 while parsing the second argument of reduce(): `acc` is the result so far there.
+    let accDepth = 0;
+    let literalDepth = 0;
     const peek = () => tokens[pos];
     const eat = (t) => {
         if (tokens[pos].t !== t) throw new ExprError(`Expected ${t} but got ${tokens[pos].t}`, tokens[pos].i);
@@ -84,7 +110,7 @@ function parse(tokens, host, membership = false) {
     const accept = (t) => (tokens[pos].t === t ? tokens[pos++] : null);
 
     function ternary() {
-        const cond = logicalOr();
+        const cond = nullish();
         if (accept(TOKEN.QMARK)) {
             const a = ternary();
             eat(TOKEN.COLON);
@@ -92,6 +118,12 @@ function parse(tokens, host, membership = false) {
             return { kind: 'ternary', cond, a, b };
         }
         return cond;
+    }
+    // `a ?? b`: b when a is null or missing. Looser than `||`, so `a || b ?? c` is `(a || b) ?? c`.
+    function nullish() {
+        let n = logicalOr();
+        while (accept(TOKEN.NULLISH)) n = { kind: 'binop', op: '??', a: n, b: logicalOr() };
+        return n;
     }
     function logicalOr() {
         let n = logicalAnd();
@@ -200,10 +232,70 @@ function parse(tokens, host, membership = false) {
         }
         return { kind: 'each', name: tk.v, args: [list, body] };
     }
+    // reduce(list, expr, start): expr reads the item as `it` and the result so far as `acc`.
+    function reduceOf(tk) {
+        const usage = `${tk.v}() takes a list, an expression and a start value, like ${tk.v}(list, acc + it.x, 0)`;
+        eat(TOKEN.LPAREN);
+        const list = ternary();
+        if (!accept(TOKEN.COMMA)) throw new ExprError(usage, tk.i);
+        eachDepth++; accDepth++;
+        const body = ternary();
+        eachDepth--; accDepth--;
+        if (!accept(TOKEN.COMMA)) throw new ExprError(usage, tk.i);
+        const start = ternary();
+        if (peek().t !== TOKEN.RPAREN) throw new ExprError(usage, tk.i);
+        eat(TOKEN.RPAREN);
+        if (collectHostCalls(body).length > 0) {
+            throw new ExprError(`${tk.v}(): ${collectHostCalls(body)[0].name}() cannot be used inside the expression of ${tk.v}()`, tk.i);
+        }
+        return { kind: 'reduce', name: tk.v, args: [list, body, start] };
+    }
+    // A pure host function (an author's own): any place a plain call may stand.
+    function userCallOf(tk, spec) {
+        const list = args();
+        if (Array.isArray(spec.params) && list.length !== spec.params.length) {
+            throw new ExprError(`${tk.v}() takes ${spec.params.length} argument${spec.params.length === 1 ? '' : 's'} (${spec.params.join(', ')})`, tk.i);
+        }
+        const problem = typeof spec.check === 'function' ? spec.check(list) : null;
+        if (problem) throw new ExprError(problem, tk.i);
+        return { kind: 'usercall', name: tk.v, args: list };
+    }
+    // `[a, b]` after its `[`, and `{ k: a }` after its `{`.
+    function listLiteral(tk) {
+        if (++literalDepth > MAX_LITERAL_DEPTH) throw new ExprError(`Lists and objects nest at most ${MAX_LITERAL_DEPTH} deep`, tk.i);
+        const items = [];
+        while (peek().t !== TOKEN.RBRACK) {
+            items.push(ternary());
+            if (!accept(TOKEN.COMMA)) break;
+        }
+        eat(TOKEN.RBRACK);
+        literalDepth--;
+        return { kind: 'list', args: items };
+    }
+    function objectLiteral(tk) {
+        if (++literalDepth > MAX_LITERAL_DEPTH) throw new ExprError(`Lists and objects nest at most ${MAX_LITERAL_DEPTH} deep`, tk.i);
+        const keys = [];
+        const values = [];
+        while (peek().t !== TOKEN.RBRACE) {
+            const k = peek();
+            if (k.t !== TOKEN.IDENT && k.t !== TOKEN.STRING) throw new ExprError('A field name in { } is a name or a text in quotes, like { name: x, "a b": 1 }', k.i);
+            pos++;
+            if (keys.includes(k.v)) throw new ExprError(`Field "${k.v}" is given twice`, k.i);
+            eat(TOKEN.COLON);
+            keys.push(k.v);
+            values.push(ternary());
+            if (!accept(TOKEN.COMMA)) break;
+        }
+        eat(TOKEN.RBRACE);
+        literalDepth--;
+        return { kind: 'object', keys, args: values };
+    }
     function callOf(tk) {
         // FUNCTIONS wins a name clash, so a host can never change
         // what a whitelisted function means; the list forms come next.
         if (!hasOwn(FUNCTIONS, tk.v) && EACH_NAMES.has(tk.v)) return eachOf(tk);
+        if (!hasOwn(FUNCTIONS, tk.v) && tk.v === REDUCE_FN) return reduceOf(tk);
+        if (!hasOwn(FUNCTIONS, tk.v) && hasOwn(host, tk.v) && host[tk.v] && host[tk.v].pure === true) return userCallOf(tk, host[tk.v]);
         const spec = !hasOwn(FUNCTIONS, tk.v) && hasOwn(host, tk.v) ? host[tk.v] : null;
         if (!spec && !hasOwn(FUNCTIONS, tk.v)) {
             throw new ExprError(`Unknown function: ${tk.v}`, tk.i);
@@ -290,10 +382,13 @@ function parse(tokens, host, membership = false) {
         if (tk.t === TOKEN.BOOL) { pos++; return { kind: 'bool', v: tk.v }; }
         if (tk.t === TOKEN.NULL) { pos++; return { kind: 'null' }; }
         if (tk.t === TOKEN.LPAREN) { pos++; const e = ternary(); eat(TOKEN.RPAREN); return postfix(e); }
+        if (tk.t === TOKEN.LBRACK) { pos++; return postfix(listLiteral(tk)); }
+        if (tk.t === TOKEN.LBRACE) { pos++; return postfix(objectLiteral(tk)); }
         if (tk.t === TOKEN.IDENT) {
             pos++;
             if (peek().t === TOKEN.LPAREN) return postfix(callOf(tk));
-            const head = tk.v === 'it' && eachDepth > 0 ? { kind: 'local', v: 'it' } : { kind: 'name', v: tk.v };
+            const local = (tk.v === 'it' && eachDepth > 0) || (tk.v === 'acc' && accDepth > 0);
+            const head = local ? { kind: 'local', v: tk.v } : { kind: 'name', v: tk.v };
             return { kind: 'path', segments: [head, ...segments()] };
         }
         throw new ExprError(`Unexpected token: ${tk.t}`, tk.i);
@@ -304,156 +399,6 @@ function parse(tokens, host, membership = false) {
     return ast;
 }
 
-// ── Evaluator ──────────────────────────────────────────
-/**
- * The evaluation environment: the host table, the item of the innermost
- * map/filter/some/every (`it`), and the item budget shared by the whole
- * evaluation (limits.mjs tickEach).
- * @typedef {{ host: Record<string, { fn?: (...args: unknown[]) => unknown, unanswered?: string }> | null, it: unknown, budget: { used: number } }} EvalEnv
- */
-
-function walkPath(segments, runState, env) {
-    const head = segments[0];
-    // A call result or a parenthesised value read on like a path (`base`),
-    // or `it` inside map/filter/some/every (`local`): the walk starts there.
-    if (head && head.kind === 'base') return walkFrom(evalNode(head.expr, runState, env), segments, 1, runState, env);
-    if (head && head.kind === 'local') return walkFrom(env.it, segments, 1, runState, env);
-    return walkFrom(runState, segments, 0, runState, env);
-}
-
-function walkFrom(start, segments, from, runState, env) {
-    let cur = start;
-    const cache = jsonCacheFor(runState);
-    for (let i = from; i < segments.length; i++) {
-        if (cur == null) return undefined;
-        const s = segments[i];
-        if (s.kind === 'name') {
-            // One step, with the binding resolver's exact rules (path.mjs
-            // stepInto): own properties only, so a string's own members
-            // (`.length`, `[0]`) resolve while prototype members
-            // (`.toUpperCase`, `.constructor`) come back undefined; JSON text
-            // is read as the object it encodes; `[-1]` is the last element.
-            cur = stepInto(cur, s.v, cache);
-        } else if (s.kind === 'wildcard') {
-            // `[*]`: hand the remainder to the shared walker, so the same path
-            // string means the same list in a binding and in an expression
-            // (flatten what the rest produced by one level, keep explicit
-            // nulls, a trailing [*] is the list itself). A computed index in
-            // the remainder reads the run state, not the element, so it is
-            // evaluated once up front.
-            const rest = segments.slice(i + 1);
-            const tokens = [];
-            for (const r of rest) {
-                if (r.kind === 'name') tokens.push({ type: 'prop', key: r.v });
-                else if (r.kind === 'wildcard') tokens.push({ type: 'wild' });
-                else if (r.kind === 'match') tokens.push({ type: 'match', key: r.key, value: r.value });
-                else tokens.push({ type: 'prop', key: evalNode(r.expr, runState, env) });
-            }
-            return walkTokens([{ type: 'wild' }, ...tokens], cur);
-        } else if (s.kind === 'match') {
-            cur = stepMatch(cur, s.key, s.value, cache);
-        } else if (s.kind === 'root') {
-            // Internal marker kept for callers that seed a walk at a value.
-            cur = s.v;
-        } else {
-            const k = evalNode(s.expr, runState, env);
-            if (cur == null) return undefined;
-            // Same gate as the dot branch: x["constructor"] stays undefined,
-            // `name[0]` on a string works exactly as it does in a ref binding.
-            if (typeof k !== 'string' && typeof k !== 'number') return undefined;
-            cur = stepInto(cur, k, cache);
-        }
-    }
-    return cur;
-}
-
-function evalNode(n, ctx, env) {
-    switch (n.kind) {
-        case 'num': return n.v;
-        case 'str': return n.v;
-        case 'bool': return n.v;
-        case 'null': return null;
-        case 'path': return walkPath(n.segments, ctx, env);
-        case 'each': return evalEach(n, ctx, env);
-        case 'call': {
-            const fn = FUNCTIONS[n.name];
-            if (!fn) throw new ExprError(`Unknown function: ${n.name}`);
-            // Every produced text passes the cap (limits.mjs).
-            return guardValue(fn(...n.args.map((a) => evalNode(a, ctx, env))));
-        }
-        case 'hostcall': {
-            const h = hasOwn(env.host, n.name) ? env.host[n.name] : null;
-            if (!h || typeof h.fn !== 'function') {
-                throw new ExprError(h?.unanswered || `${n.name}() has no answer here`);
-            }
-            return guardValue(h.fn(...n.args.map((a) => evalNode(a, ctx, env))));
-        }
-        case 'unop': {
-            const v = evalNode(n.a, ctx, env);
-            if (n.op === '!') return !v;
-            if (n.op === '-') return -v;
-            if (n.op === '+') return +v;
-            return undefined;
-        }
-        case 'binop': {
-            if (n.op === '&&') return evalNode(n.a, ctx, env) && evalNode(n.b, ctx, env);
-            if (n.op === '||') return evalNode(n.a, ctx, env) || evalNode(n.b, ctx, env);
-            const a = evalNode(n.a, ctx, env);
-            const b = evalNode(n.b, ctx, env);
-            switch (n.op) {
-                case '+': return guardValue(a + b); // a text `+` grows like concat(): same cap
-                case '-': return a - b;
-                case '*': return a * b;
-                case '/': return a / b;
-                case '%': return a % b;
-                // `^` IS pow() — one implementation, so the operator inherits
-                // its totality (2 ^ 10000 → null, not Infinity) and can never
-                // drift from the function form the builder also emits.
-                case '^': return FUNCTIONS.pow(a, b);
-                case '==': return a == b;
-                case '!=': return a != b;
-                case '===': return a === b;
-                case '!==': return a !== b;
-                case '<': return a < b;
-                case '<=': return a <= b;
-                case '>': return a > b;
-                case '>=': return a >= b;
-                default: throw new ExprError(`Unknown operator: ${n.op}`);
-            }
-        }
-        case 'ternary': return evalNode(n.cond, ctx, env) ? evalNode(n.a, ctx, env) : evalNode(n.b, ctx, env);
-        default: throw new ExprError(`Unknown node kind: ${n.kind}`);
-    }
-}
-
-/**
- * map/filter/some/every: the body once per item, with the item as `it`.
- * Not a list gives [] (map, filter) or false (some, every); every() of an
- * empty list is false, like everyOf().
- */
-function evalEach(n, ctx, env) {
-    const list = evalNode(n.args[0], ctx, env);
-    const body = n.args[1];
-    const many = n.name === 'map' || n.name === 'filter';
-    if (!Array.isArray(list)) return many ? [] : false;
-    const out = [];
-    for (const item of list) {
-        tickEach(env.budget);
-        const v = evalNode(body, ctx, { host: env.host, it: item, budget: env.budget });
-        if (n.name === 'map') out.push(v);
-        else if (n.name === 'filter') { if (v) out.push(item); }
-        else if (n.name === 'some') { if (v) return true; }
-        else if (!v) return false;
-    }
-    if (many) return out;
-    return n.name === 'every' && list.length > 0;
-}
-
-/** A fresh environment for one evaluation. @returns {EvalEnv} */
-function newEnv(host) {
-    return { host: host || null, it: undefined, budget: { used: 0 } };
-}
-
 // ── Public API ─────────────────────────────────────────
 //
 // `opts.host` (optional) is the host-function table described in the header.
@@ -461,10 +406,12 @@ function newEnv(host) {
 // `opts.membership` (optional, parse only) adds the comparison `a in list` as a
 // `{ kind: 'binop', op: 'in' }` node. The evaluator does not know it: it exists for
 // the row rule compiler (core/dataEngine/accessFilter.js), which turns it into SQL.
+// `opts.objects: false` refuses object literals (tokens.mjs).
 
 /** Parse an expression string → AST. Throws ExprError on bad grammar. */
 export function parseExpr(src, opts) {
-    return parse(tokenize(src), opts?.host || null, opts?.membership === true);
+    // A text nested so deep that the parser runs out of stack is a limit, like any other.
+    try { return parse(tokenize(src, opts), opts?.host || null, opts?.membership === true); } catch (e) { throw asLimitError(e); }
 }
 
 /** Parse + collect referenced roots WITHOUT executing. Throws on bad grammar. */
@@ -480,7 +427,9 @@ export function compile(src, opts) {
  */
 export function evaluate(src, scope, opts) {
     const ast = typeof src === 'string' ? parseExpr(src, opts) : src;
-    return evalNode(ast, scope || {}, newEnv(opts?.host));
+    // One budget for the whole evaluation (evaluator.mjs newEnv). A value or tree too deep for the
+    // runtime (toStr, equals and JSON.stringify recurse) ends as an ExprError as well.
+    try { return evalNode(ast, scope || {}, newEnv(opts?.host, countsAllWork(ast))); } catch (e) { throw asLimitError(e); }
 }
 
 /**
@@ -498,7 +447,41 @@ export function tryEvaluate(src, scope, opts) {
 
 // The whole vocabulary: FUNCTIONS plus the list forms (functions.mjs's own
 // lists hold the plain functions only).
-const EXPR_FUNCTIONS = [...PLAIN_FUNCTION_DOCS, ...LIST_FUNCTION_DOCS];
-const EXPR_FUNCTION_NAMES = [...PLAIN_FUNCTION_NAMES, ...EACH_FUNCTIONS];
+const EXPR_FUNCTIONS = [...PLAIN_FUNCTION_DOCS, ...LIST_FUNCTION_DOCS, ...COLLECTION_FUNCTION_DOCS];
+const EXPR_FUNCTION_NAMES = [...PLAIN_FUNCTION_NAMES, ...EACH_FUNCTIONS, REDUCE_FN];
+
+/** @type {Map<string, number>} */
+const SINCE_BY_NAME = new Map();
+for (const doc of COLLECTION_FUNCTION_DOCS) SINCE_BY_NAME.set(doc.name, doc.since);
+
+/** @type {WeakMap<object, boolean>} */
+const ALL_WORK = new WeakMap();
+
+/**
+ * Whether an evaluation of this tree counts what its functions hand back
+ * against the work budget (limits.mjs): a tree that uses something the
+ * earlier language did not have. Remembered per tree: a tree is evaluated
+ * once per row.
+ */
+function countsAllWork(ast) {
+    if (!ast || typeof ast !== 'object') return false;
+    let full = ALL_WORK.get(ast);
+    if (full === undefined) { full = sinceOf(ast, SINCE_BY_NAME) >= 3; ALL_WORK.set(ast, full); }
+    return full;
+}
+
+/**
+ * The schema version of the app definition an expression needs: 3 when it
+ * uses vocabulary that was a parse error before (literals, `??`, reduce, the
+ * collection functions, an author's function), else 0. Takes a source text or
+ * a parsed tree; a text that does not parse needs nothing (0).
+ */
+export function exprSince(src, opts) {
+    let ast = src;
+    if (typeof src === 'string') {
+        try { ast = parseExpr(src, opts); } catch { return 0; }
+    }
+    return sinceOf(ast, SINCE_BY_NAME);
+}
 
 export { FUNCTIONS, EXPR_FUNCTIONS, EXPR_FUNCTION_NAMES, EACH_FUNCTIONS, collectRefs, collectHostCalls, collectEachCalls, readsItem };

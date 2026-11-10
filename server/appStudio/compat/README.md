@@ -24,6 +24,15 @@ is allowed.
 | `publicDefinition` | `publicAccess.buildPublicDefinition` over the stored bytes (apps with `publicAccess`) | `stepsAndPublic.test.js` |
 | `reads` | per binding and saved dataset, per role, in sqlite and pg: the SQL and params the query compiler produces, and under `expand` the lookup each expanded relation runs afterwards (`readSql.mts` says how) | `reads.test.js` |
 
+`formulas.test.js` is a different kind of check: `formulaBaseline.json` holds a fingerprint (parsed
+tree and value) of every text in the corpus, and of every case in the expression engine's own golden
+corpus, that the engine could parse before the collection functions, `??`, list and object literals
+and author functions were added. Green means each of them still parses to the same tree and gives
+the same value. `formulaAdditions.json` is the other half: the parse error that same earlier engine
+gave for every addition, so each of them could only be written in a formula that was an error.
+`formulaBaseline.mts` says how both files were written; they are never regenerated with the engine
+they check.
+
 A missing or invalid id is replaced by a random one when the input is canonicalized. Those ids are
 masked as `<generated-N>` before hashing (`canonical.generatedIds` counts them).
 
