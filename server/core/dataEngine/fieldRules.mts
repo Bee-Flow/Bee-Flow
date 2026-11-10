@@ -8,8 +8,9 @@
  * here reaches the DDL, so a rule never migrates a column.
  *
  * What it promises an existing app:
- *   - A table whose fields declare neither key gets its `values` object back
- *     untouched (the same object), so the compiled SQL is byte-identical.
+ *   - A table whose fields declare neither key (nor a text `format`, nor a json
+ *     field: fieldFormats.mts) gets its `values` object back untouched (the same
+ *     object), so the compiled SQL is byte-identical.
  *   - Only the keys being WRITTEN are checked. An update never reads the row, so a
  *     row stored before a rule existed is never re-checked; it only has to pass
  *     the rule for a field when someone writes that field.
@@ -45,6 +46,11 @@ const vocab = nodeRequire('./dataModel/vocabulary') as {
     FIELD_VALIDATION: { keys: readonly string[] };
     DYNAMIC_DEFAULTS: { types: Readonly<Record<string, readonly string[]>> };
     FIELD_RULE_LIMITS: { MAX_PATTERN_LEN: number; MAX_MESSAGE_LEN: number; MAX_LENGTH: number };
+};
+const shapes = nodeRequire('./fieldFormats.mts') as {
+    fieldShapeErrors(field: RuleField, at: string): string[];
+    hasValueShape(field: RuleField): boolean;
+    valueShapeProblem(field: RuleField, value: unknown, label: string): string | null;
 };
 const userPattern = nodeRequire('../text/userPattern') as {
     compileUserPattern(p: unknown, o?: { caseInsensitive?: boolean }): Compiled;
@@ -138,6 +144,8 @@ export function fieldRuleErrors(field: RuleField, at: string): string[] {
         else errors.push(...validationErrors(field, field.validation, at));
     }
     if (present(field.dynamicDefault)) errors.push(...dynamicDefaultErrors(field, at));
+    // The schema-3 shapes (format, display, autonumber, json): fieldFormats.mts.
+    errors.push(...shapes.fieldShapeErrors(field, at));
     return errors;
 }
 
@@ -153,7 +161,7 @@ function ruledFields(table: unknown): RuleField[] {
     const hit = ruledCache.get(fields);
     if (hit) return hit;
     const list = fields.filter((f) => isPlainObject(f) && typeof f.key === 'string'
-        && (isPlainObject(f.validation) || (typeof f.dynamicDefault === 'string' && f.dynamicDefault)));
+        && (isPlainObject(f.validation) || (typeof f.dynamicDefault === 'string' && f.dynamicDefault) || shapes.hasValueShape(f)));
     ruledCache.set(fields, list);
     return list;
 }
@@ -215,16 +223,21 @@ function optionsRule(field: RuleField, value: unknown, label: string): string | 
 }
 
 /** The first rule a written value breaks, as a sentence; null when it passes. */
+function ruleProblem(field: RuleField, v: Validation, value: unknown, label: string): string | null {
+    if (field.type === 'number') return numberRule(v, value, label);
+    if (field.type === 'text') return textRule(v, value, label);
+    if (field.type === 'select' || field.type === 'multiselect') return optionsRule(field, value, label);
+    return null;
+}
+
 function breach(field: RuleField, value: unknown): string | null {
-    const v = field.validation;
-    if (!isPlainObject(v) || isEmpty(value)) return null;
+    if (isEmpty(value)) return null;
+    const v = isPlainObject(field.validation) ? field.validation : null;
     const label = labelOf(field);
-    let problem: string | null = null;
-    if (field.type === 'number') problem = numberRule(v, value, label);
-    else if (field.type === 'text') problem = textRule(v, value, label);
-    else if (field.type === 'select' || field.type === 'multiselect') problem = optionsRule(field, value, label);
+    // The value's shape (a text format, JSON text) first, then the validation rules.
+    const problem = shapes.valueShapeProblem(field, value, label) ?? (v ? ruleProblem(field, v, value, label) : null);
     if (!problem) return null;
-    return typeof v.message === 'string' && v.message.trim() ? v.message : problem;
+    return v && typeof v.message === 'string' && v.message.trim() ? v.message : problem;
 }
 
 export type FieldRuleOpts = { op: 'create' | 'update'; viewerId?: unknown; now?: Date };

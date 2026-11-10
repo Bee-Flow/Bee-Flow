@@ -177,6 +177,8 @@ function scalar(v, dialect) {
  */
 function coerceValue(v, field, dialect) {
     if (v === undefined || v === null) return null;
+    // json: a string IS the JSON text (fieldFormats checks it parses), anything else is serialised.
+    if (field.type === 'json') return typeof v === 'string' ? v : JSON.stringify(v);
     const t = typeof v;
     if (t === 'boolean') return dialect === 'pg' ? v : (v ? 1 : 0);
     if (field.type === 'multiselect' || field.type === 'file') return JSON.stringify(v);

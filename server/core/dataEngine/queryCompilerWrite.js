@@ -2,6 +2,7 @@
 const { SYSTEM_COLUMNS } = require('./dataModel/vocabulary');
 const { newRecordId } = require('./dataModel/ids');
 const { resolveDialect } = require('./engineFlag');
+const { autonumberValueSql } = require('./dataModel/autonumber');
 const { CompileError, assertRowsWritable, qi, assertTableMeta, fieldMap, coerceValue, assertRecordId, assertAccessFilter } = require('./queryCompilerBase');
 
 /**
@@ -36,13 +37,31 @@ function compileInsert(tableMeta, values, {
         if (SYSTEM_COLUMNS.includes(k)) continue; // clients cannot set system columns
         if (!fm.has(k)) throw new CompileError(`unknown field: ${k}`);
         const f = fm.get(k);
-        if (f.type === 'computed') continue; // computed columns are derived, never written
+        // computed columns are derived, autonumber is assigned below: neither is written by a caller
+        if (f.type === 'computed' || f.type === 'autonumber') continue;
         cols.push(f.key);
         params.push(coerceValue(v, f, dialect));
     }
+    const placeholders = cols.map(() => '?');
+    addAutonumbers(tableMeta, cols, placeholders);
     const sql = `INSERT INTO ${qi(tableMeta.key)} (${cols.map(qi).join(', ')}) `
-        + `VALUES (${cols.map(() => '?').join(', ')})`;
+        + `VALUES (${placeholders.join(', ')})`;
     return { sql, params, id, createdAt: now };
+}
+
+/**
+ * An autonumber column is filled by the INSERT itself (ddl.autonumberValueSql); a table without one
+ * compiles exactly as before.
+ * @param {import('./queryCompiler').TableMeta} tableMeta
+ * @param {string[]} cols
+ * @param {string[]} placeholders
+ */
+function addAutonumbers(tableMeta, cols, placeholders) {
+    for (const f of (tableMeta.fields || [])) {
+        if (!f || f.type !== 'autonumber' || typeof f.key !== 'string') continue;
+        cols.push(f.key);
+        placeholders.push(autonumberValueSql(tableMeta.key, f.key));
+    }
 }
 
 /**
@@ -114,7 +133,7 @@ function compileSetClause(tableMeta, values, dialect) {
         if (SYSTEM_COLUMNS.includes(k)) continue; // system columns are server-owned
         if (!fm.has(k)) throw new CompileError(`unknown field: ${k}`);
         const f = fm.get(k);
-        if (f.type === 'computed') continue;
+        if (f.type === 'computed' || f.type === 'autonumber') continue; // derived / server-assigned
         sets.push(`${qi(f.key)} = ?`);
         params.push(coerceValue(v, f, dialect));
     }

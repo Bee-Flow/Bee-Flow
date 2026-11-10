@@ -22,7 +22,46 @@
 const FIELD_TYPES = Object.freeze([
     'text', 'richtext', 'number', 'date', 'datetime', 'bool',
     'select', 'multiselect', 'relation', 'file', 'computed',
+    'autonumber', 'json', 'user',
 ]);
+
+/**
+ * The field types that arrived with schema 3 (optional, additive). A model that never names one
+ * plans, compiles and renders exactly as before.
+ *
+ *   autonumber  a whole number the SERVER assigns on create (1, 2, 3 … per table); never written
+ *               by a client, always unique. INTEGER on SQLite, BIGINT on Postgres.
+ *   json        a JSON value, stored as JSON text in both dialects (like multiselect and file).
+ *   user        the id of a member of the organisation, stored as text.
+ *
+ * All three are APP-ONLY: an automation datatable cannot hold them (datatableFields.js
+ * DATATABLE_FIELD_TYPES leaves them out, vocabulary.lockstep.test.js pins that).
+ */
+const FIELD_TYPE_SINCE = Object.freeze({ autonumber: 3, json: 3, user: 3 });
+const APP_ONLY_FIELD_TYPES = Object.freeze(['relation', 'computed', 'autonumber', 'json', 'user']);
+
+/**
+ * `field.format` on a text field (schema 3, optional): what kind of text it holds. A value written
+ * to a field with a format is checked on every write (core/dataEngine/fieldFormats.mts); the
+ * column stays TEXT, so adding or removing a format never migrates anything.
+ */
+const TEXT_FORMATS = Object.freeze({ since: 3, values: Object.freeze(['email', 'url', 'phone']) });
+
+/**
+ * `field.display` (schema 3, optional): how a value is SHOWN, never how it is stored. Nothing of it
+ * reaches the DDL or the write path.
+ *   currency   ISO 4217 code (three capital letters)  number and computed fields
+ *   decimals   0 … MAX_DECIMALS                         number and computed fields
+ *   unit       a short suffix ("kg", "h")               number and computed fields; not with currency
+ *   dateStyle  one of DATE_STYLES (Intl dateStyle)       date and datetime fields
+ */
+const FIELD_DISPLAY = Object.freeze({
+    since: 3,
+    keys: Object.freeze(['currency', 'decimals', 'unit', 'dateStyle']),
+    dateStyles: Object.freeze(['short', 'medium', 'long', 'full']),
+    MAX_DECIMALS: 10,
+    MAX_UNIT_LEN: 16,
+});
 
 // The negations sit beside their positives on purpose: an author who can say
 // "contains" and cannot say "does not contain" writes the inverse as a second
@@ -164,7 +203,7 @@ const DYNAMIC_DEFAULTS = Object.freeze({
     types: Object.freeze({
         now: Object.freeze(['datetime']),
         today: Object.freeze(['date']),
-        'currentUser.id': Object.freeze(['text']),
+        'currentUser.id': Object.freeze(['text', 'user']),
     }),
 });
 // Definition limits for the rules above (they decide whether a MODEL is valid, so constants).
@@ -259,6 +298,10 @@ const MAX_MAILBOX_RETENTION_DAYS = 730;
 
 module.exports = {
     FIELD_TYPES,
+    FIELD_TYPE_SINCE,
+    APP_ONLY_FIELD_TYPES,
+    TEXT_FORMATS,
+    FIELD_DISPLAY,
     FILTER_OPS,
     RESERVED_DATASET_IDS,
     AGG_FNS,
