@@ -1,0 +1,213 @@
+{
+  "corpus": "flex-filter-tree-order-by",
+  "canonical": {
+    "sha256": "4c590e321683c5654ddbf9fc4b8f2a3a5d8315785f3904d22241ad75263d4516",
+    "bytes": 2383,
+    "inputIsCanonical": true,
+    "idempotent": true,
+    "keys": [
+      "schemaVersion",
+      "meta",
+      "theme",
+      "roles",
+      "screens",
+      "actions",
+      "homeScreenId"
+    ],
+    "parts": {
+      "schemaVersion": "d4735e3a265e16ee",
+      "meta": "8dafbf8521e5bc33",
+      "theme": "5d7eeb0111b89897",
+      "roles": "4f53cda18c2baa0c",
+      "screens[0] scr_flexdf": "10d32de6316f0e13",
+      "homeScreenId": "dc210cd37016e9a6"
+    }
+  },
+  "schemaVersion": {
+    "stored": 2,
+    "canonical": 2
+  },
+  "validation": {
+    "strict": {
+      "errors": [],
+      "warnings": []
+    },
+    "save": {
+      "errors": [],
+      "warnings": []
+    }
+  },
+  "ordinals": {
+    "stored": {},
+    "canonical": "same as stored"
+  },
+  "reads": [
+    {
+      "at": "cmp_flexdflist.source",
+      "kind": "records",
+      "table": "tbl_flexdf",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"projects\" WHERE (1=1) AND \"archived\" != ? AND ((\"status\" = ? AND \"spent\" > \"budget\") OR (\"owner\" = ? AND NOT COALESCE((\"status\" = ?), 0))) AND NOT COALESCE(((\"name\" LIKE ? ESCAPE '\\' OR \"name\" IS NULL)), 0) ORDER BY (\"status\" IS NULL), \"status\" ASC, (\"due\" IS NULL), \"due\" DESC, (\"name\" IS NULL), \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            1,
+            "open",
+            "usr_compat_owner",
+            "done",
+            "Test%",
+            51
+          ]
+        },
+        "member": {
+          "sql": "SELECT * FROM \"projects\" WHERE ((1=1) AND ((\"archived\" != ?))) AND \"archived\" != ? AND ((\"status\" = ? AND \"spent\" > \"budget\") OR (\"owner\" = ? AND NOT COALESCE((\"status\" = ?), 0))) AND NOT COALESCE(((\"name\" LIKE ? ESCAPE '\\' OR \"name\" IS NULL)), 0) ORDER BY (\"status\" IS NULL), \"status\" ASC, (\"due\" IS NULL), \"due\" DESC, (\"name\" IS NULL), \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            1,
+            1,
+            "open",
+            "usr_compat_member",
+            "done",
+            "Test%",
+            51
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"projects\" WHERE (1=1) AND \"archived\" != ? AND ((\"status\" = ? AND \"spent\" > \"budget\") OR (\"owner\" = ? AND NOT COALESCE((\"status\" = ?), FALSE))) AND NOT COALESCE(((\"name\" ILIKE ? ESCAPE '\\' OR \"name\" IS NULL)), FALSE) ORDER BY (\"status\" IS NULL), \"status\" ASC, (\"due\" IS NULL), \"due\" DESC, (\"name\" IS NULL), \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            true,
+            "open",
+            "usr_compat_owner",
+            "done",
+            "Test%",
+            51
+          ]
+        },
+        "member": {
+          "sql": "SELECT * FROM \"projects\" WHERE ((1=1) AND ((\"archived\" != ?))) AND \"archived\" != ? AND ((\"status\" = ? AND \"spent\" > \"budget\") OR (\"owner\" = ? AND NOT COALESCE((\"status\" = ?), FALSE))) AND NOT COALESCE(((\"name\" ILIKE ? ESCAPE '\\' OR \"name\" IS NULL)), FALSE) ORDER BY (\"status\" IS NULL), \"status\" ASC, (\"due\" IS NULL), \"due\" DESC, (\"name\" IS NULL), \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            true,
+            true,
+            "open",
+            "usr_compat_member",
+            "done",
+            "Test%",
+            51
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_flexdfone.source",
+      "kind": "records",
+      "table": "tbl_flexdf",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"projects\" WHERE (1=1) AND \"spent\" > \"budget\" ORDER BY (\"spent\" IS NULL), \"spent\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "member": {
+          "sql": "SELECT * FROM \"projects\" WHERE ((1=1) AND ((\"archived\" != ?))) AND \"spent\" > \"budget\" ORDER BY (\"spent\" IS NULL), \"spent\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            1,
+            51
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"projects\" WHERE (1=1) AND \"spent\" > \"budget\" ORDER BY (\"spent\" IS NULL), \"spent\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "member": {
+          "sql": "SELECT * FROM \"projects\" WHERE ((1=1) AND ((\"archived\" != ?))) AND \"spent\" > \"budget\" ORDER BY (\"spent\" IS NULL), \"spent\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            true,
+            51
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_flexdfagg.source",
+      "kind": "aggregate",
+      "table": "tbl_flexdf",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT \"status\" AS \"status\", COUNT(*) AS \"n\", SUM(\"spent\") AS \"total\" FROM \"projects\" WHERE (1=1) AND NOT COALESCE(((\"status\" = ? AND \"spent\" <= \"budget\")), 0) GROUP BY \"status\" ORDER BY \"n\" DESC, \"total\" DESC, \"status\" ASC LIMIT ?",
+          "params": [
+            "done",
+            50
+          ]
+        },
+        "member": {
+          "sql": "SELECT \"status\" AS \"status\", COUNT(*) AS \"n\", SUM(\"spent\") AS \"total\" FROM \"projects\" WHERE ((1=1) AND ((\"archived\" != ?))) AND NOT COALESCE(((\"status\" = ? AND \"spent\" <= \"budget\")), 0) GROUP BY \"status\" ORDER BY \"n\" DESC, \"total\" DESC, \"status\" ASC LIMIT ?",
+          "params": [
+            1,
+            "done",
+            50
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT \"status\" AS \"status\", COUNT(*) AS \"n\", SUM(\"spent\") AS \"total\" FROM \"projects\" WHERE (1=1) AND NOT COALESCE(((\"status\" = ? AND \"spent\" <= \"budget\")), FALSE) GROUP BY \"status\" ORDER BY \"n\" DESC, \"total\" DESC, \"status\" ASC LIMIT ?",
+          "params": [
+            "done",
+            50
+          ]
+        },
+        "member": {
+          "sql": "SELECT \"status\" AS \"status\", COUNT(*) AS \"n\", SUM(\"spent\") AS \"total\" FROM \"projects\" WHERE ((1=1) AND ((\"archived\" != ?))) AND NOT COALESCE(((\"status\" = ? AND \"spent\" <= \"budget\")), FALSE) GROUP BY \"status\" ORDER BY \"n\" DESC, \"total\" DESC, \"status\" ASC LIMIT ?",
+          "params": [
+            true,
+            "done",
+            50
+          ]
+        }
+      }
+    },
+    {
+      "at": "dataset ds_flexdfown",
+      "kind": "dataset",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT \"owner\" AS \"owner\", COUNT(*) AS \"n\", MAX(\"due\") AS \"latest_due\" FROM \"projects\" WHERE (1=1) AND (\"status\" = ? OR \"spent\" > \"budget\") GROUP BY \"owner\" ORDER BY \"n\" DESC, \"owner\" ASC LIMIT ?",
+          "params": [
+            "open",
+            50
+          ]
+        },
+        "member": {
+          "sql": "SELECT \"owner\" AS \"owner\", COUNT(*) AS \"n\", MAX(\"due\") AS \"latest_due\" FROM \"projects\" WHERE ((1=1) AND ((\"archived\" != ?))) AND (\"status\" = ? OR \"spent\" > \"budget\") GROUP BY \"owner\" ORDER BY \"n\" DESC, \"owner\" ASC LIMIT ?",
+          "params": [
+            1,
+            "open",
+            50
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT \"owner\" AS \"owner\", COUNT(*) AS \"n\", MAX(\"due\") AS \"latest_due\" FROM \"projects\" WHERE (1=1) AND (\"status\" = ? OR \"spent\" > \"budget\") GROUP BY \"owner\" ORDER BY \"n\" DESC, \"owner\" ASC LIMIT ?",
+          "params": [
+            "open",
+            50
+          ]
+        },
+        "member": {
+          "sql": "SELECT \"owner\" AS \"owner\", COUNT(*) AS \"n\", MAX(\"due\") AS \"latest_due\" FROM \"projects\" WHERE ((1=1) AND ((\"archived\" != ?))) AND (\"status\" = ? OR \"spent\" > \"budget\") GROUP BY \"owner\" ORDER BY \"n\" DESC, \"owner\" ASC LIMIT ?",
+          "params": [
+            true,
+            "open",
+            50
+          ]
+        }
+      }
+    }
+  ]
+}

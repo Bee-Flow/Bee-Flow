@@ -398,6 +398,35 @@ exports[`compat corpus: what the phone plans for every stored app fixture-calcul
 }
 `;
 
+exports[`compat corpus: what the phone plans for every stored app flex-filter-tree-order-by 1`] = `
+{
+  "defaultScreen": "scr_flexdf",
+  "navigable": [
+    "scr_flexdf",
+  ],
+  "screens": [
+    {
+      "id": "scr_flexdf",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [],
+            "screen": "scr_flexdf",
+            "unsupported": [
+              "table",
+            ],
+          },
+          "roles": [
+            "(no role)",
+            "member",
+          ],
+        },
+      ],
+    },
+  ],
+}
+`;
+
 exports[`compat corpus: what the phone plans for every stored app legacy-onerror-array 1`] = `
 {
   "defaultScreen": "scr_lgh001",

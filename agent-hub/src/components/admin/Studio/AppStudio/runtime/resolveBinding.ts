@@ -72,6 +72,11 @@ export function walkPath(value: unknown, path?: unknown): unknown {
         : undefined;
 }
 
+/** `orderBy` in a cache key only when the binding has one, so a binding without it keeps the key it always had. */
+function orderByPart(binding: DataBinding): { orderBy?: unknown } {
+    return binding.orderBy === undefined || binding.orderBy === null ? {} : { orderBy: binding.orderBy };
+}
+
 /**
  * Stable cache key for a record/records/dataset binding — the SAME key the
  * DataContext fetch hook stores results under. record/records key on the
@@ -88,6 +93,7 @@ export function dataCacheKey(binding: Binding | null | undefined): string | null
             filter: binding.filter ?? null,
             sort: binding.sort ?? null,
             limit: binding.limit ?? null,
+            ...orderByPart(binding),
         });
         return `${binding.kind}:${binding.tableId ?? ''}:${shape}`;
     }
@@ -98,6 +104,7 @@ export function dataCacheKey(binding: Binding | null | undefined): string | null
             aggregates: binding.aggregates ?? null,
             sort: binding.sort ?? null,
             limit: binding.limit ?? null,
+            ...orderByPart(binding),
         });
         return `aggregate:${binding.tableId ?? ''}:${shape}`;
     }

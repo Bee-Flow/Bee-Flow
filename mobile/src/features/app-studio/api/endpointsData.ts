@@ -77,6 +77,7 @@ function recordsQueryParams(query: RecordsQuery) {
     return {
         filter: query.filter === undefined ? undefined : JSON.stringify(query.filter),
         sort: query.sort === undefined ? undefined : JSON.stringify(query.sort),
+        orderBy: query.orderBy === undefined ? undefined : JSON.stringify(query.orderBy),
         cursor: query.cursor,
         limit: query.limit,
         sample: query.sample ? 1 : undefined,

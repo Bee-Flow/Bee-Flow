@@ -3,7 +3,7 @@ import useTranslation from '@/hooks/useTranslation';
 import FilterRowsEditor from '@/components/admin/Studio/AppStudio/bi/FilterRowsEditor';
 import useAppTables, { fieldsForTable } from '@/components/admin/Studio/AppStudio/bi/useAppTables';
 import type { BindingDraft, TableBindingProps } from '../BindingField.types';
-import { normSort } from './BindingField.helpers';
+import { SortLevels } from './SortLevels';
 import { PickValueField } from './AggregateBinding';
 
 export function TableBinding({ binding, onChange, appId, disabled, definition, node, singleValue = false }: TableBindingProps) {
@@ -12,7 +12,6 @@ export function TableBinding({ binding, onChange, appId, disabled, definition, n
     const isSingle = binding.kind === 'record';
     const tableId = binding.tableId || '';
     const fields = fieldsForTable(tables, tableId);
-    const sort = normSort(binding.sort);
 
     if (!appId) {
         return <p className="text-xs text-[var(--text-secondary)]">{t('studio_apps_panels.binding.open_app_use_table', 'Open the app to use one of its tables.')}</p>;
@@ -52,28 +51,16 @@ export function TableBinding({ binding, onChange, appId, disabled, definition, n
                         node={node}
                     />
 
-                    <div className="grid grid-cols-2 gap-2">
-                        <select
-                            className={INPUT_CLS}
-                            value={sort?.field || ''}
-                            onChange={(e) => patch({ sort: e.target.value ? [{ field: e.target.value, dir: sort?.dir || 'asc' }] : undefined })}
-                            disabled={disabled}
-                            aria-label={t('studio_apps_panels.binding.sort_field', 'Sort field')}
-                        >
-                            <option value="">{t('studio_apps_panels.binding.no_sort', 'No sort')}</option>
-                            {fields.map((f) => <option key={f.key} value={f.key}>{f.name || f.key}</option>)}
-                        </select>
-                        <select
-                            className={INPUT_CLS}
-                            value={sort?.dir || 'asc'}
-                            onChange={(e) => patch({ sort: sort?.field ? [{ field: sort.field, dir: e.target.value }] : undefined })}
-                            disabled={disabled || !sort?.field}
-                            aria-label={t('studio_apps_panels.binding.sort_direction', 'Sort direction')}
-                        >
-                            <option value="asc">{t('studio_apps_panels.binding.sort_asc', 'Ascending')}</option>
-                            <option value="desc">{t('studio_apps_panels.binding.sort_desc', 'Descending')}</option>
-                        </select>
-                    </div>
+                    <SortLevels
+                        binding={binding}
+                        fields={fields}
+                        disabled={disabled}
+                        onPatch={({ sort, orderBy }) => {
+                            // `orderBy` exists only on a binding that sorts on several columns.
+                            const { orderBy: _dropped, ...rest } = binding;
+                            onChange(orderBy === undefined ? { ...rest, sort } : { ...rest, sort, orderBy });
+                        }}
+                    />
 
                     <div className="flex items-center gap-2">
                         <label className="inline-flex items-center gap-1.5 text-xs text-[var(--text-secondary)]">

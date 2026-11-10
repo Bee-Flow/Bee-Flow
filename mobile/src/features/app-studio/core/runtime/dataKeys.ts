@@ -15,8 +15,12 @@ import { stableStringify } from './paths';
 type Binding = Record<string, unknown> & { kind?: unknown };
 type Scope = Record<string, unknown> | null | undefined;
 
+// `orderBy` joins the key only when the binding has one: a binding without it keeps its key.
 const shapeOf = (b: Binding, keys: readonly string[]) =>
-    stableStringify(Object.fromEntries(keys.map((k) => [k, b[k] ?? null])));
+    stableStringify(Object.fromEntries([
+        ...keys.map((k) => [k, b[k] ?? null]),
+        ...(b.orderBy === undefined || b.orderBy === null ? [] : [['orderBy', b.orderBy]]),
+    ]));
 
 /**
  * The cache key a record/records/aggregate/dataset/connector binding's result

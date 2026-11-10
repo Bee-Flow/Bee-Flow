@@ -78,6 +78,7 @@ function dataCacheKey(binding) {
             filter: binding.filter ?? null,
             sort: binding.sort ?? null,
             limit: binding.limit ?? null,
+            ...(binding.orderBy === undefined || binding.orderBy === null ? {} : { orderBy: binding.orderBy }),
         });
         return `${binding.kind}:${binding.tableId ?? ''}:${shape}`;
     }
@@ -88,6 +89,7 @@ function dataCacheKey(binding) {
             aggregates: binding.aggregates ?? null,
             sort: binding.sort ?? null,
             limit: binding.limit ?? null,
+            ...(binding.orderBy === undefined || binding.orderBy === null ? {} : { orderBy: binding.orderBy }),
         });
         return `aggregate:${binding.tableId ?? ''}:${shape}`;
     }

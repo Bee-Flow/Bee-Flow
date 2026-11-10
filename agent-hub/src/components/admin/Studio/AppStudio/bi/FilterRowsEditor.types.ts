@@ -48,22 +48,38 @@ export interface Stash {
     formula?: string;
 }
 
-/** One structured filter row. */
+/** One structured filter row. With `otherField` it compares two columns of the row and carries no value. */
 export interface FilterRow {
     field: string;
     op: string;
-    value: FilterValue;
+    value?: FilterValue;
+    otherField?: string;
     required?: boolean;
 }
 
-/** An `{ any: [...] }` OR group: its rows OR each other, the group ANDs with the other entries. */
+/** An `{ any: [...] }` OR group: its entries OR each other, the group ANDs with the other entries. */
 export interface FilterAnyGroupRow {
-    any: FilterRow[];
+    any: FilterEntry[];
     required?: boolean;
 }
 
-/** One entry of a filter list: a row or an OR group of rows. */
-export type FilterEntry = FilterRow | FilterAnyGroupRow;
+/** An `{ all: [...] }` AND group: what "(a and b) or c" needs inside an OR group. */
+export interface FilterAllGroupRow {
+    all: FilterEntry[];
+    required?: boolean;
+}
+
+/** A `{ not: entry }` group: the rows its entry does not match. */
+export interface FilterNotGroupRow {
+    not: FilterEntry;
+    required?: boolean;
+}
+
+/** One entry of a filter list: a row or a group (groups nest three deep). */
+export type FilterEntry = FilterRow | FilterAnyGroupRow | FilterAllGroupRow | FilterNotGroupRow;
+
+/** Where a filter list sits: the top level, or inside a group of this kind. */
+export type FilterGroupKind = 'any' | 'all' | 'none';
 
 /** A column a filter may name; select choices are strings or { value, label } objects. */
 export interface FilterField {
@@ -85,8 +101,13 @@ export interface FilterRowsEditorProps {
     fields?: FilterField[];
     filters: FilterEntry[];
     onChange: (next: FilterEntry[]) => void;
-    /** Offer "Add an either/or group" (binding panels). Groups already saved always render as groups. */
+    /** Offer the "Add a group" buttons. Groups already saved always render as groups. */
     allowGroups?: boolean;
+    /** Group levels above this list (0 at the top) and the kind of the group it is in. */
+    depth?: number;
+    parentKind?: FilterGroupKind | null;
+    /** At most this many entries (a "none of these" group that has no level left for a second one). */
+    maxItems?: number;
     definition?: AppDefinition | null;
     node?: AppNode | null;
     allowFormula?: boolean;

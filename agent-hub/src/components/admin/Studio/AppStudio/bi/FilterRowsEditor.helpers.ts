@@ -78,7 +78,7 @@ export function isNumeric(v: unknown) {
     return Number.isFinite(Number(String(v).replace(',', '.')));
 }
 
-export function boolSegment(value: FilterValue) {
+export function boolSegment(value: FilterValue | undefined) {
     if (value === true || value === 'true') return 'true';
     if (value === false || value === 'false') return 'false';
     return '';

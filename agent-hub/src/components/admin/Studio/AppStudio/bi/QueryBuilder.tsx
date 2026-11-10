@@ -1,8 +1,10 @@
+import { filterClauseFields } from '@shared/expr/filterGroups.mjs';
 import { useQuery } from '@tanstack/react-query';
 import { Database, Loader2 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState, type ComponentProps } from 'react';
 import ChartDataPanel, { deriveChartMapping } from './ChartDataPanel';
-import FilterRowsEditor, { NO_VALUE_OPS, type FilterRow } from './FilterRowsEditor';
+import FilterRowsEditor, { NO_VALUE_OPS, type FilterEntry, type FilterRow } from './FilterRowsEditor';
+import { descriptorFilters } from './filterDescriptor';
 import useAppTables, { fieldsForTable } from './useAppTables';
 import useDatasets from './useDatasets';
 import useTranslation from '@/hooks/useTranslation';
@@ -83,7 +85,7 @@ function sanitizeAlias(label: string | undefined, fallback: string) {
 }
 
 /** Build the structured aggregate descriptor compileAggregate consumes. */
-export function buildDescriptor(tableId: string, fields: TableColumn[], groupBy: DatasetGroup[], aggregates: { agg: string; field?: string; label?: string }[], filters: FilterRow[]) {
+export function buildDescriptor(tableId: string, fields: TableColumn[], groupBy: DatasetGroup[], aggregates: { agg: string; field?: string; label?: string }[], filters: FilterEntry[]) {
     const fieldType = (key: string | undefined) => (fields.find((f) => f.key === key) || {}).type;
     const gb = (groupBy || [])
         .filter((g) => g.field)
@@ -99,23 +101,23 @@ export function buildDescriptor(tableId: string, fields: TableColumn[], groupBy:
             usedAliases.add(alias);
             return { fn: a.agg, ...(isCount && !a.field ? {} : { field: a.field }), as: alias };
         });
-    const flt = (filters || [])
-        .filter((f) => f.field && f.op)
-        .map((f) => {
-            const base = { field: f.field, op: f.op };
-            if (NO_VALUE_OPS.has(f.op)) return base;
-            let value = f.value;
-            if (fieldType(f.field) === 'number' && typeof value !== 'boolean' && value !== '' && value != null) {
-                const num = parseUserNumber(value);
-                if (num != null) value = num;
-            }
-            return { ...base, value: value ?? '' };
-        });
+    const leaf = (f: FilterRow) => {
+        const base = { field: f.field, op: f.op };
+        if (NO_VALUE_OPS.has(f.op)) return base;
+        if (typeof f.otherField === 'string') return { ...base, otherField: f.otherField };
+        let value = f.value;
+        if (fieldType(f.field) === 'number' && typeof value !== 'boolean' && value !== '' && value != null) {
+            const num = parseUserNumber(value);
+            if (num != null) value = num;
+        }
+        return { ...base, value: value ?? '' };
+    };
+    const flt = descriptorFilters(filters || [], leaf);
 
     // A row left pointing at a field the table doesn't have would compile to a
     // broken query server-side — name them so the user can repick, and block.
     const known = new Set<string | undefined>(fields.map((f) => f.key));
-    const referenced = [...gb, ...aggs, ...flt].map((x) => x.field).filter(Boolean);
+    const referenced = [...[...gb, ...aggs].map((x) => x.field), ...filterClauseFields(flt)].filter(Boolean);
     const unknownFields = [...new Set(referenced.filter((k) => !known.has(k)))];
     return {
         descriptor: { groupBy: gb, aggregates: aggs, filters: flt },
@@ -150,7 +152,7 @@ export default function QueryBuilder({ open, onClose, appId, componentType = 'ch
     const [tableId, setTableId] = useState('');
     const [groupBy, setGroupBy] = useState<DatasetGroup[]>([]);
     const [aggregates, setAggregates] = useState<{ agg: string; field: string; label: string; }[]>([]);
-    const [filters, setFilters] = useState<FilterRow[]>([]);
+    const [filters, setFilters] = useState<FilterEntry[]>([]);
     const [name, setName] = useState('');
     const [chartMapping, setChartMapping] = useState<ChartMapping | null>(null);
 
@@ -287,7 +289,7 @@ export default function QueryBuilder({ open, onClose, appId, componentType = 'ch
 
                         <MeasuresField t={t} aggregates={aggregates} setAggregates={setAggregates} fields={fields} fieldName={fieldName} />
 
-                        <FilterRowsEditor fields={fields} filters={filters} onChange={(next) => setFilters(next.filter((f): f is FilterRow => !('any' in f)))} label={t('studio_apps_bi.query.only_count_where', 'Only count rows where')} />
+                        <FilterRowsEditor fields={fields} filters={filters} onChange={setFilters} allowGroups label={t('studio_apps_bi.query.only_count_where', 'Only count rows where')} />
 
 
                         <label className="flex flex-col gap-1">

@@ -28,6 +28,8 @@ export interface BindingDraft {
     path?: string;
     filter?: unknown;
     sort?: unknown;
+    /** Up to three `{ field, dir }` entries; replaces `sort` when present. */
+    orderBy?: unknown;
     limit?: number;
     groupBy?: Array<DatasetGroup | null>;
     aggregates?: Array<DatasetAggregate | null>;

@@ -33,7 +33,7 @@ const bad = (error, _fixHint) => ({ error, _fixHint });
  *
  * @typedef {{
  *   error?: string, _fixHint?: string, tableId?: string|null, datasetId?: string|null, limit?: number,
- *   limitClamped?: boolean, requestedLimit?: number, sort?: { field: string, dir: string }, filter?: any[], cursor?: string|null,
+ *   limitClamped?: boolean, requestedLimit?: number, sort?: { field: string, dir: string }, orderBy?: unknown[], filter?: any[], cursor?: string|null,
  * }} QueryArgs
  */
 
@@ -79,6 +79,12 @@ function parseQueryArgs(args) {
         sort = { field: a.sort.field, dir: dir.toLowerCase() };
     }
 
+    let orderBy;
+    if (a.orderBy !== undefined && a.orderBy !== null) {
+        if (!Array.isArray(a.orderBy) || !a.orderBy.length || sort) return bad('orderBy must be a list of { field, dir } entries, without sort.', 'Up to 3 columns; dir is "asc" or "desc".');
+        orderBy = a.orderBy;
+    }
+
     let filter;
     if (a.filter !== undefined && a.filter !== null) {
         if (!Array.isArray(a.filter)) return bad('filter must be an array of { field, op, value? }.', `ops: ${FILTER_OPS.join(', ')}.`);
@@ -88,7 +94,7 @@ function parseQueryArgs(args) {
     if (a.cursor !== undefined && a.cursor !== null && typeof a.cursor !== 'string') {
         return bad('cursor must be the nextCursor string of the previous call.');
     }
-    return { tableId, datasetId, limit, limitClamped, requestedLimit, sort, filter, cursor: a.cursor || null };
+    return { tableId, datasetId, limit, limitClamped, requestedLimit, sort, ...(orderBy ? { orderBy } : {}), filter, cursor: a.cursor || null };
 }
 
 /** A row without the internal ids a model has no use for. */

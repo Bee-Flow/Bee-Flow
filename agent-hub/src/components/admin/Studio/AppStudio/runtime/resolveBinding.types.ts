@@ -36,6 +36,8 @@ export interface DataBinding {
     datasetId?: string | null;
     filter?: unknown;
     sort?: FilterValue;
+    /** Up to three `{ field, dir }` entries; replaces `sort` when present. */
+    orderBy?: unknown;
     limit?: FilterValue;
     groupBy?: FilterValue;
     aggregates?: FilterValue;

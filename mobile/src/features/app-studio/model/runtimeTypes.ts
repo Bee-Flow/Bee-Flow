@@ -167,6 +167,8 @@ export type DataRecord = Record<string, unknown>;
 export interface RecordsQuery {
     filter?: unknown;
     sort?: unknown;
+    /** Up to three `{ field, dir }` entries; replaces `sort` when present. */
+    orderBy?: unknown;
     cursor?: string;
     limit?: number;
     sample?: boolean;

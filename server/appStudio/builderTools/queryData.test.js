@@ -163,3 +163,32 @@ test('a linked table goes through the shared runner and keeps linked:true', asyn
         assert.strictEqual(seen[0].o.limit, 1);
     });
 });
+
+test('orderBy sorts on several columns, a filter tree compiles, and the next page follows the orderBy cursor', async () => {
+    const calls = [];
+    await withPatches(dbReturning([row(1), row(2), row(3)], calls), async () => {
+        const out = await applyQueryData(wrap(), {
+            tableId: 'tbl_task01', limit: 2,
+            orderBy: [{ field: 'status', dir: 'asc' }, { field: 'title', dir: 'desc' }],
+            filter: [{ any: [{ all: [{ field: 'status', op: 'eq', value: 'todo' }, { not: { field: 'title', op: 'eq', value: 'x' } }] }] }],
+        });
+        assert.equal(out.error, undefined);
+        assert.match(calls[0].sql, /AND \("status" = \? AND NOT COALESCE\(\("title" = \?\), 0\)\) ORDER BY \("status" IS NULL\), "status" ASC, \("title" IS NULL\), "title" DESC, "id" DESC LIMIT \?$/);
+        assert.equal(out.more, true);
+        const next = await applyQueryData(wrap(), { tableId: 'tbl_task01', limit: 2, orderBy: [{ field: 'status', dir: 'asc' }, { field: 'title', dir: 'desc' }], cursor: out.nextCursor });
+        assert.equal(next.error, undefined);
+        assert.match(calls[1].sql, /\("status" = \? AND "title" = \? AND "id" < \?\)\) ORDER BY/);
+        assert.deepEqual(calls[1].params.slice(-4, -1), ['todo', 't2', 'rec_2']);
+    });
+});
+
+test('orderBy next to sort, or on a dataset, is refused with a hint', async () => {
+    await withPatches(dbReturning([]), async () => {
+        const both = await applyQueryData(wrap(), { tableId: 'tbl_task01', sort: { field: 'title', dir: 'asc' }, orderBy: [{ field: 'status' }] });
+        assert.match(both.error, /orderBy must be a list/);
+        const ds = await applyQueryData(wrap(), { datasetId: 'ds_1', orderBy: [{ field: 'status' }] });
+        assert.match(ds.error, /apply to raw table rows/);
+        const many = await applyQueryData(wrap(), { tableId: 'tbl_task01', orderBy: [{ field: 'status' }, { field: 'title' }, { field: 'id' }, { field: 'created_at' }] });
+        assert.match(many.error, /orderBy takes at most 3 columns/);
+    });
+});

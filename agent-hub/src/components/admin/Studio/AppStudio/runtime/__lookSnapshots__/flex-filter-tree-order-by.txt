@@ -1,0 +1,16 @@
+# flex-filter-tree-order-by
+## screen scr_flexdf (Projects)
+<div class="app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(15, 118, 110, 0.1); --app-accent: #0F766E; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(15, 118, 110, 0.1); --app-primary: #0F766E; --app-radius: 8px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-size: 15px; min-height: 100vh">
+  <main class="flex flex-1 flex-col min-h-0">
+    <div class="app-runtime app-screen-enter w-full" data-app-appearance="auto" data-app-screen="scr_flexdf" data-app-screen-kind="page" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(15, 118, 110, 0.1); --app-accent: #0F766E; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(15, 118, 110, 0.1); --app-primary: #0F766E; --app-radius: 8px; --app-space: 1; color: var(--text-primary); font-size: 15px">
+      <div class="flex flex-col w-full" style="margin: 0px auto; max-width: 960px">
+        <section class="app-grid" data-section-id="sec_flexdf" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="table" data-node-id="cmp_flexdflist" style="grid-column: span 12 / span 12">
+            <div class="flex h-full items-center justify-center min-h-0 py-1 text-[var(--text-muted)] text-center text-sm">
+              "Nothing to show yet."
+          <div class="app-node app-span-12 min-w-0" data-app-type="table" data-node-id="cmp_flexdfone" style="grid-column: span 12 / span 12">
+            <div class="flex h-full items-center justify-center min-h-0 py-1 text-[var(--text-muted)] text-center text-sm">
+              "Nothing to show yet."
+          <div class="app-node app-span-12 min-w-0" data-app-type="table" data-node-id="cmp_flexdfagg" style="grid-column: span 12 / span 12">
+            <div class="flex h-full items-center justify-center min-h-0 py-1 text-[var(--text-muted)] text-center text-sm">
+              "Nothing to show yet."

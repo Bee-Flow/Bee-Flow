@@ -82,9 +82,14 @@ function fixedScope(viewer: Obj, variables: unknown): Obj {
 /** The descriptor the runtime posts for this binding (run view, not the editor's sample). */
 function descriptorOf(binding: Binding, filters: unknown): Obj {
     if (binding.kind === 'aggregate') {
-        return { filters, groupBy: binding.groupBy, aggregates: binding.aggregates, sort: binding.sort, limit: binding.limit };
+        return { filters, groupBy: binding.groupBy, aggregates: binding.aggregates, sort: binding.sort, limit: binding.limit, ...orderByOf(binding) };
     }
-    return { filters, sort: binding.sort, limit: binding.limit };
+    return { filters, sort: binding.sort, limit: binding.limit, ...orderByOf(binding) };
+}
+
+/** `orderBy` travels only when the binding or dataset has one (readDescriptor.mts). */
+function orderByOf(src: Obj): Obj {
+    return src.orderBy === undefined || src.orderBy === null ? {} : { orderBy: src.orderBy };
 }
 
 function compileFor(table: Obj, kind: string, descriptor: Obj, who: Identity): Obj {
@@ -125,7 +130,7 @@ function datasetRead(entry: CorpusEntry, datasetId: unknown, who: Identity): Obj
     if (isDatatableBacked(table)) return { skipped: 'linked' };
     return compileFor(table, 'aggregate', {
         filters: descriptor.filters, groupBy: descriptor.groupBy, aggregates: descriptor.aggregates,
-        sort: descriptor.sort, limit: descriptor.limit,
+        sort: descriptor.sort, limit: descriptor.limit, ...orderByOf(descriptor),
     }, who);
 }
 
