@@ -173,3 +173,48 @@ describe('OrgUsersPanel — member filter bar', () => {
         expect(within((janRow as HTMLElement)).getByText('Organisation Admin')).toBeInTheDocument();
     });
 });
+
+// The server manages an account through its home organisation, and a platform
+// admin's account through a platform admin only, so a row the viewer cannot
+// change carries no controls.
+describe('OrgUsersPanel — which member rows carry controls', () => {
+    const PLATFORM_ADMIN = { id: 'u_root', username: 'root', displayName: 'Rita Root', role: 'admin', orgRole: 'member', groups: [], organizationId: 'orgA', status: 'active' };
+    const urls = () => asMock(authFetch).mock.calls.map(([url]) => String(url));
+    const rowOf = (name: string) => screen.getByText(name).closest('div.px-5') as HTMLElement;
+
+    beforeEach(() => {
+        cleanup();
+        asMock(authFetch).mockReset();
+        asMock(authFetch).mockImplementation((url: string) => {
+            if (url.startsWith('/auth/users')) return jsonRes([...USERS, PLATFORM_ADMIN]);
+            const hit = Object.keys(FIXTURES).find((p) => url.startsWith(p));
+            return jsonRes(hit ? FIXTURES[hit] : []);
+        });
+    });
+
+    it('reads the members, groups and organisations of the home organisation', async () => {
+        render(withQueryClient(<OrgUsersPanel user={currentUser} />));
+        await screen.findByText('Jan de Vries');
+        expect(urls()).toEqual(expect.arrayContaining(['/auth/users?scope=admin', '/auth/groups?scope=admin', '/auth/organizations?scope=admin']));
+    });
+
+    it('gives an organisation admin the controls on home members only', async () => {
+        render(withQueryClient(<OrgUsersPanel user={{ ...currentUser, orgRole: 'org_admin' }} />));
+        await screen.findByText('Jan de Vries');
+        expect(within(rowOf('Jan de Vries')).getByTitle('Change role')).toBeInTheDocument();
+        expect(within(rowOf('Piet Jansen')).getByText('Approve')).toBeInTheDocument();
+        // A member through a group alone, and a platform admin.
+        for (const name of ['Eva Bakker', 'Rita Root']) {
+            expect(within(rowOf(name)).queryByTitle('Change role')).not.toBeInTheDocument();
+            expect(within(rowOf(name)).queryByTitle('Assign groups')).not.toBeInTheDocument();
+        }
+    });
+
+    it('gives a platform admin the controls on every row', async () => {
+        render(withQueryClient(<OrgUsersPanel user={{ id: 'u_root', role: 'admin', groups: [] }} />));
+        await screen.findByText('Jan de Vries');
+        for (const name of ['Eva Bakker', 'Rita Root']) {
+            expect(within(rowOf(name)).getByTitle('Change role')).toBeInTheDocument();
+        }
+    });
+});

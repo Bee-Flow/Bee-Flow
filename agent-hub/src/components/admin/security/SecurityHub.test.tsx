@@ -161,12 +161,23 @@ describe('SecurityHub', () => {
             const set: SetScope = vi.fn<(scope: AdminScope | null) => void>();
             renderIn(set, { user: orgAdmin, activeSection: 'sso' });
             expect(screen.getByTestId('user-management')).toBeInTheDocument();
-            expect(lastScope(set)).toBe('mixed');
+            expect(lastScope(set)).toBe('org');
+        });
+
+        // Anyone but a platform admin reads the users and groups of their home organisation only.
+        it('users is one organisation for an organisation admin, and the tab scope for a platform admin', () => {
+            const set: SetScope = vi.fn<(scope: AdminScope | null) => void>();
+            renderIn(set, { user: { ...orgAdmin, orgRole: 'org_admin', organizationId: 'org-1' }, activeSection: 'users' });
+            expect(lastScope(set)).toBe('org');
+            cleanup();
+            const setPlatform: SetScope = vi.fn<(scope: AdminScope | null) => void>();
+            renderIn(setPlatform, { user: fullAdmin, activeSection: 'users' });
+            expect(lastScope(setPlatform)).toBe('mixed');
         });
     });
 
     describe('for an organisation admin', () => {
-        const orgAdminOfOrg = { ...orgAdmin, orgRole: 'org_admin', organizationId: 'org-1' };
+        const orgAdminOfOrg = { ...orgAdmin, orgRole: 'org_admin', organizationId: 'org-1', isHomeOrgAdmin: true };
 
         it('lists only the sections that are not about the whole server', () => {
             render(<SecurityHub user={orgAdminOfOrg} />);
@@ -182,6 +193,13 @@ describe('SecurityHub', () => {
 
         it('drops guardrails for an organisation admin without a home organisation', () => {
             render(<SecurityHub user={{ permissions: ['admin_security'], isAdmin: false }} activeSection="guardrails" />);
+            expect(screen.queryByText('admin.sec_guardrails')).not.toBeInTheDocument();
+            expect(screen.getByTestId('user-management')).toBeInTheDocument();
+        });
+
+        // admin_security through a plain group: the shield save needs an organisation admin of the home organisation.
+        it('drops guardrails for someone with a home organisation they do not administer', () => {
+            render(<SecurityHub user={{ ...orgAdmin, orgRole: 'member', organizationId: 'org-1', isHomeOrgAdmin: false }} activeSection="guardrails" />);
             expect(screen.queryByText('admin.sec_guardrails')).not.toBeInTheDocument();
             expect(screen.getByTestId('user-management')).toBeInTheDocument();
         });

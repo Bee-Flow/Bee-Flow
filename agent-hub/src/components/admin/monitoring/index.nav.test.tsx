@@ -62,19 +62,35 @@ describe('MonitoringPanel pages', () => {
     });
 });
 
-describe('MonitoringPanel server-wide pages', () => {
-    it('hides Feedback from an organisation admin, also by deep link', () => {
+describe('MonitoringPanel Feedback page', () => {
+    it('is hidden from a holder of the tab who is not an organisation admin, also by deep link', () => {
         stub();
-        render(<MonitoringPanel activeSection="feedback" user={{ isAdmin: false, role: 'user' }} />);
+        render(<MonitoringPanel activeSection="feedback" user={{ isAdmin: false, role: 'user', orgRole: 'member', organizationId: 'org-a', permissions: ['admin_monitoring'] }} />);
         const nav = screen.getByRole('navigation', { name: 'AI Monitor' });
         expect(within(nav).queryByRole('button', { name: 'Feedback' })).toBeNull();
         expect(screen.getByRole('heading', { level: 2, name: 'Overview' })).toBeTruthy();
     });
 
-    it('shows Feedback to a platform admin', () => {
+    it('is shown to an organisation admin of their home organisation', () => {
+        stub();
+        render(<MonitoringPanel activeSection="feedback" user={{ isAdmin: false, role: 'user', orgRole: 'org_admin', organizationId: 'org-a', isHomeOrgAdmin: true }} />);
+        const nav = screen.getByRole('navigation', { name: 'AI Monitor' });
+        expect(within(nav).getByRole('button', { name: 'Feedback' }).getAttribute('aria-current')).toBe('page');
+        expect(screen.getByRole('heading', { level: 2, name: 'Feedback' })).toBeTruthy();
+    });
+
+    // The server's strict check also counts a group of the home organisation that carries admin rights.
+    it('is shown to an organisation admin through an admin group of the home organisation', () => {
+        stub();
+        render(<MonitoringPanel activeSection="feedback" user={{ isAdmin: false, role: 'user', orgRole: 'member', organizationId: 'org-a', isHomeOrgAdmin: true }} />);
+        const nav = screen.getByRole('navigation', { name: 'AI Monitor' });
+        expect(within(nav).getByRole('button', { name: 'Feedback' }).getAttribute('aria-current')).toBe('page');
+    });
+
+    it('is shown to a platform admin', () => {
         stub();
         render(<MonitoringPanel activeSection="feedback" user={{ isAdmin: true }} />);
         const nav = screen.getByRole('navigation', { name: 'AI Monitor' });
-        expect(within(nav).getByRole('button', { name: 'Feedback' })).toBeTruthy();
+        expect(within(nav).getByRole('button', { name: 'Feedback' }).getAttribute('aria-current')).toBe('page');
     });
 });

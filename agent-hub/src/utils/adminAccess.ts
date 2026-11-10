@@ -35,3 +35,33 @@ export function homeOrgIdOf(user: Readonly<Record<string, unknown>> | null | und
     const id = user?.organizationId ?? user?.orgId;
     return typeof id === 'string' && id !== '' ? id : null;
 }
+
+/** The account fields mayManageAccount reads. */
+export interface ManagedAccount {
+    role?: string | null;
+    organizationId?: string | null;
+}
+
+/**
+ * May this viewer edit, reset, delete or regroup this account? The server
+ * (requireOrgAdminForUser) decides on the account's HOME organisation and keeps
+ * a platform admin's account to platform admins. In the admin screens anyone
+ * but a platform admin acts on their own home organisation, so an account that
+ * is in it only through a group, or that has no home organisation, is listed
+ * read-only.
+ */
+export function mayManageAccount(account: ManagedAccount, viewerIsPlatformAdmin: boolean, viewerHomeOrgId: string | null): boolean {
+    if (viewerIsPlatformAdmin) return true;
+    if (account.role === 'admin') return false;
+    return viewerHomeOrgId !== null && account.organizationId === viewerHomeOrgId;
+}
+
+/**
+ * Does this viewer administer their HOME organisation? The server answers it in
+ * /auth/my-permissions (`isHomeOrgAdmin`, permissionsOrgGates._evalOrgAdmin: an
+ * admin orgRole there, or a group of it that carries admin rights), the check
+ * its org-admin routes make. Without that answer the viewer is not counted.
+ */
+export function isHomeOrgAdmin(user: Readonly<Record<string, unknown>> | null | undefined): boolean {
+    return user?.isHomeOrgAdmin === true;
+}

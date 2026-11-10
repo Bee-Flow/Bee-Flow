@@ -22,7 +22,8 @@ import { useDeploymentMode } from '@/hooks/useDeploymentMode';
 import ConfirmDialog from '../../shared/ConfirmDialog';
 import Spinner from '@/components/shared/Spinner';
 import Tabs from '@/components/shared/Tabs';
-import { ALERT_ERROR, ALERT_SUCCESS } from '@/components/mcpLibrary/ui';
+import { ALERT_ERROR, ALERT_INFO, ALERT_SUCCESS } from '@/components/mcpLibrary/ui';
+import { homeOrgIdOf, isPlatformAdmin as isPlatformAdminUser } from '@/utils/adminAccess';
 import { OrgIcon } from './userManagement/EntityRows';
 import type { AdminCurrentUser, ConfirmOptions } from './userManagement/types';
 
@@ -64,13 +65,15 @@ const UserManagement = ({ activeSection: activeSectionProp = '', onNavigate, use
     // Platform operator — deliberately NOT isFullAdmin, which counts the 'all'
     // permission and is obtainable inside a tenant. Moving a user between
     // organisations is server-side restricted to this exact test
-    // (session.isAdmin || user.role === 'admin'), so the org picker below has to
+    // (utils/adminAccess, the server's isSuperAdmin), so the org picker below has to
     // ask the same question or it offers an action that answers 403.
-    const isPlatformAdmin = currentUser?.isAdmin || currentUser?.role === 'admin';
+    const isPlatformAdmin = isPlatformAdminUser(currentUser);
     const userOrgIds = currentUser?.organizations || [];
 
     // The admin dashboard's lists (`?scope=admin`): an organisation admin's home organisation only.
-    const { users, groups, organizations, roles, permissions, loading, message, setMessage, loadData } = useUserManagementData({ currentUser });
+    const { users, groups, organizations, roles, permissions, loading, notOrgAdmin, message, setMessage, loadData } = useUserManagementData({ currentUser });
+    // The controls follow the lists: when the server refused them, it refuses the edits too.
+    const mayManageListed = !!canManageUsers && !notOrgAdmin;
 
     // Destructive actions route through <ConfirmDialog/> rather than
     // window.confirm: the native dialog is unstyled, unthemeable, blocks the
@@ -104,6 +107,11 @@ const UserManagement = ({ activeSection: activeSectionProp = '', onNavigate, use
                     onChange={(key) => { if (onNavigate) onNavigate(`admin/security/users/${key}`); }}
                     items={sections.map(({ key, labelKey, icon: Icon }) => ({ id: key, label: t(labelKey), icon: <Icon className="h-4 w-4" aria-hidden="true" /> }))}
                 />
+                {notOrgAdmin && (
+                    <div role="status" className={ALERT_INFO}>
+                        {t('admin_org.user_mgmt_org_admins_only', 'This page is for administrators of the organisation, so ask a platform administrator if you need access.')}
+                    </div>
+                )}
                 {message && (
                     <div role="status" className={message.type === 'success' ? ALERT_SUCCESS : ALERT_ERROR}>
                         {typeof message.text === 'string' ? message.text : JSON.stringify(message.text)}
@@ -125,8 +133,9 @@ const UserManagement = ({ activeSection: activeSectionProp = '', onNavigate, use
                                 users={users}
                                 groups={groups}
                                 organizations={organizations}
-                                canManageUsers={canManageUsers}
-                                viewerIsPlatformAdmin={!!isPlatformAdmin}
+                                canManageUsers={mayManageListed}
+                                viewerIsPlatformAdmin={isPlatformAdmin}
+                                viewerHomeOrgId={homeOrgIdOf(currentUser)}
                                 onAddUser={userActions.openAddUser}
                                 onEditUser={userActions.openEditUser}
                                 onResetMfa={userActions.handleResetMfa}
@@ -163,7 +172,7 @@ const UserManagement = ({ activeSection: activeSectionProp = '', onNavigate, use
                                 groups={groups}
                                 organizations={organizations}
                                 users={users}
-                                canManageUsers={canManageUsers}
+                                canManageUsers={mayManageListed}
                                 onAddGroup={groupActions.openAddGroup}
                                 onEditGroup={groupActions.openEditGroup}
                                 onDeleteGroup={groupActions.handleDeleteGroup}

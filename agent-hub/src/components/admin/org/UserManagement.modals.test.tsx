@@ -243,7 +243,7 @@ describe('UserManagement: platform administrator', () => {
     const MEMBER = { id: 'u_jan', username: 'jan', displayName: 'Jan de Vries', role: 'user', orgRole: 'member', organizationId: 'o1', groups: [], status: 'active' };
     const PLATFORM = { id: 'u_ann', username: 'ann', displayName: 'Ann Smit', role: 'admin', orgRole: 'org_admin', organizationId: 'o1', groups: [], status: 'active' };
     const platformAdmin = { id: 'u_ann', role: 'admin', isAdmin: true, permissions: [], organizations: ['o1'] };
-    const orgAdmin = { id: 'u_piet', role: 'user', permissions: ['manage_users'], organizations: ['o1'], organizationId: 'o1' };
+    const orgAdmin = { id: 'u_piet', role: 'user', orgRole: 'org_admin', permissions: ['manage_users'], organizations: ['o1'], organizationId: 'o1' };
 
     let putResponse: () => Promise<unknown> = () => jsonRes({ success: true });
     const putBody = () => {
@@ -266,7 +266,7 @@ describe('UserManagement: platform administrator', () => {
         asMock(authFetch).mockReset();
         asMock(authFetch).mockImplementation((url: string, init?: { method?: string }) => {
             if (init?.method === 'PUT') return putResponse();
-            if (url === '/auth/users') return jsonRes([MEMBER, PLATFORM]);
+            if (url === '/auth/users?scope=admin') return jsonRes([MEMBER, PLATFORM]);
             return jsonRes(FIXTURES[url] ?? {});
         });
     });

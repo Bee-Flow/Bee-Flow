@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { homeOrgIdOf, isOrgAdminRole, isPlatformAdmin } from './adminAccess';
+import { homeOrgIdOf, isHomeOrgAdmin, isOrgAdminRole, isPlatformAdmin, mayManageAccount } from './adminAccess';
 
 describe('isPlatformAdmin', () => {
     it('is the session flag or the global role admin', () => {
@@ -37,5 +37,33 @@ describe('homeOrgIdOf', () => {
         expect(homeOrgIdOf({ organizationId: '' })).toBeNull();
         expect(homeOrgIdOf({ organizationId: 5 })).toBeNull();
         expect(homeOrgIdOf(null)).toBeNull();
+    });
+});
+
+describe('mayManageAccount', () => {
+    it('lets anyone but a platform admin manage the accounts whose home is their own organisation', () => {
+        expect(mayManageAccount({ role: 'user', organizationId: 'o1' }, false, 'o1')).toBe(true);
+        expect(mayManageAccount({ organizationId: 'o2' }, false, 'o1')).toBe(false);
+        expect(mayManageAccount({ organizationId: null }, false, 'o1')).toBe(false);
+        expect(mayManageAccount({}, false, null)).toBe(false);
+    });
+
+    it('keeps a platform admin account to platform admins, who manage every account', () => {
+        expect(mayManageAccount({ role: 'admin', organizationId: 'o1' }, false, 'o1')).toBe(false);
+        expect(mayManageAccount({ role: 'admin', organizationId: 'o1' }, true, null)).toBe(true);
+        expect(mayManageAccount({ organizationId: null }, true, null)).toBe(true);
+    });
+});
+
+describe('isHomeOrgAdmin', () => {
+    it('is the server answer, which also counts an admin group of the home organisation', () => {
+        expect(isHomeOrgAdmin({ isHomeOrgAdmin: true, orgRole: 'member', organizationId: 'o1' })).toBe(true);
+        expect(isHomeOrgAdmin({ isHomeOrgAdmin: false, orgRole: 'org_admin', organizationId: 'o1' })).toBe(false);
+    });
+
+    it('does not guess from the organisation role without that answer', () => {
+        expect(isHomeOrgAdmin({ orgRole: 'org_admin', organizationId: 'o1' })).toBe(false);
+        expect(isHomeOrgAdmin({ isHomeOrgAdmin: 'true' })).toBe(false);
+        expect(isHomeOrgAdmin(null)).toBe(false);
     });
 });

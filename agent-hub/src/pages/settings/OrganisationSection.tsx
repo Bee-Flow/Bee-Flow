@@ -24,6 +24,7 @@ import { useEntitlements } from '../../components/licensing/EntitlementsContext'
 import type { FormMessage, OrgInfoSaveState } from '../../components/admin/org/orgInfo/useOrgInfoForm';
 import type { SettingsUser } from './shell/settingsShellTypes';
 import { mutate, ApiError } from '../../api/mutate';
+import { isPlatformAdmin } from '../../utils/adminAccess';
 
 /* ── Google Maps integration card ────────────────────────────────────────── */
 const GoogleMapsRow = () => {
@@ -131,8 +132,7 @@ const OrganisationSection = ({ user, activeSection = 'license', usageInitialRepo
     const showN8n = !ei || ei.includes('n8n');
     // The Maps key is instance-wide (POST /ai/config takes a platform admin), so
     // only a platform admin gets the row; for anyone else every save is refused.
-    const isPlatformAdmin = user?.isAdmin === true || user?.role === 'admin';
-    const showGoogleMaps = isPlatformAdmin && (!ei || ei.includes('google-maps'));
+    const showGoogleMaps = isPlatformAdmin(user) && (!ei || ei.includes('google-maps'));
     // NC-bound orgs get an additional org-admin panel for Nextcloud
     // integration management (Fase G). Standalone orgs never see it.
     const isNcOrg = !!user?.ncOrg?.instanceId;

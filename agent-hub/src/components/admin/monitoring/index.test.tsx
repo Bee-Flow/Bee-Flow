@@ -4,6 +4,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it } from 'vitest';
 import { setDemoTransport } from '@/utils/helpers';
+import { AdminScopeOverrideProvider } from '@/components/admin/dashboard/useAdminScopeOverride';
 import MonitoringPanel from './index';
 
 const json = (body: unknown) => new Response(JSON.stringify(body), { status: 200, headers: { 'Content-Type': 'application/json' } });
@@ -61,9 +62,13 @@ describe('MonitoringPanel scope', () => {
     const ALL = { organizationId: null, organizationName: null, allOrganizations: true };
     const feedbackReads = (asked: string[]) => asked.filter((u) => u.includes('/api/feedback'));
 
+    const ORG_ADMIN = { isAdmin: false, role: 'user', orgRole: 'org_admin', organizationId: 'org-a', isHomeOrgAdmin: true };
+    const PLATFORM_ADMIN = { isAdmin: true, role: 'admin' };
+
     it('names the organisation the figures cover and reads its own feedback', async () => {
         const asked = serve(ORG_A);
-        render(<MonitoringPanel activeSection="feedback" />);
+        render(<MonitoringPanel activeSection="feedback" user={ORG_ADMIN} />);
+        expect(screen.getByRole('heading', { level: 2, name: 'Feedback' })).toBeTruthy();
         expect(await screen.findByText('Usage of Org A')).toBeTruthy();
         await waitFor(() => expect(feedbackReads(asked).length).toBe(2));
         expect(feedbackReads(asked).every((u) => u.includes('/api/feedback/org'))).toBe(true);
@@ -71,10 +76,29 @@ describe('MonitoringPanel scope', () => {
 
     it('says when the figures cover every organisation and reads the instance-wide feedback', async () => {
         const asked = serve(ALL);
-        render(<MonitoringPanel activeSection="feedback" />);
+        render(<MonitoringPanel activeSection="feedback" user={PLATFORM_ADMIN} />);
+        expect(screen.getByRole('heading', { level: 2, name: 'Feedback' })).toBeTruthy();
         expect(await screen.findByText('Usage of all organisations')).toBeTruthy();
         await waitFor(() => expect(feedbackReads(asked).length).toBe(2));
         expect(feedbackReads(asked).some((u) => u.includes('/api/feedback/org'))).toBe(false);
+    });
+
+    // The dashboard's chip and the line under the heading tell the same story.
+    it('reports an organisation scope to the dashboard chip when the figures cover one organisation, none when they cover all', async () => {
+        const reported: (string | null)[] = [];
+        const report = (scope: string | null) => { reported.push(scope); };
+        serve(ORG_A);
+        const { unmount } = render(<AdminScopeOverrideProvider value={report}><MonitoringPanel user={ORG_ADMIN} /></AdminScopeOverrideProvider>);
+        await screen.findByText('Usage of Org A');
+        await waitFor(() => expect(reported.at(-1)).toBe('org'));
+        unmount();
+        expect(reported.at(-1)).toBeNull();
+
+        reported.length = 0;
+        serve(ALL);
+        render(<AdminScopeOverrideProvider value={report}><MonitoringPanel user={PLATFORM_ADMIN} /></AdminScopeOverrideProvider>);
+        await screen.findByText('Usage of all organisations');
+        expect(reported).toEqual([]);
     });
 
     // The /org routes need an organisation admin; the generic route needs only

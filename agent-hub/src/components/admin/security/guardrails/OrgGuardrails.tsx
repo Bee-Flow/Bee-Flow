@@ -1,4 +1,3 @@
-import { adminSectionScope } from '@/components/admin/dashboard/adminTabs';
 import { useAdminScopeOverride } from '@/components/admin/dashboard/useAdminScopeOverride';
 import SectionHeader from '@/components/shared/SectionHeader';
 import { useTranslation } from '@/hooks/useTranslation';
@@ -18,7 +17,8 @@ interface OrgGuardrailsProps {
  */
 export default function OrgGuardrails({ orgId }: OrgGuardrailsProps) {
     const { t } = useTranslation();
-    useAdminScopeOverride(adminSectionScope('security', 'guardrails', 'organisations'));
+    // Only one organisation is behind this view: the shield of the viewer's home organisation.
+    useAdminScopeOverride('org');
     if (!orgId) return null;
     return (
         <div className="space-y-5">

@@ -17,6 +17,11 @@ interface OrgMemberRowProps {
     groupsState: OrgGroups;
     memberRoles: OrgMemberRoles;
     onCreateGroup: () => void;
+    /**
+     * The viewer may change this account (utils/adminAccess mayManageAccount).
+     * Without it the row is read-only: the server refuses every write on it.
+     */
+    manageable: boolean;
 }
 
 function MemberAvatar({ member: u }: { member: OrgMember }) {
@@ -124,9 +129,8 @@ function RoleDropdown({ member: u, memberRoles }: { member: OrgMember; memberRol
 }
 
 /** One member of the Users tab: who, which groups, what they spent, and what can be done. */
-export default function OrgMemberRow({ member: u, orgGroups, usage, groupsState, memberRoles, onCreateGroup }: OrgMemberRowProps) {
+export default function OrgMemberRow({ member: u, orgGroups, usage, groupsState, memberRoles, onCreateGroup, manageable }: OrgMemberRowProps) {
     const { t } = useTranslation();
-    const { isSelfHosted } = useDeploymentMode();
     const uGroups = Array.isArray(u.groups) ? u.groups : [];
     const userOrgGroups = orgGroups.filter(g => uGroups.includes(g.id));
     return (
@@ -160,28 +164,36 @@ export default function OrgMemberRow({ member: u, orgGroups, usage, groupsState,
                 </div>
             </div>
             <MemberUsageCost usage={usage} />
-            {u.status === 'pending' ? (
-                <PendingActions userId={u.id} memberRoles={memberRoles} />
-            ) : (
-                <>
-                    {isSelfHosted && (
-                        <BudgetEditor
-                            value={u.monthlyCostLimit}
-                            label={t('admin_org.user_modal_cost_limit', 'Monthly AI budget (€)')}
-                            suffix="/mo"
-                            onSave={v => memberRoles.handleUpdateUserCostLimit(u.id, v)}
-                        />
-                    )}
-                    <RoleDropdown member={u} memberRoles={memberRoles} />
-                    <GroupAssignPopover
-                        userId={u.id}
-                        userGroups={uGroups}
-                        orgGroups={orgGroups}
-                        groupsState={groupsState}
-                        onCreateGroup={onCreateGroup}
-                    />
-                </>
+            {manageable && (
+                <MemberActions member={u} orgGroups={orgGroups} groupsState={groupsState} memberRoles={memberRoles} onCreateGroup={onCreateGroup} />
             )}
         </div>
+    );
+}
+
+/** What can be done to a member: approve or reject a pending one, else budget, role and groups. */
+function MemberActions({ member: u, orgGroups, groupsState, memberRoles, onCreateGroup }: Omit<OrgMemberRowProps, 'usage' | 'manageable'>) {
+    const { t } = useTranslation();
+    const { isSelfHosted } = useDeploymentMode();
+    if (u.status === 'pending') return <PendingActions userId={u.id} memberRoles={memberRoles} />;
+    return (
+        <>
+            {isSelfHosted && (
+                <BudgetEditor
+                    value={u.monthlyCostLimit}
+                    label={t('admin_org.user_modal_cost_limit', 'Monthly AI budget (€)')}
+                    suffix="/mo"
+                    onSave={v => memberRoles.handleUpdateUserCostLimit(u.id, v)}
+                />
+            )}
+            <RoleDropdown member={u} memberRoles={memberRoles} />
+            <GroupAssignPopover
+                userId={u.id}
+                userGroups={Array.isArray(u.groups) ? u.groups : []}
+                orgGroups={orgGroups}
+                groupsState={groupsState}
+                onCreateGroup={onCreateGroup}
+            />
+        </>
     );
 }

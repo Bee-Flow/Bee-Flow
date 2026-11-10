@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import { API_BASE } from '@/utils/helpers';
 import { settled } from '@/api/settled';
+import { isPlatformAdmin } from '@/utils/adminAccess';
 import type { AdminCurrentUser, AdminGroup, AdminMessage, AdminOrganization, AdminPermission, AdminRole, AdminUser } from './types';
 
 export interface UserManagementData {
@@ -11,6 +12,12 @@ export interface UserManagementData {
     roles: AdminRole[];
     permissions: AdminPermission[];
     loading: boolean;
+    /**
+     * The admin-scoped user list was refused (403): the viewer holds a
+     * directory permission but administers no organisation of their own, and
+     * the dashboard lists are for organisation admins and platform admins.
+     */
+    notOrgAdmin: boolean;
     message: AdminMessage | null;
     setMessage: Dispatch<SetStateAction<AdminMessage | null>>;
     loadData: () => Promise<void>;
@@ -24,11 +31,6 @@ export interface UserManagementDataOptions {
      * server-wide role table only for a platform admin.
      */
     currentUser?: AdminCurrentUser | null;
-}
-
-/** Platform admin as pages/AdminDashboard.tsx decides it: the operator flag or role 'admin', never the 'all' permission. */
-function isPlatformAdmin(user: AdminCurrentUser | null | undefined): boolean {
-    return !!(user?.isAdmin || user?.role === 'admin');
 }
 
 /**
@@ -50,6 +52,7 @@ export default function useUserManagementData(options?: UserManagementDataOption
     const [permissions, setPermissions] = useState<AdminPermission[]>([]);
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState<AdminMessage | null>(null);
+    const [notOrgAdmin, setNotOrgAdmin] = useState(false);
 
     const adminScoped = options !== undefined;
     const readsRoles = !adminScoped || isPlatformAdmin(options.currentUser);
@@ -67,6 +70,7 @@ export default function useUserManagementData(options?: UserManagementDataOption
             ]);
 
             if (usersRes.ok) setUsers(await usersRes.res.json());
+            setNotOrgAdmin(adminScoped && !usersRes.ok && usersRes.status === 403);
             if (groupsRes.ok) setGroups(await groupsRes.res.json());
             if (rolesRes === null) setRoles([]);
             else if (rolesRes.ok) setRoles(await rolesRes.res.json());
@@ -84,5 +88,5 @@ export default function useUserManagementData(options?: UserManagementDataOption
         loadData();
     }, [loadData]);
 
-    return { users, groups, organizations, roles, permissions, loading, message, setMessage, loadData };
+    return { users, groups, organizations, roles, permissions, loading, notOrgAdmin, message, setMessage, loadData };
 }

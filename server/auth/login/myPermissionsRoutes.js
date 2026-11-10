@@ -17,7 +17,7 @@ const { fallback } = require('../../utils/bestEffort');
 const router = express.Router();
 
 const userStore = require('../../stores/userStore');
-const { requireAuth, getUserPermissions } = require('../permissions');
+const { requireAuth, getUserPermissions, _evalOrgAdmin } = require('../permissions');
 
 // Get current user's permissions (dynamic)
 router.get('/my-permissions', requireAuth, async (req, res) => {
@@ -28,6 +28,11 @@ router.get('/my-permissions', requireAuth, async (req, res) => {
     let userGroups = [];
     let userOrgIds = [];
     let allowedAgentTypes = [];
+    // Administers their HOME organisation by the strict check every org-admin
+    // gate uses (_evalOrgAdmin: an admin orgRole there, or a group IN it that
+    // carries admin rights); the admin dashboard (auth/adminOrg.mts) asks the
+    // same. The SPA reads it instead of guessing from orgRole alone.
+    let isHomeOrgAdmin = false;
     let user = null;
     try {
         user = await userStore.getUser(userId);
@@ -47,6 +52,7 @@ router.get('/my-permissions', requireAuth, async (req, res) => {
             if (user.organizationId) orgSet.add(user.organizationId);
             userOrgIds = [...orgSet];
             allowedAgentTypes = [...agentTypeSet];
+            isHomeOrgAdmin = !!user.organizationId && _evalOrgAdmin(user, allGroups, user.organizationId);
         }
     } catch (_) { log.warn('group lookup failed, org and agent-type lists stay empty', _); }
 
@@ -85,7 +91,7 @@ router.get('/my-permissions', requireAuth, async (req, res) => {
         try { betaFeatures = await require('../../core/entitlements/betaFeatures').getUserBetaFeatures(userId, req.session); } catch (e) { fallback('myPermissions:legacy-betas', e); }
     }
 
-    res.json({ permissions: perms, groups: userGroups, organizations: userOrgIds, allowedAgentTypes, betaFeatures, canUseFeature, orgRole: user?.orgRole || '' });
+    res.json({ permissions: perms, groups: userGroups, organizations: userOrgIds, allowedAgentTypes, betaFeatures, canUseFeature, orgRole: user?.orgRole || '', isHomeOrgAdmin });
 });
 
 module.exports = router;

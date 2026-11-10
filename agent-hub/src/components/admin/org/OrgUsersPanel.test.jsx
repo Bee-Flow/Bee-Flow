@@ -125,10 +125,10 @@ const installFetch = () => {
         if (override) {
             return override.notJson ? notJsonRes(override.status) : jsonRes(override.body ?? {}, override.status);
         }
-        if (url === '/auth/users') return jsonRes(state.users);
-        if (url === '/auth/groups') return jsonRes(state.groups);
+        if (url === '/auth/users?scope=admin') return jsonRes(state.users);
+        if (url === '/auth/groups?scope=admin') return jsonRes(state.groups);
         if (url === '/auth/org-roles') return jsonRes(state.orgRoles);
-        if (url === '/auth/organizations') return jsonRes(state.organizations);
+        if (url === '/auth/organizations?scope=admin') return jsonRes(state.organizations);
         if (url === '/auth/invitations') return jsonRes(state.invitations);
         if (url === '/api/usage/by-user?days=30') return jsonRes(state.usage);
         if (url === '/ai/config/custom-tiers-list') return jsonRes({ tiers: state.customTiers });
@@ -197,7 +197,7 @@ describe('OrgUsersPanel — loading and failed fetches', () => {
     });
 
     it('a 403 on /auth/users is indistinguishable from "no users yet" (wrat)', async () => {
-        await renderPanel({ getOverrides: { '/auth/users': { status: 403, body: { error: 'forbidden' } } } });
+        await renderPanel({ getOverrides: { '/auth/users?scope=admin': { status: 403, body: { error: 'forbidden' } } } });
         expect(screen.getByText('No users yet')).toBeInTheDocument();
         expect(screen.getByText('Manage Groups')).toBeInTheDocument();
     });
@@ -233,11 +233,11 @@ describe('OrgUsersPanel — member list rendering', () => {
         expect(screen.getByText('Jan de Vries')).toBeInTheDocument();
     });
 
-    it('renders a member of a DIFFERENT organisation when the server returns one — no client-side org scoping (wrat)', async () => {
+    it('lists a member whose home is another organisation read-only, as the server returned it', async () => {
         await renderPanel({
             users: [...USERS, { id: 'u_out', displayName: 'Outsider Inc', email: 'out@other.nl', organizationId: 'orgB', orgRole: 'member', groups: [] }],
         });
-        expect(screen.getByText('Outsider Inc')).toBeInTheDocument();
+        expect(within(row('Outsider Inc')).queryByTitle('Change role')).not.toBeInTheDocument();
     });
 
     it('falls back to the first letter of the display name as avatar', async () => {
@@ -328,12 +328,12 @@ describe('OrgUsersPanel — changing a role', () => {
     });
 
     it('preselects "User" for a member who has no orgRole at all', async () => {
-        await renderPanel({ users: [{ id: 'u_none', displayName: 'Noor Zonder', groups: [], status: 'active' }] });
+        await renderPanel({ users: [{ id: 'u_none', displayName: 'Noor Zonder', groups: [], organizationId: 'orgA', status: 'active' }] });
         expect(openRoleEditor('Noor Zonder').value).toBe('user');
     });
 
     it('shows "User" for a legacy admin because no option matches the stored role (fail-open)', async () => {
-        await renderPanel({ users: [{ id: 'u_legacy', displayName: 'Lea Legacy', orgRole: 'admin', groups: [], status: 'active' }] });
+        await renderPanel({ users: [{ id: 'u_legacy', displayName: 'Lea Legacy', orgRole: 'admin', groups: [], organizationId: 'orgA', status: 'active' }] });
         expect(openRoleEditor('Lea Legacy').value).toBe('user');
     });
 
@@ -421,7 +421,7 @@ describe('OrgUsersPanel — changing a role', () => {
 // ══════════════════════════════════════════════════════════ pending members ══
 
 describe('OrgUsersPanel — pending members', () => {
-    const PENDING = { id: 'u_pending', displayName: 'Piet Jansen', email: 'piet@acme.nl', orgRole: 'org_admin', groups: [], status: 'pending' };
+    const PENDING = { id: 'u_pending', displayName: 'Piet Jansen', email: 'piet@acme.nl', orgRole: 'org_admin', groups: [], organizationId: 'orgA', status: 'pending' };
 
     it('shows a Pending badge instead of the role chip, even for a pending org_admin (wrat)', async () => {
         await renderPanel({ users: [PENDING] });
@@ -472,19 +472,19 @@ describe('OrgUsersPanel — pending members', () => {
 // ═════════════════════════════════════════════════════════════ permissions ══
 
 describe('OrgUsersPanel — who may see the controls', () => {
-    it('shows every write control to a viewer with no role, no permissions and no organisation (fail-open)', async () => {
+    it('keeps every row read-only for a viewer without a home organisation; Invite User stays', async () => {
         await renderPanel({
-            users: [...USERS, { id: 'u_p', displayName: 'Piet Jansen', groups: [], status: 'pending' }],
+            users: [...USERS, { id: 'u_p', displayName: 'Piet Jansen', groups: [], organizationId: 'orgA', status: 'pending' }],
         }, NOBODY);
         expect(screen.getByText('Invite User')).toBeInTheDocument();
-        expect(within(row('Jan de Vries')).getByTitle('Change role')).toBeInTheDocument();
-        expect(within(row('Jan de Vries')).getByTitle('Assign groups')).toBeInTheDocument();
-        expect(within(row('Piet Jansen')).getByText('Approve')).toBeInTheDocument();
-        expect(within(row('Piet Jansen')).getByText('Reject')).toBeInTheDocument();
+        expect(within(row('Jan de Vries')).queryByTitle('Change role')).not.toBeInTheDocument();
+        expect(within(row('Jan de Vries')).queryByTitle('Assign groups')).not.toBeInTheDocument();
+        expect(within(row('Piet Jansen')).queryByText('Approve')).not.toBeInTheDocument();
+        expect(within(row('Piet Jansen')).queryByText('Reject')).not.toBeInTheDocument();
     });
 
-    it('lets that same roleless viewer actually fire the role change (no client-side gate)', async () => {
-        await renderPanel({}, NOBODY);
+    it('lets a platform admin change the role of a member of any organisation', async () => {
+        await renderPanel({ users: [{ ...USERS[1], organizationId: 'orgB' }] }, { ...NOBODY, isAdmin: true });
         await userEvent.click(within(row('Eva Bakker')).getByTitle('Change role'));
         fireEvent.change(within(row('Eva Bakker')).getByRole('combobox'), { target: { value: 'org_admin' } });
         await waitFor(() => expect(writes()).toContainEqual({

@@ -11,8 +11,8 @@ import { useLicenseContext } from '../../licensing/LicenseContext';
 import type { AdminCurrentUser } from '../org/userManagement/types';
 import SectionNav from '@/components/shared/SectionNav';
 import StudioShell from '@/components/shared/StudioShell';
-import { adminSectionScope, isAdminSectionVisible } from '@/components/admin/dashboard/adminTabs';
-import { homeOrgIdOf, isPlatformAdmin } from '@/utils/adminAccess';
+import { adminSectionScope, isAdminSectionVisible, type AdminScope } from '@/components/admin/dashboard/adminTabs';
+import { homeOrgIdOf, isHomeOrgAdmin, isPlatformAdmin } from '@/utils/adminAccess';
 import { useAdminScopeOverride } from '@/components/admin/dashboard/useAdminScopeOverride';
 
 /**
@@ -35,6 +35,16 @@ const SECTIONS = [
     { id: 'connector-health', labelKey: 'admin.sec_connector_health', icon: Activity },
 ];
 
+/**
+ * The scope of the rendered section, for the dashboard chip. Guardrails reports
+ * the scope of its own sub-section. Anyone but a platform admin only sees Users
+ * here, whose lists (`?scope=admin`) hold their home organisation.
+ */
+function securityScope(active: string, platformAdmin: boolean): AdminScope | null {
+    if (active === 'guardrails') return null;
+    return platformAdmin ? adminSectionScope('security', active) : 'org';
+}
+
 interface SecurityHubProps {
     activeSection?: string;
     userSection?: string;
@@ -54,13 +64,13 @@ const SecurityHub = ({ activeSection: activeProp = 'users', userSection = '', on
     const visibleSections = SECTIONS
         .filter(s => isAdminSectionVisible('security', platformAdmin, s.id))
         .filter(s => !s.enterpriseOnly || isEnterprise)
-        // The per-organisation shield needs a home organisation; without one there is nothing behind it.
-        .filter(s => s.id !== 'guardrails' || platformAdmin || homeOrgIdOf(user) !== null);
+        // The per-organisation shield is saved by an organisation admin of the home organisation
+        // only (the server's strict check, utils/adminAccess isHomeOrgAdmin).
+        .filter(s => s.id !== 'guardrails' || platformAdmin || isHomeOrgAdmin(user));
     const VALID_IDS = visibleSections.map(s => s.id);
     const active = VALID_IDS.includes(activeProp) ? activeProp : 'users';
     // The URL may name a section this viewer cannot see; the scope follows what is rendered.
-    // Guardrails reports the scope of its own sub-section.
-    useAdminScopeOverride(active === 'guardrails' ? null : adminSectionScope('security', active));
+    useAdminScopeOverride(securityScope(active, platformAdmin));
 
     return (
         <StudioShell

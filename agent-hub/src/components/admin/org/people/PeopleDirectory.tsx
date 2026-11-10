@@ -21,6 +21,8 @@ interface PeopleDirectoryProps {
     canManageUsers?: boolean;
     /** The viewer is a platform admin, who alone manages a platform admin's account. */
     viewerIsPlatformAdmin?: boolean;
+    /** The viewer's home organisation: the accounts anyone but a platform admin may act on. */
+    viewerHomeOrgId?: string | null;
     onAddUser: () => void;
     onEditUser?: (user: PeopleUser) => void;
     onResetMfa?: (user: PeopleUser) => void;
@@ -46,7 +48,8 @@ export default function PeopleDirectory({
     organizations = [],
     loading = false,
     canManageUsers = false,
-    viewerIsPlatformAdmin = false,
+    viewerIsPlatformAdmin,
+    viewerHomeOrgId,
     onAddUser,
     onEditUser,
     onResetMfa,
@@ -95,6 +98,7 @@ export default function PeopleDirectory({
     const rowProps = {
         canManage: canManageUsers,
         viewerIsPlatformAdmin,
+        viewerHomeOrgId,
         onEdit: onEditUser,
         onResetMfa,
         onDelete: onDeleteUser,

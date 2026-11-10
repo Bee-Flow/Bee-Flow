@@ -83,5 +83,18 @@ describe('useUserManagementData', () => {
         await waitFor(() => expect(result.current.loading).toBe(false));
         expect(result.current.users).toEqual([]);
         expect(result.current.message).toBeNull();
+        expect(result.current.notOrgAdmin).toBe(true);
+    });
+
+    it('a user list that loads, or an unscoped one, is not a refusal', async () => {
+        const scoped = renderHook(() => useUserManagementData({ currentUser: { id: 'me', role: 'user' } }));
+        await waitFor(() => expect(scoped.result.current.users).toHaveLength(1));
+        expect(scoped.result.current.notOrgAdmin).toBe(false);
+
+        fetchMock.mockImplementation(async () => json({ error: 'Permission required to view users' }, 403));
+        const unscoped = renderHook(() => useUserManagementData());
+        await waitFor(() => expect(requested().filter(u => u === '/auth/users')).toHaveLength(1));
+        await waitFor(() => expect(unscoped.result.current.loading).toBe(false));
+        expect(unscoped.result.current.notOrgAdmin).toBe(false);
     });
 });

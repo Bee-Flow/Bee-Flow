@@ -671,6 +671,7 @@
     "admin_org.roles_section_subtitle": "Definieer rolsjablonen met rechten",
     "admin_org.roles_section_title": "Rollen",
     "admin_org.user_mgmt_loading": "Gegevens laden...",
+    "admin_org.user_mgmt_org_admins_only": "Deze pagina is voor beheerders van de organisatie, dus vraag een platformbeheerder als je toegang nodig hebt.",
     "admin_org.user_modal_display_name": "Weergavenaam",
     "admin_org.user_modal_display_name_ph": "Jan Jansen",
     "admin_org.user_modal_email": "E-mail",

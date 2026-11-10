@@ -32,6 +32,12 @@ export interface AdminTab {
     scope: AdminScope | null;
     /** Sub-section (the second URL segment) to the scope where it differs from `scope`; `section/part` names a part inside a sub-section. */
     sections?: Readonly<Record<string, AdminScope>>;
+    /**
+     * Sub-sections whose organisation view reads a route only an organisation
+     * admin of their home organisation passes (a platform admin always does):
+     * hidden from anyone else who opens the tab, rather than shown empty.
+     */
+    orgAdminSections?: readonly string[];
     superAdminOnly?: boolean;
     minTier?: string;
     cloudOnly?: boolean;
@@ -91,7 +97,9 @@ export const ADMIN_TABS: readonly AdminTab[] = [
     // too (they manage their own org); super-admins get an org picker, and the
     // Ceiling holds server-wide switches, so no one scope fits the tab.
     { id: 'access', labelKey: 'admin.tab_access', labelFallback: 'Access', icon: KeyRound, group: 'security', perm: ['admin_security', 'org_admin', 'manage_users'], scope: null, superAdminOnly: false },
-    { id: 'monitoring', labelKey: 'admin.tab_monitoring', icon: Activity, group: 'operations', perm: ['admin_monitoring'], scope: 'mixed', sections: { feedback: 'instance' }, superAdminOnly: false, minTier: 'enterprise' },
+    // Feedback: a platform admin reads every organisation's, an organisation admin their home
+    // organisation's (server routes/feedback.js `/org`, which refuses anyone else).
+    { id: 'monitoring', labelKey: 'admin.tab_monitoring', icon: Activity, group: 'operations', perm: ['admin_monitoring'], scope: 'mixed', orgAdminSections: ['feedback'], superAdminOnly: false, minTier: 'enterprise' },
     // Compliance Hub — available on cloud AND self-hosted (Enterprise):
     // self-hosted GDPR customers are exactly who the hub serves. Also
     // reachable from Settings → Organisation for org-admins/DPOs.
@@ -177,6 +185,25 @@ export function adminSectionScope(tabId: string, section?: string, part?: string
 /** May this viewer see a section (or a part of one)? A server-wide one is for the platform admin only. */
 export function isAdminSectionVisible(tabId: string, isPlatformAdmin: boolean, section?: string, part?: string): boolean {
     return isPlatformAdmin || adminSectionScope(tabId, section, part) !== 'instance';
+}
+
+/** The viewer's two admin standings, as the section rules read them (utils/adminAccess). */
+export interface AdminSectionViewer {
+    isPlatformAdmin: boolean;
+    /** An organisation admin of their home organisation (utils/adminAccess isHomeOrgAdmin). */
+    isHomeOrgAdmin: boolean;
+}
+
+/**
+ * May this viewer see a section (or a part of one)? As isAdminSectionVisible,
+ * and a section the tab lists in `orgAdminSections` also needs an organisation
+ * admin of the home organisation, unless the viewer is a platform admin.
+ */
+export function isAdminSectionVisibleTo(tabId: string, viewer: AdminSectionViewer, section?: string, part?: string): boolean {
+    if (viewer.isPlatformAdmin) return true;
+    if (!isAdminSectionVisible(tabId, false, section, part)) return false;
+    const needsOrgAdmin = !!section && !!ADMIN_TABS.find(t => t.id === tabId)?.orgAdminSections?.includes(section);
+    return !needsOrgAdmin || viewer.isHomeOrgAdmin;
 }
 
 export interface ShownScopeInput {

@@ -34730,6 +34730,7 @@ const EN_DEFAULTS = {
     "admin_org.roles_section_subtitle": "Define role templates with permissions",
     "admin_org.roles_section_title": "Roles",
     "admin_org.user_mgmt_loading": "Loading data...",
+    "admin_org.user_mgmt_org_admins_only": "This page is for administrators of the organisation, so ask a platform administrator if you need access.",
     "admin_org.user_modal_avatar": "Avatar",
     "admin_org.user_modal_cost_limit": "Monthly AI budget (€)",
     "admin_org.user_modal_cost_limit_hint": "Leave empty to use the budget of the user's groups (the highest one applies), or no limit if none of them has one.",

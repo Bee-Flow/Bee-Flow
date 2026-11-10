@@ -17,8 +17,9 @@ import type { MonitoringPanelProps } from './index.types';
 import { PAGES, monitoringPageOf } from './monitoring.constants';
 import type { CoveredScope } from './shared.types';
 import { toLocalInput } from './monitoring.helpers';
-import { isAdminSectionVisible } from '@/components/admin/dashboard/adminTabs';
-import { isPlatformAdmin } from '@/utils/adminAccess';
+import { isAdminSectionVisibleTo } from '@/components/admin/dashboard/adminTabs';
+import { useAdminScopeOverride } from '@/components/admin/dashboard/useAdminScopeOverride';
+import { isHomeOrgAdmin, isPlatformAdmin } from '@/utils/adminAccess';
 
 /** Change against the previous period, in percent (null where the previous period had none). */
 function usageDeltas(summary: UsageSummary | null, prevSummary: UsageSummary | null): UsageDeltas {
@@ -115,9 +116,10 @@ function MonitoringPage({ page, data, range, customStart, customEnd, refreshKey,
  */
 export default function MonitoringPanel({ activeSection = '', onNavigate, user }: MonitoringPanelProps) {
     const { t } = useTranslation();
-    // A server-wide page (Feedback) is for the platform admin only; a hidden one falls back to Overview.
-    const platformAdmin = isPlatformAdmin(user);
-    const pages = PAGES.filter(p => isAdminSectionVisible('monitoring', platformAdmin, p.id));
+    // Feedback is for a platform admin and an organisation admin of their home organisation
+    // (the `/org` route refuses anyone else); a hidden page falls back to Overview.
+    const viewer = { isPlatformAdmin: isPlatformAdmin(user), isHomeOrgAdmin: isHomeOrgAdmin(user) };
+    const pages = PAGES.filter(p => isAdminSectionVisibleTo('monitoring', viewer, p.id));
     const requested = monitoringPageOf(activeSection);
     const page = pages.some(p => p.id === requested) ? requested : 'overview';
     const meta = pages.find(p => p.id === page) ?? pages[0];
@@ -129,6 +131,8 @@ export default function MonitoringPanel({ activeSection = '', onNavigate, user }
     const title = t('admin_monitoring.title', 'AI Monitor');
     const { costPerModel } = useModelCosts(data);
     const scopeLine = useScopeLine(data.summary?.scope);
+    // The dashboard's scope chip says what the figures say: one organisation when the answer covers one.
+    useAdminScopeOverride(data.summary?.scope?.organizationId ? 'org' : null);
     const pageDescription = t(meta.descriptionKey, meta.description);
 
     const sidebar = (

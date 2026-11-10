@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ADMIN_TAB_GROUPS, ADMIN_TABS, adminScopeOf, adminSectionScope, buildAdminRailSections, canOpenAdminTab, groupAdminTabs, isAdminSectionVisible, resolveAdminTab, shownAdminScope } from './adminTabs';
+import { ADMIN_TAB_GROUPS, ADMIN_TABS, adminScopeOf, adminSectionScope, buildAdminRailSections, canOpenAdminTab, groupAdminTabs, isAdminSectionVisible, isAdminSectionVisibleTo, resolveAdminTab, shownAdminScope } from './adminTabs';
 import type { AdminAccess, AdminTab } from './adminTabs';
 
 const access = (over: Partial<AdminAccess> = {}): AdminAccess => ({
@@ -61,7 +61,7 @@ describe('scope', () => {
         expect(adminScopeOf(tab('agents'), 'system')).toBe('instance');
         expect(adminScopeOf(tab('agents'), 'chat')).toBe('mixed');
         expect(adminScopeOf(tab('monitoring'))).toBe('mixed');
-        expect(adminScopeOf(tab('monitoring'), 'feedback')).toBe('instance');
+        expect(adminScopeOf(tab('monitoring'), 'feedback')).toBe('mixed');
         expect(adminScopeOf(tab('security'), 'constructor')).toBe('mixed');
         expect(adminScopeOf(tab('compliance'), 'anything')).toBe('org');
     });
@@ -102,7 +102,18 @@ describe('server-wide scope', () => {
         expect(isAdminSectionVisible('agents', false, 'chat')).toBe(true);
         for (const s of ['sso', 'email-domains', 'connector-health']) expect(isAdminSectionVisible('security', false, s)).toBe(false);
         for (const s of ['users', 'guardrails']) expect(isAdminSectionVisible('security', false, s)).toBe(true);
-        expect(isAdminSectionVisible('monitoring', false, 'feedback')).toBe(false);
+    });
+
+    it('feedback: a platform admin and an organisation admin of their home organisation see it, anyone else with the tab does not', () => {
+        expect(isAdminSectionVisibleTo('monitoring', { isPlatformAdmin: true, isHomeOrgAdmin: false }, 'feedback')).toBe(true);
+        expect(isAdminSectionVisibleTo('monitoring', { isPlatformAdmin: false, isHomeOrgAdmin: true }, 'feedback')).toBe(true);
+        expect(isAdminSectionVisibleTo('monitoring', { isPlatformAdmin: false, isHomeOrgAdmin: false }, 'feedback')).toBe(false);
+        // The other pages read the generic routes, which scope any holder of the tab to their organisation.
+        for (const page of ['overview', 'usage', 'activity', 'terminations']) {
+            expect(isAdminSectionVisibleTo('monitoring', { isPlatformAdmin: false, isHomeOrgAdmin: false }, page)).toBe(true);
+        }
+        // A server-wide section stays the platform admin's, whatever the organisation standing.
+        expect(isAdminSectionVisibleTo('security', { isPlatformAdmin: false, isHomeOrgAdmin: true }, 'sso')).toBe(false);
     });
 
     it('guardrails: every part is server-wide except the per-organisation shield', () => {

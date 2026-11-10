@@ -5,7 +5,7 @@ import GroupsSection from './orgUsers/GroupsSection';
 import RolesSection from './orgUsers/RolesSection';
 import UsersSection from './orgUsers/UsersSection';
 import useOrgDirectory from './useOrgDirectory';
-import type { OrgGroupRow, OrgRolePermissions } from './useOrgDirectory';
+import type { OrgGroupRow, OrgMember, OrgRolePermissions } from './useOrgDirectory';
 import useOrgGroups from './useOrgGroups';
 import useOrgInvitations from './useOrgInvitations';
 import useOrgMemberRoles from './useOrgMemberRoles';
@@ -14,6 +14,7 @@ import { ORG_ROLES } from '@/config/orgRoles';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useUrlTab } from '@/hooks/useUrlTab';
 import { useUserFilters } from '@/hooks/useUserFilters';
+import { homeOrgIdOf, isPlatformAdmin, mayManageAccount } from '@/utils/adminAccess';
 import NextcloudSyncPanel from '../../integrations/nextcloud/NextcloudSyncPanel';
 import ConfirmDialog from '../../shared/ConfirmDialog';
 import Tabs from '../../shared/Tabs';
@@ -42,6 +43,7 @@ interface OrgUsersPanelUser {
     /** Group ids. */
     groups?: string[];
     isAdmin?: boolean;
+    role?: string | null;
     orgRole?: string | null;
     ncOrg?: { instanceId?: string | null } | null;
     [key: string]: unknown;
@@ -169,14 +171,19 @@ const OrgUsersPanel = ({ user, initialSection: _initialSection, basePath = LEGAC
     const orgRoleCount = ORG_ROLES.length;
 
     const canEditRoles = canUserEditRoles(user);
+    // The server manages an account through its home organisation, and a
+    // platform admin's account through a platform admin only.
+    const viewerIsPlatformAdmin = isPlatformAdmin(user);
+    const viewerHomeOrgId = homeOrgIdOf(user);
+    const canManageMember = (member: OrgMember) => mayManageAccount(member, viewerIsPlatformAdmin, viewerHomeOrgId);
 
     const handleRolePermissionsSaved = (roleId: string, permissions: string[]) => {
         setOrgRolePerms(prev => spliceRolePermissions(prev, roleId, permissions, editablePermissions));
     };
 
-    // Trust the server's org scoping. GET /auth/users already returns exactly
-    // the org members the caller may see (scoped server-side via
-    // resolveUserOrgIds, self always included). Re-deriving the org set on the
+    // Trust the server's org scoping. GET /auth/users?scope=admin returns the
+    // members of the caller's home organisation (auth/adminOrg.mts; every user
+    // for a platform admin). Re-deriving the org set on the
     // client from `user.organizationId` caused the member list to diverge
     // between the embedded Nextcloud view and standalone, and could hide
     // members from an org-admin whose client-side org pointer was stale. We
@@ -221,6 +228,7 @@ const OrgUsersPanel = ({ user, initialSection: _initialSection, basePath = LEGAC
                     memberRoles={memberRoles}
                     userFilters={userFilters}
                     onGoToGroups={goToGroups}
+                    canManageMember={canManageMember}
                 />
             )}
 

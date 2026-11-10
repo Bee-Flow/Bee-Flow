@@ -188,6 +188,40 @@ describe('UserManagement', () => {
         expect(screen.getByText(/admin\.org_source_unknown/)).toBeInTheDocument();
     });
 
+    // A directory permission without administration of the home organisation:
+    // the admin-scoped lists answer 403, and the screen says who it is for.
+    it('says who the page is for when the admin-scoped lists are refused', async () => {
+        asMock(authFetch).mockImplementation((url: string) => (String(url).includes('scope=admin')
+            ? jsonRes({ error: 'Organization admin access required', code: 'org_admin_required' }, 403)
+            : jsonRes(FIXTURES[url] ?? {})));
+        const directoryHolder = { id: 'me', permissions: ['manage_users'], isAdmin: false, organizations: ['o1'] };
+        render(<UserManagement user={directoryHolder} />);
+        expect((await screen.findByText('admin_org.user_mgmt_org_admins_only')).closest('[role="status"]')).not.toBeNull();
+        expect(screen.getByText('admin.sec_people_title')).toBeInTheDocument();
+        // The server refuses the edits as it refused the lists, so no control offers one.
+        expect(screen.queryByText('admin.sec_people_add')).not.toBeInTheDocument();
+    });
+
+    // The scoped list also holds members of the organisation's groups whose
+    // home is elsewhere (or nowhere); the server manages an account through its
+    // home organisation only.
+    it('lists a member through a group alone read-only for an organisation admin', async () => {
+        const bob = { id: 'u2', username: 'bob', displayName: 'Bob Visser', role: 'user', orgRole: 'member', groups: ['g1'], organizationId: 'o2' };
+        asMock(authFetch).mockImplementation((url: string) => jsonRes(url === '/auth/users?scope=admin' ? [JAN, bob] : (FIXTURES[url] ?? {})));
+        const orgAdmin = { id: 'me', permissions: ['manage_users'], isAdmin: false, organizationId: 'o1', orgRole: 'org_admin', organizations: ['o1'] };
+        render(<UserManagement user={orgAdmin} />);
+        const bobRows = (await screen.findAllByText('Bob Visser')).map((el) => el.closest('[data-testid="people-row"]') as HTMLElement);
+        for (const row of bobRows) expect(within(row).queryAllByRole('button')).toHaveLength(0);
+        const janRow = screen.getByText('Jan de Vries').closest('[data-testid="people-row"]') as HTMLElement;
+        expect(within(janRow).getAllByRole('button')).toHaveLength(3);
+    });
+
+    it('keeps that sentence away from a viewer whose lists load', async () => {
+        render(<UserManagement user={orgScoped} />);
+        await screen.findByText('Jan de Vries');
+        expect(screen.queryByText('admin_org.user_mgmt_org_admins_only')).not.toBeInTheDocument();
+    });
+
     it('reports a load failure rather than rendering an empty table', async () => {
         asMock(authFetch).mockReset();
         asMock(authFetch).mockRejectedValue(new Error('offline'));

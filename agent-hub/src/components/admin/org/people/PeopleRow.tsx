@@ -2,6 +2,7 @@ import { Edit2, ServerCog, Shield, Trash2 } from 'lucide-react';
 import React from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import RoleBadge from '@/components/shared/RoleBadge';
+import { mayManageAccount } from '@/utils/adminAccess';
 import { PLATFORM_ADMIN_ROLE } from '../userManagement/PlatformAdminField';
 import type { AdminUser } from '../userManagement/types';
 
@@ -16,6 +17,12 @@ export interface PeopleRowProps {
     canManage?: boolean;
     /** The viewer is a platform admin: only then may a platform admin's row be edited, reset or deleted (the server refuses anyone else). */
     viewerIsPlatformAdmin?: boolean;
+    /**
+     * The viewer's home organisation. Anyone but a platform admin manages only
+     * accounts whose home organisation this is (the server decides on the
+     * target's home organisation); a member through a group alone stays listed, read-only.
+     */
+    viewerHomeOrgId?: string | null;
 }
 
 /**
@@ -34,11 +41,11 @@ export interface PeopleRowProps {
  *     cannot execute is worse than not having it; real avatars need
  *     getAllUserAvatars and a second round-trip.
  */
-export default function PeopleRow({ user, orgChips = [], onEdit, onResetMfa, onDelete, canManage = false, viewerIsPlatformAdmin = false }: PeopleRowProps) {
+export default function PeopleRow({ user, orgChips = [], onEdit, onResetMfa, onDelete, canManage = false, viewerIsPlatformAdmin = false, viewerHomeOrgId = null }: PeopleRowProps) {
     const { t } = useTranslation();
     const isSystem = user.isSystem || user.id === 'admin';
     const isPlatformAdmin = user.role === PLATFORM_ADMIN_ROLE;
-    const showActions = canManage && !isSystem && (!isPlatformAdmin || viewerIsPlatformAdmin);
+    const showActions = canManage && !isSystem && mayManageAccount(user, viewerIsPlatformAdmin, viewerHomeOrgId);
     const initial = (user.displayName?.[0] || user.username?.[0] || '?').toUpperCase();
 
     return (
