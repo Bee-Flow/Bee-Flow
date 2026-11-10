@@ -38,11 +38,15 @@ const FIELD_INPUT_TYPE: Readonly<Record<string, string>> = Object.freeze({
     multiselect: 'input_multiselect',
     relation: 'input_relation',
     file: 'input_file',
+    // autonumber is server-assigned and user needs the member directory: neither gets an input.
+    json: 'input_textarea',
 });
 
 // field type → data_grid column format (the grid's own format vocabulary).
 const FIELD_COLUMN_FORMAT: Readonly<Record<string, string>> = Object.freeze({
     number: 'number',
+    autonumber: 'number',
+    user: 'user',
     date: 'date',
     datetime: 'date',
     bool: 'boolean',

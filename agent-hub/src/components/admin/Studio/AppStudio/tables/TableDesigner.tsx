@@ -5,6 +5,8 @@ import { RepeatableList } from '@/components/admin/product-website/fields';
 import FormulaField from '../inspector/logic/FormulaField';
 import { NumberField, TextField } from '../inspector/panels/kit';
 import { safeTargetTypes } from './fieldConversions';
+import FieldDisplayEditor from './FieldDisplayEditor';
+import { withTypeShape } from './fieldDisplay';
 import FieldRulesEditor from './FieldRulesEditor';
 import { withoutRules } from './fieldRules';
 import type { ModelField, ModelTable } from './tablesManagerModel';
@@ -42,6 +44,9 @@ const fieldTypes = (t: TranslateFn) => [
     { value: 'relation', label: t('studio_apps_tables.designer.type_relation', 'Relation') },
     { value: 'file', label: t('studio_apps_tables.designer.type_file', 'File') },
     { value: 'computed', label: t('studio_apps_tables.designer.type_computed', 'Computed') },
+    { value: 'autonumber', label: t('studio_apps_fieldtypes.type_autonumber', 'Auto number') },
+    { value: 'json', label: t('studio_apps_fieldtypes.type_json', 'JSON') },
+    { value: 'user', label: t('studio_apps_fieldtypes.type_user', 'Person') },
 ];
 
 const SYSTEM_COLUMNS = new Set(['id', 'created_at', 'updated_at', 'created_by', 'org_id']);
@@ -172,7 +177,7 @@ function FieldEditor({ field, update, tables, currentTableId, saved, savedType, 
                 <select
                     className={FIELD_CLS}
                     value={field.type || 'text'}
-                    onChange={(e) => update({ ...withoutRules(field), ...typePatch(field, e.target.value) })}
+                    onChange={(e) => update({ ...withTypeShape(withoutRules(field), e.target.value), ...typePatch(field, e.target.value) })}
                     disabled={disabled}
                     aria-label={t('studio_apps_tables.designer.field_type', 'Field type')}
                 >
@@ -207,7 +212,8 @@ function FieldEditor({ field, update, tables, currentTableId, saved, savedType, 
                 />
             ) : null}
 
-            <div className="flex items-center gap-4 text-xs text-[var(--text-secondary)]">
+            {/* An autonumber is always unique and never required: the server fills it. */}
+            {field.type === 'autonumber' ? null : <div className="flex items-center gap-4 text-xs text-[var(--text-secondary)]">
                 <label className="inline-flex items-center gap-1.5 cursor-pointer">
                     <input type="checkbox" className={CHECK_CLS} checked={!!field.required} disabled={disabled}
                         onChange={(e) => set({ required: e.target.checked })} />
@@ -218,7 +224,7 @@ function FieldEditor({ field, update, tables, currentTableId, saved, savedType, 
                         onChange={(e) => set({ unique: e.target.checked })} />
                     {t('studio_apps_tables.designer.unique', 'Unique')}
                 </label>
-            </div>
+            </div>}
 
             {field.type === 'relation' ? (
                 <label className="flex flex-col gap-1 text-xs font-medium text-[var(--text-secondary)]">
@@ -251,7 +257,7 @@ function FieldEditor({ field, update, tables, currentTableId, saved, savedType, 
                         {t('studio_apps_tables.designer.computed_stored', 'Save as a column (filter and sort on it)')}
                     </label>
                 </div>
-            ) : field.type !== 'bool' && field.type !== 'file' && !field.dynamicDefault ? (
+            ) : field.type !== 'bool' && field.type !== 'file' && field.type !== 'autonumber' && !field.dynamicDefault ? (
                 field.type === 'number' ? (
                     <NumberField
                         label={t('studio_apps_tables.designer.default', 'Default')}
@@ -269,6 +275,7 @@ function FieldEditor({ field, update, tables, currentTableId, saved, savedType, 
                 )
             ) : null}
 
+            <FieldDisplayEditor field={field} update={update} disabled={disabled} />
             <FieldRulesEditor field={field} update={update} disabled={disabled} />
         </div>
     );

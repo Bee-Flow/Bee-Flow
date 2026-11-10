@@ -36,6 +36,7 @@ export const DYNAMIC_DEFAULT_BY_TYPE: Readonly<Record<string, string>> = {
     datetime: 'now',
     date: 'today',
     text: 'currentUser.id',
+    user: 'currentUser.id',
 };
 
 const isEmptyRule = (v: unknown): boolean => v === undefined || v === null || v === '' || v === false;
