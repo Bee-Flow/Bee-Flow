@@ -1029,6 +1029,9 @@ No request schema.
 | `sort` | string |  | max length 20000 |
 | `match` | one of `"all"`, `"any"` |  |  |
 | `search` | string |  | max length 20000 |
+| `orderBy` | string |  | max length 20000 |
+| `expand` | string |  | max length 20000 |
+| `fields` | string |  | max length 20000 |
 | `cursor` | string |  | max length 500 |
 | `limit` | integer |  | min 1; max 9007199254740991 |
 | `sample` | one of `"0"`, `"1"` |  |  |
