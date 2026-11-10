@@ -2,8 +2,8 @@
 // @typecheck strict
 /**
  * Dutch for the web fixes of 2026-11: the error states that replaced a silent
- * failure in the user's settings (a policy text that could not be loaded, a
- * vault entry that could not be forgotten), and the read-only default language
+ * failure in the user's settings (a policy text that could not be loaded and
+ * cannot be confirmed until it has, a vault entry that could not be forgotten), and the read-only default language
  * of an organisation admin who is not a platform administrator. Data in data/web-fixes-2026-11-nl.json.
  * SAME_AS_ENGLISH lists keys whose Dutch is the English text itself; they are
  * not seeded.
@@ -21,7 +21,7 @@ const DATA = require(path.join(__dirname, 'data', 'web-fixes-2026-11-nl.json'));
  * migration when THIS FILE's checksum changes and knows nothing about the data
  * file, so the data's hash is pinned here; the test fails until it is updated.
  */
-const DATA_SHA256 = '6a944f3a97a8397fabc46b3055f4a82adc0a91a2f0fba9bf9199b4134d3514ef';
+const DATA_SHA256 = '4448ad208925a5d971508ad1d155b0aa45ec25dc62cfb6e1ea9b2a78cbc4e42b';
 
 const NL_TRANSLATIONS = Object.freeze({ ...DATA.translations });
 

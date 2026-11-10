@@ -35,7 +35,7 @@ export function usePublishedPoliciesQuery<D>() {
     });
 }
 
-/** One published policy's body; a refusal reads as null (the row stays confirmable without it). */
+/** One published policy's body; a refusal reads as null, and a row without its body cannot be confirmed (the screen offers "Try again" instead). */
 export function usePolicyBodyQuery(slug: string | null) {
     return useQuery<{ body: string } | null, Error>({
         queryKey: ['compliance', 'policy-body', slug],

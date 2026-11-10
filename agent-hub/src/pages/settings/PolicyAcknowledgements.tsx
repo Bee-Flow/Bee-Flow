@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { usePolicyBodyQuery, usePublishedPoliciesQuery } from '../../api/queries/complianceReads';
 import { FileText, Check, ChevronDown, ChevronRight, Loader2 } from 'lucide-react';
 import { API_BASE } from '../../utils/helpers';
@@ -19,11 +19,37 @@ function PolicyBodyPending({ failed, onRetry }: { failed: boolean; onRetry: () =
 }
 
 /**
+ * The confirm button of the open policy. A policy can only be confirmed once
+ * its text is on screen: while the text loads the button is disabled and says
+ * why; when the text could not be loaded the caller leaves it out entirely and
+ * only "Try again" is offered.
+ */
+function ConfirmPolicy({ bodyLoaded, busy, onConfirm }: { bodyLoaded: boolean; busy: boolean; onConfirm: () => void }) {
+    const { t } = useTranslation();
+    const hintId = useId();
+    return (
+        <div className="space-y-1">
+            <button type="button" onClick={onConfirm} disabled={busy || !bodyLoaded}
+                aria-describedby={bodyLoaded ? undefined : hintId}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold text-white disabled:opacity-50 bg-[var(--accent-primary)]">
+                <Check className="w-3.5 h-3.5" /> {t('settings.policy_ack_confirm')}
+            </button>
+            {!bodyLoaded && (
+                <p id={hintId} className="text-[11px] text-[var(--text-muted)]">
+                    {t('settings.policy_ack_confirm_wait', 'You can confirm once the policy text has loaded.')}
+                </p>
+            )}
+        </div>
+    );
+}
+
+/**
  * Member-facing ISMS policy acknowledgements (ISO 27001 clause 7.3 awareness).
  *
  * Lists the org's published policies with this user's acknowledgement state;
  * reading expands the markdown body inline, confirming binds the user to the
- * exact published version (sha256'd server-side). Renders nothing when the org
+ * exact published version (sha256'd server-side). Confirming is only offered
+ * once that body has loaded: nobody confirms a policy they could not read. Renders nothing when the org
  * has no published policies or the compliance module isn't licensed — this is
  * an Enterprise surface that must not clutter everyone else's settings.
  */
@@ -95,11 +121,12 @@ export default function PolicyAcknowledgements() {
                                         {body.body}
                                     </pre>
                                 )}
-                                {!d.acknowledged && (
-                                    <button onClick={() => confirm(d.slug)} disabled={busySlug === d.slug}
-                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold text-white disabled:opacity-50 bg-[var(--accent-primary)]">
-                                        <Check className="w-3.5 h-3.5" /> {t('settings.policy_ack_confirm')}
-                                    </button>
+                                {!d.acknowledged && !bodyFailed && (
+                                    <ConfirmPolicy
+                                        bodyLoaded={body !== null}
+                                        busy={busySlug === d.slug}
+                                        onConfirm={() => { void confirm(d.slug); }}
+                                    />
                                 )}
                             </div>
                         )}

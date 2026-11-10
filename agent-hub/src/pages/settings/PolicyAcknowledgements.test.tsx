@@ -10,8 +10,8 @@ import { renderWithClient } from '@/test/render';
  * This screen produces EVIDENCE: "this person read this exact version of this
  * policy". So these tests pin, in order of importance, (a) when the panel is
  * visible at all, (b) what an unknown / non-boolean acknowledgement status
- * looks like, and (c) whether the confirm button can be pressed for a policy
- * whose text never appeared on screen.
+ * looks like, and (c) that the confirm button cannot be pressed for a policy
+ * whose text is not on screen: disabled while it loads, absent when it failed.
  *
  * Nothing here judges the behaviour. Where today's behaviour is a wart the
  * test NAME says so.
@@ -239,13 +239,39 @@ describe('PolicyAcknowledgements — reading a policy body', () => {
         expect(bodyCalls()).toHaveLength(2);
     });
 
-    it('offers the confirm button even though the body never loaded — a policy can be acknowledged unseen (securityFinding)', async () => {
+    it('keeps the confirm button disabled, with the reason, while the body is loading', async () => {
         const user = userEvent.setup();
-        await mount({ body: jsonRes({ error: 'nope' }, 500) });
+        const d = deferred();
+        await mount({ body: () => d.promise });
         await user.click(await screen.findByRole('button'));
+
         const confirm = await screen.findByRole('button', { name: /I have read and understood this policy/ });
+        expect(confirm).toBeDisabled();
+        expect(confirm).toHaveAccessibleDescription('You can confirm once the policy text has loaded.');
+        await user.click(confirm);
+        expect(postCalls()).toHaveLength(0);
+
+        (d.resolve as Resolve)(jsonRes({ body: 'the text' }));
+        expect(await screen.findByText('the text')).toBeInTheDocument();
         expect(confirm).toBeEnabled();
-        expect(await screen.findByRole('alert')).toHaveTextContent('Could not load this policy.');
+        expect(confirm).not.toHaveAccessibleDescription();
+        expect(screen.queryByText('You can confirm once the policy text has loaded.')).toBeNull();
+    });
+
+    it('offers no confirm button when the body could not be loaded, only "Try again"; once it loads, confirming works', async () => {
+        const user = userEvent.setup();
+        let attempt = 0;
+        await mount({ body: () => (attempt++ === 0 ? jsonRes({ error: 'nope' }, 500) : jsonRes({ body: 'now readable' })) });
+        await user.click(await screen.findByRole('button', { name: /Information Security Policy/ }));
+
+        const alert = await screen.findByRole('alert');
+        expect(alert).toHaveTextContent('Could not load this policy.');
+        expect(screen.queryByRole('button', { name: /I have read and understood this policy/ })).toBeNull();
+
+        await user.click(within(alert).getByRole('button', { name: 'Try again' }));
+        expect(await screen.findByText('now readable')).toBeInTheDocument();
+        const confirm = screen.getByRole('button', { name: /I have read and understood this policy/ });
+        expect(confirm).toBeEnabled();
 
         await user.click(confirm);
         await waitFor(() => expect(postCalls()).toHaveLength(1));
@@ -253,7 +279,7 @@ describe('PolicyAcknowledgements — reading a policy body', () => {
             .toBe('/api/compliance/iso/docs/information-security-policy/acknowledge');
     });
 
-    it('offers the confirm button when the body request rejects outright (securityFinding)', async () => {
+    it('offers no confirm button when the body request rejects outright', async () => {
         const user = userEvent.setup();
         serve();
         (authFetch as Mock).mockImplementation(async (url, opts = {}) => {
@@ -264,7 +290,9 @@ describe('PolicyAcknowledgements — reading a policy body', () => {
         });
         renderWithClient(<PolicyAcknowledgements />);
         await user.click(await screen.findByRole('button'));
-        expect(await screen.findByRole('button', { name: /I have read and understood this policy/ })).toBeEnabled();
+        expect(await screen.findByRole('alert')).toHaveTextContent('Could not load this policy.');
+        expect(screen.queryByRole('button', { name: /I have read and understood this policy/ })).toBeNull();
+        expect(postCalls()).toHaveLength(0);
     });
 
     it('clicking the same policy again collapses it and drops the body', async () => {
@@ -326,7 +354,10 @@ describe('PolicyAcknowledgements — confirming', () => {
         const user = userEvent.setup();
         const header = await screen.findByRole('button');
         await user.click(header);
-        return screen.findByRole('button', { name: /I have read and understood this policy/ });
+        const confirm = await screen.findByRole('button', { name: /I have read and understood this policy/ });
+        // Confirming opens up once the policy text is on screen.
+        await waitFor(() => expect(confirm).toBeEnabled());
+        return confirm;
     };
 
     it('POSTs an empty JSON body to the acknowledge endpoint of that slug', async () => {

@@ -145,6 +145,7 @@ module.exports = {
     'settings.policy_ack_done': 'Confirmed {date}',
     'settings.policy_ack_read': 'Read policy',
     'settings.policy_ack_load_failed': 'Could not load this policy.',
+    'settings.policy_ack_confirm_wait': 'You can confirm once the policy text has loaded.',
 
     // ── Learning Center / Bee Flow Academy ──────────────────────
     'settings.learning_center': 'Learning Center',

@@ -17,7 +17,7 @@ const { GUI_DEFAULTS } = require('../i18n/defaults/en');
 
 // The keys this round added.
 const OWNED_KEYS = new Set([
-    'org.default_language_platform_only', 'settings.policy_ack_load_failed', 'vault.delete_failed',
+    'org.default_language_platform_only', 'settings.policy_ack_confirm_wait', 'settings.policy_ack_load_failed', 'vault.delete_failed',
 ]);
 const OWNED = (k) => OWNED_KEYS.has(k);
 

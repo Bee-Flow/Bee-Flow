@@ -29877,6 +29877,7 @@ const EN_DEFAULTS = {
     "settings.policy_ack_done": "Confirmed {date}",
     "settings.policy_ack_read": "Read policy",
     "settings.policy_ack_load_failed": "Could not load this policy.",
+    "settings.policy_ack_confirm_wait": "You can confirm once the policy text has loaded.",
     "settings.learning_center": "Learning Center",
     "settings.learning_center_subtitle": "Short guided lessons to get the most out of Bee Flow.",
     "settings.learning_center_subtitle_courses": "Hands-on courses to master Bee Flow — earn badges as you go.",
