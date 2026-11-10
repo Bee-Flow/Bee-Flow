@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import { API_BASE } from '@/utils/helpers';
 import { settled } from '@/api/settled';
-import type { AdminGroup, AdminMessage, AdminOrganization, AdminPermission, AdminRole, AdminUser } from './types';
+import type { AdminCurrentUser, AdminGroup, AdminMessage, AdminOrganization, AdminPermission, AdminRole, AdminUser } from './types';
 
 export interface UserManagementData {
     users: AdminUser[];
@@ -16,13 +16,33 @@ export interface UserManagementData {
     loadData: () => Promise<void>;
 }
 
+export interface UserManagementDataOptions {
+    /**
+     * The signed-in user. When the options are given, the lists are asked for
+     * the admin dashboard's organisation (`?scope=admin`: an organisation admin
+     * gets their home organisation, a platform admin everything), and the
+     * server-wide role table only for a platform admin.
+     */
+    currentUser?: AdminCurrentUser | null;
+}
+
+/** Platform admin as pages/AdminDashboard.tsx decides it: the operator flag or role 'admin', never the 'all' permission. */
+function isPlatformAdmin(user: AdminCurrentUser | null | undefined): boolean {
+    return !!(user?.isAdmin || user?.role === 'admin');
+}
+
 /**
- * The platform console's directory: every user, group, role, permission and
- * organisation, across every tenant. One fetch feeds every tab; every
- * mutation in the other hooks of this screen ends by calling `loadData`
- * again so the tabs cannot disagree about the same rows.
+ * The directory behind Admin > Security > Users: users, groups, roles, permissions
+ * and organisations. One fetch feeds every tab; every mutation in the other
+ * hooks of this screen ends by calling `loadData` again so the tabs cannot
+ * disagree about the same rows.
+ *
+ * Without `options` it asks the unscoped lists and always the role table.
+ * With `options` the lists carry `?scope=admin`, and the role table (it holds
+ * every organisation's roles) is only asked for a platform admin; anyone else
+ * gets an empty `roles`.
  */
-export default function useUserManagementData(): UserManagementData {
+export default function useUserManagementData(options?: UserManagementDataOptions): UserManagementData {
     const [users, setUsers] = useState<AdminUser[]>([]);
     const [groups, setGroups] = useState<AdminGroup[]>([]);
     const [organizations, setOrganizations] = useState<AdminOrganization[]>([]);
@@ -31,20 +51,25 @@ export default function useUserManagementData(): UserManagementData {
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState<AdminMessage | null>(null);
 
-    const loadData = async () => {
+    const adminScoped = options !== undefined;
+    const readsRoles = !adminScoped || isPlatformAdmin(options.currentUser);
+
+    const loadData = useCallback(async () => {
+        const scope = adminScoped ? '?scope=admin' : '';
         setLoading(true);
         try {
             const [usersRes, groupsRes, rolesRes, permsRes, orgsRes] = await Promise.all([
-                settled(`${API_BASE}/auth/users`, undefined, 'empty'),
-                settled(`${API_BASE}/auth/groups`, undefined, 'empty'),
-                settled(`${API_BASE}/auth/roles`, undefined, 'empty'),
+                settled(`${API_BASE}/auth/users${scope}`, undefined, 'empty'),
+                settled(`${API_BASE}/auth/groups${scope}`, undefined, 'empty'),
+                readsRoles ? settled(`${API_BASE}/auth/roles`, undefined, 'empty') : Promise.resolve(null),
                 settled(`${API_BASE}/auth/permissions`, undefined, 'empty'),
-                settled(`${API_BASE}/auth/organizations`, undefined, 'empty'),
+                settled(`${API_BASE}/auth/organizations${scope}`, undefined, 'empty'),
             ]);
 
             if (usersRes.ok) setUsers(await usersRes.res.json());
             if (groupsRes.ok) setGroups(await groupsRes.res.json());
-            if (rolesRes.ok) setRoles(await rolesRes.res.json());
+            if (rolesRes === null) setRoles([]);
+            else if (rolesRes.ok) setRoles(await rolesRes.res.json());
             if (permsRes.ok) setPermissions(await permsRes.res.json());
             if (orgsRes.ok) setOrganizations(await orgsRes.res.json());
         } catch (err) {
@@ -52,12 +77,12 @@ export default function useUserManagementData(): UserManagementData {
         } finally {
             setLoading(false);
         }
-    };
+    }, [adminScoped, readsRoles]);
 
-    // Load data on mount
+    // Load data on mount, and again when the caller's platform-admin standing changes.
     useEffect(() => {
         loadData();
-    }, []);
+    }, [loadData]);
 
     return { users, groups, organizations, roles, permissions, loading, message, setMessage, loadData };
 }

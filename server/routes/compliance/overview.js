@@ -37,6 +37,7 @@ const { requireAuth, requirePermission } = require('../../auth/permissions');
 
 const { SEVERITY_WEIGHT, computeScore, scoresByFramework } = require('../../compliance/score');
 const { fallback } = require('../../utils/bestEffort');
+const { coveredScope } = require('../monitoringOrg.mts');
 
 // Track which orgs have had an auto-run kicked off so we don't re-trigger on
 // every overview call. Keyed by orgId, value = timestamp of last auto-run.
@@ -54,6 +55,19 @@ async function ensureFreshResults(orgId) {
 }
 
 // ───────────────── Overview ─────────────────
+
+/**
+ * The display name of the organisation an overview covers, through
+ * routes/monitoringOrg.mts coveredScope (tested there): best effort, so a
+ * failed lookup is a missing name, not a 500. The shared 'default' bucket has
+ * no name.
+ * @param {string} orgId
+ * @returns {Promise<string | null>}
+ */
+async function organizationName(orgId) {
+    const named = orgId && orgId !== 'default' ? orgId : null;
+    return (await coveredScope(named, false, (id) => userStore.getOrganization(id))).organizationName;
+}
 
 router.get('/overview', requireAuth, requirePermission('admin_compliance'), async (req, res) => {
     const orgId = await resolveOrgId(req);
@@ -117,6 +131,8 @@ router.get('/overview', requireAuth, requirePermission('admin_compliance'), asyn
     }
     res.json({
         organization_id: orgId,
+        // The name the hub's subtitle shows; null for the shared 'default' bucket or a failed lookup.
+        organization_name: await organizationName(orgId),
         onboarded: !!settings.onboarded_at,
         settings,
         overall: computeScore(latest),

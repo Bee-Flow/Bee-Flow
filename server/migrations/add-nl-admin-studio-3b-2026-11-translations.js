@@ -2,8 +2,9 @@
 // @typecheck strict
 /**
  * Dutch for round 3b of the admin dashboard in the Studio layout (2026-11):
- * the AI Monitor and Website analytics chrome (the period control and the
- * labels the restyle added). Data in data/admin-studio-3b-2026-11-nl.json.
+ * the AI Monitor and Website analytics chrome (the period control, the line
+ * that says which organisation the AI Monitor figures cover, and the labels
+ * the restyle added). Data in data/admin-studio-3b-2026-11-nl.json.
  * SAME_AS_ENGLISH lists keys whose Dutch is the English text itself; they are
  * not seeded.
  *
@@ -20,7 +21,7 @@ const DATA = require(path.join(__dirname, 'data', 'admin-studio-3b-2026-11-nl.js
  * migration when THIS FILE's checksum changes and knows nothing about the data
  * file, so the data's hash is pinned here; the test fails until it is updated.
  */
-const DATA_SHA256 = 'd763947fe12f6c4d9aa4e28ca1468ff758d06aa9bf2c7b39caf5664fb82c3a1c';
+const DATA_SHA256 = 'd909a0ffc9f28abab8c60dea030b95f4759a8fcd6a887026ba06444f2f5448cc';
 
 const NL_TRANSLATIONS = Object.freeze({ ...DATA.translations });
 

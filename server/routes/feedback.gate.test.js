@@ -49,6 +49,8 @@ stub('../auth/permissions', {
     requireSuperAdmin: (req, res, next) => next(),
     resolveUserOrgIds: async () => new Set(['org-1']),
     isOrgAdminRole: () => true,
+    // The /org routes' organisation (routes/monitoringOrg.mts), stubbed open like the gates above.
+    resolveAdminOrgId: async () => 'org-1',
 });
 
 const router = require('./feedback');

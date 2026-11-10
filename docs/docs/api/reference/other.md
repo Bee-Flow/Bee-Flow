@@ -272,6 +272,7 @@ No request schema.
 | `source` | one of `"agent"`, `"direct"` |  |  |
 | `limit` | integer |  | min 1; max 9007199254740991 |
 | `reveal` | one of `"true"`, `"false"` |  |  |
+| `orgId` | string |  | max length 200 |
 
 ### `GET /api/feedback/org/summary`
 
@@ -283,6 +284,7 @@ No request schema.
 |-------|------|:--------:|-------|
 | `startDate` | string |  |  |
 | `endDate` | string |  |  |
+| `orgId` | string |  | max length 200 |
 
 ### `GET /api/feedback/summary`
 
@@ -1673,6 +1675,7 @@ No request schema.
 | `interval` | one of `"hour"`, `"day"` |  |  |
 | `limit` | integer |  | min 1; max 9007199254740991 |
 | `reveal` | one of `"true"`, `"false"` |  |  |
+| `orgId` | string |  |  |
 
 ### `GET /api/terminations/org/by-agent`
 
@@ -1691,6 +1694,7 @@ No request schema.
 | `interval` | one of `"hour"`, `"day"` |  |  |
 | `limit` | integer |  | min 1; max 9007199254740991 |
 | `reveal` | one of `"true"`, `"false"` |  |  |
+| `orgId` | string |  |  |
 
 ### `GET /api/terminations/org/summary`
 
@@ -1709,6 +1713,7 @@ No request schema.
 | `interval` | one of `"hour"`, `"day"` |  |  |
 | `limit` | integer |  | min 1; max 9007199254740991 |
 | `reveal` | one of `"true"`, `"false"` |  |  |
+| `orgId` | string |  |  |
 
 ### `GET /api/terminations/org/timeline`
 
@@ -1727,6 +1732,7 @@ No request schema.
 | `interval` | one of `"hour"`, `"day"` |  |  |
 | `limit` | integer |  | min 1; max 9007199254740991 |
 | `reveal` | one of `"true"`, `"false"` |  |  |
+| `orgId` | string |  |  |
 
 ### `GET /api/terminations/summary`
 

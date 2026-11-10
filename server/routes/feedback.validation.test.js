@@ -50,8 +50,10 @@ const MOCKS = {
         requireSuperAdmin: pass,
         resolveUserOrgIds: async () => new Set(['org-1']),
         isOrgAdminRole: () => true,
+        // The /org routes' organisation (routes/monitoringOrg.mts): the caller administers org-1.
+        resolveAdminOrgId: async () => 'org-1',
     },
-    '../stores/userStore': { getUser: async () => ({ id: 'u1', orgRole: 'org_admin' }) },
+    '../stores/userStore': { getUser: async () => ({ id: 'u1', orgRole: 'org_admin' }), getOrganization: async () => ({ id: 'org-1', name: 'Org One' }) },
     '../db': { getAll: async () => [] },
     '../core/entitlements/entitlements': { requireCapability: () => pass },
 };
@@ -163,6 +165,21 @@ test('the admin dashboards\' own query strings still read', async () => {
         const res = await dispatch({ method: 'GET', url });
         assert.strictEqual(res.statusCode, 200, url);
     }
+});
+
+test('the summaries say which organisation they cover; only /org takes an orgId', async () => {
+    const org = await dispatch({ method: 'GET', url: '/org/summary?orgId=org-1' });
+    assert.strictEqual(org.statusCode, 200);
+    assert.deepStrictEqual(org.body.scope, { organizationId: 'org-1', organizationName: 'Org One', allOrganizations: false });
+    assert.strictEqual(touched[0].args[0].organizationId, 'org-1');
+
+    const all = await dispatch({ method: 'GET', url: '/summary' });
+    assert.deepStrictEqual(all.body.scope, { organizationId: null, organizationName: null, allOrganizations: true });
+
+    touched.length = 0;
+    const ignored = await dispatch({ method: 'GET', url: '/summary?orgId=org-1' });
+    assert.strictEqual(ignored.statusCode, 400, 'the instance-wide summary refuses a filter it would not apply');
+    assert.deepStrictEqual(touched, []);
 });
 
 test('a rating with an unknown source is refused rather than filed under a heading no tab shows', async () => {

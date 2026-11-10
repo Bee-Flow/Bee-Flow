@@ -37,12 +37,13 @@ const JAN = {
     organizationId: 'o1',
 };
 
+// The admin dashboard's lists carry ?scope=admin; the role table and the permission catalogue do not.
 const FIXTURES: Record<string, unknown> = {
-    '/auth/users': [SYSTEM_ROW, JAN],
-    '/auth/groups': [{ id: 'g1', name: 'Finance', organizationId: 'o1', permissions: [], roles: [] }],
+    '/auth/users?scope=admin': [SYSTEM_ROW, JAN],
+    '/auth/groups?scope=admin': [{ id: 'g1', name: 'Finance', organizationId: 'o1', permissions: [], roles: [] }],
     '/auth/roles': [{ id: 'org_admin', name: 'Org admin', description: '', permissions: [] }],
     '/auth/permissions': [{ id: 'manage_users', name: 'Manage users', category: 'actions' }],
-    '/auth/organizations': [
+    '/auth/organizations?scope=admin': [
         { id: 'o1', name: 'Acme B.V.', description: 'Test org', registrationSource: 'nextcloud_connector' },
         { id: 'o2', name: 'Legacy Org', description: 'Pre-BFSF-286 org' }, // no registrationSource
     ],
@@ -52,6 +53,8 @@ const LIST_ENDPOINTS = Object.keys(FIXTURES);
 
 const fullAdmin = { id: 'me', permissions: ['all'], isAdmin: true, organizations: ['o1'] };
 const orgScoped = { id: 'me', permissions: ['page_chat'], isAdmin: false, organizations: ['o1'] };
+// Holds the 'all' permission inside a tenant, without the platform flag or role.
+const allHolder = { id: 'me', permissions: ['all'], isAdmin: false, organizations: ['o1'] };
 
 describe('UserManagement', () => {
     beforeEach(() => {
@@ -63,10 +66,25 @@ describe('UserManagement', () => {
         });
     });
 
-    it('fires the five list endpoints on mount', async () => {
+    it('fires the five list endpoints on mount, the directory lists scoped to the admin dashboard', async () => {
         render(<UserManagement user={fullAdmin} />);
         await waitFor(() => expect(authFetch).toHaveBeenCalledTimes(5));
         expect(asMock(authFetch).mock.calls.map(([url]) => url).sort()).toEqual([...LIST_ENDPOINTS].sort());
+    });
+
+    it('asks an organisation-scoped caller for the admin-scoped lists and never the server-wide role table', async () => {
+        render(<UserManagement user={allHolder} />);
+        await screen.findByText('Jan de Vries');
+        const urls = asMock(authFetch).mock.calls.map(([url]) => String(url));
+        expect(urls.sort()).toEqual(LIST_ENDPOINTS.filter((u) => u !== '/auth/roles').sort());
+    });
+
+    it('offers the org-scoped section set to an \'all\' holder who is not a platform admin', async () => {
+        render(<UserManagement user={allHolder} />);
+        expect(await screen.findByText('admin.users_tab_my_org')).toBeInTheDocument();
+        expect(screen.queryByText('admin.users_tab_roles')).not.toBeInTheDocument();
+        expect(screen.queryByText('admin.users_tab_organizations')).not.toBeInTheDocument();
+        expect(screen.queryByText('admin.users_tab_nextcloud')).not.toBeInTheDocument();
     });
 
     // Changed in P1: the old table rendered the synthetic 'admin' row

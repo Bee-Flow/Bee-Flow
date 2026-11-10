@@ -40,3 +40,51 @@ describe('MonitoringPanel range switch', () => {
         expect(screen.queryByText('777')).toBeNull();
     });
 });
+
+describe('MonitoringPanel scope', () => {
+    /** Answers every read; the usage summary carries `scope`. Returns the URLs asked for. */
+    function serve(scope: unknown) {
+        const asked: string[] = [];
+        setDemoTransport(async (url: unknown) => {
+            const address = String(url);
+            asked.push(address);
+            if (address.includes('/api/usage/summary')) return json({ ...summary(5), scope });
+            if (address.includes('/api/terminations') && address.includes('/summary')) return json({ total: 0, by_type: {} });
+            if (address.includes('/api/terminations')) return json({ rows: [] });
+            if (address.includes('/summary')) return json({ total: 0, thumbs_up: 0, thumbs_down: 0, with_comments: 0 });
+            if (address.includes('/model-costs')) return json({});
+            return json([]);
+        });
+        return asked;
+    }
+    const ORG_A = { organizationId: 'org-a', organizationName: 'Org A', allOrganizations: false };
+    const ALL = { organizationId: null, organizationName: null, allOrganizations: true };
+    const feedbackReads = (asked: string[]) => asked.filter((u) => u.includes('/api/feedback'));
+
+    it('names the organisation the figures cover and reads its own feedback', async () => {
+        const asked = serve(ORG_A);
+        render(<MonitoringPanel activeSection="feedback" />);
+        expect(await screen.findByText('Usage of Org A')).toBeTruthy();
+        await waitFor(() => expect(feedbackReads(asked).length).toBe(2));
+        expect(feedbackReads(asked).every((u) => u.includes('/api/feedback/org'))).toBe(true);
+    });
+
+    it('says when the figures cover every organisation and reads the instance-wide feedback', async () => {
+        const asked = serve(ALL);
+        render(<MonitoringPanel activeSection="feedback" />);
+        expect(await screen.findByText('Usage of all organisations')).toBeTruthy();
+        await waitFor(() => expect(feedbackReads(asked).length).toBe(2));
+        expect(feedbackReads(asked).some((u) => u.includes('/api/feedback/org'))).toBe(false);
+    });
+
+    // The /org routes need an organisation admin; the generic route needs only
+    // admin_monitoring, the tab's own permission (a DPO or auditor holds it).
+    it('reads terminations from the generic route, also when the figures cover one organisation', async () => {
+        const asked = serve(ORG_A);
+        render(<MonitoringPanel activeSection="terminations" />);
+        await screen.findByText('Usage of Org A');
+        const terminationReads = () => asked.filter((u) => u.includes('/api/terminations'));
+        await waitFor(() => expect(terminationReads().length).toBe(4));
+        expect(terminationReads().some((u) => u.includes('/api/terminations/org'))).toBe(false);
+    });
+});

@@ -17,7 +17,7 @@ const userStore = require('../../stores/userStore');
 // — a 500 where the org-scoped group list should have been. That fails closed
 // rather than leaking other tenants' groups, but it left the sharing pickers
 // that read this endpoint permanently empty.
-const { requireAuth, requireAdmin, requireSuperAdmin, requirePrimaryOrgAdmin, getUserPermissions, invalidateAllPermissionCaches, resolveUserOrgIds, SYSTEM_PERMISSIONS, getOrgRolePermissions, orgWideGrantImpliedPermissions, orgRoleImpliedFill } = require('../permissions');
+const { requireAuth, requireAdmin, requireSuperAdmin, requirePrimaryOrgAdmin, getUserPermissions, invalidateAllPermissionCaches, resolveUserOrgIds, resolveAdminOrgId, SYSTEM_PERMISSIONS, getOrgRolePermissions, orgWideGrantImpliedPermissions, orgRoleImpliedFill } = require('../permissions');
 const orgRolePolicy = require('../orgRolePolicy');
 const { validate } = require('../../core/http/validate');
 const { z } = require('../../utils/zod');
@@ -49,6 +49,14 @@ router.get('/groups', requireAuth, async (req, res) => {
     }
 
     let groups = await userStore.getAllGroups();
+
+    // `?scope=admin` (the admin dashboard): the groups of the organisation
+    // auth/adminOrg.mts resolves for the caller. Null there (a platform admin
+    // who has not named one with ?orgId) keeps the full list below.
+    const adminOrgId = req.query.scope === 'admin' ? await resolveAdminOrgId(req) : null;
+    if (adminOrgId !== null) {
+        return res.json(groups.filter(g => g.organizationId === adminOrgId));
+    }
 
     // Org-scoped filtering using canonical resolver
     if (!isSuperAdmin) {

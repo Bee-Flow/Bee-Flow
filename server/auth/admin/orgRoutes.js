@@ -14,7 +14,7 @@ const { bestEffort } = require('../../utils/bestEffort');
 const router = express.Router();
 
 const userStore = require('../../stores/userStore');
-const { requireAuth, requireSuperAdmin, getUserPermissions, resolveUserOrgIds } = require('../permissions');
+const { requireAuth, requireSuperAdmin, getUserPermissions, resolveUserOrgIds, resolveAdminOrgId } = require('../permissions');
 const { sanitizePlainTextFields } = require('../../utils/htmlSanitizer');
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
@@ -121,6 +121,14 @@ router.get('/organizations', requireAuth, async (req, res) => {
     }
 
     let orgs = await userStore.getAllOrganizations();
+
+    // `?scope=admin` (the admin dashboard): only the organisation
+    // auth/adminOrg.mts resolves for the caller. Null there (a platform admin
+    // who has not named one with ?orgId) keeps the full list below.
+    const adminOrgId = req.query.scope === 'admin' ? await resolveAdminOrgId(req) : null;
+    if (adminOrgId !== null) {
+        return res.json(orgs.filter(o => o.id === adminOrgId));
+    }
 
     // Org-scoped filtering using canonical resolver
     if (!isSuperAdmin) {

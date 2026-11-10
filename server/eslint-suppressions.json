@@ -8498,11 +8498,6 @@
       "count": 1
     }
   },
-  "routes/usageMonitoringAuth.js": {
-    "complexity": {
-      "count": 1
-    }
-  },
   "routes/voiceprints.js": {
     "complexity": {
       "count": 1

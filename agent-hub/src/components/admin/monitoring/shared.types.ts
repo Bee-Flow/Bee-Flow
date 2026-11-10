@@ -39,6 +39,19 @@ export interface UsageSummary {
     total_cached_tokens?: number;
     total_reasoning_tokens?: number;
     total_cache_creation_tokens?: number;
+    /** What the figures cover (server routes/monitoringOrg.mts coveredScope). */
+    scope?: CoveredScope;
+}
+
+/**
+ * The organisation a monitoring answer covers: one organisation, every
+ * organisation (`allOrganizations`, platform admins only), or neither (the
+ * caller's own rows).
+ */
+export interface CoveredScope {
+    organizationId: string | null;
+    organizationName: string | null;
+    allOrganizations: boolean;
 }
 
 /** One bucket of the token / cost timelines (and of the support insights volume). */

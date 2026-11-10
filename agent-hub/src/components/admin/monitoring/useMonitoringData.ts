@@ -4,7 +4,7 @@ import type { AgentUsage, ChartPoint, ModelUsage, ToolUsage, UsageRecord, UsageS
 import type { ModelRate } from './drawer/drawerTypes';
 import type { FeedbackItem, FeedbackSummary } from './feedback/feedbackModel';
 import { monitoringUrl } from './monitoringUrl';
-import { API, AI_API, FEEDBACK_API } from './monitoring.constants';
+import { API, AI_API, FEEDBACK_API, scopedApi } from './monitoring.constants';
 import { rangeToFilter, prevPeriodFilter, autoInterval, fetchJson } from './monitoring.helpers';
 
 // authFetch, not raw fetch (fetchJson goes through api/mutate's request). Both
@@ -86,7 +86,11 @@ async function readCore(range: string, customStart: string, customEnd: string): 
 
 type SetData = (update: (d: MonitoringData) => MonitoringData) => void;
 
-/** Core figures, then the previous period's summary, then feedback; each step stops once a newer read has started. */
+/**
+ * Core figures, then the previous period's summary, then feedback; each step
+ * stops once a newer read has started. Feedback follows the summary's scope:
+ * the `/org` routes when it covers one organisation (scopedApi).
+ */
 async function readAll(range: string, customStart: string, customEnd: string, superseded: () => boolean, setData: SetData) {
     const qs = new URLSearchParams(rangeToFilter(range, customStart, customEnd)).toString();
     try {
@@ -102,9 +106,10 @@ async function readAll(range: string, customStart: string, customEnd: string, su
 
         try {
             const fbQs = qs ? '?' + qs : '';
+            const fbApi = scopedApi(FEEDBACK_API, core.summary?.scope);
             const [fbData, fbSum] = await Promise.all([
-                fetchJson(`${FEEDBACK_API}${fbQs}`),
-                fetchJson(`${FEEDBACK_API}/summary${fbQs}`),
+                fetchJson(`${fbApi}${fbQs}`),
+                fetchJson(`${fbApi}/summary${fbQs}`),
             ]);
             if (superseded()) return;
             setData(d => ({ ...d, feedback: list(fbData), feedbackSummary: fbSum || EMPTY_FEEDBACK }));

@@ -31,12 +31,13 @@ const jsonRes = (body: unknown, status = 200) => Promise.resolve({
 
 const JAN = { id: 'u_jan', username: 'jan', displayName: 'Jan de Vries', email: 'jan@acme.nl', orgRole: 'org_admin', organizationId: 'o1', groups: [], status: 'active' };
 
+// The admin dashboard's lists carry ?scope=admin; the role table and the permission catalogue do not.
 const FIXTURES: Record<string, unknown> = {
-    '/auth/users': [JAN],
-    '/auth/groups': [],
+    '/auth/users?scope=admin': [JAN],
+    '/auth/groups?scope=admin': [],
     '/auth/roles': [],
     '/auth/permissions': [],
-    '/auth/organizations': [{ id: 'o1', name: 'Acme B.V.' }],
+    '/auth/organizations?scope=admin': [{ id: 'o1', name: 'Acme B.V.' }],
 };
 
 const fullAdmin = { id: 'me', permissions: ['all'], isAdmin: true, organizations: ['o1'] };
@@ -182,7 +183,7 @@ describe('UserManagement: user monthly AI budget (self-hosted)', () => {
         asMock(authFetch).mockReset();
         asMock(authFetch).mockImplementation((url: string, init?: { method?: string }) => {
             if (init?.method === 'PUT') return jsonRes({ success: true });
-            if (url === '/auth/users') return jsonRes([{ ...JAN, monthlyCostLimit: 12.5 }]);
+            if (url === '/auth/users?scope=admin') return jsonRes([{ ...JAN, monthlyCostLimit: 12.5 }]);
             return jsonRes(FIXTURES[url] ?? {});
         });
     });
