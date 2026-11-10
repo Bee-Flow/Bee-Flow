@@ -42,7 +42,6 @@ const { NOT_CHOSEN_CODE, NOT_CHOSEN_MESSAGE, envLock } = require('./serverChoice
 const { probe } = require('./serverProbe');
 const l10n = require('./l10n');
 const { SETUP_TEXTS, CONNECT_ERRORS, CATEGORY_TO_CONNECT_ERROR, SELF_HOSTING_DOCS_URL } = require('./setupTexts');
-const { validateInstallOptions, buildInstallScript, addressesFor, SCRIPT_FILENAME } = require('./installScript');
 
 /**
  * What POST /diagnose answers: this connector's view next to the Bee Flow server's.
@@ -450,18 +449,6 @@ router.post('/test', requireNcAdmin, limits.probe, express.json(), async (req, r
     if (!url) return res.status(400).json({ error: 'apiBaseUrl required' });
     const result = await probe(url);
     res.json(result);
-});
-
-// The install script for an administrator who has no Bee Flow server yet (see
-// installScript.js). Works before a server is chosen: that is when it is
-// wanted. Nothing is stored and nothing leaves the connector; the answer is
-// text the administrator reads and runs on their own Docker host.
-router.post('/install-script', requireNcAdmin, limits.probe, express.json(), (req, res) => {
-    const checked = validateInstallOptions(bodyOf(req));
-    if (!checked.ok) {
-        return res.status(400).json({ error: 'Some answers cannot be used.', code: 'invalid_install_options', fields: checked.errors });
-    }
-    res.json({ script: buildInstallScript(checked.options), filename: SCRIPT_FILENAME, ...addressesFor(checked.options) });
 });
 
 // Admin-supplied public NC URL — used by the SaaS to call back into NC

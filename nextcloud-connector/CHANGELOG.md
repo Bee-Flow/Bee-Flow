@@ -10,7 +10,7 @@ The Nextcloud App Store reads the entry whose heading matches `<version>` in `ap
 ## [Unreleased]
 
 ### Added
-- **The setup page helps you install Bee Flow with Docker.** Under **Self-hosted server**, "No Bee Flow server yet? Install one with Docker" asks a few questions (the address of the Docker host, the two ports, the version, the name of your organisation) and makes an install script you run on that host. The script downloads the installer of the newest production release, starts the server, the web app, the PII guard and the topic classifier, and prints the address, a pairing code and the secrets it generated; the two addresses are filled in on the setup page for you. Every secret is generated on your host: none passes through Nextcloud or the connector. "Other ways" lists the installer with its defaults, Docker Compose by hand and Kubernetes.
+- **The setup page shows how to install and update Bee Flow with Docker.** Under **Self-hosted server**, "No Bee Flow server yet? Install one with Docker" gives the commands for `beeflow-install.sh`, the installer published with every Bee Flow release: it asks its questions in your terminal, starts the server, the web app, the PII guard and the topic classifier, and prints the addresses, a pairing code and the secrets it generated. A second tab gives the update command and names the version of the server this Nextcloud is on; a third lists the other ways. The commands are fixed text: the page puts nothing you type into them.
 
 ## [2.0.0] - 2026-11-10
 

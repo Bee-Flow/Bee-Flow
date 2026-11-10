@@ -184,3 +184,45 @@ jobs:
             done
             echo "- \`${MIRROR_PREFIX}/${svc}\` @ \`${digest}\`" >> "$GITHUB_STEP_SUMMARY"
           done < "$RUNNER_TEMP/plan.txt"
+
+  # The installer of this release, as a file of the release itself:
+  # `releases/latest/download/beeflow-install.sh` is the address the docs and
+  # the Nextcloud connector's setup page give. One script, the same for
+  # everybody, with its checksum next to it. A tag from before the installer
+  # existed has no such file and is left as it is.
+  installer:
+    if: >-
+      ${{ github.event_name == 'workflow_dispatch'
+      || (!github.event.release.prerelease && startsWith(github.event.release.tag_name, 'v')) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    env:
+      TAG: ${{ github.event.release.tag_name || inputs.tag }}
+    steps:
+      - name: Check the tag
+        run: |
+          set -euo pipefail
+          if [[ ! "$TAG" =~ ^v[A-Za-z0-9_.-]{1,127}$ ]]; then
+            echo "::error::Release tag '$TAG' must start with v and contain only letters, digits, '.', '_' or '-'."
+            exit 1
+          fi
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.TAG }}
+          persist-credentials: false
+
+      - name: Attach beeflow-install.sh and its checksum to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if [ ! -f beeflow-install.sh ]; then
+            echo "::notice::$TAG has no beeflow-install.sh: nothing to attach."
+            exit 0
+          fi
+          bash -n beeflow-install.sh
+          sha256sum beeflow-install.sh > beeflow-install.sh.sha256
+          gh release upload "$TAG" beeflow-install.sh beeflow-install.sh.sha256 --clobber --repo "$GITHUB_REPOSITORY"
