@@ -16,7 +16,7 @@ module.exports = {
     knobs: {
         font: {
             type: 'enum', values: ['body', 'heading', 'mono'], default: 'body', since: 3,
-            description: 'Typeface role of the text: body, heading or mono. heading follows the app heading font when the design sets one, otherwise it equals body. Use mono for codes, ids and amounts that should line up.',
+            description: 'Typeface role of the text: body, heading or mono. heading currently equals body. Use mono for codes, ids and amounts that should line up.',
         },
         textSize: {
             type: 'enum', values: ['auto', 'xs', 'sm', 'md', 'lg', 'xl', '2xl', '3xl', '4xl'], default: 'auto', since: 3,
