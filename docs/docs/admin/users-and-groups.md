@@ -4,7 +4,7 @@ title: "Users & groups"
 
 # Users & groups
 
-Path: **Admin → Users & groups**.
+Path: **Admin → Security → Users** for the whole server (tabs Users, Organizations, Nextcloud, Groups, Roles, Permissions); an org admin manages the people of their own organisation under **Settings → Organisation → Users**.
 
 ## User management panel
 
@@ -66,7 +66,7 @@ The link is single-use; resend if it expires.
 
 ## Signup settings
 
-In **Admin → Signup settings**:
+In **Admin → Subscriptions → Access** (Bee Flow Cloud):
 
 | Setting | Effect |
 |---------|--------|
@@ -82,7 +82,7 @@ In **Admin → Signup settings**:
 If waitlist is on:
 
 1. New signups get a "Thanks — you're on the waitlist" page.
-2. Admin sees them under **Admin → Waitlist** with email + signup time + source.
+2. Admin sees them under **Admin → Subscriptions → Access** with email + signup time + source.
 3. Admin clicks **Approve** to materialise the user, or **Reject** to discard.
 
 ## Tier limits

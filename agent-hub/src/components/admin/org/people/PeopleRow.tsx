@@ -53,11 +53,11 @@ export default function PeopleRow({ user, orgChips = [], onEdit, onResetMfa, onD
                     <span className="text-sm font-medium text-[var(--text-primary)] truncate">
                         {user.displayName || user.username}
                     </span>
-                    <RoleBadge role={user.orgRole || user.role} />
+                    <RoleBadge role={user.orgRole || user.role} tone="neutral" />
                     {orgChips.map((chip) => (
                         <span
                             key={chip}
-                            className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--bg-tertiary)] text-[var(--text-secondary)] whitespace-nowrap"
+                            className="whitespace-nowrap rounded-full bg-[var(--bg-tertiary)] px-2 py-0.5 text-[10px] text-[var(--text-secondary)]"
                         >
                             {chip}
                         </span>

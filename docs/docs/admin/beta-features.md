@@ -4,7 +4,7 @@ title: Beta features
 
 # Beta features
 
-Path: **Admin → Beta features**.
+Path: **Admin → Access → Grants** (the Beta capabilities of the scope you pick on the left: All members or one group). Server-wide on/off switches (Notebooks, Projects, Ask AI and the like) are a separate list under **Admin → Integrations → Features**.
 
 Beta features are flags for capabilities that are stable enough to ship but not ready for default-on. They're per-org — you opt in for your tenant only.
 

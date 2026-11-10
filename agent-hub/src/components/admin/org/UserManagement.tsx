@@ -50,7 +50,7 @@ function sectionsFor(isFullAdmin: boolean | undefined, hasOrg: boolean) {
 
 const UserManagement = ({ activeSection: activeSectionProp = '', onNavigate, user: currentUser }: UserManagementProps) => {
     const { t } = useTranslation();
-    const VALID_SECTIONS = ['users', 'organizations', 'groups', 'roles', 'permissions', 'my-organization'];
+    const VALID_SECTIONS = ['users', 'organizations', 'nextcloud', 'groups', 'roles', 'permissions', 'my-organization'];
     const activeSection = VALID_SECTIONS.includes(activeSectionProp) ? activeSectionProp : 'users';
 
     // Permission check: full admin can do everything, org-scoped users are limited
@@ -87,7 +87,7 @@ const UserManagement = ({ activeSection: activeSectionProp = '', onNavigate, use
     return (
         <div className="h-full flex flex-col">
             {/* Section tabs: the section is the URL (admin/security/users/<key>). */}
-            <div className="flex flex-col gap-3 px-6 pt-4">
+            <div className="flex flex-col gap-3 px-6 pt-4 md:px-8 md:pt-6">
                 <Tabs
                     ariaLabel={t('admin.sec_users')}
                     value={activeSection}
@@ -102,7 +102,7 @@ const UserManagement = ({ activeSection: activeSectionProp = '', onNavigate, use
             </div>
 
             {/* Content */}
-            <div className="flex-1 overflow-auto p-6">
+            <div className="flex-1 overflow-auto p-6 md:px-8">
                 {loading ? (
                     <div className="flex h-full items-center justify-center gap-2 text-sm text-[var(--text-tertiary)]">
                         <Spinner size="sm" /> {t('admin_org.user_mgmt_loading', 'Loading data...')}

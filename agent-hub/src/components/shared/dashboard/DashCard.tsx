@@ -22,12 +22,12 @@ export default function DashCard({ title, meta = null, action = null, children, 
             aria-label={typeof title === 'string' ? title : undefined}
         >
             {(title || action) && (
-                <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
+                <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
+                    <div className="min-w-[10rem] flex-1">
                         {title && <h3 className="text-sm font-semibold truncate text-[var(--text-primary)]">{title}</h3>}
                         {meta && <p className="text-[11px] mt-0.5 text-[var(--text-tertiary)]">{meta}</p>}
                     </div>
-                    {action && <div className="shrink-0 flex items-center gap-2">{action}</div>}
+                    {action && <div className="flex max-w-full shrink-0 flex-wrap items-center gap-2">{action}</div>}
                 </div>
             )}
             {children}

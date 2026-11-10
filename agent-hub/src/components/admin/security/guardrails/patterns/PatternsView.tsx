@@ -5,6 +5,8 @@ import type { PatternLibraryProps } from './patternTypes';
 import RulesPanel from './RulesPanel';
 import { applyStarterSet } from './starterSets';
 import { useTranslation } from '@/hooks/useTranslation';
+import SectionHeader from '@/components/shared/SectionHeader';
+import { PRIMARY_BTN } from '@/components/mcpLibrary/ui';
 import { toast } from '@/components/shared/Toast';
 import { saveRegexGuardrails } from '../api/guardrailsApi';
 import { messageOf } from '@/utils/caughtError';
@@ -53,25 +55,21 @@ const PatternsView = ({ rules, setRules, collections, setCollections, onSaved }:
     };
 
     return (
-        <div className="space-y-6">
-            <div className="flex items-start justify-between gap-4">
-                <div>
-                    <h2 className="text-lg font-semibold text-[var(--text-primary)]">{t('admin.guard_regex_title')}</h2>
-                    <p className="text-sm text-[var(--text-secondary)]">{t('admin.guard_regex_desc')}</p>
-                </div>
-                <button
-                    onClick={handleSave}
-                    disabled={saving}
-                    className="shrink-0 px-5 py-2 rounded-lg text-sm font-medium text-white disabled:opacity-50 bg-[var(--accent-primary)] hover:opacity-90 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)]"
-                >
-                    {saving ? t('admin.guard_saving') : t('admin.guard_save_all')}
-                </button>
-            </div>
+        <div className="space-y-4">
+            <SectionHeader
+                title={t('admin.guard_regex_title')}
+                description={t('admin.guard_regex_desc')}
+                status={(
+                    <button type="button" onClick={handleSave} disabled={saving} className={PRIMARY_BTN}>
+                        {saving ? t('admin.guard_saving') : t('admin.guard_save_all')}
+                    </button>
+                )}
+            />
 
             {/* Shown while the library is small, then out of the way. */}
             {rules.length < 6 && <StarterSets onApply={applyTemplate} />}
 
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
                 <RulesPanel rules={rules} setRules={setRules} collections={collections} setCollections={setCollections} />
                 <CollectionsPanel rules={rules} collections={collections} setCollections={setCollections} />
             </div>

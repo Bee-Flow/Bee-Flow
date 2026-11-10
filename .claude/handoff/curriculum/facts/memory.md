@@ -150,7 +150,7 @@ have told the assistant about yourself, your preferences and your contacts. The 
 this step's prompt are added before the model answers. Good for steps that write in your name or
 decide on your behalf."* (flag `useMemory`, default off).
 
-### 2.8 Admin → AI configuration → Memory Extraction Model
+### 2.8 Admin → AI Config → Chat Models → Memory Extraction Model
 Card **Memory Extraction Model**: *"Model that reads each finished exchange for facts worth
 remembering — a small background call after every reply, thinking off. On a self-hosted single-slot
 server pick a tiny model here so extraction never queues in front of the next turn. Defaults to the

@@ -172,7 +172,7 @@ function DefaultsGroup({ agentSearchDefaults: d, setAgentSearchDefaults: set, sa
                         <option value="auto">{t('integ.search_auto_kb_web_fallback', 'Auto (KB + web fallback)')}</option>
                     </select>
                 </SettingRow>
-                <SettingRow label={t('integ.search_include_citations', 'Include citations')}>
+                <SettingRow inline label={t('integ.search_include_citations', 'Include citations')}>
                     <div className="flex justify-end">
                         <Toggle checked={d.include_citations} onChange={(next) => set(p => ({ ...p, include_citations: next }))} ariaLabel={t('integ.search_include_citations', 'Include citations')} />
                     </div>

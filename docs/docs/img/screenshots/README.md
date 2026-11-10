@@ -51,11 +51,11 @@ Drop a new file in. If the folder ends up with two images, the alphabetically-fi
 | `studio/templates-marketplace/` | Template marketplace browse view |
 | `studio/knowledge-bases-list/` | KB library |
 | `studio/skills-marketplace/` | Skills marketplace |
-| `admin/users-and-groups/` | User management panel |
-| `admin/nc-integrations-org/` | Org-level NC integration toggle grid |
-| `admin/nc-integrations-per-group/` | Per-group disable list |
+| `admin/users-and-groups/` | Admin → Security → Users (the People directory) |
+| `admin/nc-integrations-org/` | Admin → Access → Grants, scope All members |
+| `admin/nc-integrations-per-group/` | Admin → Access → Grants, one group picked as the scope |
 | `admin/organisation-settings/` | Org settings overview |
-| `admin/beta-features/` | Beta-feature flag panel |
+| `admin/beta-features/` | Admin → Access → Grants, the Beta capabilities |
 | `admin/audit-log/` | Guardrail event browser |
 | `admin/license-apply/` | License & usage panel |
 | `api/api-keys-panel/` | Settings → API keys (creation flow) |

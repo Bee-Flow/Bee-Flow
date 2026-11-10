@@ -95,7 +95,7 @@ export default function FeatureKillSwitches() {
             ) : (
                 <SettingsList>
                     {FLAGS.map(({ key, label, desc, icon: Icon }) => (
-                        <SettingRow key={key} icon={<Icon className="h-4 w-4" />} label={label} hint={desc}>
+                        <SettingRow inline key={key} icon={<Icon className="h-4 w-4" />} label={label} hint={desc}>
                             <div className="flex justify-end">
                                 <Toggle checked={flags[key]} onChange={() => toggle(key, label)} disabled={!!saving[key]} ariaLabel={label} />
                             </div>

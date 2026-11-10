@@ -51,6 +51,7 @@ export function SortableTable<Row extends object>({ columns, data, onRowClick, e
         id: col.key,
         width: col.width,
         align: col.align === 'right' ? 'right' : undefined,
+        foldBelow: col.foldBelow,
         ariaSort: sortCol === col.key ? (sortDir === 'desc' ? 'descending' : 'ascending') : undefined,
         label: col.sortable !== false
             ? <SortHeader label={col.label} active={sortCol === col.key} dir={sortDir} onSort={() => handleSort(col.key)} />

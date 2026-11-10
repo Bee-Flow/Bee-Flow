@@ -210,10 +210,13 @@ Buttons **"Save template"**, **"Cancel"**, **"Delete"**.
 - **Settings → Organisation → "Talk Meeting Notes"** (org admin): the same toggles at org scope, which
   **override each member's personal setting**, plus **"Per-person meeting insights"**
   (*"Off = members see only meeting-level metrics."*).
-- **Admin → Integrations → Transcription** (super admin): **"Active Provider"** — *"Choose which
-  engine will be used when you transcribe audio in Meeting Notes."* Options: **Voxtral** (Mistral
-  cloud), **Azure Speech**, **WhisperX** (self-hosted), **Scaleway** (EU Whisper large-v3 + local
-  diarizer), **pyannoteAI** (best diarization + voice profiles), and the local CPU Whisper.
+- **Admin → Integrations → Transcription** (super admin): a list + detail. The list (group
+  **"Active Provider"**) has **Voxtral** (Mistral cloud), **Azure Speech**, **Azure Whisper**,
+  **WhisperX** (self-hosted), **Scaleway (hybrid)** (EU Whisper large-v3 + local diarizer) and
+  **pyannoteAI** (best diarization + voice profiles); a dot shows whether each is configured and the
+  one in use says **Active**. Selecting one opens its settings on the right; **"Use this provider"**
+  makes it the active engine. (The in-process CPU whisper.cpp path is not a list entry: per the WhisperX
+  description it is used automatically for CPU-only voice capture in the chat input.)
 
 ---
 

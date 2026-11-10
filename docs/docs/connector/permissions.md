@@ -102,7 +102,7 @@ Properties that make it auditable rather than decorative:
 
 ## Org-level controls
 
-In **Admin → Nextcloud integrations** an org admin can:
+In **Admin → Access → Grants** an org admin can:
 
 - set which Nextcloud integrations are enabled org-wide, and
 - override per group — disabling specific integrations for a group's members
@@ -128,7 +128,7 @@ most-restrictive-first, so an integration is available only if the org allows it
 | Level | Action | Effect |
 |---|---|---|
 | User | **Settings → Connections → Nextcloud → Revoke all Nextcloud access** | Every Nextcloud integration off for you, immediately. Data already in Bee Flow stays. |
-| Org admin | **Admin → Nextcloud integrations** | Removes an integration for the whole organisation, or for one group. |
+| Org admin | **Admin → Access → Grants** | Removes an integration for the whole organisation, or for one group. |
 | Nextcloud admin | **Apps → Disable Bee Flow** | Stops the connector; the bee icon disappears for everyone. Tenant data is **not** auto-deleted (use the Danger zone). |
 | Nextcloud admin | Rotate the tenant key (**/setup**) | Invalidates every signed callback the Bee Flow server holds. |
 
@@ -142,4 +142,4 @@ tail -f data/nextcloud.log | grep '"app":"app_api"' | grep bee_flow
 ```
 
 Bee Flow-side, access-scope changes and tool-level activity are in
-[Admin → Audit & compliance](../admin/audit-and-compliance.md).
+[Admin → Compliance](../admin/audit-and-compliance.md).

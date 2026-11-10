@@ -177,7 +177,7 @@ function ActivityRow({ event: e, onDrill }: { event: RealtimeEvent; onDrill?: Dr
     const { t } = useTranslation();
     const isEvent = !!e.eventName;
     return (
-        <div className={`flex items-center gap-2.5 rounded-lg border-l-2 bg-[var(--bg-secondary)] px-2.5 py-1.5 ${isEvent ? 'border-[var(--warning)]' : 'border-transparent'}`}>
+        <div className={`flex items-center gap-2.5 rounded-r-lg rounded-l-[2px] border-l-2 bg-[var(--bg-secondary)] px-2.5 py-1.5 ${isEvent ? 'border-[var(--warning)]' : 'border-transparent'}`}>
             {isEvent && <span className={`${CHIP_WARNING} shrink-0`}>{e.eventName}</span>}
             <button
                 onClick={() => e.urlPath && onDrill?.('path', e.urlPath)}

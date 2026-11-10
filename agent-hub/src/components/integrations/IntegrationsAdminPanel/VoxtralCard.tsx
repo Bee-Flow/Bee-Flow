@@ -22,7 +22,7 @@ export default function VoxtralCard() {
                         <strong>{t('integ.transcription_admin_ai_config_api_keys_mistral', 'Admin → AI Config → API Keys → Mistral')}</strong>{t('integ.transcription_no_additional_setup_needed_here', '. No additional setup needed here.')}
                     </>}
                 >
-                    <div className="flex md:justify-end">
+                    <div className="flex @[40rem]/srow:justify-end">
                         <a href="https://console.mistral.ai" target="_blank" rel="noopener noreferrer" className={SECONDARY_BTN}>
                             <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" /> {t('integ.transcription_open_mistral_console', 'Open Mistral Console')}
                         </a>

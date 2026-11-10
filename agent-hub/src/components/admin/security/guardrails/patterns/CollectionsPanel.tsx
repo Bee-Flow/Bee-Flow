@@ -17,7 +17,7 @@ interface CollectionCardProps {
 function RulePicker({ col, rules, onToggleRule }: Pick<CollectionCardProps, 'col' | 'rules' | 'onToggleRule'>) {
     const { t } = useTranslation();
     return (
-        <div className="p-3 bg-black/10 grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <div className="p-3 bg-[var(--bg-secondary)] grid grid-cols-1 sm:grid-cols-2 gap-2">
             {rules.map(rule => {
                 const member = col.ruleIds.includes(rule.id);
                 return (
@@ -25,7 +25,7 @@ function RulePicker({ col, rules, onToggleRule }: Pick<CollectionCardProps, 'col
                         key={rule.id}
                         className={`flex items-center gap-2.5 p-2 rounded-lg border cursor-pointer transition-colors ${member
                             ? 'bg-[var(--accent-primary)]/10 border-[var(--accent-primary)]/30'
-                            : 'bg-white/5 border-transparent hover:border-white/10'}`}
+                            : 'bg-[var(--bg-secondary)] border-transparent hover:border-[var(--border-default)]'}`}
                     >
                         <input
                             type="checkbox"
@@ -56,7 +56,7 @@ function MemberChips({ col, rules }: Pick<CollectionCardProps, 'col' | 'rules'>)
                 const rule = rules.find(r => r.id === id);
                 if (!rule) return null;
                 return (
-                    <span key={id} className="text-xs px-2 py-1 rounded bg-white/5 text-[var(--text-tertiary)] border border-white/5">
+                    <span key={id} className="text-xs px-2 py-1 rounded bg-[var(--bg-secondary)] text-[var(--text-tertiary)] border border-[var(--border-default)]">
                         {rule.name}
                     </span>
                 );
@@ -72,9 +72,9 @@ function CollectionCard({ col, rules, editing, onToggleEdit, onRemove, onToggleR
     const { t } = useTranslation();
     return (
         <div
-            className={`rounded-xl border bg-[var(--bg-tertiary)] transition-colors ${editing ? 'border-[var(--accent-primary)]' : 'border-[var(--border-default)]'}`}
+            className={`rounded-lg border bg-[var(--bg-primary)] transition-colors ${editing ? 'border-[var(--accent-primary)]' : 'border-[var(--border-default)]'}`}
         >
-            <div className="p-3 flex items-center justify-between border-b border-white/5">
+            <div className="p-3 flex items-center justify-between border-b border-[var(--border-default)]">
                 <div className="flex items-center gap-3 min-w-0">
                     <Package size={16} className="shrink-0 text-[var(--text-tertiary)]" />
                     <div className="min-w-0">
@@ -89,8 +89,8 @@ function CollectionCard({ col, rules, editing, onToggleEdit, onRemove, onToggleR
                         onClick={onToggleEdit}
                         aria-expanded={editing}
                         className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] ${editing
-                            ? 'bg-[var(--accent-primary)] text-white'
-                            : 'bg-white/5 text-[var(--text-tertiary)] hover:text-[var(--text-primary)]'}`}
+                            ? 'bg-[var(--accent-primary)] text-[var(--accent-primary-fg)]'
+                            : 'bg-[var(--bg-secondary)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)]'}`}
                     >
                         {editing ? t('admin.gr_done', 'Done') : t('admin.gr_edit', 'Edit')}
                     </button>

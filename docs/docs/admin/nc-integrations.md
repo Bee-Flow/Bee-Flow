@@ -4,7 +4,7 @@ title: Nextcloud integrations
 
 # Nextcloud integrations
 
-Path: **Admin → Nextcloud integrations**.
+Path: **Admin → Access → Grants** (a super-admin picks the organisation at the top; an org admin gets the same matrix for their own organisation).
 
 This panel controls which of the 11 Nextcloud integrations are available, at three levels: org-wide default, per-group override, and ultimately what each user sees.
 
@@ -61,7 +61,7 @@ The UI shows a count of affected users next to each group, so you can see the bl
 
 ## Walkthrough — disable Mail for interns
 
-1. Go to **Admin → NC integrations → Per-group**.
+1. Go to **Admin → Access → Grants**, with the group picked as the scope on the left.
 2. Find the `interns` group row.
 3. In the multi-select, add **Mail**.
 4. Save.

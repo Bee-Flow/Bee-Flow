@@ -73,7 +73,7 @@ export default function PagesSection({ scope, onDrill }: PagesSectionProps) {
             ),
         },
         {
-            key: 'visitors', label: t('cms_site.analytics.pages.visitors', 'Visitors'), width: '80px', align: 'right',
+            key: 'visitors', label: t('cms_site.analytics.pages.visitors', 'Visitors'), width: '80px', align: 'right', foldBelow: 900 as const,
             render: (r: PivotOut) => <span className="text-xs text-[var(--text-secondary)]">{fmt(r.visitors)}</span>,
         },
         {
@@ -86,7 +86,7 @@ export default function PagesSection({ scope, onDrill }: PagesSectionProps) {
                 </span>),
         },
         {
-            key: 'avgTime', label: t('cms_site.analytics.pages.time_on_page', 'Time on page'), width: '110px', align: 'right',
+            key: 'avgTime', label: t('cms_site.analytics.pages.time_on_page', 'Time on page'), width: '110px', align: 'right', foldBelow: 900 as const,
             render: (r: PivotOut) => (
                 <span className="text-xs text-[var(--text-secondary)]">
                     {r.avgTime == null ? '—' : fmtDurationSec(r.avgTime)}

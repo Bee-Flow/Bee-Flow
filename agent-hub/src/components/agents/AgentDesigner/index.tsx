@@ -97,7 +97,7 @@ const AgentDesigner = ({
         </div>
       )}
       {/* Main Content */}
-      <div className="flex-1 flex overflow-hidden bg-[var(--bg-primary)]">
+      <div className="flex-1 flex flex-col md:flex-row overflow-hidden bg-[var(--bg-primary)]">
         {/* 1. Agent List Sidebar */}
         <AgentListSidebar
           agents={state.agents}
@@ -113,7 +113,7 @@ const AgentDesigner = ({
         />
 
         {/* 2. Main Workspace (Split View) */}
-        <div className="flex-1 flex overflow-hidden relative">
+        <div className="flex-1 flex min-h-0 overflow-hidden relative">
           {selectedAgent || isCreating ? (
             <AgentWorkspace state={state} api={api} systemMode={systemMode} isReadonly={isReadonly} sharedProps={sharedProps} />
           ) : (
@@ -152,9 +152,9 @@ function AgentWorkspace({ state, api, systemMode, isReadonly, sharedProps }: {
   const { t } = useTranslation();
   const { selectedAgent, isCreating, activeSection } = state;
   return (
-    <div className="flex-1 flex w-full">
+    <div className="flex-1 flex w-full min-w-0">
       {/* Configuration Area */}
-      <div className="flex-1 flex flex-col min-w-[600px] border-r border-[var(--border-default)]">
+      <div className="flex-1 flex flex-col min-w-0 xl:min-w-[600px] border-r border-[var(--border-default)]">
         {/* Header */}
         <div className="border-b border-[var(--border-default)] px-6 py-4">
           <SectionHeader

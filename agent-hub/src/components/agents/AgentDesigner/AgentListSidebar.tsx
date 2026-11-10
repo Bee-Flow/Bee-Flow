@@ -61,8 +61,8 @@ export default function AgentListSidebar(p: AgentListSidebarProps) {
         body = p.agents.map((agent) => <AgentRow key={agent.id} agent={agent} p={p} />);
     }
     return (
-        <div className="flex w-64 flex-shrink-0 flex-col border-r border-[var(--border-default)] bg-[var(--bg-primary)]">
-            <div className="flex items-center justify-between border-b border-[var(--border-default)] px-4 py-3">
+        <div className="flex max-h-56 w-full flex-shrink-0 flex-col border-b border-[var(--border-default)] bg-[var(--bg-primary)] md:max-h-none md:w-64 md:border-b-0 md:border-r">
+            <div className="flex h-[45px] items-center justify-between border-b border-[var(--border-default)] px-4">
                 <span className="truncate text-sm font-semibold text-[var(--text-primary)]">
                     {p.systemMode ? 'System Agents' : 'Agents'}
                 </span>

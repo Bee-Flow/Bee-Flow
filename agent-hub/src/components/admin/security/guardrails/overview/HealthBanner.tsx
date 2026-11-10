@@ -30,7 +30,7 @@ const HealthBanner = ({ status, onInstall }: HealthBannerProps) => {
     return (
         <div
             role="status"
-            className="flex items-start gap-3 rounded-xl border px-4 py-3
+            className="flex items-start gap-3 rounded-lg border px-4 py-3
                        border-[color-mix(in_srgb,var(--warning)_40%,transparent)] bg-[color-mix(in_srgb,var(--warning)_10%,transparent)]"
         >
             <Icon size={18} className="mt-0.5 shrink-0 text-[var(--warning-ink)]" />

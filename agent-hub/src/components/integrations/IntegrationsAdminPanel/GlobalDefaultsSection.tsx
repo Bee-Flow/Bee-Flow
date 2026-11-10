@@ -32,7 +32,7 @@ export default function GlobalDefaultsSection({
                 <SettingsGroup key={cat} title={cat}>
                     <SettingsList>
                         {allIntegrations.filter(i => i.category === cat).map(integ => (
-                            <SettingRow key={integ.id} icon={integ.icon || undefined} label={integ.label} hint={integ.description}>
+                            <SettingRow inline key={integ.id} icon={integ.icon || undefined} label={integ.label} hint={integ.description}>
                                 <div className="flex justify-end">
                                     <Toggle checked={isDefaultEnabled(integ.id)} onChange={() => toggleDefault(integ.id)} ariaLabel={integ.label} />
                                 </div>

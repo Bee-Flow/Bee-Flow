@@ -77,4 +77,4 @@ File contents pulled via `nextcloud_read_file` are scanned by the Privacy Shield
 
 ## Group-level disable
 
-Org admins can disable `nextcloud` at the org or per-group level. Disabling for a group removes all 11 file tools from that group's users. See [Admin → NC integrations](../admin/nc-integrations.md).
+Org admins can disable `nextcloud` at the org or per-group level. Disabling for a group removes all 11 file tools from that group's users. See [Admin → Access → Grants](../admin/nc-integrations.md).

@@ -78,7 +78,7 @@ export default function PyannoteCard({ pyannoteApiKey, setPyannoteApiKey, hasPya
                         <option value="faster-whisper-large-v3-turbo">{t('integ.transcription_always_whisper_large_v3_turbo_widest', 'Always Whisper large-v3-turbo — widest language coverage')}</option>
                     </select>
                 </SettingRow>
-                <SettingRow
+                <SettingRow inline
                     label={t('integ.transcription_recognise_speakers_by_voice', 'Recognise speakers by voice')}
                     hint={<>
                         {t('integ.transcription_colleagues_record_a_personal_voice', 'Colleagues record a personal voice profile in Settings → Preferences (only they can record their own), after which their real name is put on their turns automatically. pyannoteAI cannot transcribe and identify in one job, so a')} <strong>{t('integ.transcription_second_job_per_meeting', 'second job per meeting')}</strong> {t('integ.transcription_is_submitted_but_only_when_someone_in', 'is submitted — but only when someone in that organisation actually has a voice profile. Turn this off to stop identification everywhere without anyone deleting theirs.')}

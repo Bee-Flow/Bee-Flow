@@ -102,7 +102,7 @@ Default detection covers email addresses, phone numbers, IBANs, BSNs (NL), credi
 | Per-call NC API access | `tail -f data/nextcloud.log \| grep bee_flow` |
 | Per-call connector activity | `docker logs nc_app_bee_flow --tail 200 -f` |
 | Per-tool-call provenance in chat | Inline tool-call rows in the conversation — click to expand request/response |
-| Per-org audit | **Admin → Audit & compliance** (Enterprise+) |
+| Per-org audit | **Admin → Compliance** (Enterprise+) |
 
 ## Full policy
 

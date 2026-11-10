@@ -108,7 +108,7 @@ Three ways:
 
 ## How org admins control access
 
-In **Admin → Nextcloud integrations** (and **Admin → Other integrations**) an admin can:
+In **Admin → Access → Grants** an admin can:
 
 - Toggle integrations on/off org-wide
 - Override per-group (disable specific tools for specific groups)
