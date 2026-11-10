@@ -27,13 +27,15 @@ import type { NextFunction, Request, Response } from 'express';
 import { applicationPermissions, delegatedPermissions } from '../core/meetingNotes/teamsSetup/permissions.mts';
 import { runUserDiagnostics } from '../core/meetingNotes/teamsSetup/userDiagnostics.mts';
 import { buildOrgOverview, DEFAULT_WINDOW_DAYS } from '../core/meetingNotes/teamsSetup/membersOverview.mts';
-import { tenantModeOf, testAppRegistration } from '../core/meetingNotes/teamsSetup/appRegistration.mts';
+import { tenantModeOf } from '../core/meetingNotes/teamsSetup/appRegistration.mts';
 import type { AuthConfigLike } from '../core/meetingNotes/teamsSetup/appRegistration.mts';
 import { buildAdminConsentUrl, consentClientId, consentTenantFor, newPendingConsent } from '../core/meetingNotes/teamsSetup/consent.mts';
 import { takeDiagnosticsSlot } from '../core/meetingNotes/teamsSetup/rateLimit.mts';
-import { GUID, microsoftCredentialsFor } from '../auth/oauth/microsoftConnections.mts';
+import { microsoftCredentialsFor } from '../auth/oauth/microsoftConnections.mts';
 import { appImportState, updateAppImport } from '../core/meetingNotes/teamsAppImport/coverage.mts';
 import { runAppImportDiagnostics } from '../core/meetingNotes/teamsAppImport/diagnostics.mts';
+import { answerMicrosoftProviderTest, callerVerifiedTenant, redirectUrisFor, init as initProviderTest } from './teamsProviderTest.mts';
+import type { ProviderTestDeps } from './teamsProviderTest.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 
@@ -95,8 +97,15 @@ const lazy = lazyDeps<TeamsSetupRouteDeps>({
     log: () => nodeRequire('../telemetry/log.js'),
 });
 
-/** Test seam: swap collaborators (the rest stay the real ones). */
-export function init(overrides: Partial<TeamsSetupRouteDeps> = {}): void { lazy.init(overrides); }
+/** Test seam: swap collaborators (the rest stay the real ones). The provider test shares three of them. */
+export function init(overrides: Partial<TeamsSetupRouteDeps> = {}): void {
+    lazy.init(overrides);
+    const shared: Partial<ProviderTestDeps> = {};
+    if (overrides.identityBinding) shared.identityBinding = overrides.identityBinding;
+    if (overrides.buildRedirectUri) shared.buildRedirectUri = overrides.buildRedirectUri;
+    if (overrides.log) shared.log = overrides.log;
+    initProviderTest(shared);
+}
 
 const OverviewQuery = z.object({
     days: z.coerce.number({ error: 'The window must be a whole number of days from 1 to 30.' })
@@ -118,44 +127,9 @@ const AppImportBody = z.object({
 // A POST without a body tests with the caller.
 const AppImportDiagBody = z.object({ probeUserId: MEMBER_ID.optional() }).strict().optional();
 
-/** The two redirect addresses an app registration must list (Web platform). */
-export function redirectUrisFor(req: Request, buildConnect: (r: Request) => string = lazy.deps.buildRedirectUri): { signIn: string; connect: string } {
-    const host = process.env.SERVER_PUBLIC_HOST;
-    const base = host ? `${process.env.SERVER_PROTOCOL || 'https'}://${host}` : `${req.protocol}://${req.get('host')}`;
-    return { signIn: `${base}/auth/callback/microsoft`, connect: buildConnect(req) };
-}
-
-/** The caller's verified Microsoft tenant (users.azureTenantId), or null. */
-export async function callerVerifiedTenant(userId: string, binding: TeamsSetupRouteDeps['identityBinding'] = lazy.deps.identityBinding): Promise<string | null> {
-    try {
-        const tid = (await binding(userId))?.azureTenantId;
-        return typeof tid === 'string' && GUID.test(tid) ? tid.toLowerCase() : null;
-    } catch (err) {
-        lazy.deps.log.warn('[TeamsSetup] Microsoft identity unreadable:', (err as Error).message);
-        return null;
-    }
-}
-
-/**
- * The Microsoft branch of POST /auth/providers/:provider/test (auth/oauth/ssoConfigRoutes.js,
- * behind requireSuperAdmin): a real client-credentials token request against Entra, which
- * proves the client id, the secret and the tenant without any permission and changes nothing.
- * The answer keeps the `{ success, message }` / `{ error }` shape the SSO tab toasts and adds
- * the platform `report` (codes, the tenant, the redirect addresses; never the secret or the
- * token). One test per caller per TEAMS_DIAGNOSTICS_MIN_INTERVAL_SECONDS.
- */
-export async function answerMicrosoftProviderTest(req: Request, config: AuthConfigLike): Promise<{ status: number; body: Record<string, unknown> }> {
-    const userId = sessionUser(req).id;
-    if (!takeDiagnosticsSlot(`platform:${userId}`)) throw new HttpError(429, 'diagnostics_rate_limited', 'Wait a few seconds before you test again');
-    const report = await testAppRegistration({ config, callerTenantId: await callerVerifiedTenant(userId), redirectUris: redirectUrisFor(req) });
-    const token = report.checks.find((c) => c.id === 'app.token');
-    if (token?.status === 'pass') return { status: 200, body: { success: true, message: 'Microsoft accepted the app registration.', report } };
-    if (token?.status === 'unknown') return { status: 400, body: { error: `The secret could not be tested: ${token.code}.`, report } };
-    const failing = report.checks.find((c) => c.status === 'fail')
-        || report.checks.find((c) => c.status !== 'pass' && c.status !== 'skipped')
-        || token;
-    return { status: 400, body: { error: `The Microsoft app registration test failed: ${failing?.code || 'unknown'}.`, report } };
-}
+// The provider test and the two facts it shares with this router live in teamsProviderTest.mts
+// (no package types, see its header); re-exported so callers and tests keep one address.
+export { answerMicrosoftProviderTest, callerVerifiedTenant, redirectUrisFor };
 
 /**
  * The organisation the caller acts in, re-read now; null when there is none.

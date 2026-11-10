@@ -148,7 +148,7 @@ module.exports = {
     // Teams import failures with their own cause (teamsArtifacts classifyGraphFailure, teams.js).
     'meetings.import_error_graph_forbidden': 'Microsoft refused access to this meeting. A permission, licence or Teams policy blocks it. Your admin can run the Teams test.',
     'meetings.import_error_meeting_not_available': 'Microsoft has no online meeting for this calendar entry. It may have expired.',
-    'meetings.import_error_access_policy': "Your organisation's Teams application access policy does not allow Bee Flow for this account.",
+    "meetings.import_error_access_policy": "Your organisation's Teams application access policy does not allow Bee Flow for this account.",
     'meetings.import_error_calendar_forbidden': 'Microsoft refused access to your calendar.',
     'meetings.import_error_throttled': 'Microsoft is limiting requests right now. Try again in a few minutes.',
     'meetings.import_error_graph_unavailable': 'Microsoft Graph did not answer properly. Try again in a few minutes.',

@@ -381,8 +381,8 @@ router.post('/providers/:provider/test', requireSuperAdmin, requireSsoProvider, 
         }
 
     } else if (provider === 'microsoft') {
-        // A real client-credentials token request (routes/teamsSetup.mts): same answer shape plus the check report.
-        const { status, body } = await require('../../routes/teamsSetup.mts').answerMicrosoftProviderTest(req, config);
+        // A real client-credentials token request (routes/teamsProviderTest.mts): same answer shape plus the check report.
+        const { status, body } = await require('../../routes/teamsProviderTest.mts').answerMicrosoftProviderTest(req, config);
         res.status(status).json(body);
 
     } else {
