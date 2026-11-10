@@ -60,11 +60,10 @@ sudo -u www-data php occ app_api:daemon:register \
   http://nextcloud
 ```
 
-Verify it works:
+Verify it works: `occ app_api:daemon:list` shows the daemon, and **Administration → AppAPI** has **Check connection** and **Test deploy** in the daemon's menu.
 
 ```bash
 sudo -u www-data php occ app_api:daemon:list
-sudo -u www-data php occ app_api:daemon:test docker_local
 ```
 
 The Docker socket must be readable by `www-data`. On most Nextcloud Docker images this means adding `www-data` to the host's `docker` group inside the Nextcloud container:
@@ -125,20 +124,17 @@ Bee Flow Cloud needs a Nextcloud that is reachable from the internet, directly o
    ```bash
    sudo -u www-data php occ app_api:daemon:register \
      harp1 "HaRP" docker-install \
-     https <harp-host>:8780 "https://cloud.example.com" \
-     --harp --harp-shared-key "<HP_SHARED_KEY>" \
-     --harp-frp-address <harp-host> --harp-frp-port 8782
+     http <harp-host>:8780 "https://cloud.example.com" \
+     --harp --harp_shared_key "<HP_SHARED_KEY>" \
+     --harp_frp_address <harp-host>:8782
    ```
 
-   :::note
-   The exact `--harp*` flag names vary by AppAPI version — run `occ app_api:daemon:register --help` on your instance to confirm, or use the admin UI form (the screenshot above), which always matches your version.
-   :::
+   `http` is how Nextcloud reaches HaRP on port 8780; the last positional value is the URL of your Nextcloud. `occ app_api:daemon:register --help` lists every option of your version.
 
-   Verify:
+   Verify: `occ app_api:daemon:list` shows the daemon, and **Test deploy** in the daemon's menu under **Administration → AppAPI** runs a full test install.
 
    ```bash
    sudo -u www-data php occ app_api:daemon:list
-   sudo -u www-data php occ app_api:daemon:test harp1
    ```
 
 3. **Install Bee Flow onto the HaRP daemon** (step 3 below). If Bee Flow is already installed on another daemon, follow [Migrate to HaRP](../connector/troubleshooting.md#migrate-to-harp) instead — it preserves your tenant key so no re-provisioning happens.
@@ -170,13 +166,22 @@ The install connects to nothing. The deploy options have a field **Bee Flow serv
 After AppAPI reports the install as successful:
 
 ```bash
-# Heartbeat from Nextcloud's perspective
-sudo -u www-data php occ app_api:app:heartbeat bee_flow
+# The app as AppAPI sees it
+sudo -u www-data php occ app_api:app:list
+# → bee_flow (Bee Flow): 2.0.0 [enabled]
+
+# The container's own health check (it asks the connector for /heartbeat)
+docker inspect --format '{{.State.Health.Status}}' nc_app_bee_flow
+# → healthy
+
+# The heartbeat answer itself, from inside the container (works under every deploy daemon)
+docker exec nc_app_bee_flow sh -c 'if [ -n "$HP_SHARED_KEY" ]; then
+    curl -fsS --unix-socket /tmp/exapp.sock http://localhost/heartbeat
+  else
+    curl -fsS "http://127.0.0.1:$APP_PORT/heartbeat"
+  fi'
 # → {"status":"ok","bootstrap":"server_not_chosen"}   until an administrator chooses a server
 # → {"status":"ok"}                                   once connected
-
-# Direct heartbeat from the host (if reachable)
-curl http://localhost:23000/heartbeat
 
 # Container logs
 docker logs nc_app_bee_flow --tail 50

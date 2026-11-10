@@ -220,8 +220,12 @@ docker exec -u www-data bee-flow-nc-sandbox php occ \
 ### 7. Verify
 
 ```bash
-# Heartbeat from NC's perspective
-docker exec -u www-data bee-flow-nc-sandbox php occ app_api:app:heartbeat bee_flow
+# The app as AppAPI sees it
+docker exec -u www-data bee-flow-nc-sandbox php occ app_api:app:list
+# → bee_flow (Bee Flow): <version> [enabled]
+
+# The heartbeat answer, from inside the connector container
+docker exec nc_app_bee_flow sh -c 'curl -fsS "http://127.0.0.1:$APP_PORT/heartbeat"'
 # → {"status":"ok"}
 
 # Connector logs
