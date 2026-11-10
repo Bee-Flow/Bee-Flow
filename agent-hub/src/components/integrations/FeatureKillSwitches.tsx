@@ -1,11 +1,15 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { API_BASE } from '../../utils/helpers';
 import { integrationsAdminKeys, useFeatureFlagsQuery } from '../../api/queries/integrationsAdmin';
-import { BookOpen, FolderKanban, Sparkles, FileDown, Maximize2, LayoutList, Check, AlertTriangle, Loader2 } from 'lucide-react';
+import { BookOpen, FolderKanban, Sparkles, FileDown, Maximize2, LayoutList } from 'lucide-react';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { LucideIcon } from 'lucide-react';
 import { mutate, ApiError } from '../../api/mutate';
+import { useToastOnMessage } from '@/components/admin/ai-config/ui/useToastOnMessage';
+import { SettingRow, SettingsGroup, SettingsList } from '@/components/shared/SettingsList';
+import Spinner from '@/components/shared/Spinner';
+import Toggle from '@/components/shared/Toggle';
 
 interface FlagDef {
     key: string;
@@ -29,7 +33,7 @@ interface FlashMessage {
  * duplicating the toggle logic. These are operator kill-switches, not
  * entitlement grants — they take effect for everyone on next page load.
  *
- * Emerald + blue only.
+ * One settings row per flag; the outcome of a toggle is said as a toast.
  */
 
 const FLAGS: FlagDef[] = [
@@ -55,7 +59,7 @@ export default function FeatureKillSwitches() {
     const [saving, setSaving] = useState<Record<string, boolean>>({});
     const [message, setMessage] = useState<FlashMessage | null>(null);
 
-    useEffect(() => { if (!message) return; const t = setTimeout(() => setMessage(null), 3000); return () => clearTimeout(t); }, [message]);
+    useToastOnMessage(message);
 
     const toggle = async (key: string, label: string) => {
         const newVal = !flags[key];
@@ -82,48 +86,23 @@ export default function FeatureKillSwitches() {
     };
 
     return (
-        <div className="rounded-2xl border overflow-hidden bg-[var(--bg-secondary)] border-[var(--border-default)]">
-            <div className="px-6 py-4 border-b flex items-center justify-between border-[var(--border-subtle)]">
-                <div>
-                    <h3 className="font-semibold text-[var(--text-primary)]">{t('integ.feature_kill_switches_feature_flags', 'Feature Flags')}</h3>
-                    <p className="text-xs mt-0.5 text-[var(--text-muted)]">
-                        {t('integ.feature_kill_switches_enable_or_disable_platform_features', 'Enable or disable platform features globally. Changes take effect on next page load for all users.')}
-                    </p>
-                </div>
-                {message ? (
-                    <span className="inline-flex items-center gap-1.5 text-xs flex-shrink-0" style={{ color: message.type === 'success' ? '#10b981' : '#dc2626' }}>
-                        {message.type === 'success' ? <Check className="w-3.5 h-3.5" /> : <AlertTriangle className="w-3.5 h-3.5" />}{message.text}
-                    </span>
-                ) : null}
-            </div>
-            <div className="p-4">
-                {loading ? (
-                    <div className="py-6 flex justify-center"><Loader2 className="w-5 h-5 animate-spin text-[var(--text-muted)]" /></div>
-                ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                        {FLAGS.map(({ key, label, desc, icon: Icon }) => {
-                            const on = flags[key];
-                            return (
-                                <div key={key}
-                                    className="flex items-center gap-3 px-4 py-3 rounded-xl transition-all"
-                                    style={{ background: on ? 'rgba(16, 185, 129, 0.06)' : 'var(--bg-primary)', border: `1px solid ${on ? 'rgba(16, 185, 129, 0.2)' : 'var(--border-subtle)'}` }}>
-                                    <Icon className="w-5 h-5 shrink-0" style={{ color: on ? '#10b981' : 'var(--text-muted)' }} />
-                                    <div className="flex-1 min-w-0">
-                                        <div className="text-sm font-medium" style={{ color: on ? 'var(--text-primary)' : 'var(--text-muted)' }}>{label}</div>
-                                        <div className="text-xs text-[var(--text-muted)]">{desc}</div>
-                                    </div>
-                                    <button
-                                        onClick={() => toggle(key, label)}
-                                        disabled={!!saving[key]}
-                                        className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${on ? 'bg-green-500' : 'bg-gray-600'}`}>
-                                        <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${on ? 'left-6' : 'left-1'}`} />
-                                    </button>
-                                </div>
-                            );
-                        })}
-                    </div>
-                )}
-            </div>
-        </div>
+        <SettingsGroup
+            title={t('integ.feature_kill_switches_feature_flags', 'Feature Flags')}
+            description={t('integ.feature_kill_switches_enable_or_disable_platform_features', 'Enable or disable platform features globally. Changes take effect on next page load for all users.')}
+        >
+            {loading ? (
+                <div className="flex justify-center py-6"><Spinner size="sm" /></div>
+            ) : (
+                <SettingsList>
+                    {FLAGS.map(({ key, label, desc, icon: Icon }) => (
+                        <SettingRow key={key} icon={<Icon className="h-4 w-4" />} label={label} hint={desc}>
+                            <div className="flex justify-end">
+                                <Toggle checked={flags[key]} onChange={() => toggle(key, label)} disabled={!!saving[key]} ariaLabel={label} />
+                            </div>
+                        </SettingRow>
+                    ))}
+                </SettingsList>
+            )}
+        </SettingsGroup>
     );
 }

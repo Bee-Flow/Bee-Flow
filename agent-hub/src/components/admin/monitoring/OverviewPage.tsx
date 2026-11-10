@@ -1,13 +1,12 @@
 import { useMemo } from 'react';
-import {
-    Zap, BarChart3, Clock, DollarSign, Cpu, Bot, Wrench, TrendingUp, Database, Brain
-} from 'lucide-react';
-import { fmtDuration, MetricCard, Card, AgentRow, type ChartPoint, type ModelUsage, type ToolUsage, type UsageRecord, type UsageSummary } from './shared';
+import { Info, Settings2 } from 'lucide-react';
+import StatGrid from '@/components/shared/dashboard/StatGrid';
+import { CHIP, QUIET_BTN } from '@/components/mcpLibrary/ui';
+import { fmtDuration, MetricTile, Card, AgentRow, type ChartPoint, type ModelUsage, type ToolUsage, type UsageRecord, type UsageSummary } from './shared';
 import { DonutChart } from './shared/DonutChart';
 import { fmtCost, MODEL_COLORS, ModelRow, shortModel } from './shared/ModelRow';
-import { fmt, COLORS, Empty, SvgAreaChart } from './shared/SvgAreaChart';
-import type { ModelRate } from './drawer/drawerTypes';
-import { useTranslation } from '@/hooks/useTranslation';
+import { fmt, SERIES, Empty, SvgAreaChart } from './shared/SvgAreaChart';
+import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
 
 export interface UsageDeltas {
     calls?: number | null;
@@ -18,7 +17,6 @@ export interface UsageDeltas {
 
 interface OverviewPageProps {
     summary: UsageSummary | null;
-    prevSummary?: UsageSummary | null;
     deltas: UsageDeltas;
     byModel: ModelUsage[];
     byAgent: UsageRecord[];
@@ -28,179 +26,170 @@ interface OverviewPageProps {
     deltaLabel: string;
     totalCost: number;
     costPerModel: Record<string, number>;
-    modelCosts: Record<string, ModelRate>;
-    range: string;
     onSelectModel?: (model: UsageRecord) => void;
     onSelectAgent?: (agent: UsageRecord) => void;
     onNavigate?: (value: string) => void;
 }
 
+/** Calls, tokens, cost (billed when the org pays as it goes) and latency, each against the previous period. */
+function OverviewKpis({ summary, deltas, deltaLabel, totalCost }: Pick<OverviewPageProps, 'summary' | 'deltas' | 'deltaLabel' | 'totalCost'>) {
+    const { t } = useTranslation();
+    const rawCost = summary?.total_estimated_cost || totalCost || 0;
+    const billed = Number(summary?.total_billed_cost || 0);
+    const isPayg = billed > 0;
+    const latencyLabel = deltas?.latency != null ? (deltas.latency > 0 ? 'slower' : 'faster') : deltaLabel;
+    return (
+        <StatGrid>
+            <MetricTile label={t('admin_monitoring.overview_total_calls', 'Total Calls')} value={fmt(summary?.total_calls || 0)} delta={deltas?.calls} deltaLabel={deltaLabel} />
+            <MetricTile label={t('admin_monitoring.overview_total_tokens', 'Total Tokens')} value={fmt(summary?.total_tokens || 0)} delta={deltas?.tokens} deltaLabel={deltaLabel} />
+            <MetricTile
+                label={isPayg ? t('admin_monitoring.overview_billed_payg', 'Billed (PAYG)') : t('admin_monitoring.overview_est_cost', 'Est. Cost')}
+                value={fmtCost(isPayg ? billed : rawCost)}
+                subtitle={isPayg ? t('admin_monitoring.overview_raw_markup', 'raw {cost} · markup applied', { cost: fmtCost(rawCost) }) : undefined}
+                delta={deltas?.cost} deltaLabel={deltaLabel}
+            />
+            <MetricTile label={t('admin_monitoring.overview_avg_latency', 'Avg Latency')} value={fmtDuration(summary?.avg_duration_ms)} delta={deltas?.latency} deltaLabel={latencyLabel} />
+        </StatGrid>
+    );
+}
+
+/** Cached and reasoning tokens; only when either is non-zero. */
+function CacheKpis({ summary }: { summary: UsageSummary | null }) {
+    const { t } = useTranslation();
+    if (!((summary?.total_cached_tokens || 0) > 0 || (summary?.total_reasoning_tokens || 0) > 0)) return null;
+    return (
+        <StatGrid>
+            <MetricTile
+                label={t('admin_monitoring.overview_cached_tokens', 'Cached Tokens')} value={fmt(summary?.total_cached_tokens || 0)}
+                deltaLabel={(summary?.total_cache_creation_tokens || 0) > 0
+                    ? t('admin_monitoring.overview_cache_written', '+ {n} written', { n: fmt(summary?.total_cache_creation_tokens) })
+                    : t('admin_monitoring.overview_cache_hits', 'cache hits')}
+            />
+            <MetricTile
+                label={t('admin_monitoring.overview_reasoning_tokens', 'Reasoning Tokens')} value={fmt(summary?.total_reasoning_tokens || 0)}
+                deltaLabel={t('admin_monitoring.overview_reasoning_hint', 'o-series / thinking')}
+            />
+        </StatGrid>
+    );
+}
+
+/** Token and cost (or billed cost) over the period. */
+function TrendCharts({ summary, timeline, costTimeline }: Pick<OverviewPageProps, 'summary' | 'timeline' | 'costTimeline'>) {
+    const { t } = useTranslation();
+    const billed = Number(summary?.total_billed_cost || 0) > 0;
+    return (
+        <div className="grid gap-4 lg:grid-cols-2">
+            <Card title={t('admin_monitoring.overview_token_trend', 'Token Trend')}>
+                <SvgAreaChart
+                    data={timeline} yKey="total_tokens" color={SERIES.tokens}
+                    formatY={fmt}
+                    formatLabel={d => `${d.period || ''} · ${d.calls || 0} calls`}
+                />
+            </Card>
+            <Card title={billed ? t('admin_monitoring.overview_billed_trend', 'Billed Cost Trend (PAYG)') : t('admin_monitoring.overview_cost_trend', 'Cost Trend')}>
+                <SvgAreaChart
+                    data={costTimeline}
+                    yKey={billed ? 'total_billed_cost' : 'total_cost'}
+                    color={billed ? SERIES.billed : SERIES.cost}
+                    formatY={fmtCost}
+                    formatLabel={d => billed
+                        ? t('admin_monitoring.overview_trend_billed_raw', '{period} · {billed} billed · {raw} raw', { period: d.period || '', billed: fmtCost(d.total_billed_cost || 0), raw: fmtCost(d.total_cost || 0) })
+                        : `${d.period || ''} · ${fmtCost(d.total_cost || 0)}`}
+                />
+            </Card>
+        </div>
+    );
+}
+
+/** Top 5 models by cost plus "Other", for the donut. */
+function donutItemsOf(byModel: ModelUsage[], costPerModel: Record<string, number>, t: TranslateFn) {
+    const sorted = [...byModel]
+        .filter(m => costPerModel[m.model])
+        .sort((a, b) => (costPerModel[b.model] || 0) - (costPerModel[a.model] || 0));
+    const items = sorted.slice(0, 5).map((m, i) => ({
+        label: shortModel(m.model),
+        value: costPerModel[m.model] || 0,
+        color: MODEL_COLORS[i % MODEL_COLORS.length],
+    }));
+    const otherCost = sorted.slice(5).reduce((s, m) => s + (costPerModel[m.model] || 0), 0);
+    if (otherCost > 0) items.push({ label: t('admin_monitoring.overview_other', 'Other'), value: otherCost, color: 'var(--text-tertiary)' });
+    return items;
+}
+
+function CostBreakdown({ byModel, costPerModel, totalCost, onNavigate }: Pick<OverviewPageProps, 'byModel' | 'costPerModel' | 'totalCost' | 'onNavigate'>) {
+    const { t } = useTranslation();
+    const donutItems = useMemo(() => donutItemsOf(byModel, costPerModel, t), [byModel, costPerModel, t]);
+    const missing = byModel.length - byModel.filter(m => costPerModel[m.model]).length;
+    return (
+        <Card
+            title={t('admin_monitoring.overview_cost_breakdown', 'Cost Breakdown')}
+            action={onNavigate && (
+                <button type="button" onClick={() => onNavigate('admin/ai-config')} className={QUIET_BTN}>
+                    <Settings2 className="h-3.5 w-3.5" aria-hidden="true" /> {t('admin_monitoring.overview_model_costs', 'Model Costs')}
+                </button>
+            )}
+        >
+            {donutItems.length === 0 ? (
+                <Empty text={t('admin_monitoring.overview_no_cost_data', 'No cost data: configure model pricing in AI Config')} />
+            ) : (
+                <div className="flex flex-col gap-3">
+                    <DonutChart items={donutItems} centerLabel={t('admin_monitoring.overview_total', 'Total')} centerValue={fmtCost(totalCost)} />
+                    {missing > 0 && (
+                        <p className="m-0 flex items-center gap-1.5 text-[11px] text-[var(--text-tertiary)]">
+                            <Info className="h-3 w-3 shrink-0" aria-hidden="true" />
+                            {missing > 1 ? t('admin_monitoring.overview_no_cost_models', '{n} models without cost data', { n: missing }) : t('admin_monitoring.overview_no_cost_model', '{n} model without cost data', { n: missing })}
+                        </p>
+                    )}
+                </div>
+            )}
+        </Card>
+    );
+}
+
 export function OverviewPage({
-    summary, prevSummary, deltas, deltaLabel,
+    summary, deltas, deltaLabel,
     byModel, byAgent, timeline, costTimeline, tools,
-    totalCost, costPerModel, modelCosts, range,
+    totalCost, costPerModel,
     onSelectModel, onSelectAgent, onNavigate
 }: OverviewPageProps) {
     const { t } = useTranslation();
-    const modelsWithCost = byModel.filter((m) => costPerModel[m.model]);
-
-    // Donut data: top 5 models by cost + "Other"
-    const donutItems = useMemo(() => {
-        const sorted = [...byModel]
-            .filter(m => costPerModel[m.model])
-            .sort((a, b) => (costPerModel[b.model] || 0) - (costPerModel[a.model] || 0));
-        const top = sorted.slice(0, 5);
-        const otherCost = sorted.slice(5).reduce((s, m) => s + (costPerModel[m.model] || 0), 0);
-        const items = top.map((m, i) => ({
-            label: shortModel(m.model),
-            value: costPerModel[m.model] || 0,
-            color: MODEL_COLORS[i % MODEL_COLORS.length],
-        }));
-        if (otherCost > 0) items.push({ label: t('admin_monitoring.overview_other', 'Other'), value: otherCost, color: '#64748b' });
-        return items;
-    }, [byModel, costPerModel, t]);
-
     return (
-        <div className="[animation:fadeIn_0.3s_ease]">
-            {/* ── KPI Cards ── */}
-            <div className="[display:grid] [grid-template-columns:repeat(auto-fit,minmax(200px,1fr))] [gap:14px] [margin-bottom:1.5rem]">
-                <MetricCard
-                    icon={Zap} label={t('admin_monitoring.overview_total_calls', 'Total Calls')} color={COLORS.primary}
-                    value={fmt(summary?.total_calls || 0)}
-                    delta={deltas?.calls} deltaLabel={deltaLabel}
-                />
-                <MetricCard
-                    icon={BarChart3} label={t('admin_monitoring.overview_total_tokens', 'Total Tokens')} color={COLORS.green}
-                    value={fmt(summary?.total_tokens || 0)}
-                    delta={deltas?.tokens} deltaLabel={deltaLabel}
-                />
-                {(() => {
-                    const rawCost = summary?.total_estimated_cost || totalCost || 0;
-                    const billed = Number(summary?.total_billed_cost || 0);
-                    const isPayg = billed > 0;
-                    return (
-                        <MetricCard
-                            icon={DollarSign}
-                            label={isPayg ? t('admin_monitoring.overview_billed_payg', 'Billed (PAYG)') : t('admin_monitoring.overview_est_cost', 'Est. Cost')}
-                            color={isPayg ? COLORS.green : COLORS.amber}
-                            value={fmtCost(isPayg ? billed : rawCost)}
-                            subtitle={isPayg ? t('admin_monitoring.overview_raw_markup', 'raw {cost} · markup applied', { cost: fmtCost(rawCost) }) : undefined}
-                            delta={deltas?.cost} deltaLabel={deltaLabel}
-                        />
-                    );
-                })()}
-                <MetricCard
-                    icon={Clock} label={t('admin_monitoring.overview_avg_latency', 'Avg Latency')} color={COLORS.pink}
-                    value={fmtDuration(summary?.avg_duration_ms)}
-                    delta={deltas?.latency}
-                    deltaLabel={deltas?.latency != null ? (deltas.latency > 0 ? 'slower' : 'faster') : deltaLabel}
-                />
-            </div>
-            {/* ── Cache & reasoning row (only render if either is non-zero) ── */}
-            {((summary?.total_cached_tokens || 0) > 0 || (summary?.total_reasoning_tokens || 0) > 0) && (
-                <div className="[display:grid] [grid-template-columns:repeat(auto-fit,minmax(200px,1fr))] [gap:14px] [margin-bottom:1.5rem]">
-                    <MetricCard
-                        icon={Database} label={t('admin_monitoring.overview_cached_tokens', 'Cached Tokens')} color={COLORS.green}
-                        value={fmt(summary?.total_cached_tokens || 0)}
-                        deltaLabel={(summary?.total_cache_creation_tokens || 0) > 0
-                            ? t('admin_monitoring.overview_cache_written', '+ {n} written', { n: fmt(summary?.total_cache_creation_tokens) })
-                            : t('admin_monitoring.overview_cache_hits', 'cache hits')}
-                    />
-                    <MetricCard
-                        icon={Brain} label={t('admin_monitoring.overview_reasoning_tokens', 'Reasoning Tokens')} color={COLORS.primary}
-                        value={fmt(summary?.total_reasoning_tokens || 0)}
-                        deltaLabel={t('admin_monitoring.overview_reasoning_hint', 'o-series / thinking')}
-                    />
-                </div>
-            )}
+        <div className="flex flex-col gap-4">
+            <OverviewKpis summary={summary} deltas={deltas} deltaLabel={deltaLabel} totalCost={totalCost} />
+            <CacheKpis summary={summary} />
+            <TrendCharts summary={summary} timeline={timeline} costTimeline={costTimeline} />
 
-            {/* ── Timeline Charts ── */}
-            <div className="[display:grid] [grid-template-columns:1fr_1fr] [gap:14px] [margin-bottom:1.25rem]">
-                <Card title={t('admin_monitoring.overview_token_trend', 'Token Trend')} icon={TrendingUp}>
-                    <SvgAreaChart
-                        data={timeline} yKey="total_tokens" color={COLORS.primary}
-                        formatY={fmt}
-                        formatLabel={d => `${d.period || ''} · ${d.calls || 0} calls`}
-                    />
-                </Card>
-                <Card title={Number(summary?.total_billed_cost || 0) > 0 ? t('admin_monitoring.overview_billed_trend', 'Billed Cost Trend (PAYG)') : t('admin_monitoring.overview_cost_trend', 'Cost Trend')} icon={DollarSign}>
-                    <SvgAreaChart
-                        data={costTimeline}
-                        yKey={Number(summary?.total_billed_cost || 0) > 0 ? 'total_billed_cost' : 'total_cost'}
-                        color={Number(summary?.total_billed_cost || 0) > 0 ? COLORS.green : COLORS.amber}
-                        formatY={fmtCost}
-                        formatLabel={d => Number(summary?.total_billed_cost || 0) > 0
-                            ? t('admin_monitoring.overview_trend_billed_raw', '{period} · {billed} billed · {raw} raw', { period: d.period || '', billed: fmtCost(d.total_billed_cost || 0), raw: fmtCost(d.total_cost || 0) })
-                            : `${d.period || ''} · ${fmtCost(d.total_cost || 0)}`}
-                    />
-                </Card>
-            </div>
-
-            {/* ── Two columns: Top Models + Top Agents ── */}
-            <div className="[display:grid] [grid-template-columns:1fr_1fr] [gap:14px] [margin-bottom:1.25rem]">
-                <Card title={t('admin_monitoring.overview_top_models', 'Top Models')} icon={Cpu}>
-                    {byModel.length === 0 ? <Empty text={t('admin_monitoring.overview_no_model_data', 'No model data')} /> : byModel.slice(0, 5).map((m, i) => (
-                        <div key={i} onClick={() => onSelectModel?.(m)} className="[cursor:pointer]">
-                            <ModelRow model={m} index={i} maxTokens={Math.max(...byModel.map(m => m.total_tokens || 0), 1)} cost={costPerModel[m.model]} />
-                        </div>
-                    ))}
-                </Card>
-                <Card title={t('admin_monitoring.overview_top_agents', 'Top Agents')} icon={Bot}>
-                    {byAgent.length === 0 ? <Empty text={t('admin_monitoring.overview_no_agent_data', 'No agent data')} /> : byAgent.slice(0, 5).map((a, i) => (
-                        <div key={i} onClick={() => onSelectAgent?.(a)} className="[cursor:pointer]">
-                            <AgentRow agent={a} index={i} />
-                        </div>
-                    ))}
-                </Card>
-            </div>
-
-            {/* ── Cost Breakdown + Tools ── */}
-            <div className="[display:grid] [grid-template-columns:1fr_1fr] [gap:14px]">
-                {/* Cost donut */}
-                <Card
-                    title={t('admin_monitoring.overview_cost_breakdown', 'Cost Breakdown')}
-                    icon={DollarSign}
-                    action={onNavigate && (
-                        <button
-                            onClick={() => onNavigate('admin/ai-config')}
-                            style={{
-                                padding: '4px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: 600,
-                                background: 'rgba(245, 158, 11, 0.1)', color: COLORS.amber,
-                                border: '1px solid rgba(245, 158, 11, 0.2)', cursor: 'pointer',
-                            }}
-                        >
-                            ⚙️ {t('admin_monitoring.overview_model_costs', 'Model Costs')}
-                        </button>
-                    )}
-                >
-                    {donutItems.length === 0 ? (
-                        <Empty text={t('admin_monitoring.overview_no_cost_data', 'No cost data: configure model pricing in AI Config')} />
-                    ) : (
-                        <div className="[display:flex] [flex-direction:column] [gap:12px]">
-                            <DonutChart items={donutItems} centerLabel={t('admin_monitoring.overview_total', 'Total')} centerValue={fmtCost(totalCost)} />
-                            {modelsWithCost.length < byModel.length && (
-                                <div className="[font-size:11px] [color:var(--text-muted,#666)] [padding:6px_0]">
-                                    ℹ️ {byModel.length - modelsWithCost.length > 1 ? t('admin_monitoring.overview_no_cost_models', '{n} models without cost data', { n: byModel.length - modelsWithCost.length }) : t('admin_monitoring.overview_no_cost_model', '{n} model without cost data', { n: byModel.length - modelsWithCost.length })}
-                                </div>
-                            )}
-                        </div>
-                    )}
-                </Card>
-
-                {/* Tool usage */}
-                <Card title={t('admin_monitoring.overview_tool_usage', 'Tool Usage')} icon={Wrench}>
-                    {tools.length === 0 ? <Empty text={t('admin_monitoring.overview_no_tool_calls', 'No tool calls recorded')} /> : (
-                        <div className="[display:flex] [gap:8px] [flex-wrap:wrap]">
-                            {tools.slice(0, 15).map((t, i) => (
-                                <div key={i} className="[padding:6px_12px] [border-radius:20px] [font-size:12px] [background:var(--bg-tertiary,rgba(255,255,255,0.04))] [border:1px_solid_var(--border-default,rgba(255,255,255,0.06))] [color:var(--text-secondary,#aaa)] [display:flex] [align-items:center] [gap:6px]">
-                                    <span className="[font-weight:600] [color:var(--text-primary,#fff)]">{t.tool_name}</span>
-                                    <span style={{
-                                        background: COLORS.primary + '20', color: COLORS.primary,
-                                        padding: '1px 6px', borderRadius: '10px', fontSize: '10px', fontWeight: 700,
-                                    }}>{t.calls}×</span>
-                                </div>
+            <div className="grid gap-4 lg:grid-cols-2">
+                <Card title={t('admin_monitoring.overview_top_models', 'Top Models')}>
+                    {byModel.length === 0 ? <Empty text={t('admin_monitoring.overview_no_model_data', 'No model data')} /> : (
+                        <div>
+                            {byModel.slice(0, 5).map((m, i) => (
+                                <ModelRow key={i} model={m} index={i} cost={costPerModel[m.model]} onClick={() => onSelectModel?.(m)} />
                             ))}
                         </div>
+                    )}
+                </Card>
+                <Card title={t('admin_monitoring.overview_top_agents', 'Top Agents')}>
+                    {byAgent.length === 0 ? <Empty text={t('admin_monitoring.overview_no_agent_data', 'No agent data')} /> : (
+                        <div>
+                            {byAgent.slice(0, 5).map((a, i) => <AgentRow key={i} agent={a} onClick={() => onSelectAgent?.(a)} />)}
+                        </div>
+                    )}
+                </Card>
+            </div>
+
+            <div className="grid gap-4 lg:grid-cols-2">
+                <CostBreakdown byModel={byModel} costPerModel={costPerModel} totalCost={totalCost} onNavigate={onNavigate} />
+                <Card title={t('admin_monitoring.overview_tool_usage', 'Tool Usage')}>
+                    {tools.length === 0 ? <Empty text={t('admin_monitoring.overview_no_tool_calls', 'No tool calls recorded')} /> : (
+                        <ul className="m-0 flex list-none flex-wrap gap-2 p-0">
+                            {tools.slice(0, 15).map((tool, i) => (
+                                <li key={i} className={CHIP}>
+                                    <span className="font-semibold text-[var(--text-primary)]">{tool.tool_name}</span>
+                                    <span className="tabular-nums text-[var(--text-tertiary)]">{tool.calls}×</span>
+                                </li>
+                            ))}
+                        </ul>
                     )}
                 </Card>
             </div>

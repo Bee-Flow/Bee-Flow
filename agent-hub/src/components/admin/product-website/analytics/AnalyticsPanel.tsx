@@ -12,7 +12,7 @@
  */
 import {
     BarChart3, Activity, FileText, Share2, Users, Zap, Gauge,
-    Filter, X, RefreshCw, Settings, Loader2, Flame, GitBranch, Video,
+    Filter, X, RefreshCw, Settings, Flame, GitBranch, Video,
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { decodeFilters, encodeFilters, filterLabel, withFilter, withoutFilter, type AnalyticsFilters } from './filters';
@@ -28,11 +28,15 @@ import RealtimeSection from './sections/RealtimeSection';
 import ReplaysSection from './sections/ReplaysSection';
 import SettingsSection from './sections/SettingsSection';
 import SourcesSection from './sections/SourcesSection';
-import { AnalyticsStyles } from './ui';
 import { ErrorNote } from './AsyncCard';
-import { ACCENT } from './BarList';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useUrlQueryParam } from '@/hooks/useUrlTab';
+import SectionHeader from '@/components/shared/SectionHeader';
+import SectionNav from '@/components/shared/SectionNav';
+import StudioShell from '@/components/shared/StudioShell';
+import IconButton from '@/components/shared/IconButton';
+import Spinner from '@/components/shared/Spinner';
+import { FILTER_CHIP_ON } from '@/components/mcpLibrary/ui';
 import RangeControl, { defaultRange, UsageRange } from '@/pages/settings/usage/RangeControl';
 
 const TZ = (() => {
@@ -62,8 +66,8 @@ const SECTIONS = [
 ];
 const SECTION_IDS = SECTIONS.map(s => s.id);
 
-/** Wide sections get room for a full-width page render beside its ranking. */
-const activeSectionWidth = (id: string | null) => (SECTIONS.find(s => s.id === id)?.wide ? 1600 : 1280);
+/** Wide sections get room for a full-width page render beside its ranking (literal classes for Tailwind). */
+const sectionWidthClass = (wide?: boolean) => (wide ? 'max-w-[1600px]' : 'max-w-[1280px]');
 
 const MS_DAY = 24 * 60 * 60 * 1000;
 
@@ -162,8 +166,8 @@ export default function AnalyticsPanel() {
 
     if (loading) {
         return (
-            <div className="h-full flex items-center justify-center text-[var(--text-muted)]">
-                <Loader2 className="w-5 h-5 animate-spin" />
+            <div className="flex h-full items-center justify-center text-[var(--text-tertiary)]">
+                <Spinner />
             </div>
         );
     }
@@ -187,122 +191,94 @@ export default function AnalyticsPanel() {
     const Active = activeSection.Component;
     const provisioned = trackedSites.length > 0;
     const showControls = !activeSection.rangeless || !activeSection.filterless;
+    const title = t('cms_site.analytics.panel.title', 'Website Analytics');
 
-    return (
-        <div className="absolute inset-0 overflow-auto [background:var(--bg-primary)]">
-            <AnalyticsStyles />
-            <div style={{ maxWidth: activeSectionWidth(section), margin: '0 auto', padding: '24px 28px' }}>
-                {/* Header */}
-                <div className="[display:flex] [align-items:center] [justify-content:space-between] [flex-wrap:wrap] [gap:12px] [margin-bottom:14px]">
-                    <div className="[display:flex] [align-items:center] [gap:10px]">
-                        <div style={{ width: 34, height: 34, borderRadius: 9, background: `${ACCENT}1a`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <BarChart3 style={{ width: 18, height: 18, color: ACCENT }} />
-                        </div>
-                        <div>
-                            <h2 className="[font-size:18px] [font-weight:800] [color:var(--text-primary,#fff)] [margin:0]">{t('cms_site.analytics.panel.title', 'Website Analytics')}</h2>
-                            <p className="[font-size:12px] [color:var(--text-muted,#888)] [margin:0]">
-                                {t('cms_site.analytics.panel.subtitle', 'Self-hosted, privacy-first usage tracking for your published site')}
-                            </p>
-                        </div>
-                    </div>
-                    <div className="[display:flex] [align-items:center] [gap:8px]">
-                        {trackedSites.length > 1 && (
-                            <select value={siteId} onChange={(e) => setSiteId(e.target.value)} style={selectStyle}>
-                                {trackedSites.map(s => (
-                                    <option key={s.id} value={s.id}>{s.name}{s.live ? ` (${t('cms_site.analytics.panel.live_suffix', 'live')})` : ''}</option>
-                                ))}
-                            </select>
-                        )}
-                        <button onClick={() => setReloadToken(n => n + 1)} title={t('cms_site.analytics.panel.refresh', 'Refresh')} style={iconBtnStyle}>
-                            <RefreshCw className="w-[15px] h-[15px]" />
-                        </button>
-                        <button onClick={() => setView('settings')} title={t('cms_site.analytics.panel.settings', 'Analytics settings')} style={iconBtnStyle}>
-                            <Settings className="w-[15px] h-[15px]" />
-                        </button>
-                    </div>
-                </div>
-
-                {error && <div className="[margin-bottom:14px]"><ErrorNote message={error} onRetry={loadShell} /></div>}
-
-                {!provisioned ? (
-                    <div className="[margin-top:40px] [text-align:center] [color:var(--text-muted,#888)] [font-size:13px]">
-                        {t('cms_site.analytics.panel.no_site', 'No tracked site yet. Publish a CMS site (with analytics enabled) to start collecting visitor data.')}
-                    </div>
-                ) : (
-                    <>
-                        {/* Section nav */}
-                        <div className="[display:flex] [gap:4px] [flex-wrap:wrap] [margin-bottom:12px] [border-bottom:1px_solid_var(--border-subtle,rgba(255,255,255,0.08))] [padding-bottom:8px]">
-                            {SECTIONS.map(s => {
-                                const active = s.id === section;
-                                const Icon = s.icon;
-                                return (
-                                    <button
-                                        key={s.id}
-                                        onClick={() => setSectionParam(s.id)}
-                                        aria-current={active ? 'page' : undefined}
-                                        style={{
-                                            display: 'inline-flex', alignItems: 'center', gap: 6,
-                                            padding: '6px 12px', borderRadius: 8, cursor: 'pointer',
-                                            border: '1px solid ' + (active ? `${ACCENT}66` : 'transparent'),
-                                            background: active ? `${ACCENT}14` : 'transparent',
-                                            color: active ? ACCENT : 'var(--text-muted, #888)',
-                                            fontSize: 12, fontWeight: 700,
-                                        }}
-                                    >
-                                        <Icon className="w-[13px] h-[13px]" />
-                                        {t(s.labelKey, s.label)}
-                                    </button>
-                                );
-                            })}
-                        </div>
-
-                        {/* Range + filters. Hidden entirely for a section that
-                            honours neither — a control that changes nothing is
-                            worse than no control. */}
-                        {showControls && (
-                        <div className="[display:flex] [align-items:center] [gap:10px] [flex-wrap:wrap] [margin-bottom:14px]">
-                            {!activeSection.rangeless && <RangeControl range={range} onChange={setRange} />}
-                            {!activeSection.filterless && Object.entries(filters).map(([k, v]) => (
-                                <span key={k} style={{
-                                    display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 8px',
-                                    borderRadius: 7, background: `${ACCENT}14`, border: `1px solid ${ACCENT}44`,
-                                    color: ACCENT, fontSize: 11, fontWeight: 700,
-                                }}>
-                                    <Filter className="w-[11px] h-[11px]" />
-                                    {filterLabel(k, t)}: {v}
-                                    <button onClick={() => clearFilter(k)} aria-label={t('cms_site.analytics.panel.clear_filter', 'Clear {filter} filter', { filter: filterLabel(k, t) })} style={{
-                                        display: 'inline-flex', background: 'transparent', border: 'none',
-                                        color: ACCENT, cursor: 'pointer', padding: 0,
-                                    }}>
-                                        <X className="w-[12px] h-[12px]" />
-                                    </button>
-                                </span>
-                            ))}
-                        </div>
-                        )}
-
-                        <Active
-                            scope={scope}
-                            site={activeSite}
-                            settings={settings}
-                            onDrill={drill}
-                            onOpenSettings={() => setView('settings')}
-                        />
-                    </>
-                )}
-            </div>
+    const actions = (
+        <div className="flex items-center gap-1.5">
+            {trackedSites.length > 1 && (
+                <select
+                    value={siteId}
+                    onChange={(e) => setSiteId(e.target.value)}
+                    aria-label={t('cms_site.analytics.panel.site', 'Site')}
+                    className="h-8 rounded-lg border border-[var(--border-default)] bg-[var(--bg-primary)] px-2.5 text-xs font-medium text-[var(--text-primary)] outline-none focus:border-[var(--accent-primary)]"
+                >
+                    {trackedSites.map(s => (
+                        <option key={s.id} value={s.id}>{s.name}{s.live ? ` (${t('cms_site.analytics.panel.live_suffix', 'live')})` : ''}</option>
+                    ))}
+                </select>
+            )}
+            <IconButton onClick={() => setReloadToken(n => n + 1)} ariaLabel={t('cms_site.analytics.panel.refresh', 'Refresh')}>
+                <RefreshCw aria-hidden="true" />
+            </IconButton>
+            <IconButton onClick={() => setView('settings')} ariaLabel={t('cms_site.analytics.panel.settings', 'Analytics settings')}>
+                <Settings aria-hidden="true" />
+            </IconButton>
         </div>
     );
-}
 
-const selectStyle = {
-    background: 'var(--bg-secondary, #1a1a2e)', color: 'var(--text-primary, #fff)',
-    border: '1px solid var(--border-default, rgba(255,255,255,0.1))', borderRadius: 8,
-    padding: '6px 10px', fontSize: 12, fontWeight: 500, cursor: 'pointer',
-};
-const iconBtnStyle = {
-    display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32,
-    borderRadius: 8, background: 'var(--bg-secondary, #1a1a2e)',
-    border: '1px solid var(--border-default, rgba(255,255,255,0.1))',
-    color: 'var(--text-secondary, #aaa)', cursor: 'pointer',
-};
+    const sidebar = provisioned ? (
+        <SectionNav
+            label={title}
+            items={SECTIONS.map(s => ({ id: s.id, icon: s.icon, label: t(s.labelKey, s.label) }))}
+            activeId={activeSection.id}
+            onSelect={(id) => setSectionParam(id)}
+        />
+    ) : null;
+
+    return (
+        <StudioShell responsive sidebarTitle={title} sidebar={sidebar}>
+            <div className="relative h-full">
+                <div className="absolute inset-0 overflow-y-auto">
+                    <div className={`mx-auto flex flex-col gap-4 p-4 md:p-6 ${sectionWidthClass(activeSection.wide)}`}>
+                        <SectionHeader
+                            title={provisioned ? t(activeSection.labelKey, activeSection.label) : title}
+                            description={t('cms_site.analytics.panel.subtitle', 'Self-hosted, privacy-first usage tracking for your published site')}
+                            status={actions}
+                        />
+
+                        {error && <ErrorNote message={error} onRetry={loadShell} />}
+
+                        {!provisioned ? (
+                            <p className="m-0 mt-10 text-center text-[13px] text-[var(--text-tertiary)]">
+                                {t('cms_site.analytics.panel.no_site', 'No tracked site yet. Publish a CMS site (with analytics enabled) to start collecting visitor data.')}
+                            </p>
+                        ) : (
+                            <>
+                                {/* Range + filters. Hidden entirely for a section that
+                                    honours neither — a control that changes nothing is
+                                    worse than no control. */}
+                                {showControls && (
+                                    <div className="flex flex-wrap items-center gap-2.5">
+                                        {!activeSection.rangeless && <RangeControl range={range} onChange={setRange} />}
+                                        {!activeSection.filterless && Object.entries(filters).map(([k, v]) => (
+                                            <span key={k} className={FILTER_CHIP_ON}>
+                                                <Filter className="h-3 w-3" aria-hidden="true" />
+                                                {filterLabel(k, t)}: {v}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => clearFilter(k)}
+                                                    aria-label={t('cms_site.analytics.panel.clear_filter', 'Clear {filter} filter', { filter: filterLabel(k, t) })}
+                                                    className="inline-flex rounded text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                                                >
+                                                    <X className="h-3 w-3" aria-hidden="true" />
+                                                </button>
+                                            </span>
+                                        ))}
+                                    </div>
+                                )}
+
+                                <Active
+                                    scope={scope}
+                                    site={activeSite}
+                                    settings={settings}
+                                    onDrill={drill}
+                                    onOpenSettings={() => setView('settings')}
+                                />
+                            </>
+                        )}
+                    </div>
+                </div>
+            </div>
+        </StudioShell>
+    );
+}

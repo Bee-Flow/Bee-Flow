@@ -7,14 +7,16 @@
  * Only genuinely new primitives (drill-down breakdowns, partial-error notes,
  * heatmap/funnel/retention visuals) are written from scratch.
  *
- * Colour rule: the project bans purple/violet/indigo, and MonitoringPanel's
- * COLORS.primary is #6366f1 — so every chart/card here is passed an explicit
- * colour and nothing is allowed to fall back to the shared default.
+ * Colour rule: series colours come from the theme's chart slots
+ * (`--chart-1..8`, components/shared/charts/chartChrome), a validated palette
+ * with no purple/violet/indigo; text, surfaces and borders from the tokens.
  */
-import { type ReactNode } from 'react';
+import { type CSSProperties, type ReactNode } from 'react';
 import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
 import { TrendChip } from '@/pages/settings/usage/kit';
-import { SortableTable } from '../../monitoring/shared';
+import { CHART_SERIES } from '@/components/shared/charts/chartChrome';
+import { CHIP_INFO, FILTER_CHIP_OFF, FILTER_CHIP_ON } from '@/components/mcpLibrary/ui';
+import { SeriesDot, SortableTable } from '../../monitoring/shared';
 import { Empty, fmt } from '../../monitoring/shared/SvgAreaChart';
 import type { BreakdownRow, BreakdownTableProps, CompareKind, CompareResult, RenderStatTileArgs, SplitBarProps, StatField, StatTileProps, XYRow } from './ui.types';
 import { ACCENT, ShareBar } from './BarList';
@@ -22,19 +24,19 @@ import { Skeleton } from './AsyncCard';
 export { Card, ErrorNote, Skeleton, AsyncCard } from './AsyncCard';
 export { ACCENT, maxOf, ShareBar, BarList } from './BarList';
 
-export const PALETTE = ['#3b82f6', '#14b8a6', '#10b981', '#f59e0b', '#f97316', '#06b6d4', '#f43f5e', '#0ea5e9'];
+export const PALETTE = CHART_SERIES;
 export const paletteAt = (i: number) => PALETTE[i % PALETTE.length];
 
 /**
  * Categorical series colours, as a fixed set rather than by rank.
  *
- * PALETTE's teal and emerald are near-indistinguishable side by side, and
- * assigning by index means bars repaint when a list is filtered. Ranked lists
+ * Assigning by index means bars repaint when a list is filtered. Ranked lists
  * should be single-hue (length carries magnitude); only genuinely categorical
- * series need distinct colours, and then these four.
+ * series need distinct colours, and then these four chart slots (blue, green,
+ * amber, red).
  */
 export const SERIES = Object.freeze({
-    primary: '#14b8a6', secondary: '#3b82f6', warn: '#f59e0b', bad: '#f43f5e',
+    primary: CHART_SERIES[0], secondary: CHART_SERIES[2], warn: CHART_SERIES[3], bad: CHART_SERIES[7],
 });
 
 export { Empty, SortableTable, fmt };
@@ -173,10 +175,24 @@ export function compare(current: unknown, previous: unknown, kind: CompareKind =
  *  always printed alongside — colour is never the only carrier. */
 export function rateColor(pct: unknown): string {
     const n = Number(pct);
-    if (!Number.isFinite(n)) return 'var(--text-muted, #888)';
-    if (n <= 40) return '#10b981';
-    if (n <= 60) return '#f59e0b';
-    return '#f43f5e';
+    if (!Number.isFinite(n)) return 'var(--text-tertiary)';
+    if (n <= 40) return 'var(--success-ink)';
+    if (n <= 60) return 'var(--warning-ink)';
+    return 'var(--error-ink)';
+}
+
+/** A toggle pill in a card's header (sort by, level, tab): the Studio filter chip, on or off. */
+export function pillClass(active: boolean): string {
+    return `${active ? FILTER_CHIP_ON : FILTER_CHIP_OFF} cursor-pointer`;
+}
+
+/** rateColor as a text class (literal, for Tailwind). */
+export function rateClass(pct: unknown): string {
+    const n = Number(pct);
+    if (!Number.isFinite(n)) return 'text-[var(--text-tertiary)]';
+    if (n <= 40) return 'text-[var(--success-ink)]';
+    if (n <= 60) return 'text-[var(--warning-ink)]';
+    return 'text-[var(--error-ink)]';
 }
 
 // ── Stat tile with comparison ────────────────────────────────────────
@@ -193,36 +209,40 @@ export function StatTile({
     return renderStatTile({ Icon, label, value, color, delta, chipDisplay, deltaLabel, goodWhenDown, subtitle, state, t });
 }
 
-function renderStatTile({ Icon, label, value, color, delta, chipDisplay, deltaLabel, goodWhenDown, subtitle, state, t }: RenderStatTileArgs) {
+/**
+ * The KPI tile: the shared dashboard StatTile's card, number and label, with
+ * the period comparison beside the number (TrendChip, "new" or "no change").
+ */
+function renderStatTile({ Icon, label, value, delta, chipDisplay, deltaLabel, goodWhenDown, subtitle, state, t }: RenderStatTileArgs) {
     return (
-        <div className="[background:var(--bg-secondary,#1a1a2e)] [border:1px_solid_var(--border-subtle,rgba(255,255,255,0.08))] [border-radius:12px] [padding:12px_14px]">
-            <div className="[display:flex] [align-items:center] [gap:7px] [margin-bottom:6px]">
-                {Icon && <Icon style={{ width: 14, height: 14, color }} />}
-                <span className="[font-size:11px] [font-weight:600] [color:var(--text-muted,#888)]">{label}</span>
-            </div>
-            <div className="[display:flex] [align-items:baseline] [gap:8px] [flex-wrap:wrap]">
-                <span className="[font-size:22px] [font-weight:800] [color:var(--text-primary,#fff)] [line-height:1.1]">{value}</span>
+        <div className="min-w-0 rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)] p-4 shadow-[var(--shadow-sm)]">
+            <div className="flex flex-wrap items-baseline gap-2">
+                <span className="truncate text-2xl font-semibold tabular-nums text-[var(--text-primary)]">{value}</span>
                 {state === 'new' ? (
-                    <span title={deltaLabel || t('cms_site.analytics.common.new_title', 'nothing in the previous period')} style={{
-                        fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em',
-                        padding: '2px 6px', borderRadius: 5, background: `${ACCENT}1f`, color: ACCENT,
-                    }}>{t('cms_site.analytics.common.new', 'new')}</span>
+                    <span title={deltaLabel || t('cms_site.analytics.common.new_title', 'nothing in the previous period')} className={CHIP_INFO}>
+                        {t('cms_site.analytics.common.new', 'new')}
+                    </span>
                 ) : state === 'flat' ? (
                     <span title={deltaLabel || t('cms_site.analytics.common.vs_previous', 'vs previous period')}
-                        className="[font-size:11px] [color:var(--text-muted,#888)]">{t('cms_site.analytics.common.no_change', 'no change')}</span>
+                        className="text-[11px] text-[var(--text-tertiary)]">{t('cms_site.analytics.common.no_change', 'no change')}</span>
                 ) : delta != null && chipDisplay ? (
                     <TrendChip delta={delta} display={chipDisplay} goodWhenDown={goodWhenDown}
                         title={deltaLabel || t('cms_site.analytics.common.vs_previous', 'vs previous period')} />
                 ) : null}
             </div>
-            {subtitle && <div className="[font-size:11px] [color:var(--text-muted,#777)] [margin-top:3px]">{subtitle}</div>}
+            <div className="mt-1 flex items-center gap-1.5 text-xs text-[var(--text-secondary)]">
+                {Icon && <span className="text-[var(--text-tertiary)] [&>svg]:h-3.5 [&>svg]:w-3.5"><Icon /></span>}
+                <span>{label}</span>
+            </div>
+            {subtitle && <div className="mt-0.5 text-[11px] text-[var(--text-tertiary)]">{subtitle}</div>}
         </div>
     );
 }
 
+/** A row of tiles: two up on a phone, then as many as fit at `min` px (the minimum is the data, hence the custom property). */
 export function StatGrid({ children, min = 170 }: { children?: ReactNode; min?: number }) {
     return (
-        <div style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fit, minmax(${min}px, 1fr))`, gap: 12 }}>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-[repeat(auto-fit,minmax(var(--tile-min),1fr))]" style={{ '--tile-min': `${min}px` } as CSSProperties}>
             {children}
         </div>
     );
@@ -232,18 +252,9 @@ export function StatGrid({ children, min = 170 }: { children?: ReactNode; min?: 
 
 export function SkeletonGrid({ count = 4, height = 80, min = 170 }: { count?: number; height?: number; min?: number }) {
     return (
-        <div style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fit, minmax(${min}px, 1fr))`, gap: 12 }}>
+        <StatGrid min={min}>
             {Array.from({ length: count }, (_, i: number) => <Skeleton key={i} height={height} />)}
-        </div>
-    );
-}
-
-/** Keyframes for the skeleton pulse — mounted once by the panel shell. */
-export function AnalyticsStyles() {
-    return (
-        <style>{`
-            @keyframes bf-analytics-pulse { 0%,100% { opacity: 1 } 50% { opacity: 0.45 } }
-        `}</style>
+        </StatGrid>
     );
 }
 
@@ -270,7 +281,7 @@ export function BreakdownTable({
                 return (
                     <span
                         title={clickable ? t('cms_site.analytics.common.filter_by', 'Filter by {value}', { value: text }) : text}
-                        className={`[font-size:12px] [overflow:hidden] [text-overflow:ellipsis] [white-space:nowrap] [text-underline-offset:3px] ${r.isBlank ? '[color:var(--text-muted,_#888)] [font-style:italic]' : '[color:var(--text-primary,_#fff)] [font-style:normal]'} ${clickable ? '[text-decoration:underline_dotted]' : '[text-decoration:none]'}`}
+                        className={`text-xs overflow-hidden text-ellipsis whitespace-nowrap underline-offset-[3px] ${r.isBlank ? 'text-[var(--text-tertiary)] italic' : 'text-[var(--text-primary)] not-italic'} ${clickable ? 'underline decoration-dotted' : 'no-underline'}`}
                     >{text}</span>
                 );
             },
@@ -278,15 +289,17 @@ export function BreakdownTable({
         {
             key: 'count', label: valueHeader ?? t('cms_site.analytics.common.views', 'Views'), width: '120px', align: 'right',
             render: (r: BreakdownRow) => (
-                <span className="[display:inline-flex] [align-items:center] [gap:8px] [justify-content:flex-end] w-[100%]">
+                <span className="inline-flex w-full items-center justify-end gap-2">
                     <ShareBar value={r.count} of={total} width={44} />
-                    <span style={{ fontSize: 12, fontWeight: 700, color: ACCENT, minWidth: 34, textAlign: 'right' }}>{fmt(r.count)}</span>
+                    <span className="min-w-[34px] text-right text-xs font-semibold tabular-nums text-[var(--text-primary)]">{fmt(r.count)}</span>
                 </span>
             ),
         },
     ];
     return (
         <SortableTable
+            flush
+            ariaLabel={typeof labelHeader === 'string' ? labelHeader : undefined}
             columns={columns}
             data={data}
             maxRows={maxRows}
@@ -308,7 +321,7 @@ export function SplitBar({ segments, mode = 'stacked', height = 10, legend = fal
 
     return (
         <div>
-            <div style={{ display: 'flex', height, borderRadius: 99, overflow: 'hidden', gap: 1 }}>
+            <div className="flex gap-px overflow-hidden rounded-full" style={{ height }}>
                 {items.map((s, i) => {
                     const share = (Math.abs(Number(s.value) || 0) / total) * 100;
                     const color = s.color || (mode === 'diverging'
@@ -324,17 +337,14 @@ export function SplitBar({ segments, mode = 'stacked', height = 10, legend = fal
                 })}
             </div>
             {legend && (
-                <div className="[display:flex] [flex-wrap:wrap] [gap:12px] [margin-top:8px]">
+                <div className="flex flex-wrap gap-3 mt-2">
                     {items.map((s, i) => (
-                        <span key={`${s.label}-${i}`} className="[display:inline-flex] [align-items:center] [gap:6px] [font-size:11px]">
-                            <span style={{
-                                width: 8, height: 8, borderRadius: 2, flexShrink: 0,
-                                background: s.color || (mode === 'diverging'
-                                    ? (Number(s.value) >= 0 ? SERIES.primary : SERIES.bad)
-                                    : paletteAt(i)),
-                            }} />
-                            <span className="[color:var(--text-muted,#888)]">{s.label}</span>
-                            <span className="[color:var(--text-primary,#fff)] [font-weight:700]">{formatValue(s.value)}</span>
+                        <span key={`${s.label}-${i}`} className="inline-flex items-center gap-1.5 text-[11px]">
+                            <SeriesDot square color={s.color || (mode === 'diverging'
+                                ? (Number(s.value) >= 0 ? SERIES.primary : SERIES.bad)
+                                : paletteAt(i))} />
+                            <span className="text-[var(--text-tertiary)]">{s.label}</span>
+                            <span className="text-[var(--text-primary)] font-semibold">{formatValue(s.value)}</span>
                         </span>
                     ))}
                 </div>

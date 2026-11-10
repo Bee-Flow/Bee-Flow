@@ -2,7 +2,12 @@
 // empty state. Split out of AgentDesigner/index.jsx without a change in
 // behaviour.
 import { INTEGRATION_CATALOG } from './integrations';
+import { Bot } from 'lucide-react';
 import { useTranslation } from '@/hooks/useTranslation';
+import { PRIMARY_BTN } from '@/components/mcpLibrary/ui';
+import EmptyState from '@/components/shared/EmptyState';
+import SectionHeader from '@/components/shared/SectionHeader';
+import SectionNav from '@/components/shared/SectionNav';
 import KnowledgePanelJs from '../../knowledge/KnowledgePanel';
 
 const KnowledgePanel = KnowledgePanelJs;
@@ -50,6 +55,7 @@ export function DesignerSectionNav({ integrationStatus, activeSection, setActive
     activeSection: string | null;
     setActiveSection: (id: string) => void;
 }) {
+    const { t } = useTranslation();
     const hasIntegrations = (INTEGRATION_CATALOG as CatalogItem[]).some(item => isIntegrationAvailable(item, integrationStatus));
     const items = [
         { id: 'identity', label: 'Identity' },
@@ -58,20 +64,13 @@ export function DesignerSectionNav({ integrationStatus, activeSection, setActive
         { id: 'behavior', label: 'Behavior' },
     ];
     return (
-        <div className="w-40 flex flex-col py-3 border-r border-[var(--border-subtle)] bg-[var(--bg-primary)]">
-            {items.map((item) => (
-                <button
-                    key={item.id}
-                    onClick={() => setActiveSection(item.id)}
-                    className={`text-left px-4 py-2 text-[13px] font-medium transition-all border-l-2 ${
-                        activeSection === item.id
-                            ? 'border-[var(--accent-primary)] text-[var(--text-primary)] bg-[var(--bg-tertiary)]/50'
-                            : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]/30'
-                    }`}
-                >
-                    {item.label}
-                </button>
-            ))}
+        <div className="w-full shrink-0 border-b border-[var(--border-default)] md:w-40 md:border-b-0 md:border-r">
+            <SectionNav
+                label={t('agent_studio.agent_designer_sections', 'Agent settings')}
+                items={items}
+                activeId={activeSection ?? ''}
+                onSelect={setActiveSection}
+            />
         </div>
     );
 }
@@ -91,15 +90,11 @@ export interface KnowledgeSectionProps {
 export function KnowledgeSection(p: KnowledgeSectionProps) {
     const { t } = useTranslation();
     return (
-        <div className="space-y-6 animate-fadeIn h-full flex flex-col">
-            <div>
-                <h2 className="text-base font-semibold text-primary">
-                    {t('agent_studio.agent_designer_knowledge_base', 'Knowledge Base')}
-                </h2>
-                <p className="text-xs text-muted mt-0.5">
-                    {t('agent_studio.agent_designer_upload_documents_or_add_facts_for_the', 'Upload documents or add facts for the agent to use.')}
-                </p>
-            </div>
+        <div className="flex h-full flex-col gap-6">
+            <SectionHeader
+                title={t('agent_studio.agent_designer_knowledge_base', 'Knowledge Base')}
+                description={t('agent_studio.agent_designer_upload_documents_or_add_facts_for_the', 'Upload documents or add facts for the agent to use.')}
+            />
 
             <div className="flex-1 overflow-hidden">
                 {p.agentId ? (
@@ -114,8 +109,8 @@ export function KnowledgeSection(p: KnowledgeSectionProps) {
                         onKnowledgeBaseIdsChange={p.setKnowledgeBaseIds}
                     />
                 ) : (
-                    <div className="h-full flex flex-col items-center justify-center text-muted border-2 border-dashed rounded-xl border-[var(--border-subtle)]">
-                        <p>
+                    <div className="flex h-full flex-col items-center justify-center rounded-lg border border-dashed border-[var(--border-default)] p-6 text-sm text-[var(--text-tertiary)]">
+                        <p className="m-0">
                             {t('agent_studio.agent_designer_please_save_the_agent_first_to_add', 'Please save the agent first to add knowledge.')}
                         </p>
                     </div>
@@ -129,23 +124,16 @@ export function KnowledgeSection(p: KnowledgeSectionProps) {
 export function DesignerEmptyState({ systemMode, onCreate }: { systemMode: boolean; onCreate: () => void }) {
     const { t } = useTranslation();
     return (
-        <div className="flex-1 flex flex-col items-center justify-center p-8 max-w-4xl mx-auto w-full [padding-bottom:20%]!">
-            <h1
-                className="text-center [font-size:32px]! [font-weight:600] [color:var(--text-primary)]! [margin-bottom:12px] [letter-spacing:-0.02em]"
-            >
-                {t('agent_studio.agent_designer_agent_designer', 'Agent Designer')}
-            </h1>
-            <p className="text-sm text-center mb-8 leading-relaxed [color:var(--text-muted)]! max-w-[420px]">
-                {t('agent_studio.agent_designer_select_an_agent_from_the_sidebar_to', 'Select an agent from the sidebar to edit, or create a new one to start building your custom AI workflow assistant.')}
-            </p>
-            {!systemMode && (
-                <button
-                    onClick={onCreate}
-                    className="px-6 py-2.5 rounded-full text-sm font-medium transition-all border hover:border-purple-500/30 hover:bg-[var(--bg-secondary)] [border-color:var(--border-subtle)]! [color:var(--text-primary)]! [background:var(--bg-card)]!"
-                >
+        <EmptyState
+            className="flex-1"
+            icon={<Bot className="h-10 w-10" />}
+            title={t('agent_studio.agent_designer_agent_designer', 'Agent Designer')}
+            description={t('agent_studio.agent_designer_select_an_agent_from_the_sidebar_to', 'Select an agent from the sidebar to edit, or create a new one to start building your custom AI workflow assistant.')}
+            action={systemMode ? undefined : (
+                <button type="button" onClick={onCreate} className={PRIMARY_BTN}>
                     {t('agent_studio.agent_designer_create_new_agent', 'Create New Agent')}
                 </button>
             )}
-        </div>
+        />
     );
 }

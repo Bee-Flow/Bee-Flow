@@ -122,7 +122,7 @@ function UserModalSection({ t, userData, setShowEmojiPicker, showEmojiPicker, on
         {/* ── Organisation Assignment ── */}
         <div className="p-4 rounded-xl border border-[var(--border-default)] bg-[var(--bg-primary)]">
             <div className="flex items-center gap-2 mb-3">
-                <Building className="w-4 h-4 text-[#8b5cf6]" />
+                <Building className="w-4 h-4 text-[var(--text-secondary)]" />
                 <label className="text-sm font-semibold text-[var(--text-primary)]">{t('admin_org.user_modal_org_assignment', 'Organisation Assignment')}</label>
             </div>
 
@@ -179,14 +179,13 @@ function UserModalSection({ t, userData, setShowEmojiPicker, showEmojiPicker, on
                                     key={r.id}
                                     type="button"
                                     onClick={() => setUserData(p => ({ ...p, orgRole: r.id }))}
-                                    className={`flex items-start gap-2 p-2.5 rounded-lg border-2 text-left transition-all ${isSelected ? 'border-[var(--accent-primary)]' : 'border-[var(--border-default)] hover:border-[var(--accent-primary)]/40'}`}
-                                    style={{ background: isSelected ? `${r.color}08` : 'transparent' }}
+                                    className={`flex items-start gap-2 p-2.5 rounded-lg border-2 text-left transition-all ${isSelected ? 'border-[var(--accent-primary)] bg-[var(--bg-secondary)]' : 'border-[var(--border-default)] hover:border-[var(--accent-primary)]/40'}`}
                                 >
                                     <div className={`w-3 h-3 rounded-full border-2 mt-0.5 shrink-0 flex items-center justify-center ${isSelected ? 'border-[var(--accent-primary)]' : 'border-[var(--border-default)]'}`}>
                                         {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)]" />}
                                     </div>
                                     <div>
-                                        <div className="text-xs font-semibold" style={{ color: isSelected ? r.color : 'var(--text-primary)' }}>{r.label}</div>
+                                        <div className="text-xs font-semibold text-[var(--text-primary)]">{r.label}</div>
                                         <div className="text-[10px] text-[var(--text-muted)]">{r.description}</div>
                                     </div>
                                 </button>

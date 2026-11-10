@@ -71,7 +71,7 @@ const DirectChatView = ({ collections, directChat, setDirectChat, onSaved }: Dir
 
             {/* Scope warning: this is not per-organisation, and nothing on the old
                 screen said so. */}
-            <p className="text-xs px-3 py-2 rounded-lg border border-amber-500/25 bg-amber-500/5 text-[var(--text-secondary)]">
+            <p className="text-xs px-3 py-2 rounded-lg border border-[color-mix(in_srgb,var(--warning)_30%,transparent)] bg-[color-mix(in_srgb,var(--warning)_6%,transparent)] text-[var(--text-secondary)]">
                 {t('admin.gr_directchat_scope_note', 'This setting is installation-wide. Every organisation shares it — per-organisation rules are configured on the Organisations tab.')}
             </p>
 
@@ -106,7 +106,7 @@ const DirectChatView = ({ collections, directChat, setDirectChat, onSaved }: Dir
                                             type="checkbox"
                                             checked={directChat.collectionIds.includes(col.id)}
                                             onChange={() => toggleCollection(col.id)}
-                                            className="w-4 h-4 rounded border-gray-600 bg-transparent text-[var(--accent-primary)]
+                                            className="w-4 h-4 rounded border-[var(--border-default)] bg-transparent text-[var(--accent-primary)]
                                                        focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)]"
                                         />
                                         <span className="text-sm text-[var(--text-primary)]">{col.name}</span>

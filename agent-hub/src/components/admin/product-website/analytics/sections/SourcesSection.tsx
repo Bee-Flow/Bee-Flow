@@ -18,13 +18,15 @@ import React, { useMemo, useState } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { toChannels, channelLabel, referrerHost, pivot, type BreakdownRow, type PivotOut } from '../model';
 import { rich } from '../rich';
-import { SERIES, Empty, SplitBar, fmt, fmtDurationSec, rateColor } from '../ui';
+import { SERIES, Empty, SplitBar, fmt, fmtDurationSec, rateClass } from '../ui';
 import { Card, ErrorNote, Skeleton } from '../AsyncCard';
 import { ACCENT, ShareBar, maxOf } from '../BarList';
 import { useAnalyticsQuery } from '../useAnalyticsQuery';
 import type { AnalyticsScope } from '../../analyticsApi';
 import type { DrillHandler, XYRow } from '../ui.types';
 import { logger } from '@/utils/logger';
+import { PRIMARY_BTN } from '@/components/mcpLibrary/ui';
+import { CHART_SERIES } from '@/components/shared/charts/chartChrome';
 
 /** One UTM dimension's rows: the value under `x`, its count under `y` (or `count`). */
 type UtmRow = { x?: string | null; y?: number; count?: number; name?: string; value?: string };
@@ -69,14 +71,14 @@ export default function SourcesSection({ scope, onDrill }: SourcesSectionProps) 
     }, [rows, quality.payload]);
 
     if (referrers.loading && stats.loading) {
-        return <div className="[display:flex] [flex-direction:column] [gap:14px]"><Skeleton height={140} /><Skeleton height={260} /></div>;
+        return <div className="flex flex-col gap-3.5"><Skeleton height={140} /><Skeleton height={260} /></div>;
     }
     if (referrers.error) return <ErrorNote message={referrers.error} onRetry={referrers.reload} />;
 
     const peak = maxOf(enriched.map(r => r.views));
 
     return (
-        <div className="[display:flex] [flex-direction:column] [gap:14px]">
+        <div className="flex flex-col gap-3.5">
             <Card title={t('cms_site.analytics.sources.channel_mix', 'Channel mix')} icon={Share2}>
                 {channels.length === 0 ? (
                     <Empty text={t('cms_site.analytics.sources.no_visits', 'No visits in this period.')} />
@@ -88,7 +90,7 @@ export default function SourcesSection({ scope, onDrill }: SourcesSectionProps) 
                             }))}
                             legend height={12}
                         />
-                        <p className="[font-size:12px] [color:var(--text-secondary,#aaa)] [margin:12px_0_0]">
+                        <p className="text-xs text-[var(--text-secondary)] mt-3 mx-0 mb-0">
                             {channels[0].share >= 80
                                 ? <>{rich(t('cms_site.analytics.sources.almost_all', 'Almost everything is {channel} traffic ({pct}%). Tag the links you share to see more here.'), {
                                     channel: <strong>{channelLabel(channels[0].label, t).toLowerCase()}</strong>,
@@ -108,29 +110,29 @@ export default function SourcesSection({ scope, onDrill }: SourcesSectionProps) 
             </Card>
 
             <Card title={t('cms_site.analytics.sources.referring', 'Referring sites')} icon={Share2} action={
-                enriched.length ? <span className="[font-size:10px] [color:var(--text-muted,#777)]">{t('cms_site.analytics.sources.click_filter', 'click to filter')}</span> : null
+                enriched.length ? <span className="text-[10px] text-[var(--text-tertiary)]">{t('cms_site.analytics.sources.click_filter', 'click to filter')}</span> : null
             }>
                 {enriched.length === 0 ? (
                     <Empty text={t('cms_site.analytics.sources.no_referrers', 'Nobody arrived from another site in this period — all traffic was direct or untracked.')} />
                 ) : (
-                    <div className="[display:flex] [flex-direction:column] [gap:9px]">
+                    <div className="flex flex-col gap-[9px]">
                         {enriched.slice(0, 15).map((r, i) => (
                             <button key={`${i}-${r.referrer}`} onClick={() => onDrill('referrer', r.referrer)}
-                                className="[display:block] w-[100%] [text-align:left] [padding:0] [background:transparent] [border:none] [cursor:pointer]">
-                                <div className="[display:flex] [justify-content:space-between] [gap:10px] [margin-bottom:3px]">
-                                    <span className="[font-size:12px] [color:var(--text-primary,#fff)] [overflow:hidden] [text-overflow:ellipsis] [white-space:nowrap]">{r.host}</span>
-                                    <span className="[display:flex] [gap:12px] [flex-shrink:0] [align-items:baseline]">
+                                className="block w-[100%] text-left p-0 bg-transparent border-0 cursor-pointer">
+                                <div className="flex justify-between gap-2.5 mb-[3px]">
+                                    <span className="text-xs text-[var(--text-primary)] overflow-hidden text-ellipsis whitespace-nowrap">{r.host}</span>
+                                    <span className="flex gap-3 shrink-0 items-baseline">
                                         {r.bounceRate != null && (
-                                            <span style={{ fontSize: 11, color: rateColor(r.bounceRate) }}>
+                                            <span className={`text-[11px] ${rateClass(r.bounceRate)}`}>
                                                 {t('cms_site.analytics.sources.bounce_pct', '{pct}% bounce', { pct: Math.round(r.bounceRate) })}
                                             </span>
                                         )}
                                         {r.avgTime != null && (
-                                            <span className="[font-size:11px] [color:var(--text-muted,#888)]">
+                                            <span className="text-[11px] text-[var(--text-tertiary)]">
                                                 {fmtDurationSec(r.avgTime)}
                                             </span>
                                         )}
-                                        <span style={{ fontSize: 12, fontWeight: 700, color: ACCENT }}>{fmt(r.views)}</span>
+                                        <span className="text-xs font-semibold tabular-nums text-[var(--text-primary)]">{fmt(r.views)}</span>
                                     </span>
                                 </div>
                                 <ShareBar value={r.views} of={peak} />
@@ -146,13 +148,13 @@ export default function SourcesSection({ scope, onDrill }: SourcesSectionProps) 
 }
 
 const CHANNEL_COLORS: Record<string, string> = {
-    Direct: '#64748b',
-    Search: SERIES.secondary,
-    Referral: SERIES.primary,
-    Social: '#0ea5e9',
+    Direct: 'var(--text-tertiary)',
+    Search: SERIES.primary,
+    Referral: SERIES.secondary,
+    Social: CHART_SERIES[6],
     Email: SERIES.warn,
-    'AI assistants': '#f97316',
-    Campaign: '#10b981',
+    'AI assistants': CHART_SERIES[1],
+    Campaign: CHART_SERIES[4],
     Paid: SERIES.bad,
 };
 
@@ -183,10 +185,10 @@ function CampaignCard({ utm, onDrill }: { utm: { payload: UtmPayload | null; loa
     if (!present.length) {
         return (
             <Card title={t('cms_site.analytics.sources.campaigns', 'Campaigns')} icon={Link2}>
-                <p className="[font-size:13px] [color:var(--text-secondary,#ccc)] [margin:0_0_4px]">
+                <p className="text-[13px] text-[var(--text-secondary)] mt-0 mx-0 mb-1">
                     {t('cms_site.analytics.sources.no_tagged', 'No tagged links were visited in this period.')}
                 </p>
-                <p className="[font-size:12px] [color:var(--text-muted,#888)] [margin:0_0_14px]">
+                <p className="text-xs text-[var(--text-tertiary)] mt-0 mx-0 mb-3.5">
                     {rich(t('cms_site.analytics.sources.no_tagged_hint', 'Campaign data only appears when you share a link carrying {code}. Build one here and every visit through it shows up in this card.'), { code: <code>?utm_source=…</code> })}
                 </p>
                 <UtmBuilder />
@@ -196,24 +198,24 @@ function CampaignCard({ utm, onDrill }: { utm: { payload: UtmPayload | null; loa
 
     return (
         <Card title={t('cms_site.analytics.sources.campaigns', 'Campaigns')} icon={Link2}>
-            <div className="[display:grid] [grid-template-columns:repeat(auto-fit,minmax(220px,1fr))] [gap:16px]">
+            <div className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-4">
                 {present.map(f => {
                     const peak = maxOf(f.rows.map(r => Number(r.y ?? r.count) || 0));
                     return (
                         <div key={f.key}>
-                            <div className="[font-size:11px] [font-weight:700] [color:var(--text-muted,#888)] [margin-bottom:7px]">
+                            <div className="text-[11px] font-semibold text-[var(--text-tertiary)] mb-[7px]">
                                 {t(f.labelKey, f.label)}
                             </div>
-                            <div className="[display:flex] [flex-direction:column] [gap:7px]">
+                            <div className="flex flex-col gap-[7px]">
                                 {f.rows.slice(0, 6).map((r: UtmRow, i: number) => {
                                     const label = r.x ?? r.name ?? r.value;
                                     const value = Number(r.y ?? r.count) || 0;
                                     return (
                                         <button key={`${i}-${label}`} onClick={() => label && onDrill(f.dim, label)}
-                                            className="[display:block] w-[100%] [text-align:left] [padding:0] [background:transparent] [border:none] [cursor:pointer]">
-                                            <div className="[display:flex] [justify-content:space-between] [gap:8px] [margin-bottom:2px]">
-                                                <span className="[font-size:12px] [color:var(--text-primary,#fff)] [overflow:hidden] [text-overflow:ellipsis] [white-space:nowrap]">{label}</span>
-                                                <span style={{ fontSize: 12, fontWeight: 700, color: ACCENT }}>{fmt(value)}</span>
+                                            className="block w-[100%] text-left p-0 bg-transparent border-0 cursor-pointer">
+                                            <div className="flex justify-between gap-2 mb-0.5">
+                                                <span className="text-xs text-[var(--text-primary)] overflow-hidden text-ellipsis whitespace-nowrap">{label}</span>
+                                                <span className="text-xs font-semibold tabular-nums text-[var(--text-primary)]">{fmt(value)}</span>
                                             </div>
                                             <ShareBar value={value} of={peak} />
                                         </button>
@@ -224,7 +226,7 @@ function CampaignCard({ utm, onDrill }: { utm: { payload: UtmPayload | null; loa
                     );
                 })}
             </div>
-            <div className="[margin-top:18px] [padding-top:14px] [border-top:1px_solid_var(--border-subtle,rgba(255,255,255,0.08))]">
+            <div className="mt-4.5 pt-3.5 border-t border-[var(--border-default)]">
                 <UtmBuilder />
             </div>
         </Card>
@@ -261,23 +263,19 @@ function UtmBuilder() {
 
     return (
         <div>
-            <div className="[font-size:11px] [font-weight:700] [color:var(--text-muted,#888)] [margin-bottom:8px]">
+            <div className="text-[11px] font-semibold text-[var(--text-tertiary)] mb-2">
                 {t('cms_site.analytics.sources.build_link', 'Build a tagged link')}
             </div>
-            <div className="[display:grid] [grid-template-columns:repeat(auto-fit,minmax(150px,1fr))] [gap:8px]">
+            <div className="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-2">
                 <Field value={url} onChange={setUrl} placeholder="https://your.site/pricing" label={t('cms_site.analytics.sources.destination', 'Destination')} />
                 <Field value={source} onChange={setSource} placeholder={t('cms_site.analytics.sources.ph_source', 'newsletter')} label={t('cms_site.analytics.sources.utm_source', 'Source')} />
                 <Field value={medium} onChange={setMedium} placeholder={t('cms_site.analytics.sources.ph_medium', 'email')} label={t('cms_site.analytics.sources.utm_medium', 'Medium')} />
                 <Field value={campaign} onChange={setCampaign} placeholder={t('cms_site.analytics.sources.ph_campaign', 'launch-july')} label={t('cms_site.analytics.sources.utm_campaign', 'Campaign')} />
             </div>
             {built && (
-                <div className="[display:flex] [gap:8px] [margin-top:10px] [align-items:center]">
-                    <input readOnly value={built} onFocus={(e) => e.target.select()} className="[flex:1] [font-family:ui-monospace,monospace] [font-size:11px] [background:var(--bg-primary,#0f0f1a)] [color:var(--text-primary,#fff)] [border:1px_solid_var(--border-default,rgba(255,255,255,0.12))] [border-radius:8px] [padding:7px_10px]" />
-                    <button onClick={copy} style={{
-                        display: 'inline-flex', alignItems: 'center', gap: 5, padding: '7px 12px',
-                        borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 700,
-                        background: ACCENT, color: '#06241f',
-                    }}>
+                <div className="flex gap-2 mt-2.5 items-center">
+                    <input readOnly value={built} onFocus={(e) => e.target.select()} className="flex-1 font-mono text-[11px] bg-[var(--bg-primary)] text-[var(--text-primary)] border border-[var(--border-default)] rounded-lg py-[7px] px-2.5" />
+                    <button type="button" onClick={copy} className={PRIMARY_BTN}>
                         {copied ? <Check className="w-[12px] h-[12px]" /> : <Copy className="w-[12px] h-[12px]" />}
                         {copied ? t('cms_site.analytics.sources.copied', 'Copied') : t('cms_site.analytics.sources.copy', 'Copy')}
                     </button>
@@ -296,9 +294,9 @@ interface FieldProps {
 
 function Field({ value, onChange, placeholder, label }: FieldProps) {
     return (
-        <label className="[display:flex] [flex-direction:column] [gap:3px]">
-            <span className="[font-size:10px] [color:var(--text-muted,#888)]">{label}</span>
-            <input value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className="[background:var(--bg-primary,#0f0f1a)] [color:var(--text-primary,#fff)] [border:1px_solid_var(--border-default,rgba(255,255,255,0.12))] [border-radius:8px] [padding:6px_9px] [font-size:12px] w-[100%]" />
+        <label className="flex flex-col gap-[3px]">
+            <span className="text-[10px] text-[var(--text-tertiary)]">{label}</span>
+            <input value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className="bg-[var(--bg-primary)] text-[var(--text-primary)] border border-[var(--border-default)] rounded-lg py-1.5 px-[9px] text-xs w-[100%]" />
         </label>
     );
 }

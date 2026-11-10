@@ -48,10 +48,6 @@ export interface AgentTerminations {
     aborted?: number;
 }
 
-export interface TypeBadgeProps {
-    type: string;
-}
-
 /** One timeline period: its label and the count per termination type. */
 export interface Bucket {
     period: string;

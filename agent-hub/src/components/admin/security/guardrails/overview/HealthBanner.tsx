@@ -31,9 +31,9 @@ const HealthBanner = ({ status, onInstall }: HealthBannerProps) => {
         <div
             role="status"
             className="flex items-start gap-3 rounded-xl border px-4 py-3
-                       border-amber-500/30 bg-amber-500/10"
+                       border-[color-mix(in_srgb,var(--warning)_40%,transparent)] bg-[color-mix(in_srgb,var(--warning)_10%,transparent)]"
         >
-            <Icon size={18} className="mt-0.5 shrink-0 text-amber-500" />
+            <Icon size={18} className="mt-0.5 shrink-0 text-[var(--warning-ink)]" />
             <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-[var(--text-primary)]">
                     {notConfigured
@@ -51,9 +51,9 @@ const HealthBanner = ({ status, onInstall }: HealthBannerProps) => {
                     type="button"
                     onClick={onInstall}
                     className="shrink-0 text-xs font-medium px-3 py-1.5 rounded-lg
-                               border border-amber-500/40 text-amber-500
-                               hover:bg-amber-500/10 transition-colors
-                               focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+                               border border-[color-mix(in_srgb,var(--warning)_40%,transparent)] text-[var(--warning-ink)]
+                               hover:bg-[color-mix(in_srgb,var(--warning)_10%,transparent)] transition-colors
+                               focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--warning)]"
                 >
                     {t('admin.gr_health_install', 'Install')}
                 </button>

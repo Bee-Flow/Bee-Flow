@@ -29,7 +29,7 @@ describe('MonitoringPanel range switch', () => {
         });
 
         render(<MonitoringPanel activeSection="overview" />);
-        await user.click(await screen.findByRole('button', { name: 'All Time' }));
+        await user.click(await screen.findByRole('radio', { name: 'All Time' }));
         expect(await screen.findByText('42')).toBeTruthy();
 
         // The 7-day read that was still on its way answers now.

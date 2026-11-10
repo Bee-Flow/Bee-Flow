@@ -16,11 +16,15 @@ const { GUI_DEFAULTS } = require('../i18n/defaults/en');
 // Namespaces that exist only because of this round: every English key under
 // them must have Dutch here (or be declared identical).
 const OWNED_PREFIXES = ['cms_site.'];
+// Keys in these namespaces whose Dutch another catalogue seeds (each has its own test).
+const OWNED_ELSEWHERE = new Set([
+    'cms_site.analytics.panel.site', // add-nl-admin-studio-3b-2026-11-translations
+]);
 
 test('every English key in the owned namespaces has Dutch (or is declared identical)', () => {
     const same = new Set(SAME_AS_ENGLISH);
     const untranslated = Object.keys(GUI_DEFAULTS)
-        .filter((k) => OWNED_PREFIXES.some((p) => k.startsWith(p)) && !(k in NL_TRANSLATIONS) && !same.has(k));
+        .filter((k) => OWNED_PREFIXES.some((p) => k.startsWith(p)) && !OWNED_ELSEWHERE.has(k) && !(k in NL_TRANSLATIONS) && !same.has(k));
     assert.deepStrictEqual(untranslated, []);
 });
 

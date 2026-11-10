@@ -74,21 +74,21 @@ export default function PeopleRow({ user, orgChips = [], onEdit, onResetMfa, onD
                     <button
                         onClick={() => onEdit?.(user)}
                         aria-label={t('admin.sec_people_edit', 'Edit {name}', { name: user.displayName || user.username })}
-                        className="p-1.5 rounded hover:bg-blue-500/10 text-blue-500 focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
+                        className="p-1.5 rounded text-[var(--text-tertiary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
                     >
                         <Edit2 className="w-4 h-4" />
                     </button>
                     <button
                         onClick={() => onResetMfa?.(user)}
                         aria-label={t('admin.sec_people_reset_mfa', 'Reset 2FA for {name}', { name: user.displayName || user.username })}
-                        className="p-1.5 rounded hover:bg-amber-500/10 text-amber-500 focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
+                        className="p-1.5 rounded text-[var(--text-tertiary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
                     >
                         <Shield className="w-4 h-4" />
                     </button>
                     <button
                         onClick={() => onDelete?.(user)}
                         aria-label={t('admin.sec_people_delete', 'Delete {name}', { name: user.displayName || user.username })}
-                        className="p-1.5 rounded hover:bg-red-500/10 text-red-500 focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
+                        className="p-1.5 rounded text-[var(--text-tertiary)] hover:bg-[color-mix(in_srgb,var(--error)_10%,transparent)] hover:text-[var(--error-ink)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
                     >
                         <Trash2 className="w-4 h-4" />
                     </button>

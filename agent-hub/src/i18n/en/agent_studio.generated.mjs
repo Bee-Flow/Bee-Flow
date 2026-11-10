@@ -557,4 +557,5 @@ export default {
     "agent_studio.can_use.mail_access_draft_hint_gmail": "Drafts appear in your Gmail drafts for you to check and send.",
     "agent_studio.can_use.mail_access_draft_hint_outlook": "Drafts appear in your Outlook drafts for you to check and send.",
     "agent_studio.can_use.mail_access_send_reply_hint": "Only replies in the same thread, never to new addresses.",
+    "agent_studio.agent_designer_sections": "Agent settings",
 };

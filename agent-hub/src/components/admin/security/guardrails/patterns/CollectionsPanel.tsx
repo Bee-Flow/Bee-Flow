@@ -31,7 +31,7 @@ function RulePicker({ col, rules, onToggleRule }: Pick<CollectionCardProps, 'col
                             type="checkbox"
                             checked={member}
                             onChange={() => onToggleRule(rule.id)}
-                            className="w-4 h-4 rounded border-gray-600 bg-transparent text-[var(--accent-primary)] focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)]"
+                            className="w-4 h-4 rounded border-[var(--border-default)] bg-transparent text-[var(--accent-primary)] focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)]"
                         />
                         <span className={`text-sm ${member ? 'text-[var(--text-primary)]' : 'text-[var(--text-tertiary)]'}`}>
                             {rule.name}
@@ -72,8 +72,7 @@ function CollectionCard({ col, rules, editing, onToggleEdit, onRemove, onToggleR
     const { t } = useTranslation();
     return (
         <div
-            className="rounded-xl border bg-[var(--bg-tertiary)] transition-colors"
-            style={{ borderColor: editing ? 'var(--accent-primary)' : 'var(--border-default)' }}
+            className={`rounded-xl border bg-[var(--bg-tertiary)] transition-colors ${editing ? 'border-[var(--accent-primary)]' : 'border-[var(--border-default)]'}`}
         >
             <div className="p-3 flex items-center justify-between border-b border-white/5">
                 <div className="flex items-center gap-3 min-w-0">
@@ -99,7 +98,7 @@ function CollectionCard({ col, rules, editing, onToggleEdit, onRemove, onToggleR
                         onClick={onRemove}
                         aria-label={t('admin.gr_delete_collection', 'Delete collection')}
                         title={t('admin.gr_delete_collection', 'Delete collection')}
-                        className="p-1.5 rounded-lg text-[var(--text-tertiary)] hover:text-red-400 hover:bg-white/5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
+                        className="p-1.5 rounded-lg text-[var(--text-tertiary)] hover:text-[var(--error-ink)] hover:bg-[var(--bg-tertiary)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--error)]"
                     >
                         <Trash2 size={16} />
                     </button>

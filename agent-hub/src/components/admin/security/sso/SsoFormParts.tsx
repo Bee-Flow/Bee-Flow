@@ -1,18 +1,20 @@
-import type { CSSProperties, ReactNode } from 'react';
+import type { ReactNode } from 'react';
+import { CHIP, CHIP_SUCCESS, DOT_LIVE, DOT_OFF, PRIMARY_BTN, SECONDARY_BTN } from '@/components/mcpLibrary/ui';
+import { FIELD_INPUT } from '@/components/shared/SettingsList';
 import type { SsoProviderConfig, SsoProviderId, SsoProvidersState } from './useSsoProviders';
 import { useTranslation } from '@/hooks/useTranslation';
 
-export const INPUT_STYLE: CSSProperties = { background: 'var(--bg-tertiary)', border: '1px solid var(--border-default)', color: 'var(--text-primary)' };
-export const CARD = 'p-6 rounded-xl border bg-[var(--bg-secondary)] border-[var(--border-default)]';
-export const LABEL = 'block text-sm font-medium text-secondary mb-2';
-export const CODE = 'bg-black/30 px-2 py-0.5 rounded text-xs font-mono';
+/** A text field of the provider forms. */
+export const INPUT = FIELD_INPUT;
+export const CARD = 'rounded-lg border border-[var(--border-default)] bg-[var(--bg-primary)] p-4';
+export const LABEL = 'mb-1 block text-xs font-medium text-[var(--text-primary)]';
+export const CODE = 'rounded bg-[var(--bg-tertiary)] px-1.5 py-0.5 font-mono text-xs text-[var(--text-primary)]';
 
-/** Green "Active" or grey "Not configured" pill. */
-export function ProviderStatus({ config }: { config: SsoProviderConfig | undefined }) {
+/** "Active" or "Not configured" chip. */
+function ProviderStatus({ config }: { config: SsoProviderConfig | undefined }) {
     return (
-        <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium ${config?.enabled ? 'bg-green-500/10 text-green-400' : 'bg-gray-500/10 text-gray-400'
-            }`}>
-            <span className={`w-1.5 h-1.5 rounded-full ${config?.enabled ? 'bg-green-400' : 'bg-gray-400'}`}></span>
+        <span className={config?.enabled ? CHIP_SUCCESS : CHIP}>
+            <span className={config?.enabled ? DOT_LIVE : DOT_OFF} aria-hidden="true" />
             {config?.enabled ? 'Active' : 'Not configured'}
         </span>
     );
@@ -20,23 +22,25 @@ export function ProviderStatus({ config }: { config: SsoProviderConfig | undefin
 
 interface ProviderHeaderProps {
     logo: ReactNode;
-    logoBackground: string;
     title: string;
     description: string;
     config: SsoProviderConfig;
 }
 
-export function ProviderHeader({ logo, logoBackground, title, description, config }: ProviderHeaderProps) {
+/** Logo (brand colours), name, one-line description and status of a provider pane. */
+export function ProviderHeader({ logo, title, description, config }: ProviderHeaderProps) {
     return (
-        <div className="flex items-center gap-4 mb-6">
-            <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: logoBackground }}>
+        <div className="mb-4 flex flex-wrap items-start gap-3">
+            <div aria-hidden="true" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[var(--bg-tertiary)] [&>svg]:h-6 [&>svg]:w-6">
                 {logo}
             </div>
-            <div>
-                <h3 className="text-lg font-semibold text-primary">{title}</h3>
-                <p className="text-sm text-muted">{description}</p>
+            <div className="min-w-[12rem] flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="m-0 text-base font-semibold text-[var(--text-primary)]">{title}</h3>
+                    <ProviderStatus config={config} />
+                </div>
+                <p className="m-0 mt-1 text-xs text-[var(--text-secondary)]">{description}</p>
             </div>
-            <ProviderStatus config={config} />
         </div>
     );
 }
@@ -58,8 +62,7 @@ export function ClientIdField({ provider, sso, label, placeholder }: FieldProps)
                 value={sso.providers[provider].clientId}
                 onChange={(e) => sso.updateProviderField(provider, 'clientId', e.target.value)}
                 placeholder={placeholder}
-                className="w-full px-4 py-2.5 rounded-lg text-sm font-mono"
-                style={INPUT_STYLE}
+                className={`${INPUT} font-mono`}
             />
         </div>
     );
@@ -80,15 +83,14 @@ export function ClientSecretField({ provider, sso }: Pick<FieldProps, 'provider'
     return (
         <div>
             <label className={LABEL}>
-                {t('admin.sso_client_secret')} {providers[provider].clientSecretSet && <span className="text-green-400 text-xs">{t('admin.sso_secret_configured')}</span>}
+                {t('admin.sso_client_secret')} {providers[provider].clientSecretSet && <span className="text-xs font-normal text-[var(--success-ink)]">{t('admin.sso_secret_configured')}</span>}
             </label>
             <input
                 type="password"
                 value={secrets[provider]}
                 onChange={(e) => setSecrets(prev => ({ ...prev, [provider]: e.target.value }))}
                 placeholder={providers[provider].clientSecretSet ? t('admin.sso_secret_empty') : SECRET_PLACEHOLDER[provider]}
-                className="w-full px-4 py-2.5 rounded-lg text-sm font-mono"
-                style={INPUT_STYLE}
+                className={`${INPUT} font-mono`}
             />
         </div>
     );
@@ -99,8 +101,8 @@ export function SetupInstructions({ children }: { children: ReactNode }) {
     const { t } = useTranslation();
     return (
         <div className={CARD}>
-            <h4 className="font-semibold text-primary mb-3">{t('admin_security.sso_setup_title', '📋 Setup Instructions')}</h4>
-            <ol className="text-sm text-secondary space-y-2 list-decimal list-inside">
+            <h4 className="m-0 mb-2 text-[13px] font-semibold text-[var(--text-primary)]">{t('admin_security.sso_setup_title', '📋 Setup Instructions')}</h4>
+            <ol className="m-0 list-inside list-decimal space-y-1.5 p-0 text-xs text-[var(--text-secondary)]">
                 {children}
             </ol>
         </div>
@@ -120,13 +122,11 @@ export function ProviderActions({ provider, sso, canTest, testLabel }: ProviderA
     const { t } = useTranslation();
     const { saving, testing, handleSaveProvider, handleTestProvider } = sso;
     return (
-        <div className="flex gap-3">
-            <button onClick={() => handleSaveProvider(provider)} disabled={saving[provider]}
-                className="px-5 py-2.5 rounded-lg text-sm font-medium text-white shadow-md bg-[var(--accent-primary)]">
+        <div className="flex gap-2">
+            <button type="button" onClick={() => handleSaveProvider(provider)} disabled={saving[provider]} className={PRIMARY_BTN}>
                 {saving[provider] ? t('admin.sso_saving') : t('admin.sso_save')}
             </button>
-            <button onClick={() => handleTestProvider(provider)} disabled={testing[provider] || !canTest}
-                className="px-5 py-2.5 rounded-lg text-sm font-medium border border-[var(--border-default)] text-[var(--text-secondary)] bg-[var(--bg-secondary)]">
+            <button type="button" onClick={() => handleTestProvider(provider)} disabled={testing[provider] || !canTest} className={SECONDARY_BTN}>
                 {testing[provider] ? t('admin.sso_testing') : testLabel}
             </button>
         </div>

@@ -123,6 +123,8 @@ export interface DataTableProps<Row> {
     empty?: ReactNode;
     footer?: ReactNode;
     containerName?: string;
+    /** No card of its own (border, radius, shadow): for a table that sits inside a card already. */
+    flush?: boolean;
     className?: string;
     ariaLabel?: string;
     testId?: string;
@@ -329,6 +331,7 @@ export default function DataTable<Row extends RowLike = RowLike>({
     empty = null,
     footer = null,
     containerName = TABLE_CONTAINER,
+    flush = false,
     className = '',
     ariaLabel = undefined,
     testId = undefined,
@@ -377,8 +380,8 @@ export default function DataTable<Row extends RowLike = RowLike>({
             aria-busy={loading || undefined}
             data-testid={testId}
             data-view={cards ? 'cards' : 'table'}
-            className={`${containerClass} rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)] overflow-hidden ${className}`.trim()}
-            style={{ boxShadow: 'var(--shadow-sm)' }}
+            className={`${containerClass} overflow-hidden ${flush ? '' : 'rounded-xl border border-[var(--border-default)] bg-[var(--bg-card)]'} ${className}`.trim()}
+            style={flush ? undefined : { boxShadow: 'var(--shadow-sm)' }}
         >
             {!cards && <TableHeader columns={columns} testId={testId ? `${testId}-header` : undefined} />}
             {body}

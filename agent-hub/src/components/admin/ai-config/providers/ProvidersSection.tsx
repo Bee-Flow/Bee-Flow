@@ -17,6 +17,7 @@ import { useSelectNewRuntime } from './useSelectNewRuntime';
 import type { ModelRow, ProviderRow } from './useAiProviderModels';
 import RerankerConfig from '../RerankerConfig';
 import { CARD_BUTTON } from '@/components/mcpLibrary/ui';
+import { DetailLayout } from '@/components/shared/DetailList';
 import { useAiConfigQuery } from '@/api/queries/aiConfigRead';
 import { disconnectRuntime } from '@/api/localRuntimeApi';
 import { useTranslation } from '@/hooks/useTranslation';
@@ -135,8 +136,8 @@ export default function ProvidersSection({ selectedId: urlId, onSelect, provider
     }
 
     return (
-        <div className="flex flex-col gap-4 md:flex-row">
-            <ProviderList
+        <DetailLayout
+            list={(<ProviderList
                 entries={PROVIDER_REGISTRY}
                 connectedIds={connectedIds}
                 modelCounts={modelCounts}
@@ -144,8 +145,9 @@ export default function ProvidersSection({ selectedId: urlId, onSelect, provider
                 rerankerConnected={rerankerConnected(config)}
                 selectedId={selectedId}
                 onSelect={onSelect}
-            />
-            <div className="min-w-0 flex-1">{detail}</div>
-        </div>
+            />)}
+        >
+            {detail}
+        </DetailLayout>
     );
 }

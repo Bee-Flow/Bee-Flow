@@ -15,7 +15,7 @@ import { useMemo, useState } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { pivot, type BreakdownRow, type PivotOut } from '../model';
 import { rich } from '../rich';
-import { SERIES, Empty, SortableTable, BreakdownTable, fmt, fmtDurationSec, rateColor } from '../ui';
+import { SERIES, Empty, SortableTable, BreakdownTable, fmt, fmtDurationSec, pillClass, rateClass } from '../ui';
 import { Card, ErrorNote, Skeleton } from '../AsyncCard';
 import { ACCENT, ShareBar, maxOf } from '../BarList';
 import { useAnalyticsQuery } from '../useAnalyticsQuery';
@@ -52,7 +52,7 @@ export default function PagesSection({ scope, onDrill }: PagesSectionProps) {
     const peakViews = useMemo(() => maxOf(rows.map(r => r.views)), [rows]);
 
     if (breakdown.loading) {
-        return <div className="[display:flex] [flex-direction:column] [gap:14px]"><Skeleton height={320} /><Skeleton height={200} /></div>;
+        return <div className="flex flex-col gap-3.5"><Skeleton height={320} /><Skeleton height={200} /></div>;
     }
     if (breakdown.error) return <ErrorNote message={breakdown.error} onRetry={breakdown.reload} />;
 
@@ -60,35 +60,35 @@ export default function PagesSection({ scope, onDrill }: PagesSectionProps) {
         {
             key: 'path', label: t('cms_site.analytics.pages.page', 'Page'), width: '2fr',
             render: (r: PivotOut) => (
-                <span title={t('cms_site.analytics.pages.filter_by', 'Filter the dashboard by {value}', { value: r.path })} className="[font-size:12px] [color:var(--text-primary,#fff)] [text-decoration:underline_dotted] [text-underline-offset:3px] [overflow:hidden] [text-overflow:ellipsis] [white-space:nowrap] [display:block]">{r.path}</span>
+                <span title={t('cms_site.analytics.pages.filter_by', 'Filter the dashboard by {value}', { value: r.path })} className="text-xs text-[var(--text-primary)] underline decoration-dotted underline-offset-[3px] overflow-hidden text-ellipsis whitespace-nowrap block">{r.path}</span>
             ),
         },
         {
             key: 'views', label: t('cms_site.analytics.pages.views', 'Views'), width: '110px', align: 'right',
             render: (r: PivotOut) => (
-                <span className="[display:inline-flex] [align-items:center] [gap:8px] [justify-content:flex-end] w-[100%]">
+                <span className="inline-flex items-center gap-2 justify-end w-[100%]">
                     <ShareBar value={r.views} of={peakViews} width={40} />
-                    <span style={{ fontSize: 12, fontWeight: 700, color: ACCENT, minWidth: 32, textAlign: 'right' }}>{fmt(r.views)}</span>
+                    <span className="text-xs font-semibold tabular-nums text-[var(--text-primary)] min-w-[32px] text-right">{fmt(r.views)}</span>
                 </span>
             ),
         },
         {
             key: 'visitors', label: t('cms_site.analytics.pages.visitors', 'Visitors'), width: '80px', align: 'right',
-            render: (r: PivotOut) => <span className="[font-size:12px] [color:var(--text-secondary,#aaa)]">{fmt(r.visitors)}</span>,
+            render: (r: PivotOut) => <span className="text-xs text-[var(--text-secondary)]">{fmt(r.visitors)}</span>,
         },
         {
             key: 'bounceRate', label: t('cms_site.analytics.pages.bounce', 'Bounce'), width: '80px', align: 'right',
             render: (r: PivotOut) => (r.bounceRate == null
-                ? <span className="[font-size:12px] [color:var(--text-muted,#777)]">—</span>
+                ? <span className="text-xs text-[var(--text-tertiary)]">—</span>
                 // Colour is a hint; the number is always printed beside it.
-                : <span style={{ fontSize: 12, fontWeight: 700, color: rateColor(r.bounceRate) }}>
+                : <span className={`text-xs font-semibold tabular-nums ${rateClass(r.bounceRate)}`}>
                     {Math.round(r.bounceRate)}%
                 </span>),
         },
         {
             key: 'avgTime', label: t('cms_site.analytics.pages.time_on_page', 'Time on page'), width: '110px', align: 'right',
             render: (r: PivotOut) => (
-                <span className="[font-size:12px] [color:var(--text-secondary,#aaa)]">
+                <span className="text-xs text-[var(--text-secondary)]">
                     {r.avgTime == null ? '—' : fmtDurationSec(r.avgTime)}
                 </span>
             ),
@@ -96,22 +96,17 @@ export default function PagesSection({ scope, onDrill }: PagesSectionProps) {
     ];
 
     return (
-        <div className="[display:flex] [flex-direction:column] [gap:14px]">
+        <div className="flex flex-col gap-3.5">
             <Card title={t('cms_site.analytics.pages.title', 'Every page, by engagement')} icon={FileText} action={
-                <div className="[display:flex] [gap:5px] [align-items:center]">
-                    <span className="[font-size:10px] [color:var(--text-muted,#777)]">{t('cms_site.analytics.pages.rank_by', 'rank by')}</span>
+                <div className="flex gap-[5px] items-center">
+                    <span className="text-[10px] text-[var(--text-tertiary)]">{t('cms_site.analytics.pages.rank_by', 'rank by')}</span>
                     {[
                         { k: 'views', l: t('cms_site.analytics.pages.views', 'Views') },
                         { k: 'visitors', l: t('cms_site.analytics.pages.visitors', 'Visitors') },
                         { k: 'bounceRate', l: t('cms_site.analytics.pages.bounce', 'Bounce') },
                         { k: 'avgTime', l: t('cms_site.analytics.pages.time', 'Time') },
                     ].map(o => (
-                        <button key={o.k} onClick={() => setSortKey(o.k as SortKey)} style={{
-                            fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 6, cursor: 'pointer',
-                            border: `1px solid ${sortKey === o.k ? `${ACCENT}66` : 'var(--border-subtle, rgba(255,255,255,0.1))'}`,
-                            background: sortKey === o.k ? `${ACCENT}14` : 'transparent',
-                            color: sortKey === o.k ? ACCENT : 'var(--text-muted, #888)',
-                        }}>{o.l}</button>
+                        <button key={o.k} onClick={() => setSortKey(o.k as SortKey)} aria-pressed={sortKey === o.k} className={pillClass(sortKey === o.k)}>{o.l}</button>
                     ))}
                 </div>
             }>
@@ -124,12 +119,12 @@ export default function PagesSection({ scope, onDrill }: PagesSectionProps) {
                             maxRows={25} emptyText={t('cms_site.analytics.pages.no_pageviews', 'No pageviews in this period.')}
                             onRowClick={(r) => onDrill('path', r.path)}
                         />
-                        <div className="[display:flex] [gap:20px] [margin-top:12px] [font-size:11px] [color:var(--text-muted,#888)]">
-                            <span>{rich(t('cms_site.analytics.pages.pages_visited', '{n} pages visited'), { n: <strong className="[color:var(--text-primary,#fff)]">{fmt(rows.length)}</strong> })}</span>
-                            <span>{rich(t('cms_site.analytics.pages.total_views', '{n} views'), { n: <strong className="[color:var(--text-primary,#fff)]">{fmt(totals.views)}</strong> })}</span>
+                        <div className="flex gap-5 mt-3 text-[11px] text-[var(--text-tertiary)]">
+                            <span>{rich(t('cms_site.analytics.pages.pages_visited', '{n} pages visited'), { n: <strong className="text-[var(--text-primary)]">{fmt(rows.length)}</strong> })}</span>
+                            <span>{rich(t('cms_site.analytics.pages.total_views', '{n} views'), { n: <strong className="text-[var(--text-primary)]">{fmt(totals.views)}</strong> })}</span>
                             <span>
                                 {rich(t('cms_site.analytics.pages.pages_per_visit', '{n} pages per visit'), {
-                                    n: <strong className="[color:var(--text-primary,#fff)]">
+                                    n: <strong className="text-[var(--text-primary)]">
                                         {totals.visits ? (totals.views / totals.visits).toFixed(1) : '—'}
                                     </strong>,
                                 })}
@@ -139,9 +134,9 @@ export default function PagesSection({ scope, onDrill }: PagesSectionProps) {
                 )}
             </Card>
 
-            <div className="[display:grid] [grid-template-columns:repeat(auto-fit,minmax(300px,1fr))] [gap:12px]">
+            <div className="grid grid-cols-[repeat(auto-fit,minmax(300px,1fr))] gap-3">
                 <Card title={t('cms_site.analytics.pages.by_title', 'By page title')} icon={Compass} action={
-                    <span className="[font-size:10px] [color:var(--text-muted,#777)]">
+                    <span className="text-[10px] text-[var(--text-tertiary)]">
                         {t('cms_site.analytics.pages.by_title_hint', 'useful when several paths share a template')}
                     </span>
                 }>
@@ -182,19 +177,19 @@ function EntryPages({ scope, onDrill }: EntryPagesProps) {
 
     return (
         <Card title={t('cms_site.analytics.pages.entry', 'Where visits start')} icon={Compass} action={
-            <span className="[font-size:10px] [color:var(--text-muted,#777)]">{t('cms_site.analytics.pages.entry_hint', 'visits, not views')}</span>
+            <span className="text-[10px] text-[var(--text-tertiary)]">{t('cms_site.analytics.pages.entry_hint', 'visits, not views')}</span>
         }>
             {breakdown.loading ? <Skeleton height={180} />
                 : breakdown.error ? <ErrorNote message={breakdown.error} onRetry={breakdown.reload} compact />
                 : rows.length === 0 ? <Empty text={t('cms_site.analytics.pages.no_visits', 'No visits in this period.')} />
                 : (
-                    <div className="[display:flex] [flex-direction:column] [gap:8px]">
+                    <div className="flex flex-col gap-2">
                         {rows.map((r, i) => (
                             <button key={`${i}-${r.path}`} onClick={() => onDrill('path', r.path)}
-                                className="[display:block] w-[100%] [text-align:left] [padding:0] [background:transparent] [border:none] [cursor:pointer]">
-                                <div className="[display:flex] [justify-content:space-between] [gap:10px] [margin-bottom:3px]">
-                                    <span className="[font-size:12px] [color:var(--text-primary,#fff)] [overflow:hidden] [text-overflow:ellipsis] [white-space:nowrap]">{r.path}</span>
-                                    <span style={{ fontSize: 12, fontWeight: 700, color: SERIES.secondary, flexShrink: 0 }}>
+                                className="block w-[100%] text-left p-0 bg-transparent border-0 cursor-pointer">
+                                <div className="flex justify-between gap-2.5 mb-[3px]">
+                                    <span className="text-xs text-[var(--text-primary)] overflow-hidden text-ellipsis whitespace-nowrap">{r.path}</span>
+                                    <span className="text-xs font-semibold tabular-nums text-[var(--text-primary)] shrink-0">
                                         {fmt(r.visits)}
                                     </span>
                                 </div>
