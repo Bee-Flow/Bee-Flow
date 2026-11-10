@@ -259,6 +259,7 @@
         "hideBelow",
         "hideAbove"
     ],
+    "extensionKnobGroups": [],
     "themeEnums": {
         "radius": [
             "none",

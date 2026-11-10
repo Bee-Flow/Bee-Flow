@@ -7,6 +7,9 @@
 
 'use strict';
 
+const path = require('node:path');
+const { loadKnobGroupExtensions } = require('./knobGroupExtensions');
+
 // ---------------------------------------------------------------------------
 // Theme — the entire theme. One picker restyles the whole app.
 // ---------------------------------------------------------------------------
@@ -153,20 +156,50 @@ const ADVANCED_HEIGHT_KNOBS = Object.freeze(['heightMode', 'heightValue']);
 // box of its own to hide per band.
 const RESPONSIVE_VISIBILITY_KNOBS = Object.freeze(['hideBelow', 'hideAbove']);
 
+/**
+ * The knob GROUPS a style list earns by rule: a group joins every list that holds its
+ * `grantedBy` knob ('*': every list). The base three, in the order expandStyleKnobs has always
+ * appended them. Groups added later are files in componentSpecs/styleKnobGroups/
+ * (knobGroupExtensions.js) and come after these, so a later universal knob costs no
+ * per-type list edit and the base expansion keeps its exact order.
+ */
+const BASE_STYLE_KNOB_GROUPS = Object.freeze([
+    Object.freeze({ name: 'advanced_width', grantedBy: 'span', knobs: ADVANCED_WIDTH_KNOBS }),
+    Object.freeze({ name: 'responsive_visibility', grantedBy: 'span', knobs: RESPONSIVE_VISIBILITY_KNOBS }),
+    Object.freeze({ name: 'advanced_height', grantedBy: 'height', knobs: ADVANCED_HEIGHT_KNOBS }),
+]);
+
+const _loadedGroups = loadKnobGroupExtensions(path.join(__dirname, 'styleKnobGroups'), {
+    styleKnobs: STYLE_KNOBS,
+    baseGroupNames: BASE_STYLE_KNOB_GROUPS.map((g) => g.name),
+});
+// The extension knobs join the vocabulary after the base knobs. The registered spec is used
+// as is, so its `since` travels with it into the catalogue.
+for (const group of _loadedGroups) Object.assign(STYLE_KNOBS, group.specs);
+const EXTENSION_STYLE_KNOB_GROUPS = Object.freeze(_loadedGroups.map((g) =>
+    Object.freeze({ name: g.name, since: g.since, grantedBy: g.grantedBy, knobs: Object.freeze(g.knobs) })));
+
+const STYLE_KNOB_GROUPS = Object.freeze([...BASE_STYLE_KNOB_GROUPS, ...EXTENSION_STYLE_KNOB_GROUPS]);
+
 const _expandedKnobCache = new WeakMap();
 
 /**
- * A type's (or the section's) style knobs plus the advanced sizing knobs it earns.
+ * A type's (or the section's) style knobs plus the knobs its groups grant it.
  * @param {WeakKey} knobs
+ * @param {readonly { grantedBy: string, knobs: readonly string[] }[]} [groups]  the rule set (a test passes its own)
  */
-function expandStyleKnobs(knobs) {
+function expandStyleKnobs(knobs, groups = STYLE_KNOB_GROUPS) {
     if (!Array.isArray(knobs)) return [];
-    const cached = _expandedKnobCache.get(knobs);
+    const cache = groups === STYLE_KNOB_GROUPS ? _expandedKnobCache : null;
+    const cached = cache && cache.get(knobs);
     if (cached) return cached;
     let out = knobs;
-    if (knobs.includes('span')) out = out.concat(ADVANCED_WIDTH_KNOBS, RESPONSIVE_VISIBILITY_KNOBS);
-    if (knobs.includes('height')) out = out.concat(ADVANCED_HEIGHT_KNOBS);
-    _expandedKnobCache.set(knobs, out);
+    for (const group of groups) {
+        if (group.grantedBy !== '*' && !knobs.includes(group.grantedBy)) continue;
+        const earned = group.knobs.filter((k) => !out.includes(k));
+        if (earned.length) out = out.concat(earned);
+    }
+    if (cache) cache.set(knobs, out);
     return out;
 }
 
@@ -329,6 +362,9 @@ module.exports = {
     ADVANCED_WIDTH_KNOBS,
     ADVANCED_HEIGHT_KNOBS,
     RESPONSIVE_VISIBILITY_KNOBS,
+    BASE_STYLE_KNOB_GROUPS,
+    EXTENSION_STYLE_KNOB_GROUPS,
+    STYLE_KNOB_GROUPS,
     expandStyleKnobs,
     unitRange,
     unitSpan,
