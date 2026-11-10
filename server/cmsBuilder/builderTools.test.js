@@ -291,7 +291,7 @@ test('cms_update_block: content deep-merge (arrays wholesale), style enums valid
     assert.strictEqual(saved.style.maxWidth, 'wide');
     assert.strictEqual(saved.style.align, 'center');
     assert.deepStrictEqual(saved.style.colorOverrides, { primary: '#112233' });
-    assert.deepStrictEqual(saved.style.spacing, { paddingTop: 32 });
+    assert.deepStrictEqual(saved.style.spacing, { paddingTop: '32px' });
     assert.strictEqual(saved.enabled, false);
     assert.strictEqual(styled.enabled, false);
 

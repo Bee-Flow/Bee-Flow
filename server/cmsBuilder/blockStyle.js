@@ -16,7 +16,10 @@ function isPlainObject(v) {
 
 const STYLE_MAX_WIDTHS = ['narrow', 'medium', 'wide', 'full'];
 const STYLE_ALIGNS = ['left', 'center', 'right'];
-const COLOR_TOKENS = ['primary', 'secondary', 'accent', 'background', 'surface', 'textPrimary', 'textSecondary'];
+// The renderer (marketing/ProductWebsite buildBlockOverrideCss) reads `text`, not
+// `textPrimary`; `textPrimary` stays accepted as the design colour's name and is stored as `text`.
+const COLOR_TOKENS = ['primary', 'secondary', 'accent', 'background', 'surface', 'text', 'textSecondary'];
+const COLOR_TOKEN_ALIASES = { textPrimary: 'text' };
 const SPACING_KEYS = ['paddingTop', 'paddingBottom'];
 // Style v2 (the renderer's blockWrapClasses / blockWrapStyle): closed enums.
 /** @type {Record<string, string[]>} */
@@ -74,21 +77,23 @@ function validateStylePatch(patch) {
             /** @type {Record<string, string>} */
             const colors = {};
             for (const [tok, col] of Object.entries(value)) {
-                if (!COLOR_TOKENS.includes(tok)) { hints.push(`colorOverrides.${tok}: unknown token, dropped. Valid tokens: ${COLOR_TOKENS.join(', ')}.`); continue; }
+                const token = Object.hasOwn(COLOR_TOKEN_ALIASES, tok) ? COLOR_TOKEN_ALIASES[/** @type {keyof typeof COLOR_TOKEN_ALIASES} */ (tok)] : tok;
+                if (!COLOR_TOKENS.includes(token)) { hints.push(`colorOverrides.${tok}: unknown token, dropped. Valid tokens: ${COLOR_TOKENS.join(', ')}.`); continue; }
                 if (typeof col !== 'string') { hints.push(`colorOverrides.${tok}: must be a color string, dropped.`); continue; }
-                colors[tok] = col;
+                colors[token] = col;
             }
             out.colorOverrides = colors;
         } else if (key === 'spacing') {
             if (!isPlainObject(value)) {
                 return { error: 'stylePatch.spacing must be an object.', _fixHint: `Valid spacing keys: ${SPACING_KEYS.join(', ')} (numbers).` };
             }
-            /** @type {Record<string, number>} */
+            // The renderer takes CSS-value strings only (a number is ignored), so a number is stored as pixels.
+            /** @type {Record<string, string>} */
             const spacing = {};
             for (const [sk, sv] of Object.entries(value)) {
                 if (!SPACING_KEYS.includes(sk)) { hints.push(`spacing.${sk}: unknown key, dropped. Valid keys: ${SPACING_KEYS.join(', ')}.`); continue; }
                 if (typeof sv !== 'number' || !Number.isFinite(sv)) { hints.push(`spacing.${sk}: must be a number, dropped.`); continue; }
-                spacing[sk] = sv;
+                spacing[sk] = `${sv}px`;
             }
             out.spacing = spacing;
         } else if (key === 'band' || key === 'rhythm' || key === 'reveal') {
