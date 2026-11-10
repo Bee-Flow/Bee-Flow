@@ -153,6 +153,18 @@ The server container must also be able to resolve the Nextcloud's hostname and r
 
 **Linking the two.** A self-hosted server links a Nextcloud by pairing code: generate one in Bee Flow (**Settings → Organisation → Pair a new Nextcloud**) and enter it on the setup page.
 
+## Nextcloud behind Cloudflare (proxy or Tunnel) {#cloudflare}
+
+The connector works behind Cloudflare; we have not tested this setup ourselves. Cloudflare terminates TLS on its side, so it sees the traffic between your users, your Nextcloud and Bee Flow in the clear; Nextcloud's own [notes on Cloudflare](https://github.com/nextcloud/all-in-one#notes-on-cloudflare-proxytunnel) list this and its other limits. What to set:
+
+| Point | What to do |
+|---|---|
+| **Route order, with HaRP** | In a Tunnel, the `exapps/*` route must stand above the main route of your Nextcloud, or `/exapps/` never reaches HaRP. See [Cloudflare Tunnel](https://github.com/nextcloud/HaRP#cloudflare-tunnel) in the HaRP README, and [the `/exapps/` rule](deploy-daemon.md#exapps-rule). |
+| **Challenges and bot protection** | The Bee Flow server calls your Nextcloud from a server, at `/index.php/apps/app_api/proxy/bee_flow/…`. A server cannot answer a challenge, and a blocked call reads as a permission error from Nextcloud. If you use WAF rules, bot protection or challenges, add a [skip rule](https://developers.cloudflare.com/waf/custom-rules/skip/) for that path prefix and, with HaRP, for `/exapps/bee_flow/`. Keep the rule to these two prefixes. |
+| **Upload size** | Cloudflare limits the size of a request body per plan; see [Cloudflare's page on error 413](https://developers.cloudflare.com/support/troubleshooting/http-status-codes/4xx-client-error/error-413/). The connector's own limit for one upload from Bee Flow into Nextcloud is 100 MB by default (`BEEFLOW_NC_PROXY_MAX_BODY_MB`); raising it does not raise Cloudflare's. The limit is on uploads, not on downloads. |
+| **Visitor addresses, with HaRP** | HaRP sees the address of the tunnel or proxy, not of the visitor, unless `HP_TRUSTED_PROXY_IPS` names it. Set it, or [HaRP's temporary block](deploy-daemon.md#harp-block) counts all users as one. |
+| **Rocket Loader** | Turn it off for the Nextcloud hostname; Nextcloud's notes linked above say its sign-in page does not load with it. |
+
 ## Bootstrap "failed" state in heartbeat
 
 `/heartbeat` returns a `failed` state with a category and remediation when connecting to the Bee Flow server fails. The setup page shows the same. To read it from inside the container (this works under every deploy daemon):
@@ -202,7 +214,7 @@ docker logs nc_app_bee_flow --tail 50
 | What you see | Likely cause |
 |---------|--------------|
 | No container, or it keeps restarting | `docker ps -a \| grep bee_flow`, then `docker logs nc_app_bee_flow`. |
-| Container `healthy`, Nextcloud still reports a failed heartbeat, **HaRP** daemon | The connector is fine; the path between Nextcloud and the connector is not. Check that `/exapps/` of your Nextcloud address is forwarded to HaRP ([Deploy daemon and reverse proxy](deploy-daemon.md#the-exapps-rule)), and mind [HaRP's temporary block](deploy-daemon.md#harps-temporary-block) while you retry. |
+| Container `healthy`, Nextcloud still reports a failed heartbeat, **HaRP** daemon | The connector is fine; the path between Nextcloud and the connector is not. Check that `/exapps/` of your Nextcloud address is forwarded to HaRP ([Deploy daemon and reverse proxy](deploy-daemon.md#exapps-rule)), and mind [HaRP's temporary block](deploy-daemon.md#harp-block) while you retry. |
 | Container `healthy`, Nextcloud still reports a failed heartbeat, **other daemon** | Nextcloud and the connector are not on the same Docker network, or the daemon's host is wrong. Verify with `docker network inspect` and `occ app_api:daemon:list`. |
 | Container `healthy` and the heartbeat is fine again, the page still shows the failure | Reload **Administration → AppAPI**. |
 
