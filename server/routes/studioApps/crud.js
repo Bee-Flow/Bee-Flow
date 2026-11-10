@@ -15,6 +15,7 @@ const studioAppStore = require('../../stores/studioAppStore');
 const { emptyDefinition, LIMITS } = require('../../appStudio/componentSpecs');
 const { canonicalizeAppDefinition } = require('../../appStudio/canonicalize');
 const { isSchemaNewer, schemaNewerBody } = require('../../appStudio/schemaSince.mts');
+const { gateDefinition, gateFindings } = require('../../appStudio/definitionGate.mts');
 const { describeAppRef } = require('../../appStudio/appRefLookup');
 const { validateAppDefinition } = require('../../appStudio/validate');
 const { templateVersion } = require('../../appStudio/templates');
@@ -113,6 +114,8 @@ router.post('/', requireAuth, requireManageApps, validate({ body: CreateAppBody 
     let definition;
     /** @type {ResolvedTemplate | null} */
     let template = null;
+    /** What the validator says about the template's definition: reported, never a reason to refuse the create. */
+    let findings = null;
     if (templateId !== undefined && templateId !== null && templateId !== '') {
         const { orgIdArr } = await audienceFor(req);
         template = await resolveTemplate(templateId, { userId, orgIds: orgIdArr });
@@ -125,6 +128,7 @@ router.post('/', requireAuth, requireManageApps, validate({ body: CreateAppBody 
         // A template written by a newer install is not stripped to what this one knows.
         if (fromTemplate.refused) return res.status(422).json(schemaNewerBody(copy));
         definition = fromTemplate.def;
+        findings = gateFindings(gateDefinition(definition));
     } else {
         definition = emptyDefinition(cleanName || 'Untitled app');
     }
@@ -179,7 +183,7 @@ router.post('/', requireAuth, requireManageApps, validate({ body: CreateAppBody 
         }
     }
 
-    res.json({ success: true, app: sanitizeAppRow(app), ...(dataInstall ? { dataInstall } : {}) });
+    res.json({ success: true, app: sanitizeAppRow(app), ...(dataInstall ? { dataInstall } : {}), ...(findings ? { findings } : {}) });
 });
 
 router.get('/:id', requireAuth, async (req, res) => {

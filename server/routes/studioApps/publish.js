@@ -13,6 +13,7 @@ const userStore = require('../../stores/userStore');
 const { validateSharedGroupsForOrg } = require('../../auth');
 const { canonicalizeAppDefinition } = require('../../appStudio/canonicalize');
 const { schemaNewerError } = require('../../appStudio/schemaSince.mts');
+const { gateDefinition } = require('../../appStudio/definitionGate.mts');
 const { validateAppDefinition } = require('../../appStudio/validate');
 const { requireAuth } = require('../../auth/permissions');
 // Who can reach an app is an access-control fact, so a change to it is an
@@ -170,9 +171,16 @@ router.post('/:id/versions/:versionId/restore', requireAuth, requireManageApps, 
     const userId = sessionUser(req).id;
     // restoreVersion is scoped to app AND owner; it bumps definition_version
     // so open editors' CAS saves conflict instead of clobbering the restore.
+    // The snapshot goes back VERBATIM (it was published once, so it must stay restorable);
+    // the gate only reports. One thing is refused: a snapshot written by a newer install,
+    // which this one could neither show nor save afterwards.
+    const snapshot = await studioAppStore.getVersion(req.params.id, req.params.versionId, userId);
+    if (!snapshot) return res.status(404).json({ error: 'Version not found' });
+    const gate = gateDefinition(snapshot.definition);
+    if (gate.refused === 'schema_newer') return res.status(409).json({ error: gate.errors[0].message, code: 'schema_newer' });
     const updated = await studioAppStore.restoreVersion(req.params.id, req.params.versionId, userId);
     if (!updated) return res.status(404).json({ error: 'Version not found' });
-    res.json({ success: true, version: updated.definitionVersion });
+    res.json({ success: true, version: updated.definitionVersion, findings: { errors: gate.errors, warnings: gate.warnings, repairs: gate.repairs } });
 });
 
 module.exports = router;

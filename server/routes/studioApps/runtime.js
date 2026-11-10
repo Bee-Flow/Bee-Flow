@@ -12,6 +12,7 @@ const userStore = require('../../stores/userStore');
 const rlsGateway = require('../../appStudio/rlsGateway');
 const { canonicalizeAppDefinition } = require('../../appStudio/canonicalize');
 const { isSchemaNewer, schemaNewerBody } = require('../../appStudio/schemaSince.mts');
+const { gateDefinition, gateFindings } = require('../../appStudio/definitionGate.mts');
 const { validateAppDefinition } = require('../../appStudio/validate');
 const { resolveTemplate } = require('../../appStudio/templateRegistry');
 const { installTemplate } = require('../../appStudio/templateInstall');
@@ -152,6 +153,8 @@ router.post('/:id/template-upgrade', requireAuth, requireManageApps, /** @param 
     }
     const { def: canonical, refused } = canonicalizeAppDefinition(copy);
     if (refused) return res.status(422).json(schemaNewerBody(copy));
+    // Report mode, as on create from a template: the upgrade is not refused over validator findings.
+    const findings = gateFindings(gateDefinition(canonical));
 
     // Unconditional save (no expectedVersion): pristine was just verified,
     // and the version bump makes any open editor's CAS save conflict
@@ -194,6 +197,7 @@ router.post('/:id/template-upgrade', requireAuth, requireManageApps, /** @param 
         toVersion: cand.toVersion,
         version: saved.version,
         ...(dataInstall ? { dataInstall } : {}),
+        ...(findings ? { findings } : {}),
     });
 });
 
