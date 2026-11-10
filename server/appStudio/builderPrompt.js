@@ -691,11 +691,9 @@ function renderDraftState(def, extras = {}, projection = null) {
         const name = meta.name || 'Untitled app';
         const unnamed = name === 'Untitled app' ? ' — NOT NAMED YET: call app_set_meta' : '';
         lines.push(`app ${q(name)}${meta.description ? ` — ${q(meta.description, 80)}` : ''} icon=${meta.icon || 'none'}${unnamed}`);
-        // The look read-back (lookReadback.mts) is emit-when-non-default, like nav below.
-        const look = require('./builderPrompt/lookReadback.mts');
+        const look = require('./builderPrompt/lookReadback.mts'); // emit-when-non-default, like nav below
         lines.push(`theme primary=${theme.primary} radius=${theme.radius} density=${theme.density} fontScale=${theme.fontScale} appearance=${theme.appearance}${look.themeLookSuffix(theme)} | home=${def.homeScreenId || 'none'}`);
-        const design = look.designLine(def.design);
-        if (design) lines.push(design);
+        lines.push(...look.designLines(def.design));
         // Emit-when-present, like `variables` below: every existing fixture has
         // no nav groups, and builderPrompt.test.js pins renderDraftState
         // byte-for-byte. Without this line app_set_nav_groups would be

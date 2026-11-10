@@ -144,3 +144,9 @@ export function designLine(design: unknown): string | null {
     );
     return bits.length ? `design ${bits.join(' ')}` : null;
 }
+
+/** The design line as a list: empty when every key is at its default (renderDraftState spreads it). */
+export function designLines(design: unknown): string[] {
+    const line = designLine(design);
+    return line ? [line] : [];
+}
