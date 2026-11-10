@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react';
 import useTranslation from '@/hooks/useTranslation';
 import type React from 'react';
 import { ROW_ID } from './PlanCard.rowId';
+import PlanCardDesign from './PlanCardDesign';
 import type { PlanObjectRow, PlanRow, PlanList, PlanDraft, PlanCardProps, SectionProps, RowProps, AddRowProps } from './PlanCard.types';
 
 /**
@@ -182,6 +183,13 @@ export default function PlanCard({ pendingPlan, onBuild, onDiscuss, disabled = f
                     </ul>
                 </div>
             ) : null}
+
+            {/* The look the builder proposes (plan.design); nothing when the plan has none */}
+            <PlanCardDesign
+                design={draft.design}
+                disabled={disabled}
+                onDirectionChange={(direction) => setDraft((d) => ({ ...d, design: { ...(d.design && typeof d.design === 'object' ? d.design : {}), direction } }))}
+            />
 
             {/* Screens */}
             <Section icon={Layers} title={t('studio_apps_edit.plan_card.screens', 'Screens')}>
