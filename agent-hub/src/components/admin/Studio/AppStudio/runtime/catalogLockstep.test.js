@@ -53,10 +53,11 @@ const {
     SCREEN_SPEC,
 } = specs;
 
-/** The spec's per-prop defaults — exactly what canonicalize fills in. */
+/** The spec's per-prop defaults — exactly what canonicalize fills in (a prop added later, `since` 3+, is not). */
 function specDefaultProps(spec) {
     const out = {};
     for (const [key, fs] of Object.entries(spec.props || {})) {
+        if (Number.isInteger(fs.since) && fs.since > 2) continue;
         out[key] = fs.default === undefined ? null : fs.default;
     }
     return out;

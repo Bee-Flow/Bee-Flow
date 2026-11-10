@@ -16,7 +16,6 @@ const { MIGRATIONS, migrateDefinition, migrateV1toV2 } = require('./migrate');
 const { buildPublicDefinition } = require('./publicAccess');
 const since = require('./schemaSince.mts');
 const registry = require('./definitionKeyRegistry.mts');
-const shared = require('../shared/appDefinition/schemaVersion.mjs');
 
 const { SCHEMA_VERSION_BASE, SCHEMA_VERSION_CURRENT, emptyDefinition } = specs;
 
@@ -54,13 +53,16 @@ const withNotesKey = (fn, entry = NOTES_ENTRY) => registry._withDefinitionKeys([
 
 // ── What ships ──────────────────────────────────────────────────────────────
 
-test('the registry and the catalogue ship without a since entry', () => {
+test('the registry ships empty, and every since entry of the catalogue is above the base', () => {
     assert.deepEqual(registry.loadDefinitionKeys(), []);
     const index = since.buildSinceIndex({
         componentSpecs: specs.COMPONENT_SPECS, styleKnobs: specs.STYLE_KNOBS, stepSpecs: specs.STEP_SPECS,
         actionSpecs: specs.ACTION_SPECS, bindingKindSince: specs.BINDING_KIND_SINCE, definitionKeys: registry.definitionKeys(),
     });
-    assert.equal(shared.sinceIndexIsEmpty(index), true);
+    // The first catalogue additions (image.srcFrom, LK6) put entries here; none may claim the base.
+    const marks = JSON.stringify(index).match(/:\d+/g) || [];
+    assert.ok(marks.every((m) => Number(m.slice(1)) > SCHEMA_VERSION_BASE), marks.join(' '));
+    assert.equal(index.props.image?.srcFrom, 3);
 });
 
 test('every definition needs the base version today, and canonicalize writes it', () => {

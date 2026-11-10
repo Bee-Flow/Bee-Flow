@@ -72,7 +72,7 @@
     "appStudio/mailboxAttachments.js": 558,
     "appStudio/mailboxConnector.js": 477,
     "appStudio/mcpBuilder.js": 439,
-    "appStudio/templateCapture.js": 745,
+    "appStudio/templateCapture.js": 730,
     "appStudio/validate.js": 612,
     "appStudio/validate.test.js": 1561,
     "appStudio/validate/actions.js": 703,

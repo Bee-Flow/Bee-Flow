@@ -5,7 +5,7 @@
 
 'use strict';
 
-const { LIMITS } = require('../componentSpecs');
+const { LIMITS, SCHEMA_VERSION_BASE } = require('../componentSpecs');
 const { isObject, deepCopy, truncate } = require('./shared');
 const { cleanBinding } = require('./bindings');
 
@@ -78,6 +78,40 @@ function cleanPropValue(fs, raw, path, push) {
     return deepCopy(raw);
 }
 
+/** @param {{ since?: unknown }} fs */
+function isAddedProp(fs) {
+    return typeof fs.since === 'number' && Number.isInteger(fs.since) && fs.since > SCHEMA_VERSION_BASE;
+}
+
+/**
+ * Every prop of the spec, from what the node provided or the spec default.
+ * @param {{ props: Record<string, any> }} spec
+ * @param {Record<string, unknown>} provided
+ * @param {string} path
+ * @param {(arg0: string, arg1: string, arg2: string) => void} push
+ */
+function cleanSpecProps(spec, provided, path, push) {
+    /** @type {Record<string, unknown>} */
+    const props = {};
+    /** @type {string[]} */
+    const filled = [];
+    for (const [key, fs] of Object.entries(spec.props)) {
+        const raw = provided[key];
+        // A prop added to a base type later (`since` 3 or more) has no default that is written:
+        // absent or null leaves no trace, so a definition that does not use it keeps its bytes.
+        if (isAddedProp(fs)) {
+            const value = raw === undefined || raw === null ? null : cleanPropValue(fs, raw, `${path}.props.${key}`, push);
+            if (value !== null && value !== undefined) props[key] = value;
+        } else if (key in provided) {
+            props[key] = cleanPropValue(fs, raw, `${path}.props.${key}`, push);
+        } else {
+            props[key] = deepCopy(fs.default === undefined ? null : fs.default);
+            filled.push(key);
+        }
+    }
+    return { props, filled };
+}
+
 /**
  * @param {string} path
  * @param {(arg0: string, arg1: string, arg2: string) => void} push
@@ -89,17 +123,7 @@ function cleanProps(node, spec, id, path, push) {
         provided = {};
     }
     provided = provided || {};
-    const props = {};
-    /** @type {string[]} */
-    const filled = [];
-    for (const [key, fs] of Object.entries(spec.props)) {
-        if (key in provided) {
-            props[key] = cleanPropValue(fs, provided[key], `${path}.props.${key}`, push);
-        } else {
-            props[key] = deepCopy(fs.default === undefined ? null : fs.default);
-            filled.push(key);
-        }
-    }
+    const { props, filled } = cleanSpecProps(spec, provided, path, push);
     const unknown = Object.keys(provided).filter((k) => !(k in spec.props));
     if (unknown.length) {
         const legal = Object.keys(spec.props);

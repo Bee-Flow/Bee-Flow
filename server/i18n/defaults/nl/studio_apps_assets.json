@@ -1,0 +1,34 @@
+{
+  "translations": {
+    "studio_apps_assets.builder_act_list": "De geüploade bestanden bekeken",
+    "studio_apps_assets.choose": "Kies een geüpload bestand",
+    "studio_apps_assets.clear": "Verwijderen",
+    "studio_apps_assets.delete": "Verwijderen",
+    "studio_apps_assets.delete_title": "Dit bestand verwijderen?",
+    "studio_apps_assets.delete_unused": "Niets in deze app gebruikt het.",
+    "studio_apps_assets.delete_used": "Nog gebruikt op {draft} plek(ken) in dit concept en {published} in de gepubliceerde app ({paths}). Die afbeeldingen tonen na verwijderen een lege plaatshouder.",
+    "studio_apps_assets.empty": "Nog geen bestanden geüpload.",
+    "studio_apps_assets.error_full": "De bestandsopslag van deze app is vol. Verwijder een bestand dat je niet meer gebruikt.",
+    "studio_apps_assets.error_generic": "Het uploaden is mislukt ({status}).",
+    "studio_apps_assets.error_list": "De geüploade bestanden konden niet worden geladen.",
+    "studio_apps_assets.error_scan": "Het bestand is bij de virusscan afgekeurd en geweigerd.",
+    "studio_apps_assets.error_size": "Het bestand is te groot (hooguit {mb} MB).",
+    "studio_apps_assets.error_type": "Alleen PNG-, JPEG-, WebP- en GIF-afbeeldingen en WOFF2-lettertypen kunnen worden geüpload.",
+    "studio_apps_assets.font_label": "Lettertype",
+    "studio_apps_assets.image_from": "Afbeelding uit data",
+    "studio_apps_assets.image_from_hint": "Een veld of variabele met een https-URL of een geüpload bestand gaat voor de afbeelding hierboven.",
+    "studio_apps_assets.image_hint": "Een https-URL, of een bestand dat naar deze app is geüpload. Een kapotte bron toont een neutrale plaatshouder.",
+    "studio_apps_assets.no_app": "Sla de app eerst op om bestanden te uploaden.",
+    "studio_apps_assets.picker_description": "PNG-, JPEG-, WebP- en GIF-afbeeldingen en WOFF2-lettertypen van deze app, elk hooguit {mb} MB. Geen SVG.",
+    "studio_apps_assets.picker_title": "Geüploade bestanden",
+    "studio_apps_assets.unused": "niet gebruikt",
+    "studio_apps_assets.upload": "Bestand uploaden",
+    "studio_apps_assets.uploaded_value": "Geüpload bestand",
+    "studio_apps_assets.uploading": "Bezig met uploaden…",
+    "studio_apps_assets.use": "Gebruiken",
+    "studio_apps_assets.used_count": "gebruikt op {count} plek(ken)"
+  },
+  "sameAsEnglish": [
+    "studio_apps_assets.size_kb"
+  ]
+}

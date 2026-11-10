@@ -76,6 +76,8 @@ export interface RunBodyProps {
     onDataState: React.Dispatch<React.SetStateAction<DataState>>;
     refreshRef: React.RefObject<RunBodyProps['refresh'] | null>;
     chrome?: string;
+    /** The public page's own header (its logo), above the app; only the 'bare' chrome draws it. */
+    publicHeader?: React.ReactNode;
 }
 
 /**
@@ -106,6 +108,7 @@ export interface RunSurfaceProps {
     versionBanner?: React.JSX.Element | null;
     hideExit?: boolean;
     chrome?: string;
+    publicHeader?: React.ReactNode;
 }
 
 /**

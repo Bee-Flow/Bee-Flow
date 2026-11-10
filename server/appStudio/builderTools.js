@@ -173,6 +173,7 @@ async function _applyToolCallRaw(name, args, draftWrap) {
         case 'app_get_data_model':    return applyGetDataModel(draftWrap);
         case 'app_list_connectors':   return applyListConnectors(draftWrap);
         case 'app_list_documents':    return applyListDocuments(draftWrap);
+        case 'app_list_assets':       return require('./builderTools/assetTools.mts').applyListAssets(draftWrap);
         case 'app_query_data':        return applyQueryData(draftWrap, args);
         case 'app_dry_run':           return applyDryRun(draftWrap, args);
         case 'app_screenshot':        return applyAppScreenshot(draftWrap, args);

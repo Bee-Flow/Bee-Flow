@@ -471,7 +471,8 @@ router.delete('/:id/data/attachments/:fileId', requireAuth, uploadLimiter, valid
     }
 
     const attachment = await studioAppDataStore.getAttachment(req.params.fileId, app.id, app.userId);
-    if (!attachment) return res.status(404).json({ error: 'Attachment not found' });
+    // An app asset is not an upload of a form: it is deleted through the asset router, by an editor.
+    if (!attachment || require('../appStudio/appAssets.mts').isAppAssetRow(attachment)) return res.status(404).json({ error: 'Attachment not found' });
     if (attachment.recordId) {
         return res.status(409).json({
             error: 'This file is attached to a record — remove it from the record instead.',

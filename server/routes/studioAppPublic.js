@@ -310,6 +310,9 @@ router.get('/:token', ipLimiter, tokenLimiter, async (/** @type {import('express
             icon: found.app.icon || null,
         },
         definition: publicAccess.buildPublicDefinition(found.definition, found.surface),
+        // The page's OWN logo (publicAccess.design.logoUrl), beside the definition so its bytes stay
+        // as they were: the served design also carries the app's logo, which the page header never draws.
+        page: { logoUrl: found.definition.publicAccess?.design?.logoUrl || null },
         entryScreenId: found.surface.entryScreenId,
         visitorToken,
     });
