@@ -5,6 +5,7 @@ import type { ComponentProps } from 'react';
 import ThemePanel from './ThemePanel';
 import SequenceEffects from './SequenceEffects';
 import { isBareHost, parseLinkHosts, updateAllowedLinkHosts } from '../state/linkHostOps';
+import { updateServerScope } from '../state/serverScopeOps';
 import { malformed, stub } from '@/test/mocks';
 
 /**
@@ -116,5 +117,40 @@ describe('SequenceEffects', () => {
         const next = commitAction.mock.calls.at(-1)![0];
         expect('onSuccess' in next).toBe(false);
         expect(next).toEqual({ kind: 'sequence', steps: [] });
+    });
+});
+
+describe('ThemePanel: what server steps can read', () => {
+    function renderPanel(definition: Record<string, unknown> = DEF) {
+        const onCommit = vi.fn();
+        const utils = render(<ThemePanel definition={stub<ComponentProps<typeof ThemePanel>['definition']>(definition)} onCommit={onCommit} screenId="scr_1" />);
+        return { onCommit, ...utils };
+    }
+    const LABEL = 'Let server steps read the screen, other forms and action results';
+
+    it('is off on an app that never set it, and switching it on writes serverScope: wide', async () => {
+        const user = userEvent.setup();
+        const { getByRole, onCommit } = renderPanel();
+        const toggle = getByRole('checkbox', { name: LABEL }) as HTMLInputElement;
+        expect(toggle.checked).toBe(false);
+        await user.click(toggle);
+        expect(onCommit).toHaveBeenCalledTimes(1);
+        expect(onCommit.mock.calls[0][0]).toEqual({ ...DEF, serverScope: 'wide' });
+    });
+
+    it('switching it off removes the key', async () => {
+        const user = userEvent.setup();
+        const { getByRole, onCommit } = renderPanel({ ...DEF, serverScope: 'wide' });
+        const toggle = getByRole('checkbox', { name: LABEL }) as HTMLInputElement;
+        expect(toggle.checked).toBe(true);
+        await user.click(toggle);
+        expect(onCommit.mock.calls[0][0]).toEqual(DEF);
+    });
+
+    it('changes nothing when the value already is what is asked', () => {
+        const base = malformed<Parameters<typeof updateServerScope>[0]>(DEF);
+        expect(updateServerScope(base, false)).toBe(base);
+        const wide = updateServerScope(base, true);
+        expect(updateServerScope(wide, true)).toBe(wide);
     });
 });

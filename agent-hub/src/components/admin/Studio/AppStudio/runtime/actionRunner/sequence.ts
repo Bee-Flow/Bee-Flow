@@ -25,6 +25,7 @@ import {
 import type { RunOpts, RunStep, RunnableAction } from './core';
 import type { RunnerContext } from './runnerContext';
 import { StepFailure, dispatchBrowseStep, dispatchServerStep } from './serverSteps';
+import { wideScopeBody } from './wideScope';
 import type { ErrorScope, SeqState } from './serverSteps';
 import { runCallStep } from './callStep';
 import { newRunTrack, reportRunEnd } from './runEnd';
@@ -104,7 +105,7 @@ async function dispatchWithRetry(env: SeqEnv, step: RunStep, st: SeqState): Prom
     const plan = retryPlanOf(step);
     for (let attempt = 1; ; attempt++) {
         try {
-            return await dispatchServerStep(env.ctx, env.indexMap.get(step), st);
+            return await dispatchServerStep(env.ctx, env.indexMap.get(step), st, wideScopeBody(env.ctx, step, st));
         } catch (e) {
             const again = e instanceof StepFailure && e.retryable && attempt <= plan.times;
             if (e instanceof StepFailure) {
@@ -209,7 +210,7 @@ async function execStep(env: SeqEnv, step: RunStep | null | undefined, st: SeqSt
     // ai_browse is a SERVER kind but streams — it takes the dedicated
     // SSE path, not the plain JSON /step dispatch below.
     if (step.kind === 'ai_browse') {
-        recordServerResult(env, step, st, await dispatchBrowseStep(env.ctx, env.indexMap.get(step), st));
+        recordServerResult(env, step, st, await dispatchBrowseStep(env.ctx, env.indexMap.get(step), st, wideScopeBody(env.ctx, step, st)));
         return;
     }
     // Server kinds are dispatched from the SET, not from a hand-written

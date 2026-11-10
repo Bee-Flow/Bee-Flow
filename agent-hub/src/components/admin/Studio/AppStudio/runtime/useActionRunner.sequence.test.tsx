@@ -709,3 +709,43 @@ describe('effects after a sequence', () => {
     });
 });
 }
+
+describe('the wide server scope (serverScope: "wide")', () => {
+    beforeEach(() => { asMock(authFetch).mockReset(); asMock(authFetch).mockResolvedValue(resp(200, { ok: true, result: { id: 'rec_new' } })); });
+
+    const live = { forms: { cmp_other: { note: 'hi' } }, screen: { id: 'scr_a', params: { recordId: 'rec_7' } } };
+    const WRITE = { kind: 'create_record', tableId: 't', values: {} };
+    const reading = (expr: string) => ({ ...WRITE, values: { a: { kind: 'formula', expr } } });
+    async function post(steps: unknown[], extra: Record<string, unknown> = { serverScope: 'wide' }) {
+        asMock(authFetch).mockClear();
+        const definition = { schemaVersion: 3, actions: { seq: { kind: 'sequence', steps } }, ...extra };
+        const { result } = renderHook(() => useActionRunner('app1', stub<Parameters<typeof useActionRunner>[1]>(definition), live));
+        await act(async () => { await result.current.runAction('seq', { formValues: { a: 1 } }); });
+        return stepPosts(authFetch).map((_, i) => bodyOfCall(i));
+    }
+
+    it('an app without the flag posts the body it always did, whatever the step reads', async () => {
+        const [body] = await post([reading('screen.params.recordId + forms.cmp_other.note')], {});
+        expect(Object.keys(body).sort()).toEqual(['formValues', 'runKey', 'stepIndex', 'vars']);
+    });
+
+    it('an app with the flag sends nothing extra for a step that reads none of the roots', async () => {
+        const [body] = await post([reading('form.a + vars.b')]);
+        expect(Object.keys(body).sort()).toEqual(['formValues', 'runKey', 'stepIndex', 'vars']);
+    });
+
+    it('sends the screen params and the forms to the step that reads them', async () => {
+        const [first, second] = await post([reading('screen.params.recordId'), { ...WRITE, guard: 'forms.cmp_other.note == "hi"' }]);
+        expect(first.screenParams).toEqual({ recordId: 'rec_7' });
+        expect(first.forms).toBeUndefined();
+        expect(second.forms).toEqual({ cmp_other: { note: 'hi' } });
+        expect(second.screenParams).toBeUndefined();
+    });
+
+    it('sends the result of the action a step names, and no other', async () => {
+        const [, second] = await post([WRITE, reading('actions.seq.result.id')]);
+        expect(second.actionResults).toEqual({ seq: { status: 'running', result: { id: 'rec_new' }, error: null } });
+        const [, quiet] = await post([WRITE, reading('actions.other_action.result')]);
+        expect(quiet.actionResults).toBeUndefined();
+    });
+});

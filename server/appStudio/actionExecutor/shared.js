@@ -77,11 +77,15 @@ function buildServerScope(ctx) {
      * itself. A caller that passes no `variables` gets exactly today's scope.
      */
     const vars = { ...seedVariableDefaults(ctx.variables), ...clientVars };
+    // Only an app that opted in (definition.serverScope: 'wide') has ctx.wideScope: the screen params, the
+    // other forms and the action results the browser sent with this step, bounded by wideScope.mts.
+    // Viewer input like `vars`: formulas read it, identity and row rules never do. Every other app: {}.
+    const wide = plainObjectOr(ctx.wideScope, null);
     return {
-        actions: {},           // action results are a client concern
+        actions: wide ? plainObjectOr(wide.actions, {}) : {},           // action results are a client concern
         form: (ctx.formValues && typeof ctx.formValues === 'object') ? ctx.formValues : {},
-        forms: {},
-        screen: {},
+        forms: wide ? plainObjectOr(wide.forms, {}) : {},
+        screen: wide ? plainObjectOr(wide.screen, {}) : {},
         vars,
         item: ctx.item,
         index: ctx.index,

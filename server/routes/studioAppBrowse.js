@@ -122,6 +122,10 @@ const BrowseBody = partOf({
     error: require('./studio/appRuntimeSchemas').ErrorScope.optional(),
     // The run log's key of this click (appStudio/runLog/clickRuns.mts).
     runKey: z.string({ error: 'runKey is the run key the app made for this click.' }).regex(/^rk_[A-Za-z0-9_-]{16,64}$/, 'runKey is the run key the app made for this click.').optional(),
+    // Read only for an app with serverScope: 'wide' (appStudio/actionExecutor/wideScope.mts), as on /step.
+    screenParams: z.record(z.string(), z.unknown(), { error: typeError({ invalid: BAG_TEXT('screenParams') }) }).nullish(),
+    forms: z.record(z.string(), z.unknown(), { error: typeError({ invalid: BAG_TEXT('forms') }) }).nullish(),
+    actionResults: z.record(z.string(), z.unknown(), { error: typeError({ invalid: BAG_TEXT('actionResults') }) }).nullish(),
 });
 
 router.post('/:id/actions/:actionId/step/stream', requireAuth, jsonBody, validate({ query: BrowseQuery, body: BrowseBody }), async (/** @type {import('express').Request<{ id: string, actionId: string }>} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) => {
@@ -201,6 +205,7 @@ router.post('/:id/actions/:actionId/step/stream', requireAuth, jsonBody, validat
                 index: req.body.index,
                 value: req.body.value,
                 params: sanitizeBag(req.body.params),
+                ...require('../appStudio/actionExecutor/wideScope.mts').wideScopeInput(def, req.body), // serverScope: 'wide' only
                 error: sanitizeErrorScope(req.body.error),
                 browse: { send: bridge, isCancelled: () => cancelled },
             })));

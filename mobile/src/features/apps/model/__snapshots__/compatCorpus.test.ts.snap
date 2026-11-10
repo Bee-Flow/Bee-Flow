@@ -46,6 +46,71 @@ exports[`compat corpus: what the phone plans for every stored app asset-refs 1`]
 }
 `;
 
+exports[`compat corpus: what the phone plans for every stored app dynamic-text-effects 1`] = `
+{
+  "defaultScreen": "scr_dyn00001",
+  "navigable": [
+    "scr_dyn00001",
+  ],
+  "screens": [
+    {
+      "id": "scr_dyn00001",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "id": "cmp_dynhead1",
+                "kind": "heading",
+                "level": 2,
+                "text": "Dynamic text",
+              },
+              {
+                "action": {
+                  "actionId": "act_dynseq01",
+                  "kind": "sequence",
+                  "label": "Run",
+                  "runnable": false,
+                },
+                "id": "cmp_dynbtn01",
+                "kind": "button",
+              },
+            ],
+            "screen": "scr_dyn00001",
+            "unsupported": [],
+          },
+          "roles": [
+            "(no role)",
+          ],
+        },
+      ],
+    },
+    {
+      "id": "scr_done001",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "id": "cmp_donehead",
+                "kind": "heading",
+                "level": 2,
+                "text": "Done",
+              },
+            ],
+            "screen": "scr_done001",
+            "unsupported": [],
+          },
+          "roles": [
+            "(no role)",
+          ],
+        },
+      ],
+    },
+  ],
+}
+`;
+
 exports[`compat corpus: what the phone plans for every stored app empty-definition 1`] = `
 {
   "defaultScreen": "scr_6x27gi",
@@ -10346,6 +10411,59 @@ exports[`compat corpus: what the phone plans for every stored app trace-invoice-
               "input_relation",
               "input_file",
             ],
+          },
+          "roles": [
+            "(no role)",
+          ],
+        },
+      ],
+    },
+  ],
+}
+`;
+
+exports[`compat corpus: what the phone plans for every stored app wide-server-scope 1`] = `
+{
+  "defaultScreen": "scr_srv00001",
+  "navigable": [
+    "scr_srv00001",
+  ],
+  "screens": [
+    {
+      "id": "scr_srv00001",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "id": "cmp_srvhead1",
+                "kind": "heading",
+                "level": 2,
+                "text": "Order",
+              },
+              {
+                "action": {
+                  "actionId": "act_srvseq01",
+                  "kind": "sequence",
+                  "label": "Approve",
+                  "runnable": false,
+                },
+                "id": "cmp_srvbtn01",
+                "kind": "button",
+              },
+              {
+                "action": {
+                  "actionId": "act_srvseq02",
+                  "kind": "sequence",
+                  "label": "Start follow-up",
+                  "runnable": false,
+                },
+                "id": "cmp_srvbtn02",
+                "kind": "button",
+              },
+            ],
+            "screen": "scr_srv00001",
+            "unsupported": [],
           },
           "roles": [
             "(no role)",

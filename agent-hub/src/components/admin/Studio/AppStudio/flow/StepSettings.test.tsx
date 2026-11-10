@@ -47,7 +47,9 @@ const STEP_SPECS_STUB = {
     run_automation: {
         fields: {
             automationId: { type: 'string', nullable: true, required: true },
+            inputMapping: { type: 'inputMapping' },
             resultVar: { type: 'string', maxLen: 60 },
+            guard: { type: 'formula', since: 3 },
         },
     },
     refresh: {
@@ -459,5 +461,38 @@ describe('StepSettings: a switch case picked by a formula', () => {
         const { last } = renderStep({ ...base, cases: [{ whenExpr: 'z', steps: [] }] });
         await user.clear(await screen.findByLabelText('Case 1 formula'));
         expect(last().cases).toEqual([{ steps: [] }]);
+    });
+});
+
+describe('StepSettings: the guard of a server step and a formula input', () => {
+    it('offers the guard on a server step under its own label, and writes the formula into the step', async () => {
+        const user = userEvent.setup();
+        const { last } = renderStep({ kind: 'run_automation', automationId: 'auto-1' });
+        const box = await screen.findByLabelText('Only run when (checked on the server)');
+        expect(screen.getByText(/the step is skipped and the rest goes on/)).toBeTruthy();
+        await user.type(box, 'x');
+        expect(last()).toMatchObject({ kind: 'run_automation', automationId: 'auto-1', guard: 'x' });
+    });
+
+    it('an emptied guard leaves the step: no empty formula is stored', async () => {
+        const user = userEvent.setup();
+        const { last } = renderStep({ kind: 'run_automation', automationId: 'auto-1', guard: 'x' });
+        await user.clear(await screen.findByLabelText('Only run when (checked on the server)'));
+        expect(last().guard).toBeUndefined();
+        expect(JSON.parse(JSON.stringify(last()))).toEqual({ kind: 'run_automation', automationId: 'auto-1' });
+    });
+
+    it('a step that is not a server step has no guard', async () => {
+        renderStep({ kind: 'toast', message: 'plain', tone: 'info' });
+        await screen.findByLabelText('Message');
+        expect(screen.queryByLabelText('Only run when (checked on the server)')).toBeNull();
+    });
+
+    it('an automation input can be worked out by a formula', async () => {
+        const user = userEvent.setup();
+        const { last } = renderStep({ kind: 'run_automation', automationId: 'auto-1', inputMapping: { customer: { kind: 'static', value: '1' } } });
+        await screen.findByLabelText('Where this value comes from');
+        await user.click(screen.getByRole('radio', { name: /worked out/i }));
+        expect(last().inputMapping.customer).toEqual({ kind: 'formula', expr: '' });
     });
 });

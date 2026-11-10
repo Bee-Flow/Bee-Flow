@@ -87,7 +87,7 @@ export function StepField({
                         definition={definition}
                         node={node}
                         ariaLabel={label}
-                        expectsBoolean={fieldKey === 'expr'}
+                        expectsBoolean={fieldKey === 'expr' || fieldKey === 'guard'}
                         placeholder={t('studio_apps_edit.step_settings.formula_example', "e.g. vars.status == 'open'")}
                         disabled={disabled}
                     />

@@ -25,6 +25,8 @@ export interface FieldSpec {
     maxLen?: number;
     min?: number | string;
     max?: number | string;
+    /** The schema version that added the field (absent on a field of the base). */
+    since?: number;
 }
 
 export type StepReferences = ReturnType<typeof useStepReferences>;

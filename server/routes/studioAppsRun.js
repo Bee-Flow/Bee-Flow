@@ -286,6 +286,7 @@ router.post('/:id/actions/:actionId/step', requireAuth, stepLimiter, jsonBody, b
         value,
         // A called action's params (call_action), read as `params.<name>`.
         params: sanitizeBag(req.body?.params),
+        ...require('../appStudio/actionExecutor/wideScope.mts').wideScopeInput(def, req.body), // serverScope: 'wide' only
         // Inside an onError handler: the failure it handles, read as error.message / error.step.
         error: sanitizeErrorScope(req.body?.error),
         // The FULL viewer the row filters see (viewer.<attr> params) —

@@ -54,9 +54,11 @@ export const FIELD_LABELS: Record<string, string[]> = {
     cancelLabelExpr: ['studio_apps_dynamic_text.field_cancel_label_expr', 'Cancel button (formula)'],
     screenExpr: ['studio_apps_dynamic_text.field_screen_expr', 'Screen (formula)'],
     urlExpr: ['studio_apps_dynamic_text.field_url_expr', 'Address (formula)'],
+    guard: ['studio_apps_server_scope.field_guard', 'Only run when (checked on the server)'],
 };
 
 export const HINTS: Record<string, string[]> = {
+    guard: ['studio_apps_server_scope.hint_guard', 'A formula the server works out before this step. When it is not true the step is skipped and the rest goes on. Leave it empty to always run the step.'],
     messageExpr: ['studio_apps_dynamic_text.hint_text_expr', 'Used instead of the text above when it gives a result.'],
     titleExpr: ['studio_apps_dynamic_text.hint_text_expr', 'Used instead of the text above when it gives a result.'],
     confirmLabelExpr: ['studio_apps_dynamic_text.hint_text_expr', 'Used instead of the text above when it gives a result.'],

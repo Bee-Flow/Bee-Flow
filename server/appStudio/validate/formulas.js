@@ -132,6 +132,7 @@ const CURRENT_USER_ATTR_RE = /\bcurrentUser\s*\.\s*([A-Za-z_$][\w$]*)/g;
  */
 function checkServerFormulaScope(expr, path, ctx) {
     if (typeof expr !== 'string' || !expr) return;
+    require('./serverScopeChecks.mts').checkServerScopeRoots(expr, path, ctx); // a root that is empty on the server
     for (const m of expr.matchAll(CURRENT_USER_ATTR_RE)) {
         const attr = m[1];
         if (CURRENT_USER_KEYS.includes(attr)) continue;
@@ -146,6 +147,7 @@ function checkServerFormulaScope(expr, path, ctx) {
 /** Walk a step's authored values for formulas and scope-check each one. */
 function checkServerFormulas(value, path, ctx, depth = 0) {
     if (depth > 6 || !value || typeof value !== 'object') return;
+    if (depth === 0) require('./serverScopeChecks.mts').checkServerStep(value, path, ctx); // guard, plain formula fields
     if (Array.isArray(value)) {
         value.forEach((v, i) => checkServerFormulas(v, `${path}[${i}]`, ctx, depth + 1));
         return;

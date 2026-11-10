@@ -228,7 +228,7 @@ test('create_record is an action AND a step, off one shared field table', () => 
     assert.ok(ACTION_KINDS.includes('create_record'));
     assert.ok(STEP_KINDS.includes('create_record'));
     assert.equal(ACTION_SPECS.create_record.fields, CREATE_RECORD_FIELDS);
-    assertStepTableIsActionTablePlusEnvelope('create_record', ['retry', 'onError']);
+    assertStepTableIsActionTablePlusEnvelope('create_record', ['retry', 'onError', 'guard']); // guard: since 3, server kinds only
     // It writes rows, so it stays on the server side of the partition.
     assert.ok(DATA_MUTATING_STEP_KINDS.includes('create_record'));
 });

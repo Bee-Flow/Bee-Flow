@@ -29,6 +29,7 @@ const STEP_ERRORS = './stepErrors.mts';
 const TRANSACTION_STEP = './transactionStep.mts';
 const BULK_RECORDS = './bulkRecords.mts';
 const KB_LOG_STEPS = './kbLogSteps.mts';
+const STEP_GUARD = './stepGuard.mts';
 
 /**
  * The executor of a step kind of the registry (componentSpecs/steps/<kind>.js with
@@ -67,6 +68,9 @@ async function executeDataStep(app, model, step, ctx = {}) {
     if (!DATA_MUTATING_STEP_KINDS.includes(step.kind)) {
         return { ok: false, error: `Step "${step.kind}" is not a server step` };
     }
+    // since 3: a guard the server checks first. False: the step is skipped (ok, null result), never run.
+    const skipped = require(STEP_GUARD).guardSkip(app, step, ctx, buildServerScope);
+    if (skipped) return skipped;
     return withRetryFlag(await runStepKind(app, model, step, ctx));
 }
 

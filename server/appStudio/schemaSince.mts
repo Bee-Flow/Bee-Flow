@@ -26,6 +26,8 @@
  *   core/dataEngine/dataModel/vocabularySince.js   a filter operator, an aggregate function,
  *                                                  a date bucket (query vocabulary in a binding)
  *
+ * An input mapping kind added after the base (`formula`) is read by schemaSinceMappings.mts.
+ *
  * One VALUE form has a version too: `asset:<id>`, an uploaded file of the app, accepted in
  * props and design keys that took only an https URL before (appAssets.mts ASSET_REF_SINCE).
  *
@@ -47,6 +49,7 @@ import {
 } from '../shared/appDefinition/schemaVersion.mjs';
 import { definitionKeys } from './definitionKeyRegistry.mts';
 import { ASSET_REF_SINCE, hasAssetRef } from './appAssets.mts';
+import { mappingKindSince } from './schemaSinceMappings.mts';
 import type { DefinitionKeyEntry } from './definitionKeyRegistry.mts';
 
 type SinceMap = Record<string, number>;
@@ -236,7 +239,8 @@ function currentIndex(): SinceIndex {
 
 /** The lowest schema version `definition` can be stored as (2 unless it uses something marked since 3 or higher). */
 export function requiredSchemaVersion(definition: unknown): number {
-    const required = requiredWithIndex(definition, currentIndex());
+    // A mapping kind added after the base (schemaSinceMappings.mts) is a value form too, like an asset reference.
+    const required = Math.max(requiredWithIndex(definition, currentIndex()), mappingKindSince(definition));
     return required >= ASSET_REF_SINCE || !hasAssetRef(definition) ? required : ASSET_REF_SINCE;
 }
 
