@@ -5,7 +5,7 @@ import type { FormEvent } from 'react';
 import useTranslation from '@/hooks/useTranslation';
 import type { TranslateFn } from '@/hooks/useTranslation';
 import type { AppNode, NodeStyle, ValidationRule } from '../../inspector/appDefinition';
-import { FormContext, registerFormReset } from '../formContext';
+import { FormContext, registerFormFieldSetter, registerFormReset } from '../formContext';
 import type { FormFieldMeta } from '../formContext';
 import { resolveBinding } from '../resolveBinding';
 import { useRuntime } from '../RuntimeContext';
@@ -232,6 +232,11 @@ function FormBody({ node, children }: NodeProps<FormProps>) {
     // The `reset_form` action step reaches this form by NAME through the
     // module-level bus — the same key the runtime files form values under.
     useEffect(() => registerFormReset(formName, handleReset), [formName, handleReset]);
+    // …and the `set_form_field` step reaches one field the same way, through setValue
+    // (only a field this form has: a step never adds a value the form would not submit).
+    useEffect(() => registerFormFieldSetter(formName, (field, value) => {
+        if (fieldsRef.current.has(field)) setValue(field, value);
+    }), [formName, setValue]);
 
     const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();

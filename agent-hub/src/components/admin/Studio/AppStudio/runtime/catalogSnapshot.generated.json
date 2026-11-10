@@ -28,6 +28,7 @@
         "MAX_LOCK_KEY_LEN": 200,
         "MAX_PROGRESS_TEXT_LEN": 200,
         "MAX_DEFERRED_EFFECTS": 10,
+        "MAX_CLIENT_WAIT_SECONDS": 30,
         "MAX_BULK_WRITE_ROWS": 500,
         "MAX_WRITE_FILTER_CLAUSES": 20,
         "MAX_UPSERT_KEY_COLUMNS": 5,
@@ -499,6 +500,41 @@
         "transaction": {
             "client": false,
             "mutatesData": true
+        },
+        "back": {
+            "client": true,
+            "mutatesData": false,
+            "since": 3
+        },
+        "copy_to_clipboard": {
+            "client": true,
+            "mutatesData": false,
+            "since": 3
+        },
+        "focus": {
+            "client": true,
+            "mutatesData": false,
+            "since": 3
+        },
+        "scroll_to": {
+            "client": true,
+            "mutatesData": false,
+            "since": 3
+        },
+        "set_form_field": {
+            "client": true,
+            "mutatesData": false,
+            "since": 3
+        },
+        "set_ui": {
+            "client": true,
+            "mutatesData": false,
+            "since": 3
+        },
+        "wait": {
+            "client": true,
+            "mutatesData": false,
+            "since": 3
         }
     },
     "types": {

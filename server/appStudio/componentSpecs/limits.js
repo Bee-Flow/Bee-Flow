@@ -66,6 +66,7 @@ const LIMITS = {
     MAX_LOCK_KEY_LEN: 200,             // a resolved lockKey; longer keys are hashed
     MAX_PROGRESS_TEXT_LEN: 200,        // the progressVar text a job shows
     MAX_DEFERRED_EFFECTS: 10,          // toast/refresh steps a job replays at the end
+    MAX_CLIENT_WAIT_SECONDS: 30,       // wait (schema 3): the longest pause the browser holds a sequence
     // Bulk writes (2026-11): update/delete_record with a filter, writeTo upsertKey/replaceWhere.
     MAX_BULK_WRITE_ROWS: 500,          // rows one filter-mode update/delete (or replaceWhere) may change
     MAX_WRITE_FILTER_CLAUSES: 20,      // clauses in a write filter / replaceWhere

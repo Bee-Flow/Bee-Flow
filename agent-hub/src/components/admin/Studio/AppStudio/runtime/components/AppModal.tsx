@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import useTranslation from '@/hooks/useTranslation';
 import Modal from '@/components/shared/Modal';
 import { useRuntime } from '../RuntimeContext';
+import { usePublishedUiState } from '../uiState';
 import { gridTemplate, spaceSteps } from '../styleResolver';
 import type { ModalPlacement, ModalSize } from '@/components/shared/Modal';
 import type { NodeStyle } from '../../inspector/appDefinition';
@@ -75,6 +76,8 @@ export default function AppModal({ node, children }: NodeProps<ModalNodeProps>) 
     const [open, setOpen] = useState(false);
 
     useEffect(() => subscribe(node.id, setOpen), [node.id]);
+    // Readable as ui.modals.<id>.open (run mode); set_ui opens and closes through the bus above.
+    usePublishedUiState('open', node.id, open, null, mode === 'run');
 
     const gap = Number.isFinite(node.style?.gap) ? (node.style as NodeStyle).gap : 3;
     const grid = (

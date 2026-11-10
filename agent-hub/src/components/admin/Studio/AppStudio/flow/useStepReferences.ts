@@ -5,6 +5,7 @@ import {
     screenOptions, tableOptions,
 } from './stepReferences';
 import type { DocumentSource } from './stepReferences';
+import { collectNodes } from './nodeRefOptions';
 import useAutomationApi from '@/hooks/useAutomationApi';
 import useTranslation from '@/hooks/useTranslation';
 import { listTemplates } from '@/pages/documents/documentsApi';
@@ -105,6 +106,8 @@ export default function useStepReferences(definition: AppDefinition | null | und
             document: documentOptions(documentQuery.data, t),
             // call_action: the other actions of this app (never the one being edited).
             action: actionRefOptions(definition?.actions, actionId),
+            // focus, scroll_to, set_ui: every component; StepField narrows it per step (./nodeRefOptions.ts).
+            node: collectNodes(definition),
         };
         return {
             options,

@@ -11,6 +11,7 @@ import { resolveBinding } from '../resolveBinding';
 import type { ResolveResult } from '../resolveBinding.types';
 import { attachmentUrl, getAuthed } from '@/api/actionHttp';
 import { SEQ_ABORT, defaultConfirm, resolveNavParams, showToast } from './core';
+import { browserStepFor } from './browserSteps';
 import type { RunStep } from './core';
 import type { RunnerContext } from './runnerContext';
 import type { SeqState } from './serverSteps';
@@ -115,11 +116,11 @@ const CLIENT_STEPS: Record<string, ClientStepHandler> = {
     refresh: refreshStep,
 };
 
-/** Runs a client step kind. False when the kind is not a client kind. */
+/** Runs a client step kind (a base kind above, or a registry kind of ./browserSteps). False when the kind is not a client kind. */
 export async function runClientStep(env: ClientStepEnv, step: RunStep, st: SeqState): Promise<boolean> {
     const handler = Object.prototype.hasOwnProperty.call(CLIENT_STEPS, step.kind as string)
         ? CLIENT_STEPS[step.kind as string]
-        : null;
+        : browserStepFor(step.kind);
     if (!handler) return false;
     await handler(env, step, st);
     return true;

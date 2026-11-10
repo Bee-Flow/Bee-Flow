@@ -26,6 +26,7 @@ const { validateBinding } = require('./bindings');
 const { checkDocumentPicker } = require('./documentPicker');
 const { checkActionWiring, checkNodeAdvisories } = require('./nodeWiring');
 const { nodeActionRefs } = require('../nodeActionRefs.mts');
+const { noteUiTarget } = require('./uiStepChecks.mts');
 
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -523,6 +524,8 @@ function validateNode(node, path, depth, formId, ctx, parent = ROOT_PARENT) {
     }
     // Collect modal ids so open_modal actions can resolve them.
     if (node.type === 'modal' && typeof node.id === 'string') ctx.modalIds.add(node.id);
+    // …and every node's type, and each form's name, for the steps that name a node (uiStepChecks.mts).
+    noteUiTarget(node, props, ctx);
     if (node.type === 'input_document') checkDocumentPicker(props, path, ctx);
 
     checkActionWiring(node, path, props, spec, ctx);

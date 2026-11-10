@@ -15,6 +15,7 @@ import { resolveBinding } from './resolveBinding';
 import { RuntimeProvider, ScopeProvider, DEFAULT_RUNTIME, buildScope, rowKey, useRuntime, type ExpressionScope, type RuntimeValue } from './RuntimeContext';
 import { resolveNodeStyle } from './styleResolver';
 import { themeVars } from './themeVars';
+import { definitionReadsUi, useUiScope } from './uiState';
 import useTranslation from '@/hooks/useTranslation';
 import type React from 'react';
 import type { ActionState } from './actionRunner/core';
@@ -358,6 +359,9 @@ export default function AppRenderer({
         return { ...d, primary: themePrimary || '' };
     }, [definition?.design, themePrimary]);
 
+    // The `ui` root (uiState.ts): only for a definition that reads it, so no other app re-renders for a tab switch.
+    const ui = useUiScope(definitionReadsUi(definition));
+
     const baseScope = useMemo(() => buildScope({
         actionState: actionState || {},
         dataState: dataState || {},
@@ -367,7 +371,8 @@ export default function AppRenderer({
         screen: { id: screen?.id, name: screen?.name, params: screenParams || {} },
         now: nowStamp,
         today: todayStamp,
-    }), [actionState, dataState, currentUser, vars, forms, screen?.id, screen?.name, screenParams, nowStamp, todayStamp]);
+        ui,
+    }), [actionState, dataState, currentUser, vars, forms, screen?.id, screen?.name, screenParams, nowStamp, todayStamp, ui]);
 
     const runtimeValue = useMemo<RuntimeValue>(() => ({
         mode: mode === 'edit' ? 'edit' : 'run',

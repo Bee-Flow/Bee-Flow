@@ -70,6 +70,8 @@ function makeLiveBag(ctx: RunnerContext, actionId: string): LiveBag {
                 params: st.params || {},
                 error: (st.errorScope as Record<string, unknown> | null | undefined) || null,
                 currentUser: live.currentUser || null,
+                // What components show right now (ui.tabs / ui.modals / ui.selection), read fresh per step.
+                ui: live.readUi ? live.readUi() : undefined,
             }),
         };
     };

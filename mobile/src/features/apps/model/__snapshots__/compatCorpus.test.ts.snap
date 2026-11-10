@@ -10356,3 +10356,130 @@ exports[`compat corpus: what the phone plans for every stored app trace-invoice-
   ],
 }
 `;
+
+exports[`compat corpus: what the phone plans for every stored app v3-ui-steps 1`] = `
+{
+  "defaultScreen": "scr_orders1",
+  "navigable": [
+    "scr_orders1",
+    "scr_second1",
+  ],
+  "screens": [
+    {
+      "id": "scr_orders1",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "id": "cmp_picked1",
+                "kind": "text",
+                "muted": false,
+                "text": "Nothing selected",
+              },
+              {
+                "action": {
+                  "actionId": "act_fillfrm",
+                  "kind": "sequence",
+                  "label": "Use in form",
+                  "runnable": false,
+                },
+                "id": "cmp_fillbtn",
+                "kind": "button",
+              },
+              {
+                "action": null,
+                "description": null,
+                "id": "cmp_form001",
+                "inputs": [
+                  {
+                    "initial": null,
+                    "inputType": "text",
+                    "label": "Quantity",
+                    "max": null,
+                    "min": null,
+                    "name": "quantity",
+                    "nodeId": "cmp_qty0001",
+                    "options": [],
+                    "placeholder": null,
+                    "required": false,
+                    "rows": 4,
+                    "type": "input_number",
+                  },
+                ],
+                "kind": "form",
+                "submitLabel": "Submit",
+                "title": "order",
+              },
+              {
+                "id": "cmp_note001",
+                "kind": "text",
+                "muted": false,
+                "text": "Notes go here.",
+              },
+              {
+                "action": {
+                  "actionId": "act_details",
+                  "kind": "sequence",
+                  "label": "Details",
+                  "runnable": false,
+                },
+                "id": "cmp_openbtn",
+                "kind": "button",
+              },
+              {
+                "action": {
+                  "actionId": "act_gonext1",
+                  "kind": "sequence",
+                  "label": "Next screen",
+                  "runnable": false,
+                },
+                "id": "cmp_gonext1",
+                "kind": "button",
+              },
+            ],
+            "screen": "scr_orders1",
+            "unsupported": [
+              "data_grid",
+              "button",
+              "tabs",
+              "tab",
+              "text",
+              "modal",
+            ],
+          },
+          "roles": [
+            "(no role)",
+          ],
+        },
+      ],
+    },
+    {
+      "id": "scr_second1",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "action": {
+                  "actionId": "act_goback1",
+                  "kind": "sequence",
+                  "label": "Back",
+                  "runnable": false,
+                },
+                "id": "cmp_backbtn",
+                "kind": "button",
+              },
+            ],
+            "screen": "scr_second1",
+            "unsupported": [],
+          },
+          "roles": [
+            "(no role)",
+          ],
+        },
+      ],
+    },
+  ],
+}
+`;

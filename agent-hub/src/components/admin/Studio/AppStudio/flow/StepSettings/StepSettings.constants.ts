@@ -48,6 +48,7 @@ export const FIELD_LABELS: Record<string, string[]> = {
     documentMode: ['studio_apps_edit.step_settings.field_document_mode', 'Read documents as'],
     retry: ['studio_apps_edit.step_settings.field_retry', 'If it fails, try again'],
     onError: ['studio_apps_edit.step_settings.field_on_error', 'If it still fails'],
+    nodeId: ['studio_apps_ui_steps.fields.node', 'Component'],
 };
 
 export const HINTS: Record<string, string[]> = {

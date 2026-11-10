@@ -1,4 +1,4 @@
-import React, { useEffect, useEffectEvent, useState } from 'react';
+import React, { useEffect, useEffectEvent } from 'react';
 import useTranslation, { TranslateParams } from '@/hooks/useTranslation';
 import AppIcon from '@/components/icons/AppIcon';
 import { useFormContext } from '../formContext';
@@ -10,6 +10,7 @@ import { isFill } from '../styleResolver.helpers';
 import { ROLE_COLORS } from '../styleResolver.constants';
 import type { BindingInput } from '../resolveBinding.types';
 import type { NodeProps } from './appNode.types';
+import { useActiveTab } from './tabsUiState';
 import type { FlagInput } from '../AppRenderer.types';
 import { ActionState } from '../actionRunner/core';
 import { DataState } from '../DataContext';
@@ -108,7 +109,8 @@ export default function AppTabs({ node, children }: NodeProps<TabProps>) {
     const fill = isFill(node);
     const tabs: TabDef[] = Array.isArray(node.children) ? node.children : [];
     const rendered = React.Children.toArray(children);
-    const [active, setActive] = useState(0);
+    // Local state, also readable as ui.tabs.<id>.active and settable by a set_ui step (run mode only).
+    const [active, setActive] = useActiveTab(node.id, tabs, mode === 'run');
 
     // An error on a panel the viewer is not looking at is an error they cannot
     // see, so a failed submit surfaces the tab that holds the first bad field.

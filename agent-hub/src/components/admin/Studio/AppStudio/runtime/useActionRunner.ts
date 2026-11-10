@@ -9,6 +9,8 @@ import type {
 } from './actionRunner/runnerContext';
 import type { DataState } from './DataContext';
 import { reconcileVariableDefaults, seedVariableDefaults } from './appVariables';
+import { createScreenTrail } from './actionRunner/screenTrail';
+import { definitionReadsUi, getUiSnapshot } from './uiState';
 import useTranslation from '@/hooks/useTranslation';
 
 export { SERVER_STEP_KINDS } from './actionRunner/core';
@@ -165,16 +167,21 @@ export default function useActionRunner(
     // local vars from it and merge set_variable/resultVar writes back in.
     const [vars, setVars] = useDeclaredVariables(definition);
 
+    // The screens this surface showed, for a `back` step; told about every screen it renders.
+    const [screenTrail] = useState(createScreenTrail);
     // One ref so runAction stays identity-stable but never reads stale data.
     // Updated after each commit; the first render's inputs seed it.
     const liveInputs: LiveInputs = {
         actionState, vars, definition, onNavigate, onBrowseEvent, confirm, onRefresh,
         currentUser, dataState, forms, screen, beforeServerStep,
+        // Only a definition that reads `ui` gets the root in its step scope: every other app's scope keeps today's shape.
+        readUi: definitionReadsUi(definition) ? getUiSnapshot : null, screenTrail,
     };
     const live = useRef<LiveInputs>(liveInputs);
     useLayoutEffect(() => {
         live.current = liveInputs;
     });
+    useLayoutEffect(() => { screenTrail.observe(screen); });
 
     const alive = useRef(true);
     useEffect(() => {

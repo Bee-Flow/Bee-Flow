@@ -10,4 +10,40 @@
  */
 
 /** @type {Readonly<Record<string, { childSlots: readonly { field: string, each?: string, walked?: boolean }[], retrySafe: boolean, server: boolean }>>} */
-export const EXTENSION_STEP_KINDS = Object.freeze({});
+export const EXTENSION_STEP_KINDS = Object.freeze({
+    "back": {
+        "childSlots": [],
+        "retrySafe": true,
+        "server": false
+    },
+    "copy_to_clipboard": {
+        "childSlots": [],
+        "retrySafe": true,
+        "server": false
+    },
+    "focus": {
+        "childSlots": [],
+        "retrySafe": true,
+        "server": false
+    },
+    "scroll_to": {
+        "childSlots": [],
+        "retrySafe": true,
+        "server": false
+    },
+    "set_form_field": {
+        "childSlots": [],
+        "retrySafe": true,
+        "server": false
+    },
+    "set_ui": {
+        "childSlots": [],
+        "retrySafe": true,
+        "server": false
+    },
+    "wait": {
+        "childSlots": [],
+        "retrySafe": true,
+        "server": false
+    }
+});

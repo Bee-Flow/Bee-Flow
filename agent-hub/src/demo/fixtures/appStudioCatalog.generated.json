@@ -32,6 +32,7 @@
         "MAX_LOCK_KEY_LEN": 200,
         "MAX_PROGRESS_TEXT_LEN": 200,
         "MAX_DEFERRED_EFFECTS": 10,
+        "MAX_CLIENT_WAIT_SECONDS": 30,
         "MAX_BULK_WRITE_ROWS": 500,
         "MAX_WRITE_FILTER_CLAUSES": 20,
         "MAX_UPSERT_KEY_COLUMNS": 5,
@@ -2661,7 +2662,14 @@
             "loop",
             "switch",
             "call_action",
-            "transaction"
+            "transaction",
+            "back",
+            "copy_to_clipboard",
+            "focus",
+            "scroll_to",
+            "set_form_field",
+            "set_ui",
+            "wait"
         ],
         "stepSpecs": {
             "navigate": {
@@ -3840,6 +3848,116 @@
                         "envelope": true
                     }
                 }
+            },
+            "back": {
+                "mutatesData": false,
+                "fields": {},
+                "since": 3,
+                "retrySafe": true
+            },
+            "copy_to_clipboard": {
+                "mutatesData": false,
+                "fields": {
+                    "text": {
+                        "type": "binding",
+                        "required": true,
+                        "description": "What is copied: { kind: \"static\", value } or a formula. A number or a list is copied as text."
+                    }
+                },
+                "since": 3,
+                "retrySafe": true
+            },
+            "focus": {
+                "mutatesData": false,
+                "fields": {
+                    "nodeId": {
+                        "type": "string",
+                        "required": true,
+                        "maxLen": 80,
+                        "description": "The id of the component to focus."
+                    }
+                },
+                "since": 3,
+                "retrySafe": true
+            },
+            "scroll_to": {
+                "mutatesData": false,
+                "fields": {
+                    "nodeId": {
+                        "type": "string",
+                        "required": true,
+                        "maxLen": 80,
+                        "description": "The id of the component to scroll to, or \"top\" for the top of the screen."
+                    }
+                },
+                "since": 3,
+                "retrySafe": true
+            },
+            "set_form_field": {
+                "mutatesData": false,
+                "fields": {
+                    "form": {
+                        "type": "string",
+                        "required": true,
+                        "maxLen": 100,
+                        "description": "The form, by name: its props.name, or its node id when it has no name (the key reset_form takes)."
+                    },
+                    "field": {
+                        "type": "string",
+                        "required": true,
+                        "maxLen": 100,
+                        "description": "The input inside that form, by its props.name."
+                    },
+                    "value": {
+                        "type": "binding",
+                        "required": true,
+                        "description": "The new value: { kind: \"static\", value } or { kind: \"formula\", expr }."
+                    }
+                },
+                "since": 3,
+                "retrySafe": true
+            },
+            "set_ui": {
+                "mutatesData": false,
+                "fields": {
+                    "nodeId": {
+                        "type": "string",
+                        "required": true,
+                        "maxLen": 80,
+                        "description": "The id of the tabs, modal or data_grid component."
+                    },
+                    "state": {
+                        "type": "enum",
+                        "required": true,
+                        "values": [
+                            "activeTab",
+                            "open",
+                            "selection"
+                        ],
+                        "description": "Which state: activeTab (a tabs group), open (a modal) or selection (a data_grid)."
+                    },
+                    "value": {
+                        "type": "binding",
+                        "required": true,
+                        "description": "The new state: a tab id or 0-based position, true or false, or the row id(s) to select."
+                    }
+                },
+                "since": 3,
+                "retrySafe": true
+            },
+            "wait": {
+                "mutatesData": false,
+                "fields": {
+                    "seconds": {
+                        "type": "int",
+                        "required": true,
+                        "min": 1,
+                        "max": 30,
+                        "description": "How long to pause, in whole seconds (1 to 30)."
+                    }
+                },
+                "since": 3,
+                "retrySafe": true
             }
         },
         "clientStepKinds": [
@@ -3856,7 +3974,14 @@
             "condition",
             "loop",
             "switch",
-            "call_action"
+            "call_action",
+            "back",
+            "copy_to_clipboard",
+            "focus",
+            "scroll_to",
+            "set_form_field",
+            "set_ui",
+            "wait"
         ],
         "dataMutatingStepKinds": [
             "run_automation",

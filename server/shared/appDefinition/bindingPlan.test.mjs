@@ -104,3 +104,16 @@ test('planner: the option sets differ only where their callers did', () => {
     assert.equal(DRY_RUN_PLAN.resolveShape, false);
     assert.equal(DRY_RUN_PLAN.filterMode, 'probe');
 });
+
+test('planner: the ui root (schema 3) is live in the browser and needs-scope for the render and the dry run', () => {
+    const scope = { ...SCOPE, ui: { selection: { cmp_grid: [{ id: 'r7' }] }, tabs: { cmp_tabs: { active: 'cmp_tab_b' } }, modals: {} } };
+    const bySelection = recs([clause(f('ui.selection.cmp_grid[0].id'))]);
+    assert.deepEqual(planBinding(bySelection, scope, CLIENT_PLAN), { plan: 'fetch', binding: recs([clause('r7')]) });
+    assert.deepEqual(planBinding(bySelection, scope, RENDER_PLAN), { plan: 'needsScope' });
+    assert.deepEqual(planFilters(bySelection, scope, DRY_RUN_PLAN), { plan: 'needsScope' });
+    const byTab = { kind: 'connector', connectorId: 'c1', params: { tab: f('ui.tabs.cmp_tabs.active') } };
+    assert.deepEqual(planBinding(byTab, scope, CLIENT_PLAN), { plan: 'fetch', binding: { ...byTab, params: { tab: 'cmp_tab_b' } } });
+    assert.deepEqual(planBinding(byTab, scope, RENDER_PLAN), { plan: 'needsScope' });
+    // Nothing on screen yet (no grid mounted): an optional clause is left out, as for any unresolved value.
+    assert.deepEqual(planBinding(bySelection, { ...SCOPE, ui: { selection: {}, tabs: {}, modals: {} } }, CLIENT_PLAN), { plan: 'fetch', binding: T });
+});

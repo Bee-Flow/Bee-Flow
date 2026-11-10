@@ -366,6 +366,8 @@ const KIND_CHECKS = {
     call_action: checkCallAction,
 };
 
+// The browser steps that name a component (focus, scroll_to, set_ui, set_form_field).
+Object.assign(KIND_CHECKS, require('./uiStepChecks.mts').UI_STEP_CHECKS);
 module.exports = { containsSendEmail, KIND_CHECKS };
 
 /** @typedef {import('./shared').ValidationCtx} ValidationCtx */
