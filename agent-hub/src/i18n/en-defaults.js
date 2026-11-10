@@ -38779,6 +38779,15 @@ const EN_DEFAULTS = {
     "studio_misc.toolbar.view_board": "Board",
     "studio_misc.toolbar.view_cards": "Cards",
     "studio_misc.toolbar.view_list": "List",
+    "studio_apps_device.desktop": "Desktop",
+    "studio_apps_device.fit": "Fit to canvas",
+    "studio_apps_device.frame_title": "App preview at {device} width",
+    "studio_apps_device.option": "{device}, {width} px",
+    "studio_apps_device.phone": "Phone",
+    "studio_apps_device.size": "{width} px",
+    "studio_apps_device.size_scaled": "{width} px, shown at {percent}%",
+    "studio_apps_device.switch_aria": "Preview width",
+    "studio_apps_device.tablet": "Tablet",
     "studio_apps_schema.newer_than_install": "This app was saved by a newer version of Bee Flow. Update this installation to open or change it.",
 };
 

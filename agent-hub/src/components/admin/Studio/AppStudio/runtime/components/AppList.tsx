@@ -67,7 +67,9 @@ export default function AppList({ node }: NodeProps<ListProps>) {
     const [openPeek, setOpenPeek] = useState<{ index: number; top: number; left: number; maxHeight: number } | null>(null);
     const showPeek = useCallback((index: number, anchor: (EventTarget & HTMLSpanElement) | (EventTarget & HTMLButtonElement)) => {
         if (!anchor || typeof anchor.getBoundingClientRect !== 'function') return;
-        setOpenPeek({ index, ...peekPosition(anchor.getBoundingClientRect(), window.innerWidth || 0, window.innerHeight || 0) });
+        // The window the anchor is in: the device preview renders in an iframe.
+        const view = anchor.ownerDocument.defaultView ?? window;
+        setOpenPeek({ index, ...peekPosition(anchor.getBoundingClientRect(), view.innerWidth || 0, view.innerHeight || 0) });
     }, []);
     const hidePeek = useCallback(() => setOpenPeek(null), []);
     if (error) return <ErrorText error={error} errorCode={errorCode} />;

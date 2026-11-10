@@ -2,6 +2,7 @@ import { ChevronDown } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { KeyboardEvent as ReactKeyboardEvent, RefObject } from 'react';
 import useTranslation from '@/hooks/useTranslation';
+import { usePortalDocument } from '@/components/shared/portalRoot';
 import AppIcon from '@/components/icons/AppIcon';
 import type { NavGroup, NavModel, NavScreen } from './navModel';
 import type { NavigateFn } from '../actionRunner/runnerContext';
@@ -132,6 +133,7 @@ export default function NavMega({ model, screenId, onNavigate }: NavMegaProps) {
     const timers = useRef<{ open: ReturnType<typeof setTimeout> | null; close: ReturnType<typeof setTimeout> | null }>({ open: null, close: null });
     const triggerRefs = useRef<Record<string, HTMLButtonElement | null>>({});
     const panelRef = useRef<HTMLDivElement | null>(null);
+    const doc = usePortalDocument();
 
     const clearTimers = useCallback(() => {
         if (timers.current.open) { clearTimeout(timers.current.open); timers.current.open = null; }
@@ -163,13 +165,13 @@ export default function NavMega({ model, screenId, onNavigate }: NavMegaProps) {
             if (panelRef.current?.contains(e.target as Node | null) || trigger?.contains(e.target as Node | null)) return;
             setOpenId(null);
         };
-        document.addEventListener('keydown', onKey);
-        document.addEventListener('pointerdown', onDown);
+        doc.addEventListener('keydown', onKey);
+        doc.addEventListener('pointerdown', onDown);
         return () => {
-            document.removeEventListener('keydown', onKey);
-            document.removeEventListener('pointerdown', onDown);
+            doc.removeEventListener('keydown', onKey);
+            doc.removeEventListener('pointerdown', onDown);
         };
-    }, [openId]);
+    }, [openId, doc]);
 
     const pick = (id: string) => {
         clearTimers();

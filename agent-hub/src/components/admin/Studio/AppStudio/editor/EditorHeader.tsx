@@ -4,6 +4,7 @@ import type { ComponentType, ReactNode } from 'react';
 import { useEditorChrome } from './EditorChromeContext';
 import AppIdentity from './header/AppIdentity';
 import ConflictDialog from './header/ConflictDialog';
+import DeviceSwitch from './header/DeviceSwitch';
 import { PublishPill, SaveNoticesControl, ViewSegments } from './header/HeaderControls';
 import { PANEL_VIEWS, focusAiComposer, publishStateOf, resolvePathTarget } from './header/headerModel';
 import type { HeaderApp, HeaderView, RevealTarget } from './header/headerModel';
@@ -217,6 +218,8 @@ export default function EditorHeader({
             <SaveStatusChip status={saveStatus} version={version} />
 
             <ViewSegments view={view} onSelect={selectView} isManaged={isManaged} streamLock={streamLock} editing={mode === 'edit'} logicCount={logicCount} />
+
+            {view === 'preview' ? <DeviceSwitch /> : null}
 
             <SaveNoticesControl status={saveStatus} error={saveError} onRetry={onFlush} notices={notices} onShow={showNotice} />
 
