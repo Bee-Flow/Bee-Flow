@@ -11,7 +11,7 @@
 'use strict';
 
 const { THEME_SPEC, DESIGN_SPEC } = require('../../componentSpecs');
-const { APP_DESIGN_PRESETS, getAppDesignPreset } = require('../../appDesignPresets');
+const { ALL_APP_DESIGN_PRESETS: APP_DESIGN_PRESETS, getAppDesignPreset } = require('../../appDesignPresets');
 const ops = require('../../definitionOps');
 const { adoptCanonical } = require('../shared');
 

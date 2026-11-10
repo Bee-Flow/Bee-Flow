@@ -7,6 +7,8 @@
 
 'use strict';
 
-const { APP_DESIGN_PRESETS, getAppDesignPreset } = require('../shared/appDefinition/designPresets.mjs');
+// APP_DESIGN_PRESETS is the BASE seven (what the pinned prompt and tool schemas list);
+// ALL_APP_DESIGN_PRESETS adds the presets marked since 3, and getAppDesignPreset resolves any.
+const { APP_DESIGN_PRESETS, EXTENSION_APP_DESIGN_PRESETS, ALL_APP_DESIGN_PRESETS, getAppDesignPreset } = require('../shared/appDefinition/designPresets.mjs');
 
-module.exports = { APP_DESIGN_PRESETS, getAppDesignPreset };
+module.exports = { APP_DESIGN_PRESETS, EXTENSION_APP_DESIGN_PRESETS, ALL_APP_DESIGN_PRESETS, getAppDesignPreset };
