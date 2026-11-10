@@ -21,7 +21,8 @@ const fx = { microsoft: { clientId: CLIENT, clientSecret: SECRET, tenantId: TENA
 
 // The real super-admin gate stays in place; only the config load is swapped.
 const realSuperAdmin = require('../permissions').requireSuperAdmin;
-require('../../testUtils/routeHarness').openGates({
+const harness = require('../../testUtils/routeHarness');
+harness.openGates({
     requireSuperAdmin: realSuperAdmin,
     loadConfig: async () => ({ providers: { microsoft: fx.microsoft } }),
 });
@@ -30,7 +31,6 @@ const entra = require('../../core/meetingNotes/teamsSetup/entraToken.mts');
 const teamsSetup = require('../../routes/teamsSetup.mts');
 const { resetDiagnosticsSlots } = require('../../core/meetingNotes/teamsSetup/rateLimit.mts');
 const router = require('./ssoConfigRoutes');
-const { terminalErrorHandler } = require('../../core/http/terminalErrorHandler');
 
 entra.init({
     safeFetch: async (url, init) => {
@@ -44,30 +44,14 @@ teamsSetup.init({ identityBinding: async () => null, buildRedirectUri: () => 'ht
 const ADMIN = { isAuthenticated: true, isAdmin: true, user: { id: 'root', role: 'admin' } };
 const MEMBER = { isAuthenticated: true, user: { id: 'u1', role: 'user', organizationId: 'org-a' } };
 
-function dispatch(session) {
-    return new Promise((resolve, reject) => {
-        const req = {
-            method: 'POST', url: '/providers/microsoft/test', originalUrl: '/providers/microsoft/test', path: '/providers/microsoft/test',
-            body: {}, query: {}, headers: { host: 'bee.test' }, protocol: 'https', session,
-            get(name) { return this.headers[String(name).toLowerCase()]; },
-        };
-        const res = {
-            statusCode: 200, headersSent: false, locals: {},
-            set() { return this; }, setHeader() {},
-            status(c) { this.statusCode = c; return this; },
-            json(b) { this.body = b; this.headersSent = true; resolve(this); return this; },
-            send(b) { this.body = b; this.headersSent = true; resolve(this); return this; },
-            end() { this.headersSent = true; resolve(this); return this; },
-        };
-        router(req, res, (err) => {
-            if (!err) return reject(new Error('fell through'));
-            terminalErrorHandler(err, req, res, (e) => reject(e));
-        });
-    });
-}
+// The shared in-process dispatcher sends no Host header, so the public address is configured,
+// as on an installation behind a proxy.
+process.env.SERVER_PUBLIC_HOST = 'bee.test';
+const send = harness.dispatcher(router);
+const dispatch = (session) => send({ method: 'POST', url: '/providers/microsoft/test', session });
 
 test.beforeEach(() => { resetDiagnosticsSlots(); fx.calls.length = 0; });
-test.after(() => { entra.init(); teamsSetup.init(); });
+test.after(() => { entra.init(); teamsSetup.init(); delete process.env.SERVER_PUBLIC_HOST; });
 
 test('a member who is not the super admin still gets 403 and no token request is made', async () => {
     fx.token = { status: 200, body: { access_token: 'fixture-access-token', expires_in: 3600 } };

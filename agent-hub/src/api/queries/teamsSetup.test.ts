@@ -1,17 +1,12 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { jsonAnswer as answer } from '@/test/http';
 import { queryWrapper } from '@/test/queryWrapper';
 import {
     isDiagnosticsRateLimited, useCreateTeamsConsentLink, useRunMyTeamsDiagnostics, useTeamsOrgOverview, useTeamsRequirements,
 } from './teamsSetup';
 
 const fetchMock = vi.fn();
-
-const answer = (body: unknown, status = 200) => ({
-    ok: status >= 200 && status < 300, status,
-    json: async () => body, text: async () => JSON.stringify(body),
-    headers: new Headers({ 'content-type': 'application/json' }),
-});
 
 const REPORT = { level: 'user', ranAt: '2026-11-10T10:00:00.000Z', overall: 'pass', checks: [] };
 

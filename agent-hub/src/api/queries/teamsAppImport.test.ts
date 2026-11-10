@@ -1,15 +1,10 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { jsonAnswer as answer } from '@/test/http';
 import { queryWrapper } from '@/test/queryWrapper';
 import { appImportErrorCode, useRunTeamsAppImportDiagnostics, useSaveTeamsAppImport, useTeamsAppImport } from './teamsAppImport';
 
 const fetchMock = vi.fn();
-
-const answer = (body: unknown, status = 200) => ({
-    ok: status >= 200 && status < 300, status,
-    json: async () => body, text: async () => JSON.stringify(body),
-    headers: new Headers({ 'content-type': 'application/json' }),
-});
 
 const STATE = {
     settings: { enabled: false, coverage: 'selected', selectedUserIds: [], tenantId: null, enabledAt: null, enabledBy: null, updatedAt: null },
