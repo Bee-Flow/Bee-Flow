@@ -202,6 +202,16 @@ Questions, or want a hand getting set up? Email us at **info@beeflow.nl**. We su
                 <display-name>Bee Flow server CA certificate (optional, advanced)</display-name>
                 <description>Leave blank when your Bee Flow server has a certificate from a public certificate authority. For a self-hosted Bee Flow server with a certificate from your own certificate authority, or a self-signed one: the PEM certificate (or chain) to trust, or the path of a PEM file inside the container. It is added to the default certificate authorities and used for the connection to the Bee Flow server only. Certificate verification stays on.</description>
             </variable>
+            <variable>
+                <name>HTTPS_PROXY</name>
+                <display-name>Outbound proxy for the Bee Flow server (optional, advanced)</display-name>
+                <description>Leave blank unless this container reaches the outside only through a forward proxy. The URL of that proxy, for example http://proxy.example.com:3128 (with user:password@ in front of the host when the proxy asks for it). Used for https connections to the Bee Flow server only; Nextcloud is always reached directly.</description>
+            </variable>
+            <variable>
+                <name>NO_PROXY</name>
+                <display-name>Hosts reached without the outbound proxy (optional, advanced)</display-name>
+                <description>Only read when an outbound proxy is set above. Comma-separated host names that are reached directly, for example a Bee Flow server inside your own network. Nextcloud does not have to be listed.</description>
+            </variable>
         </environment-variables>
         <!--
             Explicit allow-list of paths the connector serves. The previous

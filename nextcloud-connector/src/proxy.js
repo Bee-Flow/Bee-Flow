@@ -18,6 +18,8 @@ const { isExpressResponse } = require('./httpGuards');
 const { shellBaseUrl } = require('./embedTarget');
 const { NOT_CHOSEN_CODE, NOT_CHOSEN_MESSAGE } = require('./serverChoice');
 const serverTls = require('./serverTls');
+const serverProxy = require('./serverProxy');
+const { ncOrigins } = require('./ncTls');
 const { isCertificateError } = require('./serverProbe');
 
 // How long the SaaS may take to send RESPONSE HEADERS before we give up.
@@ -137,8 +139,16 @@ const AGENT_OPTS = {
 };
 const httpAgent = new http.Agent(AGENT_OPTS);
 // The https agent also trusts the certificate BEEFLOW_SERVER_CA_CERT names, next
-// to the default roots (serverTls.js). Both proxies reach a Bee Flow host only.
-const httpsAgent = new https.Agent({ ...AGENT_OPTS, ...serverTls.httpsAgentOptions() });
+// to the default roots (serverTls.js), and goes through the outbound proxy when
+// HTTPS_PROXY names one (serverProxy.js). Both proxies reach a Bee Flow host only.
+const httpsAgent = new https.Agent({
+    ...AGENT_OPTS, ...serverTls.httpsAgentOptions(), ...serverProxy.httpsAgentOptions(),
+});
+// Neither of the two ever applies to a Nextcloud origin: a target on one (a Bee
+// Flow server behind the same address as Nextcloud) gets a plain agent.
+const plainHttpsAgent = serverTls.hasExtraCertificates() || serverProxy.hasProxy()
+    ? new https.Agent(AGENT_OPTS)
+    : httpsAgent;
 
 // Network-class errors where the socket/pool is suspect. Anything else
 // (protocol errors, aborts) is not a stale-pool symptom and never retried.
@@ -271,7 +281,11 @@ function perTarget(build) {
 
 /** @param {string} target */
 function agentFor(target) {
-    return String(target || '').startsWith('https://') ? httpsAgent : httpAgent;
+    if (!String(target || '').startsWith('https://')) return httpAgent;
+    if (plainHttpsAgent === httpsAgent) return httpsAgent;
+    let origin = '';
+    try { origin = new URL(target).origin; } catch { /* not a URL: no Nextcloud origin */ }
+    return ncOrigins().has(origin) ? plainHttpsAgent : httpsAgent;
 }
 
 /**

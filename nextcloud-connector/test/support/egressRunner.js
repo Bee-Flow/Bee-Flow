@@ -81,7 +81,8 @@ async function main() {
     };
     for (const [name, url] of Object.entries(targets)) {
         result.fetch[name] = await viaFetch(url);
-        if (name === 'nextcloud') continue; // the API proxy never targets Nextcloud
+        // The API proxy targets Nextcloud's origin only when a Bee Flow server sits behind the same address.
+        if (name === 'nextcloud' && !process.env.RUNNER_PROXY_NEXTCLOUD) continue;
         result.proxy[name] = await viaProxy(port, url, '/api/health');
     }
     if (targets.stream) result.stream = await viaProxy(port, targets.stream, '/api/chat/stream');

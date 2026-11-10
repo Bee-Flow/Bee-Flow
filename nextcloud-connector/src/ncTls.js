@@ -43,6 +43,7 @@ const { createPinStore } = require('./ncTlsPin');
 const log = require('./log');
 const { errMessage } = require('./errors');
 const serverTls = require('./serverTls');
+const serverProxy = require('./serverProxy');
 
 const caFile = (process.env.BEEFLOW_NC_CA_FILE || '').trim();
 const insecure = process.env.BEEFLOW_NC_TLS_INSECURE === '1';
@@ -170,18 +171,20 @@ let installed = false;
  * Install the origin-scoped global dispatcher for Node's built-in fetch. Safe
  * to call once at boot before any fetch; a no-op when already installed, or
  * when the Nextcloud posture is default and the connection to the Bee Flow
- * server needs nothing of its own (serverTls.js).
+ * server needs nothing of its own (serverTls.js, serverProxy.js).
  *
  * Three routes, by the origin of the request:
  *   - a Nextcloud origin with a non-default posture: the Nextcloud agent;
  *   - any other Nextcloud origin: the dispatcher that was there before, so
  *     nothing meant for the Bee Flow server applies to Nextcloud;
- *   - everything else is the Bee Flow server: its own agent when it has one.
+ *   - everything else is the Bee Flow server: its own agent when it has one
+ *     (an extra certificate, an outbound proxy, or both).
  */
 function installNcDispatcher() {
     if (installed) return;
     const serverConnect = serverTls.fetchConnectOptions();
-    if (!connectOpts && !serverConnect) return;
+    const serverProxyOptions = serverProxy.fetchProxyOptions();
+    if (!connectOpts && !serverConnect && !serverProxyOptions) return;
     installed = true;
 
     /** @type {typeof import('undici')} */
@@ -196,6 +199,9 @@ function installNcDispatcher() {
         if (serverConnect) {
             log.warn(`[ncTls] undici unavailable (${errMessage(e)}): ${serverTls.ENV_NAME} cannot be applied; the connection to the Bee Flow server is verified against the default certificate authorities only`);
         }
+        if (serverProxyOptions) {
+            log.warn(`[ncTls] undici unavailable (${errMessage(e)}): ${serverProxy.PROXY_ENV} cannot be applied; the Bee Flow server is reached directly`);
+        }
         if (mode === 'default') return;
         if (mode === 'insecure') {
             log.warn('[ncTls] undici unavailable — falling back to process-global TLS relaxation (Nextcloud bootstrap will work but other TLS verification is also relaxed)');
@@ -206,12 +212,18 @@ function installNcDispatcher() {
         return;
     }
 
-    const { Agent, Dispatcher, setGlobalDispatcher, getGlobalDispatcher } = undici;
+    const { Agent, EnvHttpProxyAgent, Dispatcher, setGlobalDispatcher, getGlobalDispatcher } = undici;
     const origins = ncOrigins();
     const ncAgent = connectOpts
         ? new Agent({ connect: mode === 'insecure' ? pinnedConnector(undici, connectOpts, pinStore) : connectOpts })
         : null;
-    const serverAgent = serverConnect ? new Agent({ connect: serverConnect }) : null;
+    // With a proxy: a CONNECT tunnel to the Bee Flow server, whose certificate
+    // is verified through the tunnel (`requestTls`); a host NO_PROXY names is
+    // reached directly (`connect`).
+    const serverTlsOptions = serverConnect ? { connect: serverConnect, requestTls: serverConnect } : {};
+    const serverAgent = serverProxyOptions
+        ? new EnvHttpProxyAgent({ ...serverProxyOptions, ...serverTlsOptions })
+        : serverConnect ? new Agent({ connect: serverConnect }) : null;
     const base = getGlobalDispatcher();
     /** @param {string} origin */
     const route = (origin) => {
