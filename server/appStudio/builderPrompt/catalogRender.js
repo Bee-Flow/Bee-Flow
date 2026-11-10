@@ -222,7 +222,7 @@ const renderSpecFields = (fields) => Object.entries(ownFields(fields)).map(([k, 
 function renderActionKind(kind) {
     const full = `${kind}: { ${renderSpecFields(ACTION_SPECS[kind].fields)} }`;
     const step = STEP_SPECS[kind];
-    if (step && JSON.stringify(ownFields(step.fields)) === JSON.stringify(ACTION_SPECS[kind].fields)) {
+    if (step && JSON.stringify(ownFields(step.fields)) === JSON.stringify(ownFields(ACTION_SPECS[kind].fields))) {
         const ref = `${kind}: { …fields exactly as the ${kind} step below (### Sequence steps) }`;
         if (ref.length < full.length) return ref;
     }

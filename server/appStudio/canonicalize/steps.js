@@ -12,6 +12,7 @@ const { cleanBinding, cleanRecordFilter } = require('./bindings');
 const { cleanInputMapping, cleanNavParams, cleanCallParams } = require('./mappings');
 const { cleanStringList, cleanAiSchema, cleanAiWriteTo, cleanContextSources, cleanTierChoice } = require('./aiFields');
 const { cleanApprovalQuestions, cleanApprovalStages, cleanApprovalOnDecided } = require('./approvals');
+const { cleanAiChecks } = require('../aiReliability.mts');
 
 // ---------------------------------------------------------------------------
 // v2 action sequences — a { kind:'sequence', steps:[Step] } action. Each Step
@@ -101,9 +102,11 @@ function cleanStep(raw, path, depth, push) {
         } else if (fs.type === 'boolean') {
             if (typeof v === 'boolean') out[field] = v;
             else if (v !== undefined && fs.default !== undefined) { out[field] = fs.default; push('step.field_invalid', p, `${field} must be a boolean — set to ${fs.default}.`); }
-        } else if (fs.type === 'int') {
+        } else if (fs.type === 'int' || fs.type === 'number') {
             if (typeof v === 'string' && v.trim() !== '' && Number.isFinite(Number(v))) { push('props.coerced', p, `Coerced numeric string ${JSON.stringify(v)} to ${Number(v)}.`); out[field] = Number(v); }
             else if (v !== undefined) out[field] = deepCopy(v); // range clamp is validate.js's job
+        } else if (fs.type === 'aiChecks') {
+            if (v !== undefined) { const c = cleanAiChecks(v, p, push); if (c !== undefined) out[field] = c; }
         } else if (fs.type === 'formula') {
             if (typeof v === 'string') out[field] = truncate(v, LIMITS.MAX_FORMULA_LEN, p, push);
             else if (v !== undefined) out[field] = deepCopy(v);

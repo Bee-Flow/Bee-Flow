@@ -1,6 +1,7 @@
 import type { SchemaField, FormulaBinding, TableColumn } from './aiFieldMatching';
 import type { AppAction, FormFieldRef } from './appDefinition';
 import type { AppTable } from '../bi/useAppTables';
+import type { AiCheck } from './AiChecksField';
 
 /** A binding that reads a source: a form field, an expression, or (kb_query) a fixed text. */
 export type SourceBinding = { kind: string; expr?: unknown; value?: string };
@@ -37,6 +38,10 @@ export interface AiAction extends AppAction {
     attachments?: SourceBinding | null;
     query?: SourceBinding | null;
     topK?: number;
+    /** Answer reliability (schema v3, AiChecksField): all optional, absent = as before. */
+    temperature?: number;
+    checks?: AiCheck[];
+    repairRounds?: number;
 }
 
 export interface KnowledgeBase { id: string; name?: string }

@@ -76,6 +76,17 @@ const AI_SCHEMA_FIELD_TYPES = ['string', 'number', 'boolean', 'date', 'array', '
 //              this mode exists for exactly that document.
 const AI_DOCUMENT_MODES = ['auto', 'text', 'images'];
 
+// Answer reliability (schema v3, optional, nothing written out when absent): the
+// automation ai_step's checks, run on the step's answer (appStudio/actionExecutor/aiChecks.mts).
+//   temperature   0..2; absent = the tier's own setting
+//   checks        [{ kind: allowedFrom | numbersFrom | script | items, field, ... }] (shapes:
+//                 core/automationModel/aiStepReliabilitySpec.js; `ref` / `sameCountAs` read
+//                 form., vars., item., params. or value.)
+//   repairRounds  extra model calls with what failed, before the step fails; absent = 1
+const AI_TEMPERATURE_FIELD = { type: 'number', min: 0, max: 2, since: 3 };
+const AI_CHECKS_FIELD = { type: 'aiChecks', since: 3 };
+const AI_REPAIR_ROUNDS_FIELD = { type: 'int', min: 0, max: LIMITS.MAX_AI_REPAIR_ROUNDS, since: 3 };
+
 const AI_EXTRACT_FIELDS = {
     source: { type: 'binding', required: true },     // a File-upload input's value (descriptor or array)
     schema: { type: 'aiSchema', required: true },    // fields to extract per record/row
@@ -104,6 +115,9 @@ const AI_EXTRACT_FIELDS = {
     // body cap — and the caller already has them, in the table.
     resultDetail: { type: 'enum', values: ['full', 'summary'], default: 'full' },
     resultVar: { type: 'string', maxLen: 60 },
+    temperature: AI_TEMPERATURE_FIELD,
+    checks: AI_CHECKS_FIELD,
+    repairRounds: AI_REPAIR_ROUNDS_FIELD,
 };
 
 const AI_GENERATE_FIELDS = {
@@ -131,6 +145,9 @@ const AI_GENERATE_FIELDS = {
     // Same contract as ai_extract.datasets — bounded genome-slice tool access.
     datasets: { type: 'binding' },
     resultVar: { type: 'string', required: true, maxLen: 60 },
+    temperature: AI_TEMPERATURE_FIELD,
+    checks: AI_CHECKS_FIELD,
+    repairRounds: AI_REPAIR_ROUNDS_FIELD,
 };
 
 const KB_QUERY_FIELDS = {

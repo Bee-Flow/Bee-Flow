@@ -15,6 +15,7 @@ import { KeyedBindingsField } from './KeyedBindingsField';
 import TierChoiceField from './TierChoiceField';
 import RetryField from './RetryField';
 import ErrorHandlerField from './ErrorHandlerField';
+import AiChecksField, { NumberInput } from '../../inspector/AiChecksField';
 
 /** 'screenId' → 'Screen', 'maxIterations' → 'Max iterations'. */
 function humanize(key: string) {
@@ -130,12 +131,31 @@ export function StepField({
                         value={(value ?? '') as number | string}
                         min={fs.min}
                         max={fs.max}
-                        onChange={(e) => onChange(e.target.value === '' ? null : Number(e.target.value))}
+                        // A v3 field (repairRounds) left blank is no field at all, never a stored null.
+                        onChange={(e) => onChange(e.target.value === '' ? (fs.since ? undefined : null) : Number(e.target.value))}
                         disabled={disabled}
                         aria-label={label}
                     />
                 </FormField>
             );
+        // temperature: a decimal, blank = the model tier's own setting.
+        case 'number':
+            return (
+                <FormField label={label} hint={hint}>
+                    <NumberInput
+                        value={value}
+                        onChange={onChange}
+                        min={typeof fs.min === 'number' ? fs.min : undefined}
+                        max={typeof fs.max === 'number' ? fs.max : undefined}
+                        step={0.1}
+                        ariaLabel={label}
+                        disabled={disabled}
+                    />
+                </FormField>
+            );
+        // An AI step's answer checks.
+        case 'aiChecks':
+            return <AiChecksField value={value} onChange={onChange} disabled={disabled} />;
         // modelTier: a tier name, or a formula worked out when the step runs.
         case 'tierChoice':
             return <TierChoiceField label={label} hint={hint} value={value} onChange={onChange} definition={definition} node={node} maxLen={fs.maxLen} disabled={disabled} />;

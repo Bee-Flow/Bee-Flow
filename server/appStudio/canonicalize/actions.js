@@ -11,6 +11,7 @@ const { cleanBinding } = require('./bindings');
 const { cleanInputMapping, cleanEffects, cleanNavParams, cleanCallParams } = require('./mappings');
 const { cleanStringList, cleanAiSchema, cleanAiWriteTo, cleanTierChoice } = require('./aiFields');
 const { cleanRecordValues, cleanSteps } = require('./steps');
+const { cleanAiChecks } = require('../aiReliability.mts');
 
 // ---------------------------------------------------------------------------
 // Actions
@@ -103,7 +104,9 @@ function canonAction(raw, path, push) {
         } else if (fs.type === 'callParams' || fs.type === 'tierChoice') {
             const c = v === undefined ? undefined : cleanCallField(fs, v, p, push);
             if (c !== undefined) out[field] = c;
-        } else if (fs.type === 'int') {
+        } else if (fs.type === 'aiChecks') {
+            if (v !== undefined) { const c = cleanAiChecks(v, p, push); if (c !== undefined) out[field] = c; }
+        } else if (fs.type === 'int' || fs.type === 'number') {
             if (typeof v === 'string' && v.trim() !== '' && Number.isFinite(Number(v))) {
                 push('props.coerced', p, `Coerced numeric string ${JSON.stringify(v)} to ${Number(v)}.`);
                 out[field] = Number(v);

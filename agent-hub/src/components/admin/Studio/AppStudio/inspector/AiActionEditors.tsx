@@ -11,6 +11,7 @@ import type { FormFieldRef, AppAction } from './appDefinition';
 import type { AppTable } from '../bi/useAppTables';
 import type { SourceBinding, WriteTo, NamedField, AiAction, SchemaMeta, ApplyPatch, MappingRowsProps, MappingSummaryProps, WriteToEditorProps, AiExtractEditorProps, KbQueryEditorProps, AiActionEditorProps } from './AiActionEditors.types';
 import UpsertKeyPicker from './UpsertKeyPicker';
+import { AiReliabilityFields } from './AiChecksField';
 import { ModelTierRow, FieldSourcePicker, SchemaFieldsEditor, KbMultiSelect, ResultVarField, AiGenerateEditor } from './AiGenerateEditor';
 ;
 
@@ -282,6 +283,7 @@ function AiExtractEditor({ action, commit, formFields, disabled }: AiExtractEdit
                 }}
                 disabled={disabled}
             />
+            <AiReliabilityFields action={action} set={set} disabled={disabled} />
             <ResultVarField value={action.resultVar} onChange={(v) => set({ resultVar: v })} disabled={disabled} />
         </>
     );

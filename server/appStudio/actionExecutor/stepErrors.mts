@@ -116,6 +116,8 @@ function knownFailure(e: Obj, kind: string): StepFailureResult | null {
     if (status === 400) return fail(msg || 'The step was given input it cannot use.', 'bad_input', false);
     if (status === 422) {
         if (code === 'ai_no_output') return fail(msg || 'The AI did not return a usable answer.', 'ai_no_output', true);
+        // An AI step's answer checks (actionExecutor/aiChecks.mts): the message names paths and rules, never values.
+        if (code === 'ai_check_failed') return fail(msg || 'The AI answer did not pass its checks.', 'ai_check_failed', true);
         if (e.name === 'CompileError') return fail(msg || 'The step names a field it cannot use.', 'invalid_field', false);
         if (code in ENGINE_SAFE_CODES && msg) return fail(msg, code, false);
         return fail(msg || `The ${nounOf(kind)} step could not use this input.`, 'unprocessable', false);

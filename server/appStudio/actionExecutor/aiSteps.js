@@ -36,7 +36,9 @@ const { LIMITS } = require('../componentSpecs/limits');
 const log = require('../../telemetry/log');
 const { redeemEach, newReport, assertSomethingRead } = require('../aiDocumentRead.mts');
 const { resolveStepModel, notesWith } = require('./modelTierChoice.mts');
-const { replaceTemplate, parsePath, walkTokens } = require('../../shared/expr/index.mjs');
+const { replaceTemplate, parsePath, walkTokens, tryEvaluate } = require('../../shared/expr/index.mjs');
+const { readAppReliability, withStepTemperature } = require('../aiReliability.mts');
+const { checkedAnswer } = require('./aiChecks.mts');
 const { handleOf, trackAnswer } = require('../../core/kb/queryLog/hook.mts');
 
 // ── Native AI steps (acts-as-owner via appStudio/aiRuntime) ─────────
@@ -146,15 +148,22 @@ async function redeemPendingDescriptors(app, model, descriptors, ctx, report = n
  * path grammar (shared/expr/path.mjs), like the placeholders themselves
  * (quote-aware): `form["Cost center"]`, `form.e-mail`, `vars.lines[0].sku`,
  * own fields only — never the prototype chain.
+ *
+ * A placeholder that is NOT a plain path (`{{ upper(form.name) }}`, `{{ vars.n + 1 }}`) is a
+ * formula: evaluated with the shared engine against the server step scope (buildServerScope, the
+ * same roots a `formula` binding reads). A formula that does not parse, fails, or gives nothing
+ * stays verbatim, like an unresolved path. Plain paths keep the code path above.
  */
 function interpolatePrompt(text, ctx) {
     if (typeof text !== 'string') return '';
     const form = (ctx.formValues && typeof ctx.formValues === 'object') ? ctx.formValues : {};
     const vars = (ctx.vars && typeof ctx.vars === 'object') ? ctx.vars : {};
     const ROOTS = { form, vars, item: ctx.item };
+    /** @type {Record<string, unknown> | null} */
+    let formulaScope = null;
     return replaceTemplate(text, (inner, raw) => {
         const tokens = parsePath(inner);
-        if (!tokens) return raw;
+        if (!tokens) return formulaPlaceholder(inner, raw, () => (formulaScope ??= buildServerScope(ctx)));
         const head = tokens[0].key;
         const cur = Object.prototype.hasOwnProperty.call(ROOTS, head)
             ? walkTokens(tokens.slice(1), ROOTS[head])
@@ -162,6 +171,18 @@ function interpolatePrompt(text, ctx) {
         if (cur === undefined || cur === null) return raw;
         return typeof cur === 'object' ? JSON.stringify(cur) : String(cur);
     });
+}
+
+/**
+ * One non-path placeholder as a formula: its value as prompt text, or the placeholder verbatim.
+ * @param {string} inner
+ * @param {string} raw
+ * @param {() => Record<string, unknown>} scopeOf
+ */
+function formulaPlaceholder(inner, raw, scopeOf) {
+    const { value, error } = tryEvaluate(inner, scopeOf());
+    if (error || value === undefined || value === null) return raw;
+    return typeof value === 'object' ? JSON.stringify(value) : String(value);
 }
 
 /**
@@ -306,6 +327,16 @@ function queryLogFor(channel, app, ctx) {
     return { channel, channelRef: { appId: app.id, actionId: ctx.actionId ?? null }, orgId: app.organizationId || null, userId: ctx.viewerId ?? null };
 }
 
+/**
+ * ai_extract's answer had no `rows` list, also after its one retry.
+ * @param {{ modelId: string, tierName: string }} aiModel
+ */
+function noRowsError(aiModel) {
+    const e = new Error(`The AI returned no records for this document (model ${aiModel.modelId}, tier ${aiModel.tierName}). Try a more capable tier or a simpler schema.`);
+    Object.assign(e, { status: 422, code: 'ai_no_output' }); // ai_no_output: a step retry may try again
+    return e;
+}
+
 async function aiExtractStep(app, model, step, ctx) {
     const aiRuntime = require('../aiRuntime');
     const scope = buildServerScope(ctx);
@@ -365,10 +396,16 @@ async function aiExtractStep(app, model, step, ctx) {
         : 'Extract the records from the attached document(s).';
     const user = [{ type: 'text', text: instruction }, ...docBlocks];
 
-    const run = () => aiRuntime.runStructuredWithTools(app, aiModel, {
-        system, user, parameters, tools: datasetTools.tools,
+    // temperature / checks / repairRounds (aiReliability.mts): absent, the model and the call are as before.
+    const rel = readAppReliability(step);
+    const callModel = withStepTemperature(aiModel, rel);
+    /** @param {Array<{ role: string, content: unknown }> | null} [followUp] a repair round (no tools) */
+    const ask = (followUp) => aiRuntime.runStructuredWithTools(app, callModel, {
+        system, user, parameters, tools: followUp ? [] : datasetTools.tools,
         toolName: 'record_output', toolDescription: 'Return the extracted records as rows.',
+        ...(followUp ? { followUp } : {}),
     });
+    const run = () => ask(null);
 
     // A model that answers without `rows` must not look like a
     // document with nothing in it: ok:true, written:0, green toast. That is the
@@ -384,15 +421,30 @@ async function aiExtractStep(app, model, step, ctx) {
     if (!Array.isArray(structured.rows)) {
         log.warn(`[StudioAppAI] app ${app.id}: ${aiModel.modelId} (tier ${aiModel.tierName}) returned no rows array — retrying once`);
         structured = (await run()).structured;
-        if (!Array.isArray(structured.rows)) {
-            const e = new Error(`The AI returned no records for this document (model ${aiModel.modelId}, tier ${aiModel.tierName}). Try a more capable tier or a simpler schema.`);
-            Object.assign(e, { status: 422, code: 'ai_no_output' }); // ai_no_output: a step retry may try again
-            throw e;
-        }
+        if (!Array.isArray(structured.rows)) throw noRowsError(aiModel);
     }
-    let rows = structured.rows
-        .slice(0, aiRuntime.MAX_EXTRACT_ROWS)
-        .map((r) => aiRuntime.coerceRowToFields(r, fields));
+    /** @param {{ rows?: unknown }} s */
+    const rowsOf = (s) => (Array.isArray(s.rows)
+        ? s.rows.slice(0, aiRuntime.MAX_EXTRACT_ROWS).map((r) => aiRuntime.coerceRowToFields(r, fields))
+        : undefined);
+    let rows = /** @type {Record<string, unknown>[]} */ (rowsOf(structured));
+    // The step's checks read the answer as { rows } ("rows[].category"); a repair round's answer
+    // without a rows list is the same "no records" failure as a first answer without one.
+    /** @type {Record<string, unknown> | undefined} */
+    let checkReport;
+    if (rel.active) {
+        const checked = await checkedAnswer(rel, scope, {
+            first: structured,
+            ask: async (followUp) => {
+                const s = (await ask(followUp)).structured;
+                if (!Array.isArray(s.rows)) throw noRowsError(aiModel);
+                return s;
+            },
+            view: (s) => ({ output: { rows: rowsOf(s) }, modelOutput: { rows: s.rows }, prior: { rows: s.rows } }),
+        });
+        rows = /** @type {{ rows: Record<string, unknown>[] }} */ (checked.output).rows;
+        checkReport = checked.checkReport;
+    }
 
     // `required` in the schema is advisory to the provider and never re-checked:
     // coerceRowToFields fills a missing field with null. Counting them is what
@@ -456,6 +508,8 @@ async function aiExtractStep(app, model, step, ctx) {
             model: aiModel.modelId,
             tier: aiModel.tierName,
         },
+        // Only for a step with checks: whether they passed first time or after a repair round.
+        ...(checkReport ? { checkReport } : {}),
     };
 }
 
@@ -557,20 +611,34 @@ async function aiGenerateStep(app, model, step, ctx) {
     const notes = notesWith(report.notes, tierNote);
     const user = docBlocks.length ? [{ type: 'text', text: fullPrompt }, ...docBlocks] : fullPrompt;
 
+    // temperature / checks / repairRounds (aiReliability.mts): absent, checkedAnswer makes the one
+    // call the step always made, with the same model and arguments, and returns its output.
+    const rel = readAppReliability(step);
+    const callModel = withStepTemperature(aiModel, rel);
+    /** @param {Array<{ role: string, content: unknown }> | null} followUp a repair round (no tools) */
+    const callArgs = (followUp) => ({ system, user, tools: followUp ? [] : datasetTools.tools, ...(followUp ? { followUp } : {}) });
     if (step.output === 'structured') {
         const fields = aiRuntime.normalizeSchemaFields(step.schema);
         if (!fields.length) { const e = new Error('Structured output needs at least one field'); e.status = 400; throw e; }
         const parameters = aiRuntime.fieldsToObjectSchema(fields);
-        const { structured } = await trackAnswer(queryLogHandle, {
+        const { output, checkReport } = await trackAnswer(queryLogHandle, {
             model: aiModel.modelId,
-            answerOf: (r) => JSON.stringify(r.structured ?? null),
+            answerOf: (r) => JSON.stringify(r.answer.structured ?? null),
             citationsOf: () => ground.chunks,
-        }, () => aiRuntime.runStructuredWithTools(app, aiModel, { system, user, parameters, tools: datasetTools.tools }));
-        return { ok: true, ...notes, result: aiRuntime.coerceRowToFields(structured, fields) };
+        }, () => checkedAnswer(rel, scope, {
+            ask: (followUp) => aiRuntime.runStructuredWithTools(app, callModel, { ...callArgs(followUp), parameters }),
+            view: (r) => ({ output: aiRuntime.coerceRowToFields(r.structured, fields), modelOutput: r.structured, prior: r.structured }),
+        }));
+        return { ok: true, ...notes, result: output, ...(checkReport ? { checkReport } : {}) };
     }
-    const { text } = await trackAnswer(queryLogHandle, {
-        model: aiModel.modelId, answerOf: (r) => r.text, citationsOf: () => ground.chunks,
-    }, () => aiRuntime.runTextWithTools(app, aiModel, { system, user, tools: datasetTools.tools }));
+    // A text answer is checked as { text } (a check's field is "text").
+    const { output, checkReport } = await trackAnswer(queryLogHandle, {
+        model: aiModel.modelId, answerOf: (r) => r.output.text, citationsOf: () => ground.chunks,
+    }, () => checkedAnswer(rel, scope, {
+        ask: (followUp) => aiRuntime.runTextWithTools(app, callModel, callArgs(followUp)),
+        view: (r) => ({ output: { text: r.text }, modelOutput: { text: r.text }, prior: r.text }),
+    }));
+    const { text } = /** @type {{ text: string }} */ (output);
     // Citations travel as titles/scores only. The chunk BODIES are already in
     // the prompt; echoing them into a client-visible result would hand KB
     // content to a viewer who may have no access to that knowledge base.
@@ -589,7 +657,7 @@ async function aiGenerateStep(app, model, step, ctx) {
     const body = step.markdownToHtml === true
         ? require('../../services/email/send').markdownToHtml(text)
         : text;
-    return { ok: true, ...notes, result: { text: body, citations, ...notes } };
+    return { ok: true, ...notes, result: { text: body, citations, ...notes }, ...(checkReport ? { checkReport } : {}) };
 }
 
 // The prompt-context cap. Generous enough for a ticket thread, small enough that
