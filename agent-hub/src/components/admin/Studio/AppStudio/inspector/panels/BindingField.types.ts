@@ -132,6 +132,9 @@ export interface DatasetBindingProps {
     componentType: string;
     singleValue: boolean;
     disabled: boolean;
+    /** For the formula fields of a view's parameters. */
+    definition?: AppDefinition;
+    node?: AppNode | null;
 }
 
 export interface ConnectorParamFieldProps {

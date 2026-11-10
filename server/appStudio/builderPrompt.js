@@ -639,7 +639,9 @@ function renderDataBlock(dataModel, datasets, rowCounts, linkedTables = null, op
     }
     const dsList = Array.isArray(datasets) ? datasets : [];
     if (dsList.length) {
-        lines.push(`  datasets: ${dsList.map((d) => (d && typeof d === 'object' ? `${d.id}${d.name ? ` ${q(d.name, 24)}` : ''}` : d)).join(', ')}`);
+        // `params=` only for a dataset that declares parameters: the binding sends their values.
+        const paramsOf = (d) => (Array.isArray(d.params) && d.params.length ? ` params=${d.params.join('|')}` : '');
+        lines.push(`  datasets: ${dsList.map((d) => (d && typeof d === 'object' ? `${d.id}${d.name ? ` ${q(d.name, 24)}` : ''}${paramsOf(d)}` : d)).join(', ')}`);
     }
     const roles = (dataModel && Array.isArray(dataModel.roles)) ? dataModel.roles : [];
     if (roles.length) {

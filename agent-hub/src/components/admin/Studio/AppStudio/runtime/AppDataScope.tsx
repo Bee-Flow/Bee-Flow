@@ -207,7 +207,7 @@ function BindingFetcher({ binding, sample, scope, refreshMs, live }: {
     const resolved = useMemo(
         () => (binding.kind === 'connector'
             ? resolveBindingParams(binding, scope)
-            : resolveBindingFilters(resolveBindingShape(binding, scope), scope)),
+            : resolveBindingParams(resolveBindingFilters(resolveBindingShape(binding, scope), scope), scope)),
         [binding, scope],
     );
     // A component's own interval beats the screen's, and `liveWhile` decides
@@ -312,7 +312,8 @@ function DataConsumer({ appId, children }: {
             predicate: (q) => {
                 const k = q.queryKey[3];
                 if (typeof k !== 'string') return false;
-                if (datasetId) return k === `dataset:${datasetId}`;
+                // A dataset read with params keys as 'dataset:<id>:<params>'.
+                if (datasetId) return k === `dataset:${datasetId}` || k.startsWith(`dataset:${datasetId}:`);
                 return k.startsWith(`record:${tableId}:`)
                     || k.startsWith(`records:${tableId}:`)
                     || k.startsWith(`aggregate:${tableId}:`);

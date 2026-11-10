@@ -33,7 +33,7 @@ const { queryWithComputed } = require('../core/dataEngine/computedRead.mts');
 const rlsGateway = require('../appStudio/rlsGateway');
 const { seedVariableDefaults } = require('../appStudio/componentSpecs');
 const { ROLE_PROBE_VIEWER_ID } = require('../appStudio/appDryRun');
-const { RENDER_PLAN, planShape, planFilters } = require('../shared/appDefinition/bindingPlan.mjs');
+const { RENDER_PLAN, planShape, planFilters, planParams } = require('../shared/appDefinition/bindingPlan.mjs');
 const { fallback, bestEffort } = require('../utils/bestEffort');
 
 const RUNTIME_DIR = path.join(__dirname, '..', 'vendor', 'app-runtime');
@@ -81,7 +81,12 @@ function readExtras(binding) {
 /** Port of the client dataCacheKey for the server-collected binding kinds. */
 function dataCacheKey(binding) {
     if (!binding || typeof binding !== 'object') return null;
-    if (binding.kind === 'dataset') return `dataset:${binding.datasetId ?? ''}`;
+    if (binding.kind === 'dataset') {
+        // Resolved params join the key only when there are any (the client's rule).
+        const p = binding.params;
+        const keyed = !!p && typeof p === 'object' && !Array.isArray(p) && Object.keys(p).length > 0;
+        return `dataset:${binding.datasetId ?? ''}${keyed ? `:${stableStringify(p)}` : ''}`;
+    }
     if (binding.kind === 'record' || binding.kind === 'records') {
         const shape = stableStringify({
             filter: binding.filter ?? null,
@@ -117,6 +122,12 @@ function dataCacheKey(binding) {
  */
 function resolveShape(binding, scope) {
     const step = planShape(binding, scope, RENDER_PLAN);
+    return step.plan === 'fetch' ? { binding: step.binding } : { skipped: true };
+}
+
+/** The client resolveBindingParams (a dataset binding's param values) under the render's roots. */
+function resolveParams(binding, scope) {
+    const step = planParams(binding, scope, RENDER_PLAN);
     return step.plan === 'fetch' ? { binding: step.binding } : { skipped: true };
 }
 
@@ -222,7 +233,7 @@ async function runDatasetEntry(binding, { model, app, viewer, deps }) {
         const ds = await deps.getDataset(binding.datasetId, app.id, app.userId);
         // Unknown dataset → the live endpoint 404s → the client stores null.
         if (!ds) return entryBase({ ...base, result: null });
-        const out = await deps.runDataset(app, model, ds, viewer, { refresh: false });
+        const out = await deps.runDataset(app, model, ds, viewer, binding.params ? { refresh: false, params: binding.params } : { refresh: false });
         return entryBase({ ...base, result: Array.isArray(out && out.rows) ? out.rows : [] });
     } catch (e) {
         return entryBase({ ...base, status: 'error', error: e && e.message ? e.message : String(e) });
@@ -239,12 +250,11 @@ async function buildDataState({ definition, model, app, screen, roleArg, viewer,
     if (!app || !app.id) return dataState; // nothing to read against — bindings render as loading
     const scope = buildRenderScope(currentUser, definition.variables, screen);
     for (const { binding } of collectDataBindings(definition, screen.id)) {
-        let resolved = /** @type {{ binding?: any, skipped?: boolean }} */ ({ binding });
-        if (binding.kind !== 'dataset') {
-            resolved = resolveShape(binding, scope);
-            if (!resolved.skipped) resolved = resolveFilters(resolved.binding, scope);
-            if (resolved.skipped) continue;
-        }
+        // The client's order: shape, filters, params (each a no-op for a kind it does not touch).
+        let resolved = /** @type {{ binding?: any, skipped?: boolean }} */ (resolveShape(binding, scope));
+        if (!resolved.skipped) resolved = resolveFilters(resolved.binding, scope);
+        if (!resolved.skipped) resolved = resolveParams(resolved.binding, scope);
+        if (resolved.skipped) continue;
         const key = dataCacheKey(resolved.binding);
         if (!key || Object.prototype.hasOwnProperty.call(dataState, key)) continue;
         dataState[key] = binding.kind === 'dataset'
@@ -537,6 +547,7 @@ module.exports = {
         stableStringify,
         resolveFilters,
         resolveShape,
+        resolveParams,
         buildRenderScope,
         resolveScreen,
     },

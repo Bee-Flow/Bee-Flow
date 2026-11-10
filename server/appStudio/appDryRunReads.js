@@ -13,7 +13,7 @@
 const queryCompiler = require('./queryCompiler');
 const rlsGateway = require('./rlsGateway');
 const { seedVariableDefaults } = require('./componentSpecs');
-const { DRY_RUN_PLAN, planFilters } = require('../shared/appDefinition/bindingPlan.mjs');
+const { DRY_RUN_PLAN, planFilters, planParams } = require('../shared/appDefinition/bindingPlan.mjs');
 const { isDatatableBacked } = require('./datatableSource');
 const { recordListDescriptor, aggregateDescriptor } = require('../core/dataEngine/readDescriptor.mts');
 const { queryWithComputed } = require('../core/dataEngine/computedRead.mts');
@@ -174,12 +174,28 @@ async function runAggregateBinding(binding, table, { roleArg, viewer, scope, app
     }
 }
 
+/**
+ * A dataset binding's `params` against the synthetic scope: the shared binding
+ * planner's params step with the dry run's option set. Returns { params } (the
+ * resolved object, or undefined when the binding sends none) or { skipped:true }
+ * when a formula reads a root the dry run cannot populate (or does not parse).
+ */
+function resolveDryRunParams(binding, scope) {
+    const step = planParams(binding, scope, DRY_RUN_PLAN);
+    if (step.plan !== 'fetch') return { skipped: true };
+    const params = /** @type {{ params?: unknown }} */ (step.binding).params;
+    return { params: isPlainObject(params) ? params : undefined };
+}
+
 /** Execute one dataset binding read-only via datasetCache.runDataset. */
-async function runDatasetBinding(binding, { dataModel, app, viewer, appId, ownerId, deps }) {
+async function runDatasetBinding(binding, { dataModel, app, viewer, appId, ownerId, deps, scope }) {
     try {
         const ds = await deps.getDataset(binding.datasetId, appId, ownerId);
         if (!ds) return { ok: true, skipped: 'unresolved' }; // STATIC flags unknown_dataset
-        const out = await deps.runDataset(app, dataModel, ds, viewer, { refresh: true });
+        const resolved = resolveDryRunParams(binding, scope || {});
+        if (resolved.skipped) return { ok: true, skipped: 'dynamic' };
+        const { params } = resolved;
+        const out = await deps.runDataset(app, dataModel, ds, viewer, params ? { refresh: true, params } : { refresh: true });
         const rows = Array.isArray(out && out.rows) ? out.rows : [];
         return { ok: true, rowCount: rows.length };
     } catch (e) {

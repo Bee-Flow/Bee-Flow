@@ -28,6 +28,7 @@
 
 import { createRequire } from 'node:module';
 import { isObject } from './corpus.mts';
+import * as datasetParams from '../datasetParams.mts';
 import type { CorpusEntry, Obj } from './corpus.mts';
 
 const nodeRequire = createRequire(import.meta.url);
@@ -115,15 +116,27 @@ function bindingRead(entry: CorpusEntry, binding: Binding, who: Identity): Obj {
     return compileFor(table, binding.kind, descriptor, who);
 }
 
-/** A saved dataset, compiled the way datasetCache.runDataset compiles a cache miss. */
-function datasetRead(entry: CorpusEntry, datasetId: unknown, who: Identity): Obj {
+/**
+ * A saved dataset, compiled the way datasetCache.runDataset compiles a cache miss. A dataset that
+ * declares parameters gets the binding's literal values (a formula value: `skipped: dynamic`), the
+ * saved-dataset row none, so its defaults; one that declares none is compiled from its descriptor
+ * as it stands, whatever the binding sends.
+ */
+function datasetRead(entry: CorpusEntry, datasetId: unknown, who: Identity, sent?: unknown): Obj {
     const ds = (entry.datasets ?? []).find((d) => d.id === datasetId);
     if (!ds) return { skipped: 'unresolved' };
-    const descriptor = isObject(ds.descriptor) ? ds.descriptor : {};
-    const table = findTable(entry.dataModel ?? {}, ds.tableId ?? descriptor.tableId);
+    const stored = isObject(ds.descriptor) ? ds.descriptor : {};
+    const table = findTable(entry.dataModel ?? {}, ds.tableId ?? stored.tableId);
     if (!table) return { skipped: 'unresolved' };
     if (!accessFilter.canRead(table, who.role)) return { note: 'no read access for this role' };
     if (isDatatableBacked(table)) return { skipped: 'linked' };
+    if (isObject(sent) && Object.values(sent).some((v) => isObject(v) && v.kind === 'formula') && datasetParams.hasDeclaredParams(stored)) {
+        return { skipped: 'dynamic' };
+    }
+    const bound = datasetParams.resolveDatasetParams(stored, sent);
+    if (bound.status === 'invalid') return { error: `Invalid value for dataset parameter "${bound.name}".` };
+    if (bound.status === 'required') return { note: 'a required parameter has no value: no query' };
+    const descriptor = bound.descriptor;
     return compileFor(table, 'aggregate', {
         filters: descriptor.filters, groupBy: descriptor.groupBy, aggregates: descriptor.aggregates,
         sort: descriptor.sort, limit: descriptor.limit,
@@ -131,7 +144,7 @@ function datasetRead(entry: CorpusEntry, datasetId: unknown, who: Identity): Obj
 }
 
 function readFor(entry: CorpusEntry, binding: Binding, who: Identity): Obj {
-    return binding.kind === 'dataset' ? datasetRead(entry, binding.datasetId, who) : bindingRead(entry, binding, who);
+    return binding.kind === 'dataset' ? datasetRead(entry, binding.datasetId, who, binding.params) : bindingRead(entry, binding, who);
 }
 
 /** The read list of an app: on-screen bindings first (in walk order), then its saved datasets. */

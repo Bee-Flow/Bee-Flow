@@ -2,7 +2,7 @@
 /**
  * App Studio — the binding planner: for ONE data binding in ONE scope, the
  * decision whether to fetch it, and with which resolved filters, aggregate
- * shape and connector params.
+ * shape and connector or dataset params.
  *
  *   { plan: 'fetch', binding }  read this binding (every dynamic part a literal now)
  *   { plan: 'skip' }            a REQUIRED filter has no value: no query, no rows
@@ -96,6 +96,8 @@ export const DRY_RUN_PLAN = Object.freeze({
 const NEEDS_SCOPE = Symbol('needs-scope');
 const DATA_KINDS = new Set(['record', 'records', 'aggregate', 'dataset', 'connector']);
 const FILTERED_KINDS = new Set(['record', 'records', 'aggregate']);
+/** The kinds whose `params` the planner resolves: a connector's run params, the values for the parameters a saved dataset declares. */
+const PARAM_KINDS = new Set(['connector', 'dataset']);
 
 /** @param {unknown} v @returns {v is Obj} */
 function isObject(v) {
@@ -272,16 +274,17 @@ export function planFilters(binding, scope, o) {
 }
 
 /**
- * A connector binding's `params` resolved: a formula is evaluated, a param that
- * resolves to undefined is OMITTED (null / '' / 0 / false stay). Any other
- * binding, or non-object params, passes through as-is.
+ * A connector or dataset binding's `params` resolved: a formula is evaluated, a
+ * param that resolves to undefined is OMITTED (null / '' / 0 / false stay). Any
+ * other binding, or non-object params, passes through as-is, so a dataset
+ * binding without params is the same binding (and keeps its cache key).
  * @param {unknown} binding
  * @param {unknown} scope
  * @param {BindingPlanOptions} o
  * @returns {BindingPlan}
  */
 export function planParams(binding, scope, o) {
-    if (!isObject(binding) || binding.kind !== 'connector') return fetch(binding);
+    if (!isObject(binding) || !PARAM_KINDS.has(/** @type {string} */ (binding.kind))) return fetch(binding);
     const params = binding.params;
     if (!isObject(params) || Array.isArray(params)) return fetch(binding);
     let changed = false;
@@ -299,8 +302,8 @@ export function planParams(binding, scope, o) {
 
 /**
  * The whole decision for one data binding: a connector resolves its params,
- * every other kind its aggregate shape and then its filters. Anything that is
- * not a data binding is skip.
+ * every other kind its aggregate shape, then its filters, then (a dataset) its
+ * params. Anything that is not a data binding is skip.
  * @param {unknown} binding
  * @param {unknown} scope
  * @param {BindingPlanOptions} o
@@ -310,5 +313,6 @@ export function planBinding(binding, scope, o) {
     if (!isObject(binding) || !DATA_KINDS.has(/** @type {string} */ (binding.kind))) return { plan: 'skip' };
     if (binding.kind === 'connector') return planParams(binding, scope, o);
     const shaped = planShape(binding, scope, o);
-    return shaped.plan === 'fetch' ? planFilters(shaped.binding, scope, o) : shaped;
+    const filtered = shaped.plan === 'fetch' ? planFilters(shaped.binding, scope, o) : shaped;
+    return filtered.plan === 'fetch' ? planParams(filtered.binding, scope, o) : filtered;
 }

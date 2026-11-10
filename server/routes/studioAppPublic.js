@@ -439,7 +439,7 @@ router.post('/:token/data/query', ipLimiter, tokenLimiter, jsonBody, bodySizeGua
         if (body.datasetId === 'sys_org_members') return res.status(403).json({ error: 'Forbidden' });
 
         if (typeof body.datasetId === 'string' && body.datasetId) {
-            const out = await dataReadRunner.runSavedDataset(ctx, body.datasetId, { refresh: false });
+            const out = await dataReadRunner.runSavedDataset(ctx, body.datasetId, { refresh: false, params: body.params });
             return res.json({ ...out, result: out.rows });
         }
 

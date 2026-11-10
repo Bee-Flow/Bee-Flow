@@ -12,6 +12,20 @@ const rlsGateway = require('../../appStudio/rlsGateway');
 const { validateDataModel } = require('../../appStudio/dataModel');
 const { loadOwnedApp, handleErr } = require('./appDataContext');
 const { bestEffort } = require('../../utils/bestEffort');
+const { validateDatasetParams } = require('../../appStudio/datasetParams.mts');
+
+/**
+ * A descriptor's parameters checked before it is stored: answered 422 here and
+ * true when they are wrong. A descriptor without parameters always passes.
+ * @param {import('express').Response} res
+ * @param {unknown} descriptor
+ */
+function refuseBadParams(res, descriptor) {
+    const errors = validateDatasetParams(descriptor);
+    if (!errors.length) return false;
+    res.status(422).json({ error: 'Dataset parameters failed validation', errors });
+    return true;
+}
 
 /**
  * @param {import('express').Request<{ id: string }>} req
@@ -35,6 +49,7 @@ async function createDataset(req, res) {
         const app = await loadOwnedApp(req, res);
         if (!app) return;
         const body = (req.body && typeof req.body === 'object' && !Array.isArray(req.body)) ? req.body : {};
+        if (refuseBadParams(res, body.descriptor)) return;
         const dataset = await studioAppDataStore.createDataset(app.id, app.userId, {
             name: typeof body.name === 'string' ? body.name : undefined,
             tableId: typeof body.tableId === 'string' ? body.tableId : null,
@@ -55,6 +70,7 @@ async function updateDataset(req, res) {
         const app = await loadOwnedApp(req, res);
         if (!app) return;
         const body = (req.body && typeof req.body === 'object' && !Array.isArray(req.body)) ? req.body : {};
+        if (body.descriptor !== undefined && refuseBadParams(res, body.descriptor)) return;
         const updates = {};
         if (body.name !== undefined) updates.name = body.name;
         if (body.tableId !== undefined) updates.tableId = body.tableId;

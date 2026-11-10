@@ -7,7 +7,7 @@
  *   { kind: 'formula', expr }                         — restricted-JS expression
  *   { kind: 'record',  tableId, filter?, sort?, limit? } — one/first row
  *   { kind: 'records', tableId, filter?, sort?, limit? } — a list of rows
- *   { kind: 'dataset', datasetId, pick? }             — a named dataset
+ *   { kind: 'dataset', datasetId, params?, pick? }    — a named dataset
  *   { kind: 'connector', connectorId, params? }       — rows from an external
  *                                                       source (run acts-as-owner)
  *
@@ -89,7 +89,11 @@ function readExtras(binding: DataBinding): { match?: string; search?: unknown } 
 export function dataCacheKey(binding: Binding | null | undefined): string | null {
     if (!binding || typeof binding !== 'object') return null;
     if (binding.kind === 'dataset') {
-        return `dataset:${binding.datasetId ?? ''}`;
+        // Parameter values join the key only when there are any, so a
+        // dataset binding without params keeps the key it always had.
+        const p = binding.params;
+        const hasParams = !!p && typeof p === 'object' && !Array.isArray(p) && Object.keys(p).length > 0;
+        return hasParams ? `dataset:${binding.datasetId ?? ''}:${stableStringify(p)}` : `dataset:${binding.datasetId ?? ''}`;
     }
     if (binding.kind === 'record' || binding.kind === 'records') {
         const shape = stableStringify({
@@ -159,8 +163,11 @@ export function resolveBindingFilters(binding: Binding | null | undefined, scope
  * (unset formula / failed eval) is OMITTED — `null`/''/0/false are legit values
  * and stay. The same stable-scope-roots caveat as filters applies (avoid `now`).
  *
- * Fast path: an unchanged binding is returned AS-IS (memo-friendly). Non-
- * connector kinds and non-object params pass through. Never throws.
+ * A dataset binding's `params` (the values for the parameters its dataset
+ * declares) resolve the same way.
+ *
+ * Fast path: an unchanged binding is returned AS-IS (memo-friendly). Other
+ * kinds and non-object params pass through. Never throws.
  */
 export function resolveBindingParams(binding: Binding | null | undefined, scope: Scope): Binding | null | undefined {
     return clientBinding(planParams(binding, scope, CLIENT_PLAN));
@@ -234,7 +241,7 @@ export function resolveBinding(binding: BindingInput, arg?: unknown): ResolveRes
             // and a chart whose groupBy comes from a variable keys itself on
             // the unresolved `{kind:'formula'}` object and waits forever on an
             // entry nobody ever fetched.
-            const key = dataCacheKey(resolveBindingFilters(resolveBindingShape(binding, scope), scope));
+            const key = dataCacheKey(resolveBindingParams(resolveBindingFilters(resolveBindingShape(binding, scope), scope), scope));
             if (!key) return { value: undefined, isLoading: false, error: null, errorCode: null };
             const entry = fromDataEntry((dataState || {})[key]);
             if (binding.pick) return { ...entry, value: applyPick(entry.value, binding.pick) };

@@ -94,6 +94,28 @@ test('planner: connector params resolve client-side, an unresolved param is omit
     assert.deepEqual(planBinding({ kind: 'connector', connectorId: 'c1', params: { id: f('item.id') } }, SCOPE, RENDER_PLAN), { plan: 'needsScope' });
 });
 
+test('planner: dataset params resolve in every option set, a dataset without params stays the same binding', () => {
+    const b = { kind: 'dataset', datasetId: 'd1', params: { region: f('vars.q'), gone: f('vars.missing'), keep: null, n: 2 } };
+    const resolved = { ...b, params: { region: 'abc', keep: null, n: 2 } };
+    assert.deepEqual(planBinding(b, SCOPE, CLIENT_PLAN), { plan: 'fetch', binding: resolved });
+    assert.deepEqual(planBinding(b, SCOPE, RENDER_PLAN), { plan: 'fetch', binding: resolved });
+    assert.deepEqual(planParams(b, SCOPE, DRY_RUN_PLAN), { plan: 'fetch', binding: resolved });
+    const literal = { kind: 'dataset', datasetId: 'd1', params: { region: 'north' } };
+    assert.equal(planBinding(literal, SCOPE, CLIENT_PLAN).binding, literal);
+    const plain = { kind: 'dataset', datasetId: 'd1' };
+    for (const o of [CLIENT_PLAN, RENDER_PLAN, DRY_RUN_PLAN]) assert.equal(planParams(plain, SCOPE, o).binding, plain);
+    const perItem = { kind: 'dataset', datasetId: 'd1', params: { id: f('item.id') } };
+    assert.deepEqual(planBinding(perItem, SCOPE, CLIENT_PLAN), { plan: 'fetch', binding: { ...perItem, params: { id: 'i1' } } });
+    assert.deepEqual(planBinding(perItem, SCOPE, RENDER_PLAN), { plan: 'needsScope' });
+    assert.deepEqual(planParams(perItem, SCOPE, DRY_RUN_PLAN), { plan: 'needsScope' });
+    assert.deepEqual(planParams({ kind: 'dataset', datasetId: 'd1', params: { t: f('now') } }, SCOPE, DRY_RUN_PLAN), { plan: 'fetch', binding: { kind: 'dataset', datasetId: 'd1', params: { t: 1000 } } });
+});
+
+test('planner: params of a records or aggregate binding are not touched', () => {
+    const b = { ...T, params: { a: f('vars.q') } };
+    assert.equal(planParams(b, SCOPE, CLIENT_PLAN).binding, b);
+});
+
 test('planner: a binding that is not a data binding is skip', () => {
     for (const b of [null, undefined, 7, 'text', {}, { kind: 'static', value: 1 }, { kind: 'formula', expr: 'vars.q' }]) {
         assert.deepEqual(planBinding(b, SCOPE, CLIENT_PLAN), { plan: 'skip' });

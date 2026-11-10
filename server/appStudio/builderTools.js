@@ -232,7 +232,7 @@ module.exports = {
  *   userId: string, orgId?: string|null, appId?: string|null, version?: number|null, builderSessionId?: string|null,
  *   def: AppDef, finalized?: boolean, dataModel?: import('./builderTools/dataTools').DataModel|null,
  *   dataModelVersion?: number, rowCounts?: Record<string, number|string>,
- *   datasetIds?: Array<{ id: string, name?: string }>,
+ *   datasetIds?: Array<{ id: string, name?: string, params?: string[] }>,
  *   linkedTables?: Awaited<ReturnType<typeof import('./linkedTables').describeLinkedTables>>,
  *   modelSupportsVision?: boolean, _screenshotsThisTurn?: number, _turnMessage?: string,
  *   _screenConstraint?: ReturnType<typeof import('../core/llm/screenConstraints').deriveScreenConstraints>,
