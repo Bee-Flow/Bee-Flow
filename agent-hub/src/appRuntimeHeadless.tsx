@@ -1,4 +1,8 @@
 import './index.css';
+// The self-hosted @font-face rules (Inter, Satoshi, General Sans, Cabinet Grotesk, …): their
+// /fonts/… URLs are answered in-process by the render service from agent-hub/public/fonts.
+import '@/marketing/self-hosted-fonts.css';
+import type { ReactNode } from 'react';
 import { flushSync } from 'react-dom';
 import { createRoot, type Container } from 'react-dom/client';
 import type { AppDefinition } from './components/admin/Studio/AppStudio/inspector/appDefinition';
@@ -8,6 +12,7 @@ import AppRenderer from './components/admin/Studio/AppStudio/runtime/AppRenderer
 import { seedVariableDefaults } from './components/admin/Studio/AppStudio/runtime/appVariables';
 import type { DataState } from './components/admin/Studio/AppStudio/runtime/DataContext';
 import { CANVAS_GROUND, themeVars } from './components/admin/Studio/AppStudio/runtime/themeVars';
+import { mergeRecord, ScreenshotFrame, type ScreenshotView } from './appRuntimeScreenshot';
 
 /**
  * App Studio headless runtime — the entry the SERVER-SIDE screenshot pipeline
@@ -25,13 +30,18 @@ import { CANVAS_GROUND, themeVars } from './components/admin/Studio/AppStudio/ru
  * preview branch uses, minus the AppDataScope wrapper around it.
  *
  * ZERO NETWORK by construction, not by luck:
- *   - no QueryClientProvider is mounted. Every self-fetching component
- *     (AppInputRelation's CandidateLoader) probes for one and stays inert
- *     without it, so nothing ever reaches useAppDataSource's authFetch.
+ *   - no data scope app id: every self-fetching component (AppInputRelation's
+ *     CandidateLoader, the person picker, documents, dataset lists) needs one,
+ *     so nothing ever reaches useAppDataSource's authFetch. The plain mount
+ *     also has no QueryClientProvider; screenshot mode (appRuntimeScreenshot.tsx,
+ *     the `screenshot` payload the render service sends) adds one with every
+ *     query disabled, so input_dataset renders there instead of crashing.
  *   - runAction is a no-op — a screenshot must never fire an action.
  *   - AppFontLoader is deliberately NOT rendered (it injects Google Fonts
- *     <link>s); design fonts fall back to their stacks' local entries, which
- *     is fine for judging layout.
+ *     <link>s). The self-hosted families are declared by the imported
+ *     self-hosted-fonts.css and served in-process by the render service;
+ *     Geist, IBM Plex Sans and Poppins have no local files and fall back to
+ *     their stacks' local entries.
  */
 
 const noop = () => {};
@@ -55,15 +65,49 @@ interface HeadlessScreenProps {
     screenId?: string;
     dataState?: DataState | null;
     currentUser?: { id: string; name: string; email: string; roleKey: string };
+    /** Screenshot mode (appRuntimeScreenshot.tsx); absent = the plain headless render. */
+    screenshot?: ScreenshotView | null;
 }
 
-function HeadlessScreen({ definition, screenId, dataState, currentUser, previewRole }: HeadlessScreenProps) {
-    const design = appDesignProps(definition);
+function HeadlessScreen({ definition, screenId, dataState, currentUser, previewRole, screenshot }: HeadlessScreenProps) {
     // Seed vars exactly like a live run (useActionRunner) does — the render
     // service computes its dataState keys against seeded defaults, so a filter
     // formula reading `vars.x` must see the same value here or the key misses
-    // and the component shows a skeleton instead of its rows.
-    const vars = seedVariableDefaults(definition?.variables);
+    // and the component shows a skeleton instead of its rows. A screenshot's
+    // `state.vars` lands on top, and the service keys its data the same way.
+    const vars = mergeRecord(seedVariableDefaults(definition?.variables), screenshot?.vars);
+    if (!screenshot) {
+        return <HeadlessGround definition={definition} screenId={screenId} dataState={dataState} currentUser={currentUser} previewRole={previewRole} vars={vars} />;
+    }
+    const viewer = currentUser ? { name: currentUser.name, email: currentUser.email || undefined, roleKey: currentUser.roleKey, isOwner: currentUser.roleKey === 'owner' } : null;
+    const renderer = (
+        <AppRenderer
+            definition={definition}
+            screenId={screenId}
+            mode="run"
+            actionState={{}}
+            dataState={dataState || {}}
+            runAction={noop}
+            currentUser={currentUser || null}
+            previewRole={previewRole || null}
+            vars={vars}
+            forms={mergeRecord({}, screenshot.forms)}
+            screenParams={mergeRecord({}, screenshot.screenParams)}
+            initialUi={screenshot.initialUi || null}
+        />
+    );
+    return (
+        <ScreenshotFrame view={screenshot} definition={definition} screenId={screenId} viewer={viewer}>
+            {screenshot.chrome ? renderer : <HeadlessGround definition={definition}>{renderer}</HeadlessGround>}
+        </ScreenshotFrame>
+    );
+}
+
+type GroundProps = Omit<HeadlessScreenProps, 'screenshot'> & { vars?: Record<string, unknown>; children?: ReactNode };
+
+/** The themed ground with the plain renderer in it, or with `children` in its place. */
+function HeadlessGround({ definition, screenId, dataState, currentUser, previewRole, vars, children }: GroundProps) {
+    const design = appDesignProps(definition);
     return (
         <div
             className={`app-shell flex flex-col w-full${design.className ? ` ${design.className}` : ''}`}
@@ -78,17 +122,19 @@ function HeadlessScreen({ definition, screenId, dataState, currentUser, previewR
         >
             <main className="flex flex-col flex-1 min-h-0">
                 <AppCustomCss definition={definition} />
-                <AppRenderer
-                    definition={definition}
-                    screenId={screenId}
-                    mode="run"
-                    actionState={{}}
-                    dataState={dataState || {}}
-                    runAction={noop}
-                    currentUser={currentUser || null}
-                    previewRole={previewRole || null}
-                    vars={vars}
-                />
+                {children ?? (
+                    <AppRenderer
+                        definition={definition}
+                        screenId={screenId}
+                        mode="run"
+                        actionState={{}}
+                        dataState={dataState || {}}
+                        runAction={noop}
+                        currentUser={currentUser || null}
+                        previewRole={previewRole || null}
+                        vars={vars}
+                    />
+                )}
             </main>
         </div>
     );
@@ -117,6 +163,7 @@ export async function mount(container: Container, {
     dataState,
     currentUser,
     previewRole,
+    screenshot,
 }: Partial<HeadlessScreenProps> = {}) {
     const root = createRoot(container);
     flushSync(() => {
@@ -127,6 +174,7 @@ export async function mount(container: Container, {
                 dataState={dataState}
                 currentUser={currentUser}
                 previewRole={previewRole}
+                screenshot={screenshot && typeof screenshot === 'object' ? screenshot : null}
             />,
         );
     });

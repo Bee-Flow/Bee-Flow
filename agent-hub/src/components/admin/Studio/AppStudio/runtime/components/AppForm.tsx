@@ -9,6 +9,7 @@ import { FormContext, registerFormReset } from '../formContext';
 import type { FormFieldMeta } from '../formContext';
 import { resolveBinding } from '../resolveBinding';
 import { useRuntime } from '../RuntimeContext';
+import { initialFormValues } from '../initialUi';
 import { gridTemplate, spaceSteps } from '../styleResolver';
 import type { NodeProps } from './appNode.types';
 
@@ -188,10 +189,10 @@ export default function AppForm({ node, children }: NodeProps<FormProps>) {
 
 function FormBody({ node, children }: NodeProps<FormProps>) {
     const { t } = useTranslation();
-    const { mode, runAction, actionState, registerFormValue, scope } = useRuntime();
+    const { mode, runAction, actionState, registerFormValue, scope, initialUi } = useRuntime();
     const { submitLabel = t('studio_apps_runtime.form.submit', 'Submit'), showReset = false, showSubmit = true } = node.props || {};
     const formName = node.props?.name || node.id;
-    const [values, setValues] = useState<Record<string, unknown>>({});
+    const [values, setValues] = useState<Record<string, unknown>>(() => initialFormValues(initialUi, node.id));
     const [errors, setErrors] = useState<Record<string, string | undefined>>({});
     const fieldsRef = useRef(new Map<string, FormFieldMeta>()); // name → { required, label, defaultValue }
 

@@ -115,6 +115,10 @@ async function applyAppScreenshot(draftWrap, args) {
     // never exposed one, so a builder could not check a layout at phone width —
     // precisely where a 12-column row wraps badly.
     const viewport = SCREENSHOT_VIEWPORTS.has(args?.viewport) ? args.viewport : 'desktop';
+    // chrome, state, appearance, hostTheme, nodeId (screenshotView.mts); none = the plain screen.
+    const { screenshotViewArgs, describeScreenshotView } = require('./screenshotView.mts');
+    const view = screenshotViewArgs(args);
+    const viewText = describeScreenshotView(view);
 
     // The app row is what lets the render read real table rows (owner id +
     // data scoping) — same lookup as applyDryRun, same tolerance.
@@ -135,6 +139,7 @@ async function applyAppScreenshot(draftWrap, args) {
             screenId,
             asRole,
             viewport,
+            ...(view ? { view } : {}),
         });
     } catch (e) {
         // The service contract is "never throws" — this is belt-and-braces.
@@ -150,7 +155,8 @@ async function applyAppScreenshot(draftWrap, args) {
 
     const rendered = screenId ? (draftWrap.def.screens || []).find((s) => s && s.id === screenId) : null;
     const label = rendered ? `"${rendered.name || rendered.id}"` : 'the home screen';
-    const parts = [`Screenshot captured of ${label}${asRole ? ` as role "${asRole}"` : ''} at ${viewport} width (${shot.width}×${shot.height}).`];
+    const parts = [`Screenshot captured of ${label}${asRole ? ` as role "${asRole}"` : ''} at ${viewport} width (${shot.width}×${shot.height})${viewText ? `, ${viewText}` : ''}.`];
+    if (shot.cropNote) parts.push(`Note: ${shot.cropNote}.`);
     if (draftWrap.modelSupportsVision) {
         parts.push('The image follows — actually LOOK at it: rows whose spans wrapped past 12 columns, regions rendered empty because a binding returned no rows, charts with no bars, clipped or overlapping text, cramped spacing. Fix what is wrong before finalizing.');
     } else {
@@ -166,7 +172,7 @@ async function applyAppScreenshot(draftWrap, args) {
     return {
         content: parts.join('\n\n'),
         _screenshotDataUrl: shot.dataUrl,
-        _screenshotCaption: `Screenshot · ${rendered ? (rendered.name || rendered.id) : 'Home'}${asRole ? ` · as ${asRole}` : ''}${viewport !== 'desktop' ? ` · ${viewport}` : ''}`,
+        _screenshotCaption: `Screenshot · ${rendered ? (rendered.name || rendered.id) : 'Home'}${asRole ? ` · as ${asRole}` : ''}${viewport !== 'desktop' ? ` · ${viewport}` : ''}${viewText ? ` · ${viewText}` : ''}`,
     };
 }
 

@@ -5,6 +5,7 @@ import { useFormContext } from '../formContext';
 import { resolveBinding } from '../resolveBinding';
 import { evalVisibility } from '../nodeVisibility';
 import { useRuntime, type ExpressionScope } from '../RuntimeContext';
+import { initialTabIndex } from '../initialUi';
 import { roleTextColor } from '../styleResolver';
 import { isFill } from '../styleResolver.helpers';
 import { ROLE_COLORS } from '../styleResolver.constants';
@@ -103,12 +104,12 @@ function isHidden(tab: TabDef, scope: Partial<ExpressionScope>) {
 
 export default function AppTabs({ node, children }: NodeProps<TabProps>) {
     const { t } = useTranslation();
-    const { mode, selectedNodeId, previewRole, scope, actionState, dataState } = useRuntime();
+    const { mode, selectedNodeId, previewRole, scope, actionState, dataState, initialUi } = useRuntime();
     const form = useFormContext();
     const fill = isFill(node);
     const tabs: TabDef[] = Array.isArray(node.children) ? node.children : [];
     const rendered = React.Children.toArray(children);
-    const [active, setActive] = useState(0);
+    const [active, setActive] = useState(() => initialTabIndex(initialUi, node.id, tabs));
 
     // An error on a panel the viewer is not looking at is an error they cannot
     // see, so a failed submit surfaces the tab that holds the first bad field.
