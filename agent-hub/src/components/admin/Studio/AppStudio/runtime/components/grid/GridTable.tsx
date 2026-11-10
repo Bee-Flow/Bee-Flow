@@ -72,7 +72,7 @@ export interface GridTableProps {
 
 export function GridTable({ className, colGroup, headerRow, filterRow, rows, addRow, noMatch }: GridTableProps) {
     return (
-        <table className={className} style={{ tableLayout: 'auto' }}>
+        <table className={`${className} bfa-data_grid__table`} style={{ tableLayout: 'auto' }}>
             {colGroup}
             {/*
               * Sticky header: scrolling a virtualized grid used to carry the
@@ -80,7 +80,7 @@ export function GridTable({ className, colGroup, headerRow, filterRow, rows, add
               * The background is opaque so rows can't show through.
               */}
             <thead
-                className="sticky top-0 z-[1] [background:var(--bg-card)]"
+                className="sticky top-0 z-[1] [background:var(--bg-card)] bfa-data_grid__header"
             >
                 {headerRow}
                 {filterRow}

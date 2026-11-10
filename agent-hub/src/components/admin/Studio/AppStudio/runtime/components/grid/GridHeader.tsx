@@ -55,7 +55,7 @@ export function GridHeaderRow({ table, selectable, cellPad, divider, minimal, ha
                         key={header.id}
                         scope="col"
                         title={help}
-                        className={`${ALIGN_CLASS[align]} font-medium ${cellPad}${divider} select-none${minimal ? ' text-xs uppercase tracking-wider' : ''}`}
+                        className={`${ALIGN_CLASS[align]} font-medium ${cellPad}${divider} select-none${minimal ? ' text-xs uppercase tracking-wider' : ''} bfa-data_grid__headcell`}
                         style={{ color: 'var(--text-secondary)', borderColor: 'var(--border-default)', width: (header.column.columnDef as { size?: number }).size }}
                     >
                         <button

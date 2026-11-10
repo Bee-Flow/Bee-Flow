@@ -13,6 +13,7 @@ const ANALYTICS_SPECS = {
     // ── v2 data & visualization ──────────────────────────────────────────
     data_grid: {
         label: 'Data grid', category: 'Data',
+        parts: ['root', 'toolbar', 'table', 'header', 'headcell', 'row', 'cell', 'footer'],
         description: 'A powerful table over an array of objects: sortable/filterable columns, paging, selection, search and row actions.',
         events: ['onRowClick', 'onRowSelect'],
         props: {
@@ -224,6 +225,7 @@ const ANALYTICS_SPECS = {
     },
     chart: {
         label: 'Chart', category: 'Data',
+        parts: ['root', 'title', 'plot'],
         description: 'A bar/line/area/pie/donut chart over an array of objects. x-axis from xKey, one or more series by key. xType:"time" spaces points by date rather than evenly, so a gap in the data reads as a gap. referenceLines/referenceBands draw a target or healthy range behind the series; unitLabel suffixes the axis and tooltip. onRowClick fires with the clicked row.',
         props: {
             chartType: { type: 'enum', values: ['bar', 'line', 'area', 'pie', 'donut'], default: 'bar' },
@@ -283,6 +285,7 @@ const ANALYTICS_SPECS = {
     },
     pivot: {
         label: 'Pivot table', category: 'Data',
+        parts: ['root', 'table', 'header', 'row', 'rowhead', 'cell', 'total', 'footer'],
         description: 'A cross-tab over an array of objects: group by row and column dimensions, aggregate value fields.',
         props: {
             source: { type: 'binding', default: { kind: 'static', value: [] } },

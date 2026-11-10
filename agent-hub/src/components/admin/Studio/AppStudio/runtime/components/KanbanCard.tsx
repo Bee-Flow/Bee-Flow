@@ -55,12 +55,12 @@ export function CardBody({ row, titleKey, subtitleKey, badgeKey, badgeToneMap, c
     return (
         <>
             <div className="flex items-start gap-1.5">
-                <div className="text-sm font-medium break-words min-w-0 flex-1 text-[var(--text-primary)]">
+                <div className="text-sm font-medium break-words min-w-0 flex-1 text-[var(--text-primary)] bfa-kanban__title">
                     {displayValue(walkPath(row, titleKey))}
                 </div>
                 {dot ? (
                     <span
-                        className="h-2.5 w-2.5 rounded-full shrink-0 mt-1"
+                        className="h-2.5 w-2.5 rounded-full shrink-0 mt-1 bfa-kanban__badge"
                         style={{ background: dot }}
                         title={toneHit?.label || String(badge)}
                         data-app-kanban-dot={toneHit?.tone || 'neutral'}
@@ -70,13 +70,13 @@ export function CardBody({ row, titleKey, subtitleKey, badgeKey, badgeToneMap, c
                 ) : null}
             </div>
             {subtitle != null && subtitle !== '' ? (
-                <div className="text-xs mt-0.5 break-words text-[var(--text-secondary)]">
+                <div className="text-xs mt-0.5 break-words text-[var(--text-secondary)] bfa-kanban__subtitle">
                     {displayValue(subtitle)}
                 </div>
             ) : null}
             {badge != null && badge !== '' && !toneHit ? (
                 <span
-                    className="inline-flex items-center rounded-full px-1.5 py-0.5 mt-1.5 text-[11px] font-medium [background:var(--bg-tertiary)] [color:var(--text-secondary)]!"
+                    className="inline-flex items-center rounded-full px-1.5 py-0.5 mt-1.5 text-[11px] font-medium [background:var(--bg-tertiary)] [color:var(--text-secondary)]! bfa-kanban__badge"
                 >
                     {displayValue(badge)}
                 </span>
@@ -161,7 +161,7 @@ export function KanbanCard({
                 e.preventDefault();
                 onClick?.();
             } : undefined}
-            className={`border px-2.5 py-2 select-none app-focusable ${clickable ? 'cursor-pointer' : dragEnabled ? 'cursor-grab' : ''}`}
+            className={`border px-2.5 py-2 select-none app-focusable ${clickable ? 'cursor-pointer' : dragEnabled ? 'cursor-grab' : ''} bfa-kanban__card`}
             // The card does NOT follow the pointer itself: it lives inside the
             // column's overflow-y-auto, so a transform beyond the lane edge is
             // clipped and the drag looks dead. The DragOverlay carries the

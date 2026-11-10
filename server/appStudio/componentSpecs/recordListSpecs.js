@@ -12,6 +12,7 @@ const { COLOR_ROLES } = require('./styleKnobs');
 const RECORD_LIST_SPECS = {
     table: {
         label: 'Table', category: 'Data',
+        parts: ['root', 'table', 'header', 'headcell', 'body', 'row', 'cell', 'footer'],
         description: 'A table over an array of objects — usually an automation result. Missing keys render as “—”.',
         props: {
             source: { type: 'binding', default: { kind: 'static', value: [] } },
@@ -85,6 +86,7 @@ const RECORD_LIST_SPECS = {
     },
     list: {
         label: 'List', category: 'Data',
+        parts: ['root', 'group', 'item', 'icon', 'title', 'subtitle', 'meta', 'badge'],
         description: 'A card list over an array of objects — a friendlier alternative to a table, and the natural sidebar picker. badgeToneMap colours a status pill the way sideMap does for a message thread; timestampKey shows a short relative time; unreadKey bolds the row; tagsKey shows a tags field (e.g. mail categories) as chips.',
         props: {
             source: { type: 'binding', default: { kind: 'static', value: [] } },
@@ -210,6 +212,7 @@ const RECORD_LIST_SPECS = {
      */
     approval_list: {
         label: 'Approvals', category: 'Data',
+        parts: ['root', 'header', 'item', 'title', 'subtitle', 'status', 'detail'],
         description: 'The signed-in viewer’s approval requests, decided in place. scope "mine" shows everything waiting on them; "app" shows this app’s own requests. Public visitors see a sign-in wall.',
         props: {
             scope: { type: 'enum', values: ['mine', 'app'], default: 'mine' },
