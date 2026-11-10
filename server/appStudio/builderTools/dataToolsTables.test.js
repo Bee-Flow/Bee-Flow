@@ -144,3 +144,23 @@ test('app_get_data_model shows whether a computed field is stored and its expr; 
     assert.match(perTurn, /^ {4}dbl computed \(read-only\)$/m, 'the per-turn block is unchanged');
     assert.match(perTurn, /^ {4}label computed \(read-only\)$/m);
 });
+
+test('field rules: a valid rule is stored as given, a bad one is refused with the validator sentence', async () => {
+    const wrap = reset();
+    const r = await applyUpsertTable(wrap, { key: 'orders', name: 'Orders', fields: [
+        { key: 'qty', type: 'number', validation: { min: 1, max: 10 } },
+        { key: 'placed_on', type: 'date', dynamicDefault: 'today' },
+    ] });
+    assert.ok(!r.error, JSON.stringify(r));
+    const [qty, placed] = wrap.dataModel.tables[0].fields;
+    assert.deepStrictEqual(qty.validation, { min: 1, max: 10 });
+    assert.strictEqual(placed.dynamicDefault, 'today');
+    // app_get_data_model shows them; the per-turn block stays as it was.
+    const full = renderDataBlock(wrap.dataModel, [], {}, null, { fieldIds: true });
+    assert.match(full, /qty number id=fld_\w+ validation=\{"min":1,"max":10\}/);
+    assert.match(full, /placed_on date id=fld_\w+ dynamicDefault=today/);
+    assert.doesNotMatch(renderDataBlock(wrap.dataModel, [], {}), /validation=|dynamicDefault=/);
+    const bad = await applyUpsertTable(wrap, { tableId: r.tableId, fields: [{ key: 'qty', type: 'number', validation: { pattern: '^x' } }, { key: 'placed_on', type: 'date' }] });
+    assert.ok(bad.error, 'refused');
+    assert.ok(bad.errors.some((e) => /validation\.pattern does not apply to a number field/.test(e)), JSON.stringify(bad.errors));
+});

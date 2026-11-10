@@ -585,7 +585,16 @@ function renderDataField(f, withId = false) {
     }
     if (f.type === 'relation' && f.relation) bits.push(`→${f.relation.table || f.relation.tableId || '?'}`);
     bits.push(...computedBits(f, withId));
+    if (withId) bits.push(...fieldRuleBits(f));
     return bits.join(' ');
+}
+
+/** A field's rules (validation, dynamicDefault), on app_get_data_model only and only when declared. */
+function fieldRuleBits(f) {
+    const bits = [];
+    if (f.validation && typeof f.validation === 'object') bits.push(`validation=${JSON.stringify(f.validation)}`);
+    if (typeof f.dynamicDefault === 'string') bits.push(`dynamicDefault=${f.dynamicDefault}`);
+    return bits;
 }
 
 /**

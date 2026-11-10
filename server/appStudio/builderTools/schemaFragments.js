@@ -1,6 +1,7 @@
 // @typecheck
 const { LIMITS, STYLE_KNOBS, ACTION_KINDS, STEP_KINDS, TOAST_TONES } = require('../componentSpecs');
 const { APP_DESIGN_PRESETS } = require('../appDesignPresets');
+const { DYNAMIC_DEFAULTS } = require('../../core/dataEngine/dataModel/vocabulary');
 
 const MAX_COMPONENTS_PER_CALL = 40; // top-level entries per app_add_components
 
@@ -191,4 +192,26 @@ const ACTION_OBJECT_SCHEMA = { type: 'object', description: ACTION_OBJECT_DESC, 
  */
 const batchHint = (key, single) => `BATCH FORM: pass \`${key}\` — an array of up to ${MAX_BATCH_PATCHES_PER_CALL} ${single} objects applied in order — instead of the single form, and do a whole screen's worth of work in ONE call. Each entry that fails is reported at its index in \`failed\` and the others still land.`;
 
-module.exports = { MAX_COMPONENTS_PER_CALL, MAX_SEED_RECORDS, MAX_UPDATE_RECORDS, MAX_FILTER_UPDATE_ROWS, DEFAULT_FILTER_UPDATE_ROWS, MAX_GET_ACTIONS, TEMP_ID_MAX, TEMP_ID_RX, MAX_BATCH_PATCHES_PER_CALL, INSPECT_CATALOG_MAX_COMPONENTS, INSPECT_CATALOG_MAX_STEPS, NODE_VALIDATION_TYPES, orList, PRESET_IDS, STYLE_HINT, SECTION_HEIGHT_MODES, unitList, SIZING_HINT, ADD_NODE_LOGIC_PROPS, UPDATE_COMPONENT_PATCH_PROPS, ACTION_OBJECT_DESC, ACTION_STEP_PROPS, ACTION_OBJECT_PROPS, ACTION_OBJECT_SCHEMA, batchHint };
+// app_upsert_table fields[]: the optional field rules (core/dataEngine/fieldRules.mts), checked on every write.
+const FIELD_VALIDATION_PROP = {
+    type: 'object',
+    description: 'Optional rules every write of this field must pass (application-level; rows already stored are not re-checked). number: min, max. text: minLength, maxLength, pattern (a regular expression, case-sensitive, e.g. "^[0-9]{4}[A-Z]{2}$"). select/multiselect: enforceOptions true accepts only the listed options. message replaces the generated error sentence. An empty value always passes (use required for that). null removes the rules.',
+    nullable: true,
+    properties: {
+        min: { type: 'number' },
+        max: { type: 'number' },
+        minLength: { type: 'integer' },
+        maxLength: { type: 'integer' },
+        pattern: { type: 'string' },
+        enforceOptions: { type: 'boolean' },
+        message: { type: 'string' },
+    },
+};
+const DYNAMIC_DEFAULT_PROP = {
+    type: 'string',
+    nullable: true,
+    enum: Object.keys(DYNAMIC_DEFAULTS.types),
+    description: 'Filled when a record is CREATED without a value: "now" on a datetime field, "today" (UTC date) on a date field, "currentUser.id" (the signed-in user\'s id) on a text field. Not together with default; null removes it.',
+};
+
+module.exports = { MAX_COMPONENTS_PER_CALL, MAX_SEED_RECORDS, MAX_UPDATE_RECORDS, MAX_FILTER_UPDATE_ROWS, DEFAULT_FILTER_UPDATE_ROWS, MAX_GET_ACTIONS, TEMP_ID_MAX, TEMP_ID_RX, MAX_BATCH_PATCHES_PER_CALL, INSPECT_CATALOG_MAX_COMPONENTS, INSPECT_CATALOG_MAX_STEPS, NODE_VALIDATION_TYPES, orList, PRESET_IDS, STYLE_HINT, SECTION_HEIGHT_MODES, unitList, SIZING_HINT, ADD_NODE_LOGIC_PROPS, UPDATE_COMPONENT_PATCH_PROPS, ACTION_OBJECT_DESC, ACTION_STEP_PROPS, ACTION_OBJECT_PROPS, ACTION_OBJECT_SCHEMA, batchHint, FIELD_VALIDATION_PROP, DYNAMIC_DEFAULT_PROP };

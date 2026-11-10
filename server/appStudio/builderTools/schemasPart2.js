@@ -4,7 +4,7 @@
 
 const { LIMITS, THEME_SPEC, DESIGN_SPEC, VARIABLE_TYPES } = require('../componentSpecs');
 const { FIELD_TYPES, FILTER_OPS, AGG_FNS, DATE_BUCKETS, ACCESS_MODES } = require('../dataModel');
-const { MAX_SEED_RECORDS } = require('./schemaFragments');
+const { MAX_SEED_RECORDS, FIELD_VALIDATION_PROP, DYNAMIC_DEFAULT_PROP } = require('./schemaFragments');
 const { MAX_QUERY_LIMIT } = require('./queryDataArgs');
 const { HOOK_TARGETS } = require('../mailboxHookPolicy.mts');
 
@@ -56,6 +56,8 @@ const TOOL_SCHEMAS_PART_2 = [
                                 unique: { type: 'boolean' },
                                 default: { type: 'string', description: 'Default for new records, written as a string and read by the field\'s type: "false" on a bool, "0" on a number, "2026-01-01" on a date (a JSON boolean or number is accepted too); also backfills when adding a required field to a populated table.' },
                                 options: { type: 'array', items: { type: 'string' }, description: 'select/multiselect: the allowed values (strings; {value,label} objects are accepted too).' },
+                                validation: FIELD_VALIDATION_PROP,
+                                dynamicDefault: DYNAMIC_DEFAULT_PROP,
                                 relation: {
                                     type: 'object',
                                     description: 'relation only: the table this field points at.',
