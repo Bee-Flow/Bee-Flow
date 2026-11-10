@@ -55,7 +55,8 @@ const {
 // only rows it created (none, for owner-seeded demo data) — that is exactly the
 // "member sees an empty screen" signal the asRole pass exists to catch.
 const ROLE_PROBE_VIEWER_ID = '__dry_run_role_probe__';
-const DATA_STEP_KINDS = new Set(['create_record', 'update_record', 'delete_record']);
+// The kinds the step catalogue flags `writesRecords` (create/update/delete_record, and registry kinds that say so).
+const DATA_STEP_KINDS = new Set(require('./componentSpecs/stepRegistry').STEP_POLICY_LISTS.recordWriteKinds);
 
 function findModelTable(dataModel, ref) {
     const tables = (dataModel && Array.isArray(dataModel.tables)) ? dataModel.tables : [];

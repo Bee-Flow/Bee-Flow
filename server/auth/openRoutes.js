@@ -80,6 +80,10 @@ const OPEN_ROUTES = new Map(/** @type {Array<[string, OpenReason]>} */ ([
 
     // ── Token-als-credential: publiek gedeelde inhoud ────────────────────
     ['GET /api/public-app/:token', 'publieke intake van een Studio-app: het URL-token is de credential en ontsluit alleen de whitelist van schermen in de app-definitie (appStudio/publicAccess.js); bezoekers zijn per ontwerp anonieme derden'],
+    ['GET /api/public-app/:token/assets/:assetId', {
+        reden: 'an uploaded image or font of a public Studio page, for <img> and @font-face (which cannot send the visitor bearer): the page token is the credential, as for GET /:token, and only an asset the served public definition refers to is answered; anything else is the same 404',
+        bewijs: { file: 'routes/studioAppPublicAssets.mts', marker: 'collectAssetRefs(found.definition).has(assetId)' },
+    }],
     ['GET /verify/:token', 'certificaatverificatie voor LinkedIn-shares — token-gated (alleen bewust publiek gezette certs resolven), per-IP rate limited (routes/verifyCertificate.js)'],
     ['GET /verify/:token/image.png', 'og:image bij GET /verify/:token — zelfde token-credential'],
     ['GET /verify/:token/certificate.pdf', 'PDF-download bij GET /verify/:token — zelfde token-credential'],

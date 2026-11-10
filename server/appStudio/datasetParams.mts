@@ -269,26 +269,3 @@ export function paramCacheMaxEntries(env: Record<string, string | undefined> = p
     const n = Number(raw);
     return Number.isFinite(n) && n >= 0 ? Math.floor(n) : DEFAULT_PARAM_CACHE_MAX;
 }
-
-/**
- * A dataset binding's `params` resolved on the server (the dry run, the
- * screenshot render), the way the browser does: a formula is evaluated by
- * `evalFormula`, a literal is itself, a value that resolves to undefined is
- * left out. `evalFormula` may answer `skip` to say the value cannot be known
- * here; the whole binding is then skipped. Undefined when the binding has no
- * params object.
- */
-export function resolveBindingParamValues<S>(
-    params: unknown,
-    evalFormula: (formula: Obj) => unknown,
-    skip: S,
-): Obj | undefined | S {
-    if (!isPlainObject(params)) return undefined;
-    const out: Obj = {};
-    for (const [k, v] of Object.entries(params)) {
-        const value = isPlainObject(v) && v.kind === 'formula' ? evalFormula(v) : v;
-        if (value === skip) return skip as S;
-        if (value !== undefined) out[k] = value;
-    }
-    return out;
-}

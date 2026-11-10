@@ -154,7 +154,14 @@ test('GOLDEN: the report and the stamps of that install', async () => {
                     {
                         "ref": "app_1",
                         "id": "app_7",
-                        "name": "Desk"
+                        "name": "Desk",
+                        // The definition gate: installed as given, with what the validator says about it.
+                        "findings": {
+                            "errors": [{
+                                "code": "screens.missing", "severity": "error", "path": "screens",
+                                "message": "`screens` must be a non-empty array.", "hint": "An app needs at least one screen."
+                            }]
+                        }
                     }
                 ],
                 "webpages": [

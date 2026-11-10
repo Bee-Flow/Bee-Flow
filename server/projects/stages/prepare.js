@@ -41,7 +41,7 @@
 
 const { HttpError } = require('../../core/http/errors');
 const log = require('../../telemetry/log');
-const { KIND_OF_SECTION, canonicalOf, hashPayload } = require('./stagePayload');
+const { KIND_OF_SECTION, canonicalOf, hashPayload, readStageShape } = require('./stagePayload');
 const { WRITE_ACTIONS, storesOf, makeJournal } = require('./journal');
 const { bestEffort } = require('../../utils/bestEffort');
 
@@ -552,8 +552,9 @@ async function prepare({ deployment, stage, plan }, deps = {}) {
         s.blueprintStore.listStamps(stage.projectId), s.stageStore.listBindings(stage.projectId),
     ]);
     const { bindingMap } = require('./applyBindings');
-    const { readStageShape } = require('./stagePayload');
     const entities = releaseEntities(release.manifest);
+    const gated = require('../appDefinitionGate.mts').gateReleaseApps(entities.values()); // before the first write
+    if (gated.blocking.length) throw blockedError(stage, gated.blocking);
     const ctx = {
         s, deps, deployment, stage, plan, release, entities,
         managedWrite: { deploymentId: deployment.id },
@@ -578,13 +579,12 @@ async function prepare({ deployment, stage, plan }, deps = {}) {
         release: { id: release.id, seq: release.seq }, stage, managedWrite: ctx.managedWrite,
         idByRef: ctx.idByRef, parts: ctx.parts, retire, skills: ctx.skills, templates: ctx.templates,
         apps: ctx.apps, webpages: ctx.webpages, tables: ctx.tables, referenceRows: ctx.referenceRows,
-        knowledge: ctx.knowledge,
+        knowledge: ctx.knowledge, findings: gated.warnings,
     };
 }
 
 function blockedError(stage, findings) {
-    const label = stage.stage === 'prd' ? 'Production' : 'UAT';
-    return new HttpError(409, 'prepare_blocked', `Nothing changed in ${label}.`, { findings });
+    return new HttpError(409, 'prepare_blocked', `Nothing changed in ${stage.stage === 'prd' ? 'Production' : 'UAT'}.`, { findings });
 }
 
 module.exports = {

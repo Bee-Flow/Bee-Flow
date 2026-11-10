@@ -38,6 +38,7 @@ const studioAppStore = require('../../../stores/studioAppStore');
 const studioAppDataStore = require('../../../stores/studioAppDataStore');
 const { datasetEntry } = require('../../../appStudio/datasetParams.mts');
 const { canonicalizeAppDefinition } = require('../../../appStudio/canonicalize');
+const { schemaNewerError } = require('../../../appStudio/schemaSince.mts');
 const { emptyDefinition } = require('../../../appStudio/componentSpecs');
 const { briefForNaming } = require('../../../appStudio/builderTools/appNaming');
 const { describeLinkedTables, overlayLinkedRowCounts } = require('../../../appStudio/linkedTables');
@@ -156,9 +157,11 @@ async function loadDraftWrap(req, { userId, requestedAppId, clientSession }) {
             const info = await managedParts.managedInfo(app.projectId);
             if (info) throw managedParts.managedPartError(info);
         }
-        const { def } = canonicalizeAppDefinition(
+        const { def, refused } = canonicalizeAppDefinition(
             app.definition && Object.keys(app.definition).length ? app.definition : emptyDefinition(app.name),
         );
+        // Pre-SSE, like the managed refusal above: a clean 422 schema_newer.
+        if (refused) throw schemaNewerError(app.definition);
         priorSnapshot = await studioAppStore.getBuilderSession(app.id, userId).catch((e) => fallback('routes/ai/appStudioBuilder/turnSetup:loadDraftWrap', e, null));
         draftWrap = {
             userId,

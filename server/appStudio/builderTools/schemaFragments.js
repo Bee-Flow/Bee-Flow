@@ -1,6 +1,9 @@
 // @typecheck
 const { LIMITS, STYLE_KNOBS, ACTION_KINDS, STEP_KINDS, TOAST_TONES } = require('../componentSpecs');
 const { APP_DESIGN_PRESETS } = require('../appDesignPresets');
+// Descriptions name the BASE values only (catalogTiers.mts): prose that listed an extension value
+// would move with every registry file. The enums below carry every value, extension ones last.
+const BASE_STYLE_KNOBS = require('../catalogTiers.mts').baseCatalogue().STYLE_KNOBS;
 
 const MAX_COMPONENTS_PER_CALL = 40; // top-level entries per app_add_components
 
@@ -62,6 +65,7 @@ const STYLE_HINT = `Style knobs are a closed vocabulary per component (see the c
 const SECTION_ILLEGAL_HEIGHT_MODES = ['pct'];
 
 const SECTION_HEIGHT_MODES = STYLE_KNOBS.heightMode.values.filter((m) => !SECTION_ILLEGAL_HEIGHT_MODES.includes(m));
+const BASE_SECTION_HEIGHT_MODES = SECTION_HEIGHT_MODES.filter((m) => BASE_STYLE_KNOBS.heightMode.values.includes(m));
 
 /**
  * "px 24-4000, vh 5-100" — the per-unit windows of a unitInt knob, optionally narrowed to `modes`.
@@ -69,7 +73,7 @@ const SECTION_HEIGHT_MODES = STYLE_KNOBS.heightMode.values.filter((m) => !SECTIO
  * @param {string[] | null} [modes]
  */
 const unitList = (knobName, modes = null) => Object.entries(STYLE_KNOBS[knobName].units)
-    .filter(([unit]) => !modes || modes.includes(unit))
+    .filter(([unit]) => BASE_STYLE_KNOBS[STYLE_KNOBS[knobName].modeKnob].values.includes(unit) && (!modes || modes.includes(unit)))
     .map(([unit, r]) => `${unit} ${r.min}-${r.max}`)
     .join(', ');
 
@@ -77,7 +81,7 @@ const unitList = (knobName, modes = null) => Object.entries(STYLE_KNOBS[knobName
  * `"px"/"pct"` — the modes that are an escape hatch, i.e. every one but the default.
  * @param {string} knobName
  */
-const escapeModes = (knobName) => STYLE_KNOBS[knobName].values
+const escapeModes = (knobName) => BASE_STYLE_KNOBS[knobName].values
     .filter((m) => m !== STYLE_KNOBS[knobName].default)
     .map((m) => JSON.stringify(m))
     .join('/');
@@ -191,4 +195,4 @@ const ACTION_OBJECT_SCHEMA = { type: 'object', description: ACTION_OBJECT_DESC, 
  */
 const batchHint = (key, single) => `BATCH FORM: pass \`${key}\` — an array of up to ${MAX_BATCH_PATCHES_PER_CALL} ${single} objects applied in order — instead of the single form, and do a whole screen's worth of work in ONE call. Each entry that fails is reported at its index in \`failed\` and the others still land.`;
 
-module.exports = { MAX_COMPONENTS_PER_CALL, MAX_SEED_RECORDS, MAX_UPDATE_RECORDS, MAX_FILTER_UPDATE_ROWS, DEFAULT_FILTER_UPDATE_ROWS, MAX_GET_ACTIONS, TEMP_ID_MAX, TEMP_ID_RX, MAX_BATCH_PATCHES_PER_CALL, INSPECT_CATALOG_MAX_COMPONENTS, INSPECT_CATALOG_MAX_STEPS, NODE_VALIDATION_TYPES, orList, PRESET_IDS, STYLE_HINT, SECTION_HEIGHT_MODES, unitList, SIZING_HINT, ADD_NODE_LOGIC_PROPS, UPDATE_COMPONENT_PATCH_PROPS, ACTION_OBJECT_DESC, ACTION_STEP_PROPS, ACTION_OBJECT_PROPS, ACTION_OBJECT_SCHEMA, batchHint };
+module.exports = { MAX_COMPONENTS_PER_CALL, MAX_SEED_RECORDS, MAX_UPDATE_RECORDS, MAX_FILTER_UPDATE_ROWS, DEFAULT_FILTER_UPDATE_ROWS, MAX_GET_ACTIONS, TEMP_ID_MAX, TEMP_ID_RX, MAX_BATCH_PATCHES_PER_CALL, INSPECT_CATALOG_MAX_COMPONENTS, INSPECT_CATALOG_MAX_STEPS, NODE_VALIDATION_TYPES, orList, PRESET_IDS, STYLE_HINT, BASE_STYLE_KNOBS, SECTION_HEIGHT_MODES, BASE_SECTION_HEIGHT_MODES, unitList, SIZING_HINT, ADD_NODE_LOGIC_PROPS, UPDATE_COMPONENT_PATCH_PROPS, ACTION_OBJECT_DESC, ACTION_STEP_PROPS, ACTION_OBJECT_PROPS, ACTION_OBJECT_SCHEMA, batchHint };

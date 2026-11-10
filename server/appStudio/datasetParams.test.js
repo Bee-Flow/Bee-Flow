@@ -14,7 +14,7 @@ const assert = require('node:assert');
 const {
     resolveDatasetParams, validateDatasetParams, coerceParamValue, INVALID_PARAM,
     declaredParams, datasetEntry, paramCacheMaxEntries, DEFAULT_PARAM_CACHE_MAX,
-    resolveBindingParamValues, isParamName, MAX_DATASET_PARAMS,
+    isParamName, MAX_DATASET_PARAMS,
 } = require('./datasetParams.mts');
 
 const plain = {
@@ -157,12 +157,4 @@ test('paramCacheMaxEntries: generous default, 0 is unlimited, garbage keeps the 
     assert.strictEqual(paramCacheMaxEntries({ STUDIO_APP_DATASET_PARAM_CACHE_MAX: '25' }), 25);
     assert.strictEqual(paramCacheMaxEntries({ STUDIO_APP_DATASET_PARAM_CACHE_MAX: '-3' }), DEFAULT_PARAM_CACHE_MAX);
     assert.strictEqual(paramCacheMaxEntries({ STUDIO_APP_DATASET_PARAM_CACHE_MAX: 'many' }), DEFAULT_PARAM_CACHE_MAX);
-});
-
-test('resolveBindingParamValues: formulas evaluated, undefined left out, skip propagates', () => {
-    const SKIP = Symbol('skip');
-    const evalF = (f) => (f.expr === 'vars.r' ? 'north' : f.expr === 'gone' ? undefined : SKIP);
-    assert.strictEqual(resolveBindingParamValues(undefined, evalF, SKIP), undefined);
-    assert.deepStrictEqual(resolveBindingParamValues({ a: { kind: 'formula', expr: 'vars.r' }, b: 2, c: { kind: 'formula', expr: 'gone' } }, evalF, SKIP), { a: 'north', b: 2 });
-    assert.strictEqual(resolveBindingParamValues({ a: { kind: 'formula', expr: 'item.x' } }, evalF, SKIP), SKIP);
 });

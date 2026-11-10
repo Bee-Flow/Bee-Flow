@@ -23,6 +23,7 @@
 
 const { LIMITS } = require('./componentSpecs/limits');
 const { renderCatalogText, renderCompactCatalogText } = require('./builderPrompt/catalogRender');
+const { renderExtensionIndex } = require('./builderPrompt/extensionIndex.mts');
 const { buildCoreSystemPrompt } = require('./builderPrompt/corePrompt');
 const { buildFewShotMessages } = require('./builderPrompt/fewShots');
 const { computedBits } = require('./builderPrompt/computedMarks');
@@ -298,6 +299,10 @@ theory cost the app.
 function buildSystemPrompt({ toolset = 'full', catalogMode = 'full', catalogText = null, ownerContext = 'tools', automationsText = '', documentsText = '' } = {}) {
     const catalog = catalogText || (catalogMode === 'filtered' ? renderCompactCatalogText() : renderCatalogText());
     if (toolset === 'core') return buildCoreSystemPrompt({ catalog });
+    // The catalogue above is the BASE. Entries marked since 3 are only indexed here (with a gloss
+    // beside the full catalogue, names only beside the compact one); the core band gets none.
+    // '' while the catalogue has no such entry, so the prompt is then unchanged to the byte.
+    const extensionIndex = renderExtensionIndex({ compact: catalogMode === 'filtered' });
     // One sentence on WHERE the automations are, true for the caller: rendered
     // into the prompt (legacy list), in the per-turn note, or behind a tool.
     const detail = 'Call `app_list_automations` / `app_inspect_automation` when you need fresh detail (e.g. an agent_call automation\'s exact input parameter names) before writing an inputMapping; call `app_get_draft` to re-read the current tree.';
@@ -408,7 +413,7 @@ ${discovery}
 
 ${PITFALLS_SECTION}${diagnosisText(troubleshootTool, cleanIsNotRendered)}## Catalog (the ONLY component types, props, style knobs and action kinds that exist)
 
-${catalog}
+${catalog}${extensionIndex ? `\n\n${extensionIndex}` : ''}
 
 Begin now.`;
 }

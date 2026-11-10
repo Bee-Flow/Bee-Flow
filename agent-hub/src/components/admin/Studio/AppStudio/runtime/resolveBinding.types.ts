@@ -1,7 +1,7 @@
 /** Types of the App Studio binding resolver (resolveBinding.ts). */
 
 /** A filter / aggregate-shape value: a literal, or `{ kind: 'formula', expr }` resolved against the scope. */
-export type FilterValue = FormulaValue | string | number | boolean | null | undefined | (unknown[] & { kind?: undefined; expr?: undefined });
+type FilterValue = FormulaValue | string | number | boolean | null | undefined | (unknown[] & { kind?: undefined; expr?: undefined });
 
 interface FormulaValue {
     kind?: string;

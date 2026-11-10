@@ -1,0 +1,143 @@
+{
+  "about": {
+    "source": "hand-made for package LK6 (asset store): asset:<id> in design.logoUrl, image.src, image.srcFrom and publicAccess.design.logoUrl",
+    "captured": "2026-11-10"
+  },
+  "definition": {
+    "schemaVersion": 3,
+    "meta": {
+      "name": "Uploaded files",
+      "description": "Asset references: an uploaded logo, an uploaded image, an image from data, and a public page with its own logo.",
+      "icon": "Image"
+    },
+    "theme": {
+      "primary": "#0F766E",
+      "radius": "md",
+      "density": "comfortable",
+      "fontScale": "md",
+      "appearance": "auto"
+    },
+    "roles": [],
+    "screens": [
+      {
+        "id": "scr_assets01",
+        "name": "Brand",
+        "icon": null,
+        "showInNav": true,
+        "maxWidth": "medium",
+        "sections": [
+          {
+            "id": "sec_assets01",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_asset001",
+                "type": "image",
+                "props": {
+                  "src": "asset:7c9e6679-7425-40de-944b-e07fc1f90ae7",
+                  "alt": "Uploaded picture",
+                  "fit": "contain"
+                },
+                "style": {
+                  "span": 6,
+                  "height": "md"
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_asset002",
+                "type": "image",
+                "props": {
+                  "src": "https://example.com/fallback.png",
+                  "alt": "From data",
+                  "fit": "cover",
+                  "srcFrom": {
+                    "kind": "static",
+                    "value": "asset:7c9e6679-7425-40de-944b-e07fc1f90ae7"
+                  }
+                },
+                "style": {
+                  "span": 6,
+                  "height": "md"
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_asset003",
+                "type": "image",
+                "props": {
+                  "src": "https://example.com/plain.png",
+                  "alt": "Plain https",
+                  "fit": "cover"
+                },
+                "style": {
+                  "span": 6,
+                  "height": "md"
+                },
+                "visible": true
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "scr_public01",
+        "name": "Public",
+        "icon": null,
+        "showInNav": true,
+        "maxWidth": "medium",
+        "sections": [
+          {
+            "id": "sec_public01",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_asset004",
+                "type": "image",
+                "props": {
+                  "src": "asset:7c9e6679-7425-40de-944b-e07fc1f90ae7",
+                  "alt": "Public picture",
+                  "fit": "cover"
+                },
+                "style": {
+                  "span": 6,
+                  "height": "md"
+                },
+                "visible": true
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "actions": {},
+    "design": {
+      "preset": "custom",
+      "font": "system",
+      "surface": "hairline",
+      "motion": "subtle",
+      "chartPalette": "classic",
+      "accentEdge": "bar",
+      "logoUrl": "asset:0b6f2c1e-4a8d-4e1f-9c3b-1d2e3f4a5b6c"
+    },
+    "homeScreenId": "scr_assets01",
+    "publicAccess": {
+      "entryScreenId": "scr_public01",
+      "screenIds": [
+        "scr_public01"
+      ],
+      "roleKey": "public",
+      "design": {
+        "logoUrl": "asset:9a1b2c3d-0000-4000-8000-00000000abcd"
+      }
+    }
+  }
+}

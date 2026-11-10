@@ -330,14 +330,13 @@ function buildCompleteness({
     // assumes canonical input and an app stored before the v1→v2 migration
     // would otherwise report `shape.schema_version` — an ERROR, and therefore a
     // publish block, invented by this module rather than found by it.
-    const { validateAppDefinition } = require('../appStudio/validate');
-    const { canonicalizeAppDefinition } = require('../appStudio/canonicalize');
+    const { canonicalizeAndValidate } = require('../appStudio/definitionGate.mts');
     for (const app of apps.filter(Boolean)) {
         let result;
         let canonical;
         try {
-            canonical = canonicalizeAppDefinition(structuredClone(app.definition)).def;
-            result = validateAppDefinition(canonical);
+            result = canonicalizeAndValidate(app.definition);
+            canonical = result.canonical;
         } catch {
             // An app that cannot even be validated is not an app with no
             // problems. Say so, and block.
