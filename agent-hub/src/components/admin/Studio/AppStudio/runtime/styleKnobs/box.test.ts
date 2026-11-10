@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { resolveNodeStyle } from '../styleResolver';
 import { BOX_SHADOWS, resolveBoxBorderColor, resolveBoxFill } from '../styleResolver/box';
 import type { StyleKnobs } from '../styleResolver.types';
+import { extensionKnobGroups } from '../catalogSnapshot.generated.json';
+import boxHandler from './box';
 
 const resolve = (style: Record<string, unknown>) => resolveNodeStyle({ style: style as StyleKnobs });
 
@@ -44,5 +46,15 @@ describe('box knob group on the grid cell', () => {
 
     it('the node keeps its surface class, so the hairline rules still apply where no border is set', () => {
         expect(resolve({ background: 'surface', shadow: 'sm' }).className).toContain('app-surface');
+    });
+
+    it('the handler names every knob of the group and draws on the node only', () => {
+        const group = extensionKnobGroups.find((g) => g.name === 'box');
+        expect(group).toBeTruthy();
+        expect(Object.keys(boxHandler.labels ?? {}).sort()).toEqual([...(group?.knobs ?? [])].sort());
+        expect(boxHandler.section).toBeUndefined();
+        const style = {};
+        expect(boxHandler.node?.({ shadow: 'sm' } as StyleKnobs, style)).toBe('');
+        expect(style).toEqual({ boxShadow: 'var(--app-shadow-1)' });
     });
 });

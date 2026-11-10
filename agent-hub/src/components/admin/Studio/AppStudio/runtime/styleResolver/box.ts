@@ -117,7 +117,7 @@ export function applySectionBox(s: StyleKnobs, style: InlineStyle): string {
 // ---------------------------------------------------------------------------
 
 /** The knobs of the box group, as authored (canonicalize has clamped them). */
-export interface BoxKnobs {
+interface BoxKnobs {
     marginTop?: number | null;
     marginBottom?: number | null;
     shadow?: string | null;
@@ -187,7 +187,8 @@ function applyBoxBorder(s: BoxKnobs, style: InlineStyle): void {
 }
 
 /** The box group onto `style` (after the base box, so its fill and border win). No classes. */
-export function applyBoxKnobs(s: BoxKnobs, style: InlineStyle): string {
+export function applyBoxKnobs(knobs: StyleKnobs, style: InlineStyle): string {
+    const s = knobs as BoxKnobs;
     if (Number(s.marginTop) > 0) style.marginTop = spaceSteps(Number(s.marginTop));
     if (Number(s.marginBottom) > 0) style.marginBottom = spaceSteps(Number(s.marginBottom));
     const shadow = s.shadow ? BOX_SHADOWS[s.shadow] : undefined;

@@ -8,7 +8,7 @@
  * into rings in high contrast.
  */
 
-import { applyBoxKnobs, type BoxKnobs } from '../styleResolver/box';
+import { applyBoxKnobs } from '../styleResolver/box';
 import type { StyleKnobHandler } from '../styleKnobHandlers';
 
 const box: StyleKnobHandler = {
@@ -40,7 +40,7 @@ const box: StyleKnobHandler = {
             y: ['studio_apps_box.values.y', 'Top and bottom'],
         },
     },
-    node: (s, style) => applyBoxKnobs(s as BoxKnobs, style),
+    node: applyBoxKnobs,
 };
 
 export default box;

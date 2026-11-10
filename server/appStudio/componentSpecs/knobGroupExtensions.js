@@ -109,4 +109,11 @@ function loadKnobGroupExtensions(dir, ctx) {
     return out;
 }
 
-module.exports = { loadKnobGroupExtensions, EXTENSION_KNOB_TYPES };
+/**
+ * Does `group` skip the component type `type` (expandStyleKnobs)?
+ * @param {{ withheldFrom?: readonly string[] }} group
+ * @param {string | undefined} type
+ */
+const isWithheld = (group, type) => type !== undefined && Array.isArray(group.withheldFrom) && group.withheldFrom.includes(type);
+
+module.exports = { loadKnobGroupExtensions, isWithheld, EXTENSION_KNOB_TYPES };

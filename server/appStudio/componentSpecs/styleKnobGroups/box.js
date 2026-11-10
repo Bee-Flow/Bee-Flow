@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * App Studio style knob group "box": margins, elevation, opacity, border and fill of a
  * component's box (package LK2).
@@ -82,7 +82,7 @@ module.exports = {
             description: 'Fill of the component box: a role or a #rrggbb colour.'
                 + ' Wins over the background knob where the type has one. A role paints a soft wash of that colour over the card surface, so text stays readable in light, dark and high contrast.'
                 + ' A hex colour paints exactly that colour in every theme: the validator warns when the text on it would be hard to read, and a role is the safer choice.'
-                + ' A card with a look other than default keeps the fill of its look. Most types have no padding knob, so text sits tight against the fill: put it in a card or container for an inset.' + WHERE,
+                + ' A card, stat or page_header with a look other than its default paints that look\'s own surface inside the box, so pick the look or this fill, not both. Most types have no padding knob, so text sits tight against the fill: put it in a card or container for an inset.' + WHERE,
         },
     },
 };

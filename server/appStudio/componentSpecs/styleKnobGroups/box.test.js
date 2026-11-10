@@ -84,15 +84,17 @@ test('canonicalize keeps what was set, leaves the rest absent, and repairs bad v
         node('cmp_box001', 'heading', set, { text: 'A' }),
         node('cmp_box002', 'heading', { span: 6 }, { text: 'B' }),
         node('cmp_box003', 'button', { span: 3, shadow: 'md' }, { label: 'Go' }),
-        node('cmp_box004', 'text', { span: 12, backgroundColor: null, borderColor: null, opacity: 400, marginTop: -1, shadow: 'huge' }, { text: 'C' }),
+        node('cmp_box004', 'text', { span: 12, backgroundColor: null, borderColor: 'navy', opacity: 400, marginTop: -1, shadow: 'huge' }, { text: 'C' }),
     ]));
     const [a, b, c, d] = nodesOf(def);
     assert.deepEqual(a.style, set);
     assert.deepEqual(b.style, { span: 6 });
     assert.deepEqual(c.style, { span: 3 });
     assert.ok(notes.some((n) => n.code === 'style.unknown_key' && n.path.endsWith('children[2].style')));
-    // null is "not set" for these colour knobs; out-of-range numbers clamp; an unknown enum resets.
+    // null and an unusable colour are "not set" for these colour knobs (nothing is written);
+    // out-of-range numbers clamp; an unknown enum resets.
     assert.deepEqual(d.style, { span: 12, opacity: 100, marginTop: 0, shadow: 'none' });
+    assert.ok(notes.some((n) => n.code === 'style.invalid' && n.path.endsWith('children[3].style.borderColor')));
     assert.equal(def.schemaVersion, 3);
 
     const plain = canonicalizeAppDefinition(appWith([node('cmp_box005', 'heading', { span: 6 }, { text: 'A' })])).def;

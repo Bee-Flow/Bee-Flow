@@ -90,7 +90,6 @@ export function updateSectionStyle(def: AppDefinition, sectionId: string, patch:
 // Knob presentation
 // ---------------------------------------------------------------------------
 
-
 // SegmentedControl values must be string|number — the radius knob's null
 // ("inherit the theme") rides a sentinel and is mapped back on commit.
 const INHERIT = '__inherit';

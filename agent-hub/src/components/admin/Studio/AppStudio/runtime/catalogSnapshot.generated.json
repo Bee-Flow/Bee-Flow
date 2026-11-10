@@ -335,7 +335,7 @@
             ],
             "default": null,
             "since": 3,
-            "description": "Fill of the component box: a role or a #rrggbb colour. Wins over the background knob where the type has one. A role paints a soft wash of that colour over the card surface, so text stays readable in light, dark and high contrast. A hex colour paints exactly that colour in every theme: the validator warns when the text on it would be hard to read, and a role is the safer choice. A card with a look other than default keeps the fill of its look. Most types have no padding knob, so text sits tight against the fill: put it in a card or container for an inset. Not on button, callout, ai_chat, approval_list, browser_view, pdf_compare or connector_status, which frame their own box."
+            "description": "Fill of the component box: a role or a #rrggbb colour. Wins over the background knob where the type has one. A role paints a soft wash of that colour over the card surface, so text stays readable in light, dark and high contrast. A hex colour paints exactly that colour in every theme: the validator warns when the text on it would be hard to read, and a role is the safer choice. A card, stat or page_header with a look other than its default paints that look's own surface inside the box, so pick the look or this fill, not both. Most types have no padding knob, so text sits tight against the fill: put it in a card or container for an inset. Not on button, callout, ai_chat, approval_list, browser_view, pdf_compare or connector_status, which frame their own box."
         }
     },
     "advancedWidthKnobs": [

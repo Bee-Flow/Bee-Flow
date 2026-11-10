@@ -8,7 +8,7 @@
 'use strict';
 
 const path = require('node:path');
-const { loadKnobGroupExtensions } = require('./knobGroupExtensions');
+const { loadKnobGroupExtensions, isWithheld } = require('./knobGroupExtensions');
 
 // ---------------------------------------------------------------------------
 // Theme — the entire theme. One picker restyles the whole app.
@@ -184,18 +184,8 @@ const STYLE_KNOB_GROUPS = Object.freeze([...BASE_STYLE_KNOB_GROUPS, ...EXTENSION
 const _expandedKnobCache = new WeakMap();
 
 /**
- * Does `group` skip the component type `type`?
- * @param {{ withheldFrom?: readonly string[] }} group
- * @param {string | undefined} type
- */
-const isWithheld = (group, type) => type !== undefined && Array.isArray(group.withheldFrom) && group.withheldFrom.includes(type);
-
-/**
- * A type's (or the section's) style knobs plus the knobs its groups grant it.
- *
- * `type` names the component type the list belongs to: a group that lists it in
- * `withheldFrom` skips it. Without a type (a section, or a caller that only has the list)
- * no group is withheld.
+ * A type's (or the section's) style knobs plus the knobs its groups grant it. A group that
+ * lists `type` in `withheldFrom` skips it; without a type nothing is withheld.
  * @param {WeakKey} knobs
  * @param {readonly { grantedBy: string, knobs: readonly string[], withheldFrom?: readonly string[] }[]} [groups]  the rule set (a test passes its own)
  * @param {string} [type]
