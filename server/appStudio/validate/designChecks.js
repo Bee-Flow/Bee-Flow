@@ -13,14 +13,16 @@ const { isObject } = require('./shared');
 const { isAssetRef, valueTypeOf, isCleanValue } = require('../componentSpecs/valueTypes');
 
 /**
- * A design key of a later value type (componentSpecs/valueTypes.js): is `value` what its own
- * clean() would store? A base kind (enum, url) is checked where it is used and answers true.
- * @param {{ type: string }} spec
+ * A design key of a later value type (componentSpecs/valueTypes.js): null when `value` is what
+ * its own clean() would store, else what an acceptable value looks like. A base kind (enum,
+ * url) is checked where it is used and answers null.
+ * @param {import('../componentSpecs/valueTypes').TypedSpec} spec
  * @param {unknown} value
+ * @returns {string | null}
  */
-function typedValueOk(spec, value) {
+function typedValueProblem(spec, value) {
     const valueType = valueTypeOf(spec);
-    return !valueType || isCleanValue(valueType, value, /** @type {any} */ (spec));
+    return !valueType || isCleanValue(valueType, value, spec) ? null : valueType.hint(spec);
 }
 
 /**
@@ -45,8 +47,8 @@ function checkDesignAndNav(def, screens, pushE, pushW) {
                 } else if (spec.type === 'url' && value !== null && !isAssetRef(value)
                     && (typeof value !== 'string' || !/^https:\/\//.test(value) || value.length > spec.maxLen)) {
                     pushE({ code: 'design.value_invalid', severity: 'error', path: `design.${key}`, message: `design.${key} must be null or an https:// URL of at most ${spec.maxLen} characters.`, hint: 'Upload the logo somewhere reachable and paste its https URL.' });
-                } else if (!typedValueOk(spec, value)) {
-                    pushE({ code: 'design.value_invalid', severity: 'error', path: `design.${key}`, message: `design.${key} is not in the form it is stored in.`, hint: /** @type {any} */ (valueTypeOf(spec)).hint(spec) });
+                } else if (typedValueProblem(spec, value)) {
+                    pushE({ code: 'design.value_invalid', severity: 'error', path: `design.${key}`, message: `design.${key} is not in the form it is stored in.`, hint: String(typedValueProblem(spec, value)) });
                 }
             }
         }
@@ -124,8 +126,8 @@ function checkPublicAccess(def, pushE, pushW) {
                     pushE({ code: 'publicAccess.design_value_invalid', severity: 'error', path: `publicAccess.design.${key}`, message: `publicAccess.design.${key} must be one of ${spec.values.join(', ')}.`, hint: `Got ${JSON.stringify(value)}.` });
                 } else if (spec.type === 'url' && !isAssetRef(value) && !(typeof value === 'string' && /^https:\/\//.test(value) && value.length <= spec.maxLen)) {
                     pushE({ code: 'publicAccess.design_value_invalid', severity: 'error', path: `publicAccess.design.${key}`, message: `publicAccess.design.${key} must be an https:// URL of at most ${spec.maxLen} characters.`, hint: 'Upload the logo somewhere reachable and paste its https URL.' });
-                } else if (!typedValueOk(spec, value)) {
-                    pushE({ code: 'publicAccess.design_value_invalid', severity: 'error', path: `publicAccess.design.${key}`, message: `publicAccess.design.${key} is not in the form it is stored in.`, hint: /** @type {any} */ (valueTypeOf(spec)).hint(spec) });
+                } else if (typedValueProblem(spec, value)) {
+                    pushE({ code: 'publicAccess.design_value_invalid', severity: 'error', path: `publicAccess.design.${key}`, message: `publicAccess.design.${key} is not in the form it is stored in.`, hint: String(typedValueProblem(spec, value)) });
                 }
             }
         }

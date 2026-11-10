@@ -130,19 +130,26 @@ export function resolveCssAssets(css: string, transport: AssetTransport): string
     while (i < css.length) {
         const c = css[i];
         if (c === '\\') { out += css.slice(i, i + 2); i += 2; continue; }
-        if (quote) {
-            if (c === quote || c === '\n' || c === '\r' || c === '\f') quote = '';
-        } else if (c === '"' || c === "'") {
-            quote = c;
-        } else if (c === '(' && endsInUrl(out)) {
-            const hit = assetArgument(css, i + 1);
-            const url = hit ? assetUrl(hit.ref, transport) : null;
-            if (hit && url && isPlainAddress(url)) { out += `(${url})`; i = hit.end; continue; }
-        }
+        const resolved = !quote && c === '(' && endsInUrl(out) ? resolvedArgument(css, i + 1, transport) : null;
+        if (resolved) { out += `(${resolved.url})`; i = resolved.end; continue; }
+        quote = quoteAfter(quote, c);
         out += c;
         i += 1;
     }
     return out;
+}
+
+/** The string state after the character `c`: inside which quote, or '' outside a string. */
+function quoteAfter(quote: string, c: string): string {
+    if (quote) return c === quote || c === '\n' || c === '\r' || c === '\f' ? '' : quote;
+    return c === '"' || c === "'" ? c : '';
+}
+
+/** The address to write for the url( argument at `from`, and where that url() ends; null to leave it. */
+function resolvedArgument(css: string, from: number, transport: AssetTransport): { url: string; end: number } | null {
+    const hit = assetArgument(css, from);
+    const url = hit ? assetUrl(hit.ref, transport) : null;
+    return hit && url && isPlainAddress(url) ? { url, end: hit.end } : null;
 }
 
 const CLASS_FIRST = 'abcdefghijklmnopqrstuvwxyz';

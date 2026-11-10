@@ -1,3 +1,4 @@
+// @typecheck strict
 'use strict';
 
 /** A class name of the author's own on a component, for the app's stylesheet (appCss.mts). */

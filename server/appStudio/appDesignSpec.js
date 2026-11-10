@@ -53,7 +53,9 @@ const FONT_FAMILIES = Object.freeze({
  * before the key existed keeps its bytes. A base key is always written (its default when
  * absent). A key added later is optional and may use a value type of
  * componentSpecs/valueTypes.js as its `type`.
- * @typedef {{ type: 'enum', values: string[], default: string, optional?: boolean } | { type: 'url', default: string | null, maxLen: number, optional?: boolean }} DesignSpecEntry
+ * @typedef {{ type: 'enum', values: string[], default: string, optional?: boolean } | { type: 'url', default: string | null, maxLen: number, optional?: boolean } | DesignCssEntry} DesignSpecEntry
+ * @typedef {{ type: 'css', optional: true, since: number, maxLen: number, sanitize: (text: string) => string, repairNote: (text: unknown) => string | null, description: string }} DesignCssEntry
+ *   A stylesheet key: stored as `sanitize` returns it; `repairNote` says what saving took out.
  */
 
 const DESIGN_SPEC = Object.freeze(/** @satisfies {Record<string, DesignSpecEntry>} */ ({

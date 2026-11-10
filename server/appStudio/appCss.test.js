@@ -194,6 +194,9 @@ test('app_set_theme writes the stylesheet and reports what was removed', async (
  * appStudio/appCss.test.js`. Each selector is written to reach an element OUTSIDE the root.
  */
 const chrome = process.env.APP_CSS_TEST_CHROME;
+// Run in the page, so they are handed over as text.
+const OUTSIDE_COLOURS = "['before', 'after'].map((id) => getComputedStyle(document.getElementById(id)).color).concat(getComputedStyle(document.body).color, getComputedStyle(document.documentElement).color)";
+const INSIDE_OUTSIDE_COLOURS = "['inside', 'outside'].map((id) => getComputedStyle(document.getElementById(id)).color)";
 test('in a browser, no selector reaches outside the scope root', { skip: chrome ? false : 'set APP_CSS_TEST_CHROME to run' }, async () => {
     const { chromium } = require('playwright-core');
     const browser = await chromium.launch({ executablePath: chrome, headless: true });
@@ -207,13 +210,12 @@ test('in a browser, no selector reaches outside the scope root', { skip: chrome 
         for (const selector of reaching) {
             const css = wrapAppCss(sanitizeAppCss(`${selector} { color: ${red} !important; }`).css);
             await page.setContent(`<html><head><style>${css}</style></head><body><nav id="before">x</nav><div ${APP_CSS_ROOT_ATTR}><p id="inside">x</p></div><nav id="after">x</nav></body></html>`);
-            const colours = await page.evaluate(() => ['before', 'after'].map((id) => getComputedStyle(document.getElementById(id)).color)
-                .concat(getComputedStyle(document.body).color, getComputedStyle(document.documentElement).color));
+            const colours = await page.evaluate(OUTSIDE_COLOURS);
             assert.ok(!colours.includes(red), `${selector} coloured something outside the root`);
         }
         // And a rule for something inside does apply.
         await page.setContent(`<html><head><style>${wrapAppCss('p { color: rgb(255, 0, 0); }')}</style></head><body><div ${APP_CSS_ROOT_ATTR}><p id="inside">x</p></div><p id="outside">x</p></body></html>`);
-        assert.deepEqual(await page.evaluate(() => ['inside', 'outside'].map((id) => getComputedStyle(document.getElementById(id)).color)), [red, 'rgb(0, 0, 0)']);
+        assert.deepEqual(await page.evaluate(INSIDE_OUTSIDE_COLOURS), [red, 'rgb(0, 0, 0)']);
     } finally {
         await browser.close();
     }
