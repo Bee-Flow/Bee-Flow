@@ -439,6 +439,7 @@ module.exports = {
     "org.logo_removed": "Logo removed",
     "org.logo_remove_failed": "Failed to remove logo",
     "org.custom_plan": "Custom",
+    "org.sub_status_manual_action_required": "Payment action required",
     "org.domain_invalid": "Invalid domain format: \"{domain}\"",
     "org.domain_duplicate": "Domain \"{domain}\" is already added",
     "org.add_domain_placeholder": "Add domain...",

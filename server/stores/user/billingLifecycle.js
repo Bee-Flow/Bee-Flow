@@ -36,11 +36,11 @@ async function getDunningCounts() {
     try {
         const o = await getOne(`SELECT
             COUNT(*) FILTER (WHERE status = 'past_due')::int AS past_due_count,
-            COUNT(*) FILTER (WHERE status = 'suspended')::int AS suspended_count
+            COUNT(*) FILTER (WHERE status IN ('suspended', 'manual_action_required'))::int AS suspended_count
             FROM organization_subscriptions`);
         const c = await getOne(`SELECT
             COUNT(*) FILTER (WHERE status = 'past_due')::int AS past_due_count,
-            COUNT(*) FILTER (WHERE status = 'suspended')::int AS suspended_count
+            COUNT(*) FILTER (WHERE status IN ('suspended', 'manual_action_required'))::int AS suspended_count
             FROM consumer_subscriptions`);
         return {
             past_due_count: (o?.past_due_count || 0) + (c?.past_due_count || 0),
@@ -173,7 +173,7 @@ async function suspendPastDueSubscriptions(graceDays = 7) {
            FROM organization_subscriptions
           WHERE past_due_since IS NOT NULL
             AND past_due_since < $1
-            AND status NOT IN ('suspended', 'cancelled')`,
+            AND status NOT IN ('suspended', 'manual_action_required', 'cancelled')`,
         [cutoffIso]
     );
     for (const row of orgsToSuspend) {
@@ -199,7 +199,7 @@ async function suspendPastDueSubscriptions(graceDays = 7) {
            FROM consumer_subscriptions
           WHERE past_due_since IS NOT NULL
             AND past_due_since < $1
-            AND status NOT IN ('suspended', 'cancelled')`,
+            AND status NOT IN ('suspended', 'manual_action_required', 'cancelled')`,
         [cutoffIso]
     );
     for (const row of consumersToSuspend) {

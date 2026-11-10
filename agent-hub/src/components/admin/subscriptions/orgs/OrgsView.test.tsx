@@ -61,6 +61,32 @@ describe('OrgsView', () => {
         expect(within(table).getByText('No matches')).toBeInTheDocument();
     });
 
+    it('labels and filters a subscription whose dunning reached the cap, and keeps that status in its editor', async () => {
+        const user = userEvent.setup();
+        setDemoTransport(async (url: unknown) => {
+            const address = String(url);
+            if (address.endsWith('/auth/organizations')) return json([{ id: 'o1', name: 'Acme' }, { id: 'o2', name: 'Zeta' }]);
+            if (address.endsWith('/api/subscriptions/orgs')) return json([
+                { organization_id: 'o1', org_name: 'Acme', plan_id: 'p1', plan_name: 'Team', status: 'manual_action_required' },
+                { organization_id: 'o2', org_name: 'Zeta', plan_id: 'p1', plan_name: 'Team', status: 'active' },
+            ]);
+            if (address.endsWith('/api/subscriptions/plans')) return json([{ id: 'p1', name: 'Team' }]);
+            return json({ features: [] });
+        });
+        render(<OrgsView />);
+        const table = await screen.findByRole('table', { name: 'Active subscriptions' });
+        expect(within(table).getByText('Action required')).toBeInTheDocument();
+        expect(within(table).queryByText('manual_action_required')).toBeNull();
+
+        await user.click(screen.getByRole('button', { name: 'Action required' }));
+        expect(within(table).getByText('Acme')).toBeInTheDocument();
+        expect(within(table).queryByText('Zeta')).toBeNull();
+
+        await user.click(within(table).getByText('Acme'));
+        const option = await screen.findByRole('option', { name: 'Payment action required' });
+        expect((option as HTMLOptionElement).selected).toBe(true);
+    });
+
     it('saves an override that was switched on but left empty as no override, never as a cap of 0', async () => {
         const user = userEvent.setup();
         const saved: Array<Record<string, unknown>> = [];

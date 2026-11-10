@@ -23,7 +23,9 @@ async function getOrgSubscription(orgId) {
     return { ...s, billing_model: s.plan_billing_model || 'fixed', allowed_features: parseJSON(s.allowed_features, null), allowed_models: parseJSON(s.allowed_models, null), max_messages_by_type: parseJSON(s.max_messages_by_type, null) };
 }
 
-const VALID_SUB_STATUSES = ['active', 'suspended', 'cancelled', 'trialing', 'past_due', 'incomplete', 'paused'];
+// 'manual_action_required' is the end of dunning (routes/stripe/paymentEvents.js):
+// payment failed DUNNING_MAX_ATTEMPTS times. It locks out like 'suspended'.
+const VALID_SUB_STATUSES = ['active', 'suspended', 'cancelled', 'trialing', 'past_due', 'incomplete', 'paused', 'manual_action_required'];
 
 function assertValidStatus(data) {
     if (data.status && !VALID_SUB_STATUSES.includes(data.status)) {

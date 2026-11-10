@@ -65,6 +65,20 @@ function stripOverriddenFields(updateData) {
     return out;
 }
 
+/**
+ * Stripe keeps a subscription `past_due` for as long as it retries the invoice,
+ * also once the dunning cap has moved the local row to `manual_action_required`.
+ * Stripe's `past_due` does not undo the cap; every other Stripe status (active,
+ * unpaid, canceled, ...) replaces it.
+ * @param {{ status?: string }} updateData  the payload about to be written; changed in place
+ * @param {{ status?: string } | null | undefined} current  the local row
+ */
+function holdDunningCap(updateData, current) {
+    if (updateData.status === 'past_due' && current?.status === 'manual_action_required') {
+        updateData.status = 'manual_action_required';
+    }
+}
+
 /** @param {string | null | undefined} stripeSubscriptionId */
 async function findSubscriptionTargetBySubId(stripeSubscriptionId) {
     if (!stripeSubscriptionId) return null;
@@ -93,6 +107,7 @@ module.exports = {
     getSubscriberType,
     verifyMetadataMatchesLocal,
     stripOverriddenFields,
+    holdDunningCap,
     findSubscriptionTargetBySubId,
     findSubscriptionTargetByCustomerId,
 };

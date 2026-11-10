@@ -121,7 +121,7 @@ No request schema.
 | Field | Type | Required | Notes |
 |-------|------|:--------:|-------|
 | `plan_id` | string or null |  |  |
-| `status` | one of `"active"`, `"suspended"`, `"cancelled"`, `"trialing"`, `"past_due"` |  |  |
+| `status` | one of `"active"`, `"suspended"`, `"cancelled"`, `"trialing"`, `"past_due"`, `"manual_action_required"` |  |  |
 | `max_messages_per_month` | number or null |  |  |
 | `max_tokens_per_month` | number or null |  |  |
 | `max_cost_per_month` | number or null |  |  |

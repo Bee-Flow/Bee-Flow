@@ -178,6 +178,7 @@ export function OrgsView() {
                                 { value: 'active', label: t('admin_subscriptions.orgs_status_active', 'Active') },
                                 { value: 'trialing', label: t('admin_subscriptions.orgs_status_trialing', 'Trialing') },
                                 { value: 'suspended', label: t('admin_subscriptions.orgs_status_suspended', 'Suspended') },
+                                { value: 'manual_action_required', label: t('admin_subscriptions.orgs_status_manual_action_required', 'Action required') },
                                 { value: 'cancelled', label: t('admin_subscriptions.orgs_status_cancelled', 'Cancelled') },
                             ]}
                         />

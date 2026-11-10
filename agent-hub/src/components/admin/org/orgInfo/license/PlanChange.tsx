@@ -96,10 +96,10 @@ export function PlanSummaryCard({ sub, limits, canChangePlan, billing }: PlanSum
                         <div className="flex items-center gap-2">
                             <h3 className="text-lg font-bold text-[var(--text-primary)]">{sub.plan_name || t('org.custom_plan', 'Custom')}</h3>
                             <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider ${sub.status === 'active' ? 'bg-green-500/15 text-green-500'
-                                : sub.status === 'suspended' ? 'bg-red-500/15 text-red-500'
+                                : (sub.status === 'suspended' || sub.status === 'manual_action_required') ? 'bg-red-500/15 text-red-500'
                                     : 'bg-[var(--bg-tertiary)] text-[var(--text-muted)]'
                                 }`}>
-                                {sub.status}
+                                {sub.status === 'manual_action_required' ? t('org.sub_status_manual_action_required', 'Payment action required') : sub.status}
                             </span>
                         </div>
                         <p className="text-xs text-[var(--text-muted)] mt-0.5">

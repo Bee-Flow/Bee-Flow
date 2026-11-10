@@ -18,7 +18,7 @@ export interface OrgSubscription {
 /** The row as DataTable reads it (it keys rows by organization_id, see rowKey). */
 type SubRow = OrgSubscription & { id?: string };
 
-const STATUS_TONE: Record<string, BadgeTone> = { active: 'success', trialing: 'info', suspended: 'warning', cancelled: 'danger' };
+const STATUS_TONE: Record<string, BadgeTone> = { active: 'success', trialing: 'info', suspended: 'warning', manual_action_required: 'warning', cancelled: 'danger' };
 
 /** From 80 % of a limit a warning, from 90 % an error. */
 function LimitWarning({ pct }: { pct: number | null }) {
@@ -48,6 +48,8 @@ export function SubscriptionsTable({ subs, onOpen, empty }: SubscriptionsTablePr
     ];
     const { sorted, columns } = useSortedRows(subs, defs);
     const [org, plan, status, messages, cost, open] = columns;
+    // The server's enum as is, except the one that is a sentence rather than a word.
+    const statusLabel = (s: string) => (s === 'manual_action_required' ? t('admin_subscriptions.orgs_status_manual_action_required', 'Action required') : s);
     return (
         <DataTable<SubRow>
             columns={columns}
@@ -64,7 +66,7 @@ export function SubscriptionsTable({ subs, onOpen, empty }: SubscriptionsTablePr
                             {sub.plan_name || t('admin_subscriptions.orgs_custom', 'Custom')} · {(sub.current_usage?.messages || 0).toLocaleString()} · €{(sub.current_usage?.cost || 0).toFixed(2)}
                         </div>
                     </div>
-                    <Badge tone={STATUS_TONE[sub.status] || 'neutral'} size="sm">{sub.status}</Badge>
+                    <Badge tone={STATUS_TONE[sub.status] || 'neutral'} size="sm">{statusLabel(sub.status)}</Badge>
                     <ChevronRight className="h-3.5 w-3.5 shrink-0 text-[var(--text-tertiary)]" aria-hidden="true" />
                 </button>
             )}
@@ -80,7 +82,7 @@ export function SubscriptionsTable({ subs, onOpen, empty }: SubscriptionsTablePr
                             <div className={`${TABLE_FOLDED_ONLY[900]} truncate text-[11px] text-[var(--text-tertiary)]`}>{planName}</div>
                         </TableCell>
                         <TableCell column={plan} className="truncate text-[var(--text-secondary)]">{planName}</TableCell>
-                        <TableCell column={status}><Badge tone={STATUS_TONE[sub.status] || 'neutral'} size="sm">{sub.status}</Badge></TableCell>
+                        <TableCell column={status}><Badge tone={STATUS_TONE[sub.status] || 'neutral'} size="sm">{statusLabel(sub.status)}</Badge></TableCell>
                         <TableCell column={messages} className="tabular-nums text-[var(--text-secondary)]">
                             {(sub.current_usage?.messages || 0).toLocaleString()}{msgLimit ? ` / ${msgLimit.toLocaleString()}` : ''}
                             <LimitWarning pct={pctOf(sub.current_usage?.messages, msgLimit)} />

@@ -22,6 +22,8 @@ const OWNED_ELSEWHERE = new Set([
     'admin_subscriptions.limit_override_on', // add-nl-admin-studio-4a-2026-11-translations
     'admin_subscriptions.limit_plan_default', // add-nl-admin-studio-4a-2026-11-translations
     'admin_subscriptions.limit_unlimited', // add-nl-admin-studio-4a-2026-11-translations
+    'admin_subscriptions.org_editor_status_manual_action_required', // add-nl-billing-status-2026-11-translations
+    'admin_subscriptions.orgs_status_manual_action_required', // add-nl-billing-status-2026-11-translations
 ]);
 
 test('every English key in the admin namespaces has Dutch (or is declared identical)', () => {

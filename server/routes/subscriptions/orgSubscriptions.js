@@ -40,13 +40,13 @@ const text = (what) => worded(`${what} must be text.`);
 const cap = (name) => z.coerce.number({ error: typeError({ invalid: `${name} must be a number.` }) })
     .min(0, `${name} must be non-negative.`).nullish();
 
-const STATUS_TEXT = 'Invalid status. Must be: active, suspended, cancelled, trialing, past_due';
+const STATUSES = /** @type {const} */ (['active', 'suspended', 'cancelled', 'trialing', 'past_due', 'manual_action_required']);
 const PLAN_ID_TEXT = 'plan_id is required — the plan to start the trial on.';
 
 const OrgSubscriptionBody = z.object({
     // '' is how the editor spells "no plan"; it is stored as-is today.
     plan_id: text('plan_id').nullish(),
-    status: z.enum(['active', 'suspended', 'cancelled', 'trialing', 'past_due'], { error: () => STATUS_TEXT }).optional(),
+    status: z.enum(STATUSES, { error: () => `Invalid status. Must be: ${STATUSES.join(', ')}` }).optional(),
 
     max_messages_per_month: cap('max_messages_per_month'),
     max_tokens_per_month: cap('max_tokens_per_month'),

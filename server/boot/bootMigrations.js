@@ -278,10 +278,10 @@ const NL_TRANSLATIONS = [
     'add-nl-admin-studio-3b-2026-11-translations', // Admin dashboard in the Studio layout, round 3b: the AI Monitor and Website analytics chrome
     'add-nl-admin-studio-4a-2026-11-translations', // Admin dashboard in the Studio layout, round 4a: Agent Designer section bodies, Support views, Subscriptions tables
     'add-nl-web-fixes-2026-11-translations', // Web fixes: a policy text that could not be loaded, a vault entry that could not be forgotten, the read-only default language
+    'add-nl-billing-status-2026-11-translations', // Subscriptions: the label of the status manual_action_required (payment failed until the dunning cap)
     // Corrects keys an earlier catalogue shipped as English: after every catalogue above, so its Dutch wins.
     'add-nl-fix-english-2026-10-translations',
-    // Settings menu clean-up: "Instellingen → Integraties" becomes "Instellingen → Koppelingen",
-    // "Organisatie-instellingen → …" the real menu path, and the relabelled rows (old shipped text only).
+    // Settings menu clean-up: "Instellingen → Integraties" becomes "Instellingen → Koppelingen", "Organisatie-instellingen → …" the real menu path, and the relabelled rows (old shipped text only).
     // After the memory catalogue, whose "Context in lange gesprekken" it rewords.
     'update-nl-settings-nav-2026-10',
     // The colleagues switch now covers calendar events: its Dutch hint says so (old shipped text only).

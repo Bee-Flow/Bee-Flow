@@ -220,12 +220,12 @@ async function getBestTierForOrgs(orgIds = []) {
  * Returns null when the subscription is missing/inactive/expired.
  *
  * Active states that grant tier: 'active', 'trialing' (within trial_end_date).
- * Inactive: 'suspended', 'cancelled', 'past_due', expired trial without payment.
+ * Inactive: 'suspended', 'manual_action_required', 'cancelled', 'past_due', expired trial without payment.
  */
 function resolveTierFromSubscription(sub) {
     if (!sub) return null;
     const status = sub.status;
-    if (status === 'cancelled' || status === 'suspended' || status === 'past_due') return null;
+    if (status === 'cancelled' || status === 'suspended' || status === 'manual_action_required' || status === 'past_due') return null;
     if (status === 'trialing') {
         if (!sub.trial_end_date) return null;
         const trialEnd = new Date(sub.trial_end_date).getTime();

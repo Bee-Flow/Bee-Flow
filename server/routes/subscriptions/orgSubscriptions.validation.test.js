@@ -105,7 +105,7 @@ test('a misspelled cap is refused rather than saved as a no-op', async () => {
 test('a misspelled status is refused with the same sentence as before', async () => {
     const res = await dispatch({ method: 'PUT', url: '/orgs/orgA', body: { status: 'activ' } });
     assert.strictEqual(res.statusCode, 400);
-    assert.strictEqual(res.body.error, 'Invalid status. Must be: active, suspended, cancelled, trialing, past_due');
+    assert.strictEqual(res.body.error, 'Invalid status. Must be: active, suspended, cancelled, trialing, past_due, manual_action_required');
     assert.deepStrictEqual(touched, []);
 });
 

@@ -8,7 +8,7 @@
 
 const stripeService = require('../../services/stripeService');
 const userStore = require('../../stores/userStore');
-const { getSubscriberType, verifyMetadataMatchesLocal, stripOverriddenFields } = require('./webhookShared');
+const { getSubscriberType, verifyMetadataMatchesLocal, stripOverriddenFields, holdDunningCap } = require('./webhookShared');
 const appPaths = require('../../utils/appPaths');
 const log = require('../../telemetry/log');
 const { bestEffort } = require('../../utils/bestEffort');
@@ -162,6 +162,7 @@ async function handleSubscriptionUpdated(subscription) {
         }
         // Atomic: override decision + write happen under a row-level lock so
         // two concurrent webhooks for the same subscription serialise.
+        holdDunningCap(updateData, await userStore.getConsumerSubscription(userId));
         const strippedUpdate = stripOverriddenFields(updateData);
         const result = await userStore.setConsumerSubscriptionRespectingOverride(userId, updateData, strippedUpdate);
         const applied = result.applied === 'stripped' ? strippedUpdate : updateData;
@@ -191,6 +192,7 @@ async function handleSubscriptionUpdated(subscription) {
         // transition (e.g. a scheduled downgrade reaching its period boundary).
         const priorSub = await userStore.getOrgSubscription(orgId);
         const priorPlanId = priorSub?.plan_id || null;
+        holdDunningCap(updateData, priorSub);
         const strippedUpdate = stripOverriddenFields(updateData);
         const result = await userStore.setOrgSubscriptionRespectingOverride(orgId, updateData, strippedUpdate);
         const applied = result.applied === 'stripped' ? strippedUpdate : updateData;
@@ -401,10 +403,7 @@ async function _notifyAdminNewSubscriptionOnce(subscription) {
     }
 }
 
-/**
- * customer.subscription.deleted — Subscription cancelled or expired
- */
-/** @param {WebhookSubscription} subscription */
+/** customer.subscription.deleted: the subscription was cancelled or expired. @param {WebhookSubscription} subscription */
 async function handleSubscriptionDeleted(subscription) {
     const subscriberType = getSubscriberType(subscription.metadata);
 
