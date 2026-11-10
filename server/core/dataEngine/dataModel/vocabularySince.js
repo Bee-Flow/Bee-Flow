@@ -3,8 +3,8 @@
  * Data engine — which words of the data vocabulary (vocabulary.js) were added after the
  * frozen base, and what each one means.
  *
- * vocabulary.js keeps the lists themselves (FIELD_TYPES, FILTER_OPS, AGG_FNS, DATE_BUCKETS):
- * a new word is appended there, AFTER the base words, so every enum built from a list keeps
+ * vocabulary.js keeps the lists themselves (FIELD_TYPES, FILTER_OPS, AGG_FNS, DATE_BUCKETS,
+ * ROW_RULE_WORDS): a new word is appended there, AFTER the base words, so every enum built from a list keeps
  * its base prefix. The word is then marked here, in the table of its family:
  *
  *   fieldTypes    a field type                       autonumber: { since: 3, description }
@@ -12,6 +12,7 @@
  *   filterOps     a filter operator                  search:     { since: 3, description }
  *   aggFns        an aggregate function              median:     { since: 3, description }
  *   dateBuckets   a date bucket of a group           fortnight:  { since: 3, description }
+ *   rowRule       a word of a row rule               viewer.email: { since: 3, description }
  *
  * `description` is one sentence or more on what the word does; `shape` (field options only)
  * is the value's shape as catalogue text. A word without a mark is base vocabulary.
@@ -23,8 +24,8 @@
  *     full by app_inspect_catalog (appStudio/catalogTiers.mts); the schemas' enums accept them.
  *   - A filter operator, aggregate function or date bucket used in a binding or a step of an
  *     app definition stores that definition with at least the mark's schemaVersion
- *     (appStudio/schemaSince.mts). Field types and field options live in the data model, which
- *     has no schema version of its own.
+ *     (appStudio/schemaSince.mts). Field types, field options and row rules live in the data
+ *     model, which has no schema version of its own.
  *
  * LAYER: core/, literals and vocabulary.js only (see the note there).
  */
@@ -35,7 +36,7 @@ const vocabulary = require('./vocabulary');
 
 /**
  * @typedef {{ since: number, description: string, shape?: string }} VocabularyMark
- * @typedef {'fieldTypes' | 'fieldOptions' | 'filterOps' | 'aggFns' | 'dateBuckets'} VocabularyFamily
+ * @typedef {'fieldTypes' | 'fieldOptions' | 'filterOps' | 'aggFns' | 'dateBuckets' | 'rowRule'} VocabularyFamily
  */
 
 /** @type {Readonly<Record<VocabularyFamily, Readonly<Record<string, VocabularyMark>>>>} */
@@ -45,6 +46,30 @@ const DATA_VOCABULARY_MARKS = Object.freeze({
     filterOps: Object.freeze({}),
     aggFns: Object.freeze({}),
     dateBuckets: Object.freeze({}),
+    // Row rules (`access.rowFilters[role]` of a table): what a rule can know about the viewer
+    // beyond id, role and organizationId, the membership test and the rule per operation.
+    rowRule: Object.freeze({
+        'viewer.orgId': Object.freeze({
+            since: 3,
+            description: 'The organisation of the viewer\'s own account. The same on every path, and null for an anonymous visitor of a public page: use it in a new rule where viewer.organizationId stood.',
+        }),
+        'viewer.email': Object.freeze({
+            since: 3,
+            description: 'The address of the viewer\'s account. Compared like any value: record.assignee == viewer.email.',
+        }),
+        'viewer.groups': Object.freeze({
+            since: 3,
+            description: 'The ids of the groups the viewer is in, a list for the right of `in`. Never compared as one value: write record.team in viewer.groups.',
+        }),
+        in: Object.freeze({
+            since: 3,
+            description: 'Membership of a list of the viewer: record.team in viewer.groups. The left side is a text or select field (or id, created_by, org_id), and a viewer in no group matches no row.',
+        }),
+        perOperation: Object.freeze({
+            since: 3,
+            description: 'A row rule per operation in place of one rule for all three. rowFilters[role] is then { read, update, delete } with a formula each, every key optional: an operation left out follows the read formula (never broader than read), and the formula `true` gives that operation every row.',
+        }),
+    }),
 });
 
 /** The list each family marks words of (field options are keys, not a list). */
@@ -53,6 +78,7 @@ const FAMILY_LISTS = Object.freeze({
     filterOps: vocabulary.FILTER_OPS,
     aggFns: vocabulary.AGG_FNS,
     dateBuckets: vocabulary.DATE_BUCKETS,
+    rowRule: vocabulary.ROW_RULE_WORDS,
 });
 
 /**

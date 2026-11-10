@@ -124,7 +124,8 @@ const PUBLIC_ROLE_KEY = 'public';
  * compares with `==` and friends. `resolved: true` is read from the user's own
  * row at use (appStudio/viewerAttributes.mts), never from the request; a path
  * that did not resolve it leaves it out and the rule then matches no row.
- * A data model has no schema version, so nothing here carries a `since` mark.
+ * The attributes added after the frozen base are marked in vocabularySince.js
+ * (family `rowRule`), which is how the App Studio builder learns of them.
  *
  *   id               the person's user id (an anonymous visitor: the visitor id)
  *   role             their role in this app
@@ -151,6 +152,16 @@ const VIEWER_ATTRIBUTES = Object.freeze([
  * entry is never broader than its read rule by omission; `true` is the rule for "every row".
  */
 const ROW_FILTER_OPERATIONS = Object.freeze(['read', 'update', 'delete']);
+
+/**
+ * The words of a row rule beyond comparisons of `record.<field>` and literals: every
+ * `viewer.<attribute>`, then the forms added after the frozen base. The base words come
+ * first; a word after them is marked in vocabularySince.js (family `rowRule`).
+ *
+ *   in             `record.<text field> in viewer.<list attribute>`
+ *   perOperation   `rowFilters[role]` as `{ read, update, delete }` (ROW_FILTER_OPERATIONS)
+ */
+const ROW_RULE_WORDS = Object.freeze([...VIEWER_ATTRIBUTES.map((spec) => `viewer.${spec.key}`), 'in', 'perOperation']);
 
 const DATA_LIMITS = Object.freeze({
     MAX_TABLES_PER_APP: 50,
@@ -273,6 +284,7 @@ module.exports = {
     PUBLIC_ROLE_KEY,
     VIEWER_ATTRIBUTES,
     ROW_FILTER_OPERATIONS,
+    ROW_RULE_WORDS,
     DATA_LIMITS,
     SYSTEM_COLUMNS,
     KEY_RE,
