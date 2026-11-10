@@ -48,9 +48,10 @@ const MOCKS = {
             fx.codes.splice(idx, 1);
             return true;
         },
-        getPendingNcBinding: async () => null,
+        getPendingNcBinding: async () => fx.pendingRow || null,
         getPendingNcBindingForOrg: async () => null,
-        getOrganization: async () => null,
+        getOrganization: async () => fx.org || null,
+        markPendingNcBindingApproved: async (id) => { fx.approved.push(id); },
         logAccessAudit: async () => { },
     },
     '../stores/configStore': { deleteConfig: async () => { } },
@@ -63,8 +64,13 @@ const MOCKS = {
     './connectorBootstrap': {
         helpers: {
             ensureOrgAdminUser: async () => { },
-            bindOrgToNcInstance: async (org) => org,
-            getOrMintTenantKey: async () => 'tenant-key',
+            // As connector/instanceBinding.js: the org it was asked to bind, or a throw
+            // when the instance id belongs to another organisation.
+            bindOrgToNcInstance: async (org) => {
+                if (fx.instanceBoundElsewhere) throw Object.assign(new Error('linked to another organisation'), { code: 'nc_instance_bound_elsewhere', statusCode: 409 });
+                return org;
+            },
+            getOrMintTenantKey: async (orgId) => { fx.keysHandedOut.push(orgId); return 'tenant-key'; },
         },
     },
     '../services/orgHealth': { event: () => { } },
@@ -123,6 +129,11 @@ function resetFx() {
     fx.codes = [{ id: 'pc_live', orgId: 'orgA', pairingCode: 'AAAA-BBBB-CCCC', expiresAt: new Date(Date.now() + 900000).toISOString(), createdAt: new Date().toISOString() }];
     fx.deleted = [];
     fx.minted = [];
+    fx.pendingRow = null;
+    fx.org = null;
+    fx.instanceBoundElsewhere = false;
+    fx.approved = [];
+    fx.keysHandedOut = [];
 }
 
 const sess = (id, extra = {}) => ({ isAuthenticated: true, user: { id, role: id === 'root' ? 'admin' : 'user' }, ...extra });
@@ -337,4 +348,30 @@ test('a session flagged isAdmin still passes the gate', async () => {
     const res = await dispatch({ method: 'DELETE', url: '/admin/nc-bindings/pairing-codes/pc_live', session: sess('eva', { isAdmin: true }) });
     assert.strictEqual(res.statusCode, 200);
     assert.deepStrictEqual(fx.deleted, ['pc_live']);
+});
+
+// ═══ An approval links the Nextcloud to the approving organisation only ═══
+
+const APPROVAL_ROW = { id: 'ap1', orgId: 'orgA', ncInstanceId: 'inst-1', ncBaseUrl: 'https://cloud.one.example', ncAdminUid: 'admin', ncAdminEmail: 'it@one.example', status: 'pending', expiresAt: new Date(Date.now() + 60000).toISOString() };
+const approve = () => dispatch({ method: 'POST', url: '/admin/nc-bindings/ap1/approve', session: sess('jan') });
+
+test('an approval links the Nextcloud to the approving organisation and answers with that organisation\'s key', async () => {
+    resetFx();
+    fx.pendingRow = { ...APPROVAL_ROW };
+    fx.org = { id: 'orgA', name: 'Org A', nc_instance_id: null };
+    const res = await approve();
+    assert.strictEqual(res.statusCode, 200);
+    assert.strictEqual(res.body.organizationId, 'orgA');
+    assert.deepStrictEqual(fx.keysHandedOut, ['orgA']);
+    assert.deepStrictEqual(fx.approved, ['ap1']);
+});
+
+test('an approval for an instance id that belongs to another organisation: 409, no key, the request stays pending', async () => {
+    resetFx();
+    fx.pendingRow = { ...APPROVAL_ROW };
+    fx.org = { id: 'orgA', name: 'Org A', nc_instance_id: null };
+    fx.instanceBoundElsewhere = true;
+    await assert.rejects(approve(), { status: 409, code: 'nc_instance_bound_elsewhere' });
+    assert.deepStrictEqual(fx.keysHandedOut, []);
+    assert.deepStrictEqual(fx.approved, []);
 });
