@@ -5,5 +5,6 @@
     "studio_apps_server_scope.hint_guard": "Een formule die de server uitrekent vóór deze stap. Als de uitkomst niet waar is, wordt de stap overgeslagen en gaat de rest door. Laat leeg om de stap altijd uit te voeren.",
     "studio_apps_server_scope.title": "Serverstappen",
     "studio_apps_server_scope.toggle": "Laat serverstappen het scherm, andere formulieren en actieresultaten lezen"
-  }
+  },
+  "sameAsEnglish": []
 }

@@ -16,7 +16,7 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 
 const { buildSystemPrompt } = require('../builderPrompt');
-const { renderCatalogText, renderCompactCatalogText, renderComponentEntry, renderStepEntry, buildCatalogSections } = require('./catalogRender');
+const { renderCatalogText, renderCompactCatalogText, renderComponentEntry, renderStepEntry, renderSpecFields, buildCatalogSections } = require('./catalogRender');
 const { CATALOG_TOPIC_NAMES, renderTopic, isTopicName, describeTopics } = require('./catalogTopics.mts');
 const { ON_REQUEST_TYPES, ON_REQUEST_STEP_KINDS, TOPIC_PREFIX, askTopic } = require('./catalogDiet.mts');
 const { applyToolCall } = require('../builderTools');
@@ -136,9 +136,13 @@ test('a rarely used component type is one summary line, and its full entry is se
     for (const type of ON_REQUEST_TYPES) assert.strictEqual(served[type], renderComponentEntry(type));
     // Every other type is in the base text whole.
     for (const type of Object.keys(COMPONENT_SPECS).filter((t) => !ON_REQUEST_TYPES.includes(t))) {
-        // Whole: its head line followed by its props or style line (the served entry may add since-3 props).
+        // Whole: its head line followed by its props or style line. The served entry may add since-3
+        // props and events, so the base head is the served one's type and description.
         const head = renderComponentEntry(type).split('\n')[0];
-        assert.ok(text.includes(`\n${head}\n  `), `${type} rides whole`);
+        const lines = text.split('\n');
+        const at = lines.findIndex((l) => l.startsWith(`${type} [${COMPONENT_SPECS[type].category}]`));
+        assert.ok(at > 0 && lines[at + 1].startsWith('  '), `${type} rides whole`);
+        assert.ok(head.endsWith(lines[at].slice(lines[at].lastIndexOf(' — '))), `${type}: the base head is the served one`);
     }
 });
 
@@ -156,7 +160,10 @@ test('a rarely used step kind is named with its side, and its field list is serv
         assert.ok(!text.includes(served[kind]), `${kind}: the field list left the base text`);
     }
     for (const kind of Object.keys(STEP_SPECS).filter((k) => !ON_REQUEST_STEP_KINDS.includes(k) && fullCatalogue().STEP_KINDS.includes(k) && renderCatalogText().includes(`\n${k} [`))) {
-        assert.ok(text.includes(renderStepEntry(kind)), `${kind} rides whole`);
+        // Whole: the base line is the served entry without the fields marked since 3.
+        const served = renderStepEntry(kind);
+        const baseFields = Object.fromEntries(Object.entries(STEP_SPECS[kind].fields).filter(([, fs]) => !(fs.since >= 3)));
+        assert.ok(text.includes(`\n${served.slice(0, served.indexOf(': {'))}: { ${renderSpecFields(baseFields)} }`), `${kind} rides whole`);
     }
     // The envelope every server step may carry stays in the base text; the prompt's pitfalls point at it.
     assert.match(text, /\[SERVER\] steps and call_action may carry onError: \{ steps, stop\?: true \}/);

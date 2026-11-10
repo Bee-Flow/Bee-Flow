@@ -7,5 +7,6 @@
     "studio_apps_expand.no_relations": "Deze tabel heeft geen veld dat naar een andere tabel van de app verwijst.",
     "studio_apps_expand.relation_legend": "{relation}: velden van {table}",
     "studio_apps_expand.title": "Gekoppelde records en kolommen"
-  }
+  },
+  "sameAsEnglish": []
 }

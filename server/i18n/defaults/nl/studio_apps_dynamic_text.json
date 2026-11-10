@@ -23,5 +23,6 @@
     "studio_apps_dynamic_text.url_host_not_allowed": "Het adres is niet geopend: de host “{host}” staat niet op de lijst met toegestane hosts van de app.",
     "studio_apps_dynamic_text.url_invalid": "De formule voor het te openen adres gaf geen webadres.",
     "studio_apps_dynamic_text.url_not_https": "Vanuit een app kunnen alleen gewone https-adressen worden geopend."
-  }
+  },
+  "sameAsEnglish": []
 }
