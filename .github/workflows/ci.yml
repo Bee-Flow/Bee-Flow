@@ -272,7 +272,7 @@ jobs:
             server:
               - 'server/**'
               - '.nvmrc'
-              - 'scripts/{eslint-budget,check-server-manifest,check-playwright-lockstep,check-legal-catalogue,source-text-tests,count-ratchet,coverage-ratchet,checkjs-ratchet,check-new-code-types,gen-i18n-defaults,i18n-key-guard,i18n-split,entry-point}.mjs'
+              - 'scripts/{eslint-budget,check-server-manifest,check-playwright-lockstep,check-legal-catalogue,source-text-tests,count-ratchet,coverage-ratchet,checkjs-ratchet,check-new-code-types,check-compat-corpus,gen-i18n-defaults,i18n-key-guard,i18n-split,entry-point}.mjs'
               - 'scripts/{gen-api-reference.mjs,api-reference-walk.cjs}'
               - 'docs/static/openapi.json'
               - 'scripts/eslint/**'
@@ -655,6 +655,14 @@ jobs:
         if: github.event_name == 'pull_request'
         working-directory: .
         run: node scripts/i18n-key-guard.mjs --base ${{ github.event.pull_request.base.sha }}
+      # The App Studio compatibility corpus (server/appStudio/compat) only grows:
+      # a corpus input or frozen expectation that exists on the base may not be
+      # modified or deleted. check:fast runs it against origin/main locally; this
+      # shallow checkout has none, so it runs here with the base fetched above.
+      - name: No App Studio compat corpus file changed against the PR base
+        if: github.event_name == 'pull_request'
+        working-directory: .
+        run: node scripts/check-compat-corpus.mjs --base ${{ github.event.pull_request.base.sha }}
       - name: New server code is typed (.mts or // @typecheck strict)
         if: github.event_name == 'pull_request'
         working-directory: .

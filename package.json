@@ -73,6 +73,7 @@
     "lint:editor-bundles": "node scripts/check-editor-bundles.mjs",
     "lint:api-reference": "node scripts/gen-api-reference.mjs --check",
     "lint:compose-drift": "node scripts/check-compose-drift.mjs",
+    "lint:compat-corpus": "node scripts/check-compat-corpus.mjs",
     "i18n:gen": "node scripts/gen-i18n-defaults.mjs",
     "learn-media:fetch": "node scripts/learn-media-fetch.mjs",
     "gen:shared": "node scripts/gen-shared-mirror.mjs",
