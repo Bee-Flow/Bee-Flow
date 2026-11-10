@@ -206,10 +206,7 @@ function EventWiring({ event, node, definition, onCommit, onTestActionResult, di
                         authorable only by the AI. */}
                     {EDITOR_BY_KIND[action.kind] === 'spec' && (
                         <StepSettings
-                            step={action}
-                            onChange={commitAction}
-                            definition={definition}
-                            node={node}
+                            step={action} onChange={commitAction} definition={definition} node={node}
                             screens={definition?.screens || []}
                             formFields={formFields}
                             actionId={actionId}

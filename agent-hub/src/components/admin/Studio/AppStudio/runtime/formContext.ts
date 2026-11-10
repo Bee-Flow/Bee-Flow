@@ -120,6 +120,16 @@ export function registerFormFieldSetter(name: string, fn: FieldSetter) {
     };
 }
 
+/**
+ * AppForm's side of the bus: the `set_form_field` step reaches one field of the form `name` through
+ * `setValue`, and only a field the form has (`fields`): a step never adds a value the form would not submit.
+ */
+export function useFormFieldSetter(name: string, fields: { current: Map<string, unknown> }, setValue: (field: string, value: unknown) => void) {
+    useEffect(() => registerFormFieldSetter(name, (field, value) => {
+        if (fields.current.has(field)) setValue(field, value);
+    }), [name, fields, setValue]);
+}
+
 /** Put a value into one field of every mounted form registered under this name. False when none is mounted. */
 export function setAppFormField(name: string, field: string, value: unknown): boolean {
     const set = fieldSetters.get(name);
