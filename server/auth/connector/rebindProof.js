@@ -74,7 +74,7 @@ function refuseRebind(ctx, org) {
     return res.status(403).json({
         error: 'This Nextcloud instance is already bound to a Bee Flow organisation.',
         code: 'NC_REBIND_PROOF_REQUIRED',
-        remediation: 'This Nextcloud is already bound to a Bee Flow organisation and the connector no longer holds its tenant key. Ask a Bee Flow organisation admin to generate a pairing code (Settings → Organisation → Pair a new Nextcloud), set it as the BEEFLOW_PAIRING_CODE env var on this connector, and redeploy. If the address changed, also check BEEFLOW_NC_PUBLIC_URL on the connector.',
+        remediation: 'This Nextcloud is already bound to a Bee Flow organisation and the connector no longer holds its tenant key. Ask a Bee Flow organisation admin to generate a pairing code (Settings → Organisation → Pair a new Nextcloud) and enter it on the Bee Flow setup page in Nextcloud. A pairing code may also be given at install time (BEEFLOW_PAIRING_CODE). If the address changed, also check BEEFLOW_NC_PUBLIC_URL on the connector.',
     });
 }
 

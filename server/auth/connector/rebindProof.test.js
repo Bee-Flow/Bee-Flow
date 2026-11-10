@@ -68,6 +68,8 @@ test('refuseRebind: 403 NC_REBIND_PROOF_REQUIRED with a remediation, never a key
     refuseRebind({ req: /** @type {any} */ ({ headers: {} }), res: /** @type {any} */ (res), ncInstanceId: 'inst-a', ncBaseUrl: 'https://other.example' }, BOUND);
     assert.equal(sent.status, 403);
     assert.equal(sent.body.code, 'NC_REBIND_PROOF_REQUIRED');
-    assert.match(sent.body.remediation, /pairing code/);
+    assert.match(sent.body.remediation, /generate a pairing code .* and enter it on the Bee Flow setup page in Nextcloud\./);
+    assert.match(sent.body.remediation, /may also be given at install time \(BEEFLOW_PAIRING_CODE\)/);
+    assert.doesNotMatch(sent.body.remediation, /reinstall|redeploy/);
     assert.equal('tenantKey' in sent.body, false);
 });

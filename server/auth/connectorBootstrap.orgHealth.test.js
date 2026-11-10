@@ -49,6 +49,7 @@ const MOCKS = {
         resetNcVerificationCode: async (id) => { fx.calls.push(['resetNcVerificationCode', id]); return fx.sendResult; },
         retargetNcVerification: async (id) => { fx.calls.push(['retargetNcVerification', id]); return fx.sendResult; },
         getPendingNcBinding: async () => fx.pendingRow,
+        getPendingBindingByPairingCode: async () => null,
         getUserByEmail: async () => fx.userByEmail || null,
         getUserByNcUid: async () => null,
         findUnboundOrgByEmailDomain: async () => (fx.unboundOrg === undefined ? { id: 'org-v' } : fx.unboundOrg),
@@ -489,4 +490,44 @@ test('a Nextcloud this server cannot reach: 403 with a remediation that fits any
     }
     assert.equal(callsOf('createOrganization').length, 0);
     assert.equal(callsOf('problem')[0][1], 'bootstrap.verify_failed');
+});
+
+// ═══ POST /connector/bootstrap: where a pairing code goes ═════════════════
+// A pairing code is entered on the Bee Flow setup page in Nextcloud; giving it
+// at install time is the other way. Codes and statuses are the contract with
+// the connector, the remediation is the sentence its setup page shows.
+
+const SAYS_SETUP_PAGE = /pairing code \(Settings → Organisation → Pair a new Nextcloud\) and enter it on the Bee Flow setup page in Nextcloud\. A pairing code may also be given at install time \(BEEFLOW_PAIRING_CODE\)\./;
+
+test('a pairing code the server does not know: 401 pairing_code_invalid, entered on the setup page', async () => {
+    resetFx();
+    const res = await withSkipVerify(() => dispatch({
+        url: '/connector/bootstrap',
+        headers: { ...bootstrapHeaders({ ncBaseUrl: 'https://cloud.acme.example' }), 'x-beeflow-pairing-code': 'ABCD-EFGH' },
+    }));
+    assert.equal(res.statusCode, 401);
+    assert.equal(res.body.code, 'pairing_code_invalid');
+    assert.equal(res.body.error, 'Pairing code is invalid, expired, or already used');
+    assert.match(res.body.remediation, SAYS_SETUP_PAGE);
+    assert.doesNotMatch(res.body.remediation, /reinstall|redeploy/);
+    assert.deepEqual(callsOf('problem').map(c => c[1]), ['bootstrap.pairing_code_invalid']);
+});
+
+test('no pairing code on a server that creates no organisations: 403 pairing_required, entered on the setup page', async () => {
+    resetFx();
+    fx.unboundOrg = null;
+    const prev = process.env.BEEFLOW_CONNECTOR_PROVISIONING;
+    process.env.BEEFLOW_CONNECTOR_PROVISIONING = 'pairing_only';
+    try {
+        const res = await bootstrap({ ncBaseUrl: 'https://cloud.acme.example' });
+        assert.equal(res.statusCode, 403);
+        assert.equal(res.body.code, 'pairing_required');
+        assert.match(res.body.remediation, SAYS_SETUP_PAGE);
+        assert.doesNotMatch(res.body.remediation, /reinstall|redeploy/);
+        assert.deepEqual(callsOf('problem').map(c => c[1]), ['bootstrap.pairing_required']);
+        assert.equal(callsOf('createOrganization').length, 0);
+    } finally {
+        if (prev === undefined) delete process.env.BEEFLOW_CONNECTOR_PROVISIONING;
+        else process.env.BEEFLOW_CONNECTOR_PROVISIONING = prev;
+    }
 });
