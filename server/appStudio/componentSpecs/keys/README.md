@@ -35,4 +35,9 @@ definition that uses the key schema version 3 and lists the key for the AI build
 **not** make the key legal: `canonicalize/` has to keep it (a section key is one entry of
 `SECTION_OPTIONAL_KEYS` in `canonicalize/screens.js`) and `validate/` has to check it.
 
+A **navGroup** mark also carries `toolSchema`, the JSON schema of its value (for example
+`{ type: 'string', enum: ['new', 'beta'] }`): `app_set_nav_groups` then offers the key on every
+group by itself, after the base keys (`builderTools/navGroupSchema.mts`), and
+`builderTools/navGroupSchema.test.js` fails for a marked key without one.
+
 `../README.md` lists every place a mark can sit. The subfolders ship empty.

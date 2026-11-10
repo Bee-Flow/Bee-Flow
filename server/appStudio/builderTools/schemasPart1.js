@@ -2,7 +2,9 @@
 'use strict';
 // Part 1 of the TOOL_SCHEMAS array (split out of schemas.js; order is preserved there).
 
-const { THEME_SPEC, DESIGN_SPEC, NAV_STYLES, MAX_NAV_GROUPS, MAX_NAV_GROUP_LABEL, STYLE_KNOBS, SCREEN_SPEC, EVENT_NAMES, LIMITS } = require('../componentSpecs');
+const { themeDesignProps } = require('./themeDesignSchema.mts');
+const { navGroupItemProps } = require('./navGroupSchema.mts');
+const { NAV_STYLES, MAX_NAV_GROUPS, STYLE_KNOBS, SCREEN_SPEC, EVENT_NAMES, LIMITS } = require('../componentSpecs');
 const { MAX_COMPONENTS_PER_CALL, TEMP_ID_MAX, MAX_BATCH_PATCHES_PER_CALL, orList, PRESET_IDS, STYLE_HINT, BASE_STYLE_KNOBS, SECTION_HEIGHT_MODES, BASE_SECTION_HEIGHT_MODES, unitList, SIZING_HINT, ADD_NODE_LOGIC_PROPS, UPDATE_COMPONENT_PATCH_PROPS, ACTION_OBJECT_SCHEMA, batchHint } = require('./schemaFragments');
 
 /** @type {Array<{ type: string, function: { name: string, description: string, parameters: object } }>} */
@@ -35,20 +37,11 @@ const TOOL_SCHEMAS_PART_1 = [
                         enum: PRESET_IDS,
                         description: 'A whole look at once. classic = the plain default; cloud = modern light SaaS with a sidebar; atlas = product-style mega menu; midnight = dark ops console with an icon rail; field = large, airy, mobile-first; paper = warm editorial; mono = dense expert tool.',
                     },
-                    primary: { type: 'string', description: 'Primary color as #rrggbb (prefer a catalog preset; never purple/violet/indigo).' },
-                    accent: { type: 'string', description: 'Call-to-action colour as #rrggbb: primary buttons and form submits paint with it, everything else stays on the primary. Unset = the primary. Pass an empty string to clear it.' },
-                    canvas: { type: 'string', description: 'Page ground colour as #rrggbb — the colour behind the sections. Unset = the platform light/dark ground. Pass an empty string to clear it.' },
-                    radius: { type: 'string', enum: [...THEME_SPEC.radius.values] },
-                    density: { type: 'string', enum: [...THEME_SPEC.density.values] },
-                    fontScale: { type: 'string', enum: [...THEME_SPEC.fontScale.values] },
-                    appearance: { type: 'string', enum: [...THEME_SPEC.appearance.values], description: 'dark/light now really re-theme the app itself, whatever theme the host is on.' },
-                    navStyle: { type: 'string', enum: [...NAV_STYLES], description: 'How screens are navigated. tabs = a top row; sidebar = grouped and labelled, right from ~6 screens; mega = a top bar whose groups open a panel with a description per screen (needs nav groups); rail = an icon-only sidebar.' },
-                    font: { type: 'string', enum: [...DESIGN_SPEC.font.values], description: 'Typeface pairing. system = the host UI font (default).' },
-                    surface: { type: 'string', enum: [...DESIGN_SPEC.surface.values], description: 'How cards, stats and grids sit on the page. soft/elevated add depth; hairline is the default outline.' },
-                    motion: { type: 'string', enum: [...DESIGN_SPEC.motion.values], description: 'Animation level. Reduced-motion users always get none.' },
-                    chartPalette: { type: 'string', enum: [...DESIGN_SPEC.chartPalette.values], description: 'brand derives chart colours from the primary colour.' },
-                    accentEdge: { type: 'string', enum: [...DESIGN_SPEC.accentEdge.values], description: 'The coloured edge on accent cards, callouts and bar headings. bar = the default stripe; none removes it everywhere at once.' },
-                    logoUrl: { type: 'string', description: 'https:// URL of a logo shown in the app chrome instead of the icon tile. Pass an empty string to remove it.' },
+                    // The theme and design keys come from the spec tables (themeDesignSchema.mts);
+                    // a key marked since 3 joins after the base keys by itself.
+                    ...themeDesignProps('setTheme', {
+                        navStyle: { type: 'string', enum: [...NAV_STYLES], description: 'How screens are navigated. tabs = a top row; sidebar = grouped and labelled, right from ~6 screens; mega = a top bar whose groups open a panel with a description per screen (needs nav groups); rail = an icon-only sidebar.' },
+                    }),
                 },
             },
         },
@@ -68,16 +61,8 @@ const TOOL_SCHEMAS_PART_1 = [
                         items: {
                             type: 'object',
                             required: ['label', 'screens'],
-                            properties: {
-                                id: { type: 'string', description: 'Existing group id (nvg_...) — keep it to preserve a group across edits.' },
-                                label: { type: 'string', description: `The heading shown in the nav (max ${MAX_NAV_GROUP_LABEL} chars).` },
-                                icon: { type: 'string', description: 'Lucide icon name, e.g. "BarChart3", "Settings".' },
-                                screens: {
-                                    type: 'array',
-                                    items: { type: 'string' },
-                                    description: 'Screen ids (scr_...) in the order they should appear under the heading.',
-                                },
-                            },
+                            // id, label, icon, screens, then a nav-group key marked since 3 (navGroupSchema.mts).
+                            properties: navGroupItemProps(),
                         },
                     },
                 },

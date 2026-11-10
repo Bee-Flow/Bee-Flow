@@ -73,7 +73,7 @@ function isEnabled() {
  * whose other half lives in a route this endpoint never runs would teach the
  * client a protocol nothing implements.
  */
-const ROUTE_ONLY_TOOLS = new Set(['app_propose_plan', 'app_mark_phase']);
+const ROUTE_ONLY_TOOLS = new Set(['app_propose_plan', 'app_mark_phase', ...require('./builderTools/toolRegistry.mts').mcpExcludedToolNames()]); // + registry tools with mcp: false
 
 /** Tools that need no app to act on — the entry points. */
 const APPLESS_TOOLS = new Set(['studio_get_guide', 'studio_list_apps', 'studio_create_app']);

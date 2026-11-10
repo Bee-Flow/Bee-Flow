@@ -38919,6 +38919,14 @@ const EN_DEFAULTS = {
     "studio_apps_surfaces.sort_none": "No particular order",
     "studio_apps_surfaces.relation_display": "Show this column for each record",
     "studio_apps_surfaces.relation_display_auto": "Automatic (first text column)",
+    "studio_apps_tools.act_get_action": "Read the actions",
+    "studio_apps_tools.act_get_node": "Read components",
+    "studio_apps_tools.act_inspect_catalog": "Looked up the building blocks",
+    "studio_apps_tools.act_list_documents": "Listed the documents",
+    "studio_apps_tools.act_read_document": "Read a document",
+    "studio_apps_tools.act_search_documents": "Searched the documents",
+    "studio_apps_tools.act_set_mailbox_hook": "Linked a mailbox",
+    "studio_apps_tools.act_update_records": "Updated rows",
 };
 
 export default EN_DEFAULTS;
