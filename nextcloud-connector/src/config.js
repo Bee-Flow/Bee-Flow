@@ -9,9 +9,15 @@
  * (`occ app_api:app:register bee_flow <daemon> --env NAME=VALUE`, or the
  * advanced deploy options in the Nextcloud UI). Without them an administrator
  * chooses the Bee Flow server after installing; see serverChoice.js.
+ *
+ * A value given at install time is fixed: AppAPI replays it on every update
+ * and has no command to change it. Changing one means registering the app
+ * again (the data volume is kept unless `--rm-data` is passed). AppAPI passes
+ * only the variables info.xml declares.
  */
 
 const { envLock } = require('./serverChoice');
+const { intFromEnv } = require('./envValues');
 const log = require('./log');
 
 /** @param {string} name */
@@ -145,9 +151,13 @@ const config = {
     // ── Operational knobs ──────────────────────────────────────
     // JWT TTL — short on purpose. The SaaS treats every request as a new
     // bearer; we don't want a leaked token to be useful for long.
-    jwtTtlSeconds: parseInt(process.env.BEEFLOW_JWT_TTL_SECONDS || '300', 10),
-    // Skew tolerance for AppAPI signed-request timestamp.
-    sigSkewSeconds: parseInt(process.env.BEEFLOW_SIG_SKEW_SECONDS || '300', 10),
+    // Not an install-time option in info.xml; a value set on the container by
+    // hand is kept between 30 seconds and 15 minutes.
+    jwtTtlSeconds: intFromEnv('BEEFLOW_JWT_TTL_SECONDS', { fallback: 300, min: 30, max: 900 }),
+    // How far the timestamp of a signed request may differ from this host's
+    // clock. An install-time option (info.xml); blank or unusable means 300,
+    // and a value is kept between 30 seconds and 15 minutes.
+    sigSkewSeconds: intFromEnv('BEEFLOW_SIG_SKEW_SECONDS', { fallback: 300, min: 30, max: 900 }),
 };
 
 module.exports = config;

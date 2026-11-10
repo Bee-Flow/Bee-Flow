@@ -12,6 +12,7 @@ const http = require('http');
 const https = require('https');
 const config = require('./config');
 const log = require('./log');
+const { intFromEnv } = require('./envValues');
 const { errMessage } = require('./errors');
 const { isExpressResponse } = require('./httpGuards');
 const { shellBaseUrl } = require('./embedTarget');
@@ -26,9 +27,11 @@ const { NOT_CHOSEN_CODE, NOT_CHOSEN_MESSAGE } = require('./serverChoice');
 //
 // The clock starts when the request reaches the proxy, not when a socket is
 // assigned: a request waiting in the agent queue for a free socket counts too.
-// 0 switches the timeout off.
-const RESPONSE_HEADERS_TIMEOUT_MS = parseInt(
-    process.env.BEEFLOW_UPSTREAM_HEADERS_TIMEOUT_MS || '60000', 10);
+// 0 switches the timeout off. An install-time option (info.xml): blank or
+// unusable means 60 seconds, and the value stays at or below one day (a timer
+// cannot hold much more).
+const RESPONSE_HEADERS_TIMEOUT_MS = intFromEnv(
+    'BEEFLOW_UPSTREAM_HEADERS_TIMEOUT_MS', { fallback: 60_000, min: 0, max: 86_400_000 });
 
 // Sockets per upstream origin. 0 (the default) = no cap. A cap is a shared
 // queue for every user of this Nextcloud: chat turns, project and document

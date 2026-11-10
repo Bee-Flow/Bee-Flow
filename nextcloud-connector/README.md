@@ -49,14 +49,14 @@ Reach the picker at:
 - Embedded inside Nextcloud: `http://<your-nc>/index.php/apps/app_api/embedded/bee_flow/setup`
 - Direct to the connector: `http://localhost:23000/setup` (host-only)
 
-Set programmatically via `occ`:
+To fix the server at install time instead, give it as an install-time value:
 
 ```bash
-sudo -u www-data php occ app_api:app:setenv bee_flow \
-    BEEFLOW_API_BASE_URL https://server.beeflow.nl     # or your self-hosted URL
+sudo -u www-data php occ app_api:app:register bee_flow <daemon> \
+    --env BEEFLOW_API_BASE_URL=<your Bee Flow server URL>     # or the word: cloud
 ```
 
-The env-var path takes precedence over the picker — useful for IaC / GitOps lockdown. See [the docs](https://bee-flow.github.io/docs/connector/setup-picker/) for the full flow.
+An install-time value takes precedence over the picker and cannot be changed from inside Nextcloud — useful for IaC / GitOps lockdown. To change it, register the app again (`occ app_api:app:unregister bee_flow` without `--rm-data` keeps the data). See [the docs](https://bee-flow.github.io/docs/connector/setup-picker/) for the full flow.
 
 Subcommands:
 
@@ -86,7 +86,7 @@ APP_PORT=9000 \
 npm start
 ```
 
-`APP_SECRET`, `NEXTCLOUD_URL`, `APP_ID`, `APP_PORT`, etc. are normally injected by AppAPI. For local dev, set them by hand. `BEEFLOW_TENANT_KEY` is configured per customer via `occ app_api:app:setenv bee_flow BEEFLOW_TENANT_KEY <key>` after install.
+`APP_SECRET`, `NEXTCLOUD_URL`, `APP_ID`, `APP_PORT`, etc. are normally injected by AppAPI. For local dev, set them by hand. `BEEFLOW_TENANT_KEY` is optional: without it the connector gets its key when an administrator connects it on the setup page; with it, it is an install-time value (`occ app_api:app:register bee_flow <daemon> --env BEEFLOW_TENANT_KEY=<key>`).
 
 ## Deployment modes: HaRP vs Docker Socket Proxy
 

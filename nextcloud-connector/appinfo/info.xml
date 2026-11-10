@@ -167,6 +167,36 @@ Questions, or want a hand getting set up? Email us at **info@beeflow.nl**. We su
                 <description>"auto" (default) lets the connector trust your Nextcloud's certificate when it is self-signed or signed by an internal CA, so the app can complete setup on local/on-prem installs. The certificate is pinned on first use: the connector remembers its key and refuses a different one, and an administrator accepts a renewed certificate on the connector's setup page. This never weakens a valid public certificate. Set to "off" in security-strict environments to disable automatic trust — then only a publicly-trusted certificate or an explicit "Nextcloud CA certificate" above will be accepted.</description>
                 <default>auto</default>
             </variable>
+            <!--
+                The five below have NO <default> element on purpose: AppAPI
+                exports nothing for a variable that is left blank, so the
+                connector's own default applies. Never add an empty <default>.
+            -->
+            <variable>
+                <name>BEEFLOW_NC_PROXY_MAX_BODY_MB</name>
+                <display-name>Largest upload from Bee Flow to Nextcloud, in MB (optional, advanced)</display-name>
+                <description>Leave blank in almost all cases (100). The largest body one request from the Bee Flow server into Nextcloud may carry, for example a file an agent writes. 0 means no cap.</description>
+            </variable>
+            <variable>
+                <name>BEEFLOW_NC_PROXY_MAX_INFLIGHT_MB</name>
+                <display-name>Memory for uploads in progress, in MB (optional, advanced)</display-name>
+                <description>Leave blank in almost all cases (512). The most upload data all requests from the Bee Flow server together may hold in memory at one moment. 0 means no cap.</description>
+            </variable>
+            <variable>
+                <name>BEEFLOW_UPSTREAM_HEADERS_TIMEOUT_MS</name>
+                <display-name>Time to wait for the Bee Flow server, in milliseconds (optional, advanced)</display-name>
+                <description>Leave blank in almost all cases (60000). How long the Bee Flow server may take to start answering a request. 0 switches the timeout off.</description>
+            </variable>
+            <variable>
+                <name>LOG_LEVEL</name>
+                <display-name>Log level (optional, advanced)</display-name>
+                <description>Leave blank in almost all cases (info). One of: debug, info, warn, error.</description>
+            </variable>
+            <variable>
+                <name>BEEFLOW_SIG_SKEW_SECONDS</name>
+                <display-name>Allowed clock difference, in seconds (optional, advanced)</display-name>
+                <description>Leave blank in almost all cases (300). How far the timestamp of a signed request may differ from this host's clock. Accepted range: 30 to 900.</description>
+            </variable>
         </environment-variables>
         <!--
             Explicit allow-list of paths the connector serves. The previous

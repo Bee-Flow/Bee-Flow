@@ -138,8 +138,11 @@ function frameAncestorsFor(req) {
         }
         log.warn(`[Security] refusing to allow ${origin} to frame this app — it is not this `
             + `Nextcloud's origin. If the app is embedded there legitimately, add it to `
-            + `BEEFLOW_TRUSTED_EMBED_ORIGINS (occ app_api:app:setenv ${config.appId} `
-            + `BEEFLOW_TRUSTED_EMBED_ORIGINS ${origin}).`);
+            + 'BEEFLOW_TRUSTED_EMBED_ORIGINS. That is an install-time value: enter it in the '
+            + 'deploy options when installing, or register the app again with '
+            + `--env BEEFLOW_TRUSTED_EMBED_ORIGINS=${origin} `
+            + `(occ app_api:app:unregister ${config.appId}, without --rm-data so the data is `
+            + `kept, then occ app_api:app:register ${config.appId} <daemon> --env ...).`);
     }
     return [...ancestors].join(' ');
 }

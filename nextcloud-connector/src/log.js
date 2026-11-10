@@ -11,11 +11,12 @@
  * `log.ref(id)` turns a user id into a short digest for the message.
  *
  * Level (JSON mode only): LOG_LEVEL = debug | info | warn | error, default info.
- * No dependency: the connector image stays small.
+ * No package dependency: the connector image stays small.
  */
 
 const crypto = require('node:crypto');
 const util = require('node:util');
+const { wordFromEnv } = require('./envValues');
 
 /** @typedef {'debug' | 'info' | 'warn' | 'error'} LogLevel */
 /** @typedef {(...args: unknown[]) => void} LogFn */
@@ -88,6 +89,7 @@ function ref(id) {
     return `u_${crypto.createHash('sha256').update(String(id)).digest('hex').slice(0, 8)}`;
 }
 
-const log = createLogger({ json: isJsonMode(), level: process.env.LOG_LEVEL || 'info' });
+// LOG_LEVEL is an install-time option (info.xml): blank or any other word means info.
+const log = createLogger({ json: isJsonMode(), level: wordFromEnv('LOG_LEVEL', LEVELS, 'info') });
 
 module.exports = Object.assign(log, { createLogger, isJsonMode, ref });
