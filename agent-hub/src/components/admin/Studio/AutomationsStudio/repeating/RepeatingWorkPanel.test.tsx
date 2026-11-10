@@ -115,7 +115,7 @@ it('after a scan: what it read, the log behind details, and a card per pattern',
 
 it('surfaces the personal-data categories the Privacy Shield found', async () => {
     await scanWith([done([], { ...SUMMARY, piiCategories: ['Person', 'Email'] })]);
-    expect(await screen.findByText(/personal data found: Person, Email/)).toBeTruthy();
+    expect(await screen.findByText(/personal data found \(Person, Email\); masked before the AI saw it/)).toBeTruthy();
 });
 
 it('says why nothing was found, what to try, and offers ideas instead', async () => {

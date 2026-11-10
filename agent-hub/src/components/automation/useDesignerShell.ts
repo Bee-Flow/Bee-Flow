@@ -144,7 +144,7 @@ export async function createFromTemplate(
  */
 export function useDesignerState(automationsAllowed: boolean) {
     const [builderAutomationId, setBuilderAutomationId] = useState<string | null>(null); // null = list, string = open builder
-    // Which tab the builder opens on (e.g. 'history' from a "View executions"
+    // Which tab the builder opens on (e.g. 'history' from a "View runs"
     // affordance). Consumed once on mount, then cleared.
     const [builderInitialTab, setBuilderInitialTab] = useState<string | null>(null);
     const [openingBuilder, setOpeningBuilder] = useState(false);

@@ -6,6 +6,7 @@ import {
     ROLES, useAutomationShares, useSaveShares, useTransferOwner,
     type Principal, type Share, type ShareRole, type TransferResult,
 } from '@/api/queries/automation/people';
+import ConnectionsNote from './ConnectionsNote';
 import PrincipalPicker, { PrincipalAvatar, principalDetail } from './PrincipalPicker';
 import { PRIMARY_BTN, SECONDARY_BTN, SELECT } from './settingsUi';
 
@@ -45,7 +46,7 @@ const keyOf = (s: { principalType?: string; type?: string; principalId?: string;
  * with a role, change or remove roles, and hand the automation over. Every change
  * saves right away; "Done" only closes.
  */
-export default function SharingDialog({ open, onClose, automationId, title, isMine, youOwn, canAdd = true, onTransferred }: {
+export default function SharingDialog({ open, onClose, automationId, title, isMine, youOwn, callerMode, canAdd = true, onTransferred }: {
     open: boolean;
     onClose: () => void;
     automationId: string;
@@ -54,6 +55,8 @@ export default function SharingDialog({ open, onClose, automationId, title, isMi
     isMine: boolean;
     /** The viewer IS the owner (not an admin acting for them): "(you)". */
     youOwn?: boolean;
+    /** definition.runPolicy.connections is 'caller': a run someone else starts uses their own connections. */
+    callerMode?: boolean;
     /** The plan allows adding people (removing is always allowed). */
     canAdd?: boolean;
     /** The automation changed hands; carries the row as the caller now sees it. */
@@ -108,6 +111,7 @@ export default function SharingDialog({ open, onClose, automationId, title, isMi
 
                     <RoleCards />
                     <RunsAsLine name={runsAs?.name} canChange={isMine} open={transferring} onToggle={() => setTransferring(v => !v)} />
+                    <ConnectionsNote callerMode={callerMode} />
                     {transferring && (
                         <TransferOwner
                             editors={editors}

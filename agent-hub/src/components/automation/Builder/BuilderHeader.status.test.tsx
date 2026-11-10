@@ -64,7 +64,8 @@ describe('BuilderHeader: status wording', () => {
         setup(AHEAD);
         expect(screen.getByTestId('live-pending').className).toMatch(/(^| )hidden( |$)/);
         expect(screen.getByTestId('live-pending').className).toContain('@min-[1700px]/bar:inline');
-        expect(screen.getByTestId('live-status').getAttribute('title')).toBe('editing v5 · 2 changes not live yet');
+        // The tooltip names both versions first, then the count.
+        expect(screen.getByTestId('live-status').getAttribute('title')).toBe('v3 is live. You are editing v5.\nediting v5 · 2 changes not live yet');
     });
 
     it('a pill with nothing pending has no tooltip', () => {

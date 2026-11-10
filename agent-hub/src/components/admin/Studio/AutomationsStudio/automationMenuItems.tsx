@@ -50,9 +50,9 @@ export function buildAutomationMenuItems({
             onClick: onToggleActive,
         });
     }
-    if (onOpenRuns) items.push({ label: tr('studio_misc.menu.view_runs', 'View executions'), icon: <History size={13} />, onClick: onOpenRuns });
+    if (onOpenRuns) items.push({ label: tr('studio_misc.menu.view_runs', 'View runs'), icon: <History size={13} />, onClick: onOpenRuns });
     if (onDuplicate) items.push({ label: tr('studio_misc.menu.duplicate', 'Duplicate'), icon: <Copy size={13} />, onClick: onDuplicate });
-    if (onExportJson) items.push({ label: tr('studio_misc.menu.export_json', 'Export JSON'), icon: <Code2 size={13} />, onClick: onExportJson });
+    if (onExportJson) items.push({ label: tr('studio_misc.menu.export_json', 'Export'), icon: <Code2 size={13} />, onClick: onExportJson });
     // The keyboard-reachable twin of dragging a row onto a folder. Dragging
     // is the discoverable gesture; this is the one that always works.
     if (onMoveToFolder) items.push({ label: tr('studio_misc.menu.move_to_folder', 'Move to folder…'), icon: <FolderInput size={13} />, onClick: onMoveToFolder });

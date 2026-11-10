@@ -108,6 +108,17 @@ describe('AiActAutoCard', () => {
         expect(await screen.findByRole('dialog', { name: 'AI Act check' })).toBeInTheDocument();
     });
 
+    it('says an automatic check was done by AI, and says nothing of the kind about a person\'s answers', async () => {
+        state.check = { ...DONE, source: 'auto', findings: [] };
+        const { unmount } = render(card());
+        expect(await screen.findByTestId('aiact-auto-note')).toHaveTextContent('Checked by AI. This is not legal advice.');
+        unmount();
+        state.check = DONE;
+        render(card());
+        expect(await screen.findByTestId('aiact-checked')).toBeInTheDocument();
+        expect(screen.queryByTestId('aiact-auto-note')).not.toBeInTheDocument();
+    });
+
     it('a failed check says so and can be tried again', async () => {
         const { authFetch } = await import('@/utils/helpers');
         vi.mocked(authFetch).mockResolvedValueOnce({ ok: false, status: 500, json: async () => ({ error: 'x' }) } as never);

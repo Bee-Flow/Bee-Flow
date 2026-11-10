@@ -26,7 +26,7 @@ const DATA = require(path.join(__dirname, 'data', 'builder-fixes-2026-10-nl.json
  * migration when THIS FILE's checksum changes and knows nothing about the data
  * file, so pinning the hash here makes every data change a change to this file.
  */
-const DATA_SHA256 = 'd78d6553b657afbb60ccc66ecfe03ffc85e49c85ec391ad9cb2f29ebefc727a2';
+const DATA_SHA256 = '0f286cff61c34fea6e78b40ed53c4b377ee2b810a0b411c7534e9b5f9b11f4c1';
 
 const NL_TRANSLATIONS = Object.freeze({ ...DATA.translations });
 

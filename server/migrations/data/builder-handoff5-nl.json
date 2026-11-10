@@ -1133,7 +1133,11 @@
     "automations.golive.what_publish": "v{live} is live. Hiermee gaat v{version} live.",
     "automations.golive.what_publish_first": "Hiermee wordt v{version} de live versie.",
     "automations.golive.what_resume": "Hiermee zet je de automatisering weer aan. Runs gebruiken v{live}, de live versie.",
-    "automations.golive.what_resume_pending": "Hiermee zet je de automatisering weer aan met v{live}. Je wijzigingen in v{version} blijven in de werkkopie tot je ze live zet."
+    "automations.golive.what_resume_pending": "Hiermee zet je de automatisering weer aan met v{live}. Je wijzigingen in v{version} blijven in de werkkopie tot je ze live zet.",
+    "automations.sharing.connections_note": "Runs gebruiken de verbindingen van de eigenaar. Wie mag bewerken, kan stappen toevoegen die daarmee lezen en versturen.",
+    "automations.sharing.connections_note_caller": "Een run die iemand anders start gebruikt de eigen verbindingen van die persoon. Geplande en automatische runs gebruiken die van de eigenaar.",
+    "automations.aiact.checked_auto_note": "Gecontroleerd door AI. Dit is geen juridisch advies.",
+    "automations.header.live_and_editing": "v{live} is live. Je bewerkt v{version}."
   },
   "sameAsEnglish": [
     "automations.agent_step.group_automations",
