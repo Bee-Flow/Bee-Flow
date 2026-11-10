@@ -1321,8 +1321,7 @@ test('app_finalize blocks a run_automation wired to an automation the owner does
     assert.ok(blocked.error, 'finalize rejected');
     assert.ok(blocked.validation.errors.some((e) => e.code === 'action.automation_missing'), JSON.stringify(blocked.validation.errors));
 
-    // An automation the owner DOES have — fine, even while inactive (draft-level
-    // finalize only blocks on missing automations; publish gates activity).
+    // An automation the owner DOES have finalizes even while inactive: a warning here, publish refuses it.
     const fixed = await applyToolCall('app_set_action', {
         actionId: Object.keys(wrap.def.actions)[0],
         action: { kind: 'run_automation', automationId: 'auto-2' },
@@ -1330,6 +1329,7 @@ test('app_finalize blocks a run_automation wired to an automation the owner does
     assert.ok(!fixed.error);
     const ok = await applyToolCall('app_finalize', {}, wrap);
     assert.ok(ok.finalized, JSON.stringify(ok));
+    assert.ok((ok.warnings || []).some((w) => w.code === 'action.automation_inactive' && w.severity === 'warning'), JSON.stringify(ok.warnings));
 });
 
 // ── Wave 2A: node logic pass-through + data-aware finalize ──────────

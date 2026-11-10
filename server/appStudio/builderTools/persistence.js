@@ -48,12 +48,13 @@ async function applyFinalize(draftWrap) {
     draftWrap.def = def;
 
     // Best-effort owned-automations check so a wired automationId the owner does
-    // not actually have blocks finalize with a precise, fixable error.
+    // not actually have blocks finalize with a precise, fixable error. The same
+    // lookup as the publication gate (stored status included); an automation that
+    // is not active yet is reported as a warning here and blocks only publishing.
+    const { loadOwnedAutomations, inactiveAutomationsAsWarnings } = require('../ownedAutomations.mts');
     let ownedAutomations;
     try {
-        const automationStore = require('../../stores/automationStore');
-        const rows = await automationStore.getAutomationsForUser(draftWrap.userId);
-        ownedAutomations = (rows || []).map((a) => ({ id: a.id, isActive: true }));
+        ownedAutomations = await loadOwnedAutomations(draftWrap.userId);
     } catch (_) { ownedAutomations = undefined; }
 
     // Data-reference cross-checks: the route loads the app's data model +
@@ -65,12 +66,12 @@ async function applyFinalize(draftWrap) {
     // list a `source.datatableId` that points nowhere is only a warning here, and the AI builder
     // is exactly the path that can make up such an id.
     const datatables = draftWrap._ownerDatatables || await require('../datatableSource').listOwnerDatatableIds(draftWrap.userId);
-    const validation = validateAppDefinition(def, {
+    const validation = inactiveAutomationsAsWarnings(validateAppDefinition(def, {
         ownedAutomations,
         dataModel: draftWrap.dataModel,
         datasets: draftWrap.datasetIds,
         datatables,
-    });
+    }));
     if (!validation.ok) {
         return {
             error: 'Cannot finalize: the definition has validation errors. Fix every error below, then call app_finalize again.',
