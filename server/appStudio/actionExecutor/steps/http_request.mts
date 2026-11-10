@@ -22,7 +22,7 @@
 
 import { createRequire } from 'node:module';
 
-import { BODY_FORMATS, authoredHeaders, buildUrl, connectorOrigin, encodeBody, isWrite, queryPairs, HTTP_METHODS } from '../httpRequest/request.mts';
+import { BODY_FORMATS, authoredHeaders, buildUrl, connectorOrigin, encodeBody, isWrite, plainBody, plainPath, queryPairs, HTTP_METHODS } from '../httpRequest/request.mts';
 import type { Obj, Refusal, RestConnector } from '../httpRequest/request.mts';
 import { fillPath, fillStatic, templateRoots } from '../httpRequest/template.mts';
 import { checkOutbound, logCall, openShield } from '../httpRequest/shield.mts';
@@ -178,13 +178,17 @@ function simulated(req: Prepared): StepResult {
     };
 }
 
-/** Everything authored that would leave, as texts for the privacy check. */
+/**
+ * Everything authored that would leave, as texts for the privacy check. The path and a form
+ * body are handed over as their values read, not URL-encoded: an encoded value is not what
+ * the check knows how to recognise.
+ */
 function outboundTexts(req: Prepared): string[] {
     return [
-        req.path,
+        plainPath(req.path),
         ...req.pairs.map(([name, value]) => `${name}=${value}`),
         ...Object.values(req.headers),
-        req.bodyText ?? '',
+        plainBody(req.bodyText, req.contentType),
         req.idempotencyKey ?? '',
     ];
 }

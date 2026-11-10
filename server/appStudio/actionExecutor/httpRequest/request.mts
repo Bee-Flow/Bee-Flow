@@ -22,10 +22,14 @@ export const MAX_HEADER_NAME_CHARS = 64;
 export const MAX_HEADER_VALUE_CHARS = 2000;
 export const MAX_QUERY_NAME_CHARS = 100;
 
-/** Headers an author never sets: identity, cookies and message framing. Lower case. */
+/**
+ * Headers an author never sets: identity, cookies, message framing, and the headers some
+ * services read as the real method (a GET must stay a read, also in a dry run). Lower case.
+ */
 export const FORBIDDEN_HEADERS: readonly string[] = Object.freeze([
     'authorization', 'proxy-authorization', 'cookie', 'set-cookie', 'host', 'content-length', 'transfer-encoding',
     'connection', 'upgrade', 'te', 'trailer', 'keep-alive', 'expect', 'idempotency-key',
+    'x-http-method-override', 'x-http-method', 'x-method-override',
 ]);
 
 const CONTENT_TYPES: Readonly<Record<string, string>> = Object.freeze({
@@ -203,4 +207,20 @@ export function encodeBody(value: unknown, format: string, method: string): Enco
         return refuse(`The body does not fit bodyFormat "${kind}": it must be ${want}.`);
     }
     return { ok: true, text, contentType: CONTENT_TYPES[kind] };
+}
+
+function decoded(text: string): string {
+    try { return decodeURIComponent(text); } catch { return text; }
+}
+
+/** The filled path as the values in it read, segment by segment: what the privacy check looks at. */
+export function plainPath(path: string): string {
+    return path.split('/').map(decoded).join('/');
+}
+
+/** The encoded body as the values in it read: a form body is `name=value` lines, anything else is itself. */
+export function plainBody(text: string | undefined, contentType: string | null): string {
+    if (text === undefined) return '';
+    if (contentType !== CONTENT_TYPES.form) return text;
+    return [...new URLSearchParams(text)].map(([name, value]) => `${name}=${value}`).join('\n');
 }

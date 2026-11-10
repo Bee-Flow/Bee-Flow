@@ -90,6 +90,17 @@ test('the privacy check sees the path, query, own headers and body, never the cr
     assert.equal(JSON.stringify(h.ledger).includes('tok-secret'), false);
 });
 
+test('the privacy check reads the values of a path and of a form body as written, not URL-encoded', async () => {
+    const h = harness();
+    await runHttpRequest(APP, MODEL, {
+        kind: 'http_request', connectorId: 'conn_ab12cd', method: 'POST', path: '/v1/people/{{form.who}}/100%',
+        bodyFormat: 'form', body: { kind: 'static', value: { mail: '{{form.who}}', name: 'A B' } },
+    }, { ...CTX, formValues: { who: 'a.b@example.test' } }, h.deps);
+    assert.deepEqual(h.checked, [['/v1/people/a.b@example.test/100%', 'mail=a.b@example.test\nname=A B']]);
+    assert.equal(h.calls[0].url, 'https://api.example.test/v1/people/a.b%40example.test/100%');
+    assert.equal(h.calls[0].init.body, 'mail=a.b%40example.test&name=A+B');
+});
+
 test('a privacy finding fails the step with pii_blocked and sends nothing, whatever the organisation action is', async () => {
     const block = Object.assign(new Error('Blocked: sensitive data detected (Email Address)'), { guardrailBlocked: true, violationType: 'pii', categories: ['Email Address'] });
     const variants = {
@@ -131,7 +142,7 @@ test('the connector must be a rest connector of this app', async () => {
 });
 
 test('headers a step may not set are refused: identity, framing and whatever the connector sets', async () => {
-    for (const name of ['Authorization', 'authorization', 'Cookie', 'Proxy-Authorization', 'Host', 'Content-Length', 'Idempotency-Key', 'X-Api-Key', 'x-api-version', 'Bad Name', 'X:Y']) {
+    for (const name of ['Authorization', 'authorization', 'Cookie', 'Proxy-Authorization', 'Host', 'Content-Length', 'Idempotency-Key', 'X-HTTP-Method-Override', 'x-http-method', 'X-Method-Override', 'X-Api-Key', 'x-api-version', 'Bad Name', 'X:Y']) {
         const h = harness();
         const res = await runHttpRequest(APP, MODEL, { kind: 'http_request', connectorId: 'conn_ab12cd', path: '/x', headers: { [name]: { kind: 'static', value: 'v' } } }, CTX, h.deps);
         assert.equal(res.code, 'http_header_refused', name);
