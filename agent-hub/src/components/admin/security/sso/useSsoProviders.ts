@@ -3,6 +3,7 @@ import { useServerUrlQuery, useSsoProvidersQuery } from '@/api/queries/adminConf
 import type { Dispatch, SetStateAction } from 'react';
 import { API_BASE } from '@/utils/helpers';
 import { settled } from '@/api/settled';
+import type { MicrosoftAppTestAnswer, TeamsDiagnosticsReport } from '@/components/meetings/teamsSetup/types';
 
 export type SsoProviderId = 'nextcloud' | 'google' | 'microsoft';
 
@@ -61,6 +62,8 @@ export interface SsoProvidersState {
     loading: boolean;
     saving: Partial<Record<SsoProviderId, boolean>>;
     testing: Partial<Record<SsoProviderId, boolean>>;
+    /** The checklist of the last test, per provider (only Microsoft answers with one). */
+    testReports: Partial<Record<SsoProviderId, TeamsDiagnosticsReport>>;
     message: SsoMessage | null;
     setMessage: Dispatch<SetStateAction<SsoMessage | null>>;
     /** Base URL for the OAuth redirect URIs the instructions show. */
@@ -107,6 +110,13 @@ function providerBody(provider: SsoProviderId, config: SsoProviderConfig, secret
     return body;
 }
 
+/** The `report` of a test answer when it has the shape of a diagnostics report, else undefined. */
+function reportOf(data: unknown): TeamsDiagnosticsReport | undefined {
+    const report: unknown = data && typeof data === 'object' ? (data as MicrosoftAppTestAnswer).report : undefined;
+    if (!report || typeof report !== 'object' || !Array.isArray((report as { checks?: unknown }).checks)) return undefined;
+    return report as TeamsDiagnosticsReport;
+}
+
 /** The SSO providers' configuration: load, edit, save and test. */
 export default function useSsoProviders(): SsoProvidersState {
     const providersQuery = useSsoProvidersQuery<SsoProviders>();
@@ -118,6 +128,7 @@ export default function useSsoProviders(): SsoProvidersState {
     const loading = providersQuery.isPending;
     const [saving, setSaving] = useState<Partial<Record<SsoProviderId, boolean>>>({});
     const [testing, setTesting] = useState<Partial<Record<SsoProviderId, boolean>>>({});
+    const [testReports, setTestReports] = useState<Partial<Record<SsoProviderId, TeamsDiagnosticsReport>>>({});
     const [message, setMessage] = useState<SsoMessage | null>(null);
     const serverUrl = useServerUrlQuery().data;
 
@@ -158,6 +169,7 @@ export default function useSsoProviders(): SsoProvidersState {
     const handleTestProvider = async (provider: SsoProviderId) => {
         setTesting(prev => ({ ...prev, [provider]: true }));
         setMessage(null);
+        setTestReports(prev => ({ ...prev, [provider]: undefined }));
 
         try {
             const res = await settled(`${API_BASE}/auth/providers/${provider}/test`, {
@@ -165,6 +177,8 @@ export default function useSsoProviders(): SsoProvidersState {
             });
             const data = res.ok ? await res.res.json() : res.body;
             setMessage({ type: res.ok ? 'success' : 'error', text: res.ok ? data.message : data.error });
+            // The Microsoft test answers with a checklist on success and on a refusal alike.
+            setTestReports(prev => ({ ...prev, [provider]: reportOf(data) }));
         } catch (e) {
             setMessage({ type: 'error', text: 'Connection test failed' });
         } finally {
@@ -185,7 +199,7 @@ export default function useSsoProviders(): SsoProvidersState {
 
     return {
         providers, secrets, setSecrets, connectionSecrets, setConnectionSecret, setConnections,
-        loading, saving, testing, message, setMessage,
+        loading, saving, testing, testReports, message, setMessage,
         redirectBase: serverUrl || API_BASE,
         handleSaveProvider, handleTestProvider, updateProviderField,
     };

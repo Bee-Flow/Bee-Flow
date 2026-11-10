@@ -78,4 +78,16 @@ function summaryTemplateOrgIdFor(req) {
     return null;
 }
 
-module.exports = { requireCapabilityOrOrgAdmin, settingsOrgIdFor, summaryTemplateOrgIdFor };
+/**
+ * Teams setup and diagnostics (/api/teams-setup): every path is administration
+ * of the session's own organisation (the router never takes an org from the
+ * request), so an org admin outside the Meeting Notes rollout can still set up
+ * and test it. Everyone else meets the capability gate; the router's own
+ * org-admin check guards the `/org/*` paths.
+ * @param {import('express').Request} req
+ */
+function teamsSetupOrgIdFor(req) {
+    return sessionOrgId(req);
+}
+
+module.exports = { requireCapabilityOrOrgAdmin, settingsOrgIdFor, summaryTemplateOrgIdFor, teamsSetupOrgIdFor };

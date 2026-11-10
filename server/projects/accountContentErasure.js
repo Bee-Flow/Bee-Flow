@@ -159,7 +159,18 @@ async function eraseOrgKnowledgeBases(orgId) {
     return eraseKnowledgeBaseRows(rows);
 }
 
+/**
+ * The person's id in every organisation's organisation-wide Teams import
+ * setting (selected members, who switched it on, who saved it last); the
+ * setting itself stays with its organisation. Returns how many named them.
+ * @param {string} userId
+ * @returns {Promise<number>}
+ */
+async function forgetTeamsAppImportMember(userId) {
+    return require('../core/meetingNotes/teamsAppImport/settings.mts').forgetUserInAllAppImports(userId);
+}
+
 module.exports = {
     eraseTranscriptions, eraseOrgTranscriptions, eraseWebpages, eraseStudioApps, eraseSkills, eraseStoragePrefix,
-    erasePersonalKnowledgeBases, eraseOrgKnowledgeBases,
+    erasePersonalKnowledgeBases, eraseOrgKnowledgeBases, forgetTeamsAppImportMember,
 };

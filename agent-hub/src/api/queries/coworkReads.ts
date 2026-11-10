@@ -1,7 +1,7 @@
-// Cowork reads: the run history of one assigned task.
+// Cowork reads: the run history of one assigned task, and the mail apps a mail trigger can watch.
 
 import { useQuery } from '@tanstack/react-query';
-import { listCoworkRuns } from '../coworkApi';
+import { listCoworkMailProviders, listCoworkRuns } from '../coworkApi';
 import type { CoworkRun } from '../cowork.types';
 
 /**
@@ -14,6 +14,19 @@ export function useCoworkRunsQuery(coworkId: string | null | undefined, reloadKe
         enabled: !!coworkId,
         queryFn: () => listCoworkRuns(coworkId as string),
         staleTime: 0,
+        retry: false,
+    });
+}
+
+/**
+ * The mail apps the user has connected, from Cowork's own route: the server
+ * answers with the check a save runs, so the settings offer what a save accepts.
+ */
+export function useCoworkMailProvidersQuery() {
+    return useQuery<string[], Error>({
+        queryKey: ['cowork', 'mail-providers'],
+        queryFn: listCoworkMailProviders,
+        staleTime: 60_000,
         retry: false,
     });
 }

@@ -107,6 +107,11 @@ test('reasonFor: Nextcloud codes, step errorInfo and the unknown fallback', () =
         { reasonCode: 'folder_not_shared', reason: 'the folder is not shared with you' });
     assert.deepEqual(reasonFor({}), { reasonCode: 'unexpected', reason: 'something unexpected went wrong' });
     assert.equal(reasonFor({ errorClass: 'guardrail_blocked' }).reasonCode, 'blocked_by_privacy');
+    // Maintenance and a bare 503 are "temporarily unavailable", not a rate limit; a proxy's answer is "unreachable".
+    assert.equal(reasonFor({ ncCode: 'NEXTCLOUD_MAINTENANCE', errorClass: 'TransientError' }).reasonCode, 'temporarily_unavailable');
+    assert.equal(reasonFor({ ncCode: 'TEMPORARILY_UNAVAILABLE', errorClass: 'TransientError' }).reasonCode, 'temporarily_unavailable');
+    assert.equal(reasonFor({ ncCode: 'THROTTLED', errorClass: 'TransientError' }).reasonCode, 'rate_limited');
+    assert.equal(reasonFor({ ncCode: 'PROXY_ANSWERED', errorClass: 'IntegrationError' }).reasonCode, 'unreachable');
 });
 
 test('waiting: approval names who, form names the page, confirm and cancelled have fixed sentences', () => {

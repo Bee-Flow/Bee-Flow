@@ -22,6 +22,17 @@ const NL_TRANSLATIONS = Object.freeze({
     'meetings.import_error_provider_not_allowed': 'Die transcriptie-engine is niet ingeschakeld voor deze werkruimte.',
     'meetings.import_error_timeout': 'De import duurde te lang. Bekijk de vergadernotities later, of probeer het opnieuw.',
     'meetings.import_error_too_large': 'De opname is te groot om te importeren.',
+    // 2026-11: Teams failures with their own cause. Only missing keys are filled, so a re-run keeps own wording.
+    'meetings.import_error_access_policy': 'Het Teams-toepassingstoegangsbeleid van je organisatie staat Bee Flow niet toe voor dit account.',
+    'meetings.import_error_calendar_forbidden': 'Microsoft weigert de toegang tot je agenda.',
+    'meetings.import_error_download_failed': 'De opname kon niet bij Microsoft worden gedownload. Probeer het opnieuw.',
+    'meetings.import_error_graph_forbidden': 'Microsoft weigert de toegang tot deze vergadering. Een recht, licentie of Teams-beleid houdt het tegen. Je beheerder kan de Teams-test uitvoeren.',
+    'meetings.import_error_graph_unavailable': 'Microsoft Graph gaf geen goed antwoord. Probeer het over een paar minuten opnieuw.',
+    'meetings.import_error_meeting_not_available': 'Microsoft heeft geen onlinevergadering bij deze agenda-afspraak. Mogelijk is die verlopen.',
+    'meetings.import_error_speaker_attribution_off': 'Je Teams-beheerder staat geen sprekersnamen in transcripten toe, dus dit transcript kan niet worden geïmporteerd. Een opname zou wel werken.',
+    'meetings.import_error_throttled': 'Microsoft beperkt op dit moment het aantal verzoeken. Probeer het over een paar minuten opnieuw.',
+    'meetings.import_error_too_many': 'Er lopen te veel imports. Wacht tot er een klaar is.',
+    'meetings.import_error_transcript_api_off': 'Je Teams-beheerder heeft de API-toegang tot vergadertranscripten uitgezet.',
     'meetings.import_running': 'De vergadering wordt geïmporteerd. Dit kan enkele minuten duren…',
 });
 

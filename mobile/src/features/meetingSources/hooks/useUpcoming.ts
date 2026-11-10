@@ -10,7 +10,7 @@ import { useTranslation } from '@/core/i18n';
 import { useUserRefresh } from '@/shared/patterns';
 
 import { useToggleMeetRecord, useToggleTalkRecord } from './mutations';
-import { useMeetMeetings, useTalkMeetings } from './queries';
+import { useMeetMeetings, useNextcloudConnected, useTalkMeetings } from './queries';
 import { upcomingRows, type UpcomingRow } from '../model/rows';
 import type { RecordAnswer } from '../model/types';
 import { attendeeNotices, autoRecordingHint } from '../model/upcomingMeta';
@@ -19,6 +19,7 @@ export function useUpcoming() {
     const t = useTranslation();
     const talk = useTalkMeetings();
     const meet = useMeetMeetings();
+    const nextcloud = useNextcloudConnected();
     const toggleTalk = useToggleTalkRecord();
     const toggleMeet = useToggleMeetRecord();
     // Every row whose switch is in flight: two rows can be, of one provider or both.
@@ -65,7 +66,7 @@ export function useUpcoming() {
         setOverridden({});
         setErrors({});
         setAutoRecording({});
-        return Promise.all([talk.refetch(), meet.refetch()]);
+        return Promise.all([talk.refetch(), meet.refetch(), nextcloud.refetch()]);
     });
 
     return {
@@ -73,6 +74,8 @@ export function useUpcoming() {
         meet,
         rows,
         connection,
+        /** `true` only once the server said this account has Nextcloud; undefined while unknown. */
+        talkConnected: nextcloud.data,
         loading: talk.isLoading || meet.isLoading,
         refreshing: pull.refreshing,
         refresh: pull.onRefresh,

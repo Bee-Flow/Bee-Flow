@@ -36,7 +36,7 @@ Drop a new file in. If the folder ends up with two images, the alphabetically-fi
 | `getting-started/wizard/step-3-privacy/` | Onboarding wizard step 3 |
 | `getting-started/wizard/step-4-license/` | Onboarding wizard step 4 |
 | `connector/install-progress/` | AppAPI deploy progress UI in NC |
-| `connector/heartbeat-ok/` | `occ app_api:app:heartbeat bee_flow` happy output |
+| `connector/heartbeat-ok/` | The connector's `/heartbeat` answer, happy output |
 | `features/chat-empty-state/` | Bee Flow chat first-load |
 | `features/chat-tool-call/` | An inline tool-call row, expanded |
 | `features/chat-shield-indicator/` | The redaction shield next to a message |

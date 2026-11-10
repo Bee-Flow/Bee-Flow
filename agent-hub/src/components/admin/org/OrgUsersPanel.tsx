@@ -10,11 +10,12 @@ import useOrgGroups from './useOrgGroups';
 import useOrgInvitations from './useOrgInvitations';
 import useOrgMemberRoles from './useOrgMemberRoles';
 import type { OrgMemberRoles } from './useOrgMemberRoles';
+import { ALERT_INFO } from '@/components/mcpLibrary/ui';
 import { ORG_ROLES } from '@/config/orgRoles';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useUrlTab } from '@/hooks/useUrlTab';
 import { useUserFilters } from '@/hooks/useUserFilters';
-import { homeOrgIdOf, isPlatformAdmin, mayManageAccount } from '@/utils/adminAccess';
+import { isPlatformAdmin } from '@/utils/adminAccess';
 import NextcloudSyncPanel from '../../integrations/nextcloud/NextcloudSyncPanel';
 import ConfirmDialog from '../../shared/ConfirmDialog';
 import Tabs from '../../shared/Tabs';
@@ -171,11 +172,15 @@ const OrgUsersPanel = ({ user, initialSection: _initialSection, basePath = LEGAC
     const orgRoleCount = ORG_ROLES.length;
 
     const canEditRoles = canUserEditRoles(user);
-    // The server manages an account through its home organisation, and a
-    // platform admin's account through a platform admin only.
+    // No client-side gate on the row controls, except one: a platform admin's
+    // account is changed by platform admins only, read from the ROW the server
+    // sent. The viewer's own organisation pointer is not consulted: it can be
+    // stale (the embedded Nextcloud view), and hiding controls on it locked
+    // legitimate admins out. The server refuses whatever else is not allowed.
+    // (Admin > Security > Users applies the full rule, utils/adminAccess
+    // mayManageAccount, on its own screen.)
     const viewerIsPlatformAdmin = isPlatformAdmin(user);
-    const viewerHomeOrgId = homeOrgIdOf(user);
-    const canManageMember = (member: OrgMember) => mayManageAccount(member, viewerIsPlatformAdmin, viewerHomeOrgId);
+    const canManageMember = (member: OrgMember) => viewerIsPlatformAdmin || member.role !== 'admin';
 
     const handleRolePermissionsSaved = (roleId: string, permissions: string[]) => {
         setOrgRolePerms(prev => spliceRolePermissions(prev, roleId, permissions, editablePermissions));
@@ -217,6 +222,14 @@ const OrgUsersPanel = ({ user, initialSection: _initialSection, basePath = LEGAC
                 ariaLabel={t('settings.users_groups', 'Users & Groups')}
                 items={sections}
             />
+
+            {/* The admin-scoped lists were refused: say so, as the admin
+                dashboard does, rather than show an empty organisation. */}
+            {directory.notOrgAdmin && (
+                <div role="status" className={ALERT_INFO}>
+                    {t('admin_org.user_mgmt_org_admins_only', 'This page is for administrators of the organisation, so ask a platform administrator if you need access.')}
+                </div>
+            )}
 
             {activeSection === 'users' && (
                 <UsersSection

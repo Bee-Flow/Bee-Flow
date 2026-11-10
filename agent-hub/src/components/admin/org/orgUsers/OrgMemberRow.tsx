@@ -18,8 +18,9 @@ interface OrgMemberRowProps {
     memberRoles: OrgMemberRoles;
     onCreateGroup: () => void;
     /**
-     * The viewer may change this account (utils/adminAccess mayManageAccount).
-     * Without it the row is read-only: the server refuses every write on it.
+     * The viewer may change this account. The panel withholds it only for a
+     * platform admin's account shown to a viewer who is not one; without it
+     * the row is read-only, as the server refuses every write on it.
      */
     manageable: boolean;
 }

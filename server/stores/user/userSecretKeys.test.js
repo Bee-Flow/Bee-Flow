@@ -18,3 +18,9 @@ test('erasure stems include every settings secret and the other per-user keys, w
     assert.equal(new Set(stems).size, stems.length);
     assert.ok(Object.isFrozen(SECRETS));
 });
+
+test('erasure covers the Teams auto-import skip state', () => {
+    const { SKIP_STATE_STEM, skipStateKey } = require('../../core/meetingNotes/teamsImportSkipState.mts');
+    assert.ok(perUserConfigStems().includes(SKIP_STATE_STEM));
+    assert.equal(skipStateKey('u1'), `${SKIP_STATE_STEM}_user_u1`, 'the key has the <stem>_user_<id> shape erasure deletes');
+});

@@ -321,6 +321,7 @@ module.exports = {
  *   automationEvolutionTools: () => typeof import('../../integrations/automationEvolutionToolDefs'),
  *   datatableTools: () => typeof import('../tools/datatableTools'),
  *   nextcloudClient: () => typeof import('../../integrations/nextcloudClient'),
+ *   nextcloudCapabilities: () => typeof import('../../integrations/nextcloudCapabilities.mts'),
  *   userStore: () => typeof import('../../stores/userStore'),
  *   ncScope: () => typeof import('./ncScope'),
  *   toolPolicy: () => typeof import('../agentRuntime/toolPolicy'),

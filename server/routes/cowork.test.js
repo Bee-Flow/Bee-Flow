@@ -141,6 +141,7 @@ const MOCKS = {
             mt.synced.push(schedule);
         },
         async revokeCoworkMailTrigger(id) { mt.revoked.push(id); },
+        async connectedMailProviders(userId) { return userId === 'u1' ? ['msgraph'] : []; },
     },
     '../auth/permissions': {
         requireAuth: (req, res, next) => {
@@ -950,4 +951,10 @@ test('delete: an event item revokes its subscription first; a clock item does no
     resetMt();
     await call('/cw-clock', { method: 'DELETE' });
     assert.deepStrictEqual(mt.revoked, []);
+});
+
+test('mail-providers: the connected mail apps of the caller, not an item called "mail-providers"', async () => {
+    const r = await call('/mail-providers');
+    assert.strictEqual(r.status, 200);
+    assert.deepStrictEqual(r.json, { providers: ['msgraph'] });
 });

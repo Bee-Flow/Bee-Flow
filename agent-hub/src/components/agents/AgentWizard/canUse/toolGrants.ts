@@ -300,7 +300,16 @@ export function toolRows({
         // have it.
         for (const [id, app] of byId) if (app.available !== false) push(id);
     }
-    for (const key of Object.keys(isPlainObject(toolsConfig) ? toolsConfig : {})) push(key);
+    for (const key of Object.keys(isPlainObject(toolsConfig) ? toolsConfig : {})) {
+        // A stored refusal of an app that is ALSO off at app level is not a row. Both gates say no, so the agent has
+        // nothing of it, and the first curation writes exactly such entries for every app the picker could never show
+        // (`keepRequiresGrantApps`): the card then filled up with "nothing switched on" rows for apps nobody linked,
+        // some of them not even available on the installation. The entry stays in the config (it IS the refusal);
+        // "+ Link" is where such an app is switched on. An app that is on at app level keeps its row, also with zero
+        // actions, and so does everything under the legacy `null` list.
+        if (Array.isArray(enabledIntegrations) && !enabledIntegrations.includes(key) && _refusesEverything(toolsConfig, key)) continue;
+        push(key);
+    }
 
     const catalog = catalogState === READ.OK && Array.isArray(apps) ? apps : [];
     return ids.map(appId => toolRow({
@@ -314,6 +323,12 @@ export function toolRows({
         apps: catalog,
         claimants,
     }));
+}
+
+/** Is the stored entry of this app an explicit "no actions"? Read off the config alone, so it holds without a catalogue. */
+function _refusesEverything(toolsConfig: ToolsConfigIn, appId: string) {
+    const granted = grantedActionsOf(toolsConfig, appId);
+    return Array.isArray(granted) && granted.length === 0;
 }
 
 // ── Automations als tool ────────────────────────────────────────────

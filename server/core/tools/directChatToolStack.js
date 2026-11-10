@@ -71,7 +71,7 @@ async function buildDirectChatToolStack({ userId, session, isAdmin = false, reso
     try {
         // extraEnabledApps: skill-scoped app enablement (bypasses only the
         // per-user app toggle; entitlement/credential gates stay inside).
-        const integrations = await getIntegrationTools({ userId, session, isAdmin, extraEnabledApps });
+        const integrations = await getIntegrationTools({ userId, session, isAdmin, extraEnabledApps, hideAbsentNextcloudApps: true });
         n8nOrgId = integrations?.n8nOrgId || null;
         for (const tool of integrations?.tools || []) {
             if (!tools.find(t => t.function.name === tool.function.name)) {

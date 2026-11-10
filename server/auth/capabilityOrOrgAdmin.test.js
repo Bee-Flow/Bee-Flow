@@ -1,7 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const { tagGate, readGate } = require('./gateMeta');
-const { requireCapabilityOrOrgAdmin, settingsOrgIdFor, summaryTemplateOrgIdFor } = require('./capabilityOrOrgAdmin');
+const { requireCapabilityOrOrgAdmin, settingsOrgIdFor, summaryTemplateOrgIdFor, teamsSetupOrgIdFor } = require('./capabilityOrOrgAdmin');
 
 function makeGate() {
     const calls = [];
@@ -67,6 +67,16 @@ test('settingsOrgIdFor names only /:orgId', () => {
     assert.strictEqual(settingsOrgIdFor({ path: '/user/me' }), null);
     assert.strictEqual(settingsOrgIdFor({ path: '/user' }), null);
     assert.strictEqual(settingsOrgIdFor({ path: '/' }), null);
+});
+
+test('teamsSetupOrgIdFor names the session org for every path, never one from the request', () => {
+    const s = { user: { id: 'u1', organizationId: 'orgA' } };
+    for (const path of ['/requirements', '/me/diagnostics', '/org/overview', '/org/consent-link', '/orgB', '/']) {
+        assert.strictEqual(teamsSetupOrgIdFor({ path, session: s, query: { orgId: 'orgB' }, params: { orgId: 'orgB' } }), 'orgA', path);
+    }
+    assert.strictEqual(teamsSetupOrgIdFor({ path: '/org/overview', session: { user: { id: 'u1', orgId: 'legacyOrg' } } }), 'legacyOrg');
+    assert.strictEqual(teamsSetupOrgIdFor({ path: '/org/overview', session: { user: { id: 'u1' } } }), null);
+    assert.strictEqual(teamsSetupOrgIdFor({ path: '/org/overview', session: {} }), null);
 });
 
 test('summaryTemplateOrgIdFor separates org administration from personal use', () => {

@@ -1,8 +1,9 @@
 /**
  * What stands between a provider and its meetings, one banner per reason, in
- * the web's words: Talk's recording backend missing, Google access expired,
- * Google not connected or connected without the Meet permissions, or a
- * provider that did not answer.
+ * the web's words: Talk's recording backend missing (for an account with
+ * Nextcloud), Google access expired, Google not connected (when the
+ * installation has Google set up) or connected without the Meet permissions,
+ * or a provider that did not answer.
  *
  * The web reconnects Google in a popup; the phone sends the person to
  * Integrations, where Google is connected.
@@ -16,6 +17,7 @@ import { useTranslation } from '@/core/i18n';
 import { Banner, Button, Text } from '@/shared/ui';
 
 import type { Upcoming } from '../hooks/useUpcoming';
+import { showConnectGoogle, showTalkBackendNotice } from '../model/banners';
 
 function ProviderError({ title, error }: { title: string; error: unknown }) {
     return (
@@ -33,13 +35,13 @@ function ProviderError({ title, error }: { title: string; error: unknown }) {
 export function UpcomingBanners({ upcoming }: { upcoming: Upcoming }) {
     const t = useTranslation();
     const router = useRouter();
-    const { talk, meet, connection } = upcoming;
+    const { talk, meet, connection, talkConnected } = upcoming;
     const toIntegrations = (label: string) => (
         <Button label={label} variant="ghost" size="sm" onPress={() => router.push('/integrations')} />
     );
     return (
         <>
-            {talk.data && !talk.data.recordingEnabled ? (
+            {showTalkBackendNotice(talk.data, talkConnected) ? (
                 <Banner tone="warning">
                     {t(
                         'meetings.upcoming_talk_backend',
@@ -55,7 +57,7 @@ export function UpcomingBanners({ upcoming }: { upcoming: Upcoming }) {
                     )}
                 </Banner>
             ) : null}
-            {connection && !connection.needsReauth && !connection.googleConnected ? (
+            {showConnectGoogle(connection) ? (
                 <Banner tone="info" icon="Video" action={toIntegrations(t('meetings.upcoming_settings_integrations', 'Settings → Connections'))}>
                     {t('meetings.upcoming_connect_google', 'Connect Google Workspace to see your Meet meetings here —')}
                 </Banner>

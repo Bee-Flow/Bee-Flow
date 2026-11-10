@@ -162,6 +162,7 @@ async function eraseContent(userId, step, { content, oldestOrgAdmin }) {
     await step('studio apps', () => content.eraseStudioApps(userId));
     await step('skills', () => content.eraseSkills(userId));
     await step('knowledge_bases', () => content.erasePersonalKnowledgeBases(userId));
+    await step('teams app import', () => content.forgetTeamsAppImportMember(userId));
     await eraseOwnedRows(userId, step);
     await anonymiseSupportThreads(userId, step);
     await detachRecordRefs(userId, step);

@@ -157,10 +157,10 @@ const OPEN_ROUTES_WALK_ONLY = new Map(/** @type {Array<[string, OpenReason]>} */
     // ── Nextcloud connector bootstrap: the Nextcloud instance proves itself in the handler ──
     ['POST /auth/connector/bootstrap', 'connector pairing: the handler verifies the calling Nextcloud by its capabilities round trip and, for an instance that is already bound, proof of that binding (the recorded base URL or a tenant-key signature, auth/connector/rebindProof.js) or a pairing code, before it answers anything (auth/connectorBootstrap.js)'],
     ['POST /auth/connector/diagnose', 'connector diagnostics: the same capabilities round trip as bootstrap, answers reachability and binding state only (auth/connectorBootstrap.js)'],
-    ['GET /auth/connector/bootstrap/pending/:id', 'polls the approval state of a pending binding; the random id is the credential and yields status only, never the tenant key (auth/connectorBootstrap.js header)'],
-    ['POST /auth/connector/bootstrap/pending/:id/verify', 'redeems the e-mailed verification code for a pending binding: the code is the credential, attempts are capped (auth/connectorBootstrap.js)'],
-    ['POST /auth/connector/bootstrap/pending/:id/resend', 'resends the verification mail for a pending binding, rate limited per IP (auth/connectorBootstrap.js)'],
-    ['POST /auth/connector/bootstrap/pending/:id/retarget', 'changes the address the verification mail goes to, under the same pending-binding id and limiter (auth/connectorBootstrap.js)'],
+    ['GET /auth/connector/bootstrap/pending/:id', 'polls the approval state of a pending binding by its row id: status only, and the tenant key only for an administrator\'s approval, shortly after it, for the Nextcloud it approved (auth/connectorBootstrap.js)'],
+    ['POST /auth/connector/bootstrap/pending/:id/verify', 'redeems the e-mailed verification code for a pending binding: the code is the credential, it is sent only to an administrator of the organisation and accepted once, attempts are capped (auth/connectorBootstrap.js)'],
+    ['POST /auth/connector/bootstrap/pending/:id/resend', 'resends the verification mail for a pending binding, only to an administrator of its organisation, rate limited per IP and capped per binding (auth/connectorBootstrap.js)'],
+    ['POST /auth/connector/bootstrap/pending/:id/retarget', 'changes the address the verification mail goes to, only to that of an administrator of the organisation, under the same pending-binding id and limiter (auth/connectorBootstrap.js)'],
 
     // ── Published website content: anonymous visitors and crawlers are the audience ──
     ['GET /api/cms/blog/posts', 'published blog posts of the live site, for the public blog page (routes/cmsBlog.js reads the published snapshot only)'],

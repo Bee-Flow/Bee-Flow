@@ -13,7 +13,7 @@ import React, { useLayoutEffect, useRef, useState } from 'react';
 import useOutsideDismiss from '../../hooks/useOutsideDismiss';
 import useTranslation from '../../hooks/useTranslation';
 import Modal from '../shared/Modal';
-import MailTriggerPanel from './MailTriggerPanel';
+import MailTriggerPanel, { FirstConnectedMailApp } from './MailTriggerPanel';
 import { defaultMailTrigger, describeMailTrigger } from './mailTrigger';
 import {
     WHEN_PRESETS, COWORK_REPEAT_OPTIONS,
@@ -226,14 +226,18 @@ function RepeatChip({ open, onToggle, onClose, isMobile, repeatInterval, onRepea
                             onClick={() => { onMailTriggerChange?.(null); onRepeatChange(o.value); onClose(); }}
                         />
                     ))}
-                    {canOfferMailTrigger && (
-                        <SheetOption
-                            selected={!!mailTrigger}
-                            icon={Mail}
-                            label={t('cowork.mail_trigger.option', 'When a new email arrives…')}
-                            hint={t('cowork.mail_trigger.option_hint', 'Gmail or Outlook, handled by the agent')}
-                            onClick={() => { if (!mailTrigger) onMailTriggerChange?.(defaultMailTrigger()); }}
-                        />
+                    {open && canOfferMailTrigger && (
+                        <FirstConnectedMailApp>
+                            {(first) => (
+                                <SheetOption
+                                    selected={!!mailTrigger}
+                                    icon={Mail}
+                                    label={t('cowork.mail_trigger.option', 'When a new email arrives…')}
+                                    hint={t('cowork.mail_trigger.option_hint', 'Gmail or Outlook, handled by the agent')}
+                                    onClick={() => { if (!mailTrigger) onMailTriggerChange?.(defaultMailTrigger(first)); }}
+                                />
+                            )}
+                        </FirstConnectedMailApp>
                     )}
                 </div>
                 {mailTrigger && onMailTriggerChange && (

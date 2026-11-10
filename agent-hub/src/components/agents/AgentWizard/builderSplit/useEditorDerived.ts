@@ -33,27 +33,23 @@ export default function useEditorDerived({ t, agent, integrationStatus, allSkill
     const skillNamesById = new Map((allSkills || []).map(s => [s.id, s]));
     // Apps are off by default (R4). Legacy `null` rows have been backfilled
     // server-side, so `enabledIntegrations` is always an array here.
+    // The count is a fact about the agent's CONFIG: every app that is switched
+    // on, the same number the agent card in the list shows (agentCardFacts) and
+    // the same apps the Tools card draws a row for. It used to be measured
+    // against `availableIntegrations`, a client-side guess at what this user
+    // may use, and then an agent with Outlook switched on showed "0" as soon
+    // as that guess left Outlook out.
     const enabledIntegrationCount = Array.isArray(enabledIntegrations)
-        ? enabledIntegrations.filter(id => availableIntegrations.some(a => a.id === id)).length
+        ? new Set(enabledIntegrations.filter(id => typeof id === 'string' && id)).size
         : 0;
 
     // ── The counters on the tabs ──────────────────────────────────
-    // "Can use": the apps this agent has switched on, measured against the
-    // catalogue available to THIS user. As long as that catalogue has not
-    // been read (integrationStatus === null) the answer is unknown — and the
-    // tab then shows no counter, not a 0. Remember that
-    // filterAvailableIntegrations returns the WHOLE catalogue for a null
-    // status: without this guard a failed read would reach the screen as a
-    // measured number.
-    // Since A2 step 2 the tab carries more than apps: knowledge bases, table
-    // grants and skills are on it too, and a counter that counts only apps
-    // would say "3" above a screen with eight rows. All four come from the
-    // agent's CONFIG — none of the tab's extra reads is needed for it, so
-    // the counter stays right while you are on Role.
-    const canUseCount = integrationStatus === null
-        ? undefined
-        : enabledIntegrationCount + knowledgeBaseIds.length + datatableGrantCount
-            + attachedSkillIds.length + automationGrantCount;
+    // "Can use" carries apps, knowledge bases, table grants, skills and
+    // automation grants. All five come from the agent's CONFIG — none of the
+    // tab's extra reads is needed for it, so the counter stays right while
+    // you are on Role.
+    const canUseCount = enabledIntegrationCount + knowledgeBaseIds.length + datatableGrantCount
+        + attachedSkillIds.length + automationGrantCount;
 
     // "Used by": GET /agents/:id/usage. useUsage's URL table points to
     // /api/agents/:id/usage, and that mount does not exist — the agents router

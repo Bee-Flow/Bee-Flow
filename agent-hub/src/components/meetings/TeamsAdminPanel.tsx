@@ -9,6 +9,11 @@ import {
     type TeamsNotesSettings,
 } from '../../api/queries/teamsMeetingNotes';
 import { errorMessage } from '../../utils/caughtError';
+import TeamsSetupGuide from './teamsSetup/TeamsSetupGuide';
+import TeamsConsentLinkCard from './teamsSetup/TeamsConsentLinkCard';
+import TeamsConnectionTest from './teamsSetup/TeamsConnectionTest';
+import TeamsMembersOverview from './teamsSetup/TeamsMembersOverview';
+import TeamsAppImportPanel from './teamsSetup/TeamsAppImportPanel';
 
 /**
  * Org-level Microsoft Teams → Meeting Notes settings, next to the Google Meet
@@ -18,7 +23,10 @@ import { errorMessage } from '../../utils/caughtError';
  *
  * What the admin needs to know is said here, not discovered later: the app
  * registration needs admin consent for the Teams permissions, and only the
- * organizer of a meeting can import it.
+ * organizer of a meeting can import it. Below the settings: the setup guide,
+ * the admin consent link, a test of the admin's own connection, organisation-wide
+ * import (option B, application permissions) and the members overview (all on
+ * /api/teams-setup, for the session organisation).
  */
 const INHERITABLE = ['autoImport', 'autoRecordConfig', 'language', 'lookbackHours'] as const;
 const DEFAULT_CFG: TeamsNotesSettings = { autoImport: null, autoRecordConfig: null, language: null, lookbackHours: null };
@@ -56,7 +64,7 @@ export default function TeamsAdminPanel({ user }: { user?: { organizationId?: st
                 </p>
             </div>
             <p className="text-[12px] mb-3 text-[var(--text-muted)]">
-                {t('settings.teams_admin_intro', 'Turn the Teams meetings members organise into Meeting Notes, transcribed by your organisation’s own transcription engine. Your Microsoft 365 admin must grant admin consent for the Teams meeting permissions (OnlineMeetingRecording.Read.All, OnlineMeetingTranscript.Read.All, OnlineMeetings.ReadWrite). These org settings override each member’s personal settings.')}
+                {t('teams_setup.ui.admin_intro')}
             </p>
             <InheritHint />
 
@@ -107,6 +115,15 @@ export default function TeamsAdminPanel({ user }: { user?: { organizationId?: st
                     </div>
                 </>
             )}
+
+            {/* Setting up and testing: always shown, also when the settings could not be read. */}
+            <div className="mt-6 flex flex-col gap-6">
+                <TeamsSetupGuide />
+                <TeamsConsentLinkCard />
+                <TeamsConnectionTest />
+                <TeamsAppImportPanel />
+                <TeamsMembersOverview />
+            </div>
         </div>
     );
 }

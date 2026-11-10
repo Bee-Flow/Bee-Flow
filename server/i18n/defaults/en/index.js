@@ -135,6 +135,7 @@ const NAMESPACES = {
     "suggestions":     require('./suggestions.js'),
     "support":         require('./support.js'),
     "tasks":           require('./tasks.js'),
+    "teams_setup":     require('./teams_setup.js'),
     "templates":       require('./templates.js'),
     "tests_studio":    require('./tests_studio.js'),
     "tier":            require('./tier.js'),

@@ -82,6 +82,11 @@ export interface OrgDirectory {
     editablePermissions: string[];
     organizations: Organization[];
     loading: boolean;
+    /**
+     * The admin-scoped member list was refused (403): the viewer administers
+     * no organisation of their own, as the admin dashboard tells the same case.
+     */
+    notOrgAdmin: boolean;
     customTiersMeta: CustomTierMeta[];
     usageByUser: Map<string, MemberUsage>;
     /** null until the org row lands, and for an org that has no sign-in method. */
@@ -114,6 +119,7 @@ export default function useOrgDirectory({ user }: UseOrgDirectoryOptions): OrgDi
     const [editablePermissions, setEditablePermissions] = useState<string[]>([]);
     const [organizations, setOrganizations] = useState<Organization[]>([]);
     const [loading, setLoading] = useState(true);
+    const [notOrgAdmin, setNotOrgAdmin] = useState(false);
 
     // Custom tier metadata — used alongside the four standard tiers in the
     // group's Allowed-tiers editor. Empty allowedTiers on a group means "no
@@ -147,6 +153,7 @@ export default function useOrgDirectory({ user }: UseOrgDirectoryOptions): OrgDi
                 settled(`${API_BASE}/auth/org-roles`, undefined, 'empty'),
             ]);
             if (usersRes.ok) setUsers(await usersRes.res.json());
+            setNotOrgAdmin(!usersRes.ok && usersRes.status === 403);
             if (groupsRes.ok) setGroups(await groupsRes.res.json());
             // An install running an older server has no /auth/org-roles; the
             // Roles tab then says so rather than inventing a list.
@@ -249,6 +256,7 @@ export default function useOrgDirectory({ user }: UseOrgDirectoryOptions): OrgDi
         editablePermissions,
         organizations,
         loading,
+        notOrgAdmin,
         customTiersMeta,
         usageByUser,
         orgAuthMethod,

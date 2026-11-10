@@ -1,9 +1,9 @@
 ---
-title: "0017: An organisation admin is not a platform admin"
+title: "0019: An organisation admin is not a platform admin"
 description: Why instance-wide settings need a platform admin in every deployment mode, and why an organisation admin administers only the organisations where one strict check holds.
 ---
 
-# 0017: An organisation admin is not a platform admin
+# 0019: An organisation admin is not a platform admin
 
 **Status:** accepted, in effect. **Enforced by:** `server/auth/routes.contract.json` and
 `server/routes.contract.test.js` (the instance-wide routes are recorded at class `platform`),

@@ -627,7 +627,7 @@ app.use('/api/transcriptions', requireModule('meetingNotes'), requireCapability(
 // settings, templates or connectors either. The org-level endpoints are
 // administration: an org admin outside the rollout still configures it for the
 // people inside it (auth/capabilityOrOrgAdmin.js), the personal ones are not.
-const { requireCapabilityOrOrgAdmin, settingsOrgIdFor, summaryTemplateOrgIdFor } = require('./auth/capabilityOrOrgAdmin');
+const { requireCapabilityOrOrgAdmin, settingsOrgIdFor, summaryTemplateOrgIdFor, teamsSetupOrgIdFor } = require('./auth/capabilityOrOrgAdmin');
 const _meetingNotesGate = (orgIdFor) => requireCapabilityOrOrgAdmin(requireCapability('meeting_notes'), {
     orgIdFor, isOrgAdminForOrg: require('./auth/permissions').isOrgAdminForOrg, log,
 });
@@ -641,6 +641,8 @@ app.use('/api/nc-scope', require('./routes/ncScope'));
 app.use('/api/gmeet-notes-settings', requireModule('meetingNotes'), requireLicenseFeature('meeting_notes'), _meetingNotesGate(settingsOrgIdFor), require('./routes/gmeetNotesSettings'));
 // Microsoft Teams → Meeting Notes settings. Same gates.
 app.use('/api/teams-notes-settings', requireModule('meetingNotes'), requireLicenseFeature('meeting_notes'), _meetingNotesGate(settingsOrgIdFor), require('./routes/teamsNotesSettings'));
+// Teams setup and diagnostics. Same gates; every path is administration, so an org admin passes without the capability.
+app.use('/api/teams-setup', requireModule('meetingNotes'), requireLicenseFeature('meeting_notes'), _meetingNotesGate(teamsSetupOrgIdFor), require('./routes/teamsSetup.mts').teamsSetupRouter);
 // Custom summary-regeneration templates (user / org / group scopes).
 app.use('/api/summary-templates', requireModule('meetingNotes'), requireLicenseFeature('meeting_notes'), _meetingNotesGate(summaryTemplateOrgIdFor), require('./routes/summaryTemplates'));
 // Per-person voiceprints for pyannoteAI speaker identification. Same compound

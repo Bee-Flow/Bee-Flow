@@ -90,7 +90,8 @@ export default function UsersSection({ directory, orgUsers, orgGroups, groupsSta
 
             {invites.showInviteForm && <InviteForm {...invites} />}
             {orgUsers.length === 0 ? (
-                <NoMembersYet onManageGroups={() => onGoToGroups()} />
+                // A refused list is not an empty organisation: the panel shows its notice instead.
+                !directory.notOrgAdmin && <NoMembersYet onManageGroups={() => onGoToGroups()} />
             ) : (
                 <>
                     <UserFilterBar

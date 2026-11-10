@@ -64,6 +64,8 @@ export interface TalkMeetings {
 }
 
 export interface MeetConnection {
+    /** The installation has a Google OAuth client; false when the server did not say. */
+    googleConfigured: boolean;
     googleConnected: boolean;
     meetScopesGranted: boolean;
     hasSettingsScope: boolean;

@@ -1775,6 +1775,9 @@
     "GET /api/cowork/:id/stats": {
       "gate": "auth"
     },
+    "GET /api/cowork/mail-providers": {
+      "gate": "auth"
+    },
     "GET /api/datatables": {
       "gate": "auth"
     },
@@ -3088,6 +3091,17 @@
     "GET /api/teams-notes-settings/user/me": {
       "gate": "auth"
     },
+    "GET /api/teams-setup/org/app-import": {
+      "gate": "scope",
+      "via": "orgAdminOfSessionOrg"
+    },
+    "GET /api/teams-setup/org/overview": {
+      "gate": "scope",
+      "via": "orgAdminOfSessionOrg"
+    },
+    "GET /api/teams-setup/requirements": {
+      "gate": "auth"
+    },
     "GET /api/templates": {
       "gate": "auth"
     },
@@ -3578,7 +3592,7 @@
     },
     "GET /auth/connector/bootstrap/pending/:id": {
       "gate": "open",
-      "reason": "polls the approval state of a pending binding; the random id is the credential and yields status only, never the tenant key (auth/connectorBootstrap.js header)"
+      "reason": "polls the approval state of a pending binding by its row id: status only, and the tenant key only for an administrator's approval, shortly after it, for the Nextcloud it approved (auth/connectorBootstrap.js)"
     },
     "GET /auth/consents": {
       "gate": "handler",
@@ -6329,6 +6343,17 @@
         "admin_support"
       ]
     },
+    "POST /api/teams-setup/me/diagnostics": {
+      "gate": "auth"
+    },
+    "POST /api/teams-setup/org/app-import/diagnostics": {
+      "gate": "scope",
+      "via": "orgAdminOfSessionOrg"
+    },
+    "POST /api/teams-setup/org/consent-link": {
+      "gate": "scope",
+      "via": "orgAdminOfSessionOrg"
+    },
     "POST /api/templates/:id/fill": {
       "gate": "auth"
     },
@@ -6523,15 +6548,15 @@
     },
     "POST /auth/connector/bootstrap/pending/:id/resend": {
       "gate": "open",
-      "reason": "resends the verification mail for a pending binding, rate limited per IP (auth/connectorBootstrap.js)"
+      "reason": "resends the verification mail for a pending binding, only to an administrator of its organisation, rate limited per IP and capped per binding (auth/connectorBootstrap.js)"
     },
     "POST /auth/connector/bootstrap/pending/:id/retarget": {
       "gate": "open",
-      "reason": "changes the address the verification mail goes to, under the same pending-binding id and limiter (auth/connectorBootstrap.js)"
+      "reason": "changes the address the verification mail goes to, only to that of an administrator of the organisation, under the same pending-binding id and limiter (auth/connectorBootstrap.js)"
     },
     "POST /auth/connector/bootstrap/pending/:id/verify": {
       "gate": "open",
-      "reason": "redeems the e-mailed verification code for a pending binding: the code is the credential, attempts are capped (auth/connectorBootstrap.js)"
+      "reason": "redeems the e-mailed verification code for a pending binding: the code is the credential, it is sent only to an administrator of the organisation and accepted once, attempts are capped (auth/connectorBootstrap.js)"
     },
     "POST /auth/connector/diagnose": {
       "gate": "open",
@@ -7430,6 +7455,10 @@
     },
     "PUT /api/teams-notes-settings/user/me": {
       "gate": "auth"
+    },
+    "PUT /api/teams-setup/org/app-import": {
+      "gate": "scope",
+      "via": "orgAdminOfSessionOrg"
     },
     "PUT /api/templates/:id": {
       "gate": "auth"

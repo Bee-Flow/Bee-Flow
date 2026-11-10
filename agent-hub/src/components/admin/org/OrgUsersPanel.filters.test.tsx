@@ -174,9 +174,10 @@ describe('OrgUsersPanel — member filter bar', () => {
     });
 });
 
-// The server manages an account through its home organisation, and a platform
-// admin's account through a platform admin only, so a row the viewer cannot
-// change carries no controls.
+// The server decides which members the viewer gets and refuses what it does
+// not allow. The panel hides controls on one kind of row only: a platform
+// admin's account, read from the row, for a viewer who is not one. The
+// viewer's own organisation pointer is not consulted (it can be stale).
 describe('OrgUsersPanel — which member rows carry controls', () => {
     const PLATFORM_ADMIN = { id: 'u_root', username: 'root', displayName: 'Rita Root', role: 'admin', orgRole: 'member', groups: [], organizationId: 'orgA', status: 'active' };
     const urls = () => asMock(authFetch).mock.calls.map(([url]) => String(url));
@@ -196,18 +197,29 @@ describe('OrgUsersPanel — which member rows carry controls', () => {
         render(withQueryClient(<OrgUsersPanel user={currentUser} />));
         await screen.findByText('Jan de Vries');
         expect(urls()).toEqual(expect.arrayContaining(['/auth/users?scope=admin', '/auth/groups?scope=admin', '/auth/organizations?scope=admin']));
+        // The lists were answered, so there is no organisation-admins-only notice.
+        expect(screen.queryByText('admin_org.user_mgmt_org_admins_only')).not.toBeInTheDocument();
+        expect(screen.queryByText(/for administrators of the organisation/)).not.toBeInTheDocument();
     });
 
-    it('gives an organisation admin the controls on home members only', async () => {
+    it('keeps a platform admin\'s row read-only for a viewer who is not one, and every other row its controls', async () => {
         render(withQueryClient(<OrgUsersPanel user={{ ...currentUser, orgRole: 'org_admin' }} />));
+        await screen.findByText('Jan de Vries');
+        // Eva reaches orgA through a group alone: the server listed her, so her row keeps its controls.
+        for (const name of ['Jan de Vries', 'Eva Bakker']) {
+            expect(within(rowOf(name)).getByTitle('Change role')).toBeInTheDocument();
+            expect(within(rowOf(name)).getByTitle('Assign groups')).toBeInTheDocument();
+        }
+        expect(within(rowOf('Piet Jansen')).getByText('Approve')).toBeInTheDocument();
+        expect(within(rowOf('Rita Root')).queryByTitle('Change role')).not.toBeInTheDocument();
+        expect(within(rowOf('Rita Root')).queryByTitle('Assign groups')).not.toBeInTheDocument();
+    });
+
+    it('does not read the viewer\'s organisation pointer: a viewer without one keeps the controls', async () => {
+        render(withQueryClient(<OrgUsersPanel user={{ id: 'u_jan', groups: [] }} />));
         await screen.findByText('Jan de Vries');
         expect(within(rowOf('Jan de Vries')).getByTitle('Change role')).toBeInTheDocument();
         expect(within(rowOf('Piet Jansen')).getByText('Approve')).toBeInTheDocument();
-        // A member through a group alone, and a platform admin.
-        for (const name of ['Eva Bakker', 'Rita Root']) {
-            expect(within(rowOf(name)).queryByTitle('Change role')).not.toBeInTheDocument();
-            expect(within(rowOf(name)).queryByTitle('Assign groups')).not.toBeInTheDocument();
-        }
     });
 
     it('gives a platform admin the controls on every row', async () => {

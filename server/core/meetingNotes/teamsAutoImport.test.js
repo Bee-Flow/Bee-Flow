@@ -4,8 +4,12 @@
  * Covers: discovery (organizer-only seeding, opt-in, licence and scope skips,
  * per-meeting opt-out, unparking), the per-job pipeline (recording preferred,
  * transcript fallback, transcript switch off = no transcript, waiting with
- * backoff, the 48 h no-recording deadline, not-organizer), ingest retries and
- * terminal codes, claim-time opt-out and needs_reauth parking.
+ * backoff, the 48 h no-recording deadline, meeting not available), ingest
+ * retries and terminal codes, claim-time opt-out and needs_reauth parking, the
+ * per-user skip state and the Graph user path of the attendee lookup. Option B
+ * (the organisation app token) over the real coverage and app-token modules:
+ * the delegated path first, the app path for a covered user, and coverage
+ * re-checked at claim for every way a user stops being covered.
  *
  * Every dependency is injected through init(); the job store is an
  * in-memory fake with the real store's semantics.
@@ -98,6 +102,17 @@ function resetFx() {
     fx.ingestError = null;
     fx.ingestResult = { id: 't-new', title: 'Notitie' };
     fx.graphAttendees = null;
+    fx.graphPaths = [];
+    fx.skips = new Map();
+    fx.skipWrites = [];
+    fx.skipClears = 0;
+    fx.creds = {};
+    fx.credLookupError = null;
+    fx.sessionUnavailable = false;
+    fx.endedSessions = [];
+    // Option B: by default nobody is covered (the stub below); the B tests swap in the real modules.
+    fx.appCalls = [];
+    fx.appImpl = null;
 }
 resetFx();
 
@@ -139,15 +154,33 @@ auto.init({
         },
     },
     automationAuth: { getProviderAuth: async (userId) => { fx.authCalls++; return fx.authByUser[userId] || null; } },
-    resolveMicrosoftSession: async (s, userId) => (s?.automationProviders?.microsoft ? { userId, accessToken: s.automationProviders.microsoft.accessToken } : null),
+    credentialStore: {
+        getCredential: async (userId) => { if (fx.credLookupError) throw fx.credLookupError; return fx.creds[userId] || null; },
+    },
+    // The skip state's own semantics (write on change, clear when stored) are
+    // pinned in teamsImportSkipState.test.js; here only what discovery asks for.
+    skipState: {
+        recordSkip: async (userId, orgId, reason, missingPermissions = []) => {
+            fx.skipWrites.push({ userId, orgId, reason, missingPermissions });
+            fx.skips.set(userId, { reason, missingPermissions, orgId });
+        },
+        clearSkip: async (userId) => { fx.skipClears++; fx.skips.delete(userId); },
+    },
+    resolveMicrosoftSession: async (s, userId) => {
+        if (fx.sessionUnavailable) return null;
+        return s?.automationProviders?.microsoft ? { userId, accessToken: s.automationProviders.microsoft.accessToken } : null;
+    },
     hasCapability: async (_c, { userId }) => fx.entitled[userId] !== false,
-    graphFetch: async () => ({ attendees: fx.graphAttendees || [{ emailAddress: { address: 'an@x.nl', name: 'An' } }] }),
+    graphFetch: async (p) => {
+        fx.graphPaths.push(p);
+        return { attendees: fx.graphAttendees || [{ emailAddress: { address: 'an@x.nl', name: 'An' } }] };
+    },
     resolveTeamsNotesSettings: async ({ orgId = null, userId = null } = {}) => ({
         ...DEFAULTS, ...(orgId ? fx.settingsByOrg[orgId] : null), ...(userId ? fx.settingsByUser[userId] : null),
     }),
     hasTeamsScopes: (scope) => String(scope || '').includes('OnlineMeetingRecording.Read.All'),
     hasTranscriptScope: (scope) => String(scope || '').includes('OnlineMeetingTranscript.Read.All'),
-    listRecentlyEndedTeamsMeetings: async ({ lookbackHours } = {}) => { fx.endedCalls++; fx.lookback = lookbackHours; return fx.ended; },
+    listRecentlyEndedTeamsMeetings: async ({ session, lookbackHours } = {}) => { fx.endedCalls++; fx.endedSessions.push(session); fx.lookback = lookbackHours; return fx.ended; },
     getOnlineMeetingByJoinUrl: async () => {
         if (fx.lookupError) throw fx.lookupError;
         return fx.meeting;
@@ -162,6 +195,13 @@ auto.init({
         fx.ingestCalls.push(args);
         if (fx.ingestError) throw fx.ingestError;
         return fx.ingestResult;
+    },
+    appImport: {
+        resolveAppImportSession: async (userId, orgId, opts) => {
+            fx.appCalls.push({ userId, orgId, opts });
+            if (fx.appImpl) return fx.appImpl.resolveAppImportSession(userId, orgId, opts);
+            return { status: 'not_covered', reason: 'not_enabled' };
+        },
     },
 });
 
@@ -282,6 +322,88 @@ test('discover returns parked jobs to the queue once the credential works', asyn
     assert.strictEqual(fx.store.jobs[0].status, 'pending');
 });
 
+// ── skip state ───────────────────────────────────────────────────────
+
+test('discovery remembers why it skipped a user, per reason', async () => {
+    fx.ended = [endedMeeting()];
+    const lastSkip = () => fx.skipWrites[fx.skipWrites.length - 1];
+
+    fx.entitled.u1 = false;
+    await auto.discover();
+    assert.deepStrictEqual(lastSkip(), { userId: 'u1', orgId: 'orgA', reason: 'not_licensed', missingPermissions: [] });
+    fx.entitled.u1 = true;
+
+    fx.authByUser = {};
+    await auto.discover();
+    assert.strictEqual(lastSkip().reason, 'no_credential');
+
+    fx.creds.u1 = { status: 'needs_reauth', scope: TEAMS_SCOPE };
+    await auto.discover();
+    assert.strictEqual(lastSkip().reason, 'credential_needs_reauth');
+
+    fx.creds.u1 = { status: 'revoked', scope: TEAMS_SCOPE };
+    await auto.discover();
+    assert.strictEqual(lastSkip().reason, 'credential_revoked');
+
+    // An active row getProviderAuth could not refresh right now.
+    fx.creds.u1 = { status: 'active', scope: TEAMS_SCOPE };
+    await auto.discover();
+    assert.strictEqual(lastSkip().reason, 'session_unavailable');
+
+    fx.authByUser = { u1: { userId: 'u1', orgId: 'orgA', accessToken: 'at', scope: 'openid Calendars.ReadWrite' } };
+    await auto.discover();
+    assert.deepStrictEqual(lastSkip(), {
+        userId: 'u1', orgId: 'orgA', reason: 'missing_scopes', missingPermissions: ['OnlineMeetingRecording.Read.All'],
+    }, 'names the required permissions that are missing');
+
+    fx.authByUser.u1.scope = TEAMS_SCOPE;
+    fx.sessionUnavailable = true;
+    await auto.discover();
+    assert.strictEqual(lastSkip().reason, 'session_unavailable');
+
+    assert.strictEqual(fx.store.jobs.length, 0, 'nothing was seeded while skipped');
+    assert.strictEqual(fx.skipClears, 0);
+});
+
+test('the skip state is cleared as soon as discovery gets a session, and jobs are seeded again', async () => {
+    fx.ended = [endedMeeting()];
+    fx.entitled.u1 = false;
+    await auto.discover();
+    assert.strictEqual(fx.skips.get('u1').reason, 'not_licensed');
+    fx.entitled.u1 = true;
+    await auto.discover();
+    assert.strictEqual(fx.skips.has('u1'), false);
+    assert.strictEqual(fx.skipClears, 1);
+    assert.strictEqual(fx.store.jobs.length, 1);
+});
+
+test('an unreadable credential row records no reason rather than a wrong one', async () => {
+    fx.ended = [endedMeeting()];
+    fx.authByUser = {};
+    fx.credLookupError = new Error('vault down');
+    await auto.discover();
+    assert.deepStrictEqual(fx.skipWrites, []);
+});
+
+test('a user who is not a candidate this tick (auto-import off, no mark) gets no skip state', async () => {
+    fx.settingsByUser.u1 = { autoImport: false };
+    fx.entitled.u1 = false;
+    await auto.discover();
+    assert.deepStrictEqual(fx.skipWrites, []);
+});
+
+test('a skip recorded while auto-import was on is dropped once it is switched off', async () => {
+    fx.ended = [endedMeeting()];
+    fx.authByUser = {};
+    await auto.discover();
+    assert.strictEqual(fx.skips.get('u1').reason, 'no_credential');
+    fx.settingsByUser.u1 = { autoImport: false };
+    await auto.discover();
+    assert.strictEqual(fx.skips.has('u1'), false, 'the stale skip is gone');
+    assert.strictEqual(fx.skipWrites.length, 1, 'nothing new is recorded');
+    assert.strictEqual(fx.endedCalls, 0);
+});
+
 // ── per-job pipeline ─────────────────────────────────────────────────
 
 test('a recording is ingested with the calendar attendees and the job completes', async () => {
@@ -336,11 +458,37 @@ test('nothing 48 h after the end → terminal no_recording', async () => {
     assert.strictEqual(fx.store.jobs[0].status, 'no_recording');
 });
 
-test('no onlineMeeting for this account → terminal not_organizer', async () => {
+test('no onlineMeeting for a meeting the calendar says the user organises → terminal meeting_not_available', async () => {
     fx.meeting = null;
     await seeded();
     await auto.processDue();
-    assert.strictEqual(fx.store.jobs[0].status, 'not_organizer');
+    assert.strictEqual(fx.store.jobs[0].status, 'meeting_not_available');
+    assert.strictEqual(fx.store.jobs[0].errorCode, 'meeting_not_available');
+    assert.strictEqual(fx.store.jobs[0].lastError, 'Microsoft has no online meeting for this calendar entry');
+});
+
+test('the new classified Graph refusals freeze the job at once', async () => {
+    for (const code of ['graph_forbidden', 'application_access_policy_missing', 'calendar_forbidden', 'meeting_not_available']) {
+        resetFx();
+        fx.lookupError = coded(`refused: ${code}`, code);
+        await seeded();
+        await auto.processDue();
+        assert.strictEqual(fx.store.jobs[0].status, code, code);
+        assert.strictEqual(fx.store.jobs[0].errorCode, code, code);
+    }
+});
+
+test('graph_throttled and graph_unavailable keep the job claimable with backoff', async () => {
+    for (const code of ['graph_throttled', 'graph_unavailable']) {
+        resetFx();
+        fx.lookupError = coded('Microsoft Graph is throttling requests', code);
+        await seeded();
+        await auto.processDue();
+        const job = fx.store.jobs[0];
+        assert.strictEqual(job.status, 'pending', code);
+        assert.strictEqual(job.errorCode, null, code);
+        assert.ok(job.backoffMs > 0, code);
+    }
 });
 
 test('a transient lookup failure keeps the job claimable with backoff', async () => {
@@ -494,6 +642,23 @@ test('declined invitees and rooms are no attendees: not shared with, not speaker
     ];
     await auto.processDue();
     assert.deepStrictEqual(fx.ingestCalls[0].attendees.map((a) => a.email), ['an@x.nl']);
+    assert.deepStrictEqual(fx.graphPaths, ['/me/events/ev1?$select=attendees'], 'a delegated session reads /me');
+});
+
+test('the attendee lookup honours the session\'s Graph user path (option B seam)', async () => {
+    const job = await seeded();
+    fx.recordings = [{ id: 'R1' }];
+    const oid = '0f0e0d0c-0b0a-4908-8706-050403020100';
+    await auto.processJobInline({ job, session: { accessToken: 'at', graphUserPath: `/users/${oid}` } });
+    assert.deepStrictEqual(fx.graphPaths, [`/users/${oid}/events/ev1?$select=attendees`]);
+
+    // A path that is not /users/<guid> is refused: no Graph call, no attendees, the import still runs.
+    fx.graphPaths = [];
+    fx.ingestCalls = [];
+    const job2 = await seeded({ calendarEventId: 'ev2' });
+    await auto.processJobInline({ job: job2, session: { accessToken: 'at', graphUserPath: '/users/someone@fixture.test' } });
+    assert.deepStrictEqual(fx.graphPaths, []);
+    assert.deepStrictEqual(fx.ingestCalls[0].attendees, []);
 });
 
 test('the meeting start reaches the ingest (deadlines resolve against the meeting date)', async () => {
@@ -511,4 +676,198 @@ test('a recording stopped and restarted: the ingest learns how many other parts 
     ];
     await auto.processDue();
     assert.strictEqual(fx.ingestCalls[0].artifact.extraRecordings, 1);
+});
+
+// ── option B: the organisation app token ─────────────────────────────
+
+const T = '11111111-2222-3333-4444-555555555555';
+const OTHER_TENANT = '99999999-2222-3333-4444-555555555555';
+const OID = 'aaaaaaaa-0000-0000-0000-000000000001';
+const B_CONFIG = { providers: { microsoft: { clientId: 'cccccccc-0000-0000-0000-000000000001', clientSecret: 'fixture-not-a-secret', tenantId: 'common' } } };
+const B_ROLES = ['OnlineMeetings.Read.All', 'OnlineMeetingRecording.Read.All', 'Calendars.Read', 'OnlineMeetingTranscript.Read.All'];
+
+/**
+ * The real coverage and app-token modules over the poller's fakes: orgA is
+ * switched on for tenant T (coverage 'all'); u1 is a member of orgA with a
+ * verified identity in T and no delegated credential. `fx.b` holds what the
+ * stores and Entra answer.
+ */
+function useRealAppImport() {
+    const coverage = require('./teamsAppImport/coverage.mts');
+    const appToken = require('./teamsAppImport/appToken.mts');
+    fx.authByUser = {};
+    fx.usersById.u1 = { id: 'u1', organizationId: 'orgA', status: 'active', azureTenantId: T, azureUserId: OID };
+    fx.b = {
+        settings: { orgA: { enabled: true, coverage: 'all', selectedUserIds: [], tenantId: T, enabledAt: null, enabledBy: null, updatedAt: null, updatedBy: null } },
+        tenants: { orgA: { ok: true, tenantId: T, source: 'directory_binding' } },
+        roles: B_ROLES,
+        tokenRequests: [],
+        settingsReads: [],
+        tokenFails: false,
+    };
+    const orgTenant = async (orgId) => fx.b.tenants[orgId] || { ok: false, reason: 'tenant_not_bound' };
+    coverage.init({
+        readSettings: async (orgId, opts) => {
+            fx.b.settingsReads.push(opts);
+            return fx.b.settings[orgId] || { enabled: false, coverage: 'selected', selectedUserIds: [], tenantId: null };
+        },
+        orgTenant,
+        getUser: async (id) => fx.usersById[id] || null,
+        loadConfig: async () => B_CONFIG,
+        hasCapability: async (_c, { userId }) => fx.entitled[userId] !== false,
+        log: { warn: () => {} },
+    });
+    appToken.init({
+        loadConfig: async () => B_CONFIG,
+        orgTenant,
+        requestToken: async (req) => {
+            fx.b.tokenRequests.push(req.tenantId);
+            if (fx.b.tokenFails) return { ok: false, kind: 'entra', httpStatus: 401, error: 'invalid_client', aadsts: 7000222 };
+            return { ok: true, accessToken: 'fixture-access-token', expiresAt: Date.now() + 3600_000, roles: fx.b.roles, tokenTenantId: T };
+        },
+        log: { warn: () => {} },
+    });
+    fx.appImpl = appToken;
+}
+
+test.afterEach(() => {
+    require('./teamsAppImport/coverage.mts').init();
+    require('./teamsAppImport/appToken.mts').init();
+});
+
+test('option B: a connected user keeps the delegated path, the app import is never asked', async () => {
+    fx.ended = [endedMeeting()];
+    fx.recordings = [{ id: 'R1' }];
+    await auto.discover();
+    await auto.processDue();
+    assert.strictEqual(fx.appCalls.length, 0);
+    assert.strictEqual(fx.endedSessions[0].graphUserPath, undefined, 'the vault session, on /me');
+    assert.strictEqual(fx.ingestCalls[0].session.graphUserPath, undefined);
+});
+
+test('option B: a covered user without a credential is discovered and imported with the app session', async () => {
+    useRealAppImport();
+    fx.ended = [endedMeeting()];
+    fx.recordings = [{ id: 'R1' }];
+    fx.skips.set('u1', { reason: 'no_credential' });
+    await auto.discover();
+    assert.deepStrictEqual(fx.endedSessions[0], { accessToken: 'fixture-access-token', graphUserPath: `/users/${OID}`, appOnly: true });
+    assert.strictEqual(fx.store.jobs.length, 1);
+    assert.strictEqual(fx.skips.has('u1'), false, 'the skip state is cleared');
+    await auto.processDue();
+    assert.strictEqual(fx.store.jobs[0].status, 'ingested');
+    assert.strictEqual(fx.ingestCalls[0].session.graphUserPath, `/users/${OID}`);
+    assert.deepStrictEqual(fx.graphPaths, [`/users/${OID}/events/ev1?$select=attendees`]);
+    assert.deepStrictEqual(fx.b.tokenRequests, [T], 'one token request at the organisation tenant, reused at claim');
+    assert.deepStrictEqual(fx.appCalls.map((c) => c.opts), [{}, { fresh: true }], 'claim time reads past every cache');
+    assert.deepStrictEqual(fx.b.settingsReads[1], { fresh: true });
+});
+
+test('option B: the transcript fallback follows the token roles', async () => {
+    useRealAppImport();
+    fx.transcripts = [{ id: 'T1' }];
+    await seeded();
+    await auto.processDue();
+    assert.deepStrictEqual(fx.ingestCalls[0].artifact, { kind: 'transcript', id: 'T1' });
+
+    resetFx();
+    useRealAppImport();
+    fx.b.roles = ['OnlineMeetings.Read.All', 'OnlineMeetingRecording.Read.All', 'Calendars.Read'];
+    fx.transcripts = [{ id: 'T1' }];
+    await seeded();
+    await auto.processDue();
+    assert.strictEqual(fx.ingestCalls.length, 0);
+    assert.strictEqual(fx.store.jobs[0].status, 'awaiting_artifacts');
+});
+
+test('option B: a token Microsoft refuses is remembered as app_token_failed, nothing is seeded', async () => {
+    useRealAppImport();
+    fx.b.tokenFails = true;
+    fx.ended = [endedMeeting()];
+    await auto.discover();
+    assert.strictEqual(fx.skipWrites.at(-1).reason, 'app_token_failed');
+    assert.strictEqual(fx.endedCalls, 0);
+    assert.strictEqual(fx.store.jobs.length, 0);
+});
+
+test('option B: a member of another organisation that shares the tenant is never covered', async () => {
+    useRealAppImport();
+    fx.users = [{ id: 'u2', organizationId: 'orgB' }];
+    fx.configAll = { user_teams_notes_u2: {} };
+    fx.settingsByUser = { u2: { autoImport: true } };
+    fx.usersById.u2 = { id: 'u2', organizationId: 'orgB', status: 'active', azureTenantId: T, azureUserId: 'bbbbbbbb-0000-0000-0000-000000000002' };
+    fx.ended = [endedMeeting()];
+    await auto.discover();
+    assert.strictEqual(fx.endedCalls, 0, 'orgB has no app import; orgA covering tenant T does not reach it');
+    assert.strictEqual(fx.skipWrites.at(-1).reason, 'no_credential');
+
+    // A job that names orgA for a member of orgB (stale or forged): refused at claim.
+    await fx.store.seedJob({ userId: 'u2', orgId: 'orgA', calendarEventId: 'evx', joinUrl: 'https://teams.microsoft.com/l/x', meetingStart: hoursAgo(2), meetingEnd: hoursAgo(1.5) });
+    fx.recordings = [{ id: 'R1' }];
+    await auto.processDue();
+    assert.strictEqual(fx.ingestCalls.length, 0);
+    assert.strictEqual(fx.store.jobs[0].status, 'needs_reauth');
+    assert.deepStrictEqual(fx.b.tokenRequests, [], 'no app token was even asked for');
+});
+
+test('option B: coverage is re-checked at claim (removed member, other tenant, switched off, tenant moved)', async () => {
+    const cases = {
+        'removed from the organisation': () => { fx.usersById.u1 = { ...fx.usersById.u1, organizationId: 'orgC' }; },
+        'identity from another tenant': () => { fx.usersById.u1 = { ...fx.usersById.u1, azureTenantId: OTHER_TENANT }; },
+        'switched off after discovery': () => { fx.b.settings.orgA = { ...fx.b.settings.orgA, enabled: false }; },
+        'tenant link moved': () => { fx.b.tenants.orgA = { ok: true, tenantId: OTHER_TENANT, source: 'directory_binding' }; },
+        'no longer selected': () => { fx.b.settings.orgA = { ...fx.b.settings.orgA, coverage: 'selected', selectedUserIds: ['someone-else'] }; },
+    };
+    for (const [name, change] of Object.entries(cases)) {
+        resetFx();
+        useRealAppImport();
+        fx.ended = [endedMeeting()];
+        await auto.discover();
+        assert.strictEqual(fx.store.jobs.length, 1, `${name}: seeded while covered`);
+        change();
+        fx.recordings = [{ id: 'R1' }];
+        await auto.processDue();
+        assert.strictEqual(fx.ingestCalls.length, 0, `${name}: not imported`);
+        assert.strictEqual(fx.store.jobs[0].status, 'needs_reauth', `${name}: parked as without a credential`);
+    }
+});
+
+test('option B: a deactivated user or a revoked capability at claim is skipped before any token', async () => {
+    for (const change of [() => { fx.usersById.u1 = { ...fx.usersById.u1, status: 'disabled' }; }, () => { fx.entitled.u1 = false; }]) {
+        resetFx();
+        useRealAppImport();
+        await seeded();
+        fx.recordings = [{ id: 'R1' }];
+        change();
+        await auto.processDue();
+        assert.strictEqual(fx.ingestCalls.length, 0);
+        assert.strictEqual(fx.store.jobs[0].status, 'skipped');
+        assert.deepStrictEqual(fx.b.tokenRequests, []);
+    }
+});
+
+test('option B does not imply auto-import: with it off, only a marked meeting is imported, and an opt-out wins', async () => {
+    useRealAppImport();
+    fx.settingsByUser.u1 = { autoImport: false };
+    fx.ended = [endedMeeting(), endedMeeting({ eventId: 'ev2' })];
+    await auto.discover();
+    assert.strictEqual(fx.endedCalls, 0, 'not a candidate without a mark');
+    fx.prefs['event:ev2'] = true;
+    await auto.discover();
+    assert.deepStrictEqual(fx.store.jobs.map((j) => j.calendarEventId), ['ev2']);
+    fx.prefs['event:ev2'] = false;
+    fx.recordings = [{ id: 'R1' }];
+    await auto.processDue();
+    assert.strictEqual(fx.store.jobs[0].status, 'skipped');
+});
+
+test('option B: an unexpected failure deciding coverage is a refusal', async () => {
+    fx.appImpl = { resolveAppImportSession: async () => { throw new Error('config store down'); } };
+    fx.authByUser = {};
+    fx.ended = [endedMeeting()];
+    await auto.discover();
+    assert.strictEqual(fx.endedCalls, 0);
+    await seeded();
+    await auto.processDue();
+    assert.strictEqual(fx.store.jobs[0].status, 'needs_reauth');
 });

@@ -216,6 +216,16 @@ export default function UpcomingMeetings({ onOpenNote, onRowsChange, talkConnect
     const talkMeetings = (!talk.loading && !talk.error && talk.data?.meetings) || [];
     const gmeetMeetings = (!gmeet.loading && !gmeet.error && gmeet.data?.meetings) || [];
     const teamsMeetings = (!teams.loading && !teams.error && teams.data?.meetings) || [];
+    // The missing Talk recording backend is news only to an account KNOWN to have
+    // Nextcloud (`talkConnected === true`, not unknown), and only when it costs
+    // something: a Talk meeting is listed, or auto-record is on and cannot run.
+    // Without Nextcloud the route still answers 200 with recordingEnabled false,
+    // and a Teams- or Google-only user would be warned about a backend they never use.
+    const showTalkBackendNotice = talkConnected === true && !talk.loading && !talk.error && !!talk.data && !recordingEnabled
+        && (talkMeetings.length > 0 || talk.data.autoRecord === true);
+    // "Connect Google" only where it can be followed: the installation has a
+    // Google OAuth client (`googleConfigured`, missing = no) and this account is not connected.
+    const showConnectGoogle = !gmeet.loading && !gmeet.error && connection?.googleConfigured === true && connection.googleConnected === false;
     // De EFFECTIEVE chipstatus reist mee in de rij: de voetregel hangt eraan,
     // en die mag niet op `!excluded` afgaan — dat is de stand van de schakelaar,
     // niet de uitkomst (zie attendeeNotices).
@@ -381,18 +391,14 @@ export default function UpcomingMeetings({ onOpenNote, onRowsChange, talkConnect
                 </button>
             </div>
 
-            {/* Only for an account that HAS Nextcloud: without it the route
-                still answers 200 with recordingEnabled false, and a Google-
-                or Teams-only user would be told about a backend they never
-                use. `talkConnected` undefined (unknown) keeps the banner. */}
-            {talkConnected !== false && !talk.loading && !talk.error && talk.data && !recordingEnabled && (
+            {showTalkBackendNotice && (
                 <div className="mx-3 mb-2 flex items-start gap-2 px-3 py-2 rounded-lg border text-[11px]" style={WARN_BANNER}>
                     <AlertCircle className="w-4 h-4 flex-shrink-0 [color:var(--warning)]" aria-hidden="true" />
                     <span>{t('meetings.upcoming_talk_backend', "The Nextcloud Talk recording backend isn't configured, so auto-record is unavailable. You can still import finished recordings.")}</span>
                 </div>
             )}
 
-            {!gmeet.loading && !gmeet.error && connection?.googleConnected === false && (
+            {showConnectGoogle && (
                 <div className="mx-3 mb-2 flex items-start gap-2 px-3 py-2 rounded-lg border text-[11px] bg-[var(--bg-card)] border-[var(--border-default)] text-[var(--text-secondary)]">
                     <Video className="w-4 h-4 flex-shrink-0" style={{ color: kindColorVar('meeting') }} aria-hidden="true" />
                     <span>
