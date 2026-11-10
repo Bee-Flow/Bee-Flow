@@ -13,6 +13,7 @@
  *   STUB_UPGRADE_FAILS   1: `selfhost.sh --upgrade` fails before the server changed,
  *                        late: after it changed
  *   STUB_EXEC_STATUS     exit status of `docker exec` (the pairing code request)
+ *   STUB_EXEC_NOT_READY  that many `docker exec` calls refuse the sign-in first
  *   STUB_HEALTH          health a sidecar container reports (default healthy)
  *   STUB_ARCH, STUB_UID, STUB_DF_KB   what uname -m, id -u and df answer
  *
@@ -45,6 +46,10 @@ printf 'docker %s\\n' "$*" >> "$STUB_LOG"
 case "\${1:-} $*" in
     exec*)
         cat >/dev/null
+        if [ -n "\${STUB_EXEC_NOT_READY:-}" ]; then
+            n=$(( $(cat "$STUB_STATE/exec-count" 2>/dev/null || echo 0) + 1 )); echo "$n" > "$STUB_STATE/exec-count"
+            if [ "$n" -le "$STUB_EXEC_NOT_READY" ]; then echo 'sign-in as admin answered 401' >&2; exit 3; fi
+        fi
         if [ "\${STUB_EXEC_STATUS:-0}" != 0 ]; then echo 'sign-in as admin answered 401' >&2; exit "$STUB_EXEC_STATUS"; fi
         echo ABCD-1234 ;;
     inspect*Health*) echo "\${STUB_HEALTH:-healthy}" ;;
@@ -402,6 +407,14 @@ test('a pairing code that could not be made is reported by the install, with wha
     const failed = await install(dir, { BEEFLOW_ORGANISATION: 'Acme', STUB_EXEC_STATUS: '1', BEEFLOW_DIR: 'other' });
     assert.strictEqual(failed.status, 0, failed.out);
     shows(failed, 'Pairing code:  NOT MADE', 'could not be made (sign-in as admin answered 401)');
+});
+
+test('the install waits for a server that refuses the first sign-in because it is still starting', opts, async (t) => {
+    const dir = world(t);
+    const res = await install(dir, { BEEFLOW_ORGANISATION: 'Acme', STUB_EXEC_NOT_READY: '2' });
+    assert.strictEqual(res.status, 0, res.out);
+    shows(res, 'Pairing code:  ABCD-1234');
+    assert.strictEqual(res.log.filter((l) => l.startsWith('docker exec')).length, 3, res.log.join('\n'));
 });
 
 test('pairing-code prints a fresh code for an organisation of an existing install', opts, async (t) => {

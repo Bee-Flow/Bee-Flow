@@ -41,6 +41,9 @@ DOWNLOAD_DIR='.beeflow-download'
 # The PII guard and the topic classifier publish these two ports on 127.0.0.1.
 # They are fixed in the compose file of a release, not settings.
 SIDECAR_PORTS="${BEEFLOW_SIDECAR_PORTS:-8100 8300}"
+# How this installer was started, for the commands it prints (the installer
+# image sets it to its docker run line).
+SELF="${BEEFLOW_SELF_COMMAND:-bash beeflow-install.sh}"
 # Where questions are read from (the terminal, also when the script is piped)
 # and where the free memory is read from.
 TTY_DEVICE="${BEEFLOW_TTY:-/dev/tty}"
@@ -493,6 +496,21 @@ make_pairing_code() { # organisation
     fi
 }
 
+# Right after the first start the server answers on its port a little before
+# its administrator account exists, and the sign-in is refused until then. The
+# password cannot have been changed yet, so a refusal here means: not ready.
+make_first_pairing_code() { # organisation
+    local tries=0
+    while :; do
+        make_pairing_code "$1"
+        [ -n "$PAIRING_CODE" ] && return 0
+        tries=$((tries + 1))
+        case "$PAIRING_PROBLEM" in "The server refused the sign-in"*) ;; *) return 0 ;; esac
+        [ "$tries" -lt 12 ] || return 0
+        sleep 5
+    done
+}
+
 run_pairing-code() {
     ask_directory
     ask BEEFLOW_ORGANISATION 'Name of the organisation the code is for' '' '' check_organisation_named
@@ -642,7 +660,7 @@ install_report() {
     elif [ -n "$PAIRING_PROBLEM" ]; then
         note "Pairing code:  NOT MADE. $PAIRING_PROBLEM"
         note "               Make it in the web app: sign in, then $WHERE_TO_PAIR."
-        note "               Or try again: bash beeflow-install.sh pairing-code --dir $(pwd)"
+        note "               Or try again: $SELF pairing-code --dir $(pwd)"
     else
         note "Pairing code:  sign in to the web app, create your organisation, then"
         note "               $WHERE_TO_PAIR"
@@ -657,8 +675,8 @@ install_report() {
     done
 
     say "Later"
-    note "Update:        bash beeflow-install.sh update --dir $(pwd)${STACK_NAME:+ --stack-name $STACK_NAME}"
-    note "Pairing code:  bash beeflow-install.sh pairing-code --dir $(pwd)${STACK_NAME:+ --stack-name $STACK_NAME}"
+    note "Update:        $SELF update --dir $(pwd)${STACK_NAME:+ --stack-name $STACK_NAME}"
+    note "Pairing code:  $SELF pairing-code --dir $(pwd)${STACK_NAME:+ --stack-name $STACK_NAME}"
     note "Logs:          cd $(pwd) && $SELFHOST --logs      Stop: $SELFHOST --stop"
     note "Ports $SERVER_PORT and $CLIENT_PORT are open on this machine's network interfaces, over plain http."
     note "For use outside your own network, put a reverse proxy with HTTPS in front."
@@ -667,7 +685,7 @@ install_report() {
 run_install() {
     install_answers
     if [ -f "$INSTALL_DIR/$ENV_FILE" ]; then
-        die "$INSTALL_DIR/$ENV_FILE exists: Bee Flow is already installed here. Update it with: bash beeflow-install.sh update --dir $BEEFLOW_DIR   or choose another directory."
+        die "$INSTALL_DIR/$ENV_FILE exists: Bee Flow is already installed here. Update it with: $SELF update --dir $BEEFLOW_DIR   or choose another directory."
     fi
     install_summary
     confirm 'Continue?' y || { note "Nothing was changed."; exit 1; }
@@ -692,7 +710,7 @@ run_install() {
     PAIRING_PROBLEM=''
     if [ -n "$ORGANISATION" ]; then
         say "Creating the organisation \"$ORGANISATION\" and a pairing code"
-        make_pairing_code "$ORGANISATION"
+        make_first_pairing_code "$ORGANISATION"
     fi
     install_report
 }

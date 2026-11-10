@@ -309,8 +309,8 @@
             <div class="inner">
                 <p>Bee Flow runs as a set of Docker containers on a machine of yours: the server, the web
                    app, its database, and by default the PII guard and the topic classifier. The installer
-                   below is one script, the same for everybody, published with every Bee Flow release. It
-                   asks its questions in your terminal and generates every secret on that machine.</p>
+                   is itself a container, published with every Bee Flow release and the same for everybody.
+                   It asks its questions in your terminal and generates every secret on that machine.</p>
                 <div class="tabs" role="tablist" aria-label="Install help">
                     <button type="button" role="tab" id="tab-install" aria-selected="true" aria-controls="panel-install">Install</button>
                     <button type="button" role="tab" id="tab-update" aria-selected="false" aria-controls="panel-update">Update</button>
@@ -319,26 +319,29 @@
 
                 <div id="panel-install" role="tabpanel" aria-labelledby="tab-install">
                     <ol class="steps">
-                        <li>On the Docker host, download the installer of the newest release and check it:
-                            <pre class="cmd" id="cmd-download">curl -fsSLO https://github.com/Bee-Flow/Bee-Flow/releases/latest/download/beeflow-install.sh
-curl -fsSLO https://github.com/Bee-Flow/Bee-Flow/releases/latest/download/beeflow-install.sh.sha256
-sha256sum -c beeflow-install.sh.sha256</pre></li>
-                        <li>Read it if you like (<code>less beeflow-install.sh</code>), then run it:
-                            <pre class="cmd" id="cmd-install">bash beeflow-install.sh</pre>
-                            It asks for the address at which this Nextcloud reaches that machine (a name or IP
-                            address, not <code>localhost</code>), the two ports, and the name of your
-                            organisation. Enter accepts each default.</li>
+                        <li>On the Docker host, as a user who may use Docker, start the installer:
+                            <pre class="cmd" id="cmd-install">docker run --rm -it --network host \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -v /opt/beeflow:/opt/beeflow \
+  ghcr.io/bee-flow/installer</pre>
+                            Bee Flow is installed in <code>/opt/beeflow</code>. It asks for the address at
+                            which this Nextcloud reaches that machine (a name or IP address, not
+                            <code>localhost</code>), the two ports, and the name of your organisation.
+                            Enter accepts each default.</li>
                         <li>When it finishes, the terminal shows the server address, the web app address, a
-                            pairing code and the secrets it generated. Enter the two addresses and the pairing
-                            code in the fields below and press Connect.</li>
+                            pairing code and the secrets it generated. Open this page again: it offers a
+                            server it finds on the same machine. Otherwise enter the addresses yourself.
+                            Then enter the pairing code below and press Connect.</li>
                     </ol>
                     <div class="actions">
-                        <button type="button" class="btn-secondary" data-copy="cmd-download">Copy the download commands</button>
+                        <button type="button" class="btn-secondary" data-copy="cmd-install">Copy the command</button>
                         <span class="hint inline" id="status-copy-inline"></span>
                     </div>
-                    <p class="hint">These commands are fixed text: this page puts nothing of yours into them.
-                       The same commands are in <a id="link-docs-install" target="_blank" rel="noopener noreferrer">the documentation</a>;
-                       compare them when you want to be sure.</p>
+                    <p class="hint">The command is fixed text: this page puts nothing of yours into it. The
+                       installer starts the containers through the Docker of that machine, which is what
+                       the socket is for; it opens no port and stops when it is done. The same command,
+                       and a script for who prefers not to share the socket, are in
+                       <a id="link-docs-install" target="_blank" rel="noopener noreferrer">the documentation</a>.</p>
                 </div>
 
                 <div id="panel-update" role="tabpanel" aria-labelledby="tab-update" hidden>
@@ -346,21 +349,34 @@ sha256sum -c beeflow-install.sh.sha256</pre></li>
                     <ol class="steps">
                         <li>Make a backup first: <a id="link-docs-upgrades" target="_blank" rel="noopener noreferrer">the upgrade guide</a>
                             says what to save.</li>
-                        <li>On the Docker host, in the directory that holds your install directory, fetch the
-                            newest installer the same way as under Install, then run:
-                            <pre class="cmd" id="cmd-update">bash beeflow-install.sh update</pre>
-                            It shows the version you run and the newest release, asks before it changes
+                        <li>On the Docker host, fetch the newest installer and let it update:
+                            <pre class="cmd" id="cmd-update">docker pull ghcr.io/bee-flow/installer
+docker run --rm -it --network host \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -v /opt/beeflow:/opt/beeflow \
+  ghcr.io/bee-flow/installer update</pre>
+                            It shows the version you run and the release it brings, asks before it changes
                             anything, and prints how to go back when the update fails.</li>
                         <li>This connector needs nothing: it keeps its connection. Nextcloud updates the
                             connector itself through its Apps page.</li>
+                        <li>A new pairing code later, for another Nextcloud: the same command ending in
+                            <code>pairing-code</code>.</li>
                     </ol>
                 </div>
 
                 <div id="panel-other" role="tabpanel" aria-labelledby="tab-other" hidden>
                     <ol class="steps">
-                        <li><strong>The installer without questions,</strong> for a script of your own:
+                        <li><strong>The installer as a script,</strong> without sharing the Docker socket with a
+                            container. Download it from the newest release, check it, run it:
+                            <pre class="cmd" id="cmd-download">curl -fsSLO https://github.com/Bee-Flow/Bee-Flow/releases/latest/download/beeflow-install.sh
+curl -fsSLO https://github.com/Bee-Flow/Bee-Flow/releases/latest/download/beeflow-install.sh.sha256
+sha256sum -c beeflow-install.sh.sha256
+bash beeflow-install.sh</pre>
+                            <code>bash beeflow-install.sh update</code> updates.</li>
+                        <li><strong>Without questions,</strong> for a script of your own: every answer is an
+                            option or a variable, with either form of the installer:
                             <pre class="cmd">BEEFLOW_HOST=192.168.1.20 BEEFLOW_ORGANISATION="Acme" bash beeflow-install.sh --yes</pre>
-                            <code>bash beeflow-install.sh --help</code> lists every option.</li>
+                            <code>--help</code> lists every option.</li>
                         <li><strong>The repository and its self-host script:</strong>
                             <pre class="cmd">git clone --depth 1 https://github.com/Bee-Flow/Bee-Flow.git
 cd Bee-Flow

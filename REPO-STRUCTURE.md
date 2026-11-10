@@ -20,6 +20,7 @@ top-level directories and explains how paid features are gated by license keys.
 | `guard-service/` | Python / FastAPI | PII detection (GLiNER, CPU). |
 | `components/` | Node | n8n-compatible component nodes shipped by Bee Flow. |
 | `hub-module-sdk/` | Node | Build, pack and sign Bee Flow Hub modules (`.bfmod` packages). |
+| `installer/` | Bash / Docker | The self-host installer as a container: `beeflow-install.sh` (repository root) with the files of one release. Built and attached to each release by `release-latest.yml`. |
 | `e2e/` | Playwright / TS | CI smoke harness — specs generated from Markdown scenarios. Runs on demand (`workflow_dispatch`) or as a reusable workflow; it does not gate releases yet. |
 | `docs/` | Docusaurus / TS | Documentation site (published from `docs/docs/`; `docs/design/` holds design notes). |
 | `scripts/` | Bash / PowerShell / Node | Image builds, secret scans, ops helpers, and the CI plumbing checks (`*.mjs`, tested by `npm run test:scripts`). |
