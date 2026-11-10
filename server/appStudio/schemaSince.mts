@@ -23,6 +23,10 @@
  *                                                  knob newly allowed on sections (keyMarks.js)
  *   core/dataEngine/dataModel/vocabularySince.js   a filter operator, an aggregate function,
  *                                                  a date bucket (query vocabulary in a binding)
+ *   componentSpecs/keys/binding/<key>.js           a key a record, records, aggregate or dataset
+ *                                                  binding newly takes (queryMarks.js)
+ *   componentSpecs/keys/queryShape/<key>.<name>.js a form the value under a key of a read newly
+ *                                                  takes: a predicate, or a key of a groupBy entry
  *
  * One VALUE form has a version too: `asset:<id>`, an uploaded file of the app, accepted in
  * props and design keys that took only an https URL before (appAssets.mts ASSET_REF_SINCE).
@@ -49,6 +53,8 @@ import type { DefinitionKeyEntry } from './definitionKeyRegistry.mts';
 
 type SinceMap = Record<string, number>;
 type SinceIndex = ReturnType<typeof emptySinceIndex>;
+type ShapeTests = Record<string, Record<string, (value: unknown) => boolean>>;
+type QueryMark = { since: number; kinds?: readonly string[]; holds?: string; uses?: (value: unknown) => boolean };
 type ShapeMarks = SinceIndex['itemShapes'][string][string];
 type Spec = { since?: unknown; valuesSince?: unknown; eventsSince?: unknown; props?: Record<string, Spec>; fields?: Record<string, Spec>; itemShape?: Record<string, Spec> };
 type SpecTable = Record<string, Spec>;
@@ -65,6 +71,10 @@ export interface Catalogue {
     keyTables?: Partial<Record<KeyFamily, SpecTable>>;
     /** The query vocabulary: `{ op: { <operator>: n }, fn: { <function>: n }, bucket: { <bucket>: n } }`. */
     queryValuesSince?: Record<string, unknown>;
+    /** componentSpecs/keys/binding: key → mark (`since`, `kinds`, `holds`). */
+    bindingKeyMarks?: Readonly<Record<string, QueryMark>>;
+    /** componentSpecs/keys/queryShape: `<key>.<name>` → mark (`since`, the predicate). */
+    queryShapeMarks?: Readonly<Record<string, QueryMark>>;
 }
 
 const nodeRequire = createRequire(import.meta.url);
@@ -78,7 +88,11 @@ const specs = nodeRequire('./componentSpecs.js') as {
     SCREEN_SPEC: SpecTable;
     THEME_SPEC: SpecTable;
     DESIGN_SPEC: SpecTable;
-    KEY_MARKS: Record<'section' | 'sectionStyle' | 'node' | 'nav' | 'navGroup', SpecTable>;
+    KEY_MARKS: Record<'section' | 'sectionStyle' | 'node' | 'nav' | 'navGroup', SpecTable> & Record<'binding' | 'queryShape', Record<string, QueryMark>>;
+};
+const queryMarks = nodeRequire('./componentSpecs/queryMarks.js') as {
+    bindingKeysSince: (marks: Catalogue['bindingKeyMarks']) => Record<string, SinceMap>;
+    queryShapeIndex: (shapes: Catalogue['queryShapeMarks'], bindings: Catalogue['bindingKeyMarks']) => { since: Record<string, SinceMap>; tests: ShapeTests };
 };
 const { QUERY_VALUES_SINCE } = nodeRequire('../core/dataEngine/dataModel/vocabularySince.js') as { QUERY_VALUES_SINCE: Record<string, unknown> };
 const { HttpError } = nodeRequire('../core/http/errors.js') as {
@@ -186,7 +200,22 @@ export function buildSinceIndex(catalogue: Catalogue): SinceIndex {
         if (perValue) query[key] = perValue;
     }
     if (Object.keys(query).length) index.values[QUERY_FAMILY] = query;
+    readQueryMarks(queryMarks.bindingKeysSince(catalogue.bindingKeyMarks), index.bindingKeys);
+    readQueryMarks(queryMarks.queryShapeIndex(catalogue.queryShapeMarks, catalogue.bindingKeyMarks).since, index.queryShapes);
     return index;
+}
+
+/** Copy `owner → name → since` into one group of the index, above the base only. */
+function readQueryMarks(marks: Record<string, SinceMap>, into: Record<string, SinceMap>): void {
+    for (const [owner, names] of Object.entries(marks)) {
+        const kept = valuesAbove(names);
+        if (kept) into[owner] = kept;
+    }
+}
+
+/** The predicates of the catalogue's query shapes, as the walk takes them beside the index. */
+export function buildShapeTests(catalogue: Catalogue): ShapeTests {
+    return queryMarks.queryShapeIndex(catalogue.queryShapeMarks, catalogue.bindingKeyMarks).tests;
 }
 
 /** The whole live catalogue, as buildSinceIndex reads it. Also what a test passes to _withCatalogue after changing a table in place. */
@@ -209,20 +238,19 @@ export function liveCatalogue(): Catalogue {
             navGroup: specs.KEY_MARKS.navGroup,
         },
         queryValuesSince: QUERY_VALUES_SINCE,
+        bindingKeyMarks: specs.KEY_MARKS.binding,
+        queryShapeMarks: specs.KEY_MARKS.queryShape,
     };
 }
 
 // Built once: the catalogue and the key registry are fixed after load.
-const liveIndex: SinceIndex = buildSinceIndex(liveCatalogue());
-let overrideIndex: SinceIndex | null = null;
-
-function currentIndex(): SinceIndex {
-    return overrideIndex || liveIndex;
-}
+const live: { index: SinceIndex; tests: ShapeTests } = { index: buildSinceIndex(liveCatalogue()), tests: buildShapeTests(liveCatalogue()) };
+let override: typeof live | null = null;
 
 /** The lowest schema version `definition` can be stored as (2 unless it uses something marked since 3 or higher). */
 export function requiredSchemaVersion(definition: unknown): number {
-    const required = requiredWithIndex(definition, currentIndex());
+    const { index, tests } = override || live;
+    const required = requiredWithIndex(definition, index, tests);
     return required >= ASSET_REF_SINCE || !hasAssetRef(definition) ? required : ASSET_REF_SINCE;
 }
 
@@ -260,11 +288,11 @@ export { supportedEnvelopeVersions };
 
 /** Test-only: run `fn` against `catalogue` instead of the live one. */
 export function _withCatalogue<T>(catalogue: Catalogue, fn: () => T): T {
-    const before = overrideIndex;
-    overrideIndex = buildSinceIndex(catalogue);
+    const before = override;
+    override = { index: buildSinceIndex(catalogue), tests: buildShapeTests(catalogue) };
     try {
         return fn();
     } finally {
-        overrideIndex = before;
+        override = before;
     }
 }

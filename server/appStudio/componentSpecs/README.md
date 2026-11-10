@@ -42,9 +42,72 @@ three things, and nothing else has to be edited for them:
 | a nav style | `NAV_STYLES` (append) + `keys/nav/style.js` | `valuesSince: { <style>: 3 }` | `enumValues` · `nav.style=<style>` |
 | a field type, a filter operator, an aggregate function, a date bucket | the list in `core/dataEngine/dataModel/vocabulary.js` (append) | an entry in `DATA_VOCABULARY_MARKS` (`vocabularySince.js`): `{ since: 3, description }` | `data` · `fieldType.<t>`, `filterOp.<op>`, `aggFn.<fn>`, `dateBucket.<b>` |
 | a key of a field declaration (a field option) | the data model code | `DATA_VOCABULARY_MARKS.fieldOptions`: `{ since: 3, shape, description }` | `data` · `fieldOption.<key>` |
+| a key on a record, records, aggregate or dataset binding (`search`, `expand`, `groupFilter`) | `keys/binding/<key>.js` (one file) | `since: 3`, `shape`, `description`, `clean`, optional `kinds` and `holds` | `data` · `binding.<key>` |
+| a new form of a filter, a sort, a groupBy, an aggregates list or dataset params (nested groups, a relation path as a clause field) | `keys/queryShape/<key>.<name>.js` (one file) | `since: 3`, `shape`, `description`, `uses` (the predicate) | `data` · `<key>.<name>` |
+| a key of a groupBy or aggregates entry (`relatedField`, `binWidth`) | `keys/queryShape/groupBy.<entry key>.js` | `since: 3`, `entryKey: true`, `shape`, `description`, `clean` | `data` · `groupBy.<entry key>` |
 
 A key file under `keys/` only carries the mark (see `keys/README.md`): the canonicalizer and the
-validator still have to keep the key.
+validator still have to keep the key. The two families of a data read are the exception, see below.
+
+## A key or a form inside a data read
+
+A query VALUE (an operator, an aggregate function, a date bucket) is a word of the data vocabulary.
+A new KEY on a binding, or a new FORM of the value under a key, is a file, and the file is all it
+takes for the definition side:
+
+1. **A key of the binding**: `keys/binding/<key>.js`. `kinds` lists the binding kinds that take it
+   (`record`, `records`, `aggregate`, `dataset`; all four when left out). `clean(value, { path,
+   push, kind })` answers the canonical value, or `undefined` to drop the key: the canonicalizer's
+   one generic pass (`../canonicalize/markedKeys.js`) keeps the key with it, after the base keys.
+   Do not add the key to `../canonicalize/bindings.js`. `holds: 'filter'` says the value is a
+   clause list, so the forms of a filter are recognised under it too.
+
+   ```js
+   'use strict';
+   module.exports = {
+       since: 3,
+       kinds: ['record', 'records'],
+       shape: 'string ≤200',
+       description: 'Free text matched against every text column.',
+       clean: (value) => (typeof value === 'string' ? value.slice(0, 200) : undefined),
+   };
+   ```
+
+2. **A form that is not a key**: `keys/queryShape/<key>.<name>.js`, `<key>` being where the value
+   sits (`filter`, `sort`, `groupBy`, `aggregates`, `params`). `uses(value)` is a small pure
+   function: true when the value has the form, false for everything else (a formula string, a
+   malformed list, every base form). The loader tries it with values that are no form at all and
+   refuses a predicate that throws or answers anything but `false`. A form of `filter` is read
+   wherever a clause list sits: a binding's `filter`, a step's `filter`, a write's `replaceWhere`.
+
+   ```js
+   'use strict';
+   const isObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
+   module.exports = {
+       since: 3,
+       shape: '{ field: "<relation>.<field>", op, value }',
+       description: 'A clause on a field of the row a relation points at.',
+       uses: (filter) => Array.isArray(filter) && filter.some((clause) => isObject(clause) && typeof clause.field === 'string' && clause.field.includes('.')),
+   };
+   ```
+
+3. **A key of a groupBy or aggregates entry**: the same folder, with `entryKey: true` and `clean`
+   in place of `uses` (the name after the dot is the key). The generic pass keeps it on every
+   entry, after `field`, `bucket` / `fn` and `as`.
+
+What the file does not do: the query compiler, the runtime and the validator still have to read
+the key or the form. Three rules beyond the ones below:
+
+- **A mark never claims base behaviour.** A key the base canonicalizer already reads for that kind
+  is refused by the loader. A predicate must answer false for every form an app could hold before
+  the mark existed (a one-level `{ any: [...] }` group, the clause key `ci`): otherwise existing
+  apps are stamped version 3 on their next save.
+- **Before the mark, the key was dropped.** A stored app may still carry a key of that name in a
+  draft that was never canonicalized; from the mark on it is kept and stamps version 3.
+- **`clean` is idempotent** (`clean(clean(v))` equals `clean(v)`) and total. It never sees `null`.
+
+`../schemaSince.families.test.js` proves each path with test-only fixtures, and that no corpus app
+changes version while they are in place.
 
 ## Rules every addition follows
 
@@ -58,7 +121,8 @@ validator still have to keep the key.
   no line break. Say more in a second sentence; the whole text is shown with the full entry.
 - **A name is one token** of at most 80 characters (no space, comma or semicolon). A component
   type cannot be named `screen`, `section`, `node`, `theme`, `design`, `nav`, `style`, `step`,
-  `action`, `fieldType`, `fieldOption`, `filterOp`, `aggFn` or `dateBucket`.
+  `action`, `fieldType`, `fieldOption`, `filterOp`, `aggFn`, `dateBucket`, `binding`, `filter`,
+  `sort`, `groupBy`, `aggregates` or `params`.
 - After a change in `steps/`, `types/` or `styleKnobGroups/`: `npm run gen:shared`.
 
 ## What checks it

@@ -9,6 +9,7 @@
 
 const { LIMITS } = require('../componentSpecs');
 const { isObject, deepCopy, truncate, isFormulaObj } = require('./shared');
+const { keepMarkedBindingKeys, keepMarkedEntryKeys } = require('./markedKeys');
 
 // ---------------------------------------------------------------------------
 // Bindings — wrap bare values as static, infer actionResult from actionId.
@@ -69,17 +70,9 @@ function copyRecordsQuery(raw, out, path, push) {
         out.filter = typeof raw.filter === 'string' ? truncate(raw.filter, LIMITS.MAX_FORMULA_LEN, `${path}.filter`, push) : canonicalFilterList(raw.filter, `${path}.filter`, push);
     }
     if (raw.sort !== undefined && raw.sort !== null) out.sort = deepCopy(raw.sort);
-    if (raw.orderBy !== undefined && raw.orderBy !== null) out.orderBy = deepCopy(raw.orderBy);
     if (raw.limit !== undefined && raw.limit !== null) {
         out.limit = (typeof raw.limit === 'string' && raw.limit.trim() !== '' && Number.isFinite(Number(raw.limit))) ? Number(raw.limit) : deepCopy(raw.limit);
     }
-}
-
-// Since v3, only when present: the related rows a record read takes along (`expand`) and the
-// columns it returns (`fields`). Copied as authored; validate/relationReadChecks.mts judges them.
-function copyRelationRead(raw, out) {
-    if (raw.expand !== undefined && raw.expand !== null) out.expand = deepCopy(raw.expand);
-    if (raw.fields !== undefined && raw.fields !== null) out.fields = deepCopy(raw.fields);
 }
 
 // Connector binding params — { key: literal | {kind:'formula',expr} }. Known
@@ -123,17 +116,6 @@ const MAX_AGG_GROUP_BY = 8;
 const MAX_AGG_FNS = 16;
 
 /**
- * `binWidth` (since v3, only when present: a number step), then `as`.
- * @param {Record<string, unknown>} entry
- * @param {Record<string, unknown>} g
- */
-function withAliasAfterBin(entry, g) {
-    if (g.binWidth !== undefined && g.binWidth !== null) entry.binWidth = deepCopy(g.binWidth);
-    if (typeof g.as === 'string' && g.as) entry.as = g.as;
-    return entry;
-}
-
-/**
  * Clean an aggregate's groupBy list. Entries whose bucket the compiler does not
  * know are dropped rather than kept: a stored descriptor that always throws at
  * query time is worse than a slightly different chart.
@@ -151,12 +133,13 @@ function cleanAggGroupBy(raw, path, push) {
     for (const g of raw.slice(0, MAX_AGG_GROUP_BY)) {
         if (!isObject(g) || typeof g.field !== 'string' || !g.field) continue;
         const entry = { field: g.field };
-        if (g.relatedField !== undefined && g.relatedField !== null) entry.relatedField = deepCopy(g.relatedField);
         if (typeof g.bucket === 'string') {
             if (DATE_BUCKETS.includes(g.bucket)) entry.bucket = g.bucket;
             else push('binding.aggregate_invalid', `${path}.groupBy`, `Unknown date bucket "${g.bucket}" — dropped.`);
         }
-        out.push(withAliasAfterBin(entry, g));
+        if (typeof g.as === 'string' && g.as) entry.as = g.as;
+        keepMarkedEntryKeys('groupBy', g, entry, `${path}.groupBy`, push);
+        out.push(entry);
     }
     return out.length ? out : undefined;
 }
@@ -182,6 +165,7 @@ function cleanAggregates(raw, path, push) {
         const entry = { fn: a.fn };
         if (typeof a.field === 'string' && a.field) entry.field = a.field;
         if (typeof a.as === 'string' && a.as) entry.as = a.as;
+        keepMarkedEntryKeys('aggregates', a, entry, `${path}.aggregates`, push);
         out.push(entry);
     }
     return out.length ? out : undefined;
@@ -207,7 +191,6 @@ function cleanBinding(raw, path, push) {
             const out = { kind: 'record', tableId: raw.tableId };
             if (raw.path !== undefined && raw.path !== null) out.path = raw.path;
             copyRecordsQuery(raw, out, path, push);
-            copyRelationRead(raw, out);
             cleanPick(raw, out);
             // `recordId` is documented, accepted by the validator — and read by
             // NOTHING. A binding that named one therefore fetched the table's
@@ -223,13 +206,14 @@ function cleanBinding(raw, path, push) {
                 push('binding.record_id_to_filter', path,
                     'record binding: folded `recordId` into filter id == <value> (nothing reads recordId).');
             }
+            keepMarkedBindingKeys(raw, out, path, push);
             return out;
         }
         if (raw.kind === 'records') {
             const out = { kind: 'records', tableId: raw.tableId };
             copyRecordsQuery(raw, out, path, push);
-            copyRelationRead(raw, out);
             cleanPick(raw, out);
+            keepMarkedBindingKeys(raw, out, path, push);
             return out;
         }
         if (raw.kind === 'aggregate') {
@@ -252,15 +236,15 @@ function cleanBinding(raw, path, push) {
                 const aggregates = cleanAggregates(raw.aggregates, path, push);
                 if (aggregates) out.aggregates = aggregates;
             }
-            // Since v3, only when present: a filter on the aggregated groups.
-            if (raw.groupFilter !== undefined && raw.groupFilter !== null) out.groupFilter = deepCopy(raw.groupFilter);
             cleanPick(raw, out);
+            keepMarkedBindingKeys(raw, out, path, push);
             return out;
         }
         if (raw.kind === 'dataset') {
             const out = { kind: 'dataset', datasetId: raw.datasetId };
             if (raw.params !== undefined && raw.params !== null) out.params = deepCopy(raw.params);
             cleanPick(raw, out);
+            keepMarkedBindingKeys(raw, out, path, push);
             return out;
         }
         if (raw.kind === 'connector') {
