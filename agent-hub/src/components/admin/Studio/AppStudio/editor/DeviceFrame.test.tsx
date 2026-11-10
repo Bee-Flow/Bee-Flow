@@ -3,6 +3,8 @@ import { useState } from 'react';
 import { describe, expect, it } from 'vitest';
 import Modal from '@/components/shared/Modal';
 import toast, { Toaster } from '@/components/shared/Toast';
+import { DEFAULT_RUNTIME, RuntimeProvider, useRuntime } from '../runtime/RuntimeContext';
+import { AssetTransportProvider, useAssetTransport } from '../runtime/assets/assetTransport';
 import DeviceFrame from './DeviceFrame';
 
 /** The frame's document once its srcdoc has loaded (jsdom may need the load event nudged). */
@@ -59,5 +61,43 @@ describe('DeviceFrame', () => {
         expect(body.textContent).toContain('saved in the app');
         expect(screen.queryByText('saved in the app')).toBeNull();
         await act(async () => { toast.dismiss(); });
+    });
+
+    it('clones every stylesheet of the host, including the split runtime sheets', async () => {
+        const hostSheets = ['layout', 'look', 'motion'].map((name) => {
+            const style = document.createElement('style');
+            style.setAttribute('data-test-sheet', name);
+            style.textContent = `.${name}-probe { color: red; }`;
+            document.head.appendChild(style);
+            return style;
+        });
+        try {
+            render(<DeviceFrame device="phone"><p>app</p></DeviceFrame>);
+            const body = await frameBody();
+            const copies = Array.from(body.ownerDocument.head.querySelectorAll('style[data-device-frame-style]'))
+                .map((node) => node.textContent ?? '');
+            for (const name of ['layout', 'look', 'motion']) {
+                expect(copies.some((text) => text.includes(`.${name}-probe`))).toBe(true);
+            }
+        } finally {
+            hostSheets.forEach((node) => node.remove());
+        }
+    });
+
+    it('keeps the asset transport and runtime context available inside the frame', async () => {
+        function Probe() {
+            const transport = useAssetTransport('app-1');
+            const runtime = useRuntime();
+            return <p>{`${transport.publicToken}|${String(runtime.initialUi?.panel)}`}</p>;
+        }
+        render(
+            <RuntimeProvider value={{ ...DEFAULT_RUNTIME, initialUi: { panel: 'open' } }}>
+                <AssetTransportProvider publicToken="tok-9">
+                    <DeviceFrame device="tablet"><Probe /></DeviceFrame>
+                </AssetTransportProvider>
+            </RuntimeProvider>,
+        );
+        const body = await frameBody();
+        expect(body.textContent).toContain('tok-9|open');
     });
 });
