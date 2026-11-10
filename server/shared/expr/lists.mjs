@@ -119,7 +119,8 @@ export function sumOf(list, field, toNum) {
 export const LIST_FUNCTIONS = {
     unique: (/** @type {unknown} */ arr, /** @type {unknown} */ key) => uniqueOf(arr, key),
     regexMatch: (/** @type {unknown} */ text, /** @type {unknown} */ pattern, /** @type {unknown} */ flags) => regexMatchOf(text, pattern, flags),
-    regexReplace: (/** @type {unknown} */ text, /** @type {unknown} */ pattern, /** @type {unknown} */ repl, /** @type {unknown} */ flags) => regexReplaceOf(text, pattern, repl, flags),    ...COLLECTION_FUNCTIONS, // sort, reverse, slice, groupBy, keys, values, merge, range
+    regexReplace: (/** @type {unknown} */ text, /** @type {unknown} */ pattern, /** @type {unknown} */ repl, /** @type {unknown} */ flags) => regexReplaceOf(text, pattern, repl, flags),
+    ...COLLECTION_FUNCTIONS, // sort, reverse, slice, groupBy, keys, values, merge, range
 };
 
 /**
