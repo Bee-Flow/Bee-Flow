@@ -48,6 +48,15 @@ const FORM_SPECS = {
             // new row's was empty — valueFrom never pushes null on purpose —
             // and Save then wrote one record's thickness onto another.
             resetKey: { type: 'formula', default: null },
+            // When field errors show. Absent = on submit only (today's behaviour);
+            // 'blur' validates a field when it loses focus, 'change' on every edit.
+            // Never written out as a default, so no stored form gains the prop.
+            validateOn: {
+                type: 'enum',
+                values: ['submit', 'blur', 'change'],
+                since: 3,
+                description: 'When field errors show. Default is on submit; blur checks a field when it loses focus, change on every edit.',
+            },
         },
         // A form is a region like any other container, but it was the one that
         // could not be given an edge or a ground — so a composer or a filled-in

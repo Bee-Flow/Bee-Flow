@@ -12,6 +12,7 @@ interface FormInspectorProps {
     showReset?: boolean;
     name?: string | null;
     resetKey?: string | null;
+    validateOn?: 'submit' | 'blur' | 'change';
 }
 
 function FormInspector({ node, definition, onCommit, disabled = false }: PanelProps<FormInspectorProps>) {
@@ -43,6 +44,19 @@ function FormInspector({ node, definition, onCommit, disabled = false }: PanelPr
                 hint={t('studio_apps_panels.form.form_name_hint', 'Used to reference this form from actions.')}
                 disabled={disabled}
             />
+            <FormField label={t('studio_apps_validate.form.validate_on', 'Show field errors')} hint={t('studio_apps_validate.form.validate_on_hint', 'When a field is checked: only on submit (default), when it loses focus, or on every edit.')}>
+                <select
+                    value={props.validateOn || 'submit'}
+                    onChange={(e) => patch({ validateOn: e.target.value === 'submit' ? undefined : e.target.value as 'blur' | 'change' })}
+                    disabled={disabled}
+                    aria-label={t('studio_apps_validate.form.validate_on', 'Show field errors')}
+                    className="w-full px-2 py-1.5 text-sm rounded-md border border-[var(--border)] bg-[var(--bg-primary)]"
+                >
+                    <option value="submit">{t('studio_apps_validate.form.on_submit', 'On submit')}</option>
+                    <option value="blur">{t('studio_apps_validate.form.on_blur', 'When leaving a field')}</option>
+                    <option value="change">{t('studio_apps_validate.form.on_change', 'While typing')}</option>
+                </select>
+            </FormField>
             <FormField label={t('studio_apps_panels.form.reset_key', 'Start over when this changes')} hint={t('studio_apps_panels.form.reset_key_hint', 'A formula — usually the selected record\'s id. Fields return to their defaults and re-read their values, so a form that edits one record never keeps the previous record\'s values.')}>
                 <ExpressionInput
                     variant="inline"

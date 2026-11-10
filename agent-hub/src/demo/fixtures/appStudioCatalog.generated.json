@@ -2098,6 +2098,16 @@
                 "resetKey": {
                     "type": "formula",
                     "default": null
+                },
+                "validateOn": {
+                    "type": "enum",
+                    "values": [
+                        "submit",
+                        "blur",
+                        "change"
+                    ],
+                    "since": 3,
+                    "description": "When field errors show. Default is on submit; blur checks a field when it loses focus, change on every edit."
                 }
             },
             "styleKnobs": [

@@ -1,7 +1,7 @@
 import { tryEvaluate } from '@shared/expr/engine.mjs';
 import { Loader2, RotateCcw } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { FormEvent } from 'react';
+import type { FocusEvent, FormEvent } from 'react';
 import useTranslation from '@/hooks/useTranslation';
 import type { TranslateFn } from '@/hooks/useTranslation';
 import type { AppNode, NodeStyle, ValidationRule } from '../../inspector/appDefinition';
@@ -52,6 +52,7 @@ interface FormProps {
     submitLabel?: string;
     showReset?: boolean;
     showSubmit?: boolean;
+    validateOn?: 'submit' | 'blur' | 'change';
 }
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -168,6 +169,33 @@ function collectValidations(node: Pick<AppNode, 'children'>) {
 }
 
 /**
+ * One field's error message, or undefined when it passes. Shared by the submit
+ * pass and by live validation (validateOn), so both read the same rules.
+ */
+function fieldError(
+    meta: FormFieldMeta | undefined,
+    rules: ValidationRule[] | undefined,
+    v: unknown,
+    fieldScope: Record<string, unknown>,
+    t: TranslateFn,
+): string | undefined {
+    // A field the author switched off (enabledWhen:false) is inert on
+    // screen — validating it puts an error the user cannot clear under
+    // a control they cannot focus, and the form can never be sent.
+    if (!meta || meta.disabled) return undefined;
+    // The browser refused what was typed (a number box holding "12e"
+    // reports '' while still showing the text). The input says so on
+    // screen; without this the form did not, so an optional field
+    // submitted EMPTY under a visible "Enter a number".
+    if (meta.invalid) return meta.invalidMessage || t('studio_apps_runtime.form.invalid', 'This value is not valid.');
+    if (meta.required && isEmptyValue(v)) return t('studio_apps_runtime.form.required', 'This field is required.');
+    for (const rule of rules || []) {
+        if (ruleFails(rule, v, fieldScope)) return ruleMessage(rule, t);
+    }
+    return undefined;
+}
+
+/**
  * The shell. `resetKey` (spec: form.resetKey) is a formula whose value keys the
  * form's whole state subtree: when it changes, React remounts the body and
  * every input under it, so fields return to their defaults and each valueFrom
@@ -226,10 +254,33 @@ function FormBody({ node, children }: NodeProps<FormProps>) {
         fieldsRef.current.delete(name);
     }, []);
 
+    // Latest values/scope for live validation (validateOn), read from callbacks
+    // that must stay stable.
+    const liveRef = useRef({ values, scope, validations, t });
+    useEffect(() => { liveRef.current = { values, scope, validations, t }; });
+    const validateOn = node.props?.validateOn;
+
+    const validateLive = useCallback((name: string, value: unknown) => {
+        const live = liveRef.current;
+        const fieldScope = { ...live.scope, form: { ...live.values, [name]: value }, value };
+        const message = fieldError(fieldsRef.current.get(name), live.validations.get(name), value, fieldScope, live.t);
+        setErrors((prev) => (prev[name] === message ? prev : { ...prev, [name]: message }));
+    }, []);
+
     const setValue = useCallback((name: string, value: unknown) => {
         setValues((prev) => ({ ...prev, [name]: value }));
+        if (validateOn === 'change') {
+            validateLive(name, value);
+            return;
+        }
         setErrors((prev) => (prev[name] ? { ...prev, [name]: undefined } : prev));
-    }, []);
+    }, [validateOn, validateLive]);
+
+    // React's onBlur bubbles (focusout): the field is found by the input's name.
+    const handleBlur = validateOn === 'blur' ? (e: FocusEvent<HTMLFormElement>) => {
+        const name = (e.target as Element).getAttribute('name');
+        if (name && fieldsRef.current.has(name)) validateLive(name, liveRef.current.values[name]);
+    } : undefined;
 
     const handleReset = useCallback(() => {
         const next: Record<string, unknown> = {};
@@ -247,33 +298,11 @@ function FormBody({ node, children }: NodeProps<FormProps>) {
         if (mode !== 'run' || pending) return;
         const nextErrors: Record<string, string> = {};
         for (const [name, meta] of fieldsRef.current) {
-            // A field the author switched off (enabledWhen:false) is inert on
-            // screen — validating it puts an error the user cannot clear under
-            // a control they cannot focus, and the form can never be sent.
-            if (meta.disabled) continue;
-            // The browser refused what was typed (a number box holding "12e"
-            // reports '' while still showing the text). The input says so on
-            // screen; without this the form did not, so an optional field
-            // submitted EMPTY under a visible "Enter a number".
-            if (meta.invalid) {
-                nextErrors[name] = meta.invalidMessage || t('studio_apps_runtime.form.invalid', 'This value is not valid.');
-                continue;
-            }
             const v = values[name];
-            if (meta.required && isEmptyValue(v)) {
-                nextErrors[name] = t('studio_apps_runtime.form.required', 'This field is required.');
-                continue;
-            }
-            const rules = validations.get(name);
-            if (!rules) continue;
             // `form` is this form's LIVE values (the published forms.<name> copy
             // lags by an effect) and `value` is the field under test.
-            const fieldScope = { ...scope, form: values, value: v };
-            for (const rule of rules) {
-                if (!ruleFails(rule, v, fieldScope)) continue;
-                nextErrors[name] = ruleMessage(rule, t);
-                break;
-            }
+            const message = fieldError(meta, validations.get(name), v, { ...scope, form: values, value: v }, t);
+            if (message) nextErrors[name] = message;
         }
         setErrors(nextErrors);
         if (Object.keys(nextErrors).some((k) => nextErrors[k])) return;
@@ -296,7 +325,7 @@ function FormBody({ node, children }: NodeProps<FormProps>) {
     const gap = Number.isFinite(node.style?.gap) ? (node.style as NodeStyle).gap : 3;
     return (
         <FormContext.Provider value={ctx}>
-            <form onSubmit={handleSubmit} noValidate className="flex flex-col" style={{ gap: spaceSteps(gap) }}>
+            <form onSubmit={handleSubmit} onBlur={handleBlur} noValidate className="flex flex-col" style={{ gap: spaceSteps(gap) }}>
                 <div
                     className="app-grid"
                     style={{ gridTemplateColumns: gridTemplate(), gap: spaceSteps(gap) }}
