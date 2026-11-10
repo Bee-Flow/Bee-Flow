@@ -22,8 +22,12 @@ describe('extension knob groups in the inspector', () => {
         expect(earnedKnobGroups(['span', 'size'], 'stat', groups).map((g) => g.knobs)).toEqual([['a']]);
         expect(earnedKnobGroups(['span'], 'button', groups)).toEqual([]);
         expect(earnedKnobGroups(['padding'], null, groups)).toEqual([]);
-        expect(earnedKnobGroups(['span'], 'heading').map((g) => [g.name, g.knobs])).toEqual([['box', BOX]]);
-        expect(earnedKnobGroups(['span', 'size', 'align'], 'button')).toEqual([]);
+        expect(earnedKnobGroups(['span'], 'heading').map((g) => [g.name, g.knobs])).toEqual([
+            ['backdrop', ['backgroundImage', 'backgroundFit', 'backgroundOverlay']],
+            ['box', BOX],
+            ['hover', ['hover']],
+        ]);
+        expect(earnedKnobGroups(['span', 'size', 'align'], 'button').map((g) => g.name)).toEqual(['hover']);
     });
 
     it('a heading gets a closed Box disclosure, a button none', () => {

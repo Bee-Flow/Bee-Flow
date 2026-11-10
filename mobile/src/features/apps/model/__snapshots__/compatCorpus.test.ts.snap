@@ -495,6 +495,81 @@ exports[`compat corpus: what the phone plans for every stored app fixture-calcul
 }
 `;
 
+exports[`compat corpus: what the phone plans for every stored app hover-backdrop 1`] = `
+{
+  "defaultScreen": "scr_hvbg001",
+  "navigable": [
+    "scr_hvbg001",
+  ],
+  "screens": [
+    {
+      "id": "scr_hvbg001",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "id": "cmp_hvbg01",
+                "kind": "heading",
+                "level": 2,
+                "text": "Lift on hover",
+              },
+              {
+                "id": "cmp_hvbg02",
+                "kind": "heading",
+                "level": 2,
+                "text": "Tint on hover",
+              },
+              {
+                "id": "cmp_hvbg03",
+                "kind": "heading",
+                "level": 2,
+                "text": "Outline on hover",
+              },
+              {
+                "id": "cmp_hvbg04",
+                "kind": "heading",
+                "level": 2,
+                "text": "Grow on hover",
+              },
+              {
+                "id": "cmp_hvbg05",
+                "kind": "heading",
+                "level": 2,
+                "text": "Hover none is the identity",
+              },
+              {
+                "id": "cmp_hvbg06",
+                "kind": "heading",
+                "level": 2,
+                "text": "Picture with a dim veil",
+              },
+              {
+                "id": "cmp_hvbg07",
+                "kind": "heading",
+                "level": 2,
+                "text": "Tiled pattern",
+              },
+              {
+                "id": "cmp_hvbg08",
+                "kind": "heading",
+                "level": 2,
+                "text": "Contained with a hover",
+              },
+            ],
+            "screen": "scr_hvbg001",
+            "unsupported": [],
+          },
+          "roles": [
+            "(no role)",
+          ],
+        },
+      ],
+    },
+  ],
+}
+`;
+
 exports[`compat corpus: what the phone plans for every stored app legacy-onerror-array 1`] = `
 {
   "defaultScreen": "scr_lgh001",

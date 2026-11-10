@@ -1,0 +1,33 @@
+/*
+ * App Studio runtime: the "backdrop" knob group (server: componentSpecs/styleKnobGroups/backdrop.js).
+ *
+ * The picture is a layer inside the node's grid cell (assets/BackgroundImageLayer.tsx). The
+ * cell is its own stacking context, so the layer at z-index -1 sits above the cell's fill and
+ * below its content.
+ */
+.app-has-backdrop {
+    position: relative;
+    isolation: isolate;
+}
+.app-backdrop-layer {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    overflow: hidden;
+    border-radius: inherit;
+    pointer-events: none;
+    background-image: var(--app-backdrop-image);
+    background-position: center;
+    background-repeat: no-repeat;
+}
+.app-backdrop-layer[data-fit='cover'] { background-size: cover; }
+.app-backdrop-layer[data-fit='contain'] { background-size: contain; }
+.app-backdrop-layer[data-fit='tile'] { background-size: auto; background-repeat: repeat; background-position: top left; }
+.app-backdrop-layer[data-overlay='dim']::after,
+.app-backdrop-layer[data-overlay='light']::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+}
+.app-backdrop-layer[data-overlay='dim']::after { background: rgba(0, 0, 0, 0.5); }
+.app-backdrop-layer[data-overlay='light']::after { background: rgba(255, 255, 255, 0.7); }

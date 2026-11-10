@@ -12,6 +12,7 @@ const { validateTheme } = require('../../core/cms/themeSpec');
 const { isObject } = require('./shared');
 const { isAssetRef } = require('../componentSpecs/valueTypes');
 const { checkBoxContrast } = require('./boxContrast.mts');
+const { checkBackdropContrast } = require('./backdropContrast.mts');
 
 /**
  * design / nav (App Design v2 — OPTIONAL top-level keys).
@@ -21,6 +22,8 @@ const { checkBoxContrast } = require('./boxContrast.mts');
 function checkDesignAndNav(def, screens, pushE, pushW) {
     // A hex box fill against the theme text it carries (style knob group "box").
     checkBoxContrast(def, screens, pushW);
+    // A background image under text with no veil (style knob group "backdrop").
+    checkBackdropContrast(screens, pushW);
     // ── design / nav (App Design v2 — OPTIONAL top-level keys) ────────────
     // Canonicalize already normalizes these; validation here is the defensive
     // gate for canonical bytes handed in directly, mirroring the theme checks.
