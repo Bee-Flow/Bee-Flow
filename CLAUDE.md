@@ -17,6 +17,7 @@ line says otherwise.
 | `classify-service/` | Python FastAPI | Zero-shot topic classification |
 | `nextcloud-connector/` | Node | Nextcloud ExApp wrapper (AGPL) |
 | `hub-module-sdk/` | Node | Build, pack and sign Bee Flow Hub modules |
+| `installer/` | Bash / Docker | The self-host installer image: `beeflow-install.sh` (repository root) with one release's files, built by `release-latest.yml` |
 | `docs/` | Docusaurus (TS) | Documentation site |
 
 The license server that issues licence keys is a separate, private service. This repo only

@@ -191,6 +191,27 @@
     .status .detail { display: block; margin-top: 6px; opacity: 0.85; }
     .status button { margin-top: 10px; }
 
+    /* A Bee Flow server found next to this Nextcloud: an offer, not a choice. */
+    .found { display: none; align-items: center; gap: 12px; flex-wrap: wrap; margin: 0 0 16px; padding: 10px 12px; border: 1px solid var(--accent); border-radius: 8px; background: var(--panel); }
+    .found.show { display: flex; }
+    .found p { margin: 0; flex: 1 1 260px; }
+
+    /* The install help inside the self-hosted form. */
+    .install { margin: 0 0 16px; border: 1px solid var(--border); border-radius: 8px; background: var(--panel); }
+    .install > summary { cursor: pointer; padding: 10px 12px; font-weight: 600; }
+    .install[open] > summary { border-bottom: 1px solid var(--border); }
+    .install .inner { padding: 12px; }
+    .install .inner > p { margin: 0 0 10px; color: var(--text-2); }
+    .tabs { display: inline-flex; gap: 4px; padding: 3px; margin-bottom: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--card); }
+    .tabs button { padding: 5px 10px; font-size: 12px; background: transparent; color: var(--text-2); }
+    .tabs button[aria-selected=true] { background: var(--text); color: var(--card); }
+    .steps { margin: 12px 0 0; padding-left: 18px; color: var(--text-2); }
+    .steps li { margin-bottom: 6px; }
+    .steps pre, .install pre.cmd {
+        margin: 6px 0 0; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--card);
+        font-family: ui-monospace, 'Menlo', monospace; font-size: 12px; white-space: pre-wrap; word-break: break-word;
+    }
+
     .meta { margin-top: 20px; font-size: 12px; color: var(--text-3); }
     .meta strong { color: var(--text); }
     .output {
@@ -262,6 +283,11 @@
         <p class="note" id="note-literal-cloud-env"></p>
     </header>
 
+    <div class="found" id="found-server" role="status">
+        <p>A Bee Flow server answers at <code id="found-url"></code>. It is not chosen yet.</p>
+        <button type="button" class="btn-secondary" id="btn-use-found">Use this address</button>
+    </div>
+
     <div class="cards">
         <div class="card" id="card-cloud" data-mode="cloud">
             <h3><span class="dot"></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg>Bee Flow Cloud</h3>
@@ -278,6 +304,93 @@
     </div>
 
     <div class="form" id="form-self">
+        <details class="install" id="install-help">
+            <summary>No Bee Flow server yet? Install one with Docker</summary>
+            <div class="inner">
+                <p>Bee Flow runs as a set of Docker containers on a machine of yours: the server, the web
+                   app, its database, and by default the PII guard and the topic classifier. The installer
+                   is itself a container, published with every Bee Flow release and the same for everybody.
+                   It asks its questions in your terminal and generates every secret on that machine.</p>
+                <div class="tabs" role="tablist" aria-label="Install help">
+                    <button type="button" role="tab" id="tab-install" aria-selected="true" aria-controls="panel-install">Install</button>
+                    <button type="button" role="tab" id="tab-update" aria-selected="false" aria-controls="panel-update">Update</button>
+                    <button type="button" role="tab" id="tab-other" aria-selected="false" aria-controls="panel-other">Other ways</button>
+                </div>
+
+                <div id="panel-install" role="tabpanel" aria-labelledby="tab-install">
+                    <ol class="steps">
+                        <li>On the Docker host, as a user who may use Docker, start the installer:
+                            <pre class="cmd" id="cmd-install">docker run --rm -it --network host \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -v /opt/beeflow:/opt/beeflow \
+  ghcr.io/bee-flow/installer</pre>
+                            Bee Flow is installed in <code>/opt/beeflow</code>. It asks for the address at
+                            which this Nextcloud reaches that machine (a name or IP address, not
+                            <code>localhost</code>), the two ports, and the name of your organisation.
+                            Enter accepts each default.</li>
+                        <li>When it finishes, the terminal shows the server address, the web app address, a
+                            pairing code and the secrets it generated. Open this page again: it offers a
+                            server it finds on the same machine. Otherwise enter the addresses yourself.
+                            Then enter the pairing code below and press Connect.</li>
+                    </ol>
+                    <div class="actions">
+                        <button type="button" class="btn-secondary" data-copy="cmd-install">Copy the command</button>
+                        <span class="hint inline" id="status-copy-inline"></span>
+                    </div>
+                    <p class="hint">The command is fixed text: this page puts nothing of yours into it. The
+                       installer starts the containers through the Docker of that machine, which is what
+                       the socket is for; it opens no port and stops when it is done. The same command,
+                       and a script for who prefers not to share the socket, are in
+                       <a id="link-docs-install" target="_blank" rel="noopener noreferrer">the documentation</a>.</p>
+                </div>
+
+                <div id="panel-update" role="tabpanel" aria-labelledby="tab-update" hidden>
+                    <p id="running-version" class="hint"></p>
+                    <ol class="steps">
+                        <li>Make a backup first: <a id="link-docs-upgrades" target="_blank" rel="noopener noreferrer">the upgrade guide</a>
+                            says what to save.</li>
+                        <li>On the Docker host, fetch the newest installer and let it update:
+                            <pre class="cmd" id="cmd-update">docker pull ghcr.io/bee-flow/installer
+docker run --rm -it --network host \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -v /opt/beeflow:/opt/beeflow \
+  ghcr.io/bee-flow/installer update</pre>
+                            It shows the version you run and the release it brings, asks before it changes
+                            anything, and prints how to go back when the update fails.</li>
+                        <li>This connector needs nothing: it keeps its connection. Nextcloud updates the
+                            connector itself through its Apps page.</li>
+                        <li>A new pairing code later, for another Nextcloud: the same command ending in
+                            <code>pairing-code</code>.</li>
+                    </ol>
+                </div>
+
+                <div id="panel-other" role="tabpanel" aria-labelledby="tab-other" hidden>
+                    <ol class="steps">
+                        <li><strong>The installer as a script,</strong> without sharing the Docker socket with a
+                            container. Download it from the newest release, check it, run it:
+                            <pre class="cmd" id="cmd-download">curl -fsSLO https://github.com/Bee-Flow/Bee-Flow/releases/latest/download/beeflow-install.sh
+curl -fsSLO https://github.com/Bee-Flow/Bee-Flow/releases/latest/download/beeflow-install.sh.sha256
+sha256sum -c beeflow-install.sh.sha256
+bash beeflow-install.sh</pre>
+                            <code>bash beeflow-install.sh update</code> updates.</li>
+                        <li><strong>Without questions,</strong> for a script of your own: every answer is an
+                            option or a variable, with either form of the installer:
+                            <pre class="cmd">BEEFLOW_HOST=192.168.1.20 BEEFLOW_ORGANISATION="Acme" bash beeflow-install.sh --yes</pre>
+                            <code>--help</code> lists every option.</li>
+                        <li><strong>The repository and its self-host script:</strong>
+                            <pre class="cmd">git clone --depth 1 https://github.com/Bee-Flow/Bee-Flow.git
+cd Bee-Flow
+PROFILES="core guard classify" ./selfhost.sh</pre>
+                            Ports and the public address are settings in its <code>.env</code> file.</li>
+                        <li><strong>Docker Compose by hand,</strong> for your own compose project or reverse proxy:
+                            <a id="link-docs-compose" target="_blank" rel="noopener noreferrer">the Docker Compose guide</a>.</li>
+                        <li><strong>Kubernetes:</strong>
+                            <a id="link-docs-k8s" target="_blank" rel="noopener noreferrer">the Kubernetes guide</a>.</li>
+                        <li><strong>A server that already runs:</strong> close this help and enter its address below.</li>
+                    </ol>
+                </div>
+            </div>
+        </details>
         <label for="apiBaseUrl">Server URL</label>
         <input type="url" id="apiBaseUrl"
                placeholder="https://beeflow.example.com"
@@ -554,6 +667,51 @@
         statusBox.textContent = String(text == null ? '' : text);
     }
 
+    // ── Install help: fixed text and fixed commands, three tabs ──
+    const installTabs = ['install', 'update', 'other'];
+    function showInstallTab(name) {
+        for (const t of installTabs) {
+            $('tab-' + t).setAttribute('aria-selected', String(t === name));
+            $('panel-' + t).hidden = t !== name;
+        }
+    }
+    installTabs.forEach(t => $('tab-' + t).addEventListener('click', () => showInstallTab(t)));
+
+    // The Update tab names the version of the server this Nextcloud is on,
+    // read from that server itself; the page asks no other host.
+    let versionAsked = false;
+    $('tab-update').addEventListener('click', async () => {
+        if (versionAsked || !active) return;
+        versionAsked = true;
+        try {
+            const r = await fetch(BASE + 'setup/test', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ apiBaseUrl: active }),
+            });
+            const d = await r.json();
+            if (d.ok && d.version) $('running-version').textContent = `This Nextcloud is connected to Bee Flow ${d.version}.`;
+        } catch (_) { /* the steps below do not depend on it */ }
+    });
+
+    // Copy a command block. A framed page may not use the clipboard: the text
+    // is then selected, ready for Ctrl+C.
+    const statusCopyInline = $('status-copy-inline');
+    document.querySelectorAll('[data-copy]').forEach(btn => btn.addEventListener('click', async () => {
+        const block = $(btn.dataset.copy);
+        try {
+            await navigator.clipboard.writeText(block.textContent);
+            statusCopyInline.textContent = 'Copied.';
+        } catch (_) {
+            const range = document.createRange();
+            range.selectNodeContents(block);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            statusCopyInline.textContent = 'Selected: press Ctrl+C (or Cmd+C) to copy.';
+        }
+    }));
+
     cards.forEach(c => c.addEventListener('click', (ev) => {
         // The documentation link inside the card is a link, not a choice.
         if (ev.target.closest('a')) return;
@@ -772,6 +930,27 @@
         btnSave.textContent = active ? 'Save and connect' : 'Connect';
     }
 
+    // While no server is chosen: does one answer next to this Nextcloud? The
+    // connector asks a fixed list of nearby addresses; the answer is an offer
+    // the administrator may take, and the code and Connect still follow.
+    async function lookNearby() {
+        try {
+            const r = await fetch(BASE + 'setup/discover');
+            const d = await r.json();
+            const first = r.ok && Array.isArray(d.found) ? d.found[0] : null;
+            if (!first || active) return;
+            $('found-url').textContent = first.apiBaseUrl;
+            $('found-server').classList.add('show');
+            $('btn-use-found').addEventListener('click', () => {
+                $('card-self').click();
+                inputUrl.value = first.apiBaseUrl;
+                inputUrl.dispatchEvent(new Event('input', { bubbles: true }));
+                $('found-server').classList.remove('show');
+                inputWebUrl.focus();
+            });
+        } catch (_) { /* no offer; the page works without it */ }
+    }
+
     // Initial state
     fetch(BASE + 'setup/status').then(async r => {
         const s = await r.json();
@@ -788,10 +967,15 @@
         active = s.active || null;
         metaActive.textContent = active || 'none (no server chosen yet)';
         envLocked = !!s.envOverridden;
+        if (!active && !envLocked) lookNearby();
         if (s.selfHostingDocsUrl) {
             linkSelfHosting.href = s.selfHostingDocsUrl;
             if (texts.selfHostingLink) linkSelfHosting.textContent = texts.selfHostingLink;
             linkSelfHosting.style.display = '';
+            $('link-docs-compose').href = s.selfHostingDocsUrl + '/docker-compose';
+            $('link-docs-k8s').href = s.selfHostingDocsUrl + '/kubernetes';
+            $('link-docs-upgrades').href = s.selfHostingDocsUrl + '/upgrades';
+            $('link-docs-install').href = s.selfHostingDocsUrl.replace('/self-hosting', '/connector/own-server') + '#install-script';
         }
         // Only where it applies: the install-time value is the literal Cloud
         // address and no server is chosen.

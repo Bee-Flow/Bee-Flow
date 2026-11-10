@@ -966,6 +966,9 @@ jobs:
         with:
           tag_name: ${{ env.TAG }}
           name: Bee Flow Desktop ${{ env.VERSION }}
+          # "Latest" stays with the product release (the self-host download
+          # address follows that label).
+          make_latest: false
           target_commitish: ${{ github.sha }}
           files: artifacts/*
           draft: true
