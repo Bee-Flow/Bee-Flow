@@ -38,12 +38,7 @@ const pgError = (code, message) => Object.assign(new Error(message), { code, sev
 const DOWN = () => pgError('57P01', 'terminating connection due to administrator command on db-primary.internal:5432');
 const LEAKS = /terminating|db-primary|5432|uq_|duplicate key|invalid input syntax|support_/;
 
-function assertGeneric500(res) {
-    assert.strictEqual(res.status, 500, res.text);
-    assert.strictEqual(res.body.error, 'Internal server error');
-    assert.ok(res.body.correlationId, 'the client can quote a correlationId');
-    assert.doesNotMatch(res.text, LEAKS);
-}
+const assertGeneric500 = (res) => h.assertGeneric500(assert, res, LEAKS);
 
 test('a database failure is a 500 without its text, not a 400 echoing it', async () => {
     failWith = (sql) => (/support_tag_taxonomy|support_canned_responses|support_sla_policies/.test(sql) ? DOWN() : null);
@@ -61,7 +56,7 @@ test('a duplicate keeps its 400, in a sentence instead of the index name', async
     let res = await api.call('POST', '/api/support-inbox/tags', { body: { name: 'billing' } });
     assert.strictEqual(res.status, 400, res.text);
     assert.strictEqual(res.body.error, 'tag already exists');
-    assert.doesNotMatch(res.text, LEAKS);
+    assert.doesNotMatch(h.textWithoutCorrelationId(res), LEAKS);
 
     failWith = (sql) => (/support_canned_responses/.test(sql) && /INSERT|UPDATE/.test(sql)
         ? pgError('23505', 'duplicate key value violates unique constraint "uq_support_canned_shortcut"') : null);
@@ -71,7 +66,7 @@ test('a duplicate keeps its 400, in a sentence instead of the index name', async
     res = await api.call('PUT', '/api/support-inbox/canned/5b0a7c1e-0000-4000-8000-000000000001', { body: { shortcut: '/hi' } });
     assert.strictEqual(res.status, 400, res.text);
     assert.strictEqual(res.body.error, 'shortcut already in use');
-    assert.doesNotMatch(res.text, LEAKS);
+    assert.doesNotMatch(h.textWithoutCorrelationId(res), LEAKS);
 });
 
 test('an id that is not a uuid keeps its 400, without echoing the query error', async () => {
@@ -85,7 +80,7 @@ test('an id that is not a uuid keeps its 400, without echoing the query error', 
         const res = await api.call(method, url, body ? { body } : {});
         assert.strictEqual(res.status, 400, `${method} ${url}: ${res.text}`);
         assert.strictEqual(res.body.error, 'Invalid id');
-        assert.doesNotMatch(res.text, LEAKS);
+        assert.doesNotMatch(h.textWithoutCorrelationId(res), LEAKS);
     }
 });
 

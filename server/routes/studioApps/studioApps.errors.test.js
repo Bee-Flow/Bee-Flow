@@ -37,12 +37,7 @@ function serve(file, base) {
     }).api;
 }
 
-function assertGeneric500(res) {
-    assert.strictEqual(res.status, 500, res.text);
-    assert.strictEqual(res.body.error, 'Internal server error');
-    assert.ok(res.body.correlationId, 'the client can quote a correlationId');
-    assert.doesNotMatch(res.text, /terminating|db-primary|5432/);
-}
+const assertGeneric500 = (res) => h.assertGeneric500(assert, res, /terminating|db-primary|5432/);
 
 // The facade (CRUD + import): every statement fails while `failing` is set.
 let failing = false;
