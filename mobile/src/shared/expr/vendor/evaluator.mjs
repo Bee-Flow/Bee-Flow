@@ -62,7 +62,8 @@ function walkFrom(start, segments, from, runState, env) {
                 else if (r.kind === 'match') tokens.push({ type: 'match', key: r.key, value: r.value });
                 else tokens.push({ type: 'prop', key: evalNode(r.expr, runState, env) });
             }
-            return walkTokens([{ type: 'wild' }, ...tokens], cur);
+            // The list a `[*]` read hands back is built here, so it counts as work.
+            return spendOn(walkTokens([{ type: 'wild' }, ...tokens], cur), env.budget);
         } else if (s.kind === 'match') {
             cur = stepMatch(cur, s.key, s.value, cache);
         } else if (s.kind === 'root') {
@@ -104,7 +105,10 @@ function evalCall(n, ctx, env) {
     // Every produced text passes the cap, and every result counts as work (limits.mjs).
     const out = guardValue(fn(...values));
     // An argument handed back as it came (default(x, y)) was not produced here.
-    return values.includes(out) ? out : spendOn(out, env.budget, builtBesides(n.name, values));
+    if (values.includes(out)) return out;
+    spendOn(out, env.budget, builtBesides(n.name, values));
+    // parseJson() is the one function that builds a nested value: measured like a literal.
+    return env.budget.full && n.name === 'parseJson' ? guardSize(out, env.budget) : out;
 }
 
 /** A host function the caller answers. @param {Node} n @param {unknown} ctx @param {EvalEnv} env @returns {any} */

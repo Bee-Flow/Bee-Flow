@@ -12,7 +12,7 @@
  * list or object), and range() is the only one that makes items out of
  * nothing, so it has a fixed ceiling (limits.mjs MAX_RANGE_ITEMS).
  */
-import { ExprLimitError, MAX_RANGE_ITEMS } from './limits.mjs';
+import { ExprLimitError, MAX_RANGE_ITEMS, TEXT_CHARS_PER_UNIT } from './limits.mjs';
 
 /** @param {unknown} v @returns {v is Record<string, unknown>} */
 const isPlainObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
@@ -190,12 +190,15 @@ export const COLLECTION_FUNCTIONS = {
 };
 
 /**
- * What a function built besides its own result list, for the work budget
- * (limits.mjs spendOn): groupBy() files every item of its list in a group.
+ * What a function built besides its own result, for the work budget
+ * (limits.mjs spendOn): groupBy() files every item of its list in a group,
+ * and parseJson() reads a whole text whatever part of it it hands back.
  * @param {string} name @param {unknown[]} args
  */
 export function builtBesides(name, args) {
-    return name === 'groupBy' && Array.isArray(args[0]) ? args[0].length : 0;
+    if (name === 'groupBy' && Array.isArray(args[0])) return args[0].length;
+    if (name === 'parseJson' && typeof args[0] === 'string') return Math.ceil(args[0].length / TEXT_CHARS_PER_UNIT);
+    return 0;
 }
 
 /** reduce(list, expr, start): a special form in the engine (the body reads `acc` and `it`). */

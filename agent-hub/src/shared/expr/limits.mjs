@@ -113,20 +113,22 @@ export function tickEach(budget) {
 /**
  * How much ONE evaluation may produce, counted over everything in it: 1 per
  * item a list form visits (so a map or filter result is counted as it is
- * built), 1 plus its length for every list or object a function or a literal
- * hands back, and 1 per TEXT_CHARS_PER_UNIT characters of every text a
- * function or `+` hands back. Each of those is small on its own (a text and a
- * range() have their own ceilings); the budget is what stops them multiplying
- * inside each other. Reading the scope is not counted, and neither is a value
- * a function hands back as it got it (default(x, y) is x or y).
+ * built), 1 plus its length for every list or object a function, a literal
+ * or a `[*]` read hands back, and 1 per TEXT_CHARS_PER_UNIT characters of
+ * every text a function or `+` hands back (and of a text parseJson() reads).
+ * Each of those is small on its own (a text and a range() have their own
+ * ceilings); the budget is what stops them multiplying inside each other.
+ * Reading a value out of the scope is not counted, and neither is a value a
+ * function hands back as it got it (default(x, y) is x or y).
  *
  * The budget applies to a formula that uses something the language gained
  * with the collection functions (`budget.full`, set by engine.mjs evaluate):
  * range() and the literals are what makes a large list out of nothing. A
- * formula written in the earlier language can only multiply what its scope
- * already holds, and keeps exactly the limits it always had (the visited
- * items, the text cap), so no stored formula starts to fail on large data. Read once from EXPR_MAX_WORK when there is an environment; 0
- * means unlimited.
+ * formula written in the earlier language keeps exactly the limits it always
+ * had (the visited items, the text cap), so no stored formula starts to fail
+ * on large data.
+ *
+ * Read once from EXPR_MAX_WORK when there is an environment; 0 means unlimited.
  */
 export const DEFAULT_MAX_WORK = 10_000_000;
 
@@ -164,7 +166,7 @@ export function spend(budget, units) {
  * @template T
  * @param {T} value
  * @param {{ work?: number, full?: boolean }} budget
- * @param {number} [extra] units the caller knows were built besides (groupBy's item lists)
+ * @param {number} [extra] units the caller knows were built besides (collections.mjs builtBesides)
  * @returns {T}
  */
 export function spendOn(value, budget, extra = 0) {
@@ -172,6 +174,7 @@ export function spendOn(value, budget, extra = 0) {
     if (typeof value === 'string') spend(budget, Math.ceil(value.length / TEXT_CHARS_PER_UNIT) + extra);
     else if (Array.isArray(value)) spend(budget, 1 + value.length + extra);
     else if (value !== null && typeof value === 'object') spend(budget, 1 + Object.keys(value).length + extra);
+    else if (extra > 0) spend(budget, extra);
     return value;
 }
 

@@ -69,7 +69,12 @@ test('the budget counts lists, objects and texts a function, a literal or + hand
     assert.strictEqual(cost('split(s, "") ?? 0', { s }), 1 + s.length);
     // Reading the scope costs nothing, however large it is, and neither does a value handed on as it came.
     const rows = new Array(50_000).fill({ a: 1 });
-    assert.strictEqual(cost('(len(rows) + count(rows[*].a)) ?? 0', { rows }), 1);
+    assert.strictEqual(cost('(len(rows) + count(rows)) ?? 0', { rows }), 1);
+    // A `[*]` read builds its list, and parseJson() reads its whole text whatever it hands back.
+    assert.strictEqual(cost('count(rows[*].a) ?? 0', { rows: [{ a: 1 }, { a: 2 }] }), 3);
+    const json = JSON.stringify({ a: [1, 2, 3], pad: s });
+    assert.strictEqual(cost('parseJson(json, "a[0]") ?? 0', { json }), Math.ceil(json.length / TEXT_CHARS_PER_UNIT));
+    assert.strictEqual(cost('parseJson(json).a ?? 0', { json }), 1 + 2 + Math.ceil(json.length / TEXT_CHARS_PER_UNIT));
     assert.strictEqual(cost('len(default(rows, 0)) ?? 0', { rows }), 1);
     assert.strictEqual(cost('len(coalesce(missing, s)) ?? 0', { s }), 1);
 });
@@ -91,6 +96,17 @@ test('a formula in the earlier language keeps exactly the limits it had', () => 
     // The same work in a formula that uses the newer language is counted whole.
     assert.match(limitOf('len(map(rows, upper(doc))) ?? 0', { rows, doc }), /EXPR_MAX_WORK=1000/);
     assert.match(limitOf('len(map(range(500), len(split(doc, " "))))', { doc }), /EXPR_MAX_WORK=1000/);
+});
+
+test('a list read with [*] and a parsed text multiply like any other list', () => {
+    const rows = new Array(10_000).fill({ a: 1 });
+    assert.match(limitOf('map(range(10000), rows[*].a)', { rows }), /EXPR_MAX_WORK=10000000/);
+    const json = JSON.stringify(new Array(20_000).fill(1234567));
+    assert.match(limitOf('map(range(10000), parseJson(json))', { json }), /EXPR_MAX_WORK=10000000/);
+    // What parseJson() builds is measured like a literal: its depth counts.
+    const deep = `${'['.repeat(200)}${']'.repeat(200)}`;
+    assert.match(limitOf('parseJson(deep) ?? 0', { deep }), /nested more than 100 deep/);
+    assert.strictEqual(evaluate('len(parseJson(deep))', { deep }), 1); // the earlier language: as it was
 });
 
 test('texts multiply like lists do, and stop at the same budget', () => {
