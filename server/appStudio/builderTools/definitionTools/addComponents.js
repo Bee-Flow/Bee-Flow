@@ -10,6 +10,7 @@
 'use strict';
 
 const { getSpec } = require('../../componentSpecs');
+const { LIMITS } = require('../../componentSpecs/limits');
 const ops = require('../../definitionOps');
 const { checkComponentDataRefs, guardResult } = require('../bindingGuard');
 const { canonicalJson } = require('../../../automation/builderTools/suggestedPatch');
@@ -180,7 +181,7 @@ function applyAddComponents(draftWrap, rawArgs) {
         children.forEach((child, j) => {
             const same = landedTwin('sig', entrySig(child.entry), twin.id);
             if (same) { skipAs(child, same); return; }
-            const shell = depth < 6 && getSpec(child.entry.type)?.container ? landedTwin('shellSig', shellSig(child.entry), twin.id) : null;
+            const shell = depth < LIMITS.MAX_DEPTH && getSpec(child.entry.type)?.container ? landedTwin('shellSig', shellSig(child.entry), twin.id) : null;
             if (shell) { mergeIntoLanded(child, shell, depth + 1); return; }
             report.parentNodeId = twin.id;
             try {

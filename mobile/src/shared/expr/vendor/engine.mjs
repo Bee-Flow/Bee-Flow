@@ -283,7 +283,7 @@ function parse(tokens, host) {
     function primary() {
         const tk = peek();
         if (tk.t === TOKEN.NUMBER) { pos++; return { kind: 'num', v: tk.v }; }
-        if (tk.t === TOKEN.STRING) { pos++; return { kind: 'str', v: tk.v }; }
+        if (tk.t === TOKEN.STRING) { pos++; return { kind: 'str', v: tk.v, raw: tk.raw }; }
         if (tk.t === TOKEN.BOOL) { pos++; return { kind: 'bool', v: tk.v }; }
         if (tk.t === TOKEN.NULL) { pos++; return { kind: 'null' }; }
         if (tk.t === TOKEN.LPAREN) { pos++; const e = ternary(); eat(TOKEN.RPAREN); return postfix(e); }

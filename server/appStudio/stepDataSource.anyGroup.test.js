@@ -42,8 +42,8 @@ test('a required group or a required clause in a group without a value reads not
     assert.strictEqual(filtersBlocked([{ any: [empty] }], resolveValue), false);
 });
 
-test('flat lists behave as before: malformed entries and the isNull quirk', () => {
-    const res = resolveFilters([null, 'x', { field: 'a', op: 'isNull' }, { field: 'b', op: 'eq', value: 2, required: true }], resolveValue);
-    assert.deepStrictEqual(res, { filters: [{ field: 'b', op: 'eq', value: 2 }], blocked: false });
+test('flat lists: malformed entries drop, isNull/isNotNull keep their clause', () => {
+    const res = resolveFilters([null, 'x', { field: 'a', op: 'isNull' }, { field: 'c', op: 'isNotNull' }, { field: 'b', op: 'eq', value: 2, required: true }], resolveValue);
+    assert.deepStrictEqual(res, { filters: [{ field: 'a', op: 'isNull' }, { field: 'c', op: 'isNotNull' }, { field: 'b', op: 'eq', value: 2 }], blocked: false });
     assert.strictEqual(filtersBlocked([{ field: 'a', op: 'eq', value: F('none'), required: true }], resolveValue), true);
 });

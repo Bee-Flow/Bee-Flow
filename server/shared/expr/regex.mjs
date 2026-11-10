@@ -202,8 +202,14 @@ export function checkRegexCall(tk, args, ErrorType) {
         throw new ErrorType(`${tk.v}(): the flags must be written as a text in quotes`, tk.i);
     }
     if (list.length > flagsAt + 1) throw new ErrorType(`${tk.v}() takes at most ${flagsAt + 1} arguments`, tk.i);
-    const problem = regexProblem(pattern.v, flags ? flags.v : undefined);
+    // The pattern is read from the source text of the literal, not from its
+    // unescaped value: `\d`, `\s` and `\b` mean what they mean in a regex. Only an
+    // escaped quote is unescaped (`\"` is not a valid escape under the u flag).
+    const raw = typeof (/** @type {any} */ (pattern)).raw === 'string' ? /** @type {any} */ (pattern).raw : String(pattern.v);
+    const source = raw.replace(/\\(["'])/g, '$1');
+    const problem = regexProblem(source, flags ? flags.v : undefined);
     if (problem) throw new ErrorType(`${tk.v}(): ${problem}`, tk.i);
+    list[1] = /** @type {any} */ ({ ...pattern, v: source });
     return args;
 }
 
