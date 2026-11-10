@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The two engines an App Studio table lives in, for a test that runs compiled
  * SQL for real: SQLite (better-sqlite3, the per-app engine) and Postgres
