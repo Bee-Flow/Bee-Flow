@@ -367,14 +367,14 @@ export default function AppChart({ node }: NodeProps<ChartProps>) {
 
     return (
         <div
-            className={`w-full min-w-0${fitted ? ' flex flex-col h-full min-h-0' : ''}${fill ? ' app-fill' : ''}`}
+            className={`w-full min-w-0${fitted ? ' flex flex-col h-full min-h-0' : ''}${fill ? ' app-fill' : ''} bfa-chart__root`}
             data-app-chart={chartType}
             data-app-chart-orientation={horizontal ? 'horizontal' : undefined}
             data-app-chart-fitted={fitted || undefined}
             data-app-chart-xtype={isTime ? 'time' : 'category'}
         >
             {title ? (
-                <div className={`text-sm font-semibold mb-2${fitted ? ' shrink-0' : ''} text-[var(--text-primary)]`}>{title}</div>
+                <div className={`text-sm font-semibold mb-2${fitted ? ' shrink-0' : ''} text-[var(--text-primary)] bfa-chart__title`}>{title}</div>
             ) : null}
             {/* overflow-hidden, not auto: when the plot is momentarily larger
                 than the room left (the frame before the first measurement) it
@@ -383,7 +383,7 @@ export default function AppChart({ node }: NodeProps<ChartProps>) {
                 asking to be scrolled. */}
             <div
                 ref={wrapRef}
-                className={`w-full overflow-hidden${fitted ? ' flex-1 min-h-0' : ''}`}
+                className={`w-full overflow-hidden${fitted ? ' flex-1 min-h-0' : ''} bfa-chart__plot`}
                 style={fitted ? undefined : { height }}
             >
                 {chart}

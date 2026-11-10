@@ -156,7 +156,7 @@ export default function AppCalendar({ node }: NodeProps<CalendarProps>) {
                 data-app-calendar-event="true"
                 onClick={() => fireRow(entry.row)}
                 disabled={!clickable}
-                className="w-full text-left text-[11px] font-medium truncate rounded px-1 py-0.5 disabled:cursor-default"
+                className="w-full text-left text-[11px] font-medium truncate rounded px-1 py-0.5 disabled:cursor-default bfa-calendar__event"
                 style={{ color, background: 'color-mix(in srgb, currentColor 12%, transparent)' }}
                 title={String(walkPath(entry.row, titleKey) ?? '')}
             >
@@ -173,7 +173,7 @@ export default function AppCalendar({ node }: NodeProps<CalendarProps>) {
             .sort((a, b) => a.day.getTime() - b.day.getTime());
         if (dated.length === 0) return <EmptyText text={emptyText} />;
         return (
-            <ol className="flex flex-col gap-1.5" data-app-calendar="list">
+            <ol className="flex flex-col gap-1.5 bfa-calendar__root" data-app-calendar="list">
                 {dated.map(({ row, day }, i) => (
                     <li key={i}>
                         <button
@@ -181,7 +181,7 @@ export default function AppCalendar({ node }: NodeProps<CalendarProps>) {
                             data-app-calendar-event="true"
                             onClick={() => fireRow(row)}
                             disabled={!clickable}
-                            className="w-full flex items-center gap-3 border px-2.5 py-1.5 text-left disabled:cursor-default [background:var(--bg-card)] [border-color:var(--border-default)] [border-radius:var(--app-radius)]"
+                            className="w-full flex items-center gap-3 border px-2.5 py-1.5 text-left disabled:cursor-default [background:var(--bg-card)] [border-color:var(--border-default)] [border-radius:var(--app-radius)] bfa-calendar__event"
                         >
                             <span className="text-xs tabular-nums shrink-0 text-[var(--text-muted)]">
                                 {day.toLocaleDateString()}
@@ -221,23 +221,23 @@ export default function AppCalendar({ node }: NodeProps<CalendarProps>) {
 
     return (
         <div
-            className={`w-full min-w-0 flex flex-col gap-2${fill ? ' app-fill h-full min-h-0' : ''}`}
+            className={`w-full min-w-0 flex flex-col gap-2${fill ? ' app-fill h-full min-h-0' : ''} bfa-calendar__root`}
             data-app-calendar={isWeek ? 'week' : 'month'}
         >
-            <div className={`flex items-center justify-between gap-2${fill ? ' shrink-0' : ''}`}>
+            <div className={`flex items-center justify-between gap-2${fill ? ' shrink-0' : ''} bfa-calendar__header`}>
                 <span className="text-sm font-semibold text-[var(--text-primary)]" data-app-calendar-heading="true">
                     {headingLabel}
                 </span>
                 <div className="flex items-center gap-1">
                     <button
                         type="button" onClick={() => step(-1)} aria-label={isWeek ? t('studio_apps_runtime.calendar.previous_week', 'Previous week') : t('studio_apps_runtime.calendar.previous_month', 'Previous month')}
-                        className="inline-flex items-center px-1.5 py-1 border [border-color:var(--border-default)] [border-radius:var(--app-radius)] [color:var(--text-secondary)]"
+                        className="inline-flex items-center px-1.5 py-1 border [border-color:var(--border-default)] [border-radius:var(--app-radius)] [color:var(--text-secondary)] bfa-calendar__nav"
                     >
                         <ChevronLeft className="w-3.5 h-3.5" aria-hidden="true" />
                     </button>
                     <button
                         type="button" onClick={() => step(1)} aria-label={isWeek ? t('studio_apps_runtime.calendar.next_week', 'Next week') : t('studio_apps_runtime.calendar.next_month', 'Next month')}
-                        className="inline-flex items-center px-1.5 py-1 border [border-color:var(--border-default)] [border-radius:var(--app-radius)] [color:var(--text-secondary)]"
+                        className="inline-flex items-center px-1.5 py-1 border [border-color:var(--border-default)] [border-radius:var(--app-radius)] [color:var(--text-secondary)] bfa-calendar__nav"
                     >
                         <ChevronRight className="w-3.5 h-3.5" aria-hidden="true" />
                     </button>
@@ -245,7 +245,7 @@ export default function AppCalendar({ node }: NodeProps<CalendarProps>) {
             </div>
             <div className={`grid grid-cols-7 gap-px text-center${fill ? ' shrink-0' : ''}`}>
                 {WEEKDAYS.map((d) => (
-                    <span key={d} className="text-[11px] font-medium py-1 text-[var(--text-muted)]">{WEEKDAY_LABELS[d]}</span>
+                    <span key={d} className="text-[11px] font-medium py-1 text-[var(--text-muted)] bfa-calendar__weekday">{WEEKDAY_LABELS[d]}</span>
                 ))}
             </div>
             <AppCalendarSection fill={fill} days={days} buckets={buckets} isWeek={isWeek} anchor={anchor} todayKey={todayKey} expandedDay={expandedDay} chip={chip} setExpandedDay={setExpandedDay} t={t} />
@@ -255,7 +255,7 @@ export default function AppCalendar({ node }: NodeProps<CalendarProps>) {
 
 function AppCalendarSection({ fill, days, buckets, isWeek, anchor, todayKey, expandedDay, chip, setExpandedDay, t }: { fill: boolean; days: Date[]; buckets: Map<string, { row: CalendarRow; start: Date; }[]>; isWeek: boolean; anchor: Date; todayKey: string; expandedDay: string | null; chip: (entry: { row: CalendarRow; }, i: string | number | bigint | null) => JSX.Element; setExpandedDay: Dispatch<SetStateAction<string | null>>; t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; }) {
     return <div
-        className={`grid grid-cols-7 gap-px border${fill ? ' flex-1 min-h-0 overflow-y-auto' : ' overflow-hidden'} [background:var(--border-subtle,var(--border-default))] [border-color:var(--border-default)] [border-radius:var(--app-radius)]`}
+        className={`grid grid-cols-7 gap-px border${fill ? ' flex-1 min-h-0 overflow-y-auto' : ' overflow-hidden'} [background:var(--border-subtle,var(--border-default))] [border-color:var(--border-default)] [border-radius:var(--app-radius)] bfa-calendar__grid`}
     >
         {days.map((day) => {
             const key = dayKey(day);
@@ -265,7 +265,7 @@ function AppCalendarSection({ fill, days, buckets, isWeek, anchor, todayKey, exp
                 <div
                     key={key}
                     data-app-calendar-day={key}
-                    className={`min-h-[72px] p-1 flex flex-col gap-0.5 ${inMonth ? '[background:var(--bg-card)]' : '[background:var(--bg-secondary)]'}`}
+                    className={`min-h-[72px] p-1 flex flex-col gap-0.5 ${inMonth ? '[background:var(--bg-card)]' : '[background:var(--bg-secondary)]'} bfa-calendar__day`}
                     // The whole cell used to fade to 0.45, on top of
                     // tokens that are already low-contrast — the day
                     // numbers and the still-clickable chips went well
@@ -284,7 +284,7 @@ function AppCalendarSection({ fill, days, buckets, isWeek, anchor, todayKey, exp
                         <button
                             type="button"
                             onClick={() => setExpandedDay(expandedDay === key ? null : key)}
-                            className="text-[11px] px-1 text-left underline decoration-dotted focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--text-secondary)] [color:var(--text-secondary)]!"
+                            className="text-[11px] px-1 text-left underline decoration-dotted focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--text-secondary)] [color:var(--text-secondary)]! bfa-calendar__more"
                             aria-expanded={expandedDay === key}
                         >
                             {t('studio_apps_runtime.calendar.more', '+{n} more', { n: entries.length - MAX_CHIPS_PER_DAY })}

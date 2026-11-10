@@ -65,12 +65,12 @@ export default function AppTable({ node }: NodeProps<TableProps>) {
     const divider = minimal ? '' : ' border-b';
     const now = Date.parse(scope?.now as string) || null;
     return (
-        <div className="w-full overflow-x-auto app-scroll-edges">
+        <div className="w-full overflow-x-auto app-scroll-edges bfa-table__root">
             {/* app-grid-base carries the shared table rhythm (header weight,
                 row hover, middle-aligned cells, tabular figures) so the two
                 table components look like one product. */}
-            <table className={`w-full app-grid-base ${size === 'sm' ? 'text-xs' : 'text-sm'}${look === 'striped' ? ' app-grid-zebra' : ''}`}>
-                <thead>
+            <table className={`w-full app-grid-base ${size === 'sm' ? 'text-xs' : 'text-sm'}${look === 'striped' ? ' app-grid-zebra' : ''} bfa-table__table`}>
+                <thead className="bfa-table__header">
                     <tr>
                         {cols.map((col: GridColumn) => {
                             const align = alignFor(col);
@@ -78,7 +78,7 @@ export default function AppTable({ node }: NodeProps<TableProps>) {
                                 <th
                                     key={col.key}
                                     scope="col"
-                                    className={`${ALIGN_CLASS[align as keyof typeof ALIGN_CLASS]} font-medium ${cellPad}${divider}${minimal ? ' text-xs uppercase tracking-wider' : ''}`}
+                                    className={`${ALIGN_CLASS[align as keyof typeof ALIGN_CLASS]} font-medium ${cellPad}${divider}${minimal ? ' text-xs uppercase tracking-wider' : ''} bfa-table__headcell`}
                                     style={{ color: 'var(--text-secondary)', borderColor: 'var(--border-default)' }}
                                 >
                                     {col.label || col.key}
@@ -87,13 +87,13 @@ export default function AppTable({ node }: NodeProps<TableProps>) {
                         })}
                     </tr>
                 </thead>
-                <tbody>
+                <tbody className="bfa-table__body">
                     {rows.map((row, i) => (
-                        <tr key={i}>
+                        <tr key={i} className="bfa-table__row">
                             {cols.map((col: GridColumn) => (
                                 <td
                                     key={col.key}
-                                    className={`${cellPad}${divider} align-middle ${ALIGN_CLASS[alignFor(col) as keyof typeof ALIGN_CLASS]}${col.truncate ? ' truncate max-w-0' : ''}`}
+                                    className={`${cellPad}${divider} align-middle ${ALIGN_CLASS[alignFor(col) as keyof typeof ALIGN_CLASS]}${col.truncate ? ' truncate max-w-0' : ''} bfa-table__cell`}
                                     style={{ borderColor: 'var(--border-default)' }}
                                 >
                                     {/* walkPath, like every sibling: a dotted key
@@ -114,7 +114,7 @@ export default function AppTable({ node }: NodeProps<TableProps>) {
             </table>
             {hidden > 0 ? (
                 <p
-                    className="px-1 pt-1.5 text-xs text-[var(--text-secondary)]"
+                    className="px-1 pt-1.5 text-xs text-[var(--text-secondary)] bfa-table__footer"
                     data-app-table-truncated={hidden}
                 >
                     {t('studio_apps_runtime.table.showing', 'Showing {shown} of {total}.', { shown: rows.length, total: allRows.length.toLocaleString() })}

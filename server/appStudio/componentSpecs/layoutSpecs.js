@@ -68,6 +68,7 @@ const LAYOUT_SPECS = {
     repeater: {
         parts: ['root', 'item', 'actions', 'action'],
         label: 'Repeater', category: 'Data',
+        parts: ['root', 'item', 'actions', 'action'],
         description: 'Repeats its child components once per item of an array binding. Inside, `item` and `index` are in scope for formulas.',
         container: true,
         props: {

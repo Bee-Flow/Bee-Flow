@@ -1131,7 +1131,17 @@
             },
             "defaultStyle": {
                 "span": 12
-            }
+            },
+            "parts": [
+                "root",
+                "table",
+                "header",
+                "headcell",
+                "body",
+                "row",
+                "cell",
+                "footer"
+            ]
         },
         "list": {
             "label": "List",
@@ -1173,7 +1183,17 @@
             },
             "defaultStyle": {
                 "span": 12
-            }
+            },
+            "parts": [
+                "root",
+                "group",
+                "item",
+                "icon",
+                "title",
+                "subtitle",
+                "meta",
+                "badge"
+            ]
         },
         "approval_list": {
             "label": "Approvals",
@@ -1187,7 +1207,16 @@
             },
             "defaultStyle": {
                 "span": 12
-            }
+            },
+            "parts": [
+                "root",
+                "header",
+                "item",
+                "title",
+                "subtitle",
+                "status",
+                "detail"
+            ]
         },
         "card": {
             "label": "Card",
@@ -1424,7 +1453,17 @@
             },
             "defaultStyle": {
                 "span": 12
-            }
+            },
+            "parts": [
+                "root",
+                "toolbar",
+                "table",
+                "header",
+                "headcell",
+                "row",
+                "cell",
+                "footer"
+            ]
         },
         "chart": {
             "label": "Chart",
@@ -1453,7 +1492,12 @@
             "defaultStyle": {
                 "span": 6,
                 "height": "md"
-            }
+            },
+            "parts": [
+                "root",
+                "title",
+                "plot"
+            ]
         },
         "pivot": {
             "label": "Pivot table",
@@ -1471,7 +1515,17 @@
             },
             "defaultStyle": {
                 "span": 12
-            }
+            },
+            "parts": [
+                "root",
+                "table",
+                "header",
+                "row",
+                "rowhead",
+                "cell",
+                "total",
+                "footer"
+            ]
         },
         "input_file": {
             "label": "File upload",
@@ -1991,7 +2045,16 @@
             },
             "defaultStyle": {
                 "span": 12
-            }
+            },
+            "parts": [
+                "root",
+                "item",
+                "marker",
+                "rail",
+                "title",
+                "meta",
+                "description"
+            ]
         },
         "message_thread": {
             "label": "Message thread",
@@ -2093,7 +2156,17 @@
             },
             "defaultStyle": {
                 "span": 12
-            }
+            },
+            "parts": [
+                "root",
+                "header",
+                "lane",
+                "column",
+                "card",
+                "title",
+                "subtitle",
+                "badge"
+            ]
         },
         "calendar": {
             "label": "Calendar",
@@ -2112,7 +2185,17 @@
             },
             "defaultStyle": {
                 "span": 12
-            }
+            },
+            "parts": [
+                "root",
+                "header",
+                "nav",
+                "weekday",
+                "grid",
+                "day",
+                "event",
+                "more"
+            ]
         },
         "ai_chat": {
             "label": "AI chat",

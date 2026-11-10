@@ -34,6 +34,7 @@ const INTERACTIVE_SPECS = {
     },
     kanban: {
         label: 'Kanban', category: 'Data',
+        parts: ['root', 'header', 'lane', 'column', 'card', 'title', 'subtitle', 'badge'],
         description: 'A kanban board over an array of objects, grouped into columns by groupByField and optionally into swimlanes by swimlaneField. Columns and swimlanes may be PINNED as literals or BOUND to a table (columnsSource/swimlanesSource) so the people using the app configure the board without opening the builder. Dragging a card fires onCardMove with { item, value, lane, index, beforeId, afterId } — enough to write both the new column and a new rank.',
         events: ['onRowClick', 'onCardMove'],
         props: {
@@ -171,6 +172,7 @@ const INTERACTIVE_SPECS = {
     },
     calendar: {
         label: 'Calendar', category: 'Data',
+        parts: ['root', 'header', 'nav', 'weekday', 'grid', 'day', 'event', 'more'],
         description: 'A month/week/list calendar over an array of objects, dated by dateKey (optionally spanning to endDateKey).',
         events: ['onRowClick'],
         props: {

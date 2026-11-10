@@ -177,7 +177,7 @@ export default function AppPivot({ node }: NodeProps<PivotProps>) {
 
     const numTd = (value: number | null, valDef: PivotValueDef, extra: { background: string; fontWeight: number; } | { fontWeight: number; } | {} = {}) => (
         <td
-            className={`${cellPad} border-b text-right tabular-nums`}
+            className={`${cellPad} border-b text-right tabular-nums bfa-pivot__cell`}
             style={{ borderColor: 'var(--border-default)', ...extra }}
         >
             {formatCell(value, valDef.format, valueFmt(valDef))}
@@ -187,12 +187,12 @@ export default function AppPivot({ node }: NodeProps<PivotProps>) {
     const renderRow = (group: RowGroup) => {
         const totalsPerVal = values.map((v) => aggregate(group.rows.map((r) => r[v.key]), v.agg || 'sum'));
         return (
-            <tr key={group.key}>
+            <tr key={group.key} className="bfa-pivot__row">
                 {rowDims.map((d, i) => (
                     <th
                         key={d.key}
                         scope="row"
-                        className={`${cellPad} border-b text-left font-medium [color:var(--text-primary)]! [border-color:var(--border-default)]!`}
+                        className={`${cellPad} border-b text-left font-medium [color:var(--text-primary)]! [border-color:var(--border-default)]! bfa-pivot__rowhead`}
                     >
                         {group.values[i]}
                     </th>
@@ -222,7 +222,7 @@ export default function AppPivot({ node }: NodeProps<PivotProps>) {
     const grandTotalRow = () => {
         const all = allRows;
         return (
-            <tr className="[background:var(--bg-tertiary)]">
+            <tr className="[background:var(--bg-tertiary)] bfa-pivot__total">
                 <th
                     scope="row"
                     colSpan={stubCols}
@@ -261,7 +261,7 @@ export default function AppPivot({ node }: NodeProps<PivotProps>) {
         ? virtualizer.getTotalSize() - virtualItems[virtualItems.length - 1].end : 0;
 
     const table = (
-        <table className={`w-full ${size === 'sm' ? 'text-xs' : 'text-sm'}`}>
+        <table className={`w-full ${size === 'sm' ? 'text-xs' : 'text-sm'} bfa-pivot__table`}>
             <PivotHead t={t} rowDims={rowDims} colGroups={colGroups} values={values} hasCols={hasCols} multiValue={multiValue} showTotals={showTotals} cellPad={cellPad} />
             <tbody>
                 {virtualize ? (
@@ -281,14 +281,14 @@ export default function AppPivot({ node }: NodeProps<PivotProps>) {
     return (
         <div
             ref={scrollRef}
-            className="w-full overflow-auto app-scroll-edges"
+            className="w-full overflow-auto app-scroll-edges bfa-pivot__root"
             style={virtualize ? { maxHeight: 360 } : undefined}
             data-app-pivot="true"
         >
             {table}
             {hiddenCols > 0 ? (
                 <p
-                    className="px-1 pt-1.5 text-xs text-[var(--text-secondary)]"
+                    className="px-1 pt-1.5 text-xs text-[var(--text-secondary)] bfa-pivot__footer"
                     data-app-pivot-truncated={hiddenCols}
                 >
                     {hiddenCols === 1
@@ -315,7 +315,7 @@ interface PivotHeadProps {
 function PivotHead({ t, rowDims, colGroups, values, hasCols, multiValue, showTotals, cellPad }: PivotHeadProps) {
     const headStyle = { color: 'var(--text-secondary)', borderColor: 'var(--border-default)' };
     return (
-        <thead>
+        <thead className="bfa-pivot__header">
             <tr>
                 {rowDims.map((d) => (
                     <th

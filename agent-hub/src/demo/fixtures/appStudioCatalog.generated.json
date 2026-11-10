@@ -809,6 +809,16 @@
         "kanban": {
             "label": "Kanban",
             "category": "Data",
+            "parts": [
+                "root",
+                "header",
+                "lane",
+                "column",
+                "card",
+                "title",
+                "subtitle",
+                "badge"
+            ],
             "description": "A kanban board over an array of objects, grouped into columns by groupByField and optionally into swimlanes by swimlaneField. Columns and swimlanes may be PINNED as literals or BOUND to a table (columnsSource/swimlanesSource) so the people using the app configure the board without opening the builder. Dragging a card fires onCardMove with { item, value, lane, index, beforeId, afterId } — enough to write both the new column and a new rank.",
             "events": [
                 "onRowClick",
@@ -1374,6 +1384,16 @@
         "table": {
             "label": "Table",
             "category": "Data",
+            "parts": [
+                "root",
+                "table",
+                "header",
+                "headcell",
+                "body",
+                "row",
+                "cell",
+                "footer"
+            ],
             "description": "A table over an array of objects — usually an automation result. Missing keys render as “—”.",
             "props": {
                 "source": {
@@ -1515,6 +1535,16 @@
         "data_grid": {
             "label": "Data grid",
             "category": "Data",
+            "parts": [
+                "root",
+                "toolbar",
+                "table",
+                "header",
+                "headcell",
+                "row",
+                "cell",
+                "footer"
+            ],
             "description": "A powerful table over an array of objects: sortable/filterable columns, paging, selection, search and row actions.",
             "events": [
                 "onRowClick",
@@ -1909,6 +1939,11 @@
         "chart": {
             "label": "Chart",
             "category": "Data",
+            "parts": [
+                "root",
+                "title",
+                "plot"
+            ],
             "description": "A bar/line/area/pie/donut chart over an array of objects. x-axis from xKey, one or more series by key. xType:\"time\" spaces points by date rather than evenly, so a gap in the data reads as a gap. referenceLines/referenceBands draw a target or healthy range behind the series; unitLabel suffixes the axis and tooltip. onRowClick fires with the clicked row.",
             "props": {
                 "chartType": {
@@ -2068,6 +2103,16 @@
         "list": {
             "label": "List",
             "category": "Data",
+            "parts": [
+                "root",
+                "group",
+                "item",
+                "icon",
+                "title",
+                "subtitle",
+                "meta",
+                "badge"
+            ],
             "description": "A card list over an array of objects — a friendlier alternative to a table, and the natural sidebar picker. badgeToneMap colours a status pill the way sideMap does for a message thread; timestampKey shows a short relative time; unreadKey bolds the row; tagsKey shows a tags field (e.g. mail categories) as chips.",
             "props": {
                 "source": {

@@ -15,7 +15,7 @@ export function KanbanCell({ column, lane, children, maxHeight, fill, laned }: K
             ref={setNodeRef}
             data-app-kanban-column={column.value}
             data-app-kanban-lane={laned ? lane : undefined}
-            className={`flex flex-col gap-1.5 p-1.5 min-h-[3rem]${fill && !laned ? ' flex-1 min-h-0 overflow-y-auto' : ''}`}
+            className={`flex flex-col gap-1.5 p-1.5 min-h-[3rem]${fill && !laned ? ' flex-1 min-h-0 overflow-y-auto' : ''} bfa-kanban__column`}
             style={{
                 background: isOver ? 'var(--app-primary-soft)' : 'transparent',
                 borderRadius: 'var(--app-radius)',
@@ -47,7 +47,7 @@ export function KanbanColumnHeader({ t, column, total, collapsible, isCollapsed,
     const over = column.wipLimit != null && total > column.wipLimit;
     return (
     <div
-        className="flex items-center gap-1.5 px-1.5 pb-1"
+        className="flex items-center gap-1.5 px-1.5 pb-1 bfa-kanban__header"
         data-app-kanban-header={column.value}
     >
         {dot ? <span className="h-2 w-2 rounded-full shrink-0" style={{ background: dot }} aria-hidden="true" /> : null}
@@ -81,7 +81,7 @@ export function KanbanColumnHeader({ t, column, total, collapsible, isCollapsed,
 function SwimlaneHeader({ t, lane, count }: { t: TranslateFn; lane: KanbanLane; count: number }) {
     return (
         <div
-            className="flex items-center gap-1.5 px-1.5 py-1 mt-1 border-t [border-color:var(--border-subtle,var(--border-default))]!"
+            className="flex items-center gap-1.5 px-1.5 py-1 mt-1 border-t [border-color:var(--border-subtle,var(--border-default))]! bfa-kanban__lane"
         >
             {lane.color && ROLE_COLORS[lane.color] ? (
                 <span className="h-2 w-2 rounded-full shrink-0" style={{ background: ROLE_COLORS[lane.color] }} aria-hidden="true" />
@@ -131,7 +131,7 @@ interface KanbanGridProps {
 export function KanbanGrid({ t, cols, lanes, laned, fill, gridStyle, renderHeader, renderCell, laneCount }: KanbanGridProps) {
     return (
     <div
-        className={`overflow-x-auto${fill ? ' app-fill h-full min-h-0 flex flex-col' : ''}`}
+        className={`overflow-x-auto${fill ? ' app-fill h-full min-h-0 flex flex-col' : ''} bfa-kanban__root`}
         data-app-kanban="true"
     >
         <div

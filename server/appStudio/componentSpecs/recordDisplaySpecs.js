@@ -185,6 +185,7 @@ const RECORD_DISPLAY_SPECS = {
     },
     timeline: {
         label: 'Timeline', category: 'Data',
+        parts: ['root', 'item', 'marker', 'rail', 'title', 'meta', 'description'],
         description: 'A vertical timeline over an array of objects, one entry per row, dated by dateKey.',
         events: ['onRowClick'],
         props: {

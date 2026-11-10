@@ -3,8 +3,8 @@ import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, it, expect, vi } from 'vitest';
 import AppDataGrid from './AppDataGrid';
 import { RuntimeProvider, buildScope, DEFAULT_RUNTIME } from '../RuntimeContext';
-
 const user = userEvent.setup(); // one pointer for the file; this file is at its line ceiling
+const bare = (cls) => (cls || '').split(' ').filter((c) => !c.startsWith('bfa-')).join(' '); // part classes are not look
 
 function withRuntime(ui, overrides = {}) {
     const value = {
@@ -285,9 +285,9 @@ describe('AppDataGrid — look variants', () => {
     const DEFAULT_TD_CLS = 'px-2.5 py-1.5 border-b align-middle text-left';
 
     const classesOf = (container) => ({
-        table: container.querySelector('table').getAttribute('class'),
-        th: container.querySelector('thead th').getAttribute('class'),
-        td: container.querySelector('tbody td').getAttribute('class'),
+        table: bare(container.querySelector('table').getAttribute('class')),
+        th: bare(container.querySelector('thead th').getAttribute('class')),
+        td: bare(container.querySelector('tbody td').getAttribute('class')),
     });
 
     it('default look renders the exact pre-look classes (no new class, no new style)', () => {
