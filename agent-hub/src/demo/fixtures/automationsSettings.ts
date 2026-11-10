@@ -13,6 +13,7 @@
 import { DEMO_CAPABILITIES, DEMO_ENTITLEMENTS, daysAgo } from './common';
 import { recordRun } from './automationsRuns';
 import { ACCOUNT_MANAGERS, FINANCE, GROUPS, ME, PEOPLE, CASEY, type DemoGroup, type DemoPerson } from './automationsPeople';
+import { demoDate, demoNow } from '../demoClock';
 
 type Obj = Record<string, unknown>;
 type Role = 'run' | 'view' | 'edit';
@@ -87,7 +88,7 @@ export function seedWebhooks(): Obj[] {
 
 const json = (body: unknown, status: number) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 const notFound = () => json({ error: 'Not found' }, 404);
-const purgeAt = (deletedAt: string | null | undefined) => new Date(new Date(deletedAt || Date.now()).getTime() + TRASH_DAYS * 86_400_000).toISOString();
+const purgeAt = (deletedAt: string | null | undefined) => new Date(new Date(deletedAt || demoNow()).getTime() + TRASH_DAYS * 86_400_000).toISOString();
 const automation = (state: SettingsState, id: string) => state.automations.find(a => a.id === id) || null;
 const hookUrl = (slug: unknown) => `https://bee.example.com/api/automation/webhook/${String(slug)}`;
 // Shown once after Create or Renew, like the real secret; it opens nothing.
@@ -158,7 +159,7 @@ export const SETTINGS_ROUTES = {
         const a = automation(state, params.id);
         if (!a) return notFound();
         state.automations = state.automations.filter(x => x.id !== a.id);
-        Object.assign(a, { isActive: false, deletedAt: new Date().toISOString(), deletedBy: ME.id });
+        Object.assign(a, { isActive: false, deletedAt: demoDate().toISOString(), deletedBy: ME.id });
         state.trash.unshift(a);
         return { success: true, automation: a, purgeAt: purgeAt(a.deletedAt) };
     },
@@ -201,7 +202,7 @@ export const SETTINGS_ROUTES = {
         webhooks: state.webhooks.filter(w => w.automationId === params.id).map(w => ({ ...w, url: hookUrl(w.id) })),
     }),
     'POST /api/automation/:id/webhook': ({ state, params, body }: Ctx) => {
-        const hook = { id: `wh_demo_${state.webhooks.length + 1}`, automationId: params.id, allowMethods: ['POST'], lastSeenAt: null, createdAt: new Date().toISOString(), triggerStepId: body?.triggerStepId || null };
+        const hook = { id: `wh_demo_${state.webhooks.length + 1}`, automationId: params.id, allowMethods: ['POST'], lastSeenAt: null, createdAt: demoDate().toISOString(), triggerStepId: body?.triggerStepId || null };
         state.webhooks.push(hook);
         return { webhook: { ...hook, url: hookUrl(hook.id), secret: SHOWN_ONCE } };
     },
@@ -221,7 +222,7 @@ export const SETTINGS_ROUTES = {
             ...JSON.parse(JSON.stringify(a)) as Automation, id: `auto_demo_copy_${state.automations.length + 1}`,
             title: `${a.title} (copy)`, version: 1, liveVersion: null, liveAt: null, neverLive: true, pendingChanges: 0,
             isActive: false, isDraft: true, myRole: 'owner', accessVia: 'owner', owner: undefined,
-            lastRunAt: null, lastStatus: null, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+            lastRunAt: null, lastStatus: null, createdAt: demoDate().toISOString(), updatedAt: demoDate().toISOString(),
         };
         state.automations.unshift(copy);
         return { automation: copy, duplicatedFrom: a.id, warnings: [] };
@@ -233,7 +234,7 @@ export const SETTINGS_ROUTES = {
         const template = {
             id: `org-demo-saved-${state.orgTemplates.length + 1}`, title: String(body?.title || a.title || 'Template'),
             description: String(body?.description ?? a.description ?? ''), category: null, icon: a.icon || null, tags: [],
-            source: 'org', createdBy: ME.id, createdByName: ME.name, mine: true, createdAt: new Date().toISOString(),
+            source: 'org', createdBy: ME.id, createdByName: ME.name, mine: true, createdAt: demoDate().toISOString(),
             requiredIntegrations: [], triggerReadiness: 'ready', stepCount: steps, definition: a.definition,
         };
         state.orgTemplates.unshift(template);

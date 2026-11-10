@@ -278,11 +278,16 @@ describe('CoworkComposer — the keyboard', () => {
         expect(props.onSubmit).not.toHaveBeenCalled();
     });
 
-    it('wrat: Enter sends mid-IME-composition — nothing checks isComposing', () => {
+    it('leaves the Enter that confirms an IME candidate to the IME', () => {
         // Typing Japanese/Chinese/Korean, the first Enter confirms the
-        // candidate word. Here it fires the brief off instead.
+        // candidate word; it used to fire the brief off instead. Safari has
+        // already ended the composition by then and only says keyCode 229.
         const { props } = setup({ value: 'こんにち' });
-        fireEvent.keyDown(brief(), { key: 'Enter', isComposing: true, keyCode: 229 });
+        const notPrevented = fireEvent.keyDown(brief(), { key: 'Enter', isComposing: true, keyCode: 229 });
+        fireEvent.keyDown(brief(), { key: 'Enter', keyCode: 229 });
+        expect(notPrevented).toBe(true);
+        expect(props.onSubmit).not.toHaveBeenCalled();
+        fireEvent.keyDown(brief(), { key: 'Enter', keyCode: 13 });
         expect(props.onSubmit).toHaveBeenCalledTimes(1);
     });
 });

@@ -19,6 +19,7 @@
 
 import { daysAgo, minutesAgo } from './common';
 import { LOTTE, MARK, ME, JORDAN, CASEY, ref, type DemoPerson } from './automationsPeople';
+import { demoDate, demoNow } from '../demoClock';
 
 type Obj = Record<string, unknown>;
 type Outcome = { code: string; params: Obj; text: string };
@@ -327,7 +328,7 @@ function recentRuns(state: RunState, query: URLSearchParams) {
 
 /** The chip counts of that page: per status and per trigger, within `range` hours. */
 function recentFacets(state: RunState, query: URLSearchParams) {
-    const since = new Date(Date.now() - (Number(query.get('range')) || 24) * 3_600_000).toISOString();
+    const since = new Date(demoNow() - (Number(query.get('range')) || 24) * 3_600_000).toISOString();
     const only = query.get('automationId');
     const status: Record<string, number> = {};
     const triggerKind: Record<string, number> = {};
@@ -368,7 +369,7 @@ export function runRoutes(sample: Sample) {
             }
             const run: DemoRun = {
                 ...original, id: `run_demo_retry_${state.runs.length + 1}`, status: 'success', startedBy: ME, howStarted: 'manual',
-                startedAt: new Date().toISOString(), durationMs: 8_700, steps: 'S'.repeat(original.steps.length), failure: undefined,
+                startedAt: demoDate().toISOString(), durationMs: 8_700, steps: 'S'.repeat(original.steps.length), failure: undefined,
                 parentRunId: original.id,
                 outcome: original.status === 'success' ? original.outcome : wentThrough(original.automationId, original.triggerPayload),
             };
@@ -379,15 +380,15 @@ export function runRoutes(sample: Sample) {
             state.reminded = state.reminded || {};
             const last = state.reminded[params.id] || 0;
             const next = last + 10 * 60_000;
-            if (Date.now() < next) {
-                return json({ error: 'A reminder went out less than 10 minutes ago.', code: 'remind_rate_limited', details: { lastRemindedAt: new Date(last).toISOString(), nextAllowedAt: new Date(next).toISOString(), retryAfterSec: Math.ceil((next - Date.now()) / 1000) } }, 429);
+            if (demoNow() < next) {
+                return json({ error: 'A reminder went out less than 10 minutes ago.', code: 'remind_rate_limited', details: { lastRemindedAt: new Date(last).toISOString(), nextAllowedAt: new Date(next).toISOString(), retryAfterSec: Math.ceil((next - demoNow()) / 1000) } }, 429);
             }
-            state.reminded[params.id] = Date.now();
-            return { reminded: true, remindedAt: new Date().toISOString(), nextAllowedAt: new Date(Date.now() + 10 * 60_000).toISOString(), recipients: 1 };
+            state.reminded[params.id] = demoNow();
+            return { reminded: true, remindedAt: demoDate().toISOString(), nextAllowedAt: new Date(demoNow() + 10 * 60_000).toISOString(), recipients: 1 };
         },
         // The builder header's tab counts: journeys of the last 7 days, tests left out.
         'GET /api/automation/:id/counts': ({ state, params }: Ctx) => {
-            const weekAgo = new Date(Date.now() - 7 * 86_400_000).toISOString();
+            const weekAgo = new Date(demoNow() - 7 * 86_400_000).toISOString();
             const week = state.runs.filter(r => r.automationId === params.id && !r.isTest && r.startedAt >= weekAgo);
             const a = state.automations.find(x => x.id === params.id) as { pendingChanges?: number } | undefined;
             return {
@@ -406,7 +407,7 @@ export function recordRun(state: RunState, automationId: string, isTest: boolean
     const count = topSteps((a?.definition || null) as { steps?: Obj[] } | null).length;
     const run: DemoRun = {
         id: `run_demo_new_${state.runs.length + 1}`, automationId, version: a?.version || 1, status: 'success', isTest,
-        triggerKind: 'manual', howStarted: 'manual', startedBy: ME, startedAt: new Date(Date.now() - 1200).toISOString(), durationMs: 1200,
+        triggerKind: 'manual', howStarted: 'manual', startedBy: ME, startedAt: new Date(demoNow() - 1200).toISOString(), durationMs: 1200,
         steps: 'S'.repeat(count), outcome: wentThrough(automationId),
     };
     state.runs.push(run);

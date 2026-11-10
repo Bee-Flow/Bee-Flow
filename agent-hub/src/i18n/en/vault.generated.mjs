@@ -11,6 +11,7 @@ export default {
     "vault.search_placeholder": "Search a value or placeholder…",
     "vault.count": "{{n}} stored",
     "vault.load_failed": "Could not load your vault. Please try again.",
+    "vault.delete_failed": "Could not forget that. Nothing was removed. Please try again.",
     "vault.empty": "Nothing stored yet.",
     "vault.empty_search": "Nothing matches that search.",
     "vault.empty_hint": "Entries appear here once Privacy Shield hides a personal detail in one of your conversations.",

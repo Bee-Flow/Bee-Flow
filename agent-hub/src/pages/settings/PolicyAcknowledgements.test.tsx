@@ -222,13 +222,21 @@ describe('PolicyAcknowledgements — reading a policy body', () => {
         expect(container.querySelector('.animate-spin')).toBeNull();
     });
 
-    it('spins FOREVER when the body request fails — no error, no retry (wart)', async () => {
+    it('says the policy could not be loaded when the body request fails, and loads it on "Try again"', async () => {
         const user = userEvent.setup();
-        await mount({ body: jsonRes({ error: 'nope' }, 500) });
+        let attempt = 0;
+        await mount({ body: () => (attempt++ === 0 ? jsonRes({ error: 'nope' }, 500) : jsonRes({ body: 'second time lucky' })) });
         await user.click(await screen.findByRole('button'));
-        await waitFor(() => expect(bodyCalls()).toHaveLength(1));
-        await waitFor(() => expect(document.body.querySelector('.animate-spin')).not.toBeNull());
-        expect(screen.queryByText(/could not|failed|error/i)).toBeNull();
+
+        // It used to leave the spinner turning for good: no error, no retry.
+        const alert = await screen.findByRole('alert');
+        expect(alert).toHaveTextContent('Could not load this policy.');
+        expect(document.body.querySelector('.animate-spin')).toBeNull();
+
+        await user.click(within(alert).getByRole('button', { name: 'Try again' }));
+        expect(await screen.findByText('second time lucky')).toBeInTheDocument();
+        expect(screen.queryByRole('alert')).toBeNull();
+        expect(bodyCalls()).toHaveLength(2);
     });
 
     it('offers the confirm button even though the body never loaded — a policy can be acknowledged unseen (securityFinding)', async () => {
@@ -237,7 +245,7 @@ describe('PolicyAcknowledgements — reading a policy body', () => {
         await user.click(await screen.findByRole('button'));
         const confirm = await screen.findByRole('button', { name: /I have read and understood this policy/ });
         expect(confirm).toBeEnabled();
-        expect(document.body.querySelector('.animate-spin')).not.toBeNull();
+        expect(await screen.findByRole('alert')).toHaveTextContent('Could not load this policy.');
 
         await user.click(confirm);
         await waitFor(() => expect(postCalls()).toHaveLength(1));

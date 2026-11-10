@@ -7,6 +7,7 @@ import type { ConvLabel } from './EditLabelInline';
 import type { DeleteResult, SidebarConversation } from './sidebarConversations';
 import { ACCENT_BAR_CONV, CONV_ROW, TEXT_ACTIVE, TEXT_IDLE } from './sidebarTokens';
 import type { Project } from '@/api/queries/projects';
+import { isImeEnter } from '@/components/projects/workspace/chat/ime';
 import useOutsideDismiss from '@/hooks/useOutsideDismiss';
 import type { TranslateFn } from '@/hooks/useTranslation';
 import { projectChipStyle, projectIcon } from '../../projects/workspace/projectVisuals';
@@ -120,6 +121,7 @@ const ConvRow = ({
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRenameValue(e.target.value)}
                     onBlur={handleRename}
                     onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
+                        if (isImeEnter(e)) return;
                         if (e.key === 'Enter') handleRename();
                         if (e.key === 'Escape') { setRenameValue(conv.title || ''); setIsRenaming(false); }
                     }}

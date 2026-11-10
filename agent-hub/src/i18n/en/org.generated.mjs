@@ -11,6 +11,7 @@ export default {
     "org.new_user_language": "New User Language",
     "org.new_user_language_desc": "When a new user signs in for the first time, the interface will be displayed in this language. Users can change their language at any time in their personal settings.",
     "org.default_language_info": "This setting only affects new users who haven't chosen a language yet. Existing users keep their current language preference. To add more languages to BeeFlow, go to the admin dashboard > Languages section.",
+    "org.default_language_platform_only": "This applies to the whole server. Only a platform administrator can change it.",
     "org.description": "Description",
     "org.terminations_title": "Terminations",
     "org.terminations_subtitle": "Tasks that ended early — token limits, errors, or aborts",

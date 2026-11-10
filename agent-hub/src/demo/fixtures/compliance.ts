@@ -61,6 +61,7 @@ import { addCalendarMonths } from '../../components/shared/deadlineMath';
 // also what keeps demo/registry.js's `expectText: 'AI disclosure to users'`
 // true by construction rather than by a copied string.
 import EN_DEFAULTS from '../../i18n/en-defaults';
+import { demoDate, demoNow } from '../demoClock';
 
 type CheckDef = (typeof CHECK_DEFS)[number];
 /** A persisted check result: the definition plus what the runner stamped on it. */
@@ -103,7 +104,7 @@ interface State {
 type Framework = (typeof FRAMEWORKS)[number];
 
 const ORG = 'org_demo_meridian';
-const now = () => Date.now();
+const now = () => demoNow();
 const iso = (msAgo: number) => new Date(now() - msAgo).toISOString();
 const days = (n: number) => n * 86_400_000;
 const hours = (n: number) => n * 3_600_000;
@@ -1209,7 +1210,7 @@ const LEGAL_REVIEW_STALE_DAYS = 90;
 const legalReview = (f: Framework) => {
     const verified = typeof f.legal_status_verified === 'string' ? f.legal_status_verified : null;
     const ms = verified ? Date.parse(`${verified}T00:00:00Z`) : NaN;
-    const age = Number.isFinite(ms) ? Math.max(0, Math.floor((Date.now() - ms) / 86400000)) : null;
+    const age = Number.isFinite(ms) ? Math.max(0, Math.floor((demoNow() - ms) / 86400000)) : null;
     return {
         verified_on: Number.isFinite(ms) ? verified : null,
         age_days: age,
@@ -2240,7 +2241,7 @@ function rejudgeProject(state: { ropaProjects: RopaProjectsState }, projectId: s
     const project = state.ropaProjects.projects.find(p => p.project_id === projectId);
     if (project) {
         const v = projectVerdict(state.ropaProjects, project);
-        const at = new Date().toISOString();
+        const at = demoDate().toISOString();
         (state as State).checks = (state as State).checks.map(c => (c.check_id === PROJECT_CHECK_ID && c.scope_id === `project:${projectId}`
             ? { ...c, ...v, evidence: { ...c.evidence, ...v.evidence }, run_at: at, run_type: 'event' }
             : c));
@@ -2351,7 +2352,7 @@ export const ROUTES = {
         return state.settings;
     },
     'POST /api/compliance/settings/onboarded': ({ state }: Ctx) => {
-        state.settings = { ...state.settings, onboarded_at: new Date().toISOString() };
+        state.settings = { ...state.settings, onboarded_at: demoDate().toISOString() };
         return state.settings;
     },
     'POST /api/compliance/auto-detect-settings': ({ state }: Ctx) => state.settings,
@@ -2374,12 +2375,12 @@ export const ROUTES = {
         return { ...OVERVIEW(state.checks), settings: state.settings };
     },
     'POST /api/compliance/checks/:id/run': ({ state, params }: Ctx) => {
-        state.checks = state.checks.map(c => (c.check_id === params.id ? { ...c, run_at: new Date().toISOString() } : c));
+        state.checks = state.checks.map(c => (c.check_id === params.id ? { ...c, run_at: demoDate().toISOString() } : c));
         return ok();
     },
     'POST /api/compliance/checks/:id/auto-fix': ({ state, params }: Ctx) => {
         state.checks = state.checks.map(c => (c.check_id === params.id
-            ? { ...c, status: 'pass', details: 'Fixed from this screen.', run_at: new Date().toISOString() }
+            ? { ...c, status: 'pass', details: 'Fixed from this screen.', run_at: demoDate().toISOString() }
             : c));
         return { fixed: true };
     },
@@ -2430,7 +2431,7 @@ export const ROUTES = {
     // by letter. The one-month clock starts at receipt, not at the moment of
     // typing, which is why `received_at` is honoured when it is given.
     'POST /api/dsr/requests/manual': ({ state, body }: Ctx) => {
-        const created = (body?.received_at as string) || new Date().toISOString();
+        const created = (body?.received_at as string) || demoDate().toISOString();
         const row = dsrRow({
             id: nextId(state.dsr),
             subject_email: (body?.subject_email as string) || 'onbekend@example.nl',
@@ -2478,7 +2479,7 @@ export const ROUTES = {
         };
     },
     'POST /api/dsr/requests/:id/start': ({ state, params }: Ctx) => {
-        const at = new Date().toISOString();
+        const at = demoDate().toISOString();
         state.dsr = state.dsr.map(r => (sameId(r.id, params.id)
             ? { ...r, status: 'in_progress', started_at: r.started_at || at, started_by: 'u_alex', timeline: [...r.timeline, tl('started', at, { by: 'u_alex' })] }
             : r));
@@ -2493,7 +2494,7 @@ export const ROUTES = {
         if (r.extended_at) return refuse('already_extended', 409);
         if (DSR_CLOSED.has(r.status)) return refuse('not_open', 409);
         if (!body?.reason) return refuse('reason_required');
-        const at = new Date().toISOString();
+        const at = demoDate().toISOString();
         const until = dsrDueFrom(r.created_at, DSR_EXTENDED_MONTHS);
         const next = {
             ...r, extended_until: until, due_at: until, extension_reason: String(body.reason),
@@ -2505,7 +2506,7 @@ export const ROUTES = {
         return dsrListRow(next);
     },
     'POST /api/dsr/requests/:id/verify-identity': ({ state, params, body }: Ctx) => {
-        const at = new Date().toISOString();
+        const at = demoDate().toISOString();
         state.dsr = state.dsr.map(r => (sameId(r.id, params.id)
             ? {
                 ...r, identity_status: 'verified_manual', identity_verified_at: at,
@@ -2519,7 +2520,7 @@ export const ROUTES = {
         return dsrListRow(state.dsr.find(r => sameId(r.id, params.id)) as DsrRow);
     },
     'POST /api/dsr/requests/:id/fulfil': ({ state, params, body }: Ctx) => {
-        const at = new Date().toISOString();
+        const at = demoDate().toISOString();
         const status = body?.status === 'rejected' ? 'rejected' : 'fulfilled';
         state.dsr = state.dsr.map(r => (sameId(r.id, params.id)
             ? {
@@ -2555,7 +2556,7 @@ export const ROUTES = {
     // GDPR-Art30-project-personal-data row and lands in the evidence chain.
     ...ropaProjectRoutes(rejudgeProject),
     'POST /api/compliance/ropa/review': ({ state }: Ctx) => {
-        const at = new Date().toISOString();
+        const at = demoDate().toISOString();
         state.settings = { ...state.settings, ropa_reviewed_at: at };
         return { ok: true, reviewed_at: at, reviewer: 'u_alex' };
     },
@@ -2576,7 +2577,7 @@ export const ROUTES = {
             ...(existing || { id: nextId(state.dpia), organization_id: ORG, agent_id: params.agentId }),
             ...(body || {}),
             status: 'approved',
-            approved_at: new Date().toISOString(),
+            approved_at: demoDate().toISOString(),
         } as DpiaRow;
         state.dpia = existing
             ? state.dpia.map(d => (d.agent_id === params.agentId ? saved : d))
@@ -2647,7 +2648,7 @@ export const ROUTES = {
         return state.connectors.find(c => sameId(c.id, params.id));
     },
     'POST /api/compliance/iso/connectors/:id/sweep': ({ state, params }: Ctx) => {
-        const at = new Date().toISOString();
+        const at = demoDate().toISOString();
         state.connectors = state.connectors.map(c => (sameId(c.id, params.id)
             ? { ...c, config: { ...(c.config || {}), last_sweep_at: at, last_status: 'ok', last_error: null } }
             : c));
@@ -2657,7 +2658,7 @@ export const ROUTES = {
     'GET /api/compliance/iso/risks': ({ state }: Ctx) => ({ ...state.risks, stats: riskStats(state.risks.risks) }),
     'POST /api/compliance/iso/risks': ({ state, body }: Ctx) => {
         const r = {
-            id: nextId(state.risks.risks), organization_id: ORG, created_at: new Date().toISOString(),
+            id: nextId(state.risks.risks), organization_id: ORG, created_at: demoDate().toISOString(),
             likelihood: 2, impact: 2, status: 'open', ...(body || {}),
         } as RiskRow;
         r.score = (r.likelihood || 0) * (r.impact || 0);
@@ -2702,7 +2703,7 @@ export const ROUTES = {
         return state.audit.audits.find(a => sameId(a.id, params.id));
     },
     'POST /api/compliance/iso/audits/:id/findings': ({ state, params, body }: Ctx) => {
-        const f = { id: nextId(state.audit.findings), audit_id: Number(params.id), created_at: new Date().toISOString(), ...(body || {}) } as State['audit']['findings'][number];
+        const f = { id: nextId(state.audit.findings), audit_id: Number(params.id), created_at: demoDate().toISOString(), ...(body || {}) } as State['audit']['findings'][number];
         state.audit = { ...state.audit, findings: [f, ...state.audit.findings] };
         return f;
     },
@@ -2712,7 +2713,7 @@ export const ROUTES = {
         return r;
     },
     'POST /api/compliance/iso/ncs': ({ state, body }: Ctx) => {
-        const n = { id: nextId(state.audit.ncs), status: 'open', created_at: new Date().toISOString(), ...(body || {}) } as State['audit']['ncs'][number];
+        const n = { id: nextId(state.audit.ncs), status: 'open', created_at: demoDate().toISOString(), ...(body || {}) } as State['audit']['ncs'][number];
         state.audit = { ...state.audit, ncs: [n, ...state.audit.ncs] };
         return n;
     },
@@ -2736,7 +2737,7 @@ export const ROUTES = {
         obligations: state.training.obligations.filter(o => !o.completed_at).sort((a, b) => new Date(a.due_at).getTime() - new Date(b.due_at).getTime()),
     }),
     'POST /api/compliance/iso/training/:userId/attest': ({ state, params, body }: Ctx) => {
-        const at = new Date().toISOString();
+        const at = demoDate().toISOString();
         state.training = {
             ...state.training,
             personnel: state.training.personnel.map(p => (p.user_id === params.userId
@@ -2760,7 +2761,7 @@ export const ROUTES = {
         const existing = state.training.obligations.find(o => sameId(o.id, params.id));
         if (!existing) return null;
         if (existing.completed_at) return { completed: existing, next: null };
-        const at = new Date().toISOString();
+        const at = demoDate().toISOString();
         const completed = { ...existing, completed_at: at, completed_by: 'u_alex', updated_at: at };
         let next: ObligationRow | null = null;
         if (existing.recur_months) {
@@ -2801,7 +2802,7 @@ export const ROUTES = {
                     : (signals?.customer_facing || signals?.generates_content
                         || answers.art50?.interacts === 'yes' || answers.art50?.generates === 'yes') ? 'transparency'
                         : 'minimal';
-        const at = new Date().toISOString();
+        const at = demoDate().toISOString();
         const existing = state.aiAct.find(a => a.target_kind === params.kind && a.target_id === params.id);
         const row = {
             target_kind: params.kind, target_id: params.id,
@@ -2829,7 +2830,7 @@ export const ROUTES = {
         const code = String(body?.code || '').toUpperCase();
         if (!/^[A-Z0-9_]{2,24}$/.test(code)) return refuse('custom_framework_code_invalid');
         if (state.custom.frameworks.some(f => f.code === code)) return refuse('custom_framework_code_taken', 409);
-        const at = new Date().toISOString();
+        const at = demoDate().toISOString();
         const fw = {
             id: `cfw_${code.toLowerCase()}`, organization_id: ORG, code,
             name: (body?.name as string) || code, reference: (body?.reference as string) || null, description: (body?.description as string) || null,
@@ -2877,7 +2878,7 @@ export const ROUTES = {
         if (body && 'code' in body) return refuse('code_immutable');
         state.custom = {
             ...state.custom,
-            frameworks: state.custom.frameworks.map(f => (sameId(f.id, params.id) ? { ...f, ...(body || {}), updated_at: new Date().toISOString() } : f)),
+            frameworks: state.custom.frameworks.map(f => (sameId(f.id, params.id) ? { ...f, ...(body || {}), updated_at: demoDate().toISOString() } : f)),
         };
         return state.custom.frameworks.find(f => sameId(f.id, params.id)) || refuse('not_found', 404);
     },
@@ -2911,7 +2912,7 @@ export const ROUTES = {
         if (c.evidence_required && refs.length === 0) return refuse('evidence_required');
         const months = (body?.expires_in_months as number | null | undefined)
             ?? (state.custom.frameworks.find(f => f.id === c.framework_id)?.attestation_valid_months ?? 12);
-        const at = new Date().toISOString();
+        const at = demoDate().toISOString();
         const attestation = {
             id: `att_${state.custom.attestations.length + 1}`,
             organization_id: ORG,
@@ -2938,7 +2939,7 @@ export const ROUTES = {
     'POST /api/compliance/machinery/subjects/:id/attest': ({ state, params, body }: Ctx) => {
         const classification = (body?.classification || body?.outcome) as string;
         if (!MACHINERY_CLASSIFICATIONS.includes(classification)) return refuse('invalid_outcome');
-        const at = new Date().toISOString();
+        const at = demoDate().toISOString();
         const attestation = {
             id: `att_m_${state.custom.attestations.length + 1}`,
             organization_id: ORG,

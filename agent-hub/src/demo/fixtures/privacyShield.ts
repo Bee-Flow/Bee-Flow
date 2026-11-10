@@ -57,6 +57,7 @@ import {
 import {
     LEGACY_ID, OWN_DATA_ROUTES, POLIS_ID, PROJECT_ID, ownDataTests, ownDataTypes,
 } from './privacyShieldOwnData';
+import { demoDate } from '../demoClock';
 
 const ORG = 'org_demo_meridian';
 const ORG_NAME = 'Meridian Insurance Group';
@@ -181,7 +182,7 @@ export const ROUTES = {
             ...state.shield,
             ...(body || {}),
             organization_id: ORG,
-            updatedAt: new Date().toISOString(),
+            updatedAt: demoDate().toISOString(),
             updatedBy: 'Demo user',
         };
         return { config: state.shield, clamped_fields: [], termErrors: [], typeErrors: [] };

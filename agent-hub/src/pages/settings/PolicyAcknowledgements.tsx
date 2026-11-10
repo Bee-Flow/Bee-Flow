@@ -4,6 +4,19 @@ import { FileText, Check, ChevronDown, ChevronRight, Loader2 } from 'lucide-reac
 import { API_BASE } from '../../utils/helpers';
 import { useTranslation } from '../../hooks/useTranslation';
 import { mutate, ApiError } from '../../api/mutate';
+import { ALERT_ERROR } from '../../components/mcpLibrary/ui';
+
+/** The body of the open policy while it is not there: on its way, or failed with a way to ask again. */
+function PolicyBodyPending({ failed, onRetry }: { failed: boolean; onRetry: () => void }) {
+    const { t } = useTranslation();
+    if (!failed) return <Loader2 className="w-4 h-4 animate-spin text-[var(--text-muted)]" />;
+    return (
+        <div role="alert" className={`${ALERT_ERROR} items-center justify-between`}>
+            <span>{t('settings.policy_ack_load_failed', 'Could not load this policy.')}</span>
+            <button type="button" onClick={onRetry} className="shrink-0 font-semibold underline">{t('error.try_again', 'Try again')}</button>
+        </div>
+    );
+}
 
 /**
  * Member-facing ISMS policy acknowledgements (ISO 27001 clause 7.3 awareness).
@@ -21,7 +34,11 @@ export default function PolicyAcknowledgements() {
     // 402/403 (unlicensed or no access) reads as none, so the card stays invisible.
     const docs: PolicyDoc[] | null = policies.isPending ? null : (policies.data ?? []);
     const [openSlug, setOpenSlug] = useState<string | null>(null);
-    const body = usePolicyBodyQuery(openSlug).data ?? null;
+    const bodyQuery = usePolicyBodyQuery(openSlug);
+    const body = bodyQuery.data ?? null;
+    // The read answered (or was refused) without a text: say so and offer
+    // another try. It used to leave the spinner turning for good.
+    const bodyFailed = !body && !bodyQuery.isFetching;
     const [busySlug, setBusySlug] = useState<string | null>(null);
     const { refetch: refresh } = policies;
 
@@ -72,7 +89,7 @@ export default function PolicyAcknowledgements() {
                         {openSlug === d.slug && (
                             <div className="px-4 pb-3 space-y-3">
                                 {body === null ? (
-                                    <Loader2 className="w-4 h-4 animate-spin text-[var(--text-muted)]" />
+                                    <PolicyBodyPending failed={bodyFailed} onRetry={() => { void bodyQuery.refetch(); }} />
                                 ) : (
                                     <pre className="whitespace-pre-wrap font-sans text-[12px] leading-relaxed text-[var(--text-secondary)] max-h-80 overflow-y-auto rounded-lg bg-[var(--bg-secondary)] p-3">
                                         {body.body}

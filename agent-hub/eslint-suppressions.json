@@ -7598,9 +7598,6 @@
     },
     "max-statements": {
       "count": 2
-    },
-    "react-hooks/exhaustive-deps": {
-      "count": 1
     }
   },
   "src/hooks/useChatEngine/sse/gammaPreview.ts": {

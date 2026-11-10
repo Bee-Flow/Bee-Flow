@@ -13,6 +13,7 @@ import { describe, it, expect } from 'vitest';
 import { createDemoTransport } from '../demoTransport';
 import { COMMON_ROUTES } from './common';
 import * as automations from './automations';
+import { demoNow } from '../demoClock';
 
 type Json = Record<string, any>;
 
@@ -69,7 +70,7 @@ describe('automations demo: runs', () => {
 
     it('counts the facets over the same rows the list shows', async () => {
         const { call } = demo();
-        const { body } = await call(`${SR}/runs?limit=100&since=${encodeURIComponent(new Date(Date.now() - 7 * 86_400_000).toISOString())}`);
+        const { body } = await call(`${SR}/runs?limit=100&since=${encodeURIComponent(new Date(demoNow() - 7 * 86_400_000).toISOString())}`);
         expect(body.facets.all).toBe(body.runs.length);
         expect(body.facets.failed).toBe(body.runs.filter((r: Json) => r.status === 'error').length);
         expect(body.facets.waiting).toBe(1);

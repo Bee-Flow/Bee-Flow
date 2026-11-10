@@ -3,6 +3,7 @@ import { describe, it, expect } from 'vitest';
 import { createState, ROUTES } from './compliance';
 import { ISO_CONNECTORS } from './complianceCatalog';
 import { addCalendarMonths } from '../../components/shared/deadlineMath';
+import { demoNow } from '../demoClock';
 
 /**
  * The Compliance demo answers in the server's shapes and vocabularies.
@@ -252,7 +253,7 @@ type Deadline = { id: string; kind: string; ref: string; state: string; due_at: 
 type Attention = { id: string; code: string; status: string; meta: { detail: string | null; frameworks: { regulation: string; ref: string }[] } };
 const deadlines = (c: Ctx) => routes['GET /api/compliance/deadlines'](c) as { items: Deadline[]; empty_kinds: string[] };
 const attention = (c: Ctx) => (routes['GET /api/compliance/attention']({ ...c, query: new URLSearchParams('limit=50') }) as { items: Attention[] }).items;
-const hoursAgo = (h: number) => new Date(Date.now() - h * HOUR).toISOString();
+const hoursAgo = (h: number) => new Date(demoNow() - h * HOUR).toISOString();
 const ms = (v: unknown) => new Date(v as string).getTime();
 
 /** A CRA row needs the CRA switched on, as on the server. */
@@ -337,7 +338,7 @@ describe('compliance demo — the register findings of compliance/attention.js',
 
     it('an expired self-assessment cites the article its outcome rests on, Art. 6 by default', () => {
         const c = ctx();
-        const expired = c.state.aiAct.find(a => ms(a.expires_at) < Date.now()) as (typeof c.state.aiAct)[number];
+        const expired = c.state.aiAct.find(a => ms(a.expires_at) < demoNow()) as (typeof c.state.aiAct)[number];
         const refOf = (outcome: string) => {
             expired.outcome = outcome;
             const item = attention(c).find(i => i.code === 'ai_act_attestation_expired');

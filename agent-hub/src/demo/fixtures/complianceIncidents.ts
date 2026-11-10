@@ -18,6 +18,7 @@
  */
 
 import { addCalendarMonths } from '../../components/shared/deadlineMath';
+import { demoDate, demoNow } from '../demoClock';
 
 const HOUR_MS = 3_600_000;
 const DAY_MS = 86_400_000;
@@ -214,7 +215,7 @@ function incidentRow(org: string, o: Seed): Incident {
 }
 
 /** The four incidents of the fictional office, newest first. */
-export function incidentSeed(org: string, now: number = Date.now()): Incident[] {
+export function incidentSeed(org: string, now: number = demoNow()): Incident[] {
     const ago = (ms: number) => new Date(now - ms).toISOString();
     return [
         // An ICT incident that reaches the insurers this office works for: under
@@ -264,7 +265,7 @@ const find = (state: State, id: string) => state.incidents.find(x => String(x.id
 
 /** What POST /incidents stores from the form, with the store's defaults. */
 function createdFields(body: Record<string, unknown>): Omit<Seed, 'id'> {
-    const at = new Date().toISOString();
+    const at = demoDate().toISOString();
     const exploited = body.exploited_in_wild ?? body.actively_exploited;
     return {
         title: text(body.title, 'Untitled incident'), description: text(body.description, ''),
@@ -346,7 +347,7 @@ export function incidentRoutes({ org, reseal, refuse }: IncidentRouteDeps) {
             const i = find(state, params.id);
             if (!i) return refuse('not_found', 404);
             if (i.kind !== 'vulnerability' && !i.regimes.includes('CRA')) return refuse('not_cra_incident', 409);
-            const at = new Date().toISOString();
+            const at = demoDate().toISOString();
             return replace(state, refreshed({
                 ...i, ...craStamp(i, stage, body, at), updated_at: at,
                 authority_notified_by: i.authority_notified_by || ACTOR,
@@ -356,7 +357,7 @@ export function incidentRoutes({ org, reseal, refuse }: IncidentRouteDeps) {
         'POST /api/compliance/incidents/:id/customer-notified': ({ state, params }: Ctx) => {
             const i = find(state, params.id);
             if (!i) return refuse('not_found', 404);
-            const at = new Date().toISOString();
+            const at = demoDate().toISOString();
             return replace(state, refreshed({
                 ...i, customer_notified_at: i.customer_notified_at || at, updated_at: at,
                 notes: [...i.notes, { at, by: ACTOR, text: 'Customer notice sent' }],
@@ -365,12 +366,12 @@ export function incidentRoutes({ org, reseal, refuse }: IncidentRouteDeps) {
         'PATCH /api/compliance/incidents/:id': ({ state, params, body }: Ctx) => {
             const i = find(state, params.id);
             if (!i) return refuse('not_found', 404);
-            return replace(state, patched(i, body, new Date().toISOString()));
+            return replace(state, patched(i, body, demoDate().toISOString()));
         },
         'POST /api/compliance/incidents/:id/notify-recipients': ({ state, params }: Ctx) => {
             const i = find(state, params.id);
             if (i) {
-                const at = new Date().toISOString();
+                const at = demoDate().toISOString();
                 state.incidents = state.incidents.map(x => (x.id === i.id ? { ...x, recipients_notified_at: at, updated_at: at } : x));
             }
             // Nothing is sent from a demo, and saying so beats a silent success.

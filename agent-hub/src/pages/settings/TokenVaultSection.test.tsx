@@ -289,7 +289,7 @@ describe('TokenVaultSection — forgetting one entry', () => {
         expect(gets()).toHaveLength(2);
     });
 
-    it('WART: a rejected delete is completely silent — the row stays, nothing is said', async () => {
+    it('says so when a delete is rejected — the row stays (it used to stay without a word)', async () => {
         const user = userEvent.setup();
         await mount({ entries: [ENTRY], total: 1 }, { deleteRes: jsonRes({ error: 'nope' }, 403) });
 
@@ -299,7 +299,25 @@ describe('TokenVaultSection — forgetting one entry', () => {
         await waitFor(() => expect(deletes()).toHaveLength(1));
         expect(screen.getByText('Jan Jansen')).toBeInTheDocument();
         expect(screen.getByText('1 stored')).toBeInTheDocument();
-        expect(screen.queryByText('Could not load your vault. Please try again.')).toBeNull();
+        expect(await screen.findByRole('alert')).toHaveTextContent('Could not forget that. Nothing was removed. Please try again.');
+    });
+
+    it('takes the message away again once a delete goes through', async () => {
+        const user = userEvent.setup();
+        let attempt = 0;
+        await mount({ entries: [ENTRY], total: 1 });
+        (authFetch as Mock).mockImplementation(async (_url, opts = {}) => {
+            if (opts.method === 'DELETE') return attempt++ === 0 ? jsonRes({ error: 'nope' }, 403) : jsonRes({ ok: true });
+            return jsonRes({ entries: [ENTRY], total: 1 });
+        });
+        await user.click(screen.getByRole('button', { name: 'Forget this: [PERSON_1]' }));
+        await user.click(await screen.findByTestId('confirm-dialog-confirm'));
+        await screen.findByRole('alert');
+
+        await user.click(screen.getByRole('button', { name: 'Forget this: [PERSON_1]' }));
+        await user.click(await screen.findByTestId('confirm-dialog-confirm'));
+        await waitFor(() => expect(screen.queryByText('Jan Jansen')).toBeNull());
+        expect(screen.queryByRole('alert')).toBeNull();
     });
 });
 
@@ -343,7 +361,7 @@ describe('TokenVaultSection — forgetting everything', () => {
         expect(screen.queryByRole('button', { name: 'Forget everything in this vault' })).toBeNull();
     });
 
-    it('WART: a rejected clear-all is silent — the dialog closes and the rows stay', async () => {
+    it('says so when clear-all is rejected — the dialog closes and the rows stay', async () => {
         const user = userEvent.setup();
         await mount({ entries: [ENTRY], total: 1 }, { deleteRes: jsonRes({ error: 'nope' }, 500) });
 
@@ -353,7 +371,7 @@ describe('TokenVaultSection — forgetting everything', () => {
         await waitFor(() => expect(deletes()).toHaveLength(1));
         expect(screen.getByText('Jan Jansen')).toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Forget everything in this vault' })).toBeInTheDocument();
-        expect(screen.queryByText('Could not load your vault. Please try again.')).toBeNull();
+        expect(await screen.findByRole('alert')).toHaveTextContent('Could not forget that. Nothing was removed. Please try again.');
     });
 });
 

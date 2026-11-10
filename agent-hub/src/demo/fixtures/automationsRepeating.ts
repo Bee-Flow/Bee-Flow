@@ -13,6 +13,7 @@
  */
 
 import { daysAgo } from './common';
+import { demoDate } from '../demoClock';
 
 type Obj = Record<string, unknown>;
 type Ctx = { state: Obj; body: Obj | null; query: URLSearchParams };
@@ -180,9 +181,9 @@ function replayScan(state: Obj, body: Obj | null): Response {
     const mode = body?.mode === 'ideas' ? 'ideas' : 'patterns';
     const frames: string[] = [frame('model', { eu: true })];
     if (mode === 'ideas') {
-        frames.push(frame('done', { suggestions: [], summary: { integrations: ['gmail'], toolCalls: 2, piiCategories: [] }, reason: 'no_patterns', cached: false, scannedAt: new Date().toISOString(), mode }));
+        frames.push(frame('done', { suggestions: [], summary: { integrations: ['gmail'], toolCalls: 2, piiCategories: [] }, reason: 'no_patterns', cached: false, scannedAt: demoDate().toISOString(), mode }));
     } else {
-        const scan = lastScan(state, new Date().toISOString());
+        const scan = lastScan(state, demoDate().toISOString());
         frames.push(frame('phase', { phase: 'collecting' }));
         for (const [source, app, events] of [['mail', 'gmail', 268], ['beeflow', 'chat', 131], ['beeflow', 'documents', 13]] as const) {
             frames.push(frame('source_step', { source, app, status: 'start', events: 0 }));

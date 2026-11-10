@@ -1,8 +1,9 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { COMMON_ROUTES, DEMO_CAPABILITIES } from './common';
 import { createState, ROUTES } from './compliance';
 import { CHECK_DEFS, ISO_CONTROLS, FRAMEWORKS, MILESTONES } from './complianceCatalog';
 import { addCalendarMonths } from '../../components/shared/deadlineMath';
+import { DEMO_NOW_ISO, demoNow } from '../demoClock';
 import { createDemoTransport } from '../demoTransport';
 import { DEMO_FEATURES } from '../registry';
 
@@ -166,7 +167,7 @@ describe('compliance fixture — the states the pages need to render', () => {
 
     it('the register shows a breach inside its window and one already notified', () => {
         const list = call('GET /api/compliance/incidents');
-        expect(list.some(i => i.status !== 'closed' && new Date(i.deadline_at).getTime() > Date.now())).toBe(true);
+        expect(list.some(i => i.status !== 'closed' && new Date(i.deadline_at).getTime() > demoNow())).toBe(true);
         expect(list.some(i => i.authority_notified_at && i.authority_reference)).toBe(true);
     });
 
@@ -335,20 +336,36 @@ describe('compliance fixture — frameworks as a growing set', () => {
             expect(f.score).toBeGreaterThan(50);
         }
         // A framework that came into force inside the last 60 days is flagged: the whole
-        // reason the page exists. The demo runs on the real clock and the catalogue carries
-        // real dates, so the clock is set to the day after the newest one.
-        const newest = Math.max(...FRAMEWORKS.map(f => Date.parse(f.in_force_since || '')).filter(Number.isFinite));
-        vi.useFakeTimers({ toFake: ['Date'] });
-        try {
-            vi.setSystemTime(newest + 86_400_000);
-            const fresh = call('GET /api/compliance/frameworks').frameworks;
-            expect(fresh.filter(f => f.recently_in_force).length).toBeGreaterThan(0);
-            vi.setSystemTime(newest + 61 * 86_400_000);
-            const later = call('GET /api/compliance/frameworks').frameworks;
-            expect(later.filter(f => f.recently_in_force).length).toBe(0);
-        } finally {
-            vi.useRealTimers();
-        }
+        // reason the page exists. The catalogue carries real dates, so the demo runs on
+        // a date of its own (demoClock.ts) instead of the real clock, on which this part
+        // of the page went empty 60 days after the newest framework.
+        const DAY = 86_400_000;
+        const sinceOf = f => Date.parse(`${f.in_force_since}T00:00:00Z`);
+        const age = f => (demoNow() - sinceOf(f)) / DAY;
+        const dated = frameworks.filter(f => Number.isFinite(sinceOf(f)));
+        // Flagged inside the window…
+        const inside = dated.filter(f => age(f) >= 0 && age(f) <= 60);
+        expect(inside.length).toBeGreaterThan(0);
+        for (const f of inside) expect(f.recently_in_force, `${f.id} came into force ${Math.floor(age(f))} days ago`).toBe(true);
+        // …and not 61 days after (nor before the day itself, should the catalogue name one).
+        const outside = dated.filter(f => age(f) > 61 || age(f) < 0);
+        expect(outside.some(f => age(f) > 61)).toBe(true);
+        for (const f of outside) expect(f.recently_in_force, `${f.id}: ${Math.floor(age(f))} days`).toBe(false);
+        expect(frameworks.filter(f => f.recently_in_force).length).toBe(inside.length);
+    });
+
+    it('is set at a date on which the catalogue has something recent to show', () => {
+        // The rule DEMO_NOW_ISO states: on or after the newest date in the catalogue
+        // that has passed, and within the 60-day window of it. Moving the demo date,
+        // or adding a framework, without the other fails here.
+        const DAY = 86_400_000;
+        const demo = Date.parse(DEMO_NOW_ISO);
+        const passed = FRAMEWORKS.map(f => Date.parse(`${f.in_force_since}T00:00:00Z`)).filter(ms => Number.isFinite(ms) && ms <= demo);
+        const newest = Math.max(...passed);
+        expect((demo - newest) / DAY).toBeLessThanOrEqual(60);
+        // The demo's clock starts there and runs: never the real one.
+        expect(demoNow()).toBeGreaterThanOrEqual(demo);
+        expect(demoNow() - demo).toBeLessThan(DAY);
     });
 
     it('enabling a framework runs its checks; disabling a core one is refused', () => {
@@ -478,7 +495,7 @@ describe('compliance fixture — AI Act, own frameworks, portability', () => {
         for (const a of list) {
             expect(['not_applicable', 'prohibited', 'high_risk', 'transparency', 'minimal']).toContain(a.outcome);
         }
-        expect(list.some(a => !a.current && new Date(a.expires_at) < new Date())).toBe(true);
+        expect(list.some(a => !a.current && new Date(a.expires_at).getTime() < demoNow())).toBe(true);
     });
 
     it('an assessment detail carries live signals, and recording one stamps a 12-month clock', () => {
@@ -491,7 +508,7 @@ describe('compliance fixture — AI Act, own frameworks, portability', () => {
             body: { answers: { art5: { answer: 'no', practices: [] }, art50: { interacts: 'yes' }, annex_iii: { answer: 'no', category: null } } },
         });
         expect(saved.outcome).toBe('transparency');
-        expect(new Date(saved.expires_at).getTime()).toBeGreaterThan(Date.now());
+        expect(new Date(saved.expires_at).getTime()).toBeGreaterThan(demoNow());
         expect(ROUTES['GET /api/compliance/ai-act/assessments'](c)[0].target_id).toBe('agent_helpdesk');
     });
 

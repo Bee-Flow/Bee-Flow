@@ -135,13 +135,13 @@ function localToFlatRewriter(prefix: string, localIds: Set<string>, triggerLocal
 /** prefixed ids → local ids (decompose direction). Exact inverse. */
 function flatToLocalRewriter(prefix: string, triggerLocalId: string | null) {
     const head = `steps.${prefix}${INLINE_SEP}`;
+    // The WHOLE id only: beside a trigger `trg`, a step `trg2` is not the trigger.
+    const own = triggerLocalId
+        ? new RegExp(`${`${head}${triggerLocalId}`.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![A-Za-z0-9_])`, 'g')
+        : null;
     return (text: string) => {
-        let out = String(text);
-        if (triggerLocalId) {
-            // Longest match first: the trigger's own prefixed id must not be
-            // reduced to `steps.<triggerId>` by the general rule below.
-            out = out.split(`${head}${triggerLocalId}`).join('trigger');
-        }
+        // Longest match first: the trigger's own prefixed id must not be reduced to `steps.<triggerId>` by the rule below.
+        const out = own ? String(text).replace(own, 'trigger') : String(text);
         return out.split(head).join('steps.');
     };
 }

@@ -115,10 +115,23 @@ describe('OrgInfoScreen', () => {
         expect(api.put).not.toHaveBeenCalled();
     });
 
-    it('sets the default language at once', async () => {
-        await mounted(<OrgInfoScreen />);
-        await fireEvent.press(await screen.findByTestId('locale-nl'));
-        await waitFor(() => expect(api.put).toHaveBeenCalledWith('/api/languages/org/default', { defaultLocale: 'nl' }));
+    describe('the default language, one value for the whole server', () => {
+        it('is set at once by a platform administrator', async () => {
+            (useOrgContext as jest.Mock).mockReturnValue({ orgId: 'o1', isNcOrg: false, isOrgAdmin: true, isSelfHosted: false, isSuperAdmin: true });
+            await mounted(<OrgInfoScreen />);
+            await fireEvent.press(await screen.findByTestId('locale-nl'));
+            await waitFor(() => expect(api.put).toHaveBeenCalledWith('/api/languages/org/default', { defaultLocale: 'nl' }));
+        });
+
+        it('is shown, not offered, to an organisation admin: the server would refuse the change', async () => {
+            await mounted(<OrgInfoScreen />);
+            expect(await screen.findByText('New User Language')).toBeTruthy();
+            expect(screen.getByText('English')).toBeTruthy();
+            expect(screen.getByText('This applies to the whole server. Only a platform administrator can change it.')).toBeTruthy();
+            expect(screen.queryByTestId('locale-nl')).toBeNull();
+            expect(screen.queryByText('Nederlands')).toBeNull();
+            expect(api.put).not.toHaveBeenCalled();
+        });
     });
 
     it('uploads a picked logo and removes it after a confirm', async () => {

@@ -12,6 +12,7 @@
  */
 
 import { pick } from '../lang';
+import { demoNow } from '../demoClock';
 
 // Every capability id the two seeded demos can touch. Kept as a plain list
 // rather than "return true for everything" so adding a demo forces a
@@ -168,5 +169,5 @@ const demoId = (prefix: string) => `${prefix}_demo${String(++seq).padStart(4, '0
  * Timestamps relative to page load, so a demo never shows a stale "updated
  * 8 months ago" and never needs re-authoring.
  */
-export const daysAgo = (n: number) => new Date(Date.now() - n * 86_400_000).toISOString();
-export const minutesAgo = (n: number) => new Date(Date.now() - n * 60_000).toISOString();
+export const daysAgo = (n: number) => new Date(demoNow() - n * 86_400_000).toISOString();
+export const minutesAgo = (n: number) => new Date(demoNow() - n * 60_000).toISOString();

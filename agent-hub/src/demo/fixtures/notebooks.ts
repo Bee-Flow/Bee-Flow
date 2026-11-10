@@ -11,6 +11,7 @@
 
 import { COMMON_ROUTES, DEMO_USER, daysAgo } from './common';
 import { pick } from '../lang';
+import { demoDate } from '../demoClock';
 
 const NOTEBOOK_ID = 'nb_demo_tender';
 
@@ -283,11 +284,11 @@ export const ROUTES = {
         // `pinned` maps to pinnedAt and — like the server — bumps neither
         // version nor updatedAt; `expectedVersion` is CAS input, not a field.
         const { pinned, expectedVersion: _ignored, ...rest } = body || {};
-        if (pinned !== undefined) n.pinnedAt = pinned ? new Date().toISOString() : null;
+        if (pinned !== undefined) n.pinnedAt = pinned ? demoDate().toISOString() : null;
         if (Object.keys(rest).length > 0) {
             Object.assign(n, rest);
             n.version = (n.version || 1) + 1;
-            n.updatedAt = new Date().toISOString();
+            n.updatedAt = demoDate().toISOString();
         }
         return { success: true, version: n.version || 1, notebook: n };
     },

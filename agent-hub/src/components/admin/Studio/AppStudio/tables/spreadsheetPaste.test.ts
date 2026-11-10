@@ -113,3 +113,19 @@ describe('buildImportRows', () => {
         expect(blank[0].values).toEqual({ name: 'Anna' });
     });
 });
+
+describe('blank rows in the sheet', () => {
+    it('reports a row by its number in the sheet, not by its place among the rows that were kept', () => {
+        // Rows 3, 4 and 6 are blank and drop. "Bob" is row 5 of the sheet the
+        // person is looking at; counting the kept rows called it line 3.
+        const parsed = parsePasted('Name;Amount\nAnna;1\n\n;\nBob;x\n\nCem;3\n');
+        expect(parsed.rows).toEqual([['Anna', '1'], ['Bob', 'x'], ['Cem', '3']]);
+        const fields = [{ key: 'name', name: 'Name', type: 'text' }, { key: 'amount', name: 'Amount', type: 'number' }];
+        const rows = buildImportRows(parsed, ['name', 'amount'], fields);
+        expect(rows.map(r => [r.line, r.problems.length])).toEqual([[2, 0], [5, 1], [7, 0]]);
+    });
+
+    it('still numbers rows from 2 for a caller that hands over rows without their numbers', () => {
+        expect(buildImportRows({ header: ['Name'], rows: [['a'], ['b']] }, ['name'], [{ key: 'name', name: 'Name', type: 'text' }]).map(r => r.line)).toEqual([2, 3]);
+    });
+});

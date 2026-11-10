@@ -108,14 +108,18 @@ export function presetFromCron(cron: unknown): SchedulePreset {
         }
     }
 
+    // An hour or minute out of range (`75 9 * * 1`) is not a preset: the
+    // form would clamp it and write another schedule back on mount.
+    const timed = /^\d+$/.test(m) && /^\d+$/.test(h) && parseInt(m, 10) <= 59 && parseInt(h, 10) <= 23;
+
     // Weekly: M H * * D[,D,...]  (DOM is *, DOW is restricted).
-    if (mon === '*' && dom === '*' && /^\d+$/.test(m) && /^\d+$/.test(h) && /^[0-7](,[0-7])*$/.test(dow)) {
+    if (mon === '*' && dom === '*' && timed && /^[0-7](,[0-7])*$/.test(dow)) {
         const days = dow.split(',').map((d: string) => parseInt(d, 10) === 7 ? 0 : parseInt(d, 10));
         return { mode: 'weekly', hour: parseInt(h, 10), minute: parseInt(m, 10), days };
     }
 
     // Monthly on day D: M H D * *.
-    if (mon === '*' && dow === '*' && /^\d+$/.test(m) && /^\d+$/.test(h) && /^\d+$/.test(dom)) {
+    if (mon === '*' && dow === '*' && timed && /^\d+$/.test(dom)) {
         const d = parseInt(dom, 10);
         if (d >= 1 && d <= 31) {
             return { mode: 'monthly', hour: parseInt(h, 10), minute: parseInt(m, 10), day: d };

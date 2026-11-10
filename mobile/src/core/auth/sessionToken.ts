@@ -98,6 +98,14 @@ export function staleAfter(minted: StoredToken): number {
 let entry: StoredToken | null = null;
 
 /**
+ * Which sign-in the entry belongs to. It moves on when a token is adopted or
+ * cleared, and NOT when a refresh rolls the same session forward, so a request
+ * that was in flight across a sign-out or a new sign-in can tell that its
+ * answer is about a session that is no longer the installed one.
+ */
+let signIn = 0;
+
+/**
  * Read back what was stored. Exported for the test, and defensive because
  * SecureStore returns whatever was last written — including something written
  * by an older version of this app that used a different shape.
@@ -156,6 +164,7 @@ async function store(next: StoredToken | null): Promise<void> {
 export async function adoptSessionToken(token: string): Promise<void> {
     const server = getServerUrl();
     if (!server) return;
+    signIn += 1;
     await store({ token, server, mintedAt: Date.now(), ttlMs: BRIDGE_TTL_MS });
     // Trade the pickup token in immediately. What the OAuth callback deposits
     // is the bridge's generic hour — the TTL for a popup handing a session to
@@ -169,6 +178,7 @@ export async function adoptSessionToken(token: string): Promise<void> {
 }
 
 export async function clearSessionToken(): Promise<void> {
+    signIn += 1;
     await store(null);
 }
 
@@ -187,6 +197,7 @@ export function currentSessionToken(): StoredToken | null {
 export async function refreshSessionToken(): Promise<boolean> {
     if (!entry) return false;
     const server = entry.server;
+    const asked = signIn;
     try {
         const res = readSessionTokenGrant(await api.get<unknown>('/api/session-token', {
             // No retry, deliberately. This runs once at SSO sign-in and then on
@@ -196,16 +207,18 @@ export async function refreshSessionToken(): Promise<boolean> {
             retry: false,
             timeoutMs: 10_000,
         }));
+        // The token may have been cleared while this request was in flight (a
+        // sign-out, or a 401 on another request), or replaced: the server
+        // switched and a new sign-in adopted. Installing this answer now would
+        // sign the user back in behind their own back, or put the old server's
+        // token over the new one; and its "no" is about the old session too.
+        if (!entry || signIn !== asked) return false;
         if (!res?.token) {
             // A 200 with no token is the server declining to mint one, which
             // it only does for a session it no longer recognises.
             await clearSessionToken();
             return false;
         }
-        // The token may have been cleared while this request was in flight —
-        // a sign-out, or a 401 on another request. Installing the replacement
-        // now would sign the user back in behind their own back.
-        if (!entry) return false;
         const ttlSeconds = Number(res.expiresIn);
         const granted =
             Number.isFinite(ttlSeconds) && ttlSeconds > 0 ? ttlSeconds * 1000 : BRIDGE_TTL_MS;
@@ -238,7 +251,9 @@ export async function refreshSessionToken(): Promise<boolean> {
         // treating one as a sign-out would destroy a token that had just been
         // claimed and was working.
         const status = err instanceof ApiError ? err.status : undefined;
-        if (status === 401) await clearSessionToken();
+        // ...and only about the session that asked: a 401 for a token that has
+        // since been replaced must not end the sign-in that replaced it.
+        if (status === 401 && signIn === asked) await clearSessionToken();
         return false;
     }
 }

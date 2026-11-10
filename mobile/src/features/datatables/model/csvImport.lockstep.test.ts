@@ -37,6 +37,7 @@ const TEXTS = [
     'a,b\n"multi\nline",x\n"say ""hi""",y\n',
     'only header',
     ' Spaced , Header \n1,2',
+    'Name;Amount\nAnna;1\n\n;\nBob;x\n\nCem;3\n',
 ];
 
 const FIELDS: Column[] = [
@@ -86,6 +87,20 @@ describeIfWeb('csvImport matches the web spreadsheet reader', () => {
         const ours = buildImportRows(parsed, mapping, FIELDS).map((r) => ({ line: r.line, values: r.values, problems: r.problems.length }));
         const theirs = web.buildImportRows(parsed, mapping, FIELDS).map((r) => ({ line: r.line, values: r.values, problems: r.problems.length }));
         expect(ours).toEqual(theirs);
+    });
+});
+
+describeIfWeb('a file with blank rows in it', () => {
+    it('reports a row by its number in the file, as the web does', () => {
+        // Rows 3, 4 and 6 are blank and drop. "Bob" is row 5 of the file the
+        // person is looking at; counting the kept rows called it line 3.
+        const text = 'Name;Amount\nAnna;1\n\n;\nBob;x\n\nCem;3\n';
+        const parsed = parsePasted(text);
+        const mapping = suggestMapping(parsed.header, FIELDS);
+        const ours = buildImportRows(parsed, mapping, FIELDS);
+        expect(ours.map((r) => [r.line, r.problems.length])).toEqual([[2, 0], [5, 1], [7, 0]]);
+        const web = loadWeb();
+        expect(web.buildImportRows(web.parsePasted(text), mapping, FIELDS).map((r) => r.line)).toEqual([2, 5, 7]);
     });
 });
 

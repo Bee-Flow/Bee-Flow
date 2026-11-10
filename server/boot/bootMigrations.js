@@ -277,6 +277,7 @@ const NL_TRANSLATIONS = [
     'add-nl-admin-studio-3a-2026-11-translations', // Admin dashboard in the Studio layout, round 3a: Integrations sections and transcription engines, SSO and Agent Designer section lists
     'add-nl-admin-studio-3b-2026-11-translations', // Admin dashboard in the Studio layout, round 3b: the AI Monitor and Website analytics chrome
     'add-nl-admin-studio-4a-2026-11-translations', // Admin dashboard in the Studio layout, round 4a: Agent Designer section bodies, Support views, Subscriptions tables
+    'add-nl-web-fixes-2026-11-translations', // Web fixes: a policy text that could not be loaded, a vault entry that could not be forgotten, the read-only default language
     // Corrects keys an earlier catalogue shipped as English: after every catalogue above, so its Dutch wins.
     'add-nl-fix-english-2026-10-translations',
     // Settings menu clean-up: "Instellingen → Integraties" becomes "Instellingen → Koppelingen",
@@ -285,8 +286,7 @@ const NL_TRANSLATIONS = [
     'update-nl-settings-nav-2026-10',
     // The colleagues switch now covers calendar events: its Dutch hint says so (old shipped text only).
     'update-nl-nc-trigger-scope-calendar-2026-10',
-    // Last, after every catalogue: stored translations follow the routine →
-    // automation keys, and shipped Dutch "routine" becomes "automatisering".
+    // Last, after every catalogue: stored translations follow the routine → automation keys, and shipped Dutch "routine" becomes "automatisering".
     'rename-routine-i18n-2026-10',
 ];
 

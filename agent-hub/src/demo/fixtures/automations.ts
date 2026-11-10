@@ -27,6 +27,7 @@ import { MAIL_FANOUT_CATALOG_APP, MAIL_FANOUT_STEP_RESULTS, mailFanoutAutomation
 import { MAIL_FLATTEN_STEP_RESULTS, ORDERS_FLATTEN_STEP_RESULTS, mailFlattenAutomationFields, ordersFlattenAutomationFields, seedMailFlattenRuns } from './automationsMailFlatten';
 import { NESTED_CATALOG_APPS, NESTED_STEP_RESULTS, nestedAutomationFields, seedNestedRuns } from './automationsNested';
 import { VERSION_ROUTES, recordSave, seedVersions } from './automationsVersions';
+import { demoDate, demoNow } from '../demoClock';
 
 type Obj = Record<string, unknown>;
 
@@ -629,8 +630,8 @@ function runEnvelope(automationId: string, stepIds: string[]) {
             id: 'run_demo_live',
             automationId,
             status: 'success',
-            startedAt: new Date(Date.now() - 1200).toISOString(),
-            finishedAt: new Date().toISOString(),
+            startedAt: new Date(demoNow() - 1200).toISOString(),
+            finishedAt: demoDate().toISOString(),
             stepCount: stepIds.length,
             demo: true,
         },
@@ -676,7 +677,7 @@ export const ROUTES = {
         const task = find(state.tasks, params.id);
         if (!task) return notFound();
         task.lastStatus = 'success';
-        task.lastRunAt = new Date().toISOString();
+        task.lastRunAt = demoDate().toISOString();
         task.runCount += 1;
         task.lastResult = 'Demo run — this is sample output. In the product this is what the model actually returned.';
         return { success: true, message: 'Cowork started. The result arrives in your notifications.' };
@@ -696,7 +697,7 @@ export const ROUTES = {
             description: body?.description || '',
             definition: body?.definition || { trigger: { id: 'trg', kind: 'manual' }, steps: [], edges: [] },
             version: 1, liveVersion: null, liveAt: null, neverLive: true, isDraft: true, isActive: false,
-            lastRunAt: null, lastStatus: null, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+            lastRunAt: null, lastStatus: null, createdAt: demoDate().toISOString(), updatedAt: demoDate().toISOString(),
         });
         state.automations.unshift(created);
         return { success: true, automation: created };
@@ -708,7 +709,7 @@ export const ROUTES = {
         if (!a) return notFound();
         const { version: _v, liveVersion: _l, pendingChanges: _p, ...changes } = body || {};
         const previous = a.definition;
-        Object.assign(a, changes, { updatedAt: new Date().toISOString() });
+        Object.assign(a, changes, { updatedAt: demoDate().toISOString() });
         recordSave(state, a, previous);
         return { success: true, automation: a, warnings: [] };
     },
@@ -716,7 +717,7 @@ export const ROUTES = {
     'POST /api/automation/:id/activate': ({ state, params }: Ctx) => {
         const a = find(state.automations, params.id);
         if (!a) return notFound();
-        if (a.liveVersion == null) Object.assign(a, { liveVersion: a.version, liveAt: new Date().toISOString(), neverLive: false, isDraft: false, pendingChanges: 0 });
+        if (a.liveVersion == null) Object.assign(a, { liveVersion: a.version, liveAt: demoDate().toISOString(), neverLive: false, isDraft: false, pendingChanges: 0 });
         a.isActive = true;
         return { success: true, automation: a, warnings: [] };
     },
@@ -729,7 +730,7 @@ export const ROUTES = {
     'POST /api/automation/:id/run': ({ state, params, body }: Ctx) => {
         const a = find(state.automations, params.id);
         if (!a) return notFound();
-        a.lastRunAt = new Date().toISOString();
+        a.lastRunAt = demoDate().toISOString();
         a.lastStatus = 'success';
         // Every node lights up with its sample output, so "Run flow" shows the
         // whole behaviour rather than a toast; the Runs tab lists the run.

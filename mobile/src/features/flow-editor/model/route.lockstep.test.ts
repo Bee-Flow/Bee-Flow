@@ -164,7 +164,7 @@ const EXPRS = [
     'a && b || c', 'contains(item.subject, "isv")', '!contains(item.tags, \'x\')', 'startsWith(item.name, "A")',
     'endsWith(a.b, steps.c.output.d)', 'isEmpty(item.x)', '!isEmpty(item.x)', 'item.a === 1', 'item.a !== null',
     'item.a <= -2.5', 'item.a < 3', 'item.a > "2026-01-01"', 'steps.s1.output.results[*].to', 'true', 'x.y[*] == 1',
-    'len(item.a) > 2', '(a > 1', '"unterminated', 'a == "x\\"y"', 'item.a == \'it\'s\'', 'a > 1 && contains(b, "c, d")',
+    'len(item.a) > 2', '(a > 1', '"unterminated', 'a == "x\\"y"', 'a == "He said \\"it\'s fine\\""', 'item.a == \'it\'s\'', 'a > 1 && contains(b, "c, d")',
     'a[0].b == vars.limit', 'a == ', 'isEmpty(len(x))', 'contains(len(x), 1)', '!contains(len(x), 1)', 'weird(a, b)',
     'a == {{x}}',
     // The runtime's path grammar: a match segment holding a comma is one

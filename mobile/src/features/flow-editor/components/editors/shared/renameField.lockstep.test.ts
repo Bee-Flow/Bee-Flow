@@ -31,6 +31,13 @@ const DEF = {
             },
         },
         { id: 'loop', type: 'loop', body: [{ id: 'b1', type: 'set', fields: { x: { kind: 'template', value: '{{steps.fp_2.output.naam}}' } } }] },
+        // References without a binding wrapper: an expression, whole paths, placeholders, prose, pinned data.
+        { id: 'c1', type: 'condition', expr: 'trigger.output.naam == "trigger.output.naam" && steps.fp_2.output.naam != trigger.output.naam_bedrijf' },
+        { id: 'sw', type: 'switch', cases: [{ name: 'a', expr: "contains(trigger.output['naam'], 'x')" }] },
+        { id: 'lp2', type: 'loop', overRef: 'trigger.output.naam', body: [{ id: 'ai', type: 'ai_step', prompt: 'Greet {{ trigger.output.naam }} / {{steps.fp_2.output.naam}}' }] },
+        { id: 'ex', type: 'data_extraction', sourceRef: 'steps.fp_2.output.naam.text', arrayRef: 'trigger.output.naam_bedrijf' },
+        { id: 'n2', type: 'notification', title: 'About trigger.output.naam', body: 'Dag {{trigger.output.naam}}', pinnedOutput: { body: '{{trigger.output.naam}}', ref: 'trigger.output.naam' } },
+        { id: 'fp_3', type: 'form_page', when: 'trigger.output.naam != ""', form: { fields: [{ name: 'naam' }, { name: 'why', showIf: 'form.naam == "form.naam"' }] } },
     ],
     edges: [],
     layers: { l1: { trigger: { id: 'lt' }, steps: [{ id: 'fp_2', form: { fields: [{ name: 'naam' }] } }], edges: [] } },
@@ -44,8 +51,20 @@ describe('renameFormField against the web', () => {
         ['trigger.output', 'naam', '2nd'],
         ['trigger.output', 'missing', 'other'],
         ['', 'naam', 'x'],
+        ['steps.fp_3.output', 'naam', 'wie'],
     ])('base %s: %s → %s', (base, from, to) => {
         expect(renameFormField(DEF, { base, from, to })).toEqual(web.renameFormField(DEF, { base, from, to }));
+    });
+
+    it('moves the references that carry no binding wrapper, and the showIf of the same page', () => {
+        const steps = (renameFormField(DEF, { base: 'trigger.output', from: 'naam', to: 'contact' }).definition as { steps: Record<string, unknown>[] }).steps;
+        const byId = (id: string) => steps.find((s) => s.id === id) as Record<string, unknown>;
+        expect(byId('c1').expr).toBe('trigger.output.contact == "trigger.output.naam" && steps.fp_2.output.naam != trigger.output.naam_bedrijf');
+        expect(byId('lp2').overRef).toBe('trigger.output.contact');
+        expect(byId('n2')).toMatchObject({ title: 'About trigger.output.naam', body: 'Dag {{trigger.output.contact}}', pinnedOutput: { ref: 'trigger.output.naam' } });
+        expect(byId('fp_3').when).toBe('trigger.output.contact != ""');
+        const page = renameFormField(DEF, { base: 'steps.fp_3.output', from: 'naam', to: 'wie' }).definition as { steps: { id: string; form?: { fields: unknown[] } }[] };
+        expect(page.steps.find((s) => s.id === 'fp_3')?.form?.fields).toEqual([{ name: 'wie' }, { name: 'why', showIf: 'form.wie == "form.naam"' }]);
     });
 
     it('refuses what the web refuses', () => {

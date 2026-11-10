@@ -315,7 +315,7 @@ export default function useChatEngine({
             onWebpageExtraUpdateRef,
             onWebpageExtraDeletedRef,
         }, event, data, ids);
-    }, [onConversationCreated, onNotebookUpdate]);
+    }, [onConversationCreated, onNotebookUpdate, onSessionSkillsChanged]);
 
     // Ref wrapper so `sendMessage` can dispatch SSE events without listing
     // `handleSSEEvent` in its deps. Keeps `sendMessage`'s identity stable as

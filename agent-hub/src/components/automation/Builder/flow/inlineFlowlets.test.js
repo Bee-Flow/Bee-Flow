@@ -225,6 +225,20 @@ describe('binding rewrites', () => {
         expect(layerPatches.enrich.steps).toEqual(def.layers.enrich.steps);
     });
 
+    it('does not take a step whose id starts with the trigger id for the trigger', () => {
+        const def = withRefs();
+        const layer = def.layers.enrich;
+        // The flowlet's trigger is `ltrg`; this step is `ltrg2`.
+        layer.steps[0].id = 'ltrg2';
+        layer.edges = [{ from: 'ltrg', to: 'ltrg2' }, { from: 'ltrg2', to: 'out' }];
+        layer.steps[1].fields = { score: { kind: 'ref', path: 'steps.ltrg2.output.score' } };
+        layer.steps[2].expr = 'steps.ltrg2.output.score > 0 && trigger.output.email != ""';
+        layer.steps[2].prompt = 'Look at {{steps.ltrg2.output.score}} carefully';
+        const { graph, sidecar } = composeInlineGraph(def, def, new Set(['cl1']), { dims: DIMS });
+        const { layerPatches } = decomposeInlineGraph(graph, sidecar);
+        expect(layerPatches.enrich.steps).toEqual(def.layers.enrich.steps);
+    });
+
     it('turns a ref auto-mapped from the container\'s input node back into `trigger`', () => {
         const def = withRefs();
         const { graph, sidecar } = composeInlineGraph(def, def, new Set(['cl1']), { dims: DIMS });

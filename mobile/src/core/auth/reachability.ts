@@ -12,8 +12,9 @@
  * complete, and the honest reading of the screen — "I have been logged out" —
  * is wrong.
  *
- * A server that answers 4xx has made a statement about this session. Anything
- * else is a statement about the network.
+ * A server that answers 4xx has made a statement about this session (bar the
+ * two that are about the request's timing: 408 and 429). Anything else is a
+ * statement about the network.
  */
 
 import { ApiError, OfflineError } from '@/core/api/client';
@@ -31,5 +32,9 @@ export function serverAnsweredAboutSession(err: unknown): boolean {
     if (err instanceof OfflineError) return false;
     if (!(err instanceof ApiError)) return false;
     const status = err.status;
+    // 408 and 429 are 4xx by number only: "you took too long" and "slow down"
+    // say nothing about who is asking, and a rate limit met at cold start is
+    // exactly when signing the user out would be both wrong and unfixable.
+    if (status === 408 || status === 429) return false;
     return typeof status === 'number' && status >= 400 && status < 500;
 }
