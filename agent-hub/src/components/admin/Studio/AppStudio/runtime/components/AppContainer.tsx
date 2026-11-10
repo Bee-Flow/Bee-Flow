@@ -49,7 +49,7 @@ export default function AppContainer({ node, children }: NodeProps<ContainerProp
     const lookStyle = CONTAINER_LOOKS[look as string] || null; // 'plain' / unknown → identity
     return (
         <div
-            className={`app-grid${fill ? ' app-fill h-full min-h-0' : ''}${lookStyle ? ` app-container--${look}` : ''}`}
+            className={`app-grid${fill ? ' app-fill h-full min-h-0' : ''}${lookStyle ? ` app-container--${look}` : ''} bfa-container__root`}
             data-app-container="true"
             style={{
                 gridTemplateColumns: gridTemplate(),

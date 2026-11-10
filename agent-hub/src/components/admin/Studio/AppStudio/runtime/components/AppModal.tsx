@@ -79,7 +79,7 @@ export default function AppModal({ node, children }: NodeProps<ModalNodeProps>) 
     const gap = Number.isFinite(node.style?.gap) ? (node.style as NodeStyle).gap : 3;
     const grid = (
         <div
-            className="app-grid"
+            className="app-grid bfa-modal__body"
             style={{ gridTemplateColumns: gridTemplate(), gap: spaceSteps(gap) }}
         >
             {children}
@@ -91,7 +91,7 @@ export default function AppModal({ node, children }: NodeProps<ModalNodeProps>) 
     if (mode === 'edit') {
         return (
             <div
-                className="w-full border [border-color:var(--border-default)] [border-radius:var(--app-radius)] [background:var(--bg-card)]"
+                className="w-full border [border-color:var(--border-default)] [border-radius:var(--app-radius)] [background:var(--bg-card)] bfa-modal__root"
                 data-app-modal="edit"
             >
                 <div
@@ -118,7 +118,7 @@ export default function AppModal({ node, children }: NodeProps<ModalNodeProps>) 
                 <button
                     type="button"
                     onClick={() => setOpen(true)}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-sm font-medium [background:var(--app-primary)] [color:var(--app-primary-contrast)]! [border-radius:var(--app-radius)]"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-sm font-medium [background:var(--app-primary)] [color:var(--app-primary-contrast)]! [border-radius:var(--app-radius)] bfa-modal__trigger"
                     data-app-modal-trigger={node.id}
                 >
                     {triggerLabel}
@@ -141,7 +141,7 @@ export default function AppModal({ node, children }: NodeProps<ModalNodeProps>) 
                         type="button"
                         onClick={() => setOpen(false)}
                         aria-label={t('studio_apps_runtime.modal.close', 'Close dialog')}
-                        className="inline-flex items-center justify-center w-7 h-7 rounded-md hover:bg-[var(--bg-tertiary)] focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--text-secondary)] [color:var(--text-secondary)]"
+                        className="inline-flex items-center justify-center w-7 h-7 rounded-md hover:bg-[var(--bg-tertiary)] focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--text-secondary)] [color:var(--text-secondary)] bfa-modal__close"
                         data-app-modal-close={node.id}
                     >
                         <X className="w-4 h-4" aria-hidden="true" />

@@ -64,7 +64,7 @@ export default function AppStepper({ node }: NodeProps<StepperProps>) {
 
     return (
         <div
-            className={`app-stepper w-full min-w-0 flex ${vertical ? 'flex-col gap-1' : 'items-start gap-1'}`}
+            className={`app-stepper w-full min-w-0 flex ${vertical ? 'flex-col gap-1' : 'items-start gap-1'} bfa-stepper__root`}
             data-app-stepper="true"
             data-orientation={orientation}
             role="list"
@@ -86,7 +86,7 @@ export default function AppStepper({ node }: NodeProps<StepperProps>) {
 
                 const marker = (
                     <span
-                        className="app-stepper-marker inline-flex items-center justify-center shrink-0 rounded-full"
+                        className="app-stepper-marker inline-flex items-center justify-center shrink-0 rounded-full bfa-stepper__marker"
                         data-state={state}
                         style={isDone || isCurrent
                             ? { background: color, color: '#fff', borderColor: color }
@@ -103,7 +103,7 @@ export default function AppStepper({ node }: NodeProps<StepperProps>) {
 
                 const text = showLabels ? (
                     <span
-                        className="app-stepper-label text-xs font-medium truncate"
+                        className="app-stepper-label text-xs font-medium truncate bfa-stepper__label"
                         {...hoverable(step.label)}
                         style={{ color: isCurrent ? color : isDone ? 'var(--text-secondary)' : 'var(--text-muted)' }}
                     >
@@ -126,13 +126,13 @@ export default function AppStepper({ node }: NodeProps<StepperProps>) {
                             index: i,
                             value: step?.value ?? null,
                         })}
-                        className="app-stepper-step min-w-0 rounded-md px-1 py-0.5"
+                        className="app-stepper-step min-w-0 rounded-md px-1 py-0.5 bfa-stepper__step"
                         aria-current={isCurrent ? 'step' : undefined}
                     >
                         {body}
                     </button>
                 ) : (
-                    <span className="app-stepper-step min-w-0 px-1 py-0.5" aria-current={isCurrent ? 'step' : undefined}>
+                    <span className="app-stepper-step min-w-0 px-1 py-0.5 bfa-stepper__step" aria-current={isCurrent ? 'step' : undefined}>
                         {body}
                     </span>
                 );
@@ -153,11 +153,11 @@ export default function AppStepper({ node }: NodeProps<StepperProps>) {
                         // the final marker flush against the end.
                         className={`app-stepper-item${vertical
                             ? ' flex flex-col'
-                            : `${i < steps.length - 1 ? ' flex-1' : ' shrink-0'} min-w-0 flex items-center gap-1`}`}
+                            : `${i < steps.length - 1 ? ' flex-1' : ' shrink-0'} min-w-0 flex items-center gap-1`} bfa-stepper__item`}
                     >
                         {content}
                         {hint ? (
-                            <span className="app-stepper-hint" role="tooltip" id={`${node.id}-hint-${i}`}>
+                            <span className="app-stepper-hint bfa-stepper__hint" role="tooltip" id={`${node.id}-hint-${i}`}>
                                 {hint}
                             </span>
                         ) : null}
@@ -165,7 +165,7 @@ export default function AppStepper({ node }: NodeProps<StepperProps>) {
                             one so the "how far along" reads without counting. */}
                         {i < steps.length - 1 ? (
                             <span
-                                className={`app-stepper-line ${vertical ? 'app-stepper-line--v' : 'flex-1'}`}
+                                className={`app-stepper-line ${vertical ? 'app-stepper-line--v' : 'flex-1'} bfa-stepper__line`}
                                 style={{ background: isDone ? color : 'var(--border-default)' }}
                                 aria-hidden="true"
                             />

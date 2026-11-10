@@ -267,7 +267,7 @@ export default function AppFilePreview({ node }: NodeProps<FilePreviewProps>) {
     const boxed = fill || Boolean(resolveHeightCss(node?.style)) || Boolean(HEIGHT_PX[node?.style?.height ?? '']);
     const shell = (children: JSX.Element) => (
         <div
-            className={`w-full min-w-0 overflow-hidden${fill ? ' app-fill' : ''}${boxed ? ' flex flex-col h-full min-h-0' : ''}`}
+            className={`w-full min-w-0 overflow-hidden${fill ? ' app-fill' : ''}${boxed ? ' flex flex-col h-full min-h-0' : ''} bfa-file_preview__root`}
             style={{ borderRadius: 'inherit', ...(boxed ? null : { minHeight: '24rem' }) }}
             data-app-filepreview={state.status}
         >
@@ -307,13 +307,13 @@ export default function AppFilePreview({ node }: NodeProps<FilePreviewProps>) {
     return shell(
         <>
             {allowDownload ? (
-                <div className="flex shrink-0 items-center justify-between gap-2 px-2 py-1.5">
-                    <span className="truncate text-xs text-[var(--text-secondary)]" {...hoverable(state.name)}>{state.name}</span>
+                <div className="flex shrink-0 items-center justify-between gap-2 px-2 py-1.5 bfa-file_preview__header">
+                    <span className="truncate text-xs text-[var(--text-secondary)] bfa-file_preview__name" {...hoverable(state.name)}>{state.name}</span>
                     <a
                         href={(state.downloadUrl || state.url) ?? undefined}
                         download={state.name}
                         aria-label={t('studio_apps_runtime.file_preview.download_name', 'Download {name}', { name: state.name })}
-                        className="inline-flex shrink-0 items-center gap-1 text-xs text-[var(--text-muted)]"
+                        className="inline-flex shrink-0 items-center gap-1 text-xs text-[var(--text-muted)] bfa-file_preview__download"
                     >
                         <Download className="h-3.5 w-3.5" aria-hidden="true" />
                     </a>
@@ -323,13 +323,13 @@ export default function AppFilePreview({ node }: NodeProps<FilePreviewProps>) {
                 <iframe
                     title={state.name || t('studio_apps_runtime.file_preview.document', 'Document')}
                     src={state.url ?? undefined}
-                    className={`w-full border-0${boxed ? ' flex-1 min-h-0' : ' h-full min-h-[20rem]'}`}
+                    className={`w-full border-0${boxed ? ' flex-1 min-h-0' : ' h-full min-h-[20rem]'} bfa-file_preview__frame`}
                 />
             ) : (
                 <img
                     src={state.url ?? undefined}
                     alt={state.name || ''}
-                    className={`w-full${boxed ? ' flex-1 min-h-0' : ' h-full'} [object-fit:contain]`}
+                    className={`w-full${boxed ? ' flex-1 min-h-0' : ' h-full'} [object-fit:contain] bfa-file_preview__frame`}
                 />
             )}
         </>,

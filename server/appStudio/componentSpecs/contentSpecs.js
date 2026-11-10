@@ -12,6 +12,7 @@ const { COLOR_ROLES } = require('./styleKnobs');
 
 const CONTENT_SPECS = {
     heading: {
+        parts: ['root', 'mark'],
         label: 'Heading', category: 'Content',
         description: 'A section or page title.',
         props: {
@@ -28,6 +29,7 @@ const CONTENT_SPECS = {
         defaultStyle: { span: 12 },
     },
     text: {
+        parts: ['root'],
         label: 'Text', category: 'Content',
         description: 'A paragraph of text. Supports a small markdown subset (bold, italic, links).',
         props: {
@@ -38,6 +40,7 @@ const CONTENT_SPECS = {
         defaultStyle: { span: 12 },
     },
     button: {
+        parts: ['root', 'icon', 'label'],
         label: 'Button', category: 'Basics',
         description: 'A clickable button. Wire its onClick to an action; role "submit" submits the enclosing form.',
         events: ['onClick'],
@@ -61,6 +64,7 @@ const CONTENT_SPECS = {
         defaultStyle: { span: 3 },
     },
     image: {
+        parts: ['root', 'placeholder'],
         label: 'Image', category: 'Content',
         description: 'An image from an https URL. Broken sources render a neutral placeholder (no layout shift).',
         props: {
@@ -77,6 +81,7 @@ const CONTENT_SPECS = {
         defaultStyle: { span: 6, height: 'md' },
     },
     file_preview: {
+        parts: ['root', 'header', 'name', 'download', 'frame'],
         label: 'File preview', category: 'Content',
         description: 'Shows a PDF or image from a file column inline. Other types get a download link. Bind source to a file field. viewer "app": own PDF reader.',
         props: {
@@ -90,6 +95,7 @@ const CONTENT_SPECS = {
         defaultStyle: { span: 12, height: 'lg' },
     },
     pdf_compare: {
+        parts: ['root'],
         label: 'PDF compare', category: 'Content',
         description: 'Two PDFs compared (original vs changed copy): synced pages, changed regions boxed in red. Bind left/right to file fields. mode: side, swipe, diff.',
         props: {
@@ -105,6 +111,7 @@ const CONTENT_SPECS = {
         defaultStyle: { span: 12, height: 'xl' },
     },
     browser_view: {
+        parts: ['root', 'header', 'frame', 'placeholder', 'status'],
         label: 'Live browser', category: 'Content',
         description: 'Shows the live screenshot stream while an ai_browse step of the named action runs — the viewer watches the agent work. Idle it renders a placeholder; frames are never stored, so a reload shows only the step\'s text result. Wire `actionId` to the action whose sequence contains the ai_browse step.',
         props: {
@@ -116,6 +123,7 @@ const CONTENT_SPECS = {
         defaultStyle: { span: 12 },
     },
     divider: {
+        parts: ['root'],
         label: 'Divider', category: 'Layout',
         description: 'A thin separator line.',
         props: {
@@ -128,6 +136,7 @@ const CONTENT_SPECS = {
         defaultStyle: { span: 12 },
     },
     spacer: {
+        parts: ['root'],
         label: 'Spacer', category: 'Layout',
         description: 'Empty vertical space.',
         props: { steps: { type: 'int', min: 1, max: 8, default: 2 } },
@@ -135,6 +144,7 @@ const CONTENT_SPECS = {
         defaultStyle: { span: 12 },
     },
     callout: {
+        parts: ['root', 'icon', 'title', 'body', 'meta'],
         label: 'Callout', category: 'Content',
         description: 'A highlighted note with a tone (info, success, warning, danger).',
         props: {
@@ -167,6 +177,7 @@ const CONTENT_SPECS = {
         defaultStyle: { span: 12 },
     },
     stat: {
+        parts: ['root', 'icon', 'label', 'value', 'delta', 'caption', 'trend'],
         label: 'Stat', category: 'Data',
         description: 'A KPI tile: a label and a big value. The value can bind to an action result. v2 adds an optional delta/trend row.',
         props: {
@@ -200,6 +211,7 @@ const CONTENT_SPECS = {
         defaultStyle: { span: 3 },
     },
     keyValue: {
+        parts: ['root', 'row', 'label', 'value'],
         label: 'Key–value', category: 'Data',
         description: 'Renders an object as label/value rows (e.g. one record from an automation result).',
         props: {
