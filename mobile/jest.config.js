@@ -20,10 +20,12 @@ const path = require('path');
 // definition helpers (server/shared/appDefinition/*.mjs) are ESM, and server
 // modules such as fieldDiff.js and appStudio/componentSpecs/ids.js require
 // them, so they go through Babel like the vendored copy; their helper imports
-// resolve through the @babel/runtime mapper below. A server `.mts` file (strict
+// resolve through the @babel/runtime mapper below. The shared value formatter
+// (server/shared/format/*.mjs, which componentSpecs/objectShapes.js requires)
+// is the same case. A server `.mts` file (strict
 // TypeScript, e.g. automationModel/runProfile.mts, which definitionForRun.js
 // requires) is ESM with type annotations, so it goes through Babel as well.
-const SERVER_DIR = path.resolve(__dirname, '..', 'server').replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '/(?!shared/(?:expr|appDefinition)/)(?!.*\\.mts$)';
+const SERVER_DIR = path.resolve(__dirname, '..', 'server').replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '/(?!shared/(?:expr|appDefinition|format)/)(?!.*\\.mts$)';
 
 // `.mjs` and `.mts` go through the same Babel as `.ts`/`.js`: the expression
 // engine is vendored verbatim as .mjs (src/shared/expr/vendor), new server code

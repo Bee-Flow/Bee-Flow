@@ -10356,3 +10356,46 @@ exports[`compat corpus: what the phone plans for every stored app trace-invoice-
   ],
 }
 `;
+
+exports[`compat corpus: what the phone plans for every stored app value-format 1`] = `
+{
+  "defaultScreen": "scr_w7pbkb",
+  "navigable": [
+    "scr_w7pbkb",
+  ],
+  "screens": [
+    {
+      "id": "scr_w7pbkb",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "id": "cmp_vfstat01",
+                "kind": "stat",
+                "label": "Revenue",
+                "value": "1234567.5",
+              },
+              {
+                "id": "cmp_vfstat02",
+                "kind": "stat",
+                "label": "Orders",
+                "value": "4321",
+              },
+            ],
+            "screen": "scr_w7pbkb",
+            "unsupported": [
+              "table",
+              "data_grid",
+              "chart",
+            ],
+          },
+          "roles": [
+            "(no role)",
+          ],
+        },
+      ],
+    },
+  ],
+}
+`;
