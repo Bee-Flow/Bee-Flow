@@ -39,17 +39,10 @@ const automationCredentialStore = require('../../stores/automationCredentialStor
 
 // Same OAuth client + scope set as SSO login (permissions.js OAUTH_PROVIDERS)
 // so a connector consent never conflicts with an SSO consent for the same app.
-const { OAUTH_PROVIDERS, loadConfig, requireAuth } = require('../../auth/permissions');
+const { OAUTH_PROVIDERS, requireAuth } = require('../../auth/permissions');
 const { fallback, bestEffort } = require('../../utils/bestEffort');
-
-async function getGoogleClientConfig() {
-    const config = await loadConfig();
-    const providerConfig = config.providers?.google || {};
-    return {
-        clientId: providerConfig.clientId || '',
-        clientSecret: providerConfig.clientSecret || '',
-    };
-}
+// The installation's OAuth client; the Meet connection block reads "configured" from the same place.
+const { getGoogleClientConfig, isGoogleConfigured } = require('../../auth/googleOAuthConfig');
 
 /** @param {import('express').Request} req */
 function buildRedirectUri(req) {
@@ -254,8 +247,7 @@ router.get('/status', requireAuth, async (req, res) => {
     const userId = req.session?.user?.id;
     if (!userId) return res.status(401).json({ error: 'Not authenticated' });
 
-    const { clientId, clientSecret } = await getGoogleClientConfig();
-    const configured = !!(clientId && clientSecret);
+    const configured = await isGoogleConfigured();
 
     const cred = await automationCredentialStore.getCredential(userId, 'google').catch((e) => fallback('routes/integrations/googleWorkspace:anon#2', e, null));
     // Session fallback: Google-SSO consumers without an org have no vault

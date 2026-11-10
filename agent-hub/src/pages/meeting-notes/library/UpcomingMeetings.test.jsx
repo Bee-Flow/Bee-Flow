@@ -128,9 +128,9 @@ describe('UpcomingMeetings', () => {
         expect(screen.queryByText("Couldn't load Google Meet meetings")).not.toBeInTheDocument();
     });
 
-    it('renders the connect-Google prompt when Google is not connected, without errors or reconnect banner', async () => {
+    it('renders the connect-Google prompt when Google is configured but not connected, without errors or reconnect banner', async () => {
         listGoogleMeetMeetings.mockResolvedValue(gmeetPayload([], {
-            connection: { googleConnected: false, meetScopesGranted: false, hasSettingsScope: false, needsReauth: false },
+            connection: { googleConfigured: true, googleConnected: false, meetScopesGranted: false, hasSettingsScope: false, needsReauth: false },
         }));
         render(<UpcomingMeetings />);
 
@@ -277,16 +277,52 @@ describe('UpcomingMeetings', () => {
         await waitFor(() => expect(screen.queryByText("Couldn't update this meeting.")).not.toBeInTheDocument());
     });
 
-    it('keeps the Talk recording-backend banner', async () => {
-        listTalkMeetings.mockResolvedValue(talkPayload([], { recordingEnabled: false }));
-        render(<UpcomingMeetings />);
+    it('does not suggest connecting Google when the installation has no Google OAuth client', async () => {
+        listGoogleMeetMeetings.mockResolvedValue(gmeetPayload([], {
+            connection: { googleConfigured: false, googleConnected: false, meetScopesGranted: false, hasSettingsScope: false, needsReauth: false },
+        }));
+        listTalkMeetings.mockResolvedValue(talkPayload([talkMeeting()]));
+        render(<UpcomingMeetings talkConnected />);
+        await screen.findByText('Talk standup');
+        expect(screen.queryByText(/Connect Google Workspace to see your Meet meetings/)).not.toBeInTheDocument();
+        expect(screen.queryByText(/doesn't include Meet permissions/)).not.toBeInTheDocument();
+    });
+
+    it('does not suggest connecting Google when the server does not say whether Google is configured', async () => {
+        listGoogleMeetMeetings.mockResolvedValue(gmeetPayload([], {
+            connection: { googleConnected: false, meetScopesGranted: false, hasSettingsScope: false, needsReauth: false },
+        }));
+        listTalkMeetings.mockResolvedValue(talkPayload([talkMeeting()]));
+        render(<UpcomingMeetings talkConnected />);
+        await screen.findByText('Talk standup');
+        expect(screen.queryByText(/Connect Google Workspace to see your Meet meetings/)).not.toBeInTheDocument();
+    });
+
+    it('warns about the Talk recording backend when Nextcloud is connected and a Talk meeting is listed', async () => {
+        listTalkMeetings.mockResolvedValue(talkPayload([talkMeeting()], { recordingEnabled: false, autoRecord: false }));
+        render(<UpcomingMeetings talkConnected />);
         await screen.findByText(/Nextcloud Talk recording backend isn't configured/);
     });
 
-    it('keeps the Talk recording-backend banner for an account with Nextcloud connected', async () => {
-        listTalkMeetings.mockResolvedValue(talkPayload([], { recordingEnabled: false }));
+    it('warns about the Talk recording backend when Nextcloud is connected and auto-record is on, even without Talk meetings', async () => {
+        listTalkMeetings.mockResolvedValue(talkPayload([], { recordingEnabled: false, autoRecord: true }));
         render(<UpcomingMeetings talkConnected />);
         await screen.findByText(/Nextcloud Talk recording backend isn't configured/);
+    });
+
+    it('stays quiet about the Talk recording backend when Nextcloud is connected but no Talk meeting is listed and auto-record is off', async () => {
+        listTalkMeetings.mockResolvedValue(talkPayload([], { recordingEnabled: false, autoRecord: false }));
+        listGoogleMeetMeetings.mockResolvedValue(gmeetPayload([gmeetMeeting()]));
+        render(<UpcomingMeetings talkConnected />);
+        await screen.findByText('Meet planning');
+        expect(screen.queryByText(/Nextcloud Talk recording backend isn't configured/)).not.toBeInTheDocument();
+    });
+
+    it('stays quiet about the Talk recording backend while it is unknown whether Nextcloud is connected', async () => {
+        listTalkMeetings.mockResolvedValue(talkPayload([talkMeeting()], { recordingEnabled: false, autoRecord: true }));
+        render(<UpcomingMeetings />);
+        await screen.findByText('Talk standup');
+        expect(screen.queryByText(/Nextcloud Talk recording backend isn't configured/)).not.toBeInTheDocument();
     });
 
     it('does not warn about the Talk recording backend to an account without Nextcloud', async () => {

@@ -105,11 +105,12 @@ function ConnectionBanner({ connection }: { connection: MeetConnection | undefin
             </Banner>
         );
     } else if (!connection.googleConnected) {
-        banner = (
+        // Only an installation with a Google OAuth client can be connected to.
+        banner = connection.googleConfigured ? (
             <Banner tone="info" icon="Video" action={toIntegrations(t('meetings.upcoming_settings_integrations', 'Settings → Connections'))}>
                 {t('meetings.upcoming_connect_google', 'Connect Google Workspace to see your Meet meetings here —')}
             </Banner>
-        );
+        ) : null;
     } else if (!connection.meetScopesGranted) {
         banner = (
             <Banner tone="warning" action={toIntegrations(t('meetings.upcoming_reconnect', 'Reconnect'))}>

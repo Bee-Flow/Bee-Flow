@@ -34,6 +34,8 @@ export interface TalkData {
 }
 
 interface GmeetConnection {
+    /** The installation has a Google OAuth client; missing (older server) reads as not configured. */
+    googleConfigured?: boolean;
     googleConnected?: boolean;
     meetScopesGranted?: boolean;
     hasSettingsScope?: boolean;
@@ -120,8 +122,8 @@ export interface UpcomingMeetingsProps {
     onRowsChange?: (count: number | null) => void;
     /**
      * Whether this account has Nextcloud connected at all (useMeetingSources().talk).
-     * `false` hides the "Talk recording backend isn't configured" banner;
-     * undefined (not known yet / not passed) keeps it.
+     * Only `true` can show the "Talk recording backend isn't configured" banner;
+     * `false` and undefined (not known yet / not passed) hide it.
      */
     talkConnected?: boolean;
 }

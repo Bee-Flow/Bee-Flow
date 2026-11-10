@@ -1847,6 +1847,11 @@ describe('the organisation integrations (features/orgIntegrations)', () => {
                 'autoImport', 'autoRecordConfig', 'importScope', 'language', 'lookbackHours', 'excludedEventIds', 'excludedMeetingCodes',
             ]),
         ).toEqual([]);
+        // The Upcoming screen reads the user GET of both: whether this account has
+        // Nextcloud (the Talk backend banner) and whether the installation has Google
+        // set up (the "connect Google" banner, in the connection block).
+        expect(absentTokens(talk, ['nextcloudConnected'])).toEqual([]);
+        expect(absentTokens(meet, ['googleConfigured'])).toEqual([]);
     });
 
     it('GitHub sync keeps its routes and the status and item keys', () => {

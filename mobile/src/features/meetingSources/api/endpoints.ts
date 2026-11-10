@@ -19,6 +19,7 @@ import {
     type ImportAnswer,
     readMeetMeetings,
     readMeetRecordings,
+    readNextcloudConnected,
     readNextcloudFiles,
     readRecordAnswer,
     readTalkMeetings,
@@ -44,6 +45,15 @@ export async function listTalkMeetings(signal?: AbortSignal): Promise<TalkMeetin
 
 export async function listMeetMeetings(signal?: AbortSignal): Promise<MeetMeetings> {
     return readMeetMeetings(await api.get<unknown>(`${BASE}/gmeet-meetings`, { signal }));
+}
+
+/**
+ * Whether this account has Nextcloud connected, from the per-user Talk
+ * settings (outside /api/transcriptions). The Upcoming screen only warns about
+ * Talk's recording backend to an account that has Nextcloud at all.
+ */
+export async function getNextcloudConnected(signal?: AbortSignal): Promise<boolean> {
+    return readNextcloudConnected(await api.get<unknown>('/api/talk-notes-settings/user/me', { signal }));
 }
 
 /** Switch one Talk meeting's auto-record, by room token (and the calendar uid when known). */

@@ -80,7 +80,10 @@ router.get('/user/me', requireAuth, async (req, res) => {
         const credStore = require('../stores/automationCredentialStore');
         credential = await credStore.getCredential(sessionUser(req).id, 'google');
     } catch (err) { fallback('routes/gmeetNotesSettings:anon', err); /* treat as no stored credential */ }
-    const connection = gmeetNotes.deriveConnectionStatus({ session: req.session, credential });
+    // An unreadable auth config hides the "connect Google" hint rather than failing the settings read.
+    const { isGoogleConfigured } = require('../auth/googleOAuthConfig');
+    const googleConfigured = await isGoogleConfigured().catch((e) => fallback('routes/gmeetNotesSettings:googleConfigured', e, false));
+    const connection = gmeetNotes.deriveConnectionStatus({ session: req.session, credential, googleConfigured });
     res.json({ ...config, connection });
 });
 

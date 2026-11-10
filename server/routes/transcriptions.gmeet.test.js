@@ -47,6 +47,7 @@ const fx = {
     updates: [],
     failures: [],
     fresh: null,
+    google: null,               // providers.google of the auth config (null = not configured)
 };
 
 function resetFx() {
@@ -78,6 +79,7 @@ function resetFx() {
     fx.updates.length = 0;
     fx.failures.length = 0;
     fx.fresh = null;
+    fx.google = null;
     fx.credQueue = null;
     fx.codeLookups = [];
     fx.deletedNotes = new Set();
@@ -117,16 +119,21 @@ stub('../core/meetingNotes/summaryHelpers', {
     applySpeakerNames: (merged, _m) => ({ merged, transcript: '', speakers: [] }),
     transcribeWithWhisperX: async () => ({ segments: [], text: '' }),
 });
-stub('../auth/permissions', { requireAuth: (req, res, next) => next() });
+// loadConfig feeds the REAL auth/googleOAuthConfig (it resolves the same file).
+stub('../auth/permissions', {
+    requireAuth: (req, res, next) => next(),
+    loadConfig: async () => ({ providers: fx.google ? { google: fx.google } : {} }),
+});
 stub('../auth', { resolveUserOrgIds: async () => new Set(['orgA']) });
 stub('../stores/userStore', { getUser: async () => ({ groups: [] }), getAllGroups: async () => [] });
 // Faithful mini-implementations — the real derivation/extraction contracts are
 // pinned in gmeetNotesSettings.test.js / gmeetCalendar.test.js.
 stub('../core/meetingNotes/gmeetNotesSettings', {
-    deriveConnectionStatus: ({ session = null, credential = null } = {}) => {
+    deriveConnectionStatus: ({ session = null, credential = null, googleConfigured = false } = {}) => {
         const live = !!(session && session.oauthProvider === 'google' && session.accessToken);
         const scope = String((credential && credential.scope) || '');
         return {
+            googleConfigured: googleConfigured === true,
             googleConnected: !!(live || (credential && credential.status === 'active')),
             meetScopesGranted: scope.includes('meetings.space.readonly'),
             hasSettingsScope: scope.includes('meetings.space.settings'),
@@ -300,11 +307,23 @@ test('gmeet-meetings: not connected → 200 with empty list + connection CTAs', 
     const res = await dispatch({ url: '/gmeet-meetings' });
     assert.strictEqual(res.statusCode, 200);
     assert.deepStrictEqual(res.body.connection, {
-        googleConnected: false, meetScopesGranted: false, hasSettingsScope: false, needsReauth: false,
+        googleConfigured: false, googleConnected: false, meetScopesGranted: false, hasSettingsScope: false, needsReauth: false,
     });
     assert.deepStrictEqual(res.body.meetings, []);
     assert.strictEqual(res.body.autoImport, false);
     assert.strictEqual(fx.upcomingCalls, 0, 'no calendar call without a session');
+});
+
+test('gmeet-meetings: a configured Google OAuth client says so, and neither id nor secret travels along', async () => {
+    resetFx();
+    fx.google = { clientId: 'meet-route-client-id', clientSecret: 'meet-route-client-secret' };
+    const res = await dispatch({ url: '/gmeet-meetings' });
+    assert.strictEqual(res.statusCode, 200);
+    assert.strictEqual(res.body.connection.googleConfigured, true);
+    assert.strictEqual(res.body.connection.googleConnected, false);
+    const body = JSON.stringify(res.body);
+    assert.ok(!body.includes('meet-route-client-id'), 'client id not exposed');
+    assert.ok(!body.includes('meet-route-client-secret'), 'client secret not exposed');
 });
 
 test('gmeet-meetings: connected without Meet scopes → empty list, reconnect hint', async () => {

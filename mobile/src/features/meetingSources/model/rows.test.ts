@@ -47,7 +47,7 @@ const talk = (meetings: TalkMeeting[], recordingEnabled = true): TalkMeetings =>
 });
 
 const meet = (meetings: MeetMeeting[], granted = true): MeetMeetings => ({
-    connection: { googleConnected: true, meetScopesGranted: granted, hasSettingsScope: false, needsReauth: false },
+    connection: { googleConfigured: true, googleConnected: true, meetScopesGranted: granted, hasSettingsScope: false, needsReauth: false },
     autoImport: true,
     autoRecordConfig: false,
     meetings,

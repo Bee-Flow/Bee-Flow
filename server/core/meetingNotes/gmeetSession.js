@@ -34,7 +34,11 @@ async function resolveGmeetSession(req) {
         const automationCredentialStore = require('../../stores/automationCredentialStore');
         cred = await automationCredentialStore.getCredential(userId, 'google');
     } catch (err) { fallbackSwallowed('routes/transcriptions/gmeet:resolveGmeetSession', err); /* vault unavailable → session-only */ }
-    const connection = deriveConnectionStatus({ session: req.session, credential: cred });
+    // Whether the installation has a Google OAuth client at all; an unreadable config reads as "no".
+    const { isGoogleConfigured } = require('../../auth/googleOAuthConfig');
+    const googleConfigured = await isGoogleConfigured()
+        .catch((err) => fallbackSwallowed('routes/transcriptions/gmeet:resolveGmeetSession#configured', err, false));
+    const connection = deriveConnectionStatus({ session: req.session, credential: cred, googleConfigured });
 
     if (req.session.oauthProvider === 'google' && req.session.accessToken) {
         return { session: req.session, source: 'live', cred, connection };
