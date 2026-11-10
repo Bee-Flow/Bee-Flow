@@ -35,8 +35,6 @@
  */
 
 'use strict';
-const crypto = require('node:crypto');
-const fs = require('node:fs');
 
 /**
  * Loose data migrations (server/migrations/<name>.js with an up()).
@@ -288,6 +286,9 @@ const NL_TRANSLATIONS = [
     'update-nl-automation-wording-2026-11', // Automation wording round: six reworded English texts get their Dutch (old shipped text only)
     // Last, after every catalogue: stored translations follow the routine → automation keys, and shipped Dutch "routine" becomes "automatisering".
     'rename-routine-i18n-2026-10',
+    // Dutch for new namespaces, one data file per namespace (i18n/defaults/nl/<namespace>.json): a new
+    // namespace adds a file there and no line here. Its checksum covers those files (migrationChecksum.js).
+    'add-nl-namespace-files',
 ];
 
 /**
@@ -311,14 +312,7 @@ const MANUAL_MIGRATIONS = [
 ];
 
 const { LEDGER_TABLE, ensureLedgerTable } = require('../stores/lib/ddlLedgerTable');
-
-/**
- * @param {string} name
- */
-function checksumOf(name) {
-    const file = require.resolve(`../migrations/${name}`);
-    return crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
-}
+const { checksumOf } = require('./migrationChecksum');
 
 /** name → {checksum, applied_at} for every recorded entry; creates the table on first use. */
 async function readLedger() {

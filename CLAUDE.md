@@ -117,13 +117,20 @@ and `npm run lint:secrets`.
   `agent-hub/src` may only go down.
   **Serialisation rule:** the English dictionary is `server/i18n/defaults/en/<namespace>.js`,
   one file per namespace (the part of the key before the first dot), merged by `en/index.js`
-  (which throws on an unlisted file, a key in the wrong namespace, or a duplicate key).
+  (which throws on a badly named file, a key in the wrong namespace, or a duplicate key).
   `agent-hub/src/i18n/en-defaults.js` is GENERATED from it: never edit it by hand; after a
   change run `npm run i18n:gen` and commit both. CI runs `npm run lint:i18n-gen` and, on PRs,
   `scripts/i18n-key-guard.mjs`: a key that exists on the base and is now missing fails unless
   it is listed in `server/i18n/defaults/removed-keys.txt`. Keep one writer per namespace file:
   two branches adding to the same file merge without a visible conflict, and the second one
   silently wins.
+  **New namespace = two new files, no list:** `en/<namespace>.js` (found by `en/index.js`, not
+  added to its `NAMESPACES`, which only pins the old order) and its Dutch in
+  `server/i18n/defaults/nl/<namespace>.json` (`{"translations": {…}, "sameAsEnglish": […]}`,
+  every key covered; seeded by the one catalogue `add-nl-namespace-files`, which reruns
+  whenever a file there changes, fill-missing only). No add-nl migration, hash or
+  `bootMigrations.js` line. After a merge, conflicts in the generated files: run
+  `npm run i18n:gen` and commit. Rewording shipped Dutch still needs an `update-nl-*` migration.
 - `npm run lint:shared-mirror`: `server/shared/expr/` is the source of the expression engine,
   `agent-hub/src/shared/expr/` and `mobile/src/shared/expr/vendor/` byte-for-byte GENERATED
   copies (the agent-hub image cannot see `server/`). After changing the source run

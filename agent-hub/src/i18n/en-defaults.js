@@ -38779,6 +38779,7 @@ const EN_DEFAULTS = {
     "studio_misc.toolbar.view_board": "Board",
     "studio_misc.toolbar.view_cards": "Cards",
     "studio_misc.toolbar.view_list": "List",
+    "studio_apps_schema.newer_than_install": "This app was saved by a newer version of Bee Flow. Update this installation to open or change it.",
 };
 
 export default EN_DEFAULTS;
