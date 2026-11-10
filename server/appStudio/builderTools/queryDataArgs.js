@@ -34,6 +34,7 @@ const bad = (error, _fixHint) => ({ error, _fixHint });
  * @typedef {{
  *   error?: string, _fixHint?: string, tableId?: string|null, datasetId?: string|null, limit?: number,
  *   limitClamped?: boolean, requestedLimit?: number, sort?: { field: string, dir: string }, filter?: any[], match?: string, search?: { value: string, fields: any[] }, cursor?: string|null,
+ *   total?: boolean,
  * }} QueryArgs
  */
 
@@ -102,7 +103,10 @@ function parseQueryArgs(args) {
     if (a.cursor !== undefined && a.cursor !== null && typeof a.cursor !== 'string') {
         return bad('cursor must be the nextCursor string of the previous call.');
     }
-    return { tableId, datasetId, limit, limitClamped, requestedLimit, sort, filter, ...(match ? { match } : {}), ...(search ? { search } : {}), cursor: a.cursor || null };
+    if (a.total !== undefined && a.total !== null && typeof a.total !== 'boolean') {
+        return bad('total must be true or false.', 'total:true adds totalRows, the number of rows the whole read matches (tableId only).');
+    }
+    return { tableId, datasetId, limit, limitClamped, requestedLimit, sort, filter, ...(match ? { match } : {}), ...(search ? { search } : {}), cursor: a.cursor || null, ...(a.total === true ? { total: true } : {}) };
 }
 
 /** A row without the internal ids a model has no use for. */

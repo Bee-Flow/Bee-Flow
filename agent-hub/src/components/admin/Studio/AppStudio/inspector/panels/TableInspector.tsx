@@ -3,6 +3,7 @@ import useTranslation from '@/hooks/useTranslation';
 import Slider from '@/components/shared/Slider';
 import { RepeatableList, inputCls } from '@/components/admin/product-website/fields';
 import { registerInspector } from '../registry';
+import SpecLaterFields from './SpecLaterFields';
 import BindingField from './BindingField';
 import { FieldKeyField, TextField, SelectField, usePatch } from './kit';
 import type { PanelProps } from '../appDefinition';
@@ -145,6 +146,7 @@ export default function TableInspector({ node, definition, onCommit, disabled = 
                 suffix={t('studio_apps_panels.data_grid.rows_suffix', ' rows')}
                 disabled={disabled}
             />
+            <SpecLaterFields node={node} definition={definition} patch={patch} disabled={disabled} />
         </div>
     );
 }

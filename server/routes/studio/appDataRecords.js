@@ -42,7 +42,7 @@ async function listTables(req, res) {
 
 // GET /:id/data/tables/:tableId/records — list.
 /**
- * @param {import('express').Request<{ id: string, tableId: string }, any, any, import('qs').ParsedQs & { cursor?: string, limit?: number }>} req  query as validated by RecordsQuery
+ * @param {import('express').Request<{ id: string, tableId: string }, any, any, import('qs').ParsedQs & { cursor?: string, limit?: number, total?: string }>} req  query as validated by RecordsQuery
  * @param {import('express').Response} res
  */
 async function listRecords(req, res) {
@@ -52,13 +52,16 @@ async function listRecords(req, res) {
         if (!rlsGateway.canRead(ctx.table, ctx.role)) return res.status(403).json({ error: 'Forbidden' });
 
         const { filters, sort, match, search } = parseListQuery(req);
-        const { records, nextCursor } = await dataReadRunner.runRecordList(ctx, ctx.table, {
-            filters, sort, match, search, cursor: req.query.cursor, limit: req.query.limit,
+        const { records, nextCursor, total, notes } = await dataReadRunner.runRecordList(ctx, ctx.table, {
+            filters, sort, match, search, cursor: req.query.cursor, limit: req.query.limit, total: req.query.total === '1',
         });
         // appVersion rides along on the read every screen already makes: a
         // viewer whose session predates a republish learns about it without a
         // single extra request.
-        res.json({ records, nextCursor, appVersion: ctx.app.publishedVersion ?? null });
+        res.json({
+            records, nextCursor, appVersion: ctx.app.publishedVersion ?? null,
+            ...(total !== undefined ? { total } : {}), ...(notes ? { notes } : {}),
+        });
         // AFTER the response: a connector-filled table refreshes itself when
         // someone looks at stale data, so an app nobody opens costs no API quota.
         kickStaleSync(ctx);

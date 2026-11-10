@@ -16,6 +16,8 @@ export interface DataGridProps {
     source?: BindingInput;
     columns?: GridColumn[];
     pageSize?: number;
+    /** Server paging of a `records` source (schema 3): 'loadMore'. */
+    pagination?: string;
     selectable?: string;
     searchable?: boolean;
     rowActions?: GridAction[];

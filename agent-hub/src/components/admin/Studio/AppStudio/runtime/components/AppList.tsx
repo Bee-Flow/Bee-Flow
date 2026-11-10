@@ -3,11 +3,12 @@ import { useCallback, useMemo, useState } from 'react';
 import type React from 'react';
 import useTranslation from '@/hooks/useTranslation';
 import { buildPeekIndex, peekBadgeLabel, peekBadgeTone, peekKey, type PeekGroupLabel, type PeekRow } from '../listPeek';
+import { usePagedSource, withPager } from '../pagedSource';
 import { resolveBinding, walkPath } from '../resolveBinding';
 import { useRuntime } from '../RuntimeContext';
 import { isFill } from '../styleResolver.helpers';
 import { EmptyText, ErrorText, SkeletonLines, useStickyBinding } from '../uiBits';
-import type { BindingInput } from '../resolveBinding.types';
+import type { BindingInput, ResolveResult } from '../resolveBinding.types';
 import type { NodeProps } from './appNode.types';
 import type { ListProps } from './AppList.types';
 import { relativeTime, renderPeekPanel } from './AppList.helpers';
@@ -27,7 +28,13 @@ import { ListBadge, ListRowBody, groupRows, listLook, peekPosition, rowLook } fr
  * records themselves float in a panel on hover or keyboard focus.
  */
 
+/** A list over `source`; with `pagination` it reads its pages itself (../pagedSource). */
 export default function AppList({ node }: NodeProps<ListProps>) {
+    const paged = usePagedSource('list', node.props?.source, node.props?.pagination);
+    return withPager(paged, <ListBody node={node} source={paged.result} />);
+}
+
+function ListBody({ node, source: resolved }: NodeProps<ListProps> & { source: ResolveResult }) {
     const { t } = useTranslation();
     const { mode, runAction, actionState, dataState, scope } = useRuntime();
     const {
@@ -37,9 +44,7 @@ export default function AppList({ node }: NodeProps<ListProps>) {
         groupKey = null, groupOrder = [], groupLabelMap = [],
         icon = null, emptyText = t('studio_apps_runtime.ui.nothing_to_show', 'Nothing to show yet.'),
     } = node.props || {};
-    const { value: source, isLoading, error, errorCode } = useStickyBinding(
-        resolveBinding(node.props?.source, { actionState, dataState, scope }),
-    );
+    const { value: source, isLoading, error, errorCode } = useStickyBinding(resolved);
 
     // ── Peek ────────────────────────────────────────────────────────────────
     // Read before the early returns below, because hooks must be. A list with

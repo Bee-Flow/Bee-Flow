@@ -97,6 +97,7 @@ test('extension knob groups ride in the snapshot; the phone file lists each exte
 test('defaultPropsOf: every prop, undefined default as null', () => {
     assert.deepStrictEqual(defaultPropsOf({ props: { a: { default: 0 }, b: {} } }), { a: 0, b: null });
     assert.deepStrictEqual(defaultPropsOf({}), {});
+    assert.deepStrictEqual(defaultPropsOf({ props: { a: { default: 1 }, later: { default: null, since: 3 } } }), { a: 1 }, 'a later prop is never filled in');
 });
 
 test('typeEventLists.ts quotes a type that is not an identifier', () => {

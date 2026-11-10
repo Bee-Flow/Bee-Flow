@@ -81,7 +81,7 @@ const TOOL_SCHEMAS_PART_2 = [
                                         // filtered or aggregated on it then failed with "is a
                                         // read-time computed field and cannot be queried", from a
                                         // call whose only intent was to edit a different field.
-                                        stored: { type: 'boolean', description: 'true materialises a real column, so the field can be FILTERED, SORTED and AGGREGATED on (a read-time expression can only be read). Adding one to a populated table, or changing its expr, computes it for every row. Without stored the field is read-time: it is not evaluated yet, so use stored:true for a value you show.' },
+                                        stored: { type: 'boolean', description: 'true materialises a real column, so the field can be FILTERED, SORTED and AGGREGATED on (a read-time expression can only be read). Adding one to a populated table, or changing its expr, computes it for every row. Without stored the field is read-time: worked out on every read when its expr names only this table\'s own columns and functions both engines have (the answer says when one reads empty), shown but not filtered or sorted.' },
                                     },
                                     required: ['expr'],
                                 },
@@ -310,6 +310,7 @@ const TOOL_SCHEMAS_PART_2 = [
                     sort: { type: 'object', description: 'Optional { field, dir: "asc"|"desc" } (tableId only).' },
                     limit: { type: 'number', description: `Max rows per call (default 5, max ${MAX_QUERY_LIMIT}; a larger value is clamped and the answer says limitClamped and requestedLimit). Page on with cursor.` },
                     cursor: { type: 'string', description: 'The nextCursor of the previous answer, to read the next page.' },
+                    total: { type: 'boolean', description: 'tableId only: true adds totalRows, how many rows the whole read matches (filter and row rules applied, not just this page).' },
                 },
             },
         },

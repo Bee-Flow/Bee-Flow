@@ -79,6 +79,11 @@ const RECORD_LIST_SPECS = {
                 type: 'enum', values: ['default', 'striped', 'minimal'], default: 'default',
                 description: 'default = the current ruled table; striped = zebra rows; minimal = borderless, whitespace-separated rows.',
             },
+            // Added after the base: written only when set (canonicalize/shared.js isLateEntry).
+            pagination: {
+                type: 'enum', values: ['loadMore', 'prevNext'], default: null, since: 3,
+                description: 'Pages through a records source: loadMore appends, prevNext steps pages. A page is the source\'s limit rows and rowLimit does not cut it. Left out, the table shows the one page the source reads.',
+            },
         },
         styleKnobs: ['span', 'size'],
         defaultStyle: { span: 12 },
@@ -186,6 +191,11 @@ const RECORD_LIST_SPECS = {
             // OFF by default: with a peek configured but this false, the badge
             // keeps reading badgeKey exactly as it always has.
             peekBadge: { type: 'boolean', default: false },
+            // Added after the base: written only when set (canonicalize/shared.js isLateEntry).
+            pagination: {
+                type: 'enum', values: ['loadMore', 'prevNext'], default: null, since: 3,
+                description: 'Pages through a records source: loadMore appends, prevNext steps pages. A page is the source\'s limit rows. Left out, the list shows the one page the source reads.',
+            },
         },
         // A list is the natural sidebar picker, so it needs to be clickable —
         // without an event it could only ever display.

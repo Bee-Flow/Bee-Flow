@@ -2,8 +2,8 @@
  * Byte-identity guard for the read compilers.
  *
  * Pins the exact SQL text, the parameters and the side fields (primaryField,
- * limit) that compileRecordList, compileAggregate, compileGetById and
- * compileKeyIndex produce for a broad set of read descriptors, in BOTH dialects,
+ * limit) that compileRecordList, compileAggregate, compileGetById,
+ * compileKeyIndex and compileRecordCount produce for a broad set of read descriptors, in BOTH dialects,
  * plus the error each invalid descriptor raises. Every App Studio screen and
  * every automation datatable read runs through these functions; a stored app
  * must keep reading exactly the rows it reads today, so a change to an existing
@@ -58,7 +58,7 @@ const accessOf = (access) => (access === undefined ? C.ACCESS : access);
 
 function snapshot() {
     /** @type {Record<string, Record<string, unknown>>} */
-    const out = { list: {}, aggregate: {}, getById: {}, keyIndex: {}, access: {}, clampLimit: {}, implicitDialect: {} };
+    const out = { list: {}, aggregate: {}, getById: {}, keyIndex: {}, access: {}, clampLimit: {}, implicitDialect: {}, count: {} };
     for (const [name, opts, access] of C.LIST_CASES) {
         out.list[name] = Object.fromEntries(DIALECTS.map((d) => [d, capture(
             () => qc.compileRecordList(C.TABLE, withDialect(opts, d), accessOf(access)))]));
@@ -67,9 +67,13 @@ function snapshot() {
         out.aggregate[name] = Object.fromEntries(DIALECTS.map((d) => [d, capture(
             () => qc.compileAggregate(C.TABLE, withDialect(opts, d), accessOf(access)))]));
     }
-    for (const [name, id, access] of C.GET_BY_ID_CASES) {
+    for (const [name, id, access, opts] of C.GET_BY_ID_CASES) {
         out.getById[name] = Object.fromEntries(DIALECTS.map((d) => [d, capture(
-            () => qc.compileGetById(C.TABLE, id, accessOf(access), { dialect: d }))]));
+            () => qc.compileGetById(C.TABLE, id, accessOf(access), { ...opts, dialect: d }))]));
+    }
+    for (const [name, opts, access] of C.COUNT_CASES) {
+        out.count[name] = Object.fromEntries(DIALECTS.map((d) => [d, capture(
+            () => qc.compileRecordCount(C.TABLE, withDialect(opts, d), accessOf(access)))]));
     }
     for (const [name, keyField, keys] of C.KEY_INDEX_CASES) {
         out.keyIndex[name] = Object.fromEntries(DIALECTS.map((d) => [d, capture(

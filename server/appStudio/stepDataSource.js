@@ -52,6 +52,7 @@ const DATA_KINDS = new Set(['record', 'records', 'aggregate']);
 const { resolveFilterList } = require('../shared/expr/index.mjs');
 const { recordListDescriptor, aggregateDescriptor } = require('../core/dataEngine/readDescriptor.mts');
 const { searchText } = require('../shared/appDefinition/bindingPlan.mjs');
+const { queryWithComputed } = require('../core/dataEngine/computedRead.mts');
 
 function isDataBinding(binding) {
     return !!binding && typeof binding === 'object' && DATA_KINDS.has(binding.kind);
@@ -155,6 +156,7 @@ async function resolveDataBinding(app, model, binding, { viewer, role, resolveVa
                     ? 1
                     : Math.min(Number.isFinite(binding.limit) ? binding.limit : maxRows, maxRows),
                 dialect: plan.dialect,
+                readTimeComputed: true,
             }), accessFilter);
         }
     } catch {
@@ -166,7 +168,8 @@ async function resolveDataBinding(app, model, binding, { viewer, role, resolveVa
 
     let rows;
     try {
-        const res = await plan.query(compiled.sql, compiled.params);
+        // Read-time computed fields are evaluated; one that fails reads empty.
+        const { result: res } = await queryWithComputed(plan.query, compiled);
         rows = Array.isArray(res) ? res : (res?.rows || []);
     } catch {
         return null;

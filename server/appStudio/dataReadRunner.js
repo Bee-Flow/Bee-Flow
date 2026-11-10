@@ -48,6 +48,7 @@ const studioAppDataStore = require('../stores/studioAppDataStore');
 const datatableSource = require('./datatableSource');
 const { readError } = require('./readError');
 const { recordListDescriptor, aggregateDescriptor } = require('../core/dataEngine/readDescriptor.mts');
+const { queryWithComputed } = require('../core/dataEngine/computedRead.mts');
 const log = require('../telemetry/log');
 const { bestEffort } = require('../utils/bestEffort');
 
@@ -146,13 +147,21 @@ function readPlan(ctx, table) {
  * compiler takes, so a caller may hand over a whole batch read. `match` (how the
  * filters join) and `search` (a free search over some columns) travel only when
  * the request carries them, so a read without them compiles as it always did.
+ *
+ * Read-time computed fields are evaluated (queryWithComputed); one that reads
+ * empty is named in `notes`, which is present only then.
+ *
+ * `total: true` (exactly true) adds `total`: how many records match the whole
+ * read, counted with the same WHERE (row rules, filters) and without the page.
+ * A read without it answers exactly as before, with no count query.
  */
 async function runRecordList(ctx, table, opts = {}) {
     const plan = await readPlan(ctx, table);
     const accessFilter = rlsGateway.compileAccessFilter(plan.tableMeta, plan.role, plan.viewer, 'read', { dialect: plan.dialect });
-    const compiled = queryCompiler.compileRecordList(plan.tableMeta,
-        recordListDescriptor(opts, { cursor: opts.cursor, limit: opts.limit, dialect: plan.dialect }), accessFilter);
-    const { rows } = await plan.query(compiled.sql, compiled.params);
+    const descriptor = recordListDescriptor(opts, { cursor: opts.cursor, limit: opts.limit, dialect: plan.dialect, readTimeComputed: true });
+    const compiled = queryCompiler.compileRecordList(plan.tableMeta, descriptor, accessFilter);
+    const { result, notes } = await queryWithComputed(plan.query, compiled);
+    const { rows } = /** @type {{ rows: Record<string, unknown>[] }} */ (result);
 
     /** @type {string | null} */
     let nextCursor = null;
@@ -161,7 +170,22 @@ async function runRecordList(ctx, table, opts = {}) {
         rows.length = compiled.limit;
         nextCursor = queryCompiler.encodeCursor(last[compiled.primaryField], last.id);
     }
-    return { records: rows, nextCursor };
+    const total = opts.total === true ? { total: await countRecords(plan, descriptor, accessFilter) } : {};
+    return { records: rows, nextCursor, ...total, ...(notes.length ? { notes } : {}) };
+}
+
+/**
+ * The size of a whole record read: one COUNT over the read's own WHERE.
+ * @param {ReadPlan} plan
+ * @param {Record<string, unknown>} descriptor  the compileRecordList options of the read
+ * @param {{ where: string, params: unknown[] }} accessFilter
+ */
+async function countRecords(plan, descriptor, accessFilter) {
+    const { sql, params } = queryCompiler.compileRecordCount(plan.tableMeta, descriptor, accessFilter);
+    const { rows } = await plan.query(sql, params);
+    // Postgres answers COUNT(*) as a bigint, which the driver hands over as text.
+    const n = Number(rows[0] && rows[0].total);
+    return Number.isFinite(n) && n >= 0 ? n : 0;
 }
 
 /** An inline aggregate descriptor — a count/sum/group-by with no saved dataset. */
@@ -304,5 +328,5 @@ module.exports = {
  *   app: { id: string, userId: string, organizationId?: string | null }, ownerScope: string,
  *   _datatablePlans?: Map<string, Promise<ReadPlan>>,
  * }} ReadCtx  the per-request context of a read
- * @typedef {{ id?: unknown, kind?: unknown, datasetId?: unknown, tableId?: unknown, filters?: unknown, groupBy?: unknown, aggregates?: unknown, sort?: unknown, cursor?: string | null, limit?: unknown }} BatchRead  one descriptor of a batch
+ * @typedef {{ id?: unknown, kind?: unknown, datasetId?: unknown, tableId?: unknown, filters?: unknown, groupBy?: unknown, aggregates?: unknown, sort?: unknown, cursor?: string | null, limit?: unknown, total?: unknown }} BatchRead  one descriptor of a batch
  */

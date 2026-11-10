@@ -264,6 +264,11 @@ function FieldEditor({ field, update, tables, currentTableId, saved, savedType, 
                             onChange={(e) => set({ computed: { ...(field.computed || {}), stored: e.target.checked } })} />
                         {t('studio_apps_tables.designer.computed_stored', 'Save as a column (filter and sort on it)')}
                     </label>
+                    {field.computed?.stored !== true && (
+                        <p className="text-xs text-[var(--text-tertiary)]">
+                            {t('studio_apps_computed.read_time_hint', 'Worked out every time a record is read, from this table’s own columns. You can show it, but not filter or sort on it.')}
+                        </p>
+                    )}
                 </div>
             ) : field.type !== 'bool' && field.type !== 'file' && field.type !== 'autonumber' && !field.dynamicDefault ? (
                 field.type === 'number' ? (

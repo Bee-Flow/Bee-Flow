@@ -7,6 +7,7 @@ import type { DataState } from './DataContext';
 import { dataCacheKey, resolveBinding, resolveBindingFilters, resolveBindingParams, resolveBindingShape } from './resolveBinding';
 import type { BindingInput, ConnectorBinding, DataBinding as RecordsBinding } from './resolveBinding.types';
 import useAppDataSource, { MIN_REFRESH_MS } from './useAppDataSource';
+import { readsOwnPages } from './pagination';
 
 /**
  * App Studio runtime — the live-data scope.
@@ -87,6 +88,11 @@ export interface BindingEntry {
     cacheKey: string;
     binding: DataBinding;
     live: LiveSetting | null;
+    /**
+     * Only paged lists read it, and they read their own pages (pagedSource.tsx),
+     * so the screen does not fetch it as well. Absent on every other binding.
+     */
+    pagedOnly?: true;
 }
 
 /** What the render prop gets beside the data. */
@@ -138,6 +144,8 @@ export function collectDataBindings(definition: ScopeDefinition | null | undefin
 
     const out: BindingEntry[] = [];
     const byKey = new Map<string, BindingEntry>();
+    // The sources of paged lists (pagination.ts): found like any binding, marked pagedOnly.
+    const pagedSources = new Set<unknown>();
     const visit = (value: Visitable, liveSeconds: LiveSetting | null) => {
         if (!value || typeof value !== 'object') return;
         if (Array.isArray(value)) {
@@ -149,14 +157,19 @@ export function collectDataBindings(definition: ScopeDefinition | null | undefin
             if (!key) return;
             const found = byKey.get(key);
             if (!found) {
-                const entry = { cacheKey: key, binding: value as DataBinding, live: liveSeconds };
+                const entry: BindingEntry = { cacheKey: key, binding: value as DataBinding, live: liveSeconds };
+                if (pagedSources.has(value)) entry.pagedOnly = true;
                 byKey.set(key, entry);
                 out.push(entry);
-            } else if (liveSeconds && (!found.live || liveSeconds.seconds < found.live.seconds)) {
+                return;
+            }
+            if (!pagedSources.has(value)) delete found.pagedOnly;
+            if (liveSeconds && (!found.live || liveSeconds.seconds < found.live.seconds)) {
                 found.live = liveSeconds;
             }
             return; // a binding's own fields never hold nested data bindings we fetch
         }
+        if (readsOwnPages(value)) pagedSources.add((value.props as { source?: unknown } | undefined)?.source);
         // A node's own liveSeconds applies to every binding underneath it, and
         // a child that asks for its own keeps it.
         const own = Number(value?.props?.liveSeconds) || 0;
@@ -234,7 +247,7 @@ function BindingLoaders({ appId, definition, screenId, sample, scope, refreshMs 
     refreshMs: number;
 }) {
     const bindings = useMemo(
-        () => collectDataBindings(definition, screenId),
+        () => collectDataBindings(definition, screenId).filter((b) => !b.pagedOnly),
         [definition, screenId],
     );
     const fetchScope = useFetchScope(scope, definition, screenId);

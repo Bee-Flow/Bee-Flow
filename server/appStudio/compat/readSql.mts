@@ -92,7 +92,8 @@ function compileFor(table: Obj, kind: string, descriptor: Obj, who: Identity): O
         const access = accessFilter.compileAccessFilter(table, who.role, who.viewer, 'read');
         const compiled = kind === 'aggregate'
             ? queryCompiler.compileAggregate(table, descriptor, access)
-            : queryCompiler.compileRecordList(table, descriptor, access);
+            // dataReadRunner asks for the read-time computed fields; a table without one compiles as before.
+            : queryCompiler.compileRecordList(table, { ...descriptor, readTimeComputed: true }, access);
         return { sql: compiled.sql, params: compiled.params };
     } catch (e) {
         return { error: e instanceof Error ? e.message : String(e) };

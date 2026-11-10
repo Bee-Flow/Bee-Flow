@@ -218,6 +218,11 @@ const ANALYTICS_SPECS = {
                 type: 'enum', values: ['default', 'striped', 'minimal', 'cards'], default: 'default',
                 description: 'default = the current ruled grid; striped = zebra rows; minimal = borderless rows; cards = each row rendered as its own card.',
             },
+            // Added after the base: written only when set (canonicalize/shared.js isLateEntry).
+            pagination: {
+                type: 'enum', values: ['loadMore'], default: null, since: 3,
+                description: 'loadMore adds the next page of a records source under the grid. A page is the source\'s limit rows and pageSize keeps paging the rows the grid holds. Left out, the grid shows the one page the source reads.',
+            },
         },
         styleKnobs: ['span', 'size', 'height'],
         defaultStyle: { span: 12 },

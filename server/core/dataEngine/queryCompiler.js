@@ -78,7 +78,7 @@ const { MAX_RESULT_ROWS, DEFAULT_LIMIT, MAX_KEY_INDEX_KEYS, MAX_AGGREGATES, Comp
 const { compileInsert, compileUpdate, compileDelete, compileUpsertByKey, compileUpsertById } = require('./queryCompilerWrite');
 const { compileIdList, compileKeyValues, compileDeleteAll, compileDeleteOlderThan, compileSelectOlderThan, compileDeleteOrphans, compileDoomedUnderParent, compileRetentionDelete } = require('./queryCompilerMaintenance');
 const { encodeCursor, decodeCursor, resolvePrimarySort, keysetClause, recordOrderBy } = require('./queryCompilerOrder.mts');
-const { recordSelectList } = require('./queryCompilerSelect.mts');
+const { recordSelectList, computedSelectFor, computedReadMeta } = require('./queryCompilerSelect.mts');
 const { compileAggregate } = require('./queryCompilerAggregate.mts');
 
 // ── Public compilers ────────────────────────────────────────────────
@@ -93,6 +93,13 @@ const { compileAggregate } = require('./queryCompilerAggregate.mts');
  *
  * `match: 'any'` ORs the client filters; the access predicate stays ANDed
  * outside that group. `maxLimit` caps the page below MAX_RESULT_ROWS.
+ *
+ * `readTimeComputed: true` (set by the caller, never taken from a client
+ * descriptor) adds every read-time computed field to the select list, and the
+ * result gains `readTimeComputed { keys, refused, columns, fallbackSql }`. Run
+ * such a read through computedRead.mts, so a failing expression reads NULL with
+ * a note instead of failing the read. Without the option, or on a table without
+ * such a field, the SQL and the result are what they always were.
  */
 function compileRecordList(tableMeta, opts = {}, accessFilter) {
     const dialect = resolveDialect(opts);
@@ -112,21 +119,51 @@ function compileRecordList(tableMeta, opts = {}, accessFilter) {
         allParams.push(...keyset.params);
     }
 
-    const sql = `SELECT ${recordSelectList()} FROM ${qi(tableMeta.key)} ${clause} `
+    const computed = computedSelectFor(tableMeta, opts, dialect);
+    /** @param {string} list */
+    const sqlWith = (list) => `SELECT ${list} FROM ${qi(tableMeta.key)} ${clause} `
         + `${recordOrderBy(primary)} LIMIT ?`;
     allParams.push(limit + 1); // probe row → nextCursor
-    return { sql, params: allParams, primaryField: primary.fieldKey, limit };
+    return {
+        sql: sqlWith(recordSelectList(computed)), params: allParams, primaryField: primary.fieldKey, limit,
+        ...computedReadMeta(computed, sqlWith),
+    };
 }
 
-/** SELECT one record by id, access-scoped. Hidden rows return 0 rows → 404. */
+/**
+ * How many records a list read matches, for a page that shows a total.
+ *   compileRecordCount(tableMeta, { filters, match, search }, accessFilter)
+ * Returns { sql, params } that select one row `{ total }`. The WHERE is the one
+ * compileRecordList builds from the same descriptor (access filter, client
+ * filters, match, search); the cursor, the order and the limit are left out,
+ * because the total is the size of the whole result, not of one page.
+ */
+function compileRecordCount(tableMeta, opts = {}, accessFilter) {
+    const dialect = resolveDialect(opts);
+    assertTableMeta(tableMeta);
+    const fm = fieldMap(tableMeta);
+    const { where, params } = buildWhere(
+        tableMeta, fm, opts.filters, accessFilter, dialect, opts.match, opts.search);
+    return { sql: `SELECT COUNT(*) AS ${qi('total')} FROM ${qi(tableMeta.key)} ${where}`, params: [...params] };
+}
+
+/**
+ * SELECT one record by id, access-scoped. Hidden rows return 0 rows → 404.
+ * `opts.readTimeComputed: true` adds the read-time computed fields, as in
+ * compileRecordList.
+ */
 function compileGetById(tableMeta, id, accessFilter, opts = {}) {
-    resolveDialect(opts);
+    const dialect = resolveDialect(opts);
     assertTableMeta(tableMeta);
     assertAccessFilter(accessFilter);
     if (typeof id !== 'string' || !id) throw new CompileError('record id is required');
+    const computed = computedSelectFor(tableMeta, opts, dialect);
+    /** @param {string} list */
+    const sqlWith = (list) => `SELECT ${list} FROM ${qi(tableMeta.key)} WHERE ${qi('id')} = ? AND (${accessFilter.where}) LIMIT 1`;
     return {
-        sql: `SELECT ${recordSelectList()} FROM ${qi(tableMeta.key)} WHERE ${qi('id')} = ? AND (${accessFilter.where}) LIMIT 1`,
+        sql: sqlWith(recordSelectList(computed)),
         params: [id, ...accessFilter.params],
+        ...computedReadMeta(computed, sqlWith),
     };
 }
 
@@ -163,6 +200,7 @@ function compileKeyIndex(tableMeta, keyFieldName, keys, accessFilter, opts = {})
 
 module.exports = {
     compileRecordList,
+    compileRecordCount,
     compileGetById,
     compileAggregate,
     compileInsert,
@@ -217,7 +255,8 @@ module.exports = {
 
 /**
  * @typedef {{ dialect?: string, filters?: FilterSpec[], match?: string, search?: SearchSpec | null,
- *   sort?: SortEntry | SortEntry[], cursor?: string, limit?: unknown, maxLimit?: number }} ListOpts
+ *   sort?: SortEntry | SortEntry[], cursor?: string, limit?: unknown, maxLimit?: number,
+ *   readTimeComputed?: boolean }} ListOpts
  */
 
 /**

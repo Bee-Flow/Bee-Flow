@@ -466,6 +466,7 @@ No request schema.
 | `cursor` | string |  | max length 500 |
 | `limit` | integer |  | min 1; max 9007199254740991 |
 | `sample` | one of `"0"`, `"1"` |  |  |
+| `total` | one of `"0"`, `"1"` |  |  |
 
 ### `POST /api/studio-apps/:id/data/tables/:tableId/records`
 

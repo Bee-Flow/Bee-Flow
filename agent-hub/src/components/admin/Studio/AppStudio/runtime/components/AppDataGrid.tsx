@@ -2,7 +2,7 @@ import { useTable } from '@tanstack/react-table';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import useTranslation from '@/hooks/useTranslation';
-import { resolveBinding } from '../resolveBinding';
+import { usePagedSource, withPager } from '../pagedSource';
 import { useRuntime } from '../RuntimeContext';
 import { ErrorText, SkeletonLines, useStickyBinding } from '../uiBits';
 import { groupPageRows } from './grid/GridBody';
@@ -21,10 +21,17 @@ import { useRowSelectNotify } from './grid/useRowSelectNotify';
 import type { GridRow } from './grid/gridTypes';
 import type { NodeProps } from './appNode.types';
 import type { DataGridProps } from './AppDataGrid.types';
+import type { ResolveResult } from '../resolveBinding.types';
 
+/** A grid over `source`; with `pagination` it reads its pages itself (../pagedSource). */
 export default function AppDataGrid({ node }: NodeProps<DataGridProps>) {
+    const paged = usePagedSource('data_grid', node.props?.source, node.props?.pagination);
+    return withPager(paged, <DataGridBody node={node} source={paged.result} />);
+}
+
+function DataGridBody({ node, source: resolved }: NodeProps<DataGridProps> & { source: ResolveResult }) {
     const { t } = useTranslation();
-    const { mode, runAction, actionState, dataState, scope } = useRuntime();
+    const { mode, runAction, actionState, scope } = useRuntime();
     const props = node.props || {};
     const {
         columns: colDefs = [], pageSize: pageSizeProp = 25, selectable = 'none', searchable = false,
@@ -51,9 +58,7 @@ export default function AppDataGrid({ node }: NodeProps<DataGridProps>) {
     // Look pass (spec: data_grid.look): see gridLookFor.
     const { minimal, cards, striped } = gridLookFor(view.look, zebra);
 
-    const { value: source, isLoading, error, errorCode } = useStickyBinding(
-        resolveBinding(props.source, { actionState, dataState, scope }),
-    );
+    const { value: source, isLoading, error, errorCode } = useStickyBinding(resolved);
 
     const {
         sorting, setSorting, globalFilter, setGlobalFilter, columnFilters, setColumnFilters, rowSelection, setRowSelection,

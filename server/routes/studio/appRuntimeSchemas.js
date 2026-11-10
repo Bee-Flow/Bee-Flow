@@ -145,6 +145,8 @@ const RecordsQuery = queryOf({
     limit: wholeNumber('limit is a whole number, 1 or more.', { min: 1 }).optional(),
     // The editor's preview asks for a sample; the page size already covers it.
     sample: choice(['0', '1'], 'sample is 1 for an editor preview.').optional(),
+    // 1 adds `total`: how many records the whole read matches (a paged list shows it).
+    total: choice(['0', '1'], 'total is 1 to count the matching records.').optional(),
 }, 'A table page');
 
 module.exports = { DraftQuery, StepBody, RunBody, RunEndBody, BackgroundBody, JobParams, JobsQuery, ChatBody, RecordsQuery, ErrorScope };

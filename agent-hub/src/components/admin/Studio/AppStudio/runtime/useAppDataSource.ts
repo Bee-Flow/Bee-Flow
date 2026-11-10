@@ -52,7 +52,7 @@ const SAMPLE_LIMIT = 50;
 
 const DATA_KINDS = new Set<string | undefined>(['record', 'records', 'aggregate', 'dataset', 'connector']);
 
-function qs(params: ArrayLike<unknown>|{ [s: string]: unknown; }) {
+export function qs(params: ArrayLike<unknown>|{ [s: string]: unknown; }) {
     const usp = new URLSearchParams();
     for (const [k, v] of Object.entries(params)) {
         if (v == null || v === '') continue;
@@ -76,7 +76,7 @@ const dataError = dataErrorFromResponse;
 ;
 
 /** The page size for a record/records read — capped hard while editing. */
-function recordLimit(binding: DataBinding, sample: boolean) {
+export function recordLimit(binding: DataBinding, sample: boolean) {
     if (!sample) return binding.limit;
     return Math.min(Number.isFinite(binding.limit) ? Number(binding.limit) : SAMPLE_LIMIT, SAMPLE_LIMIT);
 }
@@ -271,6 +271,22 @@ async function fetchBinding(appId: string | null, binding: FetchBinding, { sampl
  */
 export const MIN_REFRESH_MS = 15_000;
 
+/**
+ * Everything except "you are over the per-minute read budget" is a real
+ * failure and is surfaced immediately — a blind retry would only hide it.
+ * A 429 is different: the data is fine, the viewer just spent the budget,
+ * and the server tells us exactly how long to wait. react-query keeps the
+ * previous rows on screen while a retry is pending, so a busy minute now
+ * looks like a slightly late table instead of red "could not be loaded".
+ * Shared with the paged reads (pagedSource.tsx).
+ */
+export const RATE_LIMIT_RETRY = {
+    retry: (attempt: number, err: DataError) => isRateLimited(err) && attempt < 2,
+    retryDelay: (attempt: number, err: DataError) => (isRateLimited(err) && err.retryAfter
+        ? (err.retryAfter + 1) * 1000
+        : Math.min(30_000, 2_000 * 2 ** attempt)),
+};
+
 export default function useAppDataSource(binding: unknown, { appId: appIdOverride, sample = false, refreshMs = 0 }: { appId?: string | null; sample?: boolean; refreshMs?: number } = {}) {
     const ctx = useDataContext();
     const appId = appIdOverride ?? ctx.appId;
@@ -294,16 +310,7 @@ export default function useAppDataSource(binding: unknown, { appId: appIdOverrid
         // Pinned explicitly rather than left to the default: this is the rule
         // that stops a forgotten background tab from polling all day.
         refetchIntervalInBackground: false,
-        // Everything except "you are over the per-minute read budget" is a real
-        // failure and is surfaced immediately — a blind retry would only hide it.
-        // A 429 is different: the data is fine, the viewer just spent the budget,
-        // and the server tells us exactly how long to wait. react-query keeps the
-        // previous rows on screen while a retry is pending, so a busy minute now
-        // looks like a slightly late table instead of red "could not be loaded".
-        retry: (attempt, err) => isRateLimited(err) && attempt < 2,
-        retryDelay: (attempt, err) => (isRateLimited(err) && err.retryAfter
-            ? (err.retryAfter + 1) * 1000
-            : Math.min(30_000, 2_000 * 2 ** attempt)),
+        ...RATE_LIMIT_RETRY,
     });
 
     // Mirror the query lifecycle into the shared store so resolveBinding sees it.

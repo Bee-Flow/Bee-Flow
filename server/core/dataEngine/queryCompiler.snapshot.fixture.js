@@ -187,6 +187,19 @@ const LIST_CASES = [
 ];
 for (const [name, clause] of OP_CLAUSES) LIST_CASES.push([`op-${name}`, { filters: [clause] }]);
 for (const [name, clause] of OP_CLAUSES) LIST_CASES.push([`op-${name}-in-any`, { filters: [{ any: [clause, { field: 'title', op: 'isNull' }] }] }]);
+// Read-time computed fields in the select list (issue 587), only when the caller asks for them.
+LIST_CASES.push(
+    ['read-time-computed', { readTimeComputed: true }],
+    ['read-time-computed-page', {
+        readTimeComputed: true,
+        filters: [{ field: 'title', op: 'contains', value: 'a' }, { field: 'done', op: 'eq', value: true }],
+        sort: [{ field: 'amount', dir: 'asc' }],
+        cursor: cursorOf(12, 'rec_3'),
+        limit: 10,
+    }],
+    ['read-time-computed-not-true', { readTimeComputed: 'yes' }],
+    ['err-read-time-computed-filter', { readTimeComputed: true, filters: [{ field: 'total', op: 'gt', value: 1 }] }],
+);
 
 /**
  * Descriptors for compileAggregate: [name, opts, access?].
@@ -262,13 +275,30 @@ for (const bucket of ['hour', 'day', 'week', 'month', 'quarter', 'year']) {
     AGGREGATE_CASES.push([`bucket-${bucket}-percentile`, { groupBy: [{ field: 'created_at', bucket, as: 'b' }], aggregates: [{ fn: 'p50', field: 'amount', as: 'm' }] }]);
 }
 
-/** [name, id, access?] for compileGetById. */
+/** [name, id, access?, opts?] for compileGetById. */
 const GET_BY_ID_CASES = [
     ['plain', 'rec_1'],
     ['allow', 'rec_2', ALLOW],
     ['err-empty-id', ''],
     ['err-number-id', 42],
     ['err-no-access', 'rec_1', null],
+    ['read-time-computed', 'rec_1', undefined, { readTimeComputed: true }],
+];
+
+/**
+ * Descriptors for compileRecordCount: [name, opts, access?]. The count carries
+ * the list's WHERE and nothing of its page, so a cursor, a sort and a limit
+ * must leave no trace in the SQL.
+ */
+const COUNT_CASES = [
+    ['empty', {}],
+    ['filters', { filters: [{ field: 'title', op: 'contains', value: 'a' }, { field: 'done', op: 'eq', value: true }] }],
+    ['any-group', { filters: [{ any: [{ field: 'region', op: 'eq', value: 'eu' }, { field: 'amount', op: 'gt', value: 5 }] }] }],
+    ['match-any', { filters: [{ field: 'region', op: 'eq', value: 'eu' }, { field: 'region', op: 'eq', value: 'us' }], match: 'any' }],
+    ['page-ignored', { filters: [{ field: 'amount', op: 'gte', value: 1 }], sort: { field: 'amount', dir: 'asc' }, cursor: cursorOf(12, 'rec_3'), limit: 5 }],
+    ['allow', {}, ALLOW],
+    ['err-unknown-field', { filters: [{ field: 'nope', op: 'eq', value: 1 }] }],
+    ['err-no-access', {}, null],
 ];
 
 /** [name, keyField, keys, access?] for compileKeyIndex. */
@@ -313,6 +343,6 @@ const CLAMP_CASES = [[undefined], [''], [-5], ['abc'], [NaN], [0], [1], [49.9], 
 
 module.exports = {
     TABLE, ACCESS, ALLOW, cursorOf,
-    LIST_CASES, AGGREGATE_CASES, GET_BY_ID_CASES, KEY_INDEX_CASES,
+    LIST_CASES, AGGREGATE_CASES, GET_BY_ID_CASES, KEY_INDEX_CASES, COUNT_CASES,
     ACCESS_CASES, ACCESS_LIST_OPTS, ACCESS_AGG_OPTS, CLAMP_CASES,
 };

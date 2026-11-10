@@ -134,12 +134,20 @@ test('app_get_data_model shows whether a computed field is stored and its expr; 
             { key: 'qty', type: 'number' },
             { key: 'dbl', type: 'computed', computed: { expr: 'qty * 2', type: 'number', stored: true } },
             { key: 'label', type: 'computed', computed: { expr: "'x'" } },
+            // Names a field listed after it: checked against the whole field list.
+            { key: 'twice', type: 'computed', computed: { expr: 'later * 2' } },
+            { key: 'legacy', type: 'computed', computed: { expr: 'iif(qty > 1, 1, 0)' } },
+            { key: 'later', type: 'number' },
         ],
     });
-    assert.ok(r._hints.some((h) => /"label" is a read-time computed field: it is not evaluated yet/.test(h)));
+    assert.ok(r._hints.some((h) => /"label" is a read-time computed field: it is worked out on every read/.test(h)));
+    assert.ok(r._hints.some((h) => /"twice" is a read-time computed field: it is worked out on every read/.test(h)));
+    assert.ok(r._hints.some((h) => /"legacy" is a read-time computed field and reads empty: function iif\(\) is not available on both database engines/.test(h)));
     const withIds = renderDataBlock(wrap.dataModel, [], {}, null, { fieldIds: true });
     assert.match(withIds, /dbl computed id=fld_[a-z0-9]+ \(read-only\) stored returns=number expr="qty \* 2"/);
-    assert.match(withIds, /label computed id=fld_[a-z0-9]+ \(read-only\) read-time \(not evaluated\) expr="'x'"/);
+    assert.match(withIds, /label computed id=fld_[a-z0-9]+ \(read-only\) read-time \(evaluated on read, not filterable or sortable\) expr="'x'"/);
+    // Only what the compiler evaluates is called evaluated: the rest keeps the old warning, with why.
+    assert.match(withIds, /legacy computed id=fld_[a-z0-9]+ \(read-only\) read-time \(not evaluated, reads empty: function iif\(\) is not available on both database engines/);
     const perTurn = renderDataBlock(wrap.dataModel, [], {});
     assert.match(perTurn, /^ {4}dbl computed \(read-only\)$/m, 'the per-turn block is unchanged');
     assert.match(perTurn, /^ {4}label computed \(read-only\)$/m);

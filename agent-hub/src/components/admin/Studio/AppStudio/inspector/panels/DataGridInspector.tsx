@@ -12,6 +12,7 @@ import { RepeatableList, inputCls } from '@/components/admin/product-website/fie
 import { actionOptions } from '../actionLabels';
 import GridActionSurfaces from './GridActionSurfaces';
 import { registerInspector } from '../registry';
+import SpecLaterFields from './SpecLaterFields';
 import type { PanelProps } from '../appDefinition';
 
 function getAlignsOptions(t: TranslateFn) {
@@ -249,6 +250,7 @@ export default function DataGridInspector({ node, definition, onCommit, disabled
             </fieldset>
             <GridActionSurfaces node={node} definition={definition} onCommit={onCommit} disabled={disabled} />
             <TextField label={t('studio_apps_panels.data_grid.empty_text', 'Empty text')} value={props.emptyText} onChange={(v) => patch({ emptyText: v })} disabled={disabled} />
+            <SpecLaterFields node={node} definition={definition} patch={patch} disabled={disabled} />
         </div>
     );
 }

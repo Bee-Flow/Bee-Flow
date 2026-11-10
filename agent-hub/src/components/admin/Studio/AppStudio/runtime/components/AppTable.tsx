@@ -1,7 +1,8 @@
 import CellValue, { ALIGN_CLASS, alignFor } from './cellValue';
 import useTranslation from '@/hooks/useTranslation';
-import { resolveBinding, walkPath } from '../resolveBinding';
-import type { BindingInput } from '../resolveBinding.types';
+import { usePagedSource, withPager } from '../pagedSource';
+import { walkPath } from '../resolveBinding';
+import type { BindingInput, ResolveResult } from '../resolveBinding.types';
 import { useRuntime } from '../RuntimeContext';
 import { EmptyText, ErrorText, SkeletonLines, useStickyBinding } from '../uiBits';
 import type { NodeProps } from './appNode.types';
@@ -22,15 +23,22 @@ interface TableProps {
     rowLimit?: number;
     source?: BindingInput;
     look?: string;
+    pagination?: string;
 }
 
+/** A table over `source`; with `pagination` it reads its pages itself (../pagedSource). */
 export default function AppTable({ node }: NodeProps<TableProps>) {
+    const paged = usePagedSource('table', node.props?.source, node.props?.pagination);
+    return withPager(paged, <TableBody node={node} source={paged.result} paged={!!paged.loaders} />);
+}
+
+function TableBody({ node, source: resolved, paged }: NodeProps<TableProps> & { source: ResolveResult; paged: boolean }) {
     const { t } = useTranslation();
-    const { actionState, dataState, scope } = useRuntime();
-    const { columns = [], emptyText = t('studio_apps_runtime.ui.nothing_to_show', 'Nothing to show yet.'), rowLimit = 25 } = node.props || {};
-    const { value: source, isLoading, error, errorCode } = useStickyBinding(
-        resolveBinding(node.props?.source, { actionState, dataState, scope }),
-    );
+    const { scope } = useRuntime();
+    const { columns = [], emptyText = t('studio_apps_runtime.ui.nothing_to_show', 'Nothing to show yet.'), rowLimit: rowLimitProp = 25 } = node.props || {};
+    // A paged table shows the pages it read; rowLimit cuts only the one page a plain source reads.
+    const rowLimit = paged ? Infinity : rowLimitProp;
+    const { value: source, isLoading, error, errorCode } = useStickyBinding(resolved);
 
     if (error) return <ErrorText error={error} errorCode={errorCode} />;
 
