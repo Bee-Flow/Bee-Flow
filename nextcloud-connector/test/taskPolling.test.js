@@ -15,6 +15,7 @@ const path = require('node:path');
 delete process.env.BEEFLOW_TENANT_KEY;
 process.env.APP_SECRET = 'test-secret';
 process.env.NEXTCLOUD_URL = 'http://nc.test';
+process.env.BEEFLOW_API_BASE_URL = 'http://beeflow.test';
 const storage = fs.mkdtempSync(path.join(os.tmpdir(), 'beeflow-tp-'));
 process.env.APP_PERSISTENT_STORAGE = storage;
 // A cached tenant key, as a prior successful bootstrap would have written.
