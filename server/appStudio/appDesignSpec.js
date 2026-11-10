@@ -127,7 +127,7 @@ function canonDesignEnum(key, spec, v, push) {
  */
 function canonDesignUrl(key, spec, v, push) {
     if (v === null || v === undefined) return spec.default;
-    if (typeof v === 'string' && /^https:\/\//.test(v) && v.length <= spec.maxLen) return v;
+    if (typeof v === 'string' && v.startsWith('https://') && v.length <= spec.maxLen) return v;
     push('design.value_invalid', `design.${key}`, `design.${key} must be an https:// URL of at most ${spec.maxLen} characters — ${spec.optional ? 'dropped' : 'reset to null'}.`);
     return spec.optional ? undefined : spec.default;
 }
