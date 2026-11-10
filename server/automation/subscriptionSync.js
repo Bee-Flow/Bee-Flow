@@ -285,17 +285,31 @@ function watchesSharedMailbox(event, filter) {
 const COWORK_MAIL_EVENTS = { gmail: 'mail.new', msgraph: 'mail.new' };
 
 /**
+ * Does this session hold a token of `provider`'s own account? The legacy
+ * `accessToken` belongs to `oauthProvider`: a Microsoft token is not a Gmail
+ * connection (and the other way round). A session that does not say whose
+ * token it is counts for both, as it did before.
  * @param {Record<string, any> | null | undefined} session  triggerBus.loadSession
  * @param {string} provider
  */
 function hasMailCredentials(session, provider) {
     if (!session) return false;
-    if (provider === 'msgraph') {
-        return !!((session.oauthProvider === 'microsoft' && session.accessToken)
-            || session.automationProviders?.microsoft?.accessToken
-            || (!session.oauthProvider && session.accessToken));
-    }
-    return !!session.accessToken;
+    const owner = provider === 'msgraph' ? 'microsoft' : 'google';
+    return !!((session.oauthProvider === owner && session.accessToken)
+        || session.automationProviders?.[owner]?.accessToken
+        || (!session.oauthProvider && session.accessToken));
+}
+
+/**
+ * The mail apps this user can start an agent from: the same question
+ * assertMailTriggerReady asks at save time, so what the composer offers and
+ * what a save accepts cannot differ. Ids only, nothing about the account.
+ * @param {string} userId
+ * @returns {Promise<string[]>}
+ */
+async function connectedMailProviders(userId) {
+    const session = await triggerBus.loadSession(userId).catch((e) => fallback('automation/subscriptionSync:connectedMailProviders', e, null));
+    return Object.keys(COWORK_MAIL_EVENTS).filter((provider) => hasMailCredentials(session, provider));
 }
 
 /**
@@ -376,7 +390,7 @@ async function revokeCoworkMailTrigger(scheduleId) {
 // The cowork store resumes mail triggers after an OAuth reconnect but may not require this feature: it is handed the sync here.
 require('../stores/coworkStore').setMailTriggerSync(syncCoworkMailTrigger);
 
-module.exports = { _setDepsForTests, syncAppEventSubscription, revokeRemoteSubscriptions, syncCoworkMailTrigger, revokeCoworkMailTrigger, assertMailTriggerReady, hasAppEventTrigger, appEventFingerprint };
+module.exports = { _setDepsForTests, syncAppEventSubscription, revokeRemoteSubscriptions, syncCoworkMailTrigger, revokeCoworkMailTrigger, assertMailTriggerReady, connectedMailProviders, hasAppEventTrigger, appEventFingerprint };
 
 /** @typedef {{ id?: string, kind?: string, appEvent?: { provider?: string, event?: string, filter?: Record<string, unknown>|null } }} AppTrigger */
 

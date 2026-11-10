@@ -6,7 +6,7 @@
  */
 const test = require('node:test');
 const assert = require('node:assert');
-const { syncCoworkMailTrigger, revokeCoworkMailTrigger, assertMailTriggerReady, _setDepsForTests } = require('./subscriptionSync');
+const { syncCoworkMailTrigger, revokeCoworkMailTrigger, assertMailTriggerReady, connectedMailProviders, _setDepsForTests } = require('./subscriptionSync');
 
 /** @type {any[]} */ let rows = [];
 /** @type {any[]} */ const created = [];
@@ -116,4 +116,19 @@ test('no connected account: 409 mail_not_connected and no row', async () => {
 test('only mail.new of Gmail or Outlook is a trigger: 400', async () => {
     await assert.rejects(assertMailTriggerReady('u1', { provider: 'github', event: 'mail.new' }), (/** @type {any} */ e) => e.status === 400);
     await assert.rejects(assertMailTriggerReady('u1', { provider: 'gmail', event: 'label.added' }), (/** @type {any} */ e) => e.status === 400);
+});
+
+test('a Microsoft account is not a Gmail connection, and the other way round', async () => {
+    session = { oauthProvider: 'microsoft', accessToken: 'ms-at' };
+    assert.deepStrictEqual(await connectedMailProviders('u1'), ['msgraph']);
+    await assert.rejects(assertMailTriggerReady('u1', { provider: 'gmail', event: 'mail.new' }), (/** @type {any} */ e) => e.code === 'mail_not_connected');
+    session = { oauthProvider: 'google', accessToken: 'g-at' };
+    assert.deepStrictEqual(await connectedMailProviders('u1'), ['gmail']);
+});
+
+test('both accounts connected: both mail apps; none: none', async () => {
+    session = { oauthProvider: 'google', accessToken: 'g-at', automationProviders: { google: { accessToken: 'g-at' }, microsoft: { accessToken: 'ms-at' } } };
+    assert.deepStrictEqual(await connectedMailProviders('u1'), ['gmail', 'msgraph']);
+    session = null;
+    assert.deepStrictEqual(await connectedMailProviders('u1'), []);
 });

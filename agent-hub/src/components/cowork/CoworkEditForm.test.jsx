@@ -556,9 +556,7 @@ describe('CoworkEditForm — a mail-trigger item', () => {
     const TRIGGER = { provider: 'gmail', event: 'mail.new', filter: { from: 'boss@x.nl' } };
 
     beforeEach(() => {
-        vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({
-            triggers: [{ kind: 'app_event', providers: [{ id: 'gmail', label: 'Gmail', events: [{ id: 'mail.new' }] }] }],
-        }), { status: 200, headers: { 'Content-Type': 'application/json' } })));
+        vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ providers: ['gmail'] }), { status: 200, headers: { 'Content-Type': 'application/json' } })));
     });
     afterEach(() => { vi.unstubAllGlobals(); });
 

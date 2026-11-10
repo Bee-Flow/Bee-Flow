@@ -12,6 +12,13 @@ import type { ComponentProps } from 'react';
 const AGENTS = [{ id: 'a1', name: 'Mail helper' }];
 const t = (_k: string, fb: string, vars?: Record<string, string>) => (vars ? fb.replace(/\{(\w+)\}/g, (_m, k) => vars[k]) : fb);
 
+/** Answer every request with the connected mail apps (`null`: the read fails). */
+function stubMailProviders(providers: string[] | null) {
+    vi.stubGlobal('fetch', vi.fn(async () => (providers
+        ? new Response(JSON.stringify({ providers }), { status: 200, headers: { 'Content-Type': 'application/json' } })
+        : new Response(JSON.stringify({ error: 'nope' }), { status: 403, headers: { 'Content-Type': 'application/json' } }))));
+}
+
 function setup(over = {}) {
     const props = {
         when: { presetId: 'now', date: '', time: '' },
@@ -26,9 +33,7 @@ function setup(over = {}) {
         onMailTriggerChange: vi.fn(),
         ...over,
     };
-    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({
-        triggers: [{ kind: 'app_event', providers: [{ id: 'gmail', label: 'Gmail', events: [{ id: 'mail.new' }] }] }],
-    }), { status: 200, headers: { 'Content-Type': 'application/json' } })));
+    stubMailProviders(['gmail']);
     render(withQueryClient(<CoworkOptionsBar {...stub<ComponentProps<typeof CoworkOptionsBar>>(props)} />));
     return props;
 }
@@ -74,9 +79,7 @@ describe('CoworkOptionsBar: when a new email arrives', () => {
 
 describe('MailTriggerPanel', () => {
     it('edits the filter and shows only connected providers', async () => {
-        vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({
-            triggers: [{ kind: 'app_event', providers: [{ id: 'gmail', label: 'Gmail', events: [{ id: 'mail.new' }] }] }],
-        }), { status: 200, headers: { 'Content-Type': 'application/json' } })));
+        stubMailProviders(['gmail']);
         const user = userEvent.setup();
         const onChange = vi.fn();
         render(withQueryClient(<MailTriggerPanel value={defaultMailTrigger('gmail')} onChange={onChange} />));
@@ -87,9 +90,34 @@ describe('MailTriggerPanel', () => {
     });
 
     it('says so when no mail app is connected', async () => {
-        vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ triggers: [{ kind: 'app_event', providers: [] }] }), { status: 200, headers: { 'Content-Type': 'application/json' } })));
+        stubMailProviders([]);
         render(withQueryClient(<MailTriggerPanel value={defaultMailTrigger('gmail')} onChange={vi.fn()} />));
         await waitFor(() => expect(screen.getByTestId('mail-trigger-none')).toBeTruthy());
+    });
+
+    it('moves to Outlook when only Outlook is connected, and never shows the Gmail fields', async () => {
+        stubMailProviders(['msgraph']);
+        const onChange = vi.fn();
+        render(withQueryClient(<MailTriggerPanel value={defaultMailTrigger('gmail')} onChange={onChange} />));
+        expect(screen.getByTestId('mail-trigger-loading')).toBeTruthy();
+        await waitFor(() => expect(onChange).toHaveBeenCalledWith({ provider: 'msgraph', event: 'mail.new', filter: {} }));
+        expect(screen.queryByLabelText('Gmail label id (optional)')).toBeNull();
+        expect(screen.queryByTestId('mail-trigger-panel')).toBeNull();
+    });
+
+    it('has no Gmail label field for an Outlook trigger', async () => {
+        stubMailProviders(['msgraph']);
+        render(withQueryClient(<MailTriggerPanel value={defaultMailTrigger('msgraph')} onChange={vi.fn()} />));
+        const panel = await screen.findByTestId('mail-trigger-panel');
+        expect(within(panel).getByLabelText('From contains (optional)')).toBeTruthy();
+        expect(within(panel).queryByLabelText('Gmail label id (optional)')).toBeNull();
+    });
+
+    it('offers both mail apps when the connections cannot be read', async () => {
+        stubMailProviders(null);
+        render(withQueryClient(<MailTriggerPanel value={defaultMailTrigger('gmail')} onChange={vi.fn()} />));
+        const panel = await screen.findByTestId('mail-trigger-panel');
+        expect(within(panel).getAllByRole('radio')).toHaveLength(2);
     });
 });
 
