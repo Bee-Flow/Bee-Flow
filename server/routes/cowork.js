@@ -259,6 +259,13 @@ router.put('/:id', validate({ body: UpdateBody }), async (/** @type {import('exp
     }
 });
 
+// GET /mail-providers — the mail apps (gmail, msgraph) this user has connected, so
+// the "when a new email arrives" settings only offer what a save would accept.
+// Before /:id, or it would be read as an item id.
+router.get('/mail-providers', async (req, res) => {
+    res.json({ providers: await mailTriggers().connectedMailProviders(req.session.user.id) });
+});
+
 // GET /:id — one schedule. Exists so the notification a finished run produces
 // can work out where to continue: the agent + conversation it ran in, or
 // nothing, which means plain direct chat.
