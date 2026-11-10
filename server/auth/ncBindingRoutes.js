@@ -1,17 +1,13 @@
 // @typecheck noImplicitAny
 /**
- * Authenticated NC binding approval endpoints.
+ * Authenticated NC binding endpoints: approving or denying a pending binding,
+ * pairing codes, and removing an organisation's Nextcloud link.
  *
- * When the connector bootstrap detects a candidate adoption (NC admin email
- * matches an existing un-bound Bee Flow org), it does NOT bind — it creates
- * a `pending_nc_bindings` row and returns 202 to the connector. The org
- * admin must visit the SaaS UI, log in with their existing credentials, and
- * approve/deny the binding here. Only on approval is the org bound and the
- * tenantKey minted.
- *
- * This blocks the unauthenticated org-takeover path where an attacker
- * hosting a fake Nextcloud could otherwise claim a victim's email and have
- * the bootstrap silently adopt the victim's org.
+ * A connector bootstrap never links a Nextcloud to an existing organisation by
+ * itself. An organisation administrator decides: with a pairing code generated
+ * here, with the one-time code that is sent to an organisation administrator
+ * (auth/connectorBootstrap.js), or by approving a pending binding here. Only
+ * then is the organisation bound and its tenant key answered.
  */
 
 const express = require('express');
@@ -156,12 +152,22 @@ router.post('/admin/nc-bindings/:id/approve', requireAuth, async (req, res) => {
 
     let boundOrg = org;
     if (!org.nc_instance_id) {
-        boundOrg = await bindOrgToNcInstance(org, {
-            ncInstanceId: row.ncInstanceId,
-            ncBaseUrl: row.ncBaseUrl,
-            ncAdminUid: row.ncAdminUid,
-            connectorCallbackUrl: row.connectorCallbackUrl,
-        });
+        // An approval links the Nextcloud to this organisation only: the bind
+        // refuses an instance id that belongs to another one.
+        try {
+            boundOrg = await bindOrgToNcInstance(org, {
+                ncInstanceId: row.ncInstanceId,
+                ncBaseUrl: row.ncBaseUrl,
+                ncAdminUid: row.ncAdminUid,
+                connectorCallbackUrl: row.connectorCallbackUrl,
+            });
+        } catch (e) {
+            const refusal = /** @type {{ code?: string }} */ (e).code;
+            if (refusal === 'nc_instance_bound_elsewhere' || refusal === 'org_linked_to_other_instance') {
+                throw new HttpError(409, refusal, /** @type {Error} */ (e).message);
+            }
+            throw e;
+        }
     }
 
     try {

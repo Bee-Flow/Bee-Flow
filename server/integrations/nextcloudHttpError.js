@@ -92,7 +92,11 @@ function hasMaintenanceHeader(res) {
     return headerOf(res, 'x-nextcloud-maintenance-mode') === '1';
 }
 
-const MAINTENANCE_BODY_RE = /maintenance mode|upgrade needed/i;
+/** @param {string} body */
+function saysMaintenance(body) {
+    const text = String(body || '').toLowerCase();
+    return text.includes('maintenance mode') || text.includes('upgrade needed');
+}
 
 /**
  * @param {string} what
@@ -123,7 +127,9 @@ function isProxyPage(res, rawBody) {
     const contentType = headerOf(res, 'content-type');
     if (!HTML_PAGE_RE.test(head) && !/text\/html/i.test(contentType)) return false;
     if (/nextcloud/i.test(head)) return false;
-    return !!headerOf(res, 'cf-ray') || /cloudflare/i.test(headerOf(res, 'server')) || /cloudflare|cf-ray/i.test(head);
+    const page = head.toLowerCase();
+    return !!headerOf(res, 'cf-ray') || String(headerOf(res, 'server') || '').toLowerCase().includes('cloudflare')
+        || page.includes('cloudflare') || page.includes('cf-ray');
 }
 
 /**
@@ -160,7 +166,7 @@ function downloadFailureMessage(res) {
 async function serverSideError(res, what) {
     const status = res.status;
     if (status === 503) {
-        const maintenance = hasMaintenanceHeader(res) || MAINTENANCE_BODY_RE.test(await res.text().catch(() => ''));
+        const maintenance = hasMaintenanceHeader(res) || saysMaintenance(await res.text().catch(() => ''));
         if (maintenance) return { error: maintenanceMessage(what) };
     }
     if (status === 502 || status === 503 || status === 504) {
