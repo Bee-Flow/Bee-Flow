@@ -23,6 +23,12 @@ const SETUP_TEXTS = {
         + 'install-time value to fix Bee Flow Cloud.',
 };
 
+// The same sentence for the admin settings form (declarativeSettings.js),
+// where the server is a radio button and there is no Connect button.
+const SETTINGS_FORM_CONSENT = 'When you choose a server here, the names and e-mail addresses of this Nextcloud\'s '
+    + 'administrators, its address, instance id and version are sent to that server, an organisation is created there, '
+    + 'and users and groups are synchronised afterwards. Nothing is sent before you make that choice.';
+
 // The failures of a choice that have a name. Each is one sentence an
 // administrator can act on: no command, no address.
 const CONNECT_ERRORS = {
@@ -46,4 +52,4 @@ const CATEGORY_TO_CONNECT_ERROR = {
     version_mismatch: 'version_mismatch',
 };
 
-module.exports = { SETUP_TEXTS, CONNECT_ERRORS, CATEGORY_TO_CONNECT_ERROR, SELF_HOSTING_DOCS_URL };
+module.exports = { SETUP_TEXTS, SETTINGS_FORM_CONSENT, CONNECT_ERRORS, CATEGORY_TO_CONNECT_ERROR, SELF_HOSTING_DOCS_URL };

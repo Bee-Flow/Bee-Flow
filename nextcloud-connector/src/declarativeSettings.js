@@ -12,6 +12,12 @@
  * setupConfig. When a change is detected, we invalidate the cached tenant
  * key and trigger a fresh bootstrap so the SPA's next request lands on
  * the new SaaS target.
+ *
+ * The form never makes the choice of a server by itself. Its default is
+ * "No change", and while no server is chosen the values found at the first
+ * poll after a start are only noted: a value counts as a choice once it is
+ * changed after that. A first choice asks the address for /api/health before
+ * anything is saved or sent, like the setup page does.
  */
 
 const config = require('./config');
@@ -21,12 +27,16 @@ const { ocsSucceeded } = require('./ocs');
 const { parseAllowedUrl } = require('./remoteHost');
 const log = require('./log');
 const { errMessage } = require('./errors');
+const { probe } = require('./serverProbe');
+const { SETTINGS_FORM_CONSENT } = require('./setupTexts');
 
 const FORM_ID = 'beeflow_admin';
 const FIELD_MODE = 'deployment_mode';
 const FIELD_URL = 'api_base_url';
 const FIELD_WEB_URL = 'web_app_url';
 const POLL_INTERVAL_MS = 60_000;
+// The radio value that asks for nothing: the connection stays as it is.
+const MODE_KEEP = 'keep';
 
 const CLOUD_URL = setupConfig.CLOUD_URL;
 
@@ -39,6 +49,7 @@ const FORM_SCHEME = {
     title: 'Bee Flow',
     description: 'Choose between the hosted Bee Flow service (Cloud) and your own self-hosted Bee Flow server. '
         + 'To self-host, run a Bee Flow server (see beeflow.nl/docs → Self-hosting; e.g. ./selfhost.sh) and enter its URL below. '
+        + `${SETTINGS_FORM_CONSENT} `
         + 'Changes apply within ~60s; the connector re-bootstraps the tenant key automatically. '
         + 'Licence keys that unlock paid features are entered inside Bee Flow (Admin → Licence), not here.',
     doc_url: 'https://beeflow.nl',
@@ -48,8 +59,9 @@ const FORM_SCHEME = {
             title: 'Deployment mode',
             description: 'Where the connector sends Bee Flow API requests.',
             type: 'radio',
-            default: 'cloud',
+            default: MODE_KEEP,
             options: [
+                { name: 'No change (keep the current connection)', value: MODE_KEEP },
                 { name: `Bee Flow Cloud (${CLOUD_URL})`, value: 'cloud' },
                 { name: 'Self-hosted server', value: 'self-hosted' },
             ],
@@ -135,7 +147,7 @@ function _resolveTargetUrl(values) {
     // away from its locally-passed BEEFLOW_API_BASE_URL the moment the
     // form is registered — surprising and destructive.
     const mode = values[FIELD_MODE];
-    if (!mode) return null;
+    if (!mode || mode === MODE_KEEP) return null;
     if (mode === 'cloud') return CLOUD_URL;
     const url = (values[FIELD_URL] || '').trim();
     if (!url) return null; // self-hosted picked but no URL given yet — no-op
@@ -174,6 +186,29 @@ let _lastApplied = null;
 
 let _envPinLogged = false;
 
+// The baseline of an install without a server. `undefined`: no poll ran yet.
+// A string: the server fields of the form as they were at the first poll
+// after this start; they are not a choice until they change. `null`: no
+// baseline (a server was known at the first poll, or the fields changed since).
+/** @type {string | null | undefined} */
+let _baseline;
+/** @type {boolean | undefined} */
+let _baselineWanted;
+
+// The form value whose address did not answer as a Bee Flow server, so the
+// warning is logged once and not at every poll.
+/** @type {string | null} */
+let _probeFailureLogged = null;
+
+/**
+ * The fields of the form that name a server, as stored.
+ * @param {StoredValues} values
+ * @returns {string}
+ */
+function _serverFields(values) {
+    return `${values[FIELD_MODE] || ''}|${(values[FIELD_URL] || '').trim()}`;
+}
+
 async function applyStoredValuesIfChanged() {
     // Precedence: a BEEFLOW_API_BASE_URL naming a server other than Cloud is
     // a deliberate admin lock (config.apiBaseUrlLocked; AppAPI always injects
@@ -192,6 +227,9 @@ async function applyStoredValuesIfChanged() {
         }
         return;
     }
+    // Decided at the first poll, before the read: a read that fails does not
+    // turn a later one into something else than the first.
+    if (_baselineWanted === undefined) _baselineWanted = !config.apiBaseUrl;
     /** @type {StoredValues} */
     let values;
     try {
@@ -200,13 +238,46 @@ async function applyStoredValuesIfChanged() {
         log.warn(`[Settings] poll failed (non-fatal): ${errMessage(err)}`);
         return;
     }
+    // No server chosen at the first poll after a start: what the form holds
+    // at that moment is noted, not acted on. Only a change made after that is
+    // a choice, and the noted values stay without effect until then, also once
+    // a server is chosen on the setup page.
+    const serverFields = _serverFields(values);
+    if (_baseline === undefined) {
+        _baseline = _baselineWanted ? serverFields : null;
+        if (_baseline !== null) {
+            log.info('[Settings] no Bee Flow server is chosen; the values in the settings form count as a choice once they are changed.');
+            return;
+        }
+    }
+    if (_baseline !== null) {
+        if (serverFields === _baseline) return;
+        _baseline = null;
+    }
+
     const target = _resolveTargetUrl(values);
-    if (!target) return; // self-hosted with empty URL — no-op
+    if (!target) return; // "No change", or self-hosted with an empty URL — no-op
 
     const webUrl = _resolveWebUrl(values);
     const mode = values[FIELD_MODE] === 'self-hosted' ? 'self-hosted' : 'cloud';
     const fingerprint = `${mode}|${target}|${webUrl}`;
     if (fingerprint === _lastApplied) return;
+
+    // A first choice: is there a Bee Flow server at that address? Until one
+    // answers, nothing is saved and nothing about this Nextcloud is sent; the
+    // next poll asks again.
+    if (!config.apiBaseUrl) {
+        const health = await probe(target);
+        if (!health.ok) {
+            if (_probeFailureLogged !== fingerprint) {
+                log.warn(`[Settings] no Bee Flow server answers at ${target} (${health.error}); nothing is saved and no server is chosen.`);
+                _probeFailureLogged = fingerprint;
+            }
+            return;
+        }
+        _probeFailureLogged = null;
+    }
+
     if (target === config.apiBaseUrl) {
         // Same server: nothing to re-bootstrap. Only the web app URL may have
         // changed (or this is the first poll after a restart); keep the saved
@@ -225,7 +296,7 @@ async function applyStoredValuesIfChanged() {
         return;
     }
 
-    log.info(`[Settings] apiBaseUrl change requested: ${config.apiBaseUrl} → ${target}`);
+    log.info(`[Settings] apiBaseUrl change requested: ${config.apiBaseUrl || '(not chosen)'} → ${target}`);
 
     // Try the new target. If bootstrap fails (e.g. Cloud picked from a
     // localhost-only sandbox NC, or a typo in the self-hosted URL), the
@@ -239,7 +310,7 @@ async function applyStoredValuesIfChanged() {
         await require('./bootstrap').invalidateAndRebootstrap({ apiBaseUrl: target });
     } catch (err) {
         rebootstrapOk = false;
-        log.warn(`[Settings] re-bootstrap failed; the connector is on ${config.apiBaseUrl}. Detail: ${errMessage(err)}`);
+        log.warn(`[Settings] re-bootstrap failed; the connector is on ${config.apiBaseUrl || '(no server)'}. Detail: ${errMessage(err)}`);
     }
 
     // A first choice stays chosen when connecting to it failed (see
@@ -280,6 +351,15 @@ function stopPolling() {
     }
 }
 
+/** Back to the state right after a start (tests). */
+function _resetForTests() {
+    _lastApplied = null;
+    _envPinLogged = false;
+    _baseline = undefined;
+    _baselineWanted = undefined;
+    _probeFailureLogged = null;
+}
+
 module.exports = {
     FORM_ID,
     FORM_SCHEME,
@@ -287,4 +367,5 @@ module.exports = {
     applyStoredValuesIfChanged,
     startPolling,
     stopPolling,
+    _resetForTests,
 };

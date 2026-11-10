@@ -53,6 +53,7 @@ function freshInstall() {
     config.organizationName = null;
     config.ncInstanceId = null;
     config.pairingCode = null;
+    declarativeSettings._resetForTests();
 }
 
 let caller = 0;
@@ -402,13 +403,15 @@ test('an install-time tenant key is taken into use by the choice, without a boot
 test('the settings form does not repeat a first choice that stayed chosen', async () => {
     freshInstall();
     let bootstraps = 0;
+    let form = []; // nothing filled in yet
     const world = installFakeWorld({
         servers: { [OWN]: { ...HEALTHY, 'POST /auth/connector/bootstrap': () => { bootstraps += 1; return PAIRING_REQUIRED(); } } },
-        nc: (method, url) => (url.includes('/ex-app/config/get-values')
-            ? ocs([{ configkey: 'deployment_mode', configvalue: 'self-hosted' }, { configkey: 'api_base_url', configvalue: OWN }])
-            : undefined),
+        nc: (method, url) => (url.includes('/ex-app/config/get-values') ? ocs(form) : undefined),
     });
     try {
+        await declarativeSettings.applyStoredValuesIfChanged(); // the poll at the start
+        // The administrator chooses in the form.
+        form = [{ configkey: 'deployment_mode', configvalue: 'self-hosted' }, { configkey: 'api_base_url', configvalue: OWN }];
         for (let i = 0; i < 3; i++) await declarativeSettings.applyStoredValuesIfChanged();
         assert.equal(bootstraps, 1, 'one attempt, not one per poll');
         assert.equal(config.apiBaseUrl, OWN);

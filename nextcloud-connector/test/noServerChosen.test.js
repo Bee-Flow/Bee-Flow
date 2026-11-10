@@ -38,7 +38,7 @@ const PENDING_FILE = {
     maskedEmail: 'a***@nc.test', ncInstanceId: 'inst-1', apiBaseUrl: CLOUD,
 };
 
-// The four starting situations. `env` holds only what differs per situation.
+// The starting situations. `env` holds only what differs per situation.
 const SITUATIONS = [
     {
         name: 'a fresh install with nothing set',
@@ -63,6 +63,23 @@ const SITUATIONS = [
         env: { BEEFLOW_API_BASE_URL: CLOUD, BEEFLOW_EMBED_BASE_URL: 'https://beeflow.nl' },
         files: { 'bootstrap-last-error.json': ERROR_FILE, 'pending-bootstrap.json': PENDING_FILE },
     },
+    {
+        name: 'a settings-form value for Bee Flow Cloud that Nextcloud already holds at the start',
+        env: {},
+        files: {},
+        // Not changed after the start, so it is not a choice.
+        form: [{ configkey: 'deployment_mode', configvalue: 'cloud' }],
+    },
+    {
+        name: 'a settings-form value for an own server that Nextcloud already holds at the start',
+        env: { BEEFLOW_API_BASE_URL: CLOUD },
+        files: {},
+        form: [
+            { configkey: 'deployment_mode', configvalue: 'self-hosted' },
+            { configkey: 'api_base_url', configvalue: 'https://bee-flow.example' },
+            { configkey: 'web_app_url', configvalue: 'https://app.bee-flow.example' },
+        ],
+    },
 ];
 
 const listen = (server) => new Promise((resolve) => server.listen(0, '127.0.0.1', () => resolve(server.address().port)));
@@ -80,7 +97,7 @@ function ocs(data) {
 }
 
 /** A Nextcloud that answers the OCS calls the connector makes, and records each one. */
-async function fakeNextcloud() {
+async function fakeNextcloud(form = []) {
     const calls = [];
     const server = http.createServer((req, res) => {
         calls.push({ method: req.method, url: req.url });
@@ -91,6 +108,7 @@ async function fakeNextcloud() {
             return res.end(ocs({ version: { string: '34.0.0' }, capabilities: { theming: { name: 'NC', instanceid: 'inst-1' } } }));
         }
         if (url.includes('/cloud/groups/admin/users')) return res.end(ocs({ users: ['admin'] }));
+        if (url.includes('/ex-app/config/get-values')) return res.end(ocs(form));
         const user = /\/cloud\/users\/([^?/]+)/.exec(url);
         if (user) {
             const uid = decodeURIComponent(user[1]);
@@ -170,7 +188,7 @@ for (const situation of SITUATIONS) {
         }
         const before = snapshot(storage);
 
-        const nc = await fakeNextcloud();
+        const nc = await fakeNextcloud(situation.form);
         const standIn = await beeFlowStandIn();
         const appPort = await freePort();
 
@@ -325,6 +343,12 @@ for (const situation of SITUATIONS) {
         // ── The proof ────────────────────────────────────────────────────────
         // Let anything still in flight land before the counts are read.
         await new Promise((r) => setTimeout(r, 200));
+        // Each 'facts' is one more round of the settings poll (and of the rest).
+        for (let round = 0; round < 2; round++) {
+            child.send('facts');
+            await until(() => replies.length > 0, 'the facts of the connector process, once more');
+            replies.shift();
+        }
         child.send('facts');
         await until(() => replies.length > 0, 'the facts of the connector process, at the end');
         const end = replies.shift().facts;
@@ -337,6 +361,8 @@ for (const situation of SITUATIONS) {
         assert.equal(standIn.seen.connections, 0, 'the listener standing in for a Bee Flow host got a connection');
 
         assert.ok(nc.calls.length > 0, 'the Nextcloud-side registrations did run');
+        assert.ok(nc.calls.filter((c) => c.url.includes('/ex-app/config/get-values')).length >= 4,
+            'the settings form was read at the start and at every round after it');
         assert.equal(nc.calls.filter((c) => c.url.includes('/cloud/groups/admin/users')).length, 0,
             'the list of administrators is not read');
         assert.equal(nc.calls.filter((c) => c.url.includes('/apps/app_api/api/v1/users')).length, 0,
