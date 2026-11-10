@@ -42,7 +42,7 @@ export interface FlowEnv extends ClientStepEnv {
 type ExecSteps<E extends FlowEnv> = (env: E, list: unknown, st: SeqState) => Promise<void>;
 
 /** A return step: unwinds to the action boundary. */
-export const RETURN = Symbol('actionRunner.return');
+const RETURN = Symbol('actionRunner.return');
 const BREAK = Symbol('actionRunner.break');
 const CONTINUE = Symbol('actionRunner.continue');
 
@@ -52,13 +52,13 @@ export function isFlowSignal(e: unknown): boolean {
 }
 
 /** What a loop or while does with something thrown out of one round: `break`, `continue`, or null (not for the loop). */
-export function loopSignalOf(e: unknown): 'break' | 'continue' | null {
+function loopSignalOf(e: unknown): 'break' | 'continue' | null {
     if (e === BREAK) return 'break';
     return e === CONTINUE ? 'continue' : null;
 }
 
 /** `env` for the steps of a loop or while. */
-export function loopBodyEnv<E extends FlowEnv>(env: E): E {
+function loopBodyEnv<E extends FlowEnv>(env: E): E {
     return env.breakable ? env : { ...env, breakable: true };
 }
 
@@ -199,8 +199,10 @@ export async function runLoop<E extends FlowEnv>(env: E, step: RunStep, st: SeqS
         try {
             await exec(inner, step.steps, iter);
         } catch (e) {
-            // A cancelled run or a quiet abort leaves the state as it was, as before.
-            if (e === SEQ_ABORT || e === CANCELLED) throw e;
+            // Only a return, break or continue hands the round's writes back. A failure, a
+            // cancelled run and a quiet abort leave the state around the loop as it was, as
+            // they always did (what a handler further out reads does not change).
+            if (!isFlowSignal(e)) throw e;
             left = e;
         }
         carryRound(st, iter, step, outerVars);

@@ -1,29 +1,28 @@
 import { act, renderHook } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 /**
  * The control kinds of the step registry in the browser coordinator: return,
  * break, continue, while, raise_error and try (runtime/actionRunner/controlFlow.ts).
- * Real @shared/expr, resolveBinding and buildScope; authFetch and Toast are mocked.
- * The server walker runs the same cases in server/appStudio/sequenceWalkFlow.test.js.
+ * Real @shared/expr, resolveBinding, buildScope and authFetch: the requests are
+ * answered through authFetch's own transport seam (the one a public page uses),
+ * so no module is swapped. The server walker runs the same cases in
+ * server/appStudio/sequenceWalkFlow.test.js.
  */
 
-vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
-vi.mock('@/components/shared/Toast', () => {
-    const toast = { success: vi.fn(), error: vi.fn(), info: vi.fn() };
-    return { default: toast, toast };
-});
-vi.mock('./components/AppModal', () => ({ openAppModal: vi.fn(), closeAppModal: vi.fn() }));
-
 import useActionRunner from './useActionRunner';
-import { authFetch } from '@/utils/helpers';
+import { setPublicAppTransport } from '@/utils/helpers';
 import toast from '@/components/shared/Toast';
 import { asMock, stub } from '@/test/mocks';
 import { stepPosts } from '@/test/runLogCalls';
 
+/** What the server answers, call by call: the app's requests land here instead of on the network. */
+const authFetch = vi.fn();
+const json = (r: { status: number; body: unknown }) => new Response(JSON.stringify(r.body), { status: r.status, headers: { 'Content-Type': 'application/json' } });
+
 type Step = Record<string, unknown>;
 
-const resp = (status: number, body: unknown) => ({ ok: status >= 200 && status < 300, status, json: async () => body });
+const resp = (status: number, body: unknown) => ({ status, body });
 const seq = (steps: Step[]) => ({ kind: 'sequence', steps });
 const setVar = (name: string, expr: string): Step => ({ kind: 'set_variable', name, value: { kind: 'formula', expr } });
 const when = (expr: string, then: Step[]): Step => ({ kind: 'condition', expr, then, else: [] });
@@ -47,8 +46,13 @@ describe('useActionRunner: control kinds', () => {
     beforeEach(() => {
         asMock(authFetch).mockReset();
         asMock(authFetch).mockResolvedValue(resp(200, { ok: true, result: { id: 'rec' } }));
-        asMock(toast.error).mockReset();
-        asMock(toast.info).mockReset();
+        setPublicAppTransport(async (url, options) => json(await authFetch(url, options)));
+        vi.spyOn(toast, 'error').mockImplementation(() => 0);
+        vi.spyOn(toast, 'info').mockImplementation(() => 0);
+    });
+    afterEach(() => {
+        setPublicAppTransport(null);
+        vi.restoreAllMocks();
     });
 
     it('return ends the action as a success; its value is the result, also without a server step', async () => {
