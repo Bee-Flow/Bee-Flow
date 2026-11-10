@@ -19,7 +19,7 @@ export default {
     "studio_apps_dynamic_text.hint_screen_expr": "Gives the id of one of this app’s screens. Used instead of the screen above.",
     "studio_apps_dynamic_text.hint_text_expr": "Used instead of the text above when it gives a result.",
     "studio_apps_dynamic_text.hint_url_expr": "Opens only https addresses on the hosts listed in the app settings under “Links from formulas”.",
-    "studio_apps_dynamic_text.hosts_hint": "One host per line, for example example.com. An “open a web page” step that builds its address with a formula only opens https addresses on these hosts. Only you can change this list, the app builder cannot.",
+    "studio_apps_dynamic_text.hosts_hint": "One host per line, for example example.com. An “open a web page” step that builds its address with a formula only opens https addresses on these hosts. Only you can change this list; the AI has no way to edit it.",
     "studio_apps_dynamic_text.hosts_label": "Hosts a link may open",
     "studio_apps_dynamic_text.hosts_refused": "Left out: {hosts}. Write only the host name, for example example.com.",
     "studio_apps_dynamic_text.hosts_title": "Links from formulas",

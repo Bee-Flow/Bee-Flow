@@ -55,7 +55,7 @@ describe('ThemePanel: links from formulas', () => {
     it('shows an empty list on an app that never set one, and says only the owner can change it', () => {
         const { getByLabelText, getByText } = renderPanel();
         expect((getByLabelText('Hosts a link may open') as HTMLTextAreaElement).value).toBe('');
-        expect(getByText(/Only you can change this list, the app builder cannot/i)).toBeTruthy();
+        expect(getByText(/Only you can change this list; the AI has no way to edit it/i)).toBeTruthy();
     });
 
     it('commits the parsed list on blur', async () => {

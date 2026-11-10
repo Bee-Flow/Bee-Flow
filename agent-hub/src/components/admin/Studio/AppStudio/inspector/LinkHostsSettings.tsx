@@ -36,7 +36,7 @@ export function LinkHostsSettings({ value, onCommit, disabled }: LinkHostsSettin
             <SectionTitle>{t('studio_apps_dynamic_text.hosts_title', 'Links from formulas')}</SectionTitle>
             <FormField
                 label={t('studio_apps_dynamic_text.hosts_label', 'Hosts a link may open')}
-                hint={t('studio_apps_dynamic_text.hosts_hint', 'One host per line, for example example.com. An “open a web page” step that builds its address with a formula only opens https addresses on these hosts. Only you can change this list, the app builder cannot.')}
+                hint={t('studio_apps_dynamic_text.hosts_hint', 'One host per line, for example example.com. An “open a web page” step that builds its address with a formula only opens https addresses on these hosts. Only you can change this list; the AI has no way to edit it.')}
             >
                 <textarea
                     className="w-full rounded-lg text-sm p-2 outline-none focus:ring-2 bg-[var(--bg-primary)] border border-[var(--border-default)] text-[var(--text-primary)] focus:ring-[var(--accent-primary)]"
