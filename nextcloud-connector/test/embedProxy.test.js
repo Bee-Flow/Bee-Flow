@@ -36,6 +36,7 @@ test('SPA shell paths are classified as shell (proxied to /embed/)', () => {
         '/fonts/cabinet-grotesk/CabinetGrotesk-Variable.woff2',
         '/module-shims/react-dom-client.js', // Studio app runtime
         '/n8n-color.png',
+        '/beeflow-runtime.js',        // the web app's runtime settings, next to the shell
     ]) {
         assert.equal(isSpaShellPath(p), true, `${p} should be a shell path`);
     }
@@ -52,6 +53,8 @@ test('API + client-route paths are NOT shell paths (stay on the SaaS api-proxy)'
         '/setup',          // handled by its own router, never the shell proxy
         '/nc/remote.php',  // HMAC reverse-proxy, mounted before auth
         '/monacoish',      // only the folder, not a prefix match
+        '/beeflow-runtime.json',
+        '/x/beeflow-runtime.js',
     ]) {
         assert.equal(isSpaShellPath(p), false, `${p} should NOT be a shell path`);
     }
@@ -150,6 +153,46 @@ test('embed proxy falls back to next() (baked /public) when the cloud is unreach
             });
         });
     });
+});
+
+// The web app's runtime settings script comes from the web app host, under its
+// /embed/ prefix. A host that has none (an error page, or its HTML fallback)
+// is answered by the connector's own script, never by a page served as script.
+test('the runtime settings script comes from the web app host; a host without one hands over to the connector', async () => {
+    let asked = null;
+    let answer = (res) => {
+        res.setHeader('Content-Type', 'application/javascript');
+        res.end('window.__BEEFLOW_RUNTIME__ = Object.freeze({});');
+    };
+    const upstream = http.createServer((req, res) => { asked = req.url; answer(res); });
+    await new Promise((r) => upstream.listen(0, '127.0.0.1', r));
+    process.env.BEEFLOW_EMBED_BASE_URL = `http://127.0.0.1:${upstream.address().port}`;
+    delete require.cache[require.resolve('../src/config')];
+    delete require.cache[require.resolve('../src/proxy')];
+    const fresh = require('../src/proxy');
+    assert.equal(fresh.RUNTIME_SETTINGS_PATH, '/beeflow-runtime.js');
+    const embedProxy = fresh.buildEmbedProxy();
+    const server = http.createServer((req, res) => {
+        req.__shellNext = () => { res.statusCode = 200; res.end('CONNECTOR_SCRIPT'); };
+        embedProxy(req, res, req.__shellNext);
+    });
+    await new Promise((r) => server.listen(0, '127.0.0.1', r));
+    const url = `http://127.0.0.1:${server.address().port}/beeflow-runtime.js`;
+    try {
+        const served = await fetch(url);
+        assert.equal(asked, '/embed/beeflow-runtime.js');
+        assert.equal(await served.text(), 'window.__BEEFLOW_RUNTIME__ = Object.freeze({});');
+        assert.match(served.headers.get('content-type'), /javascript/);
+
+        answer = (res) => { res.statusCode = 404; res.setHeader('Content-Type', 'text/html'); res.end('<pre>Cannot GET</pre>'); };
+        assert.equal(await (await fetch(url)).text(), 'CONNECTOR_SCRIPT', 'a 404 page is not passed on');
+
+        answer = (res) => { res.setHeader('Content-Type', 'text/html'); res.end('<!doctype html><html></html>'); };
+        assert.equal(await (await fetch(url)).text(), 'CONNECTOR_SCRIPT', 'a page with status 200 is not passed on as script');
+    } finally {
+        server.close();
+        upstream.close();
+    }
 });
 
 // Nextcloud's AppAPI proxy copies the browser's `Accept-Encoding: gzip` onto

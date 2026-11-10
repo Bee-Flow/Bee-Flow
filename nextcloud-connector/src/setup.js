@@ -174,6 +174,23 @@ function firstRunStatusForNonAdmin(req, res, next) {
     return next();
 }
 
+/**
+ * GET /setup/diagnostics asked by somebody who is not a Nextcloud
+ * administrator: a plain 200 that says they cannot configure, and nothing
+ * else. The embedded app asks this route for every user whose sign-in did not
+ * succeed, so the route is open to signed-in users in info.xml and the
+ * administrator check is made here; the diagnosis itself is for
+ * administrators only.
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ */
+function diagnosticsForNonAdmin(req, res, next) {
+    const user = req.beeflow?.user;
+    if (user?.uid && !user.isNcAdmin) return res.json({ canConfigure: false });
+    return next();
+}
+
 // Budgets. Generous enough that a real admin clicking around never sees one,
 // tight enough that the emailed 6-digit code cannot be walked and that the
 // re-bootstrap actions cannot be used to hammer the Bee Flow server.
@@ -300,8 +317,10 @@ router.get('/status', firstRunStatusForNonAdmin, requireNcAdmin, (req, res) => {
         // show: the env-fixed value is read-only; otherwise the field is
         // editable and we display the last-saved picker entry.
         publicNcUrl: {
-            envOverridden: !!process.env.BEEFLOW_NC_PUBLIC_URL,
-            envValue: process.env.BEEFLOW_NC_PUBLIC_URL || null,
+            // Fixed at install time only by a value the connector uses: one
+            // that is not a URL is ignored (config.js) and the field is free.
+            envOverridden: config.nextcloudPublicUrlLocked,
+            envValue: config.nextcloudPublicUrlLocked ? process.env.BEEFLOW_NC_PUBLIC_URL || null : null,
             chosen: stored?.publicNcUrl || null,
             active: config.nextcloudPublicUrl || null,
             internalNcUrl: config.nextcloudUrl,
@@ -317,10 +336,14 @@ router.get('/status', firstRunStatusForNonAdmin, requireNcAdmin, (req, res) => {
 });
 
 // Diagnostics — bootstrap state + actionable remediation for the SPA's
-// error overlay and `app_api:app:heartbeat` operators. Admin-gated in
-// info.xml because the response includes the active SaaS URL and the
-// raw error message, both of which can leak internal-network shape.
-router.get('/diagnostics', requireNcAdmin, (req, res) => {
+// error overlay and `app_api:app:heartbeat` operators. For administrators
+// only, checked here: the response includes the active server URL and the
+// raw error message, both of which can leak internal-network shape. Anybody
+// else gets the one-line answer of diagnosticsForNonAdmin.
+//
+// `state` is one of: server_not_chosen, ok (a tenant key is held),
+// awaiting_email_verification, awaiting_admin_approval, failed, initialising.
+router.get('/diagnostics', diagnosticsForNonAdmin, requireNcAdmin, (req, res) => {
     /** @type {ReturnType<typeof bootstrap.getPendingState>} */
     let pending = null;
     /** @type {ReturnType<typeof bootstrap.getLastErrorState>} */
@@ -350,6 +373,8 @@ router.get('/diagnostics', requireNcAdmin, (req, res) => {
     };
 
     const named = lastError && state === 'failed' ? CATEGORY_TO_CONNECT_ERROR[lastError.category] : undefined;
+    const rejected = bootstrap.getRejectedSwitch();
+    const rejectedNamed = rejected ? CATEGORY_TO_CONNECT_ERROR[rejected.category] : undefined;
 
     res.json({
         state,
@@ -367,7 +392,9 @@ router.get('/diagnostics', requireNcAdmin, (req, res) => {
         // (`since`). Kept in memory, so a restart begins again; `registered`
         // with no delivery after an event in Nextcloud points at Nextcloud's
         // background jobs or its log (`Webhook(<id>) call failed`). A delivery
-        // counts when it arrives, whatever the connector then answers.
+        // counts when it arrives, whatever the connector then answers;
+        // `forwarded` counts the events the Bee Flow server accepted, and
+        // `lastForwardedAt` is when it last did.
         webhooks: { registered: webhookListeners.isRegistered(), ...automationEventsWebhook.deliveryStats() },
         // Callback-signature health. Repeated rejections mean the Bee Flow
         // server and this host disagree about the tenant key or the clock —
@@ -402,13 +429,16 @@ router.get('/diagnostics', requireNcAdmin, (req, res) => {
             category: lastError.category,
             phase: lastError.phase,
             error: lastError.error,
-            remediation: bootstrap.remediationFor(lastError.category),
+            remediation: bootstrap.remediationShown(lastError),
             lastAttemptAt: lastError.lastAttemptAt,
             nextRetryAt: lastError.nextRetryAt,
         } : null,
         // A switch to another server that did not happen: that server and why.
         // lastError above is always about apiBaseUrl, the server in use.
-        rejectedSwitch: bootstrap.getRejectedSwitch(),
+        // `connectError` is that failure as the setup page names it.
+        rejectedSwitch: rejected
+            ? { ...rejected, connectError: rejectedNamed ? connectError(req, rejectedNamed) : null }
+            : null,
     });
 });
 
@@ -424,6 +454,13 @@ router.post('/test', requireNcAdmin, limits.probe, express.json(), async (req, r
 // is behind NAT and BEEFLOW_NC_PUBLIC_URL wasn't set at deploy time.
 // Empty body clears the override and falls back to NEXTCLOUD_URL.
 router.post('/public-nc-url', requireNcAdmin, limits.rebind, express.json(), async (req, res) => {
+    // An install-time value fixes the address: it is not changed from here.
+    if (config.nextcloudPublicUrlLocked) {
+        return res.status(409).json({
+            ok: false, code: 'env_locked',
+            error: 'The public Nextcloud URL is fixed at install time (BEEFLOW_NC_PUBLIC_URL) and cannot be changed here.',
+        });
+    }
     const url = String(bodyOf(req).publicNcUrl || '').trim();
     if (url) {
         try {

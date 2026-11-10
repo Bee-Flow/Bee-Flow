@@ -338,7 +338,11 @@ test('setup/diagnostics reports the last delivery since the connector started', 
         w.restore();
     }
     const shown = await diagnostics();
-    assert.deepEqual(Object.keys(shown).sort(), ['deliveries', 'lastDeliveryAt', 'registered', 'since']);
+    assert.deepEqual(Object.keys(shown).sort(), ['deliveries', 'forwarded', 'lastDeliveryAt', 'lastForwardedAt', 'registered', 'since']);
+    // What the Bee Flow server accepted is counted apart from what arrived:
+    // of the two deliveries one is of a class that is not forwarded.
+    assert.equal(shown.forwarded, before.forwarded + 1);
+    assert.ok(Date.parse(shown.lastForwardedAt) >= Date.parse(shown.since));
     assert.equal(shown.registered, true);
     assert.equal(shown.deliveries, before.deliveries + 2);
     assert.equal(shown.lastDeliveryAt, hook.deliveryStats().lastDeliveryAt);

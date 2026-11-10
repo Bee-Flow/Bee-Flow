@@ -146,7 +146,7 @@ function registerLifecycle(app) {
                 ...(trusted ? {
                     category: lastError.category,
                     error: lastError.error,
-                    remediation: bs?.remediationFor?.(lastError.category)
+                    remediation: bs?.remediationShown?.(lastError)
                         || 'Bootstrap failed. Check `docker logs nc_app_bee_flow --tail 200` for details.',
                     lastAttemptAt: lastError.lastAttemptAt,
                     nextRetryAt: lastError.nextRetryAt,

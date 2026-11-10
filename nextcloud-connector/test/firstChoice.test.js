@@ -439,7 +439,7 @@ test('the status names what the page needs for the choice, in the administrator\
         assert.equal(status.texts.selfHostingLink, nl[SETUP_TEXTS.selfHostingLink]);
         assert.equal(status.texts.literalCloudEnv, nl[SETUP_TEXTS.literalCloudEnv]);
         assert.deepEqual(Object.keys(status.texts.errors).sort(),
-            ['certificate_not_trusted', 'pairing_code_required', 'server_unreachable', 'version_mismatch']);
+            ['certificate_not_trusted', 'pairing_code_invalid', 'pairing_code_required', 'server_unreachable', 'version_mismatch']);
         for (const [code, text] of Object.entries(CONNECT_ERRORS)) assert.equal(status.texts.errors[code], nl[text]);
 
         const english = (await as()('GET', '/setup/status')).body;

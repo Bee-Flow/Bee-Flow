@@ -455,10 +455,21 @@ const STARTED_AT = new Date().toISOString();
 let _deliveries = 0;
 /** @type {string | null} */
 let _lastDeliveryAt = null;
+// Events the Bee Flow server accepted (one delivery can be more than one
+// event, and a delivery of a class the connector does not forward is none).
+let _forwarded = 0;
+/** @type {string | null} */
+let _lastForwardedAt = null;
 
-/** @returns {{ since: string, deliveries: number, lastDeliveryAt: string | null }} */
+/** @returns {{ since: string, deliveries: number, lastDeliveryAt: string | null, forwarded: number, lastForwardedAt: string | null }} */
 function deliveryStats() {
-    return { since: STARTED_AT, deliveries: _deliveries, lastDeliveryAt: _lastDeliveryAt };
+    return {
+        since: STARTED_AT,
+        deliveries: _deliveries,
+        lastDeliveryAt: _lastDeliveryAt,
+        forwarded: _forwarded,
+        lastForwardedAt: _lastForwardedAt,
+    };
 }
 
 // AppAPI waits 3 seconds for the answer to a delivery it carries (its default
@@ -588,9 +599,13 @@ async function forwardEvents({ event, events, ncUid, payload, tenantKey, ncInsta
                 body,
                 signal: AbortSignal.timeout(10_000),
             });
-            if (!r.ok) {
+            if (r.ok) {
+                _forwarded++;
+                _lastForwardedAt = new Date().toISOString();
+                log.debug(`[AutomationEvents] ${name} accepted by the Bee Flow server (HTTP ${r.status})`);
+            } else {
                 const t = await r.text().catch(() => '');
-                log.warn(`[AutomationEvents] SaaS returned ${r.status} for ${name}: ${t.slice(0, 200)}`);
+                log.warn(`[AutomationEvents] the Bee Flow server answered ${r.status} for ${name}: ${t.slice(0, 200)}`);
             }
         } catch (err) {
             // Keep going: a failure forwarding `changed` must not swallow the

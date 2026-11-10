@@ -54,7 +54,7 @@ const FORM_SCHEME = {
     description: 'Choose between the hosted Bee Flow service (Cloud) and your own self-hosted Bee Flow server. '
         + 'To self-host, run a Bee Flow server (see beeflow.nl/docs → Self-hosting; e.g. ./selfhost.sh) and enter its URL below. '
         + `${SETTINGS_FORM_CONSENT} `
-        + 'Changes apply within ~60s; the connector re-bootstraps the tenant key automatically. '
+        + 'A change to another server applies within about a minute; the connector then connects to that server by itself. '
         + 'Licence keys that unlock paid features are entered inside Bee Flow (Admin → Licence), not here.',
     doc_url: 'https://beeflow.nl',
     fields: [
@@ -153,7 +153,9 @@ function _resolveTargetUrl(values) {
     const mode = values[FIELD_MODE];
     if (!mode || mode === MODE_KEEP) return null;
     if (mode === 'cloud') return CLOUD_URL;
-    const url = (values[FIELD_URL] || '').trim();
+    // Without trailing slashes, the way the connector keeps every server
+    // address: the same server typed with a slash is the same server.
+    const url = (values[FIELD_URL] || '').trim().replace(/\/+$/, '');
     if (!url) return null; // self-hosted picked but no URL given yet — no-op
     // This value arrives from Nextcloud's appconfig, i.e. straight from a text
     // field in the admin settings panel — the same untrusted-input class as a
@@ -185,6 +187,27 @@ function _resolveWebUrl(values) {
     return url;
 }
 
+/**
+ * Do two addresses name the same server? Compared the way a browser reads
+ * them: the host in any case, the default port written or not, with or
+ * without a trailing slash.
+ * @param {string} a
+ * @param {string} b
+ * @returns {boolean}
+ */
+function sameAddress(a, b) {
+    /** @param {string} value */
+    const key = (value) => {
+        try {
+            const u = new URL(value);
+            return `${u.origin}${u.pathname.replace(/\/+$/, '')}${u.search}`;
+        } catch {
+            return String(value).replace(/\/+$/, '');
+        }
+    };
+    return key(a) === key(b);
+}
+
 /** @type {string | null} */
 let _lastApplied = null;
 
@@ -205,6 +228,12 @@ let _baselineWanted;
 /** @type {string | null} */
 let _probeFailureLogged = null;
 
+// The form value of a switch that did not happen. The form keeps naming it, so
+// every poll comes back to it: the switch is tried again once a Bee Flow server
+// answers at that address, and until then the connection in use is left alone.
+/** @type {string | null} */
+let _rejectedSwitch = null;
+
 /**
  * Is the server the form names (`target`, null for none) only noted? Decides
  * it at the first read after a start, and lifts it once the form names
@@ -220,7 +249,12 @@ function _isNoted(target) {
             // noted, and kept for the starts after a choice on the setup page.
             _noted = named;
             _keepNoted(named || null);
-            log.info('[Settings] no Bee Flow server is chosen; the values in the settings form count as a choice once they are changed.');
+            // This read can come after a choice on the setup page (the read at
+            // the start failed and this is the next one): the line says what
+            // holds at the moment it is written.
+            log.info(config.apiBaseUrl
+                ? '[Settings] the values the settings form holds are noted; they count as a choice once they are changed.'
+                : '[Settings] no Bee Flow server is chosen; the values in the settings form count as a choice once they are changed.');
             return true;
         }
         _noted = setupConfig.notedFormTarget();
@@ -299,14 +333,14 @@ async function applyStoredValuesIfChanged() {
         _probeFailureLogged = null;
     }
 
-    if (target === config.apiBaseUrl) {
+    if (config.apiBaseUrl && sameAddress(target, config.apiBaseUrl)) {
         // Same server: nothing to re-bootstrap. Only the web app URL may have
         // changed (or this is the first poll after a restart); keep the saved
         // choice in step with the form so the shell follows it (#401).
         const stored = setupConfig.get();
         if ((stored?.embedBaseUrl || '') !== webUrl) {
             try {
-                setupConfig.save({ mode, apiBaseUrl: target, embedBaseUrl: webUrl || null });
+                setupConfig.save({ mode, apiBaseUrl: config.apiBaseUrl, embedBaseUrl: webUrl || null });
                 log.info(`[Settings] web app URL for the embedded app: ${webUrl || '(the copy built into the connector)'}`);
             } catch (err) {
                 log.warn(`[Settings] web app URL not saved: ${errMessage(err)}`);
@@ -315,6 +349,11 @@ async function applyStoredValuesIfChanged() {
         }
         _lastApplied = fingerprint;
         return;
+    }
+
+    if (_rejectedSwitch === fingerprint) {
+        const health = await probe(target);
+        if (!health.ok) return;
     }
 
     log.info(`[Settings] apiBaseUrl change requested: ${config.apiBaseUrl || '(not chosen)'} → ${target}`);
@@ -345,10 +384,17 @@ async function applyStoredValuesIfChanged() {
             log.warn(`[Settings] persistence skipped: ${errMessage(err)}`);
         }
         _lastApplied = fingerprint;
+        _rejectedSwitch = null;
+        return;
     }
-    // On a failed switch: leave _lastApplied unchanged so the next poll retries.
+    // On a failed switch: leave _lastApplied unchanged so a later poll retries.
     // That way an admin who sets up ngrok later doesn't have to toggle
-    // the radio off and on for the connector to reattempt.
+    // the radio off and on for the connector to reattempt. The retry waits for
+    // a Bee Flow server to answer at that address (see _rejectedSwitch).
+    if (_rejectedSwitch !== fingerprint) {
+        log.warn(`[Settings] the settings form still names ${target}; the switch is tried again once a Bee Flow server answers there.`);
+    }
+    _rejectedSwitch = fingerprint;
 }
 
 /** @type {NodeJS.Timeout | null} */
@@ -389,6 +435,7 @@ function _resetForTests() {
     _noted = undefined;
     _baselineWanted = undefined;
     _probeFailureLogged = null;
+    _rejectedSwitch = null;
 }
 
 module.exports = {

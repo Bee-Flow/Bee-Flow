@@ -29,7 +29,7 @@ serverChoice.applyAtBoot(config, stored);
 const { appApiAuthMiddleware } = require('./auth');
 const { securityHeaders, rejectCrossSiteWrites } = require('./security');
 const { registerLifecycle } = require('./heartbeat');
-const { buildApiProxy, buildEmbedProxy, isSpaShellPath } = require('./proxy');
+const { buildApiProxy, buildEmbedProxy, isSpaShellPath, RUNTIME_SETTINGS_PATH } = require('./proxy');
 const log = require('./log');
 const { errMessage } = require('./errors');
 const { withNonceRoom } = require('./htmlPadding');
@@ -109,9 +109,10 @@ app.use('/', require('./eventsWebhook'));
 // User-facing setup picker — choose Bee Flow Cloud vs a self-hosted server.
 // Routes auth-checked by appApiAuthMiddleware above (admin only via NC). The
 // server itself was resolved at the top of this file.
-// Admin-supplied public NC URL — only used when the env override is unset:
-// env wins, then the saved value, then NEXTCLOUD_URL.
-if (stored && !process.env.BEEFLOW_NC_PUBLIC_URL && stored.publicNcUrl) {
+// Admin-supplied public NC URL — only used when no install-time value fixes
+// it: a usable BEEFLOW_NC_PUBLIC_URL wins, then the saved value, then
+// NEXTCLOUD_URL.
+if (stored && !config.nextcloudPublicUrlLocked && stored.publicNcUrl) {
     config.nextcloudPublicUrl = stored.publicNcUrl;
     log.info(`[Setup] applying user-chosen publicNcUrl: ${config.nextcloudPublicUrl}`);
 }
@@ -147,6 +148,14 @@ try {
     log.error(`[Boot] setup.html could not be read: ${errMessage(err)}`);
 }
 app.use(serverChoice.unconfiguredGate({ pageHtml: () => setupHtml }));
+
+// A server is chosen, connecting to it failed and there is no key: a page load
+// gets the setup page too (the failure and its remedy for an administrator, a
+// short notice for everybody else) until the connection is made.
+app.use(serverChoice.connectFailedGate({
+    pageHtml: () => setupHtml,
+    connectFailed: () => require('./bootstrap').connectFailed(),
+}));
 
 // A Nextcloud account without an e-mail address cannot sign in to Bee Flow:
 // the web app and the calls it proxies answer with a clear message. Everything
@@ -345,6 +354,13 @@ app.use((req, res, next) => {
     req.__shellNext = next;
     return embedProxy(req, res, next);
 });
+// The web app's runtime settings script, when the shell host above has none
+// (the copy built into this image, or a web app that does not publish one): an
+// empty script, which the web app reads as "no runtime settings".
+app.get(RUNTIME_SETTINGS_PATH, (_req, res) => {
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+    res.type('application/javascript').send('/* no runtime settings */\n');
+});
 const indexHtmlPath = path.join(publicDir, 'index.html');
 // The shell baked into this image, asked for as `/index.html` (the path the
 // Nextcloud top bar frames on a manual-install daemon): sent with room for the
@@ -384,7 +400,13 @@ app.use(require('./httpGuards').terminalErrorHandler);
 // chosen.
 const { bootstrapIfNeeded } = require('./bootstrap');
 bootstrapIfNeeded().catch(err => {
-    log.error(`[Bootstrap] Failed: ${errMessage(err)}. The Bee Flow setup page has the cause and what to do.`);
+    // While the connector cannot read Nextcloud, Nextcloud's user lookup fails
+    // too and the setup page does not open: the log line then names where the
+    // cause can be read.
+    const where = require('./bootstrap').getLastErrorState()?.phase === 'capabilities'
+        ? 'The line above names the cause; what to do is in bootstrap-last-error.json on the data volume and in the heartbeat Nextcloud asks for.'
+        : 'The Bee Flow setup page has the cause and what to do.';
+    log.error(`[Bootstrap] Failed: ${errMessage(err)}. ${where}`);
 });
 
 // NC admin settings panel (Cloud vs self-hosted) — poll for changes every

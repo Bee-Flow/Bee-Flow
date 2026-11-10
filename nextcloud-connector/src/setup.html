@@ -222,12 +222,22 @@
     body[data-first-run] > .card:not(#card-nc-cert),
     body[data-first-run]:not(.can-configure) > .card { display: none; }
     body[data-first-run] .first-run-only { display: block; }
+
+    /* A server is chosen, but connecting to it did not succeed and there is
+       no key (`data-connect-failed`): the connector serves this page as the
+       embedded app until the connection is made. An administrator gets the
+       whole page with the failure; everybody else the notice
+       (`data-first-run` is then set as well). */
+    .connect-failed-only { display: none; }
+    body[data-connect-failed] .connect-failed-only { display: block; }
+    body[data-connect-failed] .not-chosen-only { display: none; }
 </style>
 </head>
 <body>
 <div class="first-run-notice" id="first-run-notice">
     <h1>Bee Flow is not set up yet</h1>
-    <p class="lede">Ask your Nextcloud administrator to open Bee Flow and choose where it runs.</p>
+    <p class="lede not-chosen-only">Ask your Nextcloud administrator to open Bee Flow and choose where it runs.</p>
+    <p class="lede connect-failed-only">Bee Flow is not connected yet. Ask your Nextcloud administrator to open Bee Flow and finish connecting it.</p>
 </div>
 <div class="wrap">
     <header>
@@ -236,6 +246,8 @@
         <p class="lede">Choose where Bee Flow runs for this Nextcloud.</p>
         <p class="lede first-run-only">No Bee Flow server is chosen yet. Nothing about this Nextcloud
            is sent to a Bee Flow server before you connect.</p>
+        <p class="lede connect-failed-only">Bee Flow is not connected yet: connecting to the chosen server
+           did not succeed. The cause is shown below; fix it and connect again.</p>
         <p class="note" id="note-literal-cloud-env"></p>
     </header>
 
@@ -454,6 +466,8 @@
     // notice is the whole page: stop here, before any request.
     const firstRun = document.body.hasAttribute('data-first-run');
     if (firstRun && !document.body.hasAttribute('data-can-configure')) return;
+    // Served as the embedded app because connecting failed (see the style block).
+    const connectFailedMode = document.body.hasAttribute('data-connect-failed');
 
     const $ = (id) => document.getElementById(id);
     // The two choices; the tool sections further down are cards too.
@@ -572,10 +586,21 @@
         clearStatus();
     });
 
+    /** A failure without a name: the technical line, and what to do under it. */
+    function showFailure(text, remediation) {
+        showStatusText('err', text);
+        if (remediation) {
+            const small = document.createElement('span');
+            small.className = 'detail';
+            small.textContent = String(remediation);
+            statusBox.append(small);
+        }
+    }
+
     /** A named failure ({ code, error } from the connector) as a status line. */
-    function showNamedError(named, detail) {
+    function showNamedError(named, detail, suffix) {
         statusBox.className = 'status show err';
-        statusBox.textContent = (named && named.error) || (texts.errors && texts.errors.server_unreachable) || 'Connecting failed.';
+        statusBox.textContent = ((named && named.error) || (texts.errors && texts.errors.server_unreachable) || 'Connecting failed.') + (suffix || '');
         if (detail) {
             const small = document.createElement('span');
             small.className = 'detail';
@@ -584,10 +609,10 @@
         }
     }
 
-    /** A status line with, in first-run mode, the button that opens Bee Flow. */
+    /** A status line with, where this page stands in for the app, the button that opens Bee Flow. */
     function showOutcome(kind, text, offerOpen) {
         showStatusText(kind, text);
-        if (!offerOpen || !firstRun) return;
+        if (!offerOpen || !(firstRun || connectFailedMode)) return;
         const open = document.createElement('button');
         open.className = 'btn-primary';
         open.textContent = 'Open Bee Flow';
@@ -628,14 +653,16 @@
             if (rejected && !here) {
                 // The switch went back; the failure is the other server's.
                 if (d.apiBaseUrl) metaActive.textContent = d.apiBaseUrl;
-                showStatusText('err', `Connecting failed (${rejected.category}): ${rejected.error}. The previous server is still in use.`);
+                const kept = ' The previous server is still in use.';
+                if (rejected.connectError) showNamedError(rejected.connectError, rejected.error, kept);
+                else showFailure(`Connecting failed (${rejected.category}): ${rejected.error}.${kept}`, rejected.remediation);
                 return;
             }
             if (fresh) {
                 if (here) { active = savedUrl; metaActive.textContent = savedUrl; }
                 const kept = here ? '' : ' The previous server is still in use.';
                 if (d.connectError && here) showNamedError(d.connectError, null);
-                else showStatusText('err', `Connecting failed (${fresh.category}): ${fresh.error}.${kept}`);
+                else showFailure(`Connecting failed (${fresh.category}): ${fresh.error}.${kept}`, here ? fresh.remediation : null);
                 return;
             }
             if (!here && d.apiBaseUrl && i >= 2) {
@@ -646,6 +673,28 @@
             }
         }
         showStatusText('info', 'Still connecting. Reload this page in a moment to see the outcome.');
+    }
+
+    // What the connection is like right now, shown when the page opens: a
+    // connect that failed stays visible until it succeeds, also on a later
+    // visit. Left alone once the administrator has started something here.
+    async function showCurrentState() {
+        let d;
+        try {
+            const r = await fetch(BASE + 'setup/diagnostics');
+            if (!r.ok) return;
+            d = await r.json();
+        } catch (_) { return; }
+        if (statusBox.classList.contains('show') || statusInline.textContent) return;
+        if (d.state === 'failed' && d.lastError) {
+            if (d.connectError) showNamedError(d.connectError, d.lastError.error);
+            else showFailure(`Connecting to ${d.apiBaseUrl} failed (${d.lastError.category}): ${d.lastError.error}.`, d.lastError.remediation);
+        } else if (d.state === 'awaiting_email_verification') {
+            const to = d.verification && d.verification.maskedEmail;
+            showOutcome('info', `A code was e-mailed${to ? ` to ${to}` : ''}. Open Bee Flow to enter it.`, true);
+        } else if (d.state === 'ok') {
+            showOutcome('ok', d.organizationName ? `Connected to ${d.organizationName}.` : 'Connected.', true);
+        }
     }
 
     btnTest.addEventListener('click', async () => {
@@ -776,6 +825,7 @@
         }
         // No server chosen: no card is preselected, the administrator picks one.
         renderBadge();
+        if (active) showCurrentState();
 
         // Public NC URL section
         const pnu = s.publicNcUrl || {};

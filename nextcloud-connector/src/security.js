@@ -122,6 +122,11 @@ function shouldWarnAboutOrigin(key) {
 function frameAncestorsFor(req) {
     const trusted = trustedEmbedOrigins();
     const ancestors = new Set(["'self'", ...trusted]);
+    // The browser says the request comes from this app's own origin (the
+    // address users reach Nextcloud on, which can differ from NEXTCLOUD_URL):
+    // `'self'` already allows that frame, so there is nothing to report.
+    // Page script cannot set this header.
+    if (req.headers?.['sec-fetch-site'] === 'same-origin') return [...ancestors].join(' ');
     for (const hdr of ['origin', 'referer']) {
         const value = req.headers?.[hdr];
         if (!value || typeof value !== 'string') continue;

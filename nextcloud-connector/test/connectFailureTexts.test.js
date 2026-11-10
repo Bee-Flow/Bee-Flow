@@ -110,7 +110,7 @@ test('your own server refuses: the answer, the record on the volume and the log 
 
         assert.equal(first.remediation, expected);
         assert.doesNotMatch(first.message, /SaaS/);
-        assert.match(first.message, /^The Bee Flow server refused the connection \(HTTP 403\)/);
+        assert.ok(first.message.startsWith(`Your Bee Flow server (${OWN}) refused the connection (HTTP 403)`), first.message);
 
         const record = errorFile();
         assert.equal(record.category, 'nc_not_publicly_reachable');
@@ -135,15 +135,64 @@ test('a text the server sends for a failure of its own is kept as it is', async 
     await freshInstall();
     const world = installFakeWorld({
         servers: { [OWN]: { 'POST /auth/connector/bootstrap': () => json({
-            error: 'Pairing code is invalid, expired, or already used', code: 'pairing_code_invalid', remediation: 'Generate a fresh pairing code.',
+            error: 'Too many pending bindings', code: 'too_many_pending_bindings', remediation: 'Wait for the existing verification codes to expire.',
+        }, 429) } },
+    });
+    try {
+        const err = await bootstrap.invalidateAndRebootstrap({ apiBaseUrl: OWN }).catch((e) => e);
+        assert.equal(err.remediation, 'Wait for the existing verification codes to expire.');
+        assert.equal(errorFile().remediation, 'Wait for the existing verification codes to expire.');
+        // Diagnostics and the heartbeat show that same text.
+        assert.equal(bootstrap.remediationShown(bootstrap.getLastErrorState()), 'Wait for the existing verification codes to expire.');
+    } finally {
+        world.restore();
+    }
+});
+
+test('a pairing code the server does not accept: one category, one text everywhere, naming the server and the setup page', async () => {
+    await freshInstall();
+    const world = installFakeWorld({
+        servers: { [OWN]: { 'POST /auth/connector/bootstrap': () => json({
+            error: 'Pairing code is invalid, expired, or already used',
+            code: 'pairing_code_invalid',
+            remediation: 'Set it as the BEEFLOW_PAIRING_CODE env var on this connector and reinstall.',
         }, 401) } },
     });
     try {
         const err = await bootstrap.invalidateAndRebootstrap({ apiBaseUrl: OWN, pairingCode: 'ZZZZ-9999' }).catch((e) => e);
-        assert.equal(err.remediation, 'Generate a fresh pairing code.');
-        assert.equal(errorFile().remediation, 'Generate a fresh pairing code.');
+        const record = bootstrap.getLastErrorState();
+        assert.equal(record.category, 'pairing_code_invalid', 'not "the connector\'s credentials were rejected"');
+        const text = bootstrap.remediationFor('pairing_code_invalid');
+        assert.ok(text.startsWith(`Your Bee Flow server (${OWN}) does not accept this pairing code`), text);
+        assert.match(text, /setup page/);
+        assert.doesNotMatch(text, /BEEFLOW_PAIRING_CODE|reinstall|redeploy/);
+        // The answer to the administrator, the file on the volume, and what
+        // diagnostics and the heartbeat show.
+        assert.equal(err.remediation, text);
+        assert.equal(errorFile().remediation, text);
+        assert.equal(bootstrap.remediationShown(record), text);
+        // The setup page has a name for it.
+        const { CATEGORY_TO_CONNECT_ERROR, CONNECT_ERRORS } = require('../src/setupTexts');
+        assert.equal(CATEGORY_TO_CONNECT_ERROR[record.category], 'pairing_code_invalid');
+        assert.match(CONNECT_ERRORS.pairing_code_invalid, /does not accept this pairing code/);
+        // Asking again would not change the answer: no retry is scheduled.
+        assert.equal(record.nextRetryAt === null || bootstrap._bootstrapRetryArmedForTests() === false, true);
     } finally {
         world.restore();
+    }
+});
+
+test('the text for a server that wants a pairing code names that server', () => {
+    const saved = config.apiBaseUrl;
+    try {
+        config.apiBaseUrl = OWN;
+        assert.ok(bootstrap.remediationFor('pairing_required').startsWith(`Your Bee Flow server (${OWN}) does not create an organisation by itself`));
+        config.apiBaseUrl = CLOUD;
+        assert.ok(bootstrap.remediationFor('pairing_required').startsWith('Bee Flow Cloud does not create an organisation by itself'));
+        config.apiBaseUrl = null;
+        assert.ok(bootstrap.remediationFor('pairing_required').startsWith('The Bee Flow server does not create an organisation by itself'));
+    } finally {
+        config.apiBaseUrl = saved;
     }
 });
 

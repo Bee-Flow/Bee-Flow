@@ -203,7 +203,9 @@ function retryOnceOnNetworkError({ err, req, res, agent, middleware, onExhausted
 // LOCAL paths (/setup, /js/embed, /img/app.svg) are handled by their own
 // routes in server.js and never reach the shell proxy; client-side SPA routes
 // (e.g. /agents) are NOT shell paths and stay proxied to the SaaS API.
-const SPA_SHELL = /^\/(assets\/|js\/|img\/|fonts\/|module-shims\/|monaco\/|favicon|app-icon\.svg$|n8n-color\.png$|BeeFlow-logo|bee-flow-logo|index\.html$|$)/;
+// `beeflow-runtime.js` is the web app's runtime settings script (written by
+// the web app image at start); the shell document asks for it next to itself.
+const SPA_SHELL = /^\/(assets\/|js\/|img\/|fonts\/|module-shims\/|monaco\/|favicon|app-icon\.svg$|n8n-color\.png$|BeeFlow-logo|bee-flow-logo|beeflow-runtime\.js$|index\.html$|$)/;
 
 /** @param {string} urlPath */
 function isSpaShellPath(urlPath) {
@@ -565,6 +567,14 @@ function shouldFallBack(status, url) {
     return status >= 500 || (status === 404 && isShellDocument(url));
 }
 
+// The runtime settings script: a web app host without one is answered by the
+// connector's own (empty) script, not by the host's error page.
+const RUNTIME_SETTINGS_PATH = '/beeflow-runtime.js';
+/** @param {string} url */
+function isRuntimeSettings(url) {
+    return String(url).split('?')[0] === RUNTIME_SETTINGS_PATH;
+}
+
 function buildEmbedProxy() {
     const proxyFor = perTarget(buildEmbedProxyFor);
     /** @type {(req: import('express').Request, res: import('express').Response, next: import('express').NextFunction) => unknown} */
@@ -666,6 +676,17 @@ function buildEmbedProxyFor(target) {
             proxyRes: (proxyRes, req, /** @type {any} */ res) => {
                 const status = proxyRes.statusCode || 502;
                 if (res.headersSent) { proxyRes.resume(); return; }
+                if (isRuntimeSettings(req.__shellUrl ?? req.url ?? '')
+                    && (status !== 200 || !/javascript/i.test(String(proxyRes.headers['content-type'] || '')))) {
+                    // This web app host has no runtime settings script: the
+                    // connector's own answers (server.js).
+                    proxyRes.resume();
+                    if (req.__shellUrl !== undefined) req.url = req.__shellUrl;
+                    if (typeof req.__shellNext === 'function') { req.__shellNext(); return; }
+                    res.statusCode = 404;
+                    res.end();
+                    return;
+                }
                 if (shouldFallBack(status, req.__shellUrl ?? req.url ?? '')) {
                     proxyRes.resume();
                     fallBack(req, res, `upstream answered ${status}`);
@@ -701,6 +722,6 @@ function buildEmbedProxyFor(target) {
 }
 
 module.exports = {
-    buildApiProxy, buildEmbedProxy, isSpaShellPath, rewriteToEmbed,
+    buildApiProxy, buildEmbedProxy, isSpaShellPath, rewriteToEmbed, RUNTIME_SETTINGS_PATH,
     API_REQUEST_HEADERS, SHELL_REQUEST_HEADERS,
 };

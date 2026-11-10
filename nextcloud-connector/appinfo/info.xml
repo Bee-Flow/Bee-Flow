@@ -262,18 +262,22 @@ Questions, or want a hand getting set up? Email us at **info@beeflow.nl**. We su
             <route><url>^/?init$</url><verb>POST</verb><access_level>ADMIN</access_level></route>
             <route><url>^/?enabled$</url><verb>PUT</verb><access_level>ADMIN</access_level></route>
 
-            <!-- Setup picker (Bee Flow Cloud vs self-hosted) — admin only.
-                 /diagnostics returns categorised bootstrap status + the
-                 active SaaS URL; it stays ADMIN because both can leak
-                 internal-network shape. -->
+            <!-- Setup picker (Bee Flow Cloud vs self-hosted) — admin only. -->
             <route><url>^/?setup\/?$</url><verb>GET,POST</verb><access_level>ADMIN</access_level></route>
+            <!-- /setup/diagnostics: the embedded app asks it for every user
+                 whose sign-in did not succeed, so it is open to signed-in
+                 users here and the connector itself checks for a Nextcloud
+                 administrator: an administrator gets the diagnosis (bootstrap
+                 status, the active server URL), anybody else a one-line
+                 answer without any of it. -->
+            <route><url>^/?setup\/diagnostics$</url><verb>GET</verb><access_level>USER</access_level></route>
             <!-- Admin-only connector actions. Explicitly ADMIN-gated so they are
                  NOT caught by the USER-level catch-all below: any of these would
                  disrupt the whole organisation (clear/rotate the tenant key,
                  repoint the server, redeem a pairing code). The email-verification
                  endpoints stay USER (they run before a tenant key exists and are
                  gated by the one-time emailed code). -->
-            <route><url>^/?setup\/(status|test|diagnostics|rotate-tenant-key|apply-pairing-code|public-nc-url|diagnose|clear-cache|nc-certificate|accept-nc-certificate)$</url><verb>GET,POST</verb><access_level>ADMIN</access_level></route>
+            <route><url>^/?setup\/(status|test|rotate-tenant-key|apply-pairing-code|public-nc-url|diagnose|clear-cache|nc-certificate|accept-nc-certificate)$</url><verb>GET,POST</verb><access_level>ADMIN</access_level></route>
 
             <!-- Nextcloud `webhook_listeners` deliveries -> connector.
                  PUBLIC because the delivery is made by a Nextcloud background

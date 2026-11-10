@@ -41,6 +41,8 @@ const CONNECT_ERRORS = {
         + 'Update both to their latest release, then try again.',
     pairing_code_required: 'This Bee Flow server asks for a pairing code. Generate one in Bee Flow '
         + '(Settings → Organisation → Pair a new Nextcloud), enter it here and connect again.',
+    pairing_code_invalid: 'This Bee Flow server does not accept this pairing code: it is mistyped, expired or already used. '
+        + 'Generate a new one in Bee Flow (Settings → Organisation → Pair a new Nextcloud), enter it here and connect again.',
 };
 /** @typedef {keyof typeof CONNECT_ERRORS} ConnectErrorCode */
 
@@ -50,6 +52,7 @@ const CATEGORY_TO_CONNECT_ERROR = {
     saas_unreachable: 'server_unreachable',
     saas_cert_untrusted: 'certificate_not_trusted',
     pairing_required: 'pairing_code_required',
+    pairing_code_invalid: 'pairing_code_invalid',
     connector_outdated: 'version_mismatch',
     version_mismatch: 'version_mismatch',
 };

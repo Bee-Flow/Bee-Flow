@@ -46,6 +46,29 @@ function usableEmbedBaseUrl(raw) {
     return value;
 }
 
+/**
+ * BEEFLOW_NC_PUBLIC_URL as the address the Bee Flow server calls this
+ * Nextcloud back on: the URL without a trailing slash, or null when it is
+ * blank or not an http(s) URL. A value that is not a URL fixes nothing: it is
+ * logged and ignored, and the address entered on the setup page (or
+ * NEXTCLOUD_URL) is used.
+ * @param {unknown} raw
+ * @returns {string | null}
+ */
+function usablePublicNcUrl(raw) {
+    const value = String(raw || '').trim().replace(/\/+$/, '');
+    if (!value) return null;
+    try {
+        const u = new URL(value);
+        if (u.protocol !== 'http:' && u.protocol !== 'https:') throw new Error('it must start with http:// or https://');
+    } catch (err) {
+        const why = err instanceof Error && /must start/.test(err.message) ? err.message : 'it is not a URL';
+        log.warn(`[Config] ignoring BEEFLOW_NC_PUBLIC_URL (${value}): ${why}. The public Nextcloud URL of the setup page, or NEXTCLOUD_URL, is used.`);
+        return null;
+    }
+    return value;
+}
+
 // Auto-bootstrap mode: when BEEFLOW_TENANT_KEY is unset or set to literal
 // "auto", the connector calls /auth/connector/bootstrap on the server an
 // administrator chose, to provision an org + mint a tenant key. The result is
@@ -70,6 +93,7 @@ const CLOUD_EMBED_BASE_URL = 'https://beeflow.nl';
 // BEEFLOW_API_BASE_URL, and the shell host follows the server choice.
 const envEmbedBaseUrl = usableEmbedBaseUrl(process.env.BEEFLOW_EMBED_BASE_URL);
 const isAutoTenantKey = (rawTenantKey === 'auto' || rawTenantKey === '');
+const envPublicNcUrl = usablePublicNcUrl(process.env.BEEFLOW_NC_PUBLIC_URL);
 
 /**
  * @typedef {object} ConnectorConfig
@@ -81,6 +105,7 @@ const isAutoTenantKey = (rawTenantKey === 'auto' || rawTenantKey === '');
  * @property {string} persistentStorage
  * @property {string} nextcloudUrl
  * @property {string | null} nextcloudPublicUrl
+ * @property {boolean} nextcloudPublicUrlLocked  BEEFLOW_NC_PUBLIC_URL holds a URL: fixed at install time, the setup page does not change it
  * @property {string | null} tenantKey        filled in at runtime (env, bootstrap cache or the bootstrap call); always null while no server is chosen
  * @property {string | null} envTenantKey     an explicit BEEFLOW_TENANT_KEY (null in auto mode); it becomes tenantKey once a server is known
  * @property {boolean} isAutoTenantKey
@@ -119,7 +144,8 @@ const config = {
     // the bootstrap claim sent to the SaaS uses the publicly-reachable URL
     // (e.g. an ngrok / cloudflared tunnel). Falls back to nextcloudUrl when
     // unset, which is correct for production (NC is publicly addressable).
-    nextcloudPublicUrl: (process.env.BEEFLOW_NC_PUBLIC_URL || '').replace(/\/+$/, '') || null,
+    nextcloudPublicUrl: envPublicNcUrl,
+    nextcloudPublicUrlLocked: !!envPublicNcUrl,
 
     // ── Customer-configured / auto-provisioned ─────────────────
     // tenantKey is filled in at runtime: either from env, or from the bootstrap

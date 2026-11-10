@@ -229,6 +229,45 @@ function unconfiguredGate({ pageHtml }) {
 }
 
 /**
+ * The gate of the state "a server is chosen, connecting to it failed, and
+ * there is no key". Whenever `connectFailed()` says no, it does nothing.
+ *
+ * While it says yes, a page load (`/`, `/index.html`, any document navigation)
+ * gets the setup page, where the connection is finished: an administrator
+ * gets the whole page, with the failure and what to do about it; everybody
+ * else a short notice, and that page makes no request at all. Every other
+ * request passes as before.
+ *
+ * @param {{ pageHtml: () => string | null, connectFailed: () => boolean }} options
+ * @returns {import('express').RequestHandler}
+ */
+function connectFailedGate({ pageHtml, connectFailed }) {
+    const { isDocumentNavigation } = require('./auth');
+    const { isNoncePath, withNonceRoom } = require('./htmlPadding');
+    return (req, res, next) => {
+        if (!connectFailed()) return next();
+        if (req.method !== 'GET' && req.method !== 'HEAD') return next();
+        if (LOCAL_PATHS.has(req.path) || req.path.startsWith('/setup')) return next();
+        if (!(req.path === '/' || req.path === '/index.html' || isDocumentNavigation(req))) return next();
+        const html = pageHtml();
+        if (html === null) return next();
+        res.set('Cache-Control', 'no-store');
+        const page = connectFailedPage(html, !!req.beeflow?.user?.isNcAdmin);
+        return res.type('html').send(isNoncePath(req.path) ? withNonceRoom(page) : page);
+    };
+}
+
+/**
+ * The setup page for the connect-failed state: complete for an administrator,
+ * the notice (first-run mode without `data-can-configure`) for everybody else.
+ * @param {string} html
+ * @param {boolean} isAdmin
+ */
+function connectFailedPage(html, isAdmin) {
+    return html.replace('<body>', isAdmin ? '<body data-connect-failed>' : '<body data-first-run data-connect-failed>');
+}
+
+/**
  * The setup page in first-run mode. `data-can-configure` is set for a
  * Nextcloud administrator only: without it the page shows its notice and its
  * script stops before the first request.
@@ -243,6 +282,8 @@ module.exports = {
     resolveServerChoice,
     applyAtBoot,
     unconfiguredGate,
+    connectFailedGate,
+    connectFailedPage,
     envLock,
     notChosenError,
     firstRunPage,

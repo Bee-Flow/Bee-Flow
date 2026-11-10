@@ -430,3 +430,131 @@ test('the first read of the form at a start follows the bootstrap of that start:
         world.restore();
     }
 });
+
+// The same server, written another way: not a change. The connection is left
+// alone at the poll and after every restart.
+for (const [what, typed] of [
+    ['with a trailing slash', `${OWN}/`],
+    ['with several trailing slashes', `${OWN}//`],
+    ['with the host in capitals', OWN.replace('bee-flow.example', 'Bee-Flow.EXAMPLE')],
+    ['with the default port written out', `${OWN}:443/`],
+]) {
+    test(`the form names the server in use ${what}: no new bootstrap, the key and its file stay, also after a restart`, async () => {
+        const binding = { tenantKey: 'own-key', organizationId: 'org-own', ncInstanceId: 'inst-1', boundApiBaseUrl: OWN, provisionedAt: '2026-01-01T00:00:00.000Z' };
+        assert.equal(start({ 'tenant-key.json': binding }).source, 'binding');
+        await bootstrap.bootstrapIfNeeded();
+        const form = [{ configkey: 'deployment_mode', configvalue: 'self-hosted' }, { configkey: 'api_base_url', configvalue: typed }];
+        const world = worldWith({ [OWN]: BINDS('another-key') }, { values: form });
+        try {
+            for (let round = 0; round < 2; round++) {
+                await poll();
+                await poll();
+                assert.deepEqual(outsideNextcloud(world), [], 'nothing is asked of the Bee Flow server');
+                assert.equal(config.apiBaseUrl, OWN);
+                assert.equal(config.tenantKey, 'own-key');
+                assert.deepEqual(JSON.parse(fs.readFileSync(path.join(storage, 'tenant-key.json'), 'utf8')), binding, 'the binding file is not rewritten');
+                // The same volume, a new process.
+                assert.equal(restart().source, 'binding');
+                await bootstrap.bootstrapIfNeeded();
+            }
+        } finally {
+            world.restore();
+        }
+    });
+}
+
+test('a first choice typed with a trailing slash is kept without it, and the next polls ask for nothing', async () => {
+    start();
+    const form = { values: [] };
+    const world = worldWith({ [OWN]: BINDS('own-key') }, form);
+    try {
+        await poll();
+        form.values = [{ configkey: 'deployment_mode', configvalue: 'self-hosted' }, { configkey: 'api_base_url', configvalue: `${OWN}/` }];
+        await poll();
+        assert.equal(config.apiBaseUrl, OWN);
+        assert.equal(setupConfig.get()?.apiBaseUrl, OWN);
+        const binds = () => world.count((c) => c.url === `${OWN}/auth/connector/bootstrap`);
+        assert.equal(binds(), 1);
+        await poll();
+        await poll();
+        assert.equal(binds(), 1);
+    } finally {
+        world.restore();
+    }
+});
+
+test('the form names a server that does not answer: the switch is tried once, then the connection in use is left alone until a server answers there', async () => {
+    const binding = { tenantKey: 'own-key', organizationId: 'org-own', ncInstanceId: 'inst-1', boundApiBaseUrl: OWN, provisionedAt: '2026-01-01T00:00:00.000Z' };
+    assert.equal(start({ 'tenant-key.json': binding }).source, 'binding');
+    await bootstrap.bootstrapIfNeeded();
+    const DOWN = 'https://nowhere.example';
+    let up = false;
+    const down = () => { throw new TypeError('fetch failed'); };
+    const world = worldWith({
+        [OWN]: BINDS('must-not-be-asked'),
+        [DOWN]: {
+            'GET /api/health': () => (up ? { status: 'ok' } : down()),
+            'POST /auth/connector/bootstrap': () => (up ? { tenantKey: 'new-key', organizationId: 'org-new' } : down()),
+        },
+    }, { values: [{ configkey: 'deployment_mode', configvalue: 'self-hosted' }, { configkey: 'api_base_url', configvalue: DOWN }] });
+    const keyFile = () => fs.readFileSync(path.join(storage, 'tenant-key.json'), 'utf8');
+    const attempts = () => world.count((c) => c.url === `${DOWN}/auth/connector/bootstrap`);
+    try {
+        await poll();
+        assert.equal(attempts(), 1, 'the switch was tried');
+        assert.equal(config.apiBaseUrl, OWN);
+        assert.equal(config.tenantKey, 'own-key');
+        assert.equal(bootstrap.getRejectedSwitch()?.apiBaseUrl, DOWN);
+        assert.equal(bootstrap.getLastErrorState(), null, 'no failure on record for the server in use');
+        const kept = keyFile();
+        const keptAt = fs.statSync(path.join(storage, 'tenant-key.json')).mtimeMs;
+
+        for (let i = 0; i < 4; i++) await poll();
+        assert.equal(attempts(), 1, 'not tried again while no server answers there');
+        assert.equal(world.count((c) => c.url === `${DOWN}/api/health`), 4, 'each poll only asks whether a server is there');
+        assert.equal(world.count((c) => c.url.startsWith(`${OWN}/`)), 0, 'the server in use is asked for nothing');
+        assert.equal(config.tenantKey, 'own-key');
+        assert.equal(keyFile(), kept);
+        assert.equal(fs.statSync(path.join(storage, 'tenant-key.json')).mtimeMs, keptAt, 'the binding file is not rewritten');
+
+        // The server comes up: the form still names it, the switch happens.
+        up = true;
+        await poll();
+        assert.equal(config.apiBaseUrl, DOWN);
+        assert.equal(config.tenantKey, 'new-key');
+        assert.equal(attempts(), 2);
+        await poll();
+        assert.equal(attempts(), 2);
+    } finally {
+        world.restore();
+    }
+});
+
+test('the note about the form is written about the moment it is written: after a choice it does not say no server is chosen', async () => {
+    start();
+    const lines = [];
+    const realLog = console.log;
+    console.log = (...a) => lines.push(a.join(' '));
+    let failing = true;
+    const world = installFakeWorld({
+        servers: { [OWN]: BINDS('own-key') },
+        nc: (_method, url) => {
+            if (!url.includes('/ex-app/config/get-values')) return undefined;
+            return failing ? new Response('', { status: 401 }) : ocs([]);
+        },
+    });
+    try {
+        await poll(); // the read at the start fails
+        await chooseOnSetupPage('self-hosted', OWN);
+        failing = false;
+        await poll();
+        const notes = lines.filter((l) => l.startsWith('[Settings]'));
+        assert.equal(notes.length, 1);
+        assert.doesNotMatch(notes[0], /no Bee Flow server is chosen/);
+        assert.match(notes[0], /count as a choice once they are changed/);
+        assert.equal(config.apiBaseUrl, OWN, 'and the noted values change nothing');
+    } finally {
+        console.log = realLog;
+        world.restore();
+    }
+});
