@@ -10,7 +10,7 @@
  *   compileAccessFilter(tableMeta, role, viewer, action, opts?) → { where, params }
  *   assertCanWrite(tableMeta, role, action) → scope | throws {status:403}
  *   rowFilterToSql(astOrExpr, viewer, tableMeta, opts?) → { sql, params }
- *   validateRowFilter(astOrExpr, tableMeta) → { ok, errors }
+ *   validateRowFilter(ruleOrPerOperation, tableMeta) → { ok, errors, warnings }
  *
  * ── SCOPES ──────────────────────────────────────────────────────────
  * A (role, action) resolves to a scope:
@@ -19,6 +19,9 @@
  * translated to a base WHERE fragment:
  *   none → 1=0 (deny), own → created_by = ?viewer, all → 1=1
  * PLUS `AND (rowFilterSql)` when the table declares access.rowFilters[role].
+ * That entry is ONE rule (a string or an AST) for read, update and delete alike,
+ * or an object `{ read?, update?, delete? }` with a rule per operation; an
+ * operation it leaves out has no row rule. One rule compiles exactly as before.
  * The app OWNER is always 'all' and skips row filters (full access).
  * `create` has no rows to filter, so compileAccessFilter THROWS on it; the
  * create permission is answered by assertCanWrite alone.
@@ -32,6 +35,15 @@
  *   record.<field>                          →  the quoted real column (via tableMeta)
  *   viewer.<attr>                           →  a BOUND ? param from the viewer object
  *   literals     string / number / bool     →  BOUND ? params
+ *   record.<field> in viewer.<list>         →  column IN (?, ?, …), every item BOUND
+ *       (the list attributes are in dataModel/vocabulary VIEWER_ATTRIBUTES)
+ *
+ * THREE ANSWERS, NOT TWO. A viewer attribute the caller did not supply is
+ * UNKNOWN, and unknown must never become "yes" by way of a `!`. A missing
+ * scalar binds NULL (`x = NULL` is neither true nor false, and neither is its
+ * negation). A missing list compiles to `column IN (NULL)`, unknown the same
+ * way. Only a list that WAS supplied and is empty is a plain false (`1=0`):
+ * someone in no group is in none of them, and "not in any of mine" is then true.
  * ANYTHING else — function calls, arithmetic (+ - * / %), bracket/computed
  * access, unknown roots, ternaries, null — is REJECTED (validateRowFilter at
  * save time; a defensive throw at compile time). No value is ever emitted
@@ -68,7 +80,7 @@
 
 'use strict';
 
-const { SYSTEM_COLUMNS, PUBLIC_ROLE_KEY } = require('./dataModel/vocabulary');
+const { SYSTEM_COLUMNS, PUBLIC_ROLE_KEY, VIEWER_ATTRIBUTES, ROW_FILTER_OPERATIONS } = require('./dataModel/vocabulary');
 // Dialect (sqlite | pg) for the emitted predicates. The ONLY dialect-sensitive
 // spots here are the two boolean BINDS below (sqlite stores bools as 0/1 and
 // better-sqlite3 refuses raw booleans; pg's BOOLEAN columns want true/false).
@@ -166,7 +178,7 @@ function reject(message) {
 }
 
 function normalizeAst(x) {
-    if (typeof x === 'string') return parseExpr(x); // ExprError on bad grammar
+    if (typeof x === 'string') return parseExpr(x, { membership: true }); // ExprError on bad grammar
     if (x && typeof x === 'object' && typeof x.kind === 'string') return x;
     throw reject('row filter must be an expression string or AST');
 }
@@ -202,11 +214,67 @@ function translatePath(node, viewer, tableMeta, params, dialect) {
     }
     if (root.v === 'record') return resolveRowFilterColumn(tableMeta, leaf.v);
     if (root.v === 'viewer') {
-        const val = (viewer && Object.hasOwn(viewer, leaf.v)) ? viewer[leaf.v] : null;
+        // A list attribute outside `in` is refused when the rule is saved
+        // (lintRowFilter). Here it binds NULL, as an attribute nobody supplied
+        // always has: a read never fails on it and never matches on it.
+        const val = (viewer && Object.hasOwn(viewer, leaf.v) && !LIST_ATTRIBUTES.has(leaf.v)) ? viewer[leaf.v] : null;
         params.push(bindViewerValue(val, dialect));
         return '?';
     }
     throw reject(`unknown root "${root.v}" in row filter (only record.* and viewer.* are allowed)`);
+}
+
+// ── Membership: record.<field> in viewer.<list attribute> ───────────
+
+/** @type {ReadonlySet<string>} */
+const LIST_ATTRIBUTES = new Set(VIEWER_ATTRIBUTES.filter((spec) => 'list' in spec && spec.list).map((spec) => spec.key));
+/** @type {ReadonlySet<string>} */
+const KNOWN_ATTRIBUTES = new Set(VIEWER_ATTRIBUTES.map((spec) => spec.key));
+// A list holds text, so the column it is tested against holds text too. A
+// number or date column would make Postgres type the bound items after the
+// column and fail the whole read on the first group id.
+const MEMBERSHIP_FIELD_TYPES = new Set(['text', 'richtext', 'select']);
+const MEMBERSHIP_SYSTEM_COLUMNS = new Set(['id', 'created_by', 'org_id']);
+
+/** The two plain names of a `root.leaf` path, or null. */
+function plainPath(node) {
+    const segs = node && node.kind === 'path' && Array.isArray(node.segments) ? node.segments : null;
+    if (!segs || segs.length !== 2 || segs[0].kind !== 'name' || segs[1].kind !== 'name') return null;
+    return { root: segs[0].v, leaf: segs[1].v };
+}
+
+function membershipColumn(node, tableMeta) {
+    const p = plainPath(node);
+    if (!p || p.root !== 'record') throw reject('the left side of "in" must be record.<field>');
+    const column = resolveRowFilterColumn(tableMeta, p.leaf);
+    if (SYSTEM_COLUMNS.includes(p.leaf)) {
+        if (!MEMBERSHIP_SYSTEM_COLUMNS.has(p.leaf)) throw reject(`"${p.leaf}" cannot be tested with "in": it does not hold text`);
+        return column;
+    }
+    const field = tableMeta.fields.find((x) => x && x.key === p.leaf);
+    if (!MEMBERSHIP_FIELD_TYPES.has(field.type)) {
+        throw reject(`field "${p.leaf}" cannot be tested with "in": only a text or select field can`);
+    }
+    return column;
+}
+
+function membershipAttribute(node) {
+    const p = plainPath(node);
+    if (!p || p.root !== 'viewer' || !LIST_ATTRIBUTES.has(p.leaf)) {
+        throw reject(`the right side of "in" must be a list of the viewer: ${[...LIST_ATTRIBUTES].map((k) => `viewer.${k}`).join(', ')}`);
+    }
+    return p.leaf;
+}
+
+function translateMembership(node, viewer, tableMeta, params) {
+    const attr = membershipAttribute(node.b);
+    const column = membershipColumn(node.a, tableMeta);
+    const raw = (viewer && Object.hasOwn(viewer, attr)) ? viewer[attr] : undefined;
+    if (!Array.isArray(raw)) return `(${column} IN (NULL))`; // not supplied: unknown
+    const items = raw.filter((v) => typeof v === 'string' && v !== '');
+    if (!items.length) return '(1=0)'; // supplied and empty: false
+    params.push(...items);
+    return `(${column} IN (${items.map(() => '?').join(', ')}))`;
 }
 
 // An operand: a column ref, a bound viewer param, or a bound literal.
@@ -231,6 +299,7 @@ function translate(node, viewer, tableMeta, params, dialect) {
                 const b = translate(node.b, viewer, tableMeta, params, dialect);
                 return `(${a} ${LOGIC[node.op]} ${b})`;
             }
+            if (node.op === 'in') return translateMembership(node, viewer, tableMeta, params);
             if (Object.hasOwn(CMP, node.op)) {
                 const a = translateOperand(node.a, viewer, tableMeta, params, dialect);
                 const b = translateOperand(node.b, viewer, tableMeta, params, dialect);
@@ -263,18 +332,92 @@ function rowFilterToSql(astOrExpr, viewer, tableMeta, opts = {}) {
     return { sql, params };
 }
 
+// ── Save-time checks ────────────────────────────────────────────────
+
 /**
- * Validate a row filter at data-model save time. Returns { ok, errors } — the
- * save path should reject a model whose rowFilters don't all pass. Structural
- * only (an empty probe viewer); it never executes.
+ * What the SQL translation cannot say about a rule: a list attribute used as
+ * one value (an error: it would never match), and advice about attributes.
+ * @param {RowFilterNode | undefined} node
+ * @param {{ errors: string[], warnings: string[] }} out
+ * @param {boolean} [listAllowed] true for the right side of `in`
  */
-function validateRowFilter(astOrExpr, tableMeta) {
+function lintRowFilter(node, out, listAllowed = false) {
+    if (!node || typeof node !== 'object') return;
+    if (node.kind === 'binop' || node.kind === 'unop') {
+        lintRowFilter(node.a, out);
+        lintRowFilter(node.b, out, node.op === 'in');
+        return;
+    }
+    const p = plainPath(node);
+    if (!p || p.root !== 'viewer') return;
+    if (LIST_ATTRIBUTES.has(p.leaf)) {
+        if (!listAllowed) out.errors.push(`viewer.${p.leaf} is a list: write record.<field> in viewer.${p.leaf}`);
+    } else if (p.leaf === 'organizationId') {
+        out.warnings.push('viewer.organizationId is not the same value everywhere (the session\'s organisation on data reads, the app\'s in server steps, empty on a public page): use viewer.orgId in a new rule');
+    } else if (!KNOWN_ATTRIBUTES.has(p.leaf)) {
+        out.warnings.push(`viewer.${p.leaf} is not something a row rule knows about the viewer, so it never matches (known: ${[...KNOWN_ATTRIBUTES].join(', ')})`);
+    }
+}
+
+/** One rule (string or AST): it must translate, and it must pass the lint. */
+function validateOneRule(astOrExpr, tableMeta) {
+    /** @type {{ errors: string[], warnings: string[] }} */
+    const out = { errors: [], warnings: [] };
     try {
         rowFilterToSql(astOrExpr, {}, tableMeta);
-        return { ok: true, errors: [] };
+        lintRowFilter(normalizeAst(astOrExpr), out);
     } catch (e) {
-        return { ok: false, errors: [e instanceof Error ? /** @type {Error} */ (e).message : String(e)] };
+        out.errors.push(e instanceof Error ? /** @type {Error} */ (e).message : String(e));
     }
+    return out;
+}
+
+/** True for `{ read?, update?, delete? }`: an object that is neither an AST nor a list. */
+function isPerOperation(entry) {
+    return !!entry && typeof entry === 'object' && !Array.isArray(entry) && typeof entry.kind !== 'string';
+}
+
+/**
+ * The rule of one operation out of a `rowFilters[role]` entry. One rule (a
+ * string or an AST) is that rule for every operation; a per-operation object
+ * gives the rule under the operation's own key, or none. An object with a key
+ * that is not an operation is refused rather than read as "no rule": a typo
+ * must not widen a table.
+ */
+function rowFilterForAction(entry, action) {
+    if (!isPerOperation(entry)) return entry;
+    const stray = Object.keys(entry).find((k) => !ROW_FILTER_OPERATIONS.includes(k));
+    if (stray !== undefined) throw reject(`"${stray}" is not a row rule operation (${ROW_FILTER_OPERATIONS.join(', ')})`);
+    return Object.hasOwn(entry, action) ? entry[action] : null;
+}
+
+/**
+ * Validate a `rowFilters[role]` entry at data-model save time: one rule, or a
+ * rule per operation. Returns { ok, errors, warnings }; the save path rejects
+ * a model whose entries do not all pass, and may show the warnings. Structural
+ * only (an empty probe viewer); it never executes.
+ */
+function validateRowFilter(entry, tableMeta) {
+    if (!isPerOperation(entry)) {
+        const one = validateOneRule(entry, tableMeta);
+        return { ok: one.errors.length === 0, errors: one.errors, warnings: one.warnings };
+    }
+    /** @type {string[]} */
+    const errors = [];
+    /** @type {string[]} */
+    const warnings = [];
+    const keys = Object.keys(entry);
+    if (!keys.length) errors.push(`a rule per operation needs at least one of ${ROW_FILTER_OPERATIONS.join(', ')}`);
+    for (const key of keys) {
+        if (!ROW_FILTER_OPERATIONS.includes(key)) {
+            errors.push(`"${key}" is not a row rule operation (${ROW_FILTER_OPERATIONS.join(', ')})`);
+            continue;
+        }
+        const one = validateOneRule(entry[key], tableMeta);
+        errors.push(...one.errors.map((m) => `${key}: ${m}`));
+        warnings.push(...one.warnings.map((m) => `${key}: ${m}`));
+    }
+    return { ok: errors.length === 0, errors, warnings };
 }
 
 // ── Access filter compilation ───────────────────────────────────────
@@ -314,7 +457,7 @@ function compileAccessFilter(tableMeta, role, viewer, action, opts = {}) {
     if (role !== 'owner' && scope !== 'none') {
         const rowFilters = (tableMeta && tableMeta.access && typeof tableMeta.access.rowFilters === 'object')
             ? tableMeta.access.rowFilters : null;
-        const ast = rowFilters && role && Object.hasOwn(rowFilters, role) ? rowFilters[role] : null;
+        const ast = rowFilters && role && Object.hasOwn(rowFilters, role) ? rowFilterForAction(rowFilters[role], action) : null;
         if (ast) {
             const rf = rowFilterToSql(ast, viewer || {}, tableMeta, opts);
             where = `(${where}) AND (${rf.sql})`;
@@ -346,12 +489,13 @@ module.exports = {
     assertCanWrite,
     rowFilterToSql,
     validateRowFilter,
+    rowFilterForAction,
     AccessError,
 };
 
 /**
  * The parts of a table descriptor this module reads.
- * @typedef {{ default?: string, roles?: Record<string, Record<string, string | boolean>>, rowFilters?: Record<string, string | RowFilterNode> }} TableAccess
+ * @typedef {{ default?: string, roles?: Record<string, Record<string, string | boolean>>, rowFilters?: Record<string, string | RowFilterNode | { read?: string | RowFilterNode, update?: string | RowFilterNode, delete?: string | RowFilterNode }> }} TableAccess
  * @typedef {{ access?: TableAccess, fields?: { key?: string, type?: string, computed?: { stored?: boolean } }[] }} AccessTableMeta
  * A shared-expr AST node, as far as the row-filter subset reads it.
  * @typedef {{ kind: string, op?: string, v?: unknown, a?: RowFilterNode, b?: RowFilterNode, segments?: { kind: string, v?: string }[] }} RowFilterNode

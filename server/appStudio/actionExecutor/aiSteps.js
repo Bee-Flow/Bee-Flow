@@ -35,6 +35,7 @@ const replaceRecordsModule = () => require(REPLACE_RECORDS);
 const { LIMITS } = require('../componentSpecs/limits');
 const log = require('../../telemetry/log');
 const { redeemEach, newReport, assertSomethingRead } = require('../aiDocumentRead.mts');
+const { viewerAttributesOf } = require('../viewerAttributes.mts');
 const { resolveStepModel, notesWith } = require('./modelTierChoice.mts');
 const { replaceTemplate, parsePath, walkTokens } = require('../../shared/expr/index.mjs');
 const { handleOf, trackAnswer } = require('../../core/kb/queryLog/hook.mts');
@@ -128,7 +129,7 @@ async function resolveFileBinding(app, model, binding, ctx, scope) {
  */
 async function redeemPendingDescriptors(app, model, descriptors, ctx, report = newReport(true)) {
     const { materializeAttachment } = require('../mailboxAttachments');
-    const viewer = { id: ctx.viewerId ?? null, role: ctx.role ?? null, organizationId: app.organizationId || null };
+    const viewer = { ...viewerAttributesOf(ctx.viewer), id: ctx.viewerId ?? null, role: ctx.role ?? null, organizationId: app.organizationId || null };
     // Per file: one that cannot be redeemed is a note in `report`, not a failed step.
     // `asText`: an xml file or a forwarded mail is handed over as text, never stored.
     return redeemEach(descriptors, async (d) => ((d.kind !== 'mailbox_attachment' || d.fileId)
@@ -321,7 +322,7 @@ async function aiExtractStep(app, model, step, ctx) {
         modelSupportsVision: aiModel.supportsVision,
         nativeDocuments: aiModel.supportsNativeDocuments,
         documentMode: step.documentMode,
-        viewer: { id: ctx.viewerId ?? null, role: ctx.role ?? null, organizationId: app.organizationId || null },
+        viewer: { ...viewerAttributesOf(ctx.viewer), id: ctx.viewerId ?? null, role: ctx.role ?? null, organizationId: app.organizationId || null },
         model,
         report,
     });
@@ -522,7 +523,7 @@ async function aiGenerateStep(app, model, step, ctx) {
             modelSupportsVision: aiModel.supportsVision,
             nativeDocuments: aiModel.supportsNativeDocuments,
             documentMode: step.documentMode,
-            viewer: { id: ctx.viewerId ?? null, role: ctx.role ?? null, organizationId: app.organizationId || null },
+            viewer: { ...viewerAttributesOf(ctx.viewer), id: ctx.viewerId ?? null, role: ctx.role ?? null, organizationId: app.organizationId || null },
             model,
             report,
         })

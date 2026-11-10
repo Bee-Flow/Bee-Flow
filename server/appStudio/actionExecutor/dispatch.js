@@ -27,6 +27,7 @@ const STEP_ERRORS = './stepErrors.mts';
 const TRANSACTION_STEP = './transactionStep.mts';
 const BULK_RECORDS = './bulkRecords.mts';
 const KB_LOG_STEPS = './kbLogSteps.mts';
+const VIEWER_ATTRIBUTES = '../viewerAttributes.mts';
 
 // ── Public entry ────────────────────────────────────────────────────
 
@@ -47,7 +48,9 @@ async function executeDataStep(app, model, step, ctx = {}) {
     if (!DATA_MUTATING_STEP_KINDS.includes(step.kind)) {
         return { ok: false, error: `Step "${step.kind}" is not a server step` };
     }
-    return withRetryFlag(await runStepKind(app, model, step, ctx));
+    // email / groups / orgId for the row rules, when the model reads them (viewerAttributes.mts).
+    const stepCtx = await require(VIEWER_ATTRIBUTES).ctxWithViewerAttributes(model, ctx);
+    return withRetryFlag(await runStepKind(app, model, step, stepCtx));
 }
 
 /**

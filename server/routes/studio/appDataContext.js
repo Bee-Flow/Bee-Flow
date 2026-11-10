@@ -22,6 +22,7 @@ const { resolveAudienceContext } = require('../../auth/audience');
 const { perUserRateLimit } = require('../../utils/perUserRateLimit');
 const { fallback } = require('../../utils/bestEffort');
 const { sessionUser } = require('../../core/http/sessionUser');
+const { withViewerAttributes } = require('../../appStudio/viewerAttributes.mts');
 
 /**
  * @typedef {import('../../appStudio/builderTools/dataTools').DataTable} DataTable
@@ -205,7 +206,8 @@ async function resolveDataContext(req, res, { tableId } = {}) {
 
     const { userGroups } = await audienceFor(req);
     const role = await rlsGateway.resolveViewerRole(app, viewerId, model, { userGroups });
-    const viewer = buildViewer(req.session.user, role);
+    // email / groups / orgId, from the user's own row, and only for a model whose row rules read them.
+    const viewer = await withViewerAttributes(buildViewer(req.session.user, role), model);
 
     /** @type {DataContext} */
     const ctx = { app, ownerScope: app.userId, viewerId, model, role, viewer };

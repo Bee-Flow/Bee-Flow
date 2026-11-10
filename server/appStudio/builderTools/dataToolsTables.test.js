@@ -144,3 +144,39 @@ test('app_get_data_model shows whether a computed field is stored and its expr; 
     assert.match(perTurn, /^ {4}dbl computed \(read-only\)$/m, 'the per-turn block is unchanged');
     assert.match(perTurn, /^ {4}label computed \(read-only\)$/m);
 });
+
+test('access.rowFilters takes a rule per operation and a list of the viewer, kept as given', async () => {
+    const wrap = reset();
+    const rule = { read: 'record.status in viewer.groups || record.title == viewer.email', update: 'record.status in viewer.groups' };
+    const r = await applyUpsertTable(wrap, {
+        key: 'tasks', name: 'Tasks', fields: [{ key: 'title', type: 'text' }, { key: 'status', type: 'text' }],
+        access: { default: 'role', roles: { staff: { read: 'all', update: 'all', delete: 'all' } }, rowFilters: { staff: rule } },
+    });
+    assert.ok(!r.error, JSON.stringify(r));
+    assert.deepStrictEqual(wrap.dataModel.tables[0].access.rowFilters.staff, rule);
+    assert.ok(!r._hints, 'nothing to remark on');
+});
+
+test('a malformed per-operation rule is refused with the operation it is under', async () => {
+    const wrap = reset();
+    const r = await applyUpsertTable(wrap, {
+        key: 'tasks', name: 'Tasks', fields: [{ key: 'title', type: 'text' }, { key: 'amount', type: 'number' }],
+        access: { default: 'role', roles: { staff: { read: 'all' } }, rowFilters: { staff: { read: 'record.amount in viewer.groups', write: 'record.title == "x"' } } },
+    });
+    assert.match(String(r.error), /rowFilters/);
+    assert.ok(r.errors.some((e) => /role "staff": read: field "amount" cannot be tested with "in"/.test(e)), JSON.stringify(r.errors));
+    assert.ok(r.errors.some((e) => /"write" is not a row rule operation/.test(e)), JSON.stringify(r.errors));
+    assert.match(r._fixHint, /record\.<text field> in viewer\.groups/);
+    assert.strictEqual(state.saveCalls.length, 0);
+});
+
+test('viewer.organizationId saves, with the recommendation for viewer.orgId as a hint', async () => {
+    const wrap = reset();
+    const r = await applyUpsertTable(wrap, {
+        key: 'tasks', name: 'Tasks', fields: [{ key: 'title', type: 'text' }],
+        access: { default: 'role', roles: { staff: { read: 'all' } }, rowFilters: { staff: 'record.org_id == viewer.organizationId' } },
+    });
+    assert.ok(!r.error, JSON.stringify(r));
+    assert.ok(r._hints.some((h) => /role "staff": viewer\.organizationId .* use viewer\.orgId in a new rule/.test(h)), JSON.stringify(r._hints));
+    assert.strictEqual(state.saveCalls.length, 1);
+});

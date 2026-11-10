@@ -116,6 +116,49 @@ const DATATABLE_ID_RE = /^tbl_[a-z0-9]{4,}$/;
 // role explicitly, per action, or it grants nothing.
 const PUBLIC_ROLE_KEY = 'public';
 
+/**
+ * What a row rule can say about the person reading: `viewer.<key>`.
+ *
+ * `list: true` is a list of text values and only stands on the right of `in`
+ * (`record.team in viewer.groups`); every other attribute is one value and
+ * compares with `==` and friends. `resolved: true` is read from the user's own
+ * row at use (appStudio/viewerAttributes.mts), never from the request; a path
+ * that did not resolve it leaves it out and the rule then matches no row.
+ * `since` is the vocabulary version an entry arrived in; an entry without one
+ * has always been there.
+ *
+ *   id               the person's user id (an anonymous visitor: the visitor id)
+ *   role             their role in this app
+ *   organizationId   kept as it is: the session's organisation on the data
+ *                    routes, the app's in server steps, null on a public page
+ *   orgId            the organisation of the person's own account, the same on
+ *                    every path; null for an anonymous visitor
+ *   email            the address of the person's account
+ *   groups           the ids of the groups the person is a member of (the keys
+ *                    roleMapping.byGroup uses)
+ */
+const VIEWER_ATTRIBUTES = Object.freeze([
+    Object.freeze({ key: 'id' }),
+    Object.freeze({ key: 'role' }),
+    Object.freeze({ key: 'organizationId' }),
+    Object.freeze({ key: 'orgId', resolved: true, since: 3 }),
+    Object.freeze({ key: 'email', resolved: true, since: 3 }),
+    Object.freeze({ key: 'groups', resolved: true, list: true, since: 3 }),
+]);
+
+/**
+ * The parts of the row rule grammar that arrived after the first version, for
+ * whoever stamps a version on a model that uses one.
+ *   membership     `record.<field> in viewer.<list attribute>`
+ *   perOperation   `rowFilters[role]` as `{ read, update, delete }` instead of one rule
+ */
+const ROW_FILTER_FEATURES = Object.freeze({
+    membership: Object.freeze({ since: 3 }),
+    perOperation: Object.freeze({ since: 3 }),
+});
+/** The keys of a per-operation row rule. */
+const ROW_FILTER_OPERATIONS = Object.freeze(['read', 'update', 'delete']);
+
 const DATA_LIMITS = Object.freeze({
     MAX_TABLES_PER_APP: 50,
     // One connector = one action (the picker bulk-creates them from a
@@ -235,6 +278,9 @@ module.exports = {
     TABLE_SOURCE_KEYS,
     DATATABLE_ID_RE,
     PUBLIC_ROLE_KEY,
+    VIEWER_ATTRIBUTES,
+    ROW_FILTER_FEATURES,
+    ROW_FILTER_OPERATIONS,
     DATA_LIMITS,
     SYSTEM_COLUMNS,
     KEY_RE,

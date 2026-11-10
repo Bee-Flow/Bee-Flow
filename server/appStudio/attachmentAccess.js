@@ -27,6 +27,7 @@ const queryCompiler = require('./queryCompiler');
 const studioAppDbStore = require('../stores/studioAppDbStore');
 const log = require('../telemetry/log');
 const { isMissingTable } = require('../utils/isMissingTable');
+const { viewerAttributesOf } = require('./viewerAttributes.mts');
 
 /**
  * The access-scoped probe(s) proving a record this attachment hangs off exists
@@ -52,13 +53,15 @@ function attachmentProbes(table, attachment, accessFilter) {
  *   organizationId?: string | null }} viewer
  * @returns {Promise<boolean>}
  */
-async function viewerMayReadAttachment(app, attachment, { id: viewerId, role, model, organizationId = null }) {
+async function viewerMayReadAttachment(app, attachment, { id: viewerId, role, model, organizationId = null, ...rest }) {
     if (!attachment) return false;
     // The owner's own storage envelope — nothing to scope against.
     if (app.userId === viewerId) return true;
     if (!model || !Array.isArray(model.tables)) return false;
 
-    const viewer = { id: viewerId, role, organizationId };
+    // email / groups / orgId ride along when the caller resolved them (viewerAttributes.mts);
+    // without them a row rule that reads one matches no row.
+    const viewer = { ...viewerAttributesOf(rest), id: viewerId, role, organizationId };
 
     // Candidate tables: those carrying the attachment's file field, or every
     // readable table when the field key is unknown (legacy rows).

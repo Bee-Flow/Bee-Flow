@@ -208,15 +208,18 @@ async function applyUpsertTable(draftWrap, args) {
     const rowFilters = (canonTable.access && typeof canonTable.access.rowFilters === 'object') ? canonTable.access.rowFilters : null;
     /** @type {string[]} */
     const rowFilterErrors = [];
+    /** @type {string[]} */
+    const rowFilterWarnings = [];
     for (const roleKey of Object.keys(rowFilters || {})) {
-        const { ok, errors } = validateRowFilter(rowFilters[roleKey], canonTable);
+        const { ok, errors, warnings } = validateRowFilter(rowFilters[roleKey], canonTable);
         if (!ok) rowFilterErrors.push(`role "${roleKey}": ${errors.join('; ')}`);
+        for (const w of warnings) rowFilterWarnings.push(`access.rowFilters role "${roleKey}": ${w}`);
     }
     if (rowFilterErrors.length) {
         return {
             error: `access.rowFilters on "${canonTable.key}" are not expressible as a row filter — fix every error below, then call the tool again.`,
             errors: rowFilterErrors,
-            _fixHint: 'A row filter compares record.<field> / viewer.<attr> / literals with == != < <= > >= combined by && || ! — no function calls, arithmetic or bracket access.',
+            _fixHint: 'A row filter compares record.<field> / viewer.<attr> / literals with == != < <= > >= combined by && || ! — no function calls, arithmetic or bracket access. viewer has id, role, email, orgId and the list groups; a list only stands in `record.<text field> in viewer.groups`. One string per role, or { read, update, delete } with a string each.',
         };
     }
     const onUnconvertible = args.onUnconvertible === 'clear' ? 'clear' : 'refuse';
@@ -246,7 +249,8 @@ async function applyUpsertTable(draftWrap, args) {
         rowCount: (draftWrap.rowCounts && draftWrap.rowCounts[saved.id]) || 0,
         ...reportLists(report),
     };
-    if (merged.hints.length) result._hints = merged.hints;
+    const hints = [...merged.hints, ...rowFilterWarnings];
+    if (hints.length) result._hints = hints;
     return result;
 }
 

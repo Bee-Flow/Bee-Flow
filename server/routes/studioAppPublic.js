@@ -92,6 +92,7 @@ const { resolveRequestedStep, sanitizeBag, sanitizeErrorScope, stepNotes, stepFa
 const { bestEffort, fallback } = require('../utils/bestEffort');
 const { attachmentResponseHeaders } = require('./studioAppAttachmentHeaders.mts');
 const uploadDelete = require('./studioAppUploadDeleteToken.mts');
+const { withViewerAttributes, anonymousViewerAttributes } = require('../appStudio/viewerAttributes.mts');
 
 const { assertAttachmentTotalBytes } = mailboxAttachments;
 
@@ -249,7 +250,9 @@ async function publicDataContext(found, req, res, { tableId } = {}) {
     // organisation, and a row filter comparing viewer.organizationId must not
     // accidentally match the owner's org rows.
     /** @type {{ id: string, role: typeof role, organizationId: string | null }} */
-    const viewer = { id: req.visitor.viewerId, role, organizationId: null };
+    // The same goes for the attributes a row rule may read (viewerAttributes.mts): a visitor
+    // has no account, is in no group and in no organisation, and no lookup is made for one.
+    const viewer = await withViewerAttributes({ id: req.visitor.viewerId, role, organizationId: null }, model, { anonymous: true });
 
     /** @type {{ app: typeof app, ownerScope: string, viewerId: string, model: DataModel, role: typeof role, viewer: typeof viewer, table?: DataTable }} */
     const ctx = { app, ownerScope: app.userId, viewerId: req.visitor.viewerId, model, role, viewer };
@@ -589,7 +592,7 @@ router.get('/:token/data/attachments/:fileId', ipLimiter, tokenLimiter, requireV
     // which is correct, and is why the uploader is never handed a
     // capability by virtue of having uploaded.
     const allowed = await attachmentAccess.viewerMayReadAttachment(found.app, attachment, {
-        id: ctx.viewerId, role: ctx.role, model: ctx.model, organizationId: null,
+        ...anonymousViewerAttributes(), id: ctx.viewerId, role: ctx.role, model: ctx.model, organizationId: null,
     });
     if (!allowed) return res.status(404).json({ error: 'Attachment not found' });
 
