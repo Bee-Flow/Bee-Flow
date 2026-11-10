@@ -283,7 +283,7 @@ const NL_TRANSLATIONS = [
     'add-nl-fix-english-2026-10-translations',
     // Settings menu clean-up: "Instellingen → Integraties" becomes "Instellingen → Koppelingen", "Organisatie-instellingen → …" the real menu path, and the relabelled rows (old shipped text only).
     // After the memory catalogue, whose "Context in lange gesprekken" it rewords.
-    'update-nl-settings-nav-2026-10',
+    'update-nl-settings-nav-2026-10', 'update-nl-admin-scope-2026-11', // admin scope labels (old shipped text only)
     'update-nl-nc-trigger-scope-calendar-2026-10', // The colleagues switch covers calendar events: its Dutch hint says so (old shipped text only)
     'update-nl-automation-wording-2026-11', // Automation wording round: six reworded English texts get their Dutch (old shipped text only)
     // Last, after every catalogue: stored translations follow the routine → automation keys, and shipped Dutch "routine" becomes "automatisering".

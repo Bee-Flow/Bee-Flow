@@ -49,7 +49,7 @@ const PANELS: Record<string, Panel> = {
     security: { render: (p) => <SecurityHub user={p.user} activeSection={p.adminPath.seg2} userSection={p.adminPath.seg3} onNavigate={p.onNavigate} /> },
     integrations: { render: (p) => <IntegrationsAdminPanel activeSection={p.adminPath.seg2} onNavigate={p.onNavigate} /> },
     access: { render: (p) => <AccessPermissionsPanel user={p.user} activeSection={p.adminPath.seg2} onNavigate={p.onNavigate} /> },
-    monitoring: { render: (p) => <MonitoringPanel activeSection={p.adminPath.seg2} onNavigate={p.onNavigate} /> },
+    monitoring: { render: (p) => <MonitoringPanel user={p.user} activeSection={p.adminPath.seg2} onNavigate={p.onNavigate} /> },
     compliance: { render: (p) => <ComplianceHub activeSection={p.adminPath.seg2} focusCheckId={p.adminPath.seg3} onNavigate={p.onNavigate} /> },
     subscriptions: { render: (p) => <SubscriptionsPanel activeSection={p.adminPath.seg2} onNavigate={p.onNavigate} /> },
     support: { render: (p) => <SupportInboxPanel focusThreadId={p.adminPath.seg2 || null} /> },

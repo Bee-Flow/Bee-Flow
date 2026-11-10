@@ -3002,9 +3002,6 @@
     }
   },
   "src/components/admin/org/AccessPermissionsPanel.tsx": {
-    "complexity": {
-      "count": 1
-    },
     "max-lines-per-function": {
       "count": 1
     }
@@ -3897,11 +3894,6 @@
   },
   "src/components/admin/subscriptions/ui/FeatureCardGrid.tsx": {
     "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "src/components/agents/AgentConfigHub.tsx": {
-    "complexity": {
       "count": 1
     }
   },

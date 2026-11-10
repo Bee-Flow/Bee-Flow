@@ -61,3 +61,20 @@ describe('MonitoringPanel pages', () => {
         await waitFor(() => expect(reads()).toBe(2));
     });
 });
+
+describe('MonitoringPanel server-wide pages', () => {
+    it('hides Feedback from an organisation admin, also by deep link', () => {
+        stub();
+        render(<MonitoringPanel activeSection="feedback" user={{ isAdmin: false, role: 'user' }} />);
+        const nav = screen.getByRole('navigation', { name: 'AI Monitor' });
+        expect(within(nav).queryByRole('button', { name: 'Feedback' })).toBeNull();
+        expect(screen.getByRole('heading', { level: 2, name: 'Overview' })).toBeTruthy();
+    });
+
+    it('shows Feedback to a platform admin', () => {
+        stub();
+        render(<MonitoringPanel activeSection="feedback" user={{ isAdmin: true }} />);
+        const nav = screen.getByRole('navigation', { name: 'AI Monitor' });
+        expect(within(nav).getByRole('button', { name: 'Feedback' })).toBeTruthy();
+    });
+});

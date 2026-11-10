@@ -4,18 +4,15 @@ import { Bot, Settings } from 'lucide-react';
 import AgentDesigner from './AgentDesigner/index';
 import SectionNav from '../shared/SectionNav';
 import StudioShell from '../shared/StudioShell';
+import { adminSectionScope } from '@/components/admin/dashboard/adminTabs';
+import { useAdminScopeOverride } from '@/components/admin/dashboard/useAdminScopeOverride';
 import type { AgentDesignerProps } from './AgentDesigner/index';
-
-interface AgentConfigHubUser {
-    isAdmin?: boolean;
-    role?: string;
-    permissions?: string[] | null;
-    allowedAgentTypes?: string[];
-}
+import { resolveAgentSection } from './agentSections';
+import type { AgentSectionUser } from './agentSections';
 
 interface AgentConfigHubProps {
     hasPermission?: AgentDesignerProps['hasPermission'];
-    user?: AgentConfigHubUser | null;
+    user?: AgentSectionUser | null;
     activeSection?: string;
     onNavigate?: (path: string) => void;
 }
@@ -32,18 +29,10 @@ const SECTIONS = [
 
 const AgentConfigHub = ({ hasPermission = () => true, user, activeSection = '', onNavigate }: AgentConfigHubProps) => {
     const { t } = useTranslation();
-    const SECTION_TO_TYPE: Record<string, string> = { chat: 'chat', system: 'system' };
-
-    const isSuperAdmin = user?.isAdmin || user?.role === 'admin' || (user?.permissions || []).includes('all');
-    const allowedTypes = user?.allowedAgentTypes || [];
-    const hasRestrictions = !isSuperAdmin && allowedTypes.length > 0;
-
-    const visibleSections = hasRestrictions
-        ? SECTIONS.filter(s => allowedTypes.includes(SECTION_TO_TYPE[s.id]))
-        : SECTIONS;
-
-    const VALID_IDS = visibleSections.map(s => s.id);
-    const active = VALID_IDS.includes(activeSection) ? activeSection : (VALID_IDS[0] || 'chat');
+    const { visible, active } = resolveAgentSection(user, activeSection);
+    const visibleSections = SECTIONS.filter(sec => visible.includes(sec.id));
+    // The scope follows the section that is rendered, which the URL may not name.
+    useAdminScopeOverride(adminSectionScope('agents', active));
 
     return (
         <StudioShell

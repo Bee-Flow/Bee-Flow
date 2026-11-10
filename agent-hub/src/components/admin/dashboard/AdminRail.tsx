@@ -11,18 +11,26 @@
 
 import { ArrowLeft, LayoutDashboard } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useId, useRef } from 'react';
 import NavLink from '@/components/shell/NavLink';
 
-export interface AdminRailGroup {
+interface AdminRailGroup {
     id: string;
     label: string;
     tabs: { id: string; label: string; icon: LucideIcon }[];
 }
 
+/** A top-level group of the rail (the viewer's organisation, or the whole server) holding the sub-groups. */
+export interface AdminRailSectionView {
+    id: string;
+    label: string;
+    icon: LucideIcon;
+    groups: readonly AdminRailGroup[];
+}
+
 interface AdminRailProps {
     title: string;
-    groups: readonly AdminRailGroup[];
+    sections: readonly AdminRailSectionView[];
     activeTab: string;
     onSelect: (tabId: string) => void;
     onBack?: React.MouseEventHandler<HTMLButtonElement>;
@@ -49,8 +57,10 @@ function RailRow({ id, label, Icon, active, onSelect }: { id: string; label: str
     );
 }
 
-export default function AdminRail({ title, groups, activeTab, onSelect, onBack, backTitle, inDrawer = false, className = '' }: AdminRailProps) {
+export default function AdminRail({ title, sections, activeTab, onSelect, onBack, backTitle, inDrawer = false, className = '' }: AdminRailProps) {
     const navRef = useRef<HTMLElement>(null);
+    // The desktop rail and the drawer copy can be in the page together.
+    const idPrefix = useId();
     // A long rail on a short window: keep the current row in view.
     useEffect(() => {
         const el = navRef.current?.querySelector('[aria-current="page"]');
@@ -79,18 +89,26 @@ export default function AdminRail({ title, groups, activeTab, onSelect, onBack, 
                     </button>
                 )}
             </div>
-            <nav ref={navRef} aria-label={title} className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-2 pb-3">
-                {groups.map(group => (
-                    <div key={group.id}>
-                        <div className="px-2.5 pb-1 text-[11px] font-semibold uppercase tracking-[0.05em] text-[var(--text-tertiary)]">
-                            {group.label}
-                        </div>
-                        <div className="flex flex-col gap-0.5">
-                            {group.tabs.map(tab => (
-                                <RailRow key={tab.id} id={tab.id} label={tab.label} Icon={tab.icon} active={tab.id === activeTab} onSelect={onSelect} />
-                            ))}
-                        </div>
-                    </div>
+            <nav ref={navRef} aria-label={title} className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-2 pb-3">
+                {sections.map(section => (
+                    <section key={section.id} aria-labelledby={`${idPrefix}-${section.id}`} data-testid={`admin-rail-section-${section.id}`} className="flex flex-col gap-3">
+                        <h3 id={`${idPrefix}-${section.id}`} className="m-0 flex items-center gap-1.5 px-2.5 text-[12px] font-semibold text-[var(--text-primary)]">
+                            <section.icon className="h-3.5 w-3.5 shrink-0 text-[var(--text-secondary)]" strokeWidth={1.75} aria-hidden="true" />
+                            <span className="min-w-0 truncate">{section.label}</span>
+                        </h3>
+                        {section.groups.map(group => (
+                            <div key={group.id}>
+                                <div className="px-2.5 pb-1 text-[11px] font-semibold uppercase tracking-[0.05em] text-[var(--text-tertiary)]">
+                                    {group.label}
+                                </div>
+                                <div className="flex flex-col gap-0.5">
+                                    {group.tabs.map(tab => (
+                                        <RailRow key={tab.id} id={tab.id} label={tab.label} Icon={tab.icon} active={tab.id === activeTab} onSelect={onSelect} />
+                                    ))}
+                                </div>
+                            </div>
+                        ))}
+                    </section>
                 ))}
             </nav>
         </div>

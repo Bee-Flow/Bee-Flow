@@ -1,17 +1,21 @@
 import React, { useState } from 'react';
 import { useTranslation } from '../hooks/useTranslation';
-import { ArrowLeft, ChevronDown, Menu } from 'lucide-react';
+import { ArrowLeft, Building2, ChevronDown, Menu, Server } from 'lucide-react';
 import ProductWebsitePanel from '../components/admin/product-website/ProductWebsitePanel';
 import AdminAccessDenied from '../components/admin/dashboard/AdminAccessDenied';
 import AdminRail from '../components/admin/dashboard/AdminRail';
-import type { AdminRailGroup } from '../components/admin/dashboard/AdminRail';
+import type { AdminRailSectionView } from '../components/admin/dashboard/AdminRail';
 import AdminTabContent from '../components/admin/dashboard/AdminTabContent';
-import { ADMIN_TABS, canOpenAdminTab, groupAdminTabs, resolveAdminTab } from '../components/admin/dashboard/adminTabs';
-import type { AdminTab } from '../components/admin/dashboard/adminTabs';
+import { ADMIN_TABS, buildAdminRailSections, canOpenAdminTab, resolveAdminTab, shownAdminScope } from '../components/admin/dashboard/adminTabs';
+import type { AdminScope, AdminTab } from '../components/admin/dashboard/adminTabs';
+import ScopeBadge from '../components/admin/dashboard/ScopeBadge';
+import { AdminScopeOverrideProvider } from '../components/admin/dashboard/useAdminScopeOverride';
 import Modal from '../components/shared/Modal';
 import { useDeploymentMode } from '../hooks/useDeploymentMode';
 import { useLicenseContext } from '../components/licensing/LicenseContext';
 import type { AdminCurrentUser } from '../components/admin/org/userManagement/types';
+import { resolveAgentSection } from '@/components/agents/agentSections';
+import { homeOrgIdOf, isPlatformAdmin as isPlatformAdminUser } from '@/utils/adminAccess';
 
 
 interface AdminDashboardProps {
@@ -34,8 +38,9 @@ const AdminDashboard = ({ user, onBack, adminPath = {}, onNavigate }: AdminDashb
     // A server-wide licence covers the whole install — no org needs a Stripe
     // subscription, so the cloud Subscriptions management surface is moot.
     const { serverOverride, tier } = useLicenseContext();
-    const isPlatformAdmin = user?.isAdmin || user?.role === 'admin';
+    const isPlatformAdmin = isPlatformAdminUser(user);
     const [drawerOpen, setDrawerOpen] = useState(false);
+    const [scopeOverride, setScopeOverride] = useState<AdminScope | null>(null);
 
     // Permission helper - checks if user has a specific permission
     const hasPermission = (perm: string) => {
@@ -50,11 +55,13 @@ const AdminDashboard = ({ user, onBack, adminPath = {}, onNavigate }: AdminDashb
     // from inside a tenant via a role attached to a group. Including it here
     // would render operator-only tabs that then 403 on every request, which
     // reads as a broken console rather than a clean denial.
-    const isSuperAdmin = !!isPlatformAdmin;
+    const isSuperAdmin = isPlatformAdmin;
 
+    // The Agents tab with no section left for this viewer would open an empty hub.
+    const hasAgentSection = resolveAgentSection(user, '').visible.length > 0;
     const checkTabAccess = (tab: AdminTab | undefined) => canOpenAdminTab(tab, {
         isCloud, isSelfHosted, tier, serverOverride: !!serverOverride, isSuperAdmin, hasPermission,
-    });
+    }) && !(tab?.id === 'agents' && !hasAgentSection);
     const { activeTab, agentSection, firstAllowedTab, isTabAllowed } = resolveAdminTab(adminPath, checkTabAccess);
     const labelOf = (tab: AdminTab) => t(tab.labelKey, tab.labelFallback);
 
@@ -85,15 +92,24 @@ const AdminDashboard = ({ user, onBack, adminPath = {}, onNavigate }: AdminDashb
         );
     }
 
-    const groups: AdminRailGroup[] = groupAdminTabs(ADMIN_TABS.filter(tab => checkTabAccess(tab))).map(group => ({
-        id: group.id,
-        label: t(group.labelKey, group.labelFallback),
-        tabs: group.tabs.map(tab => ({ id: tab.id, label: labelOf(tab), icon: tab.icon })),
+    // Two top-level groups: the viewer's organisation, and (platform admin only) the whole server.
+    // The SPA holds no name for the home organisation, so it reads "Your organisation";
+    // a platform admin's non-server tabs span every organisation, so theirs reads "Organisations".
+    const sections: AdminRailSectionView[] = buildAdminRailSections(ADMIN_TABS.filter(tab => checkTabAccess(tab)), isPlatformAdmin).map(section => ({
+        id: section.id,
+        label: section.id === 'instance' ? t('admin.scope_instance', 'Whole server') : (isPlatformAdmin ? t('admin.rail_group_orgs', 'Organisations') : t('admin.scope_org', 'Your organisation')),
+        icon: section.id === 'instance' ? Server : Building2,
+        groups: section.groups.map(group => ({
+            id: group.id,
+            label: t(group.labelKey, group.labelFallback),
+            tabs: group.tabs.map(tab => ({ id: tab.id, label: labelOf(tab), icon: tab.icon })),
+        })),
     }));
     const activeDef = ADMIN_TABS.find(tab => tab.id === activeTab);
+    const activeScope = isTabAllowed ? scopeForView(activeDef, scopeOverride, user, activeTab === 'agents' ? agentSection : adminPath.seg2) : null;
     const railProps = {
         title: t('admin.dashboard_title'),
-        groups,
+        sections,
         activeTab,
         onSelect: handleTabClick,
         onBack,
@@ -112,9 +128,14 @@ const AdminDashboard = ({ user, onBack, adminPath = {}, onNavigate }: AdminDashb
                     drawerOpen={drawerOpen}
                     onOpen={() => setDrawerOpen(true)}
                 />
+                {activeScope && <AdminScopeBar scope={activeScope} isPlatformAdmin={isPlatformAdmin} multiOrg={hasSeveralOrgs(user)} />}
                 <div className="relative min-h-0 flex-1">
                     {isTabAllowed
-                        ? <AdminTabContent activeTab={activeTab} user={user} hasPermission={hasPermission} agentSection={agentSection} onNavigate={onNavigate} adminPath={adminPath} />
+                        ? (
+                            <AdminScopeOverrideProvider value={setScopeOverride}>
+                                <AdminTabContent activeTab={activeTab} user={user} hasPermission={hasPermission} agentSection={agentSection} onNavigate={onNavigate} adminPath={adminPath} />
+                            </AdminScopeOverrideProvider>
+                        )
                         : <AdminAccessDenied scope="section" />}
                 </div>
             </div>
@@ -134,6 +155,30 @@ const AdminDashboard = ({ user, onBack, adminPath = {}, onNavigate }: AdminDashb
 };
 
 export default AdminDashboard;
+
+/** Does the viewer have an organisation of their own? */
+function hasHomeOrg(user: AdminCurrentUser | null): boolean {
+    return homeOrgIdOf(user) !== null;
+}
+
+/** Is the viewer in more than one organisation, so their lists are the union? */
+function hasSeveralOrgs(user: AdminCurrentUser | null): boolean {
+    return (user?.organizations?.length ?? 0) > 1;
+}
+
+/** The scope the strip shows for the active tab, or null for none. */
+function scopeForView(tab: AdminTab | undefined, override: AdminScope | null, user: AdminCurrentUser | null, section?: string): AdminScope | null {
+    return shownAdminScope({ tab, override, section, hasHomeOrg: hasHomeOrg(user) });
+}
+
+/** The strip above the tab content that says whose data the section is about. */
+function AdminScopeBar({ scope, isPlatformAdmin, multiOrg }: { scope: AdminScope; isPlatformAdmin: boolean; multiOrg: boolean }) {
+    return (
+        <div className="flex h-9 shrink-0 items-center border-b border-[var(--border-subtle)] px-4 md:px-6" data-testid="admin-scope-bar">
+            <ScopeBadge scope={scope} isPlatformAdmin={isPlatformAdmin} multiOrg={multiOrg} />
+        </div>
+    );
+}
 
 interface AdminTopBarProps {
     onBack?: React.MouseEventHandler<HTMLButtonElement>;

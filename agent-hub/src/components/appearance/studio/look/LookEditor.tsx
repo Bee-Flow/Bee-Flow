@@ -114,7 +114,7 @@ export default function LookEditor({ navSlot = null }: { navSlot?: HTMLElement |
         <div className="max-w-3xl space-y-10 p-6 md:p-8">
             <SectionHeader
                 title={t('appearance.look_editor_look', 'Look')}
-                description={t('appearance.look_editor_set_the_look_that_everyone_in_your', 'Set the look that everyone in your organisation sees by default. Changes preview live in the pane on the right.')}
+                description={t('appearance.look_editor_set_the_look_that_everyone_in_your', 'Set the look that everyone on this server sees by default. Changes preview live in the pane on the right.')}
             />
 
             <PresetSection form={form} setForm={setForm} saving={saving} />

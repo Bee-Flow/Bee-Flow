@@ -5,6 +5,7 @@ import LookEditor from './look/LookEditor';
 import SectionNav from '../../shared/SectionNav';
 import StudioShell from '../../shared/StudioShell';
 import { useTranslation } from '@/hooks/useTranslation';
+import { useAdminScopeOverride } from '@/components/admin/dashboard/useAdminScopeOverride';
 
 type AppearanceSection = 'look' | 'icons';
 
@@ -18,6 +19,8 @@ type AppearanceSection = 'look' | 'icons';
 export default function AppearancePanel() {
     const { t } = useTranslation();
     const [active, setActive] = useState<AppearanceSection>('look');
+    // Look is server-wide; the icon packs a person picks are their own.
+    useAdminScopeOverride(active === 'icons' ? 'user' : null);
     const [lookNavSlot, setLookNavSlot] = useState<HTMLDivElement | null>(null);
 
     const sidebar = (

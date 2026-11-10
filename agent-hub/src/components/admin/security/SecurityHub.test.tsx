@@ -1,7 +1,12 @@
 import { render, screen, cleanup } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type { Mock } from 'vitest';
 import SecurityHub from './SecurityHub';
+import { AdminScopeOverrideProvider } from '../dashboard/useAdminScopeOverride';
+import type { AdminScope } from '../dashboard/adminTabs';
+
+type SetScope = Mock<(scope: AdminScope | null) => void>;
 
 const hasTier = vi.hoisted(() => vi.fn());
 
@@ -16,6 +21,9 @@ vi.mock('../../licensing/LicenseContext', () => ({ useLicenseContext: () => ({ h
 // threading the third path segment through is now part of SecurityHub's job.
 vi.mock('./guardrails/GuardrailsHub', () => ({
     default: ({ section }: { section?: string }) => <div data-testid="guardrails-panel" data-section={section || ''} />,
+}));
+vi.mock('./guardrails/OrgGuardrails', () => ({
+    default: ({ orgId }: { orgId: string | null }) => <div data-testid="org-guardrails-panel" data-org={orgId || ''} />,
 }));
 vi.mock('./SSOConfigPanel', () => ({ default: () => <div data-testid="sso-panel" /> }));
 vi.mock('../org/UserManagement', () => ({ default: () => <div data-testid="user-management" /> }));
@@ -135,5 +143,53 @@ describe('SecurityHub', () => {
         expect(screen.getByRole('navigation', { name: 'admin.tab_security' })).toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'admin.sec_sso' })).toHaveAttribute('aria-current', 'page');
         expect(screen.getByRole('button', { name: 'admin.sec_users' })).not.toHaveAttribute('aria-current');
+    });
+
+    describe('scope reported to the dashboard', () => {
+        const lastScope = (set: SetScope) => set.mock.calls.filter(c => c[0] !== null).at(-1)?.[0];
+        const renderIn = (set: SetScope, props: React.ComponentProps<typeof SecurityHub>) => render(
+            <AdminScopeOverrideProvider value={set}><SecurityHub {...props} /></AdminScopeOverrideProvider>,
+        );
+
+        it('guardrails leave the scope to the console, which knows the open sub-section', () => {
+            const set: SetScope = vi.fn<(scope: AdminScope | null) => void>();
+            renderIn(set, { user: fullAdmin, activeSection: 'guardrails' });
+            expect(lastScope(set)).toBeUndefined();
+        });
+
+        it('a section the viewer cannot see falls back to users, and the scope follows what is rendered', () => {
+            const set: SetScope = vi.fn<(scope: AdminScope | null) => void>();
+            renderIn(set, { user: orgAdmin, activeSection: 'sso' });
+            expect(screen.getByTestId('user-management')).toBeInTheDocument();
+            expect(lastScope(set)).toBe('mixed');
+        });
+    });
+
+    describe('for an organisation admin', () => {
+        const orgAdminOfOrg = { ...orgAdmin, orgRole: 'org_admin', organizationId: 'org-1' };
+
+        it('lists only the sections that are not about the whole server', () => {
+            render(<SecurityHub user={orgAdminOfOrg} />);
+            const items = screen.getAllByRole('button').map(b => b.textContent);
+            expect(items).toEqual(['admin.sec_users', 'admin.sec_guardrails']);
+        });
+
+        it('shows the guardrails of the own organisation instead of the server console', () => {
+            render(<SecurityHub user={orgAdminOfOrg} activeSection="guardrails" userSection="patterns" />);
+            expect(screen.getByTestId('org-guardrails-panel').getAttribute('data-org')).toBe('org-1');
+            expect(screen.queryByTestId('guardrails-panel')).not.toBeInTheDocument();
+        });
+
+        it('drops guardrails for an organisation admin without a home organisation', () => {
+            render(<SecurityHub user={{ permissions: ['admin_security'], isAdmin: false }} activeSection="guardrails" />);
+            expect(screen.queryByText('admin.sec_guardrails')).not.toBeInTheDocument();
+            expect(screen.getByTestId('user-management')).toBeInTheDocument();
+        });
+
+        it('a user holding only the all permission is not a platform admin', () => {
+            render(<SecurityHub user={{ permissions: ['all'], isAdmin: false }} activeSection="email-domains" />);
+            expect(screen.getByTestId('user-management')).toBeInTheDocument();
+            expect(screen.queryByText('admin.sec_email_domains')).not.toBeInTheDocument();
+        });
     });
 });

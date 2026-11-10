@@ -14,6 +14,7 @@ import { ALERT_INFO } from '@/components/mcpLibrary/ui';
 import type { Organization } from './useOrgDirectory';
 import type { AdminCurrentUser } from './userManagement/types';
 import { logger } from '@/utils/logger';
+import { isPlatformAdmin } from '@/utils/adminAccess';
 
 /**
  * AccessPermissionsPanel — the hub for configuring beta / integration / core
@@ -38,7 +39,7 @@ interface AccessPermissionsPanelProps {
 
 export default function AccessPermissionsPanel({ user, activeSection = 'grants', onNavigate }: AccessPermissionsPanelProps) {
     const { t } = useTranslation();
-    const isSuperAdmin = !!(user?.isAdmin || user?.role === 'admin' || (user?.permissions || []).includes('all'));
+    const isSuperAdmin = isPlatformAdmin(user);
     const { mode, reload: reloadEntitlements } = useEntitlements();
 
     const [orgs, setOrgs] = useState<Organization[] | null>(null); // null = loading; [] = none / not super-admin

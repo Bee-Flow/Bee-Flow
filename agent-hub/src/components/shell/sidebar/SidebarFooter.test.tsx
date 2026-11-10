@@ -22,6 +22,7 @@ type FooterUser = {
     username?: string;
     displayName?: string;
     isAdmin?: boolean;
+    orgRole?: string;
     permissions?: string[];
 };
 
@@ -91,5 +92,16 @@ describe('SidebarFooter', () => {
         const popupId = trigger.getAttribute('aria-controls');
         expect(popupId).toBeTruthy();
         expect(screen.getByTestId('profile-menu')).toHaveAttribute('id', popupId);
+    });
+
+    it('shows the admin dashboard link to an organisation admin, not to a member', async () => {
+        const { unmount } = render(<Harness user={{ id: 'u1', displayName: 'Jan', orgRole: 'org_admin' }} />);
+        await userEvent.click(screen.getByTestId('sidebar-profile'));
+        expect(screen.getByTestId('profile-menu-admin')).toHaveAttribute('href', '/app/admin');
+        unmount();
+
+        render(<Harness user={{ id: 'u2', displayName: 'Els', orgRole: 'member' }} />);
+        await userEvent.click(screen.getByTestId('sidebar-profile'));
+        expect(screen.queryByTestId('profile-menu-admin')).not.toBeInTheDocument();
     });
 });
