@@ -1,0 +1,171 @@
+{
+  "about": {
+    "source": "hand-made for package LK7 (custom CSS): design.customCss with every selector of the class contract, node.cssClass, url(asset:<id>), and publicAccess.design.customCss",
+    "captured": "2026-11-10"
+  },
+  "definition": {
+    "schemaVersion": 3,
+    "meta": {
+      "name": "Custom CSS",
+      "description": "The app's own stylesheet: design.customCss, a cssClass on components, an uploaded file in url(), and a public page with its own stylesheet.",
+      "icon": "Paintbrush"
+    },
+    "theme": {
+      "primary": "#0F766E",
+      "radius": "md",
+      "density": "comfortable",
+      "fontScale": "md",
+      "appearance": "auto"
+    },
+    "roles": [],
+    "screens": [
+      {
+        "id": "scr_css00001",
+        "name": "Styled",
+        "icon": null,
+        "showInNav": true,
+        "maxWidth": "medium",
+        "sections": [
+          {
+            "id": "sec_css00001",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_css00001",
+                "type": "card",
+                "props": {
+                  "title": "Welcome",
+                  "description": null,
+                  "look": "default"
+                },
+                "style": {
+                  "span": 12,
+                  "padding": 3,
+                  "gap": 3,
+                  "background": "surface"
+                },
+                "visible": true,
+                "cssClass": "hero",
+                "children": [
+                  {
+                    "id": "cmp_css00002",
+                    "type": "heading",
+                    "props": {
+                      "text": "A styled heading",
+                      "level": 2,
+                      "accent": "none"
+                    },
+                    "style": {
+                      "span": 12
+                    },
+                    "visible": true
+                  },
+                  {
+                    "id": "cmp_css00003",
+                    "type": "text",
+                    "props": {
+                      "text": "1 234 567",
+                      "muted": false
+                    },
+                    "style": {
+                      "span": 12
+                    },
+                    "visible": true
+                  }
+                ]
+              },
+              {
+                "id": "cmp_css00004",
+                "type": "text",
+                "props": {
+                  "text": "Hidden on a phone by the stylesheet.",
+                  "muted": false
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true,
+                "cssClass": "quiet"
+              },
+              {
+                "id": "cmp_css00005",
+                "type": "button",
+                "props": {
+                  "label": "Plain button",
+                  "variant": "primary",
+                  "iconLeft": null,
+                  "role": "button",
+                  "disabledWhen": null
+                },
+                "style": {
+                  "span": 3
+                },
+                "visible": true,
+                "cssClass": "quiet"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "scr_css00002",
+        "name": "Public",
+        "icon": null,
+        "showInNav": false,
+        "maxWidth": "medium",
+        "sections": [
+          {
+            "id": "sec_css00002",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_css00006",
+                "type": "heading",
+                "props": {
+                  "text": "Public page",
+                  "level": 2,
+                  "accent": "none"
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true,
+                "cssClass": "hero"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "actions": {},
+    "design": {
+      "preset": "custom",
+      "font": "inter",
+      "surface": "hairline",
+      "motion": "subtle",
+      "chartPalette": "classic",
+      "accentEdge": "bar",
+      "logoUrl": null,
+      "customCss": ".u-hero { border-top: 4px solid var(--app-primary); letter-spacing: 0.01em; }\n.u-hero [data-app-type=\"heading\"] { text-transform: uppercase; }\n[data-app-screen=\"scr_css00001\"] [data-section-id=\"sec_css00001\"] { background-image: url(asset:5f0c2b1e-1111-4222-8333-444455556666); background-size: cover; }\n[data-node-id=\"cmp_css00003\"] { font-variant-numeric: tabular-nums; }\n:scope[data-app-dark=\"true\"] .u-hero { border-top-color: var(--app-accent, var(--app-primary)); }\n@media (max-width: 640px) { .u-quiet { display: none; } }\n@container (min-width: 40em) { .u-hero { padding-inline: 2rem; } }"
+    },
+    "homeScreenId": "scr_css00001",
+    "publicAccess": {
+      "entryScreenId": "scr_css00002",
+      "screenIds": [
+        "scr_css00002"
+      ],
+      "roleKey": "public",
+      "design": {
+        "customCss": ".u-hero { text-align: center; background-image: url(asset:9a1b2c3d-0000-4000-8000-00000000c555); }"
+      }
+    }
+  }
+}

@@ -97,6 +97,73 @@ exports[`compat corpus: what the phone plans for every stored app box-knobs 1`] 
 }
 `;
 
+exports[`compat corpus: what the phone plans for every stored app custom-css 1`] = `
+{
+  "defaultScreen": "scr_css00001",
+  "navigable": [
+    "scr_css00001",
+  ],
+  "screens": [
+    {
+      "id": "scr_css00001",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "id": "cmp_css00002",
+                "kind": "heading",
+                "level": 2,
+                "text": "A styled heading",
+              },
+              {
+                "id": "cmp_css00003",
+                "kind": "text",
+                "muted": false,
+                "text": "1 234 567",
+              },
+              {
+                "id": "cmp_css00004",
+                "kind": "text",
+                "muted": false,
+                "text": "Hidden on a phone by the stylesheet.",
+              },
+            ],
+            "screen": "scr_css00001",
+            "unsupported": [],
+          },
+          "roles": [
+            "(no role)",
+          ],
+        },
+      ],
+    },
+    {
+      "id": "scr_css00002",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "id": "cmp_css00006",
+                "kind": "heading",
+                "level": 2,
+                "text": "Public page",
+              },
+            ],
+            "screen": "scr_css00002",
+            "unsupported": [],
+          },
+          "roles": [
+            "(no role)",
+          ],
+        },
+      ],
+    },
+  ],
+}
+`;
+
 exports[`compat corpus: what the phone plans for every stored app design-preset-ember 1`] = `
 {
   "defaultScreen": "scr_p1yp7d",

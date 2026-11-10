@@ -101,6 +101,9 @@ const LIMITS = {
                                        // "your app is too big" at 512KB.
     MAX_SECTION_TITLE_LEN: 80,         // section.title, the heading drawn above a section
     MAX_SECTION_NAME_LEN: 60,          // section.name, the builder-only label (as a screen name)
+    // The app's own stylesheet (2026-11): design.customCss and a node's cssClass.
+    MAX_CUSTOM_CSS_LEN: 20000,         // characters of design.customCss
+    MAX_CSS_CLASS_LEN: 40,             // characters of node.cssClass
 };
 
 module.exports = {

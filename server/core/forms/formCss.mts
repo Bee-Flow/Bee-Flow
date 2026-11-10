@@ -37,6 +37,15 @@ export const FORM_CSS_MAX_CHARS = 20_000;
 
 export type SanitizedCss = { css: string; removed: string[] };
 
+/**
+ * Which addresses a stylesheet may name. A form uses FORM_CSS_POLICY; another
+ * surface that reuses this sanitiser (sanitizeCssWith) passes its own.
+ *   allowUrl(address)        may url()/src() load this address?
+ *   refuseString(address)    must a string inside image-set()/image()/cross-fade()/src() go?
+ * Both get the address lower-cased, escapes decoded.
+ */
+export type CssAddressPolicy = { allowUrl: (address: string) => boolean; refuseString: (address: string) => boolean };
+
 /** The only at-rules that may stay; every other one goes, its block with it. */
 const ALLOWED_AT_RULES = new Set(['media', 'supports', 'container']);
 const POSITION_ALLOWED = new Set(['static', 'relative', 'absolute', 'sticky', '-webkit-sticky', 'inherit', 'initial', 'unset', 'revert', 'revert-layer']);
@@ -46,7 +55,27 @@ const MAX_PASSES = 8;
 const isNewline = (c: string): boolean => c === '\n' || c === '\r' || c === '\f';
 const isHex = (c: string): boolean => /^[0-9a-fA-F]$/.test(c);
 
+const URL_IDENT_WINDOW = 40;
 const URL_IDENT_AT_END = /((?:[a-zA-Z0-9_-]|\\[0-9a-fA-F]{1,6}[ \t\n\r\f]?|\\[^\n\r\f0-9a-fA-F])+)$/;
+
+/**
+ * Is the identifier that starts at `at` only the tail of a longer token? After `#` it is a
+ * hash, after `@` an at-keyword, and a character outside ASCII is part of the name itself:
+ * the browser then reads `(` as an ordinary bracket, with strings inside, not as url(.
+ */
+function continuesAName(before: string, at: number): boolean {
+    if (at === 0) return false;
+    const prev = before[at - 1];
+    return prev === '#' || prev === '@' || prev.charCodeAt(0) >= 0x80;
+}
+
+/**
+ * The text as the browser's tokenizer sees it: one kind of newline (so a backslash before
+ * CR LF continues a string, as it does there) and no NUL.
+ */
+function preprocess(css: string): string {
+    return css.split('\r\n').join('\n').split('\r').join('\n').split('\f').join('\n').split('\0').join('\ufffd');
+}
 
 /**
  * Where an UNQUOTED `url(` whose '(' is at `paren` ends (exclusive), or null
@@ -57,8 +86,12 @@ const URL_IDENT_AT_END = /((?:[a-zA-Z0-9_-]|\\[0-9a-fA-F]{1,6}[ \t\n\r\f]?|\\[^\
  * end is left out: it would escape the `)` that closes the token).
  */
 function unquotedUrl(css: string, paren: number, before: string): { end: number; closed: boolean } | null {
-    const ident = URL_IDENT_AT_END.exec(before);
+    // Only the end of `before` is read: `url` spelled with escapes is at most 24 characters, and a
+    // longer name is not `url`. Reading all of it for every bracket would cost its length squared.
+    const tail = before.length > URL_IDENT_WINDOW ? before.slice(-URL_IDENT_WINDOW) : before;
+    const ident = URL_IDENT_AT_END.exec(tail);
     if (!ident || decodeForCheck(ident[1]).decoded.toLowerCase() !== 'url') return null;
+    if (continuesAName(tail, ident.index)) return null;
     let i = paren + 1;
     while (i < css.length && /[ \t\n\r\f]/.test(css[i])) i += 1;
     if (css[i] === '"' || css[i] === "'") return null;
@@ -181,23 +214,23 @@ function looksExternal(address: string): boolean {
 
 const snippet = (s: string): string => (s.length > SNIPPET_MAX ? `${s.slice(0, SNIPPET_MAX)}…` : s);
 
-function urlFindings(decoded: string): string | null {
+function urlFindings(decoded: string, policy: CssAddressPolicy): string | null {
     const re = /(?:^|[^a-z0-9_-])(url|src)\(/g;
     let m: RegExpExecArray | null;
     while ((m = re.exec(decoded)) !== null) {
         const start = m.index + m[0].length;
         const close = decoded.indexOf(')', start);
         const arg = decoded.slice(start, close === -1 ? decoded.length : close);
-        if (!isAllowedUrl(addressOf(arg))) return 'outside address';
+        if (!policy.allowUrl(addressOf(arg))) return 'outside address';
     }
     return null;
 }
 
-function imageFunctionFindings(decoded: string, strings: string[]): string | null {
+function imageFunctionFindings(decoded: string, strings: string[], policy: CssAddressPolicy): string | null {
     const fn = /(?:^|[^a-z0-9_-])(-webkit-image-set|image-set|image|-webkit-cross-fade|cross-fade|src)\(/.exec(decoded);
     if (!fn) return null;
     if (/(?:^|[^a-z0-9_-])(var|attr|env)\(/.test(decoded)) return 'address from var()';
-    return strings.map(addressOf).some(looksExternal) ? 'outside address' : null;
+    return strings.map(addressOf).some(policy.refuseString) ? 'outside address' : null;
 }
 
 function positionFinding(decoded: string): string | null {
@@ -219,7 +252,7 @@ function siblingFinding(prelude: string): string | null {
 }
 
 /** Why a piece (a declaration, a rule prelude or an at-rule) must go, or null. */
-function findingOf(text: string): string | null {
+function findingOf(text: string, policy: CssAddressPolicy): string | null {
     const { decoded: raw, strings } = decodeForCheck(text);
     const decoded = raw.toLowerCase();
     const at = /^\s*@([a-z0-9_-]+)/.exec(decoded);
@@ -228,8 +261,8 @@ function findingOf(text: string): string | null {
     if (/^\s*behavior\s*:/.test(decoded)) return 'behavior:';
     if (decoded.includes('-moz-binding')) return '-moz-binding';
     if (/(?:java|vb)script:/.test(decoded.replace(/[\t\n\r]/g, ''))) return 'javascript:';
-    return urlFindings(decoded)
-        ?? imageFunctionFindings(decoded, strings.map((s) => s.toLowerCase()))
+    return urlFindings(decoded, policy)
+        ?? imageFunctionFindings(decoded, strings.map((s) => s.toLowerCase()), policy)
         ?? positionFinding(decoded);
 }
 
@@ -281,7 +314,7 @@ function splitPieces(css: string): Piece[] {
 }
 
 /** One pass: drop the pieces that must go, keep the rest verbatim, balance the braces. */
-function sanitizePass(input: string, removed: Set<string>): string {
+function sanitizePass(input: string, removed: Set<string>, policy: CssAddressPolicy): string {
     const css = stripComments(removeSequences(input, removed));
     let out = '';
     let depth = 0;
@@ -293,7 +326,7 @@ function sanitizePass(input: string, removed: Set<string>): string {
             continue;
         }
         const finding = piece.bracesInBrackets ? 'braces inside brackets'
-            : (piece.delim === '{' ? siblingFinding(piece.text) : null) ?? findingOf(piece.text);
+            : (piece.delim === '{' ? siblingFinding(piece.text) : null) ?? findingOf(piece.text, policy);
         if (finding) removed.add(finding);
         switch (piece.delim) {
             case '{':
@@ -325,12 +358,20 @@ function sanitizePass(input: string, removed: Set<string>): string {
  * labels the client mirror also uses are the same words.
  */
 export function sanitizeFormCss(input: unknown): SanitizedCss {
+    return sanitizeCssWith(input, FORM_CSS_POLICY);
+}
+
+/** What a form may name: an image as data, or a path on this server. */
+export const FORM_CSS_POLICY: CssAddressPolicy = Object.freeze({ allowUrl: isAllowedUrl, refuseString: looksExternal });
+
+/** sanitizeFormCss with the address rules of `policy`; everything else is the same. */
+export function sanitizeCssWith(input: unknown, policy: CssAddressPolicy): SanitizedCss {
     if (typeof input !== 'string' || !input) return { css: '', removed: [] };
     if (input.length > FORM_CSS_MAX_CHARS) return { css: '', removed: [`over ${FORM_CSS_MAX_CHARS} characters`] };
     const removed = new Set<string>();
-    let css = input;
+    let css = preprocess(input);
     for (let pass = 0; pass < MAX_PASSES; pass++) {
-        const next = sanitizePass(css, removed);
+        const next = sanitizePass(css, removed, policy);
         if (next === css) return { css, removed: [...removed] };
         css = next;
     }

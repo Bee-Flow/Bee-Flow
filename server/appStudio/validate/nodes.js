@@ -281,6 +281,9 @@ function validateNodeLogic(node, path, ctx, spec) {
     }
     if (node.validations !== undefined) validateFieldValidations(node, path, ctx, spec);
     if (node.visibleToRoles !== undefined) validateRoleRefs(node.visibleToRoles, `${path}.visibleToRoles`, ctx);
+    if (node.cssClass !== undefined && !require('../appCss.mts').isCssClassName(node.cssClass)) {
+        pushE({ code: 'node.css_class_invalid', severity: 'error', path: `${path}.cssClass`, message: 'cssClass must be a lower-case letter followed by lower-case letters, digits or dashes.', hint: `e.g. "hero" (at most ${LIMITS.MAX_CSS_CLASS_LEN} characters), styled as .u-hero in design.customCss.` });
+    }
 }
 
 // ---------------------------------------------------------------------------

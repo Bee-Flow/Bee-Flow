@@ -54,7 +54,9 @@
         "MAX_VARIABLES": 30,
         "MAX_VARIABLE_DEFAULT_BYTES": 2048,
         "MAX_SECTION_TITLE_LEN": 80,
-        "MAX_SECTION_NAME_LEN": 60
+        "MAX_SECTION_NAME_LEN": 60,
+        "MAX_CUSTOM_CSS_LEN": 20000,
+        "MAX_CSS_CLASS_LEN": 40
     },
     "theme": {
         "primary": {

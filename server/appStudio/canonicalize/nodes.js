@@ -12,6 +12,7 @@ const { HARD_DEPTH_CAP, isObject, deepCopy, truncate, isFormulaObj } = require('
 const { cleanFormula } = require('./bindings');
 const { cleanStyle } = require('./style');
 const { cleanProps } = require('./props');
+const { isCssClassName } = require('../appCss.mts');
 
 // ---------------------------------------------------------------------------
 // v2 node logic — visibility/enablement flags (boolean | formula), computed
@@ -149,6 +150,12 @@ function canonNode(node, path, depth, ids, push) {
 
     // v2 optional logic fields (only emitted when the input carries them).
     attachNodeLogic(out, node, path, push);
+
+    // The author's class name for the app's stylesheet: written only when given and valid.
+    if (node.cssClass !== undefined && node.cssClass !== null && node.cssClass !== '') {
+        if (isCssClassName(node.cssClass)) out.cssClass = node.cssClass;
+        else push('node.css_class_invalid', `${path}.cssClass`, `cssClass must be a lower-case letter followed by lower-case letters, digits or dashes (at most ${LIMITS.MAX_CSS_CLASS_LEN}) — dropped.`);
+    }
 
     for (const ev of EVENT_NAMES) {
         if (node[ev] === undefined || node[ev] === null) continue;

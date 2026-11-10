@@ -271,7 +271,7 @@ export function CanvasBody({
                         : undefined}
                 >
                     <Marquee surfaceRef={surfaceRef} />
-                    <AppCustomCss definition={definition} />
+                    <AppCustomCss definition={definition} appId={appId} />
                     <SortableContext items={sortableIds} strategy={rectSortingStrategy}>
                         <AppRenderer
                             definition={definition}

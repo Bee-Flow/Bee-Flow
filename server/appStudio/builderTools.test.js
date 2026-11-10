@@ -2229,10 +2229,10 @@ test('schema enums are derived from the componentSpecs/appDesignPresets/dataMode
     assert.deepStrictEqual(theme.surface.enum, [...DESIGN_SPEC.surface.values]);
     assert.deepStrictEqual(theme.motion.enum, [...DESIGN_SPEC.motion.values]);
     assert.deepStrictEqual(theme.chartPalette.enum, [...DESIGN_SPEC.chartPalette.values]);
-    // Completeness: every knob applySetTheme accepts is settable via the schema
-    // (THEME_SPEC keys + DESIGN_SPEC keys minus the provenance-only `preset`).
+    // Completeness: every BASE knob applySetTheme accepts is settable via the schema (THEME_SPEC keys + DESIGN_SPEC
+    // keys minus the provenance-only `preset`). A design key added later (`since`) is not in this pinned schema.
     for (const k of Object.keys(THEME_SPEC)) assert.ok(theme[k], `theme knob ${k} declared`);
-    for (const k of Object.keys(DESIGN_SPEC).filter((x) => x !== 'preset')) assert.ok(theme[k], `design knob ${k} declared`);
+    for (const k of Object.keys(DESIGN_SPEC).filter((x) => x !== 'preset' && DESIGN_SPEC[x].since === undefined)) assert.ok(theme[k], `design knob ${k} declared`);
 
     // app_add_screen / app_update_screen — SCREEN_SPEC enums.
     for (const name of ['app_add_screen', 'app_update_screen']) {
