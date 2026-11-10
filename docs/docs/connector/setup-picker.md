@@ -61,8 +61,9 @@ What happens on Connect:
 A first choice whose check passed stays chosen when connecting then fails, for example because the
 server asks for a pairing code. The connector is then on that server without a key. Until the
 connection is made, **Bee Flow** in the top bar opens the setup page for an administrator, with the
-failure and what to do about it, also on a later visit; everybody else sees "Bee Flow is not
-connected yet. Ask your Nextcloud administrator to open Bee Flow and finish connecting it." The
+failure and what to do about it, also on a later visit; everybody else sees the heading "Bee Flow
+is not connected yet" and "Ask your Nextcloud administrator to open Bee Flow and finish connecting
+it." The
 failure is also in `GET setup/diagnostics`. Enter the pairing code or fix the cause and connect
 again.
 
@@ -172,6 +173,10 @@ The same field is in the advanced deploy options when you install from the Apps 
       --env BEEFLOW_API_BASE_URL=<new value>
   ```
 
+  On a `manual-install` daemon stop the connector container before unregistering and start it
+  again when you register: see
+  [Where you start the container yourself](./troubleshooting.md#manual-install).
+
 ## Where the setup page is
 
 While no server is chosen, the setup page is what **Bee Flow** in the top bar opens. After that, an
@@ -205,7 +210,11 @@ The setup page stays available. A switch from one server to another:
   page then names the failure (for example "certificate not trusted", with the option that solves
   it) and says that the previous server is still in use.
   `GET setup/diagnostics` keeps that failure under `rejectedSwitch`, with the server it is about;
-  `lastError` there is always about the server in use. Nothing is tried again on the server in use
+  `lastError` there is always about the server in use. A switch asked for in the settings form is
+  reported for as long as the form names that server: once the form is back on "No change", on the
+  server in use or on another server, `rejectedSwitch` is empty again at the next poll (a minute at
+  most). A switch asked for on the setup page is reported until the next change of server or a
+  restart. Nothing is tried again on the server in use
   after a switch that did not happen: its key and its record stay as they were;
 - does not move data: chats, agents and knowledge bases stay with the organisation on the server
   they were made on.

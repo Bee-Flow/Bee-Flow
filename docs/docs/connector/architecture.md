@@ -199,7 +199,7 @@ Set by AppAPI / Dockerfile (you don't normally touch these):
 | `APP_PERSISTENT_STORAGE` | `/data` | Tenant-key cache directory |
 | `NEXTCLOUD_URL` | (required) | Base URL of the NC instance |
 
-Install-time values, declared in `appinfo/info.xml`. Give them in the advanced deploy options at install, or with `occ app_api:app:register bee_flow <daemon> --env NAME=VALUE`. AppAPI stores them and passes them again on every update; to change one, run `occ app_api:app:unregister bee_flow` (without `--rm-data` the data volume is kept) and register again with the new values. A variable left blank is not passed at all, and the connector's default applies.
+Install-time values, declared in `appinfo/info.xml`. Give them in the advanced deploy options at install, or with `occ app_api:app:register bee_flow <daemon> --env NAME=VALUE`. AppAPI stores them and passes them again on every update; to change one, run `occ app_api:app:unregister bee_flow` (without `--rm-data` the data volume is kept) and register again with the new values; on a `manual-install` daemon stop the container first ([Where you start the container yourself](./troubleshooting.md#manual-install)). A variable left blank is not passed at all, and the connector's default applies.
 
 | Var | Default | Purpose |
 |-----|---------|---------|

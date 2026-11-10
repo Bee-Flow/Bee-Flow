@@ -35,6 +35,10 @@ this *before* the connector sees a request:
 | `^/?hooks/.*` | `PUBLIC` + brute-force protection | Delivered by a Nextcloud background job with no session; authenticated by a static header secret, so Nextcloud throttles repeated rejections. |
 | `^/?nc/.*` | `PUBLIC` | The Bee Flow server calling back into Nextcloud; authenticated by HMAC (below), not by a session. |
 
+A request below the level of its route does not reach the connector. Through HaRP the answer is
+`403 Forbidden`; on the PHP proxy route of a `manual-install` or Docker Socket Proxy daemon it is
+Nextcloud's "Page not found" page (`404`).
+
 ## 2. Per-user impersonation (whose data a call can reach)
 
 Every call the connector makes into Nextcloud carries
