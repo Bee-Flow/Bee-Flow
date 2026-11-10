@@ -28,6 +28,8 @@ const { VIEWER_ATTRIBUTES } = nodeRequire('../core/dataEngine/dataModel/vocabula
     VIEWER_ATTRIBUTES: ReadonlyArray<{ key: string; resolved?: boolean }>;
 };
 const { fallback } = nodeRequire('../utils/bestEffort') as { fallback<T>(label: string, err: unknown, value: T): T };
+// The prefix of a public page's server-minted visitor id: never a user id.
+const { ANON_VIEWER_PREFIX } = nodeRequire('./publicAccess') as { ANON_VIEWER_PREFIX: string };
 
 type Obj = Record<string, unknown>;
 type UserRow = { email?: unknown; groups?: unknown; organizationId?: unknown } | null | undefined;
@@ -100,15 +102,17 @@ export async function resolveViewerAttributes(userId: unknown, deps: ViewerAttri
 
 /**
  * The viewer a row rule sees: `viewer` plus the resolved attributes, when a rule of `model`
- * reads one. `viewer.id` names the user; `opts.anonymous` marks a public visitor, whose id is
- * not a user id and who gets the anonymous attributes without a lookup. Values already on the
- * viewer under these names are replaced: they are never taken from a caller.
+ * reads one. `viewer.id` names the user; a public visitor (`opts.anonymous`, or an id with the
+ * visitor prefix, which is how the step paths know one) gets the anonymous attributes without
+ * a lookup. Values already on the viewer under these names are replaced: they are never taken
+ * from a caller.
  */
 export async function withViewerAttributes<V extends Obj>(
     viewer: V, model: unknown, opts: ViewerAttributeDeps & { anonymous?: boolean } = {},
 ): Promise<V> {
     if (!isObject(viewer) || !modelReadsViewerAttributes(model)) return viewer;
-    const attrs = opts.anonymous === true ? anonymousViewerAttributes() : await resolveViewerAttributes(viewer.id, opts);
+    const anonymous = opts.anonymous === true || (typeof viewer.id === 'string' && viewer.id.startsWith(ANON_VIEWER_PREFIX));
+    const attrs = anonymous ? anonymousViewerAttributes() : await resolveViewerAttributes(viewer.id, opts);
     const out: Obj = { ...viewer };
     for (const key of RESOLVED_KEYS) delete out[key];
     return (attrs ? { ...out, ...attrs } : out) as V;
@@ -126,13 +130,11 @@ export function viewerAttributesOf(viewer: unknown): Partial<ViewerAttributes> {
 }
 
 /**
- * The context of one server step, with the resolved attributes on its viewer. A context whose
- * viewer already carries all of them (the public page resolves its anonymous visitor itself)
- * is returned as it is; a model that reads none is too.
+ * The context of one server step, with the resolved attributes on its viewer, read again for
+ * every step whatever the context already carries. A model that reads none is returned as it is.
  */
 export async function ctxWithViewerAttributes<C extends Obj>(model: unknown, ctx: C, deps: ViewerAttributeDeps = {}): Promise<C> {
     if (!isObject(ctx) || !modelReadsViewerAttributes(model)) return ctx;
     const base: Obj = isObject(ctx.viewer) ? ctx.viewer : { id: ctx.viewerId ?? null };
-    if (RESOLVED_KEYS.every((key) => Object.hasOwn(base, key))) return ctx;
     return { ...ctx, viewer: await withViewerAttributes(base, model, deps) };
 }

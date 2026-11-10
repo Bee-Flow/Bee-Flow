@@ -126,9 +126,14 @@ test('a step context gets them on its viewer; one that has them, or a model that
     assert.deepEqual(out2.viewer, { id: 'u_ada', role: 'member', organizationId: 'org_app', email: 'ada@example.org', groups: ['g_sales', 'g_board'], orgId: 'org_1' });
     assert.equal(withViewer.viewer.email, undefined, 'the caller\'s context is not written to');
 
-    const resolved = { viewerId: 'anon:1', viewer: { id: 'anon:1', ...anonymousViewerAttributes() } };
+    // Attributes that came in with the context are never believed: they are read again.
+    const carried = { viewerId: 'u_ada', viewer: { id: 'u_ada', email: 'eve@example.org', groups: ['g_forged'], orgId: 'org_x' } };
+    assert.deepEqual((await ctxWithViewerAttributes(model, carried, store)).viewer, { id: 'u_ada', email: 'ada@example.org', groups: ['g_sales', 'g_board'], orgId: 'org_1' });
+
+    // A public visitor on a step path (the route passes only the visitor id): anonymous, no lookup.
     store.calls.length = 0;
-    assert.equal(await ctxWithViewerAttributes(model, resolved, store), resolved);
+    const visitor = await ctxWithViewerAttributes(model, { viewerId: 'anon:1', role: 'public' }, users({ 'anon:1': ADA }));
+    assert.deepEqual(visitor.viewer, { id: 'anon:1', ...anonymousViewerAttributes() });
     assert.equal(await ctxWithViewerAttributes(modelWith(), bare, store), bare);
     assert.deepEqual(store.calls, []);
 });
