@@ -22,7 +22,46 @@
 const FIELD_TYPES = Object.freeze([
     'text', 'richtext', 'number', 'date', 'datetime', 'bool',
     'select', 'multiselect', 'relation', 'file', 'computed',
+    'autonumber', 'json', 'user',
 ]);
+
+/**
+ * The field types after `computed` came after the frozen base (their marks and descriptions are
+ * in vocabularySince.js DATA_VOCABULARY_MARKS.fieldTypes). A model that never names one plans,
+ * compiles and renders exactly as before.
+ *
+ *   autonumber  a whole number the SERVER assigns on create (1, 2, 3 … per table); never written
+ *               by a client, always unique. INTEGER on SQLite, BIGINT on Postgres.
+ *   json        a JSON value, stored as JSON text in both dialects (like multiselect and file).
+ *   user        the id of a member of the organisation, stored as text.
+ *
+ * All three are APP-ONLY: an automation datatable cannot hold them (datatableFields.js
+ * DATATABLE_FIELD_TYPES leaves them out, vocabulary.lockstep.test.js pins that).
+ */
+const APP_ONLY_FIELD_TYPES = Object.freeze(['relation', 'computed', 'autonumber', 'json', 'user']);
+
+/**
+ * `field.format` on a text field (optional, a field option marked in vocabularySince.js): what
+ * kind of text it holds. A value written to a field with a format is checked on every write
+ * (core/dataEngine/fieldFormats.mts); the column stays TEXT, so adding or removing a format never
+ * migrates anything.
+ */
+const TEXT_FORMATS = Object.freeze({ values: Object.freeze(['email', 'url', 'phone']) });
+
+/**
+ * `field.display` (optional, a field option marked in vocabularySince.js): how a value is SHOWN,
+ * never how it is stored. Nothing of it reaches the DDL or the write path.
+ *   currency   ISO 4217 code (three capital letters)  number and computed fields
+ *   decimals   0 … MAX_DECIMALS                         number and computed fields
+ *   unit       a short suffix ("kg", "h")               number and computed fields; not with currency
+ *   dateStyle  one of DATE_STYLES (Intl dateStyle)       date and datetime fields
+ */
+const FIELD_DISPLAY = Object.freeze({
+    keys: Object.freeze(['currency', 'decimals', 'unit', 'dateStyle']),
+    dateStyles: Object.freeze(['short', 'medium', 'long', 'full']),
+    MAX_DECIMALS: 10,
+    MAX_UNIT_LEN: 16,
+});
 
 // The negations sit beside their positives on purpose: an author who can say
 // "contains" and cannot say "does not contain" writes the inverse as a second
@@ -138,6 +177,41 @@ const DATA_LIMITS = Object.freeze({
     MAX_COMPUTED_EXPR: 500,
 });
 
+/**
+ * Field rules (optional field options, marked in vocabularySince.js): `field.validation` and
+ * `field.dynamicDefault`.
+ *
+ * Both are APPLICATION-level. Nothing of them reaches the DDL: a rule is checked by
+ * core/dataEngine/fieldRules.mts before a write is compiled, so adding, changing or removing one
+ * never migrates a column, and rows written before the rule existed are never re-checked. A field
+ * without either key writes exactly as before.
+ *
+ *   validation      { min, max }               number fields
+ *                   { minLength, maxLength }   text fields, counted in characters
+ *                   { pattern }                text fields; compiled through core/text/userPattern
+ *                   { enforceOptions: true }   select / multiselect: only the listed options
+ *                   { message }                replaces the generated sentence for every rule
+ *   dynamicDefault  filled on CREATE when the value is missing or empty, per field type:
+ *                   now → datetime, today → date (UTC), currentUser.id → text
+ */
+const FIELD_VALIDATION = Object.freeze({
+    keys: Object.freeze(['min', 'max', 'minLength', 'maxLength', 'pattern', 'enforceOptions', 'message']),
+});
+const DYNAMIC_DEFAULTS = Object.freeze({
+    // value → the field types it may sit on
+    types: Object.freeze({
+        now: Object.freeze(['datetime']),
+        today: Object.freeze(['date']),
+        'currentUser.id': Object.freeze(['text', 'user']),
+    }),
+});
+// Definition limits for the rules above (they decide whether a MODEL is valid, so constants).
+const FIELD_RULE_LIMITS = Object.freeze({
+    MAX_PATTERN_LEN: 500,
+    MAX_MESSAGE_LEN: 200,
+    MAX_LENGTH: 1_000_000,
+});
+
 // System columns present on every table — field keys may not collide with them.
 const SYSTEM_COLUMNS = Object.freeze(['id', 'created_at', 'updated_at', 'created_by', 'org_id']);
 
@@ -223,6 +297,9 @@ const MAX_MAILBOX_RETENTION_DAYS = 730;
 
 module.exports = {
     FIELD_TYPES,
+    APP_ONLY_FIELD_TYPES,
+    TEXT_FORMATS,
+    FIELD_DISPLAY,
     FILTER_OPS,
     RESERVED_DATASET_IDS,
     AGG_FNS,
@@ -236,6 +313,9 @@ module.exports = {
     DATATABLE_ID_RE,
     PUBLIC_ROLE_KEY,
     DATA_LIMITS,
+    FIELD_VALIDATION,
+    DYNAMIC_DEFAULTS,
+    FIELD_RULE_LIMITS,
     SYSTEM_COLUMNS,
     KEY_RE,
     RESERVED_KEY_PREFIX_RE,

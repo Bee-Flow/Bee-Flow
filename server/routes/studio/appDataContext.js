@@ -149,11 +149,19 @@ async function loadOwnedApp(req, res) {
 }
 
 // ── Error handling ──────────────────────────────────────────────────
+
+/**
+ * A field rule's refusal (core/dataEngine/fieldRules.mts) names each field: `details.fieldErrors`.
+ * @param {{ code?: string, fieldErrors?: unknown }} err
+ */
+function fieldErrorDetails(err) {
+    return err.code === 'field_invalid' && err.fieldErrors ? { fieldErrors: err.fieldErrors } : undefined;
+}
 // Compile/AccessError carry safe, client-facing validation text with a status;
 // everything else is an internal error → generic 500 (no err.message leak).
 /**
  * @param {import('express').Response} res
- * @param {Error & { status?: number, safe?: boolean, code?: string, limit?: number, used?: number }} err
+ * @param {Error & { status?: number, safe?: boolean, code?: string, limit?: number, used?: number, fieldErrors?: unknown }} err
  * @param {string} _where
  */
 function handleErr(res, err, _where) {
@@ -175,7 +183,7 @@ function handleErr(res, err, _where) {
         });
     }
     if (status === 422 || status === 400 || status === 403) {
-        throw new HttpError(status, err.code || 'data_request_refused', err.message);
+        throw new HttpError(status, err.code || 'data_request_refused', err.message, fieldErrorDetails(err));
     }
     // Only an HttpError may carry its own message and status; anything else is
     // a generic 500 (the terminal handler logs the cause), as before the move.

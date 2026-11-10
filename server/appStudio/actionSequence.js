@@ -184,15 +184,40 @@ function stepNotes(result) {
  * (whether the browser's retry of the step can help) and the internal-error
  * `ref` the server log carries. Conditional, so the answer's shape grows only.
  *
- * @param {{ retryable?: unknown, ref?: unknown } | null | undefined} result
- * @returns {{ retryable?: boolean, ref?: string }}
+ * `fieldErrors` (a field rule refused the write, stepErrors.mts) rides along
+ * only when present, bounded.
+ *
+ * @param {{ retryable?: unknown, ref?: unknown, fieldErrors?: unknown } | null | undefined} result
+ * @returns {{ retryable?: boolean, ref?: string, fieldErrors?: Record<string, string> }}
  */
 function stepFailureExtras(result) {
-    /** @type {{ retryable?: boolean, ref?: string }} */
+    /** @type {{ retryable?: boolean, ref?: string, fieldErrors?: Record<string, string> }} */
     const out = {};
     if (result && typeof result.retryable === 'boolean') out.retryable = result.retryable;
     if (result && typeof result.ref === 'string' && /^[0-9a-f]{8}$/.test(result.ref)) out.ref = result.ref;
+    const fieldErrors = boundedFieldErrors(result && result.fieldErrors);
+    if (fieldErrors) out.fieldErrors = fieldErrors;
     return out;
+}
+
+const MAX_FIELD_ERRORS = 100;
+
+/**
+ * @param {unknown} raw
+ * @returns {Record<string, string> | null}
+ */
+function boundedFieldErrors(raw) {
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+    /** @type {Record<string, string>} */
+    const out = {};
+    let n = 0;
+    for (const [k, v] of Object.entries(raw)) {
+        if (n >= MAX_FIELD_ERRORS) break;
+        if (typeof v !== 'string' || !k || k.length > 64) continue;
+        out[k] = v.slice(0, 300);
+        n += 1;
+    }
+    return n ? out : null;
 }
 
 /**

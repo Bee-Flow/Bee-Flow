@@ -29,6 +29,8 @@ export interface ActionEntry {
     jobId?: string;
     /** A background action: the job's latest progress. */
     progress?: JobProgress | null;
+    /** A field rule refused a write: one sentence per form field name (only when there are any). */
+    fieldErrors?: Record<string, string> | null;
 }
 
 export type ActionState = Record<string, ActionEntry>;

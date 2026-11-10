@@ -40,8 +40,54 @@ const vocabulary = require('./vocabulary');
 
 /** @type {Readonly<Record<VocabularyFamily, Readonly<Record<string, VocabularyMark>>>>} */
 const DATA_VOCABULARY_MARKS = Object.freeze({
-    fieldTypes: Object.freeze({}),
-    fieldOptions: Object.freeze({}),
+    fieldTypes: Object.freeze({
+        autonumber: Object.freeze({
+            since: 3,
+            description: 'A whole number the server assigns on create: 1, 2, 3 and on per table. '
+                + 'Read-only and always unique: never write, seed or default it. App tables only (not in an automation datatable).',
+        }),
+        json: Object.freeze({
+            since: 3,
+            description: 'A JSON value: an object, an array, a number, a string or a boolean. '
+                + 'Stored as JSON text. A written string must itself be JSON text. App tables only.',
+        }),
+        user: Object.freeze({
+            since: 3,
+            description: 'The user id of a member of the organisation. '
+                + 'dynamicDefault "currentUser.id" fills it with the signed-in user on create. App tables only.',
+        }),
+    }),
+    fieldOptions: Object.freeze({
+        validation: Object.freeze({
+            since: 3,
+            shape: '{ min?, max?, minLength?, maxLength?, pattern?, enforceOptions?, message? } | null',
+            description: 'Rules every write of this field must pass, checked by the server. '
+                + 'number: min, max. text: minLength, maxLength, pattern (a case-sensitive regular expression, e.g. "^[0-9]{4}[A-Z]{2}$"). '
+                + 'select/multiselect: enforceOptions true accepts only the listed options. message replaces the generated error sentence. '
+                + 'An empty value always passes (use required for that), and rows already stored are not re-checked. null removes the rules.',
+        }),
+        dynamicDefault: Object.freeze({
+            since: 3,
+            shape: `${Object.keys(vocabulary.DYNAMIC_DEFAULTS.types).map((v) => JSON.stringify(v)).join(' | ')} | null`,
+            description: 'A value filled in when a record is created without one. '
+                + '"now" on a datetime field, "today" (UTC date) on a date field, "currentUser.id" (the signed-in user\'s id) on a text or user field. '
+                + 'Not together with default. null removes it.',
+        }),
+        format: Object.freeze({
+            since: 3,
+            shape: `${vocabulary.TEXT_FORMATS.values.map((v) => JSON.stringify(v)).join(' | ')} | null`,
+            description: 'The kind of text a text field holds, checked on every write. '
+                + 'email: an e-mail address. url: a web address (https:// or http://). phone: a phone number. '
+                + 'The column stays text, so adding or removing it migrates nothing. null removes it.',
+        }),
+        display: Object.freeze({
+            since: 3,
+            shape: `{ currency?, decimals?, unit?, dateStyle?: ${vocabulary.FIELD_DISPLAY.dateStyles.join('|')} } | null`,
+            description: 'How the value is shown, never how it is stored. '
+                + `number/computed: currency (an ISO code like "EUR"), decimals (0-${vocabulary.FIELD_DISPLAY.MAX_DECIMALS}), unit (a short suffix like "kg", not with currency). `
+                + 'date/datetime: dateStyle. null removes it.',
+        }),
+    }),
     filterOps: Object.freeze({}),
     aggFns: Object.freeze({}),
     dateBuckets: Object.freeze({}),

@@ -31,12 +31,15 @@ const { computedExprFor } = require('../computedDialect');
  *   relation      → TEXT (the referenced record id)
  *   file          → TEXT (JSON descriptor(s))
  *   computed      → the declared result affinity (computed.type), default TEXT
+ *   autonumber    → INTEGER (server-assigned, see ./autonumber.js)
+ *   json / user   → TEXT (JSON text / a user id)
  */
 function sqliteType(field) {
     switch (field.type) {
         case 'number':
             return field.subtype === 'integer' ? 'INTEGER' : 'REAL';
         case 'bool':
+        case 'autonumber':
             return 'INTEGER';
         case 'computed': {
             const rt = field.computed && field.computed.type;
@@ -63,11 +66,15 @@ function sqliteType(field) {
  *                                   as opaque JSON text in both dialects)
  *   computed                      → declared result type (computed.type),
  *                                   default TEXT
+ *   autonumber                    → BIGINT
+ *   json / user                   → TEXT (JSON text, as multiselect / a user id)
  */
 function pgType(field) {
     switch (field.type) {
         case 'number':
             return field.subtype === 'integer' ? 'BIGINT' : 'NUMERIC';
+        case 'autonumber':
+            return 'BIGINT';
         case 'bool':
             return 'BOOLEAN';
         case 'date':

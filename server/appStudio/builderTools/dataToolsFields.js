@@ -144,16 +144,47 @@ function buildField(raw, old, at, model) {
     const sameType = !!old && old.type === raw.type;
     const subtype = raw.subtype !== undefined ? raw.subtype : (sameType ? old.subtype : undefined);
     if (subtype) field.subtype = subtype;
-    if (raw.default !== undefined) {
-        const coerced = coerceFieldDefault(raw.default, raw.type, at);
-        if (coerced.error) return { error: coerced.error };
-        field.default = coerced.value;
-    } else if (sameType && old.default !== undefined) {
-        field.default = old.default;
-    }
+    const dflt = fieldDefault(raw, sameType ? old : null, at);
+    if (dflt.error) return { error: dflt.error };
+    if ('value' in dflt) field.default = dflt.value;
+    applyFieldRules(field, raw, sameType ? old : null);
     const typed = applyTypedProps(field, raw, old, at, model);
     if (typed) return typed;
     return { field };
+}
+
+/**
+ * A field's `default`: the spec's (read by type), else the same-type field's it
+ * evolves, unless the spec gives a dynamicDefault instead. No `value` key: none.
+ * @param {CheckedFieldSpec} raw
+ * @param {DataField|null} sameTypeOld
+ * @param {string} at
+ * @returns {{ value?: unknown, error?: string }}
+ */
+function fieldDefault(raw, sameTypeOld, at) {
+    if (raw.default !== undefined) return coerceFieldDefault(raw.default, raw.type, at);
+    if (sameTypeOld && sameTypeOld.default !== undefined && !raw.dynamicDefault) return { value: sameTypeOld.default };
+    return {};
+}
+
+/**
+ * The optional field rules (validation, dynamicDefault): the spec's value, null
+ * clears it, absent inherits the field it evolves (same type only: a rule of the
+ * old type does not apply to the new one). The model validator judges the shape.
+ * A `default` in the spec drops an inherited dynamicDefault (one of the two).
+ * @param {DataField} field  written in place
+ * @param {CheckedFieldSpec} raw
+ * @param {DataField|null} sameTypeOld
+ */
+function applyFieldRules(field, raw, sameTypeOld) {
+    const pick = (/** @type {'validation' | 'dynamicDefault' | 'format' | 'display'} */ key) => (raw[key] !== undefined ? raw[key] : sameTypeOld?.[key]);
+    // validation, and the schema-3 text format and display (fieldFormats.mts): same rule.
+    for (const key of /** @type {const} */ (['validation', 'format', 'display'])) {
+        const value = pick(key);
+        if (value !== undefined && value !== null) field[key] = value;
+    }
+    const dynamicDefault = raw.default !== undefined && raw.default !== null && raw.dynamicDefault === undefined ? undefined : pick('dynamicDefault');
+    if (dynamicDefault !== undefined && dynamicDefault !== null) field.dynamicDefault = dynamicDefault;
 }
 
 /**
@@ -250,6 +281,7 @@ function applyComputed(field, raw, old, at) {
  *   subtype?: string, default?: unknown, options?: unknown,
  *   relation?: { tableId?: string, table?: string, displayFieldKey?: string, displayField?: string },
  *   computed?: { expr?: unknown, type?: string, stored?: unknown },
+ *   validation?: unknown, dynamicDefault?: unknown, format?: unknown, display?: unknown,
  * }} FieldSpec  one entry of app_upsert_table's fields[] as authored
  * @typedef {FieldSpec & { key: string, type: string }} CheckedFieldSpec  a spec past checkFieldSpec: a valid key and type
  */

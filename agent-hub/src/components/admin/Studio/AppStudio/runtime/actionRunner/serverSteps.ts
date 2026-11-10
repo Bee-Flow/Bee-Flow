@@ -24,13 +24,23 @@ export class StepFailure extends Error {
     attempts = 1;
     /** The kind of the step that failed (error.step in a handler). */
     stepKind: string | null = null;
+    /** A field rule refused the write: one sentence per form field name (the server's `fieldErrors`). */
+    fieldErrors: Record<string, string> | null = null;
 }
 
-function stepFailure(message: string, init: { code?: unknown; retryable: boolean; status: number }): StepFailure {
+/** The server's `fieldErrors` map, strings only; null when there is none. */
+function fieldErrorsOf(raw: unknown): Record<string, string> | null {
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+    const out = Object.fromEntries(Object.entries(raw).filter((e): e is [string, string] => typeof e[1] === 'string'));
+    return Object.keys(out).length ? out : null;
+}
+
+function stepFailure(message: string, init: { code?: unknown; retryable: boolean; status: number; fieldErrors?: unknown }): StepFailure {
     const f = new StepFailure(message);
     f.code = typeof init.code === 'string' && init.code ? init.code : null;
     f.retryable = init.retryable;
     f.status = init.status;
+    f.fieldErrors = fieldErrorsOf(init.fieldErrors);
     return f;
 }
 
@@ -118,7 +128,7 @@ function throwOnFailure(res: Response, payload: Record<string, unknown> | null, 
     }
     if (payload && payload.ok === false) {
         throw stepFailure((payload.error as string) || tr('studio_apps_runtime.actions.step_failed', 'The step failed.'), {
-            code: payload.code, retryable: payload.retryable !== false, status: res.status,
+            code: payload.code, retryable: payload.retryable !== false, status: res.status, fieldErrors: payload.fieldErrors,
         });
     }
 }

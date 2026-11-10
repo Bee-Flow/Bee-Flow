@@ -199,6 +199,15 @@ function FormBody({ node, children }: NodeProps<FormProps>) {
     // The spinner was the only thing read off the action's state, so a
     // failed submit just stopped spinning and said nothing.
     const submitError = node.onSubmit ? actionState?.[node.onSubmit]?.error : null;
+    // A field rule the server checks (data model validation) answers per field:
+    // each sentence goes under its input, like a rule checked here, and clears
+    // when that field changes. Adjusted during render when a new answer arrives.
+    const serverFieldErrors = node.onSubmit ? actionState?.[node.onSubmit]?.fieldErrors ?? null : null;
+    const [seenServerErrors, setSeenServerErrors] = useState(serverFieldErrors);
+    if (serverFieldErrors !== seenServerErrors) {
+        setSeenServerErrors(serverFieldErrors);
+        if (serverFieldErrors) setErrors((prev) => ({ ...prev, ...serverFieldErrors }));
+    }
     const validations = useMemo(() => collectValidations(node), [node]);
 
     useEffect(() => {

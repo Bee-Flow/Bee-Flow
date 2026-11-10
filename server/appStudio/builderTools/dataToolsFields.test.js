@@ -92,3 +92,22 @@ test('buildField reads relation and computed specs', () => {
     assert.deepEqual(kept.field.computed, { expr: 'a * b', stored: true }, 'saying nothing about stored keeps it stored');
     assert.match(buildField({ key: 'total', type: 'computed' }, null, 'fields[1]', MODEL).error, /requires computed: \{ expr, type\? \}/);
 });
+
+test('buildField carries the optional field rules: given, cleared with null, inherited only by the same type', () => {
+    const rules = { min: 1, max: 9, message: 'One to nine.' };
+    const made = buildField({ key: 'qty', type: 'number', validation: rules }, null, 'fields[0]', MODEL).field;
+    assert.deepEqual(made.validation, rules);
+    assert.equal('dynamicDefault' in made, false, 'nothing written that was not asked for');
+
+    const old = { id: 'fld_q', key: 'qty', name: 'Qty', type: 'number', required: false, unique: false, validation: rules };
+    assert.deepEqual(buildField({ key: 'qty', type: 'number' }, old, 'fields[0]', MODEL).field.validation, rules, 'inherited');
+    assert.equal('validation' in buildField({ key: 'qty', type: 'number', validation: null }, old, 'fields[0]', MODEL).field, false, 'null clears');
+    assert.equal('validation' in buildField({ key: 'qty', type: 'text' }, old, 'fields[0]', MODEL).field, false, 'a conversion drops the old rules');
+
+    const stamped = { id: 'fld_d', key: 'day', name: 'Day', type: 'date', required: false, unique: false, default: '2026-01-01' };
+    const dyn = buildField({ key: 'day', type: 'date', dynamicDefault: 'today' }, stamped, 'fields[1]', MODEL).field;
+    assert.equal(dyn.dynamicDefault, 'today');
+    assert.equal('default' in dyn, false, 'a dynamicDefault replaces the inherited static default');
+    const back = buildField({ key: 'day', type: 'date', default: '2026-02-02' }, { ...stamped, default: undefined, dynamicDefault: 'today' }, 'fields[1]', MODEL).field;
+    assert.deepEqual([back.default, 'dynamicDefault' in back], ['2026-02-02', false], 'a static default replaces the inherited dynamic one');
+});

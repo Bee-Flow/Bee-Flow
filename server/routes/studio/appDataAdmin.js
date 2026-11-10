@@ -136,6 +136,11 @@ async function putSchema(req, res) {
         if (body.dryRun === true) {
             const preview = await studioAppDataStore.previewDataModelChange(app.id, app.userId, model, { onUnconvertible });
             if (!preview.ok) return res.status(422).json({ error: 'Data model failed validation', errors: preview.errors || [] });
+            // The dry run answers what the save would: a type change it cannot convert is refused.
+            if (preview.report && preview.report.unsupported.length) {
+                migrationRefusal(res, { conversionUnsupported: true, conversions: preview.report.unsupported });
+                return;
+            }
             return res.json({ dryRun: true, currentVersion: preview.currentVersion, report: preview.report });
         }
         const expectedVersion = Number.isInteger(body.expectedVersion) ? body.expectedVersion : null;
@@ -175,11 +180,19 @@ async function putSchema(req, res) {
  * details): 422 conversion_refused with the counted conversions, 422
  * migration_failed with the fixed reason. True when answered.
  * @param {import('express').Response} res
- * @param {{ conversionRefused?: boolean, conversions?: unknown[], migrationFailed?: boolean, failure?: { message?: string } }} result
+ * @param {{ conversionRefused?: boolean, conversionUnsupported?: boolean, conversions?: unknown[], migrationFailed?: boolean, failure?: { message?: string } }} result
  */
 function migrationRefusal(res, result) {
     if (result && result.conversionRefused) {
         res.status(422).json({ error: 'Some values cannot be converted to the new field type', code: 'conversion_refused', conversions: result.conversions });
+        return true;
+    }
+    if (result && result.conversionUnsupported) {
+        res.status(422).json({
+            error: 'A field cannot change to this type in place. Only text and select, text and number, and whole and decimal numbers convert into each other. Add a new field with the new type instead.',
+            code: 'conversion_unsupported',
+            conversions: result.conversions,
+        });
         return true;
     }
     if (result && result.migrationFailed) {

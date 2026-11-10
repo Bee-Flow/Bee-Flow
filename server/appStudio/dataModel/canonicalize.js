@@ -126,6 +126,11 @@ function canonicalizeDataModel(model) {
             }
             field.required = boolish(field.required, false);
             field.unique = boolish(field.unique, false);
+            // An autonumber is server-assigned: always unique, never required (only this new type).
+            if (field.type === 'autonumber' && (!field.unique || field.required)) {
+                field.unique = true; field.required = false;
+                repairs.push(`field "${field.key}" (autonumber) set unique and not required`);
+            }
             if (typeof field.name !== 'string' || !field.name.trim()) field.name = field.key;
             if ((field.type === 'select' || field.type === 'multiselect')) {
                 if (!Array.isArray(field.options)) { field.options = []; repairs.push(`field "${field.key}" options defaulted to []`); }

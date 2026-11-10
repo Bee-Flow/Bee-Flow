@@ -1,0 +1,73 @@
+{
+  "corpus": "data-model-field-types",
+  "canonical": {
+    "sha256": "b03235d284b0339a350d10a053bae64435cf5b8c7b82e6c4b0ed824ce9aeebf5",
+    "bytes": 2617,
+    "inputIsCanonical": true,
+    "idempotent": true,
+    "keys": [
+      "schemaVersion",
+      "meta",
+      "theme",
+      "roles",
+      "screens",
+      "actions",
+      "homeScreenId"
+    ],
+    "parts": {
+      "schemaVersion": "d4735e3a265e16ee",
+      "meta": "e7ef1a52787f4e39",
+      "theme": "5d7eeb0111b89897",
+      "roles": "4f53cda18c2baa0c",
+      "screens[0] scr_tick01": "ed0817619361e324",
+      "actions.act_tick01": "7cac4db4a510a32f",
+      "homeScreenId": "e21ca2ebaf2f5baf"
+    }
+  },
+  "schemaVersion": {
+    "stored": 2,
+    "canonical": 2
+  },
+  "validation": {
+    "strict": {
+      "errors": [],
+      "warnings": []
+    },
+    "save": {
+      "errors": [],
+      "warnings": []
+    }
+  },
+  "ordinals": {
+    "stored": {
+      "act_tick01": [
+        "0 create_record",
+        "1 toast"
+      ]
+    },
+    "canonical": "same as stored"
+  },
+  "reads": [
+    {
+      "at": "cmp_tkgr01.source",
+      "kind": "records",
+      "table": "tbl_tick01",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"tickets\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"tickets\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      }
+    }
+  ]
+}

@@ -20,6 +20,7 @@ const {
 } = require('./vocabulary');
 const { validateConnectors } = require('./connectorValidate');
 const { computedExprShapeError } = require('./computedExprGuard');
+const { fieldRuleErrors } = require('../../core/dataEngine/fieldRules.mts');
 
 /**
  * The SHAPE of `table.source` — where the rows of this table live.
@@ -168,6 +169,9 @@ function validateDataModel(model) {
                 errors.push(`${fw}.type "${field.type}" is not a known field type`);
                 continue;
             }
+
+            // Optional field rules (validation, dynamicDefault): silent when absent.
+            errors.push(...fieldRuleErrors(field, fw));
 
             if (field.type === 'select' || field.type === 'multiselect') {
                 if (!Array.isArray(field.options)) {

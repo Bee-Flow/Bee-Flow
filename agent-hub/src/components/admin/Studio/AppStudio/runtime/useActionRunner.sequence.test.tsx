@@ -576,3 +576,27 @@ describe('useActionRunner — background actions', () => {
         expect(String(asMock(authFetch).mock.calls[0][0])).toMatch(/\/actions\/act_bg\/step$/);
     });
 });
+
+// A server step refused by a data-model field rule answers `fieldErrors`: the runner keeps them on
+// the action's state so the form that submitted can show each one under its input.
+describe('useActionRunner — field rule errors', () => {
+    const saveDef = def({ save: { kind: 'sequence', steps: [{ kind: 'create_record', tableId: 't', values: {} }] } });
+    beforeEach(() => { asMock(authFetch).mockReset(); });
+
+    it('keeps the server fieldErrors (strings only) on the failed action', async () => {
+        asMock(authFetch).mockResolvedValue(resp(200, { ok: false, error: '"Quantity" must be at least 1.', code: 'field_invalid', retryable: false, fieldErrors: { qty: '"Quantity" must be at least 1.', bad: 3 } }));
+        const { result } = renderHook(() => useActionRunner('app1', stub<Parameters<typeof useActionRunner>[1]>(saveDef)));
+        await act(async () => { await result.current.runAction('save', { formValues: { qty: 0 } }); });
+        const entry = result.current.actionState.save;
+        expect(entry?.status).toBe('error');
+        expect(entry?.error).toBe('"Quantity" must be at least 1.');
+        expect(entry?.fieldErrors).toEqual({ qty: '"Quantity" must be at least 1.' });
+    });
+
+    it('a failure without fieldErrors writes no fieldErrors key', async () => {
+        asMock(authFetch).mockResolvedValue(resp(200, { ok: false, error: 'Record not found' }));
+        const { result } = renderHook(() => useActionRunner('app1', stub<Parameters<typeof useActionRunner>[1]>(saveDef)));
+        await act(async () => { await result.current.runAction('save'); });
+        expect(result.current.actionState.save).toEqual({ status: 'error', result: undefined, error: 'Record not found' });
+    });
+});

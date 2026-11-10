@@ -36,6 +36,8 @@ export type StepFailureResult = {
     ref?: string;
     limit?: unknown;
     used?: unknown;
+    /** A field rule refused the write: one sentence per form field (or column) name. */
+    fieldErrors?: Record<string, string>;
 };
 
 type Deps = {
@@ -127,6 +129,41 @@ function knownFailure(e: Obj, kind: string): StepFailureResult | null {
     return null;
 }
 
+/** `name` when `expr` is exactly `form.<name>` (a plain identifier), else null. No regex: the expression is author text. */
+function formPath(expr: unknown): string | null {
+    if (typeof expr !== 'string') return null;
+    const s = expr.trim();
+    if (!s.startsWith('form.')) return null;
+    const name = s.slice(5);
+    const plain = name.length > 0 && [...name].every((ch, i) => ch === '_' || (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || (i > 0 && ch >= '0' && ch <= '9'));
+    return plain ? name : null;
+}
+
+/** The form field a column's value came from in this step (`{kind:'field', name}` or the formula `form.<name>`). */
+function formNameOf(step: Obj | null, column: string): string {
+    const values = step && step.values && typeof step.values === 'object' ? step.values as Obj : null;
+    const b = values && Object.hasOwn(values, column) ? values[column] as Obj | null : null;
+    if (!b || typeof b !== 'object') return column;
+    if (b.kind === 'field' && typeof b.name === 'string' && b.name) return b.name;
+    if (b.kind === 'formula') return formPath(b.expr ?? b.value) ?? column;
+    return column;
+}
+
+/**
+ * A field rule's refusal (core/dataEngine/fieldRules.mts): its sentences keyed by the FORM field
+ * the step read each column from, so the form can put each one under its input. A column the step
+ * did not take from the form keeps its own key.
+ */
+function fieldRuleFailure(e: Obj, step: unknown): StepFailureResult | null {
+    if (e.status !== 422 || e.code !== 'field_invalid' || !e.fieldErrors || typeof e.fieldErrors !== 'object') return null;
+    const s = step && typeof step === 'object' ? step as Obj : null;
+    const fieldErrors: Record<string, string> = {};
+    for (const [column, sentence] of Object.entries(e.fieldErrors as Obj)) {
+        if (typeof sentence === 'string') fieldErrors[formNameOf(s, column)] = sentence;
+    }
+    return fail(messageOf(e) || 'Some values need attention.', 'field_invalid', false, { fieldErrors });
+}
+
 /** Database and provider/network failures: fixed sentences, never the driver's or provider's text. */
 function infraFailure(e: Obj, kind: string): StepFailureResult | null {
     const code = typeof e.code === 'string' ? e.code : '';
@@ -154,7 +191,7 @@ export function describeStepError(e: unknown, step: { kind?: unknown } | null | 
     const err: Obj = e && typeof e === 'object' ? (e as Obj) : {};
     const isRowsLocked = deps.isRowsLocked ?? defaultRowsLocked;
     if (isRowsLocked(e)) return fail(messageOf(err) || 'These rows are managed by a release and cannot be changed here.', 'managed_part', false);
-    const known = knownFailure(err, kind) ?? infraFailure(err, kind);
+    const known = fieldRuleFailure(err, step) ?? knownFailure(err, kind) ?? infraFailure(err, kind);
     if (known) return known;
     const ref = (deps.ref ?? defaultRef)();
     const log = deps.log ?? defaultLog();
