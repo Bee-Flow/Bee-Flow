@@ -55,7 +55,7 @@
                 "lockstep.fixture.mjs",
                 "lockstep.golden.json"
             ],
-            "why": "App Studio definition model (ids, section style, the shared definition ops, design presets, variables): the editor's state/definitionOps.js and runtime re-export it. The lockstep fixture and golden are test data and stay on the server. stepFlow.mjs (where a step holds child steps, the retry/onError helpers) is read by the browser action runner."
+            "why": "App Studio definition model (ids, section style, the shared definition ops, design presets, variables): the editor's state/definitionOps.js and runtime re-export it. The lockstep fixture and golden are test data and stay on the server. stepFlow.mjs (where a step holds child steps, the retry/onError helpers) is read by the browser action runner. bindingPlan.mjs (fetch, skip or needs-scope for one data binding) is the runtime's resolveBinding steps and, with their own option sets, the screenshot render's and the dry run's."
         },
         {
             "source": "server/shared/schedule",
