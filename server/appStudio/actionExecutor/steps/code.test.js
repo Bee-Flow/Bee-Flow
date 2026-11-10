@@ -126,6 +126,11 @@ test('an input name the code cannot read, and inputs past the size cap, are refu
     assert.equal(bad.code, 'bad_input');
     const big = await runCodeStep(APP, MODEL, { kind: 'code', code: 'return 1', inputs: { s: { kind: 'static', value: 'x'.repeat(3000) } } }, viewerCtx(), { sandbox: fake, env: { STUDIO_APP_CODE_INPUT_KB: '2' } });
     assert.equal(big.code, 'code_input_too_large');
+    const long = await runCodeStep(APP, MODEL, { kind: 'code', code: `return 1;${' '.repeat(20000)}` }, ownerCtx(), { sandbox: fake });
+    assert.equal(long.code, 'bad_input');
+    assert.match(long.error, /at most|the most a code step holds is 20000/);
+    const many = await runCodeStep(APP, MODEL, { kind: 'code', code: 'return 1', inputs: Object.fromEntries(Array.from({ length: 21 }, (_, i) => [`a${i}`, 1])) }, ownerCtx(), { sandbox: fake });
+    assert.equal(many.code, 'bad_input');
 });
 
 test('limits, the input cap and the sandbox errors read the way the header says', () => {

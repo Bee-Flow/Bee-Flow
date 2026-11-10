@@ -62,7 +62,9 @@ const MAX_CPU_MS = 10_000;
 const MAX_NOTES = 20;
 const MAX_NOTE_CHARS = 300;
 const MAX_ERROR_CHARS = 1000;
-const MAX_INPUTS = 20;
+/** The definition's own ceilings (componentSpecs/limits.js), held at run time too: a draft runs before it is published. */
+const { LIMITS } = nodeRequire('../../componentSpecs/limits.js') as { LIMITS: { MAX_CODE_STEP_CHARS: number; MAX_CODE_STEP_INPUTS: number } };
+const MAX_INPUTS = LIMITS.MAX_CODE_STEP_INPUTS;
 
 const UNAVAILABLE = 'This server has no code sandbox (isolated-vm is not installed), so a code step cannot run here.';
 
@@ -145,6 +147,7 @@ export async function runCodeStep(app: App, model: unknown, step: Obj, ctx: Obj,
     const sandbox = (deps.sandbox ?? defaultSandbox)();
     if (!sandbox.isAvailable()) return fail(UNAVAILABLE, 'code_unavailable');
     if (typeof step.code !== 'string' || !step.code.trim()) return fail('The code step has no code.', 'bad_input');
+    if (step.code.length > LIMITS.MAX_CODE_STEP_CHARS) return fail(`The code is ${step.code.length} characters; the most a code step holds is ${LIMITS.MAX_CODE_STEP_CHARS}.`, 'bad_input');
     const resolved = await resolveInputs(app, model, step, ctx, deps);
     if ('ok' in resolved) return resolved;
     const cap = inputByteCap(deps.env);
