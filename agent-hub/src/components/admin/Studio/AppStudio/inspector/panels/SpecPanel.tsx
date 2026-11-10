@@ -107,7 +107,7 @@ function newListItem(itemShape: Record<string, PropSpec> | null | undefined): Li
         else if (fs.type === 'boolean') item[k] = fs.default ?? false;
         else if (fs.type === 'int') item[k] = fs.default ?? null;
         else if (fs.type === 'list') item[k] = [];
-        else item[k] = '';
+        else if (fs.type !== 'object') item[k] = ''; // an object key (formatOptions) starts absent
     }
     return item;
 }
@@ -190,7 +190,7 @@ interface SpecListFieldProps {
 
 export function SpecListField({ label, itemShape, items, onChange, disabled }: SpecListFieldProps) {
     const { t } = useTranslation();
-    const shapeEntries = Object.entries(itemShape || {}).filter(([, fs]) => fs.type !== 'list');
+    const shapeEntries = Object.entries(itemShape || {}).filter(([, fs]) => fs.type !== 'list' && fs.type !== 'object');
     const labelKey = shapeEntries[0]?.[0];
     return (
         <fieldset disabled={disabled} className="min-w-0">
@@ -326,6 +326,9 @@ function SpecField({ propKey, fs, value, patch, definition, node, disabled }: Sp
                     />
                 </FormField>
             );
+        case 'object':
+            // A small fixed object (formatOptions): its bespoke panel edits it, never a text box.
+            return null;
         case 'string':
         case 'url':
         default:

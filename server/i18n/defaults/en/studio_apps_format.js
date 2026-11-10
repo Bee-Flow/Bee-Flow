@@ -1,0 +1,39 @@
+// @typecheck strict
+// English GUI defaults — namespace "studio_apps_format": every key whose part before the first "." is "studio_apps_format".
+// Merged into GUI_DEFAULTS by ./index.js, which finds this file by itself (no list to edit). The frontend copy
+// (agent-hub/src/i18n/en-defaults.js) is GENERATED from these files: after an edit, run `node scripts/gen-i18n-defaults.mjs`.
+// Dutch: ../nl/studio_apps_format.json. App Studio value formatting: the app's Value format section and the
+// format options of a column, a chart and a stat.
+module.exports = {
+    "studio_apps_format.compact": "Short numbers (1.2K, 3.4M)",
+    "studio_apps_format.currency": "Currency",
+    "studio_apps_format.currency_decimals": "Decimals in amounts",
+    "studio_apps_format.currency_example": "EUR",
+    "studio_apps_format.currency_invalid": "Use a three-letter code such as USD.",
+    "studio_apps_format.currency_placeholder": "App default",
+    "studio_apps_format.date_default": "Reader’s own",
+    "studio_apps_format.date_format": "Dates",
+    "studio_apps_format.date_full": "Full",
+    "studio_apps_format.date_long": "Long",
+    "studio_apps_format.date_medium": "Medium",
+    "studio_apps_format.date_pattern": "Own pattern",
+    "studio_apps_format.date_short": "Short",
+    "studio_apps_format.decimals": "Decimals",
+    "studio_apps_format.default": "Default",
+    "studio_apps_format.hint": "How numbers, amounts and dates read in this app. Leave a field empty to keep each reader’s own setting.",
+    "studio_apps_format.language": "Language",
+    "studio_apps_format.language_invalid": "Not a language tag. Use one like en-US or nl-NL.",
+    "studio_apps_format.language_placeholder": "Reader’s browser, e.g. en-US",
+    "studio_apps_format.pattern": "Date pattern",
+    "studio_apps_format.pattern_hint": "yyyy year, MM month, MMM month name, dd day, EEE weekday, HH:mm time. Put other letters in single quotes.",
+    "studio_apps_format.pattern_invalid": "A letter here is not a date part. Put text in single quotes.",
+    "studio_apps_format.pattern_placeholder": "dd-MM-yyyy",
+    "studio_apps_format.percent_fraction": "0.25 means 25%",
+    "studio_apps_format.percent_scale": "Stored as",
+    "studio_apps_format.percent_whole": "25 means 25%",
+    "studio_apps_format.sample": "Reads as: {text}",
+    "studio_apps_format.time_zone": "Time zone",
+    "studio_apps_format.time_zone_invalid": "Not a time zone this browser knows.",
+    "studio_apps_format.time_zone_placeholder": "Reader’s clock, e.g. Europe/Amsterdam",
+    "studio_apps_format.title": "Value format",
+};

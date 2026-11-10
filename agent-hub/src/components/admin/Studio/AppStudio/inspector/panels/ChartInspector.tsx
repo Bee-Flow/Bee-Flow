@@ -12,6 +12,7 @@ import { RepeatableList, inputCls } from '@/components/admin/product-website/fie
 import { CHART_COLORS } from '../../runtime/chartPalette';
 import { registerInspector } from '../registry';
 import type { PanelProps } from '../appDefinition';
+import FormatOptionsFields from './FormatOptionsFields';
 
 const VALUE_FORMATS = [
     { value: 'number', label: '#' },
@@ -83,6 +84,7 @@ interface ChartInspectorProps {
     showLegend?: boolean;
     showGrid?: boolean;
     valueFormat?: string;
+    formatOptions?: Record<string, unknown>;
     unitLabel?: string | null;
     yMin?: number | null;
     yMax?: number | null;
@@ -169,6 +171,7 @@ export default function ChartInspector({ node, definition, onCommit, disabled = 
             <FormField label={t('studio_apps_panels.chart.value_format', 'Value format')}>
                 <SegmentedControl value={props.valueFormat ?? 'number'} onChange={(v) => patch({ valueFormat: v })} options={VALUE_FORMATS} size="sm" fullWidth disabled={disabled} ariaLabel={t('studio_apps_panels.chart.value_format', 'Value format')} />
             </FormField>
+            <FormatOptionsFields kind={props.valueFormat ?? 'number'} value={props.formatOptions} onChange={(next) => patch({ formatOptions: next })} disabled={disabled} />
             <TextField
                 label={t('studio_apps_panels.chart.unit', 'Unit')}
                 value={props.unitLabel}
