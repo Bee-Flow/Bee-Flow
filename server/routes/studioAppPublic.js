@@ -171,6 +171,7 @@ const TOKEN_RE = /^[a-f0-9]{24,64}$/;
 const { aiStepKinds: AI_STEP_KINDS } = require('../appStudio/componentSpecs/stepRegistry').STEP_POLICY_LISTS;
 // Which kinds an anonymous visitor may post at all (the `public` policy row of the step catalogue).
 const { publicStepRefusal } = require('./studioAppPublicStepGate.mts');
+const { visibleFormValues } = require('./studioAppRunGate');
 
 
 /**
@@ -371,7 +372,7 @@ router.post('/:token/actions/:actionId/step', ipLimiter, tokenLimiter, jsonBody,
         viewerEmail: null,
         role: ctx.role,
         orgId: found.app.organizationId || null,
-        formValues: sanitizeBag(req.body?.formValues),
+        formValues: visibleFormValues(found.definition, actionId, ctx.role, sanitizeBag(req.body?.formValues)),
         vars: sanitizeBag(req.body?.vars),
         variables: Array.isArray(found.definition.variables) ? found.definition.variables : null,
         item: req.body?.item,

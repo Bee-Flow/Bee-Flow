@@ -120,7 +120,7 @@ const ACTION_WAIT_MS = parseInt(process.env.STUDIO_APP_ACTION_WAIT_MS, 10) || 60
 // ── App visibility + role gates ─────────────────────────────────────
 // Extracted to routes/studioAppRunGate.js so the streaming browse bridge shares
 // the SAME copy — a second walk is how one surface drifts wider than the other.
-const { loadVisibleApp, assertActionRoleAccess, stepDocumentContext } = require('./studioAppRunGate');
+const { loadVisibleApp, assertActionRoleAccess, visibleFormValues, stepDocumentContext } = require('./studioAppRunGate');
 
 // ── Input resolution + final output ─────────────────────────────────
 // resolveInputs (action.inputMapping → automation inputs; the ONLY bridge
@@ -246,7 +246,7 @@ router.post('/:id/actions/:actionId/step', requireAuth, stepLimiter, jsonBody, b
         if (!(await limiter.check(req, res))) return;
     }
 
-    const formValues = sanitizeBag(req.body?.formValues);
+    const formValues = visibleFormValues(def, actionId, role, sanitizeBag(req.body?.formValues)); // without the fields this role does not see
     const vars = sanitizeBag(req.body?.vars);
     const item = req.body?.item; // bounded by the 64KB body guard
     // The loop position beside the loop's row. `index` is a declared scope
@@ -367,11 +367,13 @@ router.post('/:id/actions/:actionId/run', requireAuth, actionRunLimiter, jsonBod
     // Role gate. The renderer hides a gated button, but hiding is not
     // enforcement — without this any viewer of the app could POST the
     // actionId of a button their role must never reach.
+    let formValues = req.body?.formValues;
     if (!isOwner) {
         const { userGroups } = await resolveAudienceContext(req);
         const meta = await studioAppDataStore.getDataModel(app.id, app.userId);
         const role = await rlsGateway.resolveViewerRole(app, userId, (meta && meta.model) ? meta.model : null, { userGroups });
         if (!assertActionRoleAccess(res, def, actionId, role, { isOwner })) return;
+        formValues = visibleFormValues(def, actionId, role, formValues); // without the fields this role does not see
     }
 
     // The automation is named by the DEFINITION only — never the request.
@@ -395,8 +397,8 @@ router.post('/:id/actions/:actionId/run', requireAuth, actionRunLimiter, jsonBod
     const audit = { _viewerUserId: userId, _studioAppId: app.id, _actionId: actionId };
     // A refusal of the declared inputs carries status 400 and a message for the caller.
     const triggerPayload = actionExecutor.isAppTriggerAutomation(automation)
-        ? { ...(await actionExecutor.resolveAppTriggerInputs(automation, action.inputMapping, req.body?.formValues, { app })), ...audit }
-        : { inputs: resolveInputs(action.inputMapping, req.body?.formValues), ...audit };
+        ? { ...(await actionExecutor.resolveAppTriggerInputs(automation, action.inputMapping, formValues, { app })), ...audit }
+        : { inputs: resolveInputs(action.inputMapping, formValues), ...audit };
 
     const runner = require('../core/automationRunner');
     const t0 = Date.now();

@@ -171,6 +171,23 @@ function assertActionRoleAccess(res, def, actionId, role, { isOwner }) {
 }
 
 /**
+ * The form values of a request without the fields this viewer's role does not see in the
+ * form that runs `actionId` (appStudio/formFieldGate.mts): the same role rule as the gates
+ * above, applied to the submitted bag. The owner submits everything; a bag with nothing to
+ * leave out comes back as the same object.
+ * @template V
+ * @param {unknown} def  the definition the request runs
+ * @param {string} actionId
+ * @param {string | null | undefined} role
+ * @param {V} formValues
+ * @returns {V}
+ */
+function visibleFormValues(def, actionId, role, formValues) {
+    if (role === 'owner') return formValues;
+    return require('../appStudio/formFieldGate.mts').withoutGatedFormFields(formValues, def, actionId, (/** @type {unknown} */ node) => roleAllows(/** @type {{ visibleToRoles?: unknown } | null} */ (node), role));
+}
+
+/**
  * The role checks the app document pool (appDocuments/pool.mts) walks with:
  * which screens and nodes this viewer sees, which actions they can reach.
  * The same rules as the two gates above, so a document behind an admin-only
@@ -234,4 +251,4 @@ async function resolveViewerRole(req, app, userId) {
     return { role: role || null, model };
 }
 
-module.exports = { loadVisibleApp, roleAllows, actionRoleAccess, assertActionRoleAccess, documentChecks, stepDocumentContext, pickDefinition, resolveViewerRole };
+module.exports = { loadVisibleApp, roleAllows, actionRoleAccess, assertActionRoleAccess, visibleFormValues, documentChecks, stepDocumentContext, pickDefinition, resolveViewerRole };

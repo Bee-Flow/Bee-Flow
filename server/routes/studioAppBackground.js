@@ -19,7 +19,7 @@
 const { validate } = require('../core/http/validate');
 const { sessionUser } = require('../core/http/sessionUser');
 const R = require('./studio/appRuntimeSchemas');
-const { loadVisibleApp, assertActionRoleAccess, pickDefinition, resolveViewerRole } = require('./studioAppRunGate');
+const { loadVisibleApp, assertActionRoleAccess, visibleFormValues, pickDefinition, resolveViewerRole } = require('./studioAppRunGate');
 const { sanitizeBag, flattenSteps, normalizeSequence } = require('../appStudio/actionSequence');
 const { HEAVY_STEP_KINDS } = require('./studioAppStepBudget.mts');
 
@@ -32,12 +32,14 @@ const backgroundRun = () => require('../appStudio/backgroundRun.mts');
 
 /**
  * The scope roots a start or a step carries (bounded by the 64KB body guard).
+ * The form values go without the fields the viewer's role does not see (studioAppRunGate).
  * @param {import('express').Request} req
+ * @param {{ def: RunDef | null, actionId: string, role: string | null }} gate
  */
-function clickScope(req) {
+function clickScope(req, gate) {
     const loopIndex = Number(req.body?.index);
     return {
-        formValues: sanitizeBag(req.body?.formValues),
+        formValues: visibleFormValues(gate.def, gate.actionId, gate.role, sanitizeBag(req.body?.formValues)),
         vars: sanitizeBag(req.body?.vars),
         item: req.body?.item,
         index: Number.isInteger(loopIndex) && loopIndex >= 0 ? loopIndex : undefined,
@@ -56,7 +58,7 @@ function startInput(req, app, o) {
         app, def: o.def || {}, model: o.dataModel, actionId: o.actionId, role: o.role, isOwner: o.isOwner, draft: !!o.draft,
         definitionVersion: o.draft ? (app.definitionVersion ?? null) : (app.publishedVersion ?? null),
         viewer: { id: user.id, name: user.name || null, email: user.email || null, organizationId: user.organizationId || null },
-        scope: clickScope(req),
+        scope: clickScope(req, o),
     };
 }
 
@@ -88,7 +90,7 @@ async function refusePublicLocked(req, res, found, ctx, actionId) {
         app: found.app, def: found.definition || {}, model: ctx.model, actionId, role: ctx.role, isOwner: false, draft: false,
         definitionVersion: found.app.publishedVersion ?? null,
         viewer: { id: ctx.viewerId, name: null, email: null, organizationId: null },
-        scope: clickScope(req),
+        scope: clickScope(req, { def: found.definition, actionId, role: ctx.role }),
     });
 }
 

@@ -48,6 +48,8 @@ const MOCKS = {
     './studioAppRunGate': {
         loadVisibleApp: async () => ({ ...APP }),
         assertActionRoleAccess: () => true,
+        // The viewer here is the owner, who submits every field (the real rule: formFieldGate.test.js).
+        visibleFormValues: (_def, _actionId, _role, values) => values,
     },
     '../auth/audience': { resolveAudienceContext: async () => ({ orgIds: new Set(['org1']), userGroups: [] }) },
     '../auth/permissions': { requireAuth: pass },
