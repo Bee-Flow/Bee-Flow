@@ -4,6 +4,19 @@ const { newRecordId } = require('./dataModel/ids');
 const { resolveDialect } = require('./engineFlag');
 const { autonumberValueSql } = require('./dataModel/autonumber');
 const { CompileError, assertRowsWritable, qi, assertTableMeta, fieldMap, coerceValue, assertRecordId, assertAccessFilter } = require('./queryCompilerBase');
+const { isDerivedLinkField, isManyRelation } = require('./dataModel/linkedFields');
+
+/**
+ * A lookup or rollup value is read through other rows and never written, so it is skipped like
+ * a computed one (a form that sends a record back sends it too). The links of a many relation
+ * live in its junction: only the one-record writes in appStudio/actionExecutor/records.js write
+ * them (linkWrites.mts), so a value for one anywhere else is refused, never dropped in silence.
+ * @param {import('./queryCompiler').CompilerField} f
+ */
+function skipLinkValue(f) {
+    if (isManyRelation(f)) throw new CompileError(`field "${f.key}" is a many relation: write its links one record at a time`);
+    return isDerivedLinkField(f);
+}
 
 /**
  * INSERT a record. System columns are stamped from the server-supplied args
@@ -39,7 +52,7 @@ function compileInsert(tableMeta, values, {
         if (!fm.has(k)) throw new CompileError(`unknown field: ${k}`);
         const f = fm.get(k);
         // computed columns are derived, autonumber is assigned below: neither is written by a caller
-        if (f.type === 'computed' || f.type === 'autonumber') continue;
+        if (f.type === 'computed' || f.type === 'autonumber' || skipLinkValue(f)) continue;
         cols.push(f.key);
         params.push(coerceValue(v, f, dialect));
     }
@@ -135,7 +148,7 @@ function compileSetClause(tableMeta, values, dialect) {
         if (SYSTEM_COLUMNS.includes(k)) continue; // system columns are server-owned
         if (!fm.has(k)) throw new CompileError(`unknown field: ${k}`);
         const f = fm.get(k);
-        if (f.type === 'computed' || f.type === 'autonumber') continue; // derived / server-assigned
+        if (f.type === 'computed' || f.type === 'autonumber' || skipLinkValue(f)) continue; // derived / server-assigned
         sets.push(`${qi(f.key)} = ?`);
         params.push(coerceValue(v, f, dialect));
     }

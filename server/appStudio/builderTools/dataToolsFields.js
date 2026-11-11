@@ -206,6 +206,26 @@ function applyTypedProps(field, raw, old, at, model) {
     if (raw.type === 'select' || raw.type === 'multiselect') return applySelectOptions(field, raw, old, at);
     if (raw.type === 'relation') return applyRelation(field, raw, old, at, model);
     if (raw.type === 'computed') return applyComputed(field, raw, old, at);
+    if (raw.type === 'lookup' || raw.type === 'rollup') return applyLinkSpec(field, raw, old, at);
+    return null;
+}
+
+/**
+ * A lookup's { relation, field } or a rollup's { table, relation, fn, field?, filter? }: the spec's,
+ * else the field it evolves (same type). The model validator judges the shape.
+ * @param {DataField} field  written in place
+ * @param {CheckedFieldSpec} raw
+ * @param {DataField|null} old
+ * @param {string} at
+ * @returns {{ error: string } | null}
+ */
+function applyLinkSpec(field, raw, old, at) {
+    const key = /** @type {'lookup' | 'rollup'} */ (raw.type);
+    const spec = raw[key] !== undefined ? raw[key] : (old && old.type === key ? old[key] : undefined);
+    if (!spec || typeof spec !== 'object') {
+        return { error: key === 'lookup' ? `${at} (lookup) requires lookup: { relation, field }.` : `${at} (rollup) requires rollup: { table, relation, fn, field?, filter? }.` };
+    }
+    field[key] = spec;
     return null;
 }
 
@@ -244,7 +264,24 @@ function applyRelation(field, raw, old, at, model) {
     field.relation = { table: target };
     const display = rel ? (rel.displayFieldKey || rel.displayField) : (old && old.relation ? old.relation.displayField : null);
     if (typeof display === 'string' && display) field.relation.displayField = display;
+    Object.assign(field.relation, relationOptions(rel, old));
     return null;
+}
+
+/**
+ * A relation's many and onDelete (schema 3): the spec's (null clears it), else what the relation already was.
+ * @param {FieldSpec['relation'] | null} rel
+ * @param {DataField|null} old
+ * @returns {{ many?: unknown, onDelete?: unknown }}
+ */
+function relationOptions(rel, old) {
+    /** @type {{ many?: unknown, onDelete?: unknown }} */
+    const out = {};
+    for (const opt of /** @type {const} */ (['many', 'onDelete'])) {
+        const value = rel && rel[opt] !== undefined ? rel[opt] : old?.relation?.[opt];
+        if (value !== undefined && value !== null) out[opt] = value;
+    }
+    return out;
 }
 
 /**
@@ -284,9 +321,9 @@ function applyComputed(field, raw, old, at) {
  * @typedef {{
  *   key?: string, name?: unknown, label?: unknown, type?: string, fieldId?: string, required?: unknown, unique?: unknown,
  *   subtype?: string, default?: unknown, options?: unknown,
- *   relation?: { tableId?: string, table?: string, displayFieldKey?: string, displayField?: string },
+ *   relation?: { tableId?: string, table?: string, displayFieldKey?: string, displayField?: string, many?: unknown, onDelete?: unknown },
  *   computed?: { expr?: unknown, type?: string, stored?: unknown },
- *   validation?: unknown, dynamicDefault?: unknown, format?: unknown, display?: unknown, access?: unknown,
+ *   validation?: unknown, dynamicDefault?: unknown, format?: unknown, display?: unknown, access?: unknown, lookup?: unknown, rollup?: unknown,
  * }} FieldSpec  one entry of app_upsert_table's fields[] as authored
  * @typedef {FieldSpec & { key: string, type: string }} CheckedFieldSpec  a spec past checkFieldSpec: a valid key and type
  */

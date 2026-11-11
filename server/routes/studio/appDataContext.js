@@ -16,6 +16,7 @@ const studioAppStore = require('../../stores/studioAppStore');
 const studioAppDataStore = require('../../stores/studioAppDataStore');
 const queryCompiler = require('../../appStudio/queryCompiler');
 const { queryWithComputed } = require('../../core/dataEngine/computedRead.mts');
+const { fillLinkedRecords } = require('../../core/dataEngine/relationRead.mts');
 const rlsGateway = require('../../appStudio/rlsGateway');
 const dataReadRunner = require('../../appStudio/dataReadRunner');
 const datatableSource = require('../../appStudio/datatableSource');
@@ -386,6 +387,10 @@ async function readOne(ctx, recordId) {
     // Read-time computed fields are evaluated; one that fails reads empty.
     const { result } = await queryWithComputed(plan.query, compiled);
     const { rows } = /** @type {{ rows: Record<string, unknown>[] }} */ (result);
-    return rows && rows.length ? rows[0] : null;
+    if (!rows || !rows.length) return null;
+    // Lookups, rollups and many relations, each under its own table's row rules (own storage only).
+    const model = datatableSource.isDatatableBacked(ctx.table) ? null : ctx.model;
+    const [row] = await fillLinkedRecords(model, plan.tableMeta, plan, [rows[0]], plan.query);
+    return row;
 }
 module.exports = { readLimiter, writeLimiter, readDescriptorLimiter, MAX_BATCH_READS, jsonBody, requireJson, bodySizeGuard, audienceFor, loadVisibleApp, loadOwnedApp, handleErr, resolveDataContext, buildViewer, publicTable, parseListQuery, optionalListQuery, kickStaleSync, LINK_REFUSED, linkedTableFlags, readOne };

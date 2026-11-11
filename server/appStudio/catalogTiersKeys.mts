@@ -9,7 +9,7 @@
  *   componentSpecs/keys/<family>/<key>.js  section, node, nav and nav-group keys, and a knob
  *                                          newly allowed on sections (keyMarks.js)
  *   NAV_STYLES, SECTION_STYLE_KNOBS        lists whose late entries those key files mark
- *   the data vocabulary                    field types, field options, filter operators,
+ *   the data vocabulary                    field types, field and table options, filter operators,
  *                                          aggregate functions, date buckets and the words
  *                                          of a row rule (`rowRule`), marked in
  *                                          core/dataEngine/dataModel/vocabularySince.js
@@ -31,6 +31,7 @@ type MarkTable = Readonly<Record<string, Mark>>;
 export const DATA_FAMILIES = Object.freeze([
     { family: 'fieldTypes', table: 'FIELD_TYPES', prefix: 'fieldType' },
     { family: 'fieldOptions', table: null, prefix: 'fieldOption' },
+    { family: 'tableOptions', table: null, prefix: 'tableOption' },
     { family: 'filterOps', table: 'FILTER_OPS', prefix: 'filterOp' },
     { family: 'aggFns', table: 'AGG_FNS', prefix: 'aggFn' },
     { family: 'dateBuckets', table: 'DATE_BUCKETS', prefix: 'dateBucket' },

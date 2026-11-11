@@ -23,6 +23,7 @@ const { computedExprShapeError } = require('./computedExprGuard');
 const { fieldRuleErrors } = require('../../core/dataEngine/fieldRules.mts');
 const { readTimeComputedError } = require('../../core/dataEngine/queryCompilerComputed.mts');
 const { fieldAccessErrors, tableColumnRightsFindings } = require('../../core/dataEngine/columnRights.mts');
+const { linkedFieldErrors } = require('./linkedFieldsValidate');
 
 /**
  * The SHAPE of `table.source` — where the rows of this table live.
@@ -230,6 +231,9 @@ function validateDataModel(model) {
         errors.push(...rights.errors);
         warnings.push(...rights.warnings);
     }
+
+    // Lookup / rollup fields, many relations, onDelete rules, indexes: silent when absent.
+    errors.push(...linkedFieldErrors(model));
 
     // roles / roleMapping — shape checks only (RLS gateway enforces semantics).
     if (model.roles !== undefined) {

@@ -447,6 +447,41 @@ exports[`compat corpus: what the phone plans for every stored app data-model-fie
 }
 `;
 
+exports[`compat corpus: what the phone plans for every stored app data-model-linked-records 1`] = `
+{
+  "defaultScreen": "scr_acct01",
+  "navigable": [
+    "scr_acct01",
+  ],
+  "screens": [
+    {
+      "id": "scr_acct01",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "id": "cmp_achd01",
+                "kind": "heading",
+                "level": 2,
+                "text": "Customers",
+              },
+            ],
+            "screen": "scr_acct01",
+            "unsupported": [
+              "data_grid",
+            ],
+          },
+          "roles": [
+            "(no role)",
+          ],
+        },
+      ],
+    },
+  ],
+}
+`;
+
 exports[`compat corpus: what the phone plans for every stored app dataset-params 1`] = `
 {
   "defaultScreen": "scr_home01",

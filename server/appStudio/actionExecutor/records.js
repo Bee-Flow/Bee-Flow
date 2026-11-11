@@ -52,6 +52,7 @@ const {
 // Best-effort bookkeeping after a committed write (bookkeeping.mts).
 const { bumpVersion, bumpCount, bumpDatatable } = require('./bookkeeping.mts');
 const { applyFieldRules, applyFieldRulesToRows } = require('../../core/dataEngine/fieldRules.mts');
+const { writeRow, insertsWithLinks, hasDeleteRules, eraseWithRules } = require('./linkWrites.mts'); // many relations, onDelete rules
 
 // ── Record writes ───────────────────────────────────────────────────
 
@@ -107,11 +108,7 @@ async function writeRecord(app, model, table, values, { viewer, recordId, expect
         rlsGateway.assertCanWrite(table, role, 'create');
         await assertRowQuota(app, table.key);  // 409 at per-table/app row caps
         await assertDbByteQuota(app);          // 409 at the DB byte ceiling
-        const { sql, params, id } = queryCompiler.compileInsert(table, values, {
-            createdBy: v.id ?? null,
-            orgId: app.organizationId || null,
-        });
-        await studioAppDbStore.exec(app.userId, app.id, sql, params);
+        const { id } = await writeRow(app, { model, table, viewer: v }, values, (vals) => queryCompiler.compileInsert(table, vals, { createdBy: v.id ?? null, orgId: app.organizationId || null }));
         await bumpVersion(app, table.key);
         await bumpCount(app, table.key, 1);
         return { id, created: true };
@@ -123,8 +120,7 @@ async function writeRecord(app, model, table, values, { viewer, recordId, expect
     const accessFilter = rlsGateway.compileAccessFilter(table, role, v, 'update');
     // expectedUpdatedAt (optional) makes this a compare-and-set: see
     // queryCompiler.compileUpdate. Only the record API passes it.
-    const { sql, params } = queryCompiler.compileUpdate(table, recordId, values, accessFilter, { expectedUpdatedAt });
-    const res = await studioAppDbStore.exec(app.userId, app.id, sql, params);
+    const res = await writeRow(app, { model, table, viewer: v, recordId, update: true }, values, (vals) => queryCompiler.compileUpdate(table, recordId, vals, accessFilter, { expectedUpdatedAt }));
     const changes = (res && res.changes) ? res.changes : 0;
     if (changes > 0) await bumpVersion(app, table.key);
     return { id: recordId, updated: changes > 0, changes };
@@ -161,7 +157,7 @@ async function writeRecordBatch(app, model, table, rows, { viewer } = {}) {
     await assertRowQuota(app, table.key);
     await assertDbByteQuota(app);
 
-    const { statements, ids } = compileInserts(table, rows, { createdBy: v.id ?? null, orgId: app.organizationId || null });
+    const { statements, ids } = await insertsWithLinks(app, { model, table, viewer: v }, rows, (list) => compileInserts(table, list, { createdBy: v.id ?? null, orgId: app.organizationId || null }));
     await studioAppDbStore.batch(app.userId, app.id, statements);
     await bumpVersion(app, table.key);
     await bumpCount(app, table.key, ids.length);
@@ -212,6 +208,7 @@ async function eraseRecord(app, model, table, recordId, { viewer } = {}) {
         return { id: recordId, deleted: changes > 0, changes };
     }
     const v = (viewer && typeof viewer === 'object') ? viewer : {};
+    if (hasDeleteRules(model, table)) return eraseWithRules(app, model, table, recordId, v); // onDelete rules: one transaction
     const role = v.role ?? null;
     rlsGateway.assertCanWrite(table, role, 'delete'); // 403 if this role may not
     const accessFilter = rlsGateway.compileAccessFilter(table, role, v, 'delete');

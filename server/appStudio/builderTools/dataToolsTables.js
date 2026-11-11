@@ -160,6 +160,9 @@ function mergeTableOp(model, args, rowCounts = {}) {
         }
         table.access = args.access;
     }
+    // Declared indexes (schema 3, the catalogue's tableOption.indexes): given replaces, null removes, absent keeps.
+    if (args.indexes === null) delete table.indexes;
+    else if (args.indexes !== undefined) table.indexes = args.indexes;
 
     const nextTables = existing ? tables.map((t) => (t.id === tableId ? table : t)) : [...tables, table];
     if (!existing && nextTables.length > DATA_LIMITS.MAX_TABLES_PER_APP) {

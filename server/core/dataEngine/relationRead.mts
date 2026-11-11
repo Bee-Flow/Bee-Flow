@@ -29,7 +29,9 @@ type AccessFilter = { where: string; params: unknown[] };
 type Table = { id?: string; key?: string; fields?: unknown[]; source?: unknown };
 type Related = Record<string, { tableMeta: Table; accessFilter: AccessFilter }>;
 type ExpandPlan = { field: string; as: string; target: { tableMeta: Table; accessFilter: AccessFilter }; pick: string[]; label: string | null; dialect: string };
-type Compiled = { expand?: ExpandPlan[]; project?: string[] };
+type LinkedPlan = import('./linkedRead.mts').LinkedPlan;
+type LinkedTable = Parameters<typeof import('./linkedRead.mts').linkedReadPlan>[1];
+type Compiled = { expand?: ExpandPlan[]; project?: string[]; linked?: LinkedPlan };
 type Query = (sql: string, params: unknown[]) => Promise<{ rows?: Row[] } | Row[]>;
 
 const { relatedTablesFor, relationFilterFields } = nodeRequire('./aggregateRelated.mts') as {
@@ -41,6 +43,8 @@ const { compileExpandLookup, EXPAND_LOOKUP_BATCH } = nodeRequire('./queryCompile
     EXPAND_LOOKUP_BATCH: number;
 };
 const { EXPAND_LABEL_KEY } = nodeRequire('./dataModel/vocabulary') as { EXPAND_LABEL_KEY: string };
+const { linkedReadPlan, fillLinked } = nodeRequire('./linkedRead.mts') as typeof import('./linkedRead.mts');
+const { manyFilterFields } = nodeRequire('./aggregateRelated.mts') as { manyFilterFields(tableMeta: Table, filters: unknown): string[] };
 
 /** The predicate aggregateRelated hands over for a table the role may not read. */
 const NO_ROWS_WHERE = '1=0';
@@ -63,20 +67,38 @@ export function relationRead(
     tableMeta: Table,
     descriptor: { filters?: unknown; expand?: unknown; fields?: unknown } | null | undefined,
     who: { role: unknown; viewer: unknown; dialect?: string },
-): { related: Related; expand?: unknown; fields?: unknown } | undefined {
+): { related: Related; expand?: unknown; fields?: unknown; linked?: LinkedPlan } | undefined {
     const d = descriptor || {};
-    const keys = [...new Set([...relationFilterFields(d.filters), ...expandFields(d.expand)])];
-    if (keys.length === 0 && !present(d.expand) && !present(d.fields)) return undefined;
-    const out: { related: Related; expand?: unknown; fields?: unknown } = { related: relatedTablesFor(model as { tables?: unknown }, tableMeta, keys, who) };
+    const keys = [...new Set([...relationFilterFields(d.filters), ...manyFilterFields(tableMeta, d.filters), ...expandFields(d.expand)])];
+    // The lookups, rollups and many relations the read keeps: all of them, or those `fields` names and what it expands.
+    const wanted = Array.isArray(d.fields) ? [...d.fields.filter((k): k is string => typeof k === 'string'), ...expandFields(d.expand)] : null;
+    const linked = model ? linkedReadPlan(model, tableMeta as LinkedTable, who, wanted) : undefined;
+    if (keys.length === 0 && !present(d.expand) && !present(d.fields) && !linked) return undefined;
+    const out: { related: Related; expand?: unknown; fields?: unknown; linked?: LinkedPlan } = { related: relatedTablesFor(model as { tables?: unknown }, tableMeta, keys, who) };
     if (present(d.expand)) out.expand = d.expand;
     if (present(d.fields)) out.fields = d.fields;
+    if (linked) out.linked = linked;
+    return out;
+}
+
+/**
+ * The lookups, rollups and many relations of ONE record read outside a list (the record API's
+ * get by id): the same values a list would carry, under the same row rules.
+ */
+export async function fillLinkedRecords<R extends Row>(model: unknown, tableMeta: Table, who: { role: unknown; viewer: unknown; dialect?: string }, rows: R[], query: Query): Promise<R[]> {
+    const plan = model ? linkedReadPlan(model, tableMeta as LinkedTable, who) : undefined;
+    if (!plan || !rows.length) return rows;
+    const out = rows.map((r) => ({ ...r }));
+    await fillLinked(plan, out, query);
     return out;
 }
 
 /** The related rows of one relation, by id: one lookup per batch of ids. */
 async function lookUp(plan: ExpandPlan, rows: Row[], query: Query): Promise<Map<string, Row>> {
     const found = new Map<string, Row>();
-    const ids = [...new Set(rows.map((r) => r[plan.field]).filter((v): v is string | number => (typeof v === 'string' && v !== '') || typeof v === 'number'))];
+    // A many relation holds a list of ids (filled by linkedRead.mts before the expansions run).
+    const ids = [...new Set(rows.flatMap((r) => (Array.isArray(r[plan.field]) ? r[plan.field] as unknown[] : [r[plan.field]]))
+        .filter((v): v is string | number => (typeof v === 'string' && v !== '') || typeof v === 'number'))];
     for (let i = 0; i < ids.length; i += EXPAND_LOOKUP_BATCH) {
         const { sql, params } = compileExpandLookup(plan, ids.slice(i, i + EXPAND_LOOKUP_BATCH));
         const res = await query(sql, params);
@@ -88,6 +110,12 @@ async function lookUp(plan: ExpandPlan, rows: Row[], query: Query): Promise<Map<
         }
     }
     return found;
+}
+
+/** The related row of one id (null when unreadable or empty), or the readable rows of a list of ids. */
+function expansionOf(id: unknown, found: Map<string, Row>): Row | Row[] | null {
+    if (Array.isArray(id)) return id.map((v) => found.get(String(v))).filter((r): r is Row => r !== undefined);
+    return (typeof id === 'string' || typeof id === 'number') && found.has(String(id)) ? found.get(String(id)) as Row : null;
 }
 
 function project(row: Row, keys: string[]): Row {
@@ -105,15 +133,14 @@ export async function finishRecords<R extends Row>(compiledList: object | null |
     const compiled = compiledList as Compiled | null | undefined;
     const plans = compiled && Array.isArray(compiled.expand) ? compiled.expand : [];
     const keys = compiled && Array.isArray(compiled.project) ? compiled.project : null;
-    if (plans.length === 0 && !keys) return rows;
+    const linked = compiled && compiled.linked ? compiled.linked : undefined;
+    if (plans.length === 0 && !keys && !linked) return rows;
     let out: Row[] = rows.map((r) => ({ ...r }));
+    await fillLinked(linked, out, query);
     for (const plan of plans) {
         // A role that may not read the related table at all: nothing to look up, every expansion is null.
         const found = plan.target.accessFilter.where === NO_ROWS_WHERE ? new Map<string, Row>() : await lookUp(plan, out, query);
-        for (const row of out) {
-            const id = row[plan.field];
-            row[plan.as] = (typeof id === 'string' || typeof id === 'number') && found.has(String(id)) ? found.get(String(id)) : null;
-        }
+        for (const row of out) row[plan.as] = expansionOf(row[plan.field], found);
     }
     if (keys) out = out.map((r) => project(r, keys));
     return out;

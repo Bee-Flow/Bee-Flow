@@ -1,0 +1,333 @@
+{
+  "about": {
+    "source": "hand-made: two grids over tables with lookup and rollup fields, a many relation (expanded), an onDelete rule and declared indexes; definition = canonicalizeAppDefinition(input).def, dataModel = canonicalizeDataModel(input).model",
+    "captured": "2026-11-11"
+  },
+  "definition": {
+    "schemaVersion": 3,
+    "meta": {
+      "name": "Customer accounts",
+      "description": "Customers with a looked-up order total, linked tags and delete rules",
+      "icon": "Users"
+    },
+    "theme": {
+      "primary": "#1D4ED8",
+      "radius": "md",
+      "density": "comfortable",
+      "fontScale": "md",
+      "appearance": "auto"
+    },
+    "roles": [],
+    "screens": [
+      {
+        "id": "scr_acct01",
+        "name": "Customers",
+        "icon": "Users",
+        "showInNav": true,
+        "maxWidth": "medium",
+        "sections": [
+          {
+            "id": "sec_acct01",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_achd01",
+                "type": "heading",
+                "props": {
+                  "text": "Customers",
+                  "level": 2,
+                  "accent": "none"
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_acgr01",
+                "type": "data_grid",
+                "props": {
+                  "source": {
+                    "kind": "records",
+                    "tableId": "tbl_acct01",
+                    "expand": [
+                      {
+                        "field": "tags"
+                      }
+                    ]
+                  },
+                  "columns": [
+                    {
+                      "key": "name",
+                      "label": "Name",
+                      "format": "text"
+                    },
+                    {
+                      "key": "order_count",
+                      "label": "Orders",
+                      "format": "number"
+                    },
+                    {
+                      "key": "open_total",
+                      "label": "Open total",
+                      "format": "number"
+                    }
+                  ],
+                  "pageSize": 25,
+                  "selectable": "none",
+                  "searchable": false,
+                  "rowActions": [],
+                  "toolbarActions": [],
+                  "addRowLabel": null,
+                  "addRowActionId": null,
+                  "bulkActions": [],
+                  "density": "comfortable",
+                  "clamp": "off",
+                  "rowTone": [],
+                  "groupBy": null,
+                  "groupOrder": [],
+                  "activeWhen": null,
+                  "zebra": false,
+                  "emptyText": "Nothing to show yet.",
+                  "look": "default"
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_acor01",
+                "type": "data_grid",
+                "props": {
+                  "source": {
+                    "kind": "records",
+                    "tableId": "tbl_aord01",
+                    "filter": [
+                      {
+                        "field": "status",
+                        "op": "eq",
+                        "value": "open"
+                      }
+                    ]
+                  },
+                  "columns": [
+                    {
+                      "key": "customer_name",
+                      "label": "Customer",
+                      "format": "text"
+                    },
+                    {
+                      "key": "amount",
+                      "label": "Amount",
+                      "format": "number"
+                    }
+                  ],
+                  "pageSize": 25,
+                  "selectable": "none",
+                  "searchable": false,
+                  "rowActions": [],
+                  "toolbarActions": [],
+                  "addRowLabel": null,
+                  "addRowActionId": null,
+                  "bulkActions": [],
+                  "density": "comfortable",
+                  "clamp": "off",
+                  "rowTone": [],
+                  "groupBy": null,
+                  "groupOrder": [],
+                  "activeWhen": null,
+                  "zebra": false,
+                  "emptyText": "Nothing to show yet.",
+                  "look": "default"
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "actions": {},
+    "homeScreenId": "scr_acct01"
+  },
+  "dataModel": {
+    "modelVersion": 1,
+    "tables": [
+      {
+        "id": "tbl_acct01",
+        "key": "accounts",
+        "name": "Customers",
+        "fields": [
+          {
+            "id": "fld_acnm01",
+            "key": "name",
+            "name": "Name",
+            "type": "text",
+            "required": true,
+            "unique": false
+          },
+          {
+            "id": "fld_acoc01",
+            "key": "order_count",
+            "name": "Orders",
+            "type": "rollup",
+            "rollup": {
+              "table": "tbl_aord01",
+              "relation": "customer",
+              "fn": "count"
+            },
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_acot01",
+            "key": "open_total",
+            "name": "Open total",
+            "type": "rollup",
+            "rollup": {
+              "table": "tbl_aord01",
+              "relation": "customer",
+              "fn": "sum",
+              "field": "amount",
+              "filter": [
+                {
+                  "field": "status",
+                  "op": "eq",
+                  "value": "open"
+                }
+              ]
+            },
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_actg01",
+            "key": "tags",
+            "name": "Tags",
+            "type": "relation",
+            "relation": {
+              "table": "tbl_atag01",
+              "many": true,
+              "displayField": "label"
+            },
+            "required": false,
+            "unique": false
+          }
+        ],
+        "indexes": [
+          {
+            "fields": [
+              "name"
+            ]
+          }
+        ],
+        "icon": null,
+        "access": {
+          "default": "app",
+          "roles": {},
+          "rowFilters": {}
+        }
+      },
+      {
+        "id": "tbl_aord01",
+        "key": "account_orders",
+        "name": "Orders",
+        "fields": [
+          {
+            "id": "fld_aoam01",
+            "key": "amount",
+            "name": "Amount",
+            "type": "number",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_aost01",
+            "key": "status",
+            "name": "Status",
+            "type": "select",
+            "options": [
+              "open",
+              "done"
+            ],
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_aocu01",
+            "key": "customer",
+            "name": "Customer",
+            "type": "relation",
+            "relation": {
+              "table": "tbl_acct01",
+              "displayField": "name",
+              "onDelete": "cascade"
+            },
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_aocn01",
+            "key": "customer_name",
+            "name": "Customer name",
+            "type": "lookup",
+            "lookup": {
+              "relation": "customer",
+              "field": "name"
+            },
+            "required": false,
+            "unique": false
+          }
+        ],
+        "indexes": [
+          {
+            "fields": [
+              "customer",
+              "status"
+            ]
+          }
+        ],
+        "icon": null,
+        "access": {
+          "default": "app",
+          "roles": {},
+          "rowFilters": {}
+        }
+      },
+      {
+        "id": "tbl_atag01",
+        "key": "account_tags",
+        "name": "Tags",
+        "fields": [
+          {
+            "id": "fld_atlb01",
+            "key": "label",
+            "name": "Label",
+            "type": "text",
+            "required": false,
+            "unique": false
+          }
+        ],
+        "icon": null,
+        "access": {
+          "default": "app",
+          "roles": {},
+          "rowFilters": {}
+        }
+      }
+    ],
+    "roles": [],
+    "roleMapping": {
+      "default": "app",
+      "byGroup": {}
+    }
+  }
+}
