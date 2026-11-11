@@ -168,7 +168,7 @@ export default function useWebhooks(automation: AutomationLike | null | undefine
     const remove = useCallback(async (wh: Webhook) => {
         const ok = await confirmAction({
             title: 'Delete this webhook?',
-            description: 'Any caller using it starts getting 404s immediately.',
+            description: 'Any caller using it is refused immediately.',
             confirmLabel: 'Delete',
             destructive: true,
         });

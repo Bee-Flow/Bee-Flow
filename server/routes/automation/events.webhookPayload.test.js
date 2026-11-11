@@ -112,6 +112,19 @@ test('a bad signature still 401s (guard unchanged)', async () => {
     await handler(req, res);
     await flushAsync();
     assert.strictEqual(res.statusCode, 401);
+    assert.deepStrictEqual(res.body, { error: 'Delivery not accepted' });
+    assert.strictEqual(executions.length, 0);
+});
+
+test('an address that names no webhook answers like a bad signature', async () => {
+    executions = [];
+    const req = signedReq({ a: 1 });
+    req.params = { slug: 'nobody' };
+    const res = makeRes();
+    await handler(req, res);
+    await flushAsync();
+    assert.strictEqual(res.statusCode, 401);
+    assert.deepStrictEqual(res.body, { error: 'Delivery not accepted' });
     assert.strictEqual(executions.length, 0);
 });
 

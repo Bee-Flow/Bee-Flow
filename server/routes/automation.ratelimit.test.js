@@ -27,7 +27,7 @@ function stub(path, exports) {
 }
 
 stub('../stores/automationStore', {
-    getWebhook: async () => null, // → handler answers 404 "Unknown webhook"
+    getWebhook: async () => null, // → handler answers 401 "Delivery not accepted"
 });
 stub('../stores/configStore', {
     getConfig: async () => null, // → /events/github answers 503 "not configured"
@@ -137,8 +137,8 @@ function dispatch({ method = 'POST', url, ip = '203.0.113.1', query = {} }) {
     // 2. Per-slug limit (3/min): distinct IPs so the IP limiter can't fire.
     for (let i = 0; i < 3; i++) {
         const r = await dispatch({ url: '/webhook/slug-a', ip: `198.51.100.${i}` });
-        assert.strictEqual(r.statusCode, 404, `under slug limit, request ${i + 1} reaches the handler`);
-        assert.strictEqual(r.body.error, 'Unknown webhook');
+        assert.strictEqual(r.statusCode, 401, `under slug limit, request ${i + 1} reaches the handler`);
+        assert.strictEqual(r.body.error, 'Delivery not accepted');
     }
     const slugBlocked = await dispatch({ url: '/webhook/slug-a', ip: '198.51.100.99' });
     assert.strictEqual(slugBlocked.statusCode, 429, '4th hit on the same slug is rate limited');
@@ -146,7 +146,7 @@ function dispatch({ method = 'POST', url, ip = '203.0.113.1', query = {} }) {
     assert.ok(parseInt(slugBlocked.headers['retry-after'], 10) >= 1, 'Retry-After header set');
     // Other slugs from a fresh IP are unaffected (slug-keyed bucket).
     const otherSlug = await dispatch({ url: '/webhook/slug-b', ip: '198.51.100.100' });
-    assert.strictEqual(otherSlug.statusCode, 404, 'different slug not affected by slug-a bucket');
+    assert.strictEqual(otherSlug.statusCode, 401, 'different slug not affected by slug-a bucket');
 
     // 3. Per-IP limit (5/min) + ordering: hammer ONE slug from ONE IP.
     //    Requests 1-3 pass both limiters; 4-5 pass the IP limiter (which runs
@@ -155,7 +155,7 @@ function dispatch({ method = 'POST', url, ip = '203.0.113.1', query = {} }) {
     const ip = '192.0.2.50';
     for (let i = 0; i < 3; i++) {
         const r = await dispatch({ url: '/webhook/slug-c', ip });
-        assert.strictEqual(r.statusCode, 404);
+        assert.strictEqual(r.statusCode, 401);
     }
     for (let i = 0; i < 2; i++) {
         const r = await dispatch({ url: '/webhook/slug-c', ip });

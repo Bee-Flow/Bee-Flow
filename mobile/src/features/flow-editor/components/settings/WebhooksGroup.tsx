@@ -50,7 +50,7 @@ function useWebhookActions(flowKey: string) {
     const remove = async (wh: FlowWebhook) => {
         const ok = await confirm({
             title: t('mobile.flow.webhook.delete_title', 'Delete this webhook?'),
-            message: t('mobile.flow.webhook.delete_message', 'Any caller using it starts getting 404s immediately.'),
+            message: t('mobile.flow.webhook.delete_message', 'Any caller using it is refused immediately.'),
             confirmLabel: t('common.delete', 'Delete'),
         });
         if (ok) hooks.remove.mutate(wh.id);

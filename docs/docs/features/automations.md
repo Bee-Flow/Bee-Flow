@@ -605,14 +605,14 @@ X-BeeFlow-Signature: sha256=hex(HMAC_SHA256(secret, nonce + "\n" + body))
 - **Add a timestamp when you can.** With `X-BeeFlow-Timestamp: <unix seconds>`
   the signed text becomes `nonce + "\n" + timestamp + "\n" + body`, and the
   request is refused when the timestamp is more than five minutes from the
-  server's clock (`Timestamp outside the accepted window`). A captured
-  request then stops working on its own, before the nonce check.
+  server's clock. A captured request then stops working on its own, before
+  the nonce check.
 - **Use every nonce once.** A nonce is remembered per webhook for at least 24
   hours, and a repeat is refused. A random hex string per request is enough.
 - **The secret is shown once**, when the webhook is created or rotated.
   Rotating (`POST /api/automation/{automationId}/webhook/{slug}/rotate`) keeps
   the URL and makes the old secret fail at once. Deleting the webhook makes
-  the URL answer 404.
+  the URL stop accepting deliveries.
 
 The **Copy as signed cURL** button next to a webhook gives this recipe with
 the URL and the secret filled in and an empty `{}` body (it works while the
@@ -651,11 +651,10 @@ What comes back:
 |--------|---------|---------|
 | 202 | | `{ "accepted": true, "automationId": "…" }`. The signature checked out and the run starts in the background; follow it in the automation's run history. |
 | 400 | `Invalid JSON body` | The body is not valid JSON. |
-| 401 | `Missing signature or nonce` | A header is missing, or the signature does not start with `sha256=`. |
-| 401 | `Bad signature` | Wrong secret, or the signed text is not the compact body. |
-| 401 | `Replayed nonce` | This nonce was already used on this webhook. |
-| 404 | `Unknown webhook` | No webhook with this slug: never created, or deleted. |
-| 409 | `Automation is not active` | The automation is a draft or switched off. |
+| 401 | `Delivery not accepted` | The address did not accept the delivery. One answer for every reason: no webhook at this address (never created, or deleted), a missing header, a signature that does not start with `sha256=` or does not fit the secret and the bytes sent, or a timestamp more than five minutes from the server's clock. |
+| 401 | `Replayed nonce` | The delivery was signed correctly, and this nonce was already used on this webhook. |
+| 409 | `Automation is not active` | The delivery was signed correctly, and the automation is a draft or switched off. |
+| 409 | `This webhook's trigger is not live yet …` | The delivery was signed correctly, and the webhook belongs to a trigger that is not published yet (`code: "trigger_not_live"`). |
 | 413 | `Request body too large` | The body is over the server's JSON size limit. |
 | 429 | `Too many requests …` | More than 120 requests a minute to one webhook, or 300 a minute from one IP address (the defaults of `AUTOMATION_WEBHOOK_RPM_PER_SLUG` and `AUTOMATION_WEBHOOK_RPM_PER_IP`; `0` switches a limit off). A `Retry-After` header says when to try again. |
 

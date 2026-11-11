@@ -79,16 +79,6 @@ function timestampIsFresh(timestamp, now) {
 }
 
 /**
- * The 401 text for a refused delivery.
- * @param {'missing' | 'stale_timestamp' | 'bad_signature' | undefined} reason
- */
-function rejectionMessage(reason) {
-    if (reason === 'missing') return 'Missing signature or nonce';
-    if (reason === 'stale_timestamp') return 'Timestamp outside the accepted window';
-    return 'Bad signature';
-}
-
-/**
  * One to `max` ASCII digits and nothing else (a plain loop: the input is a request header).
  * @param {string} s
  * @param {number} max
@@ -99,4 +89,4 @@ function isDigits(s, max) {
     return true;
 }
 
-module.exports = { checkWebhookSignature, rejectionMessage, hmacHeader, sameSignature, TIMESTAMP_SKEW_SECONDS };
+module.exports = { checkWebhookSignature, hmacHeader, sameSignature, TIMESTAMP_SKEW_SECONDS };

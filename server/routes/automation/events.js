@@ -11,7 +11,8 @@
 // the HMAC that proves the delivery is genuine. The narrowing that belongs
 // here is the signature check and the rate limit, both below — not a shape.
 const express = require('express');
-const { checkWebhookSignature, rejectionMessage, sameSignature } = require('./webhookSignature');
+const { checkWebhookSignature, sameSignature } = require('./webhookSignature');
+const { NOT_ACCEPTED, verifyDeliverySignature, startSignedDelivery } = require('./webhookReceive.mts');
 const crypto = require('crypto');
 const log = require('../../telemetry/log');
 const { HttpError } = require('../../core/http/errors');
@@ -86,65 +87,34 @@ function pickWebhookHeaders(req) {
 // signs what it sent (webhookSignature.js explains the accepted forms).
 const webhookJson = express.json({ limit: '256kb', verify: (req, _res, buf) => { /** @type {import('http').IncomingMessage & { rawBody?: string }} */ (req).rawBody = buf.toString('utf8'); } });
 
+/** What the delivery needs from the rest of the server; resolved at call time. */
+const webhookDeps = {
+    store: automationStore,
+    check: checkWebhookSignature,
+    liveHasTrigger: (/** @type {any} */ automation, /** @type {string} */ stepId) => require('../../core/automationRunner/definitionForRun').liveHasTrigger(automation, stepId),
+    execute: (/** @type {any} */ automation, /** @type {Record<string, unknown>} */ options) => require('../../core/automationRunner').executeAutomation(automation, options),
+    log,
+};
+
 router.post('/webhook/:slug', webhookIpLimiter, webhookSlugLimiter, webhookJson, async (/** @type {import('express').Request<{ slug: string }> & { rawBody?: string }} */ req, res) => {
-    const slug = req.params.slug;
-    const wh = await automationStore.getWebhook(slug);
-    if (!wh) return res.status(404).json({ error: 'Unknown webhook' });
-
-    const sigHeader = req.get('X-BeeFlow-Signature') || '';
-    const nonce = req.get('X-BeeFlow-Nonce') || '';
     // The nonce (and the timestamp, when sent) is part of the signed message,
-    // not just checked separately — otherwise a captured (nonce, signature,
-    // body) triple lets an attacker replay the same body with a NEW nonce
-    // (the signature still verifies, since it never covered the nonce) and
-    // checkAndStoreNonce sees it as fresh.
-    const timestamp = req.get('X-BeeFlow-Timestamp') || null;
-    const check = checkWebhookSignature({
-        secret: wh.secret, sigHeader, nonce, timestamp,
-        rawBody: req.rawBody ?? null, body: req.body,
-    });
-    if (!check.ok) return res.status(401).json({ error: rejectionMessage(check.reason) });
-
-    // A delivery without a timestamp never expires on its own: its nonce is
-    // kept beyond the 24 h sweep so the same request cannot be sent again.
-    const fresh = await automationStore.checkAndStoreNonce(`${slug}:${nonce}`, { retain: !timestamp });
-    if (!fresh) return res.status(401).json({ error: 'Replayed nonce' });
-
-    await automationStore.touchWebhook(slug);
-    const automation = await automationStore.getAutomation(wh.automationId);
-    if (!automation || !automation.isActive || automation.isDraft) {
-        return res.status(409).json({ error: 'Automation is not active' });
-    }
-    // Handoff 5: the run executes the LIVE definition. A webhook issued for a
-    // trigger that so far exists only in the working copy is not live yet —
-    // firing it would enter the live flow at its primary trigger instead.
-    const { liveHasTrigger } = require('../../core/automationRunner/definitionForRun');
-    if (automation.liveVersion != null && wh.triggerStepId && !liveHasTrigger(automation, wh.triggerStepId)) {
-        return res.status(409).json({ error: 'This webhook\'s trigger is not live yet. Publish the automation first.', code: 'trigger_not_live' });
-    }
-    // Async run; ack immediately.
-    const runner = require('../../core/automationRunner');
-    const triggerHeaders = pickWebhookHeaders(req);
-    setImmediate(async () => {
-        try {
-            await runner.executeAutomation(automation, {
-                triggerKind: 'webhook',
-                triggerPayload: req.body || {},
-                // Request headers, additively at trigger.headers.<name>
-                // (A14) — OUTSIDE trigger.output, which stays the raw POST
-                // body, so header names can never collide with body fields
-                // and existing trigger.output.<field> bindings are
-                // untouched.
-                triggerHeaders,
-                // Seed the DAG walk from the specific trigger node this
-                // webhook row was issued for (definition.trigger or one of
-                // definition.triggers[] — scoped multi-trigger slice).
-                rootStepId: wh.triggerStepId || null,
-            });
-        }
-        catch (e) { log.error('[automation/webhook] run error:', /** @type {Error} */ (e).message); }
-    });
-    return res.status(202).json({ accepted: true, automationId: automation.id });
+    // not just checked separately: a signature that did not cover the nonce
+    // would let the same body be sent again under a new one.
+    const delivery = {
+        slug: req.params.slug,
+        signature: req.get('X-BeeFlow-Signature') || '',
+        nonce: req.get('X-BeeFlow-Nonce') || '',
+        timestamp: req.get('X-BeeFlow-Timestamp') || null,
+        rawBody: req.rawBody ?? null,
+        body: req.body,
+        headers: pickWebhookHeaders(req),
+    };
+    // One answer for an address that does not accept the delivery; the order
+    // of the checks and every answer are in webhookReceive.mts.
+    const verified = await verifyDeliverySignature(delivery, webhookDeps);
+    if (!verified.ok) return res.status(NOT_ACCEPTED.status).json(NOT_ACCEPTED.body);
+    const answer = await startSignedDelivery(verified.webhook, delivery, webhookDeps);
+    return res.status(answer.status).json(answer.body);
 });
 
 // Gmail Pub/Sub push — payload is base64-encoded JSON; we decode and dispatch.
