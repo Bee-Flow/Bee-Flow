@@ -12,7 +12,8 @@
 //   - every data binding gets an EMPTY, successful answer (emptyDataState), keyed the
 //     way the fetch layer keys it, so no component waits on a loader,
 //   - any other request answers 401 without touching the network (noSession),
-//   - ids React generates (useId) are numbered in order of appearance,
+//   - ids React generates (useId) are numbered in order of appearance, and so are the
+//     ids dnd-kit counts per process (DndDescribedBy-<n>, DndLiveRegion-<n>), per screen,
 //   - class tokens starting with `bfa-` or `u-` are dropped: a later package adds those
 //     as part classes, and adding a class is not a change in how an app looks,
 //   - the inside of an <svg> is left out (an icon is named by its class; a lucide
@@ -203,6 +204,29 @@ export async function renderScreen(definition: CorpusDefinition, screen: CorpusS
 // ── The DOM as text ─────────────────────────────────────────────────────────
 
 const REACT_ID = /«r[0-9a-z]+»|:r[0-9a-z]+:|_r_[0-9a-z]+_/g;
+/**
+ * dnd-kit numbers its accessibility nodes (DndDescribedBy-<n>, DndLiveRegion-<n>) with a
+ * counter per process, so the number depends on how many boards rendered earlier in the same
+ * test file. They are renumbered per screen, per prefix, in order of appearance.
+ */
+const DND_KIT_ID = /\bDnd[A-Za-z]+-\d+\b/g;
+
+/** `value` with every per-process counter in it renumbered through `ids` (one map per screen). */
+function renumberIds(value: string, ids: Map<string, string>): string {
+    const react = value.replace(REACT_ID, (m) => {
+        if (!ids.has(m)) ids.set(m, `<id-${[...ids.keys()].filter((k) => !k.startsWith('dnd:')).length + 1}>`);
+        return ids.get(m) as string;
+    });
+    return react.replace(DND_KIT_ID, (m) => {
+        const key = `dnd:${m}`;
+        if (!ids.has(key)) {
+            const prefix = m.slice(0, m.lastIndexOf('-'));
+            const taken = [...ids.keys()].filter((k) => k.startsWith(`dnd:${prefix}-`)).length;
+            ids.set(key, `${prefix}-<${taken + 1}>`);
+        }
+        return ids.get(key) as string;
+    });
+}
 
 /**
  * Dates and times as the runtime prints them depend on the time zone and locale of the
@@ -240,10 +264,7 @@ function styleText(el: Element): string | null {
 }
 
 function attributeLines(el: Element, ids: Map<string, string>): string[] {
-    const mapIds = (v: string) => v.replace(REACT_ID, (m) => {
-        if (!ids.has(m)) ids.set(m, `<id-${ids.size + 1}>`);
-        return ids.get(m) as string;
-    });
+    const mapIds = (v: string) => renumberIds(v, ids);
     const out: string[] = [];
     const names = el.getAttributeNames().filter((n) => n !== 'class' && n !== 'style').sort();
     const classes = (el.getAttribute('class') || '').split(/\s+/).filter((t) => t && !isDroppedClass(t)).sort();
