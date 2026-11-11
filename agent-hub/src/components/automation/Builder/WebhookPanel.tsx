@@ -9,6 +9,7 @@ interface WebhookRowData {
     name?: string;
     url?: string;
     lastSeenAt?: string | number | null;
+    previousValidUntil?: string | null;
 }
 
 interface PanelProps {
@@ -128,6 +129,11 @@ export function WebhookRow({ row, ctl }: RowProps) {
                     {t('automations.settings.webhook_revoke', 'Revoke')}
                 </button>
             </div>
+            {row.previousValidUntil && (
+                <div className="text-[var(--text-tertiary)]" data-testid="webhook-previous-secret">
+                    {t('automation_webhook_log.previous_secret_until', 'The previous secret is accepted until {when}.', { when: new Date(row.previousValidUntil).toLocaleString() })}
+                </div>
+            )}
             {secret && (
                 <div className="flex flex-col gap-1">
                     <div className="flex items-center gap-2">

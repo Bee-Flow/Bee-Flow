@@ -38848,6 +38848,7 @@ const EN_DEFAULTS = {
     "studio_misc.toolbar.view_board": "Board",
     "studio_misc.toolbar.view_cards": "Cards",
     "studio_misc.toolbar.view_list": "List",
+    "automation_webhook_log.previous_secret_until": "The previous secret is accepted until {when}.",
     "studio_apps_aggregates.agg_count_distinct": "Distinct count",
     "studio_apps_aggregates.bin_hint": "Groups the numbers in steps, e.g. 0–9, 10–19 for a step of 10.",
     "studio_apps_aggregates.bin_placeholder": "Exact values",

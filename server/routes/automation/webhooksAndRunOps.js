@@ -72,10 +72,10 @@ router.get('/:id/webhooks', async (req, res) => {
 });
 
 /**
- * Rotate a webhook's HMAC secret. The slug (URL) stays the same; any caller
- * still using the old secret immediately receives 401. The new secret is
- * returned ONCE so the user can copy it before navigating away — we don't
- * store it in plaintext anywhere the UI can re-read.
+ * Rotate a webhook's HMAC secret. The slug (URL) stays the same; the secret
+ * from before keeps verifying until `previousValidUntil` (the operator's
+ * overlap; null = it stopped at once). The new secret is returned ONCE so the
+ * user can copy it before navigating away: it is stored sealed.
  */
 router.post('/:id/webhook/:slug/rotate', async (req, res) => {
     const a = await automationStore.getAutomation(req.params.id);

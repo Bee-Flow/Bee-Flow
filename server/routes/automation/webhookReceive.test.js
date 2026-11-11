@@ -20,11 +20,11 @@ const SECRET = 'ab'.repeat(32);
 const sign = (secret, message) => 'sha256=' + crypto.createHmac('sha256', secret).update(message).digest('hex');
 
 /** A world with one webhook (`hook1`, automation `auto1`), and what happened in it. */
-function world({ automation = { id: 'auto1', isActive: true, isDraft: false }, secret = SECRET, seenNonces = [], live = true } = {}) {
+function world({ automation = { id: 'auto1', isActive: true, isDraft: false }, secret = SECRET, previousSecret = null, seenNonces = [], live = true } = {}) {
     const seen = { checks: [], executions: [], touched: [], nonces: [...seenNonces] };
     const deps = {
         store: {
-            getWebhook: async (slug) => (slug === 'hook1' ? { id: 'hook1', automationId: 'auto1', secret, triggerStepId: 'trg2' } : null),
+            getWebhook: async (slug) => (slug === 'hook1' ? { id: 'hook1', automationId: 'auto1', secret, previousSecret, triggerStepId: 'trg2' } : null),
             checkAndStoreNonce: async (nonce) => { if (seen.nonces.includes(nonce)) return false; seen.nonces.push(nonce); return true; },
             touchWebhook: async (slug) => { seen.touched.push(slug); },
             getAutomation: async () => automation,
@@ -79,9 +79,11 @@ test('an address that names no webhook is still checked, against a key that is n
     const { deps, seen } = world();
     const verified = await verifyDeliverySignature(delivery({ slug: 'nobody' }), deps);
     assert.deepStrictEqual(verified, { ok: false, webhook: null, reason: 'unknown' });
-    assert.strictEqual(seen.checks.length, 1);
-    assert.match(seen.checks[0].secret, /^[0-9a-f]{64}$/);
-    assert.notStrictEqual(seen.checks[0].secret, SECRET);
+    assert.strictEqual(seen.checks.length, 2, 'as many checks as an address with a webhook gets');
+    for (const check of seen.checks) {
+        assert.match(check.secret, /^[0-9a-f]{64}$/);
+        assert.notStrictEqual(check.secret, SECRET);
+    }
 
     // A delivery signed with a real webhook's secret is not accepted at another address.
     const other = world();
@@ -100,6 +102,18 @@ test('the refusal says why to the caller of the function, never to the sender', 
     assert.strictEqual((await verifyDeliverySignature(delivery({ signature: '' }), deps)).reason, 'missing');
     assert.strictEqual((await verifyDeliverySignature(delivery({ secret: 'cd'.repeat(32) }), deps)).reason, 'bad_signature');
     assert.strictEqual((await verifyDeliverySignature(delivery({ timestamp: stale }), deps)).reason, 'stale_timestamp');
+});
+
+test('during a rotation\'s overlap the new secret and the one before both sign; any other secret does not', async () => {
+    const OLD = 'ee'.repeat(32);
+    for (const [secret, status] of [[SECRET, 202], [OLD, 202], ['cd'.repeat(32), 401]]) {
+        const { deps, seen } = world({ previousSecret: OLD });
+        assert.strictEqual((await answer(delivery({ secret }), deps)).status, status);
+        assert.strictEqual(seen.checks.length, 2, 'every delivery is checked against both');
+    }
+    // After the overlap the store hands no previous secret: only the new one signs.
+    const { deps } = world();
+    assert.deepStrictEqual(await answer(delivery({ secret: OLD }), deps), NOT_ACCEPTED);
 });
 
 test('a signed delivery starts one run and answers 202', async () => {

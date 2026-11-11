@@ -10,6 +10,8 @@ export interface Webhook {
     url?: string;
     secret?: string;
     triggerStepId?: string | null;
+    /** While the secret from before the last rotation is still accepted: until when. */
+    previousValidUntil?: string | null;
 }
 
 export interface AutomationLike {
@@ -35,8 +37,8 @@ export interface AutomationLike {
  *     as `X-BeeFlow-Signature`. The nonce MUST be part of the signed message —
  *     signing the body alone lets a captured request be replayed under a new
  *     nonce.
- *   - Rotate is destructive, since any caller still on the old secret starts getting
- *     401s the moment the new secret hits the DB.
+ *   - Rotate replaces the secret. The one before keeps verifying for the
+ *     operator's overlap (`previousValidUntil` on the row), then stops.
  *
  * @param {object|null} automation
  * @param {object}  [options]
@@ -150,7 +152,7 @@ export default function useWebhooks(automation: AutomationLike | null | undefine
     const rotate = useCallback(async (wh: Webhook) => {
         const ok = await confirmAction({
             title: 'Rotate the secret?',
-            description: 'Any caller still using the old secret immediately starts getting 401 errors.',
+            description: 'Callers must switch to the new secret. The previous one keeps working for a short changeover period, or stops at once when none is set.',
             confirmLabel: 'Rotate',
             destructive: true,
         });

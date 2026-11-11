@@ -1,0 +1,6 @@
+{
+  "translations": {
+    "automation_webhook_log.previous_secret_until": "Het vorige geheim wordt geaccepteerd tot {when}."
+  },
+  "sameAsEnglish": []
+}

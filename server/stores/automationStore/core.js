@@ -146,6 +146,9 @@ const MIGRATIONS = [
     // automation_webhooks.secret holds the signing secret sealed. Seals, in
     // place, every value that is not sealed yet; finds nothing after that.
     'automation-webhook-secret-sealed-2026-11',
+    // prev_secret / prev_valid_until on automation_webhooks: the secret from
+    // before a rotation still verifies for the overlap. Additive, nullable.
+    'automation-webhook-rotation-2026-11',
 ];
 
 const initDB = makeStoreInit('AutomationStore', _initDB);

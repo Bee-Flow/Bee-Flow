@@ -95,6 +95,7 @@ Optional; empty means the default.
 | `AUTOMATION_WEBHOOK_RPM_PER_SLUG` | `120` | Requests one automation webhook address takes per minute. `0` = unlimited. |
 | `AUTOMATION_WEBHOOK_RPM_PER_IP` | `300` | Requests one sender address may send to automation webhooks per minute. `0` = unlimited. |
 | `AUTOMATION_EVENTS_RPM_PER_IP` | `600` | Provider event pushes (Nextcloud, Microsoft Graph, GitHub, Gmail) one address may send per minute. `0` = unlimited. |
+| `AUTOMATION_WEBHOOK_ROTATION_OVERLAP_SECONDS` | `3600` | How long the previous secret of an automation webhook still signs after its secret is rotated. `0` = it stops at once. |
 | `WEBHOOK_UNTIMED_NONCE_RETENTION_DAYS` | `0` (keep) | Days the nonce of a signed webhook delivery without a timestamp is kept for replay protection. `0` keeps it for good, so that table only grows; ordinary nonces are swept after 24 hours either way. |
 | `FIREBIRD_ALLOW_PRIVATE_HOSTS` | off | `1` allows a private or loopback Firebird host on `DEPLOYMENT_MODE=cloud`. Self-hosted allows them already. Link-local and cloud-metadata addresses are always refused. |
 | `FIREBIRD_ALLOWED_HOSTS` | empty (any) | Comma-separated host names a Firebird connection may use. |

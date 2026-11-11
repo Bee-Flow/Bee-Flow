@@ -8,6 +8,7 @@ const { initDB, run, getOne, getAll } = require('./core');
 const { rowToAutomation } = require('./rowMappers');
 const { bestEffort } = require('../../utils/bestEffort');
 const { encryptValue, decryptValue } = require('../configEncryption');
+const { automationWebhookLimits } = require('./webhookPolicy.mts');
 
 // ── Webhooks ──────────────────────────────────────────
 //
@@ -17,16 +18,31 @@ const { encryptValue, decryptValue } = require('../configEncryption');
 // inbound route for the signature check (getWebhook). A value from before
 // sealing is read as it is until the boot pass seals it
 // (migrations/automation-webhook-secret-sealed-2026-11.js).
+//
+// A ROTATION keeps the address and replaces the secret. The one before moves
+// to prev_secret and still verifies until prev_valid_until
+// (AUTOMATION_WEBHOOK_ROTATION_OVERLAP_SECONDS; 0 = it stops at once), so a
+// sender can be moved over without a gap. One previous secret at a time: a
+// second rotation inside the overlap ends the first one's.
 
 /**
  * A new secret, sealed for the automation's organisation.
  * @param {string} automationId
  */
 async function newSealedSecret(automationId) {
-    const secret = crypto.randomBytes(32).toString('hex');
     const owner = await getOne('SELECT organization_id FROM automations WHERE id = $1', [automationId]);
-    return { secret, sealed: String(encryptValue(secret, owner?.organization_id || null)) };
+    const secret = crypto.randomBytes(32).toString('hex');
+    return { secret, sealed: seal(secret, owner?.organization_id) };
 }
+
+/**
+ * @param {string} secret
+ * @param {string | null | undefined} orgId
+ */
+const seal = (secret, orgId) => String(encryptValue(secret, /** @type {any} */ (orgId || null)));
+
+/** @param {unknown} v  a timestamp column */
+const iso = (v) => (v instanceof Date ? v.toISOString() : (typeof v === 'string' ? v : null));
 
 /**
  * A stored secret in clear; null when it cannot be read.
@@ -59,21 +75,37 @@ async function createWebhook(automationId, triggerStepId = null) {
 
 /**
  * The webhook an inbound address names, with its secret in clear (null when
- * the stored value cannot be read: nothing verifies against it).
+ * the stored value cannot be read: nothing verifies against it) and, while a
+ * rotation's overlap lasts, the secret from before it.
  * @param {string} id
  */
 async function getWebhook(id) {
     await initDB();
-    const r = await getOne('SELECT * FROM automation_webhooks WHERE id = $1', [id]);
+    const r = await getOne('SELECT *, (prev_valid_until > NOW()) AS prev_live FROM automation_webhooks WHERE id = $1', [id]);
     if (!r) return null;
-    return { id: r.id, automationId: r.automation_id, secret: openSecret(r.secret), allowMethods: r.allow_methods, lastSeenAt: r.last_seen_at, triggerStepId: r.trigger_step_id ?? null };
+    return {
+        id: r.id, automationId: r.automation_id, secret: openSecret(r.secret), previousSecret: r.prev_live ? openSecret(r.prev_secret) : null,
+        allowMethods: r.allow_methods, lastSeenAt: r.last_seen_at, triggerStepId: r.trigger_step_id ?? null,
+    };
 }
 
-/** @param {string} automationId */
+/**
+ * The webhooks of an automation, for its owner: never a secret.
+ * `previousValidUntil` is set while the secret from before the last rotation still verifies.
+ * @param {string} automationId
+ */
 async function getWebhooksForAutomation(automationId) {
     await initDB();
-    const rows = await getAll('SELECT id, automation_id, allow_methods, last_seen_at, created_at, trigger_step_id FROM automation_webhooks WHERE automation_id = $1', [automationId]);
-    return rows.map(r => ({ id: r.id, automationId: r.automation_id, allowMethods: r.allow_methods, lastSeenAt: r.last_seen_at, createdAt: r.created_at, triggerStepId: r.trigger_step_id ?? null }));
+    const rows = await getAll(
+        `SELECT id, automation_id, allow_methods, last_seen_at, created_at, trigger_step_id,
+                CASE WHEN prev_secret IS NOT NULL AND prev_valid_until > NOW() THEN prev_valid_until END AS prev_valid_until
+           FROM automation_webhooks WHERE automation_id = $1`,
+        [automationId],
+    );
+    return rows.map(r => ({
+        id: r.id, automationId: r.automation_id, allowMethods: r.allow_methods, lastSeenAt: r.last_seen_at, createdAt: r.created_at,
+        triggerStepId: r.trigger_step_id ?? null, previousValidUntil: iso(r.prev_valid_until),
+    }));
 }
 
 /** @param {string} id */
@@ -83,24 +115,36 @@ async function touchWebhook(id) {
 }
 
 /**
- * Rotate the HMAC secret for a webhook. The webhook's URL stays the same;
- * only the secret used for signature verification changes — so any caller
- * still using the old secret immediately starts getting 401s, while a
- * newly-issued secret takes effect on the next inbound request.
+ * Rotate the HMAC secret for a webhook. The webhook's URL stays the same and
+ * the new secret verifies from the next inbound request. The secret from
+ * before still verifies for `overlapSeconds` (the operator's
+ * AUTOMATION_WEBHOOK_ROTATION_OVERLAP_SECONDS by default; 0 = it stops at
+ * once). The new secret is returned here, once.
  * @param {string} webhookId
  * @param {string} automationId
+ * @param {{ overlapSeconds?: number }} [options]
  */
-async function rotateWebhookSecret(webhookId, automationId) {
+async function rotateWebhookSecret(webhookId, automationId, { overlapSeconds = automationWebhookLimits().rotationOverlapSeconds } = {}) {
     await initDB();
-    const { secret: newSecret, sealed } = await newSealedSecret(automationId);
-    const { rowCount } = await run(
-        `UPDATE automation_webhooks
-            SET secret = $1
-          WHERE id = $2 AND automation_id = $3`,
-        [sealed, webhookId, automationId],
+    const current = await getOne(
+        `SELECT w.secret, a.organization_id FROM automation_webhooks w LEFT JOIN automations a ON a.id = w.automation_id
+          WHERE w.id = $1 AND w.automation_id = $2`,
+        [webhookId, automationId],
     );
-    if (rowCount === 0) return null;
-    return { id: webhookId, automationId, secret: newSecret };
+    if (!current) return null;
+    const newSecret = crypto.randomBytes(32).toString('hex');
+    // The previous secret is sealed again here, so the column never holds a value from before sealing.
+    const before = overlapSeconds > 0 ? openSecret(current.secret) : null;
+    const { rows } = await run(
+        `UPDATE automation_webhooks
+            SET secret = $1, prev_secret = $2,
+                prev_valid_until = CASE WHEN $2::text IS NULL THEN NULL ELSE NOW() + ($3::int * INTERVAL '1 second') END
+          WHERE id = $4 AND automation_id = $5
+      RETURNING prev_valid_until`,
+        [seal(newSecret, current.organization_id), before ? seal(before, current.organization_id) : null, Math.floor(overlapSeconds), webhookId, automationId],
+    );
+    if (!rows || rows.length === 0) return null;
+    return { id: webhookId, automationId, secret: newSecret, previousValidUntil: iso(rows[0].prev_valid_until) };
 }
 
 /**

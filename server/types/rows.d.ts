@@ -749,6 +749,8 @@ declare namespace DbRow {
         created_at: Date;
         id: string;
         last_seen_at: Date | null;
+        prev_secret: string | null;
+        prev_valid_until: Date | null;
         secret: string;
         trigger_step_id: string | null;
     }

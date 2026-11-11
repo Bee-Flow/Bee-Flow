@@ -4,8 +4,9 @@
  * docs (features/automations.md, "Webhook trigger format").
  *
  * THE ORDER, and what a sender is told at each step:
- *   1. the address names a webhook, and the signature fits its secret, and the timestamp
- *      (when one is sent) is inside the window              no: 401 "Delivery not accepted"
+ *   1. the address names a webhook, and the signature fits its secret (or, during a
+ *      rotation's overlap, the one before), and the timestamp (when one is sent) is inside
+ *      the window                                           no: 401 "Delivery not accepted"
  *   2. the nonce is new                                     seen: 401 "Replayed nonce"
  *   3. the automation is active, and the webhook's trigger is live
  *                                                           no: 409
@@ -13,8 +14,9 @@
  *
  * Step 1 is ONE answer: an address that does not accept a delivery says the same whatever the
  * reason (no such address, a missing or different signature, a timestamp outside the window).
- * An address that names no webhook is still checked against a key nobody holds, so it does the
- * same work as one that does. Steps 2 and 3 are reached only by a delivery that was signed with
+ * Every delivery is checked against two keys, the secret and the one before it; where there is
+ * none (no webhook at the address, no rotation going on) a key nobody holds takes its place, so
+ * every address does the same work. Steps 2 and 3 are reached only by a delivery that was signed with
  * the webhook's secret; their answers are the documented ones a sender may act on.
  */
 
@@ -31,7 +33,7 @@ export type Delivery = {
     headers: Record<string, string>;
 };
 
-export type Webhook = { id: string; automationId: string; secret: string | null; triggerStepId?: string | null };
+export type Webhook = { id: string; automationId: string; secret: string | null; previousSecret?: string | null; triggerStepId?: string | null };
 type Automation = Obj & { id: string; isActive?: boolean; isDraft?: boolean; liveVersion?: number | null };
 type Check = { ok: boolean; reason?: 'missing' | 'stale_timestamp' | 'bad_signature' };
 
@@ -54,7 +56,7 @@ export type Answer = { status: 202 | 401 | 409; body: Obj };
 /** The one answer of an address that does not accept a delivery. */
 export const NOT_ACCEPTED: Answer = Object.freeze({ status: 401, body: Object.freeze({ error: 'Delivery not accepted' }) });
 
-/** A key nobody holds: an address that names no webhook is checked against it. */
+/** A key nobody holds: it stands in wherever a delivery has no secret to be checked against. */
 const DECOY_SECRET = randomBytes(32).toString('hex');
 
 export type Verified = { ok: true; webhook: Webhook } | { ok: false; webhook: Webhook | null; reason: NonNullable<Check['reason']> | 'unknown' };
@@ -62,12 +64,18 @@ export type Verified = { ok: true; webhook: Webhook } | { ok: false; webhook: We
 /** Step 1: the webhook the address names, when the delivery was signed with its secret. */
 export async function verifyDeliverySignature(d: Delivery, deps: ReceiveDeps): Promise<Verified> {
     const webhook = await deps.store.getWebhook(d.slug);
-    const check = deps.check({
-        secret: webhook?.secret || DECOY_SECRET,
-        sigHeader: d.signature, nonce: d.nonce, timestamp: d.timestamp, rawBody: d.rawBody, body: d.body,
-    });
+    const signedWith = (secret: string | null | undefined): Check => {
+        const check = deps.check({
+            secret: secret || DECOY_SECRET,
+            sigHeader: d.signature, nonce: d.nonce, timestamp: d.timestamp, rawBody: d.rawBody, body: d.body,
+        });
+        return secret ? check : { ok: false, reason: check.reason || 'bad_signature' };
+    };
+    // Both are always checked: the secret, and the one before it while its overlap lasts.
+    const current = signedWith(webhook?.secret);
+    const previous = signedWith(webhook?.previousSecret);
     if (!webhook) return { ok: false, webhook: null, reason: 'unknown' };
-    if (!check.ok || !webhook.secret) return { ok: false, webhook, reason: check.reason || 'bad_signature' };
+    if (!current.ok && !previous.ok) return { ok: false, webhook, reason: current.reason || 'bad_signature' };
     return { ok: true, webhook };
 }
 

@@ -611,7 +611,10 @@ X-BeeFlow-Signature: sha256=hex(HMAC_SHA256(secret, nonce + "\n" + body))
   hours, and a repeat is refused. A random hex string per request is enough.
 - **The secret is shown once**, when the webhook is created or rotated.
   Rotating (`POST /api/automation/{automationId}/webhook/{slug}/rotate`) keeps
-  the URL and makes the old secret fail at once. Deleting the webhook makes
+  the URL and gives a new secret. The previous secret keeps working for a
+  changeover period (one hour by default, `AUTOMATION_WEBHOOK_ROTATION_OVERLAP_SECONDS`;
+  `0` makes it stop at once), so you can move the sender over without a gap.
+  The answer and the webhook row say until when (`previousValidUntil`). Deleting the webhook makes
   the URL stop accepting deliveries.
 
 The **Copy as signed cURL** button next to a webhook gives this recipe with
