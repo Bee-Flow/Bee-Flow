@@ -14,7 +14,8 @@ const TABLE = {
 describe('buildFormForTable with a many relation', () => {
     it('makes the picker of a many relation take several rows, and leaves a one-row relation single', () => {
         const { node, actions } = buildFormForTable(TABLE as never);
-        const byName = Object.fromEntries((node.children ?? []).map((c) => [c.props?.name, c]));
+        expect(node).not.toBeNull();
+        const byName = Object.fromEntries((node?.children ?? []).map((c) => [c.props?.name, c]));
         expect(byName.tags.type).toBe('input_relation');
         expect(byName.tags.props).toMatchObject({ tableId: 'tbl_tag01', multiple: true });
         expect(byName.owner.props.multiple).toBe(false);
