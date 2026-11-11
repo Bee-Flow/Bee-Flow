@@ -7424,7 +7424,7 @@
         ]
       }
     },
-    "fields-read-time-computed-left-out": {
+    "fields-read-time-computed-not-selected": {
       "sqlite": {
         "sql": "SELECT \"id\", \"status\", \"created_at\" FROM \"orders\" WHERE (\"created_by\" = ?) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
         "params": [
@@ -7434,7 +7434,8 @@
         "primaryField": "created_at",
         "limit": 50,
         "project": [
-          "status"
+          "status",
+          "margin"
         ]
       },
       "pg": {
@@ -7446,7 +7447,8 @@
         "primaryField": "created_at",
         "limit": 50,
         "project": [
-          "status"
+          "status",
+          "margin"
         ]
       }
     },

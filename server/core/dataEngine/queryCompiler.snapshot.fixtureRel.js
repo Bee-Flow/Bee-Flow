@@ -74,7 +74,8 @@ const LIST_CASES = [
     ['fields-repeat-id-system', {}, { fields: ['id', 'status', 'status', 'created_at'] }],
     ['fields-sort-outside', { sort: [{ field: 'amount', dir: 'asc' }] }, { fields: ['status'] }],
     ['fields-order-by-cursor', { orderBy: [{ field: 'status' }, { field: 'amount', dir: 'asc' }], cursor: ORDER_CURSOR }, { fields: ['status'] }],
-    ['fields-read-time-computed-left-out', {}, { fields: ['status', 'margin'] }],
+    // No column is selected for it; the record keeps its value when the read evaluates it (readTimeComputed).
+    ['fields-read-time-computed-not-selected', {}, { fields: ['status', 'margin'] }],
     ['fields-and-expand', {}, { fields: ['status'], expand: [AS('customer', { pick: ['name'] })] }],
     ['fields-with-relation-listed', {}, { fields: ['customer', 'status'], expand: [AS('customer')] }],
     // filters through a relation.

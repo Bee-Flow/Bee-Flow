@@ -233,7 +233,9 @@ export function recordShape(tableMeta: TableMeta, fm: FieldMap, read: RelationRe
     const fields = resolveFields(tableMeta, fm, read.fields);
     const result: { expand?: ExpandPlan[]; project?: string[] } = {};
     if (expand.length) result.expand = expand;
-    if (fields) result.project = [...fields, ...expand.map((e) => e.as)];
+    // A listed read-time computed field has no column to select; when the read evaluates it
+    // (readTimeComputed) its value is in the row, and the record keeps it.
+    if (fields) result.project = [...fields, ...listedComputed(fm, read.fields, fields), ...expand.map((e) => e.as)];
     const column = (k: string): string => core.resolveColumn(tableMeta, k, fm);
     return {
         result,
@@ -243,10 +245,20 @@ export function recordShape(tableMeta: TableMeta, fm: FieldMap, read: RelationRe
     };
 }
 
+/** The read-time computed fields `fields` names, each once: kept in a record, never selected as a column. */
+function listedComputed(fm: FieldMap, fields: unknown, columns: string[]): string[] {
+    const out: string[] = [];
+    for (const key of Array.isArray(fields) ? fields : []) {
+        if (typeof key === 'string' && fm.has(key) && !SYSTEM_COLUMNS.includes(key) && !columns.includes(key) && !out.includes(key)) out.push(key);
+    }
+    return out;
+}
+
 /**
- * `fields` → the field keys a record read returns next to `id`. A read-time
- * computed field has no column to select, so it is left out (it reads empty
- * today as well); any other unknown name is refused.
+ * `fields` → the field keys a record read selects next to `id`. A read-time
+ * computed field has no column to select, so it is not in this list (recordShape
+ * keeps its value in the record when the read evaluates it); any other unknown
+ * name is refused.
  */
 export function resolveFields(tableMeta: TableMeta, fm: FieldMap, fields: unknown): string[] | null {
     if (fields === undefined || fields === null) return null;

@@ -77,6 +77,24 @@ for (const [name, make] of APP_ENGINES) {
         } finally { await engine.close(); }
     });
 
+    test(`${name}: a fields list keeps the read-time computed fields it names, and only those`, async () => {
+        const { relationRead, finishRecords } = require('./relationRead.mts');
+        const engine = make();
+        try {
+            await seed(engine, ITEMS, [[{ title: 'pen', price: 2.5, qty: 4 }, 'user-1'], [{ title: 'secret', price: 999, qty: 9 }, 'user-2']]);
+            const list = async (fields, readTimeComputed) => {
+                const read = relationRead(null, ITEMS, { fields }, { role: 'member', viewer: { id: 'user-1' } });
+                const compiled = qc.compileRecordList(ITEMS, { dialect: engine.dialect, ...(readTimeComputed ? { readTimeComputed: true } : {}) }, MINE, read);
+                const { result } = await queryWithComputed(engine.query, compiled);
+                return (await finishRecords(compiled, result.rows, engine.query)).map(({ id: _id, ...rest }) => rest);
+            };
+            assert.deepStrictEqual(await list(['title', 'total', 'total'], true), [{ title: 'pen', total: 10 }], 'listed: its value, once; the other owner\'s row stays hidden');
+            assert.deepStrictEqual(await list(['total'], true), [{ total: 10 }], 'a list of computed fields alone');
+            assert.deepStrictEqual(await list(['title'], true), [{ title: 'pen' }], 'not listed: not in the record');
+            assert.deepStrictEqual(await list(['title', 'total'], false), [{ title: 'pen' }], 'a read that does not evaluate them has no value to keep');
+        } finally { await engine.close(); }
+    });
+
     test(`${name}: a get-by-id the row rule hides stays hidden, a visible one is evaluated`, async () => {
         const engine = make();
         try {
