@@ -148,7 +148,7 @@ export function makePausedRunQueries(db: Queryable, ready: () => Promise<unknown
                     ended_at = CASE WHEN status = 'paused' THEN NOW() ELSE ended_at END,
                     ended_by = CASE WHEN status = 'paused' THEN 'user' ELSE ended_by END,
                     paused_state = NULL, wake_at = NULL, resume_token_hash = NULL
-              WHERE app_id = $1 AND id = $2 AND origin = 'background' AND status IN ('running', 'paused')
+              WHERE app_id = $1 AND id = $2 AND origin IN ('background', 'trigger') AND status IN ('running', 'paused')
           RETURNING status`,
             [appId, id],
         );

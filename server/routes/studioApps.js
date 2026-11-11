@@ -27,6 +27,8 @@
  *   DELETE /:id                            — owner-only delete
  *   GET    /:id/versions                   — owner-only publish-snapshot history
  *   POST   /:id/versions/:versionId/restore — owner-only restore snapshot → working draft
+ *   GET    /:id/triggers                   — owner-only: the app's server triggers and their armed state
+ *   PUT    /:id/triggers/:triggerId        — owner-only: switch an armed trigger off or on again
  *   GET    /:id/runtime                    — run-view payload (draft for owner, else published)
  *                                            + viewer { id, name, email, isOwner, roleKey }
  *
@@ -60,5 +62,7 @@ router.use('/', require('./studioApps/publicPages'));
 router.use('/', require('./studioApps/runtime'));
 // GET /:id/runs, /:id/runs/:runId — the run log (owner only).
 router.use('/', require('./studioApps/runLog'));
+// GET /:id/triggers, PUT /:id/triggers/:triggerId — the server triggers (owner only).
+router.use('/', require('./studioApps/triggers'));
 
 module.exports = router;

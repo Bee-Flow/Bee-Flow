@@ -249,6 +249,8 @@ function startSupportAndSyncJobs() {
         require('../jobs/studioAppActionRuns').start();
         // Server runs on hold: the ones whose wake time passed go on (or end).
         require('../jobs/studioAppRunWake').start({ wake: () => require('../appStudio/backgroundRun.mts').wakeDueRuns() });
+        // Server triggers of published apps: the ones that are due fire, earlier fires are settled.
+        require('../jobs/studioAppTriggers').start({ pass: () => require('../appStudio/triggers/triggerFire.mts').triggerPass() });
     } catch (err) {
         log.warn('[Server] Studio app connector sync load failed:', err.message);
     }

@@ -24,6 +24,7 @@ import { pauseRefusal, pausedCapRefusal, pausedRecord, waitOf, waitingLabel, wak
 import type { Refusal } from './backgroundRunDurable.mts';
 import { actionFingerprint } from './backgroundRunIdentity.mts';
 import { trimToBytes, writtenVars } from './backgroundRunParts.mts';
+import { runsUnattended } from './triggers/unattendedPolicy.mts';
 import type { JobView, RunnerDeps, StartInput } from './backgroundRunParts.mts';
 
 const nodeRequire = createRequire(import.meta.url);
@@ -214,6 +215,10 @@ function hostFor(job: Job): WalkHost {
     return {
         async decide(step, f) {
             const kind = String(step.kind);
+            // Nobody is at a page: what the validator and the fire refused is refused again where it would run.
+            if (input.unattended && !runsUnattended(kind, input.unattended.refusedKinds)) {
+                throw new Error(`A ${kind} step cannot run without a person at the page.`);
+            }
             if (BACKGROUND_DEFERRED_KINDS.includes(kind)) {
                 deferEffect(job, step, f.ownerActionId);
                 return { run: false, status: 'deferred', reason: 'shown when the run ends' };
