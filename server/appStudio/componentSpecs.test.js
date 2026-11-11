@@ -401,6 +401,8 @@ test('a definition using every v2.1 type with spec defaults canonicalizes and va
         const node = byType.get(type);
         assert.ok(node, `canonicalize dropped ${type}`);
         for (const [key, fs] of Object.entries(COMPONENT_SPECS[type].props)) {
+            // A prop added after the base is written only when a definition sets it.
+            if (fs.since !== undefined) { assert.equal(node.props[key], undefined, `${type}.props.${key} is not filled`); continue; }
             assert.deepEqual(node.props[key], fs.default === undefined ? null : fs.default, `${type}.props.${key} default`);
         }
     }

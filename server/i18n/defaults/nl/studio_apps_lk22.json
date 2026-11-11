@@ -1,0 +1,10 @@
+{
+  "translations": {
+    "studio_apps_lk22.markdown.task_done": "Klaar",
+    "studio_apps_lk22.markdown.task_open": "Niet klaar",
+    "studio_apps_lk22.theme.enum_expressive": "Expressief"
+  },
+  "sameAsEnglish": [
+    "studio_apps_lk22.button.variant_link"
+  ]
+}

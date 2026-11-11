@@ -26,6 +26,10 @@ const FORM_SPECS = {
                 type: 'enum', values: ['default', 'flat', 'raised', 'tinted', 'accent', 'gradient', 'solid'], default: 'default',
                 description: 'default = the current card surface; flat = flush and borderless; raised = shadow elevation; tinted = soft primary wash; accent = a primary edge bar; gradient = soft primary gradient surface; solid = filled with the primary colour, contents in its contrast colour (title colour: heading color knob).',
             },
+            variant: {
+                type: 'enum', values: ['plain', 'outlined', 'elevated'], since: 3,
+                description: 'The card surface. plain is the current card, outlined is transparent with a firm border, elevated is lifted by a shadow with no border. Set either variant or look, not both.',
+            },
         },
         styleKnobs: ['span', 'padding', 'gap', 'radius', 'background', 'height', 'border'],
         defaultStyle: { span: 6, padding: 3, gap: 3, background: 'surface' },

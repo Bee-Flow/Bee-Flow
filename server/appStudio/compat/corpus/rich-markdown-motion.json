@@ -1,0 +1,221 @@
+{
+  "about": {
+    "source": "hand-made for package LK22 (rich markdown and design.motion expressive): a rich block with tables, task lists, quotes, code and an app picture, the same text as a plain block, hostile text in a rich block, and a list and a modal under expressive motion",
+    "captured": "2026-11-11"
+  },
+  "definition": {
+    "schemaVersion": 3,
+    "meta": {
+      "name": "Rich markdown and motion",
+      "description": "Rich markdown blocks and the expressive motion setting.",
+      "icon": "Sparkles"
+    },
+    "theme": {
+      "primary": "#1D4ED8",
+      "radius": "md",
+      "density": "comfortable",
+      "fontScale": "md",
+      "appearance": "auto"
+    },
+    "roles": [],
+    "screens": [
+      {
+        "id": "scr_rmm0001",
+        "name": "Rich text",
+        "icon": null,
+        "showInNav": true,
+        "maxWidth": "medium",
+        "sections": [
+          {
+            "id": "sec_rmm0001",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_rmm0001",
+                "type": "markdown",
+                "props": {
+                  "content": "# Rich markdown\n\nA paragraph with **bold**, *italic* and a [link](https://example.com/docs) and a [mail](mailto:team@example.com).\n\n## Table\n\n| Plan | Seats | Price |\n| :--- | :---: | ---: |\n| Free | 3 | 0 |\n| Pro | 25 | 216 |\n\n### Tasks\n\n- [x] Draft the page\n- [ ] Review the copy\n- plain item\n\n> A quote that holds **bold** text\n> and a second line\n\n1. First\n2. Second\n\n```\nconst x = 1;\n```\n\n![Team photo](asset:img_team01)",
+                  "contentFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "rich": true
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_rmm0002",
+                "type": "markdown",
+                "props": {
+                  "content": "# Rich markdown\n\nA paragraph with **bold**, *italic* and a [link](https://example.com/docs) and a [mail](mailto:team@example.com).\n\n## Table\n\n| Plan | Seats | Price |\n| :--- | :---: | ---: |\n| Free | 3 | 0 |\n| Pro | 25 | 216 |\n\n### Tasks\n\n- [x] Draft the page\n- [ ] Review the copy\n- plain item\n\n> A quote that holds **bold** text\n> and a second line\n\n1. First\n2. Second\n\n```\nconst x = 1;\n```\n\n![Team photo](asset:img_team01)",
+                  "contentFrom": {
+                    "kind": "static",
+                    "value": null
+                  }
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_rmm0003",
+                "type": "markdown",
+                "props": {
+                  "content": "Markup stays text: <script>alert(1)</script> and <img src=x onerror=alert(1)> and <b>bold</b>.\n\n[click](javascript:alert(1)) [data](data:text/html;base64,PHNjcmlwdD4=) [file](file:///etc/passwd) [rel](//evil.example)\n\n![remote](https://evil.example/pixel.png) ![js](javascript:alert(1)) ![data](data:image/png;base64,AAAA)\n\n| <i>head</i> | b |\n| --- | --- |\n| <script>x</script> | [x](javascript:y) |\n\n> <iframe src=\"https://evil.example\"></iframe>",
+                  "contentFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "rich": true
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_rmm0004",
+                "type": "markdown",
+                "props": {
+                  "content": "| a | b |\n| - | - |\n| 1 | 2 |",
+                  "contentFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "rich": false
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "scr_rmm0002",
+        "name": "Motion",
+        "icon": null,
+        "showInNav": true,
+        "maxWidth": "medium",
+        "sections": [
+          {
+            "id": "sec_rmm0002",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_rmm0005",
+                "type": "list",
+                "props": {
+                  "source": {
+                    "kind": "static",
+                    "value": [
+                      {
+                        "title": "First row",
+                        "note": "one"
+                      },
+                      {
+                        "title": "Second row",
+                        "note": "two"
+                      },
+                      {
+                        "title": "Third row",
+                        "note": "three"
+                      }
+                    ]
+                  },
+                  "titleKey": "title",
+                  "subtitleKey": "note",
+                  "metaKey": null,
+                  "timestampKey": null,
+                  "badgeKey": null,
+                  "tagsKey": null,
+                  "badgeToneMap": [],
+                  "unreadKey": null,
+                  "badgePlacement": "meta",
+                  "selectedWhen": null,
+                  "selectedDetailKey": null,
+                  "groupKey": null,
+                  "groupOrder": [],
+                  "groupLabelMap": [],
+                  "icon": null,
+                  "emptyText": "Nothing to show yet.",
+                  "look": "rows",
+                  "peekSource": null,
+                  "peekMatchKey": null,
+                  "peekRowKey": null,
+                  "peekTitleKey": null,
+                  "peekTextKey": null,
+                  "peekGroupKey": null,
+                  "peekGroupLabelMap": [],
+                  "peekCountKey": null,
+                  "peekLimit": 6,
+                  "peekTitle": null,
+                  "peekMoreText": null,
+                  "peekBadge": false
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_rmm0006",
+                "type": "modal",
+                "props": {
+                  "title": "A dialog",
+                  "size": "md",
+                  "placement": "center",
+                  "triggerLabel": "Open the dialog"
+                },
+                "style": {
+                  "gap": 3,
+                  "padding": 4
+                },
+                "visible": true,
+                "children": [
+                  {
+                    "id": "cmp_rmm0007",
+                    "type": "text",
+                    "props": {
+                      "text": "Inside the dialog.",
+                      "muted": false
+                    },
+                    "style": {
+                      "span": 12
+                    },
+                    "visible": true
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "actions": {},
+    "design": {
+      "preset": "custom",
+      "font": "system",
+      "surface": "hairline",
+      "motion": "expressive",
+      "chartPalette": "classic",
+      "accentEdge": "bar",
+      "logoUrl": null
+    },
+    "homeScreenId": "scr_rmm0001"
+  }
+}

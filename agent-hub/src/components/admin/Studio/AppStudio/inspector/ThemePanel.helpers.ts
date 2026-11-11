@@ -15,6 +15,7 @@ const enumLabels = (t: (key: string | undefined, fallbackOrParams?: string | Tra
     elevated: t('studio_apps_insp.theme.enum_elevated', 'Raised'),
     subtle: t('studio_apps_insp.theme.enum_subtle', 'Subtle'),
     full: t('studio_apps_insp.theme.enum_full', 'Full'),
+    expressive: t('studio_apps_lk22.theme.enum_expressive', 'Expressive'),
     classic: t('studio_apps_insp.theme.enum_classic', 'Classic'),
     brand: t('studio_apps_insp.theme.enum_brand', 'Brand'),
 });

@@ -7,6 +7,7 @@ import { Field, INPUT_CLASS, inputStyle } from '../uiBits';
 import useValueFrom from '../useValueFrom';
 import type { CannedResponse } from '@/components/support/SupportInboxPanel.types';
 import type { BindingInput } from '../resolveBinding.types';
+import { textPartClasses } from '../styleKnobs/text';
 import type { NodeProps } from './appNode.types';
 
 /**
@@ -114,7 +115,7 @@ export default function AppInputTextarea({ node }: NodeProps<InputTextareaProps>
 
     const id = `${node.id}-input`;
     return (
-        <Field part="input_textarea" id={id} label={label} required={required} error={error}>
+        <Field part="input_textarea" labelClass={textPartClasses(node.style)} id={id} label={label} required={required} error={error}>
             <div className="relative">
                 <textarea
                     id={id}

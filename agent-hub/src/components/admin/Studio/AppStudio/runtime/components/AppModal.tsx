@@ -70,9 +70,17 @@ const MODAL_SIZE: Record<string, ModalSize> = { sm: 'sm', md: 'md', lg: 'lg' };
 // centered dialog instead of handing the shared component a class it lacks.
 const MODAL_PLACEMENT: Record<string, ModalPlacement> = { center: 'center', left: 'left', right: 'right', bottom: 'bottom' };
 
+/**
+ * design.motion 'expressive' (since 3): the centred dialog eases in. The panel is portaled
+ * outside the app root, so it carries its own class (css/motion.css); the edge placements
+ * already slide in.
+ */
+const dialogMotionClass = (design: { motion?: string } | null | undefined, placement: ModalPlacement) =>
+    (design?.motion === 'expressive' && placement === 'center' ? 'app-modal--expressive' : undefined);
+
 export default function AppModal({ node, children }: NodeProps<ModalNodeProps>) {
     const { t } = useTranslation();
-    const { mode, initialUi } = useRuntime();
+    const { mode, initialUi, appDesign } = useRuntime();
     const { title = null, size = 'md', placement = 'center', triggerLabel = null } = node.props || {};
     const [open, setOpen] = useState(() => mode === 'run' && initialModalOpen(initialUi, node.id));
 
@@ -140,6 +148,7 @@ export default function AppModal({ node, children }: NodeProps<ModalNodeProps>) 
                 title={title || t('studio_apps_runtime.modal.dialog', 'Dialog')}
                 size={MODAL_SIZE[size] || 'md'}
                 placement={MODAL_PLACEMENT[placement] || 'center'}
+                className={dialogMotionClass(appDesign, MODAL_PLACEMENT[placement] || 'center')}
                 headerActions={(
                     <button
                         type="button"

@@ -27,3 +27,66 @@
         transform: translateX(100%);
     }
 }
+
+/*
+ * EXPRESSIVE motion (design.motion 'expressive', since 3). Three transitions and nothing else:
+ * a screen change, a dialog opening and the first list rows entering. 'full' stays what it
+ * is, the base ('subtle'), and 'none' never stamps this class.
+ *
+ * Off where motion must not happen:
+ *   - the editor canvas (data-app-edit), where every edit re-renders the screen;
+ *   - the headless render and screenshots, which force design.motion to 'none' before the
+ *     class is ever stamped (server/services/appStudioRenderView.mts viewDefinition);
+ *   - reduced motion, by token (--app-motion-* are 0ms, app-tokens.css) and again outright below.
+ * The dialog is portaled outside the app root, so its class (app-modal--expressive, stamped by
+ * AppModal) carries its own fallback durations.
+ */
+@keyframes app-expressive-enter {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+@keyframes app-expressive-pop {
+    from {
+        opacity: 0;
+        transform: translateY(8px) scale(0.97);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+.app-runtime.app-motion--expressive.app-screen-enter:not([data-app-edit]) {
+    animation: app-expressive-enter var(--app-motion-slow, 300ms) var(--app-ease, ease-out) both;
+}
+
+.app-modal--expressive {
+    animation: app-expressive-pop var(--app-motion-med, 200ms) var(--app-ease, ease-out) both;
+}
+
+/* The first rows of a list arrive one after the other; the rest are simply there. */
+.app-motion--expressive li[data-app-list-row]:not([data-app-edit] *) {
+    animation: app-expressive-enter var(--app-motion-med, 200ms) var(--app-ease, ease-out) both;
+}
+
+.app-motion--expressive li[data-app-list-row]:nth-child(2):not([data-app-edit] *) { animation-delay: 40ms; }
+.app-motion--expressive li[data-app-list-row]:nth-child(3):not([data-app-edit] *) { animation-delay: 80ms; }
+.app-motion--expressive li[data-app-list-row]:nth-child(4):not([data-app-edit] *) { animation-delay: 120ms; }
+.app-motion--expressive li[data-app-list-row]:nth-child(5):not([data-app-edit] *) { animation-delay: 160ms; }
+.app-motion--expressive li[data-app-list-row]:nth-child(6):not([data-app-edit] *) { animation-delay: 200ms; }
+.app-motion--expressive li[data-app-list-row]:nth-child(n + 7):not([data-app-edit] *) { animation: none; }
+
+@media (prefers-reduced-motion: reduce) {
+    .app-runtime.app-motion--expressive.app-screen-enter,
+    .app-modal--expressive,
+    .app-motion--expressive li[data-app-list-row] {
+        animation: none;
+    }
+}

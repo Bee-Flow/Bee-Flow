@@ -3,7 +3,7 @@
  *
  * Mirrors componentSpecs.expandStyleKnobs on the server: a group joins every knob list that
  * holds its `grantedBy` knob ('*': every list) unless the component type is in its
- * `withheldFrom`. The groups come from the catalog snapshot, the drawing (title, labels) from
+ * `withheldFrom`; a type in its `grantedTo` earns it without the knob. The groups come from the catalog snapshot, the drawing (title, labels) from
  * the group's runtime file (runtime/styleKnobs/<group>.ts).
  */
 
@@ -15,6 +15,7 @@ export interface ExtensionKnobGroup {
     grantedBy: string;
     knobs: readonly string[];
     withheldFrom?: readonly string[];
+    grantedTo?: readonly string[];
 }
 
 export interface EarnedKnobGroup {
@@ -34,7 +35,8 @@ export function earnedKnobGroups(
 ): EarnedKnobGroup[] {
     const out: EarnedKnobGroup[] = [];
     for (const group of groups) {
-        if (group.grantedBy !== '*' && !knobs.includes(group.grantedBy)) continue;
+        const granted = group.grantedBy === '*' || knobs.includes(group.grantedBy) || (type !== null && !!group.grantedTo?.includes(type));
+        if (!granted) continue;
         if (type !== null && group.withheldFrom?.includes(type)) continue;
         const earned = group.knobs.filter((k) => !knobs.includes(k));
         if (!earned.length) continue;

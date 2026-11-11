@@ -1,0 +1,26 @@
+/*
+ * App Studio runtime: card VARIANTS (props.variant, since 3), the plain / outlined / elevated
+ * choice. Same mechanism as AppCard.css (the look classes): the card paints on its grid cell,
+ * which the component cannot reach from inside, so the class it stamps on its root is matched
+ * from the cell with :has(), in the two positions the root can have (run mode: the direct child;
+ * edit mode and DisabledWrap: one wrapper in between).
+ *
+ * IDENTITY: 'plain' and an absent variant stamp no class, so nothing here matches a stored card.
+ * Colours and depth come from tokens only, so both follow dark mode and high contrast (where
+ * --app-shadow-2 is a ring).
+ */
+
+/* outlined: no fill, a firm border. An explicit border knob still wins over the border here. */
+.app-node.app-node.app-node:has(> .app-card--outlined),
+.app-node.app-node.app-node:has(> div > .app-card--outlined) {
+    background: transparent !important;
+    border: 1px solid var(--border-default);
+    box-shadow: none;
+}
+
+/* elevated: the surface is lifted by a shadow instead of a hairline. */
+.app-node.app-node.app-node:has(> .app-card--elevated),
+.app-node.app-node.app-node:has(> div > .app-card--elevated) {
+    border-color: transparent;
+    box-shadow: var(--app-shadow-2);
+}

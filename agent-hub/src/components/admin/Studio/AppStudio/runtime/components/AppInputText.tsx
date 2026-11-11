@@ -3,6 +3,7 @@ import { useFormField } from '../formContext';
 import type { BindingInput } from '../resolveBinding.types';
 import { Field, INPUT_CLASS, inputStyle } from '../uiBits';
 import useValueFrom from '../useValueFrom';
+import { textPartClasses } from '../styleKnobs/text';
 import type { NodeProps } from './appNode.types';
 
 /** App Studio runtime — 'input_text'. Spec: server/appStudio/componentSpecs.js. */
@@ -27,7 +28,7 @@ export default function AppInputText({ node }: NodeProps<InputTextProps>) {
     useValueFrom(node, setValue);
     const id = `${node.id}-input`;
     return (
-        <Field part="input_text" id={id} label={label} required={required} error={error}>
+        <Field part="input_text" labelClass={textPartClasses(node.style)} id={id} label={label} required={required} error={error}>
             <input
                 id={id}
                 name={name}

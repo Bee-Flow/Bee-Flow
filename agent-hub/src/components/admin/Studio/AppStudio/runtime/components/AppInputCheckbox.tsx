@@ -2,6 +2,7 @@ import useTranslation from '@/hooks/useTranslation';
 import { useFormField } from '../formContext';
 import { Field } from '../uiBits';
 import useInputChange from '../useInputChange';
+import { textPartClasses } from '../styleKnobs/text';
 import type { NodeProps } from './appNode.types';
 
 /**
@@ -33,7 +34,7 @@ export default function AppInputCheckbox({ node }: NodeProps<CheckboxProps>) {
         // The visible text belongs to the checkbox itself, so Field carries no
         // label of its own — only the error, which is what was missing.
         <Field part="input_checkbox" id={id} label={null} error={error}>
-            <label htmlFor={id} className="inline-flex items-center gap-2 text-sm cursor-pointer select-none bfa-input_checkbox__label">
+            <label htmlFor={id} className={`inline-flex items-center gap-2 text-sm cursor-pointer select-none${textPartClasses(node.style)} bfa-input_checkbox__label`}>
                 <input
                     id={id}
                     name={name}

@@ -38,7 +38,7 @@ describe('ButtonInspector', () => {
         const { onCommit, getByLabelText } = renderPanel();
         const select = getByLabelText('Button variant');
         expect(Array.from((select as HTMLSelectElement).options).map((o) => o.value))
-            .toEqual(['primary', 'secondary', 'ghost', 'danger', 'outline', 'soft']);
+            .toEqual(['primary', 'secondary', 'ghost', 'danger', 'outline', 'soft', 'link']);
         expect(select).toHaveValue('secondary');
         await user.selectOptions(select, 'soft');
         expect(onCommit).toHaveBeenCalledTimes(1);
