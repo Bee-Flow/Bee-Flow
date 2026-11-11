@@ -25,6 +25,7 @@ import { runServerWait } from './durableWait.mts';
 import type { Refusal } from './backgroundRunDurable.mts';
 import { trimToBytes, writtenVars } from './backgroundRunParts.mts';
 import { runsUnattended } from './triggers/unattendedPolicy.mts';
+import { triggerCtx } from './triggers/runTriggerCtx.mts';
 import type { JobView, RunnerDeps, StartInput } from './backgroundRunParts.mts';
 
 const nodeRequire = createRequire(import.meta.url);
@@ -78,22 +79,6 @@ export function baseCtx(input: StartInput, w: WalkState, ownerActionId: string):
         viewer: { id: viewer.id, role: role || null, organizationId: viewer.organizationId || null },
         ...triggerCtx(input),
     };
-}
-
-/**
- * What a run adds for record triggers (triggers/recordTriggerRule.mts): where its record writes
- * come from, and for a trigger run the `trigger` root as the runner handed it (on a resume: as
- * unattendedIdentity.mts read it again). A run a person started writes as that person; a run a
- * trigger started carries the depth of its chain, which only a record trigger's own root
- * (`trigger.record`, triggers/triggerScope.mts) gives: every other kind starts a chain at 1.
- */
-function triggerCtx(input: StartInput): Obj {
-    if (!input.unattended) return { writeSource: { kind: 'user' } };
-    const trigger = input.scope.trigger;
-    const record = trigger && trigger.kind === 'record' && trigger.record && typeof trigger.record === 'object' ? trigger.record as Obj : null;
-    const depth = record && typeof record.depth === 'number' ? record.depth : 0;
-    const triggerId = record && typeof record.triggerId === 'string' ? record.triggerId : null;
-    return { writeSource: { kind: 'trigger', depth: depth + 1, triggerId }, ...(trigger ? { trigger } : {}) };
 }
 
 export async function resolveWith(input: StartInput, deps: RunnerDeps, binding: unknown, ctx: Obj, scope: unknown, where = ''): Promise<unknown> {

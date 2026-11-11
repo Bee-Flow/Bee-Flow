@@ -18,7 +18,6 @@
 //     as part classes, and adding a class is not a change in how an app looks,
 //   - the inside of an <svg> is left out (an icon is named by its class; a lucide
 //     upgrade that redraws a path is not an app change).
-//
 // A corpus app whose `about.lookChrome` is true is drawn inside the real AppShell (the
 // screenshot mode `chrome`, appRuntimeScreenshot.tsx), for vocabulary that lives in the shell
 // (nav.*). Every other app is drawn without it, as it always was.
