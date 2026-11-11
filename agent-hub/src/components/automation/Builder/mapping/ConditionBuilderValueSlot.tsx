@@ -21,12 +21,25 @@ const SLOT_KIND: Readonly<Record<string, string>> = Object.freeze({
     string: 'text', number: 'number', boolean: 'yesno', date: 'date',
 });
 
+/** A literal value the left field can hold (a radio or select option), with its label. */
+export interface ValueChoice { value: string; label?: string }
+
 interface Props {
     type: string;
     value: Binding;
+    /** The left field's own literal values: offered as a choice list instead of a text field. */
+    choices?: ValueChoice[] | null;
     onChange: (next: Binding) => void;
     onFocusField?: unknown;
     previewSample?: unknown;
+}
+
+/** Which control the slot draws: the left field's own values, a typed literal, or the value builder. */
+function slotKind(type: string, value: Binding, choices: ValueChoice[] | null, useBinding: boolean): string {
+    const isLiteral = !value || value.kind == null || value.kind === 'literal';
+    if (useBinding || !isLiteral) return 'builder';
+    if (choices?.length) return 'choice';
+    return type === 'number' || type === 'boolean' || type === 'date' ? type : 'builder';
 }
 
 /**
@@ -35,15 +48,15 @@ interface Props {
  * control (number / true-false / date) instead of a free-text field.
  * A small {} button swaps to the full value builder for variable values.
  * Storage stays a literal binding, so serialisation and the round trip are
- * unchanged.
+ * unchanged. When the caller knows the left field's own values (`choices`: a
+ * radio or select with fixed options), they are the list to pick from.
  */
-export default function ConditionValueSlot({ type, value, onChange, onFocusField, previewSample }: Props) {
+export default function ConditionValueSlot({ type, value, choices = null, onChange, onFocusField, previewSample }: Props) {
     const { t } = useTranslation();
     const [useBinding, setUseBinding] = useState(false);
-    const isLiteral = !value || value.kind == null || value.kind === 'literal';
-    const typed = !useBinding && isLiteral && (type === 'number' || type === 'boolean' || type === 'date');
+    const kind = slotKind(type, value, choices, useBinding);
 
-    if (!typed) {
+    if (kind === 'builder') {
         return (
             <ValueBuilder
                 placeholder={t('automations.condition_builder_value_slot.value', 'value')}
@@ -62,8 +75,9 @@ export default function ConditionValueSlot({ type, value, onChange, onFocusField
     }
     const v = value?.kind === 'literal' ? value.value : '';
     const swap = <SwapButton onClick={() => setUseBinding(true)} />;
-    if (type === 'number') return <NumberSlot value={v} onChange={onChange} swap={swap} />;
-    if (type === 'boolean') return <BooleanSlot value={v} onChange={onChange} swap={swap} />;
+    if (kind === 'choice') return <ChoiceSlot value={v} choices={choices ?? []} onChange={onChange} swap={swap} />;
+    if (kind === 'number') return <NumberSlot value={v} onChange={onChange} swap={swap} />;
+    if (kind === 'boolean') return <BooleanSlot value={v} onChange={onChange} swap={swap} />;
     return <DateSlot value={v} onChange={onChange} swap={swap} />;
 }
 
@@ -116,6 +130,23 @@ function BooleanSlot({ value, onChange, swap }: SlotProps) {
                 <option value="">{t('automations.condition_builder_value_slot.choose', '(choose)')}</option>
                 <option value="true">{t('automations.condition_builder_value_slot.true', 'true')}</option>
                 <option value="false">{t('automations.condition_builder_value_slot.false', 'false')}</option>
+            </select>
+            {swap}
+        </div>
+    );
+}
+
+/** One of the left field's own values. A stored value outside the list stays listed, so nothing is lost. */
+function ChoiceSlot({ value, choices, onChange, swap }: SlotProps & { choices: ValueChoice[] }) {
+    const { t } = useTranslation();
+    const current = value == null ? '' : String(value);
+    const listed = current === '' || choices.some((c) => c.value === current);
+    return (
+        <div className="flex items-stretch gap-1">
+            <select value={current} onChange={(e) => onChange({ kind: 'literal', value: e.target.value })} className={slotInputClass}>
+                <option value="">{t('automations.condition_builder_value_slot.choose', '(choose)')}</option>
+                {choices.map((c) => <option key={c.value} value={c.value}>{c.label || c.value}</option>)}
+                {listed ? null : <option value={current}>{current}</option>}
             </select>
             {swap}
         </div>
