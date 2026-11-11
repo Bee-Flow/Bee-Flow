@@ -82,10 +82,12 @@ const mockStudioAppStore = {
         }
         return clone(a);
     },
-    async createVersionSnapshot(appId, ownerId, definition, summary) {
+    async createVersionSnapshot(appId, ownerId, definition, summary, { skipIfSameAsNewest = false } = {}) {
         const a = state.apps.get(appId);
         if (!a || (ownerId && a.userId !== ownerId)) throw new Error('app not found');
         a.versions = a.versions || [];
+        const newest = a.versions[a.versions.length - 1];
+        if (skipIfSameAsNewest && newest && JSON.stringify(newest.definition) === JSON.stringify(definition)) return null;
         const id = `ver-${a.versions.length + 1}`;
         a.versions.push({ id, summary, definition: clone(definition) });
         return id;
@@ -2248,4 +2250,69 @@ test('"only a dashboard" in the brief caps the screens the model can add: the se
     assert.match(String(calls[1].data.error), /A screen "Invoice detail" was not added/);
     // The refusal reached the model as a tool result naming the evidence.
     assert.ok((state.screenCapToolMessages || []).some((c) => /exactly 1 screen/.test(c) && /SCREENS \(binding/.test(c)), (state.screenCapToolMessages || []).join('\n'));
+});
+
+// ── The version row at the end of a turn (#652) ─────────────────────
+
+/** A two-round change: add a heading to the first section, then close on prose. */
+function headingThenProse(text) {
+    return [
+        async (messages, options, onEvent) => {
+            // This turn's new screen, or the section a follow-up test names.
+            const sectionId = state.pendingSectionId || toolResultFor(messages, 'app_add_screen')?.sectionId;
+            onEvent('tool_use', { id: `h_${text}`, name: 'app_add_components', input: { parentId: sectionId, components: [{ type: 'heading', props: { text, level: 2 } }] } });
+            onEvent('done', { prompt_tokens: 10, completion_tokens: 5 });
+        },
+        async (messages, options, onEvent) => { onEvent('text', { text: 'Done.' }); onEvent('done', { prompt_tokens: 10, completion_tokens: 2 }); },
+    ];
+}
+const endRows = (appId) => (state.apps.get(appId).versions || []).filter((v) => /^AI (build finished|change)$/.test(v.summary));
+
+test('a build turn that finalizes ends with ONE "AI build finished" row holding the final definition', async () => {
+    state.adapterCalls = [];
+    state.script = [
+        async (messages, options, onEvent) => {
+            onEvent('tool_use', { id: 'v1', name: 'app_add_screen', input: { name: 'Orders', icon: 'List' } });
+            onEvent('done', { prompt_tokens: 10, completion_tokens: 5 });
+        },
+        ...headingThenProse('Orders'),
+    ];
+    const res = await api('POST', '/stream', { user: 'u-ver', body: { message: 'Build an orders app', modelTier: 'fast' } });
+    const events = parseSSE(res.text);
+    const done = eventsOf(events, 'done')[0].data;
+    assert.strictEqual(done.finalized, true);
+    const rows = endRows(done.appId);
+    assert.deepStrictEqual(rows.map((v) => v.summary), ['AI build finished']);
+    assert.deepStrictEqual(rows[0].definition, state.apps.get(done.appId).definition, 'the row is the end state');
+    const checkpoint = eventsOf(events, 'checkpoint').find((c) => c.data.summary === 'AI build finished');
+    assert.ok(checkpoint && checkpoint.data.versionId, 'the client hears of the row');
+    state.versionAppId = done.appId;
+});
+
+test('a follow-up turn that changes the definition adds "AI change"; one without changes adds nothing', async () => {
+    const appId = state.versionAppId;
+    assert.ok(appId, 'runs after the build-turn test');
+    state.pendingSectionId = state.apps.get(appId).definition.screens.find((s) => s.name === 'Orders').sections[0].id;
+    state.script = headingThenProse('Totals');
+    await api('POST', '/stream', { user: 'u-ver', body: { appId, message: 'add a totals heading', modelTier: 'fast' } });
+    assert.deepStrictEqual(endRows(appId).map((v) => v.summary), ['AI build finished', 'AI change']);
+    assert.deepStrictEqual(endRows(appId)[1].definition, state.apps.get(appId).definition);
+
+    const before = state.apps.get(appId).versions.length;
+    state.script = [async (messages, options, onEvent) => { onEvent('text', { text: 'It shows the orders.' }); onEvent('done', {}); }];
+    const res = await api('POST', '/stream', { user: 'u-ver', body: { appId, message: 'what does it show?', modelTier: 'fast' } });
+    assert.strictEqual(state.apps.get(appId).versions.length, before, 'a reply that changed nothing writes no row');
+    assert.deepStrictEqual(eventsOf(parseSSE(res.text), 'checkpoint'), []);
+});
+
+test('a turn that fails after a change writes no end-of-turn row', async () => {
+    const appId = state.versionAppId;
+    const before = state.apps.get(appId).versions.length;
+    state.script = [headingThenProse('Broken')[0], async () => { throw new Error('provider exploded'); }];
+    const res = await api('POST', '/stream', { user: 'u-ver', body: { appId, message: 'add another heading', modelTier: 'fast' } });
+    const events = parseSSE(res.text);
+    assert.strictEqual(eventsOf(events, 'tool_call')[0].data.ok, true, 'the change landed before the failure');
+    assert.deepStrictEqual(eventsOf(events, 'error').map((e) => e.data.code), ['transient_upstream']);
+    assert.strictEqual(state.apps.get(appId).versions.length, before);
+    state.pendingSectionId = null;
 });
