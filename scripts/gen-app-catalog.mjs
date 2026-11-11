@@ -89,7 +89,9 @@ function isLate(field) {
 
 function typeEntry(spec) {
     const entry = { label: spec.label, category: spec.category };
-    if (spec.container) entry.container = true;
+    // A type that became a slot container after the base (childrenSince, componentSpecs/itemTemplates.js)
+    // stays a plain type for the palette: a new node of it starts without a template, as before.
+    if (spec.container && !spec.childrenSince) entry.container = true;
     if (spec.isInput) entry.isInput = true;
     entry.defaultProps = defaultPropsOf(spec);
     entry.defaultStyle = spec.defaultStyle || {};

@@ -19,6 +19,7 @@
  *   …props[name].itemShape[key].since / .valuesSince      a key of the items of a list prop
  *                                                  (and of a list nested in those items)
  *   COMPONENT_SPECS[type].eventsSince              { [event]: n }, an event an existing type newly fires
+ *   COMPONENT_SPECS[type].childrenSince            n, a type that became a slot container (its children)
  *   SCREEN_SPEC[key].since / .valuesSince          a screen key, an enum value of one
  *   THEME_SPEC[key] / DESIGN_SPEC[key] .since / .valuesSince   a theme or design key, a value
  *   componentSpecs/keys/<family>/<key>.js          a section, node, nav or nav-group key, a
@@ -62,7 +63,7 @@ type SinceIndex = ReturnType<typeof emptySinceIndex>;
 type ShapeTests = Record<string, Record<string, (value: unknown) => boolean>>;
 type QueryMark = { since: number; kinds?: readonly string[]; holds?: string; uses?: (value: unknown) => boolean };
 type ShapeMarks = SinceIndex['itemShapes'][string][string];
-type Spec = { since?: unknown; valuesSince?: unknown; eventsSince?: unknown; props?: Record<string, Spec>; fields?: Record<string, Spec>; itemShape?: Record<string, Spec> };
+type Spec = { since?: unknown; valuesSince?: unknown; eventsSince?: unknown; childrenSince?: unknown; props?: Record<string, Spec>; fields?: Record<string, Spec>; itemShape?: Record<string, Spec> };
 type SpecTable = Record<string, Spec>;
 type KeyFamily = typeof KEY_FAMILIES[number];
 
@@ -175,7 +176,9 @@ function readComponents(table: SpecTable | undefined, index: SinceIndex): void {
         }
         if (Object.keys(shapes).length) index.itemShapes[type] = shapes;
         const events = valuesAbove(spec.eventsSince);
-        if (events) index.typeNodeKeys[type] = events;
+        // A type that became a slot container later: a node of it holding children (componentSpecs/itemTemplates.js).
+        const children = above(spec.childrenSince);
+        if (events || children) index.typeNodeKeys[type] = { ...events, ...(children ? { children } : null) };
     }
 }
 

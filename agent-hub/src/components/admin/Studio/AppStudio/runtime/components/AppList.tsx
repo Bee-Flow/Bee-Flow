@@ -13,6 +13,8 @@ import type { NodeProps } from './appNode.types';
 import type { ListProps } from './AppList.types';
 import { relativeTime, renderPeekPanel } from './AppList.helpers';
 import { ListBadge, ListRowBody, groupRows, listLook, peekPosition, rowLook } from './AppListRow';
+import { useItemTemplate } from '../itemTemplate';
+import { TemplateRow } from './TemplateRow';
 
 /**
  * App Studio runtime — 'list'. Spec: server/appStudio/componentSpecs.js.
@@ -45,6 +47,8 @@ function ListBody({ node, source: resolved }: NodeProps<ListProps> & { source: R
         icon = null, emptyText = t('studio_apps_runtime.ui.nothing_to_show', 'Nothing to show yet.'),
     } = node.props || {};
     const { value: source, isLoading, error, errorCode } = useStickyBinding(resolved);
+    // Schema 3: the node's children drawn per row in place of the built-in body (../itemTemplate.tsx).
+    const template = useItemTemplate(node, 'template');
 
     // ── Peek ────────────────────────────────────────────────────────────────
     // Read before the early returns below, because hooks must be. A list with
@@ -145,7 +149,7 @@ function ListBody({ node, source: resolved }: NodeProps<ListProps> & { source: R
             })
             : null;
 
-        const body = (
+        const body = template ? template(item, i) : (
             <ListRowBody
                 t={t} icon={icon} unread={unread} size={size} title={walkPath(item, titleKey)} stamp={stamp}
                 badgeInMeta={badgeInMeta} subtitle={subtitle} meta={meta} badge={badge} badgeEl={badgeEl} tags={tags} detail={detail}
@@ -156,7 +160,11 @@ function ListBody({ node, source: resolved }: NodeProps<ListProps> & { source: R
 
         return (
             <li key={i} data-app-list-row={i} data-app-list-selected={selected || undefined}>
-                {clickable ? (
+                {template ? (
+                    <TemplateRow className={`${cls} bfa-list__item`} style={style} selected={selected} onActivate={clickable ? () => runAction(node.onRowClick as string, { formValues: item, item }) : null}>
+                        {body}
+                    </TemplateRow>
+                ) : clickable ? (
                     <button
                         type="button"
                         // Hover was missing entirely, so a clickable row looked

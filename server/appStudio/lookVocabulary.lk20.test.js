@@ -53,3 +53,52 @@ test('a bad repeater layout is an error with the legal values', () => {
     ]);
 });
 
+
+const { baseCatalogue, extensionItems } = require('./catalogTiers.mts');
+const { renderExtensionEntry } = require('./builderPrompt/extensionIndex.mts');
+
+const title = (id) => ({ id, type: 'text', props: { text: 'x' }, computed: { text: 'item.title' } });
+const list = (extra = {}) => ({ id: 'cmp_list0001', type: 'list', props: { source: { kind: 'static', value: [] } }, ...extra });
+
+test('a list or kanban without a template keeps its bytes and version 2', () => {
+    for (const node of [list(), list({ children: [] }), { id: 'cmp_kan00001', type: 'kanban', props: {}, children: [] }]) {
+        const def = canon([node]);
+        assert.equal('children' in firstNode(def), false, node.type);
+        assert.equal(def.schemaVersion, 2, node.type);
+    }
+});
+
+test('a list row template and a kanban card template are kept, validated and stamp version 3', () => {
+    for (const type of ['list', 'kanban']) {
+        const def = canon([{ id: 'cmp_host0001', type, props: {}, children: [title('cmp_tpl00001')] }]);
+        assert.deepEqual(firstNode(def).children.map((c) => c.id), ['cmp_tpl00001'], type);
+        assert.equal(def.schemaVersion, 3, type);
+        assert.deepEqual(validateAppDefinition(def).errors, [], type);
+    }
+});
+
+test('the AI builder sees list and kanban as they were, and the template in the extension index', () => {
+    for (const type of ['list', 'kanban']) {
+        const base = baseCatalogue().COMPONENT_SPECS[type];
+        assert.equal(base.container, undefined, type);
+        assert.equal(base.childrenSince, undefined, type);
+        const item = extensionItems().find((i) => i.name === `${type}.children`);
+        assert.equal(item.family, 'nodeKeys');
+        assert.match(renderExtensionEntry(item), new RegExp(`^${type}\\.children: component nodes drawn per`));
+    }
+});
+
+const tableWith = (column) => ({ id: 'cmp_tbl00001', type: 'table', props: { source: { kind: 'static', value: [] }, columns: [{ key: 'name', ...column }] } });
+
+test('a template column is kept, stamps version 3 and must compile', () => {
+    const good = canon([tableWith({ format: 'template', template: 'item.first + " " + item.last' })]);
+    assert.equal(firstNode(good).props.columns[0].template, 'item.first + " " + item.last');
+    assert.equal(good.schemaVersion, 3);
+    assert.deepEqual(validateAppDefinition(good).errors, []);
+    assert.equal(canon([tableWith({ format: 'text' })]).schemaVersion, 2);
+
+    const bad = validateAppDefinition(canon([tableWith({ format: 'template', template: 'item.first +' })]));
+    assert.deepEqual(codes(bad.errors), ['column.template_invalid @ screens[0].sections[0].children[0].props.columns[0].template']);
+    const missing = validateAppDefinition(canon([{ ...tableWith({ format: 'template' }), type: 'data_grid' }]));
+    assert.ok(codes(missing.warnings).includes('column.template_missing @ screens[0].sections[0].children[0].props.columns[0].template'));
+});

@@ -5,6 +5,7 @@ import { hoverable } from '../hoverable';
 import { roleTextColor } from '../styleResolver';
 import { ROLE_COLORS } from '../styleResolver.constants';
 import CadThumb from './CadThumb';
+import { TemplateCell } from './cellTemplate';
 import { EM_DASH, displayValue } from '../uiBits';
 import { cellLabel, labelForCell } from './cellLabel';
 import type { GridColumn } from './grid/useGridColumns';
@@ -412,7 +413,9 @@ function textToneStyle(col: CellColumn | null | undefined, row: unknown, value: 
 }
 export default function CellValue({ value, format = 'text', col = null, row = null, now = null }: CellValueProps) {
     const { t } = useTranslation();
-    const main = renderMainValue({ value, format, col, row, now, t, fmt: useCellFormatters(col) });
+    const fmt = useCellFormatters(col);
+    // Schema 3: a template column writes a formula's text per row (cellTemplate.tsx).
+    const main = format === 'template' ? <TemplateCell col={col} row={row} value={value} /> : renderMainValue({ value, format, col, row, now, t, fmt });
 
     // Decorations (spec: columns[].flagFrom / subtextFrom). A column without
     // them returns the main content verbatim — the identity path.

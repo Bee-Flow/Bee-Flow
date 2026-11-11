@@ -24,6 +24,7 @@ three things, and nothing else has to be edited for them:
 | a key of the items of a list prop | the prop's `itemShape` (nested lists too) | `since: 3`, `description` on the key | `itemKeys` · `<type>.<prop>[].<key>` |
 | an enum value of an item key | that key's `values` (append) | `valuesSince: { <value>: 3 }` | `enumValues` · `<type>.<prop>[].<key>=<value>` |
 | an event on an existing type | the type's `events` (append) | `eventsSince: { <event>: 3 }` on the type | `nodeKeys` · `<type>.<event>` |
+| children (a template) on an existing type | the type's spec: `container`, `slotContainer` | `childrenSince: 3`, `childrenDescription` (`itemTemplates.js`) | `nodeKeys` · `<type>.children` |
 | a style knob | `styleKnobGroups/<group>.js` (one file per group) | `since: 3` on the group and on each knob, `description` | `styleKnobs` · `<knob>` |
 | an enum value on an existing knob | the knob's `values` (append) | `valuesSince: { <value>: 3 }` | `enumValues` · `style.<knob>=<value>` |
 | a step kind | `steps/<kind>.js` (one file) | `since: 3`, `policy`, `childSlots`, `description` | `stepKinds` · `<kind>` |

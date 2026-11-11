@@ -6,4 +6,8 @@
 // the gauge, the chart kinds, the wizard, the tree and the tooltip key.
 module.exports = {
     'studio_apps_lk20.repeater.row_label': 'Items, scroll sideways for more',
+    'studio_apps_lk20.template.card_label': 'Design the card yourself',
+    'studio_apps_lk20.template.off_hint': 'Draw each item with your own components instead of the built-in layout.',
+    'studio_apps_lk20.template.on_hint': 'The components inside are drawn once per item. Use item.<field> in their formulas. Switching this off removes them.',
+    'studio_apps_lk20.template.row_label': 'Design the row yourself',
 };

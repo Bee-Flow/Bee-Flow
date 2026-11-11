@@ -12301,3 +12301,54 @@ exports[`compat corpus: what the phone plans for every stored app wide-server-sc
   ],
 }
 `;
+
+exports[`compat corpus: what the phone plans for every stored app widget-item-templates 1`] = `
+{
+  "defaultScreen": "scr_items001",
+  "navigable": [
+    "scr_items001",
+  ],
+  "screens": [
+    {
+      "id": "scr_items001",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "id": "cmp_head0001",
+                "kind": "heading",
+                "level": 2,
+                "text": "Projects",
+              },
+              {
+                "id": "cmp_cardtx01",
+                "kind": "text",
+                "muted": false,
+                "text": "Item",
+              },
+              {
+                "id": "cmp_rowtx001",
+                "kind": "text",
+                "muted": false,
+                "text": "Item",
+              },
+            ],
+            "screen": "scr_items001",
+            "unsupported": [
+              "repeater",
+              "list",
+              "kanban (browser-only)",
+              "table",
+              "data_grid",
+            ],
+          },
+          "roles": [
+            "(no role)",
+          ],
+        },
+      ],
+    },
+  ],
+}
+`;

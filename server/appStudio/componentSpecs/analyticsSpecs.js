@@ -9,6 +9,7 @@
 const { LIMITS } = require('./limits');
 const { COLOR_ROLES } = require('./styleKnobs');
 const { formatOptionsSpec } = require('./objectShapes');
+const { columnTemplateSpec } = require('./itemTemplates');
 
 const ANALYTICS_SPECS = {
     // ── v2 data & visualization ──────────────────────────────────────────
@@ -44,7 +45,10 @@ const ANALYTICS_SPECS = {
                             // the PDF (or image) full screen. Same gesture as 'cad',
                             // different file.
                             'document',
+                            // Schema 3: the text of the column's `template` formula, per row.
+                            'template',
                         ],
+                        valuesSince: { template: 3 },
                         default: 'text',
                     },
                     width: { type: 'int', min: 40, max: 800 },
@@ -116,6 +120,8 @@ const ANALYTICS_SPECS = {
                         'How this column writes its numbers, amounts and dates.',
                         'It applies to the number, currency, percent, progress, date, datetime and relative formats of the column.',
                     ),
+                    // Schema 3: what a `format: 'template'` column writes (./itemTemplates.js).
+                    template: columnTemplateSpec(),
                 },
             },
             pageSize: { type: 'int', min: 5, max: 100, default: 25 },
