@@ -59,7 +59,8 @@ export type FireDeps = {
 
 export type PassResult = { settled: number; due: number; fired: number; skipped: number; disarmed: number };
 
-function defaultDeps(): FireDeps {
+/** The real stores and clocks of a fire (a kind that fires on an event passes them to fireTrigger). */
+export function defaultDeps(): FireDeps {
     const policy = () => nodeRequire('../../stores/studioAppData/runPolicy.mts') as { staleMs: () => number; runLogError: (t: unknown) => string | null };
     return {
         store: () => (nodeRequire('../../stores/studioAppData/triggers.mts') as { triggerStore: () => TriggerStore }).triggerStore(),

@@ -12790,6 +12790,49 @@ exports[`compat corpus: what the phone plans for every stored app wishlist-varia
 }
 `;
 
+exports[`compat corpus: what the phone plans for every stored app zz-record-triggers 1`] = `
+{
+  "defaultScreen": "scr_home0001",
+  "navigable": [
+    "scr_home0001",
+  ],
+  "screens": [
+    {
+      "id": "scr_home0001",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "id": "cmp_head0001",
+                "kind": "heading",
+                "level": 2,
+                "text": "Orders",
+              },
+              {
+                "action": {
+                  "actionId": "act_button01",
+                  "kind": "sequence",
+                  "label": "Write the digest now",
+                  "runnable": false,
+                },
+                "id": "cmp_btn00001",
+                "kind": "button",
+              },
+            ],
+            "screen": "scr_home0001",
+            "unsupported": [],
+          },
+          "roles": [
+            "(no role)",
+          ],
+        },
+      ],
+    },
+  ],
+}
+`;
+
 exports[`compat corpus: what the phone plans for every stored app zz-schedule-triggers 1`] = `
 {
   "defaultScreen": "scr_home0001",

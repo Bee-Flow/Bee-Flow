@@ -4,6 +4,7 @@ import type { RunsApi, RunStep, RunSummary } from './runsApi';
 import { useCancelRun, useRunDetail } from './runsApi';
 import toast from '@/components/shared/Toast';
 import RunWaitingLine from './RunWaitingLine';
+import RunStartedByLine from './RunStartedByLine';
 import { TONE_CLASS, actorText, formatCost, formatDuration, formatTokens, originText, statusText, statusTone, stepLabel } from './runsModel';
 
 /**
@@ -25,7 +26,7 @@ export default function RunDetail({ api, appId, runId, onBack, onOpenLogic }: {
             </div>
         );
     }
-    const { run, steps } = q.data;
+    const { run, steps, startedBy } = q.data;
     const tone = statusTone(run.status);
     return (
         <div className="flex flex-col gap-3 p-4 text-sm" data-testid="run-detail">
@@ -43,6 +44,7 @@ export default function RunDetail({ api, appId, runId, onBack, onOpenLogic }: {
                 <span className="text-[var(--text-secondary)]">{run.startedAt ? new Date(run.startedAt).toLocaleString(locale) : '—'}</span>
                 <span className="text-[var(--text-secondary)]" data-testid="run-detail-duration">{formatDuration(run.durationMs)}</span>
             </header>
+            {startedBy ? <RunStartedByLine startedBy={startedBy} /> : null}
             {run.error ? (
                 <p className="text-[var(--error)]" data-testid="run-detail-error">
                     {run.error}{run.errorCode ? ` (${run.errorCode})` : ''}{run.errorStep?.path ? ` · ${run.errorStep.path}` : ''}

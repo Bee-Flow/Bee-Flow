@@ -117,7 +117,7 @@ test('the fingerprint covers the trigger, its action and what that calls, and no
 });
 
 test('a trigger kind is one file: the registry refuses a malformed one, and a second kind needs no edit elsewhere', async () => {
-    assert.deepEqual(triggerKinds().map((k) => k.kind), ['schedule']);
+    for (const kind of ['record', 'schedule']) assert.ok(triggerKinds().some((k) => k.kind === kind), `${kind} is a registered kind`);
     assert.throws(() => checkKind({ ...schedule, kind: 'Schedule' }), /lower_snake_case/);
     assert.throws(() => checkKind({ ...schedule, since: 2 }), /"since"/);
     assert.throws(() => checkKind({ ...schedule, fields: ['actionId'] }), /"fields"/);

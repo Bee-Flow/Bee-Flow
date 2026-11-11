@@ -42,7 +42,7 @@ import { ownAction } from '../actionCalls.mts';
 import type { RunMeta } from '../backgroundRunIdentity.mts';
 import type { App, StartInput } from '../backgroundRunParts.mts';
 import type { ActionRunRow } from '../../stores/studioAppData/actionRuns.mts';
-import { triggerKind } from './triggerKinds.mts';
+import { refusedKindsOf, triggerKind } from './triggerKinds.mts';
 import { readTriggers, triggerFingerprint } from './triggerSpec.mts';
 import type { AppTrigger } from './triggerSpec.mts';
 import { unattendedActionProblems } from './unattendedPolicy.mts';
@@ -69,6 +69,8 @@ export type UnattendedDeps = {
     hasAppStudio: (owner: { userId: string; orgId: string | null }) => Promise<boolean>;
     getModel: (app: AppRow) => Promise<unknown>;
     resolveRole: (app: AppRow, userId: string, model: unknown) => Promise<string | null>;
+    /** The `trigger` root of a run that goes on after a wait (a kind that hands its action one; recordDrain.mts), or null. */
+    resumeScope: (runId: string, trigger: AppTrigger) => Promise<Obj | null>;
 };
 
 const stale = (code: string, error: string): UnattendedRefusal => ({ ok: false, code, error, stale: true });
@@ -94,6 +96,7 @@ function defaultDeps(): UnattendedDeps {
             const gateway = nodeRequire('../rlsGateway') as { resolveViewerRole: (a: unknown, u: string, m: unknown, au: unknown) => Promise<string | null> };
             return (await gateway.resolveViewerRole(app, userId, model, {})) || null;
         },
+        resumeScope: (runId, trigger) => (nodeRequire('./recordDrain.mts') as { resumeScope: UnattendedDeps['resumeScope'] }).resumeScope(runId, trigger),
     };
 }
 
@@ -120,7 +123,7 @@ function triggerOf(def: Obj, triggerId: string): { trigger: AppTrigger } | Unatt
     if (!trigger || trigger.enabled === false || !triggerKind(trigger.kind)) return stale('trigger_gone', CHANGED);
     const action = ownAction(def.actions, trigger.actionId);
     const problems = unattendedActionProblems(action, trigger.actionId, {
-        resolveCalled: (id) => ownAction(def.actions, id), refusedKinds: triggerKind(trigger.kind)?.refusedKinds,
+        resolveCalled: (id) => ownAction(def.actions, id), refusedKinds: refusedKindsOf(triggerKind(trigger.kind), trigger),
     });
     if (problems.length) return held('not_unattended', problems[0].message);
     return { trigger };
@@ -139,7 +142,7 @@ async function ownerInput(found: { app: AppRow; def: Obj; owner: UserRow }, trig
         definitionVersion: typeof app.publishedVersion === 'number' ? app.publishedVersion : null,
         viewer: { id: owner.id, name: text(owner.name) ?? text(owner.username), email: text(owner.email), organizationId: text(owner.organizationId) },
         scope: {},
-        unattended: { refusedKinds: triggerKind(trigger.kind)?.refusedKinds ?? [] },
+        unattended: { refusedKinds: refusedKindsOf(triggerKind(trigger.kind), trigger) },
     };
 }
 
@@ -176,5 +179,7 @@ export async function loadUnattendedResumeContext(row: ActionRunRow, meta: RunMe
     if (!trigger || trigger.enabled === false || !triggerKind(trigger.kind)) return no('trigger_gone', GONE);
     if (!ownAction(found.def.actions, row.actionId)) return no('action_removed', 'The action was removed from the app while this run was waiting, so the run was ended.');
     const input = await ownerInput(found, { ...trigger, actionId: row.actionId }, deps);
-    return 'ok' in input ? no(input.code, input.error) : { ok: true, input };
+    if ('ok' in input) return no(input.code, input.error);
+    const scope = await deps.resumeScope(row.id, trigger);
+    return { ok: true, input: scope ? { ...input, scope: { ...input.scope, trigger: scope } } : input };
 }

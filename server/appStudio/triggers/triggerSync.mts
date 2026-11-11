@@ -28,7 +28,7 @@
 import { createRequire } from 'node:module';
 import { ownAction } from '../actionCalls.mts';
 import type { DesiredTrigger, SyncResult, TriggerStore } from '../../stores/studioAppData/triggers.mts';
-import { triggerKind } from './triggerKinds.mts';
+import { refusedKindsOf, triggerKind } from './triggerKinds.mts';
 import { triggerLimits, withMinInterval } from './triggerLimits.mts';
 import type { TriggerLimits } from './triggerLimits.mts';
 import { readTriggers, triggerFingerprint } from './triggerSpec.mts';
@@ -59,6 +59,11 @@ function defaultDeps(): SyncDeps {
     };
 }
 
+/** The write path keeps the armed record triggers in memory (recordOutbox.mts): after a sync this replica reads them again. */
+function forgetArmedRecordTriggers(): void {
+    (nodeRequire('./recordOutbox.mts') as { invalidateArmed: () => void }).invalidateArmed();
+}
+
 /** The triggers a published definition arms, as the rows they become. `now` is the moment a new row counts from. */
 export function armedTriggersOf(def: unknown, now: number, limits: TriggerLimits): DesiredTrigger[] {
     if (!isObject(def)) return [];
@@ -67,7 +72,7 @@ export function armedTriggersOf(def: unknown, now: number, limits: TriggerLimits
         const kind = triggerKind(trigger.kind);
         if (!kind || trigger.enabled === false) continue;
         const problems = unattendedActionProblems(ownAction(def.actions, trigger.actionId), trigger.actionId, {
-            resolveCalled: (id) => ownAction(def.actions, id), refusedKinds: kind.refusedKinds,
+            resolveCalled: (id) => ownAction(def.actions, id), refusedKinds: refusedKindsOf(kind, trigger),
         });
         if (problems.length) continue;
         const config = kind.config(trigger);
@@ -89,9 +94,12 @@ export async function syncAppTriggers(appId: string, given: Partial<SyncDeps> = 
         const app = await deps.getApp(appId);
         const store = deps.store();
         if (!app || !app.isPublished || !isObject(app.publishedDefinition)) {
-            return { armed: 0, updated: 0, kept: 0, removed: await store.disarmApp(appId) };
+            const removed = await store.disarmApp(appId);
+            forgetArmedRecordTriggers();
+            return { armed: 0, updated: 0, kept: 0, removed };
         }
         const out = await store.syncApp(app.id, app.userId, armedTriggersOf(app.publishedDefinition, deps.now(), deps.limits()));
+        forgetArmedRecordTriggers();
         if (out.armed || out.updated || out.removed) deps.log.info(`[StudioTriggers] app=${app.id} armed ${out.armed}, updated ${out.updated}, kept ${out.kept}, removed ${out.removed}`);
         return out;
     } catch (e) {

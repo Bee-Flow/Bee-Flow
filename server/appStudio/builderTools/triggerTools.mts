@@ -11,7 +11,7 @@
 
 import { createRequire } from 'node:module';
 import { ownAction } from '../actionCalls.mts';
-import { triggerKind, triggerKinds } from '../triggers/triggerKinds.mts';
+import { refusedKindsOf, triggerKind, triggerKinds } from '../triggers/triggerKinds.mts';
 import { MAX_TRIGGERS, readTriggers } from '../triggers/triggerSpec.mts';
 import { UNATTENDED_HINT, unattendedActionProblems } from '../triggers/unattendedPolicy.mts';
 
@@ -36,10 +36,10 @@ function readCall(def: Obj, args: Obj): { trigger: Obj } | { refusal: Result } {
     if (!action) {
         return { refusal: { error: `Unknown actionId ${JSON.stringify(args.actionId ?? null)}.`, _fixHint: `Create the action first with app_set_action. Actions: ${Object.keys(actions).join(', ') || '(none yet)'}.` } };
     }
-    const problems = unattendedActionProblems(action, actionId, { resolveCalled: (id) => ownAction(actions, id), refusedKinds: kind.refusedKinds });
-    if (problems.length) return { refusal: { error: problems.map((p) => p.message).join(' '), _fixHint: UNATTENDED_HINT } };
     const raw: Obj = { id: args.id, kind: kind.kind, actionId };
     for (const field of kind.fields) if (args[field] !== undefined) raw[field] = args[field];
+    const problems = unattendedActionProblems(action, actionId, { resolveCalled: (id) => ownAction(actions, id), refusedKinds: refusedKindsOf(kind, raw) });
+    if (problems.length) return { refusal: { error: problems.map((p) => p.message).join(' '), _fixHint: UNATTENDED_HINT } };
     if (args.enabled === false) raw.enabled = false;
     // The kind's own reading of its fields, with its reason when it refuses them.
     const reasons: string[] = [];

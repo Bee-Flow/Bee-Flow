@@ -21,6 +21,8 @@
  *                never does (a kind that fires on an event leaves the function out)
  *   refusedKinds step kinds this kind of trigger may not run although the catalogue lets them run
  *                unattended (unattendedPolicy.mts); [] for none
+ *   refusedKindsFor  (trigger) => step kinds this one trigger refuses besides, read from its own
+ *                fields (a record trigger that strangers can start); optional
  *   shape, description   catalogue text for the AI builder
  *
  * What every kind shares is not here: the arming (triggerSync.mts), the claim and the run
@@ -35,7 +37,8 @@ import { fileURLToPath } from 'node:url';
 export type Obj = Record<string, unknown>;
 export type Push = (code: string, path: string, message: string) => void;
 export type Finding = { code: string; severity: string; path: string; message: string; hint: string };
-export type KindValidateCtx = { pushE: (f: Finding) => void; pushW: (f: Finding) => void };
+/** `def` is the definition; `dataModel` the app's data model when the validator was handed one (undefined: it was not). */
+export type KindValidateCtx = { pushE: (f: Finding) => void; pushW: (f: Finding) => void; def?: Obj; dataModel?: unknown };
 
 export type TriggerKind = {
     kind: string;
@@ -46,6 +49,8 @@ export type TriggerKind = {
     config: (trigger: Obj) => Obj;
     nextFireAt?: (config: Obj, afterMs: number) => number | null;
     refusedKinds: readonly string[];
+    /** Step kinds ONE trigger of this kind refuses on top of `refusedKinds`, read from its own fields. */
+    refusedKindsFor?: (trigger: Obj) => readonly string[];
     shape: string;
     description: string;
 };
@@ -73,6 +78,7 @@ export function checkKind(entry: unknown, fileName: string | null = null): Trigg
     if (!Array.isArray(e.fields) || !e.fields.every((f) => typeof f === 'string' && f && !ENVELOPE_FIELDS.includes(f))) problems.push('"fields" lists its own field names (never id, kind, actionId or enabled)');
     for (const fn of ['canon', 'validate', 'config'] as const) if (typeof e[fn] !== 'function') problems.push(`"${fn}" is a function`);
     if (e.nextFireAt !== undefined && typeof e.nextFireAt !== 'function') problems.push('"nextFireAt" is a function when present');
+    if (e.refusedKindsFor !== undefined && typeof e.refusedKindsFor !== 'function') problems.push('"refusedKindsFor" is a function when present');
     if (!Array.isArray(e.refusedKinds) || !e.refusedKinds.every((k) => typeof k === 'string')) problems.push('"refusedKinds" lists step kinds ([] for none)');
     if (typeof e.shape !== 'string' || !e.shape || typeof e.description !== 'string' || !e.description) problems.push('"shape" and "description" are catalogue text');
     if (problems.length) throw new Error(`${where}: ${problems.join('; ')}`);
@@ -108,6 +114,12 @@ export function triggerKinds(): readonly TriggerKind[] {
 /** The kind registered under `name`, or null. */
 export function triggerKind(name: unknown): TriggerKind | null {
     return triggerKinds().find((k) => k.kind === name) ?? null;
+}
+
+/** Every step kind `trigger` refuses on top of the catalogue: its kind's, and its own. */
+export function refusedKindsOf(kind: TriggerKind | null | undefined, trigger: Obj): readonly string[] {
+    if (!kind) return [];
+    return kind.refusedKindsFor ? [...kind.refusedKinds, ...kind.refusedKindsFor(trigger)] : kind.refusedKinds;
 }
 
 /** Test-only: run `fn` with `list` as the registry. */

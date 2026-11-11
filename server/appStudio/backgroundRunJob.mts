@@ -75,7 +75,21 @@ export function baseCtx(input: StartInput, w: WalkState, ownerActionId: string):
         variables: Array.isArray(def.variables) ? def.variables : null,
         item: w.item, index: w.index, value: w.value,
         viewer: { id: viewer.id, role: role || null, organizationId: viewer.organizationId || null },
+        ...triggerCtx(input),
     };
+}
+
+/**
+ * What a run adds for record triggers (triggers/recordTriggerRule.mts): where its record writes
+ * come from, and for a trigger run the `trigger` root. A run a person started writes as that
+ * person; a run a trigger started carries the depth of its chain.
+ */
+function triggerCtx(input: StartInput): Obj {
+    if (!input.unattended) return { writeSource: { kind: 'user' } };
+    const trigger = input.scope.trigger;
+    const depth = trigger && typeof trigger.depth === 'number' ? trigger.depth : 0;
+    const triggerId = trigger && typeof trigger.triggerId === 'string' ? trigger.triggerId : null;
+    return { writeSource: { kind: 'trigger', depth: depth + 1, triggerId }, ...(trigger ? { trigger } : {}) };
 }
 
 export async function resolveWith(input: StartInput, deps: RunnerDeps, binding: unknown, ctx: Obj, scope: unknown, where = ''): Promise<unknown> {

@@ -55,7 +55,7 @@ function lastRunText(view: TriggerView, t: TranslateFn, locale: string | undefin
 }
 
 /** What the server says about one trigger: armed or not, the next fire, the last run, a pause and its reason. */
-function TriggerStatus({ view, published, onSwitch, busy }: { view: TriggerView | undefined; published: boolean | undefined; onSwitch: (enabled: boolean) => void; busy: boolean }) {
+export function TriggerStatus({ view, published, onSwitch, busy }: { view: TriggerView | undefined; published: boolean | undefined; onSwitch: (enabled: boolean) => void; busy: boolean }) {
     const { t, locale } = useTranslation();
     if (published === undefined) return null;
     if (!view || view.state === 'none') {
@@ -170,7 +170,8 @@ export default function ServerTriggersPanel({ appId, definition, onCommit, disab
                 ) : null}
             </div>
             {state.isError ? <p className="mb-2 text-xs text-[var(--error)]" role="alert">{t('studio_apps_schedule.panel.state_failed', 'Whether the triggers are armed could not be read.')}</p> : null}
-            {triggers.map((tr, i) => (
+            {/* A trigger of another kind has its own form (RecordTriggersPanel); the index stays the one in the whole list. */}
+            {triggers.map((tr, i) => (tr.kind !== 'schedule' ? null : (
                 <div key={tr.id || i} className="mb-3 flex flex-col gap-1" data-app-trigger={tr.id}>
                     <div className="flex flex-wrap items-center gap-2">
                         <ScheduleFields schedule={tr.schedule} disabled={disabled} onChange={(schedule) => patch(i, (cur) => ({ ...cur, schedule }))} />
@@ -192,7 +193,7 @@ export default function ServerTriggersPanel({ appId, definition, onCommit, disab
                     </div>
                     <TriggerStatus view={views.get(tr.id)} published={state.data?.published} busy={flip.isPending} onSwitch={(enabled) => onSwitch(tr.id, enabled)} />
                 </div>
-            ))}
+            )))}
             {triggers.length ? (
                 <p className="text-xs text-[var(--text-tertiary)]">
                     {t('studio_apps_schedule.panel.steps_hint', 'The action may only hold steps that work without a page: no navigation, dialogs, messages or refreshes. Saving the app tells you which step is in the way.')}

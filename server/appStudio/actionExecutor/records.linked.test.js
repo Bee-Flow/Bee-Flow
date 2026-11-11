@@ -135,3 +135,29 @@ test('a filter-mode delete does not walk the rules: refused on a table they poin
         await assert.rejects(bulkDeleteRecordStep(app, MODEL, step, { viewerId: 'u1', viewer, role: 'member', vars: {} }), { status: 422, code: 'delete_rules' });
     });
 });
+
+test('a many-relation write on a table with a record trigger records ONE change and writes its links in the same transaction', async () => {
+    const { _setOutboxDeps } = require('../triggers/recordOutbox.mts');
+    const { recordTriggerLimits } = require('../triggers/recordTriggerLimits.mts');
+    const recorded = [];
+    _setOutboxDeps({
+        store: () => ({
+            armedRecordTriggers: async () => [{ appId: app.id, triggerId: 'on_projects', config: { tableId: PROJECTS.id, on: ['create', 'update'] } }],
+            add: async (list) => { recorded.push(...list); return { written: list.length, dropped: [] }; },
+            noteSkip: async () => {},
+        }),
+        now: () => 1, limits: () => recordTriggerLimits({}), log: { warn() {} },
+    });
+    try {
+        await onBoth(async (engine) => {
+            recorded.length = 0;
+            const { id } = await writeRecord(app, MODEL, PROJECTS, { name: 'T', labels: ['lab_a'] }, { viewer, source: { kind: 'user' } });
+            await writeRecord(app, MODEL, PROJECTS, { name: 'U', labels: ['lab_b'] }, { viewer, recordId: id, source: { kind: 'user' } });
+            assert.deepEqual(await links(engine, id), ['lab_b'], engine.dialect);
+            assert.deepEqual(recorded.map((d) => [d.event, d.before && d.before.name, d.after && d.after.name]), [['create', null, 'T'], ['update', 'T', 'U']], engine.dialect);
+            const missing = await writeRecord(app, MODEL, PROJECTS, { labels: ['lab_a'] }, { viewer, recordId: 'rec_missing', source: { kind: 'user' } });
+            assert.equal(missing.changes, 0, `${engine.dialect}: no row, no link, no change recorded`);
+            assert.equal(recorded.length, 2, engine.dialect);
+        });
+    } finally { _setOutboxDeps({}); }
+});

@@ -15,7 +15,7 @@
 import { createHash } from 'node:crypto';
 import { createRequire } from 'node:module';
 import { closeOverCalls, ownAction } from '../actionCalls.mts';
-import { ENVELOPE_FIELDS, triggerKind, triggerKinds } from './triggerKinds.mts';
+import { ENVELOPE_FIELDS, refusedKindsOf, triggerKind, triggerKinds } from './triggerKinds.mts';
 import type { Finding, Obj, Push, TriggerKind } from './triggerKinds.mts';
 import { unattendedActionProblems } from './unattendedPolicy.mts';
 
@@ -29,7 +29,7 @@ const isObject = (v: unknown): v is Obj => v !== null && typeof v === 'object' &
 
 export type AppTrigger = Obj & { id: string; kind: string; actionId: string; enabled?: false };
 export type CanonContext = { renameMap: unknown; actionIds?: Set<string> };
-export type ValidateContext = { def: Obj; pushE: (f: Finding) => void; pushW: (f: Finding) => void };
+export type ValidateContext = { def: Obj; pushE: (f: Finding) => void; pushW: (f: Finding) => void; dataModel?: unknown };
 
 const kindNames = (): string => triggerKinds().map((k) => k.kind).join(', ');
 
@@ -115,7 +115,7 @@ function checkAction(t: Obj, at: string, kind: TriggerKind | null, ctx: Validate
         ctx.pushE({ code: 'event.action_unresolved', severity: 'error', path: `${at}.actionId`, message: `A trigger references unknown action ${JSON.stringify(t.actionId ?? null)}.`, hint: 'Add the action to definition.actions first.' });
         return;
     }
-    const problems = unattendedActionProblems(action, String(t.actionId), { resolveCalled: (id) => ownAction(actions, id), refusedKinds: kind?.refusedKinds });
+    const problems = unattendedActionProblems(action, String(t.actionId), { resolveCalled: (id) => ownAction(actions, id), refusedKinds: refusedKindsOf(kind, t) });
     for (const p of problems) {
         ctx.pushE({ code: p.code, severity: 'error', path: `actions.${String(t.actionId)}${p.path ? `.${p.path}` : ''}`, message: p.message, hint: p.hint });
     }

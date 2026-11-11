@@ -387,6 +387,8 @@ router.post('/:token/actions/:actionId/step', ipLimiter, tokenLimiter, jsonBody,
         // Inside an onError handler: the failure it handles, read as error.message / error.step.
         error: sanitizeErrorScope(req.body?.error),
         viewer: ctx.viewer,
+        // A visitor's step: the write path reads from the viewer that it is a public write (triggers/recordTriggerRule.mts).
+        writeSource: { kind: 'user' },
     })));
 
     // The work happened under the OWNER — attribute it to them, as /step does

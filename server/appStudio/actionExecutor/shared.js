@@ -60,6 +60,15 @@ function plainObjectOr(v, fallback) {
     return v && typeof v === 'object' && !Array.isArray(v) ? /** @type {Record<string, unknown>} */ (v) : fallback;
 }
 
+/**
+ * The `trigger` root: what started a trigger run (triggers/kinds/record.mts). Set by the server
+ * runner only; every other scope has no such root, so its bytes are what they were.
+ * @param {{ trigger?: unknown }} ctx
+ */
+function triggerRoot(ctx) {
+    return ctx.trigger && typeof ctx.trigger === 'object' ? { trigger: ctx.trigger } : {};
+}
+
 function buildServerScope(ctx) {
     const now = new Date().toISOString();
     const clientVars = (ctx.vars && typeof ctx.vars === 'object') ? ctx.vars : {};
@@ -116,6 +125,7 @@ function buildServerScope(ctx) {
         datasets: {},
         now,
         today: now.slice(0, 10),
+        ...triggerRoot(ctx),
     };
     // A derived variable (schema 3) is never taken from the browser: the value the client sent
     // under its name is replaced by the formula worked out again over this scope. An app

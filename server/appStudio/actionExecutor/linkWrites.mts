@@ -18,6 +18,8 @@
  */
 
 import { createRequire } from 'node:module';
+import { execWrite } from './recordWriteExec.mts';
+import type { AppDb } from './recordWriteExec.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 
@@ -45,8 +47,12 @@ const dbStore = (): {
 
 export { hasDeleteRules, eraseWithRules } from './cascadeDelete.mts';
 
-/** Who writes where: the model the relations resolve in, the table, the writer; `recordId` and `update` for an update. */
-export type WriteTarget = { model: unknown; table: Table; viewer: Obj; recordId?: string; update?: boolean };
+/**
+ * Who writes where: the model the relations resolve in, the table, the writer; `recordId` and
+ * `update` for an update; `source` the write's origin (only a write that names one can start a
+ * record trigger, recordWriteExec.mts).
+ */
+export type WriteTarget = { model: unknown; table: Table; viewer: Obj; recordId?: string; update?: boolean; source?: unknown };
 type CompiledRow = Statement & { id?: string };
 
 /** `values` without its many relations, and the id list of each one it carries. The same object when it carries none. */
@@ -73,18 +79,11 @@ export function splitLinks<V extends Obj>(table: Table, values: V): { values: V;
 export async function writeRow(app: App, target: WriteTarget, values: Obj, compile: (values: Obj) => CompiledRow): Promise<{ id?: string; changes: number }> {
     const split = splitLinks(target.table, values);
     const c = compile(split.values);
-    if (!split.links.length) {
-        const res = await dbStore().exec(app.userId, app.id, c.sql, c.params);
-        return { id: c.id, changes: Number(res && res.changes) || 0 };
-    }
-    const links = await linkStatements(app, target.model, target.table, target.viewer, (c.id ?? target.recordId) as string, split.links);
-    try {
-        await dbStore().batch(app.userId, app.id, [{ sql: c.sql, params: c.params, ...(target.update ? { expectChanges: true } : {}) }, ...links]);
-        return { id: c.id, changes: 1 };
-    } catch (e) {
-        if (target.update && e && (e as Obj).code === 'batch_no_rows') return { id: c.id, changes: 0 };
-        throw e;
-    }
+    const recordId = (c.id ?? target.recordId) as string;
+    const links = await linkStatements(app, target.model, target.table, target.viewer, recordId, split.links);
+    const write = { event: target.update ? 'update' as const : 'create' as const, recordId, sql: c.sql, params: c.params, links };
+    const changes = await execWrite(dbStore() as AppDb, app, target.table, write, { source: target.source, viewer: target.viewer });
+    return { id: c.id, changes };
 }
 
 /** N creates and the links each carries: `compile` turns the rows without their many relations into INSERTs and ids. */

@@ -32,6 +32,7 @@ function sqliteEngine(closers) {
         run: async (sql, params) => run(sql, params),
         all: async (sql, params) => all(sql, params),
         batch: async (statements) => db.transaction(() => statements.map((s, i) => {
+            if (db.prepare(s.sql).reader) return { rows: all(s.sql, s.params), changes: 0 }; // a read in a batch answers its rows, as the app store does
             const changes = run(s.sql, s.params);
             if (s.expectChanges && !changes) throw Object.assign(new Error('no rows'), { code: 'batch_no_rows', statementIndex: i });
             return { changes };
@@ -53,9 +54,10 @@ async function pgEngine(closers) {
         batch: async (statements) => pg.transaction(async (tx) => {
             const out = [];
             for (const [i, s] of statements.entries()) {
-                const changes = (await q(tx, s.sql, s.params)).affectedRows || 0;
+                const res = await q(tx, s.sql, s.params);
+                const changes = res.affectedRows || 0;
                 if (s.expectChanges && !changes) throw Object.assign(new Error('no rows'), { code: 'batch_no_rows', statementIndex: i });
-                out.push({ changes });
+                out.push({ changes, rows: res.rows });
             }
             return out;
         }),

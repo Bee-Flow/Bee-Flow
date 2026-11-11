@@ -53,6 +53,8 @@ export interface RunSummary {
 
 /** What a run on hold waits for, as the run log reads it from the server. */
 export interface RunWaiting { kind: string | null; wakeAt: string | null; waitingFor: WaitingFor | null }
+/** What started a run a record trigger started: the change, never its values. */
+export interface RunStartedBy { kind: string; event: string; tableId: string; rowId: string; by: string; depth?: number }
 
 interface StepAi {
     calls: number;
@@ -106,7 +108,7 @@ export interface RunFilters {
 
 export interface RunsApi {
     list(appId: string, filters: RunFilters, cursor: string | null): Promise<RunPage>;
-    get(appId: string, runId: string): Promise<{ run: RunSummary; steps: RunStep[] }>;
+    get(appId: string, runId: string): Promise<{ run: RunSummary; steps: RunStep[]; startedBy?: RunStartedBy }>;
     /** Cancel a background run that is running or on hold; answers its status after the request ('running': it stops before its next step). */
     cancel?(appId: string, runId: string): Promise<{ status: string }>;
 }
@@ -126,7 +128,7 @@ export const runsApi: RunsApi = {
     },
     async get(appId, runId) {
         const res = await request(`${API_BASE}/api/studio-apps/${encodeURIComponent(appId)}/runs/${encodeURIComponent(runId)}`);
-        return (await res.json()) as { run: RunSummary; steps: RunStep[] };
+        return (await res.json()) as { run: RunSummary; steps: RunStep[]; startedBy?: RunStartedBy };
     },
     async cancel(appId, runId) {
         const res = await request(`${API_BASE}/api/studio-apps/${encodeURIComponent(appId)}/actions/jobs/${encodeURIComponent(runId)}/cancel`, { method: 'POST' });
