@@ -174,3 +174,68 @@ test('a well-formed declaration validates clean', () => {
     assert.equal(has(res.warnings, 'formula.unknown_variable'), false);
     assert.equal(has(res.warnings, 'variable.unused'), false);
 });
+
+// ── schema 3: scope, persist, derived ───────────────────────────────────────
+
+const decl = (name, extra = {}) => ({ name, label: name, type: 'number', default: 0, description: '', ...extra });
+
+test('derived variables that read each other are an error that names the ring', () => {
+    const res = check({
+        variables: [decl('a', { derived: { expr: 'vars.b + 1' } }), decl('b', { derived: { expr: 'vars.a * 2' } })],
+        expr: 'vars.a',
+    });
+    const cycle = res.errors.find((e) => e.code === 'variable.derived_cycle');
+    assert.ok(cycle, codes(res.errors).join(','));
+    assert.match(cycle.message, /a → b → a/);
+    assert.equal(cycle.path, 'variables[0].derived.expr');
+});
+
+test('a derived formula reading itself is a cycle of one', () => {
+    const res = check({ variables: [decl('a', { derived: { expr: 'vars.a + 1' } })], expr: 'vars.a' });
+    assert.ok(res.errors.some((e) => e.code === 'variable.derived_cycle' && /a → a/.test(e.message)));
+});
+
+test('a derived chain validates clean, and its reads count as reads', () => {
+    const res = check({
+        variables: [decl('price'), decl('qty'), decl('total', { derived: { expr: 'vars.price * vars.qty' } })],
+        expr: 'vars.total',
+    });
+    assert.equal(res.ok, true, codes(res.errors).join(','));
+    assert.equal(has(res.warnings, 'variable.unused'), false, codes(res.warnings).join(','));
+});
+
+test('a derived formula is checked like any formula: a typo warns, a parse error fails', () => {
+    const typo = check({ variables: [decl('price'), decl('total', { derived: { expr: 'vars.prise * 2' } })], expr: 'vars.total + vars.price' });
+    assert.ok(typo.warnings.some((w) => w.code === 'formula.unknown_variable' && w.path === 'variables[1].derived.expr'));
+    const broken = check({ variables: [decl('total', { derived: { expr: '1 +' } })], expr: 'vars.total' });
+    assert.ok(has(broken.errors, 'formula.parse_error'));
+});
+
+test('a step that writes a derived variable warns: the write changes nothing', () => {
+    const res = check({
+        variables: [decl('price'), decl('total', { derived: { expr: 'vars.price * 2' } })],
+        expr: 'vars.total',
+        action: { kind: 'sequence', steps: [{ kind: 'set_variable', name: 'total', value: { kind: 'static', value: 1 } }] },
+    });
+    assert.ok(res.warnings.some((w) => w.code === 'variable.derived_written' && w.path === 'variables[1].derived'));
+});
+
+test('shapes the canonicalizer would repair are errors on bytes handed in directly', () => {
+    const cases = [
+        [decl('a', { scope: 'page' }), 'variable.scope_invalid'],
+        [decl('a', { persist: true }), 'variable.persist_invalid'],
+        [decl('a', { derived: 'vars.b' }), 'variable.derived_invalid'],
+        [decl('a', { derived: { expr: '1' }, persist: 'local' }), 'variable.derived_extras'],
+        [decl('a', { scope: 'screen', persist: 'local' }), 'variable.persist_on_screen'],
+    ];
+    for (const [variable, code] of cases) {
+        const def = { ...app({ expr: 'vars.a' }), variables: [variable] };
+        const res = validateAppDefinition(def);
+        assert.ok(has(res.errors, code), `${code} not raised; got ${codes(res.errors).join(',')}`);
+    }
+});
+
+test('screen and kept variables validate clean', () => {
+    const res = check({ variables: [decl('tab', { scope: 'screen' }), decl('page', { persist: 'session' })], expr: 'vars.tab + vars.page' });
+    assert.equal(res.ok, true, codes(res.errors).join(','));
+});

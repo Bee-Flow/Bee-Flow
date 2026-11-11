@@ -12301,3 +12301,93 @@ exports[`compat corpus: what the phone plans for every stored app wide-server-sc
   ],
 }
 `;
+
+exports[`compat corpus: what the phone plans for every stored app wishlist-variables 1`] = `
+{
+  "defaultScreen": "scr_list0001",
+  "navigable": [
+    "scr_list0001",
+    "scr_page0002",
+  ],
+  "screens": [
+    {
+      "id": "scr_list0001",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "id": "cmp_txtsum01",
+                "kind": "text",
+                "muted": false,
+                "text": "Summary",
+              },
+              {
+                "id": "cmp_txtsrc01",
+                "kind": "text",
+                "muted": false,
+                "text": "Search",
+              },
+              {
+                "action": {
+                  "actionId": "act_more0001",
+                  "kind": "sequence",
+                  "label": "One more",
+                  "runnable": false,
+                },
+                "id": "cmp_btnadd01",
+                "kind": "button",
+              },
+              {
+                "action": {
+                  "actionId": "act_next0001",
+                  "kind": "sequence",
+                  "label": "Page two",
+                  "runnable": false,
+                },
+                "id": "cmp_btnnav01",
+                "kind": "button",
+              },
+            ],
+            "screen": "scr_list0001",
+            "unsupported": [
+              "stat",
+            ],
+          },
+          "roles": [
+            "(no role)",
+          ],
+        },
+      ],
+    },
+    {
+      "id": "scr_page0002",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "id": "cmp_txtpg201",
+                "kind": "text",
+                "muted": false,
+                "text": "Page",
+              },
+              {
+                "id": "cmp_txtsrc02",
+                "kind": "text",
+                "muted": false,
+                "text": "Search",
+              },
+            ],
+            "screen": "scr_page0002",
+            "unsupported": [],
+          },
+          "roles": [
+            "(no role)",
+          ],
+        },
+      ],
+    },
+  ],
+}
+`;

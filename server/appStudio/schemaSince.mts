@@ -21,7 +21,7 @@
  *   COMPONENT_SPECS[type].eventsSince              { [event]: n }, an event an existing type newly fires
  *   SCREEN_SPEC[key].since / .valuesSince          a screen key, an enum value of one
  *   THEME_SPEC[key] / DESIGN_SPEC[key] .since / .valuesSince   a theme or design key, a value
- *   componentSpecs/keys/<family>/<key>.js          a section, node, nav or nav-group key, a
+ *   componentSpecs/keys/<family>/<key>.js          a section, node, nav, nav-group or variable key, a
  *                                                  knob newly allowed on sections (keyMarks.js)
  *   core/dataEngine/dataModel/vocabularySince.js   a filter operator, an aggregate function,
  *                                                  a date bucket (query vocabulary in a binding)
@@ -95,7 +95,7 @@ const specs = nodeRequire('./componentSpecs.js') as {
     THEME_SPEC: SpecTable;
     DESIGN_SPEC: SpecTable;
     EVENT_NAMES: readonly string[];
-    KEY_MARKS: Record<'section' | 'sectionStyle' | 'node' | 'nav' | 'navGroup', SpecTable> & Record<'binding' | 'queryShape', Record<string, QueryMark>>;
+    KEY_MARKS: Record<'section' | 'sectionStyle' | 'node' | 'nav' | 'navGroup' | 'variable', SpecTable> & Record<'binding' | 'queryShape', Record<string, QueryMark>>;
 };
 const queryMarks = nodeRequire('./componentSpecs/queryMarks.js') as {
     bindingKeysSince: (marks: Catalogue['bindingKeyMarks']) => Record<string, SinceMap>;
@@ -255,6 +255,7 @@ export function liveCatalogue(): Catalogue {
             node: specs.KEY_MARKS.node,
             nav: specs.KEY_MARKS.nav,
             navGroup: specs.KEY_MARKS.navGroup,
+            variable: specs.KEY_MARKS.variable,
         },
         queryValuesSince: QUERY_VALUES_SINCE,
         bindingKeyMarks: specs.KEY_MARKS.binding,

@@ -8,6 +8,7 @@ import type { DataState } from '../DataContext';
 import type { BrowseEvent } from '../BrowserRunContext';
 import type { ActionEntry, ActionState, EffectObject, RunnableAction, RunStep, Translate, Vars } from './core';
 import type { ScreenTrail } from './screenTrail';
+import type { ExpressionScope } from '../RuntimeContext';
 
 export type NavigateFn = (screenId: string, params?: unknown) => void;
 export type RefreshFn = (target?: { tableId: string | null; datasetId: string | null }) => unknown;
@@ -40,6 +41,8 @@ export interface LiveInputs {
     readUi?: (() => unknown) | null;
     /** The screens this visit came through, for the `back` step (./screenTrail.ts). */
     screenTrail?: ScreenTrail | null;
+    /** A step scope's `vars` with the derived variables (schema 3) worked out again; absent when none is declared. */
+    deriveVars?: ((scope: ExpressionScope) => Vars) | null;
 }
 
 export interface RunnerContext {

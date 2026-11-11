@@ -36,7 +36,7 @@ export type TieredTables = Pick<SpecHub, 'COMPONENT_SPECS' | 'STYLE_KNOBS' | 'AC
 export const EXTENSION_FAMILIES = Object.freeze([
     'componentTypes', 'props', 'itemKeys', 'styleKnobs', 'enumValues',
     'screenKeys', 'sectionKeys', 'nodeKeys', 'themeKeys', 'designKeys', 'navKeys',
-    'stepKinds', 'stepFields', 'actionKinds', 'actionFields', 'bindingKinds', 'topLevelKeys', 'data',
+    'stepKinds', 'stepFields', 'actionKinds', 'actionFields', 'bindingKinds', 'topLevelKeys', 'variableKeys', 'data',
 ] as const);
 export type ExtensionFamily = typeof EXTENSION_FAMILIES[number];
 

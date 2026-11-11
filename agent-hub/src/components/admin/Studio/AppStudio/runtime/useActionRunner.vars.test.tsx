@@ -335,3 +335,27 @@ describe('useActionRunner — a server step waits for the draft to be saved', ()
         expect(beforeServerStep).not.toHaveBeenCalled();
     });
 });
+
+describe('useActionRunner — derived variables (schema 3)', () => {
+    it('a step reads a derived variable worked out after the steps before it', async () => {
+        const definition = {
+            schemaVersion: 3,
+            variables: [
+                { name: 'qty', label: 'qty', type: 'number', default: 1, description: '' },
+                { name: 'total', label: 'total', type: 'number', default: 0, description: '', derived: { expr: 'vars.qty * 10' } },
+            ],
+            actions: {
+                seq: {
+                    kind: 'sequence', steps: [
+                        { kind: 'set_variable', name: 'qty', value: { kind: 'static', value: 4 } },
+                        { kind: 'set_variable', name: 'seen', value: { kind: 'formula', expr: 'vars.total' } },
+                    ],
+                },
+            },
+        };
+        const { result } = renderHook(() => useActionRunner('app1', stub<Parameters<typeof useActionRunner>[1]>(definition), {}));
+        expect(result.current.vars).toEqual({ qty: 1, total: 10 });
+        await act(async () => { await result.current.runAction('seq'); });
+        expect(result.current.vars).toEqual({ qty: 4, total: 40, seen: 40 });
+    });
+});

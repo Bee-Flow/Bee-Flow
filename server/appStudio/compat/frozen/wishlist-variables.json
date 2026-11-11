@@ -1,0 +1,58 @@
+{
+  "corpus": "wishlist-variables",
+  "canonical": {
+    "sha256": "7d0303a59661a7e2e86dcc0553a9e1236214f7f06f0573174e51766f94589223",
+    "bytes": 3408,
+    "inputIsCanonical": true,
+    "idempotent": true,
+    "keys": [
+      "schemaVersion",
+      "meta",
+      "theme",
+      "roles",
+      "variables",
+      "screens",
+      "actions",
+      "homeScreenId"
+    ],
+    "parts": {
+      "schemaVersion": "4e07408562bedb8b",
+      "meta": "4f708276b654f7da",
+      "theme": "5d7eeb0111b89897",
+      "roles": "4f53cda18c2baa0c",
+      "variables": "6cc9df6ce87e803d",
+      "screens[0] scr_list0001": "540734751a10e418",
+      "screens[1] scr_page0002": "22717fbdff4425a2",
+      "actions.act_more0001": "d5532bed3aa44c41",
+      "actions.act_next0001": "af0b84862ebde13a",
+      "homeScreenId": "31e6b5727f8e323d"
+    }
+  },
+  "schemaVersion": {
+    "stored": 3,
+    "canonical": 3
+  },
+  "validation": {
+    "strict": {
+      "errors": [],
+      "warnings": []
+    },
+    "save": {
+      "errors": [],
+      "warnings": []
+    }
+  },
+  "ordinals": {
+    "stored": {
+      "act_more0001": [
+        "0 set_variable",
+        "1 set_variable"
+      ],
+      "act_next0001": [
+        "0 set_variable",
+        "1 navigate"
+      ]
+    },
+    "canonical": "same as stored"
+  }
+}

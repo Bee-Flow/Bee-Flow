@@ -24,7 +24,7 @@ import { act } from '@testing-library/react';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { mount } from '@/appRuntimeHeadless';
 import { collectDataBindings } from '@/components/admin/Studio/AppStudio/runtime/AppDataScope';
-import { seedVariableDefaults } from '@/components/admin/Studio/AppStudio/runtime/appVariables';
+import { initialVariableValues } from '@shared/appDefinition/variableScopes.mjs';
 import { dataCacheKey, resolveBindingFilters, resolveBindingParams, resolveBindingShape } from '@/components/admin/Studio/AppStudio/runtime/resolveBinding';
 import type { AppDefinition } from '@/components/admin/Studio/AppStudio/inspector/appDefinition';
 import type { DataEntry, DataState } from '@/components/admin/Studio/AppStudio/runtime/DataContext';
@@ -144,11 +144,13 @@ function emptyResult(kind: unknown): unknown {
  * layer (AppDataScope's BindingFetcher) would store it under for the same scope.
  */
 export function emptyDataState(definition: CorpusDefinition, screen: CorpusScreen): DataState {
+    const screenRoot = { params: {}, id: screen.id, name: screen.name };
     const scope = {
         currentUser: VIEWER,
-        vars: seedVariableDefaults(definition.variables as Parameters<typeof seedVariableDefaults>[0]),
+        // The headless entry's starting values: defaults, then the derived variables (schema 3).
+        vars: initialVariableValues(definition.variables, { currentUser: VIEWER, forms: {}, screen: screenRoot, today: FIXED_NOW.slice(0, 10) }),
         forms: {},
-        screen: { params: {}, id: screen.id, name: screen.name },
+        screen: screenRoot,
         now: FIXED_NOW,
         today: FIXED_NOW.slice(0, 10),
     };

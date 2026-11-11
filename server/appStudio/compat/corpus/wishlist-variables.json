@@ -1,0 +1,296 @@
+{
+  "about": {
+    "source": "hand-written for the variables of schema 3: a screen variable, kept variables (session, local) and derived values that read each other",
+    "captured": "2026-11-11"
+  },
+  "definition": {
+    "schemaVersion": 3,
+    "meta": {
+      "name": "Wishlist",
+      "description": "Variables of schema 3: a screen variable, a kept variable and derived values.",
+      "icon": "Gift"
+    },
+    "theme": {
+      "primary": "#0F766E",
+      "radius": "md",
+      "density": "comfortable",
+      "fontScale": "md",
+      "appearance": "auto"
+    },
+    "roles": [],
+    "variables": [
+      {
+        "name": "qty",
+        "label": "qty",
+        "type": "number",
+        "default": 2,
+        "description": "How many of the chosen gift"
+      },
+      {
+        "name": "price",
+        "label": "price",
+        "type": "number",
+        "default": 15,
+        "description": ""
+      },
+      {
+        "name": "total",
+        "label": "total",
+        "type": "number",
+        "default": 0,
+        "description": "What the chosen gifts cost",
+        "derived": {
+          "expr": "vars.qty * vars.price"
+        }
+      },
+      {
+        "name": "summary",
+        "label": "summary",
+        "type": "text",
+        "default": "",
+        "description": "",
+        "derived": {
+          "expr": "'Total: ' + vars.total + ' for ' + vars.qty"
+        }
+      },
+      {
+        "name": "search",
+        "label": "search",
+        "type": "text",
+        "default": "",
+        "description": "The search box of the screen that is open",
+        "scope": "screen"
+      },
+      {
+        "name": "listPage",
+        "label": "listPage",
+        "type": "number",
+        "default": 1,
+        "description": "",
+        "persist": "session"
+      },
+      {
+        "name": "lastTab",
+        "label": "lastTab",
+        "type": "text",
+        "default": "gifts",
+        "description": "",
+        "persist": "local"
+      }
+    ],
+    "screens": [
+      {
+        "id": "scr_list0001",
+        "name": "Wishlist",
+        "icon": "Gift",
+        "showInNav": true,
+        "maxWidth": "medium",
+        "sections": [
+          {
+            "id": "sec_list0001",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_txtsum01",
+                "type": "text",
+                "props": {
+                  "text": "Summary",
+                  "muted": false
+                },
+                "style": {
+                  "span": 6
+                },
+                "visible": true,
+                "computed": {
+                  "text": {
+                    "kind": "formula",
+                    "expr": "vars.summary"
+                  }
+                }
+              },
+              {
+                "id": "cmp_txtsrc01",
+                "type": "text",
+                "props": {
+                  "text": "Search",
+                  "muted": false
+                },
+                "style": {
+                  "span": 6
+                },
+                "visible": true,
+                "computed": {
+                  "text": {
+                    "kind": "formula",
+                    "expr": "'Search: ' + vars.search"
+                  }
+                }
+              },
+              {
+                "id": "cmp_stat0001",
+                "type": "stat",
+                "props": {
+                  "label": "Total",
+                  "value": {
+                    "kind": "formula",
+                    "expr": "vars.total"
+                  },
+                  "caption": null,
+                  "captionSegments": [],
+                  "icon": null,
+                  "delta": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "deltaFormat": "number",
+                  "trend": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "positiveIsGood": true,
+                  "look": "plain"
+                },
+                "style": {
+                  "span": 3
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_btnadd01",
+                "type": "button",
+                "props": {
+                  "label": "One more",
+                  "variant": "primary",
+                  "iconLeft": null,
+                  "role": "button",
+                  "disabledWhen": null
+                },
+                "style": {
+                  "span": 3
+                },
+                "visible": true,
+                "onClick": "act_more0001"
+              },
+              {
+                "id": "cmp_btnnav01",
+                "type": "button",
+                "props": {
+                  "label": "Page two",
+                  "variant": "primary",
+                  "iconLeft": null,
+                  "role": "button",
+                  "disabledWhen": null
+                },
+                "style": {
+                  "span": 3
+                },
+                "visible": true,
+                "onClick": "act_next0001"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "scr_page0002",
+        "name": "Page two",
+        "icon": "List",
+        "showInNav": true,
+        "maxWidth": "medium",
+        "sections": [
+          {
+            "id": "sec_page0002",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_txtpg201",
+                "type": "text",
+                "props": {
+                  "text": "Page",
+                  "muted": false
+                },
+                "style": {
+                  "span": 6
+                },
+                "visible": true,
+                "computed": {
+                  "text": {
+                    "kind": "formula",
+                    "expr": "'Page ' + vars.listPage + ', tab ' + vars.lastTab"
+                  }
+                }
+              },
+              {
+                "id": "cmp_txtsrc02",
+                "type": "text",
+                "props": {
+                  "text": "Search",
+                  "muted": false
+                },
+                "style": {
+                  "span": 6
+                },
+                "visible": true,
+                "computed": {
+                  "text": {
+                    "kind": "formula",
+                    "expr": "'Search here: ' + vars.search"
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "actions": {
+      "act_more0001": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "set_variable",
+            "name": "qty",
+            "value": {
+              "kind": "formula",
+              "expr": "vars.qty + 1"
+            }
+          },
+          {
+            "kind": "set_variable",
+            "name": "search",
+            "value": {
+              "kind": "static",
+              "value": "socks"
+            }
+          }
+        ]
+      },
+      "act_next0001": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "set_variable",
+            "name": "listPage",
+            "value": {
+              "kind": "formula",
+              "expr": "vars.listPage + 1"
+            }
+          },
+          {
+            "kind": "navigate",
+            "screenId": "scr_page0002"
+          }
+        ]
+      }
+    },
+    "homeScreenId": "scr_list0001"
+  }
+}

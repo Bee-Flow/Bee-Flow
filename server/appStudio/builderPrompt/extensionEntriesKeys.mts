@@ -33,7 +33,7 @@ const text = (v: unknown): string => (typeof v === 'string' ? v.trim() : '');
 const withNote = (line: string, note: string): string => (note ? `${line} — ${note}` : line);
 
 /** How each key-mark family and data family words its entry. */
-const KEY_PREFIX: Readonly<Record<string, string>> = Object.freeze({ section: 'section.', node: 'node.', nav: 'nav.', navGroup: 'nav.groups[].', binding: 'binding.', queryShape: '' });
+const KEY_PREFIX: Readonly<Record<string, string>> = Object.freeze({ section: 'section.', node: 'node.', nav: 'nav.', navGroup: 'nav.groups[].', variable: 'variables[].', binding: 'binding.', queryShape: '' });
 const DATA_LABEL: Readonly<Record<string, string>> = Object.freeze({ fieldTypes: 'field type', filterOps: 'filter op', aggFns: 'aggregate fn', dateBuckets: 'date bucket', rowRule: 'row rule' });
 
 /** One theme or design key: its values, its default when it has one, its own description. */

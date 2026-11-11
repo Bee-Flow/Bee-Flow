@@ -10,6 +10,17 @@ const ops = require('../../definitionOps');
 const { adoptCanonical } = require('../shared');
 
 /**
+ * One declared variable as the tool echoes it: name, type and default, then the schema 3
+ * keys (scope, persist, derived) only when the variable has them, so the echo of every
+ * variable without them is what it always was.
+ */
+function echoVariable(v) {
+    const out = { name: v.name, type: v.type, default: v.default };
+    for (const key of ['scope', 'persist', 'derived']) if (v[key] !== undefined) out[key] = v[key];
+    return out;
+}
+
+/**
  * Declare the app-wide variables. Whole-list replace, mirroring app_set_roles.
  *
  * A name the model gets wrong is REPAIRED by canonicalize and surfaced as a
@@ -35,7 +46,7 @@ function applySetVariables(draftWrap, args) {
     // Nothing about the payload was ever wrong. Every echo in this file must be
     // read off draftWrap.def AFTER adoptCanonical has reassigned it.
     const result = adoptCanonical(draftWrap, next, {});
-    result.variables = (draftWrap.def.variables || []).map((v) => ({ name: v.name, type: v.type, default: v.default }));
+    result.variables = (draftWrap.def.variables || []).map(echoVariable);
 
     const after = new Set((draftWrap.def.variables || []).map((v) => v.name));
     const dropped = [...before].filter((n) => !after.has(n));
