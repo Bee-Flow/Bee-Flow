@@ -3,6 +3,7 @@ import type { AppDefinition } from '../inspector/appDefinition';
 
 // Editor only and schema 3: loaded when the Logic tab shows it, never with the app's run bundle.
 const ServerTriggersPanel = lazy(() => import('./ServerTriggersPanel'));
+const RecordTriggersPanel = lazy(() => import('./RecordTriggersPanel'));
 
 /** The server triggers of the app in the Logic tab, once there is an app and a definition to edit. */
 export default function ServerTriggersSlot({ app, definition, onCommit, disabled = false }: {
@@ -15,6 +16,7 @@ export default function ServerTriggersSlot({ app, definition, onCommit, disabled
     return (
         <Suspense fallback={null}>
             <ServerTriggersPanel appId={app.id} definition={definition} onCommit={onCommit} disabled={disabled} />
+            <RecordTriggersPanel appId={app.id} definition={definition} onCommit={onCommit} disabled={disabled} />
         </Suspense>
     );
 }

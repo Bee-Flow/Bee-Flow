@@ -61,10 +61,10 @@ export function checkSchemaVersion(def: Def, pushE: PushFinding): void {
  * (validate/clientTriggerChecks.mts), and the layout knobs that cannot work where they
  * sit (validate/layoutChecks.mts).
  */
-export function validateRegisteredKeys(def: Def, pushE: PushFinding, pushW: PushFinding, opts: { assetIds?: unknown } = {}): void {
+export function validateRegisteredKeys(def: Def, pushE: PushFinding, pushW: PushFinding, opts: { assetIds?: unknown; dataModel?: unknown } = {}): void {
     for (const entry of definitionKeys()) {
         if (def[entry.key] !== undefined && typeof entry.validate === 'function') {
-            entry.validate(def[entry.key], { def, pushE, pushW });
+            entry.validate(def[entry.key], { def, pushE, pushW, dataModel: opts.dataModel });
         }
     }
     checkAssetRefs(def, opts.assetIds, pushW);

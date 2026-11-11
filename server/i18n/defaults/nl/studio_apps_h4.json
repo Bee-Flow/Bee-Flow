@@ -1,0 +1,33 @@
+{
+  "translations": {
+    "studio_apps_h4.act_set_record_trigger": "Recordtrigger ingesteld",
+    "studio_apps_h4.panel.add": "Recordtrigger toevoegen",
+    "studio_apps_h4.panel.allow_public": "Ook starten bij wijzigingen door bezoekers van een openbare pagina",
+    "studio_apps_h4.panel.allow_public_hint": "Iedereen die de openbare pagina kan bereiken, kan deze actie dan starten. De actie mag geen e-mail versturen, geen automatisering starten, geen goedkeuring vragen en geen rijen verwijderen.",
+    "studio_apps_h4.panel.desc": "Een recordtrigger voert op de server een actie uit als een rij van een tabel wordt toegevoegd, gewijzigd of verwijderd. Hij loopt pas als de app is gepubliceerd.",
+    "studio_apps_h4.panel.event_create": "Toegevoegd",
+    "studio_apps_h4.panel.event_delete": "Verwijderd",
+    "studio_apps_h4.panel.event_update": "Gewijzigd",
+    "studio_apps_h4.panel.events": "Starten als een rij is",
+    "studio_apps_h4.panel.fields": "Alleen als een van deze velden is gewijzigd",
+    "studio_apps_h4.panel.fields_any": "Elk veld",
+    "studio_apps_h4.panel.fires_on": "Hij start bij een wijziging die iemand in de app maakt (in een raster of een formulier, of via een stap die één rij toevoegt, bijwerkt of verwijdert) en bij zo’n stap van een andere trigger. Hij start niet bij imports, connectorsynchronisatie, rijen die de AI-bouwer schrijft, testruns of stappen die veel rijen tegelijk wijzigen.",
+    "studio_apps_h4.panel.loops": "Een trigger start nooit op een rij die zijn eigen run heeft gewijzigd, en een keten van triggers die elkaar starten stopt na een paar runs.",
+    "studio_apps_h4.panel.no_tables": "Voeg eerst een tabel aan de app toe: een recordtrigger houdt een van de tabellen in de gaten.",
+    "studio_apps_h4.panel.runs_as": "Hij loopt als de eigenaar van deze app, wie de rij ook wijzigde: met de toegang van de eigenaar tot elke rij, de mailbox van de eigenaar en de automatiseringen van de eigenaar.",
+    "studio_apps_h4.panel.table": "Tabel om in de gaten te houden",
+    "studio_apps_h4.panel.table_missing": "{table} (niet meer in de app)",
+    "studio_apps_h4.panel.title": "Als een record wijzigt",
+    "studio_apps_h4.panel.when": "Alleen als (formule)",
+    "studio_apps_h4.panel.when_hint": "Bijvoorbeeld trigger.row.status == \"done\". Lees de rij als trigger.row, de rij vóór de wijziging als trigger.before en de gebeurtenis als trigger.event.",
+    "studio_apps_h4.runs.by_member": "door een lid",
+    "studio_apps_h4.runs.by_owner": "door de eigenaar",
+    "studio_apps_h4.runs.by_public": "door een bezoeker",
+    "studio_apps_h4.runs.by_trigger": "door een andere trigger",
+    "studio_apps_h4.runs.event_create": "Rij toegevoegd",
+    "studio_apps_h4.runs.event_delete": "Rij verwijderd",
+    "studio_apps_h4.runs.event_update": "Rij gewijzigd",
+    "studio_apps_h4.runs.started_by": "Gestart door: {event} in {table}, rij {row}"
+  },
+  "sameAsEnglish": []
+}

@@ -87,7 +87,7 @@ async function deleteStudioApp(io, id, ownerId, { managedWrite = null } = {}) {
     // everyone reading these logs to skim past the line that would one day say
     // something real.
     for (const table of ['studio_app_data_meta', 'studio_app_datasets',
-        'studio_app_members', 'studio_app_connector_sync', 'studio_app_action_runs', 'studio_app_triggers']) {
+        'studio_app_members', 'studio_app_connector_sync', 'studio_app_action_runs', 'studio_app_triggers', 'studio_app_record_events']) {
         try { await io.db.run(`DELETE FROM ${table} WHERE app_id = $1`, [id]); } catch (e) {
             // A table this deployment doesn't have yet is not a reason to fail
             // the delete; anything else is worth seeing.

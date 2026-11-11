@@ -15,6 +15,11 @@ const {
 } = require('./appDataContext');
 const { fallback } = require('../../utils/bestEffort');
 
+// A write a person makes through the record API (a grid or form edit): the origin a record
+// trigger may fire on (appStudio/triggers/recordTriggerRule.mts). Who the person is, is read
+// from ctx.viewer by the write path.
+const USER_WRITE = Object.freeze({ kind: 'user' });
+
 // GET /:id/data/tables — tables the viewer may READ (fields only).
 /**
  * @param {import('express').Request<{ id: string }>} req
@@ -84,7 +89,7 @@ async function createRecord(req, res) {
         // byte quotas (409), compileInsert, exec acts-as-owner, version/row-count
         // bumps. created_by is the SESSION user; org_id is the app's org — any
         // such keys in `values` are dropped by the compiler.
-        const { id } = await actionExecutor.writeRecord(ctx.app, ctx.model, ctx.table, values, { viewer: ctx.viewer });
+        const { id } = await actionExecutor.writeRecord(ctx.app, ctx.model, ctx.table, values, { viewer: ctx.viewer, source: USER_WRITE });
 
         const record = await readOne(ctx, id).catch((e) => fallback('routes/studio/appDataRecords:createRecord', e, null));
         res.json({ success: true, id, record });
@@ -139,6 +144,7 @@ async function updateRecord(req, res) {
             viewer: ctx.viewer,
             recordId: req.params.recordId,
             expectedUpdatedAt,
+            source: USER_WRITE,
         });
         if (!changes) {
             // With a CAS token, 0 rows has two very different meanings. Re-read
@@ -181,7 +187,7 @@ async function deleteRecord(req, res) {
         // row that sits right there in the datatable, and on a table that once
         // HAD its own storage the silent wipe of the old shadow rows.
         const { changes } = await actionExecutor.eraseRecord(
-            ctx.app, ctx.model, ctx.table, req.params.recordId, { viewer: ctx.viewer });
+            ctx.app, ctx.model, ctx.table, req.params.recordId, { viewer: ctx.viewer, source: USER_WRITE });
         if (!changes) return res.status(404).json({ error: 'Record not found' });
         res.json({ success: true });
     } catch (err) { handleErr(res, err, 'records.delete'); }

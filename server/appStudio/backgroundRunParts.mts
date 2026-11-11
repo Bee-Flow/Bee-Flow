@@ -18,7 +18,11 @@ const isObject = (v: unknown): v is Obj => v !== null && typeof v === 'object' &
 
 export type App = { id: string; userId: string; name?: string | null; organizationId?: string | null };
 export type Viewer = { id: string; name?: string | null; email?: string | null; organizationId?: string | null };
-export type RunScopeInput = { formValues?: Obj; vars?: Obj; item?: unknown; index?: number; value?: unknown };
+export type RunScopeInput = {
+    formValues?: Obj; vars?: Obj; item?: unknown; index?: number; value?: unknown;
+    /** What started a trigger run, read by its steps as the `trigger` root (triggers/kinds/record.mts). Absent for every other run. */
+    trigger?: Obj;
+};
 
 export type StartInput = {
     app: App; def: Obj; model: unknown; actionId: string; viewer: Viewer; role: string | null; isOwner: boolean;

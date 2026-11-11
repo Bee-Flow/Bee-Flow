@@ -168,6 +168,7 @@ async function _initDB() {
         // The next addition to the run table or beside it goes here, after the columns it builds on.
     ]);
     await initTriggers();
+    await require('./recordEventsSchema').initRecordEvents(exec); // the outbox of record triggers
     log.info('[StudioAppDataStore] PostgreSQL initialized');
 }
 

@@ -48,5 +48,6 @@
     "app_read_document",
     "app_list_assets",
     "app_remove_trigger",
+    "app_set_record_trigger",
     "app_set_trigger"
 ]

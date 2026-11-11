@@ -3227,6 +3227,27 @@ declare namespace DbRow {
         last_seen_at: Date | null;
         visits: string;
     }
+    /** Row of `studio_app_record_events`. */
+    interface StudioAppRecordEvents {
+        app_id: string;
+        cause_trigger_id: string | null;
+        claimed_at: Date | null;
+        created_at: Date;
+        depth: number;
+        done_at: Date | null;
+        event: string;
+        outcome_code: string | null;
+        row_after: Json | null;
+        row_before: Json | null;
+        row_id: string;
+        run_id: string | null;
+        seq: string;
+        state: string;
+        table_id: string;
+        trigger_id: string;
+        writer_key: string | null;
+        writer_kind: string;
+    }
     /** Row of `studio_app_templates`. */
     interface StudioAppTemplates {
         category: string | null;

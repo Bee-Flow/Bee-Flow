@@ -52,6 +52,7 @@ const {
 // Best-effort bookkeeping after a committed write (bookkeeping.mts).
 const { bumpVersion, bumpCount, bumpDatatable } = require('./bookkeeping.mts');
 const { applyFieldRules, applyFieldRulesToRows } = require('../../core/dataEngine/fieldRules.mts');
+const { execWrite } = require('./recordWriteExec.mts');
 
 // ── Record writes ───────────────────────────────────────────────────
 
@@ -90,9 +91,10 @@ function withFieldRules(table, values, viewer, recordId) {
  * @param {import('./shared').DataModel} model
  * @param {import('./shared').DataTable} table
  * @param {Record<string, any>} values
- * @param {{ viewer?: any, recordId?: string, expectedUpdatedAt?: any }} [opts]
+ * @param {{ viewer?: any, recordId?: string, expectedUpdatedAt?: any, source?: unknown }} [opts]  `source`: where the write
+ *   comes from; only a write that names one can start a record trigger (recordWriteExec.mts, triggers/recordTriggerRule.mts)
  */
-async function writeRecord(app, model, table, values, { viewer, recordId, expectedUpdatedAt = null } = {}) {
+async function writeRecord(app, model, table, values, { viewer, recordId, expectedUpdatedAt = null, source } = {}) {
     values = withFieldRules(table, values, viewer, recordId);
     if (datatableSource.isDatatableBacked(table)) {
         return writeDatatableRecord(app, table, values, { viewer, recordId, expectedUpdatedAt });
@@ -110,7 +112,7 @@ async function writeRecord(app, model, table, values, { viewer, recordId, expect
             createdBy: v.id ?? null,
             orgId: app.organizationId || null,
         });
-        await studioAppDbStore.exec(app.userId, app.id, sql, params);
+        await execWrite(studioAppDbStore, app, table, { event: 'create', recordId: id, sql, params }, { source, viewer: v });
         await bumpVersion(app, table.key);
         await bumpCount(app, table.key, 1);
         return { id, created: true };
@@ -123,8 +125,7 @@ async function writeRecord(app, model, table, values, { viewer, recordId, expect
     // expectedUpdatedAt (optional) makes this a compare-and-set: see
     // queryCompiler.compileUpdate. Only the record API passes it.
     const { sql, params } = queryCompiler.compileUpdate(table, recordId, values, accessFilter, { expectedUpdatedAt });
-    const res = await studioAppDbStore.exec(app.userId, app.id, sql, params);
-    const changes = (res && res.changes) ? res.changes : 0;
+    const changes = await execWrite(studioAppDbStore, app, table, { event: 'update', recordId, sql, params }, { source, viewer: v });
     if (changes > 0) await bumpVersion(app, table.key);
     return { id: recordId, updated: changes > 0, changes };
 }
@@ -202,9 +203,9 @@ function compileInserts(tableMeta, rows, opts) {
  * @param {import('./shared').DataModel} model
  * @param {import('./shared').DataTable} table
  * @param {string} recordId
- * @param {{ viewer?: any }} [opts]
+ * @param {{ viewer?: any, source?: unknown }} [opts]  `source`: as in writeRecord
  */
-async function eraseRecord(app, model, table, recordId, { viewer } = {}) {
+async function eraseRecord(app, model, table, recordId, { viewer, source } = {}) {
     if (datatableSource.isDatatableBacked(table)) {
         const bound = await resolveWrite(app, table, viewer, 'delete');
         const changes = await datatableDelete(bound, recordId);
@@ -215,8 +216,7 @@ async function eraseRecord(app, model, table, recordId, { viewer } = {}) {
     rlsGateway.assertCanWrite(table, role, 'delete'); // 403 if this role may not
     const accessFilter = rlsGateway.compileAccessFilter(table, role, v, 'delete');
     const { sql, params } = queryCompiler.compileDelete(table, recordId, accessFilter);
-    const res = await studioAppDbStore.exec(app.userId, app.id, sql, params);
-    const changes = (res && res.changes) ? res.changes : 0;
+    const changes = await execWrite(studioAppDbStore, app, table, { event: 'delete', recordId, sql, params }, { source, viewer: v });
     if (changes > 0) {
         await bumpVersion(app, table.key);
         await bumpCount(app, table.key, 0 - changes);
@@ -231,7 +231,7 @@ async function createRecord(app, model, step, ctx) {
 
     const scope = buildServerScope(ctx);
     const values = resolveValues(step.values, ctx, scope);
-    const { id } = await writeRecord(app, model, table, values, { viewer: writeViewer(ctx) });
+    const { id } = await writeRecord(app, model, table, values, { viewer: writeViewer(ctx), source: ctx.writeSource });
     return { ok: true, result: { id, created: true } };
 }
 
@@ -252,7 +252,7 @@ async function updateRecord(app, model, step, ctx) {
     const expectedUpdatedAt = typeof expectedRaw === 'string' && expectedRaw ? expectedRaw : null;
 
     const { changes } = await writeRecord(app, model, table, values, {
-        viewer: writeViewer(ctx), recordId, expectedUpdatedAt,
+        viewer: writeViewer(ctx), recordId, expectedUpdatedAt, source: ctx.writeSource,
     });
     if (!changes) {
         // With a token, "no rows" most often means somebody else got there
@@ -277,7 +277,7 @@ async function deleteRecord(app, model, step, ctx) {
     const recordId = coerceRecordId(resolveBinding(step.recordId, ctx, scope));
     if (!recordId) return { ok: false, error: 'Record not found' };
 
-    const { changes } = await eraseRecord(app, model, table, recordId, { viewer: writeViewer(ctx) });
+    const { changes } = await eraseRecord(app, model, table, recordId, { viewer: writeViewer(ctx), source: ctx.writeSource });
     if (!changes) return { ok: false, error: 'Record not found' };
     return { ok: true, result: { id: recordId, deleted: true, changes } };
 }
