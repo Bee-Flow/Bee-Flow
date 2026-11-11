@@ -213,7 +213,31 @@ const FIXTURES = [
             const app = await studioAppStore.createStudioApp({ userId, organizationId: orgId, name: `Trigger app ${index}` });
             return app.id;
         },
-        routes: ['GET /api/studio-apps/:id/triggers', 'PUT /api/studio-apps/:id/triggers/:triggerId'],
+        routes: [
+            'GET /api/studio-apps/:id/triggers', 'PUT /api/studio-apps/:id/triggers/:triggerId',
+            'GET /api/studio-apps/:id/triggers/:triggerId/webhook', 'POST /api/studio-apps/:id/triggers/:triggerId/webhook/secret',
+            'POST /api/studio-apps/:id/triggers/:triggerId/webhook/rotate',
+        ],
+    },
+    {
+        // The address of a webhook trigger (routes/studioAppWebhook.mts), served beside the owner's
+        // trigger list so the kind has a route its owner reads. The address is not an organisation's
+        // id: a session of org A (of anyone) is no credential there, and without a signature every
+        // address answers the same 404. What the signature opens is driven by routes/studioAppWebhook.test.js.
+        kind: 'studioAppWebhook',
+        mount: '/api',
+        router: () => {
+            const router = require('express').Router();
+            router.use('/studio-apps', require('../routes/studioApps/triggers'));
+            router.use('/app-hooks', require('../routes/studioAppWebhook.mts').studioAppWebhookRouter);
+            return router;
+        },
+        create: async ({ orgId, userId, index }) => {
+            const studioAppStore = require('../stores/studioAppStore');
+            const app = await studioAppStore.createStudioApp({ userId, organizationId: orgId, name: `Webhook app ${index}` });
+            return app.id;
+        },
+        routes: ['GET /api/studio-apps/:id/triggers', 'POST /api/app-hooks/:endpointId'],
     },
     {
         // A knowledge base of org B (unpublished, owned by B) and the routes that look it up by id,

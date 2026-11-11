@@ -69,6 +69,9 @@ const FORMULA_SCOPE_ROOTS = [
 /** @type {Readonly<Record<string, Readonly<{ since: number, clientOnly: boolean }>>>} */
 const EXTENSION_SCOPE_ROOTS = Object.freeze({
     ui: Object.freeze({ since: 3, clientOnly: true }),
+    // trigger — what started a run nobody started by hand: trigger.kind and the fields of that kind under
+    //           trigger.<kind> (appStudio/triggers/triggerScope.mts). Filled by the server only; absent everywhere else.
+    trigger: Object.freeze({ since: 3, clientOnly: false }),
 });
 
 /**

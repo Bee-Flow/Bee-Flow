@@ -100,6 +100,9 @@ function buildServerScope(ctx) {
         // Inside a step's onError handler: { message, step, code, attempts, stepIndex? }
         // (null otherwise). Client-supplied on the /step routes, bounded by clampErrorScope.
         error: plainObjectOr(ctx.error, null),
+        // What started an unattended run ({ kind, <kind>: { … } }, appStudio/triggers/triggerScope.mts). Set by the
+        // server for a run a trigger started and by nothing else, so every other scope has no such key.
+        ...(plainObjectOr(ctx.trigger, null) ? { trigger: ctx.trigger } : {}),
         currentUser: {
             id: ctx.viewerId ?? null,
             // A person's display name is the whole point of an audit column.

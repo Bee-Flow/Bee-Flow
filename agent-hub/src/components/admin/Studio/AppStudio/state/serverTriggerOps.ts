@@ -29,11 +29,23 @@ export function setTriggers(def: AppDefinition, triggers: ServerTrigger[]): AppD
 
 /** A new schedule trigger for `actionId`: every hour, with the first free `trigger<n>` id. */
 export function newScheduleTrigger(taken: ServerTrigger[], actionId: string): ServerTrigger {
+    return { id: freeTriggerId(taken), kind: 'schedule', actionId, schedule: { everyMinutes: 60 } };
+}
+
+/** The first free `trigger<n>` id. */
+function freeTriggerId(taken: ServerTrigger[]): string {
     const ids = new Set(taken.map((t) => t.id));
     let n = 1;
     while (ids.has(`trigger${n}`)) n++;
-    return { id: `trigger${n}`, kind: 'schedule', actionId, schedule: { everyMinutes: 60 } };
+    return `trigger${n}`;
 }
+
+/** A new webhook trigger for `actionId`. Its address and secret are the server's, made at a publish: never in the definition. */
+export function newWebhookTrigger(taken: ServerTrigger[], actionId: string): ServerTrigger {
+    return { id: freeTriggerId(taken), kind: 'webhook', actionId, auth: 'hmac' };
+}
+
+export const isWebhookTrigger = (t: ServerTrigger): boolean => t.kind === 'webhook';
 
 /** `enabled` is only stored as false. */
 export function withEnabled(trigger: ServerTrigger, enabled: boolean): ServerTrigger {

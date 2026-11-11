@@ -59,7 +59,8 @@ export type FireDeps = {
 
 export type PassResult = { settled: number; due: number; fired: number; skipped: number; disarmed: number };
 
-function defaultDeps(): FireDeps {
+/** The real stores and the real runner, each loaded when first asked. A kind that fires on an event starts from these (webhook/webhookReceive.mts). */
+export function defaultFireDeps(): FireDeps {
     const policy = () => nodeRequire('../../stores/studioAppData/runPolicy.mts') as { staleMs: () => number; runLogError: (t: unknown) => string | null };
     return {
         store: () => (nodeRequire('../../stores/studioAppData/triggers.mts') as { triggerStore: () => TriggerStore }).triggerStore(),
@@ -174,7 +175,7 @@ export async function fireTrigger(row: TriggerRow, deps: FireDeps, scope: StartI
 
 /** One pass: settle, then fire every due trigger (at most the batch). */
 export async function triggerPass(given: Partial<FireDeps> = {}): Promise<PassResult> {
-    const deps = { ...defaultDeps(), ...given };
+    const deps = { ...defaultFireDeps(), ...given };
     const out: PassResult = { settled: 0, due: 0, fired: 0, skipped: 0, disarmed: 0 };
     out.settled = await settleFires(deps);
     if (deps.isShuttingDown()) return out;

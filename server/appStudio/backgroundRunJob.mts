@@ -71,6 +71,7 @@ export function baseCtx(input: StartInput, w: WalkState, ownerActionId: string):
         role, orgId: app.organizationId || null,
         formValues: w.form, vars: w.vars, params: w.params,
         ...(w.error ? { error: w.error } : {}),
+        ...(w.trigger ? { trigger: w.trigger } : {}),
         variables: Array.isArray(def.variables) ? def.variables : null,
         item: w.item, index: w.index, value: w.value,
         viewer: { id: viewer.id, role: role || null, organizationId: viewer.organizationId || null },
@@ -107,7 +108,7 @@ export function newJob(jobId: string, input: StartInput, action: Obj, deps: Runn
     const startedAt = deps.now();
     return {
         jobId, input, action, deps, limits, startedAt,
-        w: newWalkState({ vars: scope.vars, form: scope.formValues, item: scope.item, index: scope.index, value: scope.value }),
+        w: newWalkState({ vars: scope.vars, form: scope.formValues, item: scope.item, index: scope.index, value: scope.value, trigger: scope.trigger }),
         deadline: limits.maxRunMs ? startedAt + limits.maxRunMs : 0,
         leading: leadingConfirmCount(action.steps),
         progressVar: readRunOptions(action).progressVar,

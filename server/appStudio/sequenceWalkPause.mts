@@ -95,6 +95,7 @@ export function snapshotWalk(w: WalkState, cursor: string): Obj {
     const raw = {
         v: 1, cursor, vars: w.vars, form: w.form, item: w.item, index: w.index, value: w.value, params: w.params,
         ...(w.error ? { error: w.error } : {}),
+        ...(w.trigger ? { trigger: w.trigger } : {}),
         lastResult: box(w.lastResult), executed: w.executed, callChain: w.callChain, deferred: w.deferred, failed: w.failed, frames,
     };
     return JSON.parse(JSON.stringify(raw)) as Obj;
@@ -138,6 +139,7 @@ export function restoreInto(w: WalkState, state: unknown, outcome: ResumeOutcome
         failed, resume: { path: state.cursor, frames, outcome },
     });
     if (isObject(state.error)) w.error = state.error;
+    if (isObject(state.trigger)) w.trigger = state.trigger;
     return true;
 }
 

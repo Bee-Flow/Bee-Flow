@@ -207,7 +207,9 @@ function applyCors(app, { log = defaultLog } = {}) {
  */
 function parsesOwnBody(req) {
     const path = String(req.originalUrl || req.url || '').split('?')[0].toLowerCase();
-    return path.startsWith('/api/automation/events/') || path.startsWith('/api/automation/webhook/');
+    return path.startsWith('/api/automation/events/') || path.startsWith('/api/automation/webhook/')
+        // The webhook triggers of App Studio (routes/studioAppWebhook.mts): the bytes as sent, with their own limit.
+        || path.startsWith('/api/app-hooks/');
 }
 
 /**

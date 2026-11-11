@@ -8,8 +8,9 @@ import { restoreInto } from './sequenceWalkPause.mts';
 import type { Obj, Outcome, OutcomeView, ResumeOutcome, WalkState } from './sequenceWalkTypes.mts';
 
 /** A fresh state for one walk. */
-export function newWalkState(init: { vars?: Obj; form?: Obj; item?: unknown; index?: unknown; value?: unknown; params?: Obj } = {}): WalkState {
+export function newWalkState(init: { vars?: Obj; form?: Obj; item?: unknown; index?: unknown; value?: unknown; params?: Obj; trigger?: Obj } = {}): WalkState {
     return {
+        ...(init.trigger ? { trigger: init.trigger } : {}),
         vars: { ...(init.vars ?? {}) }, form: { ...(init.form ?? {}) }, item: init.item, index: init.index, value: init.value,
         params: { ...(init.params ?? {}) },
         lastResult: null, executed: 0, stopped: null, truncated: false, failed: null,

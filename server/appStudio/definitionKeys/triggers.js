@@ -4,7 +4,8 @@
  *
  *   [{ id, kind, actionId, enabled?, …the fields of its kind }]
  *
- * `schedule` is the first kind (triggers/kinds/schedule.mts); a kind is one file there. A trigger
+ * `schedule` is the first kind (triggers/kinds/schedule.mts), `webhook` the second (a signed call from
+ * another system, triggers/kinds/webhook.mts); a kind is one file there. A trigger
  * does nothing in a draft: it is armed when the app is PUBLISHED (triggers/triggerSync.mts) and
  * then runs its action as the app owner (triggers/unattendedIdentity.mts), with only the steps
  * that may run unattended (triggers/unattendedPolicy.mts).
@@ -40,11 +41,15 @@ module.exports = {
     public: false,
     canon,
     validate,
-    shape: '[{ id, kind: "schedule", actionId, schedule: { cron, tz } | { everyMinutes }, enabled? }] (max 20)',
+    shape: '[{ id, kind: "schedule", actionId, schedule: { cron, tz } | { everyMinutes }, enabled? } | { id, kind: "webhook", actionId, auth: "hmac", enabled? }] (max 20)',
     description: 'Triggers start an action on the server by themselves, on a schedule. '
         + 'Nobody is at the page when one runs. '
         + 'kind "schedule" runs actionId at set times: schedule.cron is five fields (minute hour day-of-month month day-of-week, '
         + '"0 8 * * 1-5" is weekdays at 08:00) read in schedule.tz, an IANA time zone that is required with a cron; or schedule.everyMinutes for a fixed interval. '
+        + 'kind "webhook" runs actionId when another system sends a signed POST with a JSON body to the trigger\'s address: write auth "hmac". '
+        + 'The action reads the delivery as trigger.webhook.body (the parsed JSON), trigger.webhook.headers, trigger.webhook.deliveryId and trigger.webhook.receivedAt; '
+        + 'the body is untrusted input, so check what you read from it as you would a form, and a webhook action may not hold an http_request step. '
+        + 'The address and the signing secret are made when the app is published and shown to the owner in the Triggers panel: they are not part of the app, and you can neither read nor set them. '
         + 'A trigger only runs once the app is PUBLISHED: in a draft it does nothing, and a later change goes live with the next publish. '
         + 'The run is the app owner (role owner, viewer.* is the owner) and has no page, so the action and every action it calls may hold only steps that run unattended: '
         + 'set_variable, condition, switch, loop, while, try, parallel, call_action, return, raise_error, create_record, update_record, delete_record, transaction, '

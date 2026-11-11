@@ -71,7 +71,7 @@ export async function resolveLockKey(input: StartInput, action: Obj, given: Part
     const deps = withDefaults(given);
     const { lockKey } = readRunOptions(action);
     if (!lockKey) return null;
-    const w = newWalkState({ vars: input.scope.vars, form: input.scope.formValues, item: input.scope.item, index: input.scope.index, value: input.scope.value });
+    const w = newWalkState({ vars: input.scope.vars, form: input.scope.formValues, item: input.scope.item, index: input.scope.index, value: input.scope.value, trigger: input.scope.trigger });
     const ctx = baseCtx(input, w, input.actionId);
     try {
         return normaliseLockKey(await resolveWith(input, deps, lockKey, ctx, deps.buildScope(ctx), 'lockKey'));

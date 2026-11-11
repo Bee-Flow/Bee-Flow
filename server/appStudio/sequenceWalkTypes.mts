@@ -61,6 +61,8 @@ export type WalkState = {
     vars: Obj; form: Obj; item: unknown; index: unknown; value: unknown;
     params: Obj;
     error?: Obj;
+    /** The `trigger` scope root of a run a trigger started: the same in every action the run calls, kept through a pause. */
+    trigger?: Obj;
     lastResult: unknown; executed: number; stopped: string | null;
     /** The stop came from a budget (shouldStop), not from a failing step. */
     truncated: boolean;

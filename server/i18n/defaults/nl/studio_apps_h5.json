@@ -1,0 +1,42 @@
+{
+  "translations": {
+    "studio_apps_h5.add": "Webhook toevoegen",
+    "studio_apps_h5.address": "Adres",
+    "studio_apps_h5.copied": "Gekopieerd",
+    "studio_apps_h5.copy": "Kopiëren",
+    "studio_apps_h5.copy_failed": "Je browser weigerde te kopiëren. Selecteer de tekst en kopieer hem zelf.",
+    "studio_apps_h5.copy_recipe": "Voorbeeld kopiëren",
+    "studio_apps_h5.deliveries": "Laatste afleveringen",
+    "studio_apps_h5.hide": "Ik heb het bewaard, verberg het",
+    "studio_apps_h5.no_deliveries": "Nog geen afleveringen.",
+    "studio_apps_h5.no_endpoint": "Deze trigger krijgt zijn adres en zijn geheim wanneer je de app publiceert.",
+    "studio_apps_h5.once_warning": "Kopieer het geheim nu en bewaar het op een veilige plek. Het wordt alleen deze ene keer getoond; daarna kun je alleen een nieuw geheim maken.",
+    "studio_apps_h5.previous_until": "Het vorige geheim werkt nog tot {time}.",
+    "studio_apps_h5.privacy": "Wat het andere systeem in een aflevering zet, is zijn keuze. De run bewaart het zoals elke andere waarde van een run, en het verlaat Bee Flow alleen op de manier waarop een run iets mag versturen: per e-mail.",
+    "studio_apps_h5.recipe_body": "Stuur een POST met een JSON-inhoud van hooguit {bytes} bytes. Onderteken het afleverings-id, een regeleinde, de tijd in seconden, een regeleinde en de inhoud, precies zoals verstuurd, met HMAC-SHA256 en het geheim. De tijd mag hooguit {seconds} seconden afwijken, en een afleverings-id wordt één keer geaccepteerd: dezelfde aflevering nog eens sturen start niets.",
+    "studio_apps_h5.recipe_reads": "De actie leest de inhoud als trigger.webhook.body. Behandel die als een formulier dat een vreemde heeft ingevuld: controleer wat je gebruikt.",
+    "studio_apps_h5.recipe_title": "Hoe het andere systeem een aflevering ondertekent",
+    "studio_apps_h5.rotate": "Nieuw geheim maken",
+    "studio_apps_h5.rotate_body": "Het nieuwe geheim wordt één keer getoond. Het oude blijft nog even werken, zodat je de afzender kunt omzetten; daarna wordt alleen het nieuwe geaccepteerd.",
+    "studio_apps_h5.rotate_confirm": "Nieuw geheim maken",
+    "studio_apps_h5.rotate_title": "Nieuw geheim maken?",
+    "studio_apps_h5.secret": "Geheim",
+    "studio_apps_h5.secret_failed": "Het geheim kon niet worden gelezen. Probeer het opnieuw.",
+    "studio_apps_h5.show_once": "Geheim tonen (één keer)",
+    "studio_apps_h5.shown_before": "Al eerder getoond. Het kan niet opnieuw worden getoond.",
+    "studio_apps_h5.status.accepted": "Geaccepteerd",
+    "studio_apps_h5.status.bad_signature": "Geweigerd: de handtekening klopte niet",
+    "studio_apps_h5.status.busy": "Niet gestart: er liep nog een run",
+    "studio_apps_h5.status.disarmed": "Geweigerd: de trigger was niet actief",
+    "studio_apps_h5.status.invalid_body": "Geweigerd: de inhoud was geen bruikbare JSON",
+    "studio_apps_h5.status.rate_limited": "Geweigerd: te veel afleveringen in een minuut",
+    "studio_apps_h5.status.received": "Ontvangen",
+    "studio_apps_h5.status.replay": "Opnieuw verstuurd: er is niets gestart",
+    "studio_apps_h5.status.stale_timestamp": "Geweigerd: het tijdstip lag te ver van nu",
+    "studio_apps_h5.view_failed": "Het adres van deze trigger kon niet worden gelezen.",
+    "studio_apps_h5.when": "Als een ander systeem het adres aanroept"
+  },
+  "sameAsEnglish": [
+    "studio_apps_h5.bytes"
+  ]
+}
