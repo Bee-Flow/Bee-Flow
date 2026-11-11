@@ -23,23 +23,26 @@ const { makeSwaps } = require('./swaps');
 
 /**
  * @param {() => unknown[]} routers  the routers to mount at '/', loaded once the swaps are in place
- * @param {(seams: { swap: ReturnType<typeof makeSwaps>['swap'], automationStore: any, userStore: any, permissions: any }) => void} setUp
+ * @param {(seams: { swap: ReturnType<typeof makeSwaps>['swap'], automationStore: typeof automationStore, userStore: typeof userStore, permissions: typeof permissions }) => void} setUp
  */
 function useAutomationRoutes(routers, setUp) {
     const { swap, restore } = makeSwaps();
-    /** @type {any} */
-    let api;
+    /** @type {ReturnType<typeof serve> | null} */
+    let api = null;
     before(() => {
         setUp({ swap, automationStore, userStore, permissions });
         api = serve('/', routers());
     });
     after(async () => {
         restore();
-        await api.close();
+        await api?.close();
     });
     return {
         /** @param {Parameters<ReturnType<typeof serve>['call']>} args */
-        call: (...args) => api.call(...args),
+        call: (...args) => {
+            if (!api) throw new Error('the routes are mounted in before()');
+            return api.call(...args);
+        },
     };
 }
 

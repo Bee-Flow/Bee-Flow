@@ -5,7 +5,7 @@ import {
     Loader2,
     Plus,
 } from 'lucide-react';
-import React, { Suspense, useCallback, useEffect, useState } from 'react';
+import React, { Suspense, useCallback, useEffect, useState, type ComponentProps } from 'react';
 import { CardBody, SkeletonGrid } from './list/AppCard';
 import { CARD_CLASSES, CARD_STYLE } from './list/cardStyle';
 import OwnerMenu from './list/OwnerMenu';
@@ -21,6 +21,20 @@ import type { StudioApp, OpenOptions } from './list/types';
 
 // "New app" (blank, the template gallery, a template file) is its own chunk, loaded when it is first opened.
 const NewAppModal = lazy(() => import('./list/NewAppModal'));
+
+type NewAppSlotProps = ComponentProps<typeof NewAppModal>;
+
+/** The New app modal, mounted from its first opening on, so it keeps its templates between openings. */
+function NewAppSlot({ open, onClose, onCreated }: NewAppSlotProps) {
+    const [mounted, setMounted] = useState(false);
+    useAdjustOnChange([open], () => { if (open) setMounted(true); });
+    if (!mounted) return null;
+    return (
+        <Suspense fallback={null}>
+            <NewAppModal open={open} onClose={onClose} onCreated={onCreated} />
+        </Suspense>
+    );
+}
 
 /**
  * App Studio — the Apps gallery (Studio section landing view).
@@ -56,9 +70,6 @@ export default function AppList({ onOpen }: AppListProps) {
     const [error, setError] = useState<string | null>(null);
 
     const [showCreate, setShowCreate] = useState(false);
-    // The modal is mounted from its first opening on, so it keeps its templates between openings.
-    const [createMounted, setCreateMounted] = useState(false);
-    useAdjustOnChange([showCreate], () => { if (showCreate) setCreateMounted(true); });
     const [renameTarget, setRenameTarget] = useState<StudioApp | null>(null);
     const [renameValue, setRenameValue] = useState('');
     const [renameBusy, setRenameBusy] = useState(false);
@@ -183,15 +194,7 @@ export default function AppList({ onOpen }: AppListProps) {
 
             <AppListSection loading={loading} isEmpty={isEmpty} t={t} setShowCreate={setShowCreate} apps={apps} ownedIds={ownedIds} onOpen={onOpen} setUpgradeTarget={setUpgradeTarget} startRename={startRename} setDeleteTarget={setDeleteTarget} />
 
-            {createMounted ? (
-                <Suspense fallback={null}>
-                    <NewAppModal
-                        open={showCreate}
-                        onClose={() => setShowCreate(false)}
-                        onCreated={handleCreated}
-                    />
-                </Suspense>
-            ) : null}
+            <NewAppSlot open={showCreate} onClose={() => setShowCreate(false)} onCreated={handleCreated} />
 
             <Modal
                 open={!!renameTarget}
