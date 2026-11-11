@@ -3,8 +3,12 @@
  * one-record writes of records.js (writeRecord, writeRecordBatch). The links are not a column:
  * they go to the relation's junction in the SAME transaction as the row itself.
  *
- *   splitLinks(table, values)      the values without the many relations, and the id lists
- *   linkStatements(...)            the statements that replace the links of one record
+ *   writeRow(app, target, values, compile)        one create or update, its links in the same transaction
+ *   insertsWithLinks(app, target, rows, compile)  N creates and their links, for one batch
+ *   splitLinks / linkStatements                   the two halves both are built from
+ *
+ * The delete half (relation.onDelete) is cascadeDelete.mts, re-exported here so records.js has
+ * one door onto both.
  *
  * Every id is viewer input. Before anything is written, each listed id must be a row of the
  * related table the writer may READ (one COUNT under that table's access predicate); an id that
@@ -33,7 +37,17 @@ const { relatedTablesFor } = nodeRequire('../../core/dataEngine/aggregateRelated
 const { isManyRelation } = nodeRequire('../../core/dataEngine/dataModel/linkedFields') as { isManyRelation(f: unknown): boolean };
 const { CompileError } = nodeRequire('../../core/dataEngine/queryCompilerCore') as { CompileError: new (message: string) => Error };
 const { resolveDialect } = nodeRequire('../../core/dataEngine/engineFlag') as { resolveDialect(o: { dialect?: string }): string };
-const dbStore = (): { query(owner: string, appId: string, sql: string, params: unknown[]): Promise<{ rows: Obj[] }> } => nodeRequire('../../stores/studioAppDbStore');
+const dbStore = (): {
+    query(owner: string, appId: string, sql: string, params: unknown[]): Promise<{ rows: Obj[] }>;
+    exec(owner: string, appId: string, sql: string, params: unknown[]): Promise<{ changes?: number } | null>;
+    batch(owner: string, appId: string, statements: Array<Statement & { expectChanges?: boolean }>): Promise<unknown>;
+} => nodeRequire('../../stores/studioAppDbStore');
+
+export { hasDeleteRules, eraseWithRules } from './cascadeDelete.mts';
+
+/** Who writes where: the model the relations resolve in, the table, the writer; `recordId` and `update` for an update. */
+export type WriteTarget = { model: unknown; table: Table; viewer: Obj; recordId?: string; update?: boolean };
+type CompiledRow = Statement & { id?: string };
 
 /** `values` without its many relations, and the id list of each one it carries. The same object when it carries none. */
 export function splitLinks<V extends Obj>(table: Table, values: V): { values: V; links: Link[] } {
@@ -48,6 +62,39 @@ export function splitLinks<V extends Obj>(table: Table, values: V): { values: V;
         delete rest[key];
     }
     return links.length ? { values: rest as V, links } : { values, links };
+}
+
+/**
+ * One row write with its links: `compile` builds the INSERT or UPDATE from the values without the
+ * many relations. Without links it runs as it always did (one exec); with links, the row first and
+ * then its links in ONE transaction, and an update must change its row (so a row outside the
+ * writer's update rule changes no link either). Answers `{ id, changes }`.
+ */
+export async function writeRow(app: App, target: WriteTarget, values: Obj, compile: (values: Obj) => CompiledRow): Promise<{ id?: string; changes: number }> {
+    const split = splitLinks(target.table, values);
+    const c = compile(split.values);
+    if (!split.links.length) {
+        const res = await dbStore().exec(app.userId, app.id, c.sql, c.params);
+        return { id: c.id, changes: Number(res && res.changes) || 0 };
+    }
+    const links = await linkStatements(app, target.model, target.table, target.viewer, (c.id ?? target.recordId) as string, split.links);
+    try {
+        await dbStore().batch(app.userId, app.id, [{ sql: c.sql, params: c.params, ...(target.update ? { expectChanges: true } : {}) }, ...links]);
+        return { id: c.id, changes: 1 };
+    } catch (e) {
+        if (target.update && e && (e as Obj).code === 'batch_no_rows') return { id: c.id, changes: 0 };
+        throw e;
+    }
+}
+
+/** N creates and the links each carries: `compile` turns the rows without their many relations into INSERTs and ids. */
+export async function insertsWithLinks(app: App, target: WriteTarget, rows: Obj[], compile: (rows: Obj[]) => { statements: Statement[]; ids: string[] }): Promise<{ statements: Statement[]; ids: string[] }> {
+    const parts = rows.map((r) => splitLinks(target.table, r));
+    const out = compile(parts.map((p) => p.values));
+    for (const [i, p] of parts.entries()) {
+        if (p.links.length) out.statements.push(...await linkStatements(app, target.model, target.table, target.viewer, out.ids[i], p.links));
+    }
+    return out;
 }
 
 /**

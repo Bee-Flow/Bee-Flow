@@ -177,15 +177,16 @@ async function bookkeep(w: Walk, plan: Statement[][], results: Array<{ changes?:
 }
 
 /**
- * Delete one record of `table` and walk the delete rules onto it. Returns `{ changes }` of the
- * record itself: 0 when it is missing or outside the viewer's delete rule (one uniform answer).
+ * Delete one record of `table` and walk the delete rules onto it. Returns eraseRecord's
+ * `{ id, deleted, changes }` of the record itself: 0 changes when it is missing or outside the
+ * viewer's delete rule (one uniform answer).
  */
-export async function eraseWithRules(app: App, model: unknown, table: Table, recordId: string, viewer: Obj): Promise<{ changes: number }> {
+export async function eraseWithRules(app: App, model: unknown, table: Table, recordId: string, viewer: Obj): Promise<{ id: string; deleted: boolean; changes: number }> {
     const role = viewer.role ?? null;
     rls.assertCanWrite(table, role, 'delete');
     const w: Walk = { app, model, role, viewer, max: linked.cascadeMaxRows(), total: 0, updates: [], updated: new Set(), deletes: [], seen: new Map() };
     const own = await idsWhere(w, table, 'id', [recordId], rls.compileAccessFilter(table, role, viewer, 'delete'));
-    if (!own.length) return { changes: 0 };
+    if (!own.length) return { id: recordId, deleted: false, changes: 0 };
     notSeen(w, table, own);
     await walk(w, { table, ids: own }, 0);
     w.deletes.push({ table, ids: own });
@@ -198,6 +199,6 @@ export async function eraseWithRules(app: App, model: unknown, table: Table, rec
         throw e;
     }
     await bookkeep(w, plan, results.slice(w.updates.length));
-    const rootChanges = Number(results[results.length - 1] && results[results.length - 1].changes) || 0;
-    return { changes: rootChanges };
+    const changes = Number(results[results.length - 1] && results[results.length - 1].changes) || 0;
+    return { id: recordId, deleted: changes > 0, changes };
 }
