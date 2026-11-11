@@ -4,8 +4,8 @@
 // a DRY run only. A live run is never reachable from the builder.
 const SCOPE = {
     type: 'object',
-    description: 'What the click would have in scope: vars (variable values), form (submitted form values by input name), item (the row of a list or grid click), params (what a call_action passes, to test a called action alone). All optional, together at most 64 KB.',
-    properties: { vars: { type: 'object' }, form: { type: 'object' }, item: {}, params: { type: 'object' } },
+    description: 'What the click would have in scope: vars (variable values), form (submitted form values by input name), item (the row of a list or grid click), params (what a call_action passes, to test a called action alone), trigger (a mocked trigger root, for an action a trigger starts: { kind: "record", record: { event, row, before, changed, … } } or { kind: "webhook", webhook: { body, headers } }; a test with it still starts no trigger). All optional, together at most 64 KB.',
+    properties: { vars: { type: 'object' }, form: { type: 'object' }, item: {}, params: { type: 'object' }, trigger: { type: 'object' } },
 };
 module.exports = {
     name: 'app_run_action',

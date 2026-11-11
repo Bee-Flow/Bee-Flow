@@ -71,6 +71,7 @@ module.exports = {
         + 'and http_request (through a REST connection a person made, with every rule of that step; not in a webhook run). '
         + 'Refused: navigate, open_url, the modal steps, confirm, toast, refresh, reset_form, download_file, every focus/scroll/clipboard/form/ui step, ai_browse, copy_document and the kb_log steps. '
         + 'For an action that a button also runs, keep the page steps in the button\'s action and let it call_action the shared part. '
+        + 'Test the action of a record or webhook trigger with app_run_action { scope: { trigger: { kind: "record", record: { event, row, before, changed } } } } (the same shape a real run reads); a test never starts a trigger. '
         + 'A trigger whose runs keep failing is paused and says why in the Triggers panel. enabled: false keeps a trigger in the app without arming it. '
         + 'Write a schedule or webhook trigger with app_set_trigger and take any one out with app_remove_trigger.',
 };

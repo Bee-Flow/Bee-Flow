@@ -7,6 +7,7 @@
 import { createRequire } from 'node:module';
 import type { Decision } from './sequenceWalk.mts';
 import { FLOW_KINDS } from './sequenceWalkFlow.mts';
+import { readMockTrigger } from './triggers/mockTriggerScope.mts';
 
 export type { Decision };
 
@@ -190,10 +191,13 @@ export function limitText(limits: RunLimits, key: keyof RunLimits): string {
 
 // ── Scope ───────────────────────────────────────────────────────────────────
 
-/** `params` tests a called action on its own (what call_action would pass as params.<name>). */
-export type RunScope = { vars: Obj; form: Obj; item: unknown; params?: Obj };
+/**
+ * `params` tests a called action on its own (what call_action would pass as params.<name>);
+ * `trigger` a mocked trigger root for an action a trigger starts (triggers/mockTriggerScope.mts).
+ */
+export type RunScope = { vars: Obj; form: Obj; item: unknown; params?: Obj; trigger?: Obj };
 
-/** What a click would have in scope: { vars?, form?, item? }, at most MAX_SCOPE_BYTES. */
+/** What a click would have in scope: { vars?, form?, item?, params?, trigger? }, at most MAX_SCOPE_BYTES. */
 export function readScope(raw: unknown): RunScope | { error: string } {
     if (raw === undefined || raw === null) return { vars: {}, form: {}, item: undefined };
     if (!isObject(raw)) return { error: 'scope must be an object { vars?, form?, item?, params? }.' };
@@ -208,8 +212,14 @@ export function readScope(raw: unknown): RunScope | { error: string } {
     if (typeof vars === 'string') return { error: vars };
     if (typeof form === 'string') return { error: form };
     if (typeof params === 'string') return { error: params };
+    const trigger = readMockTrigger(raw.trigger);
+    if (trigger && 'error' in trigger) return { error: trigger.error as string };
     if (JSON.stringify(raw).length > MAX_SCOPE_BYTES) return { error: `scope is larger than ${MAX_SCOPE_BYTES / 1024} KB.` };
-    // params only when given: a saved test without it keeps its stored shape.
-    return { vars: { ...vars }, form: { ...form }, item: raw.item, ...(raw.params !== undefined && raw.params !== null ? { params: { ...params } } : {}) };
+    // params and trigger only when given: a saved test without them keeps its stored shape.
+    return {
+        vars: { ...vars }, form: { ...form }, item: raw.item,
+        ...(raw.params !== undefined && raw.params !== null ? { params: { ...params } } : {}),
+        ...(trigger ? { trigger } : {}),
+    };
 }
 

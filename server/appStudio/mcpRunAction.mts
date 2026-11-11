@@ -60,7 +60,7 @@ export async function runOnce(target: RunTarget, opts: RunOnceOptions, given: Ru
     const limits = { ...runLimits(), ...deps.limits() };
     const actions = isObject(target.def.actions) ? target.def.actions : {};
     const action = (Object.hasOwn(actions, opts.actionId) && isObject(actions[opts.actionId]) ? actions[opts.actionId] : {}) as Obj;
-    const w = newWalkState({ vars: opts.scope.vars, form: opts.scope.form, item: opts.scope.item, params: opts.scope.params });
+    const w = newWalkState({ vars: opts.scope.vars, form: opts.scope.form, item: opts.scope.item, params: opts.scope.params, trigger: opts.scope.trigger });
     const budgetMs = opts.budgetMs ?? limits.budgetMs;
     const run: Run = {
         target, deps, limits, opts, reports: [], reportTruncated: false,
@@ -182,7 +182,7 @@ export async function runAction(args: unknown, userId: string, given: RunDeps = 
         lockKey = await resolveLockKey({
             app, def, model: target.model, actionId, viewer: { id: userId }, role: 'owner', isOwner: true, draft: true,
             definitionVersion: app.definitionVersion ?? null,
-            scope: { formValues: scope.form, vars: scope.vars, item: scope.item },
+            scope: { formValues: scope.form, vars: scope.vars, item: scope.item, ...(scope.trigger ? { trigger: scope.trigger } : {}) },
         }, action, { resolveBinding: given.resolveBinding, buildScope: given.buildScope, ...(given.readData ? { readData: given.readData } : {}) });
         if (!dryRun && lockKey) {
             const taken = await takeMcpLock(given, app, actionId, userId, lockKey);

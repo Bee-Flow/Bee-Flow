@@ -36,8 +36,8 @@ const STUDIO_TOOLS = [
                 actionId: { type: 'string', description: 'The action to run (act_… id from app_get_draft).' },
                 scope: {
                     type: 'object',
-                    description: 'What the click would have in scope: vars (variable values), form (submitted form values by input name), item (the row of a list/grid click), params (what a call_action would pass, to test a called action alone). All optional, together at most 64 KB.',
-                    properties: { vars: { type: 'object' }, form: { type: 'object' }, item: {}, params: { type: 'object' } },
+                    description: 'What the click would have in scope: vars (variable values), form (submitted form values by input name), item (the row of a list/grid click), params (what a call_action would pass, to test a called action alone), trigger (a mocked trigger root, for an action a trigger starts: { kind: "record", record: { event, row, before, changed, … } } or { kind: "webhook", webhook: { body, headers } }; a test with it still starts no trigger). All optional, together at most 64 KB.',
+                    properties: { vars: { type: 'object' }, form: { type: 'object' }, item: {}, params: { type: 'object' }, trigger: { type: 'object' } },
                 },
                 dryRun: { type: 'boolean', description: 'Default true: write nothing, send nothing. false: really run the steps (send_email only as a draft).' },
                 mock: {
@@ -57,7 +57,7 @@ const STUDIO_TOOLS = [
             properties: {
                 actionId: { type: 'string', description: 'The action the test runs (act_… id).' },
                 name: { type: 'string', description: 'The test name, unique per action (1-80 characters).' },
-                scope: { type: 'object', description: 'As app_run_action scope: { vars?, form?, item?, params? }.', properties: { vars: { type: 'object' }, form: { type: 'object' }, item: {}, params: { type: 'object' } } },
+                scope: { type: 'object', description: 'As app_run_action scope: { vars?, form?, item?, params?, trigger? }.', properties: { vars: { type: 'object' }, form: { type: 'object' }, item: {}, params: { type: 'object' }, trigger: { type: 'object' } } },
                 mock: { type: 'object', description: 'As app_run_action mock: { "<step path>": <model answer> }.' },
                 expect: {
                     type: 'array',

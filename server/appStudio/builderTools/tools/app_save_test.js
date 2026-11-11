@@ -10,7 +10,7 @@ module.exports = {
         properties: {
             actionId: { type: 'string', description: 'The act_… id of the action the test runs.' },
             name: { type: 'string', description: 'The test name, unique per action (1-80 characters).' },
-            scope: { type: 'object', description: 'As app_run_action scope: { vars?, form?, item?, params? }.', properties: { vars: { type: 'object' }, form: { type: 'object' }, item: {}, params: { type: 'object' } } },
+            scope: { type: 'object', description: 'As app_run_action scope: { vars?, form?, item?, params?, trigger? }.', properties: { vars: { type: 'object' }, form: { type: 'object' }, item: {}, params: { type: 'object' }, trigger: { type: 'object' } } },
             mock: { type: 'object', description: 'As app_run_action mock: { "<step path>": <model answer> }.' },
             expect: {
                 type: 'array',

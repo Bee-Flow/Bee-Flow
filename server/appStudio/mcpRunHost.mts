@@ -101,6 +101,8 @@ function ctxFor(run: Run, w: WalkState): Obj {
         role: 'owner', orgId: app.organizationId || null, dryRun: run.opts.dryRun === true,
         formValues: w.form, vars: w.vars, params: w.params,
         ...(w.error ? { error: w.error } : {}),
+        // A mocked trigger root (scope.trigger); no writeSource, so a test's writes start no record trigger.
+        ...(w.trigger ? { trigger: w.trigger } : {}),
         variables: Array.isArray(def.variables) ? def.variables : null,
         item: w.item, index: w.index,
         viewer: { id: app.userId, role: 'owner', organizationId: app.organizationId || null },
