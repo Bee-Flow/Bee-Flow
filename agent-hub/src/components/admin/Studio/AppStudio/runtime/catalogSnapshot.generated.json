@@ -2446,6 +2446,29 @@
                 "error"
             ]
         },
+        "avatar": {
+            "label": "Avatar",
+            "category": "Content",
+            "defaultProps": {
+                "src": null,
+                "srcFrom": null,
+                "name": null,
+                "nameFrom": null,
+                "size": "md"
+            },
+            "defaultStyle": {
+                "span": 2
+            },
+            "since": 3,
+            "mobile": {
+                "reason": "The phone draws the base display types only; an avatar stays in the browser."
+            },
+            "parts": [
+                "root",
+                "image",
+                "initials"
+            ]
+        },
         "radio": {
             "label": "Radio group",
             "category": "Input",
@@ -2843,6 +2866,10 @@
         "input_document": [
             "span",
             "size"
+        ],
+        "avatar": [
+            "span",
+            "align"
         ],
         "radio": [
             "span"

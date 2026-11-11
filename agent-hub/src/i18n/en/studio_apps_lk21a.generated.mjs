@@ -12,4 +12,5 @@ export default {
     "studio_apps_lk21a.slider.default_label": "Level",
     "studio_apps_lk21a.rating.default_label": "Rating",
     "studio_apps_lk21a.rating.star": "{n} of {max}",
+    "studio_apps_lk21a.avatar.label": "Avatar",
 };

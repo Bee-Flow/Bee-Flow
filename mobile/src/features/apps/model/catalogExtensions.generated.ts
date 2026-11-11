@@ -2,6 +2,7 @@
 // The component types added after the base (since >= 3), each with the reason the phone
 // leaves it to the browser (its spec's mobile.reason). catalog.ts reads it.
 export const EXTENSION_TYPE_MOBILE_REASONS: Readonly<Record<string, string>> = {
+    avatar: 'The phone draws the base display types only; an avatar stays in the browser.',
     radio: 'The phone draws the base inputs only; a radio group stays in the browser.',
     rating: 'The phone draws the base inputs only; a rating stays in the browser.',
     slider: 'The phone draws the base inputs only; a slider stays in the browser.',

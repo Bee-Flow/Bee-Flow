@@ -7,5 +7,7 @@
     "studio_apps_lk21a.rating.default_label": "Beoordeling",
     "studio_apps_lk21a.rating.star": "{n} van {max}"
   },
-  "sameAsEnglish": []
+  "sameAsEnglish": [
+    "studio_apps_lk21a.avatar.label"
+  ]
 }
