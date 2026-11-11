@@ -2,7 +2,7 @@ import { BookOpen, Brain, Compass, Globe, ListChecks, Music, Presentation } from
 import type { LucideIcon } from 'lucide-react';
 import React from 'react';
 import type { LogoComponent, LogoProps, WrapProps } from './integrationLogos.types';
-import { FirebirdLogo } from './integrationLogos.database';
+import { FirebirdLogo, FrappeCrmLogo } from './integrationLogos.database';
 /**
  * INTEGRATION_LOGOS — official brand SVGs per integration id, keyed in underscore
  * form ('google_drive') so they line up with INTEGRATION_META in
@@ -522,8 +522,7 @@ const INTEGRATION_LOGOS: Record<string, LogoComponent> = {
     onedrive: OneDriveLogo,
     ms_contacts: MsContactsLogo,
 
-    // Nextcloud (official mark — every sub-app uses the same avatar,
-    // the node label tells you which Nextcloud surface it targets)
+    // Nextcloud (official mark — every sub-app uses the same avatar; the node label names the Nextcloud surface)
     nextcloud: NextcloudLogo,
     nextcloud_calendar: NextcloudLogo,
     nextcloud_contacts: NextcloudLogo,
@@ -547,6 +546,7 @@ const INTEGRATION_LOGOS: Record<string, LogoComponent> = {
     nmbrs: NmbrsLogo,
     vplan: VplanLogo,
     firebird: FirebirdLogo,
+    frappe_crm: FrappeCrmLogo,
     scaleway_billing: ScalewayBillingLogo,
     linkedin: LinkedInLogo,
     github: GitHubLogo,

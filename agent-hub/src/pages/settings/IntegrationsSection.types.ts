@@ -74,6 +74,12 @@ export interface FirebirdIntegrationProps {
     last: boolean;
 }
 
+export interface FrappeCrmIntegrationProps {
+    hasFrappeCrmConfig?: boolean;
+    onSaved: () => void;
+    last: boolean;
+}
+
 export interface NMBRSIntegrationProps {
     hasNmbrsConfig?: boolean;
     hasNmbrsSubscriptionKey?: boolean;
