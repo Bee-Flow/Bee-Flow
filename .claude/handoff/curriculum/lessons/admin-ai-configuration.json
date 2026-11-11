@@ -21,7 +21,7 @@
    "id": "doors",
    "icon": "🚪",
    "title": "Two doors to the same switchboard",
-   "bodyMd": "**Admin → AI Configuration** is the full panel. Its left rail reads **API Keys · Chat Models · Embeddings · Direct Chat · Web Search Inference · Limits & Self-host**. It belongs to the platform operator — the super admin who runs the deployment.\n\nOn a self-hosted workspace an org admin gets a second door: **Settings → Organisation → Azure Configuration**, with the sub-sections **Azure OpenAI**, **Chat Model Tiers**, **Document Processing** and **Microsoft SSO**. The Chat Model Tiers row carries a badge such as *2/4 tiers* — how many of Fast, Thinking, Writer and Deep Thinking actually have a model.\n\nIf neither is in your menu, you are on a hosted deployment. You still read every consequence on Usage & Monitoring; you just ask instead of click."
+   "bodyMd": "**Admin → AI Configuration** is the full panel. Its left rail reads **API Keys · Chat Models · Embeddings · Direct Chat · Web Search Inference · Limits & Self-host**. It belongs to the platform operator — the super admin who runs the deployment.\n\nOn a self-hosted workspace an org admin gets a second door: **Admin dashboard → Organisation → Azure Configuration**, with the sub-sections **Azure OpenAI**, **Chat Model Tiers**, **Document Processing** and **Microsoft SSO**. The Chat Model Tiers row carries a badge such as *2/4 tiers* — how many of Fast, Thinking, Writer and Deep Thinking actually have a model.\n\nIf neither is in your menu, you are on a hosted deployment. You still read every consequence on Usage & Monitoring; you just ask instead of click."
   },
   {
    "type": "slide",
@@ -253,9 +253,9 @@
    "icon": "🔎",
    "checkId": "ai-switchboard-read",
    "title": "Find out what is behind Fast",
-   "instruction": "Open the switchboard your install gives you — on a self-hosted workspace that is Settings → Organisation → Azure Configuration → Chat Model Tiers — and answer two questions: which model sits behind Fast, and does web search have a provider or is it Disabled? If that row is missing, your deployment is hosted: write the two questions down for the operator instead. The check reads what your own account can already see.",
+   "instruction": "Open the switchboard your install gives you — on a self-hosted workspace that is Admin dashboard → Organisation → Azure Configuration → Chat Model Tiers — and answer two questions: which model sits behind Fast, and does web search have a provider or is it Disabled? If that row is missing, your deployment is hosted: write the two questions down for the operator instead. The check reads what your own account can already see.",
    "launch": {
-    "navigateTo": "settings/organisation/azure",
+    "navigateTo": "admin/organisation/azure",
     "label": "Open Azure Configuration"
    }
   },
@@ -300,7 +300,7 @@
       "checkId": "ai-switchboard-read",
       "existing": false,
       "label": "Look up what your workspace actually has configured",
-      "hint": "Self-hosted: Settings → Organisation → Azure Configuration → Chat Model Tiers shows the model behind each tier. The two criteria below read the same facts from your own account, so they pass on a hosted deployment too.",
+      "hint": "Self-hosted: Admin dashboard → Organisation → Azure Configuration → Chat Model Tiers shows the model behind each tier. The two criteria below read the same facts from your own account, so they pass on a hosted deployment too.",
       "endpoints": [
         {
           "method": "GET",

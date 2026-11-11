@@ -11,6 +11,7 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ApiError, apiClient } from '../client';
+import { useAdminOrgScope, withOrgIdParam } from '../adminOrgScope';
 
 // ── Types ───────────────────────────────────────────────────────────
 
@@ -198,7 +199,8 @@ async function call<T>(fn: () => Promise<T | null>, fallback: string): Promise<T
 
 export const mcpLibraryKeys = {
     all: ['mcp-library'] as const,
-    org: () => [...mcpLibraryKeys.all, 'org'] as const,
+    /** Keyed by the organisation a platform admin chose in the dashboard (null: the caller's own). */
+    org: (orgId: string | null = null) => [...mcpLibraryKeys.all, 'org', orgId] as const,
     me: () => [...mcpLibraryKeys.all, 'me'] as const,
     policy: () => [...mcpLibraryKeys.all, 'policy'] as const,
 };
@@ -206,11 +208,14 @@ export const mcpLibraryKeys = {
 const NO_RETRY = { retry: false as const };
 
 // ── Organisation library ────────────────────────────────────────────
+// Every /org route acts on the organisation an AdminOrgScopeProvider names
+// (the dashboard's choice of a platform admin), else on the caller's own.
 
 export function useMcpLibraryQuery({ enabled = true }: { enabled?: boolean } = {}) {
+    const orgId = useAdminOrgScope();
     return useQuery<McpLibrary, McpLibraryError>({
-        queryKey: mcpLibraryKeys.org(),
-        queryFn: ({ signal }) => call(() => apiClient.get<McpLibrary>('/api/mcp-library/org', { signal }), 'The MCP library could not be loaded.'),
+        queryKey: mcpLibraryKeys.org(orgId),
+        queryFn: ({ signal }) => call(() => apiClient.get<McpLibrary>(withOrgIdParam('/api/mcp-library/org', orgId), { signal }), 'The MCP library could not be loaded.'),
         enabled,
         // A 403 (no licence, not an admin) will not fix itself on retry.
         retry: (count, err) => !(err?.status && err.status < 500) && count < 2,
@@ -218,16 +223,18 @@ export function useMcpLibraryQuery({ enabled = true }: { enabled?: boolean } = {
 }
 
 export function useProbeMcpServer() {
+    const orgId = useAdminOrgScope();
     return useMutation<ProbeResult, McpLibraryError, ProbeInput>({
-        mutationFn: (input) => call(() => apiClient.post<ProbeResult>('/api/mcp-library/org/probe', input, NO_RETRY), 'The server could not be checked.'),
+        mutationFn: (input) => call(() => apiClient.post<ProbeResult>(withOrgIdParam('/api/mcp-library/org/probe', orgId), input, NO_RETRY), 'The server could not be checked.'),
     });
 }
 
 export function useInstallMcpServer() {
+    const orgId = useAdminOrgScope();
     const qc = useQueryClient();
     return useMutation<InstalledServer, McpLibraryError, InstallInput>({
         mutationFn: async (input) => {
-            const res = await call(() => apiClient.post<{ server: InstalledServer }>('/api/mcp-library/org/servers', input, NO_RETRY), 'The server could not be installed.');
+            const res = await call(() => apiClient.post<{ server: InstalledServer }>(withOrgIdParam('/api/mcp-library/org/servers', orgId), input, NO_RETRY), 'The server could not be installed.');
             return res.server;
         },
         onSuccess: () => qc.invalidateQueries({ queryKey: mcpLibraryKeys.all }),
@@ -235,10 +242,11 @@ export function useInstallMcpServer() {
 }
 
 export function useUpdateMcpServer() {
+    const orgId = useAdminOrgScope();
     const qc = useQueryClient();
     return useMutation<InstalledServer, McpLibraryError, { id: string; patch: UpdateInput }>({
         mutationFn: async ({ id, patch }) => {
-            const res = await call(() => apiClient.patch<{ server: InstalledServer }>(`/api/mcp-library/org/servers/${encodeURIComponent(id)}`, patch, NO_RETRY), 'The change could not be saved.');
+            const res = await call(() => apiClient.patch<{ server: InstalledServer }>(withOrgIdParam(`/api/mcp-library/org/servers/${encodeURIComponent(id)}`, orgId), patch, NO_RETRY), 'The change could not be saved.');
             return res.server;
         },
         onSuccess: () => qc.invalidateQueries({ queryKey: mcpLibraryKeys.all }),
@@ -246,33 +254,37 @@ export function useUpdateMcpServer() {
 }
 
 export function useRefreshMcpServer() {
+    const orgId = useAdminOrgScope();
     const qc = useQueryClient();
     return useMutation<{ server: InstalledServer; newTools: string[] }, McpLibraryError, string>({
-        mutationFn: (id) => call(() => apiClient.post<{ server: InstalledServer; newTools: string[] }>(`/api/mcp-library/org/servers/${encodeURIComponent(id)}/refresh`, {}, NO_RETRY), 'The tools could not be checked.'),
+        mutationFn: (id) => call(() => apiClient.post<{ server: InstalledServer; newTools: string[] }>(withOrgIdParam(`/api/mcp-library/org/servers/${encodeURIComponent(id)}/refresh`, orgId), {}, NO_RETRY), 'The tools could not be checked.'),
         onSuccess: () => qc.invalidateQueries({ queryKey: mcpLibraryKeys.all }),
     });
 }
 
 export function useSetSharedMcpKey() {
+    const orgId = useAdminOrgScope();
     const qc = useQueryClient();
     return useMutation<{ ok: boolean }, McpLibraryError, { id: string; value: string }>({
-        mutationFn: ({ id, value }) => call(() => apiClient.put<{ ok: boolean }>(`/api/mcp-library/org/servers/${encodeURIComponent(id)}/credential`, { value }, NO_RETRY), 'The key could not be saved.'),
+        mutationFn: ({ id, value }) => call(() => apiClient.put<{ ok: boolean }>(withOrgIdParam(`/api/mcp-library/org/servers/${encodeURIComponent(id)}/credential`, orgId), { value }, NO_RETRY), 'The key could not be saved.'),
         onSuccess: () => qc.invalidateQueries({ queryKey: mcpLibraryKeys.all }),
     });
 }
 
 export function useUninstallMcpServer() {
+    const orgId = useAdminOrgScope();
     const qc = useQueryClient();
     return useMutation<{ removed: boolean }, McpLibraryError, string>({
-        mutationFn: (id) => call(() => apiClient.delete<{ removed: boolean }>(`/api/mcp-library/org/servers/${encodeURIComponent(id)}`, NO_RETRY), 'The server could not be removed.'),
+        mutationFn: (id) => call(() => apiClient.delete<{ removed: boolean }>(withOrgIdParam(`/api/mcp-library/org/servers/${encodeURIComponent(id)}`, orgId), NO_RETRY), 'The server could not be removed.'),
         onSuccess: () => qc.invalidateQueries({ queryKey: mcpLibraryKeys.all }),
     });
 }
 
 export function useSetServerWideAccess() {
+    const orgId = useAdminOrgScope();
     const qc = useQueryClient();
     return useMutation<{ access: McpAccess }, McpLibraryError, { serverId: string; access: { mode: AccessMode; groupIds?: string[] } }>({
-        mutationFn: ({ serverId, access }) => call(() => apiClient.put<{ access: McpAccess }>(`/api/mcp-library/org/server-wide/${encodeURIComponent(serverId)}`, { access }, NO_RETRY), 'The change could not be saved.'),
+        mutationFn: ({ serverId, access }) => call(() => apiClient.put<{ access: McpAccess }>(withOrgIdParam(`/api/mcp-library/org/server-wide/${encodeURIComponent(serverId)}`, orgId), { access }, NO_RETRY), 'The change could not be saved.'),
         onSuccess: () => qc.invalidateQueries({ queryKey: mcpLibraryKeys.all }),
     });
 }

@@ -1,4 +1,4 @@
-import { Activity, BarChart3, ThumbsUp, Clock, AlertTriangle } from 'lucide-react';
+import { Activity, BarChart3, ThumbsUp, Clock, AlertTriangle, Users, Coins } from 'lucide-react';
 import type { CoveredScope } from './shared.types';
 
 export const API = (import.meta.env.VITE_API_URL || '') + '/api/usage';
@@ -29,6 +29,8 @@ export const RANGES = [
 /** The monitor's pages, in the order of the section list; the id is the last URL segment (admin/monitoring/<id>). */
 export const PAGES = [
     { id: 'overview', labelKey: 'admin.mon_overview', icon: BarChart3, descriptionKey: 'admin_monitoring.desc_overview', description: 'Dashboard & cost overview' },
+    { id: 'adoption', labelKey: 'adoption.tab', label: 'Adoption', icon: Users, descriptionKey: 'admin_monitoring.desc_adoption', description: 'Who uses AI, what they build and where the spend goes' },
+    { id: 'spend', labelKey: 'usage.tab_spend', label: 'Spend', icon: Coins, descriptionKey: 'admin_monitoring.desc_spend', description: 'Where the money goes: models, people, agents and sources' },
     { id: 'usage', labelKey: 'admin.mon_usage_explorer', icon: Activity, descriptionKey: 'admin_monitoring.desc_usage', description: 'Explore models, agents, users & conversations' },
     { id: 'feedback', labelKey: 'admin.mon_feedback', icon: ThumbsUp, descriptionKey: 'admin_monitoring.desc_feedback', description: 'User feedback on AI responses' },
     { id: 'activity', labelKey: 'admin.mon_activity', icon: Clock, descriptionKey: 'admin_monitoring.desc_activity', description: 'Recent API call log' },
@@ -38,4 +40,12 @@ export const PAGES = [
 /** The page a URL segment names; Overview when it is missing or unknown (bare admin/monitoring). */
 export function monitoringPageOf(segment: string | undefined): string {
     return PAGES.some(p => p.id === segment) ? String(segment) : 'overview';
+}
+
+/** The licence capability every page but Overview needs (Overview is open to every admin who reaches the tab). */
+export const ADVANCED_PAGES_FEATURE = 'advanced_usage_monitoring';
+
+/** May a viewer with (or without) the advanced-monitoring capability open this page? */
+export function isPageAllowedFor(pageId: string, hasAdvanced: boolean): boolean {
+    return pageId === 'overview' || hasAdvanced;
 }

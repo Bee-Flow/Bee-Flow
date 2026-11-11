@@ -79,7 +79,7 @@ const BETA_FEATURES = [
     // only; no tour steps, those need code-bound DOM anchors). Quiz answer keys
     // and exercise rubrics live server-side in learningContentStore; published
     // courses overlay the built-in catalog via GET /ai/learning/catalog.
-    { id: 'learning_custom_content', name: 'Academy Custom Courses (Beta)', description: 'Let org admins author their own Academy courses (slides, quizzes, AI-coached exercises) in Settings → Organisation → Academy. Published courses appear in members\' Learning Center alongside the built-in catalog; quiz answers and exercise rubrics stay server-side. Requires the Learning Center.', licenseFeature: 'learning_center', lifecycle: BetaLifecycle.BETA },
+    { id: 'learning_custom_content', name: 'Academy Custom Courses (Beta)', description: 'Let org admins author their own Academy courses (slides, quizzes, AI-coached exercises) in Admin dashboard → Organisation → Academy. Published courses appear in members\' Learning Center alongside the built-in catalog; quiz answers and exercise rubrics stay server-side. Requires the Learning Center.', licenseFeature: 'learning_center', lifecycle: BetaLifecycle.BETA },
     // Compliance Hub — GA (stable, not a "beta") so it can be enabled/disabled
     // PER SUBSCRIPTION PLAN on cloud via "Included beta features", exactly like
     // the Learning Center above. The id deliberately EQUALS the licence feature

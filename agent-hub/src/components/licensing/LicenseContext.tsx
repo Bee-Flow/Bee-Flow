@@ -4,6 +4,7 @@ import { useEntitlements } from './EntitlementsContext';
 import UpgradePrompt from '../billing/UpgradePrompt';
 import { isAbortError, messageOf } from '../../utils/caughtError';
 import { request, RefusedError } from '../../api/mutate';
+import { normalizeTier, TIER_RANK } from './licenseTiers';
 
 /** A licence or subscription row as /api/license/status returns it. */
 interface LicenseRecord {
@@ -61,23 +62,6 @@ type NavigateToBilling = (arg: { feature: string | null; requiredTier: string })
  * copy of state — those two copies could drift on activation. The hook is
  * gone; the provider is the single source of truth.
  */
-
-// MUST stay in sync with server/license/tiers.js → TIER_HIERARCHY.
-// The repo's two Docker containers (agent-hub, server) each see only their
-// own sub-tree, so a shared module isn't reachable at build time. The CI
-// smoke test in Phase 12 asserts the two arrays stay in lock-step.
-//
-// Legacy `pro` tier values (from old license keys or Stripe rows minted
-// before the Pro tier was retired) are normalised to `enterprise` via
-// LEGACY_TIER_ALIAS — same contract as the server side.
-export const TIER_HIERARCHY = ['community', 'enterprise', 'full'];
-const LEGACY_TIER_ALIAS: Record<string, string> = { pro: 'enterprise' };
-export const TIER_RANK: Record<string, number> = Object.fromEntries(TIER_HIERARCHY.map((t, i) => [t, i]));
-
-function normalizeTier(tier: string) {
-    if (typeof tier !== 'string') return tier;
-    return LEGACY_TIER_ALIAS[tier] || tier;
-}
 
 const LicenseContext = createContext<LicenseContextValue>({
     tier: 'community',

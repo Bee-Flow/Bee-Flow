@@ -104,7 +104,7 @@ async function redeemPairingCode(ctx) {
         return res.status(401).json({
             error: 'Pairing code is invalid, expired, or already used',
             code: 'pairing_code_invalid',
-            remediation: 'Ask the Bee Flow organisation admin to generate a fresh pairing code (Settings → Organisation → Pair a new Nextcloud) and enter it on the Bee Flow setup page in Nextcloud. A pairing code may also be given at install time (BEEFLOW_PAIRING_CODE).',
+            remediation: 'Ask the Bee Flow organisation admin to generate a fresh pairing code (Admin dashboard → Organisation → Nextcloud Sync → Pair a new Nextcloud) and enter it on the Bee Flow setup page in Nextcloud. A pairing code may also be given at install time (BEEFLOW_PAIRING_CODE).',
         });
     }
     const targetOrg = await userStore.getOrganization(pending.orgId);
@@ -316,7 +316,7 @@ function refuseFreshOrg(ctx) {
     return res.status(403).json({
         error: 'This Bee Flow server does not auto-create organisations for new Nextcloud instances.',
         code: 'pairing_required',
-        remediation: 'Ask a Bee Flow organisation admin to generate a pairing code (Settings → Organisation → Pair a new Nextcloud) and enter it on the Bee Flow setup page in Nextcloud. A pairing code may also be given at install time (BEEFLOW_PAIRING_CODE).',
+        remediation: 'Ask a Bee Flow organisation admin to generate a pairing code (Admin dashboard → Organisation → Nextcloud Sync → Pair a new Nextcloud) and enter it on the Bee Flow setup page in Nextcloud. A pairing code may also be given at install time (BEEFLOW_PAIRING_CODE).',
     });
 }
 
@@ -343,7 +343,7 @@ async function createFreshOrg(ctx) {
         return res.status(409).json({
             error: 'NC admin email belongs to an existing Bee Flow account',
             code: 'admin_email_conflict',
-            remediation: 'The Nextcloud admin email is already used by an existing Bee Flow account. To connect this Nextcloud to that account\'s organisation, ask its organisation admin for a pairing code (Settings → Organisation → Pair a new Nextcloud) and enter it on the Bee Flow setup page. Otherwise use a different admin user on Nextcloud, or contact support.',
+            remediation: 'The Nextcloud admin email is already used by an existing Bee Flow account. To connect this Nextcloud to that account\'s organisation, ask its organisation admin for a pairing code (Admin dashboard → Organisation → Nextcloud Sync → Pair a new Nextcloud) and enter it on the Bee Flow setup page. Otherwise use a different admin user on Nextcloud, or contact support.',
         });
     }
     const created = await userStore.createOrganization({

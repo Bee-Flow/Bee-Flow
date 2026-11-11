@@ -75,7 +75,7 @@ export const ADMIN_ORG_GATE = Object.freeze({ axis: 'scope', kind: 'adminOrg' })
  * `?orgId` as one non-empty string, or null when absent or empty. A repeated
  * parameter (an array) or any other shape is a 400, never a guess.
  */
-function queryOrgId(req: AdminOrgRequest): string | null {
+export function namedOrgIdOf(req: Pick<AdminOrgRequest, 'query'>): string | null {
     const raw = req.query ? req.query.orgId : undefined;
     if (raw === undefined || raw === null || raw === '') return null;
     if (typeof raw !== 'string') throw new HttpError(400, 'invalid_org_id', 'orgId must be a single value');
@@ -97,12 +97,12 @@ export function createAdminOrgGate(deps: AdminOrgDeps) {
     }
 
     async function forPlatformAdmin(req: AdminOrgRequest): Promise<string | null> {
-        const named = queryOrgId(req);
+        const named = namedOrgIdOf(req);
         return named ? existingOrg(named) : null;
     }
 
     async function forOrgAdmin(req: AdminOrgRequest, userId: string): Promise<string> {
-        const named = queryOrgId(req);
+        const named = namedOrgIdOf(req);
         const user = await getUser(userId);
         const homeOrgId = user && typeof user.organizationId === 'string' && user.organizationId !== '' ? user.organizationId : null;
         if (!user || !homeOrgId) throw new HttpError(403, 'org_admin_required', 'Organization admin access required');
@@ -123,6 +123,22 @@ export function createAdminOrgGate(deps: AdminOrgDeps) {
         return forOrgAdmin(req, String(req.session?.user?.id));
     }
 
+    /**
+     * For a route that works on the caller's own organisation (`ownOrgId`, as
+     * the route resolves it, unchanged): the organisation it works on now.
+     * Without `?orgId` that is `ownOrgId`. A platform admin may name any
+     * existing organisation (unknown: 404); anyone else only `ownOrgId`
+     * itself (any other: 403). A repeated `?orgId` is a 400. The route's own
+     * gate still decides who may call it at all.
+     */
+    async function resolveChosenOrgId(req: AdminOrgRequest, ownOrgId: string | null): Promise<string | null> {
+        const named = namedOrgIdOf(req);
+        if (!named) return ownOrgId;
+        if (isSuperAdmin(req)) return existingOrg(named);
+        if (named !== ownOrgId) throw new HttpError(403, 'org_not_accessible', 'This organization is not accessible');
+        return ownOrgId;
+    }
+
     /** Middleware: resolves once and stores the answer on `req.adminOrgId`. */
     const requireAdminOrg = tagGate(async (req: AdminOrgRequest, _res: unknown, next: (err?: unknown) => void): Promise<void> => {
         let orgId: string | null;
@@ -136,5 +152,5 @@ export function createAdminOrgGate(deps: AdminOrgDeps) {
         next();
     }, ADMIN_ORG_GATE);
 
-    return { resolveAdminOrgId, requireAdminOrg };
+    return { resolveAdminOrgId, resolveChosenOrgId, requireAdminOrg };
 }

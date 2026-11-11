@@ -124,7 +124,7 @@
       "checkId": "privacy-notice-url",
       "title": "Publish the form where people will look",
       "instruction": "Copy the form's address first: Compliance → Requests (DSR) → Public form → Copy. Then open Compliance → Settings, open the General group, and put the address of your published privacy notice — the page that links, or will link, that form — into Privacy notice URL, and save.",
-      "launch": { "navigateTo": "settings/organisation/compliance", "label": "Open Compliance" }
+      "launch": { "navigateTo": "admin/compliance", "label": "Open Compliance" }
     },
     {
       "type": "exercise",

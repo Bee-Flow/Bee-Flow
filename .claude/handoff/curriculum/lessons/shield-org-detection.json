@@ -159,7 +159,7 @@
       "title": "Tick your kinds and add one exception — we will verify it",
       "instruction": "Open the Privacy Shield. On step 1, What we look for, check the Hide from AI column: tick the kinds of personal data your work really contains, and leave How strict on Balanced unless you can defend another level. Then go to step 2, Your own data, and in the Never hidden panel add your organisation's full name, not the short one. Press Save changes and read the save bar: \"Saved.\" means both are in force. On Enterprise you can also add a type of your own there, but it is not needed for this check. You can remove the exception again afterwards.",
       "launch": {
-        "navigateTo": "settings/organisation/privacy",
+        "navigateTo": "admin/security/guardrails",
         "label": "Open Privacy Shield"
       }
     },
@@ -189,7 +189,7 @@
       "checkId": "shield-terms",
       "existing": false,
       "label": "Tick your kinds of data and add an exception",
-      "hint": "Settings → Organisation → Privacy Shield: tick kinds under Hide from AI on What we look for, add a Never hidden exception on Your own data, then Save changes.",
+      "hint": "Admin dashboard → Security → Guardrails → Org Privacy Shield: tick kinds under Hide from AI on What we look for, add a Never hidden exception on Your own data, then Save changes.",
       "endpoints": [
         {
           "method": "GET",

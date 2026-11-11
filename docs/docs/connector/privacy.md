@@ -52,7 +52,7 @@ accounts: it takes the key into use for the chosen server.
 - Users and groups: user id, e-mail address, display name and group memberships of the Nextcloud
   accounts, read by the Bee Flow server through the connector. The organisation's administrator sets
   which groups are synchronised in the onboarding wizard and later under
-  **Settings → Organisation**. Until that wizard is finished, other users cannot use Bee Flow
+  **Admin → Organisation**. Until that wizard is finished, other users cannot use Bee Flow
   ([why](troubleshooting.md#setup-in-progress)).
 - On every sign-in: your Nextcloud user id, e-mail address, display name and group memberships (used
   to identify your organisation and apply group-based permissions).

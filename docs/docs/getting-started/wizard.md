@@ -18,7 +18,7 @@ Choose which Nextcloud users get a Bee Flow account.
 | **Specific groups** | Only members of selected groups (e.g. `bee-flow-users`, `staff`) get an account. | Larger orgs; you want to opt-in groups gradually. |
 | **Manual** | No NC users are auto-mirrored. Admin invites users by hand. | Pilot installs; tightly controlled rollouts. |
 
-The mode controls **initial sync** + ongoing **webhook-triggered sync** from Nextcloud user/group events. You can change it later under **Settings → Organisation → User sync**.
+The mode controls **initial sync** + ongoing **webhook-triggered sync** from Nextcloud user/group events. You can change it later under **Admin → Organisation → Nextcloud Sync**.
 
 What "sync" really does:
 
@@ -47,7 +47,7 @@ Pick which Nextcloud integrations are enabled for new users **by default**. The 
 | `nextcloud-notifications` | Notifications | List & dismiss NC notifications |
 | `nextcloud-status` | User Status | Get / set the user's availability and custom message |
 
-Per-group exceptions are configurable later in **Settings → Organisation → Integrations → Integration settings**: a Nextcloud group can **disable** Nextcloud integrations for its members. The rule is **"enable wins"** — a user gets access if **any** of their groups still allows it. [Read more](../admin/nc-integrations.md).
+Per-group exceptions are configurable later in **Admin → Organisation → Integrations → Integration settings**: a Nextcloud group can **disable** Nextcloud integrations for its members. The rule is **"enable wins"** — a user gets access if **any** of their groups still allows it. [Read more](../admin/nc-integrations.md).
 
 ![Step 2: integrations](../img/screenshots/getting-started/wizard/step-2-integrations/)
 
@@ -72,7 +72,7 @@ Stay on the free **Community** tier or paste a JWT licence key from [https://bee
 
 The server verifies the JWT signature against a bundled public key (`license/bundled-public-key.pem`). If valid, the active tier updates immediately — no restart needed. Premium navigation entries appear, and gated endpoints become reachable.
 
-You can paste, rotate, or remove a key any time later under **Settings → Organisation → License & usage**. See [Applying a licence key](../licensing/apply.md).
+You can paste, rotate, or remove a key any time later under **Admin → Organisation → License & Usage**. See [Applying a licence key](../licensing/apply.md).
 
 ![Step 4: license](../img/screenshots/getting-started/wizard/step-4-license/)
 
@@ -87,4 +87,4 @@ The wizard closes and Bee Flow opens with:
 
 Other users in the chosen sync scope log in with their NC account and land directly on chat — the wizard never runs for non-admins.
 
-You can re-run individual sections later from **Settings → Organisation**. The wizard will not re-prompt unless you fully reset the org from the **Danger zone**.
+You can re-run individual sections later from **Admin → Organisation**. The wizard will not re-prompt unless you fully reset the org from the **Danger zone**.

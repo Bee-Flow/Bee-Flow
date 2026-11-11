@@ -77,7 +77,7 @@ describe('monitoring fixture shape', () => {
 
     /**
      * The Safety & Guardrails and Integrations tabs are gated on
-     * `hasLicenseFeature('advanced_usage_monitoring')` in UsageSection. Without
+     * `hasLicenseFeature('advanced_usage_monitoring')` in UsageMonitoringDemo. Without
      * the capability the tab bar renders Overview alone — the fixtures for
      * those tabs still load and are simply never shown, which is
      * indistinguishable from the fixtures being absent.

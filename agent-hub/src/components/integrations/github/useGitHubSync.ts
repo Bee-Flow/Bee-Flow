@@ -1,11 +1,15 @@
-import { useState, useEffect, useCallback } from 'react';
-import { githubSyncApi } from '@/api/githubSyncApi';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { githubSyncApi as githubSyncCalls } from '@/api/githubSyncApi';
+import { useAdminOrgScope } from '@/api/adminOrgScope';
 import { errorMessage } from '@/utils/caughtError';
 import useConfirm from '../../shared/useConfirm';
 import type { GitHubSyncDetail, GitHubSyncMessage, GitHubSyncStatus } from './githubSync.types';
 
 /** The sync status, the configuration form and the actions of the GitHub sync panel. */
 export function useGitHubSync() {
+    // The organisation an AdminOrgScopeProvider names (the dashboard's choice), else the caller's own.
+    const scopeOrgId = useAdminOrgScope();
+    const githubSyncApi = useMemo(() => githubSyncCalls(scopeOrgId), [scopeOrgId]);
     const [status, setStatus] = useState<GitHubSyncStatus | null>(null);
     const [loading, setLoading] = useState(true);
     const [syncing, setSyncing] = useState(false);
@@ -40,7 +44,7 @@ export function useGitHubSync() {
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [githubSyncApi]);
 
     useEffect(() => { fetchStatus(); }, [fetchStatus]);
 

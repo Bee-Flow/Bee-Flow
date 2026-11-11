@@ -78,6 +78,12 @@ export interface OrgInfoForm {
 
 interface UseOrgInfoFormOptions {
     user: OrgInfoUser | null | undefined;
+    /**
+     * The organisation to edit (the admin dashboard's). Left out, the page
+     * resolves the user's own organisation (resolveMyOrg); named, exactly that
+     * one, or none when it is not in the list: never another one in its place.
+     */
+    orgId?: string | null;
     t: TranslateFn;
     onSave?: () => void;
     onStateChange?: (state: OrgInfoSaveState) => void;
@@ -215,7 +221,7 @@ function useOrgLogo(
  * stored snapshot, save, and the logo. The parent's shared save bar is driven
  * through `onStateChange`.
  */
-export default function useOrgInfoForm({ user, t, onSave: parentOnSave, onStateChange }: UseOrgInfoFormOptions): OrgInfoForm {
+export default function useOrgInfoForm({ user, orgId, t, onSave: parentOnSave, onStateChange }: UseOrgInfoFormOptions): OrgInfoForm {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState<FormMessage | null>(null);
@@ -240,7 +246,9 @@ export default function useOrgInfoForm({ user, t, onSave: parentOnSave, onStateC
             if (groupsRes.ok) grps = await groupsRes.res.json();
 
             if (orgs.length > 0) {
-                const myOrg = await resolveMyOrg(orgs, grps, user);
+                const myOrg = orgId === undefined
+                    ? await resolveMyOrg(orgs, grps, user)
+                    : orgs.find(o => o.id === orgId) ?? null;
                 if (!myOrg) {
                     setLoading(false);
                     return;
@@ -256,7 +264,7 @@ export default function useOrgInfoForm({ user, t, onSave: parentOnSave, onStateC
         } finally {
             setLoading(false);
         }
-    }, [user]);
+    }, [user, orgId]);
 
     useEffect(() => { fetchData(); }, [fetchData]);
 

@@ -21,7 +21,6 @@ import type { PreferencesAgent } from '../PreferencesSection.types';
 import SecuritySection from '../SecuritySection';
 import { MOBILE_VISIBLE_TAB_SET } from './settingsShellData';
 import type { SettingsStatuses, SettingsUser } from './settingsShellTypes';
-import type { OrgDeepSegs } from './useComplianceNavigation';
 
 /** Everything the section switch reads from the settings shell. */
 export interface SettingsContentContext {
@@ -40,7 +39,6 @@ export interface SettingsContentContext {
     isPlatformAdmin: boolean;
     projectsOn: boolean;
     entitlementsUnknown: boolean;
-    orgDeepSegs: OrgDeepSegs;
     /** The Compliance Center, built by the shell (ComplianceHub is JavaScript). */
     complianceHub: ReactNode;
     defaultAgentMode: string;
@@ -69,7 +67,7 @@ function orgActiveSectionFor(activeTab: string, isOrgSubTab: boolean): string {
 export function renderSettingsContent(ctx: SettingsContentContext): React.ReactNode {
     const {
         user, activeTab, setActiveTab, isMobile, phoneExemptTab, isOrgSubTab, canSeeOrg, canSeeCompliance, canUseLearning,
-        isConsumerAccount, isSelfHosted, isPlatformAdmin, projectsOn, entitlementsUnknown, orgDeepSegs, complianceHub,
+        isConsumerAccount, isSelfHosted, isPlatformAdmin, projectsOn, entitlementsUnknown, complianceHub,
         defaultAgentMode, setDefaultAgentMode, defaultAgentId, setDefaultAgentId, agents, onLogout, onUpdateUser,
         memoryStats, memoryStatsStatus, fetchMemoryStats, openMemoryPanel, statuses, handleIntegrationSaved,
     } = ctx;
@@ -97,7 +95,7 @@ export function renderSettingsContent(ctx: SettingsContentContext): React.ReactN
             if (isPlatformAdmin) return <OrgAzureConfigPanel user={user} />;
             return isSelfHosted && canSeeOrg ? <GroupSyncPanel user={user} /> : null;
         }
-        if (isOrgSubTab && canSeeOrg) return <OrganisationSection user={user} activeSection={orgActiveSection} usageInitialReport={activeTab === 'org_usage' ? (orgDeepSegs.seg1 || '') : ''} />;
+        if (isOrgSubTab && canSeeOrg) return <OrganisationSection user={user} activeSection={orgActiveSection} />;
         // Consumer account tabs
         if (activeTab === 'consumer_license' && isConsumerAccount) return <ConsumerLicenseSection user={user} />;
         if (activeTab === 'consumer_privacy' && isConsumerAccount) return <ConsumerPrivacySection />;

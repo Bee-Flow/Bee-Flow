@@ -28,16 +28,20 @@ const statusPill = (status: string) => (
  */
 interface NextcloudSyncPanelProps {
     user?: { organizationId?: string | null } | null;
+    /** The organisation to act on; left out, the user's home organisation (outside the admin dashboard). */
+    orgId?: string | null;
 }
 
 /** The org's sync config, NC groups and synced users, with the unsaved edits laid over the server answer. */
-function useNcSyncData(user: NextcloudSyncPanelProps['user']) {
+function useNcSyncData(user: NextcloudSyncPanelProps['user'], orgIdProp: string | null | undefined) {
     // The user prop may be a stale snapshot from initial App mount. If we
     // can't see an org id on it, re-fetch /auth/user once before deciding
     // to show "no org" — the connector flow auto-provisions on first hit.
-    const propOrgId = user?.organizationId || null;
-    const freshOrgId = useFreshOrgIdQuery(!propOrgId).data ?? null;
-    const orgId = propOrgId || freshOrgId;
+    // A named organisation (the admin dashboard's) is used as it is, never re-read.
+    const named = orgIdProp !== undefined;
+    const propOrgId = (named ? orgIdProp : user?.organizationId) || null;
+    const freshOrgId = useFreshOrgIdQuery(!named && !propOrgId).data ?? null;
+    const orgId = named ? propOrgId : propOrgId || freshOrgId;
     const queryClient = useQueryClient();
     const syncQuery = useNcSyncQuery(orgId);
     // Unsaved edits on top of the server answer; a reload (after a sync) drops them, like the load it replaces.
@@ -67,9 +71,9 @@ async function runNcSync(orgId: string | null): Promise<{ created?: number; deac
     }
 }
 
-const NextcloudSyncPanel = ({ user }: NextcloudSyncPanelProps) => {
+const NextcloudSyncPanel = ({ user, orgId: orgIdProp }: NextcloudSyncPanelProps) => {
     const { t } = useTranslation();
-    const { orgId, config, groups, users, loading, update, reload } = useNcSyncData(user);
+    const { orgId, config, groups, users, loading, update, reload } = useNcSyncData(user, orgIdProp);
     const [saving, setSaving] = useState(false);
     const [syncing, setSyncing] = useState(false);
     const [message, setMessage] = useState<{ type: string; text: string; } | null>(null);

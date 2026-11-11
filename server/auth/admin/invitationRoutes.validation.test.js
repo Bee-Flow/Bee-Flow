@@ -33,6 +33,8 @@ const MOCKS = {
     '../permissions': {
         requireAuth: pass,
         getOrgRolePermissions: () => ({ org_admin: [], agent_admin: [], member: [] }),
+        // No `?orgId` in these requests: the caller's own organisation.
+        resolveChosenOrgId: async (_req, own) => own,
     },
     './orgAdminGuards': { isOrgAdminForOrg: async () => true },
     '../../stores/userStore': {

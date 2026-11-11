@@ -1,7 +1,7 @@
 import { ChevronDown, LogOut, Settings, Shield, User } from 'lucide-react';
 import React from 'react';
 import { PAGE_ROUTES } from '@/authedApp/appRoutes';
-import { isOrgAdminRole } from '@/utils/adminAccess';
+import { useAdminTabAccess } from '@/components/admin/dashboard/useAdminTabAccess';
 import { API_BASE } from '@/utils/helpers';
 import NavLink from '../NavLink';
 import { ACCENT_BAR, ICON_ACTIVE, ICON_IDLE, TEXT_ACTIVE, TEXT_IDLE } from './sidebarTokens';
@@ -24,8 +24,10 @@ interface FooterUser {
     avatar?: string | null;
     avatarType?: string | null;
     isAdmin?: boolean | null;
+    role?: string | null;
     orgRole?: string | null;
     permissions?: string[] | null;
+    allowedAgentTypes?: string[];
 }
 
 interface SidebarFooterProps {
@@ -48,7 +50,12 @@ const SidebarFooter = ({
     profileRef, showProfileMenu, setShowProfileMenu,
     _simpleMode, currentPage, showSettings,
     onNavigate, onLogout,
-}: SidebarFooterProps) => (
+}: SidebarFooterProps) => {
+    // The dashboard link: for whoever can open at least one dashboard tab (an
+    // organisation admin, a DPO, an ISMS auditor, a user manager), by the gates
+    // the dashboard itself applies.
+    const { canOpenDashboard } = useAdminTabAccess(user);
+    return (
             <div className={`flex-shrink-0 mt-auto relative ${isOpen ? 'border-t border-[var(--border-subtle)]' : 'flex justify-center flex-shrink-0 border-t border-[var(--border-subtle)]'}`} ref={profileRef}>
                 <div
                     onClick={() => setShowProfileMenu((v: boolean) => !v)}
@@ -98,7 +105,7 @@ const SidebarFooter = ({
                         data-surface="opaque"
                     >
                         <div className="p-1.5">
-                            {!_simpleMode && !isMobile && (user?.isAdmin || user?.permissions?.includes('all') || isOrgAdminRole(user?.orgRole)) && (
+                            {!_simpleMode && !isMobile && canOpenDashboard && (
                                 <NavLink
                                     href={PAGE_ROUTES.admin}
                                     onClick={() => setShowProfileMenu(false)}
@@ -146,6 +153,7 @@ const SidebarFooter = ({
                     </div>
                 )}
             </div>
-);
+    );
+};
 
 export default SidebarFooter;

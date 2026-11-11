@@ -48,7 +48,7 @@ SELF="${BEEFLOW_SELF_COMMAND:-bash beeflow-install.sh}"
 # and where the free memory is read from.
 TTY_DEVICE="${BEEFLOW_TTY:-/dev/tty}"
 MEMINFO_FILE="${BEEFLOW_MEMINFO:-/proc/meminfo}"
-WHERE_TO_PAIR='Settings -> Organisation -> Pair a new Nextcloud'
+WHERE_TO_PAIR='Admin dashboard -> Organisation -> Nextcloud Sync -> Pair a new Nextcloud'
 
 say()  { printf '\n\033[1m%s\033[0m\n' "$*"; }
 note() { printf '  %s\n' "$*"; }

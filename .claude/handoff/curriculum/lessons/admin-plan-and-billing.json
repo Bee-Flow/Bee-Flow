@@ -14,14 +14,14 @@
       "id": "why",
       "icon": "🧭",
       "title": "One screen where the answer is yes or no",
-      "bodyMd": "Van Dijk Groep runs about forty people on Bee Flow Cloud. In one week their admin, Erik, gets two requests: sales wants Meeting Notes, and procurement wants a fourth knowledge base.\n\nEverything else in this course **reports** — Usage & Monitoring shows what was spent, the cap gauge shows how close you are. Only one screen **changes** what the organisation is allowed to do: **Settings → Organisation → License & Usage**.\n\nThis lesson is about the four buttons on it — **Subscribe**, **Change plan**, **Manage Billing**, **Cancel subscription** — what each one does to the bill, on what date, and which of them you can take back."
+      "bodyMd": "Van Dijk Groep runs about forty people on Bee Flow Cloud. In one week their admin, Erik, gets two requests: sales wants Meeting Notes, and procurement wants a fourth knowledge base.\n\nEverything else in this course **reports** — Usage & Monitoring shows what was spent, the cap gauge shows how close you are. Only one screen **changes** what the organisation is allowed to do: **Admin dashboard → Organisation → License & Usage**.\n\nThis lesson is about the four buttons on it — **Subscribe**, **Change plan**, **Manage Billing**, **Cancel subscription** — what each one does to the bill, on what date, and which of them you can take back."
     },
     {
       "type": "slide",
       "id": "where",
       "icon": "📍",
       "title": "Where it is, and who may press it",
-      "bodyMd": "In the settings sidebar, open the **Organisation** group. On Bee Flow Cloud, **License & Usage** is its first row (some cloud accounts see the same screen titled **Subscription & Usage**). On a self-hosted install the row does not exist at all — the end of this lesson explains why.\n\nThe heading reads **License & Usage** and the subtitle **\"Your current plan and usage for this billing period\"** — a reminder that every number under it follows the billing period, not the calendar month.\n\nTwo things worth knowing before you look for it:\n\n- The Organisation group is **hidden on phones**. This is a desktop screen.\n- Reading the card is harmless, but subscribing, changing and cancelling are checked again on the server: they need an organisation admin."
+      "bodyMd": "In the admin dashboard, open the **Organisation** tab. On Bee Flow Cloud, **License & Usage** is its first section (some cloud accounts see the same screen titled **Subscription & Usage**). On a self-hosted install the row does not exist at all — the end of this lesson explains why.\n\nThe heading reads **License & Usage** and the subtitle **\"Your current plan and usage for this billing period\"** — a reminder that every number under it follows the billing period, not the calendar month.\n\nTwo things worth knowing before you look for it:\n\n- This is a desktop screen.\n- Reading the card is harmless, but subscribing, changing and cancelling are checked again on the server: they need an organisation admin."
     },
     {
       "type": "slide",
@@ -168,7 +168,7 @@
         "items": [
           {
             "id": "open",
-            "label": "Open Settings → Organisation → License & Usage and read the plan card and the billing cycle date"
+            "label": "Open Admin dashboard → Organisation → License & Usage and read the plan card and the billing cycle date"
           },
           {
             "id": "compare",
@@ -260,9 +260,9 @@
       "icon": "🧾",
       "checkId": "licence-plan-known",
       "title": "Read your own plan card — and press nothing",
-      "instruction": "On Bee Flow Cloud, open Settings → Organisation → License & Usage. Note the plan name, the cost cap / month and every Plan limits tile, and which of Change plan, Manage Billing, Subscribe and Cancel subscription your workspace offers. Do not press any of them. On a self-hosted install the button lands on another Organisation section, because License & Usage does not exist there: your tier comes from the server-wide licence, so find out who runs the server. Either way, the checklist only confirms that your workspace answers with a licence tier.",
+      "instruction": "On Bee Flow Cloud, open Admin dashboard → Organisation → License & Usage. Note the plan name, the cost cap / month and every Plan limits tile, and which of Change plan, Manage Billing, Subscribe and Cancel subscription your workspace offers. Do not press any of them. On a self-hosted install the button lands on another Organisation section, because License & Usage does not exist there: your tier comes from the server-wide licence, so find out who runs the server. Either way, the checklist only confirms that your workspace answers with a licence tier.",
       "launch": {
-        "navigateTo": "settings/organisation/license",
+        "navigateTo": "admin/organisation/license",
         "label": "Open the Organisation settings"
       }
     },
@@ -305,7 +305,7 @@
       "checkId": "licence-plan-known",
       "existing": false,
       "label": "Read the workspace's licence and plan",
-      "hint": "On Bee Flow Cloud: Settings → Organisation → License & Usage. On a self-hosted install that row does not exist and the tier comes from the server-wide licence. The check reads your workspace's licence status; it passes once the tier and its feature list come back.",
+      "hint": "On Bee Flow Cloud: Admin dashboard → Organisation → License & Usage. On a self-hosted install that row does not exist and the tier comes from the server-wide licence. The check reads your workspace's licence status; it passes once the tier and its feature list come back.",
       "endpoints": [
         {
           "method": "GET",

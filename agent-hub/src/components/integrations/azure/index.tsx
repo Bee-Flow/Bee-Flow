@@ -13,6 +13,7 @@ import loadChatModels from './loadChatModels';
 import type { ProviderModel } from './loadChatModels';
 import { errorMessage } from '@/utils/caughtError';
 import { request, RefusedError } from '@/api/mutate';
+import { panelOrgId } from '@/utils/adminAccess';
 
 interface GroupSyncSettings {
     destructiveSync: boolean;
@@ -40,10 +41,12 @@ interface TierConfig {
 
 interface OrgAzureConfigPanelProps {
     user?: { organizationId?: string } | null;
+    /** The organisation to act on; left out, the user's home organisation (outside the admin dashboard). */
+    orgId?: string | null;
 }
 
 
-export default function OrgAzureConfigPanel({ user }: OrgAzureConfigPanelProps) {
+export default function OrgAzureConfigPanel({ user, orgId: orgIdProp }: OrgAzureConfigPanelProps) {
     const { t } = useTranslation();
     const [activeSection, setActiveSection] = useState('openai');
     const [loading, setLoading] = useState(true);
@@ -89,7 +92,7 @@ export default function OrgAzureConfigPanel({ user }: OrgAzureConfigPanelProps) 
     const [hasAzureEmbedKey, setHasAzureEmbedKey] = useState(false);
     const [azureEmbedModel, setAzureEmbedModel] = useState('text-embedding-3-small');
 
-    const orgId = user?.organizationId || '';
+    const orgId = panelOrgId(orgIdProp, user) || '';
 
     const fetchConfig = useCallback(async () => {
         if (!orgId) return;

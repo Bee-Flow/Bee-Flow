@@ -118,7 +118,7 @@ function refuseInstanceBoundElsewhere({ res, ncInstanceId }, org, via) {
     return res.status(409).json({
         error: 'This Nextcloud instance is already linked to another Bee Flow organisation.',
         code: NC_INSTANCE_BOUND_ELSEWHERE,
-        remediation: 'A Nextcloud is linked to one Bee Flow organisation. To reconnect it, generate a pairing code in the organisation it is linked to (Settings → Organisation → Pair a new Nextcloud). To link it to a different organisation, ask the administrator of this Bee Flow server to remove the existing link first.',
+        remediation: 'A Nextcloud is linked to one Bee Flow organisation. To reconnect it, generate a pairing code in the organisation it is linked to (Admin dashboard → Organisation → Nextcloud Sync → Pair a new Nextcloud). To link it to a different organisation, ask the administrator of this Bee Flow server to remove the existing link first.',
     });
 }
 
@@ -138,9 +138,9 @@ function refuseOrgLinkedToOtherInstance(res, via) {
 // `error` text carries the next step: it is what the setup screen shows.
 function alreadyLinkedAnswer() {
     return {
-        error: 'This organisation is already linked to a Nextcloud. To connect again, ask a Bee Flow organisation admin for a pairing code (Settings → Organisation → Pair a new Nextcloud) and enter it on the Bee Flow setup page.',
+        error: 'This organisation is already linked to a Nextcloud. To connect again, ask a Bee Flow organisation admin for a pairing code (Admin dashboard → Organisation → Nextcloud Sync → Pair a new Nextcloud) and enter it on the Bee Flow setup page.',
         code: 'already_bound',
-        remediation: 'To connect again, ask a Bee Flow organisation admin to generate a pairing code (Settings → Organisation → Pair a new Nextcloud) and enter it on the Bee Flow setup page.',
+        remediation: 'To connect again, ask a Bee Flow organisation admin to generate a pairing code (Admin dashboard → Organisation → Nextcloud Sync → Pair a new Nextcloud) and enter it on the Bee Flow setup page.',
     };
 }
 

@@ -4,6 +4,7 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { setDemoTransport } from '@/utils/helpers';
+import { withAdvanced } from '@/test/monitoringKit';
 import MonitoringPanel from './index';
 
 const json = (body: unknown) => new Response(JSON.stringify(body), { status: 200, headers: { 'Content-Type': 'application/json' } });
@@ -25,7 +26,7 @@ afterEach(() => { setDemoTransport(null); });
 describe('MonitoringPanel pages', () => {
     it('opens on Overview for a bare admin/monitoring and marks it current', async () => {
         stub();
-        render(<MonitoringPanel />);
+        render(withAdvanced(<MonitoringPanel />));
         const nav = screen.getByRole('navigation', { name: 'AI Monitor' });
         expect(within(nav).getByRole('button', { name: 'Overview' }).getAttribute('aria-current')).toBe('page');
         expect(screen.getByRole('heading', { level: 2, name: 'Overview' })).toBeTruthy();
@@ -36,7 +37,7 @@ describe('MonitoringPanel pages', () => {
         stub();
         const onNavigate = vi.fn();
         const user = userEvent.setup();
-        render(<MonitoringPanel activeSection="activity" onNavigate={onNavigate} />);
+        render(withAdvanced(<MonitoringPanel activeSection="activity" onNavigate={onNavigate} />));
         const nav = screen.getByRole('navigation', { name: 'AI Monitor' });
         expect(within(nav).getByRole('button', { name: 'Activity Log' }).getAttribute('aria-current')).toBe('page');
         expect(screen.getByRole('heading', { level: 2, name: 'Activity Log' })).toBeTruthy();
@@ -46,7 +47,7 @@ describe('MonitoringPanel pages', () => {
 
     it('falls back to Overview for an unknown page', () => {
         stub();
-        render(<MonitoringPanel activeSection="nope" />);
+        render(withAdvanced(<MonitoringPanel activeSection="nope" />));
         expect(screen.getByRole('heading', { level: 2, name: 'Overview' })).toBeTruthy();
     });
 
@@ -54,7 +55,7 @@ describe('MonitoringPanel pages', () => {
         const seen: string[] = [];
         stub(seen);
         const user = userEvent.setup();
-        render(<MonitoringPanel activeSection="terminations" />);
+        render(withAdvanced(<MonitoringPanel activeSection="terminations" />));
         const reads = () => seen.filter(u => u.includes('/api/terminations/summary')).length;
         await waitFor(() => expect(reads()).toBe(1));
         await user.click(screen.getByRole('button', { name: 'Refresh' }));
@@ -65,7 +66,7 @@ describe('MonitoringPanel pages', () => {
 describe('MonitoringPanel Feedback page', () => {
     it('is hidden from a holder of the tab who is not an organisation admin, also by deep link', () => {
         stub();
-        render(<MonitoringPanel activeSection="feedback" user={{ isAdmin: false, role: 'user', orgRole: 'member', organizationId: 'org-a', permissions: ['admin_monitoring'] }} />);
+        render(withAdvanced(<MonitoringPanel activeSection="feedback" user={{ isAdmin: false, role: 'user', orgRole: 'member', organizationId: 'org-a', permissions: ['admin_monitoring'] }} />));
         const nav = screen.getByRole('navigation', { name: 'AI Monitor' });
         expect(within(nav).queryByRole('button', { name: 'Feedback' })).toBeNull();
         expect(screen.getByRole('heading', { level: 2, name: 'Overview' })).toBeTruthy();
@@ -73,7 +74,7 @@ describe('MonitoringPanel Feedback page', () => {
 
     it('is shown to an organisation admin of their home organisation', () => {
         stub();
-        render(<MonitoringPanel activeSection="feedback" user={{ isAdmin: false, role: 'user', orgRole: 'org_admin', organizationId: 'org-a', isHomeOrgAdmin: true }} />);
+        render(withAdvanced(<MonitoringPanel activeSection="feedback" user={{ isAdmin: false, role: 'user', orgRole: 'org_admin', organizationId: 'org-a', isHomeOrgAdmin: true }} />));
         const nav = screen.getByRole('navigation', { name: 'AI Monitor' });
         expect(within(nav).getByRole('button', { name: 'Feedback' }).getAttribute('aria-current')).toBe('page');
         expect(screen.getByRole('heading', { level: 2, name: 'Feedback' })).toBeTruthy();
@@ -82,14 +83,14 @@ describe('MonitoringPanel Feedback page', () => {
     // The server's strict check also counts a group of the home organisation that carries admin rights.
     it('is shown to an organisation admin through an admin group of the home organisation', () => {
         stub();
-        render(<MonitoringPanel activeSection="feedback" user={{ isAdmin: false, role: 'user', orgRole: 'member', organizationId: 'org-a', isHomeOrgAdmin: true }} />);
+        render(withAdvanced(<MonitoringPanel activeSection="feedback" user={{ isAdmin: false, role: 'user', orgRole: 'member', organizationId: 'org-a', isHomeOrgAdmin: true }} />));
         const nav = screen.getByRole('navigation', { name: 'AI Monitor' });
         expect(within(nav).getByRole('button', { name: 'Feedback' }).getAttribute('aria-current')).toBe('page');
     });
 
     it('is shown to a platform admin', () => {
         stub();
-        render(<MonitoringPanel activeSection="feedback" user={{ isAdmin: true }} />);
+        render(withAdvanced(<MonitoringPanel activeSection="feedback" user={{ isAdmin: true }} />));
         const nav = screen.getByRole('navigation', { name: 'AI Monitor' });
         expect(within(nav).getByRole('button', { name: 'Feedback' }).getAttribute('aria-current')).toBe('page');
     });

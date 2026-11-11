@@ -54,7 +54,7 @@ export const DEMO_FEATURES = {
         id: 'privacy-shield',
         label: 'Privacy Shield',
         blurb: 'The organisation shield an admin actually configures: what it looks for, what it does when it finds it, what leaves your network — and a month of what it caught.',
-        appPath: '/app/settings/organisation/privacy',
+        appPath: '/app/admin/security/guardrails',
         // The Overview's posture heading, so the test waits for the shield
         // document to have landed rather than for the tab strip, which
         // renders before it.
@@ -191,15 +191,13 @@ export const DEMO_FEATURES = {
         id: 'monitoring',
         label: 'Organisation monitoring',
         blurb: 'A week of usage across models, assistants, people and app areas — including a local model carrying real traffic at zero provider cost. Synthetic figures that add up.',
-        appPath: '/app/settings/organisation/usage',
+        appPath: '/app/admin/monitoring',
         expectText: 'qwen3-8b (local)',
-        /* pages/settings/UsageSection, NOT components/admin/MonitoringPanel.
-           Both are "monitoring" and they are different screens: this is the
-           organisation view the marketing page sells (tabs across the top,
-           filter row, plan and billed-per-cycle cards), the other is the
-           standalone AI Monitor with its own left sidebar. Pointing the demo
-           at the wrong one showed a visitor a screen they will never find. */
-        Component: lazy(() => import('../pages/settings/UsageSection')),
+        /* The organisation usage reports with their own tab bar and range
+           (UsageMonitoringDemo), on the monitoring fixtures. In the product
+           they are pages of Admin > Monitoring, whose AI Monitor reads other
+           endpoints than these fixtures answer. */
+        Component: lazy(() => import('./UsageMonitoringDemo')),
         loadFixtures: () => import('./fixtures/monitoring'),
         props: {},
     },
@@ -207,7 +205,7 @@ export const DEMO_FEATURES = {
         id: 'compliance',
         label: 'Compliance Center',
         blurb: 'A fictional insurance intermediary, graded against 44 checks across GDPR, the EU AI Act and ISO 27001 — with the DSR inbox, breach register, ROPA and Statement of Applicability behind the score.',
-        appPath: '/app/settings/organisation/compliance',
+        appPath: '/app/admin/compliance',
         // A check TITLE, not the score. The ring renders from `overview`
         // alone, so pinning a number would pass while the 44-row check list
         // was still missing. This string only appears once the checks have

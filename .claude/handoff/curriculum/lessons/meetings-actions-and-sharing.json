@@ -75,7 +75,7 @@
       "id": "pickup",
       "icon": "📡",
       "title": "Two things watch for that tag",
-      "bodyMd": "A tag is not only a filter. Two other things match on it — for this meeting and every one after it.\n\n- A **knowledge base** source can collect every meeting carrying one tag. It files the summary and the decisions (and the open questions or the actions if the source asks for them), but never the transcript.\n- A **automation** with the trigger **\"Meeting note ready\"** can be filtered on tags. That trigger fires across the **whole organisation**, so a colleague's automation watching `sales` picks Sandra's note up too.\n\nUnder the tag row, **\"What happens to this meeting\"** names what runs on it. Before anything is wired up it reads *\"Nothing picks this meeting up yet.\"*"
+      "bodyMd": "A tag is not only a filter. Two other things match on it — for this meeting and every one after it.\n\n- A **knowledge base** source can collect every meeting carrying one tag. It files the summary and the decisions (and the open questions or the actions if the source asks for them), but never the transcript.\n- An **automation** with the trigger **\"Meeting note ready\"** can be filtered on tags. That trigger fires only on **your own** meetings: Sandra's automation watching `sales` picks her note up, a colleague's automation watching `sales` does not.\n\nUnder the tag row, **\"What happens to this meeting\"** names what runs on it. Before anything is wired up it reads *\"Nothing picks this meeting up yet.\"*"
     },
     {
       "type": "sim",
@@ -126,8 +126,8 @@
       "icon": "✍️",
       "exerciseId": "ex-meetings-actions-and-sharing-ticket",
       "title": "Your turn: tag it and decide who reads it",
-      "instruction": "Sandra's pipeline note is finished: the actions are routed, the summary quotes what two customers said about price, and one deal in it is not signed yet. She now has to do the two things you just learned — put tags on the note and set its visibility (Personal, Entire organisation, or named groups).\n\nWrite a few lines: which tag or tags you would add, which visibility you would choose, and one sentence on what you checked before widening it. A strong answer ties each choice to what happens next — which filter chip, which knowledge base source, whose automation — and shows you know the tag reaches further than the note does.",
-      "placeholder": "e.g. Tag: sales — that is the tag the Sales knowledge base collects and the account managers' automation watches, so tagging it is what makes the note useful to anyone but me. Visibility: the Sales group rather than the whole organisation, because the summary quotes two customers on price. I checked the summary first, since sharing it means colleagues can read all of it.",
+      "instruction": "Sandra's pipeline note is finished: the actions are routed, the summary quotes what two customers said about price, and one deal in it is not signed yet. She now has to do the two things you just learned — put tags on the note and set its visibility (Personal, Entire organisation, or named groups).\n\nWrite a few lines: which tag or tags you would add, which visibility you would choose, and one sentence on what you checked before widening it. A strong answer ties each choice to what happens next — which filter chip, which knowledge base source, which of your automations — and shows you know the tag reaches further than the note does.",
+      "placeholder": "e.g. Tag: sales — that is the tag the Sales knowledge base collects and my own automation watches to alert the account managers, so tagging it is what makes the note useful to anyone but me. Visibility: the Sales group rather than the whole organisation, because the summary quotes two customers on price. I checked the summary first, since sharing it means colleagues can read all of it.",
       "passScore": 70,
       "maxAttempts": 4
     },
@@ -214,7 +214,7 @@
       "id": "recap",
       "icon": "🎓",
       "title": "What you can do now",
-      "bodyMd": "- **Route an action.** Use the destination control on an action item to send it to an automation, a table row or a knowledge base, mapping the action's fields onto columns you chose yourself. The note keeps a reference to where it went, never a copy.\n- **Tag with intent.** A tag is a filter chip, a knowledge base source and an automation trigger filter all at once — and it reaches across the organisation, so tag what you want picked up again, and remove the tag when you want that to stop.\n- **Share deliberately.** Personal, the whole organisation, or named groups — sharing means reading, and everything that changes the note stays with you.\n\nOne rule to carry out of here: inside Bee Flow the words may travel; outward, only a reference does."
+      "bodyMd": "- **Route an action.** Use the destination control on an action item to send it to an automation, a table row or a knowledge base, mapping the action's fields onto columns you chose yourself. The note keeps a reference to where it went, never a copy.\n- **Tag with intent.** A tag is a filter chip, a knowledge base source and an automation trigger filter all at once — a knowledge base source picks up every tagged note its owner may open, while a \"Meeting note ready\" automation fires only on your own notes, so tag what you want picked up again, and remove the tag when you want that to stop.\n- **Share deliberately.** Personal, the whole organisation, or named groups — sharing means reading, and everything that changes the note stays with you.\n\nOne rule to carry out of here: inside Bee Flow the words may travel; outward, only a reference does."
     }
   ],
   "rubrics": {
@@ -224,7 +224,7 @@
       "criteria": [
         "Names a tag and says what should pick the note up because of it — a library filter chip, a knowledge base source, or an automation on \"Meeting note ready\" — rather than a label invented for this one note.",
         "Chooses one of the three real visibility settings (Personal, Entire organisation, or named groups) and justifies it by who needs to read this note.",
-        "Shows that the tag reaches further than the note: the trigger is organisation-wide, or a knowledge base has its own audience.",
+        "Shows that the tag reaches further than the note: a knowledge base source has its own audience, which can be wider than the note's. (A \"Meeting note ready\" automation fires only on the owner's own notes; do not reward a claim that a colleague's automation picks the note up.)",
         "Says what was looked at before widening — for example that the summary itself is readable by everyone the note is shared with."
       ],
       "passScore": 70,

@@ -4,7 +4,7 @@ title: MCP library
 
 # MCP library
 
-The MCP library gives your agents new tools from [Model Context Protocol](https://modelcontextprotocol.io) servers. Open it under **Settings → Organisation → MCP library**. You need organisation admin rights and the Enterprise plan (licence feature `mcp_marketplace`).
+The MCP library gives your agents new tools from [Model Context Protocol](https://modelcontextprotocol.io) servers. Open it under **Admin → Organisation → MCP library**. You need organisation admin rights and the Enterprise plan (licence feature `mcp_marketplace`).
 
 There are two kinds of server in the library:
 

@@ -1,9 +1,9 @@
 import { GraduationCap, Info, Loader2, Lock, Save } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { trainingRulesKey, useTrainingRulesQuery, type TrainingRulesRead } from '@/api/queries/learningReads';
+import { trainingRulesKey, trainingRulesPath, useTrainingRulesQuery, type TrainingRulesRead } from '@/api/queries/learningReads';
+import { useAdminOrgScope } from '@/api/adminOrgScope';
 import { useTranslation } from '@/hooks/useTranslation';
-import { API_BASE } from '@/utils/helpers';
 import type { TranslateFn } from '@/hooks/useTranslation';
 import { errorMessage } from '@/utils/caughtError';
 import { mutate, ApiError } from '@/api/mutate';
@@ -60,6 +60,8 @@ function trainingStateOf(rules: ReturnType<typeof useTrainingRulesQuery<Training
 export default function RequiredTrainingPanel() {
     const { t } = useTranslation();
     const queryClient = useQueryClient();
+    // The organisation the dashboard's Organisation tab names (a platform admin's choice), else the caller's own.
+    const orgId = useAdminOrgScope();
     const rules = useTrainingRulesQuery<TrainingArea, TrainingCourse>();
     const [saveError, setSaveError] = useState<string | null>(null);
     const state = trainingStateOf(rules, saveError);
@@ -80,7 +82,7 @@ export default function RequiredTrainingPanel() {
         try {
             let res: Response;
             try {
-                res = await mutate(`${API_BASE}/ai/learning/training-rules`, {
+                res = await mutate(trainingRulesPath(orgId), {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ areas: draft }),
@@ -90,7 +92,7 @@ export default function RequiredTrainingPanel() {
                 throw new Error(String(err.status));
             }
             const body = await res.json();
-            queryClient.setQueryData<TrainingRulesRead<TrainingArea, TrainingCourse>>(trainingRulesKey, (prev) => (prev ? { ...prev, areas: body.areas || {} } : prev));
+            queryClient.setQueryData<TrainingRulesRead<TrainingArea, TrainingCourse>>(trainingRulesKey(orgId), (prev) => (prev ? { ...prev, areas: body.areas || {} } : prev));
             setEdited(null);
             setSaveError(null);
             setSaved(true);

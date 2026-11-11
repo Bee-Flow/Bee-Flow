@@ -11,7 +11,9 @@
  * the saved lesson is NOT attached to any course until a follow-up
  * saveCourse() whose lessonIds includes the returned lesson.id.
  */
+import { useMemo } from 'react';
 import { createJsonResource } from '@/api/client';
+import { useAdminOrgScope, withOrgIdParam } from '@/api/adminOrgScope';
 import { API_BASE } from '@/utils/helpers';
 
 const root = `${API_BASE}/ai/learning/admin`;
@@ -19,21 +21,31 @@ const root = `${API_BASE}/ai/learning/admin`;
 const resource = createJsonResource('', { contentType: 'body', errorText: (status: number) => `HTTP ${status}` });
 const request = (url: string, { method = 'GET', body }: { method?: string; body?: unknown } = {}) => resource(url, { method, body });
 
-export const academyApi = {
-    // → { courses: [{ courseId, title, status, updatedAt }] }
-    listCourses: () => request(`${root}/courses`),
-    // → { course: CourseDoc, lessons: LessonDoc[] } (drafts)
-    getCourse: (courseId: string) => request(`${root}/courses/${encodeURIComponent(courseId)}`),
-    // → { course } — id always minted server-side
-    createCourse: (course: unknown) => request(`${root}/courses`, { method: 'POST', body: course }),
-    // → { course }
-    saveCourse: (courseId: string, course: unknown) => request(`${root}/courses/${encodeURIComponent(courseId)}`, { method: 'PUT', body: course }),
-    // → { success: true } — also deletes all the course's lessons
-    deleteCourse: (courseId: string) => request(`${root}/courses/${encodeURIComponent(courseId)}`, { method: 'DELETE' }),
-    // → { lesson } — pass 'new' as lessonId to create (id minted server-side)
-    saveLesson: (lessonId: string, lesson: unknown) => request(`${root}/lessons/${encodeURIComponent(lessonId)}`, { method: 'PUT', body: lesson }),
-    // → { success: true, course }
-    publishCourse: (courseId: string) => request(`${root}/courses/${encodeURIComponent(courseId)}/publish`, { method: 'POST' }),
-    // → { success: true }
-    unpublishCourse: (courseId: string) => request(`${root}/courses/${encodeURIComponent(courseId)}/unpublish`, { method: 'POST' }),
-};
+/** The calls for one organisation (null: the caller's own; a platform admin's choice is sent as ?orgId=). */
+function academyApiFor(orgId: string | null) {
+    const at = (path: string) => withOrgIdParam(`${root}${path}`, orgId);
+    return {
+        // → { courses: [{ courseId, title, status, updatedAt }] }
+        listCourses: () => request(at('/courses')),
+        // → { course: CourseDoc, lessons: LessonDoc[] } (drafts)
+        getCourse: (courseId: string) => request(at(`/courses/${encodeURIComponent(courseId)}`)),
+        // → { course } — id always minted server-side
+        createCourse: (course: unknown) => request(at('/courses'), { method: 'POST', body: course }),
+        // → { course }
+        saveCourse: (courseId: string, course: unknown) => request(at(`/courses/${encodeURIComponent(courseId)}`), { method: 'PUT', body: course }),
+        // → { success: true } — also deletes all the course's lessons
+        deleteCourse: (courseId: string) => request(at(`/courses/${encodeURIComponent(courseId)}`), { method: 'DELETE' }),
+        // → { lesson } — pass 'new' as lessonId to create (id minted server-side)
+        saveLesson: (lessonId: string, lesson: unknown) => request(at(`/lessons/${encodeURIComponent(lessonId)}`), { method: 'PUT', body: lesson }),
+        // → { success: true, course }
+        publishCourse: (courseId: string) => request(at(`/courses/${encodeURIComponent(courseId)}/publish`), { method: 'POST' }),
+        // → { success: true }
+        unpublishCourse: (courseId: string) => request(at(`/courses/${encodeURIComponent(courseId)}/unpublish`), { method: 'POST' }),
+    };
+}
+
+/** The calls for the organisation an AdminOrgScopeProvider names, else the caller's own. */
+export function useAcademyApi() {
+    const orgId = useAdminOrgScope();
+    return useMemo(() => academyApiFor(orgId), [orgId]);
+}

@@ -227,6 +227,7 @@ export default {
     "settings.n8n.api_key": "API Key",
     "settings.n8n.api_key_placeholder": "Enter your n8n API key",
     "settings.n8n.api_key_hint": "Generate at n8n → Settings → API → Create API Key. Stored encrypted.",
+    "settings.n8n.key_cleared": "Address saved. The stored API key belonged to the previous address and was removed: enter the API key again.",
     "settings.n8n.connect_first": "Connect to n8n first — fill in the URL and API key on the Connection tab.",
     "settings.n8n.search_workflows": "Search workflows...",
     "settings.n8n.scanning": "Scanning...",

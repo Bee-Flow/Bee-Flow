@@ -14,7 +14,7 @@
       "id": "one-policy",
       "icon": "🛰️",
       "title": "One policy, every chat in the organisation",
-      "bodyMd": "Sooner or later somebody asks you to put it in writing: what personal data leaves this building when our people use AI?\n\nAt Van Dijk Groep, a Dutch SME of forty-odd people, purchasing pastes supplier contracts into chat, HR runs an automation over re-integration files, sales drafts proposals from a CRM export. All of it reaches an AI model unless somebody decides otherwise.\n\nThe Privacy Shield is that decision, made once for the whole organisation instead of left to each colleague. You find it under **Settings → Organisation → Privacy Shield**; the page is headed *Organization Privacy Shield*.\n\nOverview states the rule that matters most, in one line below its step cards: *Agents can be stricter, never looser.* These rules run before any rules on an individual agent, and if the two disagree, the stricter one wins."
+      "bodyMd": "Sooner or later somebody asks you to put it in writing: what personal data leaves this building when our people use AI?\n\nAt Van Dijk Groep, a Dutch SME of forty-odd people, purchasing pastes supplier contracts into chat, HR runs an automation over re-integration files, sales drafts proposals from a CRM export. All of it reaches an AI model unless somebody decides otherwise.\n\nThe Privacy Shield is that decision, made once for the whole organisation instead of left to each colleague. You find it under **Admin dashboard → Security → Guardrails → Org Privacy Shield**; the page is headed *Organization Privacy Shield*.\n\nOverview states the rule that matters most, in one line below its step cards: *Agents can be stricter, never looser.* These rules run before any rules on an individual agent, and if the two disagree, the stricter one wins."
     },
     {
       "type": "slide",
@@ -75,7 +75,7 @@
       "id": "guard-down",
       "icon": "⚠️",
       "title": "Installed, but not answering",
-      "bodyMd": "The other failure is louder. When the service is installed but not responding, the shield refuses to guess: people read *\"Privacy protection is temporarily unavailable, so your message was not sent.\"*\n\nThe Privacy Shield page tells you both states. The pill in its header turns red — *Detection service not installed* or *Detection service not responding* — where it normally reads *Detection running*. And Overview puts it first on the review card, *\"The detection service is not responding\"*, with a **Diagnose** button.\n\nFixing it is not yours, and the difference in route is the point. Everything you configure sits under **Settings → Organisation → Privacy Shield** — your own organisation's area. The detection service belongs to whoever runs the server, so Diagnose opens the separate server-operator console: **Admin → Security → Guardrails**, which exists on Enterprise installs only. A platform admin installs or restarts the service there.\n\nCheck that pill before you sign anything off."
+      "bodyMd": "The other failure is louder. When the service is installed but not responding, the shield refuses to guess: people read *\"Privacy protection is temporarily unavailable, so your message was not sent.\"*\n\nThe Privacy Shield page tells you both states. The pill in its header turns red — *Detection service not installed* or *Detection service not responding* — where it normally reads *Detection running*. And Overview puts it first on the review card, *\"The detection service is not responding\"*, with a **Diagnose** button.\n\nFixing it is not yours, and the difference in route is the point. Everything you configure sits under **Admin dashboard → Security → Guardrails → Org Privacy Shield** — your own organisation's area. The detection service belongs to whoever runs the server, so Diagnose opens the separate server-operator console: **Admin → Security → Guardrails**, which exists on Enterprise installs only. A platform admin installs or restarts the service there.\n\nCheck that pill before you sign anything off."
     },
     {
       "type": "sim",
@@ -89,19 +89,19 @@
           {
             "id": "p1",
             "left": "Switch Protect personal data on for the whole organisation",
-            "right": "Settings → Organisation → Privacy Shield, tab Overview",
+            "right": "Admin dashboard → Security → Guardrails → Org Privacy Shield, tab Overview",
             "note": "The master switch lives on Overview, and it is what makes the four numbered steps clickable."
           },
           {
             "id": "p2",
             "left": "Tick the kinds of personal data to look for, and set How strict",
-            "right": "Settings → Organisation → Privacy Shield, step What we look for",
+            "right": "Admin dashboard → Security → Guardrails → Org Privacy Shield, step What we look for",
             "note": "Same page, step 1. How strict sits above the table of 21 kinds."
           },
           {
             "id": "p3",
             "left": "Read the evidence of what was hidden, and where data went",
-            "right": "Settings → Organisation → Privacy Shield, tab What happened",
+            "right": "Admin dashboard → Security → Guardrails → Org Privacy Shield, tab What happened",
             "note": "The evidence tab. It stays readable even while the master switch is off."
           },
           {
@@ -197,9 +197,9 @@
       "icon": "🏗️",
       "checkId": "shield-configured",
       "title": "Turn it on, with a first set of categories",
-      "instruction": "Open Settings → Organisation → Privacy Shield and switch Protect personal data on. On What we look for, set How strict to Balanced and tick the kinds that match your work — for a purchasing team like Van Dijk Groep's, at least Person Names, Email Addresses, Phone Numbers, IBAN Numbers and Company names. Press Save changes, then check that Overview no longer shows Kinds of data at 0 of 21.",
+      "instruction": "Open Admin dashboard → Security → Guardrails → Org Privacy Shield and switch Protect personal data on. On What we look for, set How strict to Balanced and tick the kinds that match your work — for a purchasing team like Van Dijk Groep's, at least Person Names, Email Addresses, Phone Numbers, IBAN Numbers and Company names. Press Save changes, then check that Overview no longer shows Kinds of data at 0 of 21.",
       "launch": {
-        "navigateTo": "settings/organisation/privacy",
+        "navigateTo": "admin/security/guardrails",
         "label": "Open Privacy Shield"
       }
     },
@@ -215,7 +215,7 @@
     "title": "Switching on the Organisation Privacy Shield",
     "summary": "How an org admin enables the Privacy Shield, and the two configurations that look finished but catch nothing.",
     "facts": [
-      "The Privacy Shield lives under Settings → Organisation → Privacy Shield: Overview, the numbered steps What we look for, Your own data, When we find something and Leaving your org, then What happened; Admin → Security → Guardrails is a separate area with a separate owner.",
+      "The Privacy Shield lives under Admin dashboard → Security → Guardrails → Org Privacy Shield: Overview, the numbered steps What we look for, Your own data, When we find something and Leaving your org, then What happened; Admin → Security → Guardrails is a separate area with a separate owner.",
       "The master switch is called Protect personal data; it is off for a new organisation, and the four numbered steps stay inactive until it is on.",
       "The catalogue holds 21 kinds of personal data, and Overview's What we look for card shows how many are ticked in the row Kinds of data, as \"n of 21\".",
       "An empty category list is read as \"no narrowing\", so the detector is asked about every kind it knows, while Overview still lists \"No kinds of data are selected\" on its review card and shows Kinds of data at \"0 of 21\" in amber.",
@@ -230,7 +230,7 @@
       "checkId": "shield-configured",
       "existing": false,
       "label": "Shield on with at least one category",
-      "hint": "In Settings → Organisation → Privacy Shield: switch Protect personal data on, tick at least one kind of personal data on What we look for, then press Save changes.",
+      "hint": "In Admin dashboard → Security → Guardrails → Org Privacy Shield: switch Protect personal data on, tick at least one kind of personal data on What we look for, then press Save changes.",
       "endpoints": [
         {
           "method": "GET",

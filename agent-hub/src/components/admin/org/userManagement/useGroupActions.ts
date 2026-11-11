@@ -6,7 +6,7 @@ import type { AdminGroup, AdminMessage, AskConfirm, GroupFormData } from './type
 import { costLimitToInput, parseCostLimitInput } from './costLimitInput';
 
 const EMPTY_GROUP: GroupFormData = {
-    id: '', name: '', description: '', permissions: [], roles: [], organizationId: '', allowedAgentTypes: [], perUserCostLimit: '',
+    id: '', name: '', description: '', permissions: [], roles: [], organizationId: '', allowedAgentTypes: [], allowedTiers: [], orgRole: '', perUserCostLimit: '',
 };
 
 function groupToForm(group: AdminGroup): GroupFormData {
@@ -18,6 +18,8 @@ function groupToForm(group: AdminGroup): GroupFormData {
         roles: group.roles || [],
         organizationId: group.organizationId || '',
         allowedAgentTypes: group.allowedAgentTypes || [],
+        allowedTiers: group.allowedTiers || [],
+        orgRole: group.orgRole || '',
         perUserCostLimit: costLimitToInput(group.perUserCostLimit),
     };
 }
@@ -26,7 +28,10 @@ function groupToForm(group: AdminGroup): GroupFormData {
  * The request body: the form, with the budget as a number (self-hosted) or left out.
  * An unusable budget text is reported in the status line and gives null.
  */
-function requestBody({ perUserCostLimit: typed, ...rest }: GroupFormData, isSelfHosted: boolean, setMessage: Dispatch<SetStateAction<AdminMessage | null>>, t: TranslateFn) {
+function requestBody(form: GroupFormData, isSelfHosted: boolean, setMessage: Dispatch<SetStateAction<AdminMessage | null>>, t: TranslateFn, editing: boolean) {
+    // Creating takes neither the inherited role nor the tiers, and updating takes neither the id nor the name.
+    const { perUserCostLimit: typed, allowedTiers, orgRole, id: _id, name, ...common } = form;
+    const rest = editing ? { ...common, allowedTiers: allowedTiers ?? [], orgRole: orgRole ?? '' } : { ...common, name };
     if (!isSelfHosted) return rest;
     const parsed = parseCostLimitInput(typed);
     if (parsed !== undefined) return { ...rest, perUserCostLimit: parsed };
@@ -75,7 +80,7 @@ export default function useGroupActions({ loadData, setMessage, askConfirm, t, i
 
     const handleAddGroup = async () => {
         if (!groupData.name) return;
-        const body = requestBody(groupData, isSelfHosted, setMessage, t);
+        const body = requestBody(groupData, isSelfHosted, setMessage, t, false);
         if (!body) return;
         try {
             const res = await authFetch(`${API_BASE}/auth/groups`, {
@@ -94,7 +99,7 @@ export default function useGroupActions({ loadData, setMessage, askConfirm, t, i
     };
 
     const handleUpdateGroup = async () => {
-        const body = requestBody(groupData, isSelfHosted, setMessage, t);
+        const body = requestBody(groupData, isSelfHosted, setMessage, t, true);
         if (!body) return;
         try {
             const res = await authFetch(`${API_BASE}/auth/groups/${groupData.id}`, {

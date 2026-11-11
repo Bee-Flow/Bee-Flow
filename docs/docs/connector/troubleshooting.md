@@ -77,7 +77,7 @@ docker logs nc_app_bee_flow 2>&1 | grep -i "HaRP mode"                       # t
 - If you chose the server on the setup page, leave it out. The connector finds its server in the data volume.
 - If the server was fixed at install time, give the same value again: the word `cloud` for Bee Flow Cloud, or the URL of your Bee Flow server. A value given here fixes the server; it cannot be changed from inside Nextcloud afterwards.
 
-**If the connection did not come along.** When Bee Flow opens with the setup page, or shows `pairing_required`, the connector started without its data: HaRP runs on another Docker engine, or the data was removed. Nothing is lost on the Bee Flow server. Choose the same server again on the setup page, and when it asks for a pairing code, have a Bee Flow organisation admin generate one (**Settings → Organisation → Pair a new Nextcloud**) and enter it there. The Nextcloud is then joined to the organisation it had.
+**If the connection did not come along.** When Bee Flow opens with the setup page, or shows `pairing_required`, the connector started without its data: HaRP runs on another Docker engine, or the data was removed. Nothing is lost on the Bee Flow server. Choose the same server again on the setup page, and when it asks for a pairing code, have a Bee Flow organisation admin generate one (**Admin → Organisation → Nextcloud Sync → Pair a new Nextcloud**) and enter it there. The Nextcloud is then joined to the organisation it had.
 
 If you know beforehand that HaRP will run on another Docker engine, you can instead carry the key over yourself: read `tenantKey` from `/data/tenant-key.json` in the old container before you remove it, and register with `--env BEEFLOW_TENANT_KEY=<that key>`. The key is taken into use once the server is known: when an administrator chooses it on the setup page, or at once when you also give `BEEFLOW_API_BASE_URL` (which then fixes the server). Treat that key as a secret.
 
@@ -151,7 +151,7 @@ It is not per organisation and not per Nextcloud. With it, the server calls priv
 
 The server container must also be able to resolve the Nextcloud's hostname and route to it.
 
-**Linking the two.** A self-hosted server links a Nextcloud by pairing code: generate one in Bee Flow (**Settings → Organisation → Pair a new Nextcloud**) and enter it on the setup page.
+**Linking the two.** A self-hosted server links a Nextcloud by pairing code: generate one in Bee Flow (**Admin → Organisation → Nextcloud Sync → Pair a new Nextcloud**) and enter it on the setup page.
 
 ## Nextcloud with its own certificate {#nextcloud-certificate}
 
@@ -206,7 +206,7 @@ With HaRP's tunnel the connector listens on a Unix socket and has no TCP port, s
 | `nc_not_publicly_reachable` | The Bee Flow server couldn't reach your Nextcloud (also shown for the server answer `invalid_callback_url`) | With Bee Flow Cloud: set the public Nextcloud URL (see section above). With your own server: check that it can reach the address the message names, and for an address on a private network set `NEXTCLOUD_ALLOW_PRIVATE_HOSTS=1` on that server: see [Nextcloud is not reachable from the internet](#not-reachable). The server verifies the certificate of your Nextcloud itself: see [Nextcloud with its own certificate](#nextcloud-certificate). |
 | `nc_cert_untrusted` | The connector itself does not trust the certificate of your Nextcloud. Nothing was sent to the Bee Flow server | See [Nextcloud with its own certificate](#nextcloud-certificate). |
 | `nc_unreachable` | The connector itself cannot read your Nextcloud at `NEXTCLOUD_URL`. Nothing was sent to the Bee Flow server | The error names the cause (connection refused, name not found, timeout). Check that the address answers from inside the connector container. |
-| `pairing_required` | The server does not create an organisation by itself | Generate a pairing code in Bee Flow (**Settings → Organisation → Pair a new Nextcloud**) and enter it on the setup page. |
+| `pairing_required` | The server does not create an organisation by itself | Generate a pairing code in Bee Flow (**Admin → Organisation → Nextcloud Sync → Pair a new Nextcloud**) and enter it on the setup page. |
 | `pairing_code_invalid` | The server does not accept the pairing code: mistyped, expired or already used | Generate a new code in the same place and enter it on the setup page. Nothing has to be installed again. |
 | `version_mismatch` | The server and the connector do not work together in these versions, or the address is the web app's instead of the server's | Update both; check the address. |
 | `admin_lookup_failed` | No admin user found in NC's `admin` group | `occ user:add --group admin <uid>`, then restart the connector container. |
@@ -248,7 +248,7 @@ docker logs nc_app_bee_flow --tail 50
 | `[Bootstrap] nc_cert_untrusted (capabilities): …` | The connector does not trust the certificate of Nextcloud | See [Nextcloud with its own certificate](#nextcloud-certificate). |
 | `[Bootstrap] admin_lookup_failed (admin): …` | Nextcloud has no user in the `admin` group | Create one: `occ user:add --group admin alice`. |
 | `[Bootstrap] … (saas_post): Your Bee Flow server (<address>) refused the connection (HTTP …): …` (or `Bee Flow Cloud refused …`) | The Bee Flow server answered and said no; the category before it and the text after it say why | The matching row under [Bootstrap "failed" state in heartbeat](#bootstrap-failed-state-in-heartbeat). |
-| The setup page shows `pairing_required` on a Nextcloud that was connected before | The connector no longer holds the key of its organisation, and the server does not hand it out again without one | Ask a Bee Flow organisation admin to generate a pairing code (**Settings → Organisation → Pair a new Nextcloud**) and enter it on the setup page under **Bind to existing organisation**. |
+| The setup page shows `pairing_required` on a Nextcloud that was connected before | The connector no longer holds the key of its organisation, and the server does not hand it out again without one | Ask a Bee Flow organisation admin to generate a pairing code (**Admin → Organisation → Nextcloud Sync → Pair a new Nextcloud**) and enter it on the setup page under **Bind to existing organisation**. |
 
 The connector keeps its key in `${APP_PERSISTENT_STORAGE}/tenant-key.json`. Leave that file in place: the key in it is what proves to the Bee Flow server that this is the same Nextcloud. To connect again:
 

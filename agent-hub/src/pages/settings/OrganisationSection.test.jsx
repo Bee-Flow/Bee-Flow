@@ -4,7 +4,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 /**
  * Characterisation of OrganisationSection — the router between the
- * organisation sub-screens (Settings → Organisation).
+ * organisation sub-screens (the sections of Admin > Organisation, and the
+ * licence page a phone keeps in Settings) — and of OrgIntegrationSettings.
  *
  * This component decides two things and delegates everything else: WHICH panel
  * a given `activeSection` shows, and WHETHER the caller's permissions allow it.
@@ -14,8 +15,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
  *
  * Every child panel is stubbed — they have (or will get) their own files, and
  * two of them (N8nSection, IntegrationsSection) are far too heavy to mount for
- * a routing test. The stubs record the props they were handed. Tabs is REAL:
- * the integrations sub-tab is part of this component's own behaviour.
+ * a routing test. The stubs record the props they were handed.
  *
  * No i18n mock: the global setup awaits ensureI18nDefaults(), so the real
  * hook's provider-less fallback resolves against the full EN catalogue.
@@ -26,7 +26,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const H = vi.hoisted(() => ({
     onStateChange: null,
-    matrixProps: null,
     /** Stub factory: a div with a testid, plus the props worth asserting on. */
     stub: (testid, propKeys = []) => async () => {
         const React = await import('react');
@@ -58,10 +57,8 @@ vi.mock('../../components/admin/org/OrgInfoPanel', async () => {
         },
     };
 });
-vi.mock('../../components/admin/org/OrgUsersPanel', H.stub('org-users-panel', ['basePath']));
 vi.mock('./OrgAcademyPanel', H.stub('org-academy-panel'));
 vi.mock('./N8nSection', H.stub('n8n-section'));
-vi.mock('./UsageSection', H.stub('usage-section', ['initialReport']));
 vi.mock('../../components/integrations/github/GitHubSyncPanel', H.stub('github-sync-panel'));
 vi.mock('../../components/integrations/nextcloud/NextcloudSyncPanel', H.stub('nextcloud-sync-panel'));
 vi.mock('../../components/meetings/MeetingNotesAdminPanel', H.stub('meeting-notes-admin-panel'));
@@ -70,18 +67,10 @@ vi.mock('../../components/meetings/TeamsAdminPanel', H.stub('teams-admin-panel')
 vi.mock('../../components/meetings/SummaryTemplatesAdminPanel', H.stub('summary-templates-admin-panel'));
 vi.mock('../../components/integrations/nextcloud/OrgNcIntegrationsPanel', H.stub('org-nc-integrations-panel'));
 vi.mock('../../components/integrations/nextcloud/OrgNcPairingPanel', H.stub('org-nc-pairing-panel'));
-vi.mock('../../components/admin/org/GroupAccessMatrix', async () => {
-    const React = await import('react');
-    return {
-        default: (props) => {
-            H.matrixProps = props;
-            return React.createElement('div', { 'data-testid': 'group-access-matrix' });
-        },
-    };
-});
 
 import { renderWithClient as render } from '@/test/render';
 import OrganisationSection from './OrganisationSection';
+import OrgIntegrationSettings from './OrgIntegrationSettings';
 import { SECTIONS as INFO_SECTIONS } from '../../components/admin/org/OrgInfoPanel';
 import EntitlementsContext from '../../components/licensing/EntitlementsContext';
 import { authFetch } from '../../utils/helpers';
@@ -126,7 +115,6 @@ beforeEach(() => {
     cleanup();
     vi.clearAllMocks();
     H.onStateChange = null;
-    H.matrixProps = null;
     authFetch.mockResolvedValue(jsonRes({ hasGoogleMapsKey: false }));
 });
 
@@ -161,7 +149,6 @@ describe('OrganisationSection — which section renders what', () => {
 describe('OrganisationSection — permission gating', () => {
     const gated = [
         ['academy', 'org-academy-panel'],
-        ['integrations', 'group-access-matrix'],
         ['github_sync', 'github-sync-panel'],
         ['nextcloud_sync', 'nextcloud-sync-panel'],
         ['meeting_templates', 'summary-templates-admin-panel'],
@@ -199,23 +186,8 @@ describe('OrganisationSection — permission gating', () => {
     });
 
     it('survives user === undefined and grants nothing', () => {
-        const { container } = render(<OrganisationSection activeSection="integrations" />);
+        const { container } = render(<OrganisationSection activeSection="academy" />);
         expect(container.firstChild).toBeEmptyDOMElement();
-    });
-
-    it('shows Users & Groups to a member with NO permissions — this branch has no gate (securityFinding)', () => {
-        mount({ user: NOBODY, activeSection: 'users' });
-        expect(screen.getByTestId('org-users-panel')).toBeInTheDocument();
-    });
-
-    it('roots the Users & Groups sub-tabs at the organisation settings address', () => {
-        mount({ user: NOBODY, activeSection: 'users' });
-        expect(screen.getByTestId('org-users-panel')).toHaveAttribute('data-basePath', '/app/settings/organisation/users');
-    });
-
-    it('shows Usage & Monitoring to a member with NO permissions — this branch has no gate either (securityFinding)', () => {
-        mount({ user: NOBODY, activeSection: 'usage' });
-        expect(screen.getByTestId('usage-section')).toBeInTheDocument();
     });
 
     it('shows every org-info section (licence, sign-in method, privacy, encryption…) to a member with NO permissions (securityFinding)', () => {
@@ -224,11 +196,6 @@ describe('OrganisationSection — permission gating', () => {
             mount({ user: NOBODY, activeSection: id });
             expect(screen.getByTestId('org-info-panel')).toBeInTheDocument();
         }
-    });
-
-    it('forwards the deep-link report id to UsageSection', () => {
-        mount({ user: NOBODY, activeSection: 'usage', usageInitialReport: 'terminations' });
-        expect(screen.getByTestId('usage-section')).toHaveAttribute('data-initialReport', 'terminations');
     });
 });
 
@@ -349,43 +316,19 @@ describe('OrganisationSection — where the org save bar shows', () => {
     });
 });
 
-describe('OrganisationSection — the Integrations section', () => {
-    const mountInt = (over = {}) => mount({ user: USER({ permissions: ['org_admin'], ...over }), activeSection: 'integrations' });
+describe('OrgIntegrationSettings — the integrations\' own settings (Admin > Organisation > Integrations)', () => {
+    const renderSettings = (user) => render(<OrgIntegrationSettings user={user} />);
 
-    it('leads with the page heading, subtitle and two sub-tabs, "Integration access" selected', () => {
-        mountInt();
-        expect(screen.getByRole('heading', { level: 2, name: 'Organisation Integrations' })).toBeInTheDocument();
-        expect(screen.getByText('Shared across all members of your organisation.')).toBeInTheDocument();
-        expect(screen.getByRole('tab', { name: 'Integration access' })).toHaveAttribute('aria-selected', 'true');
-        expect(screen.getByRole('tab', { name: 'Integration settings' })).toHaveAttribute('aria-selected', 'false');
-    });
-
-    it('renders GroupAccessMatrix scoped to integrations, with locked entries hidden, no second heading and a translated intro', () => {
-        mountInt();
-        expect(screen.getByTestId('group-access-matrix')).toBeInTheDocument();
-        expect(H.matrixProps.kinds).toEqual(['integration']);
-        expect(H.matrixProps.hideLocked).toBe(true);
-        // The page h2 and the selected tab already name it.
-        expect(H.matrixProps.hideHeading).toBe(true);
-        expect(H.matrixProps.heading).toBeUndefined();
-        expect(H.matrixProps.subtitle).toContain('Give an integration to your whole organisation or to a specific group.');
-    });
-
-    it('swaps the matrix for the provider configuration on the settings tab', async () => {
-        const user = userEvent.setup();
-        mountInt();
-        await user.click(screen.getByRole('tab', { name: 'Integration settings' }));
-        await waitFor(() => expect(screen.queryByTestId('group-access-matrix')).toBeNull());
-        expect(screen.getByText('Configure the integrations themselves — credentials, instance URLs and workflows.')).toBeInTheDocument();
+    it('shows the intro and the n8n configuration; the Maps key is a platform admin\'s', async () => {
+        renderSettings(USER({ permissions: ['org_admin'] }));
+        expect(await screen.findByText('Configure the integrations themselves — credentials, instance URLs and workflows.')).toBeInTheDocument();
         expect(screen.getByTestId('n8n-section')).toBeInTheDocument();
         // An org admin who is not a platform admin: the Maps key is instance-wide.
         expect(screen.queryByText('Google Maps')).toBeNull();
     });
 
     const settingsTab = async (over) => {
-        const user = userEvent.setup();
-        mountInt(over);
-        await user.click(screen.getByRole('tab', { name: 'Integration settings' }));
+        renderSettings(USER({ permissions: ['org_admin'], ...over }));
         await screen.findByText('Configure the integrations themselves — credentials, instance URLs and workflows.');
     };
 
@@ -498,12 +441,10 @@ describe('OrganisationSection — the Google Maps integration row', () => {
     // The row is a platform admin's (the key is instance-wide).
     const PLATFORM_ADMIN = USER({ permissions: ['org_admin'], role: 'admin' });
     const openMaps = async ({ hasGoogleMapsKey = false } = {}) => {
-        const user = userEvent.setup();
         authFetch.mockImplementation(async (_url, opts = {}) => (
             opts.method === 'POST' ? jsonRes({ ok: true }) : jsonRes({ hasGoogleMapsKey })
         ));
-        const view = mount({ user: PLATFORM_ADMIN, activeSection: 'integrations' });
-        await user.click(screen.getByRole('tab', { name: 'Integration settings' }));
+        const view = render(<OrgIntegrationSettings user={PLATFORM_ADMIN} />);
         await screen.findByText('Google Maps');
         await waitFor(() => expect(authFetch).toHaveBeenCalledWith('/ai/config'));
         return view;
@@ -526,10 +467,8 @@ describe('OrganisationSection — the Google Maps integration row', () => {
     });
 
     it('reads a failed /ai/config probe as "no key" (wart: an unreachable config looks unconfigured)', async () => {
-        const user = userEvent.setup();
         authFetch.mockRejectedValue(new Error('offline'));
-        mount({ user: PLATFORM_ADMIN, activeSection: 'integrations' });
-        await user.click(screen.getByRole('tab', { name: 'Integration settings' }));
+        render(<OrgIntegrationSettings user={PLATFORM_ADMIN} />);
         await screen.findByText('Google Maps');
         await waitFor(() => expect(authFetch).toHaveBeenCalled());
         expect(screen.queryByText('Connected')).toBeNull();
@@ -605,8 +544,7 @@ describe('OrganisationSection — the Google Maps integration row', () => {
         authFetch.mockImplementation(async (_url, opts = {}) => (
             opts.method === 'POST' ? jsonRes({ error: 'bad key' }, 400) : jsonRes({ hasGoogleMapsKey: false })
         ));
-        const { container } = mount({ user: PLATFORM_ADMIN, activeSection: 'integrations' });
-        await user.click(screen.getByRole('tab', { name: 'Integration settings' }));
+        const { container } = render(<OrgIntegrationSettings user={PLATFORM_ADMIN} />);
         await screen.findByText('Google Maps');
         await user.click(mapsToggle());
         await user.clear(keyInput(container));
@@ -626,8 +564,7 @@ describe('OrganisationSection — the Google Maps integration row', () => {
             if (opts.method === 'POST') throw new Error('offline');
             return jsonRes({ hasGoogleMapsKey: false });
         });
-        const { container } = mount({ user: PLATFORM_ADMIN, activeSection: 'integrations' });
-        await user.click(screen.getByRole('tab', { name: 'Integration settings' }));
+        const { container } = render(<OrgIntegrationSettings user={PLATFORM_ADMIN} />);
         await screen.findByText('Google Maps');
         await user.click(mapsToggle());
         await user.clear(keyInput(container));

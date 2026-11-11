@@ -90,7 +90,7 @@ function crossTenantGate(req, user, orgId) {
     });
     return reject(403, {
         error: reason === 'user_bound_to_other_org'
-            ? 'This Nextcloud is connected to a different Bee Flow organisation than your account. Ask an admin of your organisation to generate a pairing code (Settings → Organisation → Nextcloud Sync → "Pair a new Nextcloud") and re-pair this Nextcloud with it.'
+            ? 'This Nextcloud is connected to a different Bee Flow organisation than your account. Ask an admin of your organisation to generate a pairing code (Admin dashboard → Organisation → Nextcloud Sync → "Pair a new Nextcloud") and re-pair this Nextcloud with it.'
             : 'Your Bee Flow account is not a member of the organisation this Nextcloud is connected to. Sign in to Bee Flow directly, or ask an admin of that organisation to add your account.',
         code: 'NC_ORG_MISMATCH',
     });

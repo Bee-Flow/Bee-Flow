@@ -17,7 +17,7 @@ const userStore = require('../../stores/userStore');
 // — a 500 where the org-scoped group list should have been. That fails closed
 // rather than leaking other tenants' groups, but it left the sharing pickers
 // that read this endpoint permanently empty.
-const { requireAuth, requireAdmin, requireSuperAdmin, requirePrimaryOrgAdmin, getUserPermissions, invalidateAllPermissionCaches, resolveUserOrgIds, resolveAdminOrgId, SYSTEM_PERMISSIONS, getOrgRolePermissions, orgWideGrantImpliedPermissions, orgRoleImpliedFill } = require('../permissions');
+const { requireAuth, requireAdmin, requireSuperAdmin, requirePrimaryOrgAdmin, getUserPermissions, invalidateAllPermissionCaches, resolveUserOrgIds, resolveAdminOrgId, resolveChosenOrgId, SYSTEM_PERMISSIONS, getOrgRolePermissions, orgWideGrantImpliedPermissions, orgRoleImpliedFill } = require('../permissions');
 const orgRolePolicy = require('../orgRolePolicy');
 const { validate } = require('../../core/http/validate');
 const { z } = require('../../utils/zod');
@@ -614,9 +614,11 @@ router.get('/org-roles', requireAdmin, async (req, res) => {
     // The CALLER's org, so an org admin sees what their own organisation
     // decided rather than the shipped defaults. Super admins with no org of
     // their own fall through to the defaults, which is what they administer.
-    const orgId = req.session?.user?.organizationId
+    // `?orgId`: the org a platform admin chose in the admin dashboard, the one
+    // PUT /org-roles/:roleId then saves to; anyone else may name only their own.
+    const orgId = await resolveChosenOrgId(req, req.session?.user?.organizationId
         || (await userStore.getUser(req.session?.user?.id).catch((e) => fallback('groupRole:org-roles-user', e, null)))?.organizationId
-        || null;
+        || null);
     const resolved = await orgRolePolicy.resolveOrgRolePermissions(orgId, getOrgRolePermissions());
     // A role the org never edited also carries what its "All members" grants
     // imply (Meeting Notes on for everyone → use_meeting_notes), because that

@@ -15,7 +15,7 @@
       "id": "why",
       "icon": "🧭",
       "title": "The question Van Dijk Groep has to answer",
-      "bodyMd": "Van Dijk Groep is a Dutch SME of sixty staff. Supplier quotations, HR notes and meeting recordings all pass through Bee Flow.\n\nA customer's security questionnaire lands on Marieke's desk with one line on it: **is our data encrypted, and who can read it?**\n\nThe first half is easy. The second half is where organisations talk themselves into trouble, by repeating a reassuring phrase they cannot defend.\n\nBoth halves are decided on one screen — **Settings → Organisation → Encryption** — where three cards are offered: **Off**, **Managed** and **Zero-knowledge**. An organisation starts on **Off**, unless the server operator configured a higher default for newly created organisations.\n\nBy the end of this lesson you can pick one of those cards and say out loud what it does *not* protect against."
+      "bodyMd": "Van Dijk Groep is a Dutch SME of sixty staff. Supplier quotations, HR notes and meeting recordings all pass through Bee Flow.\n\nA customer's security questionnaire lands on Marieke's desk with one line on it: **is our data encrypted, and who can read it?**\n\nThe first half is easy. The second half is where organisations talk themselves into trouble, by repeating a reassuring phrase they cannot defend.\n\nBoth halves are decided on one screen — **Admin dashboard → Organisation → Encryption** — where three cards are offered: **Off**, **Managed** and **Zero-knowledge**. An organisation starts on **Off**, unless the server operator configured a higher default for newly created organisations.\n\nBy the end of this lesson you can pick one of those cards and say out loud what it does *not* protect against."
     },
     {
       "type": "tour",
@@ -156,7 +156,7 @@
       "id": "weakenings",
       "icon": "⚠️",
       "title": "Two places Zero-knowledge is deliberately weakened",
-      "bodyMd": "Both are documented on purpose, and both belong in any honest answer.\n\n**1. Three surfaces still use the organisation escrow.** The Privacy Shield token map, the conversation summary that Conversation Memory writes, and the generated conversation title. All three are written by code with no user session in scope — a scanner, a 3am summarising job. An organisation-held key is weaker than zero-knowledge and far stronger than the plain text they used to be. **Message bodies are deliberately not in that set** — that is the line that makes the tier worth choosing.\n\n**2. Anything shared is keyed to the organisation.** A conversation shared into a project, and every meeting transcription, on every tier. So on Zero-knowledge a transcript is readable by the operator. Say that out loud before anyone records a sensitive meeting."
+      "bodyMd": "Both are documented on purpose, and both belong in any honest answer.\n\n**1. Four surfaces still use the organisation escrow.** The Privacy Shield token map, the conversation summary written for long conversations, the generated conversation title, and the memories the assistant keeps about people. All four are written or read by code with no user session in scope — a scanner, a 3am summarising job, an automation. An organisation-held key is weaker than zero-knowledge and far stronger than the plain text they used to be. **Message bodies are deliberately not in that set** — that is the line that makes the tier worth choosing.\n\n**2. Anything shared is keyed to the organisation.** A conversation shared into a project, and every meeting transcription, on every tier. So on Zero-knowledge a transcript is readable by the operator. Say that out loud before anyone records a sensitive meeting."
     },
     {
       "type": "quiz",
@@ -243,7 +243,7 @@
     "title": "Encryption tiers",
     "summary": "The three organisation encryption tiers, what each protects against, and who still holds a key.",
     "facts": [
-      "The tier is chosen at Settings → Organisation → Encryption, on three cards labelled Off, Managed and Zero-knowledge.",
+      "The tier is chosen at Admin dashboard → Organisation → Encryption, on three cards labelled Off, Managed and Zero-knowledge.",
       "Off is the default tier for an organisation, and the screen states that the choice affects new messages while existing messages stay readable either way.",
       "Managed escrows a second wrapping of each user's key under the organisation, so an admin can reset a password without data loss — and the server operator can still read content.",
       "Zero-knowledge derives the message-body key from the user's own secret; saving it signs out everyone in the organisation, including the admin who saved it.",

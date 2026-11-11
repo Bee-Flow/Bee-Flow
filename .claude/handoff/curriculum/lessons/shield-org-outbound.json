@@ -185,7 +185,7 @@
       "title": "Switch the pre-flight on — we will verify it",
       "instruction": "Open the Privacy Shield. If \"Protect personal data\" is off under Overview, switch it on first — the numbered steps stay inactive until it is. Then, on Leaving your org, switch on \"One last check before an outside AI\", pick a mode (start with Ask), press Save changes and wait for \"Saved successfully!\". Now prove it: send a chat message containing a name and an e-mail address on a model that runs outside your organisation, and watch for the dialog \"Check this before it goes to the AI\".",
       "launch": {
-        "navigateTo": "settings/organisation/privacy",
+        "navigateTo": "admin/security/guardrails",
         "label": "Open Privacy Shield"
       }
     },
@@ -230,7 +230,7 @@
       "checkId": "shield-dlp",
       "existing": false,
       "label": "Turn on the check before an outside AI",
-      "hint": "In Settings → Organisation → Privacy Shield → Leaving your org, switch on \"One last check before an outside AI\", pick a mode, and press Save changes.",
+      "hint": "In Admin dashboard → Security → Guardrails → Org Privacy Shield → Leaving your org, switch on \"One last check before an outside AI\", pick a mode, and press Save changes.",
       "endpoints": [
         {
           "method": "GET",

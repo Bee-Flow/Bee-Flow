@@ -2,16 +2,19 @@ import { useState } from 'react';
 import { Video, Loader2 } from 'lucide-react';
 import { API_BASE } from '../../utils/helpers';
 import { useOrgNotesSettingsQuery } from '../../api/queries/meetingNotesSettings';
-import { languageOptions, Row } from '../../pages/settings/shared/settingsPrimitives';
-import { InheritHint, InheritSelect, InheritSwitch, OrgSettingsLoadError, orgFormFromAnswer } from '../../pages/settings/shared/orgSettingFields';
+import { languageOptions, Row } from '@/components/settings/shared/settingsPrimitives';
+import { InheritHint, InheritSelect, InheritSwitch, OrgSettingsLoadError, orgFormFromAnswer } from '@/components/settings/shared/orgSettingFields';
 import { useTranslation } from '../../hooks/useTranslation';
 import { errorMessage } from '../../utils/caughtError';
 import { mutate, errorBody, RefusedError } from '../../api/mutate';
+import { panelOrgId } from '@/utils/adminAccess';
 
 const MEET_GREEN = '#00832D';
 
 interface GoogleMeetAdminPanelProps {
     user?: { organizationId?: string | null } | null;
+    /** The organisation to act on; left out, the user's home organisation (outside the admin dashboard). */
+    orgId?: string | null;
 }
 
 /** `null` = each member decides (see orgSettingFields). */
@@ -37,9 +40,9 @@ const DEFAULT_CFG: GoogleMeetConfig = { autoImport: null, autoRecordConfig: null
  * notes admin pattern. A concrete org value takes precedence over each
  * member's own setting; a field on "Each member decides" is sent as null.
  */
-export default function GoogleMeetAdminPanel({ user }: GoogleMeetAdminPanelProps) {
+export default function GoogleMeetAdminPanel({ user, orgId: orgIdProp }: GoogleMeetAdminPanelProps) {
     const { t } = useTranslation();
-    const orgId = user?.organizationId;
+    const orgId = panelOrgId(orgIdProp, user);
     const settingsQuery = useOrgNotesSettingsQuery<GoogleMeetConfig>('gmeet', orgId);
     const [draft, setDraft] = useState<GoogleMeetConfig | null>(null);
     // Edits replace the whole config (defaults, then the server answer, then the person's changes).

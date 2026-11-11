@@ -106,7 +106,7 @@ Not every surface behaves the same way when the guard is down:
 Patterns from **Your own data** (word lists and fixed formats) run on the Bee
 Flow server, so they still apply on the surfaces that pass through.
 
-Configure per-org in **Settings → Organisation → Privacy**, or per-agent in **Studio → Agents** (overrides the org default). The org-level config is stored in the `org_privacy_shield_<orgId>` record.
+Configure per-org in **Admin → Security → Guardrails → Org Privacy Shield**, or per-agent in **Studio → Agents** (overrides the org default). The org-level config is stored in the `org_privacy_shield_<orgId>` record.
 
 ## Not covered yet
 
@@ -172,7 +172,7 @@ The chat UI shows a small **shield** indicator next to each message that contain
 *Enterprise.* The built-in kinds cover names, addresses, bank details and so on.
 Your organisation also has data of its own that is just as private: project
 code names, customer or contract numbers, internal product names. You add
-these under **Settings → Organisation → Privacy → Your own data**, and the
+these under **Admin → Security → Guardrails → Org Privacy Shield → Your own data**, and the
 shield hides them the same way it hides an email address.
 
 ### Three ways to recognise something
@@ -238,7 +238,7 @@ type needs Enterprise.
 
 ## Where your data went: how the location is determined
 
-*Enterprise.* The **What happened** tab (Settings → Organisation → Privacy)
+*Enterprise.* The **What happened** tab (Admin → Security → Guardrails → Org Privacy Shield)
 has a world map of every outgoing call that tools and automations made in the
 period: connected apps, MCP servers, HTTP steps, web pages and so on. Calls to
 AI models are not on it. Each destination is a pin, with a line from your own

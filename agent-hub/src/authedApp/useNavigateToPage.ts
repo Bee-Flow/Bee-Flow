@@ -9,6 +9,7 @@ import {
     documentRoutePath,
 } from './appRoutes';
 import { isProjectsPage, projectRouteFromPage } from './projectNavigation';
+import { orgLicensePage } from './settingsRoutes';
 import { parseStudioQuery, sectionFromRaw, segmentForSection } from '../components/admin/Studio/studioRoutes';
 import { projectRoutePath } from '../utils/projectRoutes';
 import type { UseNavigateToPageArgs } from './useNavigateToPage.types';
@@ -196,10 +197,11 @@ export function useNavigateToPage({
         // upgrade CTA can link to without knowing whether the visitor ends up
         // with a personal or an organisation account. It resolves to the
         // matching settings tab, which is where the plan UI actually lives.
+        // An organisation's plan page is the dashboard's on a desktop.
         if (page === 'billing') {
             const target = user?.isConsumerAccount
                 ? 'settings/account/license'
-                : 'settings/organisation/license';
+                : orgLicensePage(isMobileRef.current);
             navigateTo(target);
             return;
         }

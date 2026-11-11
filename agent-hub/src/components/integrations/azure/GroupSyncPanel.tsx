@@ -7,9 +7,12 @@ import { errorMessage } from '@/utils/caughtError';
 import { request } from '@/api/mutate';
 import GroupSyncBlock from './GroupSyncBlock';
 import type { GroupSyncSettings, GroupSyncStatus } from './SSOSection.types';
+import { panelOrgId } from '@/utils/adminAccess';
 
 interface GroupSyncPanelProps {
     user?: { organizationId?: string } | null;
+    /** The organisation to act on; left out, the user's home organisation (outside the admin dashboard). */
+    orgId?: string | null;
 }
 
 /** What GET /api/org-azure-config/:orgId/sync-groups/status answers (server/routes/orgAzureSyncView.js). */
@@ -32,9 +35,9 @@ async function readGroupSync(orgId: string): Promise<GroupSyncRead> {
  * connected but none of the connection's values; the connection itself is the
  * platform admin's, in the full Azure panel.
  */
-export default function GroupSyncPanel({ user }: GroupSyncPanelProps) {
+export default function GroupSyncPanel({ user, orgId: orgIdProp }: GroupSyncPanelProps) {
     const { t } = useTranslation();
-    const orgId = user?.organizationId || '';
+    const orgId = panelOrgId(orgIdProp, user) || '';
     const query = useQuery({ queryKey: ['org-group-sync', orgId], queryFn: () => readGroupSync(orgId), enabled: !!orgId });
     // What a run or a settings save changed since the read; the read fills the rest.
     const [settings, setSettings] = useState<GroupSyncSettings | null>(null);

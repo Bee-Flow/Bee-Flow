@@ -3,13 +3,13 @@
 // functions, so the gating can be tested without rendering a single panel.
 
 import {
-    Activity, BadgeCheck, BarChart3, Bot, CreditCard, Globe, KeyRound, Languages, LifeBuoy,
+    Activity, BadgeCheck, BarChart3, Bot, Building2, CreditCard, Globe, KeyRound, Languages, LifeBuoy,
     Newspaper, Package, Palette, Plug, Scale, Shield, Sparkles,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { TIER_RANK } from '@/components/licensing/LicenseContext';
+import { TIER_RANK } from '@/components/licensing/licenseTiers';
 
-export type AdminTabGroupId = 'ai' | 'security' | 'platform' | 'operations' | 'website';
+export type AdminTabGroupId = 'organisation' | 'ai' | 'security' | 'connections' | 'platform' | 'operations' | 'website';
 
 /**
  * Whose data a section is about:
@@ -40,14 +40,19 @@ export interface AdminTab {
     orgAdminSections?: readonly string[];
     superAdminOnly?: boolean;
     minTier?: string;
+    /** A licence capability the tab needs (the entitlement snapshot's `can`), where the plan is not the rule. */
+    capability?: string;
     cloudOnly?: boolean;
     selfHostedOnly?: boolean;
 }
 
 /** The rail's groups, in rail order, each with the eyebrow above it. */
 export const ADMIN_TAB_GROUPS: readonly { id: AdminTabGroupId; labelKey: string; labelFallback: string }[] = [
+    { id: 'organisation', labelKey: 'settings.workspace_section', labelFallback: 'Workspace' },
     { id: 'ai', labelKey: 'admin.nav_group_ai', labelFallback: 'AI & agents' },
     { id: 'security', labelKey: 'admin.nav_group_security', labelFallback: 'Security & access' },
+    // Only the Organisation tab's connection sections sit here (organisation/orgSections).
+    { id: 'connections', labelKey: 'admin.org_hub_group_connections', labelFallback: 'Connections' },
     { id: 'platform', labelKey: 'admin.nav_group_platform', labelFallback: 'Platform' },
     { id: 'operations', labelKey: 'admin.nav_group_operations', labelFallback: 'Operations' },
     { id: 'website', labelKey: 'admin.nav_group_website', labelFallback: 'Website' },
@@ -91,12 +96,25 @@ const SECURITY_SCOPES: Readonly<Record<string, AdminScope>> = {
     'users/nextcloud': 'instance',
     'users/roles': 'instance',
     'users/permissions': 'instance',
+    // The organisation's own invitations, roles, model tiers and Nextcloud sync follow the chosen organisation.
+    'users/invitations': 'org',
+    'users/org-roles': 'org',
+    'users/custom-tiers': 'org',
+    'users/sync': 'org',
 };
 
 // Access: Grants and the organisation's access menu follow the dashboard's organisation;
 // the server licence and the global feature switches under Ceiling are server-wide.
 const ACCESS_SCOPES: Readonly<Record<string, AdminScope>> = {
     'ceiling/server': 'instance',
+};
+
+// Organisation: every section is the organisation the dashboard works on; two
+// parts inside them are server-wide (the Azure services setup and the Google
+// Maps key), shown to the platform admin only and marked as such.
+const ORGANISATION_SCOPES: Readonly<Record<string, AdminScope>> = {
+    'azure/config': 'instance',
+    'integrations/maps': 'instance',
 };
 
 /**
@@ -124,6 +142,13 @@ export function fixedOrgViewOf(tabId: string, section?: string, part?: string): 
 
 export const ADMIN_TABS: readonly AdminTab[] = [
     { id: 'agents', labelKey: 'admin.tab_agents', icon: Bot, group: 'ai', perm: ['admin_agents', 'admin_agents_chat', 'admin_agents_system'], scope: 'mixed', sections: { system: 'instance' }, superAdminOnly: false, minTier: 'enterprise' },
+    // The organisation's own settings (what Settings > Organisation held): placed
+    // after Agents here so the fallback tab stays Agents, first in the rail by its
+    // group. Opened by whoever administers an organisation (org_admin, or an
+    // organisation-admin role; see dashboard/adminTabAccess.ts). The rail shows
+    // no row for the tab itself: each of its sections is a row in its own group
+    // (dashboard/adminRailRows).
+    { id: 'organisation', labelKey: 'settings.organisation', labelFallback: 'Organisation', icon: Building2, group: 'organisation', perm: ['org_admin'], scope: 'mixed', sections: ORGANISATION_SCOPES, superAdminOnly: false },
     { id: 'ai-config', labelKey: 'admin.tab_ai_config', icon: Sparkles, group: 'ai', perm: ['admin_ai_config'], scope: 'instance', superAdminOnly: true },
     { id: 'security', labelKey: 'admin.tab_security', icon: Shield, group: 'security', perm: ['admin_security'], scope: 'mixed', sections: SECURITY_SCOPES, superAdminOnly: false },
     { id: 'integrations', labelKey: 'admin.tab_integrations', icon: Plug, group: 'platform', perm: ['admin_security'], scope: 'instance', superAdminOnly: true },
@@ -133,13 +158,16 @@ export const ADMIN_TABS: readonly AdminTab[] = [
     // organisation chosen in the dashboard, and the Ceiling's licence and
     // global switches are server-wide (ACCESS_SCOPES).
     { id: 'access', labelKey: 'admin.tab_access', labelFallback: 'Access', icon: KeyRound, group: 'security', perm: ['admin_security', 'org_admin', 'manage_users'], scope: 'mixed', sections: ACCESS_SCOPES, superAdminOnly: false },
+    // No minTier: Overview is open to every admin of the tab, and the other pages need the
+    // `advanced_usage_monitoring` capability (monitoring/monitoring.constants.ts), as Settings' usage did.
+    // An organisation admin by role gets the tab through `org_admin`, like Access.
     // Feedback: a platform admin reads every organisation's, an organisation admin their home
     // organisation's (server routes/feedback.js `/org`, which refuses anyone else).
-    { id: 'monitoring', labelKey: 'admin.tab_monitoring', icon: Activity, group: 'operations', perm: ['admin_monitoring'], scope: 'mixed', orgAdminSections: ['feedback'], superAdminOnly: false, minTier: 'enterprise' },
+    { id: 'monitoring', labelKey: 'admin.tab_monitoring', icon: Activity, group: 'operations', perm: ['admin_monitoring', 'org_admin'], scope: 'mixed', orgAdminSections: ['feedback'], superAdminOnly: false },
     // Compliance Hub — available on cloud AND self-hosted (Enterprise):
     // self-hosted GDPR customers are exactly who the hub serves. Also
     // reachable from Settings → Organisation for org-admins/DPOs.
-    { id: 'compliance', labelKey: 'admin.tab_compliance', icon: Scale, group: 'security', perm: ['admin_compliance'], scope: 'org', superAdminOnly: false, minTier: 'enterprise' },
+    { id: 'compliance', labelKey: 'admin.tab_compliance', icon: Scale, group: 'security', perm: ['admin_compliance'], scope: 'org', superAdminOnly: false, capability: 'compliance_hub_gdpr' },
     // Bee Flow customer-support inbox. Visible to any super-admin (or a
     // user with the `admin_support` permission), on cloud and self-hosted
     // alike — outbound email + AI reply are best-effort and degrade
@@ -180,11 +208,18 @@ export interface AdminAccess {
     serverOverride: boolean;
     isSuperAdmin: boolean;
     hasPermission: (perm: string) => boolean;
+    /** Does the entitlement snapshot grant this capability? Absent: capability-gated tabs are not offered. */
+    hasCapability?: (capability: string) => boolean;
 }
 
 /** A tab flagged for the super-admin, or about the whole server, is for the platform admin whatever permissions the viewer holds. */
 function isForPlatformAdmin(tab: AdminTab): boolean {
     return !!tab.superAdminOnly || tab.scope === 'instance';
+}
+
+/** The tab names a licence capability the viewer's entitlements do not grant. */
+function lacksCapability(tab: AdminTab, access: AdminAccess): boolean {
+    return !!tab.capability && !access.hasCapability?.(tab.capability);
 }
 
 /** May this user open this tab? An unknown tab is not refused here (the content just renders nothing). */
@@ -199,6 +234,7 @@ export function canOpenAdminTab(tab: AdminTab | undefined, access: AdminAccess):
     // (LEGACY_TIER_ALIAS applied at fetch); default rank 0 = community.
     if (tab.minTier && (TIER_RANK[access.tier] ?? 0) < (TIER_RANK[tab.minTier] ?? Infinity)) return false;
     // Server-wide licence active → no per-org subscriptions to manage.
+    if (lacksCapability(tab, access)) return false;
     if (tab.id === 'subscriptions' && access.serverOverride) return false;
     if (tab.selfHostedOnly && !access.isSelfHosted) return false;
     if (!access.isSuperAdmin && isForPlatformAdmin(tab)) return false;

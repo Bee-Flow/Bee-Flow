@@ -260,7 +260,7 @@
       "title": "Decide now who gets woken up",
       "instruction": "Open the Compliance hub and go to the rail row **Settings**. Find the group **Breach notification recipients** and add at least one address — the person who actually answers at 07:40, not a shared alias nobody reads. Press **Save**. We will check that the list is no longer empty.",
       "launch": {
-        "navigateTo": "settings/organisation/compliance",
+        "navigateTo": "admin/compliance",
         "label": "Open Compliance"
       }
     },

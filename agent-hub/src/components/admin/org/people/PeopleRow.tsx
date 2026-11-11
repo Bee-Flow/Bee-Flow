@@ -1,4 +1,4 @@
-import { Edit2, ServerCog, Shield, Trash2 } from 'lucide-react';
+import { Check, Clock, Edit2, ServerCog, Shield, Trash2, X } from 'lucide-react';
 import React from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import RoleBadge from '@/components/shared/RoleBadge';
@@ -14,6 +14,10 @@ export interface PeopleRowProps {
     onEdit?: (user: PeopleUser) => void;
     onResetMfa?: (user: PeopleUser) => void;
     onDelete?: (user: PeopleUser) => void;
+    /** Let a pending account in (it becomes an active member). */
+    onApprove?: (user: PeopleUser) => void;
+    /** Turn a pending account away (removes it). */
+    onReject?: (user: PeopleUser) => void;
     canManage?: boolean;
     /** The viewer is a platform admin: only then may a platform admin's row be edited, reset or deleted (the server refuses anyone else). */
     viewerIsPlatformAdmin?: boolean;
@@ -23,6 +27,47 @@ export interface PeopleRowProps {
      * target's home organisation); a member through a group alone stays listed, read-only.
      */
     viewerHomeOrgId?: string | null;
+}
+
+/** The "Pending" chip of an account waiting to be let in. */
+function PendingBadge() {
+    const { t } = useTranslation();
+    return (
+        <span className="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-[color-mix(in_srgb,var(--warning)_14%,transparent)] px-2 py-0.5 text-[10px] font-medium text-[var(--warning-ink)]">
+            <Clock className="h-3 w-3" aria-hidden="true" />
+            {t('admin_org.users_pending', 'Pending')}
+        </span>
+    );
+}
+
+/** Let a pending account in, or turn it away. */
+function PendingButtons({ user, onApprove, onReject }: { user: PeopleUser; onApprove?: (user: PeopleUser) => void; onReject?: (user: PeopleUser) => void }) {
+    const { t } = useTranslation();
+    const name = user.displayName || user.username;
+    return (
+        <>
+            {onApprove && (
+                <button
+                    onClick={() => onApprove(user)}
+                    aria-label={`${t('admin_org.users_approve_title', 'Approve user')}: ${name}`}
+                    className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-[var(--success-ink)] hover:bg-[color-mix(in_srgb,var(--success)_12%,transparent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
+                >
+                    <Check className="w-3.5 h-3.5" aria-hidden="true" />
+                    {t('admin.org_approve', 'Approve')}
+                </button>
+            )}
+            {onReject && (
+                <button
+                    onClick={() => onReject(user)}
+                    aria-label={`${t('admin_org.users_reject_title', 'Reject user')}: ${name}`}
+                    className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-[var(--error-ink)] hover:bg-[color-mix(in_srgb,var(--error)_10%,transparent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
+                >
+                    <X className="w-3.5 h-3.5" aria-hidden="true" />
+                    {t('admin.org_reject', 'Reject')}
+                </button>
+            )}
+        </>
+    );
 }
 
 /**
@@ -41,11 +86,12 @@ export interface PeopleRowProps {
  *     cannot execute is worse than not having it; real avatars need
  *     getAllUserAvatars and a second round-trip.
  */
-export default function PeopleRow({ user, orgChips = [], onEdit, onResetMfa, onDelete, canManage = false, viewerIsPlatformAdmin = false, viewerHomeOrgId = null }: PeopleRowProps) {
+export default function PeopleRow({ user, orgChips = [], onEdit, onResetMfa, onDelete, onApprove, onReject, canManage = false, viewerIsPlatformAdmin = false, viewerHomeOrgId = null }: PeopleRowProps) {
     const { t } = useTranslation();
     const isSystem = user.isSystem || user.id === 'admin';
     const isPlatformAdmin = user.role === PLATFORM_ADMIN_ROLE;
     const showActions = canManage && !isSystem && mayManageAccount(user, viewerIsPlatformAdmin, viewerHomeOrgId);
+    const isPending = user.status === 'pending';
     const initial = (user.displayName?.[0] || user.username?.[0] || '?').toUpperCase();
 
     return (
@@ -75,6 +121,7 @@ export default function PeopleRow({ user, orgChips = [], onEdit, onResetMfa, onD
                             {t('admin_org.platform_admin_badge', 'Platform admin')}
                         </span>
                     )}
+                    {isPending && <PendingBadge />}
                     {orgChips.map((chip) => (
                         <span
                             key={chip}
@@ -92,6 +139,7 @@ export default function PeopleRow({ user, orgChips = [], onEdit, onResetMfa, onD
 
             {showActions && (
                 <div className="flex items-center gap-1 flex-shrink-0">
+                    {isPending && <PendingButtons user={user} onApprove={onApprove} onReject={onReject} />}
                     <button
                         onClick={() => onEdit?.(user)}
                         aria-label={t('admin.sec_people_edit', 'Edit {name}', { name: user.displayName || user.username })}

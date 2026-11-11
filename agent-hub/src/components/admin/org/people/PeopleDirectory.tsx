@@ -34,6 +34,8 @@ interface PeopleDirectoryProps {
     onEditUser?: (user: PeopleUser) => void;
     onResetMfa?: (user: PeopleUser) => void;
     onDeleteUser?: (user: PeopleUser) => void;
+    onApproveUser?: (user: PeopleUser) => void;
+    onRejectUser?: (user: PeopleUser) => void;
 }
 
 /** The directory's heading: the counts (one organisation when the dashboard chose one) and "Add user". */
@@ -84,6 +86,8 @@ export default function PeopleDirectory({
     onEditUser,
     onResetMfa,
     onDeleteUser,
+    onApproveUser,
+    onRejectUser,
 }: PeopleDirectoryProps) {
     const { t } = useTranslation();
     const [groupBy, setGroupBy] = useState<string>(GROUP_BY.ORG);
@@ -132,6 +136,8 @@ export default function PeopleDirectory({
         onEdit: onEditUser,
         onResetMfa,
         onDelete: onDeleteUser,
+        onApprove: onApproveUser,
+        onReject: onRejectUser,
     };
 
     const groupByOptions = [

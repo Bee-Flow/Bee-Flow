@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { Users, Loader2 } from 'lucide-react';
 import useTranslation from '../../hooks/useTranslation';
-import { languageOptions, Row } from '../../pages/settings/shared/settingsPrimitives';
-import { InheritHint, InheritSelect, InheritSwitch, OrgSettingsLoadError, orgFormFromAnswer } from '../../pages/settings/shared/orgSettingFields';
+import { languageOptions, Row } from '@/components/settings/shared/settingsPrimitives';
+import { InheritHint, InheritSelect, InheritSwitch, OrgSettingsLoadError, orgFormFromAnswer } from '@/components/settings/shared/orgSettingFields';
 import {
     useTeamsNotesOrgSettings,
     useSaveTeamsNotesOrgSettings,
@@ -14,6 +14,7 @@ import TeamsConsentLinkCard from './teamsSetup/TeamsConsentLinkCard';
 import TeamsConnectionTest from './teamsSetup/TeamsConnectionTest';
 import TeamsMembersOverview from './teamsSetup/TeamsMembersOverview';
 import TeamsAppImportPanel from './teamsSetup/TeamsAppImportPanel';
+import { panelOrgId } from '@/utils/adminAccess';
 
 /**
  * Org-level Microsoft Teams → Meeting Notes settings, next to the Google Meet
@@ -31,9 +32,10 @@ import TeamsAppImportPanel from './teamsSetup/TeamsAppImportPanel';
 const INHERITABLE = ['autoImport', 'autoRecordConfig', 'language', 'lookbackHours'] as const;
 const DEFAULT_CFG: TeamsNotesSettings = { autoImport: null, autoRecordConfig: null, language: null, lookbackHours: null };
 
-export default function TeamsAdminPanel({ user }: { user?: { organizationId?: string | null } | null }) {
+/** `orgId`: the organisation to act on; left out, the user's home organisation (outside the admin dashboard). */
+export default function TeamsAdminPanel({ user, orgId: orgIdProp }: { user?: { organizationId?: string | null } | null; orgId?: string | null }) {
     const { t } = useTranslation();
-    const orgId = user?.organizationId || null;
+    const orgId = panelOrgId(orgIdProp, user);
     const query = useTeamsNotesOrgSettings(orgId);
     const save = useSaveTeamsNotesOrgSettings(orgId);
     const [draft, setDraft] = useState<TeamsNotesSettings | null>(null);

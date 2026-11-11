@@ -1,6 +1,7 @@
 // @typecheck strict
 /**
- * The organisation's MCP access policy. Org admins only, on their own org.
+ * The organisation's MCP access policy. Org admins only, on their own org; a
+ * platform admin on the org named by `?orgId` (requirePrimaryOrgAdmin).
  *
  *   GET /api/org/mcp-access → { policy, callerIp }
  *   PUT /api/org/mcp-access   (a full policy) → the saved policy
@@ -19,9 +20,11 @@ const { sessionUser } = require('../core/http/sessionUser');
 
 const router = express.Router();
 
-const NO_QUERY = z.object({}, { error: onUnknownKeys('This route takes no query parameters.') }).strict();
+// `orgId` is the organisation a platform admin chose in the admin dashboard;
+// requirePrimaryOrgAdmin reads it (and refuses it from anyone else).
+const ORG_QUERY = z.object({ orgId: z.string().optional() }, { error: onUnknownKeys('This route takes only the orgId query parameter.') }).strict();
 
-router.get('/', requirePrimaryOrgAdmin(), validate({ query: NO_QUERY }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof NO_QUERY>>} */ req, res) => {
+router.get('/', requirePrimaryOrgAdmin(), validate({ query: ORG_QUERY }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof ORG_QUERY>>} */ req, res) => {
     const policy = await getOrgMcpPolicy(req.primaryOrgId);
     res.json({ policy, callerIp: req.ip || null });
 });

@@ -2,6 +2,8 @@ import { useEffect } from 'react';
 import { MOBILE_ALLOWED_PAGES, isApprovalsStudioPath } from './appRoutes';
 import { useLicenseContext } from '../components/licensing/LicenseContext';
 import { useSubscriptionContext } from '../components/licensing/SubscriptionContext';
+import { useViewport } from '../hooks/useViewport';
+import { isOrgLicensePath, orgLicensePage } from './settingsRoutes';
 
 interface MobileRouteGuardProps {
     isMobile: boolean;
@@ -51,6 +53,8 @@ export function SubscriptionGate({ user, currentPage, deploymentMode, navigateTo
     const isPlatformOperator = user?.id === 'admin';
     const isConsumer = !(user?.organizationId || user?.orgId);
     const isSelfHosted = deploymentMode === 'self-hosted';
+    // A desktop gets the dashboard's licence page, a phone the Settings one.
+    const { isMobile } = useViewport();
 
     useEffect(() => {
         // Wait for BOTH the subscription and licence probes before deciding,
@@ -60,16 +64,14 @@ export function SubscriptionGate({ user, currentPage, deploymentMode, navigateTo
         // authoritative, no Stripe subscription is required (mirrors the
         // backend bypass in server/core/limits.js).
         if (isPlatformOperator || isConsumer || isSelfHosted || serverOverride) return;
-        // Already on the License & Usage page (or its loading path) — let
-        // it render so the admin can finish the checkout flow. Stripe
-        // bounces back to the same URL with `?checkout=success`; allow
-        // those query strings too.
-        const path = window.location.pathname;
-        const onLicensePage = path === '/app/settings/organisation/license'
-            || path.startsWith('/app/settings/organisation/license');
-        if (onLicensePage) return;
-        navigateToPage('settings/organisation/license');
-    }, [loading, licLoading, hasActiveSub, isPlatformOperator, isConsumer, isSelfHosted, serverOverride, currentPage, navigateToPage]);
+        // Already on the License & Usage page (in Settings, or the dashboard's
+        // Organisation > License & Usage) — let it render so the admin can
+        // finish the checkout flow. Stripe bounces back to the Settings URL
+        // with `?checkout=success`, which a desktop then redirects to the
+        // dashboard page; both are exempt, with their query strings.
+        if (isOrgLicensePath(window.location.pathname)) return;
+        navigateToPage(orgLicensePage(isMobile));
+    }, [loading, licLoading, hasActiveSub, isPlatformOperator, isConsumer, isSelfHosted, serverOverride, currentPage, navigateToPage, isMobile]);
 
     return null;
 }

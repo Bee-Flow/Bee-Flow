@@ -264,4 +264,9 @@ module.exports = {
     "admin_org.users_unknown": "Unknown",
     "admin_org.users_user": "User",
     "admin_org.users_user_default": "User (default)",
+    "admin_org.users_tab_invitations": "Invitations",
+    "admin_org.users_tab_org_roles": "Organisation roles",
+    "admin_org.users_tab_server_roles": "Server roles",
+    "admin_org.users_tab_custom_tiers": "Model tiers",
+    "admin_org.users_tab_nc_sync": "Nextcloud sync",
 };

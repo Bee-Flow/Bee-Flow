@@ -14,12 +14,14 @@ import { RangeControls } from './RangeControls';
 import { useMonitoringData, type MonitoringData } from './useMonitoringData';
 import type { DrawerDetail } from './drawer/drawerTypes';
 import type { MonitoringPanelProps } from './index.types';
-import { PAGES, monitoringPageOf } from './monitoring.constants';
+import { ADVANCED_PAGES_FEATURE, PAGES, isPageAllowedFor, monitoringPageOf } from './monitoring.constants';
 import type { CoveredScope } from './shared.types';
 import { toLocalInput } from './monitoring.helpers';
 import { isAdminSectionVisibleTo } from '@/components/admin/dashboard/adminTabs';
 import { useAdminOrgIdParam } from '@/components/admin/dashboard/useAdminOrg';
 import { isHomeOrgAdmin, isPlatformAdmin } from '@/utils/adminAccess';
+import { useLicenseContext } from '@/components/licensing/LicenseContext';
+import { UsageReportPage } from './UsageReportPage';
 
 /** Change against the previous period, in percent (null where the previous period had none). */
 function usageDeltas(summary: UsageSummary | null, prevSummary: UsageSummary | null): UsageDeltas {
@@ -90,6 +92,9 @@ function MonitoringPage({ page, data, range, customStart, customEnd, refreshKey,
                     onSelectModel={onSelectModel}
                 />
             );
+        case 'adoption':
+        case 'spend':
+            return <UsageReportPage report={page} range={range} customStart={customStart} customEnd={customEnd} refreshKey={refreshKey} onNavigate={onNavigate} />;
         case 'feedback':
             return <FeedbackPage feedback={data.feedback} summary={data.feedbackSummary} />;
         case 'activity':
@@ -122,7 +127,9 @@ export default function MonitoringPanel({ activeSection = '', onNavigate, user }
     // Feedback is for a platform admin and an organisation admin of their home organisation
     // (the `/org` route refuses anyone else); a hidden page falls back to Overview.
     const viewer = { isPlatformAdmin: isPlatformAdmin(user), isHomeOrgAdmin: isHomeOrgAdmin(user) };
-    const pages = PAGES.filter(p => isAdminSectionVisibleTo('monitoring', viewer, p.id));
+    // Overview is open to every admin of the tab; the other pages need the advanced-monitoring capability.
+    const hasAdvanced = useLicenseContext().hasFeature(ADVANCED_PAGES_FEATURE);
+    const pages = PAGES.filter(p => isPageAllowedFor(p.id, hasAdvanced) && isAdminSectionVisibleTo('monitoring', viewer, p.id));
     const requested = monitoringPageOf(activeSection);
     const page = pages.some(p => p.id === requested) ? requested : 'overview';
     const meta = pages.find(p => p.id === page) ?? pages[0];
@@ -152,16 +159,19 @@ export default function MonitoringPanel({ activeSection = '', onNavigate, user }
             <div className="relative h-full">
                 <div className="absolute inset-0 overflow-y-auto">
                     <div className="mx-auto flex max-w-[1400px] flex-col gap-5 p-4 md:p-6">
-                        <SectionHeader
-                            title={t(meta.labelKey)}
-                            description={scopeLine ? <>{pageDescription}<span className="block">{scopeLine}</span></> : pageDescription}
-                            status={(
-                                <RangeControls
-                                    range={range} setRange={setRange} customStart={customStart} setCustomStart={setCustomStart}
-                                    customEnd={customEnd} setCustomEnd={setCustomEnd} loading={loading} onRefresh={reload}
-                                />
-                            )}
-                        />
+                        {/* The onboarding tours' anchor for the usage report (onboarding/tourAnchors 'usage-summary'). */}
+                        <div data-tour="usage-summary">
+                            <SectionHeader
+                                title={t(meta.labelKey)}
+                                description={scopeLine ? <>{pageDescription}<span className="block">{scopeLine}</span></> : pageDescription}
+                                status={(
+                                    <RangeControls
+                                        range={range} setRange={setRange} customStart={customStart} setCustomStart={setCustomStart}
+                                        customEnd={customEnd} setCustomEnd={setCustomEnd} loading={loading} onRefresh={reload}
+                                    />
+                                )}
+                            />
+                        </div>
                         <MonitoringPage
                             page={page} data={data} range={range} customStart={customStart} customEnd={customEnd}
                             refreshKey={refreshKey} orgId={orgId} onDetail={setDetail} onNavigate={onNavigate}

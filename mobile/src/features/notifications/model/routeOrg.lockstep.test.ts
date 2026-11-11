@@ -74,4 +74,19 @@ describe('the legacy org-settings page and the admin dashboard tabs', () => {
         expect(translateWebLink('/app/admin/security')?.href).toBe('/org/members');
         expect(adminTarget('modules')).toEqual({ href: '/org', approximate: true });
     });
+
+    it('sends the organisation tab and its sections to the screen of the same settings segment', () => {
+        expect(adminTarget('organisation').href).toBe('/org');
+        expect(translateWebLink('/app/admin/organisation')?.href).toBe('/org');
+        for (const [segment, href] of Object.entries(ORG_SETTINGS_SEGMENTS)) {
+            expect(translateWebLink(`/app/admin/organisation/${segment}`)?.href).toBe(href);
+        }
+        expect(adminTarget('organisation', ['mcp'])).toEqual({ href: '/org', approximate: true });
+    });
+
+    it('sends the organisation shield and the monitoring pages to their screens', () => {
+        expect(translateWebLink('/app/admin/security/guardrails')?.href).toBe('/org/shield');
+        expect(translateWebLink('/app/admin/monitoring')?.href).toBe('/org/usage');
+        expect(translateWebLink('/app/admin/monitoring/activity')?.href).toBe('/org/usage');
+    });
 });

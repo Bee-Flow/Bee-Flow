@@ -219,7 +219,7 @@
    "title": "Put one real risk on the board, with your name on it",
    "instruction": "In Settings → Compliance → Risk register, press Seed suggested risks or Add risk to get a row. Then open it, set the Owner to yourself, give it a Next review date and press Save changes. We check the register for a row you put there yourself; the owner and the date are yours to set.",
    "launch": {
-    "navigateTo": "settings/organisation/compliance",
+    "navigateTo": "admin/compliance",
     "label": "Open Compliance"
    }
   },

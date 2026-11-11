@@ -1,4 +1,5 @@
-import { render, screen, fireEvent, cleanup, waitFor, within } from '@testing-library/react';
+import { screen, fireEvent, cleanup, waitFor, within } from '@testing-library/react';
+import { renderWithClient as render } from '@/test/render';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import UserManagement from './UserManagement';

@@ -39,12 +39,14 @@ interface ShieldPaneProps {
     canSeeActivity: boolean;
     upgradeUrl: LicenceContext['upgradeUrl'];
     saved: Shield['saved'];
+    /** The organisation the activity pane reads when it is not the caller's own. */
+    activityOrgId?: string | null;
 }
 
 /** The pane of the active step, capped and centred (see shieldLayout.ts). */
 export default function ShieldPane({
     tab, f, posture, guard, meta, readOnly, evidence, showActivity, showActivityTab, licence, env, t, onGoTo,
-    onDiagnoseGuard, onOpenCompliance, categories, orgId, typeErrors, toggleToolPiiCat, setToolPiiCats, canSeeActivity, upgradeUrl, saved,
+    onDiagnoseGuard, onOpenCompliance, categories, orgId, typeErrors, toggleToolPiiCat, setToolPiiCats, canSeeActivity, upgradeUrl, saved, activityOrgId,
 }: ShieldPaneProps) {
     return (
 
@@ -109,6 +111,7 @@ export default function ShieldPane({
                     licensed={canSeeActivity}
                     upgradeUrl={upgradeUrl}
                     onGoTo={onGoTo}
+                    orgId={activityOrgId}
                     toolHoldBack={{
                         // The saved policy: the findings describe what produced the data.
                         held: builtInOnly((saved || f).toolPiiPolicy?.external?.blockCategories).length,
