@@ -21,7 +21,8 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const Database = require('better-sqlite3');
-const { stub, insertTaskRow, norm, canReadStudioApp, canWriteStudioApp, baseModel } = require('../testUtils/studioAppDataHarness');
+const { insertTaskRow, norm, canReadStudioApp, canWriteStudioApp, baseModel } = require('../testUtils/studioAppDataHarness');
+const stub = (path, exports) => { const filename = require.resolve(path); require.cache[filename] = { id: filename, filename, loaded: true, exports }; };
 const apps = new Map();
 const models = new Map();      // appId → { model, modelVersion }
 const membership = new Map();  // `${appId}:${userId}` → roleKey

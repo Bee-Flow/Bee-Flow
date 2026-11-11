@@ -1,17 +1,10 @@
 // @typecheck strict
 'use strict';
 /**
- * Shared set-up for the Studio app data route tests: the require-cache stub
- * helper, the in-memory SQLite `tasks` engine, faithful copies of the store's
+ * Shared set-up for the Studio app data route tests: the in-memory SQLite `tasks` engine, faithful copies of the store's
  * pure access predicates and the base data model the tests start from.
  */
 /** @typedef {{ userId: string, isPublished?: boolean, organizationId?: string | null, sharedGroups?: string[] }} StudioAppRow */
-
-/** @param {string} path @param {Record<string, unknown>} exports */
-function stub(path, exports) {
-    const filename = require.resolve(path);
-    require.cache[filename] = { id: filename, filename, loaded: true, exports };
-}
 
 /** @param {unknown[] | undefined} params */
 function norm(params) { return (params || []).map((v) => (typeof v === 'boolean' ? (v ? 1 : 0) : v)); }
@@ -58,7 +51,7 @@ function baseModel() {
 }
 
 /**
- * @param {import('better-sqlite3').Database} memdb
+ * @param {InstanceType<typeof import('better-sqlite3')>} memdb
  * @param {string} org
  * @param {{ id: string, by: string, region?: string, amount?: number, title?: string }} row
  */
@@ -67,4 +60,4 @@ function insertTaskRow(memdb, org, { id, by, region = 'EU', amount = 10, title =
         VALUES (?,?,?,?,?,?,?,?)`).run(id, '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z', by, org, title, region, amount);
 }
 
-module.exports = { insertTaskRow, stub, norm, canReadStudioApp, canWriteStudioApp, baseModel };
+module.exports = { insertTaskRow, norm, canReadStudioApp, canWriteStudioApp, baseModel };
