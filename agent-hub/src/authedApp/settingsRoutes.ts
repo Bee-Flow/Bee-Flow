@@ -113,6 +113,90 @@ const ORG_URL_TO_ID: Record<string, string> = Object.fromEntries(
     Object.entries(SETTINGS_ORG_ID_TO_URL).map(([id, url]) => [url, id]),
 );
 
+/* ── Organisation sub-tabs in the admin dashboard ────────────────────────── */
+// On a desktop the organisation's pages live in the admin dashboard; each old
+// /app/settings/organisation/<sub> address is sent (with `replace`) to the page
+// named here, as an in-app page string ('admin/<tab>[/<section>]'). Most keep
+// their segment as the section of the Organisation tab; the rest were merged
+// into an existing tab. A phone keeps the Settings pages (the dashboard is
+// desktop-only), so this table is read on a desktop only.
+export const SETTINGS_ORG_ADMIN_TARGETS: Record<string, string> = {
+    license: 'admin/organisation/license',
+    auth: 'admin/organisation/auth',
+    privacy: 'admin/security/guardrails',
+    encryption: 'admin/organisation/encryption',
+    ai_context: 'admin/organisation/ai-context',
+    integration_cache: 'admin/organisation/integration-cache',
+    info: 'admin/organisation/info',
+    org_usage: 'admin/monitoring',
+    org_compliance: 'admin/compliance',
+    org_users: 'admin/security/users',
+    org_academy: 'admin/organisation/academy',
+    org_integrations: 'admin/organisation/integrations',
+    org_mcp: 'admin/organisation/mcp',
+    org_mcp_access: 'admin/organisation/mcp-access',
+    org_github_sync: 'admin/organisation/github-sync',
+    org_nextcloud_sync: 'admin/organisation/nextcloud-sync',
+    org_meeting_templates: 'admin/organisation/meeting-templates',
+    org_azure: 'admin/organisation/azure',
+};
+
+// The usage reports (/app/settings/organisation/usage/<report>) as Monitoring pages.
+const USAGE_REPORT_TO_MONITORING: Record<string, string> = {
+    adoption: 'admin/monitoring/adoption',
+    spend: 'admin/monitoring/spend',
+    quality: 'admin/monitoring/feedback',
+    feedback: 'admin/monitoring/feedback',
+    terminations: 'admin/monitoring/terminations',
+};
+
+/**
+ * The admin dashboard page an organisation sub-tab moved to, with the deep
+ * segments it carries: Compliance keeps its section and check, a usage report
+ * opens the matching Monitoring page. Null for a tab that did not move.
+ */
+export function settingsOrgAdminTarget(tabId: string, deep: { seg1?: string; seg2?: string } = {}): string | null {
+    const base = SETTINGS_ORG_ADMIN_TARGETS[tabId];
+    if (!base) return null;
+    if (tabId === 'org_compliance' && deep.seg1) {
+        return [base, deep.seg1, deep.seg2 ? encodeURIComponent(deep.seg2) : ''].filter(Boolean).join('/');
+    }
+    if (tabId === 'org_usage' && deep.seg1) return USAGE_REPORT_TO_MONITORING[deep.seg1] ?? base;
+    return base;
+}
+
+// The tabs of the old /app/org-settings/<tab> page that moved to the dashboard.
+// Agents and Knowledge Bases stay on that page: they have no dashboard section.
+const ORG_SETTINGS_ADMIN_TARGETS: Record<string, string> = {
+    organisation: 'admin/organisation/info',
+    'github-sync': 'admin/organisation/github-sync',
+    'nextcloud-sync': 'admin/organisation/nextcloud-sync',
+    users: 'admin/security/users',
+};
+
+/** The dashboard page an /app/org-settings/<seg1>[/<seg2>] address moved to, or null. */
+export function orgSettingsAdminTarget(seg1: string | undefined, seg2?: string): string | null {
+    const base = seg1 ? ORG_SETTINGS_ADMIN_TARGETS[seg1] : undefined;
+    if (!base) return null;
+    return seg1 === 'users' && seg2 ? `${base}/${encodeURIComponent(seg2)}` : base;
+}
+
+/**
+ * The organisation licence page the subscription gate sends an organisation
+ * without a plan to: the dashboard's on a desktop, the Settings one on a phone
+ * (/app/settings/organisation/license stays the Stripe return address and
+ * redirects on a desktop).
+ */
+export function orgLicensePage(isMobile: boolean): string {
+    return isMobile ? 'settings/organisation/license' : SETTINGS_ORG_ADMIN_TARGETS.license;
+}
+
+/** Is this the organisation licence page, in Settings or in the dashboard (where the gate lets it render)? */
+export function isOrgLicensePath(pathname: string): boolean {
+    return pathname.startsWith('/app/settings/organisation/license')
+        || pathname.startsWith(`/app/${SETTINGS_ORG_ADMIN_TARGETS.license}`);
+}
+
 /** The tab id a settings URL opens on, or null when the path is not settings. */
 export function settingsTabFromPath(pathname: string | null | undefined = window.location.pathname): string | null {
     const parts = String(pathname || '').replace(/^\/+|\/+$/g, '').split('/');

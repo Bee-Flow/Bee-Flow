@@ -2,7 +2,7 @@ import { useEntitlements } from '@/components/licensing/EntitlementsContext';
 import { useCan } from '@/components/licensing/Gate';
 import usePermissionCheck from '@/hooks/usePermissionCheck';
 import useProjectsAvailable from '@/hooks/useProjectsAvailable';
-import { isPlatformAdmin as isPlatformAdminUser } from '@/utils/adminAccess';
+import { orgStandingFactsOf } from '@/components/admin/organisation/orgSections';
 import type { SettingsUser } from './settingsShellTypes';
 
 // Stable identity for usePermissionCheck (its memo keys on the array reference).
@@ -13,8 +13,9 @@ const COMPLIANCE_PERMS = ['admin_compliance'];
  * licence and entitlement facts the settings shell filters its rows on.
  */
 export function useSettingsAccess(user: SettingsUser | null | undefined) {
-    const perms = user?.permissions || [];
-    const canSeeOrg = perms.includes('all') || perms.includes('org_admin') || user?.orgRole === 'admin' || user?.orgRole === 'org_admin';
+    // Who administers an organisation, the deployment and the Nextcloud facts:
+    // one source with the admin dashboard's Organisation tab (orgSections).
+    const { canSeeOrg, canManageUsers, isSelfHosted, isNcConnectorUser, isNcOrg, showNcSync, isPlatformAdmin } = orgStandingFactsOf(user);
     // Learning Center is toggleable per subscription plan (capability
     // `learning_center`). Hide its nav item + page when the org's plan doesn't
     // include it; the /ai/learning API is gated server-side too.
@@ -43,28 +44,7 @@ export function useSettingsAccess(user: SettingsUser | null | undefined) {
     const canSeeCompliance = usePermissionCheck(user, COMPLIANCE_PERMS);
     const canUseCompliance = useCan('compliance_hub_gdpr');
     const showComplianceNav = canSeeCompliance && canUseCompliance;
-    const canManageUsers = perms.includes('all') || perms.includes('manage_users') || user?.orgRole === 'admin' || user?.orgRole === 'org_admin';
-    const deploymentMode = user?.featureFlags?.deploymentMode || 'cloud';
-    const isSelfHosted = deploymentMode === 'self-hosted';
     const isConsumerAccount = !!user?.isConsumerAccount;
-    // Users coming in through the Nextcloud ExApp connector authenticate via
-    // their NC session — the Bee Flow "Sign-in Method" panel (password/SSO/
-    // OAuth provider config) doesn't apply because identity is delegated to
-    // Nextcloud. Hide that section to avoid the false impression that they
-    // can configure auth here. We hide based on org-level binding (ncOrg)
-    // rather than the current user's provider so the original creator who
-    // bootstrapped the NC org also sees the same gated UI.
-    const isNcConnectorUser = user?.provider === 'nextcloud_connector';
-    const isNcOrg = !!user?.ncOrg?.instanceId;
-    // Super-admins (perms 'all' or role 'admin') manage every org in the
-    // deployment, so they should see NC-related sections even if their own
-    // session isn't tied to an NC-bound org. Org-admins only see the section
-    // when their own org is NC-bound.
-    const isSuperAdmin = perms.includes('all') || user?.role === 'admin';
-    const showNcSync = isNcOrg || isSuperAdmin;
-    // The platform admin exactly as the server tests it (utils/adminAccess); the
-    // `all` permission is not it. The instance-wide rows (Azure) take this.
-    const isPlatformAdmin = isPlatformAdminUser(user);
 
     return {
         canSeeOrg, canUseLearning, entitlementsLoading, inCeiling, entitlementsUnknown, projectsOn, canSeeCompliance,

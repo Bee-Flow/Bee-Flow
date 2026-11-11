@@ -1,6 +1,6 @@
 import { Users, Link2, BarChart2, Cloud, FolderGit2, GraduationCap, FileText, Scale, Plug, ShieldCheck, RefreshCw } from 'lucide-react';
-import { useState, useEffect, useMemo } from 'react';
-import { SETTINGS_ORG_ID_TO_URL, settingsTabFromPath } from '../authedApp/settingsRoutes';
+import { useState, useEffect } from 'react';
+import { SETTINGS_ORG_ID_TO_URL, settingsOrgAdminTarget } from '../authedApp/settingsRoutes';
 import ComplianceHub from '../components/admin/compliance';
 import useComplianceCounts from '../components/admin/compliance/data/useComplianceCounts';
 import { SECTIONS as ORG_SECTIONS } from '../components/admin/org/OrgInfoPanel';
@@ -9,7 +9,6 @@ import { useSubscriptionContext } from '../components/licensing/SubscriptionCont
 import NavCountBadge from '../components/shared/NavCountBadge';
 import { useTranslation } from '../hooks/useTranslation';
 import { useViewport } from '../hooks/useViewport';
-import { filterOrgSubItems, groupOrgNavItems } from './settings/shell/orgSubItems';
 import { renderSettingsContent } from './settings/shell/renderSettingsContent';
 import { SettingsContentPanel, SettingsTitleBar } from './settings/shell/SettingsFrame';
 import { findActiveNavItem, getVisibleNavItems, splitNavRows } from './settings/shell/settingsShellData';
@@ -22,14 +21,14 @@ import { useSettingsData } from './settings/shell/useSettingsData';
 import { useSettingsTab } from './settings/shell/useSettingsTab';
 import type { SettingsUser } from './settings/shell/settingsShellTypes';
 import type { MemoryView } from '../components/knowledge/memory/memoryTypes';
-import useAdjustOnChange from '@/hooks/useAdjustOnChange';
 
 export { AvatarDisplay } from './settings/shell/AvatarDisplay';
 
 /* ── Org sub-items (use labelKey for i18n) ────────────────────────────────── */
 /* Source order (ids, label keys): pinned row for row by the phone's
- * sections.lockstep.test.ts. The sidebar draws the rows in ORG_NAV_GROUPS
- * below, so reorder there, not here. */
+ * sections.lockstep.test.ts. A desktop draws these pages in the admin
+ * dashboard (components/admin/organisation, SETTINGS_ORG_ADMIN_TARGETS); here
+ * they name a phone's detail view (Compliance, the no-plan licence page). */
 const BASE_ORG_SUB_ITEMS = [
     ...ORG_SECTIONS,                                            // OrgInfoPanel's seven sections (license … info); already use labelKey
     { id: 'org_usage', labelKey: 'settings.usage_monitoring', icon: BarChart2, color: '#f59e0b' },
@@ -58,20 +57,6 @@ const AZURE_SUB_ITEM = { id: 'org_azure', labelKey: 'settings.azure_config', ico
 // admin: the organisation's own group sync (GroupSyncPanel), not the instance-wide setup.
 const GROUP_SYNC_SUB_ITEM = { id: 'org_azure', labelKey: 'azure.group_sync_nav', icon: RefreshCw, color: '#0078D4' };
 
-/* The order the sidebar draws the visible org rows in: topic groups with a
- * thin rule between them, no captions. 1 the organisation and its plan,
- * 2 people and access, 3 privacy and security, 4 AI and data, 5 integrations
- * (MCP access next to the MCP library). A visible row that is not filed here
- * is still drawn, in a group of its own at the end. The phone files the same
- * sections in its own captioned groups (mobile sections.ts ORG_HUB_GROUPS). */
-const ORG_NAV_GROUPS = [
-    ['info', 'license', 'org_usage'],
-    ['org_users', 'auth', 'org_academy'],
-    ['privacy', 'encryption', 'org_compliance'],
-    ['ai_context', 'integration_cache', 'org_meeting_templates'],
-    ['org_integrations', 'org_mcp', 'org_mcp_access', 'org_github_sync', 'org_nextcloud_sync', 'org_azure'],
-];
-
 /* Every org sub-tab id, taken from the URL table: each one has an address
  * there (settingsRoutes.js), so this is the same set without a second list. */
 const ALL_ORG_IDS: (string | null)[] = Object.keys(SETTINGS_ORG_ID_TO_URL);
@@ -96,7 +81,7 @@ const STATUS_BACKED_KEYS = ['fireflies', 'youtrack', 'signrequest', 'gamma', 'af
 
 /* ── Main component ──────────────────────────────────────────────────────── */
 interface AdvancedSettingsProps {
-    onNavigate: (path: string) => void;
+    onNavigate: (path: string, opts?: { replace?: boolean }) => void;
     onLogout?: () => void;
     user: SettingsUser | null;
     onUpdateUser?: (patch: Partial<SettingsUser>) => void;
@@ -112,18 +97,17 @@ const AdvancedSettings = ({ onNavigate, onLogout, user, onUpdateUser, onClose }:
     // keep that one reachable on mobile so they can still subscribe.
     const { hasActiveSub } = useSubscriptionContext();
     const { activeTab, setActiveTab, setActiveTabState, orgDeepSegs, setOrgDeepSegs } = useSettingsTab();
-    const [orgExpanded, setOrgExpanded] = useState(() => ALL_ORG_IDS.includes(settingsTabFromPath()) || ALL_ORG_IDS.includes(activeTab));
 
     const {
-        canSeeOrg, canUseLearning, entitlementsLoading, inCeiling, entitlementsUnknown, projectsOn, canSeeCompliance,
-        showComplianceNav, canManageUsers, isSelfHosted, isConsumerAccount, isNcConnectorUser, isNcOrg, showNcSync,
-        isPlatformAdmin,
+        canSeeOrg, canUseLearning, entitlementsLoading, entitlementsUnknown, projectsOn, canSeeCompliance,
+        showComplianceNav, isSelfHosted, isConsumerAccount, isPlatformAdmin,
     } = useSettingsAccess(user);
-    // The badge on the Compliance row: ONE cheap call, no poll, `attention_open`
-    // only; an unknown or zero count renders nothing (NavCountBadge): a "0"
-    // invented while the endpoint has not answered is a lie.
+    // The badge on the Compliance row (a phone's; a desktop opens Compliance in
+    // the admin dashboard): ONE cheap call, no poll, `attention_open` only; an
+    // unknown or zero count renders nothing (NavCountBadge): a "0" invented
+    // while the endpoint has not answered is a lie.
     const { counts: complianceCounts } = useComplianceCounts({
-        enabled: !!showComplianceNav, poll: false, keys: ['attention_open'],
+        enabled: !!showComplianceNav && isMobile, poll: false, keys: ['attention_open'],
     });
     const complianceBadge = (
         <NavCountBadge tone="warning" count={complianceCounts?.attention_open} testId="nav-compliance-count" />
@@ -142,34 +126,26 @@ const AdvancedSettings = ({ onNavigate, onLogout, user, onUpdateUser, onClose }:
         isSimpleMode, activeTab, setActiveTab, isSelfHosted, entitlementsLoading, canUseLearning, entitlementsUnknown, projectsOn, isMobile, phoneExemptTab,
     });
 
-    // If user navigates to an org sub-tab, keep org expanded
-    useAdjustOnChange([isOrgSubTab], () => { if (isOrgSubTab) setOrgExpanded(true); });
+    // A desktop opens the organisation's pages in the admin dashboard: an old
+    // /app/settings/organisation/<sub> address (a bookmark, a Stripe return, a
+    // link) is replaced by its page there, query string and all. A phone keeps
+    // them here (the dashboard is desktop-only).
+    useEffect(() => {
+        if (isMobile) return;
+        const target = settingsOrgAdminTarget(activeTab, orgDeepSegs);
+        if (target) onNavigate(`${target}${window.location.search}`, { replace: true });
+    }, [isMobile, activeTab, orgDeepSegs, onNavigate]);
 
     const [showMemoryPanel, setShowMemoryPanel] = useState(false);
     // 'review' when the pending-review row of Settings → Memory opened the panel.
     const [memoryPanelView, setMemoryPanelView] = useState<MemoryView>('active');
-    const { memoryStats, memoryStatsStatus, agents, statuses, orgAuthLocked, fetchMemoryStats, fetchSettingsStatuses } = useSettingsData(user, canSeeOrg);
-    const orgSubItems = useMemo(() => {
-        return filterOrgSubItems(BASE_ORG_SUB_ITEMS, AZURE_SUB_ITEM, {
-            canSeeOrg, canManageUsers, canUseLearning, showComplianceNav, isSelfHosted, isPlatformAdmin, isNcConnectorUser, isNcOrg, showNcSync,
-            githubConnected: statuses.githubConnected, orgAuthLocked, entitlementsLoading, entitlementsUnknown, inCeiling,
-        }, GROUP_SYNC_SUB_ITEM);
-    }, [canSeeOrg, canManageUsers, canUseLearning, showComplianceNav, isSelfHosted, isPlatformAdmin, isNcConnectorUser, isNcOrg, showNcSync, statuses.githubConnected, orgAuthLocked, entitlementsLoading, entitlementsUnknown, inCeiling]);
-
-    // The rows as the sidebar draws them: ORG_NAV_GROUPS order, empty groups dropped.
-    const orgNavGroups = useMemo(() => groupOrgNavItems(orgSubItems, ORG_NAV_GROUPS), [orgSubItems]);
-    const firstOrgSubItemId = orgNavGroups[0]?.[0]?.id;
-
-    // The per-org "License & Usage" section is hidden on self-hosted (see the
-    // orgSubItems filter above). A default/deep-link can still resolve activeTab
-    // to 'license', so bounce it to the first row the sidebar draws. Placed
-    // after orgNavGroups so the dependency array can reference it without a
-    // TDZ error.
+    const { memoryStats, memoryStatsStatus, agents, statuses, fetchMemoryStats, fetchSettingsStatuses } = useSettingsData(user, canSeeOrg);
+    // The per-org "License & Usage" section does not exist on self-hosted
+    // (licensing is server-wide). On a phone a deep link can still resolve
+    // activeTab to 'license'; it goes to Preferences (a desktop redirects above).
     useEffect(() => {
-        if (isSelfHosted && activeTab === 'license') {
-            setActiveTab(firstOrgSubItemId || 'org_usage');
-        }
-    }, [isSelfHosted, activeTab, firstOrgSubItemId, setActiveTab]);
+        if (isMobile && isSelfHosted && activeTab === 'license') setActiveTab('preferences');
+    }, [isMobile, isSelfHosted, activeTab, setActiveTab]);
 
     const { defaultAgentMode, setDefaultAgentMode, defaultAgentId, setDefaultAgentId } = useDefaultAgentPreference();
 
@@ -212,17 +188,8 @@ const AdvancedSettings = ({ onNavigate, onLogout, user, onUpdateUser, onClose }:
     }, [isMobile, phoneExemptTab]);
 
     const handleNavClick = (id: string) => {
-        if (id === 'organisation') {
-            // The parent row only opens and closes the group; collapsing it
-            // keeps the page that is open. Opening it from outside the group
-            // selects the first row the sidebar draws.
-            const next = !orgExpanded;
-            setOrgExpanded(next);
-            if (next && !isOrgSubTab && firstOrgSubItemId) setActiveTab(firstOrgSubItemId);
-        } else {
-            setActiveTab(id);
-            if (isMobile) setMobileDetail(true);   // drill into the section
-        }
+        setActiveTab(id);
+        if (isMobile) setMobileDetail(true);   // drill into the section
     };
 
     // Phone title bar shows the section name while in detail view: a top-level
@@ -267,8 +234,6 @@ const AdvancedSettings = ({ onNavigate, onLogout, user, onUpdateUser, onClose }:
                     showComplianceNav={showComplianceNav}
                     isConsumerAccount={isConsumerAccount}
                     complianceBadge={complianceBadge}
-                    orgExpanded={orgExpanded}
-                    orgNavGroups={orgNavGroups}
                     settingsNavRows={settingsNavRows}
                     resourceNavRows={resourceNavRows}
                     onNavClick={handleNavClick}
@@ -277,7 +242,8 @@ const AdvancedSettings = ({ onNavigate, onLogout, user, onUpdateUser, onClose }:
 
                 {/* ── Content panel ── */}
                 <SettingsContentPanel mobileDetail={mobileDetail} activeTab={activeTab} isOrgSubTab={isOrgSubTab}>
-                    {renderContent()}
+                    {/* An organisation page on a desktop is on its way to the dashboard: nothing renders meanwhile. */}
+                    {!isMobile && settingsOrgAdminTarget(activeTab) ? null : renderContent()}
                 </SettingsContentPanel>
             </div>
 

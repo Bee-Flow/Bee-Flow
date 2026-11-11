@@ -6,7 +6,7 @@ import AdminAccessDenied from '../components/admin/dashboard/AdminAccessDenied';
 import AdminRail from '../components/admin/dashboard/AdminRail';
 import type { AdminRailSectionView } from '../components/admin/dashboard/AdminRail';
 import AdminTabContent from '../components/admin/dashboard/AdminTabContent';
-import { ADMIN_TABS, buildAdminRailSections, canOpenAdminTab, fixedOrgViewOf, resolveAdminTab, shownAdminScope } from '../components/admin/dashboard/adminTabs';
+import { ADMIN_TABS, buildAdminRailSections, fixedOrgViewOf, resolveAdminTab, shownAdminScope } from '../components/admin/dashboard/adminTabs';
 import type { AdminRailSection, AdminScope, AdminTab } from '../components/admin/dashboard/adminTabs';
 import AdminScopeBar from '@/components/admin/dashboard/AdminScopeBar';
 import { scopeBarView, type ScopeBarView } from '@/components/admin/dashboard/scopeBarView';
@@ -15,11 +15,9 @@ import { AdminScopeOverrideProvider } from '../components/admin/dashboard/useAdm
 import type { TranslateFn } from '@/hooks/useTranslation';
 import Modal from '../components/shared/Modal';
 import Spinner from '@/components/shared/Spinner';
-import { useDeploymentMode } from '../hooks/useDeploymentMode';
-import { useLicenseContext } from '../components/licensing/LicenseContext';
 import type { AdminCurrentUser } from '../components/admin/org/userManagement/types';
-import { resolveAgentSection } from '@/components/agents/agentSections';
-import { homeOrgIdOf, isPlatformAdmin as isPlatformAdminUser } from '@/utils/adminAccess';
+import { useAdminTabAccess } from '@/components/admin/dashboard/useAdminTabAccess';
+import { homeOrgIdOf } from '@/utils/adminAccess';
 
 
 interface AdminDashboardProps {
@@ -38,35 +36,19 @@ interface AdminDashboardProps {
  */
 const AdminDashboard = ({ user, onBack, adminPath = {}, onNavigate }: AdminDashboardProps) => {
     const { t } = useTranslation();
-    const { isCloud, isSelfHosted } = useDeploymentMode();
-    // A server-wide licence covers the whole install — no org needs a Stripe
-    // subscription, so the cloud Subscriptions management surface is moot.
-    const { serverOverride, tier } = useLicenseContext();
-    const isPlatformAdmin = isPlatformAdminUser(user);
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [scopeOverride, setScopeOverride] = useState<AdminScope | null>(null);
     const orgChoice = useAdminOrg(user, [adminPath.seg1, adminPath.seg2, adminPath.seg3].join('/'));
 
-    // Permission helper - checks if user has a specific permission
-    const hasPermission = (perm: string) => {
-        if (isPlatformAdmin) return true;
-        const perms = user?.permissions || [];
-        return perms.includes('all') || perms.includes(perm);
-    };
-
-    // Platform admin means users.role === 'admin' — NOT the 'all' permission.
-    // The server draws the same line (auth/permissions.js requireSuperAdmin),
-    // and it deliberately does not honour 'all': that wildcard is reachable
-    // from inside a tenant via a role attached to a group. Including it here
-    // would render operator-only tabs that then 403 on every request, which
-    // reads as a broken console rather than a clean denial.
-    const isSuperAdmin = isPlatformAdmin;
-
-    // The Agents tab with no section left for this viewer would open an empty hub.
-    const hasAgentSection = resolveAgentSection(user, '').visible.length > 0;
-    const checkTabAccess = (tab: AdminTab | undefined) => canOpenAdminTab(tab, {
-        isCloud, isSelfHosted, tier, serverOverride: !!serverOverride, isSuperAdmin, hasPermission,
-    }) && !(tab?.id === 'agents' && !hasAgentSection);
+    // The permission test and the tab gates (dashboard/useAdminTabAccess). Platform
+    // admin means users.role === 'admin' — NOT the 'all' permission. The server
+    // draws the same line (auth/permissions.js requireSuperAdmin), and it
+    // deliberately does not honour 'all': that wildcard is reachable from inside
+    // a tenant via a role attached to a group. Including it here would render
+    // operator-only tabs that then 403 on every request, which reads as a broken
+    // console rather than a clean denial.
+    const { hasPermission, isSuperAdmin, checkTabAccess, canOpenDashboard } = useAdminTabAccess(user);
+    const isPlatformAdmin = isSuperAdmin;
     const { activeTab, agentSection, firstAllowedTab, isTabAllowed } = resolveAdminTab(adminPath, checkTabAccess);
     const labelOf = (tab: AdminTab) => t(tab.labelKey, tab.labelFallback);
 
@@ -78,8 +60,7 @@ const AdminDashboard = ({ user, onBack, adminPath = {}, onNavigate }: AdminDashb
     };
 
     // Check if user has ANY admin permission at all
-    const hasAnyAdminPermission = isSuperAdmin || hasPermission('all') || ADMIN_TABS.some(tab => checkTabAccess(tab));
-    if (!hasAnyAdminPermission) return <AdminAccessDenied scope="whole" onBack={onBack} />;
+    if (!canOpenDashboard) return <AdminAccessDenied scope="whole" onBack={onBack} />;
 
     // Product website — full-screen builder. It escapes the admin chrome
     // entirely (no dashboard rail): the builder owns its own TopBar and

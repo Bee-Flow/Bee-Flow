@@ -65,3 +65,12 @@ export function mayManageAccount(account: ManagedAccount, viewerIsPlatformAdmin:
 export function isHomeOrgAdmin(user: Readonly<Record<string, unknown>> | null | undefined): boolean {
     return user?.isHomeOrgAdmin === true;
 }
+
+/**
+ * The organisation a panel acts on: the one it was handed (the admin
+ * dashboard's; null for none), or, when it was handed none, the viewer's home
+ * organisation (the panel outside the dashboard).
+ */
+export function panelOrgId(orgId: string | null | undefined, user: Readonly<Record<string, unknown>> | null | undefined): string | null {
+    return orgId === undefined ? homeOrgIdOf(user) : orgId || null;
+}

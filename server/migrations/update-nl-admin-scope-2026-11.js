@@ -10,6 +10,8 @@
  *   - the integration defaults are copied into organisations created in the
  *     admin and followed live by organisations without a list of their own
  *     (core/integrations/enabledIntegrations.js).
+ * Also the labels of the dashboard's Organisation tab (its section groups, the
+ * "choose an organisation" notice and the own-organisation-only notice).
  *
  * NL_TRANSLATIONS: keys this work added; written when a workspace does not
  * have them yet, so a workspace's own wording is kept.
@@ -35,6 +37,13 @@ const NL_TRANSLATIONS = Object.freeze({
     'admin.scope_compliance_home': 'Compliance toont je eigen organisatie',
     'admin.scope_access_choose_org': 'Kies hierboven een organisatie om de toegang te beheren',
     'admin.scope_personal': 'Persoonlijk: alleen voor jou',
+    // The admin dashboard's Organisation tab (what Settings > Organisation held).
+    'admin.scope_choose_org': 'Kies hierboven een organisatie om die te beheren',
+    'admin.org_home_only': 'Dit onderdeel werkt alleen voor je eigen organisatie. Kies hierboven je eigen organisatie om het te wijzigen.',
+    'admin.org_hub_group_people': 'Mensen',
+    'admin.org_hub_group_privacy': 'Privacy & beveiliging',
+    'admin.org_hub_group_ai': 'AI & gegevens',
+    'admin.org_hub_group_connections': 'Koppelingen',
 });
 
 /** @type {Readonly<Record<string, { was: string[], now: string }>>} */

@@ -3,7 +3,7 @@ import { Video } from 'lucide-react';
 import { API_BASE, authFetch } from '../../utils/helpers';
 import { useGmeetNotesUserSettings, settingsOptionalKeys } from '../../api/queries/settingsOptionalRead';
 import { useQueryClient } from '@tanstack/react-query';
-import { languageOptions, Toggle, Row, Select } from './shared/settingsPrimitives';
+import { languageOptions, Toggle, Row, Select } from '@/components/settings/shared/settingsPrimitives';
 import { openGoogleOAuthPopup } from '../../lib/googleOAuthPopup';
 import { useTranslation, type TranslateFn } from '../../hooks/useTranslation';
 import { errorMessage, messageOf } from '../../utils/caughtError';

@@ -193,3 +193,31 @@ describe('OrgSettings — tab bar', () => {
         expect(screen.getByTestId('mock-org-users')).toBeTruthy();
     });
 });
+
+describe('OrgSettings — the tabs that moved to the admin dashboard', () => {
+    it('replaces Organisation, GitHub Sync, Nextcloud Sync and Users with their dashboard page on a desktop', async () => {
+        const OrgSettings = await loadOrgSettings();
+        const moved: [string, string | undefined, string][] = [
+            ['organisation', undefined, 'admin/organisation/info'],
+            ['github-sync', undefined, 'admin/organisation/github-sync'],
+            ['nextcloud-sync', undefined, 'admin/organisation/nextcloud-sync'],
+            ['users', 'groups', 'admin/security/users/groups'],
+        ];
+        for (const [seg1, seg2, target] of moved) {
+            const onNavigate = vi.fn();
+            const view = render(<OrgSettings {...omitted<ComponentProps<typeof OrgSettings>>()} user={adminUser} orgSettingsPath={{ seg1, seg2 }} onNavigate={onNavigate} />);
+            expect(onNavigate, seg1).toHaveBeenCalledWith(target, { replace: true });
+            view.unmount();
+        }
+    });
+
+    it('keeps Agents and Knowledge Bases here, and the bare address', async () => {
+        const OrgSettings = await loadOrgSettings();
+        for (const seg1 of ['agents', 'knowledge-bases', undefined]) {
+            const onNavigate = vi.fn();
+            const view = render(<OrgSettings {...omitted<ComponentProps<typeof OrgSettings>>()} user={adminUser} orgSettingsPath={{ seg1 }} onNavigate={onNavigate} />);
+            expect(onNavigate, String(seg1)).not.toHaveBeenCalled();
+            view.unmount();
+        }
+    });
+});

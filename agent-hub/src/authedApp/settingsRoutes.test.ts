@@ -39,6 +39,11 @@ import {
     settingsTabFromPath,
     settingsPathForTab,
     settingsOrgDeepSegsFromPath,
+    SETTINGS_ORG_ADMIN_TARGETS,
+    settingsOrgAdminTarget,
+    orgSettingsAdminTarget,
+    orgLicensePage,
+    isOrgLicensePath,
 } from './settingsRoutes';
 import {
     NAV_ITEMS,
@@ -221,5 +226,76 @@ describe('FROZEN_LEGACY: settings paths the server has minted', () => {
         expect(settingsOrgDeepSegsFromPath('/app/settings/organisation/usage/safety'))
             .toEqual({ seg1: 'safety', seg2: '' });
         expect(settingsOrgDeepSegsFromPath('/app/settings/security')).toEqual({ seg1: '', seg2: '' });
+    });
+});
+
+describe('the organisation pages moved to the admin dashboard (desktop)', () => {
+    // One target per organisation sub-tab: the old address is a lookup, and a
+    // new sub-tab without a target goes red here.
+    const EXPECTED: Record<string, string> = {
+        info: 'admin/organisation/info',
+        auth: 'admin/organisation/auth',
+        license: 'admin/organisation/license',
+        org_academy: 'admin/organisation/academy',
+        encryption: 'admin/organisation/encryption',
+        ai_context: 'admin/organisation/ai-context',
+        integration_cache: 'admin/organisation/integration-cache',
+        org_meeting_templates: 'admin/organisation/meeting-templates',
+        org_integrations: 'admin/organisation/integrations',
+        org_mcp: 'admin/organisation/mcp',
+        org_mcp_access: 'admin/organisation/mcp-access',
+        org_github_sync: 'admin/organisation/github-sync',
+        org_nextcloud_sync: 'admin/organisation/nextcloud-sync',
+        org_azure: 'admin/organisation/azure',
+        org_users: 'admin/security/users',
+        org_usage: 'admin/monitoring',
+        privacy: 'admin/security/guardrails',
+        org_compliance: 'admin/compliance',
+    };
+
+    it('has exactly one target for every organisation sub-tab', () => {
+        expect(SETTINGS_ORG_ADMIN_TARGETS).toEqual(EXPECTED);
+        expect(Object.keys(SETTINGS_ORG_ADMIN_TARGETS).sort()).toEqual(Object.keys(SETTINGS_ORG_ID_TO_URL).sort());
+    });
+
+    it.each(Object.entries(SETTINGS_ORG_ID_TO_URL))('%s: /app/settings/organisation/%s resolves to its target', (id, segment) => {
+        expect(settingsOrgAdminTarget(settingsTabFromPath(`/app/settings/organisation/${segment}`) as string)).toBe(EXPECTED[id]);
+    });
+
+    it('keeps the Compliance section and check, and opens a usage report as its Monitoring page', () => {
+        const deep = (path: string) => settingsOrgAdminTarget(settingsTabFromPath(path) as string, settingsOrgDeepSegsFromPath(path));
+        expect(deep('/app/settings/organisation/compliance')).toBe('admin/compliance');
+        expect(deep('/app/settings/organisation/compliance/dsr/req%2F7')).toBe('admin/compliance/dsr/req%2F7');
+        expect(deep('/app/settings/organisation/compliance/frameworks')).toBe('admin/compliance/frameworks');
+        expect(deep('/app/settings/organisation/usage/adoption')).toBe('admin/monitoring/adoption');
+        expect(deep('/app/settings/organisation/usage/spend')).toBe('admin/monitoring/spend');
+        expect(deep('/app/settings/organisation/usage/quality')).toBe('admin/monitoring/feedback');
+        expect(deep('/app/settings/organisation/usage/terminations')).toBe('admin/monitoring/terminations');
+        expect(deep('/app/settings/organisation/usage/unknown')).toBe('admin/monitoring');
+    });
+
+    it('leaves the personal and consumer tabs where they are', () => {
+        for (const id of [...SETTINGS_TOP_LEVEL_TAB_IDS, ...Object.keys(SETTINGS_ACCOUNT_ID_TO_URL)]) {
+            expect(settingsOrgAdminTarget(id), id).toBeNull();
+        }
+    });
+
+    it('moves the old /app/org-settings tabs that have a dashboard page, and only those', () => {
+        expect(orgSettingsAdminTarget('organisation')).toBe('admin/organisation/info');
+        expect(orgSettingsAdminTarget('github-sync')).toBe('admin/organisation/github-sync');
+        expect(orgSettingsAdminTarget('nextcloud-sync')).toBe('admin/organisation/nextcloud-sync');
+        expect(orgSettingsAdminTarget('users')).toBe('admin/security/users');
+        expect(orgSettingsAdminTarget('users', 'groups')).toBe('admin/security/users/groups');
+        for (const seg of ['agents', 'knowledge-bases', '', undefined]) expect(orgSettingsAdminTarget(seg)).toBeNull();
+    });
+
+    it('the subscription gate: the dashboard licence page on a desktop, the Settings one on a phone; both are the licence page', () => {
+        expect(orgLicensePage(false)).toBe('admin/organisation/license');
+        expect(orgLicensePage(true)).toBe('settings/organisation/license');
+        expect(isOrgLicensePath('/app/admin/organisation/license')).toBe(true);
+        // The Stripe return address keeps working (and redirects on a desktop).
+        expect(isOrgLicensePath('/app/settings/organisation/license')).toBe(true);
+        expect(isOrgLicensePath('/app/admin/organisation/info')).toBe(false);
+        expect(isOrgLicensePath('/app/agents')).toBe(false);
     });
 });

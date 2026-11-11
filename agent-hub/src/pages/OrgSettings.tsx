@@ -1,5 +1,5 @@
 import { ArrowLeft, ShieldOff } from 'lucide-react';
-import React from 'react';
+import React, { useEffect } from 'react';
 import OrganisationSection from './settings/OrganisationSection';
 import OrgUsersPanel from '../components/admin/org/OrgUsersPanel';
 import AgentDesigner from '../components/agents/AgentDesigner/index';
@@ -8,17 +8,26 @@ import NextcloudSyncPanel from '../components/integrations/nextcloud/NextcloudSy
 import SystemKnowledgeBasesPanel from '../components/knowledge/SystemKnowledgeBasesPanel';
 import { AGENT_MANAGEMENT_ROLES, USER_MANAGEMENT_ROLES } from '../config/orgRoles';
 import { useTranslation } from '../hooks/useTranslation';
+import { useViewport } from '../hooks/useViewport';
+import { orgSettingsAdminTarget } from '../authedApp/settingsRoutes';
 import type { SettingsUser } from './settings/shell/settingsShellTypes';
 
 interface OrgSettingsProps {
     onBack: React.MouseEventHandler<HTMLButtonElement>;
     orgSettingsPath?: { seg1?: string; seg2?: string };
     user?: SettingsUser | null;
-    onNavigate?: (value: string) => void;
+    onNavigate?: (value: string, opts?: { replace?: boolean }) => void;
 }
 
 const OrgSettings = ({ user, onBack, orgSettingsPath = {}, onNavigate }: OrgSettingsProps) => {
     const { t } = useTranslation();
+    // A desktop opens the moved tabs (Organisation, GitHub and Nextcloud Sync,
+    // Users) in the admin dashboard; Agents and Knowledge Bases stay here.
+    const { isMobile } = useViewport();
+    const movedTo = isMobile ? null : orgSettingsAdminTarget(orgSettingsPath.seg1, orgSettingsPath.seg2);
+    useEffect(() => {
+        if (movedTo && onNavigate) onNavigate(movedTo, { replace: true });
+    }, [movedTo, onNavigate]);
     // Permission helper — derives from the actual user permission set
     const hasPermission = (perm: string) => {
         const perms = user?.permissions || [];

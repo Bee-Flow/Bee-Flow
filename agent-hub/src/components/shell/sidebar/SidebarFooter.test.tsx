@@ -3,6 +3,9 @@ import userEvent from '@testing-library/user-event';
 import React, { useRef, useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import SidebarFooter from './SidebarFooter';
+import LicenseContext from '@/components/licensing/LicenseContext';
+
+type LicenseValue = React.ComponentProps<typeof LicenseContext.Provider>['value'];
 
 /**
  * The account footer: the avatar row and the profile menu it opens.
@@ -23,6 +26,7 @@ type FooterUser = {
     displayName?: string;
     isAdmin?: boolean;
     orgRole?: string;
+    role?: string;
     permissions?: string[];
 };
 
@@ -103,5 +107,19 @@ describe('SidebarFooter', () => {
         render(<Harness user={{ id: 'u2', displayName: 'Els', orgRole: 'member' }} />);
         await userEvent.click(screen.getByTestId('sidebar-profile'));
         expect(screen.queryByTestId('profile-menu-admin')).not.toBeInTheDocument();
+    });
+
+    it('shows the link to whoever can open a dashboard tab: a DPO or a user manager on Enterprise', async () => {
+        const enterprise = { tier: 'enterprise', deploymentMode: 'cloud', serverOverride: false } as LicenseValue;
+        const open = async (user: FooterUser) => {
+            const view = render(<LicenseContext.Provider value={enterprise}><Harness user={user} /></LicenseContext.Provider>);
+            await userEvent.click(screen.getByTestId('sidebar-profile'));
+            const shown = !!screen.queryByTestId('profile-menu-admin');
+            view.unmount();
+            return shown;
+        };
+        expect(await open({ id: 'dpo', orgRole: 'dpo', permissions: ['admin_compliance'] })).toBe(true);
+        expect(await open({ id: 'um', orgRole: 'member', permissions: ['manage_users'] })).toBe(true);
+        expect(await open({ id: 'm', orgRole: 'member', permissions: ['view_usage'] })).toBe(false);
     });
 });

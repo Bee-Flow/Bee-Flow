@@ -21,6 +21,30 @@ describe('canOpenAdminTab', () => {
     });
 });
 
+describe('the Organisation tab', () => {
+    it('sits right after Agents in the registry, so the fallback tab stays Agents, and heads the rail by its group', () => {
+        expect(ADMIN_TABS.map(t => t.id).slice(0, 2)).toEqual(['agents', 'organisation']);
+        expect(ADMIN_TAB_GROUPS[0].id).toBe('organisation');
+        expect(resolveAdminTab({}, () => true).activeTab).toBe('agents');
+        expect(groupAdminTabs([tab('agents'), tab('organisation')]).map(g => g.id)).toEqual(['organisation', 'ai']);
+    });
+
+    it('opens with org_admin on any tier and deployment, never for a holder of other admin permissions alone', () => {
+        const orgAdmin = access({ isSuperAdmin: false, tier: 'community', hasPermission: p => p === 'org_admin' });
+        expect(canOpenAdminTab(tab('organisation'), orgAdmin)).toBe(true);
+        expect(canOpenAdminTab(tab('organisation'), { ...orgAdmin, isCloud: false, isSelfHosted: true })).toBe(true);
+        expect(canOpenAdminTab(tab('organisation'), access({ isSuperAdmin: false, hasPermission: p => p === 'admin_security' }))).toBe(false);
+    });
+
+    it('is the organisation the dashboard works on, with the Azure setup and the Maps key server-wide', () => {
+        expect(adminScopeOf(tab('organisation'), 'info')).toBe('mixed');
+        expect(adminSectionScope('organisation', 'azure')).toBe('mixed');
+        expect(adminSectionScope('organisation', 'azure', 'config')).toBe('instance');
+        expect(adminSectionScope('organisation', 'integrations', 'maps')).toBe('instance');
+        expect(fixedOrgViewOf('organisation', 'info')).toBeNull();
+    });
+});
+
 describe('resolveAdminTab', () => {
     const allowed = (ids: string[]) => (t: AdminTab | undefined) => !t || ids.includes(t.id);
 
@@ -151,7 +175,8 @@ describe('buildAdminRailSections', () => {
         const ids = (s: typeof org) => s.groups.flatMap(g => g.tabs.map(t => t.id));
         expect(ids(server).every(id => tab(id).scope === 'instance')).toBe(true);
         expect(ids(org).every(id => tab(id).scope !== 'instance')).toBe(true);
-        expect(ids(org)).toEqual(expect.arrayContaining(['agents', 'security', 'access', 'monitoring', 'compliance']));
+        expect(ids(org)).toEqual(expect.arrayContaining(['organisation', 'agents', 'security', 'access', 'monitoring', 'compliance']));
+        expect(ids(org)[0]).toBe('organisation');
         expect(ids(org).length + ids(server).length).toBe(all.length);
     });
 

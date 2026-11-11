@@ -3,13 +3,13 @@
 // functions, so the gating can be tested without rendering a single panel.
 
 import {
-    Activity, BadgeCheck, BarChart3, Bot, CreditCard, Globe, KeyRound, Languages, LifeBuoy,
+    Activity, BadgeCheck, BarChart3, Bot, Building2, CreditCard, Globe, KeyRound, Languages, LifeBuoy,
     Newspaper, Package, Palette, Plug, Scale, Shield, Sparkles,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { TIER_RANK } from '@/components/licensing/LicenseContext';
 
-export type AdminTabGroupId = 'ai' | 'security' | 'platform' | 'operations' | 'website';
+export type AdminTabGroupId = 'organisation' | 'ai' | 'security' | 'platform' | 'operations' | 'website';
 
 /**
  * Whose data a section is about:
@@ -46,6 +46,7 @@ export interface AdminTab {
 
 /** The rail's groups, in rail order, each with the eyebrow above it. */
 export const ADMIN_TAB_GROUPS: readonly { id: AdminTabGroupId; labelKey: string; labelFallback: string }[] = [
+    { id: 'organisation', labelKey: 'settings.workspace_section', labelFallback: 'Workspace' },
     { id: 'ai', labelKey: 'admin.nav_group_ai', labelFallback: 'AI & agents' },
     { id: 'security', labelKey: 'admin.nav_group_security', labelFallback: 'Security & access' },
     { id: 'platform', labelKey: 'admin.nav_group_platform', labelFallback: 'Platform' },
@@ -99,6 +100,14 @@ const ACCESS_SCOPES: Readonly<Record<string, AdminScope>> = {
     'ceiling/server': 'instance',
 };
 
+// Organisation: every section is the organisation the dashboard works on; two
+// parts inside them are server-wide (the Azure services setup and the Google
+// Maps key), shown to the platform admin only and marked as such.
+const ORGANISATION_SCOPES: Readonly<Record<string, AdminScope>> = {
+    'azure/config': 'instance',
+    'integrations/maps': 'instance',
+};
+
 /**
  * Sections whose data does not follow the dashboard's organisation picker, keyed
  * by tab id or `tab/section/part`: 'home' always shows the viewer's own
@@ -124,6 +133,11 @@ export function fixedOrgViewOf(tabId: string, section?: string, part?: string): 
 
 export const ADMIN_TABS: readonly AdminTab[] = [
     { id: 'agents', labelKey: 'admin.tab_agents', icon: Bot, group: 'ai', perm: ['admin_agents', 'admin_agents_chat', 'admin_agents_system'], scope: 'mixed', sections: { system: 'instance' }, superAdminOnly: false, minTier: 'enterprise' },
+    // The organisation's own settings (what Settings > Organisation held): placed
+    // after Agents here so the fallback tab stays Agents, first in the rail by its
+    // group. Opened by whoever administers an organisation (org_admin, or an
+    // organisation-admin role; see dashboard/adminTabAccess.ts).
+    { id: 'organisation', labelKey: 'settings.organisation', labelFallback: 'Organisation', icon: Building2, group: 'organisation', perm: ['org_admin'], scope: 'mixed', sections: ORGANISATION_SCOPES, superAdminOnly: false },
     { id: 'ai-config', labelKey: 'admin.tab_ai_config', icon: Sparkles, group: 'ai', perm: ['admin_ai_config'], scope: 'instance', superAdminOnly: true },
     { id: 'security', labelKey: 'admin.tab_security', icon: Shield, group: 'security', perm: ['admin_security'], scope: 'mixed', sections: SECURITY_SCOPES, superAdminOnly: false },
     { id: 'integrations', labelKey: 'admin.tab_integrations', icon: Plug, group: 'platform', perm: ['admin_security'], scope: 'instance', superAdminOnly: true },

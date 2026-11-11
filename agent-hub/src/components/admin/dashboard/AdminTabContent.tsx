@@ -21,6 +21,7 @@ import ServerLicensePanel from '@/components/licensing/ServerLicensePanel';
 import ModulesPanel from '@/components/admin/modules';
 import SupportInboxPanel from '@/components/support/SupportInboxPanel';
 import AccessPermissionsPanel from '@/components/admin/org/AccessPermissionsPanel';
+import OrganisationHub from '@/components/admin/organisation/OrganisationHub';
 import type { AdminCurrentUser } from '@/components/admin/org/userManagement/types';
 
 export interface AdminTabContentProps {
@@ -45,6 +46,7 @@ type Panel = { render: (p: AdminTabContentProps) => ReactNode; page?: boolean };
 /** The panel of each tab; a tab without one renders nothing here (product-website escapes the chrome). */
 const PANELS: Record<string, Panel> = {
     agents: { render: (p) => <AgentConfigHub user={p.user} hasPermission={p.hasPermission} activeSection={p.agentSection} onNavigate={p.onNavigate} /> },
+    organisation: { render: (p) => <OrganisationHub user={p.user} activeSection={p.adminPath.seg2} onNavigate={p.onNavigate} /> },
     'ai-config': { render: (p) => <AIConfigPanel activeSection={p.adminPath.seg2} activeProvider={p.adminPath.seg3} onNavigate={p.onNavigate} /> },
     security: { render: (p) => <SecurityHub user={p.user} activeSection={p.adminPath.seg2} userSection={p.adminPath.seg3} onNavigate={p.onNavigate} /> },
     integrations: { render: (p) => <IntegrationsAdminPanel activeSection={p.adminPath.seg2} onNavigate={p.onNavigate} /> },

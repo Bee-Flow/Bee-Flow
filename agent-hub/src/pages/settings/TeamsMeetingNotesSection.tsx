@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Users } from 'lucide-react';
 import useTranslation from '../../hooks/useTranslation';
-import { Toggle, Row, languageOptions } from './shared/settingsPrimitives';
+import { Toggle, Row, languageOptions } from '@/components/settings/shared/settingsPrimitives';
 import { openMicrosoftOAuthPopup } from '../../api/microsoftOAuthPopup';
 import { API_BASE, authFetch } from '../../utils/helpers';
 import {

@@ -2,14 +2,17 @@ import React, { useState } from 'react';
 import { MessageSquare, Loader2 } from 'lucide-react';
 import { API_BASE } from '../../utils/helpers';
 import { useOrgNotesSettingsQuery } from '../../api/queries/meetingNotesSettings';
-import { NC_BLUE, languageOptions, Toggle, Row } from '../../pages/settings/shared/settingsPrimitives';
-import { InheritHint, InheritSelect, InheritSwitch, OrgSettingsLoadError, orgFormFromAnswer } from '../../pages/settings/shared/orgSettingFields';
+import { NC_BLUE, languageOptions, Toggle, Row } from '@/components/settings/shared/settingsPrimitives';
+import { InheritHint, InheritSelect, InheritSwitch, OrgSettingsLoadError, orgFormFromAnswer } from '@/components/settings/shared/orgSettingFields';
 import { useTranslation } from '../../hooks/useTranslation';
 import { errorMessage } from '../../utils/caughtError';
 import { mutate, errorBody, RefusedError } from '../../api/mutate';
+import { panelOrgId } from '@/utils/adminAccess';
 
 interface MeetingNotesAdminPanelProps {
     user?: { organizationId?: string } | null;
+    /** The organisation to act on; left out, the user's home organisation (outside the admin dashboard). */
+    orgId?: string | null;
 }
 
 /** `null` = each member decides (see orgSettingFields). `insightsPerPersonStats` is org-only. */
@@ -38,9 +41,9 @@ const DEFAULT_CFG: TalkNotesConfig = { autoTranscribe: null, postSummaryBack: nu
  * setting; a field on "Each member decides" is sent as null and hands the
  * choice back to the member.
  */
-export default function MeetingNotesAdminPanel({ user }: MeetingNotesAdminPanelProps) {
+export default function MeetingNotesAdminPanel({ user, orgId: orgIdProp }: MeetingNotesAdminPanelProps) {
     const { t } = useTranslation();
-    const orgId = user?.organizationId;
+    const orgId = panelOrgId(orgIdProp, user) ?? undefined;
     // recordingFolder: Talk saves to <attachment folder>/Recording/<room token>/,
     // so /Talk/Recording is the default on a stock Nextcloud.
     const settingsQuery = useOrgNotesSettingsQuery<TalkNotesConfig>('talk', orgId);

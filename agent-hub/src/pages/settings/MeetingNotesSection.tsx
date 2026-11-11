@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { MessageSquare } from 'lucide-react';
 import { API_BASE } from '../../utils/helpers';
 import { useTalkNotesUserSettings } from '../../api/queries/settingsOptionalRead';
-import { NC_BLUE, languageOptions, Toggle, Row, Select } from './shared/settingsPrimitives';
+import { NC_BLUE, languageOptions, Toggle, Row, Select } from '@/components/settings/shared/settingsPrimitives';
 import { useTranslation } from '../../hooks/useTranslation';
 import { errorMessage } from '../../utils/caughtError';
 import { mutate, errorBody, RefusedError } from '../../api/mutate';

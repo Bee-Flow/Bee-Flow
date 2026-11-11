@@ -7907,11 +7907,6 @@
       "count": 2
     }
   },
-  "src/pages/AdminDashboard.tsx": {
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
   "src/pages/AdvancedSettings.test.jsx": {
     "max-lines": {
       "count": 1
@@ -8919,17 +8914,7 @@
       "count": 1
     }
   },
-  "src/pages/settings/shell/orgSubItems.ts": {
-    "complexity": {
-      "count": 1
-    }
-  },
   "src/pages/settings/shell/renderSettingsContent.tsx": {
-    "complexity": {
-      "count": 1
-    }
-  },
-  "src/pages/settings/shell/useSettingsAccess.tsx": {
     "complexity": {
       "count": 1
     }

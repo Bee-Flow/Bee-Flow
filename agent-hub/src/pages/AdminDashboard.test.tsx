@@ -35,7 +35,7 @@ describe('AdminDashboard navigation', () => {
     it('lists only the tabs a community self-hosted super-admin may open, grouped', () => {
         renderDashboard({ seg1: 'licenses' });
         const nav = within(rail());
-        for (const name of ['AI Config', 'Security', 'Integrations', 'Access', 'Server licence', 'Modules', 'Languages']) {
+        for (const name of ['Organisation', 'AI Config', 'Security', 'Integrations', 'Access', 'Server licence', 'Modules', 'Languages']) {
             expect(nav.getByRole('link', { name })).toBeInTheDocument();
         }
         // Enterprise-only and cloud-only tabs stay hidden, even from the operator.
@@ -117,7 +117,7 @@ describe('AdminDashboard scope groups', () => {
         expect(nav.getByTestId('admin-rail-section-org')).not.toHaveTextContent('Your organisation');
         expect(nav.getByTestId('admin-rail-section-instance')).toHaveTextContent('Whole server');
         expect(within(nav.getByTestId('admin-rail-section-org')).getAllByRole('link').map(a => a.textContent))
-            .toEqual(['Agents', 'Security', 'Access', 'Compliance', 'Monitoring']);
+            .toEqual(['Organisation', 'Agents', 'Security', 'Access', 'Compliance', 'Monitoring']);
         const server = within(nav.getByTestId('admin-rail-section-instance')).getAllByRole('link').map(a => a.textContent);
         expect(server).toEqual(expect.arrayContaining(['AI Config', 'Integrations', 'Modules', 'Server licence', 'Languages']));
         expect(server).not.toContain('Agents');
@@ -129,7 +129,7 @@ describe('AdminDashboard scope groups', () => {
         expect(nav.getByTestId('admin-rail-section-org')).toHaveTextContent('Your organisation');
         expect(nav.queryByTestId('admin-rail-section-instance')).not.toBeInTheDocument();
         expect(nav.queryByText('Whole server')).not.toBeInTheDocument();
-        expect(nav.getAllByRole('link').map(a => a.textContent)).toEqual(['Agents', 'Security', 'Access', 'Compliance', 'Monitoring']);
+        expect(nav.getAllByRole('link').map(a => a.textContent)).toEqual(['Organisation', 'Agents', 'Security', 'Access', 'Compliance', 'Monitoring']);
     });
 
     it('leaves the Agents tab out when the viewer has no agent section left', () => {
@@ -137,7 +137,16 @@ describe('AdminDashboard scope groups', () => {
         renderDashboard({ user: systemOnly, seg1: 'agents', license: enterprise });
         const links = within(rail()).getAllByRole('link').map(a => a.textContent);
         expect(links).not.toContain('Agents');
-        expect(links[0]).toBe('Security');
+        expect(links.slice(0, 2)).toEqual(['Organisation', 'Security']);
+    });
+
+    it('opens the Organisation tab for an organisation admin by role alone, and falls back to it without Agents', () => {
+        const byRole = { id: 'u5', isAdmin: false, role: 'user', orgRole: 'admin', organizationId: 'org-1', permissions: [] };
+        renderDashboard({ user: byRole, license: enterprise });
+        // No 'org_admin' permission: the organisation-admin role opens it (and Access, which takes org_admin too).
+        expect(within(rail()).getAllByRole('link').map(a => a.textContent)).toEqual(['Organisation', 'Access']);
+        expect(within(rail()).getByRole('link', { name: 'Organisation' })).toHaveAttribute('aria-current', 'page');
+        expect(screen.getByTestId('admin-tab-organisation')).toBeInTheDocument();
     });
 
     it('sends an organisation admin who follows a link to a server-wide tab to the first visible tab', () => {
