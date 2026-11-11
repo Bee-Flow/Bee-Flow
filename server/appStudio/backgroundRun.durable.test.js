@@ -433,9 +433,11 @@ test('retention: a pause older than the run retention, or one whose starter is g
     const orphan = await startAndSettle(WAITING);
     const kept = await startAndSettle(WAITING);
     await pg.query("UPDATE studio_app_action_runs SET started_at = NOW() - INTERVAL '40 days' WHERE id = $1", [old.id]);
-    await pg.query('UPDATE studio_app_action_runs SET viewer_user_id = NULL WHERE id = $1', [orphan.id]);
-    const out = await store.pruneRuns({ resultTtlHours: 24, retentionDays: 30 });
+    await pg.query("UPDATE studio_app_action_runs SET viewer_user_id = NULL, wait_kind = 'approval', wait_ref = 'apr_1' WHERE id = $1", [orphan.id]);
+    const waits = [];
+    const out = await store.pruneRuns({ resultTtlHours: 24, retentionDays: 30, onEndedWait: async (w) => { waits.push(w); } });
     assert.equal(out.expired, 2);
+    assert.deepEqual(waits, [{ runId: orphan.id, appId: 'app_1', waitKind: 'approval', waitRef: 'apr_1' }], 'only the ended pause that waited for something is handed on, to withdraw its request');
     // The one past the retention was ended and, like any ended run that old, deleted in the same pass.
     assert.equal(out.deleted, 1);
     assert.equal(await raw(old.id), undefined);

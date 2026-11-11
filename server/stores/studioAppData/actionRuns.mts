@@ -26,6 +26,7 @@
 import { createRequire } from 'node:module';
 
 import { makePausedRunQueries } from './pausedRuns.mts';
+import type { EndedWait } from './pausedRuns.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 
@@ -234,16 +235,28 @@ export function makeActionRunStore(db: RunDb, { ready = async () => {} }: { read
         ));
     }
 
-    /** Payloads nulled after `resultTtlHours`, rows deleted after `retentionDays` (0 = keep), `batch` rows per statement. */
-    async function pruneRuns({ resultTtlHours, retentionDays, batch = 1000 }: { resultTtlHours: number; retentionDays: number; batch?: number }): Promise<{ nulled: number; deleted: number; expired: number }> {
+    /**
+     * Payloads nulled after `resultTtlHours`, rows deleted after `retentionDays` (0 = keep), `batch` rows per statement.
+     * `onEndedWait` hears every pause this ended that waited for something (an approval request to withdraw);
+     * a failure there is the caller's to log and never stops the pass.
+     */
+    async function pruneRuns({ resultTtlHours, retentionDays, batch = 1000, onEndedWait }: {
+        resultTtlHours: number; retentionDays: number; batch?: number; onEndedWait?: (wait: EndedWait) => Promise<unknown>;
+    }): Promise<{ nulled: number; deleted: number; expired: number }> {
         await ready();
         const size = Math.max(1, Math.floor(batch));
         let nulled = 0;
         let deleted = 0;
         // A run on hold for a starter whose account was erased (viewer_user_id detached) can never
         // be resumed: it ends here and its state goes. So does a pause older than the retention.
-        const expired = await paused.endPauses(`viewer_user_id IS NULL`, [], PAUSE_ORPHANED, size)
-            + (retentionDays > 0 ? await paused.endPauses(`started_at < NOW() - make_interval(days => $3::int)`, [retentionDays], PAUSE_OUTLIVED, size) : 0);
+        const ended = [
+            ...await paused.endPauses(`viewer_user_id IS NULL`, [], PAUSE_ORPHANED, size),
+            ...(retentionDays > 0 ? await paused.endPauses(`started_at < NOW() - make_interval(days => $3::int)`, [retentionDays], PAUSE_OUTLIVED, size) : []),
+        ];
+        const expired = ended.length;
+        if (onEndedWait) {
+            for (const wait of ended) if (wait.waitKind) await onEndedWait(wait).catch(() => undefined);
+        }
         if (resultTtlHours > 0) {
             nulled = changed(await db.query(
                 `UPDATE studio_app_action_runs SET result = NULL, vars = NULL, effects = NULL, progress = '{}'::jsonb, paused_state = NULL

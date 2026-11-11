@@ -15,7 +15,8 @@
  *   findPausedByWait  paused rows waiting for (kind, ref)
  *   requestCancel     a paused row → cancelled at once; a running row gets the flag its job reads
  *   cancelRequested   the flag of one running row
- *   endPauses         paused rows that can never continue → interrupted (the retention pass)
+ *   endPauses         paused rows that can never continue → interrupted (the retention pass); answers
+ *                     what each ended row waited for, so the pass can withdraw an open request
  */
 
 import type { ActionRunRow, Queryable } from './actionRuns.mts';
@@ -26,6 +27,9 @@ export type PauseRun = {
     state: Record<string, unknown>; wakeAt: number | null; waitKind: string | null; waitRef: string | null; tokenHash: string | null;
     progress: Record<string, unknown>;
 };
+
+/** What a pause the retention pass ended was waiting for (kind and ref null for a timer). */
+export type EndedWait = { runId: string; appId: string; waitKind: string | null; waitRef: string | null };
 
 /** What the winner of a resume gets: the state the run paused with, and the row as it was. */
 export type ClaimedResume = { row: ActionRunRow; state: Record<string, unknown>; tokenHash: string | null };
@@ -40,16 +44,18 @@ const asObj = (v: unknown): Record<string, unknown> | null => {
 
 export function makePausedRunQueries(db: Queryable, ready: () => Promise<unknown>, toRun: (row: Record<string, unknown>) => ActionRunRow) {
     /** Paused rows that match `where` ($1 = the reason, $2 = the batch, $3.. = `params`) → interrupted, their state dropped. */
-    async function endPauses(where: string, params: unknown[], reason: string, batch: number): Promise<number> {
+    async function endPauses(where: string, params: unknown[], reason: string, batch: number): Promise<EndedWait[]> {
         await ready();
-        return changed(await db.query(
+        const { rows } = await db.query(
             `UPDATE studio_app_action_runs
                 SET status = 'interrupted', ended_at = NOW(), ended_by = 'expired', error = $1, error_code = 'pause_expired',
                     paused_state = NULL, wake_at = NULL, resume_token_hash = NULL
               WHERE id IN (SELECT id FROM studio_app_action_runs WHERE status = 'paused' AND ${where} LIMIT $2)
-                AND status = 'paused'`,
+                AND status = 'paused'
+          RETURNING id, app_id, wait_kind, wait_ref`,
             [reason, batch, ...params],
-        ));
+        );
+        return rows.map((r) => ({ runId: String(r.id), appId: String(r.app_id), waitKind: text(r.wait_kind), waitRef: text(r.wait_ref) }));
     }
 
     /** running → paused. False when the row is no longer running, or a cancel was asked (the caller then ends it cancelled). */

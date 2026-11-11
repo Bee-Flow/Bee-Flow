@@ -74,6 +74,11 @@ describe('buildStudioScope — samples carry the field’s type', () => {
     it('has a sample for every input type it knows', () => {
         expect(sampleForInputType('input_number')).toBe(0);
         expect(sampleForInputType('input_textarea')).toBe('');
+        // The schema 3 inputs: number operators for a slider and a rating, a boolean for a switch, text for a radio group.
+        expect(sampleForInputType('slider')).toBe(0);
+        expect(sampleForInputType('rating')).toBe(0);
+        expect(sampleForInputType('switch')).toBe(false);
+        expect(sampleForInputType('radio')).toBe('');
         expect(sampleForInputType('something_new')).toBe('');
     });
 });
