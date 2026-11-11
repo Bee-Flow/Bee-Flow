@@ -14150,6 +14150,58 @@ exports[`compat corpus: what the phone plans for every stored app wishlist-varia
 }
 `;
 
+exports[`compat corpus: what the phone plans for every stored app zz-custom-block 1`] = `
+{
+  "defaultScreen": "scr_team0001",
+  "navigable": [
+    "scr_team0001",
+  ],
+  "screens": [
+    {
+      "id": "scr_team0001",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "id": "cmp_head0001",
+                "kind": "heading",
+                "level": 2,
+                "text": "Team",
+              },
+            ],
+            "screen": "scr_team0001",
+            "unsupported": [
+              "custom_block (browser-only)",
+            ],
+          },
+          "roles": [
+            "(no role)",
+          ],
+        },
+      ],
+    },
+    {
+      "id": "scr_hello001",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [],
+            "screen": "scr_hello001",
+            "unsupported": [
+              "custom_block (browser-only)",
+            ],
+          },
+          "roles": [
+            "(no role)",
+          ],
+        },
+      ],
+    },
+  ],
+}
+`;
+
 exports[`compat corpus: what the phone plans for every stored app zz-record-triggers 1`] = `
 {
   "defaultScreen": "scr_home0001",

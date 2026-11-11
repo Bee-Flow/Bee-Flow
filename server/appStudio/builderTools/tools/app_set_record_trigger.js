@@ -3,6 +3,8 @@
 // definition.triggers (schema 3), kind "record": add or replace one record trigger. The same logic
 // as app_set_trigger (../triggerTools.mts); this tool only names the fields of the record kind
 // (triggers/kinds/record.mts), so the model reads them in a schema.
+const { RECORD_TRIGGER_WRITES } = require('../../triggers/recordFiresText');
+
 module.exports = {
     name: 'app_set_record_trigger',
     since: 3,
@@ -11,9 +13,7 @@ module.exports = {
         + 'The action reads the change under trigger.record (trigger.kind is "record"): trigger.record.event ("create" | "update" | "delete"), trigger.record.tableId, trigger.record.id (the row id), '
         + 'trigger.record.row (the row after the change; for a delete the row as it was), trigger.record.before (the row before an update or delete, else null), trigger.record.changed (the changed fields of an update), '
         + 'trigger.record.by ("member", "owner", "public" or "trigger"; never a name) and trigger.record.depth. '
-        + 'It fires on a change a person makes in the app (a grid or form edit, or a create_record / update_record / delete_record step by record id) and on such a step of another trigger run. '
-        + 'It does NOT fire on rows written by app_seed_records, app_update_records, app_run_action or app_run_tests, on imports, template installs or connector sync, on the mailbox hook, ai_extract or file_intake rows, '
-        + 'on a transaction step, or on update_record / delete_record with a filter. '
+        + RECORD_TRIGGER_WRITES
         + 'If visitors of a public page can write the table (the public role may create, update or delete in it), pass allowPublicWrites: true; the action may then hold no send_email, run_automation, request_approval, delete_record or http_request step. '
         + 'Loops end by themselves: a trigger never fires on a row its own run wrote, and a chain of trigger runs stops after 3. Runs come one at a time per trigger, in the order of the changes. '
         + 'The action must exist (app_set_action first) and may hold only steps that run unattended; a refused call names the step. '

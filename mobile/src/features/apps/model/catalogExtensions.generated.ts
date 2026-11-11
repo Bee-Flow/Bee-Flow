@@ -5,6 +5,7 @@ export const EXTENSION_TYPE_MOBILE_REASONS: Readonly<Record<string, string>> = {
     accordion: 'The phone draws the base layout types only; an accordion stays in the browser.',
     avatar: 'The phone draws the base display types only; an avatar stays in the browser.',
     carousel: 'The phone draws the base layout types only; a carousel stays in the browser.',
+    custom_block: 'A custom block is drawn in a sealed browser frame; the phone has none.',
     gauge: 'The phone draws the base display types only; a gauge stays in the browser.',
     radio: 'The phone draws the base inputs only; a radio group stays in the browser.',
     rating: 'The phone draws the base inputs only; a rating stays in the browser.',

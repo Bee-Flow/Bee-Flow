@@ -1,0 +1,36 @@
+{
+  "translations": {
+    "studio_apps_block.act_edit_block": "Het eigen blok bewerkt",
+    "studio_apps_block.add_event": "Voeg een gebeurtenis toe",
+    "studio_apps_block.add_input": "Voeg een invoer toe",
+    "studio_apps_block.count": "{count} van {max} tekens",
+    "studio_apps_block.css_hint": "Geldt alleen binnen dit blok. Het uiterlijk van de app staat in de variabelen hieronder.",
+    "studio_apps_block.css_label": "Stijlblad van dit blok",
+    "studio_apps_block.css_removed_title": "Weggelaten als het blok wordt getoond:",
+    "studio_apps_block.css_sheet_title": "Variabelen van het uiterlijk van de app",
+    "studio_apps_block.empty": "Leeg eigen blok. Schrijf het sjabloon in het paneel.",
+    "studio_apps_block.event_action": "Actie voor de gebeurtenis {name}",
+    "studio_apps_block.event_name": "Naam van de gebeurtenis, zoals in data-emit",
+    "studio_apps_block.events": "Gebeurtenissen",
+    "studio_apps_block.events_hint": "Een <button data-emit=\"naam\"> in het sjabloon voert de actie uit. De actie leest de uitkomst van data-value als value.",
+    "studio_apps_block.finding_line": "Regel {line}",
+    "studio_apps_block.findings_title": "Weggelaten als het blok wordt opgeslagen:",
+    "studio_apps_block.frame_title": "Eigen blok",
+    "studio_apps_block.input_name": "Naam, zoals het sjabloon die leest",
+    "studio_apps_block.input_value": "Waarde",
+    "studio_apps_block.inputs": "Invoer",
+    "studio_apps_block.inputs_hint": "De enige gegevens die het sjabloon ziet. De app zoekt elke waarde op voor wie het scherm bekijkt.",
+    "studio_apps_block.intro": "Je eigen HTML en CSS, voor wat geen component kan tekenen. Een blok bevat geen script en laadt niets: het toont de invoer die je opgeeft, en de knoppen voeren de acties uit die je koppelt.",
+    "studio_apps_block.preview": "Voorbeeld",
+    "studio_apps_block.preview_hint": "Met de invoer die een vaste waarde heeft. Het canvas toont het blok met de gegevens van de app.",
+    "studio_apps_block.remove_event": "Verwijder de gebeurtenis {name}",
+    "studio_apps_block.remove_input": "Verwijder de invoer {name}",
+    "studio_apps_block.tab_template": "Sjabloon",
+    "studio_apps_block.tabs": "Welke tekst je bewerkt",
+    "studio_apps_block.template_hint": "HTML zonder script. {{ formule }} schrijft een waarde als tekst, data-if toont een element als een formule waar is, data-each=\"rows as row\" herhaalt het. Een formule leest de invoer hieronder en niets anders.",
+    "studio_apps_block.template_label": "HTML-sjabloon"
+  },
+  "sameAsEnglish": [
+    "studio_apps_block.tab_css"
+  ]
+}

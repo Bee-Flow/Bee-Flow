@@ -1,0 +1,38 @@
+// @typecheck strict
+// English GUI defaults — namespace "studio_apps_block": every key whose part before the first "." is "studio_apps_block".
+// Merged into GUI_DEFAULTS by ./index.js, which finds this file by itself (no list to edit). The frontend copy
+// (agent-hub/src/i18n/en-defaults.js) is GENERATED from these files: after an edit, run `node scripts/gen-i18n-defaults.mjs`.
+// Dutch: ../nl/studio_apps_block.json. App Studio custom block (custom_block): the block on the page, its panel in the
+// editor (template and CSS tabs, what is left out, preview, inputs, events) and the builder tool that writes it.
+module.exports = {
+    "studio_apps_block.act_edit_block": "Edited the custom block",
+    "studio_apps_block.add_event": "Add event",
+    "studio_apps_block.add_input": "Add input",
+    "studio_apps_block.count": "{count} of {max} characters",
+    "studio_apps_block.css_hint": "Applies inside this block only. The look of the app is in the variables below.",
+    "studio_apps_block.css_label": "Stylesheet of this block",
+    "studio_apps_block.css_removed_title": "Left out when the block is shown:",
+    "studio_apps_block.css_sheet_title": "Variables of the app look",
+    "studio_apps_block.empty": "Empty custom block. Write its template in the panel.",
+    "studio_apps_block.event_action": "Action for the event {name}",
+    "studio_apps_block.event_name": "Event name, as in data-emit",
+    "studio_apps_block.events": "Events",
+    "studio_apps_block.events_hint": "A <button data-emit=\"name\"> in the template runs the action. The action reads the result of data-value as value.",
+    "studio_apps_block.finding_line": "Line {line}",
+    "studio_apps_block.findings_title": "Left out when the block is saved:",
+    "studio_apps_block.frame_title": "Custom block",
+    "studio_apps_block.input_name": "Name, as the template reads it",
+    "studio_apps_block.input_value": "Value",
+    "studio_apps_block.inputs": "Inputs",
+    "studio_apps_block.inputs_hint": "The only data the template sees. Each value is looked up by the app for the person viewing it.",
+    "studio_apps_block.intro": "Your own HTML and CSS, for what no component can draw. A block holds no script and loads nothing: it shows the inputs you list, and its buttons run the actions you wire.",
+    "studio_apps_block.preview": "Preview",
+    "studio_apps_block.preview_hint": "With the inputs that hold a fixed value. The canvas shows the block with the data of the app.",
+    "studio_apps_block.remove_event": "Remove the event {name}",
+    "studio_apps_block.remove_input": "Remove the input {name}",
+    "studio_apps_block.tab_css": "CSS",
+    "studio_apps_block.tab_template": "Template",
+    "studio_apps_block.tabs": "Which text to edit",
+    "studio_apps_block.template_hint": "HTML without script. {{ formula }} writes a value as text, data-if shows an element when a formula is true, data-each=\"rows as row\" repeats it. A formula reads the inputs below and nothing else.",
+    "studio_apps_block.template_label": "HTML template",
+};

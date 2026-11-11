@@ -62,6 +62,12 @@
             "why": "App Studio definition model (ids, section style, the shared definition ops, design presets, variables): the editor's state/definitionOps.js and runtime re-export it. The lockstep fixture and golden are test data and stay on the server. schemaVersion.mjs (the lowest schema version a definition needs) and its siblings schemaVersionQuery.mjs and schemaEnvelope.mjs (the export envelope versions) have only server callers: drop them from exclude when the editor reads them. stepFlow.mjs (where a step holds child steps, the retry/onError helpers) is read by the browser action runner. bindingPlan.mjs (fetch, skip or needs-scope for one data binding) is the runtime's resolveBinding steps and, with their own option sets, the screenshot render's and the dry run's."
         },
         {
+            "source": "server/shared/blockTemplate",
+            "target": "agent-hub/src/shared/blockTemplate",
+            "transform": "none",
+            "why": "App Studio custom_block: the template vocabulary, the strict reader, the allow-list, the renderer and the frame document. The server canonicalizes and validates a block with it, the web runtime applies the same allow-list again and draws the block with it, so both hold one list of what a block may contain."
+        },
+        {
             "source": "server/shared/schedule",
             "target": "agent-hub/src/shared/schedule",
             "transform": "none",

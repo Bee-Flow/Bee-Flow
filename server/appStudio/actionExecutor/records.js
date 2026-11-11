@@ -53,7 +53,7 @@ const {
 const { bumpVersion, bumpCount, bumpDatatable } = require('./bookkeeping.mts');
 const { applyFieldRules, applyFieldRulesToRows } = require('../../core/dataEngine/fieldRules.mts');
 const { writeRow, insertsWithLinks, hasDeleteRules, eraseWithRules, refusingLinks } = require('./linkWrites.mts'); // many relations, onDelete rules
-const { execWrite } = require('./recordWriteExec.mts');
+const { execWrite, execCreates } = require('./recordWriteExec.mts');
 
 // ── Record writes ───────────────────────────────────────────────────
 
@@ -139,9 +139,9 @@ async function writeRecord(app, model, table, values, { viewer, recordId, expect
  * @param {import('./shared').DataModel} model
  * @param {import('./shared').DataTable} table
  * @param {Record<string, any>[]} rows
- * @param {{ viewer?: any }} [opts]
+ * @param {{ viewer?: any, source?: unknown }} [opts]  `source`: as in writeRecord (each created row is one change)
  */
-async function writeRecordBatch(app, model, table, rows, { viewer } = {}) {
+async function writeRecordBatch(app, model, table, rows, { viewer, source } = {}) {
     rows = applyFieldRulesToRows(table, rows, { op: 'create', viewerId: viewer && typeof viewer === 'object' ? viewer.id : undefined, role: viewer && typeof viewer === 'object' ? viewer.role ?? null : null });
     if (datatableSource.isDatatableBacked(table)) {
         // The permission is ALSO asked for an empty batch, exactly like
@@ -159,7 +159,7 @@ async function writeRecordBatch(app, model, table, rows, { viewer } = {}) {
     await assertDbByteQuota(app);
 
     const { statements, ids } = await insertsWithLinks(app, { model, table, viewer: v }, rows, (list) => compileInserts(table, list, { createdBy: v.id ?? null, orgId: app.organizationId || null }));
-    await studioAppDbStore.batch(app.userId, app.id, statements);
+    await execCreates(studioAppDbStore, app, table, statements, ids, { source, viewer: v });
     await bumpVersion(app, table.key);
     await bumpCount(app, table.key, ids.length);
     return ids;
@@ -209,7 +209,7 @@ async function eraseRecord(app, model, table, recordId, { viewer, source } = {})
         return { id: recordId, deleted: changes > 0, changes };
     }
     const v = (viewer && typeof viewer === 'object') ? viewer : {};
-    if (hasDeleteRules(model, table)) return refusingLinks(() => eraseWithRules(app, model, table, recordId, v)); // onDelete rules: one transaction
+    if (hasDeleteRules(model, table)) return refusingLinks(() => eraseWithRules(app, model, table, recordId, v, source)); // onDelete rules: one transaction
     const role = v.role ?? null;
     rlsGateway.assertCanWrite(table, role, 'delete'); // 403 if this role may not
     const accessFilter = rlsGateway.compileAccessFilter(table, role, v, 'delete');

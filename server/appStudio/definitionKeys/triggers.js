@@ -16,6 +16,8 @@
 
 'use strict';
 
+const { RECORD_TRIGGER_WRITES } = require('../triggers/recordFiresText');
+
 /** @returns {typeof import('../triggers/triggerSpec.mts')} */
 const spec = () => require('../triggers/triggerSpec.mts');
 
@@ -54,9 +56,7 @@ module.exports = {
         + 'kind "record" runs actionId when a row of table tableId (a table the app stores itself, not one linked to a Studio table) is created, updated or deleted; on lists the events, '
         + 'fields narrows update to changes of those fields, and when is a formula over trigger.record that must be true. '
         + 'The action reads the change as trigger.record.event, .tableId, .id, .row (for a delete the row as it was), .before, .changed, .by ("member", "owner", "public", "trigger" or "webhook") and .depth. '
-        + 'A record trigger fires on a one-row change a person makes in the app (a grid or form edit, a create_record / update_record / delete_record step by id) and on such a step of another trigger run. '
-        + 'It does NOT fire on rows written by the builder tools (app_seed_records, app_update_records, app_run_action, app_run_tests), imports, template installs, connector sync, the mailbox hook, '
-        + 'ai_extract, file_intake, a batch create, a transaction step, a replace or upsert, an update_record / delete_record with a filter, or a delete that follows delete rules onto linked records. '
+        + RECORD_TRIGGER_WRITES
         + 'If visitors of a public page can write the table, a record trigger needs allowPublicWrites: true and its action may then hold no send_email, run_automation, request_approval, delete_record or http_request step; a row written by such a run counts as a visitor\'s row for the next record trigger. '
         + 'Loops end by themselves: a trigger never fires on a row its own run wrote, and a chain of trigger runs stops after 3. Write one with app_set_record_trigger. '
         + 'kind "webhook" runs actionId when another system sends a signed POST with a JSON body to the trigger\'s address: write auth "hmac". '

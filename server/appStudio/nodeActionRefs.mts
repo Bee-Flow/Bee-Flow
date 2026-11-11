@@ -10,11 +10,13 @@
  *
  * The order is the document order of the two consumers that came before:
  * events, then the four list props in `ACTION_LIST_PROPS` order (entry order),
- * then `addRowActionId`, then `columns[].actionId`. Children are not visited.
+ * then `addRowActionId`, then `columns[].actionId`, then the wired events of a
+ * custom_block that a control of its template raises. Children are not visited.
  */
 
 import { createRequire } from 'node:module';
 import { slotActionIds } from '../shared/appDefinition/clientTriggers.mjs';
+import { blockActionRefs } from './customBlock/blockRefs.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 const { EVENT_NAMES } = nodeRequire('./componentSpecs') as { EVENT_NAMES: readonly string[] };
@@ -57,5 +59,6 @@ export function nodeActionRefs(node: unknown): ActionRef[] {
             out.push({ actionId: col.actionId, via: `columns[${i}]`, ...(typeof col.label === 'string' && col.label ? { label: col.label } : {}) });
         });
     }
+    if (node.type === 'custom_block') out.push(...blockActionRefs(props.block));
     return out;
 }

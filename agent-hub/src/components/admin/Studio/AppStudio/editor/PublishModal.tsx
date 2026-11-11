@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
+import { lazy } from '@/utils/lazyWithReload';
 import AudiencePicker from './AudiencePicker';
 import dryRunIssues, { type DryRunIssue } from './dryRunIssues';
 import type { Findings, IssueTarget, PublishModalProps, PublishPayload } from './PublishModal.types';
@@ -14,8 +15,11 @@ import { audienceOf, sharedGroupsOf, formatWhen, resolveIssueTarget, asIssueList
 import { BlockerList } from './BlockerList';
 import { CheckPanel, NcMenuOption, PublishFooter, PublishModalSection } from './PublishModalParts';
 import Tabs from '@/components/shared/Tabs';
-import PublicPageTab from './publicPage/PublicPageTab';
 export { resolveIssueTarget } from './PublishModal.helpers';
+
+// The public page tab (its settings, its URLs, what a visitor reaches, and the custom block's
+// template reading behind that) is its own chunk, loaded when the tab is opened.
+const PublicPageTab = lazy(() => import('./publicPage/PublicPageTab'));
 /**
  * Publish modal — the three-way audience picker for an App Studio app.
  *
@@ -328,7 +332,9 @@ export default function PublishModal({ open, onClose, app, onPublished, definiti
                 ) : null}
 
                 {tab === 'public' ? (
-                    <PublicPageTab appId={app?.id} definition={resolveAgainst} onCommit={onCommit} readOnly={managed} audience={audience} />
+                    <Suspense fallback={null}>
+                        <PublicPageTab appId={app?.id} definition={resolveAgainst} onCommit={onCommit} readOnly={managed} audience={audience} />
+                    </Suspense>
                 ) : (
                     <AudienceTab
                         t={t}

@@ -11,10 +11,17 @@
  * With links the row and its links are ONE transaction, and an update must change its row (so
  * a row outside the writer's update rule changes no link either): such an update that changes
  * nothing answers 0.
+ *
+ * `execSegments` is the same door for the writes of several rows (a batch create, a transaction
+ * step, a replace, a delete that follows delete rules); the filter update and delete of
+ * bulkRecords.mts go through triggers/recordCapture.mts themselves.
  */
 
 import { createRequire } from 'node:module';
+import type { Capture, Segment, WriteBy } from '../triggers/recordCapture.mts';
 import type { WriteThrough } from '../triggers/recordOutbox.mts';
+
+export type { Segment, WriteBy };
 
 const nodeRequire = createRequire(import.meta.url);
 
@@ -54,4 +61,28 @@ export async function execWrite(db: AppDb, app: App, table: unknown, write: Reco
     }
     const res = await db.exec(app.userId, app.id, write.sql, write.params);
     return res && res.changes ? res.changes : 0;
+}
+
+type BatchResult = { rows?: Record<string, unknown>[]; changes?: number };
+type BatchDb = { batch: (ownerId: string, appId: string, statements: Statement[]) => Promise<unknown> };
+
+/**
+ * A write of SEVERAL rows on the app's own storage: the caller's statements as the ONE batch
+ * they always were, in `segments` that say which rows of which table each part changes
+ * (triggers/recordCapture.mts). A write that names its origin and touches a table with an armed
+ * record trigger is recorded for it; every other write runs exactly the statements it was handed.
+ * Answers the results of the caller's statements, in their order.
+ */
+export async function execSegments(db: BatchDb, app: App, segments: Segment[], by: WriteBy): Promise<BatchResult[]> {
+    const run = (statements: Statement[]): Promise<unknown> => db.batch(app.userId, app.id, statements);
+    const capture = by.source === undefined || by.source === null
+        ? null
+        : await (nodeRequire('../triggers/recordCapture.mts') as { planCapture: (app: App, segments: Segment[], by: WriteBy) => Promise<Capture | null> }).planCapture(app, segments, by);
+    if (capture) return capture.run(run);
+    return (await run(segments.flatMap((s) => s.statements)) ?? []) as BatchResult[];
+}
+
+/** N creates of one table, with their link statements, as one batch (writeRecordBatch). */
+export async function execCreates(db: BatchDb, app: App, table: unknown, statements: Statement[], ids: string[], by: WriteBy): Promise<void> {
+    await execSegments(db, app, [{ statements, rows: { table, event: 'create', ids } }], by);
 }

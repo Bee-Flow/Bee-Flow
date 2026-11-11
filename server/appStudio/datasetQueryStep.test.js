@@ -116,7 +116,7 @@ const helpers = {
     writeViewer: (ctx) => ({ id: ctx.viewerId }),
     findTable: (model, tableId) => model.tables.find((t) => t.id === tableId) || null,
     writeRecord: async (_app, _model, _table, values, opts) => {
-        helpers._writes.push({ values, recordId: opts.recordId });
+        helpers._writes.push({ values, recordId: opts.recordId, source: opts.source });
         return { id: opts.recordId || `row-${helpers._writes.length}` };
     },
     _writes: [],
@@ -224,9 +224,11 @@ guarded('writeTo: rows land with mapping + constants; upsertOn routes to the exi
             upsertOn: 'vkey',
             constants: { source: S('genome-upload') },
         },
-    }, { viewerId: 'viewer-1' }, helpers);
+    }, { viewerId: 'viewer-1', writeSource: { kind: 'user' } }, helpers);
     assert.strictEqual(r.result.written, 3);
     assert.strictEqual(helpers._writes.length, 3);
+    // Each row is a one-row write that names the run's origin, so a record trigger on the table sees it.
+    assert.deepStrictEqual(helpers._writes.map((w) => w.source), Array(3).fill({ kind: 'user' }));
     // The first row's variant_key matches the seeded existing row → UPDATE.
     assert.strictEqual(helpers._writes[0].recordId, 'row-existing');
     assert.strictEqual(helpers._writes[1].recordId, undefined, 'the rest are inserts');

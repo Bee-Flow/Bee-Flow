@@ -19,6 +19,9 @@
  *               rec_ id. Every row is written through actionExecutor.writeRecord
  *               (RLS + quotas asserted; created_by = the owner).
  *   datasets  — BI descriptors created via studioAppDataStore.createDataset.
+ *   assets    — the template's files (portableAssets.mts entries), named
+ *               `asset:<id>` in its definition or its seed rows; stored in the
+ *               new app like uploads before the rows are written.
  *
  * SEEDING & VISIBILITY (review G2): demo tables use `access.default:'app'` so
  * owner-seeded rows are visible to EVERY viewer — under an `own` access mode a
@@ -171,8 +174,8 @@ function templateVersion(t) {
 
 function listTemplates() {
     // Gallery view — everything except the heavy fields (definition, dataModel,
-    // seed rows and dataset descriptors). The gallery only needs the metadata.
-    return TEMPLATES.map(({ definition, dataModel, seed, datasets, ...meta }) => ({ ...meta, version: templateVersion(meta) }));
+    // seed rows, dataset descriptors and the files). The gallery only needs the metadata.
+    return TEMPLATES.map(({ definition, dataModel, seed, datasets, assets, ...meta }) => ({ ...meta, version: templateVersion(meta) }));
 }
 
 /**
@@ -189,5 +192,5 @@ function getTemplate(id) {
 module.exports = { TEMPLATES, listTemplates, getTemplate, templateVersion };
 
 /**
- * @typedef {{ id: string, version?: number, title: string, description: string, category: string, icon: string, tags: string[], definition: Record<string, unknown>, dataModel?: Record<string, unknown>, seed?: Record<string, Record<string, unknown>[]>, datasets?: Record<string, unknown>[] }} Template
+ * @typedef {{ id: string, version?: number, title: string, description: string, category: string, icon: string, tags: string[], definition: Record<string, unknown>, dataModel?: Record<string, unknown>, seed?: Record<string, Record<string, unknown>[]>, datasets?: Record<string, unknown>[], assets?: Array<{ id: string, mime: string, sha256: string, size: number, data: string }> }} Template
  */

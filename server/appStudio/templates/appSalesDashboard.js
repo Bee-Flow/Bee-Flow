@@ -21,7 +21,9 @@
  *   data      accounts in a hierarchy (a relation to the same table) drawn as a
  *             tree, rollups of won revenue per account, a groupBy through the
  *             account relation (deals per region), and a saved dataset with
- *             parameters for the dataset builder.
+ *             parameters, which the wall screen's year chart binds to by the
+ *             template's own dataset id (`ds_sdmonthly`): the installer points
+ *             the binding at the dataset it creates (../templateDatasetRefs.mts).
  */
 
 'use strict';
@@ -111,7 +113,8 @@ const REGION_COUNTS = {
 
 module.exports = {
     id: 'app-sales-dashboard',
-    version: 1,
+    // 2: the wall shows the saved dataset (a binding by the template's own dataset id).
+    version: 2,
     title: 'Sales dashboard',
     description: 'Revenue, pipeline and win numbers for the period you pick, with a funnel, a radar of your regions, a confidence gauge, a dark wall screen for the office and your accounts as a tree.',
     category: 'Dashboards',
@@ -350,6 +353,22 @@ module.exports = {
                                 id: 'cmp_sdwfun', type: 'chart',
                                 props: { chartType: 'funnel', title: 'Where the deals are', source: STAGE_COUNTS, xKey: 'stage', series: [{ key: 'deals', label: 'Deals' }], showLegend: false },
                                 style: { span: 6, spanMd: 12, height: 'lg' },
+                            },
+                            {
+                                id: 'cmp_sdwyear', type: 'chart',
+                                props: {
+                                    chartType: 'line', title: 'Won revenue, last 12 months',
+                                    source: {
+                                        kind: 'dataset', datasetId: 'ds_sdmonthly',
+                                        params: { since: { kind: 'formula', expr: "dateAdd(today, 0 - 365, 'day')" }, stage: 'won' },
+                                    },
+                                    xKey: 'month',
+                                    series: [{ key: 'revenue', label: 'Revenue' }],
+                                    valueFormat: 'currency',
+                                    formatOptions: { compact: true },
+                                    showLegend: false,
+                                },
+                                style: { span: 12, height: 'md' },
                             },
                         ],
                     },

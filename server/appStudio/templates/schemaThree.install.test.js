@@ -5,7 +5,8 @@
  * dashboard, inbound orders) through the REAL create-from-template path: the
  * studio-apps router's POST / with a templateId, which canonicalizes and gates
  * the definition, stores the app and runs templateInstall (data model, seed
- * rows through writeRecord, datasets), on PGlite with the per-app Postgres
+ * rows through writeRecord, datasets, the template's files through the upload
+ * door into the local storage store), on PGlite with the per-app Postgres
  * engine. Only the permission gates are opened (routeHarness.openGates).
  *
  * Proves per template: the gate has nothing to report, the stored definition
@@ -21,6 +22,14 @@ process.env.MASTER_ENCRYPTION_KEY = process.env.MASTER_ENCRYPTION_KEY || 'tpl3-t
 
 const { test, before, after } = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
+
+// The local storage store under a temp folder, so a template's files are stored like uploads.
+const storageRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'bf-tpl3-assets-'));
+delete process.env.RUSTFS_ENDPOINT;
+process.env.STORAGE_LOCAL_ROOT = storageRoot;
 
 const { usePglitePool } = require('../../testUtils/pglitePool');
 const { close: closePg, query } = usePglitePool();
@@ -48,12 +57,14 @@ before(async () => {
     await userStore.createOrganization({ id: ORG, name: 'Template org' }, { autoGrantTrial: false });
     await userStore.createUser({ ...OWNER, passwordHash: 'x' });
     await require('../../stores/studioAppStore').initDB();
+    await require('../../stores/storageStore').init();
     api = h.serve('/api/studio-apps', require('../../routes/studioApps/crud'), { user: OWNER });
 }, { timeout: 120_000 });
 
 after(async () => {
     if (api) await api.close();
     await closePg();
+    fs.rmSync(storageRoot, { recursive: true, force: true });
 });
 
 const count = async (sql, params) => Number((await query(sql, params)).rows[0].n);
@@ -66,7 +77,9 @@ for (const id of SCHEMA_THREE) {
         const { def, repairs } = canonicalizeAppDefinition(structuredClone(t.definition));
         assert.equal(def.schemaVersion, 3, 'it uses vocabulary of schema 3');
         assert.deepEqual(repairs.filter((r) => !/default/i.test(r.code)).map((r) => r.code), []);
-        assert.equal(gateDefinition(def, { dataModel: canonicalizeDataModel(t.dataModel).model }).verdict, 'ok');
+        // A binding names a template dataset by the template's own id (templateDatasetRefs.mts).
+        const datasets = (t.datasets || []).map((d) => d.id);
+        assert.equal(gateDefinition(def, { dataModel: canonicalizeDataModel(t.dataModel).model, datasets }).verdict, 'ok');
     });
 
     test(`${id}: installs through POST /api/studio-apps with its data and arms nothing`, async () => {
@@ -119,6 +132,37 @@ for (const id of SCHEMA_THREE) {
         }
     });
 }
+
+test('sales dashboard: the wall chart reads the dataset the install created, and the app stays unchanged since install', async () => {
+    const res = await api.call('POST', '/api/studio-apps', { body: { templateId: 'app-sales-dashboard', name: 'Sales, second copy' } });
+    const body = JSON.parse(res.text);
+    const app = await require('../../stores/studioAppStore').getStudioApp(body.app.id);
+    const datasets = await require('../../stores/studioAppDataStore').listDatasets(app.id, OWNER.id);
+    const monthly = datasets.find((d) => d.name === 'Won revenue per month');
+    const wall = app.definition.screens.find((s) => s.id === 'scr_sdwall');
+    const chart = wall.sections[0].children.find((c) => c.id === 'cmp_sdwyear');
+    assert.equal(chart.props.source.datasetId, monthly.id, 'the template id became the id in this app');
+    assert.notEqual(monthly.id, 'ds_sdmonthly');
+    assert.equal(require('../templateUpgrade').isPristine(app), true, 'the install stamp measures the resolved definition');
+    assert.equal(body.app.definitionVersion, app.definitionVersion, 'the answer carries the saved version');
+});
+
+test('inbound orders: the sample products show the template pictures, stored in the new app like uploads', async () => {
+    const res = await api.call('POST', '/api/studio-apps', { body: { templateId: 'app-inbound-orders', name: 'Orders, second copy' } });
+    const body = JSON.parse(res.text);
+    const appId = body.app.id;
+    const { listAssetRows } = require('../appAssetStore.mts');
+    const app = await require('../../stores/studioAppStore').getStudioApp(appId);
+    const rows = await listAssetRows(app);
+    assert.deepEqual(body.assets, { carried: 3, reused: 0, cleared: 0, skipped: [] }, JSON.stringify(body.assets));
+    const products = (await query(`SELECT sku, image_1 FROM "app_${appId}"."products" ORDER BY sku`)).rows;
+    const ids = new Set(rows.map((r) => `asset:${r.id}`));
+    const pictured = products.filter((p) => p.image_1);
+    assert.equal(pictured.length, 3, JSON.stringify(products));
+    assert.ok(pictured.every((p) => ids.has(p.image_1)), 'every picture names a file of this app');
+    assert.ok(pictured.every((p) => !p.image_1.startsWith('asset:iopic_')), 'not the template\'s own ids');
+    assert.equal(require('../templateUpgrade').isPristine(app), true);
+});
 
 test('field service: the lookups and the rollups read back from the installed rows', async () => {
     const res = await api.call('POST', '/api/studio-apps', { body: { templateId: 'app-field-service', name: 'Field service, second copy' } });

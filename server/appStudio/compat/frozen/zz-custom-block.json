@@ -1,0 +1,194 @@
+{
+  "corpus": "zz-custom-block",
+  "canonical": {
+    "sha256": "7d45c6688034cedf3991ddaa4ce99e2382b91315c02ce575282686599feaa9f2",
+    "bytes": 4119,
+    "inputIsCanonical": false,
+    "idempotent": true,
+    "keys": [
+      "schemaVersion",
+      "meta",
+      "theme",
+      "roles",
+      "variables",
+      "screens",
+      "actions",
+      "homeScreenId",
+      "publicAccess"
+    ],
+    "parts": {
+      "schemaVersion": "4e07408562bedb8b",
+      "meta": "87ac29aa6fb1c9b2",
+      "theme": "5d7eeb0111b89897",
+      "roles": "4f53cda18c2baa0c",
+      "variables": "64eec1aee6bc037d",
+      "screens[0] scr_team0001": "860eddff0f379c03",
+      "screens[1] scr_hello001": "bfc80798cf797ee9",
+      "actions.act_pick0001": "9eadd1a3401e6cea",
+      "actions.act_hello001": "369666c97cb72eef",
+      "actions.act_secret01": "fc92d70ab478089e",
+      "homeScreenId": "afada6bf89c7f198",
+      "publicAccess": "116ebb00ad912170"
+    }
+  },
+  "schemaVersion": {
+    "stored": 3,
+    "canonical": 3
+  },
+  "validation": {
+    "strict": {
+      "errors": [],
+      "warnings": [
+        "action.unreachable @ actions.act_secret01",
+        "custom_block.empty @ screens[0].sections[0].children[3].props.block",
+        "custom_block.event_unused @ screens[1].sections[0].children[0].props.block.events.ghost"
+      ]
+    },
+    "save": {
+      "errors": [],
+      "warnings": [
+        "action.unreachable @ actions.act_secret01",
+        "custom_block.empty @ screens[0].sections[0].children[3].props.block",
+        "custom_block.event_unused @ screens[1].sections[0].children[0].props.block.events.ghost"
+      ]
+    }
+  },
+  "ordinals": {
+    "stored": {
+      "act_pick0001": [
+        "0 set_variable"
+      ],
+      "act_hello001": [
+        "0 toast"
+      ],
+      "act_secret01": [
+        "0 toast"
+      ]
+    },
+    "canonical": "same as stored"
+  },
+  "publicDefinition": {
+    "actionIds": [
+      "act_hello001"
+    ],
+    "sha256": "9966d8e1ccf57b18838bbbeffc698e266887b571ac918b6daecf15e2a52039ca",
+    "definition": {
+      "schemaVersion": 3,
+      "meta": {
+        "name": "Custom block",
+        "description": "",
+        "icon": "CodeXml"
+      },
+      "theme": {
+        "primary": "#0F766E",
+        "radius": "md",
+        "density": "comfortable",
+        "fontScale": "md",
+        "appearance": "auto"
+      },
+      "homeScreenId": "scr_hello001",
+      "roles": [],
+      "screens": [
+        {
+          "id": "scr_hello001",
+          "name": "Welcome",
+          "icon": "Hand",
+          "showInNav": false,
+          "maxWidth": "narrow",
+          "sections": [
+            {
+              "id": "sec_hello001",
+              "style": {
+                "padding": 4,
+                "gap": 3,
+                "background": "none"
+              },
+              "children": [
+                {
+                  "id": "cmp_block002",
+                  "type": "custom_block",
+                  "props": {
+                    "block": {
+                      "template": "<div class=\"hello\"><h2>{{ greeting }}</h2><p>{{ line }}</p><button data-emit=\"hello\">Say hello</button></div>",
+                      "css": ".hello{text-align:center}",
+                      "inputs": {
+                        "greeting": {
+                          "kind": "static",
+                          "value": "Welcome"
+                        },
+                        "line": {
+                          "kind": "static",
+                          "value": "This page is open to everyone."
+                        }
+                      },
+                      "events": {
+                        "hello": "act_hello001",
+                        "ghost": "act_secret01"
+                      }
+                    }
+                  },
+                  "style": {
+                    "span": 12
+                  },
+                  "visible": true
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "actions": {
+        "act_hello001": {
+          "kind": "toast",
+          "message": "Hello!",
+          "tone": "info"
+        }
+      },
+      "variables": [
+        {
+          "name": "picked",
+          "label": "Picked",
+          "type": "text",
+          "default": "",
+          "description": ""
+        },
+        {
+          "name": "compact",
+          "label": "Compact",
+          "type": "yesno",
+          "default": false,
+          "description": ""
+        }
+      ]
+    }
+  },
+  "reads": [
+    {
+      "at": "cmp_block001.block",
+      "kind": "records",
+      "table": "tbl_people01",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"people\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "public": {
+          "note": "no read access for this role"
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"people\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "public": {
+          "note": "no read access for this role"
+        }
+      }
+    }
+  ]
+}

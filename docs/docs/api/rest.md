@@ -188,7 +188,7 @@ Community feature — building automations is in the free core. Sharing them acr
 | POST | `/api/automation/runs/:runId/cancel` | U | Cancel a running run |
 | POST | `/api/automation/:id/runs/:runId/retry` | U | Run again with the original trigger payload |
 | POST | `/api/automation/:id/webhook` | U | Create a webhook URL and its secret (the secret is returned once) |
-| GET | `/api/automation/:id/webhooks` | U | List webhook URLs (without secrets) |
+| GET | `/api/automation/:id/webhooks` | U | List webhook URLs (without secrets) with their recent deliveries |
 | POST | `/api/automation/:id/webhook/:slug/rotate` | U | New secret, same URL |
 | DELETE | `/api/automation/:id/webhook/:slug` | U | Delete a webhook URL |
 | POST | `/api/automation/webhook/:slug` | S¹ | Webhook trigger entry |

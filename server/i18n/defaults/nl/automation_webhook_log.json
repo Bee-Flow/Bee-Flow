@@ -1,0 +1,18 @@
+{
+  "translations": {
+    "automation_webhook_log.empty": "Nog geen afleveringen.",
+    "automation_webhook_log.hash_title": "Begin van de SHA-256 van de inhoud",
+    "automation_webhook_log.note": "De inhoud van een aflevering wordt hier nooit bewaard: alleen de grootte en een vingerafdruk.",
+    "automation_webhook_log.previous_secret_until": "Het vorige geheim wordt geaccepteerd tot {when}.",
+    "automation_webhook_log.status.accepted": "Geaccepteerd",
+    "automation_webhook_log.status.bad_signature": "Handtekening niet geaccepteerd",
+    "automation_webhook_log.status.inactive": "Automatisering niet actief",
+    "automation_webhook_log.status.replay": "Nonce al eerder gebruikt",
+    "automation_webhook_log.status.stale_timestamp": "Tijdstempel buiten het venster",
+    "automation_webhook_log.status.trigger_not_live": "Trigger nog niet gepubliceerd",
+    "automation_webhook_log.title": "Recente afleveringen"
+  },
+  "sameAsEnglish": [
+    "automation_webhook_log.size"
+  ]
+}

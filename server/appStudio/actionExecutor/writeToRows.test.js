@@ -34,6 +34,7 @@ stub('../../stores/studioAppDbStore', {
         let inserts = 0;
         return db.transaction(() => statements.map((s) => {
             if (/^\s*insert/i.test(s.sql) && ++inserts > failInsertAfter) throw new Error('disk full');
+            if (db.prepare(s.sql).reader) return { rows: db.prepare(s.sql).all(...norm(s.params)) }; // a read in a batch answers its rows
             return { changes: db.prepare(s.sql).run(...norm(s.params)).changes };
         }))();
     },
@@ -63,6 +64,7 @@ stub('../aiRuntime', {
 });
 
 const dataModel = require('../dataModel');
+const { standInOutbox } = require('../../testUtils/recordOutboxStandIn.testkit');
 const { executeDataStep } = require('./dispatch');
 const { upsertKeyOf, keyFilterOf } = require('./writeToRows.mts');
 
@@ -185,4 +187,36 @@ test('replaceWhere + upsertKey: delete first, then upsert', async () => {
     assert.equal(res.ok, true, JSON.stringify(res));
     assert.equal(res.result.replaced, 1);
     assert.deepEqual(rows().map((r) => r.line), [1, 2]);
+});
+
+// ── Record triggers: the rows a writeTo writes (triggers/recordTriggerRule.mts rule 1) ──
+
+const outbox = standInOutbox(() => [{ appId: app.id, triggerId: 'on_lines', config: { tableId: LINES.id, on: ['create', 'update', 'delete'] } }]);
+test.after(() => outbox.restore());
+const changes = () => outbox.recorded.map((d) => [d.event, (d.after || d.before).line, d.before ? d.before.qty : null, d.after ? d.after.qty : null]);
+
+test('ai_extract in a run that names its origin records every row its writeTo writes: plain, by key and with replaceWhere; without an origin none', async () => {
+    const USER = { kind: 'user' };
+    const old = () => db.prepare('INSERT INTO "lines" (id, created_at, updated_at, created_by, org_id, po, line, qty) VALUES (?,?,?,?,?,?,?,?)').run('old_9', 't', 't', OWNER, 'org-1', 'PO-1', 9, 1);
+    const cases = {
+        'plain: one batch create': [extract({}), [['create', 1, null, 5], ['create', 2, null, 7]]],
+        'upsertKey: a create, and an update of the row that is there': [extract({ upsertKey: ['po', 'line'] }), [['create', 1, null, 5], ['create', 2, null, 7], ['update', 1, 5, 50]],
+            () => { aiState.rows = [{ po: 'PO-1', line: 1, qty: 50 }]; }],
+        'replaceWhere: the deleted row, then the new ones': [extract({ replaceWhere: [{ field: 'line', op: 'gte', value: 9 }] }), [['delete', 9, 1, null], ['create', 1, null, 5], ['create', 2, null, 7]]],
+        'replaceWhere + upsertKey': [extract({ upsertKey: ['po', 'line'], replaceWhere: [{ field: 'line', op: 'gte', value: 9 }] }), [['delete', 9, 1, null], ['create', 1, null, 5], ['create', 2, null, 7]]],
+    };
+    for (const [label, [step, expected, again]] of Object.entries(cases)) {
+        for (const source of [undefined, USER]) {
+            db.exec('DELETE FROM "lines"');
+            aiState.rows = [{ po: 'PO-1', line: 1, qty: 5 }, { po: 'PO-1', line: 2, qty: 7 }];
+            outbox.install();
+            old();
+            const runCtx = ctx(source ? { writeSource: source } : {});
+            const res = await executeDataStep(app, MODEL, step, runCtx);
+            assert.equal(res.ok, true, `${label}: ${JSON.stringify(res)}`);
+            if (again) { again(); await executeDataStep(app, MODEL, step, runCtx); }
+            assert.deepEqual(changes(), source ? expected : [], `${label}, ${source ? 'with' : 'without'} an origin`);
+            if (!source) assert.equal(outbox.reads, 0, `${label}: a write without an origin does not even ask`);
+        }
+    }
 });

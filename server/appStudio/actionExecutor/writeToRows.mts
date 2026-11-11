@@ -101,6 +101,8 @@ function fillOnlyValues(values: Obj, existing: Obj, constantCols: Set<string>): 
 export type UpsertOpts = {
     key: UpsertKey; constants: Obj; run: RunCtx; writeRecord: WriteRecord; writeViewer: Obj;
     insertMissing?: boolean; fillOnly?: boolean;
+    /** The origin of the write (triggers/recordTriggerRule.mts rule 1): each row written is then a one-row write that names it. */
+    source?: unknown;
 };
 
 /**
@@ -124,6 +126,7 @@ export async function upsertRows(app: App, model: unknown, table: Table, rows: O
         const toWrite = o.fillOnly && existing ? fillOnlyValues(values, existing, constantCols) : values;
         const saved = await o.writeRecord(app, model, table, toWrite, {
             viewer: o.writeViewer, recordId: existing && existing.id ? existing.id : undefined,
+            ...(o.source === undefined || o.source === null ? {} : { source: o.source }),
         });
         ids.push(String((saved && saved.id) || (existing && existing.id) || '') || null);
         written += 1;
@@ -164,10 +167,15 @@ export async function prepareReplace(app: App, table: Table, replaceWhere: unkno
     return { filters: strict.filters, matched };
 }
 
-/** Delete the replaceWhere rows now (the key path: delete first, then upsert row by row). */
-export async function replaceBefore(app: App, table: Table, filters: Filter[], run: RunCtx): Promise<number> {
-    const target = await resolveWriteTarget(app, table, writerOf(run), 'delete');
-    const out = await eraseMatching(target, filters, LIMITS.MAX_BULK_WRITE_ROWS);
+/**
+ * Delete the replaceWhere rows now (the key path: delete first, then upsert row by row).
+ * `source`: the origin of the write; with it the deleted rows are recorded for the table's record triggers (bulkRecords.mts).
+ */
+export async function replaceBefore(app: App, table: Table, filters: Filter[], run: RunCtx, source?: unknown): Promise<number> {
+    const writer = writerOf(run);
+    const target = await resolveWriteTarget(app, table, writer, 'delete');
+    const by = source === undefined || source === null ? undefined : { app, source, viewer: writer };
+    const out = await eraseMatching(target, filters, LIMITS.MAX_BULK_WRITE_ROWS, by);
     return out.changed;
 }
 

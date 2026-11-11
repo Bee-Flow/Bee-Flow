@@ -9,6 +9,7 @@ import type { AppDefinition } from './components/admin/Studio/AppStudio/inspecto
 import { appDesignProps } from './components/admin/Studio/AppStudio/runtime/appDesign';
 import AppCustomCss from './components/admin/Studio/AppStudio/runtime/AppCustomCss';
 import AppRenderer from './components/admin/Studio/AppStudio/runtime/AppRenderer';
+import { loadCustomBlock } from './components/admin/Studio/AppStudio/runtime/components/customBlock/CustomBlockLoader';
 import { initialVariableValues } from '@shared/appDefinition/variableScopes.mjs';
 import type { DataState } from './components/admin/Studio/AppStudio/runtime/DataContext';
 import { CANVAS_GROUND, themeVars } from './components/admin/Studio/AppStudio/runtime/themeVars';
@@ -181,6 +182,9 @@ export async function mount(container: Container, {
     previewRole,
     screenshot,
 }: Partial<HeadlessScreenProps> = {}) {
+    // The custom block's renderer is its own chunk in the app (CustomBlockLoader.tsx); loaded
+    // first, the block draws on this one synchronous render like every other component.
+    await loadCustomBlock();
     const root = createRoot(container);
     flushSync(() => {
         root.render(

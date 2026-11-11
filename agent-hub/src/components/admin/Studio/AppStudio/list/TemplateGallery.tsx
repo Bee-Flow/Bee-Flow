@@ -2,6 +2,7 @@ import { Download, Loader2, Sparkles, Trash2, Users } from 'lucide-react';
 import React from 'react';
 import AppIcon from './appIcon';
 import { accentTile, CARD_STYLE } from './cardStyle';
+import { templateTexts } from './templateText';
 import type { StudioTemplate } from './types';
 import useTranslation from '@/hooks/useTranslation';
 
@@ -58,6 +59,7 @@ function TemplateGallery({ templates, loading, error, creatingId, remixingId, de
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             {templates.map((tpl) => {
                 const picking = creatingId === tpl.id;
+                const text = templateTexts(tpl, t);
                 const remixing = remixingId === tpl.id;
                 return (
                     <div
@@ -85,13 +87,13 @@ function TemplateGallery({ templates, loading, error, creatingId, remixingId, de
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2 mb-0.5">
                                         <span className="text-sm font-semibold truncate text-[var(--text-primary)]">
-                                            {tpl.title}
+                                            {text.title}
                                         </span>
-                                        {tpl.category ? (
+                                        {text.category ? (
                                             <span
                                                 className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium shrink-0 bg-white/5 text-[var(--text-secondary)]"
                                             >
-                                                {tpl.category}
+                                                {text.category}
                                             </span>
                                         ) : null}
                                         {/* Provenance, not decoration: a template made
@@ -112,7 +114,7 @@ function TemplateGallery({ templates, loading, error, creatingId, remixingId, de
                                         ) : null}
                                     </div>
                                     <div className="text-xs line-clamp-2 text-[var(--text-secondary)]">
-                                        {tpl.description}
+                                        {text.description}
                                     </div>
                                 </div>
                             </div>

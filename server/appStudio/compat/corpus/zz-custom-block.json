@@ -1,0 +1,252 @@
+{
+  "about": {
+    "source": "hand-made for the custom_block package: a block with records, static and formula inputs, a repeat with a condition, class, title, aria and data-state formulas, inline svg with drawn numbers, a table, details, a wired button and an unwired link; a block in a fixed-height box; a block without content; and on a public screen a block whose template raises one of its two wired events. Definition and data model stored as the canonicalizers write them",
+    "captured": "2026-11-11"
+  },
+  "definition": {
+    "schemaVersion": 3,
+    "meta": {
+      "name": "Custom block",
+      "description": "A block of the builder's own HTML and CSS, on a signed-in screen and on a public one.",
+      "icon": "CodeXml"
+    },
+    "theme": {
+      "primary": "#0F766E",
+      "radius": "md",
+      "density": "comfortable",
+      "fontScale": "md",
+      "appearance": "auto"
+    },
+    "roles": [],
+    "variables": [
+      {
+        "name": "picked",
+        "label": "Picked",
+        "type": "text",
+        "default": "",
+        "description": ""
+      },
+      {
+        "name": "compact",
+        "label": "Compact",
+        "type": "yesno",
+        "default": false,
+        "description": ""
+      }
+    ],
+    "screens": [
+      {
+        "id": "scr_team0001",
+        "name": "Team",
+        "icon": "Users",
+        "showInNav": true,
+        "maxWidth": "wide",
+        "sections": [
+          {
+            "id": "sec_team0001",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_head0001",
+                "type": "heading",
+                "props": {
+                  "text": "Team",
+                  "level": 2,
+                  "accent": "none"
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_block001",
+                "type": "custom_block",
+                "props": {
+                  "block": {
+                    "template": "<section class=\"team {{ compact ? &quot;team--compact&quot; : &quot;&quot; }}\" aria-label=\"{{ title }}\">\n  <h3>{{ title }}</h3>\n  <p data-if=\"len(rows) == 0\" class=\"empty\">Nobody here yet.</p>\n  <ul class=\"people\">\n    <li data-each=\"rows as person\" data-if=\"person.name\" data-state=\"{{ person.team }}\">\n      <strong>{{ index + 1 }}. {{ person.name }}</strong>\n      <small>{{ person.team ?? \"no team\" }}</small>\n      <button data-emit=\"pick\" data-value=\"person.id\" title=\"Open {{ person.name }}\">Open</button>\n    </li>\n  </ul>\n  <details><summary>How it is counted</summary><p>One bar per person, as wide as the name is long.</p></details>\n  <svg viewbox=\"0 0 100 {{ max(len(rows), 1) * 6 }}\" width=\"200\" role=\"img\" aria-label=\"Name lengths\">\n    <g data-each=\"rows as person\"><rect x=\"0\" y=\"{{ index * 6 }}\" width=\"{{ len(person.name) * 4 }}\" height=\"4\" fill=\"var(--bf-primary)\"></rect></g>\n  </svg>\n  <table><thead><tr><th scope=\"col\">Name</th><th scope=\"col\">Team</th></tr></thead>\n    <tbody><tr data-each=\"rows\"><td>{{ item.name }}</td><td colspan=\"1\">{{ item.team }}</td></tr></tbody></table>\n  <a data-emit=\"later\">Later</a>\n</section>",
+                    "css": ".team{padding:12px;border:1px solid var(--bf-border);border-radius:var(--bf-radius);background:var(--bf-surface)}\n.team--compact{padding:4px}\n.people{list-style:none;margin:0;padding:0}\n.people li{display:flex;gap:8px;align-items:center;padding:4px 0}\n.empty{color:var(--bf-text-muted)}\nhtml[data-appearance=\"dark\"] .team{border-color:var(--bf-text-muted)}\n@media (max-width: 400px){.people li{flex-direction:column}}",
+                    "inputs": {
+                      "rows": {
+                        "kind": "records",
+                        "tableId": "tbl_people01"
+                      },
+                      "title": {
+                        "kind": "static",
+                        "value": "People"
+                      },
+                      "compact": {
+                        "kind": "formula",
+                        "expr": "vars.compact"
+                      }
+                    },
+                    "events": {
+                      "pick": "act_pick0001",
+                      "later": null
+                    }
+                  }
+                },
+                "style": {
+                  "span": 8
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_fixed001",
+                "type": "custom_block",
+                "props": {
+                  "block": {
+                    "template": "<p class=\"note\">Picked: <strong>{{ picked }}</strong></p>",
+                    "inputs": {
+                      "picked": {
+                        "kind": "formula",
+                        "expr": "vars.picked"
+                      }
+                    }
+                  }
+                },
+                "style": {
+                  "span": 4,
+                  "height": "md"
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_empty001",
+                "type": "custom_block",
+                "props": {},
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "scr_hello001",
+        "name": "Welcome",
+        "icon": "Hand",
+        "showInNav": false,
+        "maxWidth": "narrow",
+        "sections": [
+          {
+            "id": "sec_hello001",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_block002",
+                "type": "custom_block",
+                "props": {
+                  "block": {
+                    "template": "<div class=\"hello\"><h2>{{ greeting }}</h2><p>{{ line }}</p><button data-emit=\"hello\">Say hello</button></div>",
+                    "css": ".hello{text-align:center}",
+                    "inputs": {
+                      "greeting": {
+                        "kind": "static",
+                        "value": "Welcome"
+                      },
+                      "line": {
+                        "kind": "static",
+                        "value": "This page is open to everyone."
+                      }
+                    },
+                    "events": {
+                      "hello": "act_hello001",
+                      "ghost": "act_secret01"
+                    }
+                  }
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "actions": {
+      "act_pick0001": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "set_variable",
+            "name": "picked",
+            "value": {
+              "kind": "formula",
+              "expr": "value"
+            }
+          }
+        ]
+      },
+      "act_hello001": {
+        "kind": "toast",
+        "message": "Hello!",
+        "tone": "info"
+      },
+      "act_secret01": {
+        "kind": "toast",
+        "message": "Not for visitors.",
+        "tone": "info"
+      }
+    },
+    "homeScreenId": "scr_team0001",
+    "publicAccess": {
+      "entryScreenId": "scr_hello001",
+      "screenIds": [
+        "scr_hello001"
+      ],
+      "roleKey": "public"
+    }
+  },
+  "dataModel": {
+    "modelVersion": 1,
+    "tables": [
+      {
+        "id": "tbl_people01",
+        "key": "people",
+        "name": "People",
+        "fields": [
+          {
+            "key": "name",
+            "name": "Name",
+            "type": "text",
+            "required": true,
+            "id": "fld_1a676a",
+            "unique": false
+          },
+          {
+            "key": "team",
+            "name": "Team",
+            "type": "text",
+            "id": "fld_847290",
+            "required": false,
+            "unique": false
+          }
+        ],
+        "icon": null,
+        "access": {
+          "default": "app",
+          "roles": {},
+          "rowFilters": {}
+        }
+      }
+    ],
+    "roles": [],
+    "roleMapping": {
+      "default": "app",
+      "byGroup": {}
+    }
+  }
+}

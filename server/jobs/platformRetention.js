@@ -74,6 +74,7 @@ let _running = false;
  *   releaseStudioWait?: (appId: string, waitKind: string | null, waitRef: string | null, reason: string) => Promise<unknown>,
  *   pruneStudioRunLog?: (opts: { maxPerApp: number, idleMs: number, staleMs: number, batch?: number }) => Promise<{ closed: number, overflow: number }>,
  *   pruneStudioWebhookDeliveries?: () => Promise<number>,
+ *   pruneAutomationWebhookDeliveries?: () => Promise<number>,
  *   log: typeof import('../telemetry/log'),
  * }} PlatformRetentionDeps
  */
@@ -104,6 +105,8 @@ function deps() {
             },
             // The delivery log of webhook triggers: STUDIO_APP_WEBHOOK_DELIVERY_RETENTION_DAYS (0 = keep).
             pruneStudioWebhookDeliveries: () => require('../stores/studioAppData/webhookTriggers.mts').pruneWebhookDeliveries(),
+            // The delivery log of automation webhooks: AUTOMATION_WEBHOOK_DELIVERY_RETENTION_DAYS (0 = keep).
+            pruneAutomationWebhookDeliveries: () => require('../stores/automationStore/webhookDeliveries').pruneAutomationWebhookDeliveries(),
             log: require('../telemetry/log'),
         };
     }
@@ -147,11 +150,11 @@ async function _pruneScanLedger(d) {
 }
 
 /**
- * The suggestion scan cache and feedback, then resolved document suggestions. One failing never skips the others.
+ * The suggestion scan cache and feedback, resolved document suggestions, then the delivery log of automation webhooks. One failing never skips the others.
  * @param {PlatformRetentionDeps} d
  */
 async function _pruneSuggestions(d) {
-    for (const [label, prune] of [['suggestion scan', d.pruneSuggestionScans], ['suggestion feedback', d.pruneSuggestionFeedback], ['document suggestion', d.pruneDocumentSuggestions]]) {
+    for (const [label, prune] of [['suggestion scan', d.pruneSuggestionScans], ['suggestion feedback', d.pruneSuggestionFeedback], ['document suggestion', d.pruneDocumentSuggestions], ['automation webhook delivery', d.pruneAutomationWebhookDeliveries]]) {
         if (typeof prune !== 'function') continue;
         try {
             const n = await prune();

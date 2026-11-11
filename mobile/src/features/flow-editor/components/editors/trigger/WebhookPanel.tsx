@@ -77,7 +77,7 @@ export function WebhookPanel({ step, ctx }: StepEditorProps) {
     const onRotate = async (wh: FlowWebhook) => {
         const ok = await confirm({
             title: t('mobile.flow.webhook.rotate_title', 'Rotate the secret?'),
-            message: t('mobile.flow.webhook.rotate_message', 'Any caller still using the old secret immediately starts getting 401 errors.'),
+            message: t('mobile.flow.webhook.rotate_message', 'Callers must switch to the new secret. The previous one keeps working for a short changeover period, or stops at once when none is set.'),
             confirmLabel: t('mobile.flow.webhook.rotate_confirm', 'Rotate'),
         });
         if (ok) rotate.mutate(wh.id, { onSuccess: remember });
@@ -85,7 +85,7 @@ export function WebhookPanel({ step, ctx }: StepEditorProps) {
     const onDelete = async (wh: FlowWebhook) => {
         const ok = await confirm({
             title: t('mobile.flow.webhook.delete_title', 'Delete this webhook?'),
-            message: t('mobile.flow.webhook.delete_message', 'Any caller using it starts getting 404s immediately.'),
+            message: t('mobile.flow.webhook.delete_message', 'Any caller using it is refused immediately.'),
             confirmLabel: t('common.delete', 'Delete'),
         });
         if (ok) remove.mutate(wh.id);

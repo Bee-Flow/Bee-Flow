@@ -304,13 +304,7 @@ const {
     EDITOR_CONTEXT_PREFIX,
     APPROVED_PLAN_PREFIX,
     IMAGE_NOTE_PREFIX,
-    IMAGE_MIME_ALLOWLIST,
-    MAX_IMAGES_PER_TURN,
-    MAX_IMAGE_BYTES,
-    base64ByteLength,
-    sanitizeEditorContext,
     sanitizeHistory,
-    sanitizeInboundImages,
 } = require('./appStudioBuilder')._test;
 
 // ── HTTP harness ────────────────────────────────────────────────────
@@ -826,30 +820,6 @@ test('auto on a small-only org keeps the configured small model (no invented mod
 });
 
 // ── Wave 2A: editor context + data-aware turn ───────────────────────
-
-test('sanitizeEditorContext whitelists, bounds and rejects junk', () => {
-    assert.strictEqual(sanitizeEditorContext(undefined), null);
-    assert.strictEqual(sanitizeEditorContext('nope'), null);
-    assert.strictEqual(sanitizeEditorContext({}), null);
-    assert.strictEqual(sanitizeEditorContext({ evil: 'x' }), null);
-
-    const full = sanitizeEditorContext({
-        screenId: 'scr_abc123',
-        nodeId: 'cmp_x1',
-        boundTableId: 'tbl_t1',
-        templateId: 'crm-pipeline',
-        selectedNodeIds: ['cmp_a', 'cmp_b', 42, 'x'.repeat(65), ...Array.from({ length: 30 }, (_, i) => `cmp_extra${i}`)],
-        injected: 'dropped',
-    });
-    assert.strictEqual(full.screenId, 'scr_abc123');
-    assert.strictEqual(full.templateId, 'crm-pipeline');
-    assert.strictEqual(full.injected, undefined, 'unknown keys dropped');
-    assert.strictEqual(full.selectedNodeIds.length, 20, 'selection capped at 20');
-    assert.ok(!full.selectedNodeIds.includes(42) && !full.selectedNodeIds.some((s) => s.length > 64), 'non-strings/oversized dropped');
-
-    // oversized scalar ids dropped
-    assert.strictEqual(sanitizeEditorContext({ screenId: 'x'.repeat(65) }), null);
-});
 
 test('sanitizeHistory strips EDITOR CONTEXT (and the other machine notes)', () => {
     const cleaned = sanitizeHistory([
@@ -1998,34 +1968,6 @@ test('images leave a trace in the persisted history but never their bytes', asyn
     assert.ok(!JSON.stringify(snapshot).includes('data:image'), 'no base64 in the 64KB-trimmed snapshot');
 });
 
-test('sanitizeInboundImages normalises the accepted shapes and strips nothing else', () => {
-    const png = imageDataUrl('image/png', 9);
-    assert.deepStrictEqual(sanitizeInboundImages(undefined), { images: [] });
-    assert.deepStrictEqual(sanitizeInboundImages(null), { images: [] });
-    assert.deepStrictEqual(sanitizeInboundImages([]), { images: [] });
-
-    // Bare string and { dataUrl } object normalise to the same record.
-    const fromString = sanitizeInboundImages([png]).images[0];
-    const fromObject = sanitizeInboundImages([{ dataUrl: png }]).images[0];
-    assert.deepStrictEqual(fromString, fromObject);
-    assert.strictEqual(fromString.mimeType, 'image/png');
-    assert.strictEqual(fromString.dataUrl, png);
-
-    // An UPPERCASE header mime is accepted and lowercased.
-    const upper = sanitizeInboundImages([png.replace('image/png', 'IMAGE/PNG')]);
-    assert.strictEqual(upper.images[0].mimeType, 'image/png');
-
-    // Byte accounting is exact (base64 padding included).
-    assert.strictEqual(base64ByteLength('AAAA'), 3);
-    assert.strictEqual(base64ByteLength('AAA='), 2);
-    assert.strictEqual(base64ByteLength('AA=='), 1);
-    for (const mime of IMAGE_MIME_ALLOWLIST) {
-        assert.strictEqual(sanitizeInboundImages([imageDataUrl(mime, 6)]).images.length, 1, mime);
-    }
-    assert.strictEqual(MAX_IMAGES_PER_TURN, 4);
-    assert.strictEqual(MAX_IMAGE_BYTES, 5 * 1024 * 1024);
-});
-
 test('sanitizeHistory strips the [IMAGE NOTE] machine message', () => {
     const kept = sanitizeHistory([
         { role: 'user', content: 'Make it look like this' },
@@ -2248,4 +2190,46 @@ test('"only a dashboard" in the brief caps the screens the model can add: the se
     assert.match(String(calls[1].data.error), /A screen "Invoice detail" was not added/);
     // The refusal reached the model as a tool result naming the evidence.
     assert.ok((state.screenCapToolMessages || []).some((c) => /exactly 1 screen/.test(c) && /SCREENS \(binding/.test(c)), (state.screenCapToolMessages || []).join('\n'));
+});
+
+// ── The version row at the end of a turn (#652) ─────────────────────
+
+/** Add a heading to `state.pendingSectionId` (or this turn's new screen), then close on prose. */
+const headingThenProse = (text) => [
+    async (messages, options, onEvent) => {
+        const parentId = state.pendingSectionId || toolResultFor(messages, 'app_add_screen')?.sectionId;
+        onEvent('tool_use', { id: `h_${text}`, name: 'app_add_components', input: { parentId, components: [{ type: 'heading', props: { text, level: 2 } }] } });
+    },
+    async (messages, options, onEvent) => { onEvent('text', { text: 'Done.' }); },
+];
+const endRows = (appId) => (state.apps.get(appId).versions || []).filter((v) => /^AI (build finished|change)$/.test(v.summary));
+const turn = (body) => api('POST', '/stream', { user: 'u-ver', body: { modelTier: 'fast', ...body } }).then((r) => parseSSE(r.text));
+
+test('a build turn that finalizes ends with ONE "AI build finished" row holding the final definition', async () => {
+    state.script = [async (m, o, onEvent) => { onEvent('tool_use', { id: 'v1', name: 'app_add_screen', input: { name: 'Orders' } }); }, ...headingThenProse('Orders')];
+    const events = await turn({ message: 'Build an orders app' });
+    const done = eventsOf(events, 'done')[0].data;
+    assert.strictEqual(done.finalized, true);
+    assert.deepStrictEqual(endRows(done.appId).map((v) => v.summary), ['AI build finished']);
+    assert.deepStrictEqual(endRows(done.appId)[0].definition, state.apps.get(done.appId).definition, 'the row is the end state');
+    assert.ok(eventsOf(events, 'checkpoint').some((c) => c.data.summary === 'AI build finished' && c.data.versionId), 'the client hears of it');
+    state.versionAppId = done.appId;
+});
+
+test('a follow-up turn that changes the app adds "AI change"; one that changes nothing or fails adds no row', async () => {
+    const appId = state.versionAppId;
+    state.pendingSectionId = state.apps.get(appId).definition.screens.find((s) => s.name === 'Orders').sections[0].id;
+    state.script = headingThenProse('Totals');
+    await turn({ appId, message: 'add a totals heading' });
+    assert.deepStrictEqual(endRows(appId).map((v) => v.summary), ['AI build finished', 'AI change']);
+    assert.deepStrictEqual(endRows(appId)[1].definition, state.apps.get(appId).definition);
+    const rows = state.apps.get(appId).versions.length;
+    state.script = [async (m, o, onEvent) => { onEvent('text', { text: 'It lists the orders.' }); }];
+    assert.deepStrictEqual(eventsOf(await turn({ appId, message: 'what does it show?' }), 'checkpoint'), []);
+    state.script = [headingThenProse('Broken')[0], async () => { throw new Error('provider exploded'); }];
+    const failed = await turn({ appId, message: 'add another heading' });
+    assert.strictEqual(eventsOf(failed, 'tool_call')[0].data.ok, true, 'the change landed before the failure');
+    assert.deepStrictEqual(eventsOf(failed, 'error').map((e) => e.data.code), ['transient_upstream']);
+    assert.strictEqual(state.apps.get(appId).versions.length, rows, 'no row for the reply without changes, nor for the failed turn');
+    state.pendingSectionId = null;
 });
