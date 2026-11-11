@@ -52,9 +52,17 @@ const shapes = nodeRequire('./fieldFormats.mts') as {
     hasValueShape(field: RuleField): boolean;
     valueShapeProblem(field: RuleField, value: unknown, label: string): string | null;
 };
-const userPattern = nodeRequire('../text/userPattern') as {
+type UserPattern = {
     compileUserPattern(p: unknown, o?: { caseInsensitive?: boolean }): Compiled;
     testUserPattern(c: Compiled, text: string): boolean | null;
+};
+// Loaded on the first pattern rule, not with this module: the app validator requires this
+// file, the agent-hub lockstep tests load that validator without server/node_modules, and
+// the pattern engine needs the native `re2` (the same reason stepDataChecks.js loads it late).
+let userPatternModule: UserPattern | null = null;
+const userPattern = (): UserPattern => {
+    userPatternModule ??= nodeRequire('../text/userPattern') as UserPattern;
+    return userPatternModule;
 };
 
 /** At most this many sentences go into the error's message; `fieldErrors` has them all. */
@@ -104,7 +112,7 @@ function ruleValueError(key: string, value: unknown): string | null {
 function patternError(value: unknown): string | null {
     if (typeof value !== 'string' || !value.trim()) return 'must be a non-empty pattern';
     if (value.length > vocab.FIELD_RULE_LIMITS.MAX_PATTERN_LEN) return `is longer than ${vocab.FIELD_RULE_LIMITS.MAX_PATTERN_LEN} characters`;
-    const compiled = userPattern.compileUserPattern(value, { caseInsensitive: false });
+    const compiled = userPattern().compileUserPattern(value, { caseInsensitive: false });
     return compiled.ok ? null : `is refused: ${compiled.message}`;
 }
 
@@ -207,10 +215,10 @@ function textRule(v: Validation, value: unknown, label: string): string | null {
     if (isCount(v.minLength) && length < (v.minLength as number)) return `"${label}" must be at least ${v.minLength} characters.`;
     if (isCount(v.maxLength) && length > (v.maxLength as number)) return `"${label}" must be at most ${v.maxLength} characters.`;
     if (typeof v.pattern !== 'string' || !v.pattern) return null;
-    const compiled = userPattern.compileUserPattern(v.pattern, { caseInsensitive: false });
+    const compiled = userPattern().compileUserPattern(v.pattern, { caseInsensitive: false });
     // A pattern that cannot be compiled or decided refuses: the rule exists, and passing a value it never looked at would be a lie.
     if (!compiled.ok) return `"${label}" could not be checked.`;
-    const hit = userPattern.testUserPattern(compiled, s);
+    const hit = userPattern().testUserPattern(compiled, s);
     if (hit === null) return `"${label}" could not be checked right now. Try again.`;
     return hit ? null : `"${label}" does not have the expected format.`;
 }
