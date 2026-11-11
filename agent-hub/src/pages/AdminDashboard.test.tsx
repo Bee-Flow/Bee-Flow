@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AdminDashboard from './AdminDashboard';
+import EntitlementsContext, { type EntitlementsValue } from '@/components/licensing/EntitlementsContext';
 import LicenseContext from '@/components/licensing/LicenseContext';
 import { withQueryClient } from '@/test/queryWrapper';
 
@@ -17,14 +18,17 @@ beforeEach(() => {
     vi.stubGlobal('fetch', vi.fn(async () => new Response('{}', { status: 200, headers: { 'content-type': 'application/json' } })));
 });
 
-function renderDashboard({ user = superAdmin, seg1, license = {} }: { user?: object; seg1?: string; license?: Partial<LicenseValue> } = {}) {
+function renderDashboard({ user = superAdmin, seg1, license = {}, capabilities = [] }: { user?: object; seg1?: string; license?: Partial<LicenseValue>; capabilities?: string[] } = {}) {
     const onNavigate = vi.fn();
     const onBack = vi.fn();
     const value = { tier: 'community', deploymentMode: 'self-hosted', serverOverride: false, hasTier: () => false, hasFeature: () => false, ...license } as LicenseValue;
+    const entitlements = { loading: false, degraded: false, error: null, can: (id: string) => capabilities.includes(id) } as EntitlementsValue;
     render(withQueryClient(
-        <LicenseContext.Provider value={value}>
-            <AdminDashboard user={user as never} onBack={onBack} onNavigate={onNavigate} adminPath={{ seg1 }} />
-        </LicenseContext.Provider>,
+        <EntitlementsContext.Provider value={entitlements}>
+            <LicenseContext.Provider value={value}>
+                <AdminDashboard user={user as never} onBack={onBack} onNavigate={onNavigate} adminPath={{ seg1 }} />
+            </LicenseContext.Provider>
+        </EntitlementsContext.Provider>,
     ));
     return { onNavigate, onBack };
 }
@@ -47,13 +51,24 @@ describe('AdminDashboard navigation', () => {
     });
 
     it('shows the enterprise and cloud tabs on an enterprise cloud install', () => {
-        renderDashboard({ seg1: 'licenses', license: { tier: 'enterprise', deploymentMode: 'cloud' } });
+        renderDashboard({ seg1: 'licenses', license: { tier: 'enterprise', deploymentMode: 'cloud' }, capabilities: ['compliance_hub_gdpr'] });
         const nav = within(rail());
         for (const name of ['Agents', 'Compliance', 'Subscriptions', 'Product Website', 'Release Notes']) {
             expect(nav.getByRole('link', { name })).toBeInTheDocument();
         }
         // The whole-server block is one flat list: no "Website" sub-heading.
         expect(within(nav.getByTestId('admin-rail-section-instance')).getByRole('link', { name: 'Release Notes' })).toBeInTheDocument();
+    });
+
+    // Compliance follows the capability, as Settings did: the plan name is not the rule.
+    it('offers Compliance on the capability, below Enterprise, and not without it', () => {
+        renderDashboard({ seg1: 'licenses', capabilities: ['compliance_hub_gdpr'] });
+        expect(within(rail()).getByRole('link', { name: 'Compliance' })).toBeInTheDocument();
+    });
+
+    it('hides Compliance on an Enterprise plan that lacks the capability', () => {
+        renderDashboard({ seg1: 'licenses', license: { tier: 'enterprise', deploymentMode: 'cloud' } });
+        expect(within(rail()).queryByRole('link', { name: 'Compliance' })).not.toBeInTheDocument();
     });
 
     it('shows an org admin only the tabs their permission opens', () => {
@@ -109,9 +124,10 @@ describe('AdminDashboard scope groups', () => {
         permissions: ['org_admin', 'admin_agents', 'admin_ai_config', 'admin_security', 'admin_monitoring', 'admin_compliance', 'manage_users'],
     };
     const enterprise = { tier: 'enterprise', deploymentMode: 'self-hosted' } as const;
+    const COMPLIANCE = ['compliance_hub_gdpr'];
 
     it('gives a platform admin both groups: the organisation and the whole server', () => {
-        renderDashboard({ seg1: 'agents', license: enterprise });
+        renderDashboard({ seg1: 'agents', license: enterprise, capabilities: COMPLIANCE });
         const nav = within(rail());
         expect(nav.getByTestId('admin-rail-section-org')).toHaveTextContent('Organisations');
         expect(nav.getByTestId('admin-rail-section-org')).not.toHaveTextContent('Your organisation');
@@ -124,7 +140,7 @@ describe('AdminDashboard scope groups', () => {
     });
 
     it('gives an organisation admin one group and no tab about the whole server', () => {
-        renderDashboard({ user: orgAdmin, seg1: 'agents', license: enterprise });
+        renderDashboard({ user: orgAdmin, seg1: 'agents', license: enterprise, capabilities: COMPLIANCE });
         const nav = within(rail());
         expect(nav.getByTestId('admin-rail-section-org')).toHaveTextContent('Your organisation');
         expect(nav.queryByTestId('admin-rail-section-instance')).not.toBeInTheDocument();

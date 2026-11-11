@@ -108,14 +108,13 @@ export default function AccessPermissionsPanel({ user, activeSection = 'grants',
     const renderBody = () => {
         if (active === 'grants') {
             if (isSuperAdmin && !orgId) return chooseOrg;
-            // Org-admins manage integrations (incl. MCP) on Settings → Organisation
-            // → Integrations, so the hub shows them only Features + Beta. Super-admins
-            // keep all kinds for managing other orgs.
+            // Every kind, for an organisation admin as for a platform admin: features,
+            // beta and integrations (MCP servers included). The routes behind the matrix
+            // take the same org-admin check for each kind.
             return (
                 <GroupAccessMatrix
                     key={`grants:${orgId || 'me'}`}
                     orgId={isSuperAdmin ? orgId : undefined}
-                    kinds={isSuperAdmin ? undefined : ['core', 'beta']}
                 />
             );
         }

@@ -40,6 +40,8 @@ export interface AdminTab {
     orgAdminSections?: readonly string[];
     superAdminOnly?: boolean;
     minTier?: string;
+    /** A licence capability the tab needs (the entitlement snapshot's `can`), where the plan is not the rule. */
+    capability?: string;
     cloudOnly?: boolean;
     selfHostedOnly?: boolean;
 }
@@ -161,7 +163,7 @@ export const ADMIN_TABS: readonly AdminTab[] = [
     // Compliance Hub — available on cloud AND self-hosted (Enterprise):
     // self-hosted GDPR customers are exactly who the hub serves. Also
     // reachable from Settings → Organisation for org-admins/DPOs.
-    { id: 'compliance', labelKey: 'admin.tab_compliance', icon: Scale, group: 'security', perm: ['admin_compliance'], scope: 'org', superAdminOnly: false, minTier: 'enterprise' },
+    { id: 'compliance', labelKey: 'admin.tab_compliance', icon: Scale, group: 'security', perm: ['admin_compliance'], scope: 'org', superAdminOnly: false, capability: 'compliance_hub_gdpr' },
     // Bee Flow customer-support inbox. Visible to any super-admin (or a
     // user with the `admin_support` permission), on cloud and self-hosted
     // alike — outbound email + AI reply are best-effort and degrade
@@ -202,11 +204,18 @@ export interface AdminAccess {
     serverOverride: boolean;
     isSuperAdmin: boolean;
     hasPermission: (perm: string) => boolean;
+    /** Does the entitlement snapshot grant this capability? Absent: capability-gated tabs are not offered. */
+    hasCapability?: (capability: string) => boolean;
 }
 
 /** A tab flagged for the super-admin, or about the whole server, is for the platform admin whatever permissions the viewer holds. */
 function isForPlatformAdmin(tab: AdminTab): boolean {
     return !!tab.superAdminOnly || tab.scope === 'instance';
+}
+
+/** The tab names a licence capability the viewer's entitlements do not grant. */
+function lacksCapability(tab: AdminTab, access: AdminAccess): boolean {
+    return !!tab.capability && !access.hasCapability?.(tab.capability);
 }
 
 /** May this user open this tab? An unknown tab is not refused here (the content just renders nothing). */
@@ -221,6 +230,7 @@ export function canOpenAdminTab(tab: AdminTab | undefined, access: AdminAccess):
     // (LEGACY_TIER_ALIAS applied at fetch); default rank 0 = community.
     if (tab.minTier && (TIER_RANK[access.tier] ?? 0) < (TIER_RANK[tab.minTier] ?? Infinity)) return false;
     // Server-wide licence active → no per-org subscriptions to manage.
+    if (lacksCapability(tab, access)) return false;
     if (tab.id === 'subscriptions' && access.serverOverride) return false;
     if (tab.selfHostedOnly && !access.isSelfHosted) return false;
     if (!access.isSuperAdmin && isForPlatformAdmin(tab)) return false;

@@ -11,13 +11,26 @@ import { withQueryClient } from '@/test/queryWrapper';
 const ORGS = [{ id: 'org-a', name: 'Org A' }, { id: 'org-b', name: 'Org B' }];
 const platformAdmin = { id: 'u1', isAdmin: true, role: 'admin', permissions: ['all'] };
 
+const MATRIX = {
+    orgId: 'org-a',
+    mode: 'cloud',
+    capabilities: [
+        { id: 'webpages', kind: 'beta', name: 'Webpages', category: 'Beta' },
+        { id: 'slack', kind: 'integration', name: 'Slack', category: 'Chat' },
+    ],
+    ceiling: ['webpages', 'slack'],
+    everyone: [],
+    groups: [],
+};
+
 let calls: { method: string; url: string; body: string | null }[];
 
 beforeEach(() => {
     calls = [];
     vi.stubGlobal('fetch', vi.fn(async (url: unknown, init: RequestInit = {}) => {
         calls.push({ method: init.method || 'GET', url: String(url), body: typeof init.body === 'string' ? init.body : null });
-        return new Response('{}', { status: 200, headers: { 'content-type': 'application/json' } });
+        const body = String(url).includes('group-access') ? MATRIX : {};
+        return new Response(JSON.stringify(body), { status: 200, headers: { 'content-type': 'application/json' } });
     }));
 });
 
@@ -70,5 +83,12 @@ describe('AccessPermissionsPanel and the dashboard organisation', () => {
         await waitFor(() => expect(calls.length).toBeGreaterThan(0));
         expect(screen.queryByTestId('access-choose-org')).not.toBeInTheDocument();
         expect(writes()).toEqual([]);
+    });
+
+    it('an organisation admin manages the integrations next to the features and betas', async () => {
+        render(withQueryClient(<AccessPermissionsPanel user={{ id: 'u2', isAdmin: false, role: 'user', permissions: ['org_admin'] }} activeSection="grants" />));
+        expect(await screen.findByRole('checkbox', { name: 'Slack' })).toBeInTheDocument();
+        expect(screen.getByRole('checkbox', { name: 'Webpages' })).toBeInTheDocument();
+        expect(calls.some(c => c.url.includes('/auth/me/group-access'))).toBe(true);
     });
 });

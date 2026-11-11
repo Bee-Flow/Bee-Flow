@@ -4,6 +4,7 @@
 
 import { useDeploymentMode } from '@/hooks/useDeploymentMode';
 import { useLicenseContext } from '@/components/licensing/LicenseContext';
+import { useEntitlements } from '@/components/licensing/EntitlementsContext';
 import { resolveAgentSection } from '@/components/agents/agentSections';
 import { isOrgAdminRole, isPlatformAdmin } from '@/utils/adminAccess';
 import { ADMIN_TABS, canOpenAdminTab, type AdminTab } from './adminTabs';
@@ -46,10 +47,13 @@ export function useAdminTabAccess(user: AdminTabUser | null | undefined): AdminT
     const { serverOverride, tier } = useLicenseContext();
     const isSuperAdmin = isPlatformAdmin(user);
     const hasPermission = adminPermissionCheck(user);
+    const entitlements = useEntitlements();
+    // The same capability rule as Settings > Compliance; an unread or failed snapshot fails open, like the other entitlement-gated rows.
+    const hasCapability = (capability: string) => entitlements.loading || entitlements.degraded || !!entitlements.error || entitlements.can(capability);
     // The Agents tab with no section left for this viewer would open an empty hub.
     const hasAgentSection = resolveAgentSection(user ? { ...user, isAdmin: user.isAdmin ?? undefined, role: user.role ?? undefined } : user, '').visible.length > 0;
     const checkTabAccess = (tab: AdminTab | undefined) => canOpenAdminTab(tab, {
-        isCloud, isSelfHosted, tier, serverOverride: !!serverOverride, isSuperAdmin, hasPermission,
+        isCloud, isSelfHosted, tier, serverOverride: !!serverOverride, isSuperAdmin, hasPermission, hasCapability,
     }) && !(tab?.id === 'agents' && !hasAgentSection);
     const canOpenDashboard = isSuperAdmin || hasPermission('all') || ADMIN_TABS.some(tab => checkTabAccess(tab));
     return { hasPermission, isSuperAdmin, checkTabAccess, canOpenDashboard };
