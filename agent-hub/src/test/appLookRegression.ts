@@ -11,6 +11,7 @@
 //     are masked, since they print in the machine's time zone (maskDates),
 //   - every data binding gets an EMPTY, successful answer (emptyDataState), keyed the
 //     way the fetch layer keys it, so no component waits on a loader,
+//   - any other request answers 401 without touching the network (noSession),
 //   - ids React generates (useId) are numbered in order of appearance,
 //   - class tokens starting with `bfa-` or `u-` are dropped: a later package adds those
 //     as part classes, and adding a class is not a change in how an app looks,
@@ -75,6 +76,22 @@ export function fixedClock(): () => void {
         vi.useRealTimers();
         restoreLocale();
     };
+}
+
+/**
+ * Keep the renders off the network. A component that loads its own data (the approval
+ * list, ...) would otherwise reach whatever listens on API_BASE (localhost:3001 under
+ * vitest) on the machine that runs the test, and print that machine's answer: a local
+ * Bee Flow stack says 401, a CI runner refuses the connection. The headless
+ * render has no session, so every request gets the answer the API gives a request
+ * without one.
+ */
+export function noSession(): () => void {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(
+        JSON.stringify({ error: 'Not authenticated' }),
+        { status: 401, headers: { 'Content-Type': 'application/json' } },
+    )));
+    return () => vi.unstubAllGlobals();
 }
 
 const PINNED_LOCALE = 'en-US';
@@ -328,9 +345,10 @@ export function snapshotPath(name: string): string {
 export function defineLookShard(index: number, count: number) {
     const names = shardNames(corpusNames(), index, count);
     describe(`look regression: corpus apps render as captured (shard ${index + 1} of ${count})`, () => {
-        let restore: () => void = () => {};
-        beforeAll(() => { restore = fixedClock(); });
-        afterAll(() => restore());
+        let restoreClock: () => void = () => {};
+        let restoreFetch: () => void = () => {};
+        beforeAll(() => { restoreClock = fixedClock(); restoreFetch = noSession(); });
+        afterAll(() => { restoreFetch(); restoreClock(); });
 
         it('has corpus apps to render', () => {
             expect(names.length).toBeGreaterThan(0);
