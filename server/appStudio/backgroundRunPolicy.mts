@@ -37,17 +37,19 @@ const isObject = (v: unknown): v is Obj => v !== null && typeof v === 'object' &
 export const BACKGROUND_REFUSED_KINDS: readonly string[] = STEP_POLICY_LISTS.backgroundRefusedKinds;
 /** Client kinds a job records and the browser replays at the end: `background: 'defer'`. */
 export const BACKGROUND_DEFERRED_KINDS: readonly string[] = STEP_POLICY_LISTS.backgroundDeferredKinds;
-/** The action-level fields of a background sequence. */
-export const RUN_OPTION_FIELDS: readonly string[] = Object.freeze(['background', 'lockKey', 'progressVar']);
+/** The action-level fields of a sequence that runs on the server (`runOn` since 3). */
+export const RUN_OPTION_FIELDS: readonly string[] = Object.freeze(['background', 'lockKey', 'progressVar', 'runOn']);
 
-export type RunOptions = { background: boolean; lockKey: Obj | null; progressVar: string | null };
+/** `server`: the action carries `runOn: 'server'` (since 3): the click waits while the server walks the whole sequence. */
+export type RunOptions = { background: boolean; lockKey: Obj | null; progressVar: string | null; server: boolean };
 export type BackgroundProblem = { code: string; path: string; message: string; hint: string };
 
 /** The run options of an action as written (absent = off). */
 export function readRunOptions(action: unknown): RunOptions {
-    if (!isObject(action) || action.kind !== 'sequence') return { background: false, lockKey: null, progressVar: null };
+    if (!isObject(action) || action.kind !== 'sequence') return { background: false, lockKey: null, progressVar: null, server: false };
     return {
         background: action.background === true,
+        server: action.runOn === 'server',
         lockKey: isObject(action.lockKey) ? action.lockKey : null,
         progressVar: typeof action.progressVar === 'string' && action.progressVar ? action.progressVar : null,
     };
@@ -55,6 +57,12 @@ export function readRunOptions(action: unknown): RunOptions {
 
 export function isBackgroundAction(action: unknown): boolean {
     return readRunOptions(action).background;
+}
+
+/** True when the server walks the action as one run (a job row): `background: true`, or `runOn: 'server'`. */
+export function runsOnServer(action: unknown): boolean {
+    const opts = readRunOptions(action);
+    return opts.background || opts.server;
 }
 
 /** How many confirm steps open the sequence (asked in the browser before the job starts). */
@@ -67,6 +75,16 @@ export function leadingConfirmCount(steps: unknown): number {
 
 const MAX_NESTING = LIMITS.MAX_ACTION_DEPTH + 1;
 
+type ProblemWords = { runs: string; starts: string; stepCode: string; confirmCode: string; stepHint: string };
+const BACKGROUND_WORDS: ProblemWords = {
+    runs: 'runs in the background', starts: 'the job starts', stepCode: 'action.background_step_unsupported', confirmCode: 'action.background_confirm_position',
+    stepHint: 'Put it in a second action on the same control (it runs right after the click), or bind the next screen to actions.<id>.result. toast and refresh are fine: they show when the job ends.',
+};
+const SERVER_RUN_WORDS: ProblemWords = {
+    runs: 'runs on the server (runOn: "server")', starts: 'the run starts', stepCode: 'action.server_run_step_unsupported', confirmCode: 'action.server_run_confirm_position',
+    stepHint: 'Put it in a second action on the same control, after this one (it runs when this one has ended), or leave runOn out so the page walks the steps. toast and refresh are fine: they show when the run ends.',
+};
+
 /**
  * Why `action` cannot run as a background job: a step of a refused kind, or a confirm that is
  * not leading, anywhere in its tree (branches, loop bodies, onError handlers) and in the actions
@@ -75,6 +93,8 @@ const MAX_NESTING = LIMITS.MAX_ACTION_DEPTH + 1;
 export function backgroundActionProblems(action: unknown, id: string, opts: { resolveCalled?: (actionId: string) => Obj | null } = {}): BackgroundProblem[] {
     const out: BackgroundProblem[] = [];
     if (!isObject(action) || action.kind !== 'sequence') return out;
+    // An action that waits for its server run (`runOn: 'server'` without background) is told so in its own words.
+    const say = action.background !== true && action.runOn === 'server' ? SERVER_RUN_WORDS : BACKGROUND_WORDS;
     const top = Array.isArray(action.steps) ? action.steps : [];
     const leading = leadingConfirmCount(top);
     const seen = new Set<string>([id]);
@@ -86,14 +106,14 @@ export function backgroundActionProblems(action: unknown, id: string, opts: { re
             const kind = String(step.kind ?? '');
             if (BACKGROUND_REFUSED_KINDS.includes(kind)) {
                 out.push({
-                    code: 'action.background_step_unsupported', path,
-                    message: `Action "${id}" runs in the background, but ${path} is a ${kind} step, which needs the visitor's page.`,
-                    hint: 'Put it in a second action on the same control (it runs right after the click), or bind the next screen to actions.<id>.result. toast and refresh are fine: they show when the job ends.',
+                    code: say.stepCode, path,
+                    message: `Action "${id}" ${say.runs}, but ${path} is a ${kind} step, which needs the visitor's page.`,
+                    hint: say.stepHint,
                 });
             } else if (kind === 'confirm' && !(inRoot && depth === 1 && i < leading)) {
                 out.push({
-                    code: 'action.background_confirm_position', path,
-                    message: `Action "${id}" runs in the background; a confirm is only possible as its first step(s), before the job starts (${path} is not).`,
+                    code: say.confirmCode, path,
+                    message: `Action "${id}" ${say.runs}; a confirm is only possible as its first step(s), before ${say.starts} (${path} is not).`,
                     hint: 'Move the confirm to the start of the sequence.',
                 });
             }
@@ -140,6 +160,12 @@ export const BACKGROUND_ENV = Object.freeze({
     perApp: { env: 'STUDIO_APP_BACKGROUND_PER_APP', fallback: 20 },
     staleMs: { env: 'STUDIO_APP_BACKGROUND_STALE_MS', fallback: 90_000 },
     resultMaxBytes: { env: 'STUDIO_APP_BACKGROUND_RESULT_MAX_BYTES', fallback: 262_144 },
+    // A run on hold (backgroundRunDurable.mts): the longest one wait (30 days), the paused runs
+    // of one app, the stored state of one pause, the runs one wake pass continues.
+    maxPauseMs: { env: 'STUDIO_APP_PAUSE_MAX_MS', fallback: 2_592_000_000 },
+    pausedPerApp: { env: 'STUDIO_APP_PAUSED_PER_APP', fallback: 1000 },
+    pauseStateMaxBytes: { env: 'STUDIO_APP_PAUSE_STATE_MAX_BYTES', fallback: 262_144 },
+    wakeBatch: { env: 'STUDIO_APP_RUN_WAKE_BATCH', fallback: 100 },
 });
 
 export type BackgroundLimits = { -readonly [K in keyof typeof BACKGROUND_ENV]: number };

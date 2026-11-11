@@ -1,0 +1,22 @@
+{
+  "translations": {
+    "studio_apps_variables.editor.formula": "Formule",
+    "studio_apps_variables.editor.formula_aria": "Formule van {name}",
+    "studio_apps_variables.editor.kind": "Waarde",
+    "studio_apps_variables.editor.kind_app": "Gezet door de app",
+    "studio_apps_variables.editor.kind_aria": "Soort van {name}",
+    "studio_apps_variables.editor.kind_derived": "Berekend met een formule",
+    "studio_apps_variables.editor.kind_hint_derived": "Wordt opnieuw berekend zodra iets verandert wat de formule leest. Een stap die hem schrijft verandert niets; zolang de formule niets oplevert, staat de beginwaarde er.",
+    "studio_apps_variables.editor.kind_hint_screen": "Begint elke keer dat een scherm opent weer bij zijn beginwaarde.",
+    "studio_apps_variables.editor.kind_screen": "Gezet door de app, per scherm",
+    "studio_apps_variables.editor.persist": "Onthouden na herladen",
+    "studio_apps_variables.editor.persist_aria": "{name} onthouden na herladen",
+    "studio_apps_variables.editor.persist_hint": "Alleen voor ingelogde mensen, in hun eigen browser. Bewaar hier nooit persoonsgegevens of iets geheims.",
+    "studio_apps_variables.editor.persist_local": "Op dit apparaat",
+    "studio_apps_variables.editor.persist_none": "Nee",
+    "studio_apps_variables.editor.persist_session": "Tot het browsertabblad sluit"
+  },
+  "sameAsEnglish": [
+    "studio_apps_variables.editor.formula_example"
+  ]
+}

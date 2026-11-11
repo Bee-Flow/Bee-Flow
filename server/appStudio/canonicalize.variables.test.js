@@ -173,3 +173,58 @@ test('canonicalizing twice changes nothing and repairs nothing', () => {
     assert.deepStrictEqual(second.def, first.def);
     assert.equal(second.repairs.length, 0);
 });
+
+// ── schema 3: scope, persist, derived ───────────────────────────────────────
+
+const base = (name, extra = {}) => ({ name, label: name, type: 'number', default: 0, description: '', ...extra });
+
+test('a variable without the schema 3 keys keeps its bytes and the app stays version 2', () => {
+    const { def } = vars([base('a')]);
+    assert.deepStrictEqual(Object.keys(def.variables[0]), ['name', 'label', 'type', 'default', 'description']);
+    assert.equal(def.schemaVersion, 2);
+});
+
+test('scope, persist and derived are written after the base keys, and make the app version 3', () => {
+    const { def } = vars([base('a', { scope: 'screen' }), base('b', { persist: 'local' }), base('c', { derived: { expr: 'vars.b * 2' } })]);
+    assert.deepStrictEqual(def.variables.map((v) => Object.keys(v).slice(5)), [['scope'], ['persist'], ['derived']]);
+    assert.deepStrictEqual(def.variables[2].derived, { expr: 'vars.b * 2' });
+    assert.equal(def.schemaVersion, 3);
+});
+
+test('the base values of the keys are left out', () => {
+    const { def, repairs } = vars([base('a', { scope: 'app', persist: false, derived: { expr: '  ' } })]);
+    assert.deepStrictEqual(Object.keys(def.variables[0]), ['name', 'label', 'type', 'default', 'description']);
+    assert.equal(def.schemaVersion, 2);
+    assert.equal(repairs.length, 0);
+});
+
+test('repairs: a formula string, persist true, and combinations that mean nothing', () => {
+    const { def, repairs } = vars([
+        base('a', { derived: 'vars.b + 1', persist: 'local', scope: 'screen' }),
+        base('b', { persist: true }),
+        base('c', { scope: 'screen', persist: 'session' }),
+        base('d', { derived: { kind: 'formula', expr: 'vars.b' } }),
+    ]);
+    assert.deepStrictEqual(def.variables.map((v) => ({ scope: v.scope, persist: v.persist, derived: v.derived })), [
+        { scope: undefined, persist: undefined, derived: { expr: 'vars.b + 1' } },
+        { scope: undefined, persist: 'session', derived: undefined },
+        { scope: 'screen', persist: undefined, derived: undefined },
+        { scope: undefined, persist: undefined, derived: { expr: 'vars.b' } },
+    ]);
+    const got = codes(repairs);
+    for (const code of ['variable.derived_repaired', 'variable.derived_extras_dropped', 'variable.persist_repaired', 'variable.persist_dropped']) assert.ok(got.has(code), code);
+});
+
+test('unknown values and a formula over the ceiling are dropped with a note', () => {
+    const { def, repairs } = vars([base('a', { scope: 'page', persist: 'cookie', derived: { expr: 'x'.repeat(LIMITS.MAX_FORMULA_LEN + 1) } })]);
+    assert.deepStrictEqual(Object.keys(def.variables[0]), ['name', 'label', 'type', 'default', 'description']);
+    const got = codes(repairs);
+    for (const code of ['variable.scope_invalid', 'variable.persist_invalid', 'variable.derived_too_long']) assert.ok(got.has(code), code);
+});
+
+test('a second pass changes nothing', () => {
+    const once = vars([base('a', { derived: 'vars.b' }), base('b', { persist: true }), base('c', { scope: 'screen' })]).def;
+    const twice = canon(JSON.parse(JSON.stringify(once)));
+    assert.equal(JSON.stringify(twice.def), JSON.stringify(once));
+    assert.equal(twice.repairs.length, 0);
+});

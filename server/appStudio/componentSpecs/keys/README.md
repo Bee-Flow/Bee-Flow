@@ -11,6 +11,7 @@ keys/sectionStyle/<knob>.js  a style knob (of STYLE_KNOBS) a section may newly c
 keys/node/<key>.js           a key of a component node beside id, type, props, style, children
 keys/nav/<key>.js            a key of definition.nav
 keys/navGroup/<key>.js       a key of one entry of definition.nav.groups
+keys/variable/<key>.js       a key of one entry of definition.variables
 keys/binding/<key>.js        a key a record, records, aggregate or dataset binding newly takes
 keys/queryShape/<key>.<name>.js  a form the value under a key of a data read newly takes
 ```

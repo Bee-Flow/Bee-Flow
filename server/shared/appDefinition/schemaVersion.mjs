@@ -35,7 +35,8 @@
  * ShapeMarks is `{ keys?, values?, items? }`: the marks of one item shape, `items` holding the
  * marks of a list nested in it. The families of `keys` / `values` are the objects a definition
  * is made of besides props and style (KEY_FAMILIES): a screen, a section, a section's style
- * (a knob newly allowed on sections), a node, the theme, the design, the nav and one nav group.
+ * (a knob newly allowed on sections), a node, the theme, the design, the nav, one nav group
+ * and one declared variable.
  * The `query` family has values only: `op`, `fn` and `bucket` of a filter clause, an aggregate
  * and a group, wherever a binding or a step field holds one.
  *
@@ -78,7 +79,7 @@ export const SCHEMA_VERSION_CURRENT = 3;
  */
 
 /** The objects of a definition whose keys and scalar values the `keys` / `values` groups mark. */
-export const KEY_FAMILIES = Object.freeze(['screen', 'section', 'sectionStyle', 'node', 'theme', 'design', 'nav', 'navGroup']);
+export const KEY_FAMILIES = Object.freeze(['screen', 'section', 'sectionStyle', 'node', 'theme', 'design', 'nav', 'navGroup', 'variable']);
 /** The family of the query vocabulary: values only (`op`, `fn`, `bucket`). */
 export const QUERY_FAMILY = 'query';
 
@@ -348,5 +349,6 @@ export function requiredSchemaVersion(definition, index, tests) {
     if (isObject(definition.actions)) {
         for (const action of Object.values(definition.actions)) max = Math.max(max, actionSince(action, index, tests));
     }
+    for (const variable of listOf(definition.variables)) max = Math.max(max, familySince(variable, 'variable', index));
     return Math.max(max, lookSince(definition, index));
 }

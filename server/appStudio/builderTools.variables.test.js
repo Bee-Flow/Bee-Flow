@@ -152,3 +152,43 @@ test('clearing the list echoes the empty list rather than the one just removed',
     assert.equal(res.error, undefined);
     assert.deepStrictEqual(res.variables, [], 'echo === stored (the key is gone from the def)');
 });
+
+// ── schema 3: scope, persist, derived ───────────────────────────────────────
+
+test('the tool takes the schema 3 keys and echoes them only where they are set', async () => {
+    const wrap = draft();
+    const res = await call(wrap, { variables: [
+        { name: 'qty', type: 'number', default: 1 },
+        { name: 'total', type: 'number', derived: 'vars.qty * 2' },
+        { name: 'tab', type: 'text', scope: 'screen' },
+        { name: 'page', type: 'number', persist: 'local' },
+    ] });
+    assert.deepStrictEqual(res.variables, [
+        { name: 'qty', type: 'number', default: 1 },
+        { name: 'total', type: 'number', default: 0, derived: { expr: 'vars.qty * 2' } },
+        { name: 'tab', type: 'text', default: '', scope: 'screen' },
+        { name: 'page', type: 'number', default: 0, persist: 'local' },
+    ]);
+    assert.ok(res._hints.some((h) => h.includes('derived written as')), JSON.stringify(res._hints));
+    assert.equal(wrap.def.schemaVersion, 3);
+});
+
+test('the model finds the schema 3 keys in the extension index and their full entry on request', async () => {
+    const { renderExtensionIndex, inspectExtensions } = await import('./builderPrompt/extensionIndex.mts');
+    const index = renderExtensionIndex();
+    assert.match(index, /variableKeys: .*variables\[\]\.derived — /);
+    const answer = inspectExtensions(['variables[].derived', 'variables[].persist', 'variables[].scope'], undefined);
+    assert.deepStrictEqual(answer.unknown, []);
+    assert.match(answer.entries['variables[].derived'], /^variables\[\]\.derived: \{ expr: .* — Works the value out/);
+    assert.match(answer.entries['variables[].persist'], /"session" \| "local"/);
+});
+
+test('the draft state names the schema 3 keys a variable has, and nothing for one without', () => {
+    const text = renderDraftState(draft([
+        { name: 'a', label: 'a', type: 'number', default: 3, description: '' },
+        { name: 't', label: 't', type: 'number', default: 0, description: '', derived: { expr: 'vars.a * 2' } },
+        { name: 's', label: 's', type: 'text', default: '', description: '', scope: 'screen' },
+        { name: 'p', label: 'p', type: 'number', default: 1, description: '', persist: 'local' },
+    ]).def);
+    assert.match(text, /variables: a:number=3, t:number=0 derived\(vars\.a \* 2\), s:text="" scope=screen, p:number=1 persist=local/);
+});

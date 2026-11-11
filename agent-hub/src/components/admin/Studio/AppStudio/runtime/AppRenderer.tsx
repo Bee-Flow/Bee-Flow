@@ -4,6 +4,7 @@ import { useMemo, type JSX } from 'react';
 import './css/layout.css';
 import './css/look.css';
 import './css/motion.css';
+import './css/themeScope.css';
 import './app-tokens.css';
 import { appDesignProps } from './appDesign';
 import AppSection from './AppSection';
@@ -14,10 +15,14 @@ import { evalBoolFlag, evalVisibility } from './nodeVisibility';
 import { resolveBinding } from './resolveBinding';
 import { RuntimeProvider, ScopeProvider, DEFAULT_RUNTIME, buildScope, rowKey, useRuntime, type ExpressionScope, type RuntimeValue } from './RuntimeContext';
 import { resolveNodeStyle } from './styleResolver';
+import { applyStyleWhen } from './conditionalStyle';
 import BackgroundImageLayer from './assets/BackgroundImageLayer';
 import { withAuthorClass } from './appCss';
 import { themeVars } from './themeVars';
+import { screenThemeScope } from './themeScope';
 import { tileClickProps } from './tileClick';
+import { ItemTemplateContext, type RenderNodes } from './itemTemplate';
+import NodeTooltip from './NodeTooltip';
 import { definitionReadsUi, useUiScope } from './uiState';
 import useTranslation from '@/hooks/useTranslation';
 import type React from 'react';
@@ -262,12 +267,15 @@ function RenderNode({ node, scope, NodeWrapper, mode }: RenderNodeProps) {
         actionState: runtime.actionState,
         dataState: runtime.dataState,
     });
-    const formulaError = vis.error || enabled.error || computedRes.error || null;
+    // node.styleWhen (schema 3, conditionalStyle.ts): the same node when it has no rule list, so
+    // the cell and the component read the conditional knobs the way they read the base style.
+    const conditional = applyStyleWhen(node, nodeScope);
+    const formulaError = vis.error || enabled.error || computedRes.error || conditional.error || null;
 
     const effProps = computedRes.props
         ? { ...(node.props || {}), ...computedRes.props }
         : node.props;
-    const effectiveNode = effProps === node.props ? node : { ...node, props: effProps };
+    const effectiveNode = effProps === node.props ? conditional.node : { ...conditional.node, props: effProps };
 
     const entry = APP_COMPONENT_TYPES[node.type];
     let content: JSX.Element;
@@ -283,6 +291,8 @@ function RenderNode({ node, scope, NodeWrapper, mode }: RenderNodeProps) {
         });
         content = <Component node={effectiveNode}>{children}</Component>;
     }
+    // Schema 3: a hover and focus text on any node (./NodeTooltip.tsx); without one nothing wraps.
+    if (typeof node.tooltip === 'string' && node.tooltip) content = <NodeTooltip text={node.tooltip}>{content}</NodeTooltip>;
 
     // A modal renders no inline box in run mode — closed it is null, open its
     // dialog portals to the body. Emitting the usual grid cell for it painted
@@ -299,7 +309,7 @@ function RenderNode({ node, scope, NodeWrapper, mode }: RenderNodeProps) {
         return nodeScope === runtime.scope ? bare : <ScopeProvider scope={nodeScope}>{bare}</ScopeProvider>;
     }
 
-    const { className, style } = resolveNodeStyle(node);
+    const { className, style } = resolveNodeStyle(conditional.node, { design: runtime.appDesign });
     const cellStyle = hidden ? { ...style, opacity: 0.4 } : style;
 
     const interactive = tileClickProps(node, mode, runtime.runAction, enabled.disabled);
@@ -412,6 +422,12 @@ export default function AppRenderer({
         scope: baseScope,
     }), [mode, selectedNodeId, selectedNodeIds, onSelectNode, recentlyAddedIds, actionState, dataState, runAction, registerFormValue, currentUser, previewRole, setVar, appDesignContext, initialUi, appFormat, baseScope]);
 
+    // The item templates of list rows and kanban cards (./itemTemplate.tsx, schema 3) render
+    // their nodes through this renderer, so they are ordinary cells with the per-row scope.
+    const renderTemplate = useMemo<RenderNodes>(() => (nodes, scope, keyPrefix) => nodes.map((child) => (
+        <RenderNode key={`${child.id}::${keyPrefix}`} node={child} scope={scope} NodeWrapper={NodeWrapper} mode={mode} />
+    )), [NodeWrapper, mode]);
+
     if (!definition) return null;
     if (!screen) return null;
 
@@ -437,28 +453,31 @@ export default function AppRenderer({
     // both hosts.
     // Design layer (App Design v2): identity in, nothing out — an absent or
     // all-default definition.design adds no class and no style keys here.
-    const design = appDesignProps(definition);
+    // screen.theme (schema 3, themeScope.ts): the app theme itself and no extra style without one.
+    const scoped = screenThemeScope(definition.theme, screen);
+    const design = appDesignProps(definition, scoped.theme, scoped.override);
     // A screen change fades the new screen in. The animation reads
     // --app-motion-med, which is 0ms under design.motion 'none' AND under the
     // OS reduced-motion setting — so this is free for anyone who opted out.
     // Keyed on the screen id so React remounts the wrapper and the animation
     // actually re-runs instead of only playing on first paint.
-    const runtimeClass = `app-runtime app-screen-enter w-full${hasFillSection ? ' h-full min-h-0 flex-1 flex flex-col' : ''}${design.className ? ` ${design.className}` : ''}`;
+    const runtimeClass = `app-runtime app-screen-enter w-full${hasFillSection ? ' h-full min-h-0 flex-1 flex flex-col' : ''}${design.className ? ` ${design.className}` : ''}${scoped.className}`;
 
     return (
         <RuntimeProvider value={runtimeValue || DEFAULT_RUNTIME}>
+            <ItemTemplateContext.Provider value={renderTemplate}>
             <div
                 key={screen.id}
                 className={runtimeClass}
                 data-app-screen={screen.id}
                 data-app-screen-kind={(screen.kind as string | undefined) || 'page'}
-                data-app-appearance={(definition.theme as ThemeLike | undefined)?.appearance || 'auto'}
+                data-app-appearance={scoped.appearance}
                 // The CSS hook the responsive-visibility knobs key off: their
                 // media rules skip anything under data-app-edit, so authored
                 // hides never make a node unselectable on the canvas (the same
                 // promise evalVisibility keeps by rendering hidden nodes at 40%).
                 data-app-edit={mode === 'edit' ? 'true' : undefined}
-                style={{ ...themeVars(definition.theme as ThemeLike | undefined), ...design.style, color: 'var(--text-primary)' }}
+                style={{ ...themeVars(definition.theme as ThemeLike | undefined), ...design.style, ...scoped.style, color: 'var(--text-primary)' }}
             >
                 <div
                     className={`w-full flex flex-col${hasFillSection ? ' flex-1 min-h-0' : ''}`}
@@ -481,7 +500,7 @@ export default function AppRenderer({
                         </div>
                     ) : null}
                     {!screenHidden && (screen.sections || []).map((section) => (
-                        <AppSection key={section.id} section={section}>
+                        <AppSection key={section.id} section={section} theme={scoped.theme}>
                             {(section.children || []).map((node) => (
                                 <RenderNode
                                     key={node.id}
@@ -495,6 +514,7 @@ export default function AppRenderer({
                     ))}
                 </div>
             </div>
+            </ItemTemplateContext.Provider>
         </RuntimeProvider>
     );
 }

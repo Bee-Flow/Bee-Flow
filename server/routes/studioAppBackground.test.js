@@ -11,7 +11,11 @@
  *     for the same viewer only), and so is /step of the same action;
  *   - a sequence without background, an unknown action, a browser-only step: refused;
  *   - a colleague asking ?draft=1 runs the published definition;
- *   - readers: the starter and the owner; another viewer gets a uniform 404; the list is the caller's own.
+ *   - readers: the starter and the owner; another viewer gets a uniform 404; the list is the caller's own;
+ *   - cancel: the starter and the owner, a running job and one on hold; anyone else the same 404;
+ *   - a job on hold continues only as the rule of appStudio/backgroundRunIdentity.mts allows, read
+ *     from the real stores: not after the app was unpublished, the action changed, the starter was
+ *     removed or suspended; resume by token goes through the same checks.
  *
  * Run: cd server && node --test routes/studioAppBackground.test.js
  */
@@ -32,6 +36,8 @@ const VIEWER = { id: 'u-bg-viewer', username: 'bg-viewer', email: 'viewer@bg.tes
 const OTHER = { id: 'u-bg-other', username: 'bg-other', email: 'other@bg.test', organizationId: ORG, role: 'user', orgRole: 'member', groups: [] };
 
 let gate = Promise.resolve();
+/** Set by a test: what a step on table `tbl_wait` answers instead of a result (a pause). */
+let waitWith = null;
 const stepCalls = [];
 let api;
 let BG;
@@ -49,6 +55,7 @@ before(async () => {
     actionExecutor.executeDataStep = async (_app, _model, step, ctx) => {
         stepCalls.push({ step, ctx });
         await gate;
+        if (step.tableId === 'tbl_wait' && waitWith) return waitWith();
         return { ok: true, result: { done: step.tableId } };
     };
     BG = require('../appStudio/backgroundRun.mts');
@@ -60,7 +67,7 @@ after(async () => {
     await closePg();
 });
 
-beforeEach(() => { gate = Promise.resolve(); stepCalls.length = 0; });
+beforeEach(() => { gate = Promise.resolve(); stepCalls.length = 0; waitWith = null; });
 
 function hold() {
     let release;
@@ -195,4 +202,186 @@ test('#590: a public visitor\'s /step of a background action is refused while a 
     release();
     await BG._settled(first.body.jobId);
     assert.equal((await visit('act_bg', 'p1')).refused, false, 'the lock ends with the job');
+});
+
+// ── Cancel, and a job on hold ────────────────────────────────────────────────
+
+const cancel = (app, jobId, user = VIEWER) => api.call('POST', `/api/studio-apps/${app.id}/actions/jobs/${jobId}/cancel`, { user });
+const resume = (app, jobId, body, user = VIEWER) => api.call('POST', `/api/studio-apps/${app.id}/actions/jobs/${jobId}/resume`, { body, user });
+const step = (tableId) => ({ kind: 'create_record', tableId, values: {} });
+const WAITING = { kind: 'sequence', runOn: 'server', steps: [step('tbl_before'), step('tbl_wait'), step('tbl_after')] };
+const tables = () => stepCalls.map((c) => c.step.tableId);
+
+/** Start WAITING as `user` and let it reach its pause. */
+async function startOnHold(app, user = VIEWER) {
+    const r = await start(app, 'act_wait', {}, user);
+    assert.equal(r.status, 202, r.text);
+    await BG._settled(r.body.jobId);
+    assert.equal((await job(app, r.body.jobId, user)).body.status, 'paused');
+    stepCalls.length = 0;
+    return r.body.jobId;
+}
+
+test('#592 cancel: the starter stops a running job before its next step; a stranger gets the same 404; an ended job is answered as it is', async () => {
+    const app = await makeApp({ act_bg: { kind: 'sequence', background: true, steps: [step('t1'), step('t2')] } });
+    const release = hold();
+    const r = await start(app, 'act_bg', {});
+    await new Promise((resolve) => { setImmediate(resolve); });
+    const stranger = await cancel(app, r.body.jobId, OTHER);
+    assert.equal(stranger.status, 404);
+    assert.equal(stranger.body.error, 'Run not found');
+    assert.equal((await cancel(app, 'not-a-job')).status, 404);
+    const asked = await cancel(app, r.body.jobId);
+    assert.equal(asked.status, 202, asked.text);
+    assert.equal(asked.body.status, 'running');
+    release();
+    await BG._settled(r.body.jobId);
+    const done = await job(app, r.body.jobId);
+    assert.equal(done.body.status, 'cancelled');
+    assert.deepEqual(tables(), ['t1'], 'the second step never started');
+    const again = await cancel(app, r.body.jobId, OWNER);
+    assert.equal(again.status, 200);
+    assert.equal(again.body.status, 'cancelled');
+});
+
+test('a job on hold: the owner cancels it and it never continues', async () => {
+    const { pauseUntil } = require('../appStudio/runPause.mts');
+    waitWith = () => pauseUntil(Date.now() - 1);
+    const app = await makeApp({ act_wait: WAITING });
+    const jobId = await startOnHold(app);
+    const held = await job(app, jobId);
+    assert.equal(held.body.progress.waiting, 'timer');
+    assert.equal(typeof held.body.wakeAt, 'string');
+    const mine = await api.call('GET', `/api/studio-apps/${app.id}/actions/jobs?active=1`, { user: VIEWER });
+    assert.deepEqual(mine.body.jobs.map((j) => j.status), ['paused'], 'a job on hold is still an active one');
+    const cancelled = await cancel(app, jobId, OWNER);
+    assert.equal(cancelled.status, 200, cancelled.text);
+    assert.equal(cancelled.body.status, 'cancelled');
+    await BG.wakeDueRuns();
+    assert.equal((await job(app, jobId)).body.status, 'cancelled');
+    assert.deepEqual(tables(), []);
+});
+
+test('a job on hold continues as its starter, with the role they started with, when nothing changed', async () => {
+    const { pauseUntil } = require('../appStudio/runPause.mts');
+    waitWith = () => pauseUntil(Date.now() - 1, { result: { waited: true } });
+    const app = await makeApp({ act_wait: WAITING });
+    const jobId = await startOnHold(app);
+    assert.deepEqual(await BG.wakeDueRuns(), { due: 1, resumed: 1 });
+    await BG._settled(jobId);
+    const done = await job(app, jobId);
+    assert.equal(done.body.status, 'success', done.text);
+    assert.deepEqual(tables(), ['tbl_after']);
+    assert.equal(stepCalls[0].ctx.viewerId, VIEWER.id);
+    assert.equal(stepCalls[0].ctx.viewerEmail, VIEWER.email);
+    assert.equal(stepCalls[0].ctx.orgId, ORG);
+});
+
+/** Put a job on hold, change something, let the wake job look: the run must end refused with `code` and run nothing. */
+async function refusedAfter(change, code) {
+    const { pauseUntil } = require('../appStudio/runPause.mts');
+    waitWith = () => pauseUntil(Date.now() - 1);
+    const app = await makeApp({ act_wait: WAITING });
+    const jobId = await startOnHold(app);
+    await change(app);
+    assert.deepEqual(await BG.wakeDueRuns(), { due: 1, resumed: 0 });
+    const { actionRunStore } = require('../stores/studioAppData/actionRuns.mts');
+    const row = await actionRunStore().getRun(app.id, jobId);
+    assert.equal(row.status, 'refused');
+    assert.equal(row.errorCode, code);
+    assert.deepEqual(tables(), [], 'nothing ran after the pause');
+    return { app, jobId, row };
+}
+
+test('a job on hold does not continue after the app was unpublished', async () => {
+    const store = require('../stores/studioAppStore');
+    const { row } = await refusedAfter((app) => store.setStudioAppPublished(app.id, false, OWNER.id, [], ORG), 'unpublished');
+    assert.match(row.error, /no longer published/);
+});
+
+const republished = (actions) => ({ schemaVersion: 2, meta: { name: 'Jobs' }, theme: {}, homeScreenId: 'scr_1', screens: [{ id: 'scr_1', name: 'Home', sections: [] }], actions });
+
+test('a job on hold goes on in the steps it paused in after its action was edited and published again', async () => {
+    const store = require('../stores/studioAppStore');
+    const { pauseUntil } = require('../appStudio/runPause.mts');
+    waitWith = () => pauseUntil(Date.now() - 1);
+    const app = await makeApp({ act_wait: WAITING });
+    const jobId = await startOnHold(app);
+    // The author rewrites the action while the job waits: other steps, and one fewer.
+    const edited = { kind: 'sequence', runOn: 'server', steps: [step('tbl_new_first'), step('tbl_new_last')] };
+    await store.setStudioAppPublished(app.id, true, OWNER.id, [], ORG, republished({ act_wait: edited }), 2);
+    assert.deepEqual(await BG.wakeDueRuns(), { due: 1, resumed: 1 });
+    await BG._settled(jobId);
+    const done = await job(app, jobId);
+    assert.equal(done.body.status, 'success', done.text);
+    assert.deepEqual(tables(), ['tbl_after'], 'the step after the wait of the action as it was, not a step of the new one');
+    // A run started now walks the new steps.
+    stepCalls.length = 0;
+    waitWith = null;
+    const fresh = await start(app, 'act_wait', {});
+    await BG._settled(fresh.body.jobId);
+    assert.deepEqual(tables(), ['tbl_new_first', 'tbl_new_last']);
+});
+
+test('a job on hold does not continue after its action was removed from the published app', async () => {
+    const store = require('../stores/studioAppStore');
+    const { row } = await refusedAfter((app) => store.setStudioAppPublished(app.id, true, OWNER.id, [], ORG, republished({ act_other: { kind: 'toast', message: 'x' } }), 2), 'action_removed');
+    assert.match(row.error, /removed from the app/);
+});
+
+test('a job on hold does not continue for a member who was removed from the app, or whose account was suspended', async () => {
+    const dataStore = require('../stores/studioAppDataStore');
+    const userStore = require('../stores/userStore');
+    const { pauseUntil } = require('../appStudio/runPause.mts');
+    // A member with an explicit role starts; the owner removes them while the job waits.
+    waitWith = () => pauseUntil(Date.now() - 1);
+    const app = await makeApp({ act_wait: WAITING });
+    await dataStore.addMember(app.id, OWNER.id, VIEWER.id, 'member');
+    const jobId = await startOnHold(app);
+    await dataStore.removeMember(app.id, OWNER.id, VIEWER.id);
+    assert.deepEqual(await BG.wakeDueRuns(), { due: 1, resumed: 0 });
+    const { actionRunStore } = require('../stores/studioAppData/actionRuns.mts');
+    const row = await actionRunStore().getRun(app.id, jobId);
+    assert.equal(row.status, 'refused');
+    assert.equal(row.errorCode, 'role_changed');
+    assert.equal(row.error.includes(VIEWER.username), false, 'the reason names no person');
+    assert.deepEqual(tables(), []);
+
+    // A colleague starts; their account is suspended while the job waits.
+    const second = await makeApp({ act_wait: WAITING });
+    const theirs = await startOnHold(second, OTHER);
+    await userStore.updateUser(OTHER.id, { status: 'suspended' });
+    try {
+        await BG.wakeDueRuns();
+        const ended = await actionRunStore().getRun(second.id, theirs);
+        assert.equal(ended.status, 'refused');
+        assert.equal(ended.errorCode, 'starter_gone');
+        assert.deepEqual(tables(), []);
+    } finally {
+        await userStore.updateUser(OTHER.id, { status: 'active' });
+    }
+});
+
+test('resume with a token: in the body, by the starter or the owner only, once; a wrong token leaves the job on hold', async () => {
+    const { pauseUntilResumed, newResumeToken } = require('../appStudio/runPause.mts');
+    const { token, hash } = newResumeToken();
+    waitWith = () => pauseUntilResumed({ tokenHash: hash });
+    const app = await makeApp({ act_wait: WAITING });
+    const jobId = await startOnHold(app);
+    const wrong = await resume(app, jobId, { token: newResumeToken().token });
+    assert.equal(wrong.status, 403);
+    assert.equal(wrong.body.code, 'token_invalid');
+    const stranger = await resume(app, jobId, { token }, OTHER);
+    assert.equal(stranger.status, 404, 'another viewer does not get further with the token');
+    assert.equal((await resume(app, jobId, {})).status, 400, 'a token is required');
+    assert.equal((await job(app, jobId)).body.status, 'paused');
+    const ok = await resume(app, jobId, { token, payload: { answer: 'yes' } });
+    assert.equal(ok.status, 202, ok.text);
+    assert.deepEqual(ok.body, { jobId, status: 'running' });
+    await BG._settled(jobId);
+    assert.equal((await job(app, jobId)).body.status, 'success');
+    assert.deepEqual(tables(), ['tbl_after']);
+    const twice = await resume(app, jobId, { token });
+    assert.equal(twice.status, 409);
+    assert.equal(twice.body.code, 'not_paused');
 });

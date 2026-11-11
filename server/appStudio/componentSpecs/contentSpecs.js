@@ -51,7 +51,8 @@ const CONTENT_SPECS = {
             // reordered, so 'primary' stays the default and stored buttons
             // keep their exact rendering.
             variant: {
-                type: 'enum', values: ['primary', 'secondary', 'ghost', 'danger', 'outline', 'soft'], default: 'primary',
+                type: 'enum', values: ['primary', 'secondary', 'ghost', 'danger', 'outline', 'soft', 'link'], default: 'primary',
+                valuesSince: { link: 3 },
                 description: 'outline = transparent with a primary border and primary text; soft = filled with the soft primary tint, primary text.',
             },
             iconLeft: { type: 'icon', default: null },
@@ -177,6 +178,10 @@ const CONTENT_SPECS = {
             // worth keeping and not worth six permanent lines — an AI summary
             // above the thing it summarises.
             collapsible: { type: 'boolean', default: false },
+            variant: {
+                type: 'enum', values: ['soft', 'outline', 'solid'], since: 3,
+                description: 'How the note is drawn. soft (the default) is a tinted block with a tone edge, outline is transparent with a tone border, solid is filled with the tone colour and white text.',
+            },
         },
         styleKnobs: ['span'],
         defaultStyle: { span: 12 },

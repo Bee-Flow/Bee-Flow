@@ -59,7 +59,7 @@ function flowNodesFor({ nodes, positions, selectedId, options, t, disabled, setS
 function sequenceRunOptions(action: unknown): Record<string, unknown> {
     if (!action || typeof action !== 'object' || (action as { kind?: unknown }).kind !== 'sequence') return {};
     const out: Record<string, unknown> = {};
-    for (const key of ['background', 'lockKey', 'progressVar']) {
+    for (const key of ['background', 'lockKey', 'progressVar', 'runOn']) {
         const v = (action as Record<string, unknown>)[key];
         if (v !== undefined) out[key] = v;
     }
@@ -105,7 +105,7 @@ export function FlowBody({ action, onChange, definition, node = null, disabled =
         if (added) setSelectedId(added.id);
     }, [graph]);
 
-    // The sequence's run options (background / lockKey / progressVar) ride along: a canvas
+    // The sequence's run options (background / lockKey / progressVar / runOn) ride along: a canvas
     // edit changes the steps, never how the action runs.
     const commitSteps = useCallback((steps: FlowStep[]) => {
         onChange({ ...sequenceRunOptions(action), kind: 'sequence', steps: stripStepIds(steps) });

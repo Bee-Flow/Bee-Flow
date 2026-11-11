@@ -1,0 +1,20 @@
+{
+  "translations": {
+    "studio_apps_durable.options.run_on_hint": "De pagina stuurt één verzoek en wacht op het resultaat, in plaats van de stappen één voor één te doen. De actie loopt dan ook door als de verbinding halverwege wegvalt. Navigatie en dialogen kunnen er geen deel van zijn; meldingen en verversingen verschijnen als de actie klaar is.",
+    "studio_apps_durable.options.run_on_label": "De hele actie op de server uitvoeren",
+    "studio_apps_durable.runs.cancel": "Run annuleren",
+    "studio_apps_durable.runs.cancel_failed": "De run kon niet worden geannuleerd. Probeer het opnieuw.",
+    "studio_apps_durable.runs.cancelled": "De run is geannuleerd.",
+    "studio_apps_durable.runs.cancelling": "De run stopt vóór de volgende stap.",
+    "studio_apps_durable.runs.status_paused": "In de wacht",
+    "studio_apps_durable.tray.cancel": "Annuleren",
+    "studio_apps_durable.tray.cancel_failed": "De run kon niet worden geannuleerd. Probeer het opnieuw.",
+    "studio_apps_durable.tray.cancelled": "Geannuleerd",
+    "studio_apps_durable.tray.cancelling": "Bezig met stoppen…",
+    "studio_apps_durable.tray.on_hold": "Dit wacht nu en gaat vanzelf verder. Je kunt de pagina sluiten.",
+    "studio_apps_durable.tray.waiting_approval": "Wacht op een goedkeuring",
+    "studio_apps_durable.tray.waiting_open": "Wacht tot het wordt voortgezet",
+    "studio_apps_durable.tray.waiting_until": "Wacht tot {time}"
+  },
+  "sameAsEnglish": []
+}

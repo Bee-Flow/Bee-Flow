@@ -2748,6 +2748,12 @@
     "GET /api/studio-apps/:id/schema": {
       "gate": "auth"
     },
+    "GET /api/studio-apps/:id/triggers": {
+      "gate": "auth"
+    },
+    "GET /api/studio-apps/:id/triggers/:triggerId/webhook": {
+      "gate": "auth"
+    },
     "GET /api/studio-apps/:id/versions": {
       "gate": "auth"
     },
@@ -4489,6 +4495,10 @@
       "gate": "platform",
       "via": "superAdmin"
     },
+    "POST /api/app-hooks/:endpointId": {
+      "gate": "handler",
+      "via": "handler"
+    },
     "POST /api/automation": {
       "gate": "auth"
     },
@@ -6027,6 +6037,12 @@
     "POST /api/studio-apps/:id/actions/:actionId/step/stream": {
       "gate": "auth"
     },
+    "POST /api/studio-apps/:id/actions/jobs/:jobId/cancel": {
+      "gate": "auth"
+    },
+    "POST /api/studio-apps/:id/actions/jobs/:jobId/resume": {
+      "gate": "auth"
+    },
     "POST /api/studio-apps/:id/ai/chat": {
       "gate": "auth"
     },
@@ -6102,6 +6118,12 @@
         "all",
         "manage_apps"
       ]
+    },
+    "POST /api/studio-apps/:id/triggers/:triggerId/webhook/rotate": {
+      "gate": "auth"
+    },
+    "POST /api/studio-apps/:id/triggers/:triggerId/webhook/secret": {
+      "gate": "auth"
     },
     "POST /api/studio-apps/:id/versions/:versionId/restore": {
       "gate": "permission",
@@ -7388,6 +7410,9 @@
       "gate": "auth"
     },
     "PUT /api/studio-apps/:id/schema": {
+      "gate": "auth"
+    },
+    "PUT /api/studio-apps/:id/triggers/:triggerId": {
       "gate": "auth"
     },
     "PUT /api/studio-documents/:id/sharing": {

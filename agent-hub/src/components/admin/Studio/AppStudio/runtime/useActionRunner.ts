@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useEffectEvent, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { applyEffects as applyEffectObject } from './actionRunner/applyEffects';
 import type { EffectContext } from './actionRunner/applyEffects';
 import { runActionSlot } from './actionRunner/bareAction';
@@ -8,7 +8,7 @@ import type {
     BeforeServerStep, BrowseEventSink, ConfirmFn, LiveInputs, NavigateFn, RefreshFn, RunnerContext, RunnerDefinition,
 } from './actionRunner/runnerContext';
 import type { DataState } from './DataContext';
-import { reconcileVariableDefaults, seedVariableDefaults } from './appVariables';
+import useAppVariables from './variables/useAppVariables';
 import { createScreenTrail } from './actionRunner/screenTrail';
 import { definitionReadsUi, getUiSnapshot } from './uiState';
 import useTranslation from '@/hooks/useTranslation';
@@ -103,6 +103,11 @@ export interface ActionRunnerOptions {
      * step still runs, just without a live preview.
      */
     onBrowseEvent?: BrowseEventSink | null;
+    /**
+     * Where a signed-in viewer's kept variables (schema 3 `persist`) live: one key per app and
+     * viewer. Only the run page passes one; the editor and a public page keep nothing.
+     */
+    persistKey?: string | null;
 }
 
 export interface ActionRunner {
@@ -113,46 +118,12 @@ export interface ActionRunner {
     setVar: (name: string, value: unknown) => void;
 }
 
-/**
- * Fold a change in the DECLARATIONS into the live bag.
- *
- * The trap here is specific: Canvas.jsx passes the live editor definition,
- * which is a NEW object on every inspector keystroke. An effect keyed on
- * `definition` would re-seed — wiping vars.filters mid-typing and resetting
- * preview state on every character. So the effect is keyed on a signature of
- * the DECLARATIONS only; definitionOps preserves structural sharing, so
- * `definition.variables` keeps its reference across every edit that is not a
- * variables edit and the memo never even recomputes.
- */
-function useDeclaredVariables(definition: RunnerDefinition | null | undefined) {
-    // SEEDED from definition.variables, so a records binding filtered on
-    // `vars.status` filters on the FIRST paint instead of being dropped for
-    // having no value yet (resolveBindingFilters omits an unresolved entry).
-    const [vars, setVars] = useState<Vars>(() => seedVariableDefaults(definition?.variables) as Vars);
-    const declSignature = useMemo(
-        () => JSON.stringify(((definition?.variables || []) as Array<{ name?: unknown; type?: unknown; default?: unknown }>)
-            .map((v) => [v.name, v.type, v.default])),
-        [definition?.variables],
-    );
-    // Initialised to the same list the lazy useState seeded from, so the first
-    // pass is a no-op rather than a reconcile against nothing.
-    const prevDeclsRef = useRef(definition?.variables || []);
-    // Keyed on the signature, NOT on `definition` — see above.
-    const reconcileDecls = useEffectEvent(() => {
-        const next = definition?.variables || [];
-        setVars((prev) => reconcileVariableDefaults(prev, prevDeclsRef.current, next));
-        prevDeclsRef.current = next;
-    });
-    useEffect(() => { reconcileDecls(); }, [declSignature]);
-    return [vars, setVars] as const;
-}
-
 export default function useActionRunner(
     appId: string | null,
     definition: RunnerDefinition | null | undefined,
     {
         draft = false, onNavigate, confirm, onRefresh, currentUser = null, dataState = null,
-        forms = null, screen = null, beforeServerStep = null, onBrowseEvent = null,
+        forms = null, screen = null, beforeServerStep = null, onBrowseEvent = null, persistKey = null,
     }: ActionRunnerOptions = {},
 ): ActionRunner {
     const { t } = useTranslation();
@@ -165,18 +136,21 @@ export default function useActionRunner(
     const tr = useCallback<Translate>((key, fallback, params) => tRef.current(key, fallback, params), []);
     const [actionState, setActionState] = useState<ActionState>({});
     // Shared variable state for the whole run surface — sequences seed their
-    // local vars from it and merge set_variable/resultVar writes back in.
-    const [vars, setVars] = useDeclaredVariables(definition);
+    // local vars from it and merge set_variable/resultVar writes back in. Schema 3
+    // keys (kept, screen and derived variables) live in variables/useAppVariables.ts.
+    const appVars = useAppVariables(definition, { persistKey, actionState, dataState, currentUser, forms, screen, onNavigate });
+    const { vars, setVars } = appVars;
 
     // The screens this surface showed, for a `back` step; told about every screen it renders.
     const [screenTrail] = useState(createScreenTrail);
     // One ref so runAction stays identity-stable but never reads stale data.
     // Updated after each commit; the first render's inputs seed it.
     const liveInputs: LiveInputs = {
-        actionState, vars, definition, onNavigate, onBrowseEvent, confirm, onRefresh,
+        actionState, vars, definition, onNavigate: appVars.onNavigate, onBrowseEvent, confirm, onRefresh,
         currentUser, dataState, forms, screen, beforeServerStep,
         // Only a definition that reads `ui` gets the root in its step scope: every other app's scope keeps today's shape.
         readUi: definitionReadsUi(definition) ? getUiSnapshot : null, screenTrail,
+        deriveVars: appVars.deriveVars,
     };
     const live = useRef<LiveInputs>(liveInputs);
     useLayoutEffect(() => {

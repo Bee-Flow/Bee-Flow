@@ -1,0 +1,46 @@
+{
+  "corpus": "design-font-roles",
+  "canonical": {
+    "sha256": "d1b7b32e4836cd65ccfac893bd25f60cf7356e96e91c7b8835b8ca7fcd500991",
+    "bytes": 1834,
+    "inputIsCanonical": true,
+    "idempotent": true,
+    "keys": [
+      "schemaVersion",
+      "meta",
+      "theme",
+      "roles",
+      "screens",
+      "actions",
+      "design",
+      "homeScreenId"
+    ],
+    "parts": {
+      "schemaVersion": "4e07408562bedb8b",
+      "meta": "5465683bb7bc6393",
+      "theme": "5d7eeb0111b89897",
+      "roles": "4f53cda18c2baa0c",
+      "screens[0] scr_fontrl01": "69ecc78044297fb7",
+      "design": "b1f79579fa68f28a",
+      "homeScreenId": "4dea376bdee1d047"
+    }
+  },
+  "schemaVersion": {
+    "stored": 3,
+    "canonical": 3
+  },
+  "validation": {
+    "strict": {
+      "errors": [],
+      "warnings": []
+    },
+    "save": {
+      "errors": [],
+      "warnings": []
+    }
+  },
+  "ordinals": {
+    "stored": {},
+    "canonical": "same as stored"
+  }
+}

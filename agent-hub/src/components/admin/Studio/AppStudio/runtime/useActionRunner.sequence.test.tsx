@@ -569,6 +569,70 @@ describe('useActionRunner — background actions', () => {
         expect(authFetch).not.toHaveBeenCalled();
     });
 
+    // runOn: 'server' (schema 3): the same server job, but the click waits for it.
+    const ON_SERVER = { kind: 'sequence', runOn: 'server', steps: [{ kind: 'create_record', tableId: 't', values: {} }, { kind: 'toast', message: 'Saved' }] };
+    const ended = (over = {}) => ({ jobId: JOB, actionId: 'act_bg', status: 'success', progress: progress(), result: { id: 'rec_1' }, vars: { saved: true }, effects: [{ kind: 'toast', message: 'Saved', tone: 'success' }], error: null, errorStep: null, ...over });
+
+    it('runOn server: one start request, and runAction resolves only when the run has ended with its result', async () => {
+        asMock(authFetch)
+            .mockResolvedValueOnce(resp(202, { jobId: JOB, status: 'running' }))
+            .mockResolvedValueOnce(resp(200, { jobId: JOB, actionId: 'act_bg', status: 'running', progress: progress() }))
+            .mockResolvedValueOnce(resp(200, ended()));
+        const { result } = renderHook(() => useActionRunner('app1', bgDefinition(ON_SERVER)));
+        await act(async () => { await result.current.runAction('act_bg', { formValues: { id: 'o1' } }); });
+        // No waitFor: the click itself waited.
+        expect(result.current.actionState.act_bg?.status).toBe('success');
+        expect(result.current.actionState.act_bg?.result).toEqual({ id: 'rec_1' });
+        expect(result.current.vars.saved).toBe(true);
+        expect(toast.success).toHaveBeenCalledWith('Saved');
+        expect(String(asMock(authFetch).mock.calls[0][0])).toBe('/api/studio-apps/app1/actions/act_bg/background');
+        expect(asMock(authFetch).mock.calls.every(([url]) => !String(url).endsWith('/step'))).toBe(true);
+    });
+
+    it('runOn server: a second action on the same control runs after the server run ended, and not after a failed one', async () => {
+        const two = stub<Parameters<typeof useActionRunner>[1]>({ schemaVersion: 3, actions: { act_bg: ON_SERVER, act_after: { kind: 'toast', message: 'Next' } } });
+        asMock(authFetch).mockResolvedValueOnce(resp(202, { jobId: JOB, status: 'running' })).mockResolvedValueOnce(resp(200, ended({ effects: [] })));
+        const { result } = renderHook(() => useActionRunner('app1', two));
+        await act(async () => { await result.current.runAction(['act_bg', 'act_after']); });
+        expect(toast.info).toHaveBeenCalledWith('Next');
+
+        asMock(toast.info).mockReset();
+        asMock(authFetch).mockResolvedValueOnce(resp(202, { jobId: JOB, status: 'running' })).mockResolvedValueOnce(resp(200, ended({ status: 'error', error: 'No access', result: undefined })));
+        await act(async () => { await result.current.runAction(['act_bg', 'act_after']); });
+        expect(result.current.actionState.act_bg?.status).toBe('error');
+        expect(toast.info).not.toHaveBeenCalled();
+    });
+
+    it('runOn server: a run that goes on hold stops the waiting; the entry says what it waits for and the run is followed on', async () => {
+        const held = { jobId: JOB, actionId: 'act_bg', status: 'paused', progress: progress({ waiting: 'timer' }), wakeAt: '2026-11-12T09:30:00.000Z', waitKind: null, error: null, errorStep: null };
+        let release: (v: unknown) => void = () => {};
+        asMock(authFetch)
+            .mockResolvedValueOnce(resp(202, { jobId: JOB, status: 'running' }))
+            .mockResolvedValueOnce(resp(200, held))
+            .mockImplementationOnce(() => new Promise((resolve) => { release = resolve; }));
+        const { result } = renderHook(() => useActionRunner('app1', bgDefinition(ON_SERVER)));
+        await act(async () => { await result.current.runAction('act_bg'); });
+        expect(result.current.actionState.act_bg?.status).toBe('running');
+        expect(result.current.actionState.act_bg?.waiting).toEqual({ kind: null, wakeAt: '2026-11-12T09:30:00.000Z' });
+        expect(toast.info).toHaveBeenCalledWith('This is waiting now and goes on by itself. You can close the page.');
+        await act(async () => { release(resp(200, ended())); });
+        await waitFor(() => expect(result.current.actionState.act_bg?.status).toBe('success'));
+        expect(result.current.actionState.act_bg?.waiting).toBeUndefined();
+    });
+
+    it('a cancelled job leaves the action idle, marked cancelled, without an error', async () => {
+        asMock(authFetch)
+            .mockResolvedValueOnce(resp(202, { jobId: JOB, status: 'running' }))
+            .mockResolvedValueOnce(resp(200, ended({ status: 'cancelled', error: 'The run was cancelled.', result: undefined, effects: undefined })));
+        const { result } = renderHook(() => useActionRunner('app1', bgDefinition()));
+        await act(async () => { await result.current.runAction('act_bg'); });
+        await waitFor(() => expect(result.current.actionState.act_bg?.cancelled).toBe(true));
+        expect(result.current.actionState.act_bg?.status).toBe('idle');
+        expect(result.current.actionState.act_bg?.error).toBeNull();
+        expect(toast.error).not.toHaveBeenCalled();
+        expect(toast.info).toHaveBeenCalledWith('Cancelled');
+    });
+
     it('a sequence without background still runs step by step in the page', async () => {
         asMock(authFetch).mockResolvedValue(resp(200, { ok: true, result: { text: 'inline' } }));
         const { result } = renderHook(() => useActionRunner('app1', bgDefinition({ kind: 'sequence', steps: [{ kind: 'ai_generate', prompt: 'x' }] })));

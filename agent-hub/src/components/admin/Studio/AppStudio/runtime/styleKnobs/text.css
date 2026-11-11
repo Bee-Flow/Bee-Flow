@@ -9,3 +9,18 @@
 .app-node.app-tk-size > * { font-size: inherit; line-height: inherit; }
 .app-node.app-tk-lh > * { line-height: inherit; }
 .app-node.app-tk-tracking > * { letter-spacing: inherit; }
+
+/*
+ * Inside the components that fix their own text. The cell classes above reach a component whose
+ * root is the first child of its cell, but a button, a callout, key-value rows, a badge, a header
+ * title and an input label put their own size, line height or spacing on a part of their own
+ * (and in the editor canvas a wrapper sits between the cell and the root). Such a component
+ * stamps app-tkp-* on that part (textPartClasses) for the knobs its node sets, and the part takes
+ * the value back from the cell here. Parts that carry a role of their own keep it: a stat value,
+ * a page subtitle, the control of an input. Two classes beat a utility class whatever the order.
+ */
+.app-node .app-tkp-size { font-size: inherit; line-height: inherit; }
+.app-node .app-tkp-lh { line-height: inherit; }
+.app-node .app-tkp-tracking { letter-spacing: inherit; }
+/* A button does not inherit letter case from its cell the way text does. */
+.app-node .app-tkp-case { text-transform: inherit; }

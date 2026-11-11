@@ -5,6 +5,7 @@
  */
 
 import { ROLE_COLORS, HEX_RE, ALIGN_VALUES, WEIGHT_VALUES, SIZE_FONT } from '../styleResolver.constants';
+import { tokenColorVar } from '../designTokens';
 import type { InlineStyle, StyleKnobs } from '../styleResolver.types';
 
 /**
@@ -38,7 +39,8 @@ export function resolveColor(value?: string | null): string | null {
     if (value == null) return null;
     if (ROLE_COLORS[value]) return ROLE_COLORS[value];
     if (typeof value === 'string' && HEX_RE.test(value)) return value;
-    return null;
+    // token:<name> of design.tokens (schema 3): the token's CSS variable on the app root.
+    return tokenColorVar(value);
 }
 
 /** align, weight and size onto `style`; an absent or unknown value emits nothing. */

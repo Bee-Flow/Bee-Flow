@@ -8,6 +8,10 @@ export interface SeriesSpec {
     key: string;
     label?: string;
     color?: string;
+    /** Schema 3, chartType combo: how the series is drawn (bar when absent). */
+    type?: 'bar' | 'line' | 'area';
+    /** Schema 3, chartType combo: 'right' puts the series on a second value axis. */
+    yAxis?: 'left' | 'right';
 }
 
 /** A reference line at one value. */

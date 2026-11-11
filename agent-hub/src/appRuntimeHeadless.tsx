@@ -9,7 +9,7 @@ import type { AppDefinition } from './components/admin/Studio/AppStudio/inspecto
 import { appDesignProps } from './components/admin/Studio/AppStudio/runtime/appDesign';
 import AppCustomCss from './components/admin/Studio/AppStudio/runtime/AppCustomCss';
 import AppRenderer from './components/admin/Studio/AppStudio/runtime/AppRenderer';
-import { seedVariableDefaults } from './components/admin/Studio/AppStudio/runtime/appVariables';
+import { initialVariableValues } from '@shared/appDefinition/variableScopes.mjs';
 import type { DataState } from './components/admin/Studio/AppStudio/runtime/DataContext';
 import { CANVAS_GROUND, themeVars } from './components/admin/Studio/AppStudio/runtime/themeVars';
 import { mergeRecord, ScreenshotFrame, type ScreenshotView } from './appRuntimeScreenshot';
@@ -69,13 +69,29 @@ interface HeadlessScreenProps {
     screenshot?: ScreenshotView | null;
 }
 
+/**
+ * The starting values: the declared defaults, a screenshot's own values over them, then the
+ * derived variables (schema 3) worked out over the screen-level roots, as the render service
+ * does when it keys the data (initialVariableValues on both sides).
+ */
+function headlessVars({ definition, screenId, currentUser, screenshot }: HeadlessScreenProps): Record<string, unknown> {
+    const screen = definition?.screens?.find((s) => s.id === screenId);
+    return initialVariableValues(definition?.variables, {
+        currentUser: currentUser || null,
+        vars: mergeRecord({}, screenshot?.vars),
+        forms: mergeRecord({}, screenshot?.forms),
+        screen: { params: mergeRecord({}, screenshot?.screenParams), id: screenId, name: screen?.name },
+        today: new Date().toISOString().slice(0, 10),
+    });
+}
+
 function HeadlessScreen({ definition, screenId, dataState, currentUser, previewRole, screenshot }: HeadlessScreenProps) {
     // Seed vars exactly like a live run (useActionRunner) does — the render
     // service computes its dataState keys against seeded defaults, so a filter
     // formula reading `vars.x` must see the same value here or the key misses
     // and the component shows a skeleton instead of its rows. A screenshot's
     // `state.vars` lands on top, and the service keys its data the same way.
-    const vars = mergeRecord(seedVariableDefaults(definition?.variables), screenshot?.vars);
+    const vars = headlessVars({ definition, screenId, currentUser, screenshot });
     if (!screenshot) {
         return <HeadlessGround definition={definition} screenId={screenId} dataState={dataState} currentUser={currentUser} previewRole={previewRole} vars={vars} />;
     }

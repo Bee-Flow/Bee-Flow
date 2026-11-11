@@ -1,0 +1,193 @@
+# nav-shell-options
+## screen scr_shellk01 (Requests)
+<div class="grid min-h-screen">
+  <div class="app-shell flex flex-row h-full min-h-0 w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(15, 118, 110, 0.1); --app-accent: #0F766E; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(15, 118, 110, 0.1); --app-primary: #0F766E; --app-radius: 8px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-size: 15px">
+    <aside class="[background:var(--bg-card)] [border-color:var(--border-default)]! app-nav-sidebar border-r flex-col hidden shrink-0 sm:flex">
+      <div class="px-3 shrink-0">
+        <div class="flex gap-2 items-center min-w-0 py-2.5" data-app-brand="true">
+          <img class="h-6 max-w-[120px] object-contain" alt="Desk" src="https://example.org/desk-logo.png">
+          <span class="font-semibold text-sm truncate">
+            "Desk"
+      <nav class="flex flex-1 flex-col gap-0.5 min-h-0 overflow-y-auto px-2 py-1" aria-label="App screens">
+        <button class="app-nav-item flex font-medium gap-2 items-center px-3 py-2 text-left text-sm w-full" aria-current="page" data-active="true" tabindex="0" type="button">
+          <svg class="h-4 lucide lucide-inbox shrink-0 w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+          <span class="app-nav-item-label truncate">
+            "Requests"
+        <button class="app-nav-item flex font-medium gap-2 items-center px-3 py-2 text-left text-sm w-full" tabindex="-1" type="button">
+          <svg class="h-4 lucide lucide-door-open shrink-0 w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+          <span class="app-nav-item-label truncate">
+            "Rooms"
+        <div class="[border-color:var(--border-subtle)]! border-t flex flex-col gap-0.5 mt-1 pt-2" data-app-nav-links="list">
+          <button class="app-nav-item flex font-medium gap-2 items-center px-3 py-2 text-left text-sm w-full" data-app-nav-link="nvi_help01" type="button">
+            <svg class="h-4 lucide lucide-life-buoy shrink-0 w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+            <span class="app-nav-item-label truncate">
+              "How it works"
+          <a class="app-nav-item flex font-medium gap-2 items-center px-3 py-2 text-left text-sm w-full" data-app-nav-link="nvi_hand01" href="https://example.org/handbook" rel="noopener noreferrer" target="_blank">
+            <svg class="h-4 lucide lucide-book-open shrink-0 w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+            <span class="app-nav-item-label truncate">
+              "Handbook"
+            <svg class="h-3 lucide lucide-external-link opacity-60 shrink-0 w-3" aria-label="Opens in a new tab" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+      <div class="[border-color:var(--border-subtle)]! border-t flex flex-col gap-1 px-2 py-2 shrink-0">
+        <div class="relative shrink-0" data-app-user-menu="true">
+          <button class="[color:var(--text-secondary)]! app-nav-hover flex gap-2 items-center min-w-0 px-1.5 py-1 rounded-md text-sm" aria-expanded="false" aria-haspopup="menu" aria-label="Account: App owner" type="button">
+            <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)]! font-semibold h-6 inline-flex items-center justify-center rounded-full shrink-0 text-[11px] w-6" aria-hidden="true">
+              "AO"
+            <span class="hidden max-w-[10rem] sm:inline truncate">
+              "App owner"
+        <button class="app-nav-item flex gap-2 items-center px-3 py-1.5 text-sm w-full" aria-label="Collapse navigation" title="Collapse navigation" type="button">
+          <svg class="h-4 lucide lucide-chevron-left shrink-0 w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+          <span class="app-nav-item-label">
+            "Collapse"
+    <div class="flex flex-1 flex-col min-h-0 min-w-0 relative">
+      <div class="sm:hidden">
+        <div class="absolute flex gap-2 items-center right-3 top-2 z-20" data-app-shell-corner="true">
+          <div>
+            <button class="[background:var(--bg-primary)] [border-color:var(--border-default)] [border-radius:var(--app-radius)]! [color:var(--text-primary)]! border flex font-medium gap-2 items-center min-w-0 px-2.5 py-1.5 rounded-md text-sm" aria-expanded="false" aria-haspopup="dialog" type="button">
+              <svg class="h-4 lucide lucide-menu shrink-0 w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <span class="truncate">
+                "Requests"
+          <div class="relative shrink-0" data-app-user-menu="true">
+            <button class="[color:var(--text-secondary)]! app-nav-hover flex gap-2 items-center min-w-0 px-1.5 py-1 rounded-md text-sm" aria-expanded="false" aria-haspopup="menu" aria-label="Account: App owner" type="button">
+              <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)]! font-semibold h-6 inline-flex items-center justify-center rounded-full shrink-0 text-[11px] w-6" aria-hidden="true">
+                "AO"
+              <span class="hidden max-w-[10rem] sm:inline truncate">
+                "App owner"
+      <main class="flex flex-1 flex-col min-h-0 overflow-auto">
+        <div class="app-runtime app-screen-enter w-full" data-app-appearance="auto" data-app-screen="scr_shellk01" data-app-screen-kind="page" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(15, 118, 110, 0.1); --app-accent: #0F766E; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(15, 118, 110, 0.1); --app-primary: #0F766E; --app-radius: 8px; --app-space: 1; color: var(--text-primary); font-size: 15px">
+          <div class="flex flex-col w-full" style="margin: 0px auto; max-width: 960px">
+            <section class="app-grid" data-section-id="sec_shellk01" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+              <div class="app-node app-span-12 min-w-0" data-app-type="page_header" data-node-id="cmp_shellk01" style="grid-column: span 12 / span 12">
+                <header class="min-w-0 w-full" data-app-pageheader="true">
+                  <div class="flex flex-wrap items-start" style="gap: calc(12px * var(--app-space, 1))">
+                    <div class="basis-64 flex-1 min-w-0">
+                      <h1 class="font-semibold text-[var(--text-primary)] text-xl truncate" title="Requests">
+                        "Requests"
+                      <p class="line-clamp-2 mt-0.5 text-sm" title="Everything that came in this week" style="color: var(--text-secondary)">
+                        "Everything that came in this week"
+                  <hr class="[background:var(--border-default)] border-0 h-px mt-3 w-full" aria-hidden="true">
+      <footer class="[background:var(--bg-card)] [border-color:var(--border-default)]! border-t px-4 py-2 shrink-0 text-[var(--text-secondary)] text-xs" data-app-shell-footer="true">
+        "Facilities · extension 4410"
+## screen scr_shellk02 (Rooms)
+<div class="grid min-h-screen">
+  <div class="app-shell flex flex-row h-full min-h-0 w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(15, 118, 110, 0.1); --app-accent: #0F766E; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(15, 118, 110, 0.1); --app-primary: #0F766E; --app-radius: 8px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-size: 15px">
+    <aside class="[background:var(--bg-card)] [border-color:var(--border-default)]! app-nav-sidebar border-r flex-col hidden shrink-0 sm:flex">
+      <div class="px-3 shrink-0">
+        <div class="flex gap-2 items-center min-w-0 py-2.5" data-app-brand="true">
+          <img class="h-6 max-w-[120px] object-contain" alt="Desk" src="https://example.org/desk-logo.png">
+          <span class="font-semibold text-sm truncate">
+            "Desk"
+      <nav class="flex flex-1 flex-col gap-0.5 min-h-0 overflow-y-auto px-2 py-1" aria-label="App screens">
+        <button class="app-nav-item flex font-medium gap-2 items-center px-3 py-2 text-left text-sm w-full" tabindex="-1" type="button">
+          <svg class="h-4 lucide lucide-inbox shrink-0 w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+          <span class="app-nav-item-label truncate">
+            "Requests"
+        <button class="app-nav-item flex font-medium gap-2 items-center px-3 py-2 text-left text-sm w-full" aria-current="page" data-active="true" tabindex="0" type="button">
+          <svg class="h-4 lucide lucide-door-open shrink-0 w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+          <span class="app-nav-item-label truncate">
+            "Rooms"
+        <div class="[border-color:var(--border-subtle)]! border-t flex flex-col gap-0.5 mt-1 pt-2" data-app-nav-links="list">
+          <button class="app-nav-item flex font-medium gap-2 items-center px-3 py-2 text-left text-sm w-full" data-app-nav-link="nvi_help01" type="button">
+            <svg class="h-4 lucide lucide-life-buoy shrink-0 w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+            <span class="app-nav-item-label truncate">
+              "How it works"
+          <a class="app-nav-item flex font-medium gap-2 items-center px-3 py-2 text-left text-sm w-full" data-app-nav-link="nvi_hand01" href="https://example.org/handbook" rel="noopener noreferrer" target="_blank">
+            <svg class="h-4 lucide lucide-book-open shrink-0 w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+            <span class="app-nav-item-label truncate">
+              "Handbook"
+            <svg class="h-3 lucide lucide-external-link opacity-60 shrink-0 w-3" aria-label="Opens in a new tab" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+      <div class="[border-color:var(--border-subtle)]! border-t flex flex-col gap-1 px-2 py-2 shrink-0">
+        <div class="relative shrink-0" data-app-user-menu="true">
+          <button class="[color:var(--text-secondary)]! app-nav-hover flex gap-2 items-center min-w-0 px-1.5 py-1 rounded-md text-sm" aria-expanded="false" aria-haspopup="menu" aria-label="Account: App owner" type="button">
+            <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)]! font-semibold h-6 inline-flex items-center justify-center rounded-full shrink-0 text-[11px] w-6" aria-hidden="true">
+              "AO"
+            <span class="hidden max-w-[10rem] sm:inline truncate">
+              "App owner"
+        <button class="app-nav-item flex gap-2 items-center px-3 py-1.5 text-sm w-full" aria-label="Collapse navigation" title="Collapse navigation" type="button">
+          <svg class="h-4 lucide lucide-chevron-left shrink-0 w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+          <span class="app-nav-item-label">
+            "Collapse"
+    <div class="flex flex-1 flex-col min-h-0 min-w-0 relative">
+      <div class="sm:hidden">
+        <div class="absolute flex gap-2 items-center right-3 top-2 z-20" data-app-shell-corner="true">
+          <div>
+            <button class="[background:var(--bg-primary)] [border-color:var(--border-default)] [border-radius:var(--app-radius)]! [color:var(--text-primary)]! border flex font-medium gap-2 items-center min-w-0 px-2.5 py-1.5 rounded-md text-sm" aria-expanded="false" aria-haspopup="dialog" type="button">
+              <svg class="h-4 lucide lucide-menu shrink-0 w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <span class="truncate">
+                "Rooms"
+          <div class="relative shrink-0" data-app-user-menu="true">
+            <button class="[color:var(--text-secondary)]! app-nav-hover flex gap-2 items-center min-w-0 px-1.5 py-1 rounded-md text-sm" aria-expanded="false" aria-haspopup="menu" aria-label="Account: App owner" type="button">
+              <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)]! font-semibold h-6 inline-flex items-center justify-center rounded-full shrink-0 text-[11px] w-6" aria-hidden="true">
+                "AO"
+              <span class="hidden max-w-[10rem] sm:inline truncate">
+                "App owner"
+      <main class="flex flex-1 flex-col min-h-0 overflow-auto">
+        <div class="app-runtime app-screen-enter w-full" data-app-appearance="auto" data-app-screen="scr_shellk02" data-app-screen-kind="page" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(15, 118, 110, 0.1); --app-accent: #0F766E; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(15, 118, 110, 0.1); --app-primary: #0F766E; --app-radius: 8px; --app-space: 1; color: var(--text-primary); font-size: 15px">
+          <div class="flex flex-col w-full" style="margin: 0px auto; max-width: 960px">
+            <section class="app-grid" data-section-id="sec_shellk02" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+              <div class="app-node app-span-12 min-w-0" data-app-type="heading" data-node-id="cmp_shellk02" style="grid-column: span 12 / span 12">
+                <h2 class="break-words font-semibold text-xl">
+                  "Rooms"
+      <footer class="[background:var(--bg-card)] [border-color:var(--border-default)]! border-t px-4 py-2 shrink-0 text-[var(--text-secondary)] text-xs" data-app-shell-footer="true">
+        "Facilities · extension 4410"
+## screen scr_shellk03 (How it works)
+<div class="grid min-h-screen">
+  <div class="app-shell flex flex-row h-full min-h-0 w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(15, 118, 110, 0.1); --app-accent: #0F766E; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(15, 118, 110, 0.1); --app-primary: #0F766E; --app-radius: 8px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-size: 15px">
+    <aside class="[background:var(--bg-card)] [border-color:var(--border-default)]! app-nav-sidebar border-r flex-col hidden shrink-0 sm:flex">
+      <div class="px-3 shrink-0">
+        <div class="flex gap-2 items-center min-w-0 py-2.5" data-app-brand="true">
+          <img class="h-6 max-w-[120px] object-contain" alt="Desk" src="https://example.org/desk-logo.png">
+          <span class="font-semibold text-sm truncate">
+            "Desk"
+      <nav class="flex flex-1 flex-col gap-0.5 min-h-0 overflow-y-auto px-2 py-1" aria-label="App screens">
+        <button class="app-nav-item flex font-medium gap-2 items-center px-3 py-2 text-left text-sm w-full" tabindex="0" type="button">
+          <svg class="h-4 lucide lucide-inbox shrink-0 w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+          <span class="app-nav-item-label truncate">
+            "Requests"
+        <button class="app-nav-item flex font-medium gap-2 items-center px-3 py-2 text-left text-sm w-full" tabindex="-1" type="button">
+          <svg class="h-4 lucide lucide-door-open shrink-0 w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+          <span class="app-nav-item-label truncate">
+            "Rooms"
+        <div class="[border-color:var(--border-subtle)]! border-t flex flex-col gap-0.5 mt-1 pt-2" data-app-nav-links="list">
+          <button class="app-nav-item flex font-medium gap-2 items-center px-3 py-2 text-left text-sm w-full" aria-current="page" data-active="true" data-app-nav-link="nvi_help01" type="button">
+            <svg class="h-4 lucide lucide-life-buoy shrink-0 w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+            <span class="app-nav-item-label truncate">
+              "How it works"
+          <a class="app-nav-item flex font-medium gap-2 items-center px-3 py-2 text-left text-sm w-full" data-app-nav-link="nvi_hand01" href="https://example.org/handbook" rel="noopener noreferrer" target="_blank">
+            <svg class="h-4 lucide lucide-book-open shrink-0 w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+            <span class="app-nav-item-label truncate">
+              "Handbook"
+            <svg class="h-3 lucide lucide-external-link opacity-60 shrink-0 w-3" aria-label="Opens in a new tab" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+      <div class="[border-color:var(--border-subtle)]! border-t flex flex-col gap-1 px-2 py-2 shrink-0">
+        <div class="relative shrink-0" data-app-user-menu="true">
+          <button class="[color:var(--text-secondary)]! app-nav-hover flex gap-2 items-center min-w-0 px-1.5 py-1 rounded-md text-sm" aria-expanded="false" aria-haspopup="menu" aria-label="Account: App owner" type="button">
+            <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)]! font-semibold h-6 inline-flex items-center justify-center rounded-full shrink-0 text-[11px] w-6" aria-hidden="true">
+              "AO"
+            <span class="hidden max-w-[10rem] sm:inline truncate">
+              "App owner"
+        <button class="app-nav-item flex gap-2 items-center px-3 py-1.5 text-sm w-full" aria-label="Collapse navigation" title="Collapse navigation" type="button">
+          <svg class="h-4 lucide lucide-chevron-left shrink-0 w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+          <span class="app-nav-item-label">
+            "Collapse"
+    <div class="flex flex-1 flex-col min-h-0 min-w-0 relative">
+      <div class="sm:hidden">
+        <div class="absolute flex gap-2 items-center right-3 top-2 z-20" data-app-shell-corner="true">
+          <div>
+            <button class="[background:var(--bg-primary)] [border-color:var(--border-default)] [border-radius:var(--app-radius)]! [color:var(--text-primary)]! border flex font-medium gap-2 items-center min-w-0 px-2.5 py-1.5 rounded-md text-sm" aria-expanded="false" aria-haspopup="dialog" type="button">
+              <svg class="h-4 lucide lucide-menu shrink-0 w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <span class="truncate">
+                "How it works"
+          <div class="relative shrink-0" data-app-user-menu="true">
+            <button class="[color:var(--text-secondary)]! app-nav-hover flex gap-2 items-center min-w-0 px-1.5 py-1 rounded-md text-sm" aria-expanded="false" aria-haspopup="menu" aria-label="Account: App owner" type="button">
+              <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)]! font-semibold h-6 inline-flex items-center justify-center rounded-full shrink-0 text-[11px] w-6" aria-hidden="true">
+                "AO"
+              <span class="hidden max-w-[10rem] sm:inline truncate">
+                "App owner"
+      <main class="flex flex-1 flex-col min-h-0 overflow-auto">
+        <div class="app-runtime app-screen-enter w-full" data-app-appearance="auto" data-app-screen="scr_shellk03" data-app-screen-kind="page" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(15, 118, 110, 0.1); --app-accent: #0F766E; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(15, 118, 110, 0.1); --app-primary: #0F766E; --app-radius: 8px; --app-space: 1; color: var(--text-primary); font-size: 15px">
+          <div class="flex flex-col w-full" style="margin: 0px auto; max-width: 960px">
+            <section class="app-grid" data-section-id="sec_shellk03" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+              <div class="app-node app-span-12 min-w-0" data-app-type="text" data-node-id="cmp_shellk03" style="grid-column: span 12 / span 12">
+                <p class="break-words leading-relaxed text-sm">
+                  "Send a request, we answer within a day."
+      <footer class="[background:var(--bg-card)] [border-color:var(--border-default)]! border-t px-4 py-2 shrink-0 text-[var(--text-secondary)] text-xs" data-app-shell-footer="true">
+        "Facilities · extension 4410"

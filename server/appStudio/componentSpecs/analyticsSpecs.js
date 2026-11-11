@@ -9,6 +9,7 @@
 const { LIMITS } = require('./limits');
 const { COLOR_ROLES } = require('./styleKnobs');
 const { formatOptionsSpec } = require('./objectShapes');
+const { sharedColumnItemShape } = require('./columnItemShape');
 
 const ANALYTICS_SPECS = {
     // ── v2 data & visualization ──────────────────────────────────────────
@@ -44,7 +45,10 @@ const ANALYTICS_SPECS = {
                             // the PDF (or image) full screen. Same gesture as 'cad',
                             // different file.
                             'document',
+                            // Schema 3: the text of the column's `template` formula, per row.
+                            'template',
                         ],
+                        valuesSince: { template: 3 },
                         default: 'text',
                     },
                     width: { type: 'int', min: 40, max: 800 },
@@ -87,35 +91,7 @@ const ANALYTICS_SPECS = {
                     // gap is a defect — the material a part cannot be cut
                     // without — the dash has to be the colour of a problem.
                     emptyTone: { type: 'enum', values: COLOR_ROLES, default: null },
-                    // Per-value tones for a `badge`/`tags` column whose table has
-                    // no colour of its own. Same shape as list.badgeToneMap. On a
-                    // text/number column the resolved tone colours the text
-                    // itself (there is no pill to colour).
-                    toneMap: {
-                        type: 'list', maxItems: 16,
-                        itemShape: {
-                            value: { type: 'string', required: true, maxLen: 200 },
-                            label: { type: 'string', maxLen: 80 },
-                            tone: { type: 'enum', values: COLOR_ROLES, default: 'neutral' },
-                        },
-                    },
-                    // One line explaining what lives in this column, shown on
-                    // hover over its header. Labels get abbreviated to fit
-                    // ("Snijkw.", "Afbr.", "Cert.") and then only the person who
-                    // built the table knows what the numbers under them mean;
-                    // everyone else guesses, or asks whoever built it.
-                    help: { type: 'string', maxLen: 200 },
-                    // Make THIS cell a button. A status column is the thing
-                    // people reach for when they want to change the status, and
-                    // sending them to a separate button at the end of the row to
-                    // do it is a detour they have to be taught. The action gets
-                    // the row as `item` and as form values, like a row action.
-                    actionId: { type: 'string', maxLen: 20 },
-                    // Schema 3: how this column writes its numbers and dates.
-                    formatOptions: formatOptionsSpec(
-                        'How this column writes its numbers, amounts and dates.',
-                        'It applies to the number, currency, percent, progress, date, datetime and relative formats of the column.',
-                    ),
+                    ...sharedColumnItemShape(),
                 },
             },
             pageSize: { type: 'int', min: 5, max: 100, default: 25 },
@@ -239,7 +215,10 @@ const ANALYTICS_SPECS = {
         parts: ['root', 'title', 'plot'],
         description: 'A bar/line/area/pie/donut chart over an array of objects. x-axis from xKey, one or more series by key. xType:"time" spaces points by date rather than evenly, so a gap in the data reads as a gap. referenceLines/referenceBands draw a target or healthy range behind the series; unitLabel suffixes the axis and tooltip. onRowClick fires with the clicked row.',
         props: {
-            chartType: { type: 'enum', values: ['bar', 'line', 'area', 'pie', 'donut'], default: 'bar' },
+            // Schema 3 (package LK21b): combo (series[].type per series, series[].yAxis for a
+            // second value axis), scatter (xKey numeric), funnel (series[0] per xKey stage) and
+            // radar (one axis per row along xKey, one shape per series).
+            chartType: { type: 'enum', values: ['bar', 'line', 'area', 'pie', 'donut', 'combo', 'scatter', 'funnel', 'radar'], valuesSince: { combo: 3, scatter: 3, funnel: 3, radar: 3 }, default: 'bar' },
             // Identity first: 'vertical' is the standing bars chart has always
             // drawn. Only meaningful for chartType 'bar'; other types ignore it.
             orientation: {
@@ -260,6 +239,14 @@ const ANALYTICS_SPECS = {
                     key: { type: 'string', required: true, maxLen: 120 },
                     label: { type: 'string', maxLen: 120 },
                     color: { type: 'string', maxLen: 40 },
+                    type: {
+                        type: 'enum', values: ['bar', 'line', 'area'], since: 3,
+                        description: 'chartType combo only: how this series is drawn. bar when absent.',
+                    },
+                    yAxis: {
+                        type: 'enum', values: ['left', 'right'], since: 3,
+                        description: 'chartType combo only: the value axis of this series. right adds a second axis on the right. left when absent.',
+                    },
                 },
             },
             stacked: { type: 'boolean', default: false },

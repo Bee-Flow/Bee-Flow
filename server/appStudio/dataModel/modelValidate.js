@@ -22,6 +22,8 @@ const { validateConnectors } = require('./connectorValidate');
 const { computedExprShapeError } = require('./computedExprGuard');
 const { fieldRuleErrors } = require('../../core/dataEngine/fieldRules.mts');
 const { readTimeComputedError } = require('../../core/dataEngine/queryCompilerComputed.mts');
+const { fieldAccessErrors, tableColumnRightsFindings } = require('../../core/dataEngine/columnRightsSave.mts');
+const { linkedFieldErrors } = require('./linkedFieldsValidate');
 
 /**
  * The SHAPE of `table.source` — where the rows of this table live.
@@ -196,6 +198,8 @@ function validateDataModel(model) {
 
             // Optional field rules (validation, dynamicDefault): silent when absent.
             errors.push(...fieldRuleErrors(field, fw));
+            // Optional column rights (access.read / access.write): silent when absent.
+            errors.push(...fieldAccessErrors(field, fw));
 
             if (field.type === 'select' || field.type === 'multiselect') {
                 if (!Array.isArray(field.options)) {
@@ -221,7 +225,15 @@ function validateDataModel(model) {
 
             if (field.type === 'computed') computedFieldFindings(field, table, fw, errors, warnings);
         }
+        // What column rights need of the table as a whole (not on a linked table, no unique
+        // field a role writes without reading it), and a role the model does not have.
+        const rights = tableColumnRightsFindings(table, where, model.roles);
+        errors.push(...rights.errors);
+        warnings.push(...rights.warnings);
     }
+
+    // Lookup / rollup fields, many relations, onDelete rules, indexes: silent when absent.
+    errors.push(...linkedFieldErrors(model));
 
     // roles / roleMapping — shape checks only (RLS gateway enforces semantics).
     if (model.roles !== undefined) {

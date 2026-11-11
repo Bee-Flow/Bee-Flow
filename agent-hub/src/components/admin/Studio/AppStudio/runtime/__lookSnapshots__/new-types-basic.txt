@@ -1,0 +1,116 @@
+# new-types-basic
+## screen scr_newty01 (New types)
+<div class="app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(29, 78, 216, 0.1); --app-accent: #1D4ED8; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(29, 78, 216, 0.1); --app-primary: #1D4ED8; --app-radius: 8px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-size: 15px; min-height: 100vh">
+  <main class="flex flex-1 flex-col min-h-0">
+    <div class="app-runtime app-screen-enter w-full" data-app-appearance="auto" data-app-screen="scr_newty01" data-app-screen-kind="page" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(29, 78, 216, 0.1); --app-accent: #1D4ED8; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(29, 78, 216, 0.1); --app-primary: #1D4ED8; --app-radius: 8px; --app-space: 1; color: var(--text-primary); font-size: 15px">
+      <div class="flex flex-col w-full" style="margin: 0px auto; max-width: 960px">
+        <section class="app-grid" data-section-id="sec_newty01" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="heading" data-node-id="cmp_newty01" style="grid-column: span 12 / span 12">
+            <h2 class="break-words font-semibold text-xl">
+              "Inputs"
+          <div class="app-node app-span-12 min-w-0" data-app-type="form" data-node-id="cmp_newty02" style="grid-column: span 12 / span 12">
+            <form class="flex flex-col" novalidate="" style="gap: calc(12px * var(--app-space, 1))">
+              <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                <div class="app-node app-span-12 min-w-0" data-app-type="switch" data-node-id="cmp_newty03" style="grid-column: span 12 / span 12">
+                  <div class="flex flex-col gap-1 text-left">
+                    <div class="gap-2 inline-flex items-center select-none text-sm">
+                      <button class="[background:var(--app-primary)] [border-color:var(--app-primary)] border cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-2 h-5 inline-flex items-center relative rounded-full shrink-0 transition-colors w-9" aria-checked="true" data-app-switch="on" id="cmp_newty03-input" role="switch" type="button">
+                        <span class="[background:var(--app-primary-contrast)] absolute h-3.5 left-0.5 pointer-events-none rounded-full transition-transform translate-x-4 w-3.5" aria-hidden="true">
+                      <label class="cursor-pointer" for="cmp_newty03-input">
+                        "Send me updates"
+                <div class="app-node app-span-6 min-w-0" data-app-type="radio" data-node-id="cmp_newty04" style="grid-column: span 6 / span 6">
+                  <div class="flex flex-col gap-1 text-left">
+                    <span class="font-medium text-[var(--text-primary)] text-sm" id="cmp_newty04-input-label">
+                      "Plan"
+                    <div class="flex flex-col gap-1.5" aria-labelledby="cmp_newty04-input-label" id="cmp_newty04-input" role="radiogroup">
+                      <label class="cursor-pointer gap-2 inline-flex items-center text-sm">
+                        <input class="[accent-color:var(--app-primary)] h-4 w-4" name="cmp_newty04-plan" type="radio" value="free">
+                        <span>
+                          "Free"
+                      <label class="cursor-pointer gap-2 inline-flex items-center text-sm">
+                        <input class="[accent-color:var(--app-primary)] h-4 w-4" checked="" name="cmp_newty04-plan" type="radio" value="pro">
+                        <span>
+                          "Pro"
+                      <label class="cursor-pointer gap-2 inline-flex items-center text-sm">
+                        <input class="[accent-color:var(--app-primary)] h-4 w-4" name="cmp_newty04-plan" type="radio" value="team">
+                        <span>
+                          "Team"
+                <div class="app-node app-span-6 min-w-0" data-app-type="slider" data-node-id="cmp_newty05" style="grid-column: span 6 / span 6">
+                  <div class="flex flex-col gap-1 text-left">
+                    <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_newty05-input">
+                      "Volume"
+                    <div class="flex gap-3 items-center">
+                      <input class="[accent-color:var(--app-primary)] flex-1 min-w-0" id="cmp_newty05-input" max="10" min="0" name="volume" step="1" type="range" value="4">
+                      <output class="min-w-8 tabular-nums text-[var(--text-secondary)] text-right text-sm" for="cmp_newty05-input">
+                        "4"
+                <div class="app-node app-span-6 min-w-0" data-app-type="rating" data-node-id="cmp_newty06" style="grid-column: span 6 / span 6">
+                  <div class="flex flex-col gap-1 text-left">
+                    <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_newty06-input">
+                      "Score"
+                    <div class="gap-0.5 inline-flex items-center" aria-label="Score" id="cmp_newty06-input" role="radiogroup">
+                      <button class="[color:var(--app-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] p-0.5 rounded" aria-checked="false" aria-label="1 of 5" role="radio" tabindex="-1" type="button">
+                        <svg class="h-5 lucide lucide-star w-5" aria-hidden="true" fill="currentColor" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                      <button class="[color:var(--app-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] p-0.5 rounded" aria-checked="false" aria-label="2 of 5" role="radio" tabindex="-1" type="button">
+                        <svg class="h-5 lucide lucide-star w-5" aria-hidden="true" fill="currentColor" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                      <button class="[color:var(--app-primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] p-0.5 rounded" aria-checked="true" aria-label="3 of 5" role="radio" tabindex="0" type="button">
+                        <svg class="h-5 lucide lucide-star w-5" aria-hidden="true" fill="currentColor" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                      <button class="[color:var(--text-muted)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] p-0.5 rounded" aria-checked="false" aria-label="4 of 5" role="radio" tabindex="-1" type="button">
+                        <svg class="h-5 lucide lucide-star w-5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                      <button class="[color:var(--text-muted)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] p-0.5 rounded" aria-checked="false" aria-label="5 of 5" role="radio" tabindex="-1" type="button">
+                        <svg class="h-5 lucide lucide-star w-5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+          <div class="app-node app-span-12 min-w-0" data-app-type="heading" data-node-id="cmp_newty07" style="grid-column: span 12 / span 12">
+            <h2 class="break-words font-semibold text-xl">
+              "Display"
+          <div class="app-node app-span-2 min-w-0" data-app-type="avatar" data-node-id="cmp_newty08" style="grid-column: span 2 / span 2">
+            <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] font-medium h-16 inline-flex items-center justify-center overflow-hidden rounded-full select-none shrink-0 text-xl w-16" aria-label="Ada Lovelace" role="img">
+              <span class="h-full inline-flex items-center justify-center w-full">
+                "AL"
+          <div class="app-node app-span-12 min-w-0" data-app-type="accordion" data-node-id="cmp_newty09" style="grid-column: span 12 / span 12">
+            <div class="[border-color:var(--border-default)] border divide-[var(--border-default)] divide-y min-w-0 rounded-[var(--app-radius)] w-full" data-app-accordion="true">
+              <div data-app-accordion-item="open">
+                <div aria-level="3" role="heading">
+                  <button class="flex focus-visible:-outline-offset-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] font-medium gap-2 items-center justify-between px-3 py-2.5 text-[var(--text-primary)] text-left text-sm w-full" aria-controls="cmp_newty09-p0" aria-expanded="true" id="cmp_newty09-h0" type="button">
+                    <span>
+                      "What is included"
+                    <svg class="h-4 lucide lucide-chevron-down rotate-180 shrink-0 text-[var(--text-secondary)] transition-transform w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                <div class="pb-3 px-3" aria-labelledby="cmp_newty09-h0" id="cmp_newty09-p0" role="region">
+                  <div class="app-node app-span-12 min-w-0" data-app-type="container" data-node-id="cmp_newty10" style="grid-column: span 12 / span 12">
+                    <div class="app-grid" data-app-container="true" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                      <div class="app-node app-span-12 min-w-0" data-app-type="text" data-node-id="cmp_newty11" style="grid-column: span 12 / span 12">
+                        <p class="break-words leading-relaxed text-sm">
+                          "Every plan includes the basics."
+              <div data-app-accordion-item="closed">
+                <div aria-level="3" role="heading">
+                  <button class="flex focus-visible:-outline-offset-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] font-medium gap-2 items-center justify-between px-3 py-2.5 text-[var(--text-primary)] text-left text-sm w-full" aria-controls="cmp_newty09-p1" aria-expanded="false" id="cmp_newty09-h1" type="button">
+                    <span>
+                      "How it works"
+                    <svg class="h-4 lucide lucide-chevron-down shrink-0 text-[var(--text-secondary)] transition-transform w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                <div class="pb-3 px-3" aria-labelledby="cmp_newty09-h1" hidden="" id="cmp_newty09-p1" role="region">
+                  <div class="app-node app-span-12 min-w-0" data-app-type="container" data-node-id="cmp_newty12" style="grid-column: span 12 / span 12">
+                    <div class="app-grid" data-app-container="true" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                      <div class="app-node app-span-12 min-w-0" data-app-type="text" data-node-id="cmp_newty13" style="grid-column: span 12 / span 12">
+                        <p class="break-words leading-relaxed text-sm">
+                          "Pick a plan and it starts at once."
+          <div class="app-node app-span-12 min-w-0" data-app-type="carousel" data-node-id="cmp_newty14" style="grid-column: span 12 / span 12">
+            <div class="flex flex-col gap-2 min-w-0 w-full" aria-label="Carousel" aria-roledescription="carousel" data-app-carousel="true" role="region">
+              <div class="flex gap-2 items-center">
+                <button class="[background:var(--bg-card)] [border-color:var(--border-default)] border disabled:opacity-40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] inline-flex items-center justify-center p-1.5 rounded-full text-[var(--text-primary)]" aria-label="Previous slide" disabled="" type="button">
+                  <svg class="h-4 lucide lucide-chevron-left w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                <div class="flex-1 min-w-0">
+                  <div aria-label="Slide 1 of 2" aria-roledescription="slide" data-app-carousel-slide="active" role="group">
+                    <div class="app-node app-span-12 min-w-0" data-app-type="container" data-node-id="cmp_newty15" style="grid-column: span 12 / span 12">
+                      <div class="app-grid" data-app-container="true" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                        <div class="app-node app-span-12 min-w-0" data-app-type="text" data-node-id="cmp_newty16" style="grid-column: span 12 / span 12">
+                          <p class="break-words leading-relaxed text-sm">
+                            "First slide"
+                  <div aria-label="Slide 2 of 2" aria-roledescription="slide" data-app-carousel-slide="inactive" hidden="" role="group">
+                    <div class="app-node app-span-12 min-w-0" data-app-type="container" data-node-id="cmp_newty17" style="grid-column: span 12 / span 12">
+                      <div class="app-grid" data-app-container="true" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                        <div class="app-node app-span-12 min-w-0" data-app-type="text" data-node-id="cmp_newty18" style="grid-column: span 12 / span 12">
+                          <p class="break-words leading-relaxed text-sm">
+                            "Second slide"
+                <button class="[background:var(--bg-card)] [border-color:var(--border-default)] border disabled:opacity-40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] inline-flex items-center justify-center p-1.5 rounded-full text-[var(--text-primary)]" aria-label="Next slide" type="button">
+                  <svg class="h-4 lucide lucide-chevron-right w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <div class="flex gap-1.5 justify-center" aria-label="Slides" role="group">
+                <button class="[background:var(--app-primary)] border-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-2 h-2 p-0 rounded-full w-2" aria-current="true" aria-label="Go to slide 1" type="button">
+                <button class="[background:var(--border-default)] border-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-2 h-2 p-0 rounded-full w-2" aria-label="Go to slide 2" type="button">

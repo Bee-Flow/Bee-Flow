@@ -75,6 +75,20 @@ describe('SpecListField: item fields that used to be plain text', () => {
         await user.selectOptions(within(list).getByLabelText('Action id'), '');
         expect((props().columns as Array<Record<string, unknown>>)[0]).not.toHaveProperty('actionId');
     });
+
+    it('an accordion item: its title and whether it starts open, and a new item', async () => {
+        const node = { id: 'cmp_acc1', type: 'accordion', visible: true, props: { items: [{ title: 'Section 1' }], multiple: false }, style: {}, children: [] };
+        const { container, user, props } = mount(SpecPanel as ComponentType<PanelProps>, node as unknown as AppNode);
+        const list = container.querySelector('[data-spec-prop="items"]') as HTMLElement;
+        await user.click(within(list).getByText('Section 1'));
+        const title = within(list).getByLabelText('Title');
+        await user.clear(title);
+        await user.type(title, 'Billing');
+        await user.click(within(list).getByRole('checkbox', { name: 'Open' }));
+        expect(props().items).toEqual([{ title: 'Billing', open: true }]);
+        await user.click(within(list).getByRole('button', { name: /Add item/ }));
+        expect((props().items as unknown[]).length).toBe(2);
+    });
 });
 
 describe('chart series: a free hex colour', () => {

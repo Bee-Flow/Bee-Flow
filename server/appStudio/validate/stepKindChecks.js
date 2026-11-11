@@ -364,6 +364,8 @@ function checkTransaction(step, path, ctx) {
 const KIND_CHECKS = {
     transaction: checkTransaction,
     request_approval: checkApproval,
+    // await_approval asks with the request's own fields (componentSpecs/approvalRequestFields.js).
+    await_approval: checkApproval,
     send_email: checkSendEmail,
     generate_file: checkGenerateFile,
     fill_document: checkFillDocument,

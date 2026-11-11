@@ -309,7 +309,7 @@ async function runBatch(ctx, reads, { onTable } = {}) {
             if (table && typeof onTable === 'function') onTable(table);
             results.push({ id, ok: true, data: payload });
         } catch (err) {
-            const status = err && err.safe === true && typeof err.status === 'number' ? err.status : 500;
+            const status = err && err.safe === true && typeof err.status === 'number' ? err.status : restrictedReadStatus(ctx, read, err);
             results.push({
                 id,
                 ok: false,
@@ -320,6 +320,22 @@ async function runBatch(ctx, reads, { onTable } = {}) {
         }
     }
     return results;
+}
+
+/**
+ * The status of a batch read the compiler refused. 500, as always, except on a table that hides
+ * a field from this viewer's role (column rights): there a refused read is the ordinary answer to
+ * a component that uses the field (the dedicated endpoint's 422 and sentence), not a broken server
+ * to log on every page view.
+ * @param {ReadCtx} ctx
+ * @param {BatchRead} read
+ * @param {unknown} err
+ */
+function restrictedReadStatus(ctx, read, err) {
+    if (!err || /** @type {Error} */ (err).name !== 'CompileError') return 500;
+    const table = findTable(ctx.model, read.tableId);
+    const columns = table ? rlsGateway.columnRightsFor(table, ctx.role) : null;
+    return columns && columns.hidden.length ? 422 : 500;
 }
 
 module.exports = {

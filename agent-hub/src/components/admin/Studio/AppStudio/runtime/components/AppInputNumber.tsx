@@ -4,6 +4,7 @@ import { useFormField } from '../formContext';
 import type { BindingInput } from '../resolveBinding.types';
 import { Field, INPUT_CLASS, inputStyle } from '../uiBits';
 import useValueFrom from '../useValueFrom';
+import { textPartClasses } from '../styleKnobs/text';
 import type { NodeProps } from './appNode.types';
 
 /**
@@ -53,7 +54,7 @@ export default function AppInputNumber({ node }: NodeProps<InputNumberProps>) {
     const shownError = error || (badInput ? BAD_INPUT_MESSAGE : null);
     const id = `${node.id}-input`;
     return (
-        <Field part="input_number" id={id} label={label} required={required} error={shownError}>
+        <Field part="input_number" labelClass={textPartClasses(node.style)} id={id} label={label} required={required} error={shownError}>
             <input
                 id={id}
                 name={name}

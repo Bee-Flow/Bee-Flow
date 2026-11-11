@@ -1,0 +1,186 @@
+# widgets-advanced
+## screen scr_adv00001 (Overview)
+<div class="app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(124, 58, 237, 0.1); --app-accent: #7C3AED; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(124, 58, 237, 0.1); --app-primary: #7C3AED; --app-radius: 8px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-size: 15px; min-height: 100vh">
+  <main class="flex flex-1 flex-col min-h-0">
+    <div class="app-runtime app-screen-enter w-full" data-app-appearance="auto" data-app-screen="scr_adv00001" data-app-screen-kind="page" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(124, 58, 237, 0.1); --app-accent: #7C3AED; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(124, 58, 237, 0.1); --app-primary: #7C3AED; --app-radius: 8px; --app-space: 1; color: var(--text-primary); font-size: 15px">
+      <div class="flex flex-col w-full" style="margin: 0px auto; max-width: 1280px">
+        <section class="app-grid" data-section-id="sec_adv00001" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="heading" data-node-id="cmp_head0001" style="grid-column: span 12 / span 12">
+            <div class="relative" aria-describedby="<id-1>" data-app-tooltip="closed" tabindex="0">
+              <h2 class="break-words font-semibold text-xl">
+                "Pipeline"
+              <div class="-translate-x-1/2 [background:var(--text-primary)] [border-radius:var(--app-radius)] [color:var(--bg-primary)] absolute bottom-full left-1/2 max-w-xs mb-1 pointer-events-none px-2 py-1 text-xs w-max z-50" hidden="" id="<id-1>" role="tooltip">
+                "Numbers of this quarter"
+          <div class="app-node app-span-4 min-w-0" data-app-type="gauge" data-node-id="cmp_gauge001" style="grid-column: span 4 / span 4">
+            <div class="flex-col gap-1 inline-flex items-center min-w-0" data-app-gauge="success">
+              <div class="relative" aria-label="Conversion" aria-valuemax="100" aria-valuemin="0" aria-valuenow="64" aria-valuetext="64 %, On target" role="meter">
+                <svg aria-hidden="true" height="87" viewBox="0 0 160 87" width="160">
+                <span class="absolute bottom-0 font-semibold inset-x-0 tabular-nums text-2xl text-[var(--text-primary)] text-center">
+                  "64 %"
+              <div class="flex justify-between tabular-nums text-[var(--text-muted)] text-xs" aria-hidden="true" style="width: 160px">
+                <span>
+                  "0"
+                <span>
+                  "100"
+              <div class="text-[var(--text-secondary)] text-sm">
+                "Conversion"
+          <div class="app-node app-span-4 min-w-0" data-app-type="gauge" data-node-id="cmp_gauge002" style="font-size: 0.875em; grid-column: span 4 / span 4">
+            <div class="flex-col gap-1 inline-flex items-center min-w-0" data-app-gauge="primary">
+              <div class="relative" aria-label="Backlog" aria-valuemax="100" aria-valuemin="0" aria-valuenow="0" aria-valuetext="—" role="meter">
+                <svg aria-hidden="true" height="65" viewBox="0 0 120 65" width="120">
+                <span class="absolute bottom-0 font-semibold inset-x-0 tabular-nums text-[var(--text-primary)] text-center text-lg">
+                  "—"
+              <div class="text-[var(--text-secondary)] text-sm">
+                "Backlog"
+          <div class="app-node app-span-4 min-w-0" data-app-type="button" data-node-id="cmp_btn00001" style="grid-column: span 4 / span 4">
+            <div class="relative" data-app-tooltip="closed">
+              <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm transition-opacity" aria-describedby="<id-2>" type="button" style="background: var(--app-accent, var(--app-primary)); border-radius: var(--app-radius); color: var(--app-accent-contrast, var(--app-primary-contrast))">
+                <span>
+                  "Refresh"
+              <div class="-translate-x-1/2 [background:var(--text-primary)] [border-radius:var(--app-radius)] [color:var(--bg-primary)] absolute bottom-full left-1/2 max-w-xs mb-1 pointer-events-none px-2 py-1 text-xs w-max z-50" hidden="" id="<id-2>" role="tooltip">
+                "Reads the numbers again"
+          <div class="app-node app-span-6 min-w-0" data-app-type="chart" data-node-id="cmp_combo001" style="grid-column: span 6 / span 6; height: 200px; overflow: auto">
+            <div class="flex flex-col h-full min-h-0 min-w-0 w-full" data-app-chart="combo" data-app-chart-fitted="true" data-app-chart-xtype="category">
+              <div class="font-semibold mb-2 shrink-0 text-[var(--text-primary)] text-sm">
+                "combo"
+              <div class="flex-1 min-h-0 overflow-hidden w-full">
+                <div class="recharts-wrapper" height="172" width="600" style="cursor: default; height: 172px; position: relative; width: 600px">
+                  <div class="recharts-tooltip-wrapper" tabindex="-1" xmlns="http://www.w3.org/1999/xhtml" style="left: 0px; pointer-events: none; position: absolute; top: 0px; visibility: hidden">
+                    <div class="recharts-default-tooltip" aria-live="assertive" role="status" style="background: var(--bg-primary); border-radius: 8px; border: 1px solid var(--border-default); color: var(--text-primary); font-size: 12px; margin: 0px; padding: 10px; white-space: nowrap">
+                      <p class="recharts-tooltip-label" style="margin: 0px">
+                  <div class="recharts-legend-wrapper" style="bottom: 5px; font-size: 11px; height: auto; left: 5px; position: absolute; width: 590px">
+                    <ul class="recharts-default-legend" style="margin: 0px; padding: 0px; text-align: center">
+                      <li class="legend-item-0 recharts-legend-item" style="display: inline-block; margin-right: 10px; white-space: nowrap">
+                        <svg class="recharts-surface" aria-label="count legend icon" height="14" viewBox="0 0 32 32" width="14" style="display: inline-block; margin-right: 4px; vertical-align: middle">
+                        <span class="recharts-legend-item-text" style="color: rgb(59, 130, 246); overflow-wrap: break-word; white-space: normal">
+                          "count"
+                      <li class="legend-item-1 recharts-legend-item" style="display: inline-block; margin-right: 10px; white-space: nowrap">
+                        <svg class="recharts-surface" aria-label="rate legend icon" height="14" viewBox="0 0 32 32" width="14" style="display: inline-block; margin-right: 4px; vertical-align: middle">
+                        <span class="recharts-legend-item-text" style="color: rgb(34, 197, 94); overflow-wrap: break-word; white-space: normal">
+                          "rate"
+                  <svg class="recharts-surface" height="172" role="application" tabindex="0" viewBox="0 0 600 172" width="600" style="display: block; height: 100%; width: 100%">
+          <div class="app-node app-span-6 min-w-0" data-app-type="chart" data-node-id="cmp_scat0001" style="grid-column: span 6 / span 6; height: 200px; overflow: auto">
+            <div class="flex flex-col h-full min-h-0 min-w-0 w-full" data-app-chart="scatter" data-app-chart-fitted="true" data-app-chart-xtype="category">
+              <div class="font-semibold mb-2 shrink-0 text-[var(--text-primary)] text-sm">
+                "scatter"
+              <div class="flex-1 min-h-0 overflow-hidden w-full">
+                <div class="recharts-wrapper" height="172" width="600" style="cursor: default; height: 172px; position: relative; width: 600px">
+                  <div class="recharts-tooltip-wrapper" tabindex="-1" xmlns="http://www.w3.org/1999/xhtml" style="left: 0px; pointer-events: none; position: absolute; top: 0px; visibility: hidden">
+                    <div class="recharts-default-tooltip" aria-live="assertive" role="status" style="background: var(--bg-primary); border-radius: 8px; border: 1px solid var(--border-default); color: var(--text-primary); font-size: 12px; margin: 0px; padding: 10px; white-space: nowrap">
+                      <p class="recharts-tooltip-label" style="margin: 0px">
+                  <div class="recharts-legend-wrapper" style="bottom: 5px; font-size: 11px; height: auto; left: 5px; position: absolute; width: 590px">
+                    <ul class="recharts-default-legend" style="margin: 0px; padding: 0px; text-align: center">
+                      <li class="legend-item-0 recharts-legend-item" style="display: inline-block; margin-right: 10px; white-space: nowrap">
+                        <svg class="recharts-surface" aria-label="count legend icon" height="14" viewBox="0 0 32 32" width="14" style="display: inline-block; margin-right: 4px; vertical-align: middle">
+                        <span class="recharts-legend-item-text" style="color: rgb(59, 130, 246); overflow-wrap: break-word; white-space: normal">
+                          "count"
+                  <svg class="recharts-surface" height="172" role="application" tabindex="0" viewBox="0 0 600 172" width="600" style="display: block; height: 100%; width: 100%">
+          <div class="app-node app-span-6 min-w-0" data-app-type="chart" data-node-id="cmp_funl0001" style="grid-column: span 6 / span 6; height: 200px; overflow: auto">
+            <div class="flex flex-col h-full min-h-0 min-w-0 w-full" data-app-chart="funnel" data-app-chart-fitted="true" data-app-chart-xtype="category">
+              <div class="font-semibold mb-2 shrink-0 text-[var(--text-primary)] text-sm">
+                "funnel"
+              <div class="flex-1 min-h-0 overflow-hidden w-full">
+                <div class="recharts-wrapper" height="172" width="600" style="cursor: default; height: 172px; position: relative; width: 600px">
+                  <div class="recharts-tooltip-wrapper" tabindex="-1" xmlns="http://www.w3.org/1999/xhtml" style="left: 0px; pointer-events: none; position: absolute; top: 0px; visibility: hidden">
+                    <div class="recharts-default-tooltip" aria-live="assertive" role="status" style="background: var(--bg-primary); border-radius: 8px; border: 1px solid var(--border-default); color: var(--text-primary); font-size: 12px; margin: 0px; padding: 10px; white-space: nowrap">
+                      <p class="recharts-tooltip-label" style="margin: 0px">
+                  <svg class="recharts-surface" height="172" role="application" tabindex="0" viewBox="0 0 600 172" width="600" style="display: block; height: 100%; width: 100%">
+          <div class="app-node app-span-6 min-w-0" data-app-type="chart" data-node-id="cmp_radr0001" style="grid-column: span 6 / span 6; height: 200px; overflow: auto">
+            <div class="flex flex-col h-full min-h-0 min-w-0 w-full" data-app-chart="radar" data-app-chart-fitted="true" data-app-chart-xtype="category">
+              <div class="font-semibold mb-2 shrink-0 text-[var(--text-primary)] text-sm">
+                "radar"
+              <div class="flex-1 min-h-0 overflow-hidden w-full">
+                <div class="recharts-wrapper" height="172" width="600" style="cursor: default; height: 172px; position: relative; width: 600px">
+                  <div class="recharts-tooltip-wrapper" tabindex="-1" xmlns="http://www.w3.org/1999/xhtml" style="left: 0px; pointer-events: none; position: absolute; top: 0px; visibility: hidden">
+                    <div class="recharts-default-tooltip" aria-live="assertive" role="status" style="background: var(--bg-primary); border-radius: 8px; border: 1px solid var(--border-default); color: var(--text-primary); font-size: 12px; margin: 0px; padding: 10px; white-space: nowrap">
+                      <p class="recharts-tooltip-label" style="margin: 0px">
+                  <div class="recharts-legend-wrapper" style="bottom: 5px; font-size: 11px; height: auto; left: 5px; position: absolute; width: 590px">
+                    <ul class="recharts-default-legend" style="margin: 0px; padding: 0px; text-align: center">
+                      <li class="legend-item-0 recharts-legend-item" style="display: inline-block; margin-right: 10px; white-space: nowrap">
+                        <svg class="recharts-surface" aria-label="rate legend icon" height="14" viewBox="0 0 32 32" width="14" style="display: inline-block; margin-right: 4px; vertical-align: middle">
+                        <span class="recharts-legend-item-text" style="color: rgb(34, 197, 94); overflow-wrap: break-word; white-space: normal">
+                          "rate"
+                      <li class="legend-item-1 recharts-legend-item" style="display: inline-block; margin-right: 10px; white-space: nowrap">
+                        <svg class="recharts-surface" aria-label="weight legend icon" height="14" viewBox="0 0 32 32" width="14" style="display: inline-block; margin-right: 4px; vertical-align: middle">
+                        <span class="recharts-legend-item-text" style="color: rgb(59, 130, 246); overflow-wrap: break-word; white-space: normal">
+                          "weight"
+                  <svg class="recharts-surface" cx="50%" cy="50%" height="172" role="application" tabindex="0" viewBox="0 0 600 172" width="600" style="display: block; height: 100%; width: 100%">
+          <div class="app-node app-span-6 min-w-0" data-app-type="tree" data-node-id="cmp_tree0001" style="grid-column: span 6 / span 6">
+            <div class="min-w-0">
+              <ul class="flex flex-col" aria-label="Tree" data-app-tree="true" role="tree">
+                <li class="[border-radius:var(--app-radius)] focus-visible:[box-shadow:inset_0_0_0_2px_var(--app-primary)] outline-none" aria-expanded="true" aria-labelledby="<id-3>-eu" aria-level="1" aria-posinset="1" aria-setsize="2" role="treeitem" tabindex="0">
+                  <div class="[border-radius:var(--app-radius)] cursor-pointer flex gap-1.5 hover:[background:var(--bg-tertiary)] items-center pr-2 py-1" style="padding-left: 4px">
+                    <span class="h-4 inline-flex items-center justify-center shrink-0 text-[var(--text-muted)] w-4" aria-hidden="true">
+                      <svg class="h-3.5 lucide lucide-chevron-right rotate-90 w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                    <svg class="h-4 lucide lucide-folder shrink-0 text-[var(--text-secondary)] w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                    <span class="min-w-0 text-[var(--text-primary)] text-sm truncate" id="<id-3>-eu">
+                      "Europe"
+                  <ul role="group">
+                    <li class="[border-radius:var(--app-radius)] focus-visible:[box-shadow:inset_0_0_0_2px_var(--app-primary)] outline-none" aria-labelledby="<id-3>-nl" aria-level="2" aria-posinset="1" aria-setsize="2" role="treeitem" tabindex="-1">
+                      <div class="[border-radius:var(--app-radius)] cursor-pointer flex gap-1.5 hover:[background:var(--bg-tertiary)] items-center pr-2 py-1" style="padding-left: 20px">
+                        <span class="h-4 inline-flex invisible items-center justify-center shrink-0 text-[var(--text-muted)] w-4" aria-hidden="true">
+                          <svg class="h-3.5 lucide lucide-chevron-right w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                        <svg class="h-4 lucide lucide-folder shrink-0 text-[var(--text-secondary)] w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                        <span class="min-w-0 text-[var(--text-primary)] text-sm truncate" id="<id-3>-nl">
+                          "Netherlands"
+                        <span class="ml-auto tabular-nums text-[var(--text-muted)] text-xs">
+                          "+1 deeper"
+                    <li class="[border-radius:var(--app-radius)] focus-visible:[box-shadow:inset_0_0_0_2px_var(--app-primary)] outline-none" aria-labelledby="<id-3>-be" aria-level="2" aria-posinset="2" aria-setsize="2" role="treeitem" tabindex="-1">
+                      <div class="[border-radius:var(--app-radius)] cursor-pointer flex gap-1.5 hover:[background:var(--bg-tertiary)] items-center pr-2 py-1" style="padding-left: 20px">
+                        <span class="h-4 inline-flex invisible items-center justify-center shrink-0 text-[var(--text-muted)] w-4" aria-hidden="true">
+                          <svg class="h-3.5 lucide lucide-chevron-right w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                        <svg class="h-4 lucide lucide-folder shrink-0 text-[var(--text-secondary)] w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                        <span class="min-w-0 text-[var(--text-primary)] text-sm truncate" id="<id-3>-be">
+                          "Belgium"
+                <li class="[border-radius:var(--app-radius)] focus-visible:[box-shadow:inset_0_0_0_2px_var(--app-primary)] outline-none" aria-labelledby="<id-3>-as" aria-level="1" aria-posinset="2" aria-setsize="2" role="treeitem" tabindex="-1">
+                  <div class="[border-radius:var(--app-radius)] cursor-pointer flex gap-1.5 hover:[background:var(--bg-tertiary)] items-center pr-2 py-1" style="padding-left: 4px">
+                    <span class="h-4 inline-flex invisible items-center justify-center shrink-0 text-[var(--text-muted)] w-4" aria-hidden="true">
+                      <svg class="h-3.5 lucide lucide-chevron-right rotate-90 w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                    <svg class="h-4 lucide lucide-folder shrink-0 text-[var(--text-secondary)] w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                    <span class="min-w-0 text-[var(--text-primary)] text-sm truncate" id="<id-3>-as">
+                      "Asia"
+          <div class="app-node app-span-6 min-w-0" data-app-type="form" data-node-id="cmp_form0001" style="grid-column: span 6 / span 6">
+            <form class="flex flex-col" novalidate="" style="gap: calc(12px * var(--app-space, 1))">
+              <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                <div class="app-node app-span-12 min-w-0" data-app-type="wizard" data-node-id="cmp_wiz00001" style="grid-column: span 12 / span 12">
+                  <div class="flex flex-col" data-app-wizard="0" style="gap: calc(12px * var(--app-space, 1))">
+                    <ol class="flex flex-wrap gap-x-4 gap-y-2 items-center" aria-label="Steps">
+                      <li class="gap-2 inline-flex items-center" aria-current="step" data-app-wizard-step="current">
+                        <span class="[background:var(--app-primary)] [color:var(--app-primary-contrast)] font-semibold h-6 inline-flex items-center justify-center rounded-full shrink-0 text-xs w-6" aria-hidden="true">
+                          "1"
+                        <span class="font-semibold text-[var(--text-primary)] text-sm">
+                          "You"
+                      <li class="gap-2 inline-flex items-center" data-app-wizard-step="todo">
+                        <span class="[background:var(--bg-tertiary)] [color:var(--text-muted)] font-semibold h-6 inline-flex items-center justify-center rounded-full shrink-0 text-xs w-6" aria-hidden="true">
+                          "2"
+                        <span class="text-[var(--text-secondary)] text-sm">
+                          "Company"
+                      <li class="gap-2 inline-flex items-center" data-app-wizard-step="todo">
+                        <span class="[background:var(--bg-tertiary)] [color:var(--text-muted)] font-semibold h-6 inline-flex items-center justify-center rounded-full shrink-0 text-xs w-6" aria-hidden="true">
+                          "3"
+                        <span class="text-[var(--text-secondary)] text-sm">
+                          "Done"
+                    <p class="text-[var(--text-secondary)] text-sm">
+                      "Who are you?"
+                    <div class="app-grid outline-none" aria-label="You" role="group" tabindex="-1" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                      <div class="app-node app-span-12 min-w-0" data-app-type="container" data-node-id="cmp_step0001" style="grid-column: span 12 / span 12">
+                        <div class="app-grid" data-app-container="true" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                          <div class="app-node app-span-12 min-w-0" data-app-type="input_text" data-node-id="cmp_name0001" style="grid-column: span 12 / span 12">
+                            <div class="relative" data-app-tooltip="closed">
+                              <div class="flex flex-col gap-1 text-left">
+                                <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_name0001-input">
+                                  "Name"
+                                  <span class="[color:var(--error)]" aria-hidden="true">
+                                    "*"
+                                <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-describedby="<id-4>" aria-required="true" id="cmp_name0001-input" name="name" type="text" value="" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                              <div class="-translate-x-1/2 [background:var(--text-primary)] [border-radius:var(--app-radius)] [color:var(--bg-primary)] absolute bottom-full left-1/2 max-w-xs mb-1 pointer-events-none px-2 py-1 text-xs w-max z-50" hidden="" id="<id-4>" role="tooltip">
+                                "As on your passport"
+                    <div class="flex gap-2 items-center justify-between">
+                      <button class="[border-color:var(--border-default)] [border-radius:var(--app-radius)] [color:var(--text-secondary)]! border disabled:opacity-50 font-medium px-3 py-1.5 text-sm" disabled="" type="button">
+                        "Back"
+                      <button class="[background:var(--app-primary)] [border-radius:var(--app-radius)] [color:var(--app-primary-contrast)]! font-medium px-3.5 py-1.5 text-sm" type="button">
+                        "Continue"
+              <div class="flex gap-2 items-center">
+                <button class="[background:var(--app-accent,var(--app-primary))] [border-radius:var(--app-radius)] [color:var(--app-accent-contrast,var(--app-primary-contrast))]! disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm" type="submit">
+                  <span>
+                    "Send"

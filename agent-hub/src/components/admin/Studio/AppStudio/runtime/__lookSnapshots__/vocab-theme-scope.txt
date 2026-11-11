@@ -1,0 +1,47 @@
+# vocab-theme-scope
+## screen scr_thmscp01 (Overview)
+<div class="app-dark-palette--auto app-dark-palette--canvas app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(15, 118, 110, 0.1); --app-accent: #0F766E; --app-dark-accent-contrast: #000000; --app-dark-accent-soft: rgba(94, 234, 212, 0.1); --app-dark-accent: #5eead4; --app-dark-canvas: #0b1220; --app-dark-primary-contrast: #000000; --app-dark-primary-soft: rgba(94, 234, 212, 0.1); --app-dark-primary: #5eead4; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(15, 118, 110, 0.1); --app-primary: #0F766E; --app-radius: 6px; --app-space: 1; --app-token-brand-ink: #0c4a6e; --app-token-brand-soft: #e0f2fe; --app-token-gutter: 24px; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-size: 15px; min-height: 100vh">
+  <main class="flex flex-1 flex-col min-h-0">
+    <div class="app-dark-palette--auto app-dark-palette--canvas app-runtime app-screen-enter w-full" data-app-appearance="auto" data-app-screen="scr_thmscp01" data-app-screen-kind="page" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(15, 118, 110, 0.1); --app-accent: #0F766E; --app-dark-accent-contrast: #000000; --app-dark-accent-soft: rgba(94, 234, 212, 0.1); --app-dark-accent: #5eead4; --app-dark-canvas: #0b1220; --app-dark-primary-contrast: #000000; --app-dark-primary-soft: rgba(94, 234, 212, 0.1); --app-dark-primary: #5eead4; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(15, 118, 110, 0.1); --app-primary: #0F766E; --app-radius: 6px; --app-space: 1; --app-token-brand-ink: #0c4a6e; --app-token-brand-soft: #e0f2fe; --app-token-gutter: 24px; color: var(--text-primary); font-size: 15px">
+      <div class="flex flex-col w-full" style="margin: 0px auto; max-width: 960px">
+        <section class="app-grid" data-section-id="sec_thmscp01" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="heading" data-node-id="cmp_thmscp01" style="color: var(--app-token-brand-ink); grid-column: span 12 / span 12">
+            <h2 class="break-words font-semibold text-xl">
+              "Tokens and the app theme"
+          <div class="app-node app-span-6 min-w-0" data-app-type="stat" data-node-id="cmp_thmscp02" style="background: var(--app-token-brand-soft); border-color: var(--app-token-brand-ink); border-style: solid; border-width: 1px; grid-column: span 6 / span 6">
+            <div class="app-stat flex gap-2.5 items-start">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-[var(--text-secondary)] text-xs">
+                  "Open"
+                <div class="flex gap-2 items-baseline min-w-0">
+                  <div class="font-semibold leading-tight text-2xl truncate" title="12">
+                    "12"
+          <div class="app-node app-span-4 min-w-0" data-app-type="button" data-node-id="cmp_thmscp03" style="grid-column: span 4 / span 4">
+            <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm transition-opacity" type="button" style="background: var(--app-accent, var(--app-primary)); border-radius: var(--app-radius); color: var(--app-accent-contrast, var(--app-primary-contrast))">
+              <span>
+                "Primary action"
+        <section class="app-grid" data-section-id="sec_thmscp02" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(180, 83, 9, 0.1); --app-accent: #B45309; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(180, 83, 9, 0.1); --app-primary: #B45309; --app-radius: 12px; --app-space: 0.75; background: var(--bg-card); border-radius: var(--app-radius); gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-8 min-w-0" data-app-type="text" data-node-id="cmp_thmscp04" style="grid-column: span 8 / span 8">
+            <p class="break-words leading-relaxed text-sm">
+              "A band in the second brand colour, compact."
+          <div class="app-node app-span-4 min-w-0" data-app-type="button" data-node-id="cmp_thmscp05" style="grid-column: span 4 / span 4">
+            <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm transition-opacity" type="button" style="background: var(--app-accent, var(--app-primary)); border-radius: var(--app-radius); color: var(--app-accent-contrast, var(--app-primary-contrast))">
+              <span>
+                "Amber action"
+        <section class="app-grid app-section--themed-ground" data-app-appearance="dark" data-section-id="sec_thmscp03" style="color-scheme: dark; gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="heading" data-node-id="cmp_thmscp06" style="grid-column: span 12 / span 12">
+            <h2 class="break-words font-semibold text-xl">
+              "A dark hero section"
+## screen scr_thmscp02 (Control room)
+<div class="app-dark-palette--auto app-dark-palette--canvas app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(15, 118, 110, 0.1); --app-accent: #0F766E; --app-dark-accent-contrast: #000000; --app-dark-accent-soft: rgba(94, 234, 212, 0.1); --app-dark-accent: #5eead4; --app-dark-canvas: #0b1220; --app-dark-primary-contrast: #000000; --app-dark-primary-soft: rgba(94, 234, 212, 0.1); --app-dark-primary: #5eead4; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(15, 118, 110, 0.1); --app-primary: #0F766E; --app-radius: 6px; --app-space: 1; --app-token-brand-ink: #0c4a6e; --app-token-brand-soft: #e0f2fe; --app-token-gutter: 24px; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-size: 15px; min-height: 100vh">
+  <main class="flex flex-1 flex-col min-h-0">
+    <div class="app-dark-palette--canvas app-dark-palette--on app-runtime app-screen--canvas app-screen-enter w-full" data-app-appearance="dark" data-app-screen="scr_thmscp02" data-app-screen-kind="page" style="--app-accent-contrast: #000000; --app-accent-soft: rgba(56, 189, 248, 0.1); --app-accent: #38BDF8; --app-canvas: #0F172A; --app-dark-accent-contrast: #000000; --app-dark-accent-soft: rgba(56, 189, 248, 0.1); --app-dark-accent: #38BDF8; --app-dark-canvas: #0F172A; --app-dark-primary-contrast: #000000; --app-dark-primary-soft: rgba(56, 189, 248, 0.1); --app-dark-primary: #38BDF8; --app-primary-contrast: #000000; --app-primary-soft: rgba(56, 189, 248, 0.1); --app-primary: #38BDF8; --app-radius: 6px; --app-space: 1; --app-token-brand-ink: #0c4a6e; --app-token-brand-soft: #e0f2fe; --app-token-gutter: 24px; color-scheme: dark; color: var(--text-primary); font-size: 16px">
+      <div class="flex flex-col w-full" style="margin: 0px auto; max-width: 1280px">
+        <section class="app-grid" data-section-id="sec_thmscp04" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="heading" data-node-id="cmp_thmscp07" style="grid-column: span 12 / span 12">
+            <h2 class="break-words font-semibold text-xl">
+              "A screen with its own dark theme"
+          <div class="app-node app-span-4 min-w-0" data-app-type="button" data-node-id="cmp_thmscp08" style="grid-column: span 4 / span 4">
+            <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm transition-opacity" type="button" style="background: var(--app-accent, var(--app-primary)); border-radius: var(--app-radius); color: var(--app-accent-contrast, var(--app-primary-contrast))">
+              <span>
+                "Sky action"

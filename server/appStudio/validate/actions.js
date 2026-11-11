@@ -178,8 +178,9 @@ function validateAction(id, action, path, ctx) {
 
     if (action.kind === 'sequence') {
         validateActionSteps(action.steps, `${path}.steps`, 1, { n: 0, reported: false, top: action.steps }, ctx);
-        if (action.background !== undefined || action.lockKey !== undefined || action.progressVar !== undefined) require('./backgroundChecks.mts').checkRunOptions(action, id, path, ctx);
+        if (action.background !== undefined || action.lockKey !== undefined || action.progressVar !== undefined || action.runOn !== undefined) require('./backgroundChecks.mts').checkRunOptions(action, id, path, ctx);
         require('./dynamicChecks.mts').checkSequenceEffects(action, path, ctx, validateEffects);
+        require('./durableStepChecks.mts').checkWaitingSteps(action, id, path, ctx);
     }
 
     // Native AI actions (ai_extract / ai_generate / kb_query) share their field

@@ -156,8 +156,10 @@ jobs:
               # and what those files require in turn
               - 'server/appStudio/{appDesignSpec,componentSpecs,mailboxTableTemplates}.js'
               - 'server/appStudio/componentSpecs/**'
-              # required by appDesignSpec.js (the custom stylesheet cleaner)
+              # required by appDesignSpec.js (the custom stylesheet cleaner, design tokens, font roles, the app shell)
               - 'server/appStudio/appCss.mts'
+              - 'server/appStudio/{designTokens,navShell}.mts'
+              - 'server/appStudio/appFontRoles.js'
               # required by componentSpecs/objectShapes.js (value formatting), and what it requires
               - 'server/shared/format/{formatClean,datePattern}.mjs'
               # read as text by src/features/app-studio/core/runtime/stepIndex.lockstep.test.ts (the server's step walk)

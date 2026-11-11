@@ -29,6 +29,8 @@ const { PublishBody, NextcloudMenuBody } = require('./schemas');
 const { requireManageApps, audienceFor } = require('./access');
 const { loadOwnedAutomations, loadDataRefs } = require('./appHelpers');
 const { sessionUser } = require('../../core/http/sessionUser');
+const { syncAppTriggers } = require('../../appStudio/triggers/triggerSync.mts');
+const { syncWebhookEndpoints } = require('../../appStudio/triggers/webhook/webhookEndpoints.mts');
 
 const router = express.Router();
 
@@ -84,6 +86,11 @@ router.patch('/:id/publish', requireAuth, requireManageApps, validate({ body: Pu
         },
     });
     if (!out.ok) return res.status(out.status).json(out.body);
+    // The server triggers follow the published copy: armed from it now, removed with an
+    // unpublish (appStudio/triggers/triggerSync.mts; it never throws, the publish stands).
+    await syncAppTriggers(app.id);
+    // A webhook trigger of the published copy gets its address and secret (kept when it had them).
+    await syncWebhookEndpoints(app.id);
     res.json({
         success: true,
         isPublished: out.isPublished,

@@ -71,6 +71,7 @@ function resolveDeps(deps = {}) {
         get goLive() { return dep(deps, 'goLive', () => require('../../../automation/goLive')); },
         get studioAppStore() { return dep(deps, 'studioAppStore', () => require('../../../stores/studioAppStore')); },
         get setAppAudience() { return dep(deps, 'setAppAudience', () => require('../../../appStudio/appAudience').setAppAudience); },
+        get syncAppTriggers() { return dep(deps, 'syncAppTriggers', () => (/** @type {string} */ appId) => require('../../../appStudio/triggers/deploySync.mts').syncAfterStageChange(appId)); },
         get appAudienceDeps() {
             return dep(deps, 'appAudienceDeps', () => ({
                 store: require('../../../stores/studioAppStore'),

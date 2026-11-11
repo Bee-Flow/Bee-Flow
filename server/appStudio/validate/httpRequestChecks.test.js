@@ -129,11 +129,12 @@ test('a formula in a query, header or body binding is checked like any server st
     assert.ok(res.errors.every((e) => e.includes('step.query.q')), JSON.stringify(res.errors));
 });
 
-test('the policy of the kind: a click and a background run, never a public page or a mailbox hook', () => {
+test('the policy of the kind: a click, a background run and a trigger run, never a public page or a mailbox hook', () => {
     assert.equal(stepPolicy('http_request', 'click'), 'step');
     assert.equal(stepPolicy('http_request', 'background'), 'run');
     assert.equal(stepPolicy('http_request', 'mailboxHook'), 'refuse');
-    assert.equal(stepPolicy('http_request', 'unattended'), 'refuse');
+    // A schedule trigger may call a web service (an owner decision); a trigger kind can still refuse it (refusedKinds).
+    assert.equal(stepPolicy('http_request', 'unattended'), 'run');
     assert.equal(stepPolicy('http_request', 'public'), 'refuse');
     assert.equal(stepPolicy('http_request', 'mcpRun'), 'run');
     assert.equal(stepPolicy('http_request', 'mcpDryRun'), 'run');

@@ -22,6 +22,8 @@ export interface CellColumn {
     truncate?: boolean;
     /** Schema 3: how this column writes numbers and dates (cellFormat.ts). */
     formatOptions?: unknown;
+    /** Schema 3: the formula a `format: 'template'` column writes per row (cellTemplate.tsx). */
+    template?: unknown;
 }
 
 /**

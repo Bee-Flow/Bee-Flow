@@ -12,6 +12,7 @@
 import { createRequire } from 'node:module';
 import type { Filter } from './writeTarget.mts';
 import { applyFieldRulesToRows } from '../../core/dataEngine/fieldRules.mts';
+import { assertNoDeleteRules } from './cascadeDelete.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 
@@ -46,12 +47,14 @@ const bulk = (): { compileDeleteMatching(t: unknown, f: Filter[], a: unknown, o:
 
 const deletedOf = (results: BatchResult): number => Number(results && results[0] && results[0].changes) || 0;
 
-export async function replaceRecordBatch(app: App, _model: unknown, table: Table, rows: Obj[], { viewer, filters, limit }: ReplaceOpts): Promise<{ ids: string[]; deleted: number }> {
-    const viewerId = viewer && typeof viewer === 'object' ? (viewer as Viewer).id : undefined;
-    const list = applyFieldRulesToRows(table, Array.isArray(rows) ? rows : [], { op: 'create', viewerId });
+export async function replaceRecordBatch(app: App, model: unknown, table: Table, rows: Obj[], { viewer, filters, limit }: ReplaceOpts): Promise<{ ids: string[]; deleted: number }> {
+    const writer: Viewer = viewer && typeof viewer === 'object' ? viewer as Viewer : {};
+    const list = applyFieldRulesToRows(table, Array.isArray(rows) ? rows : [], { op: 'create', viewerId: writer.id, role: writer.role ?? null });
     if (datatableSource.isDatatableBacked(table)) return replaceDatatableBatch(app, table, list, { viewer, filters, limit });
     const v: Viewer = (viewer && typeof viewer === 'object') ? viewer as Viewer : {};
     const role = v.role ?? null;
+    // A set-based delete does not walk relation onDelete rules (cascadeDelete.mts): refused on such a table.
+    assertNoDeleteRules(model, table);
     rlsGateway.assertCanWrite(table, role, 'delete');
     rlsGateway.assertCanWrite(table, role, 'create');
     if (list.length) {

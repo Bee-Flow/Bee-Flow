@@ -1,1 +1,58 @@
-{}
+{
+    "app_get_run": {
+        "key": "studio_apps_tab.act_get_run",
+        "en": "Read a run"
+    },
+    "app_list_runs": {
+        "key": "studio_apps_tab.act_list_runs",
+        "en": "Read the run log"
+    },
+    "app_move_section": {
+        "key": "studio_apps_tab.act_move_section",
+        "en": "Moved a section"
+    },
+    "app_remove_dataset": {
+        "key": "studio_apps_tab.act_remove_dataset",
+        "en": "Removed a dataset"
+    },
+    "app_remove_section": {
+        "key": "studio_apps_tab.act_remove_section",
+        "en": "Removed a section"
+    },
+    "app_remove_trigger": {
+        "key": "studio_apps_schedule.act_remove_trigger",
+        "en": "Removed a trigger"
+    },
+    "app_reorder_screens": {
+        "key": "studio_apps_tab.act_reorder_screens",
+        "en": "Reordered the screens"
+    },
+    "app_run_action": {
+        "key": "studio_apps_tab.act_run_action",
+        "en": "Test-ran an action"
+    },
+    "app_run_tests": {
+        "key": "studio_apps_tab.act_run_tests",
+        "en": "Ran the tests"
+    },
+    "app_save_test": {
+        "key": "studio_apps_tab.act_save_test",
+        "en": "Saved a test"
+    },
+    "app_set_record_trigger": {
+        "key": "studio_apps_h4.act_set_record_trigger",
+        "en": "Set a record trigger"
+    },
+    "app_set_shell": {
+        "key": "studio_apps_lk18.act_set_shell",
+        "en": "Changed the app shell"
+    },
+    "app_set_trigger": {
+        "key": "studio_apps_schedule.act_set_trigger",
+        "en": "Set a trigger"
+    },
+    "app_update_step": {
+        "key": "studio_apps_tab.act_update_step",
+        "en": "Changed a step"
+    }
+}

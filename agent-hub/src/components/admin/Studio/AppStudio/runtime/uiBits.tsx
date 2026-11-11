@@ -116,14 +116,16 @@ interface FieldProps {
     children?: React.ReactNode;
     /** Component type whose part classes (`bfa-<part>__root|label|error`) the frame carries. */
     part?: string;
+    /** Extra classes for the label: the text-knob classes of the input's node (textPartClasses). */
+    labelClass?: string;
 }
 
-export function Field({ id, label, required, error, children, part }: FieldProps) {
+export function Field({ id, label, required, error, children, part, labelClass = '' }: FieldProps) {
     const cls = (name: string, base: string) => (part ? `${base} bfa-${part}__${name}` : base);
     return (
         <div className={cls('root', 'flex flex-col gap-1 text-left')}>
             {label ? (
-                <label htmlFor={id} className={cls('label', 'text-sm font-medium text-[var(--text-primary)]')}>
+                <label htmlFor={id} className={cls('label', `text-sm font-medium text-[var(--text-primary)]${labelClass}`)}>
                     {label}
                     {required ? <span aria-hidden="true" className="[color:var(--error)]"> *</span> : null}
                 </label>

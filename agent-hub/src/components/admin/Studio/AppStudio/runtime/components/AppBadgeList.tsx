@@ -5,6 +5,7 @@ import { useRuntime } from '../RuntimeContext';
 import { roleFillContrast } from '../styleResolver';
 import { ROLE_COLORS } from '../styleResolver.constants';
 import { EmptyText, ErrorText, SkeletonLines, displayValue , useStickyBinding } from '../uiBits';
+import { textPartClasses } from '../styleKnobs/text';
 import type { NodeProps } from './appNode.types';
 
 /**
@@ -139,7 +140,7 @@ export default function AppBadgeList({ node }: NodeProps<BadgeListProps>) {
                         key={i}
                         type="button"
                         onClick={() => fire(item)}
-                        className={`inline-flex items-center rounded-full font-medium border transition-opacity hover:opacity-80 cursor-pointer ${sizeCls} bfa-badge_list__item`}
+                        className={`inline-flex items-center rounded-full font-medium border transition-opacity hover:opacity-80 cursor-pointer ${sizeCls}${textPartClasses(node.style)} bfa-badge_list__item`}
                         data-badge-role={role || undefined}
                         data-badge-active={active || undefined}
                         style={swatch}
@@ -149,7 +150,7 @@ export default function AppBadgeList({ node }: NodeProps<BadgeListProps>) {
                 ) : (
                     <span
                         key={i}
-                        className={`inline-flex items-center rounded-full font-medium border ${sizeCls} bfa-badge_list__item`}
+                        className={`inline-flex items-center rounded-full font-medium border ${sizeCls}${textPartClasses(node.style)} bfa-badge_list__item`}
                         data-badge-role={role || undefined}
                         data-badge-active={active || undefined}
                         style={swatch}

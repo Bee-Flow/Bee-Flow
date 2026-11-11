@@ -164,6 +164,15 @@ test('the action-run prune runs under its own lock with the policy knobs; a fail
     assert.deepStrictEqual(runs, [{ resultTtlHours: 24, retentionDays: 30, batch: 5000 }]);
     assert.ok(queries.some((q) => /pg_try_advisory_lock/.test(q.sql) && q.params[0] === job.ACTION_RUN_PRUNE_LOCK_KEY));
     assert.ok(queries.some((q) => /pg_advisory_unlock/.test(q.sql) && q.params[0] === job.ACTION_RUN_PRUNE_LOCK_KEY));
+    // A run on hold the pass ends withdraws the approval request it asked, as a cancel does.
+    const released = [];
+    const prune = deps.pruneStudioActionRuns;
+    deps.releaseStudioWait = async (...a) => { released.push(a); };
+    deps.pruneStudioActionRuns = async (opts) => { await opts.onEndedWait({ appId: 'app_1', waitKind: 'approval', waitRef: 'apr_1' }); return { nulled: 0, deleted: 0, expired: 1 }; };
+    job._setDeps(deps);
+    await job.runOnce();
+    assert.deepStrictEqual(released, [['app_1', 'approval', 'apr_1', 'The run that asked was ended before a decision.']]);
+    deps.pruneStudioActionRuns = prune;
     throwRuns = true;
     job._setDeps(deps);
     await job.runOnce();

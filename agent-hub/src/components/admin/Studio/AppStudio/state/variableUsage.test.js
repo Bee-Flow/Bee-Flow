@@ -238,3 +238,18 @@ describe('collectVariableUsage — a result variable is counted once', () => {
         expect(usage.countOf('hits')).toBe(1);
     });
 });
+
+describe('collectVariableUsage — a derived variable (schema 3) reads what its formula names', () => {
+    it('counts the reads of a derived formula, so a variable it reads is not idle', () => {
+        const usage = collectVariableUsage({
+            screens: [],
+            actions: {},
+            variables: [
+                { name: 'price', type: 'number', default: 0 },
+                { name: 'total', type: 'number', default: 0, derived: { expr: 'vars.price * 2' } },
+            ],
+        });
+        expect(usage.countOf('price')).toBe(1);
+        expect(describeSite(usage.reads.get('price')?.[0])).toBe('the formula of total');
+    });
+});

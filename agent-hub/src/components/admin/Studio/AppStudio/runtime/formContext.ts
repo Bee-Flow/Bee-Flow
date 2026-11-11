@@ -18,6 +18,11 @@ export interface FormContextValue {
     register: (name: string, meta: FormFieldMeta) => void;
     unregister: (name: string) => void;
     pending: boolean;
+    /**
+     * Run the form's own rules on these fields now (only the ones mounted), show their errors,
+     * and answer whether they all pass. A wizard step checks its fields with it before Next.
+     */
+    validateFields?: (names: readonly string[]) => boolean;
 }
 
 /**

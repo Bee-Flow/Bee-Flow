@@ -1,0 +1,71 @@
+{
+  "corpus": "zz-schedule-triggers",
+  "canonical": {
+    "sha256": "b5fbb104d6912edeaa5cfaefd35badc4bd5101a6a59be4598a0862d3b6d635d7",
+    "bytes": 2191,
+    "inputIsCanonical": true,
+    "idempotent": true,
+    "keys": [
+      "schemaVersion",
+      "meta",
+      "theme",
+      "roles",
+      "variables",
+      "screens",
+      "actions",
+      "homeScreenId",
+      "triggers"
+    ],
+    "parts": {
+      "schemaVersion": "4e07408562bedb8b",
+      "meta": "51d793f0c4a83aa8",
+      "theme": "87df6a9096a03b63",
+      "roles": "4f53cda18c2baa0c",
+      "variables": "3f186edaf5d8531e",
+      "screens[0] scr_home0001": "591b46a20435f1d4",
+      "actions.act_digest01": "828ea4c9562ef591",
+      "actions.act_shared01": "ee7cbc5ef5c24aea",
+      "actions.act_cleanup1": "4d06b39faeeebbc5",
+      "actions.act_button01": "8b9d235f3d4990d1",
+      "homeScreenId": "6a2da6c22cefbb52",
+      "triggers": "a85f9327489d3b2a"
+    }
+  },
+  "schemaVersion": {
+    "stored": 3,
+    "canonical": 3
+  },
+  "validation": {
+    "strict": {
+      "errors": [],
+      "warnings": []
+    },
+    "save": {
+      "errors": [],
+      "warnings": []
+    }
+  },
+  "ordinals": {
+    "stored": {
+      "act_digest01": [
+        "0 ai_generate",
+        "1 create_record",
+        "2 condition",
+        "3 call_action"
+      ],
+      "act_shared01": [
+        "0 update_record"
+      ],
+      "act_cleanup1": [
+        "0 delete_record"
+      ],
+      "act_button01": [
+        "0 call_action",
+        "1 toast",
+        "2 refresh"
+      ]
+    },
+    "canonical": "same as stored"
+  },
+  "reads": []
+}

@@ -32,18 +32,29 @@ const { viewerAttributesOf } = require('./viewerAttributes.mts');
 /**
  * The access-scoped probe(s) proving a record this attachment hangs off exists
  * and is visible.
+ *
+ * COLUMN RIGHTS. A file sits in a file field, and a role that may not read that
+ * field may not read the file either, whatever it may read of the row. So the
+ * probes only look in the file fields the role reads (`readable`), an
+ * attachment whose own field is hidden gets no probe at all, and on a table
+ * that hides a field from the role a row found by id counts only when one of
+ * the readable file fields holds the attachment (`holds`).
  */
 function attachmentProbes(table, attachment, accessFilter) {
+    const hidden = accessFilter && accessFilter.columns ? accessFilter.columns.hidden : [];
+    const readable = (Array.isArray(table.fields) ? table.fields : [])
+        .filter((f) => f && f.type === 'file' && !hidden.includes(f.key) && (!attachment.fieldKey || f.key === attachment.fieldKey));
     if (attachment.recordId) {
-        return [queryCompiler.compileGetById(table, attachment.recordId, accessFilter)];
+        if (!hidden.length) return [queryCompiler.compileGetById(table, attachment.recordId, accessFilter)];
+        if (!readable.length) return [];
+        const holds = (row) => readable.some((f) => String(row[f.key] ?? '').includes(attachment.id));
+        return [{ ...queryCompiler.compileGetById(table, attachment.recordId, accessFilter), holds }];
     }
-    return (Array.isArray(table.fields) ? table.fields : [])
-        .filter((f) => f && f.type === 'file' && (!attachment.fieldKey || f.key === attachment.fieldKey))
-        .map((f) => queryCompiler.compileRecordList(
-            table,
-            { filters: [{ field: f.key, op: 'contains', value: attachment.id }], limit: 1 },
-            accessFilter,
-        ));
+    return readable.map((f) => queryCompiler.compileRecordList(
+        table,
+        { filters: [{ field: f.key, op: 'contains', value: attachment.id }], limit: 1 },
+        accessFilter,
+    ));
 }
 
 /**
@@ -75,9 +86,9 @@ async function viewerMayReadAttachment(app, attachment, { id: viewerId, role, mo
     for (const table of candidates) {
         try {
             const accessFilter = rlsGateway.compileAccessFilter(table, role, viewer, 'read');
-            for (const { sql, params } of attachmentProbes(table, attachment, accessFilter)) {
+            for (const { sql, params, holds } of attachmentProbes(table, attachment, accessFilter)) {
                 const { rows } = await studioAppDbStore.query(app.userId, app.id, sql, params);
-                if (rows && rows.length) return true;
+                if (rows && rows.length && (!holds || holds(rows[0]))) return true;
             }
         } catch (err) { if (!isMissingTable(err)) throw err; log.debug('this table is not readable for the role — try the next', err); }
     }

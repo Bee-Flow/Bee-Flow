@@ -14,7 +14,7 @@ const freshWrap = () => ({ userId: 'u1', orgId: null, appId: null, version: null
 const sectionOf = (wrap, id) => wrap.def.screens[0].sections.find((s) => s.id === id);
 
 test('sectionKeyPatch keeps only the section keys the canonicalizer knows, null included', () => {
-    assert.deepEqual([...SECTION_KEY_NAMES].sort(), ['collapsible', 'maxWidth', 'name', 'title', 'visibleToRoles', 'visibleWhen']);
+    assert.deepEqual([...SECTION_KEY_NAMES].sort(), ['collapsible', 'maxWidth', 'name', 'theme', 'title', 'visibleToRoles', 'visibleWhen']);
     assert.deepEqual(sectionKeyPatch({ sectionId: 'sec_a', style: { gap: 1 }, title: 'A', name: null, bogus: 1, children: [] }), { title: 'A', name: null });
     assert.equal(sectionKeyPatch({ sectionId: 'sec_a', style: { gap: 1 } }), null);
     assert.equal(sectionKeyPatch(null), null);

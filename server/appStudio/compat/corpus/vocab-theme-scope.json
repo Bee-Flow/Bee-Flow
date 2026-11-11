@@ -1,0 +1,245 @@
+{
+  "about": {
+    "source": "hand-made for package LK16 (theme scope and tokens): a screen with its own dark theme and canvas, a section with its own primary, density and radius, a section with a dark appearance, design.tokens used as token:<name> colours, design.radiusPx and design.dark",
+    "captured": "2026-11-11"
+  },
+  "definition": {
+    "schemaVersion": 3,
+    "meta": {
+      "name": "Theme scope",
+      "description": "A screen and two sections with their own theme, design tokens, a pixel radius and a dark palette.",
+      "icon": "Palette"
+    },
+    "theme": {
+      "primary": "#0F766E",
+      "radius": "md",
+      "density": "comfortable",
+      "fontScale": "md",
+      "appearance": "auto"
+    },
+    "roles": [],
+    "screens": [
+      {
+        "id": "scr_thmscp01",
+        "name": "Overview",
+        "icon": null,
+        "showInNav": true,
+        "maxWidth": "medium",
+        "sections": [
+          {
+            "id": "sec_thmscp01",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_thmscp01",
+                "type": "heading",
+                "props": {
+                  "text": "Tokens and the app theme",
+                  "level": 2,
+                  "accent": "none"
+                },
+                "style": {
+                  "span": 12,
+                  "color": "token:brand-ink"
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_thmscp02",
+                "type": "stat",
+                "props": {
+                  "label": "Open",
+                  "value": {
+                    "kind": "static",
+                    "value": 12
+                  },
+                  "caption": null,
+                  "captionSegments": [],
+                  "icon": null,
+                  "delta": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "deltaFormat": "number",
+                  "trend": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "positiveIsGood": true,
+                  "look": "plain"
+                },
+                "style": {
+                  "span": 6,
+                  "backgroundColor": "token:brand-soft",
+                  "borderColor": "token:brand-ink"
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_thmscp03",
+                "type": "button",
+                "props": {
+                  "label": "Primary action",
+                  "variant": "primary",
+                  "iconLeft": null,
+                  "role": "button",
+                  "disabledWhen": null
+                },
+                "style": {
+                  "span": 4
+                },
+                "visible": true
+              }
+            ]
+          },
+          {
+            "id": "sec_thmscp02",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "surface"
+            },
+            "children": [
+              {
+                "id": "cmp_thmscp04",
+                "type": "text",
+                "props": {
+                  "text": "A band in the second brand colour, compact.",
+                  "muted": false
+                },
+                "style": {
+                  "span": 8
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_thmscp05",
+                "type": "button",
+                "props": {
+                  "label": "Amber action",
+                  "variant": "primary",
+                  "iconLeft": null,
+                  "role": "button",
+                  "disabledWhen": null
+                },
+                "style": {
+                  "span": 4
+                },
+                "visible": true
+              }
+            ],
+            "theme": {
+              "primary": "#B45309",
+              "radius": "lg",
+              "density": "compact"
+            }
+          },
+          {
+            "id": "sec_thmscp03",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_thmscp06",
+                "type": "heading",
+                "props": {
+                  "text": "A dark hero section",
+                  "level": 2,
+                  "accent": "none"
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              }
+            ],
+            "theme": {
+              "appearance": "dark"
+            }
+          }
+        ]
+      },
+      {
+        "id": "scr_thmscp02",
+        "name": "Control room",
+        "icon": null,
+        "showInNav": true,
+        "maxWidth": "wide",
+        "sections": [
+          {
+            "id": "sec_thmscp04",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_thmscp07",
+                "type": "heading",
+                "props": {
+                  "text": "A screen with its own dark theme",
+                  "level": 2,
+                  "accent": "none"
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_thmscp08",
+                "type": "button",
+                "props": {
+                  "label": "Sky action",
+                  "variant": "primary",
+                  "iconLeft": null,
+                  "role": "button",
+                  "disabledWhen": null
+                },
+                "style": {
+                  "span": 4
+                },
+                "visible": true
+              }
+            ]
+          }
+        ],
+        "theme": {
+          "primary": "#38BDF8",
+          "canvas": "#0F172A",
+          "fontScale": "lg",
+          "appearance": "dark"
+        }
+      }
+    ],
+    "actions": {},
+    "design": {
+      "preset": "custom",
+      "font": "system",
+      "surface": "hairline",
+      "motion": "subtle",
+      "chartPalette": "classic",
+      "accentEdge": "bar",
+      "logoUrl": null,
+      "tokens": {
+        "brand-ink": "#0c4a6e",
+        "brand-soft": "#e0f2fe",
+        "gutter": 24
+      },
+      "radiusPx": 6,
+      "dark": {
+        "primary": "#5eead4",
+        "canvas": "#0b1220"
+      }
+    },
+    "homeScreenId": "scr_thmscp01"
+  }
+}

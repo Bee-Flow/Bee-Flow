@@ -7,7 +7,8 @@
  */
 
 import './text.css';
-import type { StyleKnobHandler } from '../styleKnobHandlers';
+import { fontKnobFamily } from '../fonts/fontRoles';
+import type { StyleKnobContext, StyleKnobHandler } from '../styleKnobHandlers';
 import type { InlineStyle, StyleKnobs } from '../styleResolver.types';
 
 /** Tailwind's type scale in rem; md is the body size. */
@@ -34,10 +35,25 @@ type TextKnobs = StyleKnobs & { font?: string; textSize?: string; lineHeight?: s
 const has = <V,>(table: Record<string, V>, key: string | undefined): key is string =>
     typeof key === 'string' && Object.hasOwn(table, key);
 
-function resolveText(s: StyleKnobs, style: InlineStyle): string {
+/**
+ * The font knob. In an app whose design sets font roles (design.fonts, fonts/fontRoles.ts) a
+ * role follows the design's variable and the cell keeps its font for the headings and code
+ * inside it (.app-tk-font); in any other app it writes what it always wrote.
+ */
+function applyFont(k: TextKnobs, style: InlineStyle, classes: string[], context?: StyleKnobContext): void {
+    const followed = typeof k.font === 'string' ? fontKnobFamily(k.font, context?.design) : null;
+    if (followed) {
+        style.fontFamily = followed;
+        classes.push('app-tk-font');
+    } else if (has(FONT_STACK, k.font)) {
+        style.fontFamily = FONT_STACK[k.font];
+    }
+}
+
+function resolveText(s: StyleKnobs, style: InlineStyle, context?: StyleKnobContext): string {
     const k = s as TextKnobs;
     const classes: string[] = [];
-    if (has(FONT_STACK, k.font)) style.fontFamily = FONT_STACK[k.font];
+    applyFont(k, style, classes, context);
     if (has(TEXT_SIZE, k.textSize)) {
         style.fontSize = TEXT_SIZE[k.textSize];
         style.lineHeight = SIZE_LEADING[k.textSize];
@@ -53,6 +69,24 @@ function resolveText(s: StyleKnobs, style: InlineStyle): string {
     }
     if (k.transform === 'uppercase') style.textTransform = 'uppercase';
     return [...new Set(classes)].join(' ');
+}
+
+/**
+ * The classes a component puts on the inner part whose own size, line height, letter spacing or
+ * case would otherwise beat the value the knob wrote on the cell (a button, a header title, a
+ * badge, an input label), for the knobs this style sets. Nothing for a style that sets none,
+ * so a component without text knobs keeps its class string. text.css hands the value back to
+ * the part. The part is chosen by the component, with a class of its own, because no product
+ * stylesheet may name the stable bfa-<type>__<part> classes.
+ */
+export function textPartClasses(style: StyleKnobs | null | undefined): string {
+    const k = (style ?? {}) as TextKnobs;
+    const classes: string[] = [];
+    if (has(TEXT_SIZE, k.textSize)) classes.push('app-tkp-size');
+    else if (has(LEADING, k.lineHeight)) classes.push('app-tkp-lh');
+    if (has(TRACKING, k.tracking)) classes.push('app-tkp-tracking');
+    if (k.transform === 'uppercase') classes.push('app-tkp-case');
+    return classes.length ? ` ${classes.join(' ')}` : '';
 }
 
 const text: StyleKnobHandler = {

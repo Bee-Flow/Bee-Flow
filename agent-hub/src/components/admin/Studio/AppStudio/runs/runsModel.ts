@@ -9,7 +9,7 @@ export type Tone = 'ok' | 'error' | 'warning' | 'neutral' | 'running';
 export function statusTone(status: string): Tone {
     if (status === 'success' || status === 'ok') return 'ok';
     if (status === 'error') return 'error';
-    if (status === 'running') return 'running';
+    if (status === 'running' || status === 'paused') return 'running';
     if (status === 'interrupted' || status === 'refused' || status === 'deferred') return 'warning';
     return 'neutral';
 }
@@ -66,6 +66,7 @@ export function originText(origin: string, t: TranslateFn): string {
         case 'test': return t('studio_apps_runs.origin.test', 'Saved test');
         case 'background': return t('studio_apps_runs.origin.background', 'Background job');
         case 'mailbox_hook': return t('studio_apps_runs.origin.mailbox_hook', 'New mail');
+        case 'trigger': return t('studio_apps_schedule.runs.origin_trigger', 'Trigger');
         default: return origin;
     }
 }
@@ -75,6 +76,7 @@ export function statusText(status: string, t: TranslateFn): string {
         case 'success': return t('studio_apps_runs.status.success', 'Succeeded');
         case 'error': return t('studio_apps_runs.status.error', 'Failed');
         case 'running': return t('studio_apps_runs.status.running', 'Running');
+        case 'paused': return t('studio_apps_durable.runs.status_paused', 'On hold');
         case 'interrupted': return t('studio_apps_runs.status.interrupted', 'Interrupted');
         case 'cancelled': return t('studio_apps_runs.status.cancelled', 'Cancelled');
         case 'refused': return t('studio_apps_runs.status.refused', 'Refused');
@@ -96,4 +98,6 @@ export function stepLabel(step: Pick<RunStep, 'path' | 'kind' | 'iteration'>, t:
 }
 
 /** The origins shown by default: what people did. Tests and MCP runs come in with the toggle. */
-export const PEOPLE_ORIGINS = 'click,public,background,mailbox_hook';
+export const PEOPLE_ORIGINS = 'click,public,background,mailbox_hook,trigger';
+/** The runs a trigger started (the "Triggers only" filter). */
+export const TRIGGER_ORIGIN = 'trigger';

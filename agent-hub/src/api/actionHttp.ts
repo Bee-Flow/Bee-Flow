@@ -56,9 +56,18 @@ export interface JobProgress {
     /** The text of the action's progressVar. */
     message: string | null;
     loop: { index: number; count: number } | null;
-    /** 'budget' while the job waits for the per-minute step budget. */
+    /** 'budget' while the job waits for the per-minute step budget; on a job on hold what it waits for ('timer', 'approval', 'resume'). */
     waiting: string | null;
+    /** A job on hold for an approval: who decides (the server's await_approval step). Display only. */
+    waitingFor?: WaitingFor;
 }
+
+/** Who decides the approval a job on hold waits for. */
+export type WaitingFor =
+    | { kind: 'user' | 'group'; name: string | null }
+    | { kind: 'panel' | 'stages'; count: number }
+    | { kind: 'owner' }
+    | { kind: string };
 
 /** A deferred toast or refresh the job recorded; the browser replays it at the end. */
 export interface JobEffect {
@@ -73,7 +82,7 @@ export interface JobEffect {
 export interface JobView {
     jobId: string;
     actionId: string;
-    status: 'running' | 'success' | 'error' | 'interrupted' | 'cancelled' | string;
+    status: 'running' | 'paused' | 'success' | 'error' | 'interrupted' | 'cancelled' | 'refused' | string;
     progress: JobProgress;
     result?: unknown;
     vars?: Record<string, unknown>;
@@ -83,4 +92,13 @@ export interface JobView {
     startedAt: string | null;
     finishedAt: string | null;
     durationMs: number | null;
+    /** A job on hold (status 'paused'): when the server continues it by itself; null when something has to resume it. */
+    wakeAt?: string | null;
+    /** A job on hold: what it waits for besides time (e.g. 'approval'). */
+    waitKind?: string | null;
+}
+
+/** Cancel a job: a running one stops before its next step, one on hold ends at once. Answers the job. */
+export function cancelJob(appId: string | null, jobId: string): Promise<Response> {
+    return authFetch(`${jobsUrl(appId, jobId)}/cancel`, { method: 'POST' });
 }

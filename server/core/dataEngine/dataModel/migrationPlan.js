@@ -24,6 +24,7 @@ const { isPhysical, coerceModelShape } = require('./migrationShape');
 const { autonumberBackfillDdl } = require('./autonumber');
 const { exprMentions } = require('./fieldConversion.mts');
 const { survivingAlterable, pushOp, pushProbe, opBase, rebuildStoredComputed, convertingKeysOf } = require('./migrationRebuild');
+const { junctionSteps, dropJunctions, indexSteps } = require('./migrationLinked');
 const {
     retireMetaFor, retiredColumnKey, readRetireState, retainConflicts,
     retainOptions, conflictsOf, retiredHadColumn, retireDdl, unretireDdl,
@@ -184,9 +185,12 @@ function dropTables(p) {
  *   2. column renames           ALTER TABLE … RENAME COLUMN
  *   3. new tables               CREATE TABLE (+ unique indexes)
  *   4. new columns              ALTER TABLE … ADD COLUMN (+ unique index)
+ *   4a. junction tables         CREATE TABLE for a new many relation (migrationLinked.js)
  *   4b. stored-computed rebuilds DROP, type conversions, ADD (see step 4b)
  *   5. unique toggles           CREATE/DROP UNIQUE INDEX on surviving columns
+ *   5b. declared indexes        DROP INDEX / CREATE INDEX (table.indexes, migrationLinked.js)
  *   6. dropped columns          DROP INDEX (if unique) then DROP COLUMN
+ *   6b. dropped junctions       DROP TABLE of a many relation that left the model
  *   7. dropped tables           DROP TABLE
  *
  * Renames run first so later column ops address the new table name. New tables
@@ -300,9 +304,12 @@ function planMigration(oldModel, newModel, opts = {}) {
     renameColumns(p);          // 2
     createTables(p);           // 3
     addColumns(p);             // 4
+    junctionSteps(p);          // 4a (many relations, migrationLinked.js)
     rebuildStoredComputed(p);  // 4b (with the type conversions)
     toggleUnique(p);           // 5
+    indexSteps(p);             // 5b (declared indexes)
     dropColumns(p);            // 6
+    dropJunctions(p);          // 6b
     dropTables(p);             // 7
     return { statements: p.plan, ops: p.ops, probes: p.probes };
 }

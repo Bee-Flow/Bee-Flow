@@ -25,7 +25,7 @@
  *                key lives in the tool's own i18n namespace (server/i18n/defaults/en/<ns>.js).
  *
  * The tools join TOOL_SCHEMAS after every base tool (schemas.js), so the base schemas and their
- * order never move. A name already on the menu is refused at load. The directory ships empty.
+ * order never move. A name already on the menu is refused at load.
  */
 
 import path from 'node:path';

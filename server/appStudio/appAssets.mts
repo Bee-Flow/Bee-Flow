@@ -12,6 +12,7 @@
  *
  * A definition refers to an asset with the string `asset:<id>` (componentSpecs/valueTypes.js
  * isAssetRef), today in image.src, image.srcFrom, design.logoUrl and publicAccess.design.logoUrl.
+ * A rich markdown block names one inside its text, as ![alt](asset:<id>) (markdownAssets.mts).
  * collectAssetRefs finds every such string anywhere in a definition, so a later key that takes
  * the `asset` value type is covered without being named here. A stylesheet (design.customCss)
  * names an asset inside its text, as url(asset:<id>): those are collected from CSS_PATHS.
@@ -24,6 +25,7 @@
 import { createRequire } from 'node:module';
 import { sniffMime } from './attachmentSniff.mts';
 import { cssAssetIds } from './appCss.mts';
+import { eachRichMarkdownAsset } from './markdownAssets.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 const { isAssetRef } = nodeRequire('./componentSpecs/valueTypes.js') as { isAssetRef: (v: unknown) => v is string };
@@ -143,6 +145,11 @@ function valueAt(root: unknown, path: readonly string[]): unknown {
 export function collectAssetRefs(definition: unknown): Map<string, string[]> {
     const out = new Map<string, string[]>();
     walk(definition, '', 0, out);
+    eachRichMarkdownAsset(definition, (id, path) => {
+        const paths = out.get(id) || [];
+        if (paths.length < MAX_PATHS_PER_ASSET) paths.push(path);
+        out.set(id, paths);
+    }, '', 0, MAX_WALK_DEPTH);
     for (const path of CSS_PATHS) {
         for (const id of cssAssetIds(valueAt(definition, path))) {
             const paths = out.get(id) || [];

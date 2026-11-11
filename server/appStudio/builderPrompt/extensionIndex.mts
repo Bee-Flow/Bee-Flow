@@ -34,7 +34,7 @@ const render = nodeRequire('./catalogRender.js') as {
     renderStyleKnobEntry: (key: string) => string;
 };
 const specs = nodeRequire('../componentSpecs.js') as {
-    EXTENSION_STYLE_KNOB_GROUPS: readonly { grantedBy: string; knobs: readonly string[] }[];
+    EXTENSION_STYLE_KNOB_GROUPS: readonly { grantedBy: string; knobs: readonly string[]; grantedTo?: readonly string[] }[];
     BINDING_KIND_DOCS: Record<string, { shape?: unknown; description?: unknown } | undefined>;
 };
 
@@ -110,9 +110,10 @@ function fieldEntry(item: ExtensionItem, label: string): string | null {
 function knobEntry(knob: string): string {
     const group = specs.EXTENSION_STYLE_KNOB_GROUPS.find((g) => g.knobs.includes(knob));
     const table = fullCatalogue().STYLE_KNOBS as unknown as Record<string, FieldSpec | undefined>;
+    const also = group?.grantedTo?.length ? `, and on ${group.grantedTo.join(', ')}` : '';
     const granted = !group ? '' : group.grantedBy === '*'
         ? 'on every component type and on a section'
-        : `on every type whose style line includes \`${group.grantedBy}\``;
+        : `on every type whose style line includes \`${group.grantedBy}\`${also}`;
     return withNote(withNote(`style.${render.renderStyleKnobEntry(knob)}`, granted), text(table[knob]?.description));
 }
 

@@ -15,6 +15,7 @@ import type { TranslateParams } from '@/hooks/useTranslation';
 import type { AppDefinition, DefinitionVariable } from '../inspector/appDefinition';
 import type { RevealTarget, VariablesManagerProps, UsageListProps } from './VariablesManager.types';
 import { DefaultField } from './DefaultField';
+import { VariableBehaviour } from './VariableBehaviour';
 
 /**
  * The app's shared values, in one place.
@@ -281,6 +282,8 @@ function VariablesManagerSection({ variables, usage, nameErrors, t, commitName, 
                         variable={variable}
                         onChange={(value: unknown) => patch(variable.name, { default: value })}
                         disabled={disabled} />
+
+                    <VariableBehaviour variable={variable} onChange={(changes) => patch(variable.name, changes)} disabled={disabled} />
 
                     <FormField label={t('studio_apps_edit.variables.purpose', 'What it is for')} hint={t('studio_apps_edit.variables.purpose_hint', 'Shown to whoever edits this app next.')}>
                         <input

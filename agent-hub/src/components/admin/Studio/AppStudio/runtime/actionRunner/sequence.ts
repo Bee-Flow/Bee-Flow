@@ -65,31 +65,30 @@ function makeLiveBag(ctx: RunnerContext, actionId: string): LiveBag {
             merged[actionId] = { status: 'running', result: st.lastResult, error: null };
         }
         const data = live.dataState || {};
-        return {
+        const scope = buildScope({
             actionState: merged,
             dataState: data,
-            scope: buildScope({
-                actionState: merged,
-                dataState: data,
-                form: st.formValues || {},
-                // `forms` and `screen` are in every scope the RENDERER
-                // builds, so a formula that reads screen.params.<name> —
-                // which is how every template passes a record id to a detail
-                // screen — worked in a binding and resolved to undefined in
-                // the step that acted on it.
-                forms: live.forms || {},
-                screen: live.screen || {},
-                vars: st.vars || {},
-                item: st.item,
-                index: st.index,
-                value: st.value,
-                params: st.params || {},
-                error: (st.errorScope as Record<string, unknown> | null | undefined) || null,
-                currentUser: live.currentUser || null,
-                // What components show right now (ui.tabs / ui.modals / ui.selection), read fresh per step.
-                ui: live.readUi ? live.readUi() : undefined,
-            }),
-        };
+            form: st.formValues || {},
+            // `forms` and `screen` are in every scope the RENDERER
+            // builds, so a formula that reads screen.params.<name> —
+            // which is how every template passes a record id to a detail
+            // screen — worked in a binding and resolved to undefined in
+            // the step that acted on it.
+            forms: live.forms || {},
+            screen: live.screen || {},
+            vars: st.vars || {},
+            item: st.item,
+            index: st.index,
+            value: st.value,
+            params: st.params || {},
+            error: (st.errorScope as Record<string, unknown> | null | undefined) || null,
+            currentUser: live.currentUser || null,
+            // What components show right now (ui.tabs / ui.modals / ui.selection), read fresh per step.
+            ui: live.readUi ? live.readUi() : undefined,
+        });
+        // Derived variables (schema 3) follow what the steps before this one wrote.
+        if (live.deriveVars) scope.vars = live.deriveVars(scope);
+        return { actionState: merged, dataState: data, scope };
     };
 }
 

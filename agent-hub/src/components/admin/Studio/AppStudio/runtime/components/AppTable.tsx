@@ -7,6 +7,10 @@ import { useRuntime } from '../RuntimeContext';
 import { EmptyText, ErrorText, SkeletonLines, useStickyBinding } from '../uiBits';
 import type { NodeProps } from './appNode.types';
 import { GridColumn } from './grid/useGridColumns';
+import { cellRuleStyle } from '../conditionalStyle';
+
+/** The border colour every body cell carries; a cellStyle rule that holds lays its knobs over it. */
+const CELL_BORDER = Object.freeze({ borderColor: 'var(--border-default)' });
 
 /**
  * App Studio runtime — 'table'. Spec: server/appStudio/componentSpecs.js.
@@ -102,7 +106,8 @@ function TableBody({ node, source: resolved, paged }: NodeProps<TableProps> & { 
                                 <td
                                     key={col.key}
                                     className={`${cellPad}${divider} align-middle ${ALIGN_CLASS[alignFor(col) as keyof typeof ALIGN_CLASS]}${col.truncate ? ' truncate max-w-0' : ''} bfa-table__cell`}
-                                    style={{ borderColor: 'var(--border-default)' }}
+                                    // columns[].cellStyle (schema 3): CELL_BORDER itself without rules.
+                                    style={cellRuleStyle(col.cellStyle, scope, row, walkPath(row, col.key), CELL_BORDER)}
                                 >
                                     {/* walkPath, like every sibling: a dotted key
                                         (customer.name) rendered an em-dash under

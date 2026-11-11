@@ -23,7 +23,11 @@
  * every read/mutate compiler (list/aggregate/update/delete/getById). It is
  * AND-ed into the WHERE *before* GROUP BY, so aggregates fold only rows the
  * viewer may see. There is deliberately no overload that omits it — the
- * compiler cannot be called unscoped.
+ * compiler cannot be called unscoped. The same argument scopes the COLUMNS:
+ * for a table with column rights every read compiler starts from the table as
+ * the viewer's role reads it (columnRights.scopeColumns), so a field hidden
+ * from that role cannot be selected, filtered, sorted, searched, grouped or
+ * folded, here or through a relation.
  *
  * This module has NO database or network dependency; it is a pure
  * descriptor→{sql, params} transform and is exercised by
@@ -82,6 +86,17 @@ const { encodeCursor, decodeCursor, resolvePrimarySort, keysetClause, recordOrde
 const { recordSelectList, computedSelectFor, computedReadMeta } = require('./queryCompilerSelect.mts');
 const { compileAggregate } = require('./queryCompilerAggregate.mts');
 const { recordShape, compileExpandLookup, EXPAND_LOOKUP_BATCH } = require('./queryCompilerRelation.mts');
+const { scopeColumns, scopeRead, visibleColumns, OWNER_ACCESS } = require('./columnRights.mts');
+
+/**
+ * The select list of a record read without `fields`: nothing (every column,
+ * `*`) for a role that reads the whole table, the visible columns by name for
+ * a role some field is hidden from (columnRights.mts).
+ * @param {{ tableMeta: TableMeta, hidden: ReadonlySet<string> | null }} scope
+ */
+function scopedSelect(scope) {
+    return scope.hidden ? visibleColumns(scope.tableMeta).map(qi) : undefined;
+}
 
 // ── Public compilers ────────────────────────────────────────────────
 
@@ -110,9 +125,13 @@ const { recordShape, compileExpandLookup, EXPAND_LOOKUP_BATCH } = require('./que
  * `project` (the keys a record keeps), each only when asked for. Without it
  * the read compiles exactly as before.
  */
-function compileRecordList(tableMeta, opts = {}, accessFilter, read) {
+function compileRecordList(table, opts = {}, accessFilter, relationRead) {
     const dialect = resolveDialect(opts);
-    assertTableMeta(tableMeta);
+    assertTableMeta(table);
+    // The table, and the tables it reads through, as this viewer's role reads them.
+    const scope = scopeColumns(table, accessFilter);
+    const tableMeta = scope.tableMeta;
+    const read = scopeRead(relationRead, scope.hidden);
     const fm = fieldMap(tableMeta);
     const { where, params } = buildWhere(
         tableMeta, fm, opts.filters, accessFilter, dialect, opts.match, opts.search, read ? read.related : undefined);
@@ -120,7 +139,7 @@ function compileRecordList(tableMeta, opts = {}, accessFilter, read) {
     const shape = read ? recordShape(tableMeta, fm, read, dialect) : null;
     const order = resolveOrderBy(tableMeta, fm, opts.orderBy);
     if (order) {
-        const select = shape ? shape.select(order.map((c) => c.column)) : undefined;
+        const select = (shape ? shape.select(order.map((c) => c.column)) : undefined) || scopedSelect(scope);
         const computed = computedSelectFor(tableMeta, opts, dialect);
         const listed = recordListOrdered(tableMeta, { where, params, limit, order, cursor: opts.cursor, select, computed });
         return shape ? { ...listed, ...shape.result } : listed;
@@ -137,7 +156,7 @@ function compileRecordList(tableMeta, opts = {}, accessFilter, read) {
     }
 
     const computed = computedSelectFor(tableMeta, opts, dialect);
-    const select = shape ? shape.select([primary.column]) : undefined;
+    const select = (shape ? shape.select([primary.column]) : undefined) || scopedSelect(scope);
     /** @param {string} list */
     const sqlWith = (list) => `SELECT ${list} FROM ${qi(tableMeta.key)} ${clause} `
         + `${recordOrderBy(primary)} LIMIT ?`;
@@ -199,9 +218,12 @@ function nextCursor(compiled, lastRow) {
  * is the one compileRecordList takes: only its related tables count here, for a
  * filter on a field of a linked record.
  */
-function compileRecordCount(tableMeta, opts = {}, accessFilter, read) {
+function compileRecordCount(table, opts = {}, accessFilter, relationRead) {
     const dialect = resolveDialect(opts);
-    assertTableMeta(tableMeta);
+    assertTableMeta(table);
+    const scope = scopeColumns(table, accessFilter);
+    const tableMeta = scope.tableMeta;
+    const read = scopeRead(relationRead, scope.hidden);
     const fm = fieldMap(tableMeta);
     const { where, params } = buildWhere(
         tableMeta, fm, opts.filters, accessFilter, dialect, opts.match, opts.search, read ? read.related : undefined);
@@ -213,18 +235,21 @@ function compileRecordCount(tableMeta, opts = {}, accessFilter, read) {
  * `opts.readTimeComputed: true` adds the read-time computed fields, as in
  * compileRecordList.
  */
-function compileGetById(tableMeta, id, accessFilter, opts = {}) {
+function compileGetById(table, id, accessFilter, opts = {}) {
     const dialect = resolveDialect(opts);
-    assertTableMeta(tableMeta);
+    assertTableMeta(table);
     assertAccessFilter(accessFilter);
     if (typeof id !== 'string' || !id) throw new CompileError('record id is required');
+    const scope = scopeColumns(table, accessFilter);
+    const tableMeta = scope.tableMeta;
+    const select = scopedSelect(scope);
     const computed = computedSelectFor(tableMeta, opts, dialect);
     /** @param {string} list */
     const sqlWith = (list) => `SELECT ${list} FROM ${qi(tableMeta.key)} WHERE ${qi('id')} = ? AND (${accessFilter.where}) LIMIT 1`;
     return {
-        sql: sqlWith(recordSelectList(undefined, computed)),
+        sql: sqlWith(recordSelectList(select, computed)),
         params: [id, ...accessFilter.params],
-        ...computedReadMeta(computed, sqlWith),
+        ...computedReadMeta(computed, sqlWith, select),
     };
 }
 
@@ -241,10 +266,11 @@ function compileGetById(tableMeta, id, accessFilter, opts = {}) {
  *
  * Access-scoped like every other read; a sync passes the owner's filter.
  */
-function compileKeyIndex(tableMeta, keyFieldName, keys, accessFilter, opts = {}) {
+function compileKeyIndex(table, keyFieldName, keys, accessFilter, opts = {}) {
     const dialect = resolveDialect(opts);
-    assertTableMeta(tableMeta);
+    assertTableMeta(table);
     assertAccessFilter(accessFilter);
+    const { tableMeta } = scopeColumns(table, accessFilter);
     const fm = fieldMap(tableMeta);
     const column = resolveColumn(tableMeta, keyFieldName, fm);
     const list = (Array.isArray(keys) ? keys : []).filter((k) => k !== null && k !== undefined && k !== '');
@@ -287,6 +313,8 @@ module.exports = {
     CompileError,
     RowsLockedError,
     assertRowsWritable,
+    // The access filter of a path that reads as the owner or the system (columnRights.mts).
+    OWNER_ACCESS,
     MATCH_MODES,
     MAX_RESULT_ROWS,
     MAX_AGGREGATES,
@@ -309,7 +337,7 @@ module.exports = {
 
 /**
  * The RLS gateway's access predicate.
- * @typedef {{ where: string, params: unknown[] }} AccessFilter
+ * @typedef {{ where: string, params: unknown[], columns?: import('./columnRights.mts').ColumnVerdict }} AccessFilter
  */
 
 /** @typedef {{ field?: string, op?: string, value?: unknown, ci?: boolean }} FilterSpec */

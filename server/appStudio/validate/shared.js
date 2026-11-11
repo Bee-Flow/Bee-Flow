@@ -37,6 +37,7 @@ module.exports = { isObject, pushDataRef, pickClosestId };
  *   knownDatasets: Set<string> | null, dataTables: Map<string, Set<string>> | null,
  *   dataFieldTypes?: Map<string, Map<string, string>> | null, dataRelationTargets?: Map<string, Map<string, string>> | null,
  *   dataTableSources: Map<string, any> | null, knownDatatables: Set<string> | null, dataDatasets: Set<string> | null,
+ *   dataRestrictedFields?: import('./columnRightsChecks.mts').RestrictedFields | null,
  *   dataConnectors: Set<string> | null, dataMailboxConnectors: Set<string> | null, dataRestConnectors?: Set<string> | null, dataRefsAsWarnings: boolean,
  *   aiBrowsingEnabled: boolean, target?: { id?: string | null, title?: string }, actions?: Record<string, unknown> | null,
  *   inErrorHandler?: boolean, allowedLinkHosts?: string[], serverScopeWide?: boolean,

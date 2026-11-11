@@ -5,7 +5,8 @@
 
 'use strict';
 
-const { HEX_RE, STYLE_KNOBS, unitSpan } = require('../componentSpecs');
+const { STYLE_KNOBS, unitSpan } = require('../componentSpecs');
+const { isColorOrRoleValue } = require('../componentSpecs/colorValue');
 const { valueTypeOf } = require('../componentSpecs/valueTypes');
 const { isObject } = require('./shared');
 
@@ -87,7 +88,8 @@ function cleanStyle(raw, allowedKeys, defaults, path, push, { recordMissing = fa
             // does a value it cannot use.
             const late = knob.since !== undefined;
             if (v === null && late) continue;
-            if (v === null || (typeof v === 'string' && (knob.roles.includes(v) || HEX_RE.test(v)))) { out[k] = v; continue; }
+            // A role, #rrggbb, or token:<name> of design.tokens (schema 3, componentSpecs/colorValue.js).
+            if (v === null || isColorOrRoleValue(v, knob.roles)) { out[k] = v; continue; }
             push('style.invalid', `${path}.${k}`, `${k}: ${JSON.stringify(v)} is neither a role (${knob.roles.join(', ')}) nor #rrggbb — ${late ? 'dropped' : `reset to ${JSON.stringify(knob.default)}`}.`);
             if (!late) out[k] = knob.default;
         } else {

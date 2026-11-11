@@ -46,10 +46,12 @@
  * outside the app is untouched. `appearance: 'auto'` (the default) matches
  * neither selector and keeps following the host theme — identity preserved.
  *
- * The high-contrast host is exempt: accessibility beats app branding.
+ * The high-contrast host is exempt: accessibility beats app branding. A section with its own
+ * appearance (section.theme, schema 3) is an .app-grid carrying the same attribute.
  */
 html:not([data-theme="high-contrast"]) .app-shell[data-app-appearance="dark"],
-html:not([data-theme="high-contrast"]) .app-runtime[data-app-appearance="dark"] {
+html:not([data-theme="high-contrast"]) .app-runtime[data-app-appearance="dark"],
+html:not([data-theme="high-contrast"]) .app-grid[data-app-appearance="dark"] {
     --bg-primary: #0f0f13;
     --bg-secondary: #16161d;
     --bg-tertiary: #1e1e28;
@@ -68,7 +70,8 @@ html:not([data-theme="high-contrast"]) .app-runtime[data-app-appearance="dark"] 
 }
 
 html:not([data-theme="high-contrast"]) .app-shell[data-app-appearance="light"],
-html:not([data-theme="high-contrast"]) .app-runtime[data-app-appearance="light"] {
+html:not([data-theme="high-contrast"]) .app-runtime[data-app-appearance="light"],
+html:not([data-theme="high-contrast"]) .app-grid[data-app-appearance="light"] {
     --bg-primary: #fafafa;
     --bg-secondary: #f3f3f3;
     --bg-tertiary: #e5e5e5;

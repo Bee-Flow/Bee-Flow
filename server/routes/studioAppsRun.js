@@ -294,6 +294,7 @@ router.post('/:id/actions/:actionId/step', requireAuth, stepLimiter, jsonBody, b
         // same shape buildViewer produces on the data route; a partial one
         // silently matches nothing.
         viewer: { id: userId, role: role || null, organizationId: req.session.user.organizationId || null },
+        writeSource: { kind: 'user' }, // a click: its record write may start a record trigger (triggers/recordTriggerRule.mts)
     }))));
 
     // Real work happened under the OWNER (record write or owner-scoped run)

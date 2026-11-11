@@ -234,11 +234,12 @@ test('create_record is an action AND a step, off one shared field table', () => 
 });
 
 test('every server step (and call_action) carries the error-handling envelope; outside-effect kinds take no retry', () => {
-    const { RETRY_UNSAFE_KINDS } = require('../shared/appDefinition/stepFlow.mjs');
+    // A registry kind with `retrySafe: false` (await_approval) is as retry-unsafe as the base list.
+    const { isRetryUnsafeKind } = require('../shared/appDefinition/stepFlow.mjs');
     for (const k of DATA_MUTATING_STEP_KINDS) {
         const f = STEP_SPECS[k].fields;
         assert.equal(f.onError?.type, 'errorHandler', `${k} has onError`);
-        assert.equal(!!f.retry, !RETRY_UNSAFE_KINDS.includes(k), `${k} retry`);
+        assert.equal(!!f.retry, !isRetryUnsafeKind(k), `${k} retry`);
     }
     for (const k of CLIENT_STEP_KINDS) {
         assert.equal(!!STEP_SPECS[k].fields.onError, k === 'call_action', `${k} onError`);
@@ -366,7 +367,8 @@ test('v2.1 limits and event additions are present', () => {
 test('v2.1 types are classified and evented correctly', () => {
     for (const t of ['container', 'page_header']) assert.ok(CONTAINER_TYPES.includes(t), `${t} should be a container`);
     for (const t of ['markdown', 'badge_list', 'progress', 'timeline', 'record_detail', 'filter_bar', 'kanban', 'calendar']) {
-        assert.ok(!CONTAINER_TYPES.includes(t), `${t} should not be a container`);
+        // kanban holds children since schema 3 only (a card template, componentSpecs/itemTemplates.js).
+        assert.ok(!CONTAINER_TYPES.includes(t) || COMPONENT_SPECS[t].childrenSince === 3, `${t} should not be a container`);
         assert.ok(!INPUT_TYPES.includes(t), `${t} should not be an input`);
     }
     assert.deepEqual(COMPONENT_SPECS.kanban.events, ['onRowClick', 'onCardMove']);
@@ -400,6 +402,8 @@ test('a definition using every v2.1 type with spec defaults canonicalizes and va
         const node = byType.get(type);
         assert.ok(node, `canonicalize dropped ${type}`);
         for (const [key, fs] of Object.entries(COMPONENT_SPECS[type].props)) {
+            // A prop added after the base is written only when a definition sets it.
+            if (fs.since !== undefined) { assert.equal(node.props[key], undefined, `${type}.props.${key} is not filled`); continue; }
             assert.deepEqual(node.props[key], fs.default === undefined ? null : fs.default, `${type}.props.${key} default`);
         }
     }
@@ -686,7 +690,9 @@ test('containerPassesHeightDown — having a height and handing one down are dif
     // silently defaulting to "refuses everything" or "accepts everything".
     // Base types only: an extension container with a height knob gets no route (null: it
     // passes no height down, the safe answer) until its own package gives it one.
-    const heightBearing = CONTAINER_TYPES.filter((t) => BASE_TYPES.includes(t) && COMPONENT_SPECS[t].styleKnobs.includes('height'));
+    // A base type that became a slot container later (childrenSince: list, kanban) holds a row
+    // template, which takes no height from it: no route, the same safe answer.
+    const heightBearing = CONTAINER_TYPES.filter((t) => BASE_TYPES.includes(t) && !COMPONENT_SPECS[t].childrenSince && COMPONENT_SPECS[t].styleKnobs.includes('height'));
     assert.deepEqual(heightBearing.slice().sort(), Object.keys(CONTAINER_HEIGHT_ROUTES).sort());
 
     // styleIsFill mirrors the runtime's isFill(), which is what the 'fill'

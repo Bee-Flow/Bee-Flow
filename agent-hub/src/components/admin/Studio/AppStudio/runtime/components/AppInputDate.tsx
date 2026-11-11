@@ -5,6 +5,7 @@ import type { BindingInput } from '../resolveBinding.types';
 import { Field, INPUT_CLASS, inputStyle } from '../uiBits';
 import useInputChange from '../useInputChange';
 import useValueFrom from '../useValueFrom';
+import { textPartClasses } from '../styleKnobs/text';
 import type { NodeProps } from './appNode.types';
 
 /** App Studio runtime — 'input_date'. Spec: server/appStudio/componentSpecs.js. */
@@ -27,7 +28,7 @@ export default function AppInputDate({ node }: NodeProps<InputDateProps>) {
     const fireChange = useInputChange(node, name);
     const id = `${node.id}-input`;
     return (
-        <Field part="input_date" id={id} label={label} required={required} error={error}>
+        <Field part="input_date" labelClass={textPartClasses(node.style)} id={id} label={label} required={required} error={error}>
             <input
                 id={id}
                 name={name}

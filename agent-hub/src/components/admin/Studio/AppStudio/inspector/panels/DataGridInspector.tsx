@@ -54,6 +54,7 @@ function getFormatLabels(t: TranslateFn): Record<string, string> {
         text: t('studio_apps_panels.data_grid.format_text', 'Text'), number: t('studio_apps_panels.data_grid.format_number', 'Number'), date: t('studio_apps_panels.data_grid.format_date', 'Date'), badge: t('studio_apps_panels.data_grid.format_badge', 'Badge'), link: t('studio_apps_panels.data_grid.format_link', 'Link'), boolean: t('studio_apps_panels.data_grid.format_boolean', 'Boolean'), relation: t('studio_apps_panels.data_grid.format_relation', 'Relation'),
         currency: t('studio_apps_panels.data_grid.format_currency', 'Currency'), percent: t('studio_apps_panels.data_grid.format_percent', 'Percent'), datetime: t('studio_apps_panels.data_grid.format_datetime', 'Datetime'), relative: t('studio_apps_panels.data_grid.format_relative', 'Relative'), check: t('studio_apps_panels.data_grid.format_check', 'Check'), tags: t('studio_apps_panels.data_grid.format_tags', 'Tags'),
         progress: t('studio_apps_panels.data_grid.format_progress', 'Progress'), user: t('studio_apps_panels.data_grid.format_user', 'User'), breakdown: t('studio_apps_panels.data_grid.format_breakdown', 'Breakdown'), cad: t('studio_apps_panels.data_grid.format_cad', 'Cad'), document: t('studio_apps_panels.data_grid.format_document', 'Document'),
+        template: t('studio_apps_lk20.template.format_template', 'Template'),
     };
 }
 
@@ -67,6 +68,8 @@ const FORMATS = [
     'breakdown',
     'cad',
     'document',
+    // Schema 3: the cell is the column's `template` formula, which More options edits.
+    'template',
 ];
 // Mirror of the column `align` enum. 'auto' is the default: numbers right,
 // everything else left.

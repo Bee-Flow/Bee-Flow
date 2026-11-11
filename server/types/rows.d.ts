@@ -3035,6 +3035,7 @@ declare namespace DbRow {
         action_id: string;
         ai_calls: number;
         app_id: string;
+        cancel_requested: boolean;
         client: string | null;
         client_run_key: string | null;
         completion_tokens: number;
@@ -3059,17 +3060,25 @@ declare namespace DbRow {
         lock_key: string | null;
         origin: string;
         owner_user_id: string;
+        paused_at: Date | null;
+        paused_state: Json | null;
         progress: Json;
         prompt_tokens: number;
         result: Json | null;
+        resume_seq: number;
+        resume_token_hash: string | null;
         started_at: Date;
         status: string;
         step_count: number;
         tracked: boolean;
+        trigger_id: string | null;
         truncated: boolean;
         vars: Json | null;
         viewer_user_id: string | null;
         visitor_key: string | null;
+        wait_kind: string | null;
+        wait_ref: string | null;
+        wake_at: Date | null;
     }
     /** Row of `studio_app_action_tests`. */
     interface StudioAppActionTests {
@@ -3218,6 +3227,27 @@ declare namespace DbRow {
         last_seen_at: Date | null;
         visits: string;
     }
+    /** Row of `studio_app_record_events`. */
+    interface StudioAppRecordEvents {
+        app_id: string;
+        cause_trigger_id: string | null;
+        claimed_at: Date | null;
+        created_at: Date;
+        depth: number;
+        done_at: Date | null;
+        event: string;
+        outcome_code: string | null;
+        row_after: Json | null;
+        row_before: Json | null;
+        row_id: string;
+        run_id: string | null;
+        seq: string;
+        state: string;
+        table_id: string;
+        trigger_id: string;
+        writer_key: string | null;
+        writer_kind: string;
+    }
     /** Row of `studio_app_templates`. */
     interface StudioAppTemplates {
         category: string | null;
@@ -3234,6 +3264,28 @@ declare namespace DbRow {
         updated_at: Date;
         version: number;
     }
+    /** Row of `studio_app_triggers`. */
+    interface StudioAppTriggers {
+        action_id: string;
+        app_id: string;
+        armed_at: Date;
+        config: Json;
+        consecutive_failures: number;
+        fingerprint: string;
+        fire_seq: number;
+        kind: string;
+        last_error: string | null;
+        last_fired_at: Date | null;
+        last_run_id: string | null;
+        last_status: string | null;
+        next_fire_at: Date | null;
+        owner_user_id: string;
+        paused_code: string | null;
+        paused_reason: string | null;
+        state: string;
+        trigger_id: string;
+        updated_at: Date;
+    }
     /** Row of `studio_app_versions`. */
     interface StudioAppVersions {
         app_id: string;
@@ -3242,6 +3294,29 @@ declare namespace DbRow {
         id: string;
         summary: string | null;
         user_id: string;
+    }
+    /** Row of `studio_app_webhook_deliveries`. */
+    interface StudioAppWebhookDeliveries {
+        body_bytes: number;
+        body_sha256: string | null;
+        endpoint_id: string;
+        id: string;
+        nonce_hash: string | null;
+        received_at: Date;
+        run_id: string | null;
+        status: string;
+    }
+    /** Row of `studio_app_webhook_endpoints`. */
+    interface StudioAppWebhookEndpoints {
+        app_id: string;
+        created_at: Date;
+        endpoint_id: string;
+        prev_secret_cipher: string | null;
+        prev_valid_until: Date | null;
+        rotated_at: Date | null;
+        secret_cipher: string;
+        secret_shown_at: Date | null;
+        trigger_id: string;
     }
     /** Row of `studio_apps`. */
     interface StudioApps {

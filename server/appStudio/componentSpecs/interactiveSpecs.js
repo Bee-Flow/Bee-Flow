@@ -8,6 +8,7 @@
 
 const { LIMITS } = require('./limits');
 const { COLOR_ROLES } = require('./styleKnobs');
+const { itemTemplateHost } = require('./itemTemplates');
 
 const INTERACTIVE_SPECS = {
     // ── v2.1 interactive data ────────────────────────────────────────────
@@ -37,6 +38,8 @@ const INTERACTIVE_SPECS = {
         parts: ['root', 'header', 'lane', 'column', 'card', 'title', 'subtitle', 'badge'],
         description: 'A kanban board over an array of objects, grouped into columns by groupByField and optionally into swimlanes by swimlaneField. Columns and swimlanes may be PINNED as literals or BOUND to a table (columnsSource/swimlanesSource) so the people using the app configure the board without opening the builder. Dragging a card fires onCardMove with { item, value, lane, index, beforeId, afterId } — enough to write both the new column and a new rank.',
         events: ['onRowClick', 'onCardMove'],
+        // Schema 3: an optional card template (./itemTemplates.js).
+        ...itemTemplateHost('kanban'),
         props: {
             source: { type: 'binding', default: { kind: 'static', value: [] } },
             groupByField: { type: 'string', required: true, maxLen: 120, default: 'status' },

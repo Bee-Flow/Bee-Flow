@@ -21,6 +21,7 @@ import { createRequire } from 'node:module';
 import { resolveWriteTarget, resolveStrictFilters, matchIds, countMatching, WriteFilterError } from './writeTarget.mts';
 import type { Filter, WriteTarget } from './writeTarget.mts';
 import { applyFieldRules } from '../../core/dataEngine/fieldRules.mts';
+import { assertNoDeleteRules } from './cascadeDelete.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 
@@ -95,6 +96,8 @@ type Prepared = { target: WriteTarget; filters: Filter[]; limit: number; scope: 
 async function prepare(app: App, model: unknown, step: Obj, ctx: Obj, op: Op): Promise<Prepared> {
     const table = shared.findTable(model, step.tableId);
     if (!table) return { result: { ok: false, error: 'Table not found' } };
+    // A filter-mode delete does not walk relation onDelete rules (cascadeDelete.mts): refused on such a table.
+    if (op === 'delete') assertNoDeleteRules(model, table);
     const scope = shared.buildServerScope(ctx);
     let target: WriteTarget;
     try {
@@ -129,7 +132,7 @@ async function runBulk(app: App, model: unknown, step: Obj, ctx: Obj, op: Op): P
         const p = await prepare(app, model, step, ctx, op);
         if ('result' in p) return p.result;
         const out = op === 'update'
-            ? await updateMatching(app, p.target, p.filters, applyFieldRules(p.target.table, shared.resolveValues(step.values, ctx, p.scope), { op: 'update' }), p.limit)
+            ? await updateMatching(app, p.target, p.filters, applyFieldRules(p.target.table, shared.resolveValues(step.values, ctx, p.scope), { op: 'update', role: shared.writeViewer(ctx).role ?? null }), p.limit)
             : await eraseMatching(p.target, p.filters, p.limit);
         // Counts only: no values, no ids (they are customer data in someone's table).
         log.info('[ActionExecutor] bulk record write', { appId: app.id, table: p.target.table.key, op, matched: out.matched, changed: out.changed, remaining: out.remaining });

@@ -46,7 +46,7 @@ describe('<RunsView>', () => {
         expect(row.textContent).toContain('Failed');
         expect(row.textContent).toContain('Record r1 was not found');
         expect(row.textContent).toContain('1.2 s');
-        expect(api.list).toHaveBeenCalledWith('app1', { origin: 'click,public,background,mailbox_hook' }, null);
+        expect(api.list).toHaveBeenCalledWith('app1', { origin: 'click,public,background,mailbox_hook,trigger' }, null);
         expect(screen.getByTestId('runs-retention').textContent).toContain('30 days');
     });
 
@@ -59,6 +59,13 @@ describe('<RunsView>', () => {
         await user.selectOptions(screen.getByLabelText('Who'), 'u2');
         await user.click(screen.getByLabelText('Include tests and MCP runs'));
         await waitFor(() => expect(api.list).toHaveBeenLastCalledWith('app1', { actionId: 'act_save', status: 'error', user: 'u2' }, null));
+    });
+
+    it('"Only runs a trigger started" asks for the trigger origin alone', async () => {
+        renderWithClient(<RunsView appId="app1" actionIds={['act_save']} api={api} />);
+        await screen.findByTestId('run-row');
+        await userEvent.setup().click(screen.getByLabelText('Only runs a trigger started'));
+        await waitFor(() => expect(api.list).toHaveBeenLastCalledWith('app1', { origin: 'trigger' }, null));
     });
 
     it('a run opens its steps with durations, the error and the AI tokens and cost', async () => {
@@ -93,5 +100,32 @@ describe('<RunsView>', () => {
         renderWithClient(<RunsView appId="app1" actionIds={[]} api={api} />);
         expect(await screen.findByTestId('runs-empty')).toBeTruthy();
         expect(screen.getByTestId('runs-retention').textContent).toContain('until the app is deleted');
+    });
+
+    it('a run on hold shows as such and can be cancelled from its detail; the log is read again after', async () => {
+        const user = userEvent.setup();
+        const held = RUN({ origin: 'background', status: 'paused', error: null, errorCode: null, errorStep: null, endedAt: null, durationMs: null, failedSteps: 0, waiting: { kind: 'approval', wakeAt: null, waitingFor: { kind: 'user', name: 'Ann' } } });
+        api.list.mockResolvedValue({ runs: [held], nextCursor: null, retentionDays: 30 });
+        api.get.mockResolvedValueOnce({ run: held, steps: [] }).mockResolvedValue({ run: { ...held, status: 'cancelled' }, steps: [] });
+        const cancel = vi.fn(async () => ({ status: 'cancelled' }));
+        renderWithClient(<RunsView appId="app1" actionIds={['act_save']} api={{ ...api, cancel }} />);
+        expect((await screen.findByTestId('run-row')).textContent).toContain('On hold');
+        expect(Array.from(screen.getByLabelText('Status').querySelectorAll('option')).map((o) => o.value)).toContain('paused');
+        await user.click(screen.getByRole('button', { name: 'act_save' }));
+        expect((await screen.findByTestId('run-detail-waiting')).textContent).toBe('Waiting for approval by Ann');
+        await user.click(await screen.findByRole('button', { name: 'Cancel run' }));
+        expect(cancel).toHaveBeenCalledWith('app1', 'sar_1');
+        await waitFor(() => expect(screen.getByTestId('run-detail-status').textContent).toBe('Cancelled'));
+        expect(screen.queryByRole('button', { name: 'Cancel run' })).toBeNull();
+    });
+
+    it('only a server run that is still going offers Cancel: not a click run, not an ended run', async () => {
+        const user = userEvent.setup();
+        const cancel = vi.fn(async () => ({ status: 'cancelled' }));
+        api.get.mockResolvedValue({ run: RUN({ origin: 'click', status: 'running', error: null }), steps: [] });
+        renderWithClient(<RunsView appId="app1" actionIds={['act_save']} api={{ ...api, cancel }} />);
+        await user.click(await screen.findByRole('button', { name: 'act_save' }));
+        await screen.findByTestId('run-detail');
+        expect(screen.queryByRole('button', { name: 'Cancel run' })).toBeNull();
     });
 });

@@ -15,6 +15,8 @@
 const { resolveDialect } = require('../engineFlag');
 // The only author-written SQL in the model: a stored computed expression.
 const { computedExprFor } = require('../computedDialect');
+// Lookup, rollup and many-relation fields have no column of their own (linkedFields.js).
+const { isColumnlessLinkField } = require('./linkedFields');
 
 // ---------------------------------------------------------------------------
 // SQLite type mapping
@@ -114,17 +116,19 @@ function isStoredComputed(field) {
  */
 function isCreatePhysical(field) {
     if (field.type === 'computed') return isStoredComputed(field);
-    return true;
+    return !isColumnlessLinkField(field);
 }
 
 // Is this field eligible for the plain ADD/DROP COLUMN path during a migration?
 // All physical fields except computed — a stored-computed has its own add/drop
 // steps in the planner (4 and 4b), and a read-time computed is never physical.
+// A lookup, a rollup and a many relation never have a column (a many relation's
+// junction table is planned by migrationLinked.js).
 /**
  * @param {ModelField} field
  */
 function isAlterPhysical(field) {
-    return field.type !== 'computed';
+    return field.type !== 'computed' && !isColumnlessLinkField(field);
 }
 
 // ---------------------------------------------------------------------------

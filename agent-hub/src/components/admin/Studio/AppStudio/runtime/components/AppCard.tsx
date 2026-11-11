@@ -1,6 +1,7 @@
 import { gridClasses, gridColumnStyle, spaceSteps } from '../styleResolver';
 import { fillRowTemplate, isFill } from '../styleResolver.helpers';
 import './AppCard.css';
+import './AppCardVariants.css';
 import type { NodeStyle } from '../../inspector/appDefinition';
 import type { NodeProps } from './appNode.types';
 
@@ -15,6 +16,7 @@ import type { NodeProps } from './appNode.types';
  * A non-default look stamps `app-card--<look>` here; the actual restyling of
  * the CELL surface lives in AppCard.css, matched via :has() — see that file
  * for why the cell cannot be reached any other way from in here.
+ * `props.variant` (since 3: plain, outlined, elevated) works the same way, in AppCardVariants.css.
  */
 
 // Null-prototype lookup so 'constructor' etc. can never name a look.
@@ -25,16 +27,23 @@ const CARD_LOOKS = Object.assign(Object.create(null), {
 /** ' app-card--<look>' for a known non-default look; '' (identity) otherwise. */
 const cardLookClass = (look: string | undefined) => (CARD_LOOKS[look as string] ? ` app-card--${look}` : '');
 
+/** ' app-card--<variant>' for outlined and elevated; '' for plain, absent and anything else. */
+const cardVariantClass = (variant: string | undefined) => (variant === 'outlined' || variant === 'elevated' ? ` app-card--${variant}` : '');
+
+/** The surface classes of a card: its look, then its variant. */
+const cardSurfaceClass = (props: { look?: string; variant?: string } | undefined) => cardLookClass(props?.look) + cardVariantClass(props?.variant);
+
 interface CardProps {
     title?: string | null;
     description?: string | null;
     look?: string;
+    variant?: string;
 }
 
 export default function AppCard({ node, children }: NodeProps<CardProps>) {
     const { title = null, description = null } = node.props || {};
     const gap = Number.isFinite(node.style?.gap) ? (node.style as NodeStyle).gap : 3;
-    const lookClass = cardLookClass(node.props?.look);
+    const lookClass = cardSurfaceClass(node.props);
     // "A card wrapping a data grid" is the dashboard idiom, so a card that
     // swallows fill kills it one level in: the header keeps its size, the grid
     // takes the rest.

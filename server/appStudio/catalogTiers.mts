@@ -23,7 +23,7 @@ import { definitionKeys } from './definitionKeyRegistry.mts';
 import { baseItemShape, baseKeyTables, componentShapeItems, keyItems, lateTypeEvents } from './catalogTiersKeys.mts';
 
 type FieldSpec = { type?: string; since?: unknown; valuesSince?: unknown; values?: unknown[]; description?: unknown; itemShape?: Record<string, FieldSpec> } & Record<string, unknown>;
-type ComponentSpec = { since?: unknown; description?: unknown; props?: Record<string, FieldSpec>; styleKnobs?: string[]; events?: string[]; eventsSince?: unknown } & Record<string, unknown>;
+type ComponentSpec = { since?: unknown; description?: unknown; props?: Record<string, FieldSpec>; styleKnobs?: string[]; events?: string[]; eventsSince?: unknown; childrenSince?: unknown; childrenDescription?: unknown } & Record<string, unknown>;
 type KindSpec = { since?: unknown; description?: unknown; fields: Record<string, FieldSpec> } & Record<string, unknown>;
 type SpecHub = typeof import('./componentSpecs.js');
 
@@ -36,7 +36,7 @@ export type TieredTables = Pick<SpecHub, 'COMPONENT_SPECS' | 'STYLE_KNOBS' | 'AC
 export const EXTENSION_FAMILIES = Object.freeze([
     'componentTypes', 'props', 'itemKeys', 'styleKnobs', 'enumValues',
     'screenKeys', 'sectionKeys', 'nodeKeys', 'themeKeys', 'designKeys', 'navKeys',
-    'stepKinds', 'stepFields', 'actionKinds', 'actionFields', 'bindingKinds', 'topLevelKeys', 'data',
+    'stepKinds', 'stepFields', 'actionKinds', 'actionFields', 'bindingKinds', 'topLevelKeys', 'variableKeys', 'data',
 ] as const);
 export type ExtensionFamily = typeof EXTENSION_FAMILIES[number];
 
@@ -52,7 +52,7 @@ export interface ExtensionItem {
      * item shape of a list prop, 'event' an event an existing type newly fires, 'keys' a key file of
      * componentSpecs/keys/ (a binding key and a query shape among them), 'data' the data vocabulary.
      */
-    ownerTable?: 'component' | 'knob' | 'step' | 'action' | 'item' | 'event' | 'screen' | 'theme' | 'design' | 'keys' | 'data';
+    ownerTable?: 'component' | 'knob' | 'step' | 'action' | 'item' | 'event' | 'slot' | 'screen' | 'theme' | 'design' | 'keys' | 'data';
     /** The component type or kind that holds `key`; the key-mark or data family for 'keys' and 'data' (absent for a knob). */
     owner?: string;
     /** The prop, knob, field, key or word. */
@@ -64,6 +64,9 @@ export interface ExtensionItem {
 }
 
 type Mark = { since?: unknown; valuesSince?: unknown; description?: unknown; shape?: unknown };
+
+/** The spec fields of a type that became a slot container after the base (componentSpecs/itemTemplates.js). */
+const LATE_SLOT_FIELDS = Object.freeze(['container', 'slotContainer', 'childrenSince', 'childrenDescription']);
 
 const nodeRequire = createRequire(import.meta.url);
 const specs = nodeRequire('./componentSpecs.js') as SpecHub & {
@@ -154,6 +157,11 @@ function computeBase(source: CatalogueSource): TieredTables {
             if (baseEvents.length) components[type].events = baseEvents; else delete components[type].events;
             delete components[type].eventsSince;
         }
+        // A type that became a slot container later (`childrenSince`, componentSpecs/itemTemplates.js):
+        // the base copy is the type as it was, holding no children.
+        if (isExtensionSince(spec.childrenSince)) {
+            for (const field of LATE_SLOT_FIELDS) delete components[type][field];
+        }
     }
     const stepSpecs = baseKindSpecs(tables.STEP_SPECS as unknown as Record<string, KindSpec>);
     const actionSpecs = baseKindSpecs(tables.ACTION_SPECS as unknown as Record<string, KindSpec>);
@@ -211,6 +219,9 @@ function computeExtensions(source: CatalogueSource): ExtensionItem[] {
         fieldItems('component', type, spec.props, 'props', '', out);
         componentShapeItems(type, spec.props, out);
         for (const event of lateTypeEvents(spec)) out.push({ family: 'nodeKeys', name: `${type}.${event}`, description: '', ownerTable: 'event', owner: type, key: event });
+        if (isExtensionSince(spec.childrenSince)) {
+            out.push({ family: 'nodeKeys', name: `${type}.children`, description: text(spec.childrenDescription), ownerTable: 'slot', owner: type, key: 'children' });
+        }
     }
     for (const [knob, spec] of Object.entries(tables.STYLE_KNOBS as unknown as Record<string, FieldSpec>)) {
         if (!spec || typeof spec !== 'object') continue;

@@ -171,3 +171,17 @@ test('een KAPOTTE source telt óók als gekoppeld — nooit stil als eigen opsla
     const after = model([linked('tbl_link', 'orders', [f('fld_a', 'total')], { kind: 'datatabel' })]);
     assert.deepStrictEqual(migrationPlan(model([]), after, { dialect: 'pg' }), []);
 });
+
+test('adding a declared index is that one CREATE INDEX: no table rebuild, no column touched', () => {
+    const before = model([t('tbl_ix', 'orders', [f('fld_c', 'customer'), f('fld_d', 'placed')])]);
+    const withIndex = model([{ ...before.tables[0], indexes: [{ fields: ['customer', 'placed'] }] }]);
+    for (const dialect of ['sqlite', 'pg']) {
+        const plan = migrationPlan(before, withIndex, { dialect });
+        assert.strictEqual(plan.length, 1, plan.join(' | '));
+        assert.match(plan[0], /^CREATE INDEX IF NOT EXISTS "ixd_[0-9a-f]{16}" ON "orders" \("customer", "placed"\)$/);
+        // A renamed field keeps its index (the name comes from the stable ids); a removed index is dropped.
+        const renamed = model([{ ...withIndex.tables[0], fields: [f('fld_c', 'client'), f('fld_d', 'placed')], indexes: [{ fields: ['client', 'placed'] }] }]);
+        assert.deepStrictEqual(migrationPlan(withIndex, renamed, { dialect }), ['ALTER TABLE "orders" RENAME COLUMN "customer" TO "client"']);
+        assert.deepStrictEqual(migrationPlan(withIndex, before, { dialect }), [plan[0].replace(/^CREATE INDEX IF NOT EXISTS (".*?") ON.*$/, 'DROP INDEX IF EXISTS $1')]);
+    }
+});

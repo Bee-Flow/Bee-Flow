@@ -9,7 +9,7 @@ toc_max_heading_level: 2
 
 # Other endpoints
 
-228 routes, 116 with a request schema. Back to the [endpoint reference](../reference.md).
+229 routes, 116 with a request schema. Back to the [endpoint reference](../reference.md).
 
 ## `(root)`
 
@@ -116,6 +116,14 @@ No request schema.
 | `maxDebounceSeconds` | number |  |  |
 | `unansweredMinutes` | number |  |  |
 | `commentUnansweredMinutes` | number |  |  |
+
+## `api/app-hooks`
+
+### `POST /api/app-hooks/:endpointId`
+
+**Access:** no gate in the middleware chain: the handler decides (it checks the session itself, or the route is public)
+
+No request schema.
 
 ## `api/billing`
 

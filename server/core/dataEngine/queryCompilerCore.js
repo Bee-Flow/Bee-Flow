@@ -13,6 +13,7 @@
 /** @typedef {import('./queryCompiler').AccessFilter} AccessFilter */
 /** @typedef {import('./queryCompiler').CompilerField} CompilerField */
 const { SYSTEM_COLUMNS, KEY_RE } = require('./dataModel/vocabulary');
+const { isColumnlessLinkField } = require('./dataModel/linkedFields');
 const { MAX_FILTER_CLAUSES } = require('../../shared/expr/filterGroups.mjs');
 
 // Hard ceiling on rows a single list/aggregate may return. The store applies
@@ -146,6 +147,10 @@ function resolveColumn(tableMeta, fieldName, fm) {
     const f = /** @type {CompilerField} */ (map.get(fieldName));
     if (f.type === 'computed' && !(f.computed && f.computed.stored === true)) {
         throw new CompileError(`field "${fieldName}" is a read-time computed field and cannot be queried`);
+    }
+    // No column either: filter a lookup through "<relation>.<field>", a many relation with contains.
+    if (isColumnlessLinkField(f)) {
+        throw new CompileError(`field "${fieldName}" is a ${f.type === 'relation' ? 'many relation' : f.type} field: it has no column to filter, sort or group on`);
     }
     return qi(/** @type {string} */ (f.key));
 }

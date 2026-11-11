@@ -594,10 +594,10 @@ app.use('/api/public-share', requireModule('webpages'), require('./routes/public
 // The public surface of a Studio app — an anonymous visitor filling in the
 // intake screens of an app whose back-office stays behind requireAuth. The URL
 // token is the credential; what it exposes is a whitelist of SCREENS in the
-// app's own definition (appStudio/publicAccess.js). No capability gate: once an
-// owner (whose org IS gated) opens a public page, its visitors are anonymous
-// third parties — the same reasoning as /share below.
+// app's own definition (appStudio/publicAccess.js). No capability gate: its visitors are anonymous third
+// parties, as for /share below. /api/app-hooks: a signed delivery to a webhook trigger (routes/studioAppWebhook.mts).
 app.use('/api/public-app', requireModule('apps'), require('./routes/studioAppPublic'), require('./routes/studioAppPublicAssets.mts').publicAppAssetsRouter);
+app.use('/api/app-hooks', requireModule('apps'), require('./routes/studioAppWebhook.mts').studioAppWebhookRouter);
 // Public webpage viewer — unauthenticated `/share/:token` route for external
 // recipients of a published webpage. Has its own rate limiter, strict CSP,
 // HMAC-signed magic links and unlock cookies. License/beta gates do NOT

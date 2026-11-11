@@ -5,6 +5,7 @@ import {
 import { CHART_AXIS, resolveSeriesColor } from '../chartPalette';
 import type { JSX, ReactNode } from 'react';
 import type { ChartRow, ReferenceBandSpec, ReferenceLineSpec, SeriesSpec } from './AppChart.types';
+import { moreChartPlot } from './AppChartPlotsMore';
 
 /**
  * The recharts trees of the App Studio chart: the reference marks and one
@@ -246,6 +247,9 @@ function barPlot({ width, height, data, series, palette, animate, stacked, click
 
 /** The plot for the chart type: pie/donut, line, area, horizontal bar or bar. */
 export function chartPlot(args: PlotArgs): JSX.Element {
+    // Schema 3: combo, scatter, funnel and radar (./AppChartPlotsMore.tsx).
+    const more = moreChartPlot(args);
+    if (more) return more;
     if (args.chartType === 'pie' || args.chartType === 'donut') return piePlot(args);
     if (args.chartType === 'line') return linePlot(args);
     if (args.chartType === 'area') return areaPlot(args);

@@ -149,7 +149,7 @@
                       "1"
                 <div style="align-items: start; display: grid; gap: 0.75rem; grid-template-columns: repeat(2, minmax(220px, 1fr))">
                   <div class="flex flex-col gap-1.5 min-h-[3rem] p-1.5" data-app-kanban-column="open" style="background: transparent; border-radius: var(--app-radius)">
-                    <div class="app-focusable border cursor-pointer px-2.5 py-2 select-none" aria-describedby="DndDescribedBy-0" aria-disabled="false" aria-roledescription="draggable" data-app-kanban-card="0" role="button" tabindex="0" style="background: var(--bg-card); border-radius: var(--app-radius); opacity: 1; touch-action: none">
+                    <div class="app-focusable border cursor-pointer px-2.5 py-2 select-none" aria-describedby="DndDescribedBy-<1>" aria-disabled="false" aria-roledescription="draggable" data-app-kanban-card="0" role="button" tabindex="0" style="background: var(--bg-card); border-radius: var(--app-radius); opacity: 1; touch-action: none">
                       <div class="flex gap-1.5 items-start">
                         <div class="break-words flex-1 font-medium min-w-0 text-[var(--text-primary)] text-sm">
                           "Fix hive"
@@ -157,7 +157,7 @@
                         "Ann"
                       <span class="[background:var(--bg-tertiary)] [color:var(--text-secondary)]! font-medium inline-flex items-center mt-1.5 px-1.5 py-0.5 rounded-full text-[11px]">
                         "urgent"
-                    <div class="app-focusable border cursor-pointer px-2.5 py-2 select-none" aria-describedby="DndDescribedBy-0" aria-disabled="false" aria-roledescription="draggable" data-app-kanban-card="1" role="button" tabindex="0" style="background: var(--bg-card); border-radius: var(--app-radius); opacity: 1; touch-action: none">
+                    <div class="app-focusable border cursor-pointer px-2.5 py-2 select-none" aria-describedby="DndDescribedBy-<1>" aria-disabled="false" aria-roledescription="draggable" data-app-kanban-card="1" role="button" tabindex="0" style="background: var(--bg-card); border-radius: var(--app-radius); opacity: 1; touch-action: none">
                       <div class="flex gap-1.5 items-start">
                         <div class="break-words flex-1 font-medium min-w-0 text-[var(--text-primary)] text-sm">
                           "Order frames"
@@ -166,7 +166,7 @@
                       <span class="[background:var(--bg-tertiary)] [color:var(--text-secondary)]! font-medium inline-flex items-center mt-1.5 px-1.5 py-0.5 rounded-full text-[11px]">
                         "supply"
                   <div class="flex flex-col gap-1.5 min-h-[3rem] p-1.5" data-app-kanban-column="done" style="background: transparent; border-radius: var(--app-radius)">
-                    <div class="app-focusable border cursor-pointer px-2.5 py-2 select-none" aria-describedby="DndDescribedBy-0" aria-disabled="false" aria-roledescription="draggable" data-app-kanban-card="2" role="button" tabindex="0" style="background: var(--bg-card); border-radius: var(--app-radius); opacity: 1; touch-action: none">
+                    <div class="app-focusable border cursor-pointer px-2.5 py-2 select-none" aria-describedby="DndDescribedBy-<1>" aria-disabled="false" aria-roledescription="draggable" data-app-kanban-card="2" role="button" tabindex="0" style="background: var(--bg-card); border-radius: var(--app-radius); opacity: 1; touch-action: none">
                       <div class="flex gap-1.5 items-start">
                         <div class="break-words flex-1 font-medium min-w-0 text-[var(--text-primary)] text-sm">
                           "Paint boxes"
@@ -174,9 +174,9 @@
                         "Cy"
                       <span class="[background:var(--bg-tertiary)] [color:var(--text-secondary)]! font-medium inline-flex items-center mt-1.5 px-1.5 py-0.5 rounded-full text-[11px]">
                         "yard"
-            <div id="DndDescribedBy-0" style="display: none">
+            <div id="DndDescribedBy-<1>" style="display: none">
               "To pick up a draggable item, press the space bar. While dragging, use the arrow keys to move the item. Press space again to drop the item in its new position, or press escape to cancel."
-            <div aria-atomic="true" aria-live="assertive" id="DndLiveRegion-0" role="status" style="border: 0px; clip-path: inset(100%); clip: rect(0px); height: 1px; left: 0px; margin: -1px; overflow: hidden; padding: 0px; position: fixed; top: 0px; white-space: nowrap; width: 1px">
+            <div aria-atomic="true" aria-live="assertive" id="DndLiveRegion-<1>" role="status" style="border: 0px; clip-path: inset(100%); clip: rect(0px); height: 1px; left: 0px; margin: -1px; overflow: hidden; padding: 0px; position: fixed; top: 0px; white-space: nowrap; width: 1px">
           <div class="app-node app-span-12 min-w-0" data-app-type="calendar" data-node-id="cmp_v21cl" style="grid-column: span 12 / span 12">
             <div class="flex flex-col gap-2 min-w-0 w-full" data-app-calendar="month">
               <div class="flex gap-2 items-center justify-between">

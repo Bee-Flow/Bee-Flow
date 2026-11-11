@@ -1,0 +1,65 @@
+{
+  "corpus": "component-variants",
+  "canonical": {
+    "sha256": "01256d399643dc9353676667b322bc49096d53e70302ae90a4af9ac108353c13",
+    "bytes": 8955,
+    "inputIsCanonical": true,
+    "idempotent": true,
+    "keys": [
+      "schemaVersion",
+      "meta",
+      "theme",
+      "roles",
+      "screens",
+      "actions",
+      "homeScreenId"
+    ],
+    "parts": {
+      "schemaVersion": "4e07408562bedb8b",
+      "meta": "766af5e9b49a630f",
+      "theme": "87df6a9096a03b63",
+      "roles": "4f53cda18c2baa0c",
+      "screens[0] scr_cvr0001": "ab915319617485b4",
+      "screens[1] scr_cvr0002": "78fc2c5a06f71bc3",
+      "homeScreenId": "dc50b39f36d17240"
+    }
+  },
+  "schemaVersion": {
+    "stored": 3,
+    "canonical": 3
+  },
+  "validation": {
+    "strict": {
+      "errors": [],
+      "warnings": [
+        "component.control_inert @ screens[0].sections[0].children[0]",
+        "component.control_inert @ screens[0].sections[0].children[1]",
+        "component.control_inert @ screens[0].sections[0].children[2]",
+        "component.control_inert @ screens[0].sections[0].children[3]",
+        "component.control_inert @ screens[0].sections[0].children[4]",
+        "component.control_inert @ screens[0].sections[0].children[5]",
+        "component.control_inert @ screens[0].sections[0].children[6]",
+        "component.control_inert @ screens[1].sections[0].children[0]",
+        "input.outside_form @ screens[1].sections[0].children[5]"
+      ]
+    },
+    "save": {
+      "errors": [],
+      "warnings": [
+        "component.control_inert @ screens[0].sections[0].children[0]",
+        "component.control_inert @ screens[0].sections[0].children[1]",
+        "component.control_inert @ screens[0].sections[0].children[2]",
+        "component.control_inert @ screens[0].sections[0].children[3]",
+        "component.control_inert @ screens[0].sections[0].children[4]",
+        "component.control_inert @ screens[0].sections[0].children[5]",
+        "component.control_inert @ screens[0].sections[0].children[6]",
+        "component.control_inert @ screens[1].sections[0].children[0]",
+        "input.outside_form @ screens[1].sections[0].children[5]"
+      ]
+    }
+  },
+  "ordinals": {
+    "stored": {},
+    "canonical": "same as stored"
+  }
+}

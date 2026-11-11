@@ -1,0 +1,47 @@
+/*
+ * Theme scope (package LK16): the rules behind runtime/themeScope.ts. Each one keys off a class
+ * only that code stamps, for a definition that sets the matching key, so an app without them
+ * matches nothing here.
+ */
+
+/*
+ * design.dark: the --app-dark-* variables replace the theme colours while the app is dark, which
+ * is appearance "dark" (--on) or "auto" on a dark host theme (--auto). The high-contrast host is
+ * exempt, as in app-tokens.css. !important because the theme colours are inline on the same root.
+ */
+html:not([data-theme="high-contrast"]) .app-dark-palette--on,
+html:not([data-theme]) .app-dark-palette--auto,
+html[data-theme="dark"] .app-dark-palette--auto,
+html[data-theme="obsidian"] .app-dark-palette--auto,
+html[data-theme="glass-dark"] .app-dark-palette--auto {
+    --app-primary: var(--app-dark-primary) !important;
+    --app-primary-soft: var(--app-dark-primary-soft) !important;
+    --app-primary-contrast: var(--app-dark-primary-contrast) !important;
+    --app-accent: var(--app-dark-accent) !important;
+    --app-accent-soft: var(--app-dark-accent-soft) !important;
+    --app-accent-contrast: var(--app-dark-accent-contrast) !important;
+}
+
+html:not([data-theme="high-contrast"]) .app-dark-palette--on.app-dark-palette--canvas,
+html:not([data-theme]) .app-dark-palette--auto.app-dark-palette--canvas,
+html[data-theme="dark"] .app-dark-palette--auto.app-dark-palette--canvas,
+html[data-theme="obsidian"] .app-dark-palette--auto.app-dark-palette--canvas,
+html[data-theme="glass-dark"] .app-dark-palette--auto.app-dark-palette--canvas {
+    --app-canvas: var(--app-dark-canvas) !important;
+}
+
+/* screen.theme with a canvas: the screen paints its own ground over the app's. */
+.app-runtime.app-screen--canvas {
+    background: var(--app-canvas, var(--bg-primary));
+    flex: 1 0 auto;
+}
+
+/*
+ * section.theme with an appearance: the section is a ground of that appearance (app-tokens.css
+ * re-declares the platform tokens on it), so its text reads on it. A background knob still wins.
+ */
+.app-grid.app-section--themed-ground {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    border-radius: var(--app-radius);
+}

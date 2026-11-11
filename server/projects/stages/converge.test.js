@@ -7,7 +7,8 @@
  *     converge does the same: a flipped automation gets convergeAfterPublish
  *     (saveSyncs, the stage's organisation, the previous live definition), a
  *     page its `current/` slots from the pinned version with the capability,
- *     an app its usage reindex, a retired automation loses its subscriptions,
+ *     an app its usage reindex and its trigger sync (a retired app too), a
+ *     retired automation loses its subscriptions,
  *     tables drop the engine cache, knowledge bumps the base version;
  *   - a feed event `deployment.succeeded` on the stage and on Dev;
  *   - a failing task is retried with backoff, up to 5 attempts; what still
@@ -51,6 +52,7 @@ function harness(steps) {
             },
         },
         reconcileAppUsage: async (id) => { log.push(['app_usage', id]); },
+        syncAppTriggers: /** @type {(id: string) => Promise<import('../../appStudio/triggers/deploySync.mts').DeploySyncOutcome>} */ (async (id) => { log.push(['app_triggers', id]); return { synced: { armed: 1, updated: 0, kept: 0, removed: 0 } }; }),
         revokeRemoteSubscriptions: async (id, owner) => { log.push(['revoke', id, owner]); },
         emitProjectEvent: async (projectId, event) => { log.push(['feed', projectId, event.kind, event.payload.deploymentId]); },
         sleep: async (ms) => { log.push(['sleep', ms]); },
@@ -65,6 +67,7 @@ test('the tasks come from the commit journal and the deployment closes as succee
         { phase: 'commit', action: 'flip', kind: 'webpage', ref: 'web_1', entityId: 'u-web-1' },
         { phase: 'commit', action: 'flip', kind: 'app', ref: 'app_1', entityId: 'u-app-1' },
         { phase: 'commit', action: 'retire', kind: 'automation', ref: 'aut_9', entityId: 'u-aut-9' },
+        { phase: 'commit', action: 'retire', kind: 'app', ref: 'app_9', entityId: 'u-app-9' },
         { phase: 'commit', action: 'schema', kind: 'datatable', ref: 'dt_1', entityId: 'tbl_1' },
         { phase: 'commit', action: 'knowledge', kind: 'knowledge_base', ref: 'kb_1', entityId: 'kb-uat' },
     ];
@@ -75,6 +78,7 @@ test('the tasks come from the commit journal and the deployment closes as succee
     assert.deepStrictEqual(h.log.filter(e => e[0] === 'slot').map(e => e[3]), ['html', 'css', 'js']);
     assert.ok(h.log.filter(e => e[0] === 'slot').every(e => e[2] === 'ver_9' && e[4] === 'dep_1'));
     assert.deepStrictEqual(h.log.find(e => e[0] === 'app_usage'), ['app_usage', 'u-app-1']);
+    assert.deepStrictEqual(h.log.filter(e => e[0] === 'app_triggers').map(e => e[1]), ['u-app-1', 'u-app-9'], 'a deployed and a retired app sync their triggers');
     assert.deepStrictEqual(h.log.find(e => e[0] === 'revoke'), ['revoke', 'u-aut-9', 'so']);
     assert.deepStrictEqual(h.log.find(e => e[0] === 'subs_deleted'), ['subs_deleted', 'u-aut-9']);
     assert.deepStrictEqual(h.log.find(e => e[0] === 'invalidate'), ['invalidate', 'org:org1']);
@@ -108,4 +112,26 @@ test('automation side effects that come back as warnings count as a failed task'
     const out = await converge({ deployment: DEPLOYMENT, stage: STAGE }, h.deps);
     assert.deepStrictEqual(out.report.warnings, [{ task: 'automation', ref: 'aut_1', code: 'failed' }]);
     assert.strictEqual(out.report.attempts, 2);
+});
+
+test('a prepare arms nothing: only an app the commit flipped or retired syncs its triggers', async () => {
+    const h = harness([
+        { phase: 'prepare', action: 'write_definition', kind: 'app', ref: 'app_1', entityId: 'u-app-1' },
+        { phase: 'prepare', action: 'data_model', kind: 'app', ref: 'app_1', entityId: 'u-app-1' },
+    ]);
+    const out = await converge({ deployment: DEPLOYMENT, stage: STAGE }, h.deps);
+    assert.ok(!h.log.some(e => e[0] === 'app_triggers'));
+    assert.deepStrictEqual(out.report.warnings, []);
+});
+
+test('a trigger sync that failed is tried again; a skipped one (owner not active) is not a failure', async () => {
+    const h = harness([{ phase: 'commit', action: 'flip', kind: 'app', ref: 'app_1', entityId: 'u-app-1' }]);
+    let calls = 0;
+    h.deps.syncAppTriggers = async () => { calls += 1; return calls < 2 ? { synced: null } : { synced: { armed: 0, updated: 1, kept: 0, removed: 0 } }; };
+    assert.deepStrictEqual((await converge({ deployment: DEPLOYMENT, stage: STAGE }, h.deps)).report, { warnings: [], attempts: 2 });
+    h.deps.syncAppTriggers = async () => ({ skipped: 'owner_inactive' });
+    assert.deepStrictEqual((await converge({ deployment: DEPLOYMENT, stage: STAGE }, h.deps)).report, { warnings: [], attempts: 1 });
+    h.deps.syncAppTriggers = async () => ({ synced: null });
+    h.deps.maxAttempts = 2;
+    assert.deepStrictEqual((await converge({ deployment: DEPLOYMENT, stage: STAGE }, h.deps)).report.warnings, [{ task: 'app_triggers', ref: 'app_1', code: 'trigger_sync_failed' }]);
 });

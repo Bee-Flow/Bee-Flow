@@ -6,8 +6,8 @@
 
 export type Row = Record<string, unknown>;
 
-export type RunOrigin = 'click' | 'public' | 'mcp' | 'test' | 'background' | 'mailbox_hook';
-export const RUN_ORIGINS: readonly RunOrigin[] = Object.freeze(['click', 'public', 'mcp', 'test', 'background', 'mailbox_hook']);
+export type RunOrigin = 'click' | 'public' | 'mcp' | 'test' | 'background' | 'mailbox_hook' | 'trigger';
+export const RUN_ORIGINS: readonly RunOrigin[] = Object.freeze(['click', 'public', 'mcp', 'test', 'background', 'mailbox_hook', 'trigger']);
 export const BROWSER_ORIGINS: readonly string[] = Object.freeze(['click', 'public']);
 
 export type NewLoggedRun = {
@@ -36,7 +36,11 @@ export type RunListRow = {
     startedAt: string | null; endedAt: string | null; durationMs: number | null; stepCount: number; failedSteps: number;
     handledErrors: number; truncated: boolean; aiCalls: number; promptTokens: number; completionTokens: number;
     costByCurrency: Record<string, number>;
+    /** A run on hold only: what it waits for, until when, and who decides an approval it waits for. */
+    waiting?: RunWaiting;
 };
+
+export type RunWaiting = { kind: string | null; wakeAt: string | null; waitingFor: Row | null };
 
 export type ListFilter = {
     appId: string; actionId?: string | null; status?: string | null; origins?: string[] | null;
@@ -96,7 +100,15 @@ export function toListRow(row: Row, names: Map<string, string | null>): RunListR
         failedSteps: Number(row.failed_steps ?? 0), handledErrors: Number(row.handled_errors ?? 0), truncated: row.truncated === true,
         aiCalls: Number(row.ai_calls ?? 0), promptTokens: Number(row.prompt_tokens ?? 0), completionTokens: Number(row.completion_tokens ?? 0),
         costByCurrency: costMap(row.cost_by_currency),
+        ...waitingOf(row),
     };
+}
+
+/** What a paused row waits for (run log: the detail of a run on hold). */
+function waitingOf(row: Row): { waiting: RunWaiting } | Record<string, never> {
+    if (String(row.effective_status ?? row.status) !== 'paused') return {};
+    const who = asObj(row.progress)?.waitingFor;
+    return { waiting: { kind: text(row.wait_kind), wakeAt: iso(row.wake_at), waitingFor: who && typeof who === 'object' && !Array.isArray(who) ? who as Row : null } };
 }
 
 export function toStoredStep(row: Row): StoredStep {

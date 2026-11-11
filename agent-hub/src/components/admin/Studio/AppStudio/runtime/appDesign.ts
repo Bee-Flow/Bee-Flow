@@ -14,14 +14,17 @@
  * lockstep; runtime/catalogLockstep.test.js pins them.
  */
 
+import { tokenVars } from './designTokens';
+import { darkPaletteVars } from './themeScope';
 import type { CSSProperties } from 'react';
+import { fontRoleProps } from './fonts/fontRoles';
 
 // ── Mirrors (server/appStudio/appDesignSpec.js is authoritative) ────────────
 export const DESIGN_ENUMS = {
     preset: ['custom', 'classic', 'cloud', 'atlas', 'midnight', 'field', 'paper', 'mono', 'grove', 'ember', 'signal', 'bloom', 'ledger', 'nocturne'],
     font: ['system', 'inter', 'satoshi', 'general-sans', 'cabinet', 'geist', 'plex', 'poppins'],
     surface: ['hairline', 'flat', 'soft', 'elevated'],
-    motion: ['none', 'subtle', 'full'],
+    motion: ['none', 'subtle', 'full', 'expressive'],
     chartPalette: ['classic', 'brand'],
     accentEdge: ['bar', 'none'],
 };
@@ -36,7 +39,7 @@ export const DESIGN_DEFAULTS = {
     logoUrl: null,
 };
 
-export const NAV_STYLES: Array<string | undefined> = ['tabs', 'sidebar', 'mega', 'rail'];
+export const NAV_STYLES: Array<string | undefined> = ['tabs', 'sidebar', 'mega', 'rail', 'none'];
 export const NAV_DEFAULT_STYLE = 'tabs';
 
 // Pairing id → CSS stack. `system` is identity (no fontFamily emitted). The
@@ -61,13 +64,18 @@ export const GOOGLE_FONT_FAMILIES: Record<string, string> = {
     poppins: 'Poppins',
 };
 
-/** An app's authored design: each knob (font, surface, motion, …) is a string choice. */
+/** An app's authored design: each knob (font, surface, motion, …) is a string choice. The schema-3 keys tokens, radiusPx and dark are read as unknown. */
 export type AppDesign = Record<string, string>;
 
 /**
  * design → { className, style } for the app roots. Identity in, nothing out.
+ *
+ * `theme` is the theme the root shows (the app theme, or a screen's merged one) and
+ * `scopeOverride` the screen's own override: design.dark is derived from them (themeScope.ts), a
+ * colour the screen sets itself winning over the dark palette. design.tokens and design.radiusPx (schema 3) add their CSS
+ * variables only when set.
  */
-export function appDesignProps(definition?: { design?: AppDesign; [key: string]: unknown } | null) {
+export function appDesignProps(definition?: { design?: AppDesign; [key: string]: unknown } | null, theme: unknown = definition?.theme, scopeOverride: unknown = null) {
     const d = definition?.design;
     const classes: string[] = [];
     const style: CSSProperties = {};
@@ -80,13 +88,31 @@ export function appDesignProps(definition?: { design?: AppDesign; [key: string]:
         if (d.accentEdge === 'none') classes.push('app-design--edge-none');
         // 'subtle' is the base motion. 'full' is stored by two presets and kept
         // valid, but no CSS rule reads .app-motion--full: it behaves exactly
-        // like 'subtle' (the class is only a hook for a future, richer value).
+        // like 'subtle' (the class is only a hook). 'expressive' (since 3) is the value that
+        // moves: css/motion.css reads .app-motion--expressive.
         if (d.motion === 'none') classes.push('app-motion--none');
         else if (d.motion === 'full') classes.push('app-motion--full');
+        else if (d.motion === 'expressive') classes.push('app-motion--expressive');
         const stack = FONT_STACKS[d.font];
         if (stack) style.fontFamily = stack;
+        addDesignExtensions(d, theme, scopeOverride, classes, style);
+        // design.fonts (schema 3, fonts/fontRoles.ts): nothing unless a role is set; a body role wins over design.font.
+        const roles = fontRoleProps(d);
+        classes.push(...roles.classes);
+        Object.assign(style, roles.style);
     }
     return { className: classes.join(' '), style };
+}
+
+/** design.tokens, design.radiusPx and design.dark onto the root (package LK16); nothing when absent. */
+function addDesignExtensions(design: AppDesign, theme: unknown, scopeOverride: unknown, classes: string[], style: CSSProperties): void {
+    const d: Record<string, unknown> = design;
+    Object.assign(style, tokenVars(d.tokens));
+    const radius = Number(d.radiusPx);
+    if (d.radiusPx !== undefined && d.radiusPx !== null && Number.isFinite(radius)) (style as Record<string, string>)['--app-radius'] = `${Math.min(32, Math.max(0, Math.round(radius)))}px`;
+    const dark = darkPaletteVars(d.dark, theme, scopeOverride);
+    if (dark.className) classes.push(dark.className);
+    Object.assign(style, dark.style);
 }
 
 // ── Brand chart palette ─────────────────────────────────────────────────────

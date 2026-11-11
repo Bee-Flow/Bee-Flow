@@ -13,6 +13,7 @@ const {
     coerceVariableDefault,
 } = require('../componentSpecs');
 const { isObject, deepCopy, truncate } = require('./shared');
+const { cleanVariableExtras } = require('./variableExtras');
 
 /**
  * Turn `"my var"` into `my_var` — the same shape RolesManager slugifies a role
@@ -99,8 +100,9 @@ function cleanVariables(raw, push) {
             ? truncate(variable.description, 500, `${path}.description`, push)
             : '';
 
-        // Fixed key order so canonical bytes are deterministic.
-        out.push({ name, label, type, default: value, description });
+        // Fixed key order so canonical bytes are deterministic. The schema 3 keys
+        // (scope, persist, derived) follow, each only when it is set.
+        out.push({ name, label, type, default: value, description, ...cleanVariableExtras(variable, path, push) });
     });
     return out;
 }

@@ -75,6 +75,12 @@ function stableStringify(value) {
  * compiled access ⇒ same key (safe to share); any difference ⇒ different key
  * (never shared). This is the security control described in the file header.
  */
+/** `{ hidden: [...] }` for an access filter that carries column rights (accessFilter.js), else nothing. */
+function hiddenColumns(accessFilter) {
+    const columns = accessFilter && accessFilter.columns;
+    return columns && Array.isArray(columns.hidden) ? { hidden: [...columns.hidden].sort() } : {};
+}
+
 function computeViewerScopeKey(role, accessFilter, related) {
     const af = accessFilter && typeof accessFilter === 'object' ? accessFilter : {};
     const identity = {
@@ -83,7 +89,10 @@ function computeViewerScopeKey(role, accessFilter, related) {
         params: Array.isArray(af.params) ? af.params : [],
         // A groupBy through a relation also reads the related table under the
         // viewer's predicate on it. Only then: a dataset without one keeps its key.
-        ...(related ? { related: Object.fromEntries(Object.entries(related).map(([k, r]) => [k, { where: r.accessFilter.where, params: r.accessFilter.params }])) } : {}),
+        ...(related ? { related: Object.fromEntries(Object.entries(related).map(([k, r]) => [k, { where: r.accessFilter.where, params: r.accessFilter.params, ...hiddenColumns(r.accessFilter) }])) } : {}),
+        // Column rights: the fields this role may not read are part of who is asking, so a
+        // change of the rights moves the key. Only for a table that declares them.
+        ...hiddenColumns(af),
     };
     return sha256('viewerscope:v1:' + stableStringify(identity));
 }

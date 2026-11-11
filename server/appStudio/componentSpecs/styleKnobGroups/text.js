@@ -3,7 +3,9 @@
  * Text knobs: the typeface, size, line spacing, letter spacing and case of a component's text.
  *
  * Granted with `color`, so the text-bearing types that already hold it (heading, text, stat,
- * markdown) earn the group without a per-type list edit. Every first value is the identity: it
+ * markdown) earn the group without a per-type list edit. `grantedTo` adds the types whose text
+ * the knobs reach through their part classes (runtime/styleKnobs/text.css): a button, a callout,
+ * the page header, key-value rows, badges and the labels of the simple inputs. Every first value is the identity: it
  * is what the component does without the knob, and it is never written out unless a definition
  * sets it. The web draws the group in runtime/styleKnobs/text.ts.
  */
@@ -13,6 +15,10 @@
 module.exports = {
     since: 3,
     grantedBy: 'color',
+    grantedTo: [
+        'button', 'callout', 'page_header', 'keyValue', 'badge_list',
+        'input_text', 'input_textarea', 'input_number', 'input_select', 'input_checkbox', 'input_date', 'input_datetime',
+    ],
     knobs: {
         font: {
             type: 'enum', values: ['body', 'heading', 'mono'], default: 'body', since: 3,

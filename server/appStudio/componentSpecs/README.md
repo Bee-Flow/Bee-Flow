@@ -24,6 +24,7 @@ three things, and nothing else has to be edited for them:
 | a key of the items of a list prop | the prop's `itemShape` (nested lists too) | `since: 3`, `description` on the key | `itemKeys` · `<type>.<prop>[].<key>` |
 | an enum value of an item key | that key's `values` (append) | `valuesSince: { <value>: 3 }` | `enumValues` · `<type>.<prop>[].<key>=<value>` |
 | an event on an existing type | the type's `events` (append) | `eventsSince: { <event>: 3 }` on the type | `nodeKeys` · `<type>.<event>` |
+| children (a template) on an existing type | the type's spec: `container`, `slotContainer` | `childrenSince: 3`, `childrenDescription` (`itemTemplates.js`) | `nodeKeys` · `<type>.children` |
 | a style knob | `styleKnobGroups/<group>.js` (one file per group) | `since: 3` on the group and on each knob, `description` | `styleKnobs` · `<knob>` |
 | an enum value on an existing knob | the knob's `values` (append) | `valuesSince: { <value>: 3 }` | `enumValues` · `style.<knob>=<value>` |
 | a step kind | `steps/<kind>.js` (one file) | `since: 3`, `policy`, `childSlots`, `description` | `stepKinds` · `<kind>` |
@@ -40,6 +41,7 @@ three things, and nothing else has to be edited for them:
 | a node key beside props and style (a logic key, a new event name) | `keys/node/<key>.js` | `since: 3`, `shape`, `description` | `nodeKeys` · `node.<key>` |
 | a nav key, a nav group key | `keys/nav/<key>.js`, `keys/navGroup/<key>.js` | `since: 3`, `shape`, `description` | `navKeys` · `nav.<key>`, `nav.groups[].<key>` |
 | a nav style | `NAV_STYLES` (append) + `keys/nav/style.js` | `valuesSince: { <style>: 3 }` | `enumValues` · `nav.style=<style>` |
+| a key of a declared variable (`scope`, `persist`, `derived`) | `keys/variable/<key>.js` | `since: 3`, `shape`, `description` | `variableKeys` · `variables[].<key>` |
 | a field type, a filter operator, an aggregate function, a date bucket | the list in `core/dataEngine/dataModel/vocabulary.js` (append) | an entry in `DATA_VOCABULARY_MARKS` (`vocabularySince.js`): `{ since: 3, description }` | `data` · `fieldType.<t>`, `filterOp.<op>`, `aggFn.<fn>`, `dateBucket.<b>` |
 | a key of a field declaration (a field option) | the data model code | `DATA_VOCABULARY_MARKS.fieldOptions`: `{ since: 3, shape, description }` | `data` · `fieldOption.<key>` |
 | a word of a row rule (a `viewer.<attribute>`, a form such as `in` or the rule per operation) | `ROW_RULE_WORDS` in `vocabulary.js` (append; an attribute goes in `VIEWER_ATTRIBUTES`) | `DATA_VOCABULARY_MARKS.rowRule`: `{ since: 3, description }` | `data` · `rowRule.<word>` |
