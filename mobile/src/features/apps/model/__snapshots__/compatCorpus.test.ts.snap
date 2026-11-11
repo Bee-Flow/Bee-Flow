@@ -11753,6 +11753,69 @@ exports[`compat corpus: what the phone plans for every stored app v3-code-step-q
 }
 `;
 
+exports[`compat corpus: what the phone plans for every stored app v3-durable-waits 1`] = `
+{
+  "defaultScreen": "scr_wait0001",
+  "navigable": [
+    "scr_wait0001",
+  ],
+  "screens": [
+    {
+      "id": "scr_wait0001",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "id": "cmp_waithead",
+                "kind": "heading",
+                "level": 2,
+                "text": "Orders",
+              },
+              {
+                "action": {
+                  "actionId": "act_waitapr1",
+                  "kind": "sequence",
+                  "label": "Ask finance",
+                  "runnable": false,
+                },
+                "id": "cmp_waitbtn1",
+                "kind": "button",
+              },
+              {
+                "action": {
+                  "actionId": "act_waitlong",
+                  "kind": "sequence",
+                  "label": "Remind tomorrow",
+                  "runnable": false,
+                },
+                "id": "cmp_waitbtn2",
+                "kind": "button",
+              },
+              {
+                "action": {
+                  "actionId": "act_waitshrt",
+                  "kind": "sequence",
+                  "label": "Show and go",
+                  "runnable": false,
+                },
+                "id": "cmp_waitbtn3",
+                "kind": "button",
+              },
+            ],
+            "screen": "scr_wait0001",
+            "unsupported": [],
+          },
+          "roles": [
+            "(no role)",
+          ],
+        },
+      ],
+    },
+  ],
+}
+`;
+
 exports[`compat corpus: what the phone plans for every stored app v3-server-run 1`] = `
 {
   "defaultScreen": "scr_run00001",

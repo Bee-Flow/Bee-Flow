@@ -58,7 +58,16 @@ export interface JobProgress {
     loop: { index: number; count: number } | null;
     /** 'budget' while the job waits for the per-minute step budget; on a job on hold what it waits for ('timer', 'approval', 'resume'). */
     waiting: string | null;
+    /** A job on hold for an approval: who decides (the server's await_approval step). Display only. */
+    waitingFor?: WaitingFor;
 }
+
+/** Who decides the approval a job on hold waits for. */
+export type WaitingFor =
+    | { kind: 'user' | 'group'; name: string | null }
+    | { kind: 'panel' | 'stages'; count: number }
+    | { kind: 'owner' }
+    | { kind: string };
 
 /** A deferred toast or refresh the job recorded; the browser replays it at the end. */
 export interface JobEffect {

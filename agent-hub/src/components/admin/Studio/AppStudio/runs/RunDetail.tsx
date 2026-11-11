@@ -3,6 +3,7 @@ import useTranslation from '@/hooks/useTranslation';
 import type { RunsApi, RunStep, RunSummary } from './runsApi';
 import { useCancelRun, useRunDetail } from './runsApi';
 import toast from '@/components/shared/Toast';
+import RunWaitingLine from './RunWaitingLine';
 import { TONE_CLASS, actorText, formatCost, formatDuration, formatTokens, originText, statusText, statusTone, stepLabel } from './runsModel';
 
 /**
@@ -47,6 +48,7 @@ export default function RunDetail({ api, appId, runId, onBack, onOpenLogic }: {
                     {run.error}{run.errorCode ? ` (${run.errorCode})` : ''}{run.errorStep?.path ? ` · ${run.errorStep.path}` : ''}
                 </p>
             ) : null}
+            {run.status === 'paused' ? <RunWaitingLine waiting={run.waiting} /> : null}
             {run.ai.calls ? (
                 <p className="text-[var(--text-secondary)]">
                     {t('studio_apps_runs.detail.ai_total', '{calls} AI call(s), {tokens} tokens, {cost} (estimate)', {

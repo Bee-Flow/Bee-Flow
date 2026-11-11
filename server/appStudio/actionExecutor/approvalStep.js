@@ -26,12 +26,9 @@ const APP_APPROVAL_PENDING_CAP = 200;
 const APP_APPROVAL_MAX_ATTACHMENTS = 5;
 
 /**
- * @param {AppRef} app
- * @param {unknown} model
- * @param {any} step
- * @param {any} ctx
- * @param {{ stepId?: string | null }} [opts]  `stepId`: what the request is marked with (await_approval's
- *   marker, appStudio/approvalWaits.mts); a plain request_approval has none
+ * `opts.stepId`: what the request is marked with (await_approval's marker,
+ * appStudio/approvalWaits.mts); a plain request_approval has none.
+ * @param {{ stepId?: string | null }} [opts]
  */
 async function requestApprovalStep(app, model, step, ctx, opts = {}) {
     const automationStore = require('../../stores/automationStore');

@@ -4,6 +4,7 @@ import toast from '@/components/shared/Toast';
 import useTranslation from '@/hooks/useTranslation';
 import { cancelJob } from '@/api/actionHttp';
 import type { ActionEntry, ActionState } from './actionRunner/core';
+import { approvalWaitLine } from './approvalWaitLine';
 
 type Translate = ReturnType<typeof useTranslation>['t'];
 
@@ -17,8 +18,8 @@ async function requestCancel(appId: string, jobId: string): Promise<boolean> {
 }
 
 /** The line of a job on hold: what it waits for, or until when. */
-function waitingLine(waiting: NonNullable<ActionEntry['waiting']>, t: Translate, locale: string): string {
-    if (waiting.kind === 'approval') return t('studio_apps_durable.tray.waiting_approval', 'Waiting for an approval');
+function waitingLine(entry: ActionEntry, waiting: NonNullable<ActionEntry['waiting']>, t: Translate, locale: string): string {
+    if (waiting.kind === 'approval') return approvalWaitLine(entry.progress?.waitingFor, t) ?? t('studio_apps_durable.tray.waiting_approval', 'Waiting for an approval');
     const at = waiting.wakeAt ? new Date(waiting.wakeAt) : null;
     if (at && !Number.isNaN(at.getTime()) && !waiting.kind) {
         return t('studio_apps_durable.tray.waiting_until', 'Waiting until {time}', { time: at.toLocaleString(locale, { dateStyle: 'medium', timeStyle: 'short' }) });
@@ -42,7 +43,7 @@ function rowText(entry: ActionEntry, stopping: boolean, t: Translate, locale: st
     if (entry.cancelled) return t('studio_apps_durable.tray.cancelled', 'Cancelled');
     if (entry.status !== 'running') return t('studio_apps_runtime.background.finished', 'Finished');
     if (stopping) return t('studio_apps_durable.tray.cancelling', 'Stopping…');
-    return entry.waiting ? waitingLine(entry.waiting, t, locale) : progressLine(entry, t);
+    return entry.waiting ? waitingLine(entry, entry.waiting, t, locale) : progressLine(entry, t);
 }
 
 function RowIcon({ entry }: { entry: ActionEntry }) {

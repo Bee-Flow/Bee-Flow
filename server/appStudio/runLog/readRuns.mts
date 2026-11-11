@@ -23,6 +23,8 @@ export type RunSummary = {
     error: string | null; errorCode: string | null; errorStep: Record<string, unknown> | null;
     ai: { calls: number; promptTokens: number; completionTokens: number; costByCurrency: Record<string, number> };
     actor: Actor;
+    /** A run on hold only (runLogRows.waitingOf). */
+    waiting?: RunListRow['waiting'];
 };
 
 export type StepView = {
@@ -50,6 +52,7 @@ export function toRunSummary(row: RunListRow, ownerId: string, callerId: string)
         truncated: row.truncated, tracked: row.tracked, error: runLogError(row.error), errorCode: row.errorCode, errorStep: row.errorStep,
         ai: { calls: row.aiCalls, promptTokens: row.promptTokens, completionTokens: row.completionTokens, costByCurrency: row.costByCurrency },
         actor: actorOf(row, ownerId, callerId),
+        ...(row.waiting ? { waiting: row.waiting } : {}),
     };
 }
 

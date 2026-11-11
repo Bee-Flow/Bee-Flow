@@ -56,6 +56,16 @@ describe('BackgroundRunTray', () => {
         expect(screen.queryByRole('button', { name: 'Cancel' })).toBeNull();
     });
 
+    it('a job on hold for an approval says who decides', () => {
+        const onHold = (jobId: string, waitingFor: object) => ({ status: 'running' as const, result: undefined, error: null, jobId, progress: progress({ waiting: 'approval', waitingFor }), waiting: { kind: 'approval', wakeAt: null } });
+        render(<BackgroundRunTray actionState={{
+            a: onHold('j1', { kind: 'group', name: 'Finance' }), b: onHold('j2', { kind: 'panel', count: 3 }), c: onHold('j3', { kind: 'owner' }),
+        }} />);
+        expect(screen.getByText('Waiting for approval by Finance')).toBeTruthy();
+        expect(screen.getByText('Waiting for approval by 3 approvers')).toBeTruthy();
+        expect(screen.getByText('Waiting for approval by the app owner')).toBeTruthy();
+    });
+
     it('Cancel asks the server to stop the job and shows that it is stopping; a finished job has no Cancel', async () => {
         const sendCancel = vi.fn(async () => true);
         const state: ActionState = {

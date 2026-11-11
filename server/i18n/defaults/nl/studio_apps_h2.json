@@ -1,0 +1,26 @@
+{
+  "translations": {
+    "studio_apps_h2.await_approval.blurb": "Vraag om goedkeuring en ga verder met het besluit. Werkt alleen in een actie die op de server draait.",
+    "studio_apps_h2.await_approval.field_timeout": "Verzoek sluiten na (uren)",
+    "studio_apps_h2.await_approval.hint_result_var": "Krijgt het besluit: vars.<naam>.decision is approved, rejected, expired of cancelled; vars.<naam>.answers bevat de antwoorden.",
+    "studio_apps_h2.await_approval.hint_timeout": "Daarna gaat de stap verder met besluit \"expired\". Leeg: wachten tot iemand beslist.",
+    "studio_apps_h2.await_approval.label": "Om goedkeuring vragen en wachten",
+    "studio_apps_h2.runs.approval": "Wacht op een goedkeuring",
+    "studio_apps_h2.runs.approval_closes": "{who}; het verzoek sluit {time}",
+    "studio_apps_h2.runs.open": "Wacht tot het wordt voortgezet",
+    "studio_apps_h2.runs.until": "Wacht tot {time}",
+    "studio_apps_h2.tray.by_a_group": "Wacht op goedkeuring door de gevraagde groep",
+    "studio_apps_h2.tray.by_group": "Wacht op goedkeuring door {name}",
+    "studio_apps_h2.tray.by_owner": "Wacht op goedkeuring door de eigenaar van de app",
+    "studio_apps_h2.tray.by_panel": "Wacht op goedkeuring door {count} beoordelaars",
+    "studio_apps_h2.tray.by_person": "Wacht op goedkeuring door {name}",
+    "studio_apps_h2.tray.by_someone": "Wacht op goedkeuring door de gevraagde persoon",
+    "studio_apps_h2.tray.by_stages": "Wacht op goedkeuring in {count} stappen",
+    "studio_apps_h2.wait.blurb": "Pauzeer vóór de volgende stap: een paar seconden in de browser, of uren en dagen als de actie op de server draait.",
+    "studio_apps_h2.wait.field_until": "Wachten tot",
+    "studio_apps_h2.wait.hint_seconds": "In de browser hoogstens 30. Als de actie op de server draait, zetten langere wachttijden de run in de wacht.",
+    "studio_apps_h2.wait.hint_until": "Een datum en tijd in plaats van seconden. Alleen als de actie op de server draait.",
+    "studio_apps_h2.wait.runtime_too_long": "Deze wachttijd is langer dan een pagina kan vasthouden. Er is een actie nodig die op de server draait."
+  },
+  "sameAsEnglish": []
+}

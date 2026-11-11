@@ -6,6 +6,7 @@
 
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { API_BASE, request } from '@/api/mutate';
+import type { WaitingFor } from '@/api/actionHttp';
 
 type RunStatus = 'running' | 'paused' | 'success' | 'error' | 'interrupted' | 'cancelled' | 'refused';
 type RunOrigin = 'click' | 'public' | 'mcp' | 'test' | 'background' | 'mailbox_hook';
@@ -46,7 +47,12 @@ export interface RunSummary {
     errorStep: { path?: string; kind?: string; stepIndex?: number | null; actionId?: string | null } | null;
     ai: RunAi;
     actor: RunActor;
+    /** A run on hold only: what it waits for. */
+    waiting?: RunWaiting;
 }
+
+/** What a run on hold waits for, as the run log reads it from the server. */
+export interface RunWaiting { kind: string | null; wakeAt: string | null; waitingFor: WaitingFor | null }
 
 interface StepAi {
     calls: number;
