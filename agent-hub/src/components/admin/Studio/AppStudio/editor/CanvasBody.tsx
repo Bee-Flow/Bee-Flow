@@ -283,7 +283,8 @@ export function CanvasBody({
     }, [streamLock, onCommit, dispatch]);
 
     return (
-        <div className="relative flex-1 min-h-0">
+        // While the app's own stylesheet is applied (AppCustomCss marks its root), the canvas is the box it is cut off at, as the app shell is in the run view.
+        <div className="relative flex-1 min-h-0 has-[[data-app-css-root]]:overflow-clip">
             {mode === 'edit' ? (
                 <div
                     ref={surfaceRef}
