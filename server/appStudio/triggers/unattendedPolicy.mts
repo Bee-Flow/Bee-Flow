@@ -10,11 +10,12 @@
  *            that reach people in the owner's name (send_email, run_automation,
  *            request_approval). Each acts exactly as when the owner clicks: the same row rules
  *            for role `owner`, the same budgets and daily mail limit, the same outbound checks.
+ *            Also `wait` and `await_approval`: a run on the server holds the wait (a long one
+ *            puts the run on hold) and waits for the decision; it goes on as the owner again.
  *
  *   MAY NOT  - anything that needs a page: navigate, open_url, the modal steps, reset_form,
  *              download_file, confirm (also as a first step: nobody answers), toast and refresh
- *              (nobody sees them), the form, focus, scroll, clipboard and `set_ui` steps, `back`,
- *              a browser `wait`;
+ *              (nobody sees them), the form, focus, scroll, clipboard and `set_ui` steps, `back`;
  *            - ai_browse (it streams into a visitor's page), copy_document (it needs a viewer's
  *              document pool), kb_log_query and kb_log_review (the query log holds what people
  *              asked: read only with a person present);

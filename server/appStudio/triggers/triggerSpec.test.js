@@ -139,6 +139,8 @@ const RUNS = [
     'set_variable', 'condition', 'switch', 'loop', 'call_action', 'create_record', 'update_record', 'delete_record', 'transaction',
     'ai_extract', 'ai_generate', 'kb_query', 'dataset_query', 'generate_file', 'fill_document', 'generate_presentation', 'redact_pdf', 'file_intake',
     'send_email', 'run_automation', 'request_approval',
+    // A run on the server holds a wait (durably when long) and waits for an approval: both run unattended.
+    'wait', 'await_approval',
     'break', 'code', 'continue', 'parallel', 'raise_error', 'return', 'try', 'while',
 ];
 
@@ -150,9 +152,10 @@ test('contract: every step kind answers for an unattended run, and the answers a
 
 test('contract: nothing that needs a page or a visitor runs unattended, and an undeclared kind never does', () => {
     for (const [kind, meta] of Object.entries(STEP_META)) {
-        if (meta.side === 'client' && kind !== 'set_variable') assert.equal(runsUnattended(kind), false, kind);
+        // set_variable writes a run variable; a wait is held by the server in a run on the server.
+        if (meta.side === 'client' && kind !== 'set_variable' && kind !== 'wait') assert.equal(runsUnattended(kind), false, kind);
     }
-    for (const kind of ['confirm', 'toast', 'refresh', 'navigate', 'ai_browse', 'copy_document', 'kb_log_query', 'kb_log_review', 'http_request', 'wait', 'made_up', undefined]) {
+    for (const kind of ['confirm', 'toast', 'refresh', 'navigate', 'ai_browse', 'copy_document', 'kb_log_query', 'kb_log_review', 'http_request', 'made_up', undefined]) {
         assert.equal(runsUnattended(kind), false, String(kind));
     }
     assert.equal(runsUnattended('send_email'), true);
