@@ -52,6 +52,9 @@ const {
 // Best-effort bookkeeping after a committed write (bookkeeping.mts).
 const { bumpVersion, bumpCount, bumpDatatable } = require('./bookkeeping.mts');
 const { applyFieldRules, applyFieldRulesToRows } = require('../../core/dataEngine/fieldRules.mts');
+// The links of a many relation and the delete rules of a relation (core/dataEngine/dataModel/linkedFields.js).
+const { splitLinks, linkStatements } = require('./linkWrites.mts');
+const { hasDeleteRules, eraseWithRules } = require('./cascadeDelete.mts');
 
 // ── Record writes ───────────────────────────────────────────────────
 
@@ -106,11 +109,12 @@ async function writeRecord(app, model, table, values, { viewer, recordId, expect
         rlsGateway.assertCanWrite(table, role, 'create');
         await assertRowQuota(app, table.key);  // 409 at per-table/app row caps
         await assertDbByteQuota(app);          // 409 at the DB byte ceiling
-        const { sql, params, id } = queryCompiler.compileInsert(table, values, {
+        const split = splitLinks(table, values); // the links of a many relation go to its junction
+        const { sql, params, id } = queryCompiler.compileInsert(table, split.values, {
             createdBy: v.id ?? null,
             orgId: app.organizationId || null,
         });
-        await studioAppDbStore.exec(app.userId, app.id, sql, params);
+        await execWithLinks(app, { model, table, viewer: v, recordId: id, update: false }, { sql, params }, split.links);
         await bumpVersion(app, table.key);
         await bumpCount(app, table.key, 1);
         return { id, created: true };
@@ -122,11 +126,33 @@ async function writeRecord(app, model, table, values, { viewer, recordId, expect
     const accessFilter = rlsGateway.compileAccessFilter(table, role, v, 'update');
     // expectedUpdatedAt (optional) makes this a compare-and-set: see
     // queryCompiler.compileUpdate. Only the record API passes it.
-    const { sql, params } = queryCompiler.compileUpdate(table, recordId, values, accessFilter, { expectedUpdatedAt });
-    const res = await studioAppDbStore.exec(app.userId, app.id, sql, params);
+    const split = splitLinks(table, values);
+    const { sql, params } = queryCompiler.compileUpdate(table, recordId, split.values, accessFilter, { expectedUpdatedAt });
+    const res = await execWithLinks(app, { model, table, viewer: v, recordId, update: true }, { sql, params }, split.links);
     const changes = (res && res.changes) ? res.changes : 0;
     if (changes > 0) await bumpVersion(app, table.key);
     return { id: recordId, updated: changes > 0, changes };
+}
+
+/**
+ * Run one row write; with links of a many relation, the row and its links in ONE transaction.
+ * The row goes first: an update must change it (expectChanges), so a row outside the writer's
+ * update rule changes no link either. Answers like exec: `{ changes }`.
+ * @param {AppRef} app
+ * @param {{ model: import('./shared').DataModel, table: import('./shared').DataTable, viewer: Record<string, any>, recordId: string, update: boolean }} target
+ * @param {{ sql: string, params: unknown[] }} statement
+ * @param {import('./linkWrites.mts').Link[]} links
+ */
+async function execWithLinks(app, target, statement, links) {
+    if (!links.length) return studioAppDbStore.exec(app.userId, app.id, statement.sql, statement.params);
+    const linkSql = await linkStatements(app, target.model, target.table, target.viewer, target.recordId, links);
+    try {
+        await studioAppDbStore.batch(app.userId, app.id, [{ ...statement, ...(target.update ? { expectChanges: true } : {}) }, ...linkSql]);
+        return { changes: 1 };
+    } catch (e) {
+        if (target.update && e && /** @type {{ code?: unknown }} */ (e).code === 'batch_no_rows') return { changes: 0 };
+        throw e;
+    }
 }
 
 /**
@@ -160,7 +186,11 @@ async function writeRecordBatch(app, model, table, rows, { viewer } = {}) {
     await assertRowQuota(app, table.key);
     await assertDbByteQuota(app);
 
-    const { statements, ids } = compileInserts(table, rows, { createdBy: v.id ?? null, orgId: app.organizationId || null });
+    const parts = rows.map((r) => splitLinks(table, r));
+    const { statements, ids } = compileInserts(table, parts.map((p) => p.values), { createdBy: v.id ?? null, orgId: app.organizationId || null });
+    for (const [i, p] of parts.entries()) {
+        if (p.links.length) statements.push(...await linkStatements(app, model, table, v, ids[i], p.links));
+    }
     await studioAppDbStore.batch(app.userId, app.id, statements);
     await bumpVersion(app, table.key);
     await bumpCount(app, table.key, ids.length);
@@ -211,6 +241,11 @@ async function eraseRecord(app, model, table, recordId, { viewer } = {}) {
         return { id: recordId, deleted: changes > 0, changes };
     }
     const v = (viewer && typeof viewer === 'object') ? viewer : {};
+    // Records that point at this one through a relation with onDelete: walked in one transaction.
+    if (hasDeleteRules(model, table)) {
+        const { changes } = await eraseWithRules(app, model, table, recordId, v);
+        return { id: recordId, deleted: changes > 0, changes };
+    }
     const role = v.role ?? null;
     rlsGateway.assertCanWrite(table, role, 'delete'); // 403 if this role may not
     const accessFilter = rlsGateway.compileAccessFilter(table, role, v, 'delete');

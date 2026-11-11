@@ -50,6 +50,8 @@ function coerceModelShape(model) {
             // A stage table's retired columns (retainRetired). Ignored otherwise.
             retired: (Array.isArray(t.retired_fields) ? t.retired_fields : [])
                 .filter(r => isPlainObject(r) && typeof r.id === 'string'),
+            // Declared indexes (migrationLinked.js); a table without them plans as before.
+            indexes: Array.isArray(t.indexes) ? t.indexes.filter(isPlainObject) : [],
         }));
     return { tables };
 }
@@ -59,7 +61,7 @@ module.exports = { isPhysical, coerceModelShape };
 /**
  * A model field as the migration planner reads it.
  * @typedef {{ id: string, key: string, type?: string, unique?: boolean, required?: boolean, default?: unknown,
- *   relation?: { table?: string, fk?: boolean }, computed?: { expr?: string, type?: string, stored?: boolean } }} ModelField
+ *   relation?: { table?: string, fk?: boolean, many?: boolean, onDelete?: string }, computed?: { expr?: string, type?: string, stored?: boolean } }} ModelField
  */
 
 /**
@@ -70,7 +72,7 @@ module.exports = { isPhysical, coerceModelShape };
  */
 
 /**
- * @typedef {{ id: string, key: string, source: unknown, fields: ModelField[], retired: RetiredEntry[] }} ModelTable
+ * @typedef {{ id: string, key: string, source: unknown, fields: ModelField[], retired: RetiredEntry[], indexes?: Array<{ fields?: unknown[] }> }} ModelTable
  * @typedef {{ tables: ModelTable[] }} ModelShape
  */
 

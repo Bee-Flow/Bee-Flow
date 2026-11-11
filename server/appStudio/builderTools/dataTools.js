@@ -314,9 +314,9 @@ module.exports = {
 
 /** @typedef {import('../builderTools').ToolResult} ToolResult */
 
-/** @typedef {{ id: string, key: string, name?: string, type: string, required?: boolean, unique?: boolean, subtype?: string, default?: unknown, options?: unknown[], relation?: { table: string, tableId?: string, displayField?: string }, computed?: { expr: string, type?: string, stored?: boolean }, validation?: unknown, dynamicDefault?: unknown, format?: unknown, display?: unknown }} DataField */
+/** @typedef {{ id: string, key: string, name?: string, type: string, required?: boolean, unique?: boolean, subtype?: string, default?: unknown, options?: unknown[], relation?: { table: string, tableId?: string, displayField?: string, many?: unknown, onDelete?: unknown }, computed?: { expr: string, type?: string, stored?: boolean }, validation?: unknown, dynamicDefault?: unknown, format?: unknown, display?: unknown, lookup?: unknown, rollup?: unknown }} DataField */
 
-/** @typedef {{ id: string, key: string, name?: string, icon?: string|null, fields?: DataField[], access?: { default?: string, roles?: Record<string, Record<string, string|boolean>>, rowFilters?: Record<string, string> }, source?: { kind?: string, mode?: string, datatableId?: string } }} DataTable */
+/** @typedef {{ id: string, key: string, name?: string, icon?: string|null, fields?: DataField[], access?: { default?: string, roles?: Record<string, Record<string, string|boolean>>, rowFilters?: Record<string, string> }, source?: { kind?: string, mode?: string, datatableId?: string }, indexes?: unknown }} DataTable */
 
 /** @typedef {{ id: string, name?: string, kind?: string, params?: Array<{ key?: string }>, sync?: import('../connectorSync').SyncBlock }} DataConnector */
 

@@ -74,6 +74,11 @@ const { RELATION_READ_LIMITS, EXPAND_DEFAULT_SUFFIX, SYSTEM_COLUMNS } = nodeRequ
     SYSTEM_COLUMNS: readonly string[];
 };
 
+const { isColumnlessLinkField, isManyRelation } = nodeRequire('./dataModel/linkedFields') as {
+    isColumnlessLinkField(f: unknown): boolean;
+    isManyRelation(f: unknown): boolean;
+};
+
 const { CompileError, qi } = core;
 
 /** How many ids one expansion lookup binds; a page of records is looked up in batches of this size. */
@@ -140,7 +145,7 @@ export function assertRelationFilterCount(count: number): void {
 function isReadableColumn(tableMeta: TableMeta, fm: FieldMap, key: string): boolean {
     if (SYSTEM_COLUMNS.includes(key)) return true;
     const f = fm.get(key);
-    return !!f && !(f.type === 'computed' && !(f.computed && f.computed.stored === true));
+    return !!f && !(f.type === 'computed' && !(f.computed && f.computed.stored === true)) && !isColumnlessLinkField(f);
 }
 
 function pickOf(entry: Entry, target: RelatedTable, targetFm: FieldMap, label: string | null): string[] {
@@ -181,7 +186,8 @@ export function resolveExpand(tableMeta: TableMeta, fm: FieldMap, expand: unknow
         if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw new CompileError('expand entry must be an object');
         const entry = raw as Entry;
         if (entry.expand !== undefined && entry.expand !== null) throw new CompileError('expand goes one relation deep: an entry cannot expand further');
-        core.resolveColumn(tableMeta, entry.field, fm);
+        // A many relation has no column: its list of ids is read from its junction (linkedRead.mts).
+        if (!isManyRelation(fm.get(entry.field as string))) core.resolveColumn(tableMeta, entry.field, fm);
         const target = relatedTarget(fm, entry.field, related, 'expand');
         const targetFm = core.fieldMap(target.tableMeta);
         const display = (fm.get(entry.field as string) as Field).relation?.displayField;
@@ -215,8 +221,12 @@ export function compileExpandLookup(plan: ExpandPlan, ids: unknown[]): { sql: st
     };
 }
 
-/** What the server hands compileRecordList to read through relations and narrow the columns. */
-export type RelationRead = { related?: RelatedTables; expand?: unknown; fields?: unknown };
+/**
+ * What the server hands compileRecordList to read through relations and narrow the columns.
+ * `linked` (linkedRead.mts) is the lookup, rollup and many-relation fields of the table: they
+ * travel on the result, and their relation `columns` are selected when the read names its fields.
+ */
+export type RelationRead = { related?: RelatedTables; expand?: unknown; fields?: unknown; linked?: { columns: string[] } };
 
 /**
  * What `read` adds to a record list: `result` (the expansions to look up after
@@ -226,13 +236,15 @@ export type RelationRead = { related?: RelatedTables; expand?: unknown; fields?:
  * minted from and the relation columns the expansions look up.
  */
 export function recordShape(tableMeta: TableMeta, fm: FieldMap, read: RelationRead, dialect: string): {
-    result: { expand?: ExpandPlan[]; project?: string[] };
+    result: { expand?: ExpandPlan[]; project?: string[]; linked?: unknown };
     select(orderColumns: string[]): string[] | undefined;
 } {
     const expand = resolveExpand(tableMeta, fm, read.expand, read.related, dialect);
     const fields = resolveFields(tableMeta, fm, read.fields);
-    const result: { expand?: ExpandPlan[]; project?: string[] } = {};
+    const result: { expand?: ExpandPlan[]; project?: string[]; linked?: unknown } = {};
     if (expand.length) result.expand = expand;
+    if (read.linked) result.linked = read.linked;
+    const through = [...expand.map((e) => e.field), ...(read.linked ? read.linked.columns : [])].filter((k) => !isManyRelation(fm.get(k)));
     // A listed read-time computed field has no column to select; when the read evaluates it
     // (readTimeComputed) its value is in the row, and the record keeps it.
     if (fields) result.project = [...fields, ...listedComputed(fm, read.fields, fields), ...expand.map((e) => e.as)];
@@ -240,7 +252,7 @@ export function recordShape(tableMeta: TableMeta, fm: FieldMap, read: RelationRe
     return {
         result,
         select: (orderColumns) => (fields
-            ? [qi('id'), ...fields.map(column), ...orderColumns, ...expand.map((e) => column(e.field))]
+            ? [qi('id'), ...fields.map(column), ...orderColumns, ...through.map(column)]
             : undefined),
     };
 }

@@ -52,6 +52,7 @@ const core = nodeRequire('./queryCompilerCore') as {
 };
 const { relationPath, relatedTarget, relationFilterSql, assertRelationFilterCount } = nodeRequire('./queryCompilerRelation.mts') as typeof import('./queryCompilerRelation.mts');
 type RelatedTables = import('./queryCompilerRelation.mts').RelatedTables;
+const { manyFilterSql } = nodeRequire('./queryCompilerMany.mts') as typeof import('./queryCompilerMany.mts');
 const { FILTER_OPS, SYSTEM_COLUMNS } = nodeRequire('./dataModel/vocabulary') as { FILTER_OPS: readonly string[]; SYSTEM_COLUMNS: readonly string[] };
 const { isAnyGroup, isAllGroup, isNotGroup, countFilterLeaves, MAX_FILTER_DEPTH, FIELD_COMPARE_OPS } = nodeRequire('../../shared/expr/filterGroups.mjs') as {
     isAnyGroup(entry: unknown): boolean;
@@ -257,6 +258,8 @@ type TreeCtx = { tableMeta: TableMeta; fm: FieldMap; dialect: string; related?: 
  * an unknown field, as it always was.
  */
 function compileClause(ctx: TreeCtx, entry: unknown, out: Out): void {
+    const many = compileManyClause(ctx, entry);
+    if (many) { out.sql.push(many.sql); out.params.push(...many.params); return; }
     const clause = ctx.related && entry && typeof entry === 'object' && !Array.isArray(entry) ? entry as Clause : null;
     const path = clause ? relationPath(clause.field) : null;
     if (!clause || !path) { compileFilter(ctx.tableMeta, ctx.fm, entry, out, ctx.dialect); return; }
@@ -272,6 +275,19 @@ function compileClause(ctx: TreeCtx, entry: unknown, out: Out): void {
     const built = relationFilterSql({ fkColumn, target }, { sql: inner.sql[0], params: inner.params });
     out.sql.push(built.sql);
     out.params.push(...built.params);
+}
+
+/**
+ * `{ field: <many relation>, op: 'contains' | 'notContains', value: <id> }`: through the junction,
+ * under the related table's access predicate (queryCompilerMany.mts). Null for any other clause.
+ */
+function compileManyClause(ctx: TreeCtx, entry: unknown): { sql: string; params: unknown[] } | null {
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return null;
+    const clause = entry as Clause;
+    if (typeof clause.field !== 'string') return null;
+    const field = ctx.fm.get(clause.field) as Parameters<typeof manyFilterSql>[1];
+    const target = ctx.related && Object.hasOwn(ctx.related, clause.field) ? ctx.related[clause.field] : undefined;
+    return manyFilterSql(ctx.tableMeta, field, clause, target, ctx.dialect);
 }
 
 /** One entry of a filter list or of a group: a group (to MAX_FILTER_DEPTH) or a clause. */

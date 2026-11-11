@@ -26,6 +26,7 @@
 
 import { createRequire } from 'node:module';
 import { applyFieldRules } from '../../core/dataEngine/fieldRules.mts';
+import { hasDeleteRules } from './cascadeDelete.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 
@@ -114,6 +115,10 @@ function tableFor(d: Deps, model: unknown, child: Obj, i: number, kind: string):
     if (!table) return refuse(`${label(i, kind)}: Table not found. Nothing was saved.`, 'transaction_invalid');
     if (d.isDatatableBacked(table)) {
         return refuse(`${label(i, kind)}: a linked table cannot be written in a transaction (it lives in another store, so it cannot be rolled back together). Nothing was saved.`, 'transaction_linked_table');
+    }
+    // A delete that relation onDelete rules follow walks other tables (cascadeDelete.mts): one record at a time, outside a transaction.
+    if (kind === 'delete_record' && hasDeleteRules(model, table)) {
+        return refuse(`${label(i, kind)}: records of this table have linked records that follow a delete rule, so they are deleted one at a time outside a transaction. Nothing was saved.`, 'transaction_invalid');
     }
     return { table };
 }

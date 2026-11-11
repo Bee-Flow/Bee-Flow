@@ -84,6 +84,7 @@ function dataEntry(item: ExtensionItem): string | null {
     const mark = (catalogueMarks().dataMarks[item.owner || ''] as Record<string, Mark> | undefined)?.[item.key || ''];
     if (!mark) return null;
     if (item.owner === 'fieldOptions') return withNote(`field.${item.key}: ${text(mark.shape)}`, text(mark.description));
+    if (item.owner === 'tableOptions') return withNote(`table.${item.key}: ${text(mark.shape)}`, text(mark.description));
     return withNote(`${DATA_LABEL[item.owner || ''] || 'data'} "${item.key}"`, text(mark.description));
 }
 

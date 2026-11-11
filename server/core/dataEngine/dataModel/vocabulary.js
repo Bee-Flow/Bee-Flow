@@ -22,7 +22,7 @@
 const FIELD_TYPES = Object.freeze([
     'text', 'richtext', 'number', 'date', 'datetime', 'bool',
     'select', 'multiselect', 'relation', 'file', 'computed',
-    'autonumber', 'json', 'user',
+    'autonumber', 'json', 'user', 'lookup', 'rollup',
 ]);
 
 /**
@@ -35,10 +35,13 @@ const FIELD_TYPES = Object.freeze([
  *   json        a JSON value, stored as JSON text in both dialects (like multiselect and file).
  *   user        the id of a member of the organisation, stored as text.
  *
- * All three are APP-ONLY: an automation datatable cannot hold them (datatableFields.js
+ *   lookup      a field of the row a relation points at, read under that table's row rules
+ *   rollup      count/sum/min/max/avg over the child rows pointing at this row (linkedFields.js)
+ *
+ * All of them are APP-ONLY: an automation datatable cannot hold them (datatableFields.js
  * DATATABLE_FIELD_TYPES leaves them out, vocabulary.lockstep.test.js pins that).
  */
-const APP_ONLY_FIELD_TYPES = Object.freeze(['relation', 'computed', 'autonumber', 'json', 'user']);
+const APP_ONLY_FIELD_TYPES = Object.freeze(['relation', 'computed', 'autonumber', 'json', 'user', 'lookup', 'rollup']);
 
 /**
  * `field.format` on a text field (optional, a field option marked in vocabularySince.js): what
