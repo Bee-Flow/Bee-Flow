@@ -96,8 +96,8 @@ function tableAt(lines: string[], i: number): { align: Align[] } | null {
 }
 
 function startsBlock(lines: string[], i: number): boolean {
-    const line = lines[i];
     // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- anchored patterns with classes that do not overlap, on one line of text: linear
+    const line = lines[i];
     return HEADING.test(line) || line.startsWith('```') || BULLET.test(line) || NUMBERED.test(line) || isQuoteLine(line) || tableAt(lines, i) !== null;
 }
 
@@ -156,6 +156,7 @@ function readParagraph(lines: string[], from: number): Read {
 
 /** The block that starts at line `i` (a non-blank line) and the line after it. */
 function readBlock(lines: string[], i: number, depth: number): Read {
+        // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- FENCE and HEADING are anchored, with classes that do not overlap, on one line of text: linear
     const line = lines[i];
     if (FENCE.test(line)) return readFence(lines, i);
     const heading = HEADING.exec(line);
