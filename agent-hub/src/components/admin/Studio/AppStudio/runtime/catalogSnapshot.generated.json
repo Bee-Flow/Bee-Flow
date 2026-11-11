@@ -2474,6 +2474,42 @@
                 "range"
             ]
         },
+        "tree": {
+            "label": "Tree",
+            "category": "Data",
+            "defaultProps": {
+                "source": {
+                    "kind": "static",
+                    "value": []
+                },
+                "idKey": "id",
+                "parentKey": "parent",
+                "titleKey": "title",
+                "subtitleKey": null,
+                "icon": null,
+                "maxDepth": 6,
+                "maxNodes": 500,
+                "emptyText": "Nothing to show yet."
+            },
+            "defaultStyle": {
+                "span": 12
+            },
+            "since": 3,
+            "mobile": {
+                "reason": "The phone draws the base list types only; a tree stays in the browser."
+            },
+            "parts": [
+                "root",
+                "item",
+                "row",
+                "toggle",
+                "icon",
+                "title",
+                "subtitle",
+                "group",
+                "more"
+            ]
+        },
         "wizard": {
             "label": "Wizard",
             "category": "Layout",
@@ -2791,6 +2827,11 @@
             "span",
             "size"
         ],
+        "tree": [
+            "span",
+            "size",
+            "height"
+        ],
         "wizard": [
             "span",
             "gap",
@@ -2890,6 +2931,9 @@
         ],
         "input_document": [
             "onChange"
+        ],
+        "tree": [
+            "onRowClick"
         ]
     }
 }

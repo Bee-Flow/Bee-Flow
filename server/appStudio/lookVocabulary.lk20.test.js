@@ -136,3 +136,17 @@ test('a wizard keeps its step bodies, needs version 3 and says when steps and bo
     const short = validateAppDefinition(canon([wizard([box('cmp_box00001')])]));
     assert.ok(codes(short.warnings).includes('wizard.steps_mismatch @ screens[0].sections[0].children[0].props.steps'));
 });
+
+test('a tree reads through an ordinary data binding and is bounded by its limits', () => {
+    const { collectDataBindings } = require('./collectDataBindings');
+    const source = { kind: 'records', tableId: 'tbl_places', limit: 200 };
+    const def = canon([{ id: 'cmp_tree0001', type: 'tree', props: { source, parentKey: 'parent', maxDepth: 4 }, onRowClick: 'act_open0001' }], { act_open0001: { kind: 'toast', message: 'x' } });
+    assert.equal(def.schemaVersion, 3);
+    assert.deepEqual(collectDataBindings(def).map((b) => [b.nodeId, b.prop]), [['cmp_tree0001', 'source']]);
+    assert.deepEqual(validateAppDefinition(def, { strict: false }).errors.filter((f) => !f.code.startsWith('binding.')), []);
+    const tooDeep = validateAppDefinition(canon([{ id: 'cmp_tree0001', type: 'tree', props: { maxDepth: 40, maxNodes: 5000 } }]));
+    assert.deepEqual(codes(tooDeep.errors).sort(), [
+        'prop.range @ screens[0].sections[0].children[0].props.maxDepth',
+        'prop.range @ screens[0].sections[0].children[0].props.maxNodes',
+    ]);
+});
