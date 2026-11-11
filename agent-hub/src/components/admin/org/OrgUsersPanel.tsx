@@ -10,6 +10,7 @@ import useOrgGroups from './useOrgGroups';
 import useOrgInvitations from './useOrgInvitations';
 import useOrgMemberRoles from './useOrgMemberRoles';
 import type { OrgMemberRoles } from './useOrgMemberRoles';
+import { canUserEditRoles, spliceRolePermissions } from './orgUsers/roleEditing';
 import { ALERT_INFO } from '@/components/mcpLibrary/ui';
 import { ORG_ROLES } from '@/config/orgRoles';
 import { useTranslation } from '@/hooks/useTranslation';
@@ -70,17 +71,6 @@ function getUserOrgIds(user: OrgUsersPanelUser | null | undefined, groups: OrgGr
     return orgIds;
 }
 
-/**
- * Splice one saved role back into the mapping so the chips above the editor
- * update without re-fetching the whole panel. The server returns only the
- * editable half; everything else the role carries is untouched by the save.
- */
-function spliceRolePermissions(prev: OrgRolePermissions[], roleId: string, permissions: string[], editable: string[]): OrgRolePermissions[] {
-    return prev.map(r => (r.id === roleId
-        ? { id: r.id, permissions: [...r.permissions.filter(p => !editable.includes(p)), ...permissions] }
-        : r));
-}
-
 function PanelSkeleton() {
     return (
         <div className="max-w-4xl space-y-6">
@@ -134,14 +124,6 @@ function SelfDemotionDialog({ memberRoles }: { memberRoles: OrgMemberRoles }) {
             onCancel={() => setPendingSelfDemotion(null)}
         />
     );
-}
-
-/**
- * Only an org admin may reshape what a role grants — the server refuses the
- * PUT for anyone else, so offering the toggles would be a lie.
- */
-function canUserEditRoles(user: OrgUsersPanelUser | null | undefined): boolean {
-    return !!(user?.isAdmin || ['org_admin', 'admin'].includes(user?.orgRole ?? ''));
 }
 
 const OrgUsersPanel = ({ user, initialSection: _initialSection, basePath = LEGACY_BASE_PATH }: OrgUsersPanelProps) => {

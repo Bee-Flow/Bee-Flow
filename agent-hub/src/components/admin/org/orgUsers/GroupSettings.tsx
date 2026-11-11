@@ -47,7 +47,7 @@ function DescriptionEditor({ group, groupsState }: Omit<GroupSettingsProps, 'cus
     );
 }
 
-function GroupRoleSelect({ group, onChange }: { group: OrgGroupRow; onChange: (groupId: string, role: string) => void }) {
+export function GroupRoleSelect({ group, onChange }: { group: OrgGroupRow; onChange: (groupId: string, role: string) => void }) {
     const { t } = useTranslation();
     return (
         <div className="flex items-center gap-2">
