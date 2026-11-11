@@ -33,6 +33,7 @@ export const TYPE_EVENT_LISTS: Record<string, string[]> = {
     calendar: ['onRowClick'],
     input_document: ['onChange'],
     radio: ['onChange'],
+    rating: ['onChange'],
     slider: ['onChange'],
     switch: ['onChange'],
 };

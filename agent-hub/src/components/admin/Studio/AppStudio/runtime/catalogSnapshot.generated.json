@@ -731,6 +731,7 @@
         "input_multiselect",
         "input_document",
         "radio",
+        "rating",
         "slider",
         "switch"
     ],
@@ -2477,6 +2478,36 @@
                 "error"
             ]
         },
+        "rating": {
+            "label": "Rating",
+            "category": "Input",
+            "isInput": true,
+            "defaultProps": {
+                "name": "rating",
+                "label": "Rating",
+                "max": 5,
+                "required": false,
+                "defaultValue": null,
+                "valueFrom": {
+                    "kind": "static",
+                    "value": null
+                }
+            },
+            "defaultStyle": {
+                "span": 6
+            },
+            "since": 3,
+            "mobile": {
+                "reason": "The phone draws the base inputs only; a rating stays in the browser."
+            },
+            "parts": [
+                "root",
+                "label",
+                "control",
+                "star",
+                "error"
+            ]
+        },
         "slider": {
             "label": "Slider",
             "category": "Input",
@@ -2816,6 +2847,9 @@
         "radio": [
             "span"
         ],
+        "rating": [
+            "span"
+        ],
         "slider": [
             "span"
         ],
@@ -2918,6 +2952,9 @@
             "onChange"
         ],
         "radio": [
+            "onChange"
+        ],
+        "rating": [
             "onChange"
         ],
         "slider": [

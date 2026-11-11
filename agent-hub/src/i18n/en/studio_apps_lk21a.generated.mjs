@@ -10,4 +10,6 @@ export default {
     "studio_apps_lk21a.radio.default_label": "Choice",
     "studio_apps_lk21a.radio.no_options": "No options yet.",
     "studio_apps_lk21a.slider.default_label": "Level",
+    "studio_apps_lk21a.rating.default_label": "Rating",
+    "studio_apps_lk21a.rating.star": "{n} of {max}",
 };
