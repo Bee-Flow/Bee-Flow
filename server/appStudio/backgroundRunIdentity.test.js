@@ -11,7 +11,7 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 
-const { loadResumeContext, actionFingerprint } = require('./backgroundRunIdentity.mts');
+const { loadResumeContext } = require('./backgroundRunIdentity.mts');
 
 const ACTIONS = {
     act_run: { kind: 'sequence', runOn: 'server', steps: [{ kind: 'call_action', actionId: 'act_part' }] },
@@ -20,7 +20,7 @@ const ACTIONS = {
 };
 const DEF = { screens: [], actions: ACTIONS };
 const row = (over = {}) => ({ id: 'sar_1', appId: 'app_1', ownerUserId: 'owner', viewerUserId: 'member', actionId: 'act_run', draft: false, definitionVersion: 3, ...over });
-const meta = (over = {}) => ({ fingerprint: actionFingerprint(ACTIONS, 'act_run'), role: 'agent', activeMs: 0, written: [], ...over });
+const meta = (over = {}) => ({ role: 'agent', activeMs: 0, written: [], ...over });
 
 /** A world in which the run may continue; a test changes one thing. */
 function world(over = {}) {
@@ -86,18 +86,21 @@ test('rule 4: a draft run is the owner\'s; a published run needs the app publish
     assert.equal(await refusal(world({ app: unpublished, role: 'owner' }), row({ viewerUserId: 'owner' }), meta({ role: 'owner' })), 'unpublished');
 });
 
-test('rule 5: the action, or an action it calls, changed; another action may change freely', async () => {
+test('rule 5: an edited action does not end the run; a removed one does; what it calls may change or go', async () => {
     const withActions = (actions) => world({ app: { id: 'app_1', userId: 'owner', isPublished: true, publishedDefinition: { screens: [], actions } } });
-    const changedCallee = { ...ACTIONS, act_part: { kind: 'sequence', steps: [{ kind: 'create_record', tableId: 'other', values: {} }] } };
-    assert.equal(await refusal(withActions(changedCallee)), 'definition_changed');
+    const ok = async (actions, why) => assert.equal((await loadResumeContext(row(), meta(), withActions(actions))).ok, true, why);
+    await ok({ ...ACTIONS, act_run: { kind: 'sequence', runOn: 'server', steps: [{ kind: 'toast', message: 'new' }] } }, 'the action was edited');
+    await ok({ ...ACTIONS, act_part: { kind: 'sequence', steps: [{ kind: 'create_record', tableId: 'other', values: {} }] } }, 'an action it calls was edited');
+    await ok({ act_run: ACTIONS.act_run }, 'an action it calls was removed');
+    await ok({ ...ACTIONS, act_run: { kind: 'sequence', steps: ACTIONS.act_run.steps } }, 'no longer a server run');
+    await ok({ ...ACTIONS, act_run: { kind: 'toast', message: 'x' } }, 'no longer a sequence');
     const { act_run: _gone, ...without } = ACTIONS;
-    assert.equal(await refusal(withActions(without)), 'definition_changed');
-    assert.equal(await refusal(withActions({ ...ACTIONS, act_run: { ...ACTIONS.act_run, runOn: undefined } })), 'definition_changed', 'no longer a server run');
-    const unrelated = await loadResumeContext(row(), meta(), withActions({ ...ACTIONS, act_other: { kind: 'sequence', steps: [] } }));
-    assert.equal(unrelated.ok, true);
-    // The same content with its keys in another order is the same action.
-    const reordered = { act_part: { steps: ACTIONS.act_part.steps, kind: 'sequence' }, act_run: { steps: ACTIONS.act_run.steps, runOn: 'server', kind: 'sequence' } };
-    assert.equal(actionFingerprint(reordered, 'act_run'), actionFingerprint(ACTIONS, 'act_run'));
+    assert.equal(await refusal(withActions(without)), 'action_removed');
+    assert.equal(await refusal(withActions({})), 'action_removed');
+    // The definition handed on is today's: the runner takes the steps from the run's snapshot, everything else from here.
+    const edited = { ...ACTIONS, act_run: { kind: 'sequence', runOn: 'server', steps: [] } };
+    const out = await loadResumeContext(row(), meta(), withActions(edited));
+    assert.equal(out.input.def.actions, edited);
 });
 
 test('rule 6: the role today is the role the run started with, and it still reaches the action', async () => {

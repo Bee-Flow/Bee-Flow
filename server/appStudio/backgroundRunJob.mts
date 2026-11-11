@@ -20,10 +20,9 @@ import { NOOP_RECORDER, startRun, withRunLog } from './runLog/recorder.mts';
 import { ownAction } from './actionCalls.mts';
 import { BACKGROUND_DEFERRED_KINDS, BACKGROUND_REFUSED_KINDS, MAX_DEFERRED_EFFECTS, leadingConfirmCount, limitLabel, progressText, readRunOptions } from './backgroundRunPolicy.mts';
 import type { BackgroundLimits } from './backgroundRunPolicy.mts';
-import { pauseRefusal, pausedCapRefusal, pausedRecord, waitOf, waitingForOf, waitingLabel, wakePlan } from './backgroundRunDurable.mts';
+import { actionsSnapshot, pauseRefusal, pausedCapRefusal, pausedRecord, waitOf, waitingForOf, waitingLabel, wakePlan } from './backgroundRunDurable.mts';
 import { runServerWait } from './durableWait.mts';
 import type { Refusal } from './backgroundRunDurable.mts';
-import { actionFingerprint } from './backgroundRunIdentity.mts';
 import { trimToBytes, writtenVars } from './backgroundRunParts.mts';
 import type { JobView, RunnerDeps, StartInput } from './backgroundRunParts.mts';
 
@@ -55,6 +54,11 @@ export type Job = {
     jobId: string; input: StartInput; action: Obj; deps: RunnerDeps; limits: BackgroundLimits;
     w: WalkState; startedAt: number; deadline: number; leading: number; progressVar: string | null;
     progress: JobView['progress']; lastWrite: number; seenEffects: Set<string>;
+    /**
+     * The actions the run walks: those of the definition it started on, or, for a run that was on
+     * hold, the snapshot its pause kept (a later edit of the app does not reach a run under way).
+     */
+    actions: Obj;
     /** A resumed run: the milliseconds it ran before its pauses, and the variables it wrote before them. */
     activeMs: number; written: string[];
     cancelled: boolean; lastCancelPoll: number;
@@ -109,6 +113,7 @@ export function newJob(jobId: string, input: StartInput, action: Obj, deps: Runn
         progressVar: readRunOptions(action).progressVar,
         progress: { stepIndex: null, kind: null, executed: 0, message: null, loop: null, waiting: null },
         lastWrite: 0, seenEffects: new Set(), activeMs: 0, written: [], cancelled: false, lastCancelPoll: 0,
+        actions: isObject(input.def.actions) ? input.def.actions : {},
     };
 }
 
@@ -211,7 +216,7 @@ function stopReason(job: Job, w: WalkState): string | null {
 
 function hostFor(job: Job): WalkHost {
     const { deps, input } = job;
-    const actions = isObject(input.def.actions) ? input.def.actions : {};
+    const { actions } = job;
     return {
         async decide(step, f) {
             const kind = String(step.kind);
@@ -286,9 +291,10 @@ async function releaseWait(job: Job, request: PauseRequest, reason: string): Pro
     if (waits && request.kind) await waits.release(job.input.app.id, request.kind, request.ref, reason);
 }
 
-/** A step asked to wait: the operator's limits decide whether this run may be put on hold. */
+/** A step asked to wait: the operator's limits decide whether this run may be put on hold. The size limit counts the walk and the actions kept with it. */
 async function acceptPause(job: Job, request: PauseRequest, state: Obj): Promise<Refusal | null> {
-    const refused = pauseRefusal(request, state, job.deps.now(), job.limits);
+    const kept = { walk: state, actions: actionsSnapshot(job.actions, job.input.actionId) };
+    const refused = pauseRefusal(request, kept, job.deps.now(), job.limits);
     if (refused || !job.limits.pausedPerApp) return refused;
     return pausedCapRefusal(await job.deps.store().countPaused(job.input.app.id), job.limits);
 }
@@ -312,10 +318,10 @@ async function holdRun(job: Job, vars: Obj): Promise<string> {
     if (!paused) return 'running';
     const store = deps.store();
     const plan = wakePlan(paused.request, deps.now(), job.limits);
-    const actions = isObject(input.def.actions) ? input.def.actions : {};
-    const run = { fingerprint: actionFingerprint(actions, input.actionId), role: input.role, activeMs: activeMsOf(job), written: Object.keys(vars) };
+    const run = { role: input.role, activeMs: activeMsOf(job), written: Object.keys(vars) };
+    const kept = { walk: paused.state, actions: actionsSnapshot(job.actions, input.actionId) };
     const held = await store.pauseRun(jobId, {
-        state: { ...pausedRecord(paused.state, run, paused.request, plan) }, wakeAt: plan.wakeAt, ...waitOf(paused.request),
+        state: { ...pausedRecord(kept, run, paused.request, plan) }, wakeAt: plan.wakeAt, ...waitOf(paused.request),
         progress: { ...job.progress, executed: w.executed, waiting: waitingLabel(paused.request), ...waitingForOf(paused.request) },
     });
     if (held) return 'paused';

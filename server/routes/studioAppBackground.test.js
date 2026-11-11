@@ -299,11 +299,34 @@ test('a job on hold does not continue after the app was unpublished', async () =
     assert.match(row.error, /no longer published/);
 });
 
-test('a job on hold does not continue after its action was changed and published again', async () => {
+const republished = (actions) => ({ schemaVersion: 2, meta: { name: 'Jobs' }, theme: {}, homeScreenId: 'scr_1', screens: [{ id: 'scr_1', name: 'Home', sections: [] }], actions });
+
+test('a job on hold goes on in the steps it paused in after its action was edited and published again', async () => {
     const store = require('../stores/studioAppStore');
-    const changed = { ...WAITING, steps: [step('tbl_before'), step('tbl_wait'), step('tbl_other')] };
-    const def = { schemaVersion: 2, meta: { name: 'Jobs' }, theme: {}, homeScreenId: 'scr_1', screens: [{ id: 'scr_1', name: 'Home', sections: [] }], actions: { act_wait: changed } };
-    await refusedAfter((app) => store.setStudioAppPublished(app.id, true, OWNER.id, [], ORG, def, 2), 'definition_changed');
+    const { pauseUntil } = require('../appStudio/runPause.mts');
+    waitWith = () => pauseUntil(Date.now() - 1);
+    const app = await makeApp({ act_wait: WAITING });
+    const jobId = await startOnHold(app);
+    // The author rewrites the action while the job waits: other steps, and one fewer.
+    const edited = { kind: 'sequence', runOn: 'server', steps: [step('tbl_new_first'), step('tbl_new_last')] };
+    await store.setStudioAppPublished(app.id, true, OWNER.id, [], ORG, republished({ act_wait: edited }), 2);
+    assert.deepEqual(await BG.wakeDueRuns(), { due: 1, resumed: 1 });
+    await BG._settled(jobId);
+    const done = await job(app, jobId);
+    assert.equal(done.body.status, 'success', done.text);
+    assert.deepEqual(tables(), ['tbl_after'], 'the step after the wait of the action as it was, not a step of the new one');
+    // A run started now walks the new steps.
+    stepCalls.length = 0;
+    waitWith = null;
+    const fresh = await start(app, 'act_wait', {});
+    await BG._settled(fresh.body.jobId);
+    assert.deepEqual(tables(), ['tbl_new_first', 'tbl_new_last']);
+});
+
+test('a job on hold does not continue after its action was removed from the published app', async () => {
+    const store = require('../stores/studioAppStore');
+    const { row } = await refusedAfter((app) => store.setStudioAppPublished(app.id, true, OWNER.id, [], ORG, republished({ act_other: { kind: 'toast', message: 'x' } }), 2), 'action_removed');
+    assert.match(row.error, /removed from the app/);
 });
 
 test('a job on hold does not continue for a member who was removed from the app, or whose account was suspended', async () => {
