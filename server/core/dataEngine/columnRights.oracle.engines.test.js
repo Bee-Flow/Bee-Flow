@@ -248,3 +248,142 @@ for (const [name, make] of APP_ENGINES) {
         assert.match(qc.compileRecordList(table, {}, access.OWNER_ACCESS).sql, /^SELECT \* FROM "staff"/);
     });
 }
+
+// ── Lookup, rollup and many-relation fields (columnRightsLinked.mts) ────────────
+
+const { bootLinkedEngines, useEngineAsAppStore } = require('../../testUtils/linkedEngines.testkit');
+const { LINKED_MODEL, linkedTableOf, linkedSecretsOf, seedLinkedWorld } = require('../../testUtils/columnRightsLinkedWorlds.testkit');
+const { fillLinkedRecords } = require('./relationRead.mts');
+const { eraseRecord, writeRecord } = require('../../appStudio/actionExecutor/records');
+
+const asQuery = (engine) => (sql, params) => engine.all(sql, params).then((rows) => ({ rows }));
+
+/** A record list of the linked worlds, read the way `records` above reads one. */
+async function linkedRecords(engine, role, key, d) {
+    const table = linkedTableOf(key);
+    const query = asQuery(engine);
+    const who = { role, viewer: viewerOf(role), dialect: engine.dialect };
+    const filter = access.compileAccessFilter(table, role, who.viewer, 'read', { dialect: engine.dialect });
+    const compiled = qc.compileRecordList(table, recordListDescriptor(d, { dialect: engine.dialect, readTimeComputed: true }), filter, relationRead(LINKED_MODEL, table, d, who));
+    const { result } = await queryWithComputed(query, compiled);
+    return finishRecords(compiled, result.rows.slice(0, compiled.limit), query);
+}
+
+/** One record by id with its lookups, rollups and many relations (appDataContext.readOne). */
+async function linkedOne(engine, role, key, id) {
+    const table = linkedTableOf(key);
+    const who = { role, viewer: viewerOf(role), dialect: engine.dialect };
+    const filter = access.compileAccessFilter(table, role, who.viewer, 'read', { dialect: engine.dialect });
+    const compiled = qc.compileGetById(table, id, filter, { dialect: engine.dialect, readTimeComputed: true });
+    const { rows } = (await queryWithComputed(asQuery(engine), compiled)).result;
+    return fillLinkedRecords(LINKED_MODEL, table, who, rows, asQuery(engine));
+}
+
+const teams = (d) => (engine, role) => linkedRecords(engine, role, 'teams', d);
+const LINKED_PROBES = [
+    ['teams, a plain list', teams({})],
+    ['one team by id', (e, r) => linkedOne(e, r, 'teams', 't1')],
+    ['people, a plain list', (e, r) => linkedRecords(e, r, 'people', {})],
+    // Lookups.
+    ['fields: a lookup of a hidden field of the related table', teams({ fields: ['name', 'lead_grade'] })],
+    ['fields: a lookup through a hidden relation', teams({ fields: ['name', 'shadow_name'] })],
+    ['fields: a lookup with its own read list', teams({ fields: ['lead_name', 'lead_name_hr'] })],
+    // Rollups, one probe per function and per filter.
+    ...['sum', 'min', 'max', 'avg'].map((fn) => [`rollup: ${fn} of a hidden field`, teams({ fields: ['name', `hours_${fn}`] })]),
+    ['rollup: count under a filter on a hidden field', teams({ fields: ['graded_count'] })],
+    ['rollup: count through a hidden relation', teams({ fields: ['shadow_count'] })],
+    ['rollup: count and sum of visible fields', teams({ fields: ['member_count', 'open_count', 'minutes_sum'] })],
+    // Many relations.
+    ['fields: a hidden many relation', teams({ fields: ['name', 'members', 'crew'] })],
+    ['expand a hidden many relation', teams({ expand: [{ field: 'crew' }] })],
+    ['expand a many relation, picking hidden fields', teams({ expand: [{ field: 'members', pick: ['name', 'grade'] }] })],
+    ['filter: contains on a hidden many relation', teams({ filters: [{ field: 'crew', op: 'contains', value: 'q1' }] })],
+    ['filter: notContains on a hidden many relation', teams({ filters: [{ field: 'crew', op: 'notContains', value: 'q3' }] })],
+    ['filter: contains on a visible many relation', teams({ filters: [{ field: 'members', op: 'contains', value: 'q2' }] })],
+];
+
+async function linkedAnswer(probe, engine, role) {
+    try {
+        return { ok: await probe(engine, role) };
+    } catch (e) {
+        if (typeof e.status !== 'number' && e.name !== 'CompileError') throw e;
+        return { refused: e.message, status: e.status, code: e.code };
+    }
+}
+
+/** Two worlds on both engines: { A: { sqlite, pg }, B: { sqlite, pg } }. */
+async function linkedWorlds(closers) {
+    const worlds = { A: await bootLinkedEngines(LINKED_MODEL, closers), B: await bootLinkedEngines(LINKED_MODEL, closers) };
+    for (const [world, engines] of Object.entries(worlds)) for (const engine of Object.values(engines)) await seedLinkedWorld(engine, world);
+    return worlds;
+}
+
+test('lookup, rollup and many fields: no probe tells a role that cannot read the fields which world it is in', async () => {
+    const closers = [];
+    try {
+        const worlds = await linkedWorlds(closers);
+        const secrets = [...linkedSecretsOf('A'), ...linkedSecretsOf('B')];
+        for (const dialect of ['sqlite', 'pg']) {
+            let told = 0;
+            for (const [what, probe] of LINKED_PROBES) {
+                for (const role of ['staffer', 'public']) {
+                    const a = await linkedAnswer(probe, worlds.A[dialect], role);
+                    const b = await linkedAnswer(probe, worlds.B[dialect], role);
+                    assert.deepStrictEqual(a, b, `${dialect} ${role}: "${what}" answers differently in the two worlds`);
+                    const text = JSON.stringify(a);
+                    for (const secret of secrets) assert.ok(!text.includes(secret), `${dialect} ${role}: "${what}" holds the hidden value ${secret}`);
+                }
+                const hrA = await linkedAnswer(probe, worlds.A[dialect], 'hr');
+                const hrB = await linkedAnswer(probe, worlds.B[dialect], 'hr');
+                assert.ok(hrA.ok && hrB.ok, `${dialect} hr: "${what}" is a read hr can make (${hrA.refused || hrB.refused})`);
+                if (JSON.stringify(hrA) !== JSON.stringify(hrB)) told += 1;
+            }
+            // Only the probes over visible values alone agree for hr (a lookup's own read list, the visible rollups and many relation).
+            assert.ok(told >= LINKED_PROBES.length - 3, `${dialect}: only ${told} of ${LINKED_PROBES.length} probes split the worlds for hr`);
+
+            // A delete that would empty a relation the role may not write is refused alike in both worlds, before anything changes.
+            const refusals = [];
+            for (const world of ['A', 'B']) {
+                const restore = useEngineAsAppStore(worlds[world][dialect]);
+                try {
+                    refusals.push(await linkedAnswer(() => eraseRecord({ id: 'app1', userId: 'owner1' }, LINKED_MODEL, linkedTableOf('teams'), 't1', { viewer: viewerOf('staffer') }), null, 'staffer'));
+                } finally { restore(); }
+            }
+            assert.deepStrictEqual(refusals[0], refusals[1], `${dialect}: the refusal is the same in both worlds`);
+            assert.deepStrictEqual(refusals[0], { refused: 'This record has linked records in "People" whose link to it you may not change.', status: 403, code: 'cascade_forbidden' });
+        }
+    } finally {
+        for (const close of closers) await close();
+    }
+});
+
+test('lookup, rollup and many fields: what a restricted role does get', async () => {
+    const closers = [];
+    try {
+        const { A } = await linkedWorlds(closers);
+        for (const engine of Object.values(A)) {
+            const [t1] = (await linkedRecords(engine, 'staffer', 'teams', {})).filter((r) => r.id === 't1');
+            for (const gone of ['shadow_lead', 'shadow_name', 'lead_name_hr', 'crew', 'crew_record']) assert.ok(!(gone in t1), `${engine.dialect}: ${gone} is left out`);
+            assert.deepStrictEqual(
+                [t1.lead_name, t1.lead_grade, t1.member_count, t1.open_count, t1.minutes_sum, t1.graded_count, t1.shadow_count, t1.hours_sum, t1.hours_avg, t1.members],
+                ['Ada', null, 2, 1, 30, null, null, null, null, ['q1', 'q2']],
+                `${engine.dialect}: visible rollups count, hidden ones read null`,
+            );
+            const [full] = (await linkedRecords(engine, 'hr', 'teams', {})).filter((r) => r.id === 't1');
+            assert.deepStrictEqual([full.lead_grade, full.shadow_name, full.graded_count, full.shadow_count, full.hours_sum, full.crew], ['grade-amber', 'Bram', 1, 2, 14603, ['q1', 'q2']], `${engine.dialect}: hr reads them all`);
+            const refused = await linkedAnswer(teams({ filters: [{ field: 'crew', op: 'contains', value: 'q1' }] }), engine, 'staffer');
+            assert.deepStrictEqual(refused, { refused: 'unknown field: crew', status: 422, code: undefined }, `${engine.dialect}: refused like any hidden field`);
+            // Writing a many relation the role may not write is refused by the gate every field passes.
+            const restore = useEngineAsAppStore(engine);
+            try {
+                const write = (values) => writeRecord({ id: 'app1', userId: 'owner1' }, LINKED_MODEL, linkedTableOf('teams'), values, { viewer: viewerOf('staffer'), recordId: 't1' });
+                await assert.rejects(write({ crew: ['q3'] }), { status: 403, code: 'field_not_writable' }, engine.dialect);
+                assert.equal((await write({ members: ['q3'] })).changes, 1, `${engine.dialect}: a many relation the role may write`);
+                const [after] = (await linkedRecords(engine, 'hr', 'teams', {})).filter((r) => r.id === 't1');
+                assert.deepStrictEqual([after.members, after.crew], [['q3'], ['q1', 'q2']], `${engine.dialect}: the hidden list is untouched`);
+            } finally { restore(); }
+        }
+    } finally {
+        for (const close of closers) await close();
+    }
+});

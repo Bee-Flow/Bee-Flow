@@ -11,6 +11,8 @@
  * to update (setNull) or delete (cascade) the child table, and every child row must be inside
  * that role's update / delete row rule. One child outside it refuses the whole delete (403
  * cascade_forbidden): nothing is half-deleted, and no row the person may not change is changed.
+ * A setNull also needs the right to write that relation field (column rights, field.access);
+ * a relation with a rule cannot be hidden from a role (columnRights.tableColumnRightsFindings).
  * The walk is bounded: at most STUDIO_APP_CASCADE_MAX_ROWS rows (default 500, 0 = no limit) and
  * MAX_CASCADE_DEPTH relations deep, both refused before anything is written (422).
  *
@@ -46,6 +48,7 @@ const rls = nodeRequire('../rlsGateway') as {
     compileAccessFilter(table: Table, role: unknown, viewer: unknown, action: string): { where: string; params: unknown[] };
 };
 const { qi } = nodeRequire('../../core/dataEngine/queryCompilerCore') as { qi(name: string): string };
+const { canWriteField } = nodeRequire('../../core/dataEngine/columnRights.mts') as { canWriteField(table: Table, role: unknown, key: string): boolean };
 const { HttpError } = nodeRequire('../../core/http/errors') as { HttpError: new (status: number, code: string, message: string) => Error };
 const { bumpVersion, bumpCount } = nodeRequire('./bookkeeping.mts') as {
     bumpVersion(app: App, key: string): Promise<void>;
@@ -122,6 +125,10 @@ async function childrenOf(w: Walk, rule: Rule, ids: string[]): Promise<string[]>
     if (w.total > w.max) throw new HttpError(422, 'cascade_too_large', `Deleting this record would change more than ${w.max} linked records.`);
     const action = rule.rule === 'setNull' ? 'update' : 'delete';
     rls.assertCanWrite(rule.child, w.role, action);
+    // Emptying the relation is a write of that field: a role that may not write it (column rights) is refused alike.
+    if (rule.rule === 'setNull' && !canWriteField(rule.child, w.role, rule.fk)) {
+        throw new HttpError(403, 'cascade_forbidden', `This record has linked records in "${label(rule.child)}" whose link to it you may not change.`);
+    }
     const allowed = await idsWhere(w, rule.child, 'id', kids, rls.compileAccessFilter(rule.child, w.role, w.viewer, action));
     if (allowed.length !== kids.length) {
         throw new HttpError(403, 'cascade_forbidden', `This record has linked records in "${label(rule.child)}" you may not ${action === 'update' ? 'change' : 'delete'}.`);

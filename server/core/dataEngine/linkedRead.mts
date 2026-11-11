@@ -13,6 +13,10 @@
  *   many     the ids of a many relation, from its junction, each to a row the viewer may read
  *            (queryCompilerMany.mts). Always a list.
  *
+ * Column rights (columnRightsLinked.mts) hold for all three: a field the role may not read is
+ * left out, a lookup of a field the role may not read on the related table reads null, and a
+ * rollup that would read such a field of the child table is not computed (null).
+ *
  * linkedReadPlan resolves the fields and the access predicates once (undefined for a table
  * without such a field, so its reads run exactly as before); fillLinked runs the queries.
  * relationRead.mts calls both, so every record read path that expands also fills these.
@@ -58,6 +62,7 @@ const core = nodeRequire('./queryCompilerCore') as {
 };
 const { isManyRelation } = nodeRequire('./dataModel/linkedFields') as { isManyRelation(f: unknown): boolean };
 const { resolveDialect } = nodeRequire('./engineFlag') as { resolveDialect(o: { dialect?: string }): string };
+const linkedRights = nodeRequire('./columnRightsLinked.mts') as typeof import('./columnRightsLinked.mts');
 
 /** The predicate aggregateRelated hands over for a table the role may not read. */
 const NO_ROWS = '1=0';
@@ -95,9 +100,12 @@ function lookupGroups(model: unknown, table: Table, fields: Field[], who: Who): 
     const groups: LookupGroup[] = [];
     for (const key of keys) {
         if (!Object.hasOwn(related, key)) continue;
+        // A field the role may not read on the related table is not looked up: it reads null.
+        const hidden = linkedRights.targetHidden(related[key]);
         const picks = specs.filter((f) => (f.lookup as Record<string, string>).relation === key)
-            .map((f) => ({ key: f.key as string, field: (f.lookup as Record<string, string>).field }));
-        groups.push({ relation: key, target: related[key], picks });
+            .map((f) => ({ key: f.key as string, field: (f.lookup as Record<string, string>).field }))
+            .filter((p) => !hidden.has(p.field));
+        if (picks.length) groups.push({ relation: key, target: related[key], picks });
     }
     return groups;
 }
@@ -111,8 +119,9 @@ function lookupGroups(model: unknown, table: Table, fields: Field[], who: Who): 
 export function linkedReadPlan(model: unknown, table: Table, who: Who, wanted: string[] | null = null): LinkedPlan | undefined {
     if (!model || !table || (table.source !== undefined && table.source !== null)) return undefined;
     const dialect = resolveDialect({ dialect: who.dialect });
+    const own = linkedRights.ownHidden(table, who.role);
     const fields = (Array.isArray(table.fields) ? table.fields : [])
-        .filter((f) => f && typeof f.key === 'string' && (!wanted || wanted.includes(f.key)));
+        .filter((f) => f && typeof f.key === 'string' && !own.has(f.key) && (!wanted || wanted.includes(f.key)));
     const lookups = lookupGroups(model, table, fields, who);
     const rollups: Rollup[] = [];
     for (const f of fields) {
@@ -120,11 +129,14 @@ export function linkedReadPlan(model: unknown, table: Table, who: Who, wanted: s
         const found = rollupChild(model, table, f.rollup);
         if (!found) continue;
         const spec = f.rollup;
-        rollups.push({ key: f.key as string, fn: String(spec.fn), child: childTarget(found.child, who, dialect), fk: found.fk, field: str(spec.field), filter: Array.isArray(spec.filter) ? spec.filter : [] });
+        const child = childTarget(found.child, who, dialect);
+        if (linkedRights.rollupReadsHidden(linkedRights.targetHidden(child), spec)) continue; // reads null for this role
+        rollups.push({ key: f.key as string, fn: String(spec.fn), child, fk: found.fk, field: str(spec.field), filter: Array.isArray(spec.filter) ? spec.filter : [] });
     }
     const manyFields = fields.filter((f) => isManyRelation(f));
     const related = manyFields.length ? relatedTablesFor(model, table, manyFields.map((f) => f.key as string), who) : {};
     const many = manyFields.filter((f) => Object.hasOwn(related, f.key as string)).map((f) => ({ key: f.key as string, field: f, target: related[f.key as string] }));
+    for (const m of many) linkedRights.targetHidden(m.target); // the related table's rights resolved, as for every read
     const linked = fields.filter((f) => (f.type === 'lookup' || f.type === 'rollup' || isManyRelation(f))).map((f) => f.key as string);
     if (!linked.length) return undefined;
     // A field the model does not resolve (a relation to a linked Studio table) reads null.

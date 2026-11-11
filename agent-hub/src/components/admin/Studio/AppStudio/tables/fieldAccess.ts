@@ -48,9 +48,12 @@ export function withRole(field: ModelField, key: AccessKey, role: string, on: bo
     return withAccessList(field, key, on ? [...current, role] : current.filter((r) => r !== role));
 }
 
+/** Field types no person writes (the server computes or reads them). */
+const NEVER_WRITTEN: readonly string[] = ['computed', 'autonumber', 'lookup', 'rollup'];
+
 /** A field that no person writes has no write list. */
 export function takesWriteList(field: ModelField): boolean {
-    return field.type !== 'computed' && field.type !== 'autonumber';
+    return !NEVER_WRITTEN.includes(field.type ?? '');
 }
 
 /** After a type change: a field that no person writes loses its write list (the server refuses one there). */

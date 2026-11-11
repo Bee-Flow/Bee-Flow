@@ -142,3 +142,26 @@ test('save: what the table as a whole may not combine with column rights', () =>
     assert.deepEqual(findings(unknownRole, [{ key: 'admin' }]).warnings, ['tables[0] field "a" names the role "ghost", which this app does not have']);
     assert.deepEqual(findings(unknownRole, undefined).warnings, [], 'a model without a roles list is not asked');
 });
+
+test('lookup, rollup and many fields: hidden through their relation, never written, and no read list on a delete rule', () => {
+    const LINKED = table([
+        field('owner_ref', { type: 'relation', relation: { table: 'tbl_people' }, access: { read: ['admin'] } }),
+        field('open_ref', { type: 'relation', relation: { table: 'tbl_people' } }),
+        field('owner_name', { type: 'lookup', lookup: { relation: 'owner_ref', field: 'name' } }),
+        field('open_name', { type: 'lookup', lookup: { relation: 'open_ref', field: 'name' } }),
+        field('shout', { type: 'computed', computed: { expr: 'upper(owner_name)' } }),
+        field('tags', { type: 'relation', relation: { table: 'tbl_tags', many: true }, access: { read: ['admin'] } }),
+        field('total', { type: 'rollup', rollup: { table: 'tbl_kids', relation: 'parent', fn: 'count' } }),
+    ]);
+    assert.deepEqual([...rights.hiddenFields(LINKED, 'member')].sort(), ['owner_name', 'owner_ref', 'shout', 'tags'], 'a lookup through a hidden relation, and what reads it, follow');
+    assert.deepEqual([...rights.hiddenFields(LINKED, 'admin')], []);
+    // A lookup or rollup is never written: the compiler refuses a value for it by its own rule.
+    assert.deepEqual(rights.writableValues(LINKED, 'member', { open_name: 'x', total: 1 }, 'update'), { open_name: 'x', total: 1 });
+    assert.throws(() => rights.writableValues(LINKED, 'member', { tags: ['t1'] }, 'update'), (e) => e.code === 'field_not_writable');
+    assert.deepEqual(rights.writableValues(LINKED, 'member', { tags: [] }, 'create'), {}, 'an empty list on a create is left out');
+    for (const type of ['lookup', 'rollup']) assert.match(rights.fieldAccessErrors(field('f', { type, access: { write: ['a'] } }), 'f')[0], /never written/);
+    // A delete rule on a relation some roles may not read would tell them, by its refusals and changes, which records point where.
+    const ruled = (accessValue) => rights.tableColumnRightsFindings(table([field('parent', { type: 'relation', relation: { table: 'tbl_p', onDelete: 'setNull' }, access: accessValue })]), 'tables[0]', null).errors;
+    assert.match(ruled({ read: ['admin'] })[0], /field "parent" follows a delete rule \(onDelete\), and only some roles may read it/);
+    assert.deepEqual(ruled({ write: ['admin'] }), [], 'a write list alone is fine: the walk refuses a setNull the role may not write');
+});

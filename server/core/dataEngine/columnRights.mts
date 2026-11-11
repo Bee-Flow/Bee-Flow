@@ -14,7 +14,9 @@
  *   - The app OWNER reads and writes every field. Nobody else is implied: the
  *     anonymous `public` role has a field with a list only when the list names it.
  *   - A computed field is hidden from a role when its expression names a field
- *     that is hidden from that role (or cannot be read here to tell).
+ *     that is hidden from that role (or cannot be read here to tell), and a lookup
+ *     field when the relation it reads through is (columnRightsLinked.mts has the
+ *     rest of the rules for lookup, rollup and many-relation fields).
  *
  * ── HOW IT IS ENFORCED ───────────────────────────────────────────────
  *
@@ -65,6 +67,7 @@ const nodeRequire = createRequire(import.meta.url);
 type Field = {
     key?: string; name?: string; type?: string; unique?: boolean; access?: unknown;
     computed?: { stored?: boolean; expr?: unknown } | null;
+    lookup?: { relation?: unknown } | null;
 };
 type TableMeta = { key?: string; fields?: (Field | null)[] | null; source?: unknown };
 type Token = { kind: string; text: string };
@@ -73,6 +76,7 @@ const { SYSTEM_COLUMNS, KEY_RE, PUBLIC_ROLE_KEY } = nodeRequire('./dataModel/voc
     SYSTEM_COLUMNS: readonly string[]; KEY_RE: RegExp; PUBLIC_ROLE_KEY: string;
 };
 const { CompileError } = nodeRequire('./queryCompilerCore') as { CompileError: new (message: string) => Error };
+const { isColumnlessLinkField } = nodeRequire('./dataModel/linkedFields') as { isColumnlessLinkField(f: unknown): boolean };
 const { lexReadTimeExpr } = nodeRequire('./queryCompilerComputed.mts') as {
     lexReadTimeExpr(expr: string): { tokens: Token[] } | { error: string };
 };
@@ -105,6 +109,12 @@ function rolesOf(field: Field, key: 'read' | 'write'): string[] | null {
     const access = isObject(field.access) ? field.access : null;
     const list = access ? access[key] : undefined;
     return Array.isArray(list) ? list.filter((r): r is string => typeof r === 'string') : null;
+}
+
+/** Does this relation field carry an onDelete rule (dataModel/linkedFields.js)? */
+function hasDeleteRule(field: Field): boolean {
+    const relation = (field as { relation?: unknown }).relation;
+    return isObject(relation) && relation.onDelete !== undefined && relation.onDelete !== null;
 }
 
 function declares(field: Field): boolean {
@@ -144,11 +154,21 @@ function namesIn(expr: unknown): Set<string> | null {
     return out;
 }
 
+/** Field types no person writes: the server computes or reads them. */
+const NEVER_WRITTEN: readonly string[] = Object.freeze(['computed', 'autonumber', 'lookup', 'rollup']);
+
+/** The names a derived field reads from its own table: a computed field's expression, a lookup's relation. */
+function derivedNames(f: Field): Set<string> | null {
+    if (f.type === 'lookup') return new Set(isObject(f.lookup) && typeof f.lookup.relation === 'string' ? [f.lookup.relation] : []);
+    return namesIn(f.computed ? f.computed.expr : undefined);
+}
+
 /**
  * The field keys `role` may not read: the fields whose `read` list leaves the
- * role out, and every computed field whose expression names one of them
- * (repeated until nothing changes, so a computed field over a computed field
- * follows). Empty for the owner and for a table without column rights.
+ * role out, every computed field whose expression names one of them, and every
+ * lookup through one of them (repeated until nothing changes, so a computed
+ * field over a computed field follows). Empty for the owner and for a table
+ * without column rights.
  */
 export function hiddenFields(tableMeta: unknown, role: unknown): Set<string> {
     const fields = fieldsOf(tableMeta);
@@ -156,8 +176,8 @@ export function hiddenFields(tableMeta: unknown, role: unknown): Set<string> {
     for (const f of fields) if (!listedForRead(f, role)) hidden.add(f.key as string);
     if (hidden.size === 0) return hidden;
     const computed = fields
-        .filter((f) => f.type === 'computed' && !hidden.has(f.key as string))
-        .map((f) => ({ key: f.key as string, names: namesIn(f.computed ? f.computed.expr : undefined) }));
+        .filter((f) => (f.type === 'computed' || f.type === 'lookup') && !hidden.has(f.key as string))
+        .map((f) => ({ key: f.key as string, names: derivedNames(f) }));
     for (let grew = true; grew;) {
         grew = false;
         for (const c of computed) {
@@ -268,11 +288,16 @@ export function scopeRead<R extends ReadShape | undefined>(read: R, hidden: Read
     return { ...read, related, ...(hidden ? { hidden } : {}) };
 }
 
-/** The columns a restricted read selects in place of `*`: the system columns and every visible field that has a column. */
+/**
+ * The columns a restricted read selects in place of `*`: the system columns and every visible
+ * field that has a column (not a read-time computed field, nor a lookup, rollup or many
+ * relation: linkedRead.mts fills those after the list).
+ */
 export function visibleColumns(scoped: TableMeta): string[] {
     const out: string[] = [...SYSTEM_COLUMNS];
     for (const f of fieldsOf(scoped)) {
         if (f.type === 'computed' && !(f.computed && f.computed.stored === true)) continue;
+        if (isColumnlessLinkField(f)) continue;
         if (!out.includes(f.key as string)) out.push(f.key as string);
     }
     return out;
@@ -309,7 +334,7 @@ export function writableValues<T>(tableMeta: unknown, role: unknown, values: T, 
     for (const key of Object.keys(values)) {
         const field = byKey.get(key);
         // Not a field the caller can write at all: the compiler skips or refuses it by its own rule.
-        if (!field || field.type === 'computed' || field.type === 'autonumber') continue;
+        if (!field || NEVER_WRITTEN.includes(field.type as string)) continue;
         if (listedForWrite(field, role)) continue;
         if (op === 'create' && isEmptyValue(values[key])) dropped.add(key);
         else refused.push(field);
@@ -347,7 +372,7 @@ export function fieldAccessErrors(field: unknown, at: string): string[] {
     if (extra.length) errors.push(`${at}.access has unknown keys: ${extra.join(', ')}`);
     if (access.read === undefined && access.write === undefined) errors.push(`${at}.access needs read or write (remove access to give every role the field)`);
     for (const key of FIELD_ACCESS_KEYS) if (access[key] !== undefined) errors.push(...roleListErrors(access[key], `${at}.access.${key}`));
-    if (access.write !== undefined && (field.type === 'computed' || field.type === 'autonumber')) {
+    if (access.write !== undefined && NEVER_WRITTEN.includes(field.type as string)) {
         errors.push(`${at}.access.write does not apply: a ${field.type} field is never written`);
     }
     return errors;
@@ -358,7 +383,10 @@ export function fieldAccessErrors(field: unknown, at: string): string[] {
  *   - not on a linked Studio table: its rows are read with the datatable's own
  *     descriptor, which does not carry these lists, so the rights would not hold;
  *   - not `unique` on a field some role may write and not read: the refusal of a
- *     value that exists would tell that role which values the field holds.
+ *     value that exists would tell that role which values the field holds;
+ *   - no `read` list on a relation with an onDelete rule: a refused delete, or the
+ *     records it changes, would tell a role that may not read the relation which
+ *     records point at the one deleted.
  * `warnings` name a role the model does not declare (it gives nobody the field);
  * `roles` is the model's own `roles` list, and a model without one is not asked.
  */
@@ -381,6 +409,9 @@ export function tableColumnRightsFindings(table: unknown, at: string, roles: unk
         if (f.unique === true && read !== null && write !== null) {
             const blind = write.filter((r) => !read.includes(r));
             if (blind.length) errors.push(`${at} field "${f.key}" is unique, and ${blind.map((r) => `"${r}"`).join(', ')} may write it without reading it: a refused duplicate would tell which values exist. Let the role read the field, take it out of write, or drop unique`);
+        }
+        if (read !== null && hasDeleteRule(f)) {
+            errors.push(`${at} field "${f.key}" follows a delete rule (onDelete), and only some roles may read it: whether a delete is refused or changes other records would tell those roles which records point where. Let every role read the relation, or drop the delete rule`);
         }
         if (!roleKeys) continue;
         for (const role of new Set([...(read || []), ...(write || [])])) {

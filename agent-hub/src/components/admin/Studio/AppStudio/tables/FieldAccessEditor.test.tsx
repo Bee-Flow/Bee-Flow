@@ -81,6 +81,7 @@ describe('FieldAccessEditor', () => {
         const both = { ...BASE, access: { read: ['a'], write: ['a'] } };
         expect(withAccessForType(both)).toBe(both);
         expect(withAccessForType({ ...both, type: 'computed' }).access).toEqual({ read: ['a'] });
+        for (const type of ['lookup', 'rollup']) expect(withAccessForType({ ...both, type }).access).toEqual({ read: ['a'] });
         expect(accessOf({ ...BASE, access: 'manager' })).toEqual({});
         expect(accessOf({ ...BASE, access: { read: ['a', 3], other: true } })).toEqual({ read: ['a'] });
     });
