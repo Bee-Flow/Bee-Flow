@@ -24,10 +24,13 @@ const { HttpError } = require('../../core/http/errors');
 // users who connected Google via the connector).
 
 // Stable failure codes shared with the UI → HTTP status for /from-gmeet.
+// needs_reauth is a 409, not a 401: the web client reloads the whole page on
+// any 401 from /api (a lost login session), which a Google grant that needs
+// renewing is not. Same as the Teams routes.
 /** @type {Record<string, number>} */
 const GMEET_ERROR_STATUS = {
     not_connected: 400,
-    needs_reauth: 401,
+    needs_reauth: 409,
     needs_meet_scopes: 403,
     no_conference: 404,
     no_recording: 404,
@@ -46,7 +49,7 @@ const { gmeetError, resolveGmeetSession, requireMeetAccess } = require('../../co
 const { validate } = require('../../core/http/validate');
 const { worded, bodyOf, bool, NO_QUERY } = require('./schemas');
 const { fallback: fallbackSwallowed } = require('../../utils/bestEffort');
-const { occurrenceNoteId, noteStillExists, configureMeetAutoRecording } = require('./gmeetHelpers');
+const { occurrenceNoteId, noteStillExists, configureMeetAutoRecording, isGrantGone, unlessGrantGone } = require('./gmeetHelpers');
 
 // ── Wat de Meet-routes mogen dragen ─────────────────────────────────
 //
@@ -88,7 +91,9 @@ router.get('/gmeet-meetings', requireAuth, validate({ query: NO_QUERY }), async 
     }
 
     const { listUpcomingMeetMeetings } = require('../../core/meetingNotes/gmeetCalendar');
-    const meetings = await listUpcomingMeetMeetings({ session, windowHours: 48 });
+    const meetings = await unlessGrantGone(() => listUpcomingMeetMeetings({ session, windowHours: 48 }));
+    // Google refused the grant: the reconnect state, as the Teams route answers it.
+    if (!meetings) return res.json({ connection: { ...connection, needsReauth: true }, autoImport: settings.autoImport, count: 0, meetings: [] });
 
     // The per-meeting choice comes from meeting_prefs (M5). `excluded` is the EFFECTIVE state of the switch in the Scheduled list, so including the 1-on-1 default; the global autoImport switch deliberately does not count in there (fallback: true) — it is already in the status chip.
     const meetingPrefs = require('../../stores/meetingPrefsStore');
@@ -221,7 +226,8 @@ router.get('/gmeet-recordings', requireAuth, validate({ query: NO_QUERY }), asyn
 
     const { listRecentlyEndedMeetMeetings } = require('../../core/meetingNotes/gmeetCalendar');
     const { getSpaceByMeetingCode, findConferenceRecord, findGeneratedRecording } = require('../../core/meetingNotes/gmeetArtifacts');
-    const meetings = await listRecentlyEndedMeetMeetings({ session, lookbackHours: 24 * 7 });
+    const meetings = await unlessGrantGone(() => listRecentlyEndedMeetMeetings({ session, lookbackHours: 24 * 7 }));
+    if (!meetings) return res.json({ connection: { ...connection, needsReauth: true }, items: [] });
     meetings.sort((a, b) => new Date(b.end || 0).getTime() - new Date(a.end || 0).getTime());
 
     const { listRecentJobsForUser } = require('../../stores/gmeetImportStore');
@@ -314,6 +320,8 @@ router.post('/from-gmeet', requireAuth, validate({ body: FromGmeetBody, query: N
                 || (meetingCode && [...recent].reverse().find(m => m.meetingCode === meetingCode))
                 || null;
         } catch (err) {
+            // A refused refresh is not an outage: the user has to reconnect.
+            if (isGrantGone(err)) throw gmeetError('Google access expired — reconnect your Google account', 'needs_reauth');
             calendarFailed = true;
             fallbackSwallowed('routes/transcriptions/gmeet:anon#4', err);
         }
