@@ -107,6 +107,32 @@ async function applyListTemplates(draftWrap) {
 }
 
 /**
+ * Template provenance: the same stamp the REST create path writes, so a
+ * pristine app installed over MCP is offered the newer version later
+ * (templateUpgrade.js). Best-effort: a missing stamp costs the upgrade offer,
+ * never the install.
+ * @param {{ appId?: string|null, userId: string }} draftWrap
+ * @param {any} template
+ * @param {unknown} definition the definition as stored, which the hash measures
+ */
+async function stampTemplateProvenance(draftWrap, template, definition) {
+    try {
+        const { hashDefinition } = require('../templateUpgrade');
+        const { templateVersion } = require('../templates');
+        const studioAppStore = require('../../stores/studioAppStore');
+        if (typeof studioAppStore.setTemplateProvenance === 'function') {
+            await studioAppStore.setTemplateProvenance(draftWrap.appId, draftWrap.userId, {
+                templateId: template.id,
+                templateVersion: template.version || templateVersion(template),
+                templateInstallHash: hashDefinition(definition),
+            });
+        }
+    } catch (e) {
+        log.warn(`[builderTools] template provenance not stamped for ${draftWrap.appId}: ${e instanceof Error ? e.message : e}`);
+    }
+}
+
+/**
  * app_apply_template — install a starter template as the app foundation via
  * templateInstall.installTemplate (the SINGLE template instantiation path;
  * deep-clones the definition, creates tables, seeds rows and datasets). Refused
@@ -190,24 +216,7 @@ async function applyApplyTemplate(draftWrap, args) {
     const savedDef = await persistDraft(draftWrap);
     if (savedDef.error) return savedDef;
 
-    // Template provenance — the same stamp the REST create path writes, so a
-    // pristine app installed over MCP is offered the newer version later
-    // (templateUpgrade.js). Best-effort: a missing stamp costs the upgrade
-    // offer, never the install.
-    try {
-        const { hashDefinition } = require('../templateUpgrade');
-        const { templateVersion } = require('../templates');
-        const studioAppStore = require('../../stores/studioAppStore');
-        if (typeof studioAppStore.setTemplateProvenance === 'function') {
-            await studioAppStore.setTemplateProvenance(draftWrap.appId, draftWrap.userId, {
-                templateId: template.id,
-                templateVersion: template.version || templateVersion(template),
-                templateInstallHash: hashDefinition(draftWrap.def),
-            });
-        }
-    } catch (e) {
-        log.warn(`[builderTools] template provenance not stamped for ${draftWrap.appId}: ${e && /** @type {Error} */ (e).message ? /** @type {Error} */ (e).message : e}`);
-    }
+    await stampTemplateProvenance(draftWrap, template, draftWrap.def);
 
     let out;
     try {
@@ -218,6 +227,8 @@ async function applyApplyTemplate(draftWrap, args) {
     if (!out || out.ok === false) {
         return { error: (out && out.error) || `Template "${templateId}" could not be installed.` };
     }
+    // The install pointed the screens' dataset bindings at this app's datasets: the stamp follows.
+    if (out.definition) await stampTemplateProvenance(draftWrap, template, out.definition);
 
     // Reload the draft's two sides so the route emits the real post-install state.
     try {

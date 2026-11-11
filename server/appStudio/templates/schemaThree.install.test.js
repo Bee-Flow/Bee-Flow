@@ -66,7 +66,9 @@ for (const id of SCHEMA_THREE) {
         const { def, repairs } = canonicalizeAppDefinition(structuredClone(t.definition));
         assert.equal(def.schemaVersion, 3, 'it uses vocabulary of schema 3');
         assert.deepEqual(repairs.filter((r) => !/default/i.test(r.code)).map((r) => r.code), []);
-        assert.equal(gateDefinition(def, { dataModel: canonicalizeDataModel(t.dataModel).model }).verdict, 'ok');
+        // A binding names a template dataset by the template's own id (templateDatasetRefs.mts).
+        const datasets = (t.datasets || []).map((d) => d.id);
+        assert.equal(gateDefinition(def, { dataModel: canonicalizeDataModel(t.dataModel).model, datasets }).verdict, 'ok');
     });
 
     test(`${id}: installs through POST /api/studio-apps with its data and arms nothing`, async () => {
@@ -119,6 +121,20 @@ for (const id of SCHEMA_THREE) {
         }
     });
 }
+
+test('sales dashboard: the wall chart reads the dataset the install created, and the app stays unchanged since install', async () => {
+    const res = await api.call('POST', '/api/studio-apps', { body: { templateId: 'app-sales-dashboard', name: 'Sales, second copy' } });
+    const body = JSON.parse(res.text);
+    const app = await require('../../stores/studioAppStore').getStudioApp(body.app.id);
+    const datasets = await require('../../stores/studioAppDataStore').listDatasets(app.id, OWNER.id);
+    const monthly = datasets.find((d) => d.name === 'Won revenue per month');
+    const wall = app.definition.screens.find((s) => s.id === 'scr_sdwall');
+    const chart = wall.sections[0].children.find((c) => c.id === 'cmp_sdwyear');
+    assert.equal(chart.props.source.datasetId, monthly.id, 'the template id became the id in this app');
+    assert.notEqual(monthly.id, 'ds_sdmonthly');
+    assert.equal(require('../templateUpgrade').isPristine(app), true, 'the install stamp measures the resolved definition');
+    assert.equal(body.app.definitionVersion, app.definitionVersion, 'the answer carries the saved version');
+});
 
 test('field service: the lookups and the rollups read back from the installed rows', async () => {
     const res = await api.call('POST', '/api/studio-apps', { body: { templateId: 'app-field-service', name: 'Field service, second copy' } });

@@ -172,6 +172,8 @@ router.post('/:id/template-upgrade', requireAuth, requireManageApps, /** @param 
     // like the create path — the definition upgrade already landed, so a
     // data hiccup is reported, not turned into a 500.
     let dataInstall = null;
+    let installed = canonical; // what the stamp measures: with its dataset bindings resolved below
+    let version = saved.version;
     if (template.dataModel || template.seed || template.datasets) {
         try {
             const install = await installTemplate({
@@ -180,6 +182,10 @@ router.post('/:id/template-upgrade', requireAuth, requireManageApps, /** @param 
             dataInstall = (install && install.ok)
                 ? { ok: true, dataModelVersion: install.dataModelVersion }
                 : { ok: false, error: (install && install.error) || 'unknown error' };
+            if (install && install.ok && install.definition) {
+                installed = install.definition;
+                version = install.definitionVersion ?? version;
+            }
             if (!dataInstall.ok) log.warn(`[StudioApps] Template upgrade data install failed for ${app.id}: ${dataInstall.error}`);
         } catch (e) {
             const reason = e && /** @type {Error} */ (e).message ? /** @type {Error} */ (e).message : String(e);
@@ -192,14 +198,14 @@ router.post('/:id/template-upgrade', requireAuth, requireManageApps, /** @param 
     // measured against the definition as just re-installed.
     await studioAppStore.setTemplateStamp(app.id, userId, {
         templateVersion: cand.toVersion,
-        templateInstallHash: hashDefinition(canonical),
+        templateInstallHash: hashDefinition(installed),
     });
 
     res.json({
         ok: true,
         fromVersion: cand.fromVersion,
         toVersion: cand.toVersion,
-        version: saved.version,
+        version,
         ...(dataInstall ? { dataInstall } : {}),
         ...(findings ? { findings } : {}),
         ...(assets ? { assets } : {}),

@@ -39,6 +39,10 @@ const state = {
 
 stub('../stores/studioAppStore', {
     getStudioApp: async (id) => (state.app && state.app.id === id ? state.app : null),
+    saveDefinition: async (id, ownerId, definition) => {
+        state.savedDefinitions.push({ id, ownerId, definition });
+        return { ok: true, version: 7 };
+    },
 });
 stub('../stores/studioAppDataStore', {
     saveDataModel: async (appId, ownerId, model) => {
@@ -122,6 +126,7 @@ test.beforeEach(() => {
     state.rowCounts = {};
     state.recountImpl = null;
     state.existingDatasets = [];
+    state.savedDefinitions = [];
 });
 
 // ── Happy path: model + seed + datasets ─────────────────────────────────────
@@ -416,4 +421,41 @@ test('many-relation links of a seed are written once every row exists, as ids of
         { table: 'tasks', values: { title: 'Test' }, recordId: undefined },
         { table: 'tasks', values: { blocked_by: ['rec_2'] }, recordId: 'rec_1' },
     ]);
+});
+
+// ── Screens bound to a template dataset by the template's own id ────────────
+
+/** A stored definition whose stat binds to the template dataset `ds_x`. */
+const boundDefinition = () => ({
+    screens: [{ id: 'scr_1', sections: [{ id: 'sec_1', children: [
+        { id: 'cmp_1', type: 'stat', props: { value: { kind: 'dataset', datasetId: 'ds_x', params: { since: '2026-01-01' } } } },
+        { id: 'cmp_2', type: 'stat', props: { value: { kind: 'dataset', datasetId: 'ds_elsewhere' } } },
+    ] }] }],
+});
+const boundIds = (def) => def.screens[0].sections[0].children.map((c) => c.props.value.datasetId);
+
+test('a binding to a template dataset is pointed at the dataset the install created, and saved', async () => {
+    state.app = { ...state.app, definition: boundDefinition() };
+    const res = await installTemplate({ appId: 'app-1', ownerId: 'owner-1', template: crmTemplate() });
+    assert.strictEqual(res.ok, true);
+    assert.deepStrictEqual(boundIds(res.definition), ['ds-1', 'ds_elsewhere'], 'only the template\'s own dataset id is rewritten');
+    assert.strictEqual(res.definitionVersion, 7);
+    assert.strictEqual(state.savedDefinitions.length, 1);
+    assert.deepStrictEqual(state.savedDefinitions[0].definition, res.definition);
+    assert.deepStrictEqual(boundIds(state.app.definition), ['ds_x', 'ds_elsewhere'], 'the stored row read is not mutated in place');
+});
+
+test('on an upgrade a binding is pointed at the dataset of the same name the app already has', async () => {
+    state.app = { ...state.app, definition: boundDefinition() };
+    state.existingDatasets = [{ id: 'ds_real', name: 'By stage' }];
+    const res = await installTemplate({ appId: 'app-1', ownerId: 'owner-1', template: crmTemplate(), seedMode: 'missing-tables-only' });
+    assert.strictEqual(state.datasets.length, 0, 'nothing created');
+    assert.deepStrictEqual(boundIds(res.definition), ['ds_real', 'ds_elsewhere']);
+});
+
+test('no binding to a template dataset: the definition is not saved again', async () => {
+    state.app = { ...state.app, definition: { screens: [] } };
+    const res = await installTemplate({ appId: 'app-1', ownerId: 'owner-1', template: crmTemplate() });
+    assert.deepStrictEqual(res, { ok: true, appId: 'app-1', dataModelVersion: 1 });
+    assert.strictEqual(state.savedDefinitions.length, 0);
 });

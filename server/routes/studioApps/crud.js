@@ -176,6 +176,14 @@ router.post('/', requireAuth, requireManageApps, validate({ body: CreateAppBody 
                 dataInstall = { ok: false, error: reason };
             } else {
                 dataInstall = { ok: true, dataModelVersion: install.dataModelVersion };
+                // The screens' dataset bindings now point at this app's datasets: the stamp
+                // follows, so the app stays "unchanged since install".
+                if (install.definition) {
+                    definition = install.definition;
+                    const templateInstallHash = hashDefinition(definition);
+                    await studioAppStore.setTemplateStamp(app.id, userId, { templateVersion: templateVersion(template), templateInstallHash });
+                    Object.assign(app, { definition, templateInstallHash, definitionVersion: install.definitionVersion ?? app.definitionVersion });
+                }
             }
         } catch (e) {
             const reason = e && /** @type {Error} */ (e).message ? /** @type {Error} */ (e).message : String(e);

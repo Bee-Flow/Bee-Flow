@@ -7,8 +7,13 @@
  * create-from-template clone path; this module owns ONLY the data engine so
  * there is exactly one place that materialises a template's tables and rows.
  *
- *   installTemplate({ appId, ownerId, template }) → { ok, appId, dataModelVersion }
+ *   installTemplate({ appId, ownerId, template }) → { ok, appId, dataModelVersion,
+ *                                                     definition?, definitionVersion? }
  *                                                 | { ok:false, error }
+ *
+ * `definition` / `definitionVersion` are there when step 4 saved the definition
+ * again (its dataset bindings resolved); a caller that stamps an install hash
+ * stamps that definition.
  *
  * Signature is FROZEN — the builder tool `app_apply_template` (sibling wave)
  * calls it with this exact shape. The OPTIONAL `seedMode` key is additive:
@@ -31,6 +36,9 @@
  *      Parent tables are seeded FIRST and a { $ref } relation value is rewritten
  *      to the parent's real rec_ id. NEVER raw SQL.
  *   3. datasets → studioAppDataStore.createDataset.
+ *   4. the stored definition's `{ kind:'dataset', datasetId }` bindings that
+ *      name a template dataset by its template id are pointed at the dataset
+ *      that stands for it in this app (templateDatasetRefs.mts), and saved.
  *
  * Robustness: it is idempotent-SAFE (re-running against an app that already has
  * the model just replays an empty migration diff and re-seeds) and NEVER throws
@@ -234,6 +242,92 @@ async function writeSeedRows(app, model, seedRows, skipTableIds, ownerId) {
 }
 
 /**
+ * The datasets of a template (BI descriptors). createDataset always mints a new
+ * row, so an upgrade re-run dedupes by NAME: only datasets the app does not
+ * have yet are created. Unknowable existing datasets fail safe (none created):
+ * a duplicate dataset is confusing, a missing one is a one-click re-add.
+ *
+ * Returns the template's own dataset id → the id of the dataset that stands
+ * for it in this app (created now, or on an upgrade the one of the same name),
+ * for the bindings of the definition (templateDatasetRefs.mts).
+ * @param {string} appId
+ * @param {string} ownerId
+ * @param {any[]} datasets
+ * @param {boolean} missingOnly
+ * @returns {Promise<Map<string, string>>}
+ */
+async function installDatasets(appId, ownerId, datasets, missingOnly) {
+    const { datasetIdMap } = require('./templateDatasetRefs.mts');
+    const existingByName = missingOnly ? await existingDatasetsByName(appId, ownerId) : null;
+    /** @type {Array<[unknown, unknown]>} */
+    const pairs = [];
+    for (const ds of datasets) {
+        if (!isObject(ds)) continue;
+        if (missingOnly) {
+            if (existingByName && existingByName.has(ds.name)) pairs.push([ds.id, existingByName.get(ds.name)]);
+            if (!existingByName || existingByName.has(ds.name)) continue;
+        }
+        try {
+            const created = await studioAppDataStore.createDataset(appId, ownerId, {
+                name: ds.name,
+                tableId: ds.tableId,
+                source: ds.source,
+                descriptor: ds.descriptor,
+                cacheTtlSeconds: ds.cacheTtlSeconds,
+            });
+            pairs.push([ds.id, created && created.id]);
+        } catch (e) {
+            log.warn(`[templateInstall] dataset skipped for ${appId}: ${errorText(e)}`);
+        }
+    }
+    return datasetIdMap(pairs);
+}
+
+/**
+ * The app's datasets by name, or null when they cannot be listed.
+ * @param {string} appId
+ * @param {string} ownerId
+ * @returns {Promise<Map<string, string>|null>}
+ */
+async function existingDatasetsByName(appId, ownerId) {
+    try {
+        const existing = await studioAppDataStore.listDatasets(appId, ownerId);
+        return new Map((existing || []).filter((d) => d && d.name).map((d) => [d.name, d.id]));
+    } catch (e) {
+        log.warn(`[templateInstall] dataset listing failed for ${appId} — skipping dataset creation: ${errorText(e)}`);
+        return null;
+    }
+}
+
+/** @param {unknown} e */
+function errorText(e) {
+    return e instanceof Error ? e.message : String(e);
+}
+
+/**
+ * The stored definition with its dataset bindings pointed at this app's
+ * datasets, saved. Returns the saved definition and its version, or null when no binding
+ * needed it (or the save did not land: the bindings then keep the template's
+ * ids, which the validator reports).
+ * @param {{ id: string, definition?: unknown }} app
+ * @param {string} ownerId
+ * @param {Map<string, string>} datasetIds
+ */
+async function resolveStoredDatasetRefs(app, ownerId, datasetIds) {
+    if (!datasetIds.size) return null;
+    const { resolveDatasetRefs } = require('./templateDatasetRefs.mts');
+    const current = await studioAppStore.getStudioApp(app.id);
+    const resolved = resolveDatasetRefs(current && current.definition, datasetIds);
+    if (!resolved.changed) return null;
+    const saved = await studioAppStore.saveDefinition(app.id, ownerId, resolved.definition);
+    if (!saved || saved.ok === false) {
+        log.warn(`[templateInstall] dataset bindings not resolved for ${app.id}: the definition could not be saved`);
+        return null;
+    }
+    return { definition: resolved.definition, definitionVersion: saved.version };
+}
+
+/**
  * @param {{ appId?: string, ownerId?: string, template?: any, seedMode?: string }} [opts]
  */
 async function installTemplate({ appId, ownerId, template, seedMode = 'all' } = {}) {
@@ -313,39 +407,11 @@ async function installTemplate({ appId, ownerId, template, seedMode = 'all' } = 
             await writeSeedRows(app, model, seedRows, skipTableIds, ownerId);
         }
 
-        // 3. Datasets (BI descriptors). createDataset always mints a new row,
-        // so an upgrade re-run dedupes by NAME: only datasets the app does not
-        // have yet are created. Unknowable existing datasets fail safe (none
-        // created) — a duplicate dataset is confusing, a missing one is a
-        // one-click re-add.
-        if (hasDatasets) {
-            let existingNames = null;
-            if (missingOnly) {
-                try {
-                    const existing = await studioAppDataStore.listDatasets(appId, ownerId);
-                    existingNames = new Set((existing || []).map((d) => d && d.name).filter(Boolean));
-                } catch (e) {
-                    log.warn(`[templateInstall] dataset listing failed for ${appId} — skipping dataset creation: ${e && /** @type {Error} */ (e).message ? /** @type {Error} */ (e).message : e}`);
-                }
-            }
-            for (const ds of tpl.datasets) {
-                if (!isObject(ds)) continue;
-                if (missingOnly && (!existingNames || existingNames.has(ds.name))) continue;
-                try {
-                    await studioAppDataStore.createDataset(appId, ownerId, {
-                        name: ds.name,
-                        tableId: ds.tableId,
-                        source: ds.source,
-                        descriptor: ds.descriptor,
-                        cacheTtlSeconds: ds.cacheTtlSeconds,
-                    });
-                } catch (e) {
-                    log.warn(`[templateInstall] dataset skipped for ${appId}: ${e && /** @type {Error} */ (e).message ? /** @type {Error} */ (e).message : e}`);
-                }
-            }
-        }
+        // 3. Datasets (BI descriptors), then the screens' bindings to them.
+        const datasetIds = hasDatasets ? await installDatasets(appId, ownerId, tpl.datasets, missingOnly) : new Map();
+        const resolved = await resolveStoredDatasetRefs(app, ownerId, datasetIds);
 
-        return { ok: true, appId, dataModelVersion };
+        return { ok: true, appId, dataModelVersion, ...(resolved || {}) };
     } catch (e) {
         return { ok: false, error: e && /** @type {Error} */ (e).message ? /** @type {Error} */ (e).message : String(e) };
     }
