@@ -1,6 +1,7 @@
 import { ChevronDown, LogOut, Settings, Shield, User } from 'lucide-react';
 import React from 'react';
 import { PAGE_ROUTES } from '@/authedApp/appRoutes';
+import { isOrgAdminRole } from '@/utils/adminAccess';
 import { API_BASE } from '@/utils/helpers';
 import NavLink from '../NavLink';
 import { ACCENT_BAR, ICON_ACTIVE, ICON_IDLE, TEXT_ACTIVE, TEXT_IDLE } from './sidebarTokens';
@@ -23,6 +24,7 @@ interface FooterUser {
     avatar?: string | null;
     avatarType?: string | null;
     isAdmin?: boolean | null;
+    orgRole?: string | null;
     permissions?: string[] | null;
 }
 
@@ -96,7 +98,7 @@ const SidebarFooter = ({
                         data-surface="opaque"
                     >
                         <div className="p-1.5">
-                            {!_simpleMode && !isMobile && (user?.isAdmin || user?.permissions?.includes('all')) && (
+                            {!_simpleMode && !isMobile && (user?.isAdmin || user?.permissions?.includes('all') || isOrgAdminRole(user?.orgRole)) && (
                                 <NavLink
                                     href={PAGE_ROUTES.admin}
                                     onClick={() => setShowProfileMenu(false)}

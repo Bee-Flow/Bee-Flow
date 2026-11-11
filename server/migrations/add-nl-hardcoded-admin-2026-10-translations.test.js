@@ -18,6 +18,8 @@ const OWNED_PREFIXES = ['admin_subscriptions.', 'admin_org.', 'admin_ai_config.'
 const OWNED_ELSEWHERE = new Set([
     'admin_security.sso_section_hint', // add-nl-admin-studio-3a-2026-11-translations
     'admin_monitoring.range_label', // add-nl-admin-studio-3b-2026-11-translations
+    'admin_monitoring.scope_all', // add-nl-admin-studio-3b-2026-11-translations
+    'admin_monitoring.scope_org', // add-nl-admin-studio-3b-2026-11-translations
     'admin_subscriptions.limit_override', // add-nl-admin-studio-4a-2026-11-translations
     'admin_subscriptions.limit_override_on', // add-nl-admin-studio-4a-2026-11-translations
     'admin_subscriptions.limit_plan_default', // add-nl-admin-studio-4a-2026-11-translations

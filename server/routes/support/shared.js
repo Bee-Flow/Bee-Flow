@@ -11,6 +11,7 @@
 const supportStore = require('../../stores/supportStore');
 const staffAccess = require('../../support/staffAccess');
 const log = require('../../telemetry/log');
+const { tagGate } = require('../../auth/gateMeta');
 
 // ── PII-safe logging helper ──────────────────────────────────────────────
 // Email + body content must NEVER appear in container logs verbatim.
@@ -61,6 +62,9 @@ function requireStaffSupport(req, res, next) {
         .then((ok) => (ok ? next() : res.status(403).json({ error: 'admin_support permission required' })))
         .catch(next);
 }
+// Tagged after definition so the function keeps its name. Staff are the holders of
+// admin_support (the 'all' wildcard is not staff) plus platform admins.
+tagGate(requireStaffSupport, { axis: 'rbac', anyOf: ['admin_support'] });
 
 const { clientHost: _clientHost, adminSupportTabPath, appRootPath } = require('../../utils/appPaths');
 

@@ -181,6 +181,22 @@ Finally: if the release notes listed manual steps (typically
 `docker exec beeflow-server node migrations/<name>.js`), run them now. They are manual on purpose
 — the notes say what each one does and when it is safe.
 
+## Notes for specific releases
+
+### Instance-wide settings need a platform admin
+
+From the release that includes this note, the settings that apply to the whole server (AI
+configuration and provider keys, integrations, appearance, the guard installer, metrics and
+the like) can only be changed by a **platform admin**. Before, on a self-hosted server, an
+organisation admin could change them as well. An organisation admin keeps managing their own
+organisation as before.
+
+Before you upgrade, check that you can sign in as a platform admin: the operator account
+`admin` from the first setup is one. To make another account one, a platform admin opens
+**Admin → Security → Users**, edits that account and turns on **Platform administrator** (or,
+through the API, `PUT /auth/users/<id>` with `{"role": "admin"}`). See
+[Appointing a platform admin](../admin/index.md#appointing-a-platform-admin).
+
 ## Skipping versions
 
 Skipping releases is supported at the schema level: since the whole ladder replays on every start,

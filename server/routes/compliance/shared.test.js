@@ -36,7 +36,10 @@ const frameworkPolicy = {
     activeRegulations: async (orgId, opts) => { policyCalls.push({ orgId, opts }); return ACTIVE; },
 };
 
-const users = { u1: { id: 'u1', organizationId: 'orgA' }, 'u-orgless': { id: 'u-orgless' } };
+const users = {
+    u1: { id: 'u1', organizationId: 'orgA' }, 'u-orgless': { id: 'u-orgless' },
+    op: { id: 'op', role: 'admin', organizationId: 'orgOp' },
+};
 const userStore = {
     getUser: async (id) => {
         if (id === 'u-boom') throw new Error('users table gone');
@@ -146,6 +149,17 @@ test('resolveOrgIdStrict/requireOrgId refuse instead of falling back to `default
     const res2 = { code: null, status(c) { this.code = c; return this; }, json() { return this; } };
     assert.equal(await shared.requireOrgId({ session: { user: { id: 'u1' } } }, res2), 'orgA');
     assert.equal(res2.code, null, 'nothing is sent on the happy path');
+});
+
+// The Access panel stores session.adminSelectedOrgId on its own (its
+// entitlement context); compliance reads and writes stay on the home organisation.
+test('a platform admin with an Access panel selection keeps the home organisation in every resolver', async () => {
+    const req = { session: { isAuthenticated: true, isAdmin: true, user: { id: 'op', role: 'admin' }, adminSelectedOrgId: 'orgB' } };
+    assert.equal(await shared.resolveOrgId(req), 'orgOp');
+    assert.equal(await shared.resolveOrgIdStrict(req), 'orgOp');
+    const res = { code: null, status(c) { this.code = c; return this; }, json() { return this; } };
+    assert.equal(await shared.requireOrgId(req, res), 'orgOp');
+    assert.equal(res.code, null);
 });
 
 // ── the vocabulary the overview and the report share ───────────────────────

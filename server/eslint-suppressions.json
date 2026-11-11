@@ -965,17 +965,6 @@
       "count": 1
     }
   },
-  "auth/permissionsResolve.js": {
-    "complexity": {
-      "count": 1
-    },
-    "max-depth": {
-      "count": 1
-    },
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
   "auth/routeWalk.cli.js": {
     "complexity": {
       "count": 1
@@ -8483,11 +8472,6 @@
     }
   },
   "routes/transcriptions/upload.js": {
-    "complexity": {
-      "count": 1
-    }
-  },
-  "routes/usageMonitoringAuth.js": {
     "complexity": {
       "count": 1
     }

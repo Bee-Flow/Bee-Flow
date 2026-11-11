@@ -30,6 +30,7 @@ const fx = {
     transcriptProbeFails: false,
     users: {},
     allGroups: [],
+    manageIn: new Set(['org1']), // where the caller holds manage_knowledge
 };
 
 function resetFx() {
@@ -46,6 +47,7 @@ function resetFx() {
     fx.transcriptProbes.length = 0;
     fx.users = { 'gebruiker-b': { id: 'gebruiker-b', organizationId: 'org1', groups: [] } };
     fx.allGroups = [];
+    fx.manageIn = new Set(['org1']);
 }
 
 const mw = (req, res, next) => next();
@@ -78,6 +80,7 @@ const MOCKS = {
         requireAuth: mw,
         requirePermission: () => mw,
         assertUserCanUseOrg: async (_req, orgId) => orgId || null,
+        resolvePermissionsByOrg: async () => ({ holds: (perm, orgId) => perm === 'manage_knowledge' && fx.manageIn.has(orgId) }),
         resolveUserGroups: async (id) => (fx.users[id]?.groups || []),
     },
     './shared': {
@@ -137,6 +140,20 @@ function filedLine(transcriptionId) {
 }
 
 test.beforeEach(resetFx);
+
+test('a copy stays in the source organisation where the caller holds manage_knowledge', async () => {
+    const res = await dispatch({ url: '/kb-src/duplicate' });
+    assert.strictEqual(res.statusCode, 201);
+    assert.strictEqual(res.body.organization_id, 'org1');
+});
+
+test('a copy of a base of an organisation where manage_knowledge does not hold is a personal copy', async () => {
+    fx.manageIn = new Set(['org-home']);
+    const res = await dispatch({ url: '/kb-src/duplicate' });
+    assert.strictEqual(res.statusCode, 201);
+    assert.strictEqual(res.body.organization_id, null);
+    assert.strictEqual(res.body.tenant_id, 'gebruiker-b');
+});
 
 test('een gefileerde transcriptregel kopieert ZONDER de claim op andermans vergadering', async () => {
     // Colleague A files line 12 of her private meeting into the org-wide

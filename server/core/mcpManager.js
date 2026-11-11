@@ -1,6 +1,7 @@
+// @typecheck
 /**
  * MCP Manager — Runtime manager for stdio-based MCP server connections
- * 
+ *
  * Spawns MCP servers as child processes (npx, uv, etc.) via StdioClientTransport.
  * Maintains per-user connection pools with idle timeouts for efficient reuse.
  * 
@@ -374,9 +375,7 @@ async function refreshServerTools(serverId) {
     throw new Error(result.error);
 }
 
-/**
- * @typedef {{ transport?: string, source?: string }} AddServerArgs
- */
+/** @typedef {Parameters<typeof mcpStore.createServer>[0]} AddServerArgs the definition mcpStore.createServer stores */
 /**
  * Add a new server definition, test it, and cache tools.
  * @param {AddServerArgs} param0

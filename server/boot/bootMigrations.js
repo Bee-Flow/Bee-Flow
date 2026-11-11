@@ -281,7 +281,7 @@ const NL_TRANSLATIONS = [
     'add-nl-teams-setup-2026-11-translations', // Teams meeting notes setup: guide, diagnostics checklist, admin consent link, members overview, organisation-wide import
     'add-nl-fix-english-2026-10-translations', // Corrects keys an earlier catalogue shipped as English: after every catalogue above, so its Dutch wins.
     // Settings menu clean-up: "Instellingen → Integraties" becomes "Instellingen → Koppelingen", "Organisatie-instellingen → …" the real menu path, and the relabelled rows (old shipped text only). After the memory catalogue, whose "Context in lange gesprekken" it rewords.
-    'update-nl-settings-nav-2026-10',
+    'update-nl-settings-nav-2026-10', 'update-nl-admin-scope-2026-11', // then the admin scope labels (old shipped text only)
     'update-nl-nc-trigger-scope-calendar-2026-10', // The colleagues switch covers calendar events: its Dutch hint says so (old shipped text only)
     'update-nl-automation-wording-2026-11', // Automation wording round: six reworded English texts get their Dutch (old shipped text only)
     'update-nl-learn-action-limits-2026-11', // App actions lesson quiz: the corrected step, nesting and action limits (old shipped text only)

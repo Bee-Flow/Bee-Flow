@@ -51,6 +51,10 @@ export interface AgentDesignerProps {
   initialAgentId?: string | null;
   user?: DesignerUser | null;
   onClose?: (() => void) | null;
+  /** The admin dashboard's chosen organisation: the list and the categories are asked for it only. */
+  orgId?: string | null;
+  /** The list spans organisations: show each agent's organisation. */
+  showOrgNames?: boolean;
 }
 
 const AgentDesigner = ({
@@ -60,6 +64,8 @@ const AgentDesigner = ({
   initialAgentId = null,
   user = null,
   onClose = null,
+  orgId = null,
+  showOrgNames = false,
 }: AgentDesignerProps) => {
   const { t } = useTranslation();
   // All state from hooks
@@ -67,7 +73,7 @@ const AgentDesigner = ({
   const { selectedAgent, isCreating } = state;
 
   // API operations
-  const api = useAgentApi(state, { systemMode, securityMode, initialAgentId });
+  const api = useAgentApi(state, { systemMode, securityMode, initialAgentId, orgId });
 
   // Chat (its hooks keep running for the sections that read the state it fills)
   useAgentChat(state);
@@ -87,6 +93,7 @@ const AgentDesigner = ({
     checkCapability,
     toggleCapability,
     isReadonly,
+    adminOrgId: systemMode || securityMode ? null : orgId,
   };
   return (
     <div className="h-full flex flex-col bg-[var(--bg-primary)]">
@@ -104,6 +111,7 @@ const AgentDesigner = ({
           selectedAgentId={selectedAgent?.id}
           loading={state.loading}
           systemMode={systemMode}
+          showOrgNames={showOrgNames}
           canManage={hasPermission("manage_agents")}
           user={user}
           onSelect={api.selectAgent}

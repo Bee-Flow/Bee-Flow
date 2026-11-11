@@ -2,7 +2,7 @@
  * CMS API URL builder.
  *
  * Per-site routes use /api/cms/sites/:siteId/* and require an activeSiteId
- * from the panel state. Org-wide routes (enabled flag, default locale,
+ * from the panel state. Server-wide routes (enabled flag, default locale,
  * file uploads) live at /api/cms/admin/* — they're not site-specific.
  */
 import { API_BASE } from '@/utils/helpers';
@@ -47,7 +47,7 @@ export const cmsApi = {
     pageAiTranslate:     (siteId: string, pageId: string, locale: string)      => `${root}/sites/${siteId}/pages/${pageId}/ai-translate/${encodeURIComponent(locale)}`,
     siteAiTranslate:     (siteId: string, locale: string)              => `${root}/sites/${siteId}/site/ai-translate/${encodeURIComponent(locale)}`,
 
-    // ── Org-wide (independent of activeSiteId) ──
+    // ── Server-wide (independent of activeSiteId) ──
     enabled:             ()                            => `${root}/admin/enabled`,
     defaultLocale:       ()                            => `${root}/admin/default-locale`,
     upload:              ()                            => `${root}/admin/upload`,

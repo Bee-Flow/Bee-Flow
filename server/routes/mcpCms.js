@@ -50,6 +50,8 @@ const rpcError = (id, code, message) => ({ jsonrpc: '2.0', id, error: { code, me
  * `cms` scope for a user who fails it).
  */
 const isCmsAdmin = (user) => require('./cmsShared').canAdminCms({ isAdmin: user?.role === 'admin', user });
+// canAdminCms is the platform-admin test (users.role 'admin'): a token owned by a
+// platform admin passes, a token whose owner only holds the 'all' permission does not.
 
 /** The real collaborators, built on first use so requiring this file stays cheap. */
 function buildRuntime() {

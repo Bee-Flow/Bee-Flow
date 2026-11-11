@@ -78,6 +78,8 @@ require.cache[permissionsPath] = {
             return fx.orgIds;
         },
         isOrgAdminRole: realPermissions.isOrgAdminRole,
+        // The fixture's org admin administers their home organisation.
+        resolveAdminOrgIds: async () => (realPermissions.isOrgAdminRole(fx.orgRole) ? new Set(['org-1']) : new Set()),
     },
 };
 const audiencePath = require.resolve('../auth/audience');

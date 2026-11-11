@@ -4,7 +4,7 @@ import { TranslateParams } from '@/hooks/useTranslation';
 import { Toggle } from './components';
 import type { GroupSyncSettings, GroupSyncStatus, SyncResult } from './SSOSection.types';
 
-export function SSOSectionSection({ t, status, formatTimeAgo, settings, handleSync, syncing, ssoConfigured, syncResult, setShowDetails, showDetails, syncError, handleSyncSetting }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; status: GroupSyncStatus; formatTimeAgo: (isoString: string | number | Date) => string; settings: GroupSyncSettings; handleSync: () => Promise<void>; syncing: boolean; ssoConfigured: boolean; syncResult: SyncResult | null; setShowDetails: React.Dispatch<React.SetStateAction<boolean>>; showDetails: boolean; syncError: string | null; handleSyncSetting: (key: string, value: number | boolean) => Promise<void>; }) {
+export function SSOSectionSection({ t, status, formatTimeAgo, settings, handleSync, syncing, ssoConfigured, syncResult, setShowDetails, showDetails, syncError, handleSyncSetting, notConnectedHint }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; status: GroupSyncStatus; formatTimeAgo: (isoString: string | number | Date) => string; settings: GroupSyncSettings; handleSync: () => Promise<void>; syncing: boolean; ssoConfigured: boolean; syncResult: SyncResult | null; setShowDetails: React.Dispatch<React.SetStateAction<boolean>>; showDetails: boolean; syncError: string | null; handleSyncSetting: (key: string, value: number | boolean) => Promise<void>; notConnectedHint?: string; }) {
     return <div className="space-y-4">
         <div>
             <h4 className="text-[13px] font-semibold text-[var(--text-primary)]">
@@ -121,7 +121,7 @@ export function SSOSectionSection({ t, status, formatTimeAgo, settings, handleSy
             <div className="flex items-start gap-2.5 px-3.5 py-3 rounded-lg text-[12px] [background:rgba(100,116,139,0.06)] [border:1px_solid_rgba(100,116,139,0.15)]">
                 <Info size={14} className="mt-0.5 flex-shrink-0 text-[var(--text-muted)]" />
                 <p className="text-[var(--text-secondary)]">
-                    {t('azure.sync_requires_sso', 'Configure Microsoft SSO credentials above before using group sync.')}
+                    {notConnectedHint ?? t('azure.sync_requires_sso', 'Configure Microsoft SSO credentials above before using group sync.')}
                 </p>
             </div>
         )}

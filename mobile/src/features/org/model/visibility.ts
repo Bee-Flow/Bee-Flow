@@ -22,6 +22,11 @@ export interface OrgVisibilityInputs {
     canUseLearning: boolean;
     /** The platform operator (perms `all` or role admin). */
     isSuperAdmin: boolean;
+    /**
+     * The platform admin exactly as the server tests it (session isAdmin or
+     * role admin; `all` is not it): the instance-wide rows take this.
+     */
+    isPlatformAdmin: boolean;
     isSelfHosted: boolean;
     /** The org was provisioned through Nextcloud (/auth/user `ncOrg`). */
     isNcOrg: boolean;
@@ -44,7 +49,13 @@ const RULES: Partial<Record<OrgSectionId, Rule>> = {
     auth: (i) => i.canSeeOrg && !i.isNcOrg && !i.isNcConnectorUser && !i.authLocked,
     org_nextcloud_sync: (i) => i.canSeeOrg && (i.isNcOrg || i.isSuperAdmin),
     org_github_sync: (i) => i.canSeeOrg && i.githubConnected,
-    org_azure: (i) => i.canSeeOrg && i.isSelfHosted,
+    // Instance-wide settings: /api/org-azure-config/:orgId and
+    // /api/branding/admin answer a platform admin only. The organisation's own
+    // group sync (/:orgId/sync-groups*, strict org admin) has no screen of its
+    // own on the phone yet: an org admin who is not a platform admin runs it
+    // from the web (Settings > Organisation > Group sync).
+    org_azure:(i) => i.canSeeOrg && i.isSelfHosted && i.isPlatformAdmin,
+    theme: (i) => i.canSeeOrg && i.isPlatformAdmin,
 };
 
 export function isSectionVisible(id: OrgSectionId, inputs: OrgVisibilityInputs): boolean {
@@ -77,6 +88,7 @@ export function inputsFromAccess(snapshot: AccessSnapshot, facts: OrgSessionFact
         canSeeCompliance: holds(snapshot, 'admin_compliance') && can(snapshot, 'compliance_hub_gdpr'),
         canUseLearning: can(snapshot, 'learning_center'),
         isSuperAdmin: snapshot.isSuperAdmin || holds(snapshot, 'all'),
+        isPlatformAdmin: snapshot.isSuperAdmin,
         isSelfHosted: snapshot.mode === 'self-hosted',
         isNcOrg: facts.isNcOrg,
         isNcConnectorUser: facts.provider === 'nextcloud_connector',

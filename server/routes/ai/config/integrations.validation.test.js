@@ -29,17 +29,21 @@ const { db, api } = h.routeUnderTest(test, '/ai', () => {
 }, { gates: { hasPermission: async () => false } });
 
 const put = (body, user) => api.call('PUT', '/ai/agent-search/defaults', { body, user });
+const PLATFORM_ADMIN = { ...h.USER, role: 'admin' };
 
+// The schema runs after the platform-admin gate: only an admin learns what it refuses.
 test('the search defaults refuse text booleans and unknown values', async () => {
-    h.assertRefused(assert, await put({ include_citations: 'false' }), 'body.include_citations', /true or false/);
-    h.assertRefused(assert, await put({ mode: 'google' }), 'body.mode', /web, web_fast, kb or auto/);
-    h.assertRefused(assert, await put({ web: { detail: 'basic' } }), 'body.web', /"detail"/);
+    h.assertRefused(assert, await put({ include_citations: 'false' }, PLATFORM_ADMIN), 'body.include_citations', /true or false/);
+    h.assertRefused(assert, await put({ mode: 'google' }, PLATFORM_ADMIN), 'body.mode', /web, web_fast, kb or auto/);
+    h.assertRefused(assert, await put({ web: { detail: 'basic' } }, PLATFORM_ADMIN), 'body.web', /"detail"/);
     assert.deepStrictEqual(db.queries, []);
 });
 
-test('a member may not rewrite the installation-wide search defaults', async () => {
+test('a member may not rewrite the installation-wide search defaults, and learns nothing from the schema', async () => {
     const res = await put({ mode: 'kb' });
     assert.strictEqual(res.status, 403, res.text);
+    const invalid = await put({ mode: 'google' });
+    assert.strictEqual(invalid.status, 403, invalid.text);
     assert.ok(!db.queries.some((q) => /INSERT|UPDATE/i.test(q) && /config/i.test(q)), db.queries.join(' | '));
 });
 

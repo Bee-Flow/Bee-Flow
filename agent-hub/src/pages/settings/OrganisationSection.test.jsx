@@ -378,7 +378,8 @@ describe('OrganisationSection — the Integrations section', () => {
         await waitFor(() => expect(screen.queryByTestId('group-access-matrix')).toBeNull());
         expect(screen.getByText('Configure the integrations themselves — credentials, instance URLs and workflows.')).toBeInTheDocument();
         expect(screen.getByTestId('n8n-section')).toBeInTheDocument();
-        expect(screen.getByText('Google Maps')).toBeInTheDocument();
+        // An org admin who is not a platform admin: the Maps key is instance-wide.
+        expect(screen.queryByText('Google Maps')).toBeNull();
     });
 
     const settingsTab = async (over) => {
@@ -389,13 +390,22 @@ describe('OrganisationSection — the Integrations section', () => {
     };
 
     it('shows EVERY integration when enabledIntegrations is missing — absent means allowed (securityFinding)', async () => {
-        await settingsTab({});
+        await settingsTab({ role: 'admin' });
         expect(screen.getByTestId('n8n-section')).toBeInTheDocument();
         expect(screen.getByText('Google Maps')).toBeInTheDocument();
     });
 
+    it('offers the instance-wide Google Maps key to a platform admin only', async () => {
+        await settingsTab({ enabledIntegrations: ['n8n', 'google-maps'] });
+        expect(screen.getByTestId('n8n-section')).toBeInTheDocument();
+        expect(screen.queryByText('Google Maps')).toBeNull();
+        cleanup();
+        await settingsTab({ enabledIntegrations: ['n8n', 'google-maps'], isAdmin: true });
+        expect(screen.getByText('Google Maps')).toBeInTheDocument();
+    });
+
     it('shows only the integrations named in enabledIntegrations', async () => {
-        await settingsTab({ enabledIntegrations: ['n8n'] });
+        await settingsTab({ enabledIntegrations: ['n8n'], role: 'admin' });
         expect(screen.getByTestId('n8n-section')).toBeInTheDocument();
         expect(screen.queryByText('Google Maps')).toBeNull();
     });
@@ -485,12 +495,14 @@ describe('OrganisationSection — the Meeting templates section', () => {
 });
 
 describe('OrganisationSection — the Google Maps integration row', () => {
+    // The row is a platform admin's (the key is instance-wide).
+    const PLATFORM_ADMIN = USER({ permissions: ['org_admin'], role: 'admin' });
     const openMaps = async ({ hasGoogleMapsKey = false } = {}) => {
         const user = userEvent.setup();
         authFetch.mockImplementation(async (_url, opts = {}) => (
             opts.method === 'POST' ? jsonRes({ ok: true }) : jsonRes({ hasGoogleMapsKey })
         ));
-        const view = mount({ user: ORG_ADMIN, activeSection: 'integrations' });
+        const view = mount({ user: PLATFORM_ADMIN, activeSection: 'integrations' });
         await user.click(screen.getByRole('tab', { name: 'Integration settings' }));
         await screen.findByText('Google Maps');
         await waitFor(() => expect(authFetch).toHaveBeenCalledWith('/ai/config'));
@@ -516,7 +528,7 @@ describe('OrganisationSection — the Google Maps integration row', () => {
     it('reads a failed /ai/config probe as "no key" (wart: an unreachable config looks unconfigured)', async () => {
         const user = userEvent.setup();
         authFetch.mockRejectedValue(new Error('offline'));
-        mount({ user: ORG_ADMIN, activeSection: 'integrations' });
+        mount({ user: PLATFORM_ADMIN, activeSection: 'integrations' });
         await user.click(screen.getByRole('tab', { name: 'Integration settings' }));
         await screen.findByText('Google Maps');
         await waitFor(() => expect(authFetch).toHaveBeenCalled());
@@ -593,7 +605,7 @@ describe('OrganisationSection — the Google Maps integration row', () => {
         authFetch.mockImplementation(async (_url, opts = {}) => (
             opts.method === 'POST' ? jsonRes({ error: 'bad key' }, 400) : jsonRes({ hasGoogleMapsKey: false })
         ));
-        const { container } = mount({ user: ORG_ADMIN, activeSection: 'integrations' });
+        const { container } = mount({ user: PLATFORM_ADMIN, activeSection: 'integrations' });
         await user.click(screen.getByRole('tab', { name: 'Integration settings' }));
         await screen.findByText('Google Maps');
         await user.click(mapsToggle());
@@ -614,7 +626,7 @@ describe('OrganisationSection — the Google Maps integration row', () => {
             if (opts.method === 'POST') throw new Error('offline');
             return jsonRes({ hasGoogleMapsKey: false });
         });
-        const { container } = mount({ user: ORG_ADMIN, activeSection: 'integrations' });
+        const { container } = mount({ user: PLATFORM_ADMIN, activeSection: 'integrations' });
         await user.click(screen.getByRole('tab', { name: 'Integration settings' }));
         await screen.findByText('Google Maps');
         await user.click(mapsToggle());

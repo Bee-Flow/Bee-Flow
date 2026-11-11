@@ -34,6 +34,7 @@
 
 const { collectKbSteps } = require('./automationKbCheck');
 const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 /**
  * The config subset that identifies "this automation's source" in a base.
@@ -83,9 +84,14 @@ async function syncKbSources(automationId, definition, { userId, title = '', dep
          * the duration of a blip, on an automation that had changed nothing.
          */
         const unknown = new Set();
+        // The owner is the same for every base: resolved once, not once per base.
+        const { resolveOwnerWriteContext } = deps.writeAccess || require('./kbWriteAccess');
+        const context = wanted.size && userId && typeof resolveOwnerWriteContext === 'function'
+            ? await resolveOwnerWriteContext(userId, { deps }).catch((err) => fallback('core/kb/kbSourceSync:ownerContext', err, null))
+            : null;
         for (const kbId of wanted) {
             try {
-                if ((await canOwnerWriteToKb(kbId, userId, { deps })).ok) allowed.add(kbId);
+                if ((await canOwnerWriteToKb(kbId, userId, { deps, context })).ok) allowed.add(kbId);
             } catch (_) {
                 unknown.add(kbId);
             }

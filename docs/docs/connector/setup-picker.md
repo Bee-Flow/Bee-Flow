@@ -40,7 +40,14 @@ Open **Bee Flow** from the Nextcloud top bar as an administrator and pick a card
   **Settings → Organisation → Pair a new Nextcloud**. Without a code such a server answers
   "Pairing code required" for a Nextcloud it does not know.
   The card links to the [self-hosting guide](../self-hosting/docker-compose.md); the whole route is
-  in [Bee Flow on your own server next to Nextcloud](own-server.md).
+  in [Bee Flow on your own server next to Nextcloud](own-server.md). No server yet? The form opens an install help with the
+  commands for the installer, as fixed text: [the installer](own-server.md#install-script).
+
+When a Bee Flow server already runs on the same machine, the page says so: "A Bee Flow server answers
+at …" with **Use this address**. The connector looks only at the Docker host it runs on and at the
+server's container name, on the default port 3001, and asks nothing but `/api/health`; nothing about
+this Nextcloud is sent. It is an offer: nothing is chosen until you connect. A server on another
+port or another machine is not found this way; enter its address yourself.
 
 Before you press **Connect**, the page shows what connecting sends and to which host:
 
@@ -56,7 +63,10 @@ What happens on Connect:
 2. The choice is saved in `${APP_PERSISTENT_STORAGE}/setup-config.json` (mode `0600`) and the
    connector connects to that server. No container restart is needed.
 3. The page reports the outcome: connected to your organisation, a code was e-mailed to an
-   administrator (open Bee Flow to enter it), or the failure with its name.
+   administrator, or the failure with its name. After a connect that succeeded, and after a code
+   was e-mailed, Bee Flow opens by itself a moment later: an administrator goes straight on to
+   the organisation set-up (or to the screen that takes the code). The **Open Bee Flow** button is
+   there for whoever does not want to wait.
 
 A first choice whose check passed stays chosen when connecting then fails, for example because the
 server asks for a pairing code. The connector is then on that server without a key. Until the

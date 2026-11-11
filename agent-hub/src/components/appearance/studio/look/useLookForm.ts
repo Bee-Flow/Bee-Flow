@@ -106,7 +106,7 @@ export function useLookForm() {
             await theme.setAdminDefault(form);
             const fresh = await refresh();
             setForm(buildFormFromTheme(fresh));
-            toast.success('Theme saved as organisation default');
+            toast.success('Theme saved as the server default');
         } catch (e) {
             const msg = messageOf(e, 'Save failed');
             console.error('[Look] save failed:', e);

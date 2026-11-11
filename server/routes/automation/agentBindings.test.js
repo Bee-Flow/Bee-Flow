@@ -71,7 +71,7 @@ before(() => {
             getPublishedAgentsForUser: async () => Object.values(AGENTS),
         },
         agentAccess: makeAgentAccess({
-            hasPermission: async () => false,
+            resolvePermissionsByOrg: async () => ({ holds: () => false }),
             resolveUserOrgIds: async () => new Set(['org1']),
             getUser: async (id) => USERS[id] || null,
             roles: () => ({ SystemRoles: { SUPER_ADMIN: 'admin' }, OrgRoles: { AGENT_EDITOR: 'agent_editor' } }),

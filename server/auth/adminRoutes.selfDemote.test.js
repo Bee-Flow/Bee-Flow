@@ -34,6 +34,10 @@ const assert = require('node:assert');
 const Module = require('module');
 const bcrypt = require('bcryptjs');
 
+// The real org-admin decision: the sole-admin count asks it who can still
+// administer an org, so a stub would make the count tests vacuous.
+const { _evalOrgAdmin } = require('./permissions');
+
 // ── Mutable fixtures ─────────────────────────────────────────────────
 const fx = {
     users: [],
@@ -116,6 +120,7 @@ const MOCKS = {
         // Real behaviour — the sole-admin count is built on this predicate, so a
         // pass-through stub would make every test vacuously green.
         isOrgAdminRole: (r) => r === 'org_admin' || r === 'admin',
+        _evalOrgAdmin,
         invalidatePermissionCache: () => { },
         invalidateAllPermissionCaches: () => { },
         invalidateUserExistenceCache: () => { },
@@ -301,15 +306,17 @@ test('the sole member of a one-person org can still be suspended and demoted', a
     assert.strictEqual(demoted.statusCode, 200, JSON.stringify(demoted.body));
 });
 
-// The counter treats a group-transitive admin as cover for an org, so the guard
-// has to protect that same org — otherwise the two disagree and orgA is
-// orphaned by a request that only ever looked at orgB.
-test('an admin who administers another org through a group is guarded for THAT org', async () => {
+// The guard checks every org the person administers, orgA included, and
+// refuses while orgA has a member and no counted administrator. That is the
+// safe direction: an admin-carrying group is never counted as cover (see the
+// two-step test below), so orgA here has nobody the guards protect.
+test('an admin who administers another org through an admin group is guarded for THAT org', async () => {
     resetFx();
-    // sam's primary org is orgB, but g_fin belongs to orgA and he is org_admin,
-    // so he is orgA's only administrator. jan is demoted out of the way first.
+    // sam's primary org is orgB, but g_fin_admins belongs to orgA and carries
+    // the org_admin role, so he administers orgA (jan is left out).
+    fx.groups.push({ id: 'g_fin_admins', name: 'Finance admins', organizationId: 'orgA', roles: ['org_admin'] });
     fx.users = [
-        { id: 'sam', username: 'sam', organizationId: 'orgB', groups: ['g_fin'], orgRole: 'org_admin', status: 'active' },
+        { id: 'sam', username: 'sam', organizationId: 'orgB', groups: ['g_fin_admins'], orgRole: 'org_admin', status: 'active' },
         { id: 'eva', username: 'eva', organizationId: 'orgA', groups: ['g_fin'], orgRole: 'member', status: 'active' },
         { id: 'bob', username: 'bob', organizationId: 'orgB', groups: ['g_beta'], orgRole: 'org_admin', status: 'active' },
     ];
@@ -317,6 +324,20 @@ test('an admin who administers another org through a group is guarded for THAT o
     assert.strictEqual(res.statusCode, 409, 'orgA would be left with a member and no administrator');
     assert.strictEqual(res.body.code, 'last_org_admin');
     assert.deepEqual(fx.updates, []);
+});
+
+// Membership of an ordinary group of orgA administers nothing there, so it
+// neither protects orgA nor is protected for it.
+test('an org admin who is only a plain group member of another org is not guarded for it', async () => {
+    resetFx();
+    fx.users = [
+        { id: 'sam', username: 'sam', organizationId: 'orgB', groups: ['g_fin'], orgRole: 'org_admin', status: 'active' },
+        { id: 'eva', username: 'eva', organizationId: 'orgA', groups: ['g_fin'], orgRole: 'member', status: 'active' },
+        { id: 'bob', username: 'bob', organizationId: 'orgB', groups: ['g_beta'], orgRole: 'org_admin', status: 'active' },
+    ];
+    const res = await dispatch({ method: 'PUT', url: '/users/sam', body: { orgRole: 'member' }, session: SUPER });
+    assert.strictEqual(res.statusCode, 200, JSON.stringify(res.body));
+    assert.strictEqual(fx.updates.length, 1);
 });
 
 test('a second admin who cannot sign in does not keep the org covered', async () => {
@@ -336,14 +357,40 @@ test('an admin in another org does not count as this org\'s cover', async () => 
     assert.strictEqual(res.body.code, 'last_org_admin');
 });
 
-test('an admin who belongs to the org only through a group does count', async () => {
+// An admin-carrying group makes its members administrators of the org, but
+// leaving that group runs no guard. Counting such a member as cover would let
+// the last guarded admin go, after which the group member could leave the
+// group and strand the org. So only an admin orgRole in the org as their own
+// organisation counts.
+test('an admin of the org only through one of its admin groups is not cover', async () => {
     resetFx();
-    // No organizationId, but a member of g_fin, which belongs to orgA — the
-    // same membership isOrgAdminForOrg() honours when granting the gate.
+    fx.groups.push({ id: 'g_fin_admins', name: 'Finance admins', organizationId: 'orgA', permissions: ['all'] });
+    fx.users.push({ id: 'sam', username: 'sam', organizationId: 'orgA', groups: ['g_fin_admins'], orgRole: 'member', status: 'active' });
+    const res = await dispatch({ method: 'PUT', url: '/users/jan', body: { orgRole: 'member', confirmSelfDemotion: true }, session: JAN });
+    assert.strictEqual(res.statusCode, 409, JSON.stringify(res.body));
+    assert.strictEqual(res.body.code, 'last_org_admin');
+    assert.deepEqual(fx.updates, [], 'jan keeps the role, so orgA keeps a guarded administrator');
+});
+
+test('an admin group of the org with no own organisation is not cover either', async () => {
+    resetFx();
+    fx.groups.push({ id: 'g_fin_admins', name: 'Finance admins', organizationId: 'orgA', roles: ['org_admin'] });
+    fx.users.push({ id: 'sam', username: 'sam', organizationId: '', groups: ['g_fin_admins'], orgRole: 'member', status: 'active' });
+    const res = await dispatch({ method: 'PUT', url: '/users/jan', body: { orgRole: 'member' }, session: SUPER });
+    assert.strictEqual(res.statusCode, 409, JSON.stringify(res.body));
+    assert.strictEqual(res.body.code, 'last_org_admin');
+    assert.deepEqual(fx.updates, []);
+});
+
+test('an org admin who is only a plain group member of the org does not count', async () => {
+    resetFx();
+    // An org_admin orgRole with no organizationId, and an ordinary orgA group:
+    // isOrgAdminForOrg() refuses them orgA, so they cannot be its cover either.
     fx.users.push({ id: 'sam', username: 'sam', organizationId: '', groups: ['g_fin'], orgRole: 'org_admin', status: 'active' });
     const res = await dispatch({ method: 'PUT', url: '/users/jan', body: { orgRole: 'member' }, session: SUPER });
-    assert.strictEqual(res.statusCode, 200, JSON.stringify(res.body));
-    assert.strictEqual(fx.updates.length, 1);
+    assert.strictEqual(res.statusCode, 409);
+    assert.strictEqual(res.body.code, 'last_org_admin');
+    assert.deepEqual(fx.updates, []);
 });
 
 test('with a second active admin the demotion goes through', async () => {

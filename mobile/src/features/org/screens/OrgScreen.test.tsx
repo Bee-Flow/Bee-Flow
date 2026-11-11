@@ -36,6 +36,7 @@ const ADMIN: OrgVisibilityInputs = {
     canSeeCompliance: true,
     canUseLearning: true,
     isSuperAdmin: false,
+    isPlatformAdmin: false,
     isSelfHosted: false,
     isNcOrg: false,
     isNcConnectorUser: false,

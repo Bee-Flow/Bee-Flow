@@ -66,6 +66,7 @@ const { requireAuth: _requireAuth, requirePlatformAdmin } = require('../auth/per
 const brandingStore = require('../stores/brandingStore');
 const { validate } = require('../core/http/validate');
 const { HttpError } = require('../core/http/errors');
+const { readGate, tagGate } = require('../auth/gateMeta');
 
 // Async middleware in Node 22 — if `requireAdmin`'s internal hasPermission()
 // rejects, the unhandled-rejection default exits the process, which produces
@@ -73,22 +74,26 @@ const { HttpError } = require('../core/http/errors');
 // reaches the terminal error handler instead. It must not answer here with
 // 'Auth check failed: ' + the error's own message — that is the raw text of whatever
 // the permission lookup threw, database errors included, in the 500 body.
+// The wrapper carries the gate tag of what it wraps (auth/gateMeta.js), so the
+// route contract reads the gate inside rather than an anonymous function.
 /**
  * @param {(req: import('express').Request, res: import('express').Response, next: import('express').NextFunction) => unknown} middleware
  * @returns {import('express').RequestHandler}
  */
 function safe(middleware) {
-    return (req, res, next) => {
+    /** @type {import('express').RequestHandler} */
+    const wrapped = (req, res, next) => {
         Promise.resolve()
             .then(() => middleware(req, res, next))
             .catch(next);
     };
+    const meta = readGate(middleware);
+    return meta ? tagGate(wrapped, meta) : wrapped;
 }
 const requireAuth = safe(_requireAuth);
 // The admin routes below write the ONE branding of the instance (the default
 // theme, the wallpaper file), not an organisation's, so they take the
-// platform-admin gate: `manage_users` on a self-hosted install, as before, a
-// platform admin on a shared one.
+// platform-admin gate: a platform admin, in every deployment mode.
 const requireAdmin = safe(requirePlatformAdmin('manage_users'));
 
 // ── The theme vocabulary ────────────────────────────────────────

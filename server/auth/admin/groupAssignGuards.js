@@ -17,32 +17,36 @@ const log = require('../../telemetry/log');
  * Every organisation this user can administer — not just the one in their
  * `organizationId` column.
  *
- * countOrgMembers counts an admin who belongs to an org only through one of its
- * GROUPS, because isOrgAdminForOrg lets that person administer it. Resolving the
- * guard's target org from `organizationId` alone therefore disagreed with the
- * counter in both directions: an admin whose primary org is orgB but who
- * administers orgA through a group could be demoted with only orgB's admin count
- * consulted, silently orphaning orgA; and an admin with no primary org at all
- * skipped the guard entirely. Ask the same question the counter answers.
+ * The answer is isOrgAdminForOrg's own decision (permissions._evalOrgAdmin),
+ * asked of every organisation the user belongs to: their own, and the
+ * organisation of each of their groups. An admin of their own org can also
+ * administer another org through an admin-carrying group of it. The
+ * anti-orphan guard checks every org this returns, which is the safe
+ * direction: it refuses a change while any of them has members and no counted
+ * administrator (see countOrgMembers for who counts). Membership of an ordinary
+ * group of an org administers nothing.
  * @param {Record<string, any> | null | undefined} user
  * @returns {Promise<string[]>}
  */
 async function orgsAdministeredBy(user) {
-    if (!user || !permissions.isOrgAdminRole(user.orgRole)) return [];
-    const orgIds = new Set();
-    if (user.organizationId) orgIds.add(user.organizationId);
+    if (!user) return [];
+    /** @type {Set<string>} */
+    const candidates = new Set();
+    if (user.organizationId) candidates.add(String(user.organizationId));
     /** @type {string[]} */
     let gids = [];
     try { gids = Array.isArray(user.groups) ? user.groups : JSON.parse(user.groups || '[]'); } catch (_) { gids = []; }
+    /** @type {Record<string, any>[]} */
+    let groups = [];
     if (gids.length) {
         try {
-            const groups = await userStore.getAllGroups();
-            for (const g of groups || []) {
-                if (g?.organizationId && gids.includes(g.id)) orgIds.add(g.organizationId);
+            groups = (await userStore.getAllGroups()) || [];
+            for (const g of groups) {
+                if (g?.organizationId && gids.includes(g.id)) candidates.add(String(g.organizationId));
             }
         } catch (e) { log.warn('[adminRoutes] group lookup for org-admin guard failed:', /** @type {Error} */ (e).message); }
     }
-    return [...orgIds];
+    return [...candidates].filter((orgId) => permissions._evalOrgAdmin(user, groups, orgId));
 }
 
 /**

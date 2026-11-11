@@ -3,8 +3,9 @@
  * who may use which integration — the access matrix, opened on its
  * integration kind (and, on the phone, its beta kind, which the web keeps
  * under Admin → Access) — and the integrations' own settings: Nextcloud's
- * tools for an NC-bound org, n8n, and the Google Maps key. The org's
- * integration allow-list decides which settings rows show, as on the web.
+ * tools for an NC-bound org, n8n, and (for a platform admin, the key is
+ * instance-wide) the Google Maps key. The org's integration allow-list decides
+ * which settings rows show, as on the web.
  */
 
 import { useRouter } from 'expo-router';
@@ -25,7 +26,8 @@ export function OrgIntegrationsScreen() {
     const access = useIntegrationAccess();
     const allowed = access.enabledIntegrations;
     const showN8n = !allowed || allowed.includes('n8n');
-    const showMaps = !allowed || allowed.includes('google-maps');
+    // The Maps key is instance-wide: only a platform admin may set it.
+    const showMaps = access.maps && (!allowed || allowed.includes('google-maps'));
     const maps = useHasMapsKey(access.admin && showMaps);
     const refresh = useUserRefresh(() => maps.refetch());
     const [mapsOpen, setMapsOpen] = useState(false);

@@ -19,7 +19,9 @@ const {
     fetchUrlContent,
     ingestDocument,
 } = require('../../core/kb/kbIngestionHelpers');
-const { getUserId, canAccessKB, blockIfSystemKB, ensureKbSource } = require('./shared');
+// Writing content is managing the base: canManageKB (manage_knowledge held in
+// the base's own organisation, or its owner), not the read check.
+const { getUserId, canManageKB, blockIfSystemKB, ensureKbSource } = require('./shared');
 const { keepUploadedOriginal } = require('../../core/kb/sources/keepOriginals');
 const { validate } = require('../../core/http/validate');
 const { z } = require('../../utils/zod');
@@ -61,7 +63,7 @@ router.post('/:id/ingest/text', requireAuth, requirePermission('manage_knowledge
     try {
         const kb = await kbStore.getKB(req.params.id);
         if (!kb) return res.status(404).json({ error: 'KB not found' });
-        if (!(await canAccessKB(req, kb))) return res.status(403).json({ error: 'Access denied' });
+        if (!(await canManageKB(req, kb))) return res.status(403).json({ error: 'Access denied' });
         if (blockIfSystemKB(kb, res)) return;
 
         const { content, title } = req.body;
@@ -103,7 +105,7 @@ router.post('/:id/ingest/file', requireAuth, requirePermission('manage_knowledge
     try {
         const kb = await kbStore.getKB(req.params.id);
         if (!kb) return res.status(404).json({ error: 'KB not found' });
-        if (!(await canAccessKB(req, kb))) return res.status(403).json({ error: 'Access denied' });
+        if (!(await canManageKB(req, kb))) return res.status(403).json({ error: 'Access denied' });
         if (blockIfSystemKB(kb, res)) return;
 
         if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
@@ -168,7 +170,7 @@ router.post('/:id/ingest/url', requireAuth, requirePermission('manage_knowledge'
     try {
         const kb = await kbStore.getKB(req.params.id);
         if (!kb) return res.status(404).json({ error: 'KB not found' });
-        if (!(await canAccessKB(req, kb))) return res.status(403).json({ error: 'Access denied' });
+        if (!(await canManageKB(req, kb))) return res.status(403).json({ error: 'Access denied' });
         if (blockIfSystemKB(kb, res)) return;
 
         const { url } = req.body;

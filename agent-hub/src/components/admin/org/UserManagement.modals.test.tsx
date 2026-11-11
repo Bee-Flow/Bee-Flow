@@ -31,12 +31,13 @@ const jsonRes = (body: unknown, status = 200) => Promise.resolve({
 
 const JAN = { id: 'u_jan', username: 'jan', displayName: 'Jan de Vries', email: 'jan@acme.nl', orgRole: 'org_admin', organizationId: 'o1', groups: [], status: 'active' };
 
+// The admin dashboard's lists carry ?scope=admin; the role table and the permission catalogue do not.
 const FIXTURES: Record<string, unknown> = {
-    '/auth/users': [JAN],
-    '/auth/groups': [],
+    '/auth/users?scope=admin': [JAN],
+    '/auth/groups?scope=admin': [],
     '/auth/roles': [],
     '/auth/permissions': [],
-    '/auth/organizations': [{ id: 'o1', name: 'Acme B.V.' }],
+    '/auth/organizations?scope=admin': [{ id: 'o1', name: 'Acme B.V.' }],
 };
 
 const fullAdmin = { id: 'me', permissions: ['all'], isAdmin: true, organizations: ['o1'] };
@@ -182,7 +183,7 @@ describe('UserManagement: user monthly AI budget (self-hosted)', () => {
         asMock(authFetch).mockReset();
         asMock(authFetch).mockImplementation((url: string, init?: { method?: string }) => {
             if (init?.method === 'PUT') return jsonRes({ success: true });
-            if (url === '/auth/users') return jsonRes([{ ...JAN, monthlyCostLimit: 12.5 }]);
+            if (url === '/auth/users?scope=admin') return jsonRes([{ ...JAN, monthlyCostLimit: 12.5 }]);
             return jsonRes(FIXTURES[url] ?? {});
         });
     });
@@ -227,5 +228,119 @@ describe('UserManagement: user monthly AI budget (self-hosted)', () => {
         await user.type(field, '0');
         await user.click(within(dialog).getByText('Save'));
         expect(putCall()).toBeUndefined();
+    });
+});
+
+/**
+ * The platform administrator switch of Admin > Security > Users: only a
+ * platform admin sees it, granting asks first and names the person, the PUT
+ * carries the platform role, the server's refusal for the last platform admin
+ * is shown in the form, and the people list marks platform admins apart from
+ * their organisation role. A platform admin's row offers edit, 2FA reset and
+ * delete to a platform admin only (the server refuses anyone else).
+ */
+describe('UserManagement: platform administrator', () => {
+    const MEMBER = { id: 'u_jan', username: 'jan', displayName: 'Jan de Vries', role: 'user', orgRole: 'member', organizationId: 'o1', groups: [], status: 'active' };
+    const PLATFORM = { id: 'u_ann', username: 'ann', displayName: 'Ann Smit', role: 'admin', orgRole: 'org_admin', organizationId: 'o1', groups: [], status: 'active' };
+    const platformAdmin = { id: 'u_ann', role: 'admin', isAdmin: true, permissions: [], organizations: ['o1'] };
+    const orgAdmin = { id: 'u_piet', role: 'user', orgRole: 'org_admin', permissions: ['manage_users'], organizations: ['o1'], organizationId: 'o1' };
+
+    let putResponse: () => Promise<unknown> = () => jsonRes({ success: true });
+    const putBody = () => {
+        const call = asMock(authFetch).mock.calls.find(([, init]) => init?.method === 'PUT');
+        return call ? JSON.parse(call[1].body) : null;
+    };
+    const rowOf = (name: string) => screen.getByText(name).closest('[data-testid="people-row"]') as HTMLElement;
+
+    async function openEdit(currentUser: Record<string, unknown>, name: string) {
+        const user = userEvent.setup();
+        render(<UserManagement user={currentUser} />);
+        await user.click(await screen.findByLabelText(`Edit ${name}`));
+        return { user, dialog: await screen.findByRole('dialog') };
+    }
+
+    beforeEach(() => {
+        cleanup();
+        mode.selfHosted = false;
+        putResponse = () => jsonRes({ success: true });
+        asMock(authFetch).mockReset();
+        asMock(authFetch).mockImplementation((url: string, init?: { method?: string }) => {
+            if (init?.method === 'PUT') return putResponse();
+            if (url === '/auth/users?scope=admin') return jsonRes([MEMBER, PLATFORM]);
+            return jsonRes(FIXTURES[url] ?? {});
+        });
+    });
+
+    it('marks a platform admin in the list next to their organisation role', async () => {
+        render(<UserManagement user={platformAdmin} />);
+        await screen.findByText('Ann Smit');
+        expect(within(rowOf('Ann Smit')).getByText('Platform admin')).toBeInTheDocument();
+        expect(within(rowOf('Ann Smit')).getByText('Organisation Admin')).toBeInTheDocument();
+        expect(within(rowOf('Jan de Vries')).queryByText('Platform admin')).not.toBeInTheDocument();
+    });
+
+    it('offers an organisation admin no edit, 2FA reset or delete on a platform admin, and keeps them on a member', async () => {
+        render(<UserManagement user={orgAdmin} />);
+        await screen.findByText('Ann Smit');
+        expect(within(rowOf('Ann Smit')).queryAllByRole('button')).toHaveLength(0);
+        expect(screen.getByLabelText('Edit Jan de Vries')).toBeInTheDocument();
+        expect(screen.getByLabelText('Reset 2FA for Jan de Vries')).toBeInTheDocument();
+        expect(screen.getByLabelText('Delete Jan de Vries')).toBeInTheDocument();
+    });
+
+    it('offers a platform admin the actions on a platform admin', async () => {
+        render(<UserManagement user={platformAdmin} />);
+        expect(await screen.findByLabelText('Edit Ann Smit')).toBeInTheDocument();
+        expect(screen.getByLabelText('Reset 2FA for Ann Smit')).toBeInTheDocument();
+        expect(screen.getByLabelText('Delete Ann Smit')).toBeInTheDocument();
+    });
+
+    it('is not offered to an organisation admin', async () => {
+        const { dialog } = await openEdit(orgAdmin, 'Jan de Vries');
+        expect(within(dialog).queryByRole('checkbox', { name: 'Platform administrator' })).not.toBeInTheDocument();
+    });
+
+    it('asks before granting, names the person, and sends the platform role', async () => {
+        const { user, dialog } = await openEdit(platformAdmin, 'Jan de Vries');
+        const toggle = within(dialog).getByRole('checkbox', { name: 'Platform administrator' });
+        expect(within(dialog).getByText('Can change settings for the whole server and see every organisation.')).toBeInTheDocument();
+        await user.click(toggle);
+
+        expect(await screen.findByText('Make Jan de Vries a platform administrator?')).toBeInTheDocument();
+        expect(screen.getByText('Jan de Vries can change settings for the whole server and see every organisation.')).toBeInTheDocument();
+        await user.click(screen.getByRole('button', { name: 'Make platform administrator' }));
+        await waitFor(() => expect(toggle).toBeChecked());
+
+        await user.click(within(dialog).getByText('Save'));
+        await waitFor(() => expect(putBody()).not.toBeNull());
+        expect(putBody().role).toBe('admin');
+    });
+
+    it('leaves the role alone when the confirmation is cancelled', async () => {
+        const { user, dialog } = await openEdit(platformAdmin, 'Jan de Vries');
+        const toggle = within(dialog).getByRole('checkbox', { name: 'Platform administrator' });
+        await user.click(toggle);
+        const confirmDialog = (await screen.findAllByRole('dialog')).at(-1) as HTMLElement;
+        expect(confirmDialog).toHaveTextContent('Make Jan de Vries a platform administrator?');
+        await user.click(within(confirmDialog).getByRole('button', { name: 'Cancel' }));
+        await waitFor(() => expect(screen.getAllByRole('dialog')).toHaveLength(1));
+        expect(toggle).not.toBeChecked();
+    });
+
+    it('asks before you give up your own role, and shows the server refusal for the last platform admin', async () => {
+        putResponse = () => jsonRes({ code: 'last_platform_admin', error: 'refused' }, 409);
+        const { user, dialog } = await openEdit(platformAdmin, 'Ann Smit');
+        const toggle = within(dialog).getByRole('checkbox', { name: 'Platform administrator' });
+        expect(toggle).toBeChecked();
+        await user.click(toggle);
+
+        expect(await screen.findByText('Give up your platform administrator rights?')).toBeInTheDocument();
+        await user.click(screen.getByRole('button', { name: 'Give them up' }));
+        await waitFor(() => expect(toggle).not.toBeChecked());
+
+        await user.click(within(dialog).getByText('Save'));
+        await waitFor(() => expect(putBody()?.role).toBe('user'));
+        expect(await within(dialog).findByRole('alert')).toHaveTextContent('This is the last active platform administrator');
+        expect(toggle).toBeChecked();
     });
 });

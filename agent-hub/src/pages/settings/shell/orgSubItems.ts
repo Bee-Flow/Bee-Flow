@@ -7,6 +7,8 @@ export interface OrgSubItemFacts {
     canUseLearning: boolean;
     showComplianceNav: boolean;
     isSelfHosted: boolean;
+    /** session isAdmin or role 'admin': the server's platform-admin test. */
+    isPlatformAdmin: boolean;
     isNcConnectorUser: boolean;
     isNcOrg: boolean;
     showNcSync: boolean;
@@ -17,11 +19,15 @@ export interface OrgSubItemFacts {
     inCeiling?: (id: string) => boolean;
 }
 
-/** The org sub-menu rows this person gets, from the full list plus the self-hosted Azure row. */
+/**
+ * The org sub-menu rows this person gets, from the full list plus, on a
+ * self-hosted install, the Azure row (a platform admin) or the group-sync row
+ * (an organisation admin).
+ */
 export function filterOrgSubItems(baseItems: OrgSubItem[], azureItem: OrgSubItem, {
-    canSeeOrg, canManageUsers, canUseLearning, showComplianceNav, isSelfHosted, isNcConnectorUser, isNcOrg, showNcSync,
+    canSeeOrg, canManageUsers, canUseLearning, showComplianceNav, isSelfHosted, isPlatformAdmin, isNcConnectorUser, isNcOrg, showNcSync,
     githubConnected, orgAuthLocked, entitlementsLoading, entitlementsUnknown, inCeiling,
-}: OrgSubItemFacts): OrgSubItem[] {
+}: OrgSubItemFacts, groupSyncItem?: OrgSubItem): OrgSubItem[] {
     const items = baseItems.filter(s => {
         // Non-org-admins see only the entries their own permission grants:
         // Compliance for pure-DPO users.
@@ -70,9 +76,14 @@ export function filterOrgSubItems(baseItems: OrgSubItem[], azureItem: OrgSubItem
 
         return true;
     });
-    // Azure services config — self-hosted operator surface for org admins.
-    if (isSelfHosted && canSeeOrg) {
+    // Azure services config: the instance-wide Azure setup, which
+    // /api/org-azure-config/:orgId reads and writes for a platform admin only.
+    // An organisation admin keeps the organisation's own Azure AD group sync
+    // (/api/org-azure-config/:orgId/sync-groups*, org-scoped), on the same tab.
+    if (isSelfHosted && isPlatformAdmin) {
         items.push(azureItem);
+    } else if (isSelfHosted && canSeeOrg && groupSyncItem) {
+        items.push(groupSyncItem);
     }
     return items;
 }

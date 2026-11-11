@@ -10,10 +10,10 @@ import type { DesignerSectionProps } from './sectionProps';
 import { mutate, ApiError } from '@/api/mutate';
 import AvatarPicker from './AvatarPicker';
 
-type CategoryProps = Pick<DesignerSectionProps, 'API_BASE' | 'categoryId' | 'setCategoryId' | 'agentCategories' | 'setAgentCategories'>;
+type CategoryProps = Pick<DesignerSectionProps, 'API_BASE' | 'categoryId' | 'setCategoryId' | 'agentCategories' | 'setAgentCategories' | 'adminOrgId'>;
 
 /** The category select with a + to create one inline; without any categories, only the + as a quiet button. */
-function CategoryControl({ API_BASE, categoryId, setCategoryId, agentCategories, setAgentCategories }: CategoryProps) {
+function CategoryControl({ API_BASE, categoryId, setCategoryId, agentCategories, setAgentCategories, adminOrgId }: CategoryProps) {
   const { t } = useTranslation();
   const [showNewCategory, setShowNewCategory] = useLocalState(false);
   const [newCategoryName, setNewCategoryName] = useLocalState('');
@@ -21,7 +21,9 @@ function CategoryControl({ API_BASE, categoryId, setCategoryId, agentCategories,
   const handleCreateCategory = async () => {
     if (!newCategoryName.trim()) return;
     try {
-      const res = await mutate(`${API_BASE}/agents/categories`, {
+      // In the admin dashboard with one organisation chosen, the category is created in it (the list shows only its categories).
+      const orgQuery = adminOrgId ? `?orgId=${encodeURIComponent(adminOrgId)}` : '';
+      const res = await mutate(`${API_BASE}/agents/categories${orgQuery}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: newCategoryName.trim() })

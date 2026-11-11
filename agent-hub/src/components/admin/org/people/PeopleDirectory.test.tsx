@@ -31,6 +31,7 @@ const renderDir = (props = {}) =>
             groups={stub<ComponentProps<typeof PeopleDirectory>['groups']>(GROUPS)}
             organizations={ORGS}
             canManageUsers
+            viewerHomeOrgId="orgA"
             {...props}
         />,
     );
@@ -195,6 +196,28 @@ describe('PeopleDirectory', () => {
         const janRow = screen.getByText('Jan de Vries').closest('[data-testid="people-row"]');
         expect(within((janRow as HTMLElement)).queryAllByRole('button')).toHaveLength(0);
         expect(screen.queryByText('Add user')).not.toBeInTheDocument();
+    });
+
+    // The server decides on the target's HOME organisation, so an organisation
+    // admin acts only on accounts whose home is theirs.
+    const rowOf = (name: string) => screen.getByText(name).closest('[data-testid="people-row"]') as HTMLElement;
+
+    it('keeps a member through a group alone read-only for an organisation admin', () => {
+        renderDir({ users: [JAN, EVA, LOOSE] });
+        expect(within(rowOf('Jan de Vries')).getAllByRole('button')).toHaveLength(3);
+        expect(within(rowOf('Eva Bakker')).queryAllByRole('button')).toHaveLength(0);
+        expect(within(rowOf('Loose Leaf')).queryAllByRole('button')).toHaveLength(0);
+    });
+
+    it('keeps every row read-only for a viewer without a home organisation', () => {
+        renderDir({ users: [JAN, LOOSE], viewerHomeOrgId: null });
+        expect(within(rowOf('Jan de Vries')).queryAllByRole('button')).toHaveLength(0);
+        expect(within(rowOf('Loose Leaf')).queryAllByRole('button')).toHaveLength(0);
+    });
+
+    it('gives a platform admin the actions on a member through a group alone', () => {
+        renderDir({ users: [EVA], viewerHomeOrgId: null, viewerIsPlatformAdmin: true });
+        expect(within(rowOf('Eva Bakker')).getAllByRole('button')).toHaveLength(3);
     });
 
     it('wires the row actions to their callbacks', async () => {

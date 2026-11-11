@@ -93,6 +93,22 @@ const needsSession = (req, res, next) => {
 };
 
 /**
+ * The start of a route test that must swap gates BEFORE it requires its
+ * router (routers destructure their gates at load) and cannot use openGates,
+ * which requires auth/index and with it every auth router: the recording
+ * database (recordDb), a swap set (testUtils/swaps), and the named gates of
+ * `auth/permissions` swapped on the module object for the session-only check.
+ * `swaps.restore()` puts them back.
+ */
+function sessionGated(names) {
+    const db = recordDb();
+    const swaps = require('./swaps').makeSwaps();
+    const permissions = require('../auth/permissions');
+    for (const name of names) swaps.swap(permissions, name, needsSession);
+    return { db, swaps, permissions };
+}
+
+/**
  * Replace the session gates with session-only versions. `overrides` replaces
  * any other export of `auth/permissions` (and its `auth` re-export) by name.
  */
@@ -214,6 +230,16 @@ function assertGeneric500(assert, res, leaks) {
  * serve it, and wire the node:test hooks that settle and reset the recording.
  *
  *   const { db, api } = h.routeUnderTest(test, '/api/usage', () => require('./usage'));
+ *
+ * @param {typeof import('node:test')} test
+ * @param {string} path
+ * @param {() => unknown} load  requires the router (or the array of routers serve takes)
+ * @param {{
+ *   answer?: (sql: string, params?: unknown[]) => unknown,
+ *   gates?: Record<string, unknown> | false,
+ *   user?: Record<string, unknown> | null,
+ *   session?: Record<string, unknown>,
+ * }} [options]  `answer` for recordDb, `gates` for openGates, the rest for serve
  */
 function routeUnderTest(test, path, load, { answer, gates = {}, ...serveOptions } = {}) {
     const db = recordDb(answer);
@@ -286,4 +312,4 @@ function limitersOn(router, method, path) {
     return names;
 }
 
-module.exports = { USER, recordDb, openGates, serve, routeUnderTest, assertRefused, assertGeneric500, textWithoutCorrelationId, dispatcher, limitersOn };
+module.exports = { USER, recordDb, sessionGated, openGates, serve, routeUnderTest, assertRefused, assertGeneric500, textWithoutCorrelationId, dispatcher, limitersOn };

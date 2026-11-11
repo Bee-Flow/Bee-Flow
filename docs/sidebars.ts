@@ -317,6 +317,7 @@ const sidebars: SidebarsConfig = {
             'contributing/decisions/kb-query-log',
             'contributing/decisions/connector-no-default-server',
             'contributing/decisions/teams-meeting-import-permissions',
+            'contributing/decisions/org-admin-is-not-platform-admin',
           ],
         },
       ],

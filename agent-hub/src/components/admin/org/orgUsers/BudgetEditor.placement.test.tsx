@@ -29,6 +29,7 @@ const rowUi = (
         groupsState={{} as OrgGroups}
         memberRoles={{ editingUserRole: null, handleUpdateUserCostLimit: vi.fn() } as unknown as OrgMemberRoles}
         onCreateGroup={vi.fn()}
+        manageable
     />
 );
 

@@ -18,8 +18,8 @@
  */
 
 const kbStore = require('../stores/knowledgeBases');
-const userStore = require('../stores/userStore');
-const { resolveUserOrgIds, isOrgAdminRole } = require('../auth/permissions');
+const permissions = require('../auth/permissions');
+const { resolveUserOrgIds } = permissions;
 const { resolveUserGroups: resolveUserGroupsById } = require('../auth/audience');
 const log = require('../telemetry/log');
 
@@ -28,21 +28,29 @@ const getUserId = (req) => req.session?.user?.id || null;
 /** Resolve the caller's group ids via the audience home (single source of truth). */
 const resolveUserGroups = (req) => resolveUserGroupsById(getUserId(req));
 
-/** True when the caller is an organisation admin (org_admin / legacy admin). */
-async function resolveIsOrgAdmin(req) {
-    const userId = getUserId(req);
-    if (!userId) return false;
+/**
+ * The organisations the caller administers (auth/permissions
+ * resolveAdminOrgIds: home organisation with an admin orgRole, or a group IN
+ * the organisation that carries admin rights). The KB admin shortcut (drafts,
+ * group-restricted bases) applies in these organisations only. An unreadable
+ * answer is no organisation.
+ * @param {import('express').Request} req
+ * @returns {Promise<Set<string>>}
+ */
+async function resolveAdminOrgIds(req) {
+    if (!getUserId(req)) return new Set();
     try {
-        const user = await userStore.getUser(userId);
-        return !!(user && isOrgAdminRole(user.orgRole));
-    } catch (_) { return false; }
+        const set = await permissions.resolveAdminOrgIds(req);
+        return set instanceof Set ? set : new Set();
+    } catch (_) { return new Set(); }
 }
 
 /**
  * Centralized KB access check.
  * - Owner (tenant_id) always has access
  * - Super admin (resolveUserOrgIds returns null) always has access
- * - Org admin: every KB in their organisation (incl. drafts + group-restricted)
+ * - Org admin: every KB of the organisation they administer (incl. drafts +
+ *   group-restricted); in another organisation they read as a member
  * - Org member: KB must be in their org AND published AND, if shared_groups
  *   is set, the user must belong to at least one of those groups
  */
@@ -52,8 +60,8 @@ async function canAccessKB(req, kb) {
     if (kb.tenant_id === userId) return true;
     const orgIds = await resolveUserOrgIds(req);
     const userGroups = await resolveUserGroups(req);
-    const isOrgAdmin = await resolveIsOrgAdmin(req);
-    return kbStore.canUserAccessKB(kb, userId, orgIds, userGroups, { isOrgAdmin });
+    const adminOrgIds = await resolveAdminOrgIds(req);
+    return kbStore.canUserAccessKB(kb, userId, orgIds, userGroups, { adminOrgIds });
 }
 
 /**
@@ -90,11 +98,12 @@ async function partitionAccessibleKBIds(req, ids) {
  * This is deliberately NOT `partitionAccessibleKBIds`, and it is never wider
  * than it:
  *
- *   - `canAccessKB` lets an ORG ADMIN reach every base in their org. Right for
- *     a management screen; wrong here. An admin asking a question is asking as
- *     themselves, and an answer built from a base they only have
- *     administrative reach into is a leak with an audit trail that says "the
- *     AI said it". `core/kb/kbVisibility` pins isOrgAdmin to false.
+ *   - `canAccessKB` lets an ORG ADMIN reach every base in the org they
+ *     administer. Right for a management screen; wrong here. An admin asking a
+ *     question is asking as themselves, and an answer built from a base they
+ *     only have administrative reach into is a leak with an audit trail that
+ *     says "the AI said it". `core/kb/kbVisibility` passes no admin
+ *     organisations.
  *   - it also asks the SURFACE question (`usage_contexts`), which the linker
  *     does not: a base its owner limited to one automation must not answer in a
  *     chat window.
@@ -137,4 +146,4 @@ async function usableKbIdsForRequest(req, ids, { surface = 'direct_chat' } = {})
     });
 }
 
-module.exports = { canAccessKB, partitionAccessibleKBIds, usableKbIdsForRequest, resolveIsOrgAdmin, resolveUserGroups };
+module.exports = { canAccessKB, partitionAccessibleKBIds, usableKbIdsForRequest, resolveAdminOrgIds, resolveUserGroups };

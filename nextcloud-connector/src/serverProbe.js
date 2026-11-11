@@ -61,9 +61,10 @@ function isCertificateError(err) {
 /**
  * Probe a Bee Flow service /api/health endpoint.
  * @param {string} url
+ * @param {{ timeoutMs?: number }} [options]
  * @returns {Promise<ProbeResult>}
  */
-async function probe(url) {
+async function probe(url, { timeoutMs = REQUEST_TIMEOUT_MS } = {}) {
     // Validate before connecting — an admin-supplied hostname must not be able
     // to reach link-local/cloud-metadata infrastructure through the connector.
     try {
@@ -73,7 +74,7 @@ async function probe(url) {
     }
     const target = `${url.replace(/\/+$/, '')}/api/health`;
     const ac = new AbortController();
-    const t = setTimeout(() => ac.abort(), REQUEST_TIMEOUT_MS);
+    const t = setTimeout(() => ac.abort(), timeoutMs);
     try {
         // Redirects are NOT followed. A validated hostname that 302s to
         // 169.254.169.254 is the standard way round a host allow-list, and the
@@ -109,7 +110,7 @@ async function probe(url) {
             ok: false,
             status: 0,
             url: target,
-            error: timedOut ? `timeout after ${REQUEST_TIMEOUT_MS}ms` : errMessage(err),
+            error: timedOut ? `timeout after ${timeoutMs}ms` : errMessage(err),
             reason: !timedOut && isCertificateError(err) ? 'certificate' : 'unreachable',
         };
     }

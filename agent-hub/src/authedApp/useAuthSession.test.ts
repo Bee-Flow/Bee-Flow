@@ -1,6 +1,7 @@
 /**
  * The boot probe and a /auth/user that is not a session: what the connector
- * sign-in answered decides the screen, so the hook has to hand it on.
+ * sign-in answered decides the screen, so the hook has to hand it on. A
+ * session carries the server's answer on organisation administration.
  */
 import { renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -47,6 +48,13 @@ async function boot(routes: Record<string, () => Response>) {
     await waitFor(() => expect(s.setIsLoading).toHaveBeenCalledWith(false));
     return { s, calls };
 }
+
+/** A member session of orgA whose my-permissions answers `perms`. */
+const memberSession = (perms: Record<string, unknown>) => ({
+    '/auth/setup-status': () => json(200, { deploymentMode: 'self-hosted' }),
+    '/auth/user': () => json(200, { authenticated: true, user: { id: 'u1', orgRole: 'member', organizationId: 'orgA' } }),
+    '/auth/my-permissions': () => json(200, perms),
+});
 
 beforeEach(() => { vi.spyOn(console, 'error').mockImplementation(() => {}); });
 afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
@@ -101,5 +109,28 @@ describe('useAuthSession at boot', () => {
         expect(s.setNcOnboardingState).toHaveBeenCalledWith('pending');
         expect(s.setSignInRefusal).not.toHaveBeenCalled();
         expect(s.setDeploymentMode).toHaveBeenCalledWith('self-hosted');
+    });
+});
+
+describe('useAuthSession and the home organisation', () => {
+    // The admin screens show their organisation-admin sections on the server's
+    // strict answer, which also counts an admin group of the home organisation.
+    it('carries the server answer on whether the viewer administers their home organisation', async () => {
+        const { s } = await boot(memberSession({ permissions: [], isHomeOrgAdmin: true }));
+        expect(s.setUser.mock.calls.at(-1)?.[0]).toMatchObject({ id: 'u1', isHomeOrgAdmin: true });
+    });
+
+    it('counts nobody as one when the answer does not say so', async () => {
+        const { s } = await boot(memberSession({ permissions: [] }));
+        expect(s.setUser.mock.calls.at(-1)?.[0]).toMatchObject({ isHomeOrgAdmin: false });
+    });
+
+    // The admin dashboard names the organisation an organisation admin works on.
+    it('carries the home organisation and its name, and null when the answer has none', async () => {
+        const { s } = await boot(memberSession({ permissions: [], homeOrganization: { id: 'orgA', name: 'Example Org' } }));
+        expect(s.setUser.mock.calls.at(-1)?.[0]).toMatchObject({ homeOrganization: { id: 'orgA', name: 'Example Org' } });
+
+        const { s: other } = await boot(memberSession({ permissions: [] }));
+        expect(other.setUser.mock.calls.at(-1)?.[0]).toMatchObject({ homeOrganization: null });
     });
 });

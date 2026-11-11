@@ -5,9 +5,10 @@
  *
  * Everything these routers write is instance-wide (providers, keys, the
  * Shield defaults every organisation falls back to), so the gate is
- * auth/requirePlatformAdmin: a platform admin anywhere, or the
- * `admin_ai_config` permission on a self-hosted install, where the instance
- * is one customer.
+ * auth/requirePlatformAdmin: a platform admin, in every deployment mode. As
+ * route middleware it is ../requireAdminUser (tagged on the platform axis);
+ * a handler calls isAdminUser itself only where one route answers admins and
+ * members differently (GET /config, GET /providers).
  *
  * Org-id resolution lives in `auth/orgScope.js`, not in a private copy here —
  * a copy would answer the same question as three other helpers without any

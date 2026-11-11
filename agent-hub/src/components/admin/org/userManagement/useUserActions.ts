@@ -12,6 +12,27 @@ const EMPTY_USER: UserFormData = {
     avatar: '', avatarType: '', password: '', role: 'user', groups: [], organizationId: '', orgRole: '', monthlyCostLimit: '',
 };
 
+/** The edit form, filled from a row of GET /auth/users. */
+function formFromUser(user: AdminUser): UserFormData {
+    return {
+        id: user.id || user.username || '',
+        username: user.username || '',
+        displayName: user.displayName || '',
+        firstName: user.firstName || '',
+        lastName: user.lastName || '',
+        email: user.email || '',
+        phone: user.phone || '',
+        avatar: user.avatar || '',
+        avatarType: user.avatarType || '',
+        password: '',
+        role: user.role || 'user',
+        groups: user.groups || [],
+        organizationId: user.organizationId || '',
+        orgRole: user.orgRole || '',
+        monthlyCostLimit: costLimitToInput(user.monthlyCostLimit),
+    };
+}
+
 /** The create endpoint has no budget field; the form value stays out of its body. */
 function withoutCostLimit({ monthlyCostLimit: _typed, ...rest }: UserFormData) {
     return rest;
@@ -20,6 +41,10 @@ function withoutCostLimit({ monthlyCostLimit: _typed, ...rest }: UserFormData) {
 export interface UserActions {
     userData: UserFormData;
     setUserData: Dispatch<SetStateAction<UserFormData>>;
+    /** The platform role the account had when the form opened ('' for a new account). */
+    storedRole: string;
+    /** Why the server refused the platform role change of the last save, if it did. */
+    platformRoleRefusal: string | null;
     showAddUser: boolean;
     showEditUser: boolean;
     showEmojiPicker: boolean;
@@ -49,33 +74,24 @@ export default function useUserActions({ loadData, setMessage, askConfirm, t, is
     const [showEditUser, setShowEditUser] = useState(false);
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const [userData, setUserData] = useState<UserFormData>(EMPTY_USER);
+    const [storedRole, setStoredRole] = useState('');
+    const [platformRoleRefusal, setPlatformRoleRefusal] = useState<string | null>(null);
 
     const closeUserModal = () => { setShowAddUser(false); setShowEditUser(false); };
 
     const openAddUser = () => {
         setUserData(EMPTY_USER);
+        setStoredRole('');
+        setPlatformRoleRefusal(null);
         setShowEmojiPicker(false);
         setShowAddUser(true);
     };
 
     const openEditUser = (user: AdminUser) => {
-        setUserData({
-            id: user.id || user.username || '',
-            username: user.username || '',
-            displayName: user.displayName || '',
-            firstName: user.firstName || '',
-            lastName: user.lastName || '',
-            email: user.email || '',
-            phone: user.phone || '',
-            avatar: user.avatar || '',
-            avatarType: user.avatarType || '',
-            password: '',
-            role: user.role || 'user',
-            groups: user.groups || [],
-            organizationId: user.organizationId || '',
-            orgRole: user.orgRole || '',
-            monthlyCostLimit: costLimitToInput(user.monthlyCostLimit),
-        });
+        const form = formFromUser(user);
+        setUserData(form);
+        setStoredRole(form.role);
+        setPlatformRoleRefusal(null);
         setShowEmojiPicker(false);
         setShowEditUser(true);
     };
@@ -123,6 +139,7 @@ export default function useUserActions({ loadData, setMessage, askConfirm, t, is
                 return;
             }
         }
+        setPlatformRoleRefusal(null);
         try {
             const { monthlyCostLimit: _typed, ...rest } = userData;
             const res = await authFetch(`${API_BASE}/auth/users/${userData.id}`, {
@@ -146,6 +163,13 @@ export default function useUserActions({ loadData, setMessage, askConfirm, t, is
                     destructive: true,
                     onConfirm: () => handleUpdateUser({ confirmSelfDemotion: true }),
                 });
+                return;
+            }
+            // The last active platform admin keeps the role: the switch goes
+            // back to what is stored and says why.
+            if (res.status === 409 && data.code === 'last_platform_admin') {
+                setUserData(p => ({ ...p, role: storedRole }));
+                setPlatformRoleRefusal(t('admin_org.platform_admin_last', 'This is the last active platform administrator, so the server keeps the role. Make another account a platform administrator first.'));
                 return;
             }
             setMessage({ type: 'error', text: data.error || 'Failed to update user' });
@@ -244,7 +268,7 @@ export default function useUserActions({ loadData, setMessage, askConfirm, t, is
     };
 
     return {
-        userData, setUserData,
+        userData, setUserData, storedRole, platformRoleRefusal,
         showAddUser, showEditUser,
         showEmojiPicker, setShowEmojiPicker,
         openAddUser, openEditUser, closeUserModal,

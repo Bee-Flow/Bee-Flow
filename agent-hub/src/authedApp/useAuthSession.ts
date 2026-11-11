@@ -36,6 +36,10 @@ interface PermissionsResponse {
     allowedAgentTypes?: unknown[];
     betaFeatures?: unknown[];
     canUseFeature?: Record<string, unknown>;
+    /** Administers their home organisation by the server's strict check (utils/adminAccess isHomeOrgAdmin). */
+    isHomeOrgAdmin?: boolean;
+    /** The home organisation (users.organizationId) and its name; null without one. The admin dashboard names it. */
+    homeOrganization?: { id: string; name: string | null } | null;
 }
 
 interface UseAuthSessionArgs {
@@ -118,7 +122,9 @@ export function useAuthSession({
         const betaFeatures = permsData?.betaFeatures || [];
         const canUseFeature = permsData?.canUseFeature || {};
         const canManageUsers = permissions.includes('all') || permissions.includes('manage_users');
-        setUser({ ...data.user, permissions, groups: userGroups, organizations: userOrgs, allowedAgentTypes, betaFeatures, canUseFeature, featureFlags: data.featureFlags || {}, enabledIntegrations: data.enabledIntegrations || null, canManageUsers: canManageUsers || data.user.isAdmin, encryptionEnabled: data.encryptionEnabled !== false, isConsumerAccount: !!data.isConsumerAccount, ncOrg: data.ncOrg || null, organization: data.organization || null });
+        const isHomeOrgAdmin = permsData?.isHomeOrgAdmin === true;
+        const homeOrganization = permsData?.homeOrganization ?? null;
+        setUser({ ...data.user, permissions, groups: userGroups, organizations: userOrgs, allowedAgentTypes, betaFeatures, canUseFeature, isHomeOrgAdmin, homeOrganization, featureFlags: data.featureFlags || {}, enabledIntegrations: data.enabledIntegrations || null, canManageUsers: canManageUsers || data.user.isAdmin, encryptionEnabled: data.encryptionEnabled !== false, isConsumerAccount: !!data.isConsumerAccount, ncOrg: data.ncOrg || null, organization: data.organization || null });
         setIsAuthenticated(true);
     }, [setDeploymentMode, setEncryptionState, setIsAuthenticated, setMfaSetupRequired, setNcOnboardingState, setNcOrgName, setNoOrganization, setOrgLogo, setPendingApproval, setPendingNcBinding, setUser]);
 

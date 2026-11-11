@@ -269,3 +269,14 @@ test('a locale default a platform admin sets still goes to the locale list', asy
     assert.strictEqual(res.statusCode, 200);
     assert.strictEqual(res.body.success, true);
 });
+
+test('the admin routes refuse a session that holds only the all permission, and let a platform admin through', async () => {
+    const onlyAll = { user: { id: 'a1', role: 'user', permissions: ['all'] } };
+    for (const [method, url] of [['GET', '/'], ['GET', '/nl/prompts'], ['GET', '/nl/export']]) {
+        const res = await dispatch({ method, url, session: onlyAll });
+        assert.strictEqual(res.statusCode, 403, `${method} ${url}: ${JSON.stringify(res.body)}`);
+    }
+    assert.deepStrictEqual(touched, [], 'nothing was written');
+    const admin = await dispatch({ method: 'GET', url: '/' });
+    assert.strictEqual(admin.statusCode, 200, JSON.stringify(admin.body));
+});

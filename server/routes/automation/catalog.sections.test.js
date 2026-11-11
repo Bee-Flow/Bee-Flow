@@ -38,6 +38,7 @@ function reset() {
         principalReqs: [],
         orgIds: new Set(['o1']),
         permission: true,
+        manageIn: null,
         permissionThrows: false,
         groups: ['g1'],
         groupsThrow: false,
@@ -117,6 +118,12 @@ stub('auth', {
         if (S.permissionThrows) throw new Error('perm down');
         return S.permission;
     },
+    // S.permission holds in S.manageIn (default: every organisation asked).
+    resolvePermissionsByOrg: async (userId) => {
+        S.events.push(['permByOrg', userId]);
+        if (S.permissionThrows) throw new Error('perm down');
+        return { holds: (perm, orgId) => !!S.permission && (!S.manageIn || S.manageIn.has(orgId)) };
+    },
     resolveUserGroups: async (userId) => {
         S.events.push(['groups', userId]);
         if (S.groupsThrow) throw new Error('groups down');
@@ -124,7 +131,7 @@ stub('auth', {
     },
 });
 stub('support/kbAccess', {
-    resolveIsOrgAdmin: async () => { if (S.orgAdminThrows) throw new Error('admin down'); return S.orgAdmin; },
+    resolveAdminOrgIds: async () => { if (S.orgAdminThrows) throw new Error('admin down'); return S.orgAdmin ? new Set(['o1']) : new Set(); },
 });
 stub('automation/builderPickerCatalog', {
     buildAppEventProvidersFor: async (args) => { S.providerArgs = args; return [{ id: 'approvals' }]; },
@@ -241,9 +248,17 @@ test('knowledge bases: the write picker is asked with org ids, permission, group
     reset();
     const { body } = await fetchCatalog();
     assert.deepStrictEqual(body.knowledgeBases, [{ id: 'kb1', canWrite: true }]);
-    assert.deepStrictEqual(S.kbArgs, { userId: 'user1', orgIds: new Set(['o1']), userGroups: ['g1'], canManage: true, isOrgAdmin: true });
-    assert.deepStrictEqual(S.events.filter(e => e[0] === 'perm'), [['perm', 'user1', 'manage_knowledge']]);
+    assert.deepStrictEqual(S.kbArgs, { userId: 'user1', orgIds: new Set(['o1']), userGroups: ['g1'], manageOrgIds: new Set(['o1']), adminOrgIds: new Set(['o1']) });
+    assert.deepStrictEqual(S.events.filter(e => e[0] === 'permByOrg'), [['permByOrg', 'user1']]);
     assert.deepStrictEqual(S.events.filter(e => e[0] === 'groups'), [['groups', 'user1']], 'groups are resolved from the user id');
+});
+
+test('knowledge bases: manage_knowledge counts only in the organisations where it is held', async () => {
+    reset();
+    S.orgIds = new Set(['o1', 'o2']);
+    S.manageIn = new Set(['o2']);
+    await fetchCatalog();
+    assert.deepStrictEqual(S.kbArgs.manageOrgIds, new Set(['o2']));
 });
 
 test('knowledge bases: org ids are never null, and every failed sub-lookup degrades to a closed answer', async () => {
@@ -253,7 +268,7 @@ test('knowledge bases: org ids are never null, and every failed sub-lookup degra
     S.groupsThrow = true;
     S.orgAdminThrows = true;
     await fetchCatalog();
-    assert.deepStrictEqual(S.kbArgs, { userId: 'user1', orgIds: new Set(['a', 'b']), userGroups: [], canManage: false, isOrgAdmin: false });
+    assert.deepStrictEqual(S.kbArgs, { userId: 'user1', orgIds: new Set(['a', 'b']), userGroups: [], manageOrgIds: new Set(), adminOrgIds: new Set() });
 
     reset();
     S.orgIds = null;

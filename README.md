@@ -121,8 +121,12 @@ cd Bee-Flow
 Nextcloud connector. Premium features such as automations, meeting notes and guardrails unlock with a
 licence under **Admin → Licence**. See [beeflow.nl](https://beeflow.nl).
 
-**Using Nextcloud?** Point the Bee Flow connector at your server from **Nextcloud → Settings →
-Administration → AI → Bee Flow**, choose *Self-hosted server* and enter your URL.
+**Using Nextcloud?** Install the Bee Flow app from the Nextcloud App Store. It connects to nothing by
+itself: a Nextcloud administrator opens Bee Flow once and chooses where it runs. Choose *Self-hosted
+server*, enter the address of your server and a pairing code from **Settings → Organisation** in Bee Flow.
+See [Choose where Bee Flow runs](./docs/docs/connector/setup-picker.md) and
+[Bee Flow on your own server next to Nextcloud](./docs/docs/connector/own-server.md); what your
+Nextcloud needs is in [Deploy daemon and reverse proxy](./docs/docs/connector/deploy-daemon.md).
 
 The full guide is in the [self-hosting documentation](./docs/docs/self-hosting/index.md).
 

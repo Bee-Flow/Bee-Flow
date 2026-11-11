@@ -130,11 +130,16 @@ function requireActiveOrgForMutations(opts = {}) {
  *   - group: the user belongs to a group in orgId that itself carries an
  *     admin permission ('all'/'admin') or admin role ('admin'/'org_admin').
  *
- * This is the group-permission-aware semantics shared by the org-scoped config
- * routes (orgAzureConfig, orgPrivacyShield, houseStyles, talkNotesSettings).
- * It is deliberately DISTINCT from requireOrgAdmin below, which gates on the
- * orgRole then plain group *membership*; reconciling the two is a separate,
- * test-guarded decision — do not silently merge them.
+ * This is the ONE answer to "does this user administer orgId". The org-admin
+ * gates use it: isOrgAdminForOrg, requireOrgAdmin and requirePrimaryOrgAdmin
+ * below, the org-scoped config routes (orgAzureConfig, orgPrivacyShield,
+ * houseStyles, talkNotesSettings), and the user/organisation/access guards in
+ * auth/admin/orgAdminGuards.js. (Their anti-orphan count counts only the direct
+ * half, see countOrgMembers there.) Membership of an
+ * ordinary group of orgId is membership, never administration. The decision
+ * record is docs/docs/contributing/decisions/org-admin-is-not-platform-admin.md;
+ * auth/admin/orgAdminGuards.strict.test.js and the tenant isolation matrix
+ * hold it.
  */
 function _evalOrgAdmin(user, allGroups, orgId, { strictOrgRole = false } = {}) {
     if (!user) return false;
@@ -183,9 +188,52 @@ async function isOrgAdminForOrg(req, orgId, opts = {}) {
 }
 
 /**
+ * A user row's group ids (`groups` is an array off getUser, or its JSON text).
+ * @param {{ groups?: unknown }} user
+ * @returns {unknown[]}
+ */
+function groupIdsOfUser(user) {
+    if (Array.isArray(user.groups)) return user.groups;
+    let parsed;
+    try { parsed = JSON.parse(typeof user.groups === 'string' && user.groups ? user.groups : '[]'); } catch (err) { parsed = fallback('permissionsOrgGates:groups-json', err, []); }
+    return Array.isArray(parsed) ? parsed : [];
+}
+
+/**
+ * The organisations the requesting user administers, by the rule of
+ * _evalOrgAdmin (home organisation with an admin orgRole, or a group IN that
+ * organisation that carries admin rights), among the organisations the user
+ * belongs to (home organisation, then the organisations of their groups).
+ *
+ * For a decision about a resource of one organisation: "is the caller an
+ * admin of THIS resource's organisation" is `set.has(resource.organization_id)`.
+ * A super admin gets the same per-organisation answer here, not "every
+ * organisation": callers answer a super admin before they ask (the
+ * `orgIds === null` idiom). Store errors propagate.
+ * @param {{ session?: { user?: { id?: string } | null } | null } | null | undefined} req  only the session's user id is read
+ * @returns {Promise<Set<string>>}
+ */
+async function resolveAdminOrgIds(req) {
+    const userId = req?.session?.user?.id;
+    if (!userId) return new Set();
+    const user = await userStore.getUser(userId);
+    if (!user) return new Set();
+    const allGroups = (await userStore.getAllGroups()) || [];
+
+    /** @type {string[]} */
+    const candidates = [];
+    if (user.organizationId) candidates.push(user.organizationId);
+    for (const gid of groupIdsOfUser(user)) {
+        const orgId = allGroups.find((g) => g?.id === gid)?.organizationId;
+        if (orgId && !candidates.includes(orgId)) candidates.push(orgId);
+    }
+    return new Set(candidates.filter((orgId) => _evalOrgAdmin(user, allGroups, orgId)));
+}
+
+/**
  * Shared middleware factory: require org admin access for the org
- * specified by req.params[paramName].
- * Use this across all route files instead of local copies.
+ * specified by req.params[paramName], decided by isOrgAdminForOrg
+ * (_evalOrgAdmin above). Use this across all route files instead of local copies.
  */
 function requireOrgAdmin(paramName = 'id') {
     // paramDependent: the verdict depends on WHICH org the request names, so a
@@ -195,36 +243,8 @@ function requireOrgAdmin(paramName = 'id') {
         if (!req.session?.user) return res.status(401).json({ error: 'Unauthorized' });
         const orgId = req.params[paramName];
         if (!orgId) return res.status(400).json({ error: 'Organization ID required' });
-
-        // Super admin — always allowed
-        if (req.session.isAdmin || req.session.user?.role === 'admin') return next();
-
-        const userId = req.session.user.id;
-        if (!userId) return res.status(403).json({ error: 'Organization admin access required' });
-
-        const user = await userStore.getUser(userId);
-        if (!user || !isOrgAdminRole(user.orgRole)) {
-            return res.status(403).json({ error: 'Organization admin access required' });
-        }
-
-        // Must belong to the target org
-        if (user.organizationId === orgId) return next();
-
-        // Check group-based membership as fallback
-        let groupIds = [];
-        if (Array.isArray(user.groups)) groupIds = user.groups;
-        else { try { groupIds = JSON.parse(user.groups || '[]'); } catch (err) { groupIds = fallback('permissionsOrgGates:groups-json', err, []); } }
-
-        const allGroups = await userStore.getAllGroups();
-        const isMember = groupIds.some(gid => {
-            const g = allGroups.find(gr => gr.id === gid);
-            return g?.organizationId === orgId;
-        });
-
-        if (!isMember) {
-            return res.status(403).json({ error: 'Organization admin access required' });
-        }
-        next();
+        if (await isOrgAdminForOrg(req, orgId)) return next();
+        return res.status(403).json({ error: 'Organization admin access required' });
     }, { axis: 'scope', kind: 'orgAdminOfParam', param: paramName, paramDependent: true });
 }
 
@@ -303,14 +323,20 @@ async function resolvePrimaryOrgId(req) {
  * super admin) and belong to an organization. Resolves that org and attaches
  * it as `req.primaryOrgId` for the handler. Super admins act on their own
  * primary org too — there is deliberately no cross-org override here.
+ *
+ * For anyone else the resolved org must also pass _evalOrgAdmin: the primary
+ * org can be the org of the first group when the account has no own org, and
+ * an admin orgRole plus membership of an ordinary group there administers
+ * nothing.
  */
 function requirePrimaryOrgAdmin() {
     return tagGate(async (req, res, next) => {
         if (!req.session?.user) return res.status(401).json({ error: 'Unauthorized' });
         const userId = req.session.user.id;
         const isSuperAdmin = req.session.isAdmin || req.session.user?.role === 'admin';
+        let user = null;
         if (!isSuperAdmin) {
-            const user = await userStore.getUser(userId);
+            user = await userStore.getUser(userId);
             if (!user || !isOrgAdminRole(user.orgRole)) {
                 return res.status(403).json({ error: 'Organization admin access required' });
             }
@@ -319,6 +345,9 @@ function requirePrimaryOrgAdmin() {
             || req.session.user.organizationId
             || null;
         if (!orgId) return res.status(400).json({ error: 'No organization for this account' });
+        if (user && !_evalOrgAdmin(user, await userStore.getAllGroups(), orgId)) {
+            return res.status(403).json({ error: 'Organization admin access required' });
+        }
         req.primaryOrgId = orgId;
         next();
     }, { axis: 'scope', kind: 'orgAdminOfOwnOrg' });
@@ -329,6 +358,7 @@ module.exports = {
     requireActiveOrgForMutations,
     _evalOrgAdmin,
     isOrgAdminForOrg,
+    resolveAdminOrgIds,
     requireOrgAdmin,
     isSuperAdmin,
     isSuperAdminUser,

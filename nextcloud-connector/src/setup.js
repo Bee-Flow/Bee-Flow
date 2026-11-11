@@ -9,6 +9,7 @@
  *   GET  /setup/status    → current target + reachability hints
  *   POST /setup           → choose the Bee Flow server (first choice or a switch) and connect to it
  *   POST /setup/test      → ping a candidate URL, return reachability summary
+ *   GET  /setup/discover  → Bee Flow servers that answer at a fixed list of nearby addresses
  *
  * All routes are admin-gated through AppAPI (same as /init). They do NOT
  * mint any tokens — at most they update the connector's effective config.
@@ -40,6 +41,7 @@ const log = require('./log'); // callback-signature health for diagnostics
 const { errMessage, errCode, asError } = require('./errors');
 const { NOT_CHOSEN_CODE, NOT_CHOSEN_MESSAGE, envLock } = require('./serverChoice');
 const { probe } = require('./serverProbe');
+const { discover } = require('./serverDiscovery');
 const l10n = require('./l10n');
 const { SETUP_TEXTS, CONNECT_ERRORS, CATEGORY_TO_CONNECT_ERROR, SELF_HOSTING_DOCS_URL } = require('./setupTexts');
 
@@ -449,6 +451,13 @@ router.post('/test', requireNcAdmin, limits.probe, express.json(), async (req, r
     if (!url) return res.status(400).json({ error: 'apiBaseUrl required' });
     const result = await probe(url);
     res.json(result);
+});
+
+// Is a Bee Flow server running next to this Nextcloud? A suggestion for the
+// setup page while no server is chosen: a fixed list of nearby addresses is
+// asked for /api/health, nothing is chosen or saved (serverDiscovery.js).
+router.get('/discover', requireNcAdmin, limits.probe, async (_req, res) => {
+    res.json({ found: await discover() });
 });
 
 // Admin-supplied public NC URL — used by the SaaS to call back into NC

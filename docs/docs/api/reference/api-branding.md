@@ -15,13 +15,13 @@ toc_max_heading_level: 2
 
 ### `GET /api/branding/admin`
 
-**Access:** no gate in the middleware chain: the handler decides (it checks the session itself, or the route is public)
+**Access:** Platform admin
 
 No request schema.
 
 ### `PUT /api/branding/admin`
 
-**Access:** no gate in the middleware chain: the handler decides (it checks the session itself, or the route is public)
+**Access:** Platform admin
 
 **Body**
 
@@ -48,7 +48,7 @@ No request schema.
 
 ### `GET /api/branding/debug`
 
-**Access:** no gate in the middleware chain: the handler decides (it checks the session itself, or the route is public)
+**Access:** Platform admin
 
 No request schema.
 
@@ -56,7 +56,7 @@ No request schema.
 
 ### `GET /api/branding/effective`
 
-**Access:** no gate in the middleware chain: the handler decides (it checks the session itself, or the route is public)
+**Access:** Signed-in user
 
 No request schema.
 
@@ -72,13 +72,13 @@ No request schema.
 
 ### `PUT /api/branding/user`
 
-**Access:** no gate in the middleware chain: the handler decides (it checks the session itself, or the route is public)
+**Access:** Signed-in user
 
 **Body:** object or null
 
 ### `DELETE /api/branding/user`
 
-**Access:** no gate in the middleware chain: the handler decides (it checks the session itself, or the route is public)
+**Access:** Signed-in user
 
 No request schema.
 
@@ -86,13 +86,13 @@ No request schema.
 
 ### `POST /api/branding/wallpaper`
 
-**Access:** no gate in the middleware chain: the handler decides (it checks the session itself, or the route is public)
+**Access:** Platform admin
 
 No request schema.
 
 ### `DELETE /api/branding/wallpaper`
 
-**Access:** no gate in the middleware chain: the handler decides (it checks the session itself, or the route is public)
+**Access:** Platform admin
 
 No request schema.
 

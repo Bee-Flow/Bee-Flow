@@ -1,17 +1,25 @@
 import React, { useState } from 'react';
 import { useTranslation } from '../hooks/useTranslation';
-import { ArrowLeft, ChevronDown, Menu } from 'lucide-react';
+import { ArrowLeft, Building2, ChevronDown, Menu, Server } from 'lucide-react';
 import ProductWebsitePanel from '../components/admin/product-website/ProductWebsitePanel';
 import AdminAccessDenied from '../components/admin/dashboard/AdminAccessDenied';
 import AdminRail from '../components/admin/dashboard/AdminRail';
-import type { AdminRailGroup } from '../components/admin/dashboard/AdminRail';
+import type { AdminRailSectionView } from '../components/admin/dashboard/AdminRail';
 import AdminTabContent from '../components/admin/dashboard/AdminTabContent';
-import { ADMIN_TABS, canOpenAdminTab, groupAdminTabs, resolveAdminTab } from '../components/admin/dashboard/adminTabs';
-import type { AdminTab } from '../components/admin/dashboard/adminTabs';
+import { ADMIN_TABS, buildAdminRailSections, canOpenAdminTab, fixedOrgViewOf, resolveAdminTab, shownAdminScope } from '../components/admin/dashboard/adminTabs';
+import type { AdminRailSection, AdminScope, AdminTab } from '../components/admin/dashboard/adminTabs';
+import AdminScopeBar from '@/components/admin/dashboard/AdminScopeBar';
+import { scopeBarView, type ScopeBarView } from '@/components/admin/dashboard/scopeBarView';
+import { AdminOrgProvider, useAdminOrg, type AdminOrgChoice } from '@/components/admin/dashboard/useAdminOrg';
+import { AdminScopeOverrideProvider } from '../components/admin/dashboard/useAdminScopeOverride';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import Modal from '../components/shared/Modal';
+import Spinner from '@/components/shared/Spinner';
 import { useDeploymentMode } from '../hooks/useDeploymentMode';
 import { useLicenseContext } from '../components/licensing/LicenseContext';
 import type { AdminCurrentUser } from '../components/admin/org/userManagement/types';
+import { resolveAgentSection } from '@/components/agents/agentSections';
+import { homeOrgIdOf, isPlatformAdmin as isPlatformAdminUser } from '@/utils/adminAccess';
 
 
 interface AdminDashboardProps {
@@ -34,8 +42,10 @@ const AdminDashboard = ({ user, onBack, adminPath = {}, onNavigate }: AdminDashb
     // A server-wide licence covers the whole install — no org needs a Stripe
     // subscription, so the cloud Subscriptions management surface is moot.
     const { serverOverride, tier } = useLicenseContext();
-    const isPlatformAdmin = user?.isAdmin || user?.role === 'admin';
+    const isPlatformAdmin = isPlatformAdminUser(user);
     const [drawerOpen, setDrawerOpen] = useState(false);
+    const [scopeOverride, setScopeOverride] = useState<AdminScope | null>(null);
+    const orgChoice = useAdminOrg(user, [adminPath.seg1, adminPath.seg2, adminPath.seg3].join('/'));
 
     // Permission helper - checks if user has a specific permission
     const hasPermission = (perm: string) => {
@@ -50,11 +60,13 @@ const AdminDashboard = ({ user, onBack, adminPath = {}, onNavigate }: AdminDashb
     // from inside a tenant via a role attached to a group. Including it here
     // would render operator-only tabs that then 403 on every request, which
     // reads as a broken console rather than a clean denial.
-    const isSuperAdmin = !!isPlatformAdmin;
+    const isSuperAdmin = isPlatformAdmin;
 
+    // The Agents tab with no section left for this viewer would open an empty hub.
+    const hasAgentSection = resolveAgentSection(user, '').visible.length > 0;
     const checkTabAccess = (tab: AdminTab | undefined) => canOpenAdminTab(tab, {
         isCloud, isSelfHosted, tier, serverOverride: !!serverOverride, isSuperAdmin, hasPermission,
-    });
+    }) && !(tab?.id === 'agents' && !hasAgentSection);
     const { activeTab, agentSection, firstAllowedTab, isTabAllowed } = resolveAdminTab(adminPath, checkTabAccess);
     const labelOf = (tab: AdminTab) => t(tab.labelKey, tab.labelFallback);
 
@@ -85,15 +97,15 @@ const AdminDashboard = ({ user, onBack, adminPath = {}, onNavigate }: AdminDashb
         );
     }
 
-    const groups: AdminRailGroup[] = groupAdminTabs(ADMIN_TABS.filter(tab => checkTabAccess(tab))).map(group => ({
-        id: group.id,
-        label: t(group.labelKey, group.labelFallback),
-        tabs: group.tabs.map(tab => ({ id: tab.id, label: labelOf(tab), icon: tab.icon })),
-    }));
+    const sections = buildAdminRailSections(ADMIN_TABS.filter(tab => checkTabAccess(tab)), isPlatformAdmin)
+        .map(section => railSectionView(section, orgChoice, t));
     const activeDef = ADMIN_TABS.find(tab => tab.id === activeTab);
+    const barView = isTabAllowed
+        ? barViewFor(activeDef, scopeOverride, user, orgChoice, [activeTab === 'agents' ? agentSection : adminPath.seg2, adminPath.seg3])
+        : null;
     const railProps = {
         title: t('admin.dashboard_title'),
-        groups,
+        sections,
         activeTab,
         onSelect: handleTabClick,
         onBack,
@@ -112,9 +124,16 @@ const AdminDashboard = ({ user, onBack, adminPath = {}, onNavigate }: AdminDashb
                     drawerOpen={drawerOpen}
                     onOpen={() => setDrawerOpen(true)}
                 />
+                {barView && <AdminScopeBar view={barView} choice={orgChoice} />}
                 <div className="relative min-h-0 flex-1">
                     {isTabAllowed
-                        ? <AdminTabContent activeTab={activeTab} user={user} hasPermission={hasPermission} agentSection={agentSection} onNavigate={onNavigate} adminPath={adminPath} />
+                        ? (
+                            <AdminOrgGate choice={orgChoice}>
+                                <AdminScopeOverrideProvider value={setScopeOverride}>
+                                    <AdminTabContent activeTab={activeTab} user={user} hasPermission={hasPermission} agentSection={agentSection} onNavigate={onNavigate} adminPath={adminPath} />
+                                </AdminScopeOverrideProvider>
+                            </AdminOrgGate>
+                        )
                         : <AdminAccessDenied scope="section" />}
                 </div>
             </div>
@@ -134,6 +153,65 @@ const AdminDashboard = ({ user, onBack, adminPath = {}, onNavigate }: AdminDashb
 };
 
 export default AdminDashboard;
+
+/** Does the viewer have an organisation of their own? */
+function hasHomeOrg(user: AdminCurrentUser | null): boolean {
+    return homeOrgIdOf(user) !== null;
+}
+
+/** What the scope bar says for the active tab (the section and part the URL names), or null for no bar. */
+function barViewFor(tab: AdminTab | undefined, override: AdminScope | null, user: AdminCurrentUser | null, choice: AdminOrgChoice, [section, part]: [string?, string?]): ScopeBarView | null {
+    const scope = shownAdminScope({ tab, override, section, hasHomeOrg: hasHomeOrg(user) });
+    if (!scope || !tab) return null;
+    return scopeBarView({
+        scope,
+        isPlatformAdmin: choice.isPlatformAdmin,
+        fixed: fixedOrgViewOf(tab.id, section, part),
+        homeOrgName: choice.homeOrganization?.name ?? null,
+    });
+}
+
+/**
+ * One block of the rail as it is drawn. The organisation block is headed
+ * "Organisations" with the current choice under it for a platform admin, and by
+ * the organisation's name for anyone else. The whole-server block is one flat
+ * list: its tabs' sub-headings would repeat the ones of the block above.
+ */
+function railSectionView(section: AdminRailSection, choice: AdminOrgChoice, t: TranslateFn): AdminRailSectionView {
+    const rows = (tabs: readonly AdminTab[]) => tabs.map(tab => ({ id: tab.id, label: t(tab.labelKey, tab.labelFallback), icon: tab.icon }));
+    if (section.id === 'instance') {
+        return {
+            id: 'instance',
+            label: t('admin.scope_instance', 'Whole server'),
+            icon: Server,
+            groups: [{ id: 'instance', label: '', tabs: rows(section.groups.flatMap(group => group.tabs)) }],
+        };
+    }
+    const groups = section.groups.map(group => ({ id: group.id, label: t(group.labelKey, group.labelFallback), tabs: rows(group.tabs) }));
+    if (choice.isPlatformAdmin) {
+        const subtitle = choice.orgId ? (choice.orgName ?? choice.orgId) : t('admin.scope_all_orgs', 'All organisations');
+        return { id: 'org', label: t('admin.rail_group_orgs', 'Organisations'), subtitle, icon: Building2, groups };
+    }
+    return { id: 'org', label: choice.homeOrganization?.name ?? t('admin.scope_org', 'Your organisation'), icon: Building2, groups };
+}
+
+/**
+ * The tab content under the dashboard's organisation choice. While an
+ * organisation from the URL or this browser is still checked against the
+ * organisation list, a spinner stands in, so no section reads with an id that
+ * may not exist.
+ */
+function AdminOrgGate({ choice, children }: { choice: AdminOrgChoice; children: React.ReactNode }) {
+    const { t } = useTranslation();
+    if (choice.pending) {
+        return (
+            <div className="flex h-full items-center justify-center p-6" data-testid="admin-org-pending">
+                <Spinner size="sm" label={t('common.loading', 'Loading...')} />
+            </div>
+        );
+    }
+    return <AdminOrgProvider value={choice}>{children}</AdminOrgProvider>;
+}
 
 interface AdminTopBarProps {
     onBack?: React.MouseEventHandler<HTMLButtonElement>;

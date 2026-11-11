@@ -12,7 +12,8 @@ import type { AgentSaveBody, ApiOptions, ApiState, DesignerAgent, DesignerMessag
  * All API operations for the AgentDesigner: fetch, save, delete, duplicate, publish.
  * Accepts the state object from useAgentState.
  */
-export default function useAgentApi(state: ApiState, { systemMode, securityMode, initialAgentId }: ApiOptions) {
+export default function useAgentApi(state: ApiState, { systemMode, securityMode, initialAgentId, orgId }: ApiOptions) {
+    const orgQuery = orgId ? `?orgId=${encodeURIComponent(orgId)}` : '';
     const {
         setAgents, setLoading, setComponents, setAvailableModels,
         setAvailableCollections, setModelTiers, setIntegrationStatus,
@@ -37,16 +38,16 @@ export default function useAgentApi(state: ApiState, { systemMode, securityMode,
     } = state;
     const initialSelectionDoneRef = useRef(false);
     const { confirm, confirmDialog } = useConfirm();
-
     const fetchAgents = async () => {
         try {
             const endpoint = securityMode
                 ? `${API_BASE}/security-agents`
-                : systemMode ? `${API_BASE}/agents/system` : `${API_BASE}/agents/all`;
+                : systemMode ? `${API_BASE}/agents/system` : `${API_BASE}/agents/all${orgQuery}`;
             const res = await authFetch(endpoint);
             const data = await res.json();
+            // A refusal (a 404 for an organisation that is gone, a 403) is an error body, not a list.
+            if (!res.ok || !Array.isArray(data)) { setAgents([]); return; }
             setAgents(data);
-
             // Auto-select agent if initialAgentId is provided (once)
             if (initialAgentId && !initialSelectionDoneRef.current) {
                 initialSelectionDoneRef.current = true;
@@ -126,7 +127,7 @@ export default function useAgentApi(state: ApiState, { systemMode, securityMode,
         } catch (e) { console.error('Failed to load integration status:', e); }
     };
 
-    // Initial data load
+    // Initial data load, the agent categories last
     const runFetchAgentsEffect = useEffectEvent(() => {
         fetchAgents();
         fetchComponents();
@@ -134,10 +135,9 @@ export default function useAgentApi(state: ApiState, { systemMode, securityMode,
         fetchCollections();
         fetchModelTiers();
         fetchIntegrationStatus();
-        // Fetch agent categories
         (async () => {
             try {
-                const res = await request(`${API_BASE}/agents/categories`).catch((err: unknown) => {
+                const res = await request(`${API_BASE}/agents/categories${systemMode || securityMode ? '' : orgQuery}`).catch((err: unknown) => {
                     if (err instanceof RefusedError) return null;
                     throw err;
                 });
@@ -276,9 +276,9 @@ export default function useAgentApi(state: ApiState, { systemMode, securityMode,
                     }
                 }
             };
-
             body.categoryId = categoryId || null;
-
+            // A new agent belongs to the organisation the list is narrowed to, or it would vanish from it.
+            if (!selectedAgent && orgId && !systemMode && !securityMode) body.organizationId = orgId;
             if (selectedAgent) {
                 await mutate(securityMode ? `${API_BASE}/security-agents/${selectedAgent.id}` : `${API_BASE}/agents/${selectedAgent.id}`, {
                     method: 'PUT',

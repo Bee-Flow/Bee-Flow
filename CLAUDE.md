@@ -17,6 +17,7 @@ line says otherwise.
 | `classify-service/` | Python FastAPI | Zero-shot topic classification |
 | `nextcloud-connector/` | Node | Nextcloud ExApp wrapper (AGPL) |
 | `hub-module-sdk/` | Node | Build, pack and sign Bee Flow Hub modules |
+| `installer/` | Bash / Docker | The self-host installer image: `beeflow-install.sh` (repository root) with one release's files, built by `release-latest.yml` |
 | `docs/` | Docusaurus (TS) | Documentation site |
 
 The license server that issues licence keys is a separate, private service. This repo only
@@ -47,6 +48,9 @@ verifies keys (see "Licence gating" below).
   both. Install without the Electron binary: `ELECTRON_SKIP_BINARY_DOWNLOAD=1 npm install`.
   End to end: `npm run e2e` (Playwright starts the real app against a fake server; on Linux
   via `xvfb-run`, with the Electron binary).
+- Connector: `cd nextcloud-connector && npm test` (`node --test test/*.test.js`), `npm run lint`,
+  `npm run typecheck`. Shared set-up lives in `test/support/`; the duplication ratchet counts
+  repeated set-up in tests.
 
 **Secret scanning** runs by itself on every commit: the hooks scan only what that commit can
 contain (`scripts/scan-secrets.sh --changed` and `scripts/check-no-test-secrets.sh --changed`
@@ -156,6 +160,14 @@ and `npm run lint:secrets`.
   `lint:deep-imports-ratchet` (agent-hub imports climbing 3+ `../`: write `@/<path from src>`;
   `node scripts/deep-imports.mjs [files]` rewrites them. Files mobile executes or mirrors keep
   relative imports, see `scripts/deep-imports.exclude.json` and `mobile/jest.resolver.js`).
+- `npm run lint:duplication`: jscpd over the whole tree against the budgets in
+  `.jscpd-ratchet.json` (production and test scope, `--list` shows the largest clones, `--update`
+  only lowers). It is on the `check:fast` denylist and runs in ci.yml's `Duplication (jscpd)` job:
+  run it before a push that adds tests or copies code.
+- `sast.yml` runs semgrep on pull requests (new findings only) with the public JavaScript,
+  TypeScript and Node rule sets next to `.semgrep/security-gates.yml`. A regular expression tested
+  against request text (a path, a header, a body) is a blocking finding there: compare with plain
+  string operations (`nextcloud-connector/src/requestText.js` is the pattern).
 - `npm run lint:scc-ratchet`: the largest import cycle (strongly connected component of the
   internal import graph, lazy `require`s included, `import type` excluded) in `server`,
   `agent-hub/src` and `mobile/src` may only shrink (`scripts/scc-ratchet.mjs`, budget in
@@ -284,6 +296,34 @@ and `npm run lint:secrets`.
   config (`nextcloud.cfg`, including the Flatpak and Snap locations) and optionally talks to
   its local socket. An attachment from a sync folder goes to the server as a WebDAV reference
   (read via `server/integrations/nextcloudFiles/`), not as a second copy.
+- **Nextcloud connector** (`nextcloud-connector/`, an AppAPI ExApp; guides in `docs/docs/connector/`):
+  - It has no Bee Flow server until a Nextcloud administrator chooses one, and nothing about the
+    Nextcloud is sent anywhere before that choice (`src/serverChoice.js`; decision record
+    `connector-no-default-server`, enforced by `test/noServerChosen.test.js` and
+    `test/restartKeepsChoice.test.js`). `BEEFLOW_API_BASE_URL` given at install time fixes the
+    choice (an address, or the word `cloud`); no `<default>` in `appinfo/info.xml` names a Bee Flow
+    address (`test/infoXmlDefaults.test.js`).
+  - AppAPI passes the container only the variables declared in `appinfo/info.xml`: a new option is
+    declared there, without a default, or it cannot be set. AppAPI has no command that changes a
+    variable after install; texts name the setup page or registering again
+    (`test/installTimeValues.test.js`).
+  - `src/setup.html` is served by the connector on its own (the setup page, and the page shown
+    while no server is chosen): one stylesheet that mirrors the Studio look, one `<script>` tag, a
+    literal `<body>` that `serverChoice.js` rewrites, and room after `</html>` for the nonce
+    Nextcloud's PHP proxy adds (`src/htmlPadding.js`). It loads nothing from another host.
+  - One image serves both routes: HaRP (`/exapps/bee_flow/`, streaming) and the PHP proxy of a
+    manual-install or Docker Socket Proxy daemon (buffered). Webhook rows use the relative uri so
+    Nextcloud delivers through AppAPI.
+  - Releasing: the version is in `appinfo/info.xml`, `package.json` and `package-lock.json`, and
+    `CHANGELOG.md` needs a `## [<version>]` heading (the App Store shows that entry).
+    `connector-release.yml` with `dry_run=true` first, then the real run: it mirrors to
+    `Bee-Flow/connector`, whose pipeline signs the app and registers it in the App Store (stable,
+    or nightly with the `nightly` input).
+  - Server side (`server/auth/connector/`, `server/services/ncUserGroupSync.js`): a pairing code
+    links a Nextcloud only to the organisation it was issued for (`instanceBinding.js`), a Nextcloud
+    belongs to one organisation, and the user sync starts once the sync mode is chosen
+    (`services/ncSyncStart.mts`). Chat and agents offer only the Nextcloud tool families whose app
+    the server reports (`integrations/nextcloudCapabilities.mts`).
 - **Tests live next to the source** (`x.js` next to `x.test.js`), not in a central `tests/` folder.
 - **Decision records**: `docs/docs/contributing/decisions/` holds the architecture decisions above as
   retrospective ADRs (one record per decision, with the check that enforces it). A decision that

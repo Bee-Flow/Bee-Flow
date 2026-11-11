@@ -24,6 +24,8 @@ interface UsersSectionProps {
     userFilters: UseUserFiltersReturn;
     /** Leave for the Groups tab (optionally straight into its create form). */
     onGoToGroups: (createGroup?: boolean) => void;
+    /** Whether the viewer may change this member's account; a row without it is read-only. */
+    canManageMember: (member: OrgMember) => boolean;
 }
 
 function NoMembersYet({ onManageGroups }: { onManageGroups: () => void }) {
@@ -52,7 +54,7 @@ function NoMembersYet({ onManageGroups }: { onManageGroups: () => void }) {
  * The Users tab: connector health, the auto-approve switch, the invite form,
  * the filtered member list and the pending invitations.
  */
-export default function UsersSection({ directory, orgUsers, orgGroups, groupsState, invites, memberRoles, userFilters, onGoToGroups }: UsersSectionProps) {
+export default function UsersSection({ directory, orgUsers, orgGroups, groupsState, invites, memberRoles, userFilters, onGoToGroups, canManageMember }: UsersSectionProps) {
     const { t } = useTranslation();
     const { usageByUser, orgAuthMethod, autoApprove, savingAutoApprove, handleToggleAutoApprove } = directory;
     // The hook filters its input without mapping it, so every row is a member.
@@ -88,7 +90,8 @@ export default function UsersSection({ directory, orgUsers, orgGroups, groupsSta
 
             {invites.showInviteForm && <InviteForm {...invites} />}
             {orgUsers.length === 0 ? (
-                <NoMembersYet onManageGroups={() => onGoToGroups()} />
+                // A refused list is not an empty organisation: the panel shows its notice instead.
+                !directory.notOrgAdmin && <NoMembersYet onManageGroups={() => onGoToGroups()} />
             ) : (
                 <>
                     <UserFilterBar
@@ -118,6 +121,7 @@ export default function UsersSection({ directory, orgUsers, orgGroups, groupsSta
                                     groupsState={groupsState}
                                     memberRoles={memberRoles}
                                     onCreateGroup={openCreateGroup}
+                                    manageable={canManageMember(u)}
                                 />
                             ))}
                         </div>

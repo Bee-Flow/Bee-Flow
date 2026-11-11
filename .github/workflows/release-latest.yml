@@ -184,3 +184,101 @@ jobs:
             done
             echo "- \`${MIRROR_PREFIX}/${svc}\` @ \`${digest}\`" >> "$GITHUB_STEP_SUMMARY"
           done < "$RUNNER_TEMP/plan.txt"
+
+  # The installer of this release, as a file of the release itself:
+  # `releases/latest/download/beeflow-install.sh` is the address the docs and
+  # the Nextcloud connector's setup page give. One script, the same for
+  # everybody, with its checksum next to it. A tag from before the installer
+  # existed has no such file and is left as it is.
+  installer:
+    if: >-
+      ${{ github.event_name == 'workflow_dispatch'
+      || (!github.event.release.prerelease && startsWith(github.event.release.tag_name, 'v')) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      packages: write
+    env:
+      TAG: ${{ github.event.release.tag_name || inputs.tag }}
+      IMAGE: ghcr.io/bee-flow/installer
+    steps:
+      - name: Check the tag
+        run: |
+          set -euo pipefail
+          if [[ ! "$TAG" =~ ^v[A-Za-z0-9_.-]{1,127}$ ]]; then
+            echo "::error::Release tag '$TAG' must start with v and contain only letters, digits, '.', '_' or '-'."
+            exit 1
+          fi
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.TAG }}
+          persist-credentials: false
+
+      # A release from before the installer existed has nothing to publish here.
+      - name: Does this release carry the installer?
+        id: has
+        run: |
+          set -euo pipefail
+          if [ -f beeflow-install.sh ] && [ -f installer/Dockerfile ]; then
+            echo "installer=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::$TAG has no installer: nothing to attach or build."
+          fi
+
+      # The files a self-hosted install is made of, with their checksums.
+      # beeflow-install.sh verifies the other three against SHA256SUMS; the
+      # separate .sha256 is what the documented download commands check.
+      - name: Attach the self-host files and their checksums to the release
+        if: ${{ steps.has.outputs.installer == 'true' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          bash -n beeflow-install.sh
+          bash -n selfhost.sh
+          sha256sum beeflow-install.sh selfhost.sh docker-compose.from-registry.yml .env.selfhost.example > SHA256SUMS
+          sha256sum beeflow-install.sh > beeflow-install.sh.sha256
+          gh release upload "$TAG" beeflow-install.sh beeflow-install.sh.sha256 selfhost.sh \
+            docker-compose.from-registry.yml .env.selfhost.example SHA256SUMS --clobber --repo "$GITHUB_REPOSITORY"
+
+      # The same script as a container that carries this release's files.
+      - name: Stage the image's files
+        if: ${{ steps.has.outputs.installer == 'true' }}
+        run: bash scripts/stage-installer-context.sh
+
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+        if: ${{ steps.has.outputs.installer == 'true' }}
+
+      - uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
+        if: ${{ steps.has.outputs.installer == 'true' }}
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Build and push the installer image
+        if: ${{ steps.has.outputs.installer == 'true' }}
+        uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5.4.0
+        with:
+          context: ./installer
+          push: true
+          build-args: |
+            BEEFLOW_VERSION=${{ env.TAG }}
+          tags: |
+            ${{ env.IMAGE }}:${{ env.TAG }}
+            ${{ env.IMAGE }}:latest
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.version=${{ env.TAG }}
+            org.opencontainers.image.revision=${{ github.sha }}
+
+      # "Latest" on the releases page is what the documented download address
+      # (releases/latest/download/…) follows. Say it here, so a release of
+      # another kind published in between does not take it over for long.
+      - name: Mark this release as the latest
+        if: ${{ github.event_name == 'release' && steps.has.outputs.installer == 'true' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release edit "$TAG" --latest --repo "$GITHUB_REPOSITORY"

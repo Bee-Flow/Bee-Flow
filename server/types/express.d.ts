@@ -58,6 +58,8 @@ declare global {
             libraryRow?: object;
             /** The organisation an admin request is scoped to (routes/feedback.js). */
             scopedOrgId?: string;
+            /** Set by requireAdminOrg (auth/adminOrg.mts): the admin dashboard's organisation; null means all organisations (platform admins only). */
+            adminOrgId?: string | null;
             /** Set by projects/stages/stageAuth.js. */
             stageCtx?: import('../routes/projects/stages/deploymentRoutes').StageCtx;
             /** The organisation an admin route resolved from `:orgId` (routes/admin). */

@@ -13,11 +13,11 @@ const { receiveImage } = require('../../middleware/uploadedImage');
 const log = require('../../telemetry/log');
 const { bestEffort, fallback } = require('../../utils/bestEffort');
 const { isPlatformOperator } = require('../platformOperator');
-const { costLimitRefusal, stripKeyMaterial, buildRoleDowngradeHint, CreateUserBody, ChangePasswordBody, USER_UPDATE_FIELDS, SUPER_ADMIN_ONLY_FIELDS, isKnownRoleId, USER_TEXT_FIELDS, needsAdminPasswordFloor, unknownFieldsRefusal, accessChanges, endSessionsFor } = require('./userSupportRoutes');
+const { costLimitRefusal, stripKeyMaterial, buildRoleDowngradeHint, CreateUserBody, ChangePasswordBody, USER_UPDATE_FIELDS, SUPER_ADMIN_ONLY_FIELDS, isKnownRoleId, USER_TEXT_FIELDS, needsAdminPasswordFloor, unknownFieldsRefusal, accessChanges, endSessionsFor, leavesServerWithoutPlatformAdmin, refusedDelete } = require('./userSupportRoutes');
 const router = express.Router();
 
 const userStore = require('../../stores/userStore');
-const { loadConfig, requireAuth, getUserPermissions, invalidatePermissionCache, resolveUserOrgIds, isOrgAdminRole } = require('../permissions');
+const { loadConfig, requireAuth, getUserPermissions, invalidatePermissionCache, resolveUserOrgIds, isOrgAdminRole, resolveAdminOrgId } = require('../permissions');
 const { rewrapUserDEKCompat, adminResetUser } = require('../encryption');
 // One password policy for every write path. Without it /change-password would
 // accept 4 characters and the admin create / update paths would hash whatever
@@ -38,30 +38,76 @@ const {
     requireOrgAdminForUser,
     defaultGroupsRefused,
 } = require('./orgAdminGuards');
-
-// The org-role model, read from the same file permissions.js resolves against.
+const { LAST_PLATFORM_ADMIN_REFUSAL } = require('./platformAdminCount.mts');
 
 /**
- * The exact fields PUT /users/:id writes. This is the single source for both
- * the `updates` object the handler builds AND the unknown-key rejection in
- * front of it, so the two can never drift into the state the pentest found:
- * a body field accepted, answered with 200 {"success":true}, and then dropped.
+ * A new password on PUT /users/:id. Same policy as signup and password reset:
+ * the e-mail/username context lets the validator reject passwords derived from
+ * the account itself, and the target's post-update reach decides which minimum
+ * length applies. On success its hash is put on `updates`. With `oldPassword`
+ * (the person changing their own) the encryption key is re-wrapped; without
+ * it (an admin reset) the zero-knowledge key is reset. Answers 400 and returns
+ * true when it refuses.
+ * @param {import('express').Response} res
+ * @param {{ id: string, password: string, oldPassword?: string, prevUser: Record<string, any> | null, updates: Record<string, any> }} change
  */
+async function refusedPassword(res, { id, password, oldPassword, prevUser, updates }) {
+    const pwCheck = validatePassword(password, {
+        username: prevUser?.username || id,
+        email: updates.email ?? prevUser?.email,
+        isAdmin: needsAdminPasswordFloor({
+            role: updates.role ?? prevUser?.role,
+            orgRole: updates.orgRole ?? prevUser?.orgRole,
+        }),
+    });
+    if (!pwCheck.ok) {
+        res.status(400).json({ error: pwCheck.error, ...(pwCheck.code ? { code: pwCheck.code } : {}) });
+        return true;
+    }
+
+    updates.passwordHash = await passwords.hash(password);
+
+    if (!oldPassword) {
+        // Admin-initiated password reset — destructive (zero-knowledge)
+        await adminResetUser(id);
+        log.warn(`[Auth] Admin reset user ${id} — encrypted data requires recovery key`);
+        return false;
+    }
+    // User-initiated password change — rewrap DEK
+    try {
+        const result = await rewrapUserDEKCompat(id, oldPassword, password);
+        if (result.success) return false;
+    } catch (err) {
+        log.error('[Auth] DEK rewrap failed:', /** @type {Error} */ (err).message);
+    }
+    res.status(400).json({ error: 'Failed to verify old password' });
+    return true;
+}
+
+// Who may list users, and the admin dashboard's `?scope=admin` list (auth/admin/userListScope.mts).
+/** @type {ReturnType<typeof import('./userListScope.mts').createUserListScope<import('express').Request, Record<string, any>>>} */
+const { mayViewUsers, adminScopedUsers } = require('./userListScope.mts').createUserListScope({
+    getUserPermissions: (userId, session) => getUserPermissions(userId, session),
+    resolveAdminOrgId: (req) => resolveAdminOrgId(req),
+    getAllUsers: () => userStore.getAllUsers(),
+    getAllGroups: () => userStore.getAllGroups(),
+    isPlatformOperator: (u) => isPlatformOperator(u),
+    stripKeyMaterial: (u) => stripKeyMaterial(u),
+});
 
 // === User Management API (Admin Only) ===
 
-// Get all users — requires manage_users, admin_security, or org_admin
+// Get all users — requires manage_users, admin_security, or org_admin.
+// `?scope=admin`: see adminScopedUsers.
 router.get('/users', requireAuth, async (req, res) => {
     // Non-super-admins must have user management permissions
     const isSuperAdmin = req.session.isAdmin || req.session.user?.role === 'admin';
-    if (!isSuperAdmin) {
-        const userId = req.session.user?.id;
-        const perms = await getUserPermissions(userId, req.session);
-        const canView = perms.includes('all') || perms.includes('manage_users') || perms.includes('admin_security') || perms.includes('org_admin');
-        if (!canView) {
-            return res.status(403).json({ error: 'Permission required to view users' });
-        }
+    if (!(await mayViewUsers(req))) {
+        return res.status(403).json({ error: 'Permission required to view users' });
     }
+
+    const scoped = await adminScopedUsers(req);
+    if (scoped) return res.json(scoped);
 
     const users = await userStore.getAllUsers();
     const config = await loadConfig();
@@ -347,44 +393,13 @@ router.put('/users/:id', requireOrgAdminForUser, async (req, res) => {
         }
     }
 
-    if (password) {
-        // Same policy as signup and password reset. Both branches below hashed
-        // whatever arrived, so an "admin reset" was a way to put a
-        // one-character password on someone else's account. The e-mail/username
-        // context lets the validator reject passwords derived from the account
-        // itself, and the target's post-update reach decides which minimum
-        // length applies.
-        const pwCheck = validatePassword(password, {
-            username: prevUser?.username || id,
-            email: updates.email ?? prevUser?.email,
-            isAdmin: needsAdminPasswordFloor({
-                role: updates.role ?? prevUser?.role,
-                orgRole: updates.orgRole ?? prevUser?.orgRole,
-            }),
-        });
-        if (!pwCheck.ok) {
-            return res.status(400).json({ error: pwCheck.error, ...(pwCheck.code ? { code: pwCheck.code } : {}) });
-        }
-
-        updates.passwordHash = await passwords.hash(password);
-
-        if (oldPassword) {
-            // User-initiated password change — rewrap DEK
-            try {
-                const result = await rewrapUserDEKCompat(id, oldPassword, password);
-                if (!result.success) {
-                    return res.status(400).json({ error: 'Failed to verify old password' });
-                }
-            } catch (err) {
-                log.error('[Auth] DEK rewrap failed:', /** @type {Error} */ (err).message);
-                return res.status(400).json({ error: 'Failed to verify old password' });
-            }
-        } else {
-            // Admin-initiated password reset — destructive (zero-knowledge)
-            await adminResetUser(id);
-            log.warn(`[Auth] Admin reset user ${id} — encrypted data requires recovery key`);
-        }
+    // The last platform admin keeps the role and stays active (self-demotion of
+    // the platform role is otherwise allowed; the panel asks first).
+    if (await leavesServerWithoutPlatformAdmin(prevUser, { id, role: updates.role, status: updates.status })) {
+        return res.status(409).json(LAST_PLATFORM_ADMIN_REFUSAL);
     }
+
+    if (password && await refusedPassword(res, { id, password, oldPassword, prevUser, updates })) return;
 
     if (await userStore.updateUser(id, updates)) {
         // The pre-check is a read; this is the write. Two admins demoting each
@@ -483,19 +498,8 @@ router.delete('/users/:id', requireOrgAdminForUser, async (req, res) => {
     let prevUser = null;
     try { prevUser = await userStore.getUser(id); } catch (_) { prevUser = null; }
 
-    // Deleting the last org_admin orphans the tenant just as thoroughly as
-    // demoting them, and irreversibly — the row is gone. Same guard, same rule:
-    // it fires only when the organisation still has OTHER members to strand, so
-    // the sole member of a one-person org (every self-serve org signup starts as
-    // exactly that) remains deletable. Erasure has to keep working on a privacy
-    // product; this route is the only path to it.
-    if (prevUser && isOrgAdminRole(prevUser.orgRole)) {
-        for (const guardedOrg of await orgsAdministeredBy(prevUser)) {
-            if (await wouldOrphanOrg(guardedOrg, id)) {
-                return refuseLastOrgAdmin(res, 'Deleting this user');
-            }
-        }
-    }
+    // The last org admin of a populated organisation, and the last platform admin, stay.
+    if (await refusedDelete(res, prevUser, id)) return;
 
     if (await userStore.deleteUser(id)) {
         log.info(`[Audit] ${req.session.user?.id || 'system'} deleted user '${id}'`);

@@ -15,7 +15,7 @@ toc_max_heading_level: 2
 
 ### `POST /api/admin/guard/install`
 
-**Access:** Permission `admin_security`
+**Access:** Platform admin
 
 **Body**
 
@@ -26,13 +26,13 @@ toc_max_heading_level: 2
 
 ### `GET /api/admin/guard/status`
 
-**Access:** Permission `admin_security`
+**Access:** Platform admin
 
 No request schema.
 
 ### `POST /api/admin/guard/uninstall`
 
-**Access:** Permission `admin_security`
+**Access:** Platform admin
 
 **Body**
 
@@ -113,7 +113,7 @@ No request schema.
 
 ### `GET /api/admin/metrics`
 
-**Access:** Permission `manage_users`
+**Access:** Platform admin
 
 No request schema.
 

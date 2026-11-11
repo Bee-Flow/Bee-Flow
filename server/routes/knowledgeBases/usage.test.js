@@ -56,12 +56,13 @@ const MOCKS = {
         requireActiveOrgForMutations: () => mw,
         resolveUserOrgIds: async () => new Set(['org1']),
         hasPermission: async () => true,
+        resolvePermissionsByOrg: async () => ({ holds: () => true }),
         resolveUserGroups: async () => [],
         validateSharedGroupsForOrg: async () => {},
     },
     '../support/kbAccess': {
         canAccessKB: async () => fx.canAccess,
-        resolveIsOrgAdmin: async () => false,
+        resolveAdminOrgIds: async () => new Set(),
     },
     '../core/kb/kbUsage': {
         usageForKb: async () => fx.usage,

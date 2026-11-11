@@ -229,6 +229,26 @@ test('the same base written by two steps is asked about once', async () => {
     assert.deepStrictEqual(out.map(f => f.path), ['steps.w1', 'steps.w2']);
 });
 
+test('writes into several bases resolve the owner once', async () => {
+    const realKbStore = require('../../stores/knowledgeBases');
+    const calls = { asker: 0, perms: 0 };
+    const wa = {
+        kbStore: { ...deps.kbStore, canUserManageKB: realKbStore.canUserManageKB },
+        writeAccess: require('./kbWriteAccess'),
+        askerContext: async () => { calls.asker += 1; return { orgIds: new Set(['org1', 'org2']) }; },
+        resolvePermissionsByOrg: async () => { calls.perms += 1; return { holds: (/** @type {string} */ perm, /** @type {string} */ orgId) => perm === 'manage_knowledge' && orgId === 'org1' }; },
+    };
+    const out = await kbStepFindings({
+        steps: [
+            { id: 'w1', type: 'knowledge_write', knowledgeBaseId: 'kb_ok' },
+            { id: 'w2', type: 'knowledge_write', knowledgeBaseId: 'kb_legacy' },
+            { id: 'w3', type: 'knowledge_write', knowledgeBaseId: 'kb_foreign' },
+        ],
+    }, { ...WHO, stage: 'activate', deps: wa });
+    assert.deepStrictEqual(out.map(f => f.path), ['steps.w3'], 'manage_knowledge in org1 does not write into the org2 base');
+    assert.deepStrictEqual(calls, { asker: 1, perms: 1 });
+});
+
 test('a write check that throws refuses rather than passing', async () => {
     const wa = {
         ...deps,

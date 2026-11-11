@@ -1,10 +1,11 @@
 /**
- * The Azure configuration (self-hosted only).
+ * The Azure configuration (self-hosted only, a platform admin's).
  *
  * Verified against server/routes/orgAzureConfig.js, mounted at
  * /api/org-azure-config: GET /:orgId and PUT /:orgId behind
- * platformConfigGate (self-hosted, or a platform admin) and the STRICT org
- * admin check (orgRole org_admin; the legacy 'admin' is refused). The PUT is a
+ * platformConfigGate (a platform admin, in every deployment mode: the setup
+ * is instance-wide). The group-sync routes keep the STRICT org admin check
+ * (orgRole org_admin; the legacy 'admin' is refused). The PUT is a
  * discriminated union on `section` — openai, chatModels, piiDetection,
  * docProcessing, sso — each `.strict()`; an empty or absent secret keeps the
  * stored one, and `chatModelTiers` is merged over the stored map. Group sync:

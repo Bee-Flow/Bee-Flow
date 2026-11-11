@@ -43,7 +43,7 @@ const MAX_AI_STEP_KB_IDS = 10;   // mirrors appStudio/aiRuntime.MAX_KB_IDS
  *
  * The decision itself lives in `core/kb/kbVisibility`, which is where every
  * other retrieval surface now asks it. Sharing the function is the point: this
- * one must not pass `isOrgAdmin` through, or an automation owned by an org admin
+ * one must not pass admin organisations (`adminOrgIds`) through, or an automation owned by an org admin
  * would ground itself on any base in the organisation — including a colleague's
  * unfinished draft — and the run log would say the automation had read it. The admin
  * bypass belongs to a management screen, not to a retrieval.

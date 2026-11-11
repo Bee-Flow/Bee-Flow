@@ -64,8 +64,8 @@ router.post('/users/me/leave-org', requireAuth, validate({ body: LeaveOrgBody })
     // countOtherOrgAdmins with PUT/DELETE /users/:id rather than keeping a
     // second SQL definition of "who administers this org" — the old query
     // here counted suspended and pending admins (who cannot sign in, so
-    // cannot manage anything) and missed admins who belong to the org only
-    // through one of its groups.
+    // cannot manage anything). Who counts as cover is explained at
+    // countOrgMembers.
     if (isOrgAdminRole(me.orgRole) && await wouldOrphanOrg(orgId, userId)) {
         return res.status(409).json({
             error: 'You are the only organization admin. Promote another member before leaving.',

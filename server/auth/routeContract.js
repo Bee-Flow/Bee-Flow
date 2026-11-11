@@ -32,9 +32,10 @@
  *   scoped        a grade on the resource (tagged, minGrade)
  *   permission    a SYSTEM_PERMISSIONS id (tagged rbac; `anyOf` kept so a
  *                 widened list is also a weakening)
- *   platform      a platform-level gate (tagged: kind superAdmin today; a
- *                 platform-admin helper that passes org admins only on a
- *                 self-hosted install tags itself with the same axis)
+ *   platform      a platform-level gate (tagged axis platform, kind superAdmin:
+ *                 requireSuperAdmin and the platform-admin gates of
+ *                 auth/requirePlatformAdmin.js, which pass a platform admin
+ *                 only, in every deployment mode)
  *
  * Pure: nothing here reads a file or loads the app. The callers supply the walk
  * and the surface.
@@ -84,10 +85,12 @@ function mwName(m) {
  */
 function chainClass(route) {
     const tags = route.gates || [];
-    // The platform axis, or an rbac gate that marks itself platform-wide
-    // (auth/requirePlatformAdmin.js: `platform: true`).
-    const platform = tags.find((g) => g.axis === 'platform' || g.platform === true);
-    if (platform) return { gate: 'platform', via: platform.kind || (platform.platform ? 'platformAdmin' : 'platform') };
+    // The platform axis only: requireSuperAdmin and the platform-admin gates
+    // (auth/requirePlatformAdmin.js) carry it. An rbac gate is a permission,
+    // whatever else its tag says: a permission is reachable from inside an
+    // organisation.
+    const platform = tags.find((g) => g.axis === 'platform');
+    if (platform) return { gate: 'platform', via: platform.kind || 'platform' };
     const rbac = tags.filter((g) => g.axis === 'rbac');
     if (rbac.length) {
         // Several rbac gates AND together; the caller must satisfy each, so the

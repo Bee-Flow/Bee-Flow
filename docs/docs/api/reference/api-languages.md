@@ -15,13 +15,13 @@ toc_max_heading_level: 2
 
 ### `GET /api/languages`
 
-**Access:** middleware `requireAdmin`
+**Access:** Platform admin
 
 No request schema.
 
 ### `POST /api/languages`
 
-**Access:** middleware `requireAdmin`
+**Access:** Platform admin
 
 **Body**
 
@@ -32,13 +32,13 @@ No request schema.
 
 ### `DELETE /api/languages/:code`
 
-**Access:** middleware `requireAdmin`
+**Access:** Platform admin
 
 No request schema.
 
 ### `POST /api/languages/:code/ai-translate`
 
-**Access:** middleware `requireAdmin`
+**Access:** Platform admin
 
 **Body**
 
@@ -48,7 +48,7 @@ No request schema.
 
 ### `POST /api/languages/:code/ai-translate-emails`
 
-**Access:** middleware `requireAdmin`
+**Access:** Platform admin
 
 **Body**
 
@@ -58,7 +58,7 @@ No request schema.
 
 ### `POST /api/languages/:code/ai-translate-prompts`
 
-**Access:** middleware `requireAdmin`
+**Access:** Platform admin
 
 **Body**
 
@@ -69,19 +69,19 @@ No request schema.
 
 ### `PUT /api/languages/:code/default`
 
-**Access:** middleware `requireAdmin`
+**Access:** Platform admin
 
 No request schema.
 
 ### `GET /api/languages/:code/email-templates`
 
-**Access:** middleware `requireAdmin`
+**Access:** Platform admin
 
 No request schema.
 
 ### `PUT /api/languages/:code/email-templates`
 
-**Access:** middleware `requireAdmin`
+**Access:** Platform admin
 
 **Body**
 
@@ -97,7 +97,7 @@ No request schema.
 
 ### `POST /api/languages/:code/email-templates/:templateId/preview`
 
-**Access:** middleware `requireAdmin`
+**Access:** Platform admin
 
 **Body**
 
@@ -112,7 +112,7 @@ No request schema.
 
 ### `POST /api/languages/:code/email-templates/:templateId/test`
 
-**Access:** middleware `requireAdmin`
+**Access:** Platform admin
 
 **Body**
 
@@ -122,19 +122,19 @@ No request schema.
 
 ### `GET /api/languages/:code/export`
 
-**Access:** middleware `requireAdmin`
+**Access:** Platform admin
 
 No request schema.
 
 ### `GET /api/languages/:code/gui`
 
-**Access:** middleware `requireAdmin`
+**Access:** Platform admin
 
 No request schema.
 
 ### `PUT /api/languages/:code/gui`
 
-**Access:** middleware `requireAdmin`
+**Access:** Platform admin
 
 **Body**
 
@@ -144,7 +144,7 @@ No request schema.
 
 ### `PATCH /api/languages/:code/gui`
 
-**Access:** middleware `requireAdmin`
+**Access:** Platform admin
 
 **Body**
 
@@ -154,25 +154,25 @@ No request schema.
 
 ### `POST /api/languages/:code/import`
 
-**Access:** middleware `requireAdmin`
+**Access:** Platform admin
 
 No request schema.
 
 ### `GET /api/languages/:code/prompts`
 
-**Access:** middleware `requireAdmin`
+**Access:** Platform admin
 
 No request schema.
 
 ### `GET /api/languages/:code/prompts/:promptId`
 
-**Access:** middleware `requireAdmin`
+**Access:** Platform admin
 
 No request schema.
 
 ### `PUT /api/languages/:code/prompts/:promptId`
 
-**Access:** middleware `requireAdmin`
+**Access:** Platform admin
 
 **Body**
 
@@ -184,13 +184,13 @@ No request schema.
 
 ### `GET /api/languages/defaults/gui`
 
-**Access:** middleware `requireAdmin`
+**Access:** Platform admin
 
 No request schema.
 
 ### `GET /api/languages/defaults/prompts`
 
-**Access:** middleware `requireAdmin`
+**Access:** Platform admin
 
 No request schema.
 

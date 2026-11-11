@@ -50,6 +50,13 @@ manifest is therefore indistinguishable, later, from a value somebody typed.
   after a restart.
 - **A first choice is checked first.** The connector asks the address for `/api/health`; when no
   Bee Flow server answers, nothing is saved and nothing is sent.
+- **Looking nearby is an offer, not a choice.** While no server is chosen, the setup page of an
+  administrator asks the connector whether a Bee Flow server answers next to this Nextcloud
+  (`src/serverDiscovery.js`, `test/serverDiscovery.test.js`): the same `/api/health` question, to a
+  fixed list of addresses only (the Docker host when its address is a private one, and the server's
+  container name, on the installer's port), never to an address on the internet and never to one
+  from the request. An answer is shown as "use this address"; choosing and connecting stay the
+  administrator's steps.
 - **What is typed at install time is fixed.** `BEEFLOW_API_BASE_URL` holding the word `cloud` or a
   server URL is a choice made by whoever installs, and cannot be changed from inside Nextcloud. The
   literal address `https://server.beeflow.nl` there is not a choice by itself, because AppAPI replays

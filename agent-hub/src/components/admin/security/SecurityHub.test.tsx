@@ -1,7 +1,12 @@
-import { render, screen, cleanup } from '@testing-library/react';
+import { render, screen, cleanup, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type { Mock } from 'vitest';
 import SecurityHub from './SecurityHub';
+import { AdminScopeOverrideProvider } from '../dashboard/useAdminScopeOverride';
+import type { AdminScope } from '../dashboard/adminTabs';
+
+type SetScope = Mock<(scope: AdminScope | null) => void>;
 
 const hasTier = vi.hoisted(() => vi.fn());
 
@@ -16,6 +21,9 @@ vi.mock('../../licensing/LicenseContext', () => ({ useLicenseContext: () => ({ h
 // threading the third path segment through is now part of SecurityHub's job.
 vi.mock('./guardrails/GuardrailsHub', () => ({
     default: ({ section }: { section?: string }) => <div data-testid="guardrails-panel" data-section={section || ''} />,
+}));
+vi.mock('./guardrails/OrgGuardrails', () => ({
+    default: ({ orgId }: { orgId: string | null }) => <div data-testid="org-guardrails-panel" data-org={orgId || ''} />,
 }));
 vi.mock('./SSOConfigPanel', () => ({ default: () => <div data-testid="sso-panel" /> }));
 vi.mock('../org/UserManagement', () => ({ default: () => <div data-testid="user-management" /> }));
@@ -133,7 +141,86 @@ describe('SecurityHub', () => {
     it('marks the section from the URL as the current page of a named navigation', () => {
         render(<SecurityHub user={fullAdmin} activeSection="sso" />);
         expect(screen.getByRole('navigation', { name: 'admin.tab_security' })).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: 'admin.sec_sso' })).toHaveAttribute('aria-current', 'page');
+        expect(screen.getByRole('button', { name: 'admin.sec_sso admin.scope_instance' })).toHaveAttribute('aria-current', 'page');
         expect(screen.getByRole('button', { name: 'admin.sec_users' })).not.toHaveAttribute('aria-current');
+    });
+
+    it('lists the server-wide sections last, under a "Whole server" divider, each with the server icon', () => {
+        render(<SecurityHub user={fullAdmin} />);
+        const nav = screen.getByRole('navigation', { name: 'admin.tab_security' });
+        const items = within(nav).getAllByRole('button');
+        expect(items.map(b => b.textContent?.trim())).toEqual(['admin.sec_users', 'admin.sec_guardrails', 'admin.sec_sso', 'admin.sec_email_domains', 'admin.sec_connector_health']);
+        for (const name of ['admin.sec_sso', 'admin.sec_email_domains', 'admin.sec_connector_health']) {
+            const row = items.find(b => b.textContent?.trim() === name) as HTMLElement;
+            expect(within(row).getByRole('img', { name: 'admin.scope_instance' })).toBeInTheDocument();
+        }
+        for (const name of ['admin.sec_users', 'admin.sec_guardrails']) {
+            const row = items.find(b => b.textContent?.trim() === name) as HTMLElement;
+            expect(within(row).queryByRole('img')).not.toBeInTheDocument();
+        }
+        // The divider label sits once, before the first server-wide section.
+        expect(within(nav).getAllByText('admin.scope_instance', { selector: 'div' })).toHaveLength(1);
+    });
+
+    describe('scope reported to the dashboard', () => {
+        const lastScope = (set: SetScope) => set.mock.calls.filter(c => c[0] !== null).at(-1)?.[0];
+        const renderIn = (set: SetScope, props: React.ComponentProps<typeof SecurityHub>) => render(
+            <AdminScopeOverrideProvider value={set}><SecurityHub {...props} /></AdminScopeOverrideProvider>,
+        );
+
+        it('guardrails leave the scope to the console, which knows the open sub-section', () => {
+            const set: SetScope = vi.fn<(scope: AdminScope | null) => void>();
+            renderIn(set, { user: fullAdmin, activeSection: 'guardrails' });
+            expect(lastScope(set)).toBeUndefined();
+        });
+
+        // The Users screen knows its open tab (some are server-wide), so it reports the scope itself.
+        it('users, also as the fallback for a section the viewer cannot see, leave the scope to the Users screen', () => {
+            const set: SetScope = vi.fn<(scope: AdminScope | null) => void>();
+            renderIn(set, { user: orgAdmin, activeSection: 'sso' });
+            expect(screen.getByTestId('user-management')).toBeInTheDocument();
+            expect(lastScope(set)).toBeUndefined();
+        });
+
+        it('a server-wide section reports the whole server', () => {
+            const set: SetScope = vi.fn<(scope: AdminScope | null) => void>();
+            renderIn(set, { user: fullAdmin, activeSection: 'sso' });
+            expect(lastScope(set)).toBe('instance');
+        });
+    });
+
+    describe('for an organisation admin', () => {
+        const orgAdminOfOrg = { ...orgAdmin, orgRole: 'org_admin', organizationId: 'org-1', isHomeOrgAdmin: true };
+
+        it('lists only the sections that are not about the whole server', () => {
+            render(<SecurityHub user={orgAdminOfOrg} />);
+            const items = screen.getAllByRole('button').map(b => b.textContent);
+            expect(items).toEqual(['admin.sec_users', 'admin.sec_guardrails']);
+        });
+
+        it('shows the guardrails of the own organisation instead of the server console', () => {
+            render(<SecurityHub user={orgAdminOfOrg} activeSection="guardrails" userSection="patterns" />);
+            expect(screen.getByTestId('org-guardrails-panel').getAttribute('data-org')).toBe('org-1');
+            expect(screen.queryByTestId('guardrails-panel')).not.toBeInTheDocument();
+        });
+
+        it('drops guardrails for an organisation admin without a home organisation', () => {
+            render(<SecurityHub user={{ permissions: ['admin_security'], isAdmin: false }} activeSection="guardrails" />);
+            expect(screen.queryByText('admin.sec_guardrails')).not.toBeInTheDocument();
+            expect(screen.getByTestId('user-management')).toBeInTheDocument();
+        });
+
+        // admin_security through a plain group: the shield save needs an organisation admin of the home organisation.
+        it('drops guardrails for someone with a home organisation they do not administer', () => {
+            render(<SecurityHub user={{ ...orgAdmin, orgRole: 'member', organizationId: 'org-1', isHomeOrgAdmin: false }} activeSection="guardrails" />);
+            expect(screen.queryByText('admin.sec_guardrails')).not.toBeInTheDocument();
+            expect(screen.getByTestId('user-management')).toBeInTheDocument();
+        });
+
+        it('a user holding only the all permission is not a platform admin', () => {
+            render(<SecurityHub user={{ permissions: ['all'], isAdmin: false }} activeSection="email-domains" />);
+            expect(screen.getByTestId('user-management')).toBeInTheDocument();
+            expect(screen.queryByText('admin.sec_email_domains')).not.toBeInTheDocument();
+        });
     });
 });

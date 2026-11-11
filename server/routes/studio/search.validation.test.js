@@ -36,7 +36,7 @@ const deps = {
     permissions: { hasPermission: no('permission') },
     auth: { resolveUserOrgIds: async () => { touched.push('orgs'); return new Set(); } },
     kbShared: {
-        resolveIsOrgAdmin: async () => false,
+        resolveAdminOrgIds: async () => new Set(),
         resolveEnabledSystemSlugs: async () => [],
         listFilterFromQuery: () => ({}),
         resolveUserGroups: async () => [],

@@ -16,10 +16,17 @@
  * examined. Note the asymmetry it lived next to: POST /users has always checked
  * req.body.organizationId, because on create there is no row to read instead.
  *
- * THE SECOND KEY. isOrgAdminForOrg treats membership of any group as membership
- * of that group's org, so an unvalidated `groups` array reaches another tenant
- * without touching organizationId at all. Group ids are slugified names and
- * globally unique, so they are guessable rather than secret.
+ * THE SECOND KEY. A group of another tenant makes its members part of that
+ * tenant (orgScope counts group orgs), and a group there that carries admin
+ * rights makes them its administrator, so an unvalidated `groups` array would
+ * reach another tenant without touching organizationId at all. Group ids are
+ * slugified names and globally unique, so they are guessable rather than secret.
+ *
+ * THE ORG-ADMIN RULE. isOrgAdminForOrg is the strict decision
+ * (permissions._evalOrgAdmin, the real function, not a stub): an admin of org A
+ * who is only a member of an ordinary group of org B does NOT administer B. The
+ * tests at the end pin that: such a caller is refused B's users, may not assign
+ * B's groups, and B's own admin and a platform admin still pass.
  *
  * These tests assert the PROPERTY — a user cannot end up in a tenant they do not
  * administer by any request they can author — not the status code of one route.
@@ -34,6 +41,11 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const Module = require('module');
+
+// The real org-admin decision, so the stubbed permissions module below answers
+// "who administers org X" exactly as production does. Pure: it reads only the
+// user row and group list it is handed.
+const { _evalOrgAdmin } = require('./permissions');
 
 // ── Mutable fixtures ─────────────────────────────────────────────────
 const fx = {
@@ -126,6 +138,7 @@ const MOCKS = {
         SYSTEM_PERMISSIONS: [],
         OrgRoles: { ORG_ADMIN: 'org_admin' },
         isOrgAdminRole: (r) => r === 'org_admin' || r === 'admin',
+        _evalOrgAdmin,
         invalidatePermissionCache: () => { },
         invalidateAllPermissionCaches: () => { },
         invalidateUserExistenceCache: () => { },
@@ -641,6 +654,61 @@ test('M-01: a super admin may set a real role, but still not an invented one', a
     assert.strictEqual(bad.statusCode, 400);
     assert.strictEqual(bad.body.code, 'unknown_role');
     assert.strictEqual(user('eva').role, 'admin_light', 'the good value must survive the bad one');
+});
+
+// ═══ The org-admin rule: membership of a group is not administration ══
+
+// ann administers orgA and is a plain member of orgB's g_beta; cat is a plain
+// member of orgA who belongs to an orgB group that carries the org_admin role;
+// ben is an ordinary member of orgB.
+function withCrossOrgCallers() {
+    resetFx();
+    fx.groups.push({ id: 'g_beta_admins', name: 'Beta admins', organizationId: 'orgB', roles: ['org_admin'] });
+    fx.users.push(
+        { id: 'ann', username: 'ann', organizationId: 'orgA', groups: ['g_fin', 'g_beta'], orgRole: 'org_admin', status: 'active' },
+        { id: 'cat', username: 'cat', organizationId: 'orgA', groups: ['g_beta_admins'], orgRole: 'member', status: 'active' },
+        { id: 'ben', username: 'ben', organizationId: 'orgB', groups: ['g_beta'], orgRole: 'member', status: 'active' },
+    );
+    fx.perms.ann = ['read', 'chat', 'manage_users'];
+}
+const ANN = { isAuthenticated: true, user: { id: 'ann' } };
+const CAT = { isAuthenticated: true, user: { id: 'cat' } };
+const BOB = { isAuthenticated: true, user: { id: 'bob' } };
+
+test('an admin of orgA who is a plain group member of orgB cannot manage orgB\'s users', async () => {
+    withCrossOrgCallers();
+    const calls = [
+        { method: 'PUT', url: '/users/ben', body: { displayName: 'Changed' } },
+        { method: 'POST', url: '/users/ben/mfa/reset', body: {} },
+        { method: 'DELETE', url: '/users/ben', body: {} },
+        { method: 'POST', url: '/users', body: { username: 'newb', password: 'x', organizationId: 'orgB' } },
+    ];
+    for (const c of calls) {
+        const res = await dispatch({ ...c, session: ANN });
+        assert.strictEqual(res.statusCode, 403, `${c.method} ${c.url}: ${JSON.stringify(res.body)}`);
+        assert.strictEqual(res.body.error, 'You can only manage users in your organisation');
+    }
+    assert.deepStrictEqual(fx.updates, []);
+    assert.deepStrictEqual(fx.created, []);
+    assert.strictEqual(user('ben').displayName, undefined);
+});
+
+test('nor may that admin hand orgB\'s groups to their own users', async () => {
+    withCrossOrgCallers();
+    const res = await dispatch({ method: 'PUT', url: '/users/eva', session: ANN, body: { groups: ['g_fin', 'g_beta'] } });
+    assert.strictEqual(res.statusCode, 403);
+    assert.strictEqual(res.body.code, 'cross_org_group_denied');
+    assert.deepStrictEqual(res.body.groups, ['g_beta']);
+    assert.deepStrictEqual(fx.updates, []);
+});
+
+test('orgB\'s own admin, an admin through an admin group of orgB, and a platform admin still pass', async () => {
+    for (const [who, session] of [['bob', BOB], ['cat', CAT], ['root', SUPER]]) {
+        withCrossOrgCallers();
+        const res = await dispatch({ method: 'PUT', url: '/users/ben', session, body: { displayName: `Set by ${who}` } });
+        assert.strictEqual(res.statusCode, 200, `${who}: ${JSON.stringify(res.body)}`);
+        assert.strictEqual(user('ben').displayName, `Set by ${who}`);
+    }
 });
 
 // ═══ The outcome, not the status code ════════════════════════════════

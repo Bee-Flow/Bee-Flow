@@ -157,6 +157,10 @@ module.exports = {
     'azure.sync_permissions_title': 'Required Azure Permissions',
     'azure.sync_permissions_desc': 'The following Application permissions must be granted in Azure Portal → App registrations → API permissions, with admin consent:',
     'azure.group_source_azure': 'Managed by Azure AD',
+    // Settings > Organisation > Group sync (an organisation admin's view of the sync, GroupSyncPanel)
+    'azure.group_sync_nav': 'Group sync',
+    'azure.group_sync_platform_managed': 'The directory connection itself is managed by the platform administrator.',
+    'azure.group_sync_not_connected': 'The platform administrator has not connected a directory to this organisation yet, so there is nothing to sync.',
 
     // Azure → Content Safety Section
     'azure.cs_title': 'Azure AI Content Safety',

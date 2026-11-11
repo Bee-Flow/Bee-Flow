@@ -18,8 +18,6 @@ const {
 
 // ── Middleware ───────────────────────────────────────────────────
 
-const { hasPermission } = require('../../auth/permissions');
-
 // requireAuth is the canonical gate from auth/permissions (verifies the
 // user still exists in the DB, cached 5s, and destroys deleted-user sessions).
 const { requireAuth, getUserPermissions, requireSuperAdmin } = require('../../auth/permissions');
@@ -104,14 +102,10 @@ const PromptTextBody = bodyOf({ text: worded(TEXT_TEXT).nullish() });
 const DEFAULT_LOCALE_TEXT = 'defaultLocale is the code of a configured locale.';
 const OrgDefaultBody = bodyOf({ defaultLocale: worded(DEFAULT_LOCALE_TEXT).trim().min(1, DEFAULT_LOCALE_TEXT) });
 
-async function requireAdmin(req, res, next) {
-    if (!req.session?.user) return res.status(401).json({ error: 'Unauthorized' });
-    if (req.session.isAdmin || req.session.user?.role === 'admin') return next();
-    // Check RBAC permissions
-    const userId = req.session.user?.id;
-    if (userId && await hasPermission(userId, 'all', req.session)) return next();
-    return res.status(403).json({ error: 'Admin access required' });
-}
+// Instance-wide content (UI texts, system prompts, verification mails): a platform
+// admin only. Holding the 'all' permission does not count, and the gate is the one
+// the route contract reads as the platform class.
+const requireAdmin = requireSuperAdmin;
 
 // ══════════════════════════════════════════════════════════════════
 // ADMIN ROUTES (require admin)

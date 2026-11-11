@@ -16,10 +16,11 @@ top-level directories and explains how paid features are gated by license keys.
 | `agent-hub/` | React 19 / Vite 7 / Tailwind 4 | Frontend SPA ("Agent Hub"). |
 | `desktop/` | Electron 44 / TypeScript | Desktop client for Linux, macOS and Windows. The opposite choice from `mobile/`: it loads `agent-hub/` from the user's own server rather than bundling a copy, so the UI can never drift from the API. What it adds is what a browser tab cannot do — tray, global shortcut, native notifications, `beeflow://` deep links, and a bridge to the Nextcloud desktop client. See [`desktop/README.md`](desktop/README.md). |
 | `mobile/` | Expo SDK 57 / React Native 0.86 | Native Android client, shipped as an APK. Not a wrapper around `agent-hub/` — it renders native views and has its own phone-shaped information architecture. See [`mobile/README.md`](mobile/README.md). |
-| `nextcloud-connector/` | Node | Nextcloud ExApp wrapper (reverse proxy + AppAPI lifecycle). |
+| `nextcloud-connector/` | Node | Nextcloud ExApp wrapper (reverse proxy + AppAPI lifecycle), published to the Nextcloud App Store as `bee_flow`. It has no Bee Flow server until a Nextcloud administrator chooses one. See [`nextcloud-connector/README.md`](nextcloud-connector/README.md) and [`docs/docs/connector/`](docs/docs/connector/index.md). |
 | `guard-service/` | Python / FastAPI | PII detection (GLiNER, CPU). |
 | `components/` | Node | n8n-compatible component nodes shipped by Bee Flow. |
 | `hub-module-sdk/` | Node | Build, pack and sign Bee Flow Hub modules (`.bfmod` packages). |
+| `installer/` | Bash / Docker | The self-host installer as a container: `beeflow-install.sh` (repository root) with the files of one release. Built and attached to each release by `release-latest.yml`. |
 | `e2e/` | Playwright / TS | CI smoke harness — specs generated from Markdown scenarios. Runs on demand (`workflow_dispatch`) or as a reusable workflow; it does not gate releases yet. |
 | `docs/` | Docusaurus / TS | Documentation site (published from `docs/docs/`; `docs/design/` holds design notes). |
 | `scripts/` | Bash / PowerShell / Node | Image builds, secret scans, ops helpers, and the CI plumbing checks (`*.mjs`, tested by `npm run test:scripts`). |

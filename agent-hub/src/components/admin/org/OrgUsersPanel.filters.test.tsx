@@ -173,3 +173,60 @@ describe('OrgUsersPanel — member filter bar', () => {
         expect(within((janRow as HTMLElement)).getByText('Organisation Admin')).toBeInTheDocument();
     });
 });
+
+// The server decides which members the viewer gets and refuses what it does
+// not allow. The panel hides controls on one kind of row only: a platform
+// admin's account, read from the row, for a viewer who is not one. The
+// viewer's own organisation pointer is not consulted (it can be stale).
+describe('OrgUsersPanel — which member rows carry controls', () => {
+    const PLATFORM_ADMIN = { id: 'u_root', username: 'root', displayName: 'Rita Root', role: 'admin', orgRole: 'member', groups: [], organizationId: 'orgA', status: 'active' };
+    const urls = () => asMock(authFetch).mock.calls.map(([url]) => String(url));
+    const rowOf = (name: string) => screen.getByText(name).closest('div.px-5') as HTMLElement;
+
+    beforeEach(() => {
+        cleanup();
+        asMock(authFetch).mockReset();
+        asMock(authFetch).mockImplementation((url: string) => {
+            if (url.startsWith('/auth/users')) return jsonRes([...USERS, PLATFORM_ADMIN]);
+            const hit = Object.keys(FIXTURES).find((p) => url.startsWith(p));
+            return jsonRes(hit ? FIXTURES[hit] : []);
+        });
+    });
+
+    it('reads the members, groups and organisations of the home organisation', async () => {
+        render(withQueryClient(<OrgUsersPanel user={currentUser} />));
+        await screen.findByText('Jan de Vries');
+        expect(urls()).toEqual(expect.arrayContaining(['/auth/users?scope=admin', '/auth/groups?scope=admin', '/auth/organizations?scope=admin']));
+        // The lists were answered, so there is no organisation-admins-only notice.
+        expect(screen.queryByText('admin_org.user_mgmt_org_admins_only')).not.toBeInTheDocument();
+        expect(screen.queryByText(/for administrators of the organisation/)).not.toBeInTheDocument();
+    });
+
+    it('keeps a platform admin\'s row read-only for a viewer who is not one, and every other row its controls', async () => {
+        render(withQueryClient(<OrgUsersPanel user={{ ...currentUser, orgRole: 'org_admin' }} />));
+        await screen.findByText('Jan de Vries');
+        // Eva reaches orgA through a group alone: the server listed her, so her row keeps its controls.
+        for (const name of ['Jan de Vries', 'Eva Bakker']) {
+            expect(within(rowOf(name)).getByTitle('Change role')).toBeInTheDocument();
+            expect(within(rowOf(name)).getByTitle('Assign groups')).toBeInTheDocument();
+        }
+        expect(within(rowOf('Piet Jansen')).getByText('Approve')).toBeInTheDocument();
+        expect(within(rowOf('Rita Root')).queryByTitle('Change role')).not.toBeInTheDocument();
+        expect(within(rowOf('Rita Root')).queryByTitle('Assign groups')).not.toBeInTheDocument();
+    });
+
+    it('does not read the viewer\'s organisation pointer: a viewer without one keeps the controls', async () => {
+        render(withQueryClient(<OrgUsersPanel user={{ id: 'u_jan', groups: [] }} />));
+        await screen.findByText('Jan de Vries');
+        expect(within(rowOf('Jan de Vries')).getByTitle('Change role')).toBeInTheDocument();
+        expect(within(rowOf('Piet Jansen')).getByText('Approve')).toBeInTheDocument();
+    });
+
+    it('gives a platform admin the controls on every row', async () => {
+        render(withQueryClient(<OrgUsersPanel user={{ id: 'u_root', role: 'admin', groups: [] }} />));
+        await screen.findByText('Jan de Vries');
+        for (const name of ['Eva Bakker', 'Rita Root']) {
+            expect(within(rowOf(name)).getByTitle('Change role')).toBeInTheDocument();
+        }
+    });
+});
