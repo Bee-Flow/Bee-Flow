@@ -17,4 +17,8 @@ export default {
     "studio_apps_lk20.template.off_hint": "Draw each item with your own components instead of the built-in layout.",
     "studio_apps_lk20.template.on_hint": "The components inside are drawn once per item. Use item.<field> in their formulas. Switching this off removes them.",
     "studio_apps_lk20.template.row_label": "Design the row yourself",
+    "studio_apps_lk20.wizard.back": "Back",
+    "studio_apps_lk20.wizard.next": "Next",
+    "studio_apps_lk20.wizard.step": "Step {n}",
+    "studio_apps_lk20.wizard.steps": "Steps",
 };

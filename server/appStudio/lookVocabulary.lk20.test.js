@@ -121,3 +121,18 @@ test('the chart kinds of schema 3 and the combo series keys stamp version 3, the
     assert.deepEqual(validateAppDefinition(combo).errors, []);
     assert.ok(codes(validateAppDefinition(chart({ chartType: 'combo', series: [{ key: 'a', type: 'pie' }] })).errors)[0].startsWith('prop.item_invalid'));
 });
+
+test('a wizard keeps its step bodies, needs version 3 and says when steps and bodies differ', () => {
+    const box = (id) => ({ id, type: 'container', props: {}, children: [] });
+    const input = { id: 'cmp_in000001', type: 'input_text', props: { name: 'who', label: 'Who' } };
+    const wizard = (children) => ({ id: 'cmp_wiz00001', type: 'wizard', props: { steps: [{ title: 'One' }, { title: 'Two' }] }, children });
+    const form = (inner) => ({ id: 'cmp_form0001', type: 'form', props: { name: 'f' }, onSubmit: 'act_send0001', children: [inner] });
+    const def = canon([form(wizard([{ ...box('cmp_box00001'), children: [input] }, box('cmp_box00002')]))], { act_send0001: { kind: 'toast', message: 'x' } });
+    assert.equal(def.schemaVersion, 3);
+    assert.deepEqual(firstNode(def).children[0].children.map((c) => c.id), ['cmp_box00001', 'cmp_box00002']);
+    const result = validateAppDefinition(def);
+    assert.deepEqual(result.errors, []);
+    assert.equal(codes(result.warnings).some((c) => c.startsWith('wizard.')), false);
+    const short = validateAppDefinition(canon([wizard([box('cmp_box00001')])]));
+    assert.ok(codes(short.warnings).includes('wizard.steps_mismatch @ screens[0].sections[0].children[0].props.steps'));
+});

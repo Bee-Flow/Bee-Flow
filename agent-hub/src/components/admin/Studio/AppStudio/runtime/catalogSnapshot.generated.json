@@ -2473,6 +2473,44 @@
                 "label",
                 "range"
             ]
+        },
+        "wizard": {
+            "label": "Wizard",
+            "category": "Layout",
+            "container": true,
+            "defaultProps": {
+                "steps": [
+                    {
+                        "title": "Step 1"
+                    },
+                    {
+                        "title": "Step 2"
+                    }
+                ],
+                "backLabel": null,
+                "nextLabel": null,
+                "validateSteps": true
+            },
+            "defaultStyle": {
+                "span": 12,
+                "gap": 3,
+                "padding": 0
+            },
+            "since": 3,
+            "mobile": {
+                "reason": "The phone draws the base layout types only; a wizard stays in the browser."
+            },
+            "parts": [
+                "root",
+                "steps",
+                "step",
+                "marker",
+                "title",
+                "panel",
+                "actions",
+                "back",
+                "next"
+            ]
         }
     },
     "typeStyleKnobs": {
@@ -2752,6 +2790,11 @@
         "gauge": [
             "span",
             "size"
+        ],
+        "wizard": [
+            "span",
+            "gap",
+            "padding"
         ]
     },
     "typeEvents": {

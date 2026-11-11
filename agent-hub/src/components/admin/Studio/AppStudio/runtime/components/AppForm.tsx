@@ -198,7 +198,27 @@ function useLiveValidation(inputs: LiveInputs, fieldsRef: { current: Map<string,
         const message = fieldError(fieldsRef.current.get(name), live.validations.get(name), value, fieldScope, live.t);
         setErrors((prev) => (prev[name] === message ? prev : { ...prev, [name]: message }));
     }, [fieldsRef, setErrors]);
-    return { liveRef, validateLive };
+    const validateFields = useFieldSetValidation(liveRef, fieldsRef, setErrors);
+    return { liveRef, validateLive, validateFields };
+}
+
+/**
+ * The rules of a set of fields, run now (a wizard step's Next, formContext validateFields):
+ * the same fieldError the submit pass uses, on the fields of `names` that are mounted.
+ */
+function useFieldSetValidation(liveRef: { current: LiveInputs }, fieldsRef: { current: Map<string, FormFieldMeta> }, setErrors: SetFieldErrors) {
+    return useCallback((names: readonly string[]) => {
+        const live = liveRef.current;
+        const found: FieldErrors = {};
+        for (const name of names) {
+            const meta = fieldsRef.current.get(name);
+            if (!meta) continue;
+            const v = live.values[name];
+            found[name] = fieldError(meta, live.validations.get(name), v, { ...live.scope, form: live.values, value: v }, live.t);
+        }
+        setErrors((prev) => ({ ...prev, ...found }));
+        return Object.values(found).every((message) => !message);
+    }, [liveRef, fieldsRef, setErrors]);
 }
 
 function FormBody({ node, children }: NodeProps<FormProps>) {
@@ -234,7 +254,7 @@ function FormBody({ node, children }: NodeProps<FormProps>) {
     }, []);
 
     const validateOn = node.props?.validateOn;
-    const { liveRef, validateLive } = useLiveValidation({ values, scope, validations, t }, fieldsRef, setErrors);
+    const { liveRef, validateLive, validateFields } = useLiveValidation({ values, scope, validations, t }, fieldsRef, setErrors);
 
     const setValue = useCallback((name: string, value: unknown) => {
         setValues((prev) => ({ ...prev, [name]: value }));
@@ -289,8 +309,8 @@ function FormBody({ node, children }: NodeProps<FormProps>) {
     };
 
     const ctx = useMemo(
-        () => ({ values, setValue, errors, register, unregister, pending }),
-        [values, setValue, errors, register, unregister, pending],
+        () => ({ values, setValue, errors, register, unregister, pending, validateFields }),
+        [values, setValue, errors, register, unregister, pending, validateFields],
     );
 
     const gap = Number.isFinite(node.style?.gap) ? (node.style as NodeStyle).gap : 3;

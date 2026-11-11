@@ -5,6 +5,7 @@
  *   columns[].template   a table or data_grid column with `format: 'template'` writes a formula
  *                        per row: it must be there and compile.
  *   gauge min / max      a gauge draws in min..max: max must be above min.
+ *   wizard steps         child i is the body of step i: as many children as steps.
  *
  * One walk over every node of every screen. A definition without this vocabulary gets no
  * finding from here.
@@ -55,8 +56,17 @@ function checkGaugeRange(node: Bag, props: Bag, path: string, { pushW }: LookPus
     pushW({ code: 'gauge.range_invalid', severity: 'warning', path: `${path}.props.max`, message: `The gauge's max (${max}) is not above its min (${min}), so its arc stays empty.`, hint: 'Set max above min.' });
 }
 
+/** A wizard shows child i as step i: a step without a body, or a body without a step, cannot be reached as meant. */
+function checkWizardSteps(node: Bag, props: Bag, path: string, { pushW }: LookPush): void {
+    if (node.type !== 'wizard') return;
+    const steps = Array.isArray(props.steps) ? props.steps.length : 0;
+    const bodies = Array.isArray(node.children) ? node.children.length : 0;
+    if (steps === bodies) return;
+    pushW({ code: 'wizard.steps_mismatch', severity: 'warning', path: `${path}.props.steps`, message: `The wizard has ${steps} step(s) and ${bodies} child(ren); child number i is the body of step number i.`, hint: 'Give every step one child (usually a container), in the same order.' });
+}
+
 /** The checks per node, in the order their findings appear. */
-const NODE_CHECKS: readonly NodeCheck[] = [checkColumnTemplates, checkGaugeRange];
+const NODE_CHECKS: readonly NodeCheck[] = [checkColumnTemplates, checkGaugeRange, checkWizardSteps];
 
 function walkNode(node: unknown, path: string, push: LookPush): void {
     if (!isObject(node)) return;

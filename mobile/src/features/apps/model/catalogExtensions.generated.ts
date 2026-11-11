@@ -3,4 +3,5 @@
 // leaves it to the browser (its spec's mobile.reason). catalog.ts reads it.
 export const EXTENSION_TYPE_MOBILE_REASONS: Readonly<Record<string, string>> = {
     gauge: 'The phone draws the base display types only; a gauge stays in the browser.',
+    wizard: 'The phone draws the base layout types only; a wizard stays in the browser.',
 };
