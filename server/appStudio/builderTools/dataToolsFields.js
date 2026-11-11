@@ -147,7 +147,7 @@ function buildField(raw, old, at, model) {
     const dflt = fieldDefault(raw, sameType ? old : null, at);
     if (dflt.error) return { error: dflt.error };
     if ('value' in dflt) field.default = dflt.value;
-    applyFieldRules(field, raw, sameType ? old : null);
+    applyFieldRules(field, raw, sameType ? old : null, old);
     const typed = applyTypedProps(field, raw, old, at, model);
     if (typed) return typed;
     return { field };
@@ -175,9 +175,14 @@ function fieldDefault(raw, sameTypeOld, at) {
  * @param {DataField} field  written in place
  * @param {CheckedFieldSpec} raw
  * @param {DataField|null} sameTypeOld
+ * @param {DataField|null|undefined} old  the field it evolves, whatever its type
  */
-function applyFieldRules(field, raw, sameTypeOld) {
+function applyFieldRules(field, raw, sameTypeOld, old) {
     const pick = (/** @type {'validation' | 'dynamicDefault' | 'format' | 'display'} */ key) => (raw[key] !== undefined ? raw[key] : sameTypeOld?.[key]);
+    // Column rights (columnRights.mts) are about who, not about the type: they stay through a
+    // type change too. The spec's value, null clears them, absent keeps what the field had.
+    const access = raw.access !== undefined ? raw.access : old?.access;
+    if (access !== undefined && access !== null) field.access = access;
     // validation, and the schema-3 text format and display (fieldFormats.mts): same rule.
     for (const key of /** @type {const} */ (['validation', 'format', 'display'])) {
         const value = pick(key);
@@ -281,7 +286,7 @@ function applyComputed(field, raw, old, at) {
  *   subtype?: string, default?: unknown, options?: unknown,
  *   relation?: { tableId?: string, table?: string, displayFieldKey?: string, displayField?: string },
  *   computed?: { expr?: unknown, type?: string, stored?: unknown },
- *   validation?: unknown, dynamicDefault?: unknown, format?: unknown, display?: unknown,
+ *   validation?: unknown, dynamicDefault?: unknown, format?: unknown, display?: unknown, access?: unknown,
  * }} FieldSpec  one entry of app_upsert_table's fields[] as authored
  * @typedef {FieldSpec & { key: string, type: string }} CheckedFieldSpec  a spec past checkFieldSpec: a valid key and type
  */

@@ -37,7 +37,8 @@ const tool = (list, name) => list.find((t) => t.function.name === name).function
 
 test('the words are marked since 3 and appended after the base types', () => {
     assert.deepEqual(Object.keys(DATA_VOCABULARY_MARKS.fieldTypes), FIELD_TYPE_WORDS);
-    assert.deepEqual(Object.keys(DATA_VOCABULARY_MARKS.fieldOptions), FIELD_OPTION_WORDS);
+    // The words of this package come first; a later package appends its own after them.
+    assert.deepEqual(Object.keys(DATA_VOCABULARY_MARKS.fieldOptions).slice(0, FIELD_OPTION_WORDS.length), FIELD_OPTION_WORDS);
     for (const table of [DATA_VOCABULARY_MARKS.fieldTypes, DATA_VOCABULARY_MARKS.fieldOptions]) {
         for (const mark of Object.values(table)) assert.equal(mark.since, 3);
     }

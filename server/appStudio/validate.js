@@ -395,6 +395,9 @@ function buildValidationContext(def, opts, { pushE, pushW, actionIds, screenIds,
         // The second table kind: tableId → model.tables[].source. Empty for an app whose
         // tables all have their own storage, so nothing changes for that kind.
         dataTableSources: buildTableSources(opts.dataModel),
+        // Column rights (field.access): which fields some role may not read or write. Null for a
+        // model without any, so no reference is looked at twice.
+        dataRestrictedFields: require('./validate/columnRightsChecks.mts').buildRestrictedFields(opts.dataModel),
         // The Studio datatables that the OWNER has. Unlike opts.datasets this does NOT get an empty
         // collection when it is absent: "no list" and "an empty list" are different answers, and the
         // second would reject every linked table from a caller who never asked the question. Without

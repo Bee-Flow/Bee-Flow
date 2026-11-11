@@ -9,6 +9,7 @@
  *
  *   fieldTypes    a field type                       autonumber: { since: 3, description }
  *   fieldOptions  a key of a field declaration       validation: { since: 3, shape, description }
+ *                 (`access`, the column rights of a field, is one of them: columnRights.mts)
  *   filterOps     a filter operator                  search:     { since: 3, description }
  *   aggFns        an aggregate function              median:     { since: 3, description }
  *   dateBuckets   a date bucket of a group           fortnight:  { since: 3, description }
@@ -87,6 +88,15 @@ const DATA_VOCABULARY_MARKS = Object.freeze({
             description: 'How the value is shown, never how it is stored. '
                 + `number/computed: currency (an ISO code like "EUR"), decimals (0-${vocabulary.FIELD_DISPLAY.MAX_DECIMALS}), unit (a short suffix like "kg", not with currency). `
                 + 'date/datetime: dateStyle. null removes it.',
+        }),
+        access: Object.freeze({
+            since: 3,
+            shape: '{ read?: [roleKey, …], write?: [roleKey, …] } | null',
+            description: 'Column rights: which roles may read the field and which may write it. '
+                + 'read: only these roles (and the owner) get the field. For every other role it is left out of each record and cannot be used in a filter, sort, search, group or aggregate (such a read is refused), '
+                + 'so do not bind a chart, a filter or a sort that other roles see to it. A computed field over a hidden field is hidden too. '
+                + 'write: only these roles may set the field. Left out, write follows read. An empty list means the owner only, and "public" has the field only when a list names it. '
+                + 'Not on a linked table. A unique field cannot be writable by a role that may not read it. null removes the rights.',
         }),
     }),
     filterOps: Object.freeze({}),

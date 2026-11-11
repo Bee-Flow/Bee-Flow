@@ -133,7 +133,7 @@ function planChild(d: Deps, app: App, model: unknown, child: Obj, i: number, ctx
     const resultVar = typeof child.resultVar === 'string' && child.resultVar ? child.resultVar : null;
     if (kind === 'create_record') {
         d.rls.assertCanWrite(table, role, 'create');
-        const values = applyFieldRules(table, d.shared.resolveValues(child.values, ctx, scope), { op: 'create', viewerId: viewer.id });
+        const values = applyFieldRules(table, d.shared.resolveValues(child.values, ctx, scope), { op: 'create', viewerId: viewer.id, role });
         const c = d.queryCompiler.compileInsert(table, values, { createdBy: viewer.id ?? null, orgId: app.organizationId || null });
         return { kind, table, statement: { sql: c.sql, params: c.params }, result: { id: c.id, created: true }, expectedUpdatedAt: null, resultVar };
     }
@@ -144,7 +144,7 @@ function planChild(d: Deps, app: App, model: unknown, child: Obj, i: number, ctx
     d.rls.assertCanWrite(table, role, op);
     const filter = d.rls.compileAccessFilter(table, role, viewer, op);
     if (kind === 'update_record') {
-        const values = applyFieldRules(table, d.shared.resolveValues(child.values, ctx, scope), { op: 'update' });
+        const values = applyFieldRules(table, d.shared.resolveValues(child.values, ctx, scope), { op: 'update', role });
         const raw = child.expectedUpdatedAt !== undefined ? d.shared.resolveBinding(child.expectedUpdatedAt, ctx, scope) : null;
         const expectedUpdatedAt = typeof raw === 'string' && raw ? raw : null;
         const c = d.queryCompiler.compileUpdate(table, recordId, values, filter, { expectedUpdatedAt });
@@ -177,7 +177,7 @@ function planFilterChild(d: Deps, c: FilterChild): Planned | Refusal {
     const access = d.rls.compileAccessFilter(c.table, role, c.viewer, op);
     const limit = d.bulk.clampBulkLimit(c.child.limit);
     const compiled = op === 'update'
-        ? d.bulk.compileUpdateMatching(c.table, applyFieldRules(c.table, d.shared.resolveValues(c.child.values, c.ctx, c.scope), { op: 'update' }), strict.filters, access, { limit })
+        ? d.bulk.compileUpdateMatching(c.table, applyFieldRules(c.table, d.shared.resolveValues(c.child.values, c.ctx, c.scope), { op: 'update', role }), strict.filters, access, { limit })
         : d.bulk.compileDeleteMatching(c.table, strict.filters, access, { limit });
     return { ...base, statement: { sql: compiled.sql, params: compiled.params }, result: { changed: 0 } };
 }

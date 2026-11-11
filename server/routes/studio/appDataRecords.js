@@ -34,7 +34,7 @@ async function listTables(req, res) {
             const flags = await linkedTableFlags(ctx, t);
             if (flags === LINK_REFUSED) continue;
             const rowCount = counts ? { rowCount: Math.max(0, Number(counts[t.key]) || 0) } : {};
-            tables.push({ ...publicTable(t), ...rowCount, .../** @type {{ linked: boolean, readOnly: boolean } | null} */ (flags) });
+            tables.push({ ...publicTable(t, ctx.role), ...rowCount, .../** @type {{ linked: boolean, readOnly: boolean } | null} */ (flags) });
         }
         res.json({ tables });
     } catch (err) { handleErr(res, err, 'tables'); }

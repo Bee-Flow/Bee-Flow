@@ -107,7 +107,8 @@ async function recountRows(appId, ownerId, tables) {
         if (!t || typeof t.key !== 'string' || !t.key) continue;
         try {
             const { sql, params } = queryCompiler.compileAggregate(
-                t, { aggregates: [{ fn: 'count', as: 'n' }] }, { where: '1=1', params: [] }
+                // The recount is the owner's: every row, whatever a table's row rules or column rights.
+                t, { aggregates: [{ fn: 'count', as: 'n' }] }, queryCompiler.OWNER_ACCESS
             );
             const { rows } = await deps.studioAppDbStore.query(ownerId, appId, sql, params);
             fresh[t.key] = rows && rows[0] ? Math.max(0, parseInt(rows[0].n, 10) || 0) : 0;
