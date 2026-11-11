@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { SETTINGS_ORG_ADMIN_TARGETS } from '@/authedApp/settingsRoutes';
 import { orgFacts } from '@/test/organisationHubKit';
-import { ORG_HUB_GROUPS, ORG_HUB_SECTIONS, isOrgSectionVisible, orgAzureSection, orgStandingFactsOf, visibleOrgSections } from './orgSections';
+import { ADMIN_TAB_GROUPS } from '@/components/admin/dashboard/adminTabs';
+import { ORG_HUB_SECTIONS, activeOrgSection, isOrgSectionVisible, orgAzureSection, orgStandingFactsOf, visibleOrgSections } from './orgSections';
 
 const ids = (over = {}) => visibleOrgSections(orgFacts(over)).map(s => s.id);
 
@@ -59,12 +60,28 @@ describe('the Organisation tab: which sections a viewer gets', () => {
         expect(isOrgSectionVisible('no-such-section', orgFacts())).toBe(false);
     });
 
-    it('every section sits in a known group, and every old Settings address that moved here names a section', () => {
-        const groups = new Set(ORG_HUB_GROUPS.map(g => g.id));
+    it('every section sits in a rail group of the dashboard, and every old Settings address that moved here names a section', () => {
+        const groups = new Set<string>(ADMIN_TAB_GROUPS.map(g => g.id));
         expect(ORG_HUB_SECTIONS.every(s => groups.has(s.group))).toBe(true);
+        const inGroup = (group: string) => ORG_HUB_SECTIONS.filter(s => s.group === group).map(s => s.id);
+        expect(inGroup('organisation')).toEqual(['info', 'auth', 'license', 'academy']);
+        expect(inGroup('ai')).toEqual(['ai-context', 'integration-cache', 'meeting-templates']);
+        expect(inGroup('security')).toEqual(['encryption']);
+        expect(inGroup('connections')).toEqual(['integrations', 'mcp', 'mcp-access', 'github-sync', 'nextcloud-sync', 'azure']);
+        expect(visibleOrgSections(orgFacts({ isSelfHosted: true })).find(s => s.id === 'azure')?.group).toBe('connections');
         const moved = Object.values(SETTINGS_ORG_ADMIN_TARGETS).filter(t => t.startsWith('admin/organisation/')).map(t => t.slice('admin/organisation/'.length));
         expect(moved.length).toBeGreaterThan(10);
         for (const id of moved) expect(ORG_HUB_SECTIONS.map(s => s.id), id).toContain(id);
+    });
+});
+
+describe('activeOrgSection', () => {
+    it('opens the requested section when the viewer has it, else the first one, and none without sections', () => {
+        const sections = visibleOrgSections(orgFacts());
+        expect(activeOrgSection(sections, 'encryption')).toBe('encryption');
+        expect(activeOrgSection(sections, undefined)).toBe('info');
+        expect(activeOrgSection(sections, 'github-sync')).toBe('info');
+        expect(activeOrgSection([], 'info')).toBe('');
     });
 });
 

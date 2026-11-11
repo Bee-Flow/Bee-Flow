@@ -9,7 +9,7 @@ import {
 import type { LucideIcon } from 'lucide-react';
 import { TIER_RANK } from '@/components/licensing/LicenseContext';
 
-export type AdminTabGroupId = 'organisation' | 'ai' | 'security' | 'platform' | 'operations' | 'website';
+export type AdminTabGroupId = 'organisation' | 'ai' | 'security' | 'connections' | 'platform' | 'operations' | 'website';
 
 /**
  * Whose data a section is about:
@@ -51,6 +51,8 @@ export const ADMIN_TAB_GROUPS: readonly { id: AdminTabGroupId; labelKey: string;
     { id: 'organisation', labelKey: 'settings.workspace_section', labelFallback: 'Workspace' },
     { id: 'ai', labelKey: 'admin.nav_group_ai', labelFallback: 'AI & agents' },
     { id: 'security', labelKey: 'admin.nav_group_security', labelFallback: 'Security & access' },
+    // Only the Organisation tab's connection sections sit here (organisation/orgSections).
+    { id: 'connections', labelKey: 'admin.org_hub_group_connections', labelFallback: 'Connections' },
     { id: 'platform', labelKey: 'admin.nav_group_platform', labelFallback: 'Platform' },
     { id: 'operations', labelKey: 'admin.nav_group_operations', labelFallback: 'Operations' },
     { id: 'website', labelKey: 'admin.nav_group_website', labelFallback: 'Website' },
@@ -143,7 +145,9 @@ export const ADMIN_TABS: readonly AdminTab[] = [
     // The organisation's own settings (what Settings > Organisation held): placed
     // after Agents here so the fallback tab stays Agents, first in the rail by its
     // group. Opened by whoever administers an organisation (org_admin, or an
-    // organisation-admin role; see dashboard/adminTabAccess.ts).
+    // organisation-admin role; see dashboard/adminTabAccess.ts). The rail shows
+    // no row for the tab itself: each of its sections is a row in its own group
+    // (dashboard/adminRailRows).
     { id: 'organisation', labelKey: 'settings.organisation', labelFallback: 'Organisation', icon: Building2, group: 'organisation', perm: ['org_admin'], scope: 'mixed', sections: ORGANISATION_SCOPES, superAdminOnly: false },
     { id: 'ai-config', labelKey: 'admin.tab_ai_config', icon: Sparkles, group: 'ai', perm: ['admin_ai_config'], scope: 'instance', superAdminOnly: true },
     { id: 'security', labelKey: 'admin.tab_security', icon: Shield, group: 'security', perm: ['admin_security'], scope: 'mixed', sections: SECURITY_SCOPES, superAdminOnly: false },

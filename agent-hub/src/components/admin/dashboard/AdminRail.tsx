@@ -12,18 +12,21 @@
 // whole-server scope bar uses, as one flat list.
 //
 // Rows are links (NavLink), so a middle-click opens a tab in a new window,
-// as the old pill strip did.
+// as the old pill strip did. A row's id is its path under admin/: a tab, or a
+// section of the Organisation tab (organisation/<section>, adminRailRows). A
+// server-wide row inside the organisation block carries the server mark.
 
 import { ArrowLeft, LayoutDashboard } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import React, { useEffect, useId, useRef } from 'react';
 import NavLink from '@/components/shell/NavLink';
+import { ServerWideMark } from './serverWideNav';
 
 interface AdminRailGroup {
     id: string;
     /** The eyebrow above the rows; empty for a flat list. */
     label: string;
-    tabs: { id: string; label: string; icon: LucideIcon }[];
+    tabs: { id: string; label: string; icon: LucideIcon; serverWide?: boolean }[];
 }
 
 /** A top-level block of the rail (the organisation, or the whole server) holding the sub-groups. */
@@ -39,8 +42,9 @@ export interface AdminRailSectionView {
 interface AdminRailProps {
     title: string;
     sections: readonly AdminRailSectionView[];
-    activeTab: string;
-    onSelect: (tabId: string) => void;
+    /** The id of the current row. */
+    activeRow: string;
+    onSelect: (rowId: string) => void;
     onBack?: React.MouseEventHandler<HTMLButtonElement>;
     backTitle: string;
     /** Inside the phone drawer the rail fills it instead of being a 240px column. */
@@ -48,26 +52,36 @@ interface AdminRailProps {
     className?: string;
 }
 
-function RailRow({ id, label, Icon, active, onSelect }: { id: string; label: string; Icon: LucideIcon; active: boolean; onSelect: (id: string) => void }) {
+interface RailRowProps {
+    id: string;
+    label: string;
+    Icon: LucideIcon;
+    serverWide?: boolean;
+    active: boolean;
+    onSelect: (id: string) => void;
+}
+
+function RailRow({ id, label, Icon, serverWide, active, onSelect }: RailRowProps) {
     return (
         <NavLink
             href={`/admin/${id}`}
             onNavigate={() => onSelect(id)}
             aria-current={active ? 'page' : undefined}
-            data-testid={`admin-rail-${id}`}
+            data-testid={`admin-rail-${id.replace('/', '-')}`}
             className={`flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-all duration-150 [text-decoration:none]! ${active ? 'bg-[var(--bg-card)] shadow-sm' : 'hover:bg-[var(--item-hover-bg)]'}`}
         >
             <Icon className="h-4 w-4 shrink-0 text-[var(--text-secondary)]" strokeWidth={active ? 2.25 : 1.75} aria-hidden="true" />
             <span className={`min-w-0 flex-1 truncate text-[13px] leading-tight text-[var(--text-primary)] ${active ? 'font-semibold' : 'font-medium'}`}>
                 {label}
             </span>
+            {serverWide && <ServerWideMark />}
         </NavLink>
     );
 }
 
 const SERVER_BLOCK = 'mt-1 rounded-xl border border-[color-mix(in_srgb,var(--warning)_30%,transparent)] bg-[color-mix(in_srgb,var(--warning)_6%,transparent)] p-1.5 pt-2.5';
 
-function RailSection({ section, headingId, activeTab, onSelect }: { section: AdminRailSectionView; headingId: string; activeTab: string; onSelect: (id: string) => void }) {
+function RailSection({ section, headingId, activeRow, onSelect }: { section: AdminRailSectionView; headingId: string; activeRow: string; onSelect: (id: string) => void }) {
     const server = section.id === 'instance';
     return (
         <>
@@ -93,7 +107,7 @@ function RailSection({ section, headingId, activeTab, onSelect }: { section: Adm
                         )}
                         <div className="flex flex-col gap-0.5">
                             {group.tabs.map(tab => (
-                                <RailRow key={tab.id} id={tab.id} label={tab.label} Icon={tab.icon} active={tab.id === activeTab} onSelect={onSelect} />
+                                <RailRow key={tab.id} id={tab.id} label={tab.label} Icon={tab.icon} serverWide={tab.serverWide} active={tab.id === activeRow} onSelect={onSelect} />
                             ))}
                         </div>
                     </div>
@@ -103,7 +117,7 @@ function RailSection({ section, headingId, activeTab, onSelect }: { section: Adm
     );
 }
 
-export default function AdminRail({ title, sections, activeTab, onSelect, onBack, backTitle, inDrawer = false, className = '' }: AdminRailProps) {
+export default function AdminRail({ title, sections, activeRow, onSelect, onBack, backTitle, inDrawer = false, className = '' }: AdminRailProps) {
     const navRef = useRef<HTMLElement>(null);
     // The desktop rail and the drawer copy can be in the page together.
     const idPrefix = useId();
@@ -111,7 +125,7 @@ export default function AdminRail({ title, sections, activeTab, onSelect, onBack
     useEffect(() => {
         const el = navRef.current?.querySelector('[aria-current="page"]');
         el?.scrollIntoView?.({ block: 'nearest' });
-    }, [activeTab]);
+    }, [activeRow]);
 
     return (
         <div
@@ -137,7 +151,7 @@ export default function AdminRail({ title, sections, activeTab, onSelect, onBack
             </div>
             <nav ref={navRef} aria-label={title} className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-2 pb-3">
                 {sections.map(section => (
-                    <RailSection key={section.id} section={section} headingId={`${idPrefix}-${section.id}`} activeTab={activeTab} onSelect={onSelect} />
+                    <RailSection key={section.id} section={section} headingId={`${idPrefix}-${section.id}`} activeRow={activeRow} onSelect={onSelect} />
                 ))}
             </nav>
         </div>

@@ -95,7 +95,7 @@ export const useSettingsOrganizationsQuery = <T,>(enabled: boolean) => useShellR
 export const useUserSettingsQuery = <T,>() => useShellRead<T>(shellKeys.settings('user-settings'), settingsShellApi.userSettings);
 export const useLinkedinStatusQuery = <T,>() => useShellRead<T>(shellKeys.settings('linkedin'), settingsShellApi.linkedinStatus);
 export const useAppPasswordStatusQuery = <T,>() => useShellRead<T>(shellKeys.settings('app-password'), settingsShellApi.appPasswordStatus);
-export const useGithubStatusQuery = <T,>() => useShellRead<T>(shellKeys.settings('github'), settingsShellApi.githubStatus);
+export const useGithubStatusQuery = <T,>(enabled = true) => useShellRead<T>(shellKeys.settings('github'), settingsShellApi.githubStatus, enabled);
 
 /** One Privacy Shield environment read; null when the endpoint refused or is unreachable. */
 function useShieldRead<T>(name: string, path: string) {

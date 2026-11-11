@@ -32,6 +32,8 @@ describe('the Organisation tab', () => {
     it('sits right after Agents in the registry, so the fallback tab stays Agents, and heads the rail by its group', () => {
         expect(ADMIN_TABS.map(t => t.id).slice(0, 2)).toEqual(['agents', 'organisation']);
         expect(ADMIN_TAB_GROUPS[0].id).toBe('organisation');
+        // Its connection sections get a group of their own, after Security & access.
+        expect(ADMIN_TAB_GROUPS.map(g => g.id)).toEqual(['organisation', 'ai', 'security', 'connections', 'platform', 'operations', 'website']);
         expect(resolveAdminTab({}, () => true).activeTab).toBe('agents');
         expect(groupAdminTabs([tab('agents'), tab('organisation')]).map(g => g.id)).toEqual(['organisation', 'ai']);
     });
