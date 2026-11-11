@@ -52,7 +52,7 @@ test('a step that waits puts the run on hold: the row is paused with its state, 
     assert.equal(stored.paused_state.walk.cursor, 'steps[2]');
     assert.deepEqual(stored.paused_state.walk.vars, { keep: 1, before: 1 });
     assert.equal(stored.paused_state.run.role, 'agent');
-    assert.match(stored.paused_state.run.fingerprint, /^[0-9a-f]{64}$/);
+    assert.deepEqual(stored.paused_state.actions, { act_bg: WAITING }, 'the action the run is in, as it walks it');
     const view = BG.toJobView(row);
     assert.equal(view.status, 'paused');
     assert.equal(view.wakeAt, row.wakeAt);
@@ -226,6 +226,97 @@ test('a cancel that arrives while the waiting step runs wins over the pause', as
     const row = await settle(started.jobId);
     assert.equal(row.status, 'cancelled');
     assert.equal((await raw(row.id)).paused_state, null);
+});
+
+// ── The snapshot: a run on hold goes on in the actions its pause kept ─────────
+
+const CALLING = { kind: 'sequence', runOn: 'server', steps: [create('a'), create('wait'), { kind: 'call_action', actionId: 'act_part' }, create('b', { onError: { steps: [setVar('handled', true)] } }), create('c')] };
+const PARTS = { act_part: { kind: 'sequence', steps: [create('part')] }, act_unrelated: { kind: 'sequence', steps: [create('never')] } };
+
+test('the snapshot holds the action and what it can call, nothing else; it is what the resumed run walks', async () => {
+    pausing(() => pauseUntil(s.clock));
+    const paused = await startAndSettle(CALLING, { actions: PARTS });
+    const kept = (await raw(paused.id)).paused_state.actions;
+    assert.deepEqual(Object.keys(kept), ['act_bg', 'act_part']);
+    assert.deepEqual(kept.act_part, PARTS.act_part);
+    // The app is published again while the run waits: the action and what it calls are rewritten, the data model too.
+    const editedActions = { act_bg: { kind: 'sequence', runOn: 'server', steps: [create('new1'), create('new2')] }, act_part: { kind: 'sequence', steps: [create('newpart')] } };
+    s.context = async () => ({ ok: true, input: { ...input(CALLING), def: { actions: editedActions }, model: { version: 'today' }, scope: {} } });
+    s.executed.length = 0;
+    const models = [];
+    s.execute = async (_app, model, step) => { models.push(model); return step.tableId === 'b' ? { ok: false, error: 'Table not found', code: 'table_missing' } : { ok: true, result: step.tableId }; };
+    assert.equal((await BG.resumeBackgroundRun(paused.id, { by: 'timer' }, deps())).ok, true);
+    const row = await settle(paused.id);
+    assert.equal(row.status, 'success', row.error);
+    assert.deepEqual(ran(), ['part', 'b', 'c'], 'the old steps, the old called action');
+    assert.deepEqual(models, [{ version: 'today' }, { version: 'today' }, { version: 'today' }], 'every step reads and writes through the data model of today');
+    assert.equal(row.vars.handled, true, 'a step of the snapshot that fails today fails as a step: its handler took it');
+});
+
+test('a second pause keeps the same snapshot, not the definition of that moment', async () => {
+    let waits = 0;
+    s.execute = async (_a, _m, step) => { if (step.tableId === 'wait' || step.tableId === 'part') { waits += 1; return pauseUntil(s.clock); } return { ok: true, result: step.tableId }; };
+    const paused = await startAndSettle(CALLING, { actions: PARTS });
+    s.context = async () => ({ ok: true, input: { ...input(CALLING), def: { actions: { act_bg: { kind: 'sequence', runOn: 'server', steps: [] } } }, scope: {} } });
+    await BG.wakeDueRuns(deps());
+    const again = await settle(paused.id);
+    assert.equal(again.status, 'paused', again.error);
+    assert.equal(waits, 2);
+    const stored = (await raw(paused.id)).paused_state;
+    assert.equal(stored.walk.cursor, 'steps[2].call.steps[0]');
+    assert.deepEqual(stored.actions, { act_bg: CALLING, act_part: PARTS.act_part });
+    await BG.wakeDueRuns(deps());
+    assert.equal((await settle(paused.id)).status, 'success');
+});
+
+test('the size limit counts the snapshot with the walk', async () => {
+    pausing(() => pauseUntil(s.clock));
+    const big = { kind: 'sequence', runOn: 'server', steps: [create('wait'), { kind: 'toast', message: 'x'.repeat(400) }] };
+    s.limits.pauseStateMaxBytes = 600;
+    const row = await startAndSettle(big, { scope: {} });
+    assert.equal(row.errorCode, 'pause_state_too_large', 'the walk alone is far under the limit');
+    assert.match(row.error, /STUDIO_APP_PAUSE_STATE_MAX_BYTES=600/);
+    assert.equal((await raw(row.id)).paused_state, null);
+    assert.equal((await startAndSettle({ kind: 'sequence', runOn: 'server', steps: [create('wait')] }, { scope: {} })).status, 'paused');
+});
+
+test('a snapshot with a step kind this install does not know ends the run as refused', async () => {
+    pausing(() => pauseUntil(s.clock));
+    const paused = await startAndSettle(WAITING);
+    await pg.query(`UPDATE studio_app_action_runs SET paused_state = jsonb_set(paused_state, '{actions,act_bg,steps,4,kind}', '"teleport"') WHERE id = $1`, [paused.id]);
+    s.executed.length = 0;
+    const out = await BG.resumeBackgroundRun(paused.id, { by: 'timer' }, deps());
+    assert.equal(out.code, 'resume_refused');
+    const row = await store.getRun('app_1', paused.id);
+    assert.equal(row.status, 'refused');
+    assert.equal(row.errorCode, 'step_kind_unknown');
+    assert.equal((await raw(paused.id)).paused_state, null);
+    assert.deepEqual(ran(), [], 'not a single step of it ran');
+    assert.equal(s.metas.length, 0);
+});
+
+test('the state, snapshot included, is off the row at every end: success, failure, cancel, refusal', async () => {
+    pausing(() => pauseUntil(s.clock));
+    const ends = {};
+    const hold = async () => (await startAndSettle(WAITING)).id;
+    ends.success = await hold();
+    await BG.wakeDueRuns(deps());
+    await settle(ends.success);
+    ends.error = await hold();
+    s.execute = async () => ({ ok: false, error: 'No' });
+    await BG.wakeDueRuns(deps());
+    await settle(ends.error);
+    pausing(() => pauseUntil(s.clock));
+    ends.cancelled = await hold();
+    await BG.cancelBackgroundRun('app_1', ends.cancelled, deps());
+    ends.refused = await hold();
+    s.context = async () => ({ ok: false, code: 'action_removed', error: 'The action was removed from the app while this run was waiting, so the run was ended.' });
+    await BG.wakeDueRuns(deps());
+    for (const [status, id] of Object.entries(ends)) {
+        const stored = await raw(id);
+        assert.equal(stored.status, status);
+        assert.equal(stored.paused_state, null, status);
+    }
 });
 
 test('a run that may not continue is ended as refused, with nothing run and its state gone', async () => {

@@ -1,6 +1,10 @@
 /**
  * Continuing, waking and cancelling a server run (backgroundRun.mts re-exports these).
  *
+ * A run that was on hold goes on in the actions its pause kept (backgroundRunDurable.mts, the
+ * snapshot): publishing the app again with the action edited does not end a run that waits.
+ * Who may continue, and with which data, is read fresh.
+ *
  * resumeBackgroundRun continues a run that is on hold, on whichever instance is asked: for the
  * wake job, for server code that names what the run waits for, or for the holder of its resume
  * token. It checks who and what the run continues as (backgroundRunIdentity.mts), claims the
@@ -10,9 +14,8 @@
  */
 
 import { resumedWalkState } from './sequenceWalk.mts';
-import type { Obj } from './sequenceWalk.mts';
 import { ownAction } from './actionCalls.mts';
-import { readPausedRecord, resumeOutcome } from './backgroundRunDurable.mts';
+import { readPausedRecord, resumeOutcome, unknownStepKind } from './backgroundRunDurable.mts';
 import type { PausedRecord, ResumeBy } from './backgroundRunDurable.mts';
 import { resumeTokenMatches } from './runPause.mts';
 import { isShuttingDown, launch, newJob, running } from './backgroundRunJob.mts';
@@ -21,8 +24,6 @@ import { withDefaults } from './backgroundRunParts.mts';
 import type { RunnerDeps, StartInput } from './backgroundRunParts.mts';
 import { SERVER_RUN_ORIGINS } from '../stores/studioAppData/actionRuns.mts';
 import type { ActionRunRow } from '../stores/studioAppData/actionRuns.mts';
-
-const isObject = (v: unknown): v is Obj => v !== null && typeof v === 'object' && !Array.isArray(v);
 
 export type ResumeResult =
     | { ok: true; jobId: string }
@@ -53,13 +54,14 @@ async function resumeGate(row: ActionRunRow, how: ResumeBy, deps: RunnerDeps): P
 /** A job for a claimed row: the walk put back, the clock and the limits carried on from before the pause. */
 function resumedJob(row: ActionRunRow, record: PausedRecord, how: ResumeBy, input: StartInput, deps: RunnerDeps): Job | null {
     const w = resumedWalkState(record.walk, resumeOutcome(how, record));
-    const action = ownAction(isObject(input.def.actions) ? input.def.actions : {}, input.actionId);
+    // The run goes on in the actions its pause kept, not in the definition as it is now.
+    const action = ownAction(record.actions, input.actionId);
     if (!w || !action) return null;
     const limits = deps.limits();
     const job = newJob(row.id, input, action, deps, limits);
     const left = limits.maxRunMs ? Math.max(0, limits.maxRunMs - record.run.activeMs) : 0;
     return {
-        ...job, w, deadline: limits.maxRunMs ? job.startedAt + left : 0, activeMs: record.run.activeMs, written: record.run.written,
+        ...job, w, actions: record.actions, deadline: limits.maxRunMs ? job.startedAt + left : 0, activeMs: record.run.activeMs, written: record.run.written,
         seenEffects: new Set(w.deferred.map((effect) => JSON.stringify(effect))),
         progress: { ...job.progress, executed: w.executed, message: typeof row.progress.message === 'string' ? row.progress.message : null },
     };
@@ -85,7 +87,7 @@ export async function resumeBackgroundRun(runId: string, how: ResumeBy, given: P
     const peek = await store.pausedStateOf(row.id, row.resumeSeq);
     if (!peek) return ALREADY;
     const before = readPausedRecord(peek);
-    const ctx = before ? await deps.loadResumeContext(row, before.run) : null;
+    const ctx = before ? unknownKindRefusal(before) ?? await deps.loadResumeContext(row, before.run) : null;
     const claimed = await store.claimResume(row.id, row.resumeSeq, deps.instanceId);
     if (!claimed) return ALREADY;
     // From here the row is `running` and this process owns it.
@@ -94,6 +96,12 @@ export async function resumeBackgroundRun(runId: string, how: ResumeBy, given: P
     if (!job) return endUnresumed(row, ctx && !ctx.ok ? ctx : null, record, deps);
     launch(job);
     return { ok: true, jobId: row.id };
+}
+
+/** A snapshot that holds a step kind this install does not know cannot be walked: the run ends as refused. */
+function unknownKindRefusal(record: PausedRecord): { ok: false; code: string; error: string } | null {
+    const kind = unknownStepKind(record.actions);
+    return kind ? { ok: false, code: 'step_kind_unknown', error: 'This run waited in a step this version of the app builder does not have, so the run was ended.' } : null;
 }
 
 /** The claimed row of a run that does not go on: `refused` when the identity check said no, an error when its state is unreadable. */

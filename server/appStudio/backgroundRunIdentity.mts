@@ -13,25 +13,31 @@
  *   3. The starter may still open the app: they own it, or it is published and reaches them
  *      through their organisation, a shared group or its project, exactly as the app gate of a
  *      request decides (studioAppRunGate.loadVisibleApp).
- *   4. The run continues on the definition it was started on: a draft run only for the owner,
- *      on the current draft; any other run on the current PUBLISHED definition. An app that
+ *   4. The run belongs to a definition that is still there: a draft run only for the owner,
+ *      with the current draft; any other run with the current PUBLISHED definition. An app that
  *      was unpublished continues nothing.
- *   5. The action, and every action it calls, is exactly what the run paused in (a fingerprint
- *      of their content). A changed action ends the run: the stored position names a step of
- *      the old one, and an author who changed a step does not expect the old one to still act.
+ *   5. The action the run was started on still exists in that definition, under its id.
+ *        - An action that was EDITED does not end the run: the run walks the steps its pause
+ *          kept (backgroundRunDurable.mts, the snapshot), because a wait can last days and its
+ *          position names a step of the action as it was.
+ *        - An action that was REMOVED ends the run (`action_removed`): the author took the
+ *          thing away, and nothing in the app can start, show or gate it any more.
+ *        - An action the run CALLS that was removed, or the run's action no longer being a
+ *          server run or a sequence, is an edit: the run goes on in its snapshot.
  *   6. The starter's role, resolved again (membership, group mapping, default), is the role the
- *      run started with, and that role can still reach the action. The run goes on with that
- *      identity and role and with the data model as it is now: a demoted, promoted or removed
+ *      run started with, and that role can still reach the action in the definition as it is
+ *      now. The run goes on with that identity and role: a demoted, promoted or removed
  *      member's run does not continue.
+ *
+ * What the run reads and writes after the pause follows today's app, never the snapshot: the
+ * data model and its row rules, the declared variables, the documents, the connections.
  *
  * A run that fails the rule ends as `refused` with a code and a sentence that names no person.
  * The answer here is only read; the caller ends the row.
  */
 
-import { createHash } from 'node:crypto';
 import { createRequire } from 'node:module';
-import { closeOverCalls, ownAction } from './actionCalls.mts';
-import { runsOnServer } from './backgroundRunPolicy.mts';
+import { ownAction } from './actionCalls.mts';
 import type { App, StartInput } from './backgroundRunParts.mts';
 import type { ActionRunRow } from '../stores/studioAppData/actionRuns.mts';
 
@@ -40,9 +46,9 @@ const nodeRequire = createRequire(import.meta.url);
 type Obj = Record<string, unknown>;
 const isObject = (v: unknown): v is Obj => v !== null && typeof v === 'object' && !Array.isArray(v);
 
-/** What a pause keeps about the run beside the walk: compared at resume (fingerprint, role) or carried on (the rest). */
+/** What a pause keeps about the run beside the walk and its actions: compared at resume (the role) or carried on (the rest). */
 export type RunMeta = {
-    fingerprint: string; role: string | null;
+    role: string | null;
     /** Milliseconds the run was really running before this pause (the run-time limit counts these). */
     activeMs: number;
     /** The names of the variables the run wrote so far. */
@@ -71,27 +77,8 @@ export type IdentityDeps = {
 
 const GONE = 'The app is no longer published, so the run that was waiting was ended.';
 const PERSON = 'Whoever started this run can no longer use this action, so the run that was waiting was ended.';
-const CHANGED = 'The action was changed while this run was waiting, so the run was ended.';
+const REMOVED = 'The action was removed from the app while this run was waiting, so the run was ended.';
 const refuse = (code: string, error: string): ResumeRefusal => ({ ok: false, code, error });
-
-/** JSON with the keys of every object in order: two equal definitions give the same text. */
-function stableJson(value: unknown): string {
-    if (Array.isArray(value)) return `[${value.map(stableJson).join(',')}]`;
-    if (!isObject(value)) return JSON.stringify(value ?? null);
-    const keys = Object.keys(value).filter((k) => value[k] !== undefined).sort();
-    return `{${keys.map((k) => `${JSON.stringify(k)}:${stableJson(value[k])}`).join(',')}}`;
-}
-
-/**
- * The fingerprint of an action and of every action it reaches through call_action: what a run
- * of it can execute. Rule 5 compares the one taken at the pause with the one at the resume.
- */
-export function actionFingerprint(actions: unknown, actionId: string): string {
-    const ids = [...closeOverCalls(actions, [actionId])].sort();
-    const hash = createHash('sha256');
-    for (const id of ids) hash.update(`${JSON.stringify(id)}:${stableJson(ownAction(actions, id))}\n`);
-    return hash.digest('hex');
-}
 
 /** The real stores, each loaded when first asked (a test that injects every reader loads none). */
 function defaultDeps(): IdentityDeps {
@@ -133,14 +120,13 @@ async function whoContinues(row: ActionRunRow, deps: IdentityDeps): Promise<{ ap
     return { app, starter, userGroups };
 }
 
-/** Rules 4 and 5: the definition the run continues on, with the action unchanged. */
-function whatContinues(row: ActionRunRow, meta: RunMeta, app: AppRow, isOwner: boolean): { def: Obj } | ResumeRefusal {
+/** Rules 4 and 5: the definition the run belongs to, with its action still in it. */
+function whatContinues(row: ActionRunRow, app: AppRow, isOwner: boolean): { def: Obj } | ResumeRefusal {
     if (row.draft && !isOwner) return refuse('no_access', PERSON);
     if (!row.draft && !app.isPublished) return refuse('unpublished', GONE);
     const def = row.draft ? app.definition : app.publishedDefinition;
     if (!isObject(def)) return refuse('unpublished', GONE);
-    const action = ownAction(def.actions, row.actionId);
-    if (!action || !runsOnServer(action) || actionFingerprint(def.actions, row.actionId) !== meta.fingerprint) return refuse('definition_changed', CHANGED);
+    if (!ownAction(def.actions, row.actionId)) return refuse('action_removed', REMOVED);
     return { def };
 }
 
@@ -151,7 +137,7 @@ export async function loadResumeContext(row: ActionRunRow, meta: RunMeta, given:
     if ('ok' in who) return who;
     const { app, starter, userGroups } = who;
     const isOwner = app.userId === starter.id;
-    const what = whatContinues(row, meta, app, isOwner);
+    const what = whatContinues(row, app, isOwner);
     if ('ok' in what) return what;
     // Rule 6: the role today is the role the run started with, and it still reaches the action.
     const model = await deps.getModel(app);
