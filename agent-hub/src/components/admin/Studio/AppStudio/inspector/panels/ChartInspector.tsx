@@ -45,6 +45,16 @@ function getChartTypesOptions(t: TranslateFn) {
     ];
 }
 
+/** The kinds added in schema 3 (runtime/components/AppChartPlotsMore.tsx), on a row of their own. */
+function getMoreChartTypesOptions(t: TranslateFn) {
+    return [
+        { value: 'combo', label: t('studio_apps_lk20.chart.type_combo', 'Combo') },
+        { value: 'scatter', label: t('studio_apps_lk20.chart.type_scatter', 'Scatter') },
+        { value: 'funnel', label: t('studio_apps_lk20.chart.type_funnel', 'Funnel') },
+        { value: 'radar', label: t('studio_apps_lk20.chart.type_radar', 'Radar') },
+    ];
+}
+
 function getXTypesOptions(t: TranslateFn) {
     return [
         { value: 'category', label: t('studio_apps_panels.chart.x_categories', 'Categories') },
@@ -106,6 +116,9 @@ export default function ChartInspector({ node, definition, onCommit, disabled = 
         <div className="flex flex-col gap-4">
             <FormField label={t('studio_apps_panels.chart.chart_type', 'Chart type')}>
                 <SegmentedControl value={props.chartType ?? 'bar'} onChange={(v) => patch({ chartType: v })} options={CHART_TYPES} size="sm" fullWidth disabled={disabled} ariaLabel={t('studio_apps_panels.chart.chart_type', 'Chart type')} />
+                <div className="mt-1.5">
+                    <SegmentedControl value={props.chartType ?? 'bar'} onChange={(v) => patch({ chartType: v })} options={getMoreChartTypesOptions(t)} size="sm" fullWidth disabled={disabled} ariaLabel={t('studio_apps_lk20.chart.more_types', 'More chart types')} />
+                </div>
             </FormField>
             <BindingField
                 label={t('studio_apps_panels.common.data', 'Data')}

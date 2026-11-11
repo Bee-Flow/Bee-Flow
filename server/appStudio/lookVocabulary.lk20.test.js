@@ -111,3 +111,13 @@ test('a gauge is a schema 3 type with a range to draw in', () => {
     const flat = validateAppDefinition(canon([{ id: 'cmp_gauge001', type: 'gauge', props: { min: 10, max: 10 } }]));
     assert.ok(codes(flat.warnings).includes('gauge.range_invalid @ screens[0].sections[0].children[0].props.max'));
 });
+
+test('the chart kinds of schema 3 and the combo series keys stamp version 3, the base kinds stay 2', () => {
+    const chart = (props) => canon([{ id: 'cmp_chart001', type: 'chart', props: { source: { kind: 'static', value: [] }, ...props } }]);
+    assert.equal(chart({ chartType: 'line', series: [{ key: 'a' }] }).schemaVersion, 2);
+    for (const kind of ['combo', 'scatter', 'funnel', 'radar']) assert.equal(chart({ chartType: kind }).schemaVersion, 3, kind);
+    const combo = chart({ chartType: 'combo', series: [{ key: 'a', type: 'line', yAxis: 'right' }] });
+    assert.deepEqual(firstNode(combo).props.series, [{ key: 'a', type: 'line', yAxis: 'right' }]);
+    assert.deepEqual(validateAppDefinition(combo).errors, []);
+    assert.ok(codes(validateAppDefinition(chart({ chartType: 'combo', series: [{ key: 'a', type: 'pie' }] })).errors)[0].startsWith('prop.item_invalid'));
+});

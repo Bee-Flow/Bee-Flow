@@ -2077,8 +2077,18 @@
                         "line",
                         "area",
                         "pie",
-                        "donut"
+                        "donut",
+                        "combo",
+                        "scatter",
+                        "funnel",
+                        "radar"
                     ],
+                    "valuesSince": {
+                        "combo": 3,
+                        "scatter": 3,
+                        "funnel": 3,
+                        "radar": 3
+                    },
                     "default": "bar"
                 },
                 "orientation": {
@@ -2132,6 +2142,25 @@
                         "color": {
                             "type": "string",
                             "maxLen": 40
+                        },
+                        "type": {
+                            "type": "enum",
+                            "values": [
+                                "bar",
+                                "line",
+                                "area"
+                            ],
+                            "since": 3,
+                            "description": "chartType combo only: how this series is drawn. bar when absent."
+                        },
+                        "yAxis": {
+                            "type": "enum",
+                            "values": [
+                                "left",
+                                "right"
+                            ],
+                            "since": 3,
+                            "description": "chartType combo only: the value axis of this series. right adds a second axis on the right. left when absent."
                         }
                     }
                 },

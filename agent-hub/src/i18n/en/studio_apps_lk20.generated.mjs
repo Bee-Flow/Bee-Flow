@@ -6,6 +6,11 @@
  */
 
 export default {
+    "studio_apps_lk20.chart.more_types": "More chart types",
+    "studio_apps_lk20.chart.type_combo": "Combo",
+    "studio_apps_lk20.chart.type_funnel": "Funnel",
+    "studio_apps_lk20.chart.type_radar": "Radar",
+    "studio_apps_lk20.chart.type_scatter": "Scatter",
     "studio_apps_lk20.gauge.label": "Gauge",
     "studio_apps_lk20.repeater.row_label": "Items, scroll sideways for more",
     "studio_apps_lk20.template.card_label": "Design the card yourself",
