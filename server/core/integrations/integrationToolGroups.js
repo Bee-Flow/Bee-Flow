@@ -254,6 +254,23 @@ async function addUserCredentialTools({ userId, userSimpleMode, isAppOn, addTool
     if (hasScalewayBillingConfig && isAppOn('scaleway-billing')) {
         addTools(T.SCALEWAY_BILLING_TOOLS);
     }
+
+    await addFrappeCrmTools({ userId, isAppOn, addTools, T, D });
+}
+
+/**
+ * Frappe CRM — read and write CRM records. Requires the site address, API key
+ * and API secret. Bring-your-own like Firebird (no isLentProvider clause): the
+ * key acts as one Frappe user, and lending it would let others write as them.
+ * @param {GroupCtx & { userId: string }} ctx
+ */
+async function addFrappeCrmTools({ userId, isAppOn, addTools, T, D }) {
+    const hasFrappeCrmConfig = !!(await D.configStore.getSecret(`frappe_crm_url_user_${userId}`))
+        && !!(await D.configStore.getSecret(`frappe_crm_api_key_user_${userId}`))
+        && !!(await D.configStore.getSecret(`frappe_crm_api_secret_user_${userId}`));
+    if (hasFrappeCrmConfig && isAppOn('frappe-crm')) {
+        addTools(T.FRAPPE_CRM_TOOLS);
+    }
 }
 
 /** LinkedIn, Withings, Google Maps and GitHub. */

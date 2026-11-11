@@ -4321,6 +4321,9 @@
     "POST /ai/firebird/test": {
       "gate": "auth"
     },
+    "POST /ai/frappe-crm/test": {
+      "gate": "auth"
+    },
     "POST /ai/generate-regex": {
       "gate": "platform",
       "via": "superAdmin"
