@@ -22,7 +22,7 @@ const { validateConnectors } = require('./connectorValidate');
 const { computedExprShapeError } = require('./computedExprGuard');
 const { fieldRuleErrors } = require('../../core/dataEngine/fieldRules.mts');
 const { readTimeComputedError } = require('../../core/dataEngine/queryCompilerComputed.mts');
-const { fieldAccessErrors, tableColumnRightsFindings } = require('../../core/dataEngine/columnRights.mts');
+const { fieldAccessErrors, tableColumnRightsFindings } = require('../../core/dataEngine/columnRightsSave.mts');
 const { linkedFieldErrors } = require('./linkedFieldsValidate');
 
 /**

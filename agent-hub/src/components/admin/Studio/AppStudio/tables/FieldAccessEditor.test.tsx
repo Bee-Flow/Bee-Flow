@@ -18,7 +18,7 @@ import type { ModelField, ModelTable } from './tablesManagerModel';
 
 const require = createRequire(import.meta.url);
 const SERVER = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../../../../../server');
-const { fieldAccessErrors } = require(path.join(SERVER, 'core/dataEngine/columnRights.mts'));
+const { fieldAccessErrors } = require(path.join(SERVER, 'core/dataEngine/columnRightsSave.mts'));
 
 const ROLES = roleKeysOf([{ key: 'manager' }, { key: 'member' }, { key: 'public' }, null, { key: 'member' }]);
 const BASE: ModelField = { id: 'fld_pay001', key: 'salary', name: 'Salary', type: 'number' };

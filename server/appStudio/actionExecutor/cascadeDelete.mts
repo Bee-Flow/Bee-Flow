@@ -12,7 +12,7 @@
  * that role's update / delete row rule. One child outside it refuses the whole delete (403
  * cascade_forbidden): nothing is half-deleted, and no row the person may not change is changed.
  * A setNull also needs the right to write that relation field (column rights, field.access);
- * a relation with a rule cannot be hidden from a role (columnRights.tableColumnRightsFindings).
+ * a relation with a rule cannot be hidden from a role (columnRightsSave.tableColumnRightsFindings).
  * The walk is bounded: at most STUDIO_APP_CASCADE_MAX_ROWS rows (default 500, 0 = no limit) and
  * MAX_CASCADE_DEPTH relations deep, both refused before anything is written (422).
  *
