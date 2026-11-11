@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import studioFieldOptions from './studioFieldOptions';
+import { withValueOptions } from './inputValueOptions';
 import StudioScopeProvider, { buildStudioScope } from './StudioScopeProvider';
 import ConditionBuilder from '@/components/automation/Builder/mapping/ConditionBuilder';
 import useTranslation from '@/hooks/useTranslation';
@@ -57,7 +58,8 @@ export default function ConditionField({
     // The left-hand side of a row becomes a searchable list of NAMES rather
     // than a box you must know to fill with `form.quantity`. `fieldBase` is
     // where a free-typed name lands when there is nothing to match it against.
-    const fieldOptions = useMemo(() => studioFieldOptions(groups), [groups]);
+    // A radio or select input's fixed values come along, so "is" / "is not" offers them.
+    const fieldOptions = useMemo(() => withValueOptions(studioFieldOptions(groups), definition), [groups, definition]);
 
     return (
         <StudioScopeProvider definition={definition} node={node} previewSample={previewSample}>

@@ -8,6 +8,7 @@ import { SelectField } from './panels/kit';
 import { STYLE_KNOBS, clampKnob, knobLabel, valueLabel } from './styleKnobMeta';
 import { STYLE_VALUE_CONTROLS, isBaseValueType } from './styleValueControls';
 import TokenColorField from './TokenColorField';
+import { colourTokensOf } from './colourTokens';
 import { earnedKnobGroups, type EarnedKnobGroup } from './extensionKnobGroups';
 import type { AppDefinition, AppNode } from './appDefinition';
 import type { KnobSpec } from './styleKnobMeta.types';
@@ -67,7 +68,7 @@ function KnobControl({ group, knob, style, patch, definition, disabled }: GroupP
         return (
             <FormField label={label}>
                 <TokenColorField value={(value as string | null | undefined) ?? null} onChange={commit}
-                    themePrimary={(definition?.theme as { primary?: string } | undefined)?.primary || null} disabled={disabled} />
+                    themePrimary={(definition?.theme as { primary?: string } | undefined)?.primary || null} tokens={colourTokensOf(definition)} disabled={disabled} />
             </FormField>
         );
     }

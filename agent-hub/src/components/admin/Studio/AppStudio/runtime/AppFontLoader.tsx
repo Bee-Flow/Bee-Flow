@@ -1,45 +1,37 @@
 import { useEffect } from 'react';
-import { GOOGLE_FONT_FAMILIES } from './appDesign';
 import type { AppDesign } from './appDesign';
-import { buildFontsHrefs } from '@/components/admin/product-website/googleFonts';
-// Self-hosted @font-face declarations (Satoshi, General Sans, Cabinet Grotesk)
+// Self-hosted @font-face declarations (Satoshi, General Sans, Cabinet Grotesk, Inter)
 // — a plain import so the bytes are served from Bee Flow itself. Idempotent:
 // the bundler includes the stylesheet once however many modules import it.
 import '@/marketing/self-hosted-fonts.css';
 
 /**
+ * The design fonts whose @font-face rules live in fonts/designFonts.css (files under
+ * agent-hub/public/fonts). Loaded on demand: only an app that names one carries the rules.
+ */
+const DESIGN_FONT_FACES = new Set(['geist', 'plex', 'poppins']);
+
+/** Load the @font-face rules `font` needs (system and the families of self-hosted-fonts.css need none). */
+function loadDesignFontFaces(font: string): void {
+    if (!DESIGN_FONT_FACES.has(font)) return;
+    import('./fonts/designFonts.css').catch(() => {}); // a font is never worth breaking the app for
+}
+
+/**
  * Loads the typeface an app's design asks for.
  *
- * Two kinds of pairing, deliberately: SELF-HOSTED families ship with the
- * product (no request ever leaves the browser — this is a privacy product, and
- * a font request is a request), and a small set of Google families that need a
- * stylesheet <link>. `system` (the default) loads nothing at all.
+ * Every family is served by Bee Flow itself: no request ever leaves for another host (this is
+ * a privacy product, and a font request is a request), on the run page, in the editor and on
+ * public pages alike. `system` (the default) loads nothing at all.
  *
- * Renders nothing. The <link> is left in place on unmount: fonts are global,
- * cheap, and removing one mid-session would restyle whatever else is using it.
+ * Renders nothing. The rules stay in place on unmount: fonts are global, cheap, and removing
+ * one mid-session would restyle whatever else is using it.
  */
 export default function AppFontLoader({ definition }: { definition?: { design?: AppDesign; [key: string]: unknown } | null }) {
     const font = definition?.design?.font || 'system';
 
     useEffect(() => {
-        const family = GOOGLE_FONT_FAMILIES[font];
-        if (!family) return; // system, or a self-hosted family — nothing to fetch
-        let hrefs = [];
-        try {
-            hrefs = buildFontsHrefs([family], [400, 500, 600]) || [];
-        } catch {
-            return; // a font is never worth breaking the app for
-        }
-        for (const entry of hrefs) {
-            const href = typeof entry === 'string' ? entry : entry?.href;
-            if (!href) continue;
-            if (document.querySelector(`link[data-app-font][href="${CSS.escape(href)}"]`)) continue;
-            const link = document.createElement('link');
-            link.rel = 'stylesheet';
-            link.href = href;
-            link.setAttribute('data-app-font', font);
-            document.head.appendChild(link);
-        }
+        loadDesignFontFaces(font);
     }, [font]);
 
     return null;

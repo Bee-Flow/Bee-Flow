@@ -14,6 +14,7 @@ const { isAssetRef, valueTypeOf, isCleanValue } = require('../componentSpecs/val
 const { checkBoxContrast } = require('./boxContrast.mts');
 const { checkBackdropContrast } = require('./backdropContrast.mts');
 const { checkThemeScope } = require('./themeScopeChecks.mts');
+const { checkRuleContrast } = require('./ruleContrast.mts');
 const { checkNavShell } = require('../navShell.mts');
 
 /**
@@ -41,6 +42,8 @@ function checkDesignAndNav(def, screens, pushE, pushW) {
     checkBackdropContrast(screens, pushW);
     // Screen and section theme overrides, token references, the dark canvas (package LK16).
     checkThemeScope(def, screens, pushE, pushW);
+    // The same contrast check over tokens, styleWhen and cellStyle rules (schema 3).
+    checkRuleContrast(def, screens, pushW);
     // ── design / nav (App Design v2 — OPTIONAL top-level keys) ────────────
     // Canonicalize already normalizes these; validation here is the defensive
     // gate for canonical bytes handed in directly, mirroring the theme checks.

@@ -7,6 +7,9 @@ import ColorPicker from '@/components/shared/ColorPicker';
 import SegmentedControl from '@/components/shared/SegmentedControl';
 import { ROLE_COLORS } from '../runtime/styleResolver.constants';
 import { APP_COLOR_PRESETS } from '../runtime/themeVars';
+import TokenColorSwatches from './TokenColorSwatches';
+import { tokenNameOf } from './colourTokens';
+import type { ColourToken } from './colourTokens';
 
 /**
  * TokenColorField — editor for the `colorOrRole` style knob.
@@ -15,17 +18,20 @@ import { APP_COLOR_PRESETS } from '../runtime/themeVars';
  *   null        → inherit the theme (no explicit color)
  *   'primary'…  → one of the six COLOR_ROLES
  *   '#rrggbb'   → a custom hex literal
+ *   'token:<n>' → a colour token of the app's design.tokens (schema 3); the Token tab shows
+ *                 when the app has colour tokens or the value already names one
  *
  * The mode tabs are local UI state seeded from the value: switching to
  * "Theme" commits null immediately (that IS the value), while "Role" and
  * "Custom" only commit once a swatch/color is actually picked.
  */
 
-type ColorMode = 'theme' | 'role' | 'custom';
+type ColorMode = 'theme' | 'role' | 'token' | 'custom';
 
 function modeForValue(value: string | null | undefined): ColorMode {
     if (value == null) return 'theme';
     if (COLOR_ROLES.includes(value)) return 'role';
+    if (tokenNameOf(value) !== null) return 'token';
     return 'custom';
 }
 
@@ -36,9 +42,10 @@ function roleSwatchColor(role: string, themePrimary: string | null): string {
     return (ROLE_COLORS as Record<string, string>)[role];
 }
 
-const modeOptions = (t: TranslateFn): Array<{ value: ColorMode; label: string }> => [
+const modeOptions = (t: TranslateFn, withTokens: boolean): Array<{ value: ColorMode; label: string }> => [
     { value: 'theme', label: t('studio_apps_insp.color.mode_theme', 'Theme') },
     { value: 'role', label: t('studio_apps_insp.color.mode_role', 'Role') },
+    ...(withTokens ? [{ value: 'token' as const, label: t('studio_apps_w3d.color.mode_token', 'Token') }] : []),
     { value: 'custom', label: t('studio_apps_insp.color.mode_custom', 'Custom') },
 ];
 
@@ -51,17 +58,22 @@ const roleLabel = (t: TranslateFn, role: string): string => ({
     info: t('studio_apps_insp.color.role_info', 'info'),
 }[role] || role);
 
+const NO_TOKENS: ColourToken[] = [];
+
 export interface TokenColorFieldProps {
     /** null inherits the theme; a role name; or a `#rrggbb` literal. */
     value?: string | null;
     onChange: (value: string | null) => void;
     themePrimary?: string | null;
+    /** The app's colour tokens (colourTokensOf(definition)); none hides the Token tab. */
+    tokens?: ColourToken[];
     disabled?: boolean;
 }
 
-export default function TokenColorField({ value = null, onChange, themePrimary = null, disabled = false }: TokenColorFieldProps) {
+export default function TokenColorField({ value = null, onChange, themePrimary = null, tokens = NO_TOKENS, disabled = false }: TokenColorFieldProps) {
     const { t } = useTranslation();
     const [mode, setMode] = useState<ColorMode>(() => modeForValue(value));
+    const withTokens = tokens.length > 0 || tokenNameOf(value) !== null;
 
     // Follow external value changes (e.g. selecting a different node).
     useEffect(() => {
@@ -70,7 +82,7 @@ export default function TokenColorField({ value = null, onChange, themePrimary =
 
     const pickMode = (next: ColorMode): void => {
         setMode(next);
-        // Theme = "inherit" is itself the value; Role/Custom wait for a pick.
+        // Theme = "inherit" is itself the value; Role/Token/Custom wait for a pick.
         if (next === 'theme' && value !== null) onChange(null);
     };
 
@@ -79,7 +91,7 @@ export default function TokenColorField({ value = null, onChange, themePrimary =
             <SegmentedControl
                 value={mode}
                 onChange={pickMode}
-                options={modeOptions(t)}
+                options={modeOptions(t, withTokens)}
                 size="sm"
                 fullWidth
                 disabled={disabled}
@@ -123,6 +135,7 @@ export default function TokenColorField({ value = null, onChange, themePrimary =
                         })}
                     </div>
                 )}
+                {mode === 'token' && <TokenColorSwatches tokens={tokens} value={value} onChange={onChange} disabled={disabled} />}
                 {mode === 'custom' && (
                     <ColorPicker
                         value={typeof value === 'string' && HEX_RE.test(value) ? value : ''}

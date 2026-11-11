@@ -4,6 +4,7 @@ import { STYLE_KNOBS, SECTION_STYLE_KNOBS, SECTION_STYLE_DEFAULTS, getKnobsForTy
 import LayoutSection, { layoutTypeOf } from './LayoutSection';
 import { STYLE_VALUE_CONTROLS, isBaseValueType } from './styleValueControls';
 import TokenColorField from './TokenColorField';
+import { colourTokensOf } from './colourTokens';
 import ExtensionKnobGroups from './ExtensionKnobGroups';
 import Disclosure from '@/components/shared/Disclosure';
 import FormField from '@/components/shared/FormField';
@@ -343,6 +344,7 @@ export default function StyleSection({
                                 value={current(knob) as string | null | undefined}
                                 onChange={(v) => commit(knob, v)}
                                 themePrimary={(definition?.theme as { primary?: string } | undefined)?.primary || null}
+                                tokens={colourTokensOf(definition)}
                                 disabled={disabled}
                             />
                         </FormField>
