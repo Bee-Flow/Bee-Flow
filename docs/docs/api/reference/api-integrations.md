@@ -204,7 +204,7 @@ No request schema.
 
 ### `POST /api/integrations/github-sync/configure`
 
-**Access:** Permission `manage_agents`
+**Access:** Permission `manage_agents` · the handler also checks who the caller is
 
 **Body**
 
@@ -217,7 +217,7 @@ No request schema.
 
 ### `DELETE /api/integrations/github-sync/configure`
 
-**Access:** Permission `manage_agents`
+**Access:** Permission `manage_agents` · the handler also checks who the caller is
 
 No request schema.
 
@@ -229,13 +229,13 @@ No request schema.
 
 ### `POST /api/integrations/github-sync/push`
 
-**Access:** Permission `manage_agents`
+**Access:** Permission `manage_agents` · the handler also checks who the caller is
 
 No request schema.
 
 ### `POST /api/integrations/github-sync/push-pending`
 
-**Access:** Permission `manage_agents`
+**Access:** Permission `manage_agents` · the handler also checks who the caller is
 
 No request schema.
 
