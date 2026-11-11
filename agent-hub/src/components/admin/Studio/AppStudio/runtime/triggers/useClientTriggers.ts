@@ -115,6 +115,7 @@ export function useWatchers(definition: DefinitionLike | null | undefined, scope
             };
             const pending = timeouts.current.get(key);
             if (pending) clearTimeout(pending);
+            // nosemgrep: ajinabraham.njsscan.eval.eval_node.eval_nodejs -- the timer callback is a local function, never a string
             if (watcher.debounceMs > 0) timeouts.current.set(key, setTimeout(fire, watcher.debounceMs));
             else fire();
         });

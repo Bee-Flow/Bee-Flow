@@ -119,6 +119,7 @@ function kindsOf(mark) {
  */
 function bindingMarkProblems(key, mark) {
     const where = `keys/binding/${key}.js`;
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- anchored, one class with a bounded count (at most 40), no nesting: linear
     if (!NAME.test(key)) return [`${where}: the file is named after the key (letters, digits, underscores; at most 40)`];
     if (!isObject(mark)) return [`${where}: must export an object`];
     const out = commonProblems(mark, where);

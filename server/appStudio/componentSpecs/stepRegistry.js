@@ -103,6 +103,7 @@ function oneSlotProblems(slot, entry, fields, name) {
     if (!isObject(slot) || typeof slot.field !== 'string' || !Object.hasOwn(fields, slot.field)) return [`${name}: every child slot names one of its own fields`];
     /** @type {string[]} */
     const out = [];
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- anchored, two bounded classes (at most 40 characters), no nesting: linear
     if (slot.each !== undefined && (typeof slot.each !== 'string' || !KIND_RE.test(slot.each))) out.push(`${name}: childSlots.${slot.field}.each must be a key name`);
     // A server step is ONE step for the browser: children it walked itself would get ordinals nobody posts.
     if (entry.side === 'server' && slot.walked !== false) out.push(`${name}: a server kind keeps its children (childSlots.${slot.field} needs walked: false)`);

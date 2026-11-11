@@ -97,6 +97,7 @@ function isOutsideAddressString(raw: string): boolean {
 
 /** Why a segment (declaration or prelude, escapes decoded) must go, or null when it may stay. */
 function segmentProblem(segment: string, policy: CssAddressPolicy): string | null {
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- an anchored whitespace run then a fixed list of literal words, no nested repeats: linear
     const decoded = decodeKeywordEscapes(segment);
     const at = STATEMENT_AT_RULE.exec(decoded);
     if (at) return `@${at[1].toLowerCase()}`;
@@ -113,6 +114,7 @@ function segmentProblem(segment: string, policy: CssAddressPolicy): string | nul
 
 /** Why a block's prelude must go (the whole block goes with it), or null. */
 function preludeProblem(prelude: string, policy: CssAddressPolicy): string | null {
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- an anchored "@" then one class with a single quantifier, no nesting: linear
     const decoded = decodeKeywordEscapes(prelude).trim();
     const at = /^@([\w-]+)/.exec(decoded);
     if (at && !ALLOWED_BLOCK_AT_RULES.has(at[1].toLowerCase())) return `@${at[1].toLowerCase()}`;

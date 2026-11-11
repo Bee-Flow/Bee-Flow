@@ -47,12 +47,15 @@ export function tokenize(src, opts) {
         const afterDot = tokens.length > 0 && tokens[tokens.length - 1].t === TOKEN.DOT;
         if (afterDot && /[\p{L}\p{N}_$]/u.test(c)) {
             let j = i;
+            // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- one character class tested on a single character: linear
             while (j < src.length && /[\p{L}\p{N}\p{M}_$]/u.test(src[j])) j++;
             tokens.push({ t: TOKEN.IDENT, v: src.slice(i, j), i });
             i = j; continue;
         }
+        // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- single-character class tests, each on one character: linear
         if (/[0-9]/.test(c) || (c === '.' && /[0-9]/.test(src[i + 1] || ''))) {
             let j = i;
+            // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- one character class tested on a single character: linear
             while (j < src.length && /[0-9.]/.test(src[j])) j++;
             tokens.push({ t: TOKEN.NUMBER, v: parseFloat(src.slice(i, j)), raw: src.slice(i, j), i });
             i = j; continue;
@@ -64,6 +67,7 @@ export function tokenize(src, opts) {
                     const n = src[j + 1];
                     // JSON's escapes, so a key the builder quoted with
                     // JSON.stringify (path.mjs formatKey) reads back here too.
+                    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- an anchored fixed count of one class, on a 4-character slice: linear
                     if (n === 'u' && /^[0-9a-fA-F]{4}$/.test(src.slice(j + 2, j + 6))) {
                         out += String.fromCharCode(parseInt(src.slice(j + 2, j + 6), 16));
                         j += 6;
@@ -79,6 +83,7 @@ export function tokenize(src, opts) {
         }
         if (/[\p{L}_$]/u.test(c)) {
             let j = i;
+            // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- one character class tested on a single character: linear
             while (j < src.length && /[\p{L}\p{N}\p{M}_$]/u.test(src[j])) j++;
             const word = src.slice(i, j);
             if (word === 'true' || word === 'false') tokens.push({ t: TOKEN.BOOL, v: word === 'true', i });

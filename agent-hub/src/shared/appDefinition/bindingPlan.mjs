@@ -113,7 +113,7 @@ function isFormula(v) {
 }
 
 /** @param {unknown} binding @returns {BindingPlan} */
-function fetch(binding) {
+function fetchPlan(binding) {
     return { plan: 'fetch', binding };
 }
 
@@ -156,7 +156,7 @@ function dynamicValue(value, scope, o) {
  * @returns {BindingPlan}
  */
 export function planShape(binding, scope, o) {
-    if (!o.resolveShape || !isObject(binding) || binding.kind !== 'aggregate') return fetch(binding);
+    if (!o.resolveShape || !isObject(binding) || binding.kind !== 'aggregate') return fetchPlan(binding);
     let changed = false;
     /** @type {Obj} */
     const out = { ...binding };
@@ -169,7 +169,7 @@ export function planShape(binding, scope, o) {
         if (value === undefined || value === null) delete out[field];
         else out[field] = value;
     }
-    return fetch(changed ? out : binding);
+    return fetchPlan(changed ? out : binding);
 }
 
 /**
@@ -193,17 +193,17 @@ function resolveList(filters, scope, o, listOpts) {
  * @returns {BindingPlan}
  */
 function planLiveFilters(binding, scope, o) {
-    if (!isObject(binding) || !FILTERED_KINDS.has(/** @type {string} */ (binding.kind))) return fetch(binding);
-    if (!Array.isArray(binding.filter) || binding.filter.length === 0) return fetch(binding);
+    if (!isObject(binding) || !FILTERED_KINDS.has(/** @type {string} */ (binding.kind))) return fetchPlan(binding);
+    if (!Array.isArray(binding.filter) || binding.filter.length === 0) return fetchPlan(binding);
     const res = resolveList(binding.filter, scope, o);
     if (res.status === 'skip') return { plan: 'needsScope' };
     if (res.status !== 'ok') return { plan: 'skip' };
-    if (!res.changed) return fetch(binding);
+    if (!res.changed) return fetchPlan(binding);
     if (res.filters.length === 0) {
         const { filter: _dropped, ...rest } = binding;
-        return fetch(rest);
+        return fetchPlan(rest);
     }
-    return fetch({ ...binding, filter: res.filters });
+    return fetchPlan({ ...binding, filter: res.filters });
 }
 
 /**
@@ -219,14 +219,14 @@ function planProbeFilters(binding, scope, o) {
     const b = isObject(binding) ? binding : {};
     const { filter, ...rest } = b;
     if (typeof filter === 'string') return { plan: 'needsScope' };
-    if (!Array.isArray(filter)) return fetch(rest);
+    if (!Array.isArray(filter)) return fetchPlan(rest);
     const res = resolveList(filter, scope, o, {
         ignoreRequired: true,
         isUnset: (value, clause) => (value === undefined || value === null) && isFormula(clause.value),
     });
     if (res.status === 'skip') return { plan: 'needsScope' };
     if (res.status !== 'ok') return { plan: 'skip' };
-    return fetch({ ...rest, filter: res.filters });
+    return fetchPlan({ ...rest, filter: res.filters });
 }
 
 /**
@@ -250,18 +250,18 @@ const SEARCHED_KINDS = new Set(['record', 'records']);
  * @returns {BindingPlan}
  */
 export function planSearch(binding, scope, o) {
-    if (!isObject(binding) || !SEARCHED_KINDS.has(/** @type {string} */ (binding.kind))) return fetch(binding);
+    if (!isObject(binding) || !SEARCHED_KINDS.has(/** @type {string} */ (binding.kind))) return fetchPlan(binding);
     const search = binding.search;
-    if (!isObject(search) || Array.isArray(search)) return fetch(binding);
+    if (!isObject(search) || Array.isArray(search)) return fetchPlan(binding);
     const value = dynamicValue(search.value, scope, o);
     if (value === NEEDS_SCOPE) return { plan: 'needsScope' };
     const text = searchText(value);
-    if (text === search.value) return fetch(binding);
+    if (text === search.value) return fetchPlan(binding);
     if (text === undefined) {
         const { search: _dropped, ...rest } = binding;
-        return fetch(rest);
+        return fetchPlan(rest);
     }
-    return fetch({ ...binding, search: { ...search, value: text } });
+    return fetchPlan({ ...binding, search: { ...search, value: text } });
 }
 
 /**
@@ -287,9 +287,9 @@ export function planFilters(binding, scope, o) {
  * @returns {BindingPlan}
  */
 export function planParams(binding, scope, o) {
-    if (!isObject(binding) || !PARAM_KINDS.has(/** @type {string} */ (binding.kind))) return fetch(binding);
+    if (!isObject(binding) || !PARAM_KINDS.has(/** @type {string} */ (binding.kind))) return fetchPlan(binding);
     const params = binding.params;
-    if (!isObject(params) || Array.isArray(params)) return fetch(binding);
+    if (!isObject(params) || Array.isArray(params)) return fetchPlan(binding);
     let changed = false;
     /** @type {Obj} */
     const out = {};
@@ -300,7 +300,7 @@ export function planParams(binding, scope, o) {
         if (value !== v) changed = true;
         out[k] = value;
     }
-    return fetch(changed ? { ...binding, params: out } : binding);
+    return fetchPlan(changed ? { ...binding, params: out } : binding);
 }
 
 /**
