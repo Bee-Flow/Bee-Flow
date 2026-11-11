@@ -146,7 +146,7 @@ const LAYOUT_SPECS = {
         defaultStyle: { span: 12, gap: 3, padding: 0 },
     },
     markdown: {
-        parts: ['root', 'heading', 'paragraph', 'list', 'item', 'code'],
+        parts: ['root', 'heading', 'paragraph', 'list', 'item', 'code', 'table', 'quote', 'task', 'image'],
         label: 'Markdown', category: 'Content',
         description: 'A block of markdown: headings, lists, code blocks, links, bold/italic. No images or raw HTML. Bind contentFrom to show generated text (e.g. an AI summary in a variable).',
         props: {
@@ -159,6 +159,11 @@ const LAYOUT_SPECS = {
             // to display anything an action produced — every text component took
             // a fixed string.
             contentFrom: { type: 'binding', default: { kind: 'static', value: null } },
+            // Opt-in, so every markdown block stored before it renders the same DOM.
+            rich: {
+                type: 'boolean', since: 3,
+                description: 'Rich markdown: tables, task lists, block quotes and images. Images are an uploaded file of the app, written ![alt](asset:<id>) (app_list_assets); links are http, https or mailto. Raw HTML never renders.',
+            },
         },
         styleKnobs: ['span', 'color'],
         defaultStyle: { span: 12 },

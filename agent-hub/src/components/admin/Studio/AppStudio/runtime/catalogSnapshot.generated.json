@@ -635,6 +635,20 @@
                 "lineHeight",
                 "tracking",
                 "transform"
+            ],
+            "grantedTo": [
+                "button",
+                "callout",
+                "page_header",
+                "keyValue",
+                "badge_list",
+                "input_text",
+                "input_textarea",
+                "input_number",
+                "input_select",
+                "input_checkbox",
+                "input_date",
+                "input_datetime"
             ]
         }
     ],
@@ -2009,7 +2023,11 @@
                 "paragraph",
                 "list",
                 "item",
-                "code"
+                "code",
+                "table",
+                "quote",
+                "task",
+                "image"
             ]
         },
         "badge_list": {

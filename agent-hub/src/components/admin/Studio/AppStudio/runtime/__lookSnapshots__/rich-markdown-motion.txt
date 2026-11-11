@@ -1,0 +1,191 @@
+# rich-markdown-motion
+## screen scr_rmm0001 (Rich text)
+<div class="app-motion--expressive app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(29, 78, 216, 0.1); --app-accent: #1D4ED8; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(29, 78, 216, 0.1); --app-primary: #1D4ED8; --app-radius: 8px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-size: 15px; min-height: 100vh">
+  <main class="flex flex-1 flex-col min-h-0">
+    <div class="app-motion--expressive app-runtime app-screen-enter w-full" data-app-appearance="auto" data-app-screen="scr_rmm0001" data-app-screen-kind="page" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(29, 78, 216, 0.1); --app-accent: #1D4ED8; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(29, 78, 216, 0.1); --app-primary: #1D4ED8; --app-radius: 8px; --app-space: 1; color: var(--text-primary); font-size: 15px">
+      <div class="flex flex-col w-full" style="margin: 0px auto; max-width: 960px">
+        <section class="app-grid" data-section-id="sec_rmm0001" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="markdown" data-node-id="cmp_rmm0001" style="grid-column: span 12 / span 12">
+            <div class="flex flex-col gap-2 text-sm" data-app-markdown="true">
+              <h1 class="font-semibold text-2xl">
+                "Rich markdown"
+              <p>
+                "A paragraph with"
+                <strong>
+                  "bold"
+                ","
+                <em>
+                  "italic"
+                "and a"
+                <a class="[color:var(--app-primary)] underline underline-offset-2" href="https://example.com/docs" rel="noopener noreferrer" target="_blank">
+                  "link"
+                "and a"
+                <a class="[color:var(--app-primary)] underline underline-offset-2" href="mailto:team@example.com" rel="noopener noreferrer">
+                  "mail"
+                "."
+              <h2 class="font-semibold text-xl">
+                "Table"
+              <div class="overflow-x-auto">
+                <table class="border-collapse text-sm w-full">
+                  <thead>
+                    <tr>
+                      <th class="[background:var(--bg-secondary)] [border-color:var(--border-default)] border-b font-semibold px-3 py-1.5 text-left" scope="col">
+                        "Plan"
+                      <th class="[background:var(--bg-secondary)] [border-color:var(--border-default)] border-b font-semibold px-3 py-1.5 text-center" scope="col">
+                        "Seats"
+                      <th class="[background:var(--bg-secondary)] [border-color:var(--border-default)] border-b font-semibold px-3 py-1.5 text-right" scope="col">
+                        "Price"
+                  <tbody>
+                    <tr>
+                      <td class="[border-color:var(--border-subtle)] border-b px-3 py-1.5 text-left">
+                        "Free"
+                      <td class="[border-color:var(--border-subtle)] border-b px-3 py-1.5 text-center">
+                        "3"
+                      <td class="[border-color:var(--border-subtle)] border-b px-3 py-1.5 text-right">
+                        "0"
+                    <tr>
+                      <td class="[border-color:var(--border-subtle)] border-b px-3 py-1.5 text-left">
+                        "Pro"
+                      <td class="[border-color:var(--border-subtle)] border-b px-3 py-1.5 text-center">
+                        "25"
+                      <td class="[border-color:var(--border-subtle)] border-b px-3 py-1.5 text-right">
+                        "216"
+              <h3 class="font-semibold text-lg">
+                "Tasks"
+              <ul class="flex flex-col gap-1 list-disc pl-5">
+                <li class="-ml-5 flex gap-2 items-start list-none">
+                  <input class="mt-1 shrink-0" aria-label="Done" checked="" disabled="" readonly="" type="checkbox">
+                  <span>
+                    "Draft the page"
+                <li class="-ml-5 flex gap-2 items-start list-none">
+                  <input class="mt-1 shrink-0" aria-label="Not done" disabled="" readonly="" type="checkbox">
+                  <span>
+                    "Review the copy"
+                <li>
+                  "plain item"
+              <blockquote class="[border-color:var(--border-default)] border-l-[3px] flex flex-col gap-2 pl-3 text-[var(--text-secondary)]">
+                <p>
+                  "A quote that holds"
+                  <strong>
+                    "bold"
+                  "text and a second line"
+              <ol class="flex flex-col gap-1 list-decimal pl-5">
+                <li>
+                  "First"
+                <li>
+                  "Second"
+              <div class="app-code-block group relative">
+                <pre class="[background:var(--bg-tertiary)] [border-color:var(--border-default)] [border-radius:var(--app-radius)] [color:var(--text-primary)]! border overflow-x-auto p-3 text-xs">
+                  <code>
+                    "const x = 1;"
+              <p>
+          <div class="app-node app-span-12 min-w-0" data-app-type="markdown" data-node-id="cmp_rmm0002" style="grid-column: span 12 / span 12">
+            <div class="flex flex-col gap-2 text-sm" data-app-markdown="true">
+              <h1 class="font-semibold text-2xl">
+                "Rich markdown"
+              <p>
+                "A paragraph with"
+                <strong>
+                  "bold"
+                ","
+                <em>
+                  "italic"
+                "and a"
+                <a class="[color:var(--app-primary)] underline underline-offset-2" href="https://example.com/docs" rel="noopener noreferrer" target="_blank">
+                  "link"
+                "and a [mail](mailto:team@example.com)."
+              <h2 class="font-semibold text-xl">
+                "Table"
+              <p>
+                "| Plan | Seats | Price | | :--- | :---: | ---: | | Free | 3 | 0 | | Pro | 25 | 216 |"
+              <h3 class="font-semibold text-lg">
+                "Tasks"
+              <ul class="flex flex-col gap-1 list-disc pl-5">
+                <li>
+                  "[x] Draft the page"
+                <li>
+                  "[ ] Review the copy"
+                <li>
+                  "plain item"
+              <p>
+                "> A quote that holds"
+                <strong>
+                  "bold"
+                "text > and a second line"
+              <ol class="flex flex-col gap-1 list-decimal pl-5">
+                <li>
+                  "First"
+                <li>
+                  "Second"
+              <div class="app-code-block group relative">
+                <pre class="[background:var(--bg-tertiary)] [border-color:var(--border-default)] [border-radius:var(--app-radius)] [color:var(--text-primary)]! border overflow-x-auto p-3 text-xs">
+                  <code>
+                    "const x = 1;"
+              <p>
+                "![Team photo](asset:img_team01)"
+          <div class="app-node app-span-12 min-w-0" data-app-type="markdown" data-node-id="cmp_rmm0003" style="grid-column: span 12 / span 12">
+            <div class="flex flex-col gap-2 text-sm" data-app-markdown="true">
+              <p>
+                "Markup stays text: <script>alert(1)</script> and <img src=x onerror=alert(1)> and <b>bold</b>."
+              <p>
+                "[click](javascript:alert(1)) [data](data:text/html;base64,PHNjcmlwdD4=) [file](file:///etc/passwd) [rel](//evil.example)"
+              <p>
+                "!"
+                <a class="[color:var(--app-primary)] underline underline-offset-2" href="https://evil.example/pixel.png" rel="noopener noreferrer" target="_blank">
+                  "remote"
+                "![js](javascript:alert(1)) ![data](data:image/png;base64,AAAA)"
+              <div class="overflow-x-auto">
+                <table class="border-collapse text-sm w-full">
+                  <thead>
+                    <tr>
+                      <th class="[background:var(--bg-secondary)] [border-color:var(--border-default)] border-b font-semibold px-3 py-1.5 text-left" scope="col">
+                        "<i>head</i>"
+                      <th class="[background:var(--bg-secondary)] [border-color:var(--border-default)] border-b font-semibold px-3 py-1.5 text-left" scope="col">
+                        "b"
+                  <tbody>
+                    <tr>
+                      <td class="[border-color:var(--border-subtle)] border-b px-3 py-1.5 text-left">
+                        "<script>x</script>"
+                      <td class="[border-color:var(--border-subtle)] border-b px-3 py-1.5 text-left">
+                        "[x](javascript:y)"
+              <blockquote class="[border-color:var(--border-default)] border-l-[3px] flex flex-col gap-2 pl-3 text-[var(--text-secondary)]">
+                <p>
+                  "<iframe src="https://evil.example"></iframe>"
+          <div class="app-node app-span-12 min-w-0" data-app-type="markdown" data-node-id="cmp_rmm0004" style="grid-column: span 12 / span 12">
+            <div class="flex flex-col gap-2 text-sm" data-app-markdown="true">
+              <p>
+                "| a | b | | - | - | | 1 | 2 |"
+## screen scr_rmm0002 (Motion)
+<div class="app-motion--expressive app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(29, 78, 216, 0.1); --app-accent: #1D4ED8; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(29, 78, 216, 0.1); --app-primary: #1D4ED8; --app-radius: 8px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-size: 15px; min-height: 100vh">
+  <main class="flex flex-1 flex-col min-h-0">
+    <div class="app-motion--expressive app-runtime app-screen-enter w-full" data-app-appearance="auto" data-app-screen="scr_rmm0002" data-app-screen-kind="page" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(29, 78, 216, 0.1); --app-accent: #1D4ED8; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(29, 78, 216, 0.1); --app-primary: #1D4ED8; --app-radius: 8px; --app-space: 1; color: var(--text-primary); font-size: 15px">
+      <div class="flex flex-col w-full" style="margin: 0px auto; max-width: 960px">
+        <section class="app-grid" data-section-id="sec_rmm0002" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="list" data-node-id="cmp_rmm0005" style="grid-column: span 12 / span 12">
+            <ul class="flex flex-col gap-2" data-app-list="true">
+              <li data-app-list-row="0">
+                <div class="border flex gap-2.5 items-center px-3 py-2 text-left w-full" style="background: var(--bg-card); border-color: var(--border-default); border-radius: var(--app-radius)">
+                  <div class="flex-1 min-w-0">
+                    <div class="flex gap-2 items-baseline">
+                      <span class="font-medium text-sm truncate">
+                        "First row"
+                    <div class="text-[var(--text-secondary)] text-xs truncate">
+                      "one"
+              <li data-app-list-row="1">
+                <div class="border flex gap-2.5 items-center px-3 py-2 text-left w-full" style="background: var(--bg-card); border-color: var(--border-default); border-radius: var(--app-radius)">
+                  <div class="flex-1 min-w-0">
+                    <div class="flex gap-2 items-baseline">
+                      <span class="font-medium text-sm truncate">
+                        "Second row"
+                    <div class="text-[var(--text-secondary)] text-xs truncate">
+                      "two"
+              <li data-app-list-row="2">
+                <div class="border flex gap-2.5 items-center px-3 py-2 text-left w-full" style="background: var(--bg-card); border-color: var(--border-default); border-radius: var(--app-radius)">
+                  <div class="flex-1 min-w-0">
+                    <div class="flex gap-2 items-baseline">
+                      <span class="font-medium text-sm truncate">
+                        "Third row"
+                    <div class="text-[var(--text-secondary)] text-xs truncate">
+                      "three"
+          <button class="[background:var(--app-primary)] [border-radius:var(--app-radius)] [color:var(--app-primary-contrast)]! font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm" data-app-modal-trigger="cmp_rmm0006" type="button">
+            "Open the dialog"

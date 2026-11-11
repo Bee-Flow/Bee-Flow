@@ -1217,9 +1217,13 @@
                         "ghost",
                         "danger",
                         "outline",
-                        "soft"
+                        "soft",
+                        "link"
                     ],
                     "default": "primary",
+                    "valuesSince": {
+                        "link": 3
+                    },
                     "description": "outline = transparent with a primary border and primary text; soft = filled with the soft primary tint, primary text."
                 },
                 "iconLeft": {
@@ -1318,6 +1322,16 @@
                 "collapsible": {
                     "type": "boolean",
                     "default": false
+                },
+                "variant": {
+                    "type": "enum",
+                    "values": [
+                        "soft",
+                        "outline",
+                        "solid"
+                    ],
+                    "since": 3,
+                    "description": "How the note is drawn. soft (the default) is a tinted block with a tone edge, outline is transparent with a tone border, solid is filled with the tone colour and white text."
                 }
             },
             "styleKnobs": [
@@ -2502,6 +2516,16 @@
                     ],
                     "default": "default",
                     "description": "default = the current card surface; flat = flush and borderless; raised = shadow elevation; tinted = soft primary wash; accent = a primary edge bar; gradient = soft primary gradient surface; solid = filled with the primary colour, contents in its contrast colour (title colour: heading color knob)."
+                },
+                "variant": {
+                    "type": "enum",
+                    "values": [
+                        "plain",
+                        "outlined",
+                        "elevated"
+                    ],
+                    "since": 3,
+                    "description": "The card surface. plain is the current card, outlined is transparent with a firm border, elevated is lifted by a shadow with no border. Set either variant or look, not both."
                 }
             },
             "styleKnobs": [

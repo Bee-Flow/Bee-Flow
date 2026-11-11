@@ -21,7 +21,7 @@ export const DESIGN_ENUMS = {
     preset: ['custom', 'classic', 'cloud', 'atlas', 'midnight', 'field', 'paper', 'mono', 'grove', 'ember', 'signal', 'bloom', 'ledger', 'nocturne'],
     font: ['system', 'inter', 'satoshi', 'general-sans', 'cabinet', 'geist', 'plex', 'poppins'],
     surface: ['hairline', 'flat', 'soft', 'elevated'],
-    motion: ['none', 'subtle', 'full'],
+    motion: ['none', 'subtle', 'full', 'expressive'],
     chartPalette: ['classic', 'brand'],
     accentEdge: ['bar', 'none'],
 };
@@ -80,9 +80,11 @@ export function appDesignProps(definition?: { design?: AppDesign; [key: string]:
         if (d.accentEdge === 'none') classes.push('app-design--edge-none');
         // 'subtle' is the base motion. 'full' is stored by two presets and kept
         // valid, but no CSS rule reads .app-motion--full: it behaves exactly
-        // like 'subtle' (the class is only a hook for a future, richer value).
+        // like 'subtle' (the class is only a hook). 'expressive' (since 3) is the value that
+        // moves: css/motion.css reads .app-motion--expressive.
         if (d.motion === 'none') classes.push('app-motion--none');
         else if (d.motion === 'full') classes.push('app-motion--full');
+        else if (d.motion === 'expressive') classes.push('app-motion--expressive');
         const stack = FONT_STACKS[d.font];
         if (stack) style.fontFamily = stack;
     }

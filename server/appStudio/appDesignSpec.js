@@ -79,7 +79,12 @@ const DESIGN_SPEC = Object.freeze(/** @satisfies {Record<string, DesignSpecEntry
     // 'subtle' is identity: the universal-polish baseline motion. 'none'
     // stamps .app-motion--none; prefers-reduced-motion always wins in CSS.
     // 'full' is accepted and stored but renders exactly like 'subtle'.
-    motion: { type: 'enum', values: ['none', 'subtle', 'full'], default: 'subtle' },
+    // 'expressive' (since 3) is the one that really moves: a screen change, a dialog opening
+    // and list rows entering get a restrained transition. Off under reduced motion.
+    motion: {
+        type: 'enum', values: ['none', 'subtle', 'full', 'expressive'], default: 'subtle',
+        valuesSince: { expressive: 3 },
+    },
     chartPalette: { type: 'enum', values: ['classic', 'brand'], default: 'classic' },
     // The coloured 3px edge that marks a callout's tone, a toned table row, a
     // message's side. 'bar' is what every app has today and stays the default.
