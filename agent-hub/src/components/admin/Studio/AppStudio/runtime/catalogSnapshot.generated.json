@@ -730,6 +730,7 @@
         "input_person",
         "input_multiselect",
         "input_document",
+        "radio",
         "switch"
     ],
     "eventNames": [
@@ -2443,6 +2444,38 @@
                 "error"
             ]
         },
+        "radio": {
+            "label": "Radio group",
+            "category": "Input",
+            "isInput": true,
+            "defaultProps": {
+                "name": "choice",
+                "label": "Choice",
+                "options": [],
+                "required": false,
+                "defaultValue": null,
+                "valueFrom": {
+                    "kind": "static",
+                    "value": null
+                }
+            },
+            "defaultStyle": {
+                "span": 6
+            },
+            "since": 3,
+            "mobile": {
+                "reason": "The phone draws the base inputs only; a radio group stays in the browser."
+            },
+            "parts": [
+                "root",
+                "label",
+                "group",
+                "option",
+                "control",
+                "text",
+                "error"
+            ]
+        },
         "switch": {
             "label": "Switch",
             "category": "Input",
@@ -2747,6 +2780,9 @@
             "span",
             "size"
         ],
+        "radio": [
+            "span"
+        ],
         "switch": [
             "span"
         ]
@@ -2843,6 +2879,9 @@
             "onRowClick"
         ],
         "input_document": [
+            "onChange"
+        ],
+        "radio": [
             "onChange"
         ],
         "switch": [

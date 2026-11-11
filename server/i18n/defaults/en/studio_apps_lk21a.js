@@ -5,4 +5,6 @@
 // Dutch: ../nl/studio_apps_lk21a.json. Runtime texts of the App Studio components switch, radio, slider, rating, avatar, accordion and carousel.
 module.exports = {
     'studio_apps_lk21a.switch.default_label': 'Enabled',
+    'studio_apps_lk21a.radio.default_label': 'Choice',
+    'studio_apps_lk21a.radio.no_options': 'No options yet.',
 };
