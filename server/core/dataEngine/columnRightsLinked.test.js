@@ -44,3 +44,21 @@ test('the hidden fields of a related table come from the verdict its access filt
     assert.deepEqual([...linked.targetHidden({ tableMeta: CHILD, accessFilter: { where: '1=0', params: [] } })], [], 'no row is read');
     assert.throws(() => linked.targetHidden({ tableMeta: CHILD, accessFilter: { where: '1=1', params: [] } }), /did not resolve them/, 'fails closed');
 });
+
+test('expanding a relation to a table the role reads no row of still reads the list, also when that table has column rights', () => {
+    const qc = require('./queryCompiler');
+    const { relationRead } = require('./relationRead.mts');
+    const KIDS = { ...CHILD, access: { default: 'none', roles: {} } };
+    const MAIN = {
+        id: 'tbl_main', key: 'main', access: { default: 'none', roles: { member: { read: 'all' } } },
+        fields: [{ id: 'fld_m1', key: 'title', type: 'text' }, { id: 'fld_m2', key: 'kid', type: 'relation', relation: { table: 'tbl_kids' } }],
+    };
+    const who = { role: 'member', viewer: { id: 'u1', role: 'member' } };
+    const read = relationRead({ tables: [KIDS, MAIN] }, MAIN, { expand: [{ field: 'kid', pick: ['status'] }] }, who);
+    assert.equal(read.related.kid.accessFilter.where, '1=0');
+    const compiled = qc.compileRecordList(MAIN, {}, access.compileAccessFilter(MAIN, 'member', who.viewer, 'read'), read);
+    assert.equal(compiled.expand.length, 1, 'the expansion stays in the plan and reads null for every record');
+    // A related table the role does read is still refused without its verdict.
+    const unresolved = { ...read, related: { kid: { tableMeta: KIDS, accessFilter: { where: '1=1', params: [] } } } };
+    assert.throws(() => qc.compileRecordList(MAIN, {}, access.compileAccessFilter(MAIN, 'member', who.viewer, 'read'), unresolved), /did not resolve them/);
+});

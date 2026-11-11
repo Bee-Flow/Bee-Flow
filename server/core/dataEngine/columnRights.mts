@@ -246,6 +246,9 @@ export function scopeColumns<T extends TableMeta>(tableMeta: T, accessFilter: un
 
 type Related<T> = Record<string, { tableMeta: T; accessFilter: unknown; hidden?: ReadonlySet<string> }>;
 
+/** The predicate aggregateRelated hands over for a table the role may not read at all. */
+const NO_ROWS = '1=0';
+
 /**
  * The related tables of a read (expand, relation.field, relatedField), each as
  * its own access filter's role reads it, with `hidden` beside a table that lost
@@ -256,6 +259,9 @@ export function scopeRelated<T extends TableMeta, R extends Related<T> | undefin
     let out: Related<T> | null = null;
     for (const [key, target] of Object.entries(related)) {
         if (!target || !isObject(target.tableMeta)) continue;
+        // A table the role reads no row of (aggregateRelated hands over `1=0`): nothing is read, so
+        // there is nothing to scope, and the read goes on with empty expansions as it always did.
+        if (isObject(target.accessFilter) && target.accessFilter.where === NO_ROWS) continue;
         const scoped = scopeColumns(target.tableMeta, target.accessFilter);
         if (!scoped.hidden) continue;
         out = out || { ...related };
