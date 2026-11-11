@@ -1,0 +1,234 @@
+# template-inbound-orders
+## screen scr_ioorders (Orders)
+<div class="app-design--edge-none app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(180, 83, 9, 0.1); --app-accent: #B45309; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(180, 83, 9, 0.1); --app-primary: #B45309; --app-radius: 10px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-family: "Satoshi", system-ui, -apple-system, sans-serif; font-size: 15px; min-height: 100vh">
+  <main class="flex flex-1 flex-col min-h-0">
+    <div class="app-design--edge-none app-runtime app-screen-enter w-full" data-app-appearance="auto" data-app-screen="scr_ioorders" data-app-screen-kind="page" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(180, 83, 9, 0.1); --app-accent: #B45309; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(180, 83, 9, 0.1); --app-primary: #B45309; --app-radius: 10px; --app-space: 1; color: var(--text-primary); font-family: "Satoshi", system-ui, -apple-system, sans-serif; font-size: 15px">
+      <div class="flex flex-col w-full" style="margin: 0px auto; max-width: 1280px">
+        <section class="app-grid app-grid--keep-sm" data-section-id="sec_iohead" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="page_header" data-node-id="cmp_ioph" style="grid-column: span 12 / span 12">
+            <header class="min-w-0 w-full" data-app-pageheader="true">
+              <div class="flex flex-wrap items-start" style="gap: calc(12px * var(--app-space, 1))">
+                <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-9 inline-flex items-center justify-center rounded-md shrink-0 w-9" aria-hidden="true">
+                  <svg class="h-4.5 lucide lucide-package-check w-4.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                <div class="basis-64 flex-1 min-w-0">
+                  <h1 class="font-semibold text-[var(--text-primary)] text-xl truncate" title="Orders">
+                    "Orders"
+                  <p class="line-clamp-2 mt-0.5 text-sm" title="Everything the connected systems sent, newest first." style="color: var(--text-secondary)">
+                    "Everything the connected systems sent, newest first."
+          <div class="app-node app-span-4 app-span-sm-12 min-w-0" data-app-type="stat" data-node-id="cmp_iostnew" style="grid-column: span 4 / span 4">
+            <div class="app-stat app-stat--tile flex gap-2.5 items-start" style="background: var(--bg-card); border-radius: var(--app-radius, 8px); border: 1px solid var(--app-hairline, var(--border-default)); box-shadow: var(--app-shadow-1); padding: calc(16px * var(--app-space, 1))">
+              <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-8 inline-flex items-center justify-center mt-0.5 rounded-md shrink-0 w-8">
+                <svg class="h-4 lucide lucide-inbox w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-[var(--text-secondary)] text-xs">
+                  "To pick"
+                <div class="flex gap-2 items-baseline min-w-0">
+                  <div class="font-semibold leading-tight text-2xl truncate" title="—">
+                    "—"
+          <div class="app-node app-span-4 app-span-sm-12 min-w-0" data-app-type="stat" data-node-id="cmp_iostpck" style="grid-column: span 4 / span 4">
+            <div class="app-stat app-stat--tile flex gap-2.5 items-start" style="background: var(--bg-card); border-radius: var(--app-radius, 8px); border: 1px solid var(--app-hairline, var(--border-default)); box-shadow: var(--app-shadow-1); padding: calc(16px * var(--app-space, 1))">
+              <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-8 inline-flex items-center justify-center mt-0.5 rounded-md shrink-0 w-8">
+                <svg class="h-4 lucide lucide-package-open w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-[var(--text-secondary)] text-xs">
+                  "Being picked"
+                <div class="flex gap-2 items-baseline min-w-0">
+                  <div class="font-semibold leading-tight text-2xl truncate" title="—">
+                    "—"
+          <div class="app-node app-span-4 app-span-sm-12 min-w-0" data-app-type="stat" data-node-id="cmp_iostshp" style="grid-column: span 4 / span 4">
+            <div class="app-stat app-stat--tile flex gap-2.5 items-start" style="background: var(--bg-card); border-radius: var(--app-radius, 8px); border: 1px solid var(--app-hairline, var(--border-default)); box-shadow: var(--app-shadow-1); padding: calc(16px * var(--app-space, 1))">
+              <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-8 inline-flex items-center justify-center mt-0.5 rounded-md shrink-0 w-8">
+                <svg class="h-4 lucide lucide-truck w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-[var(--text-secondary)] text-xs">
+                  "Shipped"
+                <div class="flex gap-2 items-baseline min-w-0">
+                  <div class="font-semibold leading-tight text-2xl truncate" title="—">
+                    "—"
+        <section class="app-grid" data-section-id="sec_iogrid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="data_grid" data-node-id="cmp_iogrd" style="grid-column: span 12 / span 12">
+            <div class="w-full" data-app-datagrid="true">
+              <div class="flex flex-col gap-1.5 h-full items-center justify-center min-h-0 py-6 text-center">
+                <span class="mb-1 text-[var(--text-tertiary)]">
+                  <svg class="block" aria-hidden="true" fill="none" role="presentation" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 96 72" style="height: auto; opacity: 0.9; width: 5.5rem">
+                <span class="font-medium text-[var(--text-primary)] text-sm">
+                  "Nothing here yet"
+                <span class="max-w-xs text-[var(--text-muted)] text-sm">
+                  "No orders yet. Publish the app and connect a system to start."
+## screen scr_ioorder (Order)
+<div class="app-design--edge-none app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(180, 83, 9, 0.1); --app-accent: #B45309; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(180, 83, 9, 0.1); --app-primary: #B45309; --app-radius: 10px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-family: "Satoshi", system-ui, -apple-system, sans-serif; font-size: 15px; min-height: 100vh">
+  <main class="flex flex-1 flex-col min-h-0">
+    <div class="app-design--edge-none app-runtime app-screen-enter w-full" data-app-appearance="auto" data-app-screen="scr_ioorder" data-app-screen-kind="page" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(180, 83, 9, 0.1); --app-accent: #B45309; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(180, 83, 9, 0.1); --app-primary: #B45309; --app-radius: 10px; --app-space: 1; color: var(--text-primary); font-family: "Satoshi", system-ui, -apple-system, sans-serif; font-size: 15px">
+      <div class="flex flex-col w-full" style="margin: 0px auto; max-width: 960px">
+        <section class="app-grid app-grid--keep-sm" data-section-id="sec_ioorder" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-3 app-span-sm-12 min-w-0" data-app-type="button" data-node-id="cmp_ioback" style="grid-column: span 3 / span 3">
+            <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm transition-opacity" type="button" style="background: transparent; border-radius: var(--app-radius); color: var(--app-primary)">
+              <svg class="h-3.5 lucide lucide-arrow-left w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <span>
+                "All orders"
+          <div class="app-node app-span-3 app-span-sm-6 min-w-0" data-app-type="button" data-node-id="cmp_iopick" style="grid-column: span 3 / span 3">
+            <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm transition-opacity" type="button" style="background: var(--app-primary-soft); border-radius: var(--app-radius); color: var(--app-primary)">
+              <svg class="h-3.5 lucide lucide-package-open w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <span>
+                "Start picking"
+          <div class="app-node app-span-3 app-span-sm-6 min-w-0" data-app-type="button" data-node-id="cmp_ioship" style="grid-column: span 3 / span 3">
+            <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm transition-opacity" type="button" style="background: var(--app-accent, var(--app-primary)); border-radius: var(--app-radius); color: var(--app-accent-contrast, var(--app-primary-contrast))">
+              <svg class="h-3.5 lucide lucide-truck w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <span>
+                "Mark shipped"
+          <div class="app-node app-span-12 min-w-0" data-app-type="tabs" data-node-id="cmp_iotabs" style="grid-column: span 12 / span 12">
+            <div class="min-w-0 w-full" data-app-tabs="true">
+              <div class="app-scroll-x border-b flex gap-1 items-center overflow-x-auto" aria-label="Tabs" role="tablist" style="border-color: var(--border-default)">
+                <button class="-mb-px font-medium gap-1.5 inline-flex items-center px-3 py-2 shrink-0 text-sm whitespace-nowrap" aria-selected="true" role="tab" type="button" style="border-bottom: 2px solid var(--app-primary); color: var(--app-primary)">
+                  <svg class="h-3.5 lucide lucide-receipt w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                  <span>
+                    "Order"
+                <button class="-mb-px font-medium gap-1.5 inline-flex items-center px-3 py-2 shrink-0 text-sm whitespace-nowrap" aria-selected="false" role="tab" type="button" style="border-bottom: 2px solid transparent; color: var(--text-secondary)">
+                  <svg class="h-3.5 lucide lucide-package w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                  <span>
+                    "Product"
+                <button class="-mb-px font-medium gap-1.5 inline-flex items-center px-3 py-2 shrink-0 text-sm whitespace-nowrap" aria-selected="false" role="tab" type="button" style="border-bottom: 2px solid transparent; color: var(--text-secondary)">
+                  <svg class="h-3.5 lucide lucide-history lucide-rotate-ccw-clock w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                  <span>
+                    "Delivery"
+              <div class="pt-3" data-app-tabpanel="active" role="tabpanel">
+                <div class="app-node app-span-12 min-w-0" data-app-type="tab" data-node-id="cmp_iotabo" style="grid-column: span 12 / span 12">
+                  <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                    <div class="app-node app-span-12 min-w-0" data-app-type="repeater" data-node-id="cmp_iostep" style="grid-column: span 12 / span 12">
+                      <div class="flex h-full items-center justify-center min-h-0 py-1 text-[var(--text-muted)] text-center text-sm">
+                        "Pick an order."
+                    <div class="app-node app-span-12 min-w-0" data-app-type="record_detail" data-node-id="cmp_ioodet" style="grid-column: span 12 / span 12">
+                      <div class="flex h-full items-center justify-center min-h-0 py-1 text-[var(--text-muted)] text-center text-sm">
+                        "No record selected."
+              <div class="pt-3" data-app-tabpanel="inactive" hidden="" role="tabpanel" style="display: none">
+                <div class="app-node app-span-12 min-w-0" data-app-type="tab" data-node-id="cmp_iotabp" style="grid-column: span 12 / span 12">
+                  <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                    <div class="app-node app-span-12 min-w-0" data-app-type="repeater" data-node-id="cmp_ioprep" style="grid-column: span 12 / span 12">
+                      <div class="flex h-full items-center justify-center min-h-0 py-1 text-[var(--text-muted)] text-center text-sm">
+                        "This order names no product."
+              <div class="pt-3" data-app-tabpanel="inactive" hidden="" role="tabpanel" style="display: none">
+                <div class="app-node app-span-12 min-w-0" data-app-type="tab" data-node-id="cmp_iotabd" style="grid-column: span 12 / span 12">
+                  <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                    <div class="app-node app-span-12 min-w-0" data-app-type="table" data-node-id="cmp_iodlog" style="grid-column: span 12 / span 12">
+                      <div class="flex h-full items-center justify-center min-h-0 py-1 text-[var(--text-muted)] text-center text-sm">
+                        "No deliveries for this order."
+## screen scr_ioprods (Products)
+<div class="app-design--edge-none app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(180, 83, 9, 0.1); --app-accent: #B45309; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(180, 83, 9, 0.1); --app-primary: #B45309; --app-radius: 10px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-family: "Satoshi", system-ui, -apple-system, sans-serif; font-size: 15px; min-height: 100vh">
+  <main class="flex flex-1 flex-col min-h-0">
+    <div class="app-design--edge-none app-runtime app-screen-enter w-full" data-app-appearance="auto" data-app-screen="scr_ioprods" data-app-screen-kind="page" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(180, 83, 9, 0.1); --app-accent: #B45309; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(180, 83, 9, 0.1); --app-primary: #B45309; --app-radius: 10px; --app-space: 1; color: var(--text-primary); font-family: "Satoshi", system-ui, -apple-system, sans-serif; font-size: 15px">
+      <div class="flex flex-col w-full" style="margin: 0px auto; max-width: 1280px">
+        <section class="app-grid" data-section-id="sec_ioprods" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="page_header" data-node-id="cmp_ioprh" style="grid-column: span 12 / span 12">
+            <header class="min-w-0 w-full" data-app-pageheader="true">
+              <div class="flex flex-wrap items-start" style="gap: calc(12px * var(--app-space, 1))">
+                <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-9 inline-flex items-center justify-center rounded-md shrink-0 w-9" aria-hidden="true">
+                  <svg class="h-4.5 lucide lucide-package w-4.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                <div class="basis-64 flex-1 min-w-0">
+                  <h1 class="font-semibold text-[var(--text-primary)] text-xl truncate" title="Products">
+                    "Products"
+                  <p class="line-clamp-2 mt-0.5 text-sm" title="An order is filed only when its SKU is one of these." style="color: var(--text-secondary)">
+                    "An order is filed only when its SKU is one of these."
+                <div class="flex flex-wrap items-center justify-end ml-auto" data-app-pageheader-actions="true" style="gap: calc(8px * var(--app-space, 1))">
+                  <div class="app-node app-span-3 min-w-0" data-app-type="button" data-node-id="cmp_ioaddp" style="grid-column: span 3 / span 3">
+                    <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm transition-opacity" type="button" style="background: var(--app-accent, var(--app-primary)); border-radius: var(--app-radius); color: var(--app-accent-contrast, var(--app-primary-contrast))">
+                      <svg class="h-3.5 lucide lucide-plus w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                      <span>
+                        "Add a product"
+          <div class="app-node app-span-12 min-w-0" data-app-type="data_grid" data-node-id="cmp_ioprgrd" style="grid-column: span 12 / span 12">
+            <div class="w-full" data-app-datagrid="true">
+              <div class="flex flex-col gap-1.5 h-full items-center justify-center min-h-0 py-6 text-center">
+                <span class="mb-1 text-[var(--text-tertiary)]">
+                  <svg class="block" aria-hidden="true" fill="none" role="presentation" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 96 72" style="height: auto; opacity: 0.9; width: 5.5rem">
+                <span class="font-medium text-[var(--text-primary)] text-sm">
+                  "Nothing here yet"
+                <span class="max-w-xs text-[var(--text-muted)] text-sm">
+                  "No products yet."
+## screen scr_iolog (Delivery log)
+<div class="app-design--edge-none app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(180, 83, 9, 0.1); --app-accent: #B45309; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(180, 83, 9, 0.1); --app-primary: #B45309; --app-radius: 10px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-family: "Satoshi", system-ui, -apple-system, sans-serif; font-size: 15px; min-height: 100vh">
+  <main class="flex flex-1 flex-col min-h-0">
+    <div class="app-design--edge-none app-runtime app-screen-enter w-full" data-app-appearance="auto" data-app-screen="scr_iolog" data-app-screen-kind="page" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(180, 83, 9, 0.1); --app-accent: #B45309; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(180, 83, 9, 0.1); --app-primary: #B45309; --app-radius: 10px; --app-space: 1; color: var(--text-primary); font-family: "Satoshi", system-ui, -apple-system, sans-serif; font-size: 15px">
+      <div class="flex flex-col w-full" style="margin: 0px auto; max-width: 1280px">
+        <section class="app-grid" data-section-id="sec_iolog" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="heading" data-node-id="cmp_iologh" style="grid-column: span 12 / span 12">
+            <h1 class="app-heading--bar break-words flex font-semibold gap-2 items-center text-2xl">
+              <span class="[background:var(--app-primary)] [border-radius:999px] [flex-shrink:0] h-[1.1em] w-[0.25rem]" aria-hidden="true">
+              "Every delivery, filed or not"
+          <div class="app-node app-span-12 min-w-0" data-app-type="data_grid" data-node-id="cmp_iologg" style="grid-column: span 12 / span 12">
+            <div class="w-full" data-app-datagrid="true">
+              <div class="flex flex-col gap-1.5 h-full items-center justify-center min-h-0 py-6 text-center">
+                <span class="mb-1 text-[var(--text-tertiary)]">
+                  <svg class="block" aria-hidden="true" fill="none" role="presentation" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 96 72" style="height: auto; opacity: 0.9; width: 5.5rem">
+                <span class="font-medium text-[var(--text-primary)] text-sm">
+                  "Nothing here yet"
+                <span class="max-w-xs text-[var(--text-muted)] text-sm">
+                  "Nothing delivered yet."
+## screen scr_iohelp (Connect a system)
+<div class="app-design--edge-none app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(180, 83, 9, 0.1); --app-accent: #B45309; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(180, 83, 9, 0.1); --app-primary: #B45309; --app-radius: 10px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-family: "Satoshi", system-ui, -apple-system, sans-serif; font-size: 15px; min-height: 100vh">
+  <main class="flex flex-1 flex-col min-h-0">
+    <div class="app-design--edge-none app-runtime app-screen-enter w-full" data-app-appearance="auto" data-app-screen="scr_iohelp" data-app-screen-kind="page" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(180, 83, 9, 0.1); --app-accent: #B45309; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(180, 83, 9, 0.1); --app-primary: #B45309; --app-radius: 10px; --app-space: 1; color: var(--text-primary); font-family: "Satoshi", system-ui, -apple-system, sans-serif; font-size: 15px">
+      <div class="flex flex-col w-full" style="margin: 0px auto; max-width: 960px">
+        <section class="app-grid" data-section-id="sec_iohelp" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="markdown" data-node-id="cmp_iohelpmd" style="grid-column: span 12 / span 12">
+            <div class="flex flex-col gap-2 text-sm" data-app-markdown="true">
+              <h2 class="font-semibold text-xl">
+                "Connect a shop or a marketplace"
+              <p>
+                "Publish the app first. The"
+                <strong>
+                  "Triggers"
+                "panel then shows the address of the `order_in` webhook and its signing secret. Give both to the system that sends the orders: it signs each delivery with the secret, and an unsigned or wrongly signed delivery is refused before the app sees it."
+              <h3 class="font-semibold text-lg">
+                "What a delivery looks like"
+              <div class="app-code-block group relative">
+                <pre class="[background:var(--bg-tertiary)] [border-color:var(--border-default)] [border-radius:var(--app-radius)] [color:var(--text-primary)]! border overflow-x-auto p-3 text-xs">
+                  <code>
+                    "{ "orderId": "WEB-10421", "customer": { "name": "Casey Brooks", "email": "casey@example.com" }, "sku": "TL-2040", "quantity": 2, "note": "Leave at the side door" }"
+              <div class="overflow-x-auto">
+                <table class="border-collapse text-sm w-full">
+                  <thead>
+                    <tr>
+                      <th class="[background:var(--bg-secondary)] [border-color:var(--border-default)] border-b font-semibold px-3 py-1.5 text-left" scope="col">
+                        "Field"
+                      <th class="[background:var(--bg-secondary)] [border-color:var(--border-default)] border-b font-semibold px-3 py-1.5 text-left" scope="col">
+                        "Also accepted as"
+                      <th class="[background:var(--bg-secondary)] [border-color:var(--border-default)] border-b font-semibold px-3 py-1.5 text-left" scope="col">
+                        "Rule"
+                  <tbody>
+                    <tr>
+                      <td class="[border-color:var(--border-subtle)] border-b px-3 py-1.5 text-left">
+                        "`orderId`"
+                      <td class="[border-color:var(--border-subtle)] border-b px-3 py-1.5 text-left">
+                        "`order_id`, `id`, `reference`"
+                      <td class="[border-color:var(--border-subtle)] border-b px-3 py-1.5 text-left">
+                        "Required, unique per order"
+                    <tr>
+                      <td class="[border-color:var(--border-subtle)] border-b px-3 py-1.5 text-left">
+                        "`customer.name`"
+                      <td class="[border-color:var(--border-subtle)] border-b px-3 py-1.5 text-left">
+                        "`customerName`, `customer_name`"
+                      <td class="[border-color:var(--border-subtle)] border-b px-3 py-1.5 text-left">
+                        "Required"
+                    <tr>
+                      <td class="[border-color:var(--border-subtle)] border-b px-3 py-1.5 text-left">
+                        "`customer.email`"
+                      <td class="[border-color:var(--border-subtle)] border-b px-3 py-1.5 text-left">
+                        "`email`, `customerEmail`"
+                      <td class="[border-color:var(--border-subtle)] border-b px-3 py-1.5 text-left">
+                        "An e-mail address"
+                    <tr>
+                      <td class="[border-color:var(--border-subtle)] border-b px-3 py-1.5 text-left">
+                        "`sku`"
+                      <td class="[border-color:var(--border-subtle)] border-b px-3 py-1.5 text-left">
+                        "`productSku`, `product_sku`"
+                      <td class="[border-color:var(--border-subtle)] border-b px-3 py-1.5 text-left">
+                        "A product of this app"
+                    <tr>
+                      <td class="[border-color:var(--border-subtle)] border-b px-3 py-1.5 text-left">
+                        "`quantity`"
+                      <td class="[border-color:var(--border-subtle)] border-b px-3 py-1.5 text-left">
+                        "`qty`, `amount`"
+                      <td class="[border-color:var(--border-subtle)] border-b px-3 py-1.5 text-left">
+                        "1 to 999, 1 when left out"
+              <blockquote class="[border-color:var(--border-default)] border-l-[3px] flex flex-col gap-2 pl-3 text-[var(--text-secondary)]">
+                <p>
+                  "The same order sent twice is filed once: the second delivery is logged as rejected."

@@ -54,7 +54,7 @@ async function installApps(entities, ctx, report) {
         return;
     }
     const studioAppStore = require('../../../../stores/studioAppStore');
-    const { gateDefinition } = require('../../../appDefinitionGate.mts');
+    const { gateDefinition, appCopyNotes } = require('../../../appDefinitionGate.mts');
     for (const entity of entities) {
         try {
             // The definition is stored and stamped as given; the gate only says whether, and what it found.
@@ -77,6 +77,7 @@ async function installApps(entities, ctx, report) {
             await installAppDataModel(created.id, entity, ctx, report);
             await ctx.stamp({ ref: entity.ref, kind: 'app', entityId: created.id, payload: entity.definition });
             report.installed.apps.push({ ref: entity.ref, id: created.id, name: entity.name, ...(findings ? { findings } : {}) });
+            report.warnings.push(...appCopyNotes(entity.name, entity.definition));
         } catch (err) {
             report.skipped.push({ ref: entity.ref, kind: 'app', why: /** @type {Error} */ (err).message });
         }

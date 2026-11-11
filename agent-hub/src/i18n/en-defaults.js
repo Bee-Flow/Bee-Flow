@@ -39909,6 +39909,17 @@ const EN_DEFAULTS = {
     "studio_apps_variables.editor.persist_local": "On this device",
     "studio_apps_variables.editor.persist_none": "No",
     "studio_apps_variables.editor.persist_session": "Until the browser tab closes",
+    "studio_apps_w3a.import.assets_carried": "{count} uploaded files (pictures, logo, fonts) came along.",
+    "studio_apps_w3a.import.assets_left": "{count} uploaded files did not come along; upload them again in the app.",
+    "studio_apps_w3a.import.triggers_off": "{count} triggers came along switched off: they start when you publish the app.",
+    "studio_apps_w3a.import.unknown_roles": "Some column rights name a role the app does not have; that role sees nothing of those fields.",
+    "studio_apps_w3a.import.webhooks_new": "A webhook trigger gets a new address and secret when you publish; the old ones did not come along.",
+    "studio_apps_w3d.color.mode_token": "Token",
+    "studio_apps_w3d.color.no_tokens": "This app has no colour tokens yet. Add them under Theme, Tokens.",
+    "studio_apps_w3d.color.token_aria": "Colour token",
+    "studio_apps_w3d.color.token_unknown": "Token \"{name}\" is not a colour token of this app, so it paints nothing.",
+    "studio_apps_w3d.section_theme.hint": "Applies to this section only; the page ground stays the one of the screen.",
+    "studio_apps_w3d.section_theme.title": "Theme of this section",
 };
 
 export default EN_DEFAULTS;

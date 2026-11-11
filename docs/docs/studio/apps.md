@@ -7,7 +7,10 @@ title: App Studio
 App Studio lets you build internal apps — trackers, dashboards, intake forms, small
 tools — inside Bee Flow, without writing code. Describe what you need and the AI
 builds the whole thing: a data model, sample data, the screens, and the logic that
-ties them together. Then you refine it visually.
+ties them together. Then you refine it visually. When a formula is not enough, a step can
+run a few lines of JavaScript over the data you hand it (see
+[Logic and steps](./apps-logic.md#run-code)); an app is otherwise a structured description,
+never free HTML or scripts on the page.
 
 URL: `/app/studio/apps` · end-users open a published app at `/app/apps/:id`.
 
@@ -16,7 +19,14 @@ an org admin can disable it under beta/feature settings. Everyone who signs in t
 a published app needs the same Enterprise `app_studio` entitlement. An app is shared
 inside your organisation; an app can also open a limited set of its screens to
 anonymous visitors behind a link (a *public page*), and only those screens and the
-actions wired to them are reachable without signing in.
+actions wired to them are reachable without signing in. A public page can run the same
+server steps as a signed-in click, except the ones that need a person present or reach
+another system on your behalf (calling a web service, waiting for an approval, the
+knowledge-base log steps). It can run a
+code step, but its visitors never receive the code or its inputs. It can have a look of its
+own, including a stylesheet. Visitors only reach what public access lists, and a trigger that
+visitors' changes could start needs a separate permission (see
+[Server runs and triggers](./apps-server-runs.md#when-a-record-changes)).
 
 ## Build with AI
 
@@ -37,6 +47,12 @@ The AI builds it end to end:
   [Automations](../features/automations.md), navigate, or call an external connector.
 - **Roles & access** — it can set up roles (e.g. *admin*, *member*) and row-level
   rules (e.g. members see only rows they created).
+- **Look and layout** — a preset or a theme of your own, tokens, fonts per role, the app
+  shell, a theme per screen or section, spans per screen size and conditional style. See
+  [Layout and look](./apps-look.md).
+- **Logic and triggers** — control flow, code, web-service calls, waits, and triggers that
+  run on a schedule, when a row changes or when another system calls. See
+  [Logic and steps](./apps-logic.md) and [Server runs and triggers](./apps-server-runs.md).
 
 **Plan first.** For a larger app the AI proposes an editable **plan** — the screens,
 tables, roles and datasets it intends to build — as a card in the chat. Review it,
@@ -44,6 +60,18 @@ tweak any part, then hit **Build it**. Small changes ("make the header blue", "a
 notes field") skip the plan and apply directly. Before finishing, the AI **dry-runs**
 the app — it actually reads the data through each binding, as the owner and as each
 role, and fixes anything that comes back empty or broken.
+
+Before the first build of a new app, the builder can make one short model call that proposes a
+design direction. It never blocks the build, and an administrator of a self-hosted install can
+switch it off (`STUDIO_APP_DESIGN_BRIEF=off`).
+
+The builder knows the newer parts of App Studio through a short index of what exists. Before it
+uses one of them, it reads the full description of that item. It can change one step of an
+action without sending the whole action again, move and remove sections, reorder screens, remove
+a dataset, list the files uploaded to the app, and set the shell, the variables and the
+triggers. It cannot write the signing secret of a webhook, the list of hosts a link may open,
+the setting for server steps, the watchers of the Logic tab, or the credentials of a connector:
+you set those yourself.
 
 Every AI turn is one undo step, and the builder writes **checkpoints** you can revert
 to from version history.
@@ -105,10 +133,13 @@ click starts the work on the server: the page shows its progress (the current st
 leave or close the page; when you come back the run is shown again.
 
 - **What can be in it**: steps that run on the server (rows, AI, e-mail, files,
-  automations, approvals), *Set a variable*, conditions, loops and *Run another
+  automations, approvals, code, calls to a web service), *Set a variable*, conditions,
+  switches, loops, *While*, *Try*, *Parallel*, *Return*, *Raise error*, *Wait* and *Wait
+  for approval* (see [Server runs and triggers](./apps-server-runs.md)), and *Run another
   action*. Messages and refreshes are shown when the run ends. A confirmation is only
   possible as the first step (it is asked before the run starts). Navigation, dialogs,
-  opening a link, resetting a form, downloading a file and AI browsing need the page
+  opening a link, resetting a form, downloading a file, AI browsing and the steps that work
+  on the page (focus, scroll, clipboard, form and interface steps, Back) need the page
   and cannot be part of it: put them in a second action on the same button.
 - **Once at a time per item** (`lockKey`): a value such as the record id. While a run
   with the same value is going, a second start is refused with "This is already
@@ -122,7 +153,8 @@ leave or close the page; when you come back the run is shown again.
   (`STUDIO_APP_BACKGROUND_*`, `STUDIO_AI_CALL_TIMEOUT_MS`, see `server/.env.example`).
 - **Restarts**: when the server restarts during a run, the run ends as *interrupted*.
   It does not continue by itself, because its steps may already have written rows or
-  sent mail; start it again when that is safe.
+  sent mail; start it again when that is safe. A run that is *waiting* (a long wait or an
+  approval) is on hold, not running, and goes on by itself.
 
 Results and variables of a finished run are kept for 24 hours, the run itself for 30
 days.
@@ -192,6 +224,8 @@ relations, and set **access**:
     Changing or deleting without a rule of its own follows the rule for seeing, so it is
     never wider than seeing because a rule is missing; the rule `true` gives one action
     every row.
+  - A single field can also be limited to some roles for reading and writing; see
+    [Data in apps](./apps-data.md#who-can-read-and-change-a-column).
 
 Every app gets its own private database. Records are created with the acting user
 stamped in `created_by`, and all reads/writes are filtered by the role rules — so a
@@ -203,7 +237,8 @@ An app can read from external sources through **connectors** (Data → Connector
 
 - **Integration tool** — call one of your connected integrations.
 - **Automation** — run one of your Automations and use its output.
-- **REST** — an HTTPS endpoint with a declared parameter list.
+- **REST** — an HTTPS endpoint with a declared parameter list. An action can also call it
+  with the *Call a web service* step, see [Logic and steps](./apps-logic.md#call-a-web-service).
 
 Connectors run **as the app owner** on the server (never with viewer-supplied
 credentials), behind an SSRF guard that blocks private/internal addresses. The AI can
@@ -346,7 +381,10 @@ database passes 80% of the size cap.
 
 **Rate limits** (per user, per app; env-tunable on self-hosted): AI builder 12/min,
 data reads 60/min, data writes 20/min, action runs 10/min, sequence steps 60/min,
-connector runs 20/min, document compares 60/min. The size caps of documents in an app
+connector runs 20/min, document compares 60/min, code runs 120/min. Uploaded pictures and fonts
+(5 MB each, 200 per app, 100 MB in total) are described in
+[Layout and look](./apps-look.md#uploaded-files); the caps of triggers, waits and webhooks are in
+[Server runs and triggers](./apps-server-runs.md). The size caps of documents in an app
 (picker options, versions, spreadsheet tabs, compare detail) are environment variables
 too; see `server/.env.example`.
 
@@ -357,10 +395,18 @@ Org admins can see per-app and total storage under **App Studio usage**
 
 **New → From a template** ships ready-made, data-backed starting points (CRM pipeline,
 ticket tracker, asset inventory, event planner, team directory) — each with a data
-model and sample data. Choose **Remix with AI** to instantiate a template and open the
+model and sample data. Four of them start from the newer building blocks (many relations,
+column rights, triggers, wizards, value formats): the field service planner, the request and
+approval flow, the sales dashboard and inbound orders. Their triggers stay off until you publish
+the app. Choose **Remix with AI** to instantiate a template and open the
 builder with a prompt prefilled, so you can adapt it by describing the changes.
 
 ## Where to next
 
+- [Layout and look](./apps-look.md) — spans per screen size, style settings, themes, fonts, the shell, your own stylesheet.
+- [More components](./apps-components.md) — accordion, wizard, gauge, tree and more, chart types, paging.
+- [Logic and steps](./apps-logic.md) — control flow, code, web-service calls, variables, triggers in the app.
+- [Data in apps](./apps-data.md) — richer reads, field types and rules, access per operation and per column.
+- [Server runs and triggers](./apps-server-runs.md) — waits, approvals, schedules, record changes and webhooks.
 - [Automations](../features/automations.md) — the Automations your app's actions can run.
 - [Licensing → Tiers](../licensing/tiers.md) — where App Studio sits in the tier matrix.

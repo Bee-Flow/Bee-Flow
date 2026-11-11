@@ -1,0 +1,475 @@
+{
+  "corpus": "template-sales-dashboard",
+  "canonical": {
+    "sha256": "574dd7a6056a507e9d3e2f275901d174250ee9715579969bac1e3b3c79da4093",
+    "bytes": 15372,
+    "inputIsCanonical": true,
+    "idempotent": true,
+    "keys": [
+      "schemaVersion",
+      "meta",
+      "theme",
+      "roles",
+      "variables",
+      "screens",
+      "actions",
+      "design",
+      "homeScreenId",
+      "format"
+    ],
+    "parts": {
+      "schemaVersion": "4e07408562bedb8b",
+      "meta": "2aedd483f96e722a",
+      "theme": "30aa103e4bd5c030",
+      "roles": "4f53cda18c2baa0c",
+      "variables": "0a9e9564ee77b0d6",
+      "screens[0] scr_sdover": "5185ccb4ff0aca59",
+      "screens[1] scr_sdwall": "2eed56aa2708a4bd",
+      "screens[2] scr_sdacct": "31762f1c27eed528",
+      "actions.act_sdperiod": "70ea85d3ab55e9fc",
+      "actions.act_sdpick": "ca685c728de5fb91",
+      "design": "450c1e43adb4d9b4",
+      "homeScreenId": "997e7b12967ed0ad",
+      "format": "80854f9a5485a42b"
+    }
+  },
+  "schemaVersion": {
+    "stored": 3,
+    "canonical": 3
+  },
+  "validation": {
+    "strict": {
+      "errors": [],
+      "warnings": []
+    },
+    "save": {
+      "errors": [],
+      "warnings": []
+    }
+  },
+  "ordinals": {
+    "stored": {
+      "act_sdperiod": [
+        "0 set_variable"
+      ],
+      "act_sdpick": [
+        "0 set_variable"
+      ]
+    },
+    "canonical": "same as stored"
+  },
+  "installHash": {
+    "stored": "877ebc66c0d43c90a7319c3028440f2be3136fcd2a1447b283eb4ee3ba08896e",
+    "afterResave": "877ebc66c0d43c90a7319c3028440f2be3136fcd2a1447b283eb4ee3ba08896e"
+  },
+  "reads": [
+    {
+      "at": "cmp_sdwon.value",
+      "kind": "aggregate",
+      "table": "tbl_sddeal",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT SUM(\"amount\") AS \"v\" FROM \"deals\" WHERE (1=1) AND \"stage\" = ? AND \"closed_on\" >= ? LIMIT ?",
+          "params": [
+            "won",
+            "2026-08-13T00:00:00.000Z",
+            50
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT SUM(\"amount\") AS \"v\" FROM \"deals\" WHERE (1=1) AND \"stage\" = ? AND \"closed_on\" >= ? LIMIT ?",
+          "params": [
+            "won",
+            "2026-08-13T00:00:00.000Z",
+            50
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_sdpipe.value",
+      "kind": "aggregate",
+      "table": "tbl_sddeal",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT SUM(\"amount\") AS \"v\" FROM \"deals\" WHERE (1=1) AND \"stage\" != ? AND \"stage\" != ? LIMIT ?",
+          "params": [
+            "won",
+            "lost",
+            50
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT SUM(\"amount\") AS \"v\" FROM \"deals\" WHERE (1=1) AND \"stage\" != ? AND \"stage\" != ? LIMIT ?",
+          "params": [
+            "won",
+            "lost",
+            50
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_sdcnt.value",
+      "kind": "aggregate",
+      "table": "tbl_sddeal",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"v\" FROM \"deals\" WHERE (1=1) AND \"stage\" = ? AND \"closed_on\" >= ? LIMIT ?",
+          "params": [
+            "won",
+            "2026-08-13T00:00:00.000Z",
+            50
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"v\" FROM \"deals\" WHERE (1=1) AND \"stage\" = ? AND \"closed_on\" >= ? LIMIT ?",
+          "params": [
+            "won",
+            "2026-08-13T00:00:00.000Z",
+            50
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_sdavg.value",
+      "kind": "aggregate",
+      "table": "tbl_sddeal",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT AVG(\"amount\") AS \"v\" FROM \"deals\" WHERE (1=1) AND \"stage\" = ? AND \"closed_on\" >= ? LIMIT ?",
+          "params": [
+            "won",
+            "2026-08-13T00:00:00.000Z",
+            50
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT AVG(\"amount\") AS \"v\" FROM \"deals\" WHERE (1=1) AND \"stage\" = ? AND \"closed_on\" >= ? LIMIT ?",
+          "params": [
+            "won",
+            "2026-08-13T00:00:00.000Z",
+            50
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_sdcombo.source",
+      "kind": "aggregate",
+      "table": "tbl_sddeal",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT strftime('%Y-%m', \"closed_on\") AS \"month\", SUM(\"amount\") AS \"revenue\", COUNT(*) AS \"deals\" FROM \"deals\" WHERE (1=1) AND \"stage\" = ? AND \"closed_on\" >= ? GROUP BY strftime('%Y-%m', \"closed_on\") ORDER BY \"month\" ASC LIMIT ?",
+          "params": [
+            "won",
+            "2026-08-13T00:00:00.000Z",
+            50
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT to_char(\"closed_on\"::timestamptz, 'YYYY-MM') AS \"month\", SUM(\"amount\") AS \"revenue\", COUNT(*) AS \"deals\" FROM \"deals\" WHERE (1=1) AND \"stage\" = ? AND \"closed_on\" >= ? GROUP BY to_char(\"closed_on\"::timestamptz, 'YYYY-MM') ORDER BY \"month\" ASC LIMIT ?",
+          "params": [
+            "won",
+            "2026-08-13T00:00:00.000Z",
+            50
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_sdgauge.value",
+      "kind": "aggregate",
+      "table": "tbl_sddeal",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT AVG(\"probability\") AS \"v\" FROM \"deals\" WHERE (1=1) AND \"stage\" != ? AND \"stage\" != ? LIMIT ?",
+          "params": [
+            "won",
+            "lost",
+            50
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT AVG(\"probability\") AS \"v\" FROM \"deals\" WHERE (1=1) AND \"stage\" != ? AND \"stage\" != ? LIMIT ?",
+          "params": [
+            "won",
+            "lost",
+            50
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_sdfunnel.source",
+      "kind": "aggregate",
+      "table": "tbl_sddeal",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT \"stage\" AS \"stage\", COUNT(*) AS \"deals\" FROM \"deals\" WHERE (1=1) AND \"stage\" != ? GROUP BY \"stage\" ORDER BY \"deals\" DESC LIMIT ?",
+          "params": [
+            "lost",
+            50
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT \"stage\" AS \"stage\", COUNT(*) AS \"deals\" FROM \"deals\" WHERE (1=1) AND \"stage\" != ? GROUP BY \"stage\" ORDER BY \"deals\" DESC LIMIT ?",
+          "params": [
+            "lost",
+            50
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_sdtopgrd.source",
+      "kind": "records",
+      "table": "tbl_sddeal",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT \"id\", \"title\", \"stage\", \"amount\", \"probability\", \"account\" FROM \"deals\" WHERE (1=1) AND \"stage\" != ? AND \"stage\" != ? ORDER BY \"amount\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "won",
+            "lost",
+            7
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT \"id\", \"title\", \"stage\", \"amount\", \"probability\", \"account\" FROM \"deals\" WHERE (1=1) AND \"stage\" != ? AND \"stage\" != ? ORDER BY \"amount\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "won",
+            "lost",
+            7
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_sdwpipe.value",
+      "kind": "aggregate",
+      "table": "tbl_sddeal",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT SUM(\"amount\") AS \"v\" FROM \"deals\" WHERE (1=1) AND \"stage\" != ? AND \"stage\" != ? LIMIT ?",
+          "params": [
+            "won",
+            "lost",
+            50
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT SUM(\"amount\") AS \"v\" FROM \"deals\" WHERE (1=1) AND \"stage\" != ? AND \"stage\" != ? LIMIT ?",
+          "params": [
+            "won",
+            "lost",
+            50
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_sdwopen.value",
+      "kind": "aggregate",
+      "table": "tbl_sddeal",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"v\" FROM \"deals\" WHERE (1=1) AND \"stage\" != ? AND \"stage\" != ? LIMIT ?",
+          "params": [
+            "won",
+            "lost",
+            50
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"v\" FROM \"deals\" WHERE (1=1) AND \"stage\" != ? AND \"stage\" != ? LIMIT ?",
+          "params": [
+            "won",
+            "lost",
+            50
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_sdwwon.value",
+      "kind": "aggregate",
+      "table": "tbl_sddeal",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT SUM(\"amount\") AS \"v\" FROM \"deals\" WHERE (1=1) AND \"stage\" = ? AND \"closed_on\" >= ? LIMIT ?",
+          "params": [
+            "won",
+            "2026-08-13T00:00:00.000Z",
+            50
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT SUM(\"amount\") AS \"v\" FROM \"deals\" WHERE (1=1) AND \"stage\" = ? AND \"closed_on\" >= ? LIMIT ?",
+          "params": [
+            "won",
+            "2026-08-13T00:00:00.000Z",
+            50
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_sdradar.source",
+      "kind": "aggregate",
+      "table": "tbl_sddeal",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT \"__rel_0\".\"__rv\" AS \"region\", COUNT(*) AS \"deals\", COUNT(DISTINCT \"account\") AS \"accounts\" FROM \"deals\" LEFT JOIN (SELECT \"id\" AS \"__rid\", \"region\" AS \"__rv\" FROM \"accounts\" WHERE (1=1)) AS \"__rel_0\" ON \"__rel_0\".\"__rid\" = \"deals\".\"account\" WHERE (1=1) GROUP BY \"__rel_0\".\"__rv\" ORDER BY \"region\" ASC LIMIT ?",
+          "params": [
+            50
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT \"__rel_0\".\"__rv\" AS \"region\", COUNT(*) AS \"deals\", COUNT(DISTINCT \"account\") AS \"accounts\" FROM \"deals\" LEFT JOIN (SELECT \"id\" AS \"__rid\", \"region\" AS \"__rv\" FROM \"accounts\" WHERE (1=1)) AS \"__rel_0\" ON \"__rel_0\".\"__rid\" = \"deals\".\"account\" WHERE (1=1) GROUP BY \"__rel_0\".\"__rv\" ORDER BY \"region\" ASC LIMIT ?",
+          "params": [
+            50
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_sdwfun.source",
+      "kind": "aggregate",
+      "table": "tbl_sddeal",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT \"stage\" AS \"stage\", COUNT(*) AS \"deals\" FROM \"deals\" WHERE (1=1) AND \"stage\" != ? GROUP BY \"stage\" ORDER BY \"deals\" DESC LIMIT ?",
+          "params": [
+            "lost",
+            50
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT \"stage\" AS \"stage\", COUNT(*) AS \"deals\" FROM \"deals\" WHERE (1=1) AND \"stage\" != ? GROUP BY \"stage\" ORDER BY \"deals\" DESC LIMIT ?",
+          "params": [
+            "lost",
+            50
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_sdtree.source",
+      "kind": "records",
+      "table": "tbl_sdacct",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"accounts\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"accounts\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_sdacdet.source",
+      "kind": "record",
+      "table": "tbl_sdacct",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"accounts\" WHERE (1=1) AND \"id\" = ? ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "",
+            51
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"accounts\" WHERE (1=1) AND \"id\" = ? ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "",
+            51
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_sdacgrd.source",
+      "kind": "records",
+      "table": "tbl_sddeal",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"deals\" WHERE (1=1) AND \"account\" = ? ORDER BY \"opened_on\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "",
+            51
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"deals\" WHERE (1=1) AND \"account\" = ? ORDER BY \"opened_on\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "",
+            51
+          ]
+        }
+      }
+    },
+    {
+      "at": "dataset ds_sdmonthly",
+      "kind": "dataset",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT strftime('%Y-%m', \"closed_on\") AS \"month\", SUM(\"amount\") AS \"revenue\", COUNT(*) AS \"deals\" FROM \"deals\" WHERE (1=1) AND \"stage\" = ? AND \"closed_on\" >= ? GROUP BY strftime('%Y-%m', \"closed_on\") LIMIT ?",
+          "params": [
+            "won",
+            "2026-01-01",
+            50
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT to_char(\"closed_on\"::timestamptz, 'YYYY-MM') AS \"month\", SUM(\"amount\") AS \"revenue\", COUNT(*) AS \"deals\" FROM \"deals\" WHERE (1=1) AND \"stage\" = ? AND \"closed_on\" >= ? GROUP BY to_char(\"closed_on\"::timestamptz, 'YYYY-MM') LIMIT ?",
+          "params": [
+            "won",
+            "2026-01-01",
+            50
+          ]
+        }
+      }
+    }
+  ]
+}

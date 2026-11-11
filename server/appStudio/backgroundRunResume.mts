@@ -18,7 +18,7 @@ import { ownAction } from './actionCalls.mts';
 import { readPausedRecord, resumeOutcome, unknownStepKind } from './backgroundRunDurable.mts';
 import type { PausedRecord, ResumeBy } from './backgroundRunDurable.mts';
 import { resumeTokenMatches } from './runPause.mts';
-import { isShuttingDown, launch, newJob, running } from './backgroundRunJob.mts';
+import { effectKey, isShuttingDown, launch, newJob, running } from './backgroundRunJob.mts';
 import type { Job } from './backgroundRunJob.mts';
 import { withDefaults } from './backgroundRunParts.mts';
 import type { RunnerDeps, StartInput } from './backgroundRunParts.mts';
@@ -62,7 +62,7 @@ function resumedJob(row: ActionRunRow, record: PausedRecord, how: ResumeBy, inpu
     const left = limits.maxRunMs ? Math.max(0, limits.maxRunMs - record.run.activeMs) : 0;
     return {
         ...job, w, actions: record.actions, deadline: limits.maxRunMs ? job.startedAt + left : 0, activeMs: record.run.activeMs, written: record.run.written,
-        seenEffects: new Set(w.deferred.map((effect) => JSON.stringify(effect))),
+        seenEffects: new Set(w.deferred.map(effectKey)),
         progress: { ...job.progress, executed: w.executed, message: typeof row.progress.message === 'string' ? row.progress.message : null },
     };
 }

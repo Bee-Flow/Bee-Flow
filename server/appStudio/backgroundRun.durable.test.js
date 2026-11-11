@@ -82,6 +82,22 @@ test('restart survival: another process continues the run from the row alone whe
     assert.deepEqual(s.metas[0].written, ['before']);
 });
 
+test('a deferred effect read back from the database with its keys in another order is still recognised: each effect once', async () => {
+    pausing(() => pauseUntil(s.clock + HOUR));
+    const toast = { kind: 'toast', message: 'Saved', tone: 'success' };
+    const paused = await startAndSettle({ kind: 'sequence', background: true, steps: [toast, create('wait'), toast, { kind: 'refresh', tableId: 't' }, toast] });
+    assert.equal(paused.status, 'paused');
+    const [kept] = (await raw(paused.id)).paused_state.walk.deferred;
+    assert.deepEqual(kept, toast);
+    assert.notDeepEqual(Object.keys(kept), Object.keys(toast), 'JSONB hands the effect back with its keys in its own order');
+    BG._resetForTests();
+    s.clock += HOUR + 1;
+    assert.deepEqual(await BG.wakeDueRuns(deps({ instanceId: 'after-restart' })), { due: 1, resumed: 1 });
+    const row = await settle(paused.id);
+    assert.equal(row.status, 'success', row.error);
+    assert.deepEqual(row.effects, [toast, { kind: 'refresh', tableId: 't' }], 'the toast queued before the pause is not queued again');
+});
+
 test('of two resumers exactly one continues the run; the other is told it was already resumed', async () => {
     pausing(() => pauseUntil(s.clock));
     const paused = await startAndSettle(WAITING);

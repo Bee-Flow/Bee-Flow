@@ -3,6 +3,7 @@ import type { StudioApp } from './types';
 import useTranslation from '@/hooks/useTranslation';
 import toast from '@/components/shared/Toast';
 import { studioAppsApi } from '../studioAppsApi';
+import { portabilityNote } from './portabilityNote';
 
 /**
  * The Import tab's own little state machine: a file, what it claims, the
@@ -78,8 +79,11 @@ function useImportFile({ open, name, onCreated, onTemplateImported }: UseImportF
         const installed = res?.report?.installed || {};
         const warnings = res?.warnings || [];
         const what = t('studio_apps_bi.list.import_what', '{rows} rows and {files} files', { rows: installed.rows || 0, files: installed.files || 0 });
-        if (warnings.length) toast.error(t('studio_apps_bi.list.import_app_warnings', 'App imported with {what}, but: {warnings}', { what, warnings: warnings.slice(0, 2).join(' ') }));
-        else toast.success(t('studio_apps_bi.list.import_app_done', 'App imported with {what}.', { what }));
+        // Uploaded files, triggers, column rights: said with the result, not hidden in the warnings.
+        const note = portabilityNote(t, res?.report?.portable);
+        const withNote = (text: string) => (note ? `${text} ${note}` : text);
+        if (warnings.length) toast.error(withNote(t('studio_apps_bi.list.import_app_warnings', 'App imported with {what}, but: {warnings}', { what, warnings: warnings.slice(0, 2).join(' ') })));
+        else toast.success(withNote(t('studio_apps_bi.list.import_app_done', 'App imported with {what}.', { what })));
         clear();
         onCreated(app);
     }, [clear, onCreated, t]);
@@ -87,8 +91,10 @@ function useImportFile({ open, name, onCreated, onTemplateImported }: UseImportF
     const importTemplateFile = useCallback(async (env: unknown, trimmedName: string) => {
         const res = await studioAppsApi.importTemplate(env, trimmedName ? { title: trimmedName } : {});
         const warnings = res?.warnings || [];
-        if (warnings.length) toast.success(t('studio_apps_bi.list.import_template_warnings', 'Template imported. {warnings}', { warnings: warnings.slice(0, 2).join(' ') }));
-        else toast.success(t('studio_apps_bi.list.import_template_done', 'Template imported — it is in your gallery.'));
+        const note = portabilityNote(t, res?.report?.portable);
+        const withNote = (text: string) => (note ? `${text} ${note}` : text);
+        if (warnings.length) toast.success(withNote(t('studio_apps_bi.list.import_template_warnings', 'Template imported. {warnings}', { warnings: warnings.slice(0, 2).join(' ') })));
+        else toast.success(withNote(t('studio_apps_bi.list.import_template_done', 'Template imported — it is in your gallery.')));
         clear();
         onTemplateImported();
     }, [clear, onTemplateImported, t]);

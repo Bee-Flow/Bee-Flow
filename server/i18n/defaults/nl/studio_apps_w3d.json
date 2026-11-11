@@ -1,0 +1,12 @@
+{
+  "translations": {
+    "studio_apps_w3d.color.no_tokens": "Deze app heeft nog geen kleurtokens. Voeg ze toe onder Thema, Tokens.",
+    "studio_apps_w3d.color.token_aria": "Kleurtoken",
+    "studio_apps_w3d.color.token_unknown": "Token \"{name}\" is geen kleurtoken van deze app en kleurt dus niets.",
+    "studio_apps_w3d.section_theme.hint": "Geldt alleen voor deze sectie; de paginagrond blijft die van het scherm.",
+    "studio_apps_w3d.section_theme.title": "Thema van deze sectie"
+  },
+  "sameAsEnglish": [
+    "studio_apps_w3d.color.mode_token"
+  ]
+}

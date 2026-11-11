@@ -1,0 +1,337 @@
+{
+  "corpus": "template-inbound-orders",
+  "canonical": {
+    "sha256": "a19ae1ea57e200a84047ad993c7c1e0b107a0c65990b919bbd4942bbff1f54f1",
+    "bytes": 22470,
+    "inputIsCanonical": true,
+    "idempotent": true,
+    "keys": [
+      "schemaVersion",
+      "meta",
+      "theme",
+      "roles",
+      "variables",
+      "screens",
+      "actions",
+      "design",
+      "nav",
+      "homeScreenId",
+      "format",
+      "triggers"
+    ],
+    "parts": {
+      "schemaVersion": "4e07408562bedb8b",
+      "meta": "b2e30b85408fe04e",
+      "theme": "0a016f574b05dad5",
+      "roles": "4f53cda18c2baa0c",
+      "variables": "46b587ec46d90c4a",
+      "screens[0] scr_ioorders": "3b33a22e12612491",
+      "screens[1] scr_ioorder": "2c8d10247257f742",
+      "screens[2] scr_ioprods": "7cfa04659d2e1e83",
+      "screens[3] scr_iolog": "9460cabdc1618354",
+      "screens[4] scr_iohelp": "e7240c58f20d3a47",
+      "actions.act_ioback": "38ce60071657755f",
+      "actions.act_ioopen": "d339e43bdf85c2c5",
+      "actions.act_iopicking": "13ac3c7ee3a726b4",
+      "actions.act_ioshipped": "a56f46eb34867a1c",
+      "actions.act_ioaddopen": "f03c79e67b76a936",
+      "actions.act_ioaddsave": "83f9bbea395b9cc9",
+      "actions.act_ioin": "c03b99e9e4a65c6b",
+      "actions.act_iolog": "04e4765f9644f437",
+      "design": "543700396f25c624",
+      "nav": "43d085ea3423eb5a",
+      "homeScreenId": "01e92a261f26cde3",
+      "format": "edf399999a4b6542",
+      "triggers": "a40861bd8e669d01"
+    }
+  },
+  "schemaVersion": {
+    "stored": 3,
+    "canonical": 3
+  },
+  "validation": {
+    "strict": {
+      "errors": [],
+      "warnings": []
+    },
+    "save": {
+      "errors": [],
+      "warnings": []
+    }
+  },
+  "ordinals": {
+    "stored": {
+      "act_ioback": [
+        "0 navigate"
+      ],
+      "act_ioopen": [
+        "0 set_variable",
+        "1 set_variable",
+        "2 set_variable",
+        "3 navigate"
+      ],
+      "act_iopicking": [
+        "0 update_record",
+        "1 toast",
+        "2 refresh"
+      ],
+      "act_ioshipped": [
+        "0 update_record",
+        "1 toast",
+        "2 refresh"
+      ],
+      "act_ioaddopen": [
+        "0 open_modal"
+      ],
+      "act_ioaddsave": [
+        "0 create_record",
+        "1 close_modal",
+        "2 toast",
+        "3 refresh"
+      ],
+      "act_ioin": [
+        "0 code",
+        "1 condition",
+        "2 try",
+        "3 create_record",
+        "4 call_action",
+        "5 call_action",
+        "6 call_action"
+      ],
+      "act_iolog": [
+        "0 create_record"
+      ]
+    },
+    "canonical": "same as stored"
+  },
+  "installHash": {
+    "stored": "1232bbef167c9e90e03737f57b93c99822495edbb55f6b395370070f6b8b415c",
+    "afterResave": "1232bbef167c9e90e03737f57b93c99822495edbb55f6b395370070f6b8b415c"
+  },
+  "reads": [
+    {
+      "at": "cmp_iostnew.value",
+      "kind": "aggregate",
+      "table": "tbl_ioord",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"orders\" WHERE (1=1) AND \"status\" = ? LIMIT ?",
+          "params": [
+            "received",
+            50
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"orders\" WHERE (1=1) AND \"status\" = ? LIMIT ?",
+          "params": [
+            "received",
+            50
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_iostpck.value",
+      "kind": "aggregate",
+      "table": "tbl_ioord",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"orders\" WHERE (1=1) AND \"status\" = ? LIMIT ?",
+          "params": [
+            "picking",
+            50
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"orders\" WHERE (1=1) AND \"status\" = ? LIMIT ?",
+          "params": [
+            "picking",
+            50
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_iostshp.value",
+      "kind": "aggregate",
+      "table": "tbl_ioord",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"orders\" WHERE (1=1) AND \"status\" = ? LIMIT ?",
+          "params": [
+            "shipped",
+            50
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"orders\" WHERE (1=1) AND \"status\" = ? LIMIT ?",
+          "params": [
+            "shipped",
+            50
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_iogrd.source",
+      "kind": "records",
+      "table": "tbl_ioord",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT *, (\"quantity\" * \"unit_price\") AS \"total\" FROM \"orders\" WHERE (1=1) ORDER BY \"received_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT *, (\"quantity\" * \"unit_price\") AS \"total\" FROM \"orders\" WHERE (1=1) ORDER BY \"received_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_iostep.source",
+      "kind": "records",
+      "table": "tbl_ioord",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT *, (\"quantity\" * \"unit_price\") AS \"total\" FROM \"orders\" WHERE (1=1) AND \"id\" = ? ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "",
+            2
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT *, (\"quantity\" * \"unit_price\") AS \"total\" FROM \"orders\" WHERE (1=1) AND \"id\" = ? ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "",
+            2
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_ioodet.source",
+      "kind": "record",
+      "table": "tbl_ioord",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT *, (\"quantity\" * \"unit_price\") AS \"total\" FROM \"orders\" WHERE (1=1) AND \"id\" = ? ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "",
+            51
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT *, (\"quantity\" * \"unit_price\") AS \"total\" FROM \"orders\" WHERE (1=1) AND \"id\" = ? ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "",
+            51
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_ioprep.source",
+      "kind": "records",
+      "table": "tbl_ioprod",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"products\" WHERE (1=1) AND \"id\" = ? ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "",
+            2
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"products\" WHERE (1=1) AND \"id\" = ? ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "",
+            2
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_iodlog.source",
+      "kind": "records",
+      "table": "tbl_iolog",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"deliveries\" WHERE (1=1) AND \"external_id\" = ? ORDER BY \"received_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "",
+            51
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"deliveries\" WHERE (1=1) AND \"external_id\" = ? ORDER BY \"received_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "",
+            51
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_ioprgrd.source",
+      "kind": "records",
+      "table": "tbl_ioprod",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"products\" WHERE (1=1) ORDER BY \"sku\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"products\" WHERE (1=1) ORDER BY \"sku\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_iologg.source",
+      "kind": "records",
+      "table": "tbl_iolog",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"deliveries\" WHERE (1=1) ORDER BY \"received_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            101
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"deliveries\" WHERE (1=1) ORDER BY \"received_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            101
+          ]
+        }
+      }
+    }
+  ]
+}

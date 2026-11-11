@@ -24,6 +24,8 @@
 
 'use strict';
 
+const { sameJsonValue } = require('../../shared/format/sameJsonValue.mjs');
+
 const ASSET_PREFIX = 'asset:';
 const ASSET_ID_MAX = 64;
 const ASSET_ID_CHARS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-';
@@ -100,8 +102,9 @@ function valueTypeOf(spec) {
 function isCleanValue(valueType, value, spec) {
     if (value === undefined || value === null) return false;
     const cleaned = valueType.clean(value, spec);
-    // An object or a list is clean when it cleans to the same JSON (the cleaner builds a new one).
-    return cleaned === value || (typeof value === 'object' && cleaned !== undefined && JSON.stringify(cleaned) === JSON.stringify(value));
+    // An object or a list is clean when it cleans to the same JSON (the cleaner builds a new one),
+    // whatever the order of its keys: JSONB hands a stored value back in another order.
+    return cleaned === value || (typeof value === 'object' && cleaned !== undefined && sameJsonValue(cleaned, value));
 }
 
 module.exports = { VALUE_TYPES, valueTypeOf, isCleanValue, isAssetRef };

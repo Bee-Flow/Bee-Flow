@@ -5,6 +5,7 @@ import { SelectField } from './panels/kit';
 import { STYLE_KNOBS, getKnobsForType, clampKnob, knobLabel, valueLabel } from './styleKnobMeta';
 import type { KnobSpec } from './styleKnobMeta.types';
 import TokenColorField from './TokenColorField';
+import { colourTokensOf } from './colourTokens';
 import useTranslation from '@/hooks/useTranslation';
 import type { TranslateParams } from '@/hooks/useTranslation';
 import ConfirmDialog from '@/components/shared/ConfirmDialog';
@@ -147,6 +148,7 @@ export default function MultiInspector({ definition, ids, onCommit, disabled, di
                                         value={mixed ? null : shared as string | null}
                                         onChange={(v) => commitKnob(knob, v)}
                                         themePrimary={(definition?.theme as { primary?: string; } | undefined)?.primary || null}
+                                        tokens={colourTokensOf(definition)}
                                         disabled={disabled}
                                     />
                                 </FormField>

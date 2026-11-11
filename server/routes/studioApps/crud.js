@@ -22,6 +22,7 @@ const { templateVersion } = require('../../appStudio/templates');
 const { resolveTemplate, templateResolverFor } = require('../../appStudio/templateRegistry');
 const { installTemplate } = require('../../appStudio/templateInstall');
 const { hashDefinition, annotateTemplateUpgrades } = require('../../appStudio/templateUpgrade');
+const { applyCopiedAssets } = require('../../appStudio/portableAssetStore.mts');
 const studioAppQuota = require('../../appStudio/studioAppQuota');
 const { DATA_LIMITS } = require('../../appStudio/dataModel');
 // requireAuth is the canonical gate from auth/permissions (verifies the
@@ -183,7 +184,14 @@ router.post('/', requireAuth, requireManageApps, validate({ body: CreateAppBody 
         }
     }
 
-    res.json({ success: true, app: sanitizeAppRow(app), ...(dataInstall ? { dataInstall } : {}), ...(findings ? { findings } : {}) });
+    // The template's uploaded files go into the new app, which then refers to their ids there.
+    const carried = template && template.assets
+        ? await applyCopiedAssets({ app, definition, assets: template.assets, templateVersion: templateVersion(template) })
+        : null;
+    if (carried && carried.report) Object.assign(app, { definition: carried.definition, templateInstallHash: hashDefinition(carried.definition) });
+    const assets = carried && carried.report;
+
+    res.json({ success: true, app: sanitizeAppRow(app), ...(dataInstall ? { dataInstall } : {}), ...(findings ? { findings } : {}), ...(assets ? { assets } : {}) });
 });
 
 router.get('/:id', requireAuth, async (req, res) => {

@@ -137,6 +137,24 @@ const TEMPLATES = [
     // `replace-me-` placeholders — see the module header.
     // ------------------------------------------------------------------
     require('./templates/appInvoiceApprovals'),
+
+    // ------------------------------------------------------------------
+    // 22-25. The SCHEMA-3 set.
+    //
+    // Every template above is stored at schema version 2 and stays byte for
+    // byte as it is: apps installed from them upgrade by hash, and their
+    // definitions are in the compatibility corpus. These four start from what
+    // version 3 added instead: relations with lookups and rollups, column
+    // rights, item templates, conditional style, wizards, public intake with
+    // record triggers, runs on the server that wait for an approval or a
+    // moment, schedule and webhook triggers, code steps, the new chart kinds,
+    // themes per screen and value formatting. Each is stored at schema 3 and
+    // arms nothing on install: a trigger only runs once the app is published.
+    // ------------------------------------------------------------------
+    require('./templates/appFieldService'),
+    require('./templates/appRequestApproval'),
+    require('./templates/appSalesDashboard'),
+    require('./templates/appInboundOrders'),
 ];
 
 /**

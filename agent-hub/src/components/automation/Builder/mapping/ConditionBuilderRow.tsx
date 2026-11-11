@@ -14,7 +14,7 @@ import { fieldShape, singularKey } from '@shared/expr/rules.mjs';
 import { Trash2 } from 'lucide-react';
 import type { ComponentType } from 'react';
 import BindingFieldJs from './BindingField';
-import ConditionValueSlot, { type Binding } from './ConditionBuilderValueSlot';
+import ConditionValueSlot, { type Binding, type ValueChoice } from './ConditionBuilderValueSlot';
 import FieldPickerJs from './FieldPicker';
 import { FileTypeSelect, QuantifierSelect } from './RuleRowParts';
 import type { TopicsCapability } from './TopicNotice';
@@ -41,7 +41,11 @@ export interface RuleRow {
     keepBlank?: boolean;
 }
 
-export interface FieldOption { path: string; label?: string; sample?: unknown; group?: string }
+export interface FieldOption {
+    path: string; label?: string; sample?: unknown; group?: string;
+    /** The field's own literal values (a radio or select input), offered on the right of an is / is not row. */
+    valueOptions?: ValueChoice[];
+}
 
 interface Props {
     row: RuleRow;
@@ -223,7 +227,10 @@ function RowField({ row, fieldOptions, fieldBase, simple, rawField, context, pla
 }
 
 /** The right side: a file type, a topic, nothing (unary), or a typed value. */
-function RowValue({ row, type, previewSample, onFocusField, onReplace }: Props & { type: string }) {
+/** Ops that compare the field with one of its own values. */
+const CHOICE_OPS = new Set<string | undefined>(['is', 'isNot', 'eq', 'neq']);
+
+function RowValue({ row, type, previewSample, fieldOptions, onFocusField, onReplace }: Props & { type: string }) {
     const { t } = useTranslation();
     if (isTopicOp(row.op)) {
         return <TopicValueSlot value={row.value} threshold={row.threshold} onChange={(patch: TopicRowPatch) => onReplace({ ...row, ...patch } as RuleRow)} />;
@@ -234,6 +241,7 @@ function RowValue({ row, type, previewSample, onFocusField, onReplace }: Props &
         <ConditionValueSlot
             type={type}
             value={row.value}
+            choices={CHOICE_OPS.has(row.op) && row.field?.kind === 'ref' ? fieldOptions?.find((o) => o.path === row.field?.path)?.valueOptions : null}
             onChange={(value) => onReplace({ ...row, value })}
             onFocusField={onFocusField}
             previewSample={previewSample}

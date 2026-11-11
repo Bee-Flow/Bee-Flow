@@ -9,6 +9,7 @@ import Toggle from '@/components/shared/Toggle';
 import AccordionSection from '@/components/automation/Builder/flow/AccordionSection';
 import FormulaField from './logic/FormulaField';
 import StudioScopeProvider from './logic/StudioScopeProvider';
+import SectionThemeFields from './SectionThemeFields';
 import StyleSection from './StyleSection';
 import { TextField } from './panels/kit';
 import { sectionLabel } from '../editor/sectionLabel';
@@ -223,6 +224,9 @@ export default function SectionInspector(props: SectionInspectorProps) {
                     <SectionLookFields {...part} />
                     <SectionVisibilityFields {...part} />
                 </div>
+            </AccordionSection>
+            <AccordionSection stepType="appstudio.section" sectionKey="theme" title={t('studio_apps_w3d.section_theme.title', 'Theme of this section')} defaultOpen={!!(section as { theme?: unknown }).theme}>
+                <SectionThemeFields definition={definition} section={section} onCommit={onCommit} disabled={disabled} />
             </AccordionSection>
             <AccordionSection stepType="appstudio.section" sectionKey="style" title={t('app_studio.inspector.style', 'Style')} defaultOpen>
                 <StyleSection definition={definition} sectionId={section.id as string} onCommit={onCommit} disabled={disabled} />

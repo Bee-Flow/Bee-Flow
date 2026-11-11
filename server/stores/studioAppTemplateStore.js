@@ -115,6 +115,7 @@ function mapRow(row, { includePayload = true } = {}) {
         ...(payload.dataModel ? { dataModel: payload.dataModel } : {}),
         ...(payload.seed ? { seed: payload.seed } : {}),
         ...(payload.datasets ? { datasets: payload.datasets } : {}),
+        ...(Array.isArray(payload.assets) && payload.assets.length ? { assets: payload.assets } : {}),
     };
 }
 
@@ -139,7 +140,10 @@ async function saveTemplate({
     if (!payload || typeof payload !== 'object') throw new Error('payload is required');
 
     const json = JSON.stringify(payload);
-    if (Buffer.byteLength(json, 'utf8') > MAX_TEMPLATE_BYTES) {
+    // The uploaded files have a budget of their own, checked when they were captured
+    // (appStudio/portableAssets.mts); the ceiling is everything else.
+    const measured = payload.assets === undefined ? json : JSON.stringify({ ...payload, assets: undefined });
+    if (Buffer.byteLength(measured, 'utf8') > MAX_TEMPLATE_BYTES) {
         throw new Error(`Template payload exceeds ${MAX_TEMPLATE_BYTES} bytes`);
     }
 

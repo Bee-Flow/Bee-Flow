@@ -100,10 +100,10 @@ function isWritableField(field: { type?: string | number }) {
 }
 
 /** Build one form input node for a table field (null for non-writable fields). */
-function buildInputNode(field: ImportField & { relation?: { table: string } }, taken: Set<string>) {
+function buildInputNode(field: ImportField & { relation?: { table: string; many?: unknown } }, taken: Set<string>) {
     const type = FIELD_INPUT_TYPE[field.type ?? ''];
     if (!type) return null;
-    const props: { name: string; label: string; required?: boolean; options?: { value: string; label: string; }[]; tableId?: string | null } = { name: field.key, label: field.name || field.key };
+    const props: { name: string; label: string; required?: boolean; options?: { value: string; label: string; }[]; tableId?: string | null; multiple?: boolean } = { name: field.key, label: field.name || field.key };
     // Only stamp `required` where the component supports it (checkbox has none).
     if (type !== 'input_checkbox') props.required = !!field.required;
     if (type === 'input_select' || type === 'input_multiselect') {
@@ -111,6 +111,9 @@ function buildInputNode(field: ImportField & { relation?: { table: string } }, t
     }
     if (type === 'input_relation') {
         props.tableId = (field.relation && field.relation.table) || null;
+        // A many relation (relation.many) is written as a list of record ids: the picker takes
+        // several rows, or the form sends one id and the write refuses it.
+        if (field.relation?.many === true) props.multiple = true;
     }
     return makeNode(type, taken, props);
 }

@@ -37,11 +37,11 @@ import { mergeRecord, ScreenshotFrame, type ScreenshotView } from './appRuntimeS
  *     the `screenshot` payload the render service sends) adds one with every
  *     query disabled, so input_dataset renders there instead of crashing.
  *   - runAction is a no-op — a screenshot must never fire an action.
- *   - AppFontLoader is deliberately NOT rendered (it injects Google Fonts
- *     <link>s). The self-hosted families are declared by the imported
+ *   - AppFontLoader is deliberately NOT rendered, so the frozen screenshots
+ *     keep their look. The self-hosted families are declared by the imported
  *     self-hosted-fonts.css and served in-process by the render service;
- *     Geist, IBM Plex Sans and Poppins have no local files and fall back to
- *     their stacks' local entries.
+ *     Geist, IBM Plex Sans and Poppins (declared by the loader's own
+ *     designFonts.css) fall back to their stacks' local entries here.
  */
 
 const noop = () => {};

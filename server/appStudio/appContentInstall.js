@@ -57,6 +57,7 @@
 const actionExecutor = require('./actionExecutor');
 const mailboxAttachments = require('./mailboxAttachments');
 const { orderTablesByDependency, resolveSeedRow } = require('./templateInstall');
+const { splitSeedLinks, resolveLinks } = require('./seedLinks.mts');
 
 /**
  * @param {object | null} v
@@ -138,15 +139,17 @@ async function installAppContent({ app, model, content, deps = {} } = {}) {
     for (const table of orderTablesByDependency(model)) {
         const list = Array.isArray(records[table.id]) ? records[table.id] : [];
         for (const row of list) {
-            const { alias, values } = resolveSeedRow(row, refMap);
+            const { alias, values: resolved } = resolveSeedRow(row, refMap);
+            // Many-relation links wait for pass 3 too: they may point at a row written later.
+            const { values, links } = splitSeedLinks(table, resolved);
             const { plain, fileRefs } = splitFileValues(values);
             try {
                 const { id } = await write(app, model, table, plain, { viewer });
                 rows += 1;
                 if (alias && id) { refMap.set(alias, id); aliasTable.set(alias, table); }
                 const keys = Object.keys(fileRefs);
-                if (!keys.length || !id) continue;
-                pending.push({ table, recordId: id, fileRefs });
+                if (!id || (!keys.length && !Object.keys(links).length)) continue;
+                pending.push({ table, recordId: id, fileRefs, links });
                 for (const key of keys) {
                     if (!firstSeen.has(fileRefs[key])) firstSeen.set(fileRefs[key], { recordId: id, fieldKey: key });
                 }
@@ -203,9 +206,9 @@ async function installAppContent({ app, model, content, deps = {} } = {}) {
     }
     if (fileFailures > MAX_NAMED_SKIPS) skipped.push(`…and ${fileFailures - MAX_NAMED_SKIPS} more file(s) skipped.`);
 
-    // ── Pass 3: the file columns ──────────────────────────────────────
-    for (const { table, recordId, fileRefs } of pending) {
-        const values = {};
+    // ── Pass 3: the file columns and the many-relation links ──────────
+    for (const { table, recordId, fileRefs, links } of pending) {
+        const values = { ...resolveLinks(links, refMap) };
         for (const [key, ref] of Object.entries(fileRefs)) {
             const descriptor = descriptors.get(ref);
             // No descriptor means pass 2 refused those bytes. The column stays

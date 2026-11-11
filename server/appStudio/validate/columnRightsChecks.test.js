@@ -54,11 +54,14 @@ test('a step that writes a field some role may not write, and a projection that 
     assert.match(projected.message, /names field "review", which "member", "public" may not read: it is left out for them/);
 });
 
-test('without column rights in the model: no map, no finding, for every other corpus app', () => {
+test('without column rights in the model: no map, no finding, for every corpus app that sets none', () => {
     const dir = path.join(__dirname, '../compat/corpus');
-    for (const file of fs.readdirSync(dir).filter((f) => f.endsWith('.json') && f !== 'column-rights.json')) {
+    // The corpus apps of templates built on schema 3 may set column rights (field.access) too.
+    const setsRights = (model) => (model?.tables || []).some((t) => (t.fields || []).some((f) => f && f.access));
+    for (const file of fs.readdirSync(dir).filter((f) => f.endsWith('.json'))) {
         const app = JSON.parse(fs.readFileSync(path.join(dir, file), 'utf8'));
-        assert.equal(buildRestrictedFields(app.dataModel), null, file);
+        if (setsRights(app.dataModel)) assert.notEqual(buildRestrictedFields(app.dataModel), null, file);
+        else assert.equal(buildRestrictedFields(app.dataModel), null, file);
     }
     assert.equal(buildRestrictedFields(undefined), null);
     assert.equal(buildRestrictedFields(null), null);

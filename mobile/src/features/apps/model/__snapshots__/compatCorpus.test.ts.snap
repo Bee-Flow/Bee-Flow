@@ -6687,6 +6687,483 @@ exports[`compat corpus: what the phone plans for every stored app template-event
 }
 `;
 
+exports[`compat corpus: what the phone plans for every stored app template-field-service 1`] = `
+{
+  "defaultScreen": "scr_fsboard",
+  "navigable": [
+    "scr_fsboard",
+    "scr_fsjobs",
+    "scr_fsbook",
+    "scr_fsteam",
+  ],
+  "screens": [
+    {
+      "id": "scr_fsboard",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "divider": false,
+                "id": "cmp_fsph",
+                "kind": "page_header",
+                "subtitle": "Every open job, by status. Drag a card to move it on.",
+                "title": "Field service",
+              },
+            ],
+            "screen": "scr_fsboard",
+            "unsupported": [
+              "stat",
+              "kanban (browser-only)",
+            ],
+          },
+          "roles": [
+            "(no role)",
+            "technician",
+          ],
+        },
+        {
+          "plan": {
+            "blocks": [
+              {
+                "divider": false,
+                "id": "cmp_fsph",
+                "kind": "page_header",
+                "subtitle": "Every open job, by status. Drag a card to move it on.",
+                "title": "Field service",
+              },
+              {
+                "action": {
+                  "actionId": "act_fsgobook",
+                  "kind": "navigate",
+                  "label": "Book a job",
+                  "runnable": false,
+                },
+                "id": "cmp_fsbook",
+                "kind": "button",
+              },
+            ],
+            "screen": "scr_fsboard",
+            "unsupported": [
+              "stat",
+              "kanban (browser-only)",
+            ],
+          },
+          "roles": [
+            "planner",
+          ],
+        },
+      ],
+    },
+    {
+      "id": "scr_fsjobs",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "id": "cmp_fsjh",
+                "kind": "heading",
+                "level": 1,
+                "text": "All jobs",
+              },
+            ],
+            "screen": "scr_fsjobs",
+            "unsupported": [
+              "filter_bar",
+              "data_grid",
+            ],
+          },
+          "roles": [
+            "(no role)",
+            "planner",
+            "technician",
+          ],
+        },
+      ],
+    },
+    {
+      "id": "scr_fsjob",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "action": {
+                  "actionId": "act_fsback",
+                  "kind": "navigate",
+                  "label": "Back to the board",
+                  "runnable": false,
+                },
+                "id": "cmp_fsjback",
+                "kind": "button",
+              },
+              {
+                "action": {
+                  "actionId": "act_fsdone",
+                  "kind": "sequence",
+                  "label": "Mark as done",
+                  "runnable": false,
+                },
+                "id": "cmp_fsjdone",
+                "kind": "button",
+              },
+            ],
+            "screen": "scr_fsjob",
+            "unsupported": [
+              "record_detail",
+            ],
+          },
+          "roles": [
+            "(no role)",
+            "planner",
+            "technician",
+          ],
+        },
+      ],
+    },
+    {
+      "id": "scr_fsbook",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "id": "cmp_fsbh",
+                "kind": "heading",
+                "level": 1,
+                "text": "Book a job",
+              },
+              {
+                "action": {
+                  "actionId": "act_fsbooksave",
+                  "kind": "sequence",
+                  "label": "Submit",
+                  "runnable": false,
+                },
+                "description": null,
+                "id": "cmp_fsbfrm",
+                "inputs": [
+                  {
+                    "initial": null,
+                    "inputType": "text",
+                    "label": "What needs doing",
+                    "max": null,
+                    "min": null,
+                    "name": "title",
+                    "nodeId": "cmp_fsbttl",
+                    "options": [],
+                    "placeholder": "Replace the fuse box",
+                    "required": true,
+                    "rows": 4,
+                    "type": "input_text",
+                  },
+                  {
+                    "initial": "2026-01-15",
+                    "inputType": "text",
+                    "label": "Planned for",
+                    "max": null,
+                    "min": null,
+                    "name": "scheduled_on",
+                    "nodeId": "cmp_fsbpln",
+                    "options": [],
+                    "placeholder": null,
+                    "required": false,
+                    "rows": 4,
+                    "type": "input_date",
+                  },
+                  {
+                    "initial": null,
+                    "inputType": "text",
+                    "label": "Due",
+                    "max": null,
+                    "min": null,
+                    "name": "due_on",
+                    "nodeId": "cmp_fsbdue",
+                    "options": [],
+                    "placeholder": null,
+                    "required": true,
+                    "rows": 4,
+                    "type": "input_date",
+                  },
+                  {
+                    "initial": null,
+                    "inputType": "text",
+                    "label": "Price (EUR)",
+                    "max": null,
+                    "min": 0,
+                    "name": "price",
+                    "nodeId": "cmp_fsbprc",
+                    "options": [],
+                    "placeholder": null,
+                    "required": false,
+                    "rows": 4,
+                    "type": "input_number",
+                  },
+                  {
+                    "initial": null,
+                    "inputType": "text",
+                    "label": "Notes for the technician",
+                    "max": null,
+                    "min": null,
+                    "name": "notes",
+                    "nodeId": "cmp_fsbnot",
+                    "options": [],
+                    "placeholder": null,
+                    "required": false,
+                    "rows": 3,
+                    "type": "input_textarea",
+                  },
+                ],
+                "kind": "form",
+                "submitLabel": "Book the job",
+                "title": "booking",
+              },
+            ],
+            "screen": "scr_fsbook",
+            "unsupported": [
+              "input_relation",
+              "radio (browser-only)",
+              "slider (browser-only)",
+            ],
+          },
+          "roles": [
+            "(no role)",
+            "planner",
+            "technician",
+          ],
+        },
+      ],
+    },
+    {
+      "id": "scr_fsteam",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [],
+            "screen": "scr_fsteam",
+            "unsupported": [
+              "data_grid",
+            ],
+          },
+          "roles": [
+            "(no role)",
+            "technician",
+          ],
+        },
+        {
+          "plan": {
+            "blocks": [],
+            "screen": "scr_fsteam",
+            "unsupported": [
+              "data_grid",
+              "table",
+            ],
+          },
+          "roles": [
+            "planner",
+          ],
+        },
+      ],
+    },
+  ],
+}
+`;
+
+exports[`compat corpus: what the phone plans for every stored app template-inbound-orders 1`] = `
+{
+  "defaultScreen": "scr_ioorders",
+  "navigable": [
+    "scr_ioorders",
+    "scr_ioprods",
+  ],
+  "screens": [
+    {
+      "id": "scr_ioorders",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "divider": false,
+                "id": "cmp_ioph",
+                "kind": "page_header",
+                "subtitle": "Everything the connected systems sent, newest first.",
+                "title": "Orders",
+              },
+            ],
+            "screen": "scr_ioorders",
+            "unsupported": [
+              "stat",
+              "data_grid",
+            ],
+          },
+          "roles": [
+            "(no role)",
+          ],
+        },
+      ],
+    },
+    {
+      "id": "scr_ioorder",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "action": {
+                  "actionId": "act_ioback",
+                  "kind": "navigate",
+                  "label": "All orders",
+                  "runnable": false,
+                },
+                "id": "cmp_ioback",
+                "kind": "button",
+              },
+              {
+                "action": {
+                  "actionId": "act_iopicking",
+                  "kind": "sequence",
+                  "label": "Start picking",
+                  "runnable": false,
+                },
+                "id": "cmp_iopick",
+                "kind": "button",
+              },
+              {
+                "action": {
+                  "actionId": "act_ioshipped",
+                  "kind": "sequence",
+                  "label": "Mark shipped",
+                  "runnable": false,
+                },
+                "id": "cmp_ioship",
+                "kind": "button",
+              },
+              {
+                "id": "cmp_iopnm",
+                "kind": "heading",
+                "level": 2,
+                "text": "Product",
+              },
+              {
+                "id": "cmp_iopsku",
+                "kind": "text",
+                "muted": true,
+                "text": "SKU",
+              },
+              {
+                "id": "cmp_iopdsc",
+                "kind": "text",
+                "muted": false,
+                "text": "Description",
+              },
+              {
+                "id": "cmp_iopstk",
+                "kind": "text",
+                "muted": false,
+                "text": "Stock",
+              },
+            ],
+            "screen": "scr_ioorder",
+            "unsupported": [
+              "tabs",
+              "tab",
+              "repeater",
+              "stepper",
+              "record_detail",
+              "carousel (browser-only)",
+              "image",
+              "table",
+            ],
+          },
+          "roles": [
+            "(no role)",
+          ],
+        },
+      ],
+    },
+    {
+      "id": "scr_ioprods",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "divider": false,
+                "id": "cmp_ioprh",
+                "kind": "page_header",
+                "subtitle": "An order is filed only when its SKU is one of these.",
+                "title": "Products",
+              },
+              {
+                "action": {
+                  "actionId": "act_ioaddopen",
+                  "kind": "open_modal",
+                  "label": "Add a product",
+                  "runnable": false,
+                },
+                "id": "cmp_ioaddp",
+                "kind": "button",
+              },
+            ],
+            "screen": "scr_ioprods",
+            "unsupported": [
+              "data_grid",
+              "modal",
+            ],
+          },
+          "roles": [
+            "(no role)",
+          ],
+        },
+      ],
+    },
+    {
+      "id": "scr_iolog",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "id": "cmp_iologh",
+                "kind": "heading",
+                "level": 1,
+                "text": "Every delivery, filed or not",
+              },
+            ],
+            "screen": "scr_iolog",
+            "unsupported": [
+              "data_grid",
+            ],
+          },
+          "roles": [
+            "(no role)",
+          ],
+        },
+      ],
+    },
+    {
+      "id": "scr_iohelp",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [],
+            "screen": "scr_iohelp",
+            "unsupported": [
+              "markdown",
+            ],
+          },
+          "roles": [
+            "(no role)",
+          ],
+        },
+      ],
+    },
+  ],
+}
+`;
+
 exports[`compat corpus: what the phone plans for every stored app template-invoice-approvals 1`] = `
 {
   "defaultScreen": "scr_iahome",
@@ -10684,6 +11161,282 @@ exports[`compat corpus: what the phone plans for every stored app template-quote
 }
 `;
 
+exports[`compat corpus: what the phone plans for every stored app template-request-approval 1`] = `
+{
+  "defaultScreen": "scr_rareview",
+  "navigable": [
+    "scr_rareview",
+    "scr_rahelp",
+  ],
+  "screens": [
+    {
+      "id": "scr_raform",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "divider": false,
+                "id": "cmp_raphero",
+                "kind": "page_header",
+                "subtitle": "Tell us what it is, what it costs and when you need it. We get back to you within two working days.",
+                "title": "Ask for what you need",
+              },
+              {
+                "action": {
+                  "actionId": "act_rasubmit",
+                  "kind": "sequence",
+                  "label": "Submit",
+                  "runnable": false,
+                },
+                "description": null,
+                "id": "cmp_rafrm",
+                "inputs": [
+                  {
+                    "initial": null,
+                    "inputType": "text",
+                    "label": "What do you need?",
+                    "max": null,
+                    "min": null,
+                    "name": "title",
+                    "nodeId": "cmp_rafttl",
+                    "options": [],
+                    "placeholder": "A second monitor",
+                    "required": true,
+                    "rows": 4,
+                    "type": "input_text",
+                  },
+                  {
+                    "initial": 0,
+                    "inputType": "text",
+                    "label": "Amount (EUR)",
+                    "max": 100000,
+                    "min": 0,
+                    "name": "amount",
+                    "nodeId": "cmp_rafamt",
+                    "options": [],
+                    "placeholder": null,
+                    "required": false,
+                    "rows": 4,
+                    "type": "input_number",
+                  },
+                  {
+                    "initial": null,
+                    "inputType": "text",
+                    "label": "Needed by",
+                    "max": null,
+                    "min": null,
+                    "name": "needed_by",
+                    "nodeId": "cmp_rafneed",
+                    "options": [],
+                    "placeholder": null,
+                    "required": false,
+                    "rows": 4,
+                    "type": "input_date",
+                  },
+                  {
+                    "initial": null,
+                    "inputType": "text",
+                    "label": "Anything we should know",
+                    "max": null,
+                    "min": null,
+                    "name": "details",
+                    "nodeId": "cmp_rafdet",
+                    "options": [],
+                    "placeholder": null,
+                    "required": false,
+                    "rows": 4,
+                    "type": "input_textarea",
+                  },
+                  {
+                    "initial": null,
+                    "inputType": "text",
+                    "label": "Your name",
+                    "max": null,
+                    "min": null,
+                    "name": "requester_name",
+                    "nodeId": "cmp_rafnam",
+                    "options": [],
+                    "placeholder": null,
+                    "required": true,
+                    "rows": 4,
+                    "type": "input_text",
+                  },
+                  {
+                    "initial": null,
+                    "inputType": "email",
+                    "label": "Your e-mail address",
+                    "max": null,
+                    "min": null,
+                    "name": "requester_email",
+                    "nodeId": "cmp_rafml",
+                    "options": [],
+                    "placeholder": null,
+                    "required": true,
+                    "rows": 4,
+                    "type": "input_text",
+                  },
+                ],
+                "kind": "form",
+                "submitLabel": "Send my request",
+                "title": "request",
+              },
+            ],
+            "screen": "scr_raform",
+            "unsupported": [
+              "radio (browser-only)",
+            ],
+          },
+          "roles": [
+            "(no role)",
+            "reviewer",
+          ],
+        },
+      ],
+    },
+    {
+      "id": "scr_rathanks",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "id": "cmp_rathh",
+                "kind": "heading",
+                "level": 1,
+                "text": "Thank you, your request is in",
+              },
+              {
+                "body": "Your request has been sorted already. A reviewer looks at it within two working days and you hear from us by e-mail.",
+                "id": "cmp_rathtx",
+                "kind": "callout",
+                "title": "What happens now",
+                "tone": "success",
+              },
+              {
+                "id": "cmp_rafaqh",
+                "kind": "heading",
+                "level": 2,
+                "text": "Questions people ask",
+              },
+              {
+                "id": "cmp_rafaqa1",
+                "kind": "text",
+                "muted": false,
+                "text": "It is checked and sorted straight away, and a reviewer looks at it within two working days.",
+              },
+              {
+                "id": "cmp_rafaqa2",
+                "kind": "text",
+                "muted": false,
+                "text": "Yes. You hear from the team at the e-mail address you gave, whatever the decision.",
+              },
+              {
+                "id": "cmp_rafaqa3",
+                "kind": "text",
+                "muted": false,
+                "text": "Send a new request that names the first one. The team keeps the two together.",
+              },
+              {
+                "id": "cmp_rafaqa4",
+                "kind": "text",
+                "muted": false,
+                "text": "Only the reviewers of this app. Nobody who opens this page sees anything that others have sent.",
+              },
+              {
+                "action": {
+                  "actionId": "act_raagain",
+                  "kind": "navigate",
+                  "label": "Send another request",
+                  "runnable": false,
+                },
+                "id": "cmp_raagain",
+                "kind": "button",
+              },
+            ],
+            "screen": "scr_rathanks",
+            "unsupported": [
+              "accordion (browser-only)",
+            ],
+          },
+          "roles": [
+            "(no role)",
+            "reviewer",
+          ],
+        },
+      ],
+    },
+    {
+      "id": "scr_rareview",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "divider": false,
+                "id": "cmp_rarvph",
+                "kind": "page_header",
+                "subtitle": "Pick a request, read its triage and send it for a decision.",
+                "title": "Requests",
+              },
+            ],
+            "screen": "scr_rareview",
+            "unsupported": [
+              "badge_list",
+              "data_grid",
+              "container",
+              "approval_list",
+            ],
+          },
+          "roles": [
+            "(no role)",
+            "reviewer",
+          ],
+        },
+      ],
+    },
+    {
+      "id": "scr_rahelp",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "id": "cmp_rahlpa1",
+                "kind": "text",
+                "muted": false,
+                "text": "Publish the app and share the link of its public page. The page is the request form and the thank-you page, nothing else.",
+              },
+              {
+                "id": "cmp_rahlpa2",
+                "kind": "text",
+                "muted": false,
+                "text": "Without an approver set on the approval step, the owner of the app decides. Set a person or a group on the step to change that.",
+              },
+              {
+                "id": "cmp_rahlpa3",
+                "kind": "text",
+                "muted": false,
+                "text": "The approver is reminded after a day. After five days the request closes as expired and the requester can send it again.",
+              },
+            ],
+            "screen": "scr_rahelp",
+            "unsupported": [
+              "markdown",
+              "accordion (browser-only)",
+            ],
+          },
+          "roles": [
+            "(no role)",
+            "reviewer",
+          ],
+        },
+      ],
+    },
+  ],
+}
+`;
+
 exports[`compat corpus: what the phone plans for every stored app template-request-form 1`] = `
 {
   "defaultScreen": "scr_reqhome",
@@ -10843,6 +11596,139 @@ exports[`compat corpus: what the phone plans for every stored app template-reque
             ],
             "screen": "scr_reqdone",
             "unsupported": [],
+          },
+          "roles": [
+            "(no role)",
+          ],
+        },
+      ],
+    },
+  ],
+}
+`;
+
+exports[`compat corpus: what the phone plans for every stored app template-sales-dashboard 1`] = `
+{
+  "defaultScreen": "scr_sdover",
+  "navigable": [
+    "scr_sdover",
+    "scr_sdwall",
+    "scr_sdacct",
+  ],
+  "screens": [
+    {
+      "id": "scr_sdover",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "divider": false,
+                "id": "cmp_sdph",
+                "kind": "page_header",
+                "subtitle": "Revenue, pipeline and wins for the period you pick.",
+                "title": "Sales",
+              },
+              {
+                "action": null,
+                "description": null,
+                "id": "cmp_sdpfrm",
+                "inputs": [
+                  {
+                    "initial": "90",
+                    "inputType": "text",
+                    "label": "Period",
+                    "max": null,
+                    "min": null,
+                    "name": "period",
+                    "nodeId": "cmp_sdpsel",
+                    "options": [
+                      {
+                        "label": "Last 30 days",
+                        "value": "30",
+                      },
+                      {
+                        "label": "Last 90 days",
+                        "value": "90",
+                      },
+                      {
+                        "label": "Last 6 months",
+                        "value": "180",
+                      },
+                      {
+                        "label": "Last 12 months",
+                        "value": "365",
+                      },
+                    ],
+                    "placeholder": null,
+                    "required": false,
+                    "rows": 4,
+                    "type": "input_select",
+                  },
+                ],
+                "kind": "form",
+                "submitLabel": "Submit",
+                "title": "period",
+              },
+            ],
+            "screen": "scr_sdover",
+            "unsupported": [
+              "stat",
+              "chart",
+              "gauge (browser-only)",
+              "table",
+            ],
+          },
+          "roles": [
+            "(no role)",
+          ],
+        },
+      ],
+    },
+    {
+      "id": "scr_sdwall",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "id": "cmp_sdwh",
+                "kind": "heading",
+                "level": 1,
+                "text": "Pipeline",
+              },
+            ],
+            "screen": "scr_sdwall",
+            "unsupported": [
+              "stat",
+              "chart",
+            ],
+          },
+          "roles": [
+            "(no role)",
+          ],
+        },
+      ],
+    },
+    {
+      "id": "scr_sdacct",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "id": "cmp_sdah",
+                "kind": "heading",
+                "level": 1,
+                "text": "Accounts",
+              },
+            ],
+            "screen": "scr_sdacct",
+            "unsupported": [
+              "tree (browser-only)",
+              "record_detail",
+              "data_grid",
+            ],
           },
           "roles": [
             "(no role)",

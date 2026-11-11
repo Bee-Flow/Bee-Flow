@@ -161,7 +161,7 @@ jobs:
               - 'server/appStudio/{designTokens,navShell}.mts'
               - 'server/appStudio/appFontRoles.js'
               # required by componentSpecs/objectShapes.js (value formatting), and what it requires
-              - 'server/shared/format/{formatClean,datePattern}.mjs'
+              - 'server/shared/format/{formatClean,datePattern,sameJsonValue}.mjs'
               # read as text by src/features/app-studio/core/runtime/stepIndex.lockstep.test.ts (the server's step walk)
               - 'server/appStudio/actionSequence.js'
               # read as text by src/features/apps/model/compatCorpus.test.ts (the stored apps the phone plans)

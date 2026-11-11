@@ -21,6 +21,7 @@ const { canonicalizeAppDefinition } = require('./canonicalize');
 const { validateAppDefinition } = require('./validate');
 const { canonicalizeDataModel, validateDataModel, SYSTEM_COLUMNS } = require('./dataModel');
 const { LIMITS, DATA_MUTATING_STEP_KINDS } = require('./componentSpecs');
+const { isManyRelation } = require('./seedLinks.mts');
 
 // The canonical model a data-backed template installs (templateInstall runs
 // canonicalizeDataModel before saveDataModel) — validation cross-checks the
@@ -43,7 +44,7 @@ test('template ids are unique and metadata is complete', () => {
             assert.ok(typeof t[key] === 'string' && t[key].length > 0, `${t.id}: missing ${key}`);
         }
         assert.ok(Array.isArray(t.tags) && t.tags.length > 0, `${t.id}: missing tags`);
-        assert.ok(t.definition && [1, 2].includes(t.definition.schemaVersion), `${t.id}: bad definition`);
+        assert.ok(t.definition && [1, 2, 3].includes(t.definition.schemaVersion), `${t.id}: bad definition`);
     }
 });
 
@@ -95,8 +96,10 @@ test('there are data-backed templates to exercise the catalog', () => {
 });
 
 // A tiny seed validator: every row key is a real field key (or the `$id`
-// alias), and every value conforms to its field type.
-function assertSeedRowConforms(t, table, row, aliasesSeen) {
+// alias), and every value conforms to its field type. A many relation is a
+// list of { $ref } the installer links once every row exists (seedLinks.mts),
+// so its refs may point at any row of the seed (`allAliases`).
+function assertSeedRowConforms(t, table, row, aliasesSeen, allAliases) {
     const fieldByKey = new Map((table.fields || []).map((f) => [f.key, f]));
     for (const [key, value] of Object.entries(row)) {
         if (key === '$id') {
@@ -109,7 +112,11 @@ function assertSeedRowConforms(t, table, row, aliasesSeen) {
         assert.ok(field, `${t.id}/${table.key}: seed key "${key}" is not a field`);
         if (value === null || value === undefined) continue;
 
-        if (field.type === 'relation') {
+        if (field.type === 'relation' && isManyRelation(field)) {
+            assert.ok(Array.isArray(value) && value.every((v) => v && typeof v === 'object' && typeof v.$ref === 'string'),
+                `${t.id}/${table.key}.${key}: a many-relation seed must be [{ $ref }] (got ${JSON.stringify(value)})`);
+            for (const { $ref } of value) assert.ok(allAliases.has($ref), `${t.id}/${table.key}.${key}: link $ref "${$ref}" points at no row of the seed`);
+        } else if (field.type === 'relation') {
             assert.ok(value && typeof value === 'object' && typeof value.$ref === 'string',
                 `${t.id}/${table.key}.${key}: relation seed must be { $ref } (got ${JSON.stringify(value)})`);
             assert.ok(aliasesSeen.has(value.$ref),
@@ -148,13 +155,14 @@ for (const t of DATA_TEMPLATES) {
         // may only point at a row seeded in an EARLIER (parent) table.
         const { _orderTablesByDependency, MAX_SEED_ROWS_PER_TABLE } = require('./templateInstall');
         const aliasesSeen = new Set();
+        const allAliases = new Set(Object.values(seed).flat().map((row) => row && row.$id).filter((a) => typeof a === 'string'));
         for (const table of _orderTablesByDependency(model)) {
             const rows = Array.isArray(seed[table.id]) ? seed[table.id] : [];
             // The INSTALLER's ceiling, not a copy of it: installTemplate
             // slice()s at this number, so any row past it silently vanishes.
             assert.ok(rows.length <= MAX_SEED_ROWS_PER_TABLE, `${t.id}/${table.key}: ${rows.length} seed rows exceeds the install ceiling (${MAX_SEED_ROWS_PER_TABLE})`);
             for (const row of rows) {
-                assertSeedRowConforms(t, table, row, aliasesSeen);
+                assertSeedRowConforms(t, table, row, aliasesSeen, allAliases);
                 if (typeof row.$id === 'string') aliasesSeen.add(row.$id);
             }
         }
