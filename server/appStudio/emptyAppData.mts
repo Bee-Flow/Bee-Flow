@@ -27,7 +27,7 @@ import { fileIdsFromRows, collectFileIds } from './connectorRetention.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 
-type Field = { key: string; type?: string; required?: boolean; relation?: { table?: string } | null };
+type Field = { key: string; type?: string; required?: boolean; relation?: { table?: string; many?: boolean } | null };
 type Table = { id?: string; key: string; fields?: Field[]; source?: unknown; rowsLocked?: boolean };
 type Connector = { id: string; sync?: { tableId?: string; children?: Array<{ tableId?: string }> } | null };
 type Model = { tables?: Table[]; connectors?: Connector[] };
@@ -77,11 +77,20 @@ function skipReason(t: Table): string | null {
     return null;
 }
 
+/**
+ * The table a relation COLUMN of `t` points at, or undefined. A many relation (`relation.many`)
+ * is no column: its links live in a junction table whose rows go with either end (ON DELETE
+ * CASCADE), so it neither orders the emptying nor holds a row back.
+ */
+function columnTarget(f: Field | null | undefined): string | undefined {
+    return f && f.type === 'relation' && f.relation?.many !== true ? f.relation?.table : undefined;
+}
+
 /** The relation columns of `t` that point at another table of `inSet` (self-references left out). */
 function relationsTo(t: Table, inSet: Set<string>): Array<{ field: Field; parent: string }> {
     const out: Array<{ field: Field; parent: string }> = [];
     for (const f of t.fields || []) {
-        const target = f && f.type === 'relation' ? f.relation?.table : undefined;
+        const target = columnTarget(f);
         if (target && target !== t.id && inSet.has(target)) out.push({ field: f, parent: target });
     }
     return out;
@@ -140,7 +149,7 @@ export function planEmpty(model: Model, tableIds?: string[]): Plan | EmptyRefusa
     for (const t of doing) {
         const by = all
             .filter((r) => !doingIds.has(idOf(r)) && !r.source && r !== t)
-            .filter((r) => (r.fields || []).some((f) => f && f.type === 'relation' && f.relation?.table === t.id))
+            .filter((r) => (r.fields || []).some((f) => columnTarget(f) === t.id))
             .map((r) => r.key);
         if (by.length) refused.push({ tableId: idOf(t), key: t.key, referencedBy: by });
     }

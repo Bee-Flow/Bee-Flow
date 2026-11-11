@@ -174,6 +174,25 @@ test('a cycle through a required column is refused with 409 relation_cycle', () 
     assert.equal(plan.code, 'relation_cycle');
 });
 
+// A many relation is no column: its links sit in a junction table that goes with either end.
+const manyTo = (table) => ({ type: 'relation', relation: { table, many: true } });
+
+test('a cycle through a many relation is no cycle: the tables empty in column order, nothing nulled', () => {
+    const reqA = { ...A, fields: [{ ...A.fields[0], required: true }] };
+    const manyB = { ...B, fields: [{ ...B.fields[0], ...manyTo(A.id) }] };
+    const plan = planEmpty(modelOf([manyB, reqA]));
+    assert.equal(plan.status, undefined, JSON.stringify(plan));
+    assert.deepEqual(plan.ordered.map((t) => t.key), ['cyc_a', 'cyc_b']);
+    assert.deepEqual(plan.nullings, []);
+});
+
+test('a many relation from a table that is not chosen does not refuse the chosen one', () => {
+    const tags = { id: 'tbl_tags000', key: 'tags', name: 'Tags', fields: [{ id: 'fld_tg0001', key: 'parents', name: 'Parents', ...manyTo(PARENT.id) }] };
+    const plan = planEmpty(modelOf([PARENT, tags]), [PARENT.id]);
+    assert.equal(plan.status, undefined, JSON.stringify(plan));
+    assert.deepEqual(plan.ordered.map((t) => t.key), ['parents']);
+});
+
 test('only the connectors that fill an emptied table are reset', async () => {
     const db = openDb([PARENT, CHILD]);
     const connectors = [
