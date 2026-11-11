@@ -42,6 +42,19 @@ describe('assistant turn checkpoints', () => {
         act(() => result.current.redo());
         expect(apply).toHaveBeenLastCalledWith(B);
     });
+
+    it('commitFrom applies the result at once and records the given before, whatever the live draft is', () => {
+        // The live draft is already the result (the turn's drafts were shown):
+        // commit() alone would see nothing to do.
+        const { result, rerender, apply, sync } = setup(stub<Parameters<typeof setup>[0]>(B));
+        rerender({ currentDraft: B });
+        act(() => result.current.commitFrom(stub<Parameters<typeof result.current.commitFrom>[0]>(A), stub<Parameters<typeof result.current.commitFrom>[1]>(B)));
+        expect(apply).toHaveBeenLastCalledWith(B);
+        sync();
+        expect(result.current.canUndo).toBe(true);
+        act(() => result.current.undo());
+        expect(apply).toHaveBeenLastCalledWith(A);
+    });
 });
 
 describe('useDraftHistory — null baseline (BFSF-318)', () => {

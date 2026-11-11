@@ -1,9 +1,10 @@
 /**
- * Drag & drop on the canvas, and the AI turn's single history entry — both
- * use the same trick: restore a pre-change snapshot via plain set_definition,
- * then let an effect commit the real result AFTER that render, when
- * useDraftHistory sees the snapshot as current, so exactly one history entry
- * captures the whole gesture/turn.
+ * Drag & drop on the canvas, and the AI turn's single history entry. A drag
+ * restores the pre-drag snapshot via plain set_definition, then lets an effect
+ * commit the real result AFTER that render, when useDraftHistory sees the
+ * snapshot as current, so exactly one history entry captures the gesture. An
+ * AI turn records its pre-turn snapshot and lands the final draft in one step
+ * (history.commitFrom; see commitTurn for why not the effect).
  *
  * onDragOver applies CROSS-PARENT moves transiently (plain set_definition, no
  * history); the pre-drag snapshot is restored on drop/cancel and the final
@@ -42,6 +43,8 @@ interface CanvasDragInputs {
     definitionRef: RefObject<AppDefinition | null>;
     screenIdRef: RefObject<string | null>;
     commitDefinition: (def: AppDefinition) => void;
+    /** history.commitFrom: `before` as one undo entry, `next` applied at once. */
+    commitFrom: (before: AppDefinition, next: AppDefinition) => void;
     streamLock: boolean;
     setActiveDrag: Dispatch<SetStateAction<ActiveDrag | null>>;
     setDropHint: Dispatch<SetStateAction<DropHint | null>>;
@@ -50,13 +53,13 @@ interface CanvasDragInputs {
 type DragData = { type?: string; componentType?: string; node?: { type?: string } };
 const dragData = (event: { active?: { data?: { current?: unknown } } | null }): DragData => (event.active?.data?.current || {}) as DragData;
 
-export function useCanvasDrag({ t, dispatch, definitionRef, screenIdRef, commitDefinition, streamLock, setActiveDrag, setDropHint }: CanvasDragInputs) {
+export function useCanvasDrag({ t, dispatch, definitionRef, screenIdRef, commitDefinition, commitFrom, streamLock, setActiveDrag, setDropHint }: CanvasDragInputs) {
     const sensors = useSensors(
         useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
         useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
     );
     const dragSnapshotRef = useRef<AppDefinition | null>(null);
-    // Deferred one-entry history commit, shared by drag&drop and the AI turn.
+    // Deferred one-entry history commit of a drag&drop.
     const pendingCommitRef = useRef<PendingCommit | null>(null);
     // The transient preview's last resolved target, so an unchanged target does
     // not re-dispatch a fresh definition on every one of dragOver's many events.
@@ -162,8 +165,8 @@ export function useCanvasDrag({ t, dispatch, definitionRef, screenIdRef, commitD
         commitDefinition(pending.def);
         if (pending.select) dispatch({ type: 'select_node', nodeId: pending.select });
         if (pending.pulse) dispatch({ type: 'set_recent_ids', ids: [pending.pulse] });
-        // An AI turn may have moved the user to a screen that only exists in
-        // the final draft; re-assert it after the snapshot round-trip.
+        // A drop on a screen tab follows the node there; re-assert the screen
+        // after the snapshot round-trip.
         if (pending.screen) dispatch({ type: 'set_screen', screenId: pending.screen });
     });
 
@@ -181,16 +184,20 @@ export function useCanvasDrag({ t, dispatch, definitionRef, screenIdRef, commitD
         const base = turnBaseRef.current;
         turnBaseRef.current = null;
         if (base && base !== finalDef) {
-            // Same trick as finishDrag: restore the pre-turn snapshot first
-            // (plain set_definition — transient drafts never enter history),
-            // then the pending-commit effect above lands the final draft as
-            // one history entry against that snapshot.
-            dispatch({ type: 'set_definition', definition: base });
-            pendingCommitRef.current = { def: finalDef, screen: screenIdRef.current };
+            // The pre-turn snapshot becomes the one history entry and the final
+            // draft lands in the SAME batch. Not finishDrag's trick (restore the
+            // snapshot, let the pending-commit effect land the result): the
+            // turn ends on an SSE event, which can arrive while the passive
+            // effects of the last draft's render are still pending. That
+            // render's effect then took the pending commit, saw the final
+            // draft as current and did nothing, the next render showed the
+            // restored snapshot, and autosave wrote the pre-turn app over the
+            // build with the version the turn had just adopted.
+            commitFrom(base, finalDef);
         } else {
             commitDefinition(finalDef);
         }
-    }, [dispatch, commitDefinition, screenIdRef]);
+    }, [commitFrom, commitDefinition]);
 
     return { sensors, handleDragStart, handleDragOver, finishDrag, commitTurn };
 }

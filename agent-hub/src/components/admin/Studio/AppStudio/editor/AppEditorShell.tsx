@@ -150,7 +150,9 @@ function EditorChrome({ app, onClose, onAppUpdated, chatSlot }: AppEditorShellPr
         onTogglePresenter: togglePresenter,
     });
 
-    const drag = useCanvasDrag({ t, dispatch, definitionRef, screenIdRef, commitDefinition, streamLock, setActiveDrag, setDropHint });
+    const drag = useCanvasDrag({
+        t, dispatch, definitionRef, screenIdRef, commitDefinition, commitFrom: history.commitFrom, streamLock, setActiveDrag, setDropHint,
+    });
 
     // ---- chat pane width / collapse ------------------------------------------
     // Same treatment the inspector already had: on a 1366px laptop the fixed

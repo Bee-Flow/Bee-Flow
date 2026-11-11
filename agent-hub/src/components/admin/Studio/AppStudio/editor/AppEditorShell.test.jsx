@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render as rtlRender, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { useEffect, useRef, useState } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // The component palette reads the session-cached component catalog for its
@@ -209,7 +210,7 @@ describe('AppEditorShell', () => {
 
         // Variables is a SUBTAB of the Data view, not a dialog of its own.
         await user.click(screen.getByRole('radio', { name: 'Data' }));
-        await user.click(await screen.findByRole('tab', { name: /Variables/ }));
+        await user.click(await screen.findByRole('tab', { name: /Variables/ }, { timeout: 10000 }));
         expect(screen.getByRole('tab', { name: /Variables/ })).toHaveAttribute('aria-selected', 'true');
         // A panel view replaces the canvas and the inspector beside it.
         expect(screen.queryByTestId('inspector-panel')).toBeNull();
@@ -557,6 +558,68 @@ describe('AppEditorShell', () => {
         expect(studioAppsApi.saveDefinition).not.toHaveBeenCalledWith(
             'app-1', DRAFT, expect.anything(),
         );
+    });
+
+    it('keeps the built app when the turn ends before the last draft\'s effects ran, and never saves the pre-turn app over it', async () => {
+        const user = userEvent.setup();
+        const DRAFT = JSON.parse(JSON.stringify(KITCHEN_SINK));
+        DRAFT.screens[0].sections[0].children.push({
+            id: 'cmp_aibuilt', type: 'heading', visible: true,
+            props: { text: 'Built by the AI', level: 2 },
+            style: { span: 12, align: 'start', color: null },
+        });
+
+        function FakeAIPane() {
+            const { dispatch } = useAppEditor();
+            const chrome = useEditorChrome();
+            const [lastDraftAt, setLastDraftAt] = useState(0);
+            const endedRef = useRef(0);
+            // The pane sits under the shell, so this effect runs BEFORE the
+            // shell's effects of the same render: the order in which a `done`
+            // event lands when it arrives before the passive effects of the
+            // last draft's render have run. Then useBuilderTurn's handleDone.
+            useEffect(() => {
+                if (!lastDraftAt || endedRef.current === lastDraftAt) return;
+                endedRef.current = lastDraftAt;
+                chrome.commitTurn(DRAFT);
+                chrome.markSaved(DRAFT, 9);
+                dispatch({ type: 'set_version', version: 9 });
+                dispatch({ type: 'set_stream_lock', streamLock: false });
+            }, [lastDraftAt, chrome, dispatch]);
+            return (
+                <div>
+                    <button type="button" onClick={() => dispatch({ type: 'set_stream_lock', streamLock: true })}>ai-lock</button>
+                    <button
+                        type="button"
+                        onClick={() => {
+                            dispatch({ type: 'set_definition', definition: DRAFT });
+                            setLastDraftAt(Date.now());
+                        }}
+                    >
+                        ai-last-draft-and-done
+                    </button>
+                </div>
+            );
+        }
+
+        render(<AppEditorShell app={app} onClose={vi.fn()} chatSlot={<FakeAIPane />} />);
+        await user.click(screen.getByRole('button', { name: 'ai-lock' }));
+        await user.click(screen.getByRole('button', { name: 'ai-last-draft-and-done' }));
+
+        // Past the autosave debounce: the build is still there and nothing was
+        // saved (the builder route already persisted it). Before the fix the
+        // canvas fell back to the pre-turn app and autosave wrote THAT, with
+        // the version the turn had adopted, over the build.
+        await new Promise((resolve) => { setTimeout(resolve, 1100); });
+        expect(screen.queryByText('Built by the AI')).toBeInTheDocument();
+        expect(studioAppsApi.saveDefinition).not.toHaveBeenCalled();
+
+        // Still ONE undo step back to the pre-turn app.
+        expect(screen.getByRole('button', { name: 'Undo' })).not.toBeDisabled();
+        await user.click(screen.getByRole('button', { name: 'Undo' }));
+        await waitFor(() => {
+            expect(screen.queryByText('Built by the AI')).not.toBeInTheDocument();
+        });
     });
 });
 
