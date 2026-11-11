@@ -10,7 +10,11 @@
  *   3. In-process CPU embedder (Xenova/multilingual-e5-small, 384-dim).
  *
  * Returns { vectors, source, model } where vectors is [][] aligned with input
- * order. `source` is one of 'provider' | 'azure' | 'cpu' | null.
+ * order. `source` is one of 'provider' | 'azure' | 'cpu' | null. With
+ * 'provider' it also carries `target`: the resolved embedding target that
+ * answered (`providerId`, `providerType`, `modelId`; never its key), so the
+ * caller can price the call by what actually did the work
+ * (core/kb/embeddingCost.js).
  */
 
 const configStore = require('../../stores/configStore');
@@ -239,7 +243,10 @@ async function dispatchEmbedTexts(texts, options = {}) {
             }
             log.info(`[Embed] Embeddings via ${target.providerName || target.providerType} / ${target.modelId} (dim=${out[0]?.length})`);
             recordEmbedCall({ source: 'provider', status: 'ok' });
-            return { vectors: out, source: 'provider', model: target.modelId };
+            return {
+                vectors: out, source: 'provider', model: target.modelId,
+                target: { providerId: target.providerId, providerType: target.providerType, modelId: target.modelId },
+            };
         }
     } catch (err) {
         if (strict) throw err;

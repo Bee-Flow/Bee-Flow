@@ -69,7 +69,7 @@ function defaultDeps() {
         resolveTarget: () => require('../embed/resolveTarget').resolveEmbedTarget(),
         embed: (/** @type {string[]} */ texts) => require('../embed/dispatch').dispatchEmbedTexts(texts, { kind: 'passage', strict: true }),
         usesLocalIngest: () => require('./ingestMode').usesLocalIngest(),
-        trackCost: (/** @type {string[]} */ texts) => require('./embeddingCost').trackEmbeddingCost(texts),
+        trackCost: (/** @type {string[]} */ texts, /** @type {import('./embeddingCost').EmbedTarget | null} */ target) => require('./embeddingCost').trackEmbeddingCost(texts, target),
         retryFailed: retryDimensionFailures,
     };
 }
@@ -115,8 +115,9 @@ async function embedExactly(deps, texts, dim) {
  * Fill `embedding_next` for every chunk that has none yet. Resumable.
  * @param {MigrationDeps} deps
  * @param {number} dim
+ * @param {import('./embeddingCost').EmbedTarget | null} [target]  the model embedding them, which the cost is priced by
  */
-async function fillNextColumn(deps, dim) {
+async function fillNextColumn(deps, dim, target = null) {
     let lastId = 0;
     let done = 0;
     for (;;) {
@@ -127,7 +128,7 @@ async function fillNextColumn(deps, dim) {
         if (!rows || rows.length === 0) return done;
         const texts = rows.map((r) => r.content || '');
         const vectors = await embedExactly(deps, texts, dim);
-        try { deps.trackCost(texts); } catch (err) { bestEffort('core/kb/embeddingMigration:fillNextColumn', err); /* cost logging never blocks the migration */ }
+        try { void deps.trackCost(texts, target); } catch (err) { bestEffort('core/kb/embeddingMigration:fillNextColumn', err); /* cost logging never blocks the migration */ }
         await deps.run(
             `UPDATE kb_chunks SET embedding_next = v.e::vector
              FROM unnest($1::bigint[], $2::text[]) AS v(id, e)
@@ -213,7 +214,7 @@ async function migrate(deps, { reason }) {
             const nextDim = await columnDim(deps, 'embedding_next');
             if (nextDim != null && nextDim !== targetDim) await deps.exec('ALTER TABLE kb_chunks DROP COLUMN embedding_next');
             if (nextDim !== targetDim) await deps.exec(`ALTER TABLE kb_chunks ADD COLUMN embedding_next VECTOR(${targetDim})`);
-            const done = await fillNextColumn(deps, targetDim);
+            const done = await fillNextColumn(deps, targetDim, { providerType: target.providerType, modelId: target.modelId });
             await swapColumns(deps);
             log.info(`[KBEmbedMigration] re-embedded ${done} chunk(s) with ${target.modelId}`);
         }

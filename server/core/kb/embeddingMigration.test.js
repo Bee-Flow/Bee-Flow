@@ -28,6 +28,7 @@ function makeWorld({ dim = 768, rows = 3, fingerprint = null, modelDim = 1024, l
     const config = { [FINGERPRINT_KEY]: fingerprint };
     const sql = [];
     const embedded = [];
+    const costs = [];
     let retried = 0;
     let embedDim = modelDim;
 
@@ -68,17 +69,17 @@ function makeWorld({ dim = 768, rows = 3, fingerprint = null, modelDim = 1024, l
             getConfig: async (k) => config[k] ?? null,
             setConfig: async (k, v) => { config[k] = v; },
         },
-        resolveTarget: async () => ({ providerId: 'p-mistral', modelId: model }),
+        resolveTarget: async () => ({ providerId: 'p-mistral', providerType: 'mistral', modelId: model, endpoint: 'https://embed.example' }),
         embed: async (texts) => {
             embedded.push(...texts);
             return { vectors: texts.map(() => Array(embedDim).fill(0.1)) };
         },
         usesLocalIngest: async () => local,
-        trackCost: () => {},
+        trackCost: (texts, target) => { costs.push({ n: texts.length, target }); },
         retryFailed: async () => { retried += 1; },
     };
     return {
-        deps, cols, chunks, config, sql, embedded,
+        deps, cols, chunks, config, sql, embedded, costs,
         get retried() { return retried; },
         setEmbedDim: (d) => { embedDim = d; },
     };
@@ -112,6 +113,9 @@ test('a model switch re-embeds every chunk from its text, swaps the column and r
     assert.ok(w.sql.some((s) => /pg_advisory_unlock/.test(s)), 'lock released');
     assert.strictEqual(w.config[FINGERPRINT_KEY], 'p-mistral:mistral-embed');
     assert.strictEqual(w.retried, 1, 'documents that failed on the old dimension are retried');
+    // The cost is priced by the model that re-embedded (core/kb/embeddingCost.js), and only its type and id leave here.
+    assert.strictEqual(w.costs.reduce((n, c) => n + c.n, 0), 130);
+    for (const c of w.costs) assert.deepStrictEqual(c.target, { providerType: 'mistral', modelId: 'mistral-embed' });
 });
 
 test('an empty table is ALTERed instead of rebuilt', async () => {
