@@ -43,8 +43,8 @@ export const NAV_STYLES: Array<string | undefined> = ['tabs', 'sidebar', 'mega',
 export const NAV_DEFAULT_STYLE = 'tabs';
 
 // Pairing id → CSS stack. `system` is identity (no fontFamily emitted). The
-// self-hosted families load via marketing/self-hosted-fonts.css; Google
-// families via buildFontsHrefs at the run/preview roots.
+// families are all served by Bee Flow: marketing/self-hosted-fonts.css, and
+// fonts/designFonts.css for geist, plex and poppins (AppFontLoader).
 export const FONT_STACKS: Record<string, string | null> = {
     system: null,
     inter: "'Inter', system-ui, -apple-system, sans-serif",
@@ -54,14 +54,6 @@ export const FONT_STACKS: Record<string, string | null> = {
     geist: "'Geist', system-ui, -apple-system, sans-serif",
     plex: "'IBM Plex Sans', system-ui, -apple-system, sans-serif",
     poppins: "'Poppins', system-ui, -apple-system, sans-serif",
-};
-
-// Families that need a Google Fonts <link> (the rest are self-hosted or system).
-export const GOOGLE_FONT_FAMILIES: Record<string, string> = {
-    inter: 'Inter',
-    geist: 'Geist',
-    plex: 'IBM Plex Sans',
-    poppins: 'Poppins',
 };
 
 /** An app's authored design: each knob (font, surface, motion, …) is a string choice. The schema-3 keys tokens, radiusPx and dark are read as unknown. */
