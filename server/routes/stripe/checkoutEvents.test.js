@@ -22,9 +22,13 @@ afterEach(() => { for (const [k, [obj, name, v]] of Object.entries(saved)) { obj
 let writes;
 /** @type {any} */
 let stripeSub;
+/** @type {any} */
+let existingRow;
 beforeEach(() => {
     writes = [];
     stripeSub = null;
+    existingRow = null;
+    patch(userStore, 'getOrgSubscription', async () => existingRow);
     patch(userStore, 'setOrgSubscription', async (/** @type {string} */ orgId, /** @type {any} */ data, /** @type {any} */ opts) => { writes.push({ orgId, data, opts }); return true; });
     patch(userStore, 'logSubscriptionAudit', async () => {});
     patch(userStore, 'getPlan', async () => null);
@@ -46,6 +50,22 @@ test('a completed checkout resets stale limit overrides, also on the plan the or
     stripeSub = { id: 'sub_1', status: 'active', created: now() };
     assert.equal(await handleCheckoutCompleted(SESSION), true);
     assert.deepEqual(writes[0].opts, { resetLimits: true });
+});
+
+test('a second run for the same Stripe subscription keeps the limit overrides an admin set in between', async () => {
+    stripeSub = { id: 'sub_1', status: 'active', created: now() };
+    existingRow = { stripe_subscription_id: 'sub_1' };
+    assert.equal(await handleCheckoutCompleted(SESSION), true);
+    assert.deepEqual(writes[0].opts, { resetLimits: false });
+});
+
+test('a different or empty stored subscription id still resets the limits', async () => {
+    stripeSub = { id: 'sub_1', status: 'active', created: now() };
+    existingRow = { stripe_subscription_id: 'sub_old' };
+    await handleCheckoutCompleted(SESSION);
+    existingRow = { stripe_subscription_id: null };
+    await handleCheckoutCompleted(SESSION);
+    assert.deepEqual(writes.map((w) => w.opts), [{ resetLimits: true }, { resetLimits: true }]);
 });
 
 test('a trialing subscription keeps its trial state', async () => {
