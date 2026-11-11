@@ -14,7 +14,10 @@
  * Now a switch re-embeds what is stored, by itself:
  *
  *   1. The model whose vectors are in the column is remembered as a
- *      fingerprint (`kb_embedding_fingerprint`: provider id + model id).
+ *      fingerprint (`kb_embedding_fingerprint`: provider id + model id, plus
+ *      the requested vector length when one is asked for, see
+ *      core/embed/outputDimensions.mts). A configuration that asks for no
+ *      length keeps the fingerprint it always had.
  *   2. When the configured model differs, every chunk is embedded again
  *      from `kb_chunks.content` into a side column of the new dimension,
  *      batch by batch, and the columns are swapped in one transaction.
@@ -74,7 +77,21 @@ function defaultDeps() {
     };
 }
 
-const fingerprintOf = (/** @type {{ providerId: string, modelId: string }} */ target) => `${target.providerId}:${target.modelId}`;
+const fingerprintOf = (/** @type {{ providerId: string, modelId: string, dimensions?: number | null }} */ target) =>
+    (target.dimensions ? `${target.providerId}:${target.modelId}:${target.dimensions}` : `${target.providerId}:${target.modelId}`);
+
+/**
+ * Do the stored knowledge-base vectors come from this provider and model at
+ * the model's own length (the fingerprint without a requested length)? Then
+ * choosing that model again must not ask it for shorter vectors
+ * (core/embed/outputDimensions.mts): the stored ones stay valid as they are.
+ * @param {string} providerId
+ * @param {string} modelId
+ */
+async function storesNativeVectorsOf(providerId, modelId) {
+    const configStore = require('../../stores/configStore');
+    return (await configStore.getConfig(FINGERPRINT_KEY)) === fingerprintOf({ providerId, modelId });
+}
 
 /**
  * The declared dimension of a vector column, or null when it does not exist.
@@ -302,4 +319,4 @@ function ensureKbEmbeddingsCurrent({ reason = 'check', deps } = {}) {
     return running;
 }
 
-module.exports = { ensureKbEmbeddingsCurrent, setSourceSync, FINGERPRINT_KEY, _test: { migrate, fingerprintOf } };
+module.exports = { ensureKbEmbeddingsCurrent, storesNativeVectorsOf, setSourceSync, FINGERPRINT_KEY, _test: { migrate, fingerprintOf } };

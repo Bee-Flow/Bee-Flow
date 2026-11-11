@@ -200,7 +200,9 @@ async function saveAIConfig(aiConfig) {
             piiDetectionAction: aiConfig.piiDetectionAction !== undefined ? aiConfig.piiDetectionAction : ai.piiDetectionAction || 'block',
             piiDetectionScope: aiConfig.piiDetectionScope !== undefined ? aiConfig.piiDetectionScope : ai.piiDetectionScope || { userInput: true, agentOutput: false },
             embeddingModel: aiConfig.embeddingModel || null,
-            embeddingProviderId: aiConfig.embeddingProviderId || null
+            embeddingProviderId: aiConfig.embeddingProviderId || null,
+            // Passed only by a save that chooses the model (core/embed/embeddingChoice.mts); others keep it.
+            ...(aiConfig.embeddingOutput !== undefined ? { embeddingOutput: aiConfig.embeddingOutput } : {}),
         };
 
         await configStore.setConfig('ai', updatedAi);

@@ -30,7 +30,7 @@ const memoryIndex = require('./memoryIndex');
 require('./memoryDeps').install({
     memoryCrypto: require('./memoryCrypto'),
     memoryIndex,
-    embedTarget: { resolveEmbedTarget: require('../core/embed/resolveTarget').resolveEmbedTarget },
+    embedTarget: require('../core/embed/resolveTarget'),
 });
 
 const { _initDB, backfillMemoryColumns } = require('./memorySchema');

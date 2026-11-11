@@ -22,7 +22,7 @@ const assert = require('node:assert');
 
 const { ensureKbEmbeddingsCurrent, FINGERPRINT_KEY } = require('./embeddingMigration');
 
-function makeWorld({ dim = 768, rows = 3, fingerprint = null, modelDim = 1024, local = true, model = 'mistral-embed' } = {}) {
+function makeWorld({ dim = 768, rows = 3, fingerprint = null, modelDim = 1024, local = true, model = 'mistral-embed', dimensions = undefined } = {}) {
     const cols = { embedding: dim };
     const chunks = Array.from({ length: rows }, (_, i) => ({ id: i + 1, content: `chunk ${i + 1}`, next: null }));
     const config = { [FINGERPRINT_KEY]: fingerprint };
@@ -69,7 +69,7 @@ function makeWorld({ dim = 768, rows = 3, fingerprint = null, modelDim = 1024, l
             getConfig: async (k) => config[k] ?? null,
             setConfig: async (k, v) => { config[k] = v; },
         },
-        resolveTarget: async () => ({ providerId: 'p-mistral', providerType: 'mistral', modelId: model, endpoint: 'https://embed.example' }),
+        resolveTarget: async () => ({ providerId: 'p-mistral', providerType: 'mistral', modelId: model, endpoint: 'https://embed.example', ...(dimensions !== undefined ? { dimensions } : {}) }),
         embed: async (texts) => {
             embedded.push(...texts);
             return { vectors: texts.map(() => Array(embedDim).fill(0.1)) };
@@ -90,6 +90,23 @@ test('an unchanged model does nothing', async () => {
     const r = await ensureKbEmbeddingsCurrent({ deps: w.deps });
     assert.deepStrictEqual(r, { status: 'current' });
     assert.deepStrictEqual(w.embedded, []);
+});
+
+// The vector length asked of the model (core/embed/outputDimensions.mts) is part
+// of the fingerprint only when one is asked for.
+test('a configuration that asks for no length keeps the fingerprint it always had', async () => {
+    const w = makeWorld({ dim: 4096, model: 'qwen3-embedding-8b', fingerprint: 'p-mistral:qwen3-embedding-8b', dimensions: null });
+    const r = await ensureKbEmbeddingsCurrent({ deps: w.deps });
+    assert.deepStrictEqual(r, { status: 'current' });
+    assert.deepStrictEqual(w.embedded, [], 'nothing re-embedded');
+});
+
+test('the same model asked for a shorter length is a new target: the stored vectors are re-embedded at it', async () => {
+    const w = makeWorld({ dim: 4096, rows: 2, model: 'qwen3-embedding-8b', fingerprint: 'p-mistral:qwen3-embedding-8b', dimensions: 1536, modelDim: 1536 });
+    const r = await ensureKbEmbeddingsCurrent({ deps: w.deps });
+    assert.deepStrictEqual(r, { status: 'migrated', chunks: 2, dim: 1536 });
+    assert.strictEqual(w.cols.embedding, 1536);
+    assert.strictEqual(w.config[FINGERPRINT_KEY], 'p-mistral:qwen3-embedding-8b:1536');
 });
 
 test('vectors from before fingerprints are adopted when the dimension fits', async () => {

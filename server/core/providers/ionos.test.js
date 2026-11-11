@@ -53,6 +53,13 @@ test('embedding and rerank models carry their flags', () => {
     assert.strictEqual(describeIonosModel('Qwen/Qwen3-VL-Reranker-8B').rerank, true);
     assert.strictEqual(describeIonosModel('Qwen/Qwen3-VL-Reranker-8B').embedding, false);
     assert.strictEqual(describeIonosModel('sentence-transformers/paraphrase-multilingual-mpnet-base-v2').dims, 768);
+    assert.strictEqual(bge.matryoshka, null);
+    // IONOS states neither a length nor a shortening range for it, so none is
+    // assumed: its vectors are never shortened.
+    const qwenVl = describeIonosModel('Qwen/Qwen3-VL-Embedding-8B');
+    assert.strictEqual(qwenVl.embedding, true);
+    assert.strictEqual(qwenVl.dims, null);
+    assert.strictEqual(qwenVl.matryoshka, null);
 });
 
 test('an unknown id falls back to the family guess and carries no price', () => {

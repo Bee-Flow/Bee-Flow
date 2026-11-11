@@ -40,10 +40,14 @@ const EFFORT_GPT_OSS = Object.freeze(['low', 'medium', 'high']);
  * `match`: normalised names (see normalizeIonosName) a served id may carry.
  * `org`: vendor segment of the pricing key (`ionos/<org>/<id>`).
  * `context` / `maxOutput` are only set where IONOS states them.
+ * `dims`: the vector length of an embedding model; `matryoshka`: the range it
+ * can be shortened to (Matryoshka). Both only where IONOS states them
+ * (Qwen3-VL Embedding 8B has neither: its length is not in the price list).
  *
  * @typedef {{ org: string, name: string, cat: string, match: readonly string[], desc?: string,
  *   context?: number, maxOutput?: number, reasoning?: boolean, vision?: boolean, tools?: boolean,
- *   embedding?: boolean, rerank?: boolean, dims?: number, ocr?: boolean, effort?: readonly string[],
+ *   embedding?: boolean, rerank?: boolean, dims?: number, matryoshka?: { min: number, max: number },
+ *   ocr?: boolean, effort?: readonly string[],
  *   status?: string, retires?: string, price?: { input: number, output: number, cacheRead?: number } | null }} IonosModelEntry
  */
 
@@ -181,6 +185,7 @@ function describeIonosModel(modelId) {
             embedding: !!entry.embedding,
             rerank: !!entry.rerank,
             dims: entry.dims ?? null,
+            matryoshka: entry.matryoshka ?? null,
             audio: false,
             status: entry.status || 'ga',
             ionos: true,
@@ -202,6 +207,7 @@ function describeIonosModel(modelId) {
         embedding: guess.embedding,
         rerank: false,
         dims: null,
+        matryoshka: null,
         audio: false,
         status: 'ga',
         ionos: true,

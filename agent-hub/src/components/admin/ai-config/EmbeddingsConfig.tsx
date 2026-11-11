@@ -8,6 +8,7 @@ import { useTranslation } from '@/hooks/useTranslation';
 import { API_BASE } from '@/utils/helpers';
 import type { StatusMessage } from './chatModelTiers/tierTypes';
 import { mutate, ApiError } from '@/api/mutate';
+import { expectedEmbeddingDims, exceedsVectorIndex, type EmbeddingModelShape } from './embeddingOutputDims';
 
 interface EmbeddingProvider {
     id: string;
@@ -15,11 +16,35 @@ interface EmbeddingProvider {
     type?: string;
 }
 
-interface EmbeddingModel {
+interface EmbeddingModel extends EmbeddingModelShape {
     id: string;
     name?: string;
     providerId?: string;
     embedding?: boolean;
+}
+
+interface EmbeddingChoice {
+    embeddingProviderId?: string;
+    embeddingModel?: string;
+    embeddingDimensions?: number | null;
+}
+
+/**
+ * Vectors above the HNSW limit make every knowledge-base search a full scan:
+ * say so under the model picker. The saved model keeps the length the server
+ * reports; a new choice gets what the server will decide for it.
+ */
+function IndexLimitWarning({ models, choice, saved }: { models: EmbeddingModel[]; choice: EmbeddingChoice; saved: EmbeddingChoice | null | undefined }) {
+    const { t } = useTranslation();
+    const model = models.find((m: EmbeddingModel) => m.id === choice.embeddingModel);
+    const isSaved = choice.embeddingProviderId === (saved?.embeddingProviderId || '') && choice.embeddingModel === (saved?.embeddingModel || '');
+    const dims = expectedEmbeddingDims(model, isSaved ? (saved?.embeddingDimensions ?? null) : undefined);
+    if (!exceedsVectorIndex(dims)) return null;
+    return (
+        <p role="status" className="m-0 mt-2 text-xs text-[var(--warning-ink)]">
+            {t('admin_ai_config.embed_dims_no_index', 'This model returns vectors of {dims} dimensions, more than the 2000 the fast vector index takes. Searches on this model cannot use the fast index, so knowledge-base search gets slower as your knowledge bases grow.', { dims })}
+        </p>
+    );
 }
 
 interface EmbeddingsConfigProps {
@@ -30,7 +55,7 @@ interface EmbeddingsConfigProps {
 
 const EmbeddingsConfig = ({ providers, allModels, fetchAllModels }: EmbeddingsConfigProps) => {
     const { t } = useTranslation();
-    const aiConfig = useAiConfigQuery<{ embeddingProviderId?: string; embeddingModel?: string }>();
+    const aiConfig = useAiConfigQuery<EmbeddingChoice>();
     const stored = aiConfig.data?.config;
     const serverForm = useMemo(() => ({ embeddingProviderId: stored?.embeddingProviderId || '', embeddingModel: stored?.embeddingModel || '' }), [stored]);
     const { value: config, patch: patchConfig } = useDraftOverServer(serverForm);
@@ -154,6 +179,7 @@ const EmbeddingsConfig = ({ providers, allModels, fetchAllModels }: EmbeddingsCo
                             className={FIELD_INPUT}
                         />
                     )}
+                    <IndexLimitWarning models={providerModels} choice={config} saved={stored} />
                 </SettingRow>
             </SettingsList>
             <div>

@@ -21,6 +21,7 @@ const configStore = require('../../stores/configStore');
 const { recordEmbedCall } = require('../../telemetry/metrics');
 const log = require('../../telemetry/log');
 const { toV1BaseUrl } = require('../../utils/azureUrl');
+const { reduceVector } = require('./outputDimensions.mts');
 
 /**
  * One embedding request, retried while the failure is temporary.
@@ -238,7 +239,8 @@ async function dispatchEmbedTexts(texts, options = {}) {
                     };
                 const body = JSON.stringify({ model: target.modelId, input: batch });
                 const data = await postEmbedBatch(url, { method: 'POST', headers, body }, target.providerName || target.providerType || 'provider');
-                const sorted = (data.data || []).sort((a, b) => a.index - b.index).map(e => e.embedding);
+                // A stored length (./outputDimensions.mts) shortens the native vector here.
+                const sorted = (data.data || []).sort((a, b) => a.index - b.index).map(e => reduceVector(e.embedding, target.dimensions));
                 out.push(...sorted);
             }
             log.info(`[Embed] Embeddings via ${target.providerName || target.providerType} / ${target.modelId} (dim=${out[0]?.length})`);

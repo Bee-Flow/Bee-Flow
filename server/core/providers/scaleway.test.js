@@ -64,6 +64,17 @@ test('describes capabilities, limits and category from the catalog', () => {
     const embed = describeScalewayModel('qwen3-embedding-8b');
     assert.strictEqual(embed.cat, 'Embedding');
     assert.strictEqual(embed.embedding, true);
+    // Over pgvector's 2000-dimension index limit, but it can be shortened
+    // (core/embed/outputDimensions.mts asks a new configuration for 1536).
+    assert.strictEqual(embed.dims, 4096);
+    assert.deepStrictEqual(embed.matryoshka, { min: 32, max: 4096 });
+    // Over the limit and fixed: the admin screen warns about it.
+    const gemma = describeScalewayModel('bge-multilingual-gemma2');
+    assert.strictEqual(gemma.dims, 3584);
+    assert.strictEqual(gemma.matryoshka, null);
+    // A chat model and an unknown id carry no length.
+    assert.strictEqual(qwen.dims, null);
+    assert.strictEqual(describeScalewayModel('qwen9-embedding-1b').dims, null);
 
     // Vision-capable but not a reasoning model — the flags are independent.
     const small = describeScalewayModel('mistral-small-3.2-24b-instruct-2506');

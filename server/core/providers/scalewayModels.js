@@ -189,7 +189,7 @@ const SCALEWAY_MODELS = {
         org: 'qwen', name: 'Qwen3 Embedding 8B', cat: 'Embedding',
         desc: 'Matryoshka embeddings (32–4096 dims), 119+ languages',
         context: 32_000,
-        embedding: true,
+        embedding: true, dims: 4096, matryoshka: { min: 32, max: 4096 },
         serverless: true,
         price: { input: 0.10, output: 0 },
     },
@@ -197,7 +197,7 @@ const SCALEWAY_MODELS = {
         org: 'BAAI', name: 'BGE Multilingual Gemma2', cat: 'Embedding',
         desc: 'Multilingual embedding model (3584 dims)',
         context: 8_000,
-        embedding: true,
+        embedding: true, dims: 3584,
         serverless: true,
         price: { input: 0.10, output: 0 },
     },
@@ -274,7 +274,7 @@ function getScalewayModel(modelId) {
  * GLM families these are drawn from.
  *
  * @returns {{id, name, cat, desc, context, maxOutput, reasoning, vision, tools,
- *            embedding, audio, status, scaleway: true}}
+ *            embedding, dims, matryoshka, audio, status, scaleway: true}}
  * @param {string | undefined} modelId
  */
 function describeScalewayModel(modelId) {
@@ -291,6 +291,8 @@ function describeScalewayModel(modelId) {
             vision: !!entry.vision,
             tools: !!entry.tools,
             embedding: !!entry.embedding,
+            dims: entry.dims ?? null,
+            matryoshka: entry.matryoshka ?? null,
             audio: !!entry.audio,
             status: entry.status || 'ga',
             scaleway: true,
@@ -314,6 +316,8 @@ function describeScalewayModel(modelId) {
         vision: guess.vision,
         tools: guess.tools,
         embedding: guess.embedding,
+        dims: null,
+        matryoshka: null,
         audio: false,
         status: 'ga',
         scaleway: true,
@@ -461,8 +465,13 @@ module.exports = {
  * `price` is Scaleway's published list price per 1M tokens (EUR), used only as
  * a fallback for models the community pricing database has not picked up yet.
  *
+ * Embedding models: `dims` is the vector length the model returns;
+ * `matryoshka` the range its vectors can be cut to (Matryoshka)
+ * (core/embed/outputDimensions.mts decides whether it is).
+ *
  * @typedef {{ org: string, name: string, cat: string, desc?: string, context?: number, maxOutput?: number,
  *   reasoning?: boolean, vision?: boolean, tools?: boolean, embedding?: boolean, audio?: boolean,
+ *   dims?: number, matryoshka?: { min: number, max: number },
  *   effort?: readonly string[], parallelToolCalls?: boolean, serverless: boolean, status?: string,
  *   price?: { input: number, output: number, cacheRead?: number } | null }} ScalewayModelEntry
  */
