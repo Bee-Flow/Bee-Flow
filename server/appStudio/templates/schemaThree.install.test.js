@@ -147,3 +147,17 @@ test('field service: the lookups and the rollups read back from the installed ro
         await data.close();
     }
 });
+
+test('field service: read back from the database in its key order, the app still counts as unchanged since install', async () => {
+    const { hashDefinition, isPristine } = require('../templateUpgrade');
+    const res = await api.call('POST', '/api/studio-apps', { body: { templateId: 'app-field-service' } });
+    assert.equal(res.status, 200, res.text.slice(0, 400));
+    const app = await require('../../stores/studioAppStore').getStudioApp(JSON.parse(res.text).app.id);
+    const saved = canonicalizeAppDefinition(structuredClone(app.definition)).def;
+    assert.deepEqual(app.definition, saved, 'the stored value is the canonical one');
+    assert.notEqual(JSON.stringify(app.definition), JSON.stringify(saved), 'JSONB hands the keys back in another order than canonicalize writes');
+    assert.ok(app.templateInstallHash, 'the install stamped its hash');
+    assert.equal(hashDefinition(app.definition), app.templateInstallHash, 'the same hash as at install');
+    assert.equal(isPristine(app), true, 'unchanged since install');
+    assert.equal(isPristine({ ...app, definition: saved }), true, 'and after a save that changes nothing');
+});

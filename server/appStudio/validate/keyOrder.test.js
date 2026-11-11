@@ -27,16 +27,7 @@ const APPS = [
     'template-field-service', 'template-request-approval', 'template-sales-dashboard', 'template-inbound-orders',
 ];
 
-/** Rebuild every object with its keys in `order`; arrays keep their order. */
-function rekey(value, order) {
-    if (Array.isArray(value)) return value.map((v) => rekey(v, order));
-    if (value === null || typeof value !== 'object') return value;
-    return Object.fromEntries(order(Object.keys(value)).map((k) => [k, rekey(value[k], order)]));
-}
-
-const reversed = (keys) => [...keys].sort().reverse();
-// JSONB: shorter keys first, then bytewise.
-const jsonb = (keys) => [...keys].sort((a, b) => (Buffer.byteLength(a) - Buffer.byteLength(b)) || Buffer.compare(Buffer.from(a), Buffer.from(b)));
+const { rekey, reversed, jsonb } = require('../../testUtils/jsonKeyOrder.testkit');
 
 /**
  * A dry run's lists in a fixed order: the action pass walks `def.actions`, a map, so the order of
