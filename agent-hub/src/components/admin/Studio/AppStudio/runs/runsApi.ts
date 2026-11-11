@@ -4,10 +4,10 @@
 //   const runs = useRunList(api, appId, filters);   // infinite list, newest first
 //   const detail = useRunDetail(api, appId, runId);  // one run with its steps
 
-import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { API_BASE, request } from '@/api/mutate';
 
-type RunStatus = 'running' | 'success' | 'error' | 'interrupted' | 'cancelled' | 'refused';
+type RunStatus = 'running' | 'paused' | 'success' | 'error' | 'interrupted' | 'cancelled' | 'refused';
 type RunOrigin = 'click' | 'public' | 'mcp' | 'test' | 'background' | 'mailbox_hook';
 
 export interface RunActor {
@@ -101,6 +101,8 @@ export interface RunFilters {
 export interface RunsApi {
     list(appId: string, filters: RunFilters, cursor: string | null): Promise<RunPage>;
     get(appId: string, runId: string): Promise<{ run: RunSummary; steps: RunStep[] }>;
+    /** Cancel a background run that is running or on hold; answers its status after the request ('running': it stops before its next step). */
+    cancel?(appId: string, runId: string): Promise<{ status: string }>;
 }
 
 function query(filters: RunFilters, cursor: string | null): string {
@@ -120,6 +122,10 @@ export const runsApi: RunsApi = {
         const res = await request(`${API_BASE}/api/studio-apps/${encodeURIComponent(appId)}/runs/${encodeURIComponent(runId)}`);
         return (await res.json()) as { run: RunSummary; steps: RunStep[] };
     },
+    async cancel(appId, runId) {
+        const res = await request(`${API_BASE}/api/studio-apps/${encodeURIComponent(appId)}/actions/jobs/${encodeURIComponent(runId)}/cancel`, { method: 'POST' });
+        return (await res.json()) as { status: string };
+    },
 };
 
 const runKeys = {
@@ -136,6 +142,20 @@ export function useRunList(api: RunsApi, appId: string, filters: RunFilters) {
         enabled: !!appId,
         staleTime: 10_000,
         retry: false,
+    });
+}
+
+/** Cancel one run, then read the run log again (the list and the run). */
+export function useCancelRun(api: RunsApi, appId: string) {
+    const client = useQueryClient();
+    return useMutation({
+        mutationFn: (runId: string) => (api.cancel ? api.cancel(appId, runId) : Promise.reject(new Error('cancel is not available'))),
+        onSuccess: async (_out, runId) => {
+            await Promise.all([
+                client.invalidateQueries({ queryKey: ['studio-app-runs', appId] }),
+                client.invalidateQueries({ queryKey: runKeys.detail(appId, runId) }),
+            ]);
+        },
     });
 }
 

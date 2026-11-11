@@ -158,7 +158,7 @@ export default function Canvas({ app, onCommit, editActionState = EMPTY_ACTION_S
                 />
             )}
         </AppDataScope>
-        {mode !== 'edit' && <BackgroundRunTray actionState={actionState} />}
+        {mode !== 'edit' && <BackgroundRunTray actionState={actionState} appId={app?.id || null} />}
         </BrowserRunProvider>
     );
 }

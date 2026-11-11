@@ -38,12 +38,14 @@ interface ActionRunOptionsProps {
 }
 
 /**
- * How a sequence runs: in the page (the default), or as a server job that keeps running
- * when the page is closed, optionally locked per item and with a progress text.
+ * How a sequence runs: in the page (the default), on the server while the page waits
+ * (runOn: 'server', schema 3), or as a server job that keeps running when the page is closed.
+ * A server run can be locked per item and show a progress text.
  */
 export default function ActionRunOptions({ action, commitAction, definition = null, node = null, disabled = false }: ActionRunOptionsProps) {
     const { t } = useTranslation();
     const background = action.background === true;
+    const onServer = action.runOn === 'server';
     const set = (patch: Partial<AppAction>) => {
         const next: AppAction = { ...action, ...patch };
         for (const [k, v] of Object.entries(patch)) if (v === undefined) delete next[k];
@@ -57,11 +59,20 @@ export default function ActionRunOptions({ action, commitAction, definition = nu
                 label={t('studio_apps_insp.actions.background_label', 'Keep running when the page is closed')}
                 description={t('studio_apps_insp.actions.background_hint', 'Runs on the server; the page shows the progress and the result. Navigation and dialogs cannot be part of it; messages and refreshes show at the end.')}
                 checked={background}
-                onChange={(on: boolean) => set(on ? { background: true } : { background: undefined, lockKey: undefined, progressVar: undefined })}
+                onChange={(on: boolean) => set(on ? { background: true } : { background: undefined, ...(onServer ? {} : { lockKey: undefined, progressVar: undefined }) })}
                 ariaLabel={t('studio_apps_insp.actions.background_label', 'Keep running when the page is closed')}
                 disabled={disabled}
             />
-            {background && (
+            <Toggle
+                size="sm"
+                label={t('studio_apps_durable.options.run_on_label', 'Run the whole action on the server')}
+                description={t('studio_apps_durable.options.run_on_hint', 'The page sends one request and waits for the result, instead of doing the steps one by one. The action then finishes even when the connection drops halfway. Navigation and dialogs cannot be part of it; messages and refreshes show when it ends.')}
+                checked={onServer}
+                onChange={(on: boolean) => set(on ? { runOn: 'server' } : { runOn: undefined, ...(background ? {} : { lockKey: undefined, progressVar: undefined }) })}
+                ariaLabel={t('studio_apps_durable.options.run_on_label', 'Run the whole action on the server')}
+                disabled={disabled}
+            />
+            {(background || onServer) && (
                 <>
                     <BindingField
                         label={t('studio_apps_insp.actions.lock_key_label', 'Only once at a time per')}

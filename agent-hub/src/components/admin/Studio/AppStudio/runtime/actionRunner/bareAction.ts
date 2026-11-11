@@ -112,6 +112,14 @@ async function runActionById(ctx: RunnerContext, actionId: string, opts: RunOpts
         await runBackgroundAction(watch.ctx, actionId, action, opts);
         return watch.ran();
     }
+    // A sequence with runOn: 'server' (schema 3) is one server run too; the click waits for it.
+    // A public page never gets here: it receives the action without its run options.
+    if (action.kind === 'sequence' && action.runOn === 'server') {
+        const { runServerAction } = await import('./backgroundRun');
+        const watch = observed(ctx, actionId);
+        await runServerAction(watch.ctx, actionId, action, opts);
+        return watch.ran();
+    }
     // v2 sequences use the coordinator; bare v1 actions keep their exact
     // legacy behaviour so existing call sites and semantics are unchanged.
     if (action.kind === 'sequence' || SERVER_STEP_KINDS.has(action.kind as string)) {

@@ -234,7 +234,7 @@ export function RunSurface({
                     />
                 )}
             </AppDataScope>
-            <BackgroundRunTray actionState={actionState} />{dialog}
+            <BackgroundRunTray actionState={actionState} appId={appId} />{dialog}
         </BrowserRunProvider>
     );
 }

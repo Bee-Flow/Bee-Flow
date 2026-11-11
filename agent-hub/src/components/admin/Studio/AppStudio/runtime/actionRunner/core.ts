@@ -29,6 +29,10 @@ export interface ActionEntry {
     jobId?: string;
     /** A background action: the job's latest progress. */
     progress?: JobProgress | null;
+    /** The job is on hold (the entry stays `running`): what it waits for, and when the server continues it by itself. */
+    waiting?: { kind: string | null; wakeAt: string | null } | null;
+    /** The job was cancelled (the entry is `idle` again). */
+    cancelled?: boolean;
     /** A field rule refused a write: one sentence per form field name (only when there are any). */
     fieldErrors?: Record<string, string> | null;
 }

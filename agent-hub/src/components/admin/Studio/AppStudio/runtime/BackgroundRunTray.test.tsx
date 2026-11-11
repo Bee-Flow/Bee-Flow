@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import BackgroundRunTray from './BackgroundRunTray';
 import type { ActionState } from './actionRunner/core';
 
@@ -37,5 +37,46 @@ describe('BackgroundRunTray', () => {
         const [first] = screen.getAllByRole('button', { name: 'Dismiss' });
         await userEvent.click(first);
         expect(screen.queryByText('Finished')).toBeNull();
+    });
+
+    it('a job on hold says what it waits for; a cancelled job says so until dismissed', () => {
+        const state: ActionState = {
+            a: { status: 'running', result: undefined, error: null, jobId: 'j1', progress: progress({ waiting: 'timer' }), waiting: { kind: null, wakeAt: '2026-11-12T09:30:00.000Z' } },
+            b: { status: 'running', result: undefined, error: null, jobId: 'j2', progress: progress({ waiting: 'approval' }), waiting: { kind: 'approval', wakeAt: '2026-11-12T09:30:00.000Z' } },
+            c: { status: 'running', result: undefined, error: null, jobId: 'j3', progress: progress({ waiting: 'resume' }), waiting: { kind: null, wakeAt: null } },
+            d: { status: 'idle', result: undefined, error: null, jobId: 'j4', cancelled: true },
+        };
+        const { container } = render(<BackgroundRunTray actionState={state} />);
+        expect(screen.getByText(/^Waiting until .*2026/)).toBeTruthy();
+        expect(screen.getByText('Waiting for an approval')).toBeTruthy();
+        expect(screen.getByText('Waiting to be continued')).toBeTruthy();
+        expect(screen.getByText('Cancelled')).toBeTruthy();
+        expect(container.querySelectorAll('[data-on-hold="true"]')).toHaveLength(3);
+        // Without an app id there is nothing to cancel with.
+        expect(screen.queryByRole('button', { name: 'Cancel' })).toBeNull();
+    });
+
+    it('Cancel asks the server to stop the job and shows that it is stopping; a finished job has no Cancel', async () => {
+        const sendCancel = vi.fn(async () => true);
+        const state: ActionState = {
+            a: { status: 'running', result: undefined, error: null, jobId: 'j1', progress: progress({ executed: 2 }) },
+            b: { status: 'success', result: 1, error: null, jobId: 'j2' },
+        };
+        render(<BackgroundRunTray actionState={state} appId="app1" sendCancel={sendCancel} />);
+        const buttons = screen.getAllByRole('button', { name: 'Cancel' });
+        expect(buttons).toHaveLength(1);
+        await userEvent.click(buttons[0]);
+        expect(sendCancel).toHaveBeenCalledWith('app1', 'j1');
+        expect(await screen.findByText('Stopping…')).toBeTruthy();
+        expect(screen.queryByRole('button', { name: 'Cancel' })).toBeNull();
+    });
+
+    it('a cancel the server did not take leaves the job as it was, with Cancel still there', async () => {
+        const sendCancel = vi.fn(async () => false);
+        const state: ActionState = { a: { status: 'running', result: undefined, error: null, jobId: 'j1', progress: progress({ executed: 2 }), waiting: { kind: null, wakeAt: null } } };
+        render(<BackgroundRunTray actionState={state} appId="app1" sendCancel={sendCancel} />);
+        await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+        expect(await screen.findByRole('button', { name: 'Cancel' })).toBeTruthy();
+        expect(screen.getByText('Waiting to be continued')).toBeTruthy();
     });
 });

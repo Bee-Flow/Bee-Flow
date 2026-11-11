@@ -94,4 +94,30 @@ describe('<RunsView>', () => {
         expect(await screen.findByTestId('runs-empty')).toBeTruthy();
         expect(screen.getByTestId('runs-retention').textContent).toContain('until the app is deleted');
     });
+
+    it('a run on hold shows as such and can be cancelled from its detail; the log is read again after', async () => {
+        const user = userEvent.setup();
+        const held = RUN({ origin: 'background', status: 'paused', error: null, errorCode: null, errorStep: null, endedAt: null, durationMs: null, failedSteps: 0 });
+        api.list.mockResolvedValue({ runs: [held], nextCursor: null, retentionDays: 30 });
+        api.get.mockResolvedValueOnce({ run: held, steps: [] }).mockResolvedValue({ run: { ...held, status: 'cancelled' }, steps: [] });
+        const cancel = vi.fn(async () => ({ status: 'cancelled' }));
+        renderWithClient(<RunsView appId="app1" actionIds={['act_save']} api={{ ...api, cancel }} />);
+        expect((await screen.findByTestId('run-row')).textContent).toContain('On hold');
+        expect(Array.from(screen.getByLabelText('Status').querySelectorAll('option')).map((o) => o.value)).toContain('paused');
+        await user.click(screen.getByRole('button', { name: 'act_save' }));
+        await user.click(await screen.findByRole('button', { name: 'Cancel run' }));
+        expect(cancel).toHaveBeenCalledWith('app1', 'sar_1');
+        await waitFor(() => expect(screen.getByTestId('run-detail-status').textContent).toBe('Cancelled'));
+        expect(screen.queryByRole('button', { name: 'Cancel run' })).toBeNull();
+    });
+
+    it('only a server run that is still going offers Cancel: not a click run, not an ended run', async () => {
+        const user = userEvent.setup();
+        const cancel = vi.fn(async () => ({ status: 'cancelled' }));
+        api.get.mockResolvedValue({ run: RUN({ origin: 'click', status: 'running', error: null }), steps: [] });
+        renderWithClient(<RunsView appId="app1" actionIds={['act_save']} api={{ ...api, cancel }} />);
+        await user.click(await screen.findByRole('button', { name: 'act_save' }));
+        await screen.findByTestId('run-detail');
+        expect(screen.queryByRole('button', { name: 'Cancel run' })).toBeNull();
+    });
 });

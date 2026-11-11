@@ -1,7 +1,8 @@
 import React from 'react';
 import useTranslation from '@/hooks/useTranslation';
-import type { RunsApi, RunStep } from './runsApi';
-import { useRunDetail } from './runsApi';
+import type { RunsApi, RunStep, RunSummary } from './runsApi';
+import { useCancelRun, useRunDetail } from './runsApi';
+import toast from '@/components/shared/Toast';
 import { TONE_CLASS, actorText, formatCost, formatDuration, formatTokens, originText, statusText, statusTone, stepLabel } from './runsModel';
 
 /**
@@ -32,6 +33,7 @@ export default function RunDetail({ api, appId, runId, onBack, onOpenLogic }: {
                 {onOpenLogic ? (
                     <button type="button" className="text-[var(--accent-primary)]" onClick={() => onOpenLogic(run.actionId)}>{t('studio_apps_runs.detail.open_logic', 'Open the action in Logic')}</button>
                 ) : null}
+                <CancelRunButton api={api} appId={appId} run={run} />
             </div>
             <header className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
                 <h3 className="text-base font-semibold text-[var(--text-primary)]">{run.actionId}</h3>
@@ -58,6 +60,25 @@ export default function RunDetail({ api, appId, runId, onBack, onOpenLogic }: {
                 {!steps.length ? <li className="p-3 text-[var(--text-tertiary)]">{t('studio_apps_runs.detail.no_steps', 'No server step was recorded for this run.')}</li> : null}
             </ol>
         </div>
+    );
+}
+
+/**
+ * Stops a server run that is still going or on hold (a browser run ends with its page): a running
+ * one before its next step, one on hold at once. The run log is read again after.
+ */
+function CancelRunButton({ api, appId, run }: { api: RunsApi; appId: string; run: RunSummary }) {
+    const { t } = useTranslation();
+    const cancel = useCancelRun(api, appId);
+    if (!api.cancel || run.origin !== 'background' || (run.status !== 'running' && run.status !== 'paused')) return null;
+    const cancelRun = () => cancel.mutate(run.id, {
+        onSuccess: (out) => toast.info(out.status === 'running'
+            ? t('studio_apps_durable.runs.cancelling', 'The run stops before its next step.')
+            : t('studio_apps_durable.runs.cancelled', 'The run was cancelled.')),
+        onError: () => toast.error(t('studio_apps_durable.runs.cancel_failed', 'The run could not be cancelled. Try again.')),
+    });
+    return (
+        <button type="button" className="text-[var(--error)]" disabled={cancel.isPending} onClick={cancelRun} data-testid="run-cancel">{t('studio_apps_durable.runs.cancel', 'Cancel run')}</button>
     );
 }
 
