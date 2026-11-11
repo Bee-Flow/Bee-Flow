@@ -5,25 +5,29 @@
  * editor), holding only the declared kept variables, at most MAX_PERSISTED_VARIABLE_BYTES for
  * all of them together. Nothing here is sent anywhere.
  *
+ * The entry sits in the viewer's own storage scope (utils/scopedStorage.ts scopedKey), so
+ * signing out removes it with that person's other browser state, in both storages.
+ *
  * Storage can be missing, full or refused (a private window, blocked site data): every access
  * is wrapped, and the run then starts from the declared defaults.
  */
 import { coerceVariableDefault } from '../appVariables';
+import { scopedKey } from '@/utils/scopedStorage';
 import { MAX_PERSISTED_VARIABLE_BYTES, persistedVariables } from '@shared/appDefinition/variableScopes.mjs';
 
 type Mode = 'session' | 'local';
 type Vars = Record<string, unknown>;
 
-const PREFIX = 'bfa.vars.';
+const NAME = 'app-vars.';
 
 /**
- * The key of one signed-in viewer of one app (a draft run keeps its own), or null: no app,
- * or no signed-in viewer (an anonymous visitor of a public page carries no id).
+ * The storage key of one signed-in viewer of one app (a draft run keeps its own), or null: no
+ * app, or no signed-in viewer (an anonymous visitor of a public page carries no id).
  */
 export function persistKeyFor(appId: string | null | undefined, viewer: unknown, draft: boolean): string | null {
     const id = viewer && typeof viewer === 'object' ? (viewer as { id?: unknown }).id : null;
     if (!appId || (typeof id !== 'string' && typeof id !== 'number') || id === '') return null;
-    return `${appId}.${String(id)}${draft ? '.draft' : ''}`;
+    return scopedKey(String(id), `${NAME}${appId}${draft ? '.draft' : ''}`);
 }
 
 function storageOf(mode: Mode): Storage | null {
@@ -36,7 +40,7 @@ function storageOf(mode: Mode): Storage | null {
 
 function readEntry(mode: Mode, key: string): Vars {
     try {
-        const text = storageOf(mode)?.getItem(PREFIX + key);
+        const text = storageOf(mode)?.getItem(key);
         const parsed: unknown = text ? JSON.parse(text) : null;
         return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed as Vars : {};
     } catch {
@@ -93,8 +97,8 @@ export function writePersistedVariables(key: string | null | undefined, variable
 function writeEntry(store: Storage | null, key: string, entry: Vars): boolean {
     if (!store) return false;
     try {
-        if (Object.keys(entry).length) store.setItem(PREFIX + key, JSON.stringify(entry));
-        else store.removeItem(PREFIX + key);
+        if (Object.keys(entry).length) store.setItem(key, JSON.stringify(entry));
+        else store.removeItem(key);
         return true;
     } catch {
         return false;

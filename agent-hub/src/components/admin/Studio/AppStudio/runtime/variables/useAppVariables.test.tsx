@@ -2,6 +2,7 @@ import { act, renderHook } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import useAppVariables, { type AppVariablesInputs } from './useAppVariables';
 import { persistKeyFor, readPersistedVariables, writePersistedVariables } from './persistedVariables';
+import { clearUser } from '@/utils/scopedStorage';
 
 /** The schema 3 keys of a declared variable in the browser: screen, kept and derived variables. */
 
@@ -81,8 +82,8 @@ describe('useAppVariables', () => {
         expect(result.current.vars).toEqual({ page: 4, draft: 'hello', plain: 0 });
         act(() => { result.current.setVars((prev) => ({ ...prev, page: 7 })); });
         expect(readPersistedVariables(key, d.variables)).toEqual({ page: 7, draft: 'hello' });
-        expect(JSON.parse(window.localStorage.getItem(`bfa.vars.${key}`) || '{}')).toEqual({ page: 7 });
-        expect(JSON.parse(window.sessionStorage.getItem(`bfa.vars.${key}`) || '{}')).toEqual({ draft: 'hello' });
+        expect(JSON.parse(window.localStorage.getItem(String(key)) || '{}')).toEqual({ page: 7 });
+        expect(JSON.parse(window.sessionStorage.getItem(String(key)) || '{}')).toEqual({ draft: 'hello' });
 
         const anonymous = mount(d, { persistKey: persistKeyFor('app1', null, false) });
         expect(anonymous.result.current.vars).toEqual({ page: 0, draft: '', plain: 0 });
@@ -91,8 +92,8 @@ describe('useAppVariables', () => {
 
 describe('persistedVariables', () => {
     it('keys a signed-in viewer per app, a draft apart, and nobody else', () => {
-        expect(persistKeyFor('app1', { id: 'u1' }, false)).toBe('app1.u1');
-        expect(persistKeyFor('app1', { id: 'u1' }, true)).toBe('app1.u1.draft');
+        expect(persistKeyFor('app1', { id: 'u1' }, false)).toBe('beeflow:u1:app-vars.app1');
+        expect(persistKeyFor('app1', { id: 'u1' }, true)).toBe('beeflow:u1:app-vars.app1.draft');
         expect(persistKeyFor('app1', null, false)).toBeNull();
         expect(persistKeyFor('app1', { id: '' }, false)).toBeNull();
         expect(persistKeyFor(null, { id: 'u1' }, false)).toBeNull();
@@ -100,10 +101,23 @@ describe('persistedVariables', () => {
 
     it('a stored value of the wrong type, or an undeclared name, is not read', () => {
         const variables = [decl('page', { persist: 'local' })];
-        window.localStorage.setItem('bfa.vars.k', JSON.stringify({ page: 'not a number', other: 1 }));
+        window.localStorage.setItem('k', JSON.stringify({ page: 'not a number', other: 1 }));
         expect(readPersistedVariables('k', variables)).toEqual({});
-        window.localStorage.setItem('bfa.vars.k', '{broken');
+        window.localStorage.setItem('k', '{broken');
         expect(readPersistedVariables('k', variables)).toEqual({});
+    });
+
+    it('signing out removes a viewer’s kept values from both storages, and nobody else’s', () => {
+        const variables = [decl('page', { persist: 'local' }), decl('draft', { type: 'text', default: '', persist: 'session' })];
+        const mine = persistKeyFor('app1', { id: 'u1' }, false);
+        const theirs = persistKeyFor('app1', { id: 'u2' }, false);
+        writePersistedVariables(mine, variables, { page: 4, draft: 'hello' });
+        writePersistedVariables(theirs, variables, { page: 9, draft: 'other' });
+        clearUser('u1');
+        expect(readPersistedVariables(mine, variables)).toEqual({});
+        expect(window.localStorage.getItem(String(mine))).toBeNull();
+        expect(window.sessionStorage.getItem(String(mine))).toBeNull();
+        expect(readPersistedVariables(theirs, variables)).toEqual({ page: 9, draft: 'other' });
     });
 
     it('keeps what fits under the ceiling, the variables declared first first', () => {
