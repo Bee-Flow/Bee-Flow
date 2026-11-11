@@ -4,6 +4,7 @@ import { kindColorVar, kindTint } from '@/components/shared/kindColors';
 import useTranslation from '@/hooks/useTranslation';
 import { openGoogleConsentPopup, openMicrosoftConsentPopup } from '@/api/oauthPopupLaunchers';
 import TagRow from '../detail/TagRow';
+import ReconnectBanner from './ReconnectBanner';
 import { listTalkMeetings, setMeetingRecord, listGoogleMeetMeetings, setGoogleMeetMeetingRecord, listTeamsMeetings, setTeamsMeetingRecord } from '@/api/transcriptionsApi';
 import { metaSegments, meetingTags, dateBlockParts, recordReasonHint, toggleStateLabel, attendeeNotices, autoRecordingHint } from '../lib/upcomingMeta';
 import { StatusChip, gmeetChipStatus, teamsChipStatus, talkChipStatus, startMs } from './UpcomingChips';
@@ -201,6 +202,9 @@ export default function UpcomingMeetings({ onOpenNote, onRowsChange, talkConnect
     const recordingMode = talk.data?.recordingMode || 'audio';
     const connection = gmeet.data?.connection || null;
     const meetScopesGranted = connection?.meetScopesGranted === true;
+    // The Google grant is gone (Google refused the refresh, or it was revoked):
+    // the server answers an empty list with needsReauth, as for Teams.
+    const gmeetNeedsReauth = !gmeet.loading && !gmeet.error && connection?.needsReauth === true;
     const autoImport = !!gmeet.data?.autoImport;
     const teamsConnection = teams.data?.connection || null;
     const teamsScopesGranted = teamsConnection?.teamsScopesGranted === true;
@@ -225,7 +229,7 @@ export default function UpcomingMeetings({ onOpenNote, onRowsChange, talkConnect
         && (talkMeetings.length > 0 || talk.data.autoRecord === true);
     // "Connect Google" only where it can be followed: the installation has a
     // Google OAuth client (`googleConfigured`, missing = no) and this account is not connected.
-    const showConnectGoogle = !gmeet.loading && !gmeet.error && connection?.googleConfigured === true && connection.googleConnected === false;
+    const showConnectGoogle = !gmeet.loading && !gmeet.error && !gmeetNeedsReauth && connection?.googleConfigured === true && connection.googleConnected === false;
     // De EFFECTIEVE chipstatus reist mee in de rij: de voetregel hangt eraan,
     // en die mag niet op `!excluded` afgaan — dat is de stand van de schakelaar,
     // niet de uitkomst (zie attendeeNotices).
@@ -408,43 +412,40 @@ export default function UpcomingMeetings({ onOpenNote, onRowsChange, talkConnect
                 </div>
             )}
 
-            {!gmeet.loading && !gmeet.error && connection && connection.googleConnected !== false && !meetScopesGranted && (
-                <div className="mx-3 mb-2 flex items-center gap-2 px-3 py-2 rounded-lg border text-[11px]" style={WARN_BANNER}>
-                    <AlertCircle className="w-4 h-4 flex-shrink-0 [color:var(--warning)]" aria-hidden="true" />
-                    <span className="flex-1">{t('meetings.upcoming_meet_scopes', "Your Google connection doesn't include Meet permissions yet — reconnect to enable auto-import.")}</span>
-                    <button
-                        type="button" onClick={reconnectGoogle} disabled={reconnecting}
-                        className="px-2 py-1 rounded-lg text-[11px] font-medium border disabled:opacity-50 flex-shrink-0 border-[var(--warning)] text-[var(--warning-ink)]"
-                    >
-                        {reconnecting ? t('meetings.upcoming_reconnecting', 'Reconnecting…') : t('meetings.upcoming_reconnect', 'Reconnect')}
-                    </button>
-                </div>
+            {gmeetNeedsReauth && (
+                <ReconnectBanner
+                    testId="upcoming-gmeet-reauth" onReconnect={reconnectGoogle} busy={reconnecting}
+                    text={t('meetings.upcoming_gmeet_expired', 'Your Google connection has expired, so your Meet meetings cannot be listed. Reconnect to continue.')}
+                    buttonLabel={t('meetings.gmeet_reauthorize', 'Re-authorize Google')}
+                    busyLabel={t('meetings.upcoming_reconnecting', 'Reconnecting…')}
+                />
+            )}
+
+            {!gmeet.loading && !gmeet.error && !gmeetNeedsReauth && connection && connection.googleConnected !== false && !meetScopesGranted && (
+                <ReconnectBanner
+                    onReconnect={reconnectGoogle} busy={reconnecting}
+                    text={t('meetings.upcoming_meet_scopes', "Your Google connection doesn't include Meet permissions yet — reconnect to enable auto-import.")}
+                    buttonLabel={t('meetings.upcoming_reconnect', 'Reconnect')}
+                    busyLabel={t('meetings.upcoming_reconnecting', 'Reconnecting…')}
+                />
             )}
 
             {!teams.loading && !teams.error && teamsNeedsReauth && (
-                <div className="mx-3 mb-2 flex items-center gap-2 px-3 py-2 rounded-lg border text-[11px]" style={WARN_BANNER} data-testid="upcoming-teams-reauth">
-                    <AlertCircle className="w-4 h-4 flex-shrink-0 text-[var(--warning)]" aria-hidden="true" />
-                    <span className="flex-1">{t('meetings.upcoming_teams_expired', 'Your Microsoft 365 connection has expired, so your Teams meetings cannot be listed. Reconnect to continue.')}</span>
-                    <button
-                        type="button" onClick={reconnectMicrosoft} disabled={reconnectingMs}
-                        className="px-2 py-1 rounded-lg text-[11px] font-medium border disabled:opacity-50 flex-shrink-0 border-[var(--warning)] text-[var(--warning-ink)]"
-                    >
-                        {reconnectingMs ? t('meetings.upcoming_reconnecting', 'Reconnecting…') : t('meetings.teams_reauthorize', 'Reconnect Microsoft 365')}
-                    </button>
-                </div>
+                <ReconnectBanner
+                    testId="upcoming-teams-reauth" onReconnect={reconnectMicrosoft} busy={reconnectingMs}
+                    text={t('meetings.upcoming_teams_expired', 'Your Microsoft 365 connection has expired, so your Teams meetings cannot be listed. Reconnect to continue.')}
+                    buttonLabel={t('meetings.teams_reauthorize', 'Reconnect Microsoft 365')}
+                    busyLabel={t('meetings.upcoming_reconnecting', 'Reconnecting…')}
+                />
             )}
 
             {!teams.loading && !teams.error && !teamsNeedsReauth && teamsConnection?.microsoftConnected && !teamsScopesGranted && (
-                <div className="mx-3 mb-2 flex items-center gap-2 px-3 py-2 rounded-lg border text-[11px]" style={WARN_BANNER}>
-                    <AlertCircle className="w-4 h-4 flex-shrink-0 text-[var(--warning)]" aria-hidden="true" />
-                    <span className="flex-1">{t('meetings.upcoming_teams_scopes', "Your Microsoft 365 connection doesn't include Teams meeting permissions yet — reconnect to import the Teams meetings you organise.")}</span>
-                    <button
-                        type="button" onClick={reconnectMicrosoft} disabled={reconnectingMs}
-                        className="px-2 py-1 rounded-lg text-[11px] font-medium border disabled:opacity-50 flex-shrink-0 border-[var(--warning)] text-[var(--warning-ink)]"
-                    >
-                        {reconnectingMs ? t('meetings.upcoming_reconnecting', 'Reconnecting…') : t('meetings.upcoming_reconnect', 'Reconnect')}
-                    </button>
-                </div>
+                <ReconnectBanner
+                    onReconnect={reconnectMicrosoft} busy={reconnectingMs}
+                    text={t('meetings.upcoming_teams_scopes', "Your Microsoft 365 connection doesn't include Teams meeting permissions yet — reconnect to import the Teams meetings you organise.")}
+                    buttonLabel={t('meetings.upcoming_reconnect', 'Reconnect')}
+                    busyLabel={t('meetings.upcoming_reconnecting', 'Reconnecting…')}
+                />
             )}
 
             <div className="flex-1 overflow-y-auto px-3 pb-3">

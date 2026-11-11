@@ -140,8 +140,9 @@ export async function setGoogleMeetMeetingRecord(eventId: string, record: boolea
 
 /**
  * Recently ended Google Meet meetings with recording availability, for the
- * manual import panel. Returns `{ items: [{ eventId, meetingCode, title, start,
- * end, recordingState: 'available'|'processing'|'none', importedNoteId }] }`.
+ * manual import panel. Returns `{ connection, items: [{ eventId, meetingCode, title, start,
+ * end, recordingState: 'available'|'processing'|'none', importedNoteId }] }`;
+ * a grant Google refused answers `connection.needsReauth: true` and no items.
  */
 export async function listGoogleMeetRecordings() {
     const res = await authFetch(`${API_BASE}/api/transcriptions/gmeet-recordings`);

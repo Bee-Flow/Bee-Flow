@@ -386,6 +386,20 @@ describe('UpcomingMeetings: derived chips, occurrences, expired grants, auto-rec
         expect(await screen.findByTestId('upcoming-teams-reauth')).toHaveTextContent(/connection has expired/);
     });
 
+    it('an expired Google grant shows the Meet reconnect banner instead of "Connect Google", and reconnects', async () => {
+        const user = userEvent.setup();
+        listGoogleMeetMeetings.mockResolvedValue(gmeetPayload([], {
+            connection: { googleConfigured: true, googleConnected: false, meetScopesGranted: true, hasSettingsScope: false, needsReauth: true },
+        }));
+        render(<UpcomingMeetings />);
+        expect(await screen.findByTestId('upcoming-gmeet-reauth')).toHaveTextContent(/Google connection has expired/);
+        expect(screen.queryByText(/Connect Google Workspace to see your Meet meetings/)).not.toBeInTheDocument();
+        expect(screen.queryByText(/doesn't include Meet permissions/)).not.toBeInTheDocument();
+        await user.click(screen.getByRole('button', { name: 'Re-authorize Google' }));
+        await waitFor(() => expect(listGoogleMeetMeetings).toHaveBeenCalledTimes(2));
+        expect(openGoogleOAuthPopup).toHaveBeenCalled();
+    });
+
     it('says when a switch left the provider recording alone for one occurrence of a series', async () => {
         const user = userEvent.setup();
         listTeamsMeetings.mockResolvedValue(teamsPayload([teamsMeeting({ excluded: true, status: 'excluded' })]));

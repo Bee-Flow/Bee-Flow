@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Video, Loader2, RefreshCw, Download, Check, Clock } from 'lucide-react';
 import useTranslation from '@/hooks/useTranslation';
 import CaptureControls from './CaptureControls';
+import ReconnectCard, { RECONNECT_TILE } from './ReconnectCard';
 import { useRecorder } from '../hooks/RecorderContext';
 import {
     useTeamsRecordings,
@@ -40,39 +41,11 @@ function fmtDuration(start: string | null, end: string | null): string {
 }
 
 const PANEL = 'rounded-xl border bg-[var(--bg-secondary)] border-[var(--border-default)]';
-const TEAMS_TILE = 'flex items-center justify-center bg-[color-mix(in_srgb,var(--accent-secondary)_12%,transparent)] text-[var(--accent-secondary)]';
+const TEAMS_TILE = `flex items-center justify-center ${RECONNECT_TILE.teams}`;
 const PRIMARY_BTN = 'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium disabled:opacity-50 bg-[var(--accent-primary)] text-[var(--accent-primary-fg)]';
 const ERROR_BOX = 'flex flex-col gap-2 px-3 py-3 rounded-xl border text-xs bg-[color-mix(in_srgb,var(--error)_8%,var(--bg-secondary))] border-[var(--error)] text-[var(--text-primary)]';
 
 interface ImportOutcome { ok?: boolean; pending?: boolean }
-
-interface ReconnectCardProps {
-    title: string;
-    description: string;
-    reauthError: unknown;
-    reauthBusy: boolean;
-    onReauthorize: () => void;
-    t: ReturnType<typeof useTranslation>['t'];
-    testId?: string;
-}
-
-/** Shown instead of the list when only a Microsoft 365 reconnect can help. */
-function ReconnectCard({ title, description, reauthError, reauthBusy, onReauthorize, t, testId }: ReconnectCardProps) {
-    return (
-        <div className={`flex flex-col items-center gap-3 px-4 py-10 text-center ${PANEL}`} data-testid={testId}>
-            <div className={`w-12 h-12 rounded-2xl ${TEAMS_TILE}`}>
-                <Video className="w-6 h-6" />
-            </div>
-            <div className="text-sm font-semibold text-[var(--text-primary)]">{title}</div>
-            <div className="text-xs max-w-sm text-[var(--text-muted)]">{description}</div>
-            {Boolean(reauthError) && <div className="text-xs text-[var(--error)]">{errorMessage(reauthError)}</div>}
-            <button type="button" onClick={onReauthorize} disabled={reauthBusy} className={PRIMARY_BTN}>
-                {reauthBusy && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                {t('meetings.teams_reauthorize', 'Reconnect Microsoft 365')}
-            </button>
-        </div>
-    );
-}
 
 export default function TeamsImportPanel({ onComplete }: { onComplete?: () => void }) {
     const { t } = useTranslation();
@@ -123,7 +96,8 @@ export default function TeamsImportPanel({ onComplete }: { onComplete?: () => vo
     if (needsReauth) {
         return (
             <ReconnectCard
-                testId="teams-reauth" reauthError={reauthError} reauthBusy={reauthBusy} onReauthorize={handleReauthorize} t={t}
+                testId="teams-reauth" tile="teams" reauthError={reauthError} reauthBusy={reauthBusy} onReauthorize={handleReauthorize}
+                buttonLabel={t('meetings.teams_reauthorize', 'Reconnect Microsoft 365')}
                 title={t('meetings.teams_expired_title', 'Your Microsoft 365 connection has expired')}
                 description={t('meetings.teams_expired_desc', 'Reconnect to list and import the Teams meetings you organise again. Your settings are kept.')}
             />
@@ -135,7 +109,8 @@ export default function TeamsImportPanel({ onComplete }: { onComplete?: () => vo
     if (connection && connection.microsoftConnected && !connection.teamsScopesGranted) {
         return (
             <ReconnectCard
-                reauthError={reauthError} reauthBusy={reauthBusy} onReauthorize={handleReauthorize} t={t}
+                tile="teams" reauthError={reauthError} reauthBusy={reauthBusy} onReauthorize={handleReauthorize}
+                buttonLabel={t('meetings.teams_reauthorize', 'Reconnect Microsoft 365')}
                 title={t('meetings.teams_reconsent_title', 'Microsoft Teams needs additional access')}
                 description={t('meetings.teams_reconsent_desc', 'Your Microsoft 365 account was connected before Teams recordings were supported. Reconnect to let Bee Flow list and import the meetings you organise — your Outlook and OneDrive access keeps working. Your Microsoft 365 admin may need to approve the new permissions.')}
             />

@@ -20,8 +20,8 @@ const meetingNotesConnectionKeys = {
 };
 
 interface TalkSettings { nextcloudConnected?: boolean }
-interface GmeetSettings { connection?: { googleConnected?: boolean; meetScopesGranted?: boolean } | null }
-interface TeamsSettings { connection?: { microsoftConnected?: boolean; teamsScopesGranted?: boolean } | null }
+interface GmeetSettings { connection?: { googleConnected?: boolean; meetScopesGranted?: boolean; needsReauth?: boolean } | null }
+interface TeamsSettings { connection?: { microsoftConnected?: boolean; teamsScopesGranted?: boolean; needsReauth?: boolean } | null }
 
 async function readTalkSettings(): Promise<TalkSettings> {
     const res = await authFetch(`${API_BASE}/api/talk-notes-settings/user/me`);
@@ -88,7 +88,9 @@ export function useGoogleMeetConnectedQuery(enabled: boolean) {
 /**
  * Every source the Upcoming tab lists, for its pre-mount (and so its count badge).
  * Teams counts only with the calendar and recording scopes granted: without them
- * the Teams meeting list is empty. `loading` is true until the first answer.
+ * the Teams meeting list is empty. A source whose grant expired (`needsReauth`)
+ * counts too: the Upcoming pane is where its reconnect banner shows.
+ * `loading` is true until the first answer.
  */
 export function useMeetingSourcesQuery() {
     const query = useQuery<{ talk: boolean; gmeet: boolean; teams: boolean }>({
@@ -96,8 +98,8 @@ export function useMeetingSourcesQuery() {
         queryFn: async () => {
             const [talk, gmeet, teams] = await Promise.all([
                 readTalkSettings().then(d => d.nextcloudConnected === true).catch(() => false),
-                readGmeetSettings().then(d => d.connection?.googleConnected === true).catch(() => false),
-                readTeamsSettings().then(d => d.connection?.microsoftConnected === true && d.connection?.teamsScopesGranted === true).catch(() => false),
+                readGmeetSettings().then(d => d.connection?.googleConnected === true || d.connection?.needsReauth === true).catch(() => false),
+                readTeamsSettings().then(d => (d.connection?.microsoftConnected === true && d.connection?.teamsScopesGranted === true) || d.connection?.needsReauth === true).catch(() => false),
             ]);
             return { talk, gmeet, teams };
         },

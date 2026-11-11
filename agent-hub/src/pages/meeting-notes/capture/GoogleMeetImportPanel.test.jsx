@@ -132,4 +132,23 @@ describe('GoogleMeetImportPanel', () => {
         await waitFor(() => expect(openGoogleOAuthPopup).toHaveBeenCalled());
         expect(screen.getByText('Google Meet needs additional access')).toBeTruthy();
     });
+
+    it('an expired grant (needsReauth from the list) shows the reconnect card, not an empty list', async () => {
+        listGoogleMeetRecordings.mockResolvedValue({ connection: { googleConnected: true, meetScopesGranted: true, needsReauth: true }, items: [] });
+        render(<GoogleMeetImportPanel />);
+        expect(await screen.findByTestId('gmeet-reauth')).toHaveTextContent('Your Google connection has expired');
+        expect(screen.queryByText('No Meet recordings found')).toBeNull();
+        expect(screen.getByRole('button', { name: 'Re-authorize Google' })).toBeTruthy();
+    });
+
+    it('an import refused with needs_reauth (409) offers the reconnect and reloads after it', async () => {
+        const user = userEvent.setup();
+        recorderMock.current = makeRecorder({ uploadError: Object.assign(new Error('Google access expired'), { status: 409, code: 'needs_reauth' }) });
+        openGoogleOAuthPopup.mockResolvedValue({ success: true });
+        render(<GoogleMeetImportPanel />);
+        expect(await screen.findByTestId('gmeet-reauth')).toBeTruthy();
+        await user.click(screen.getByRole('button', { name: 'Re-authorize Google' }));
+        await waitFor(() => expect(recorderMock.current.clearError).toHaveBeenCalled());
+        expect(listGoogleMeetRecordings).toHaveBeenCalledTimes(2);
+    });
 });

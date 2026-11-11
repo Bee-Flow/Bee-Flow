@@ -39,6 +39,8 @@ interface GmeetConnection {
     googleConnected?: boolean;
     meetScopesGranted?: boolean;
     hasSettingsScope?: boolean;
+    /** The grant expired or was revoked: the list is empty until a reconnect. */
+    needsReauth?: boolean;
 }
 
 export interface GmeetData {
