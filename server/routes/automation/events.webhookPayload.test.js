@@ -27,6 +27,7 @@ mock(path.join(SERVER, 'stores/automationStore'), {
     getWebhook: async (slug) => (slug === 'hook1' ? { id: 'hook1', automationId: 'auto1', secret: SECRET, triggerStepId: 'trg2' } : null),
     checkAndStoreNonce: async (nonce, options) => { nonceCalls.push({ nonce, options }); return true; },
     touchWebhook: async () => {},
+    logWebhookDelivery: async () => {},
     getAutomation: async () => ({ id: 'auto1', isActive: true, isDraft: false, definition: { trigger: { id: 'trg1', kind: 'manual' } } }),
 });
 mock(path.join(SERVER, 'automation/triggerBus'), { dispatchEvent: async () => [] });

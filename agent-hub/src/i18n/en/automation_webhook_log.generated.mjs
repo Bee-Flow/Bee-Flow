@@ -6,5 +6,16 @@
  */
 
 export default {
+    "automation_webhook_log.empty": "No deliveries yet.",
+    "automation_webhook_log.hash_title": "Start of the SHA-256 of the body",
+    "automation_webhook_log.note": "The body of a delivery is never kept here: only its size and a fingerprint.",
     "automation_webhook_log.previous_secret_until": "The previous secret is accepted until {when}.",
+    "automation_webhook_log.size": "{bytes} bytes",
+    "automation_webhook_log.status.accepted": "Accepted",
+    "automation_webhook_log.status.bad_signature": "Signature not accepted",
+    "automation_webhook_log.status.inactive": "Automation not active",
+    "automation_webhook_log.status.replay": "Nonce used before",
+    "automation_webhook_log.status.stale_timestamp": "Timestamp outside the window",
+    "automation_webhook_log.status.trigger_not_live": "Trigger not published yet",
+    "automation_webhook_log.title": "Recent deliveries",
 };

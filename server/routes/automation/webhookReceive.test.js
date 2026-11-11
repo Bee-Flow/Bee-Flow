@@ -9,19 +9,21 @@
 
 'use strict';
 
-const { test } = require('node:test');
+const { test, beforeEach } = require('node:test');
 const assert = require('node:assert');
 const crypto = require('crypto');
 
-const { NOT_ACCEPTED, verifyDeliverySignature, startSignedDelivery } = require('./webhookReceive.mts');
+const { NOT_ACCEPTED, verifyDeliverySignature, startSignedDelivery, _resetRefusedLog } = require('./webhookReceive.mts');
 const { checkWebhookSignature } = require('./webhookSignature');
+
+beforeEach(() => _resetRefusedLog());
 
 const SECRET = 'ab'.repeat(32);
 const sign = (secret, message) => 'sha256=' + crypto.createHmac('sha256', secret).update(message).digest('hex');
 
 /** A world with one webhook (`hook1`, automation `auto1`), and what happened in it. */
-function world({ automation = { id: 'auto1', isActive: true, isDraft: false }, secret = SECRET, previousSecret = null, seenNonces = [], live = true } = {}) {
-    const seen = { checks: [], executions: [], touched: [], nonces: [...seenNonces] };
+function world({ automation = { id: 'auto1', isActive: true, isDraft: false }, secret = SECRET, previousSecret = null, seenNonces = [], live = true, rejectLogPerMinute = 20, logDelivery } = {}) {
+    const seen = { checks: [], executions: [], touched: [], nonces: [...seenNonces], logged: [] };
     const deps = {
         store: {
             getWebhook: async (slug) => (slug === 'hook1' ? { id: 'hook1', automationId: 'auto1', secret, previousSecret, triggerStepId: 'trg2' } : null),
@@ -32,7 +34,9 @@ function world({ automation = { id: 'auto1', isActive: true, isDraft: false }, s
         check: (input) => { seen.checks.push(input); return checkWebhookSignature(input); },
         liveHasTrigger: () => live,
         execute: async (a, options) => { seen.executions.push({ automation: a, options }); },
-        log: { error() {} },
+        logDelivery: logDelivery || (async (d) => { seen.logged.push(d); }),
+        rejectLogPerMinute: () => rejectLogPerMinute,
+        log: { error() {}, warn() {} },
     };
     return { deps, seen };
 }
@@ -153,4 +157,60 @@ test('a signed delivery for a trigger that is not live yet answers 409 with its 
     assert.strictEqual(out.body.code, 'trigger_not_live');
     await flush();
     assert.strictEqual(seen.executions.length, 0);
+});
+
+// ── The delivery log ────────────────────────────────────────────────────────
+
+const sha256 = (text) => crypto.createHash('sha256').update(text).digest('hex');
+
+test('every delivery to an address with a webhook is logged with what became of it, its size and never its body', async () => {
+    const stale = String(Math.floor(Date.now() / 1000) - 3600);
+    const body = { order: 1, note: 'do not keep me' };
+    const raw = JSON.stringify(body);
+    const cases = [
+        ['accepted', world(), delivery({ body })],
+        ['bad_signature', world(), delivery({ body, secret: 'cd'.repeat(32) })],
+        ['bad_signature', world(), delivery({ body, signature: '' })],
+        ['stale_timestamp', world(), delivery({ body, timestamp: stale })],
+        ['replay', world({ seenNonces: ['hook1:nonce-1'] }), delivery({ body })],
+        ['inactive', world({ automation: { id: 'auto1', isActive: false } }), delivery({ body })],
+        ['trigger_not_live', world({ automation: { id: 'auto1', isActive: true, liveVersion: 2 }, live: false }), delivery({ body })],
+    ];
+    for (const [status, { deps, seen }, d] of cases) {
+        await answer(d, deps);
+        await flush();
+        assert.strictEqual(seen.logged.length, 1, status);
+        const signed = status !== 'bad_signature' && status !== 'stale_timestamp';
+        assert.deepStrictEqual(seen.logged[0], { webhookId: 'hook1', status, bodyBytes: Buffer.byteLength(raw), bodySha256: signed ? sha256(raw) : null }, status);
+        assert.ok(!JSON.stringify(seen.logged[0]).includes('do not keep me'));
+    }
+});
+
+test('an address that names no webhook writes nothing', async () => {
+    const { deps, seen } = world();
+    await answer(delivery({ slug: 'nobody' }), deps);
+    await flush();
+    assert.deepStrictEqual(seen.logged, []);
+});
+
+test('deliveries that start no run are written up to the limit per webhook per minute; accepted ones always', async () => {
+    const { deps, seen } = world({ rejectLogPerMinute: 3 });
+    for (let i = 0; i < 10; i++) await answer(delivery({ secret: 'cd'.repeat(32), nonce: `bad-${i}` }), deps);
+    await flush();
+    assert.strictEqual(seen.logged.length, 3);
+    for (let i = 0; i < 5; i++) assert.strictEqual((await answer(delivery({ nonce: `good-${i}` }), deps)).status, 202);
+    assert.strictEqual(seen.logged.filter((d) => d.status === 'accepted').length, 5);
+
+    const unlimited = world({ rejectLogPerMinute: 0 });
+    for (let i = 0; i < 30; i++) await answer(delivery({ secret: 'cd'.repeat(32), nonce: `bad-${i}` }), unlimited.deps);
+    await flush();
+    assert.strictEqual(unlimited.seen.logged.length, 30, '0 = every one');
+});
+
+test('a log that cannot be written changes no answer and stops no run', async () => {
+    const { deps, seen } = world({ logDelivery: async () => { throw new Error('no table'); } });
+    assert.strictEqual((await answer(delivery(), deps)).status, 202);
+    assert.deepStrictEqual(await answer(delivery({ secret: 'cd'.repeat(32) }), deps), NOT_ACCEPTED);
+    await flush();
+    assert.strictEqual(seen.executions.length, 1);
 });

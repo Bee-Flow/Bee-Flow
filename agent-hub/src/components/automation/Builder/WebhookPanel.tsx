@@ -1,6 +1,8 @@
 import { Webhook, Copy, Check, Eye, EyeOff, Plus } from 'lucide-react';
 import React from 'react';
 import useWebhooks, { webhookUrl, maskSecret } from './webhooks/useWebhooks';
+import WebhookDeliveries from './webhooks/WebhookDeliveries';
+import type { WebhookDelivery } from './webhooks/WebhookDeliveries';
 import useTranslation from '@/hooks/useTranslation';
 
 /** One webhook row as the server lists it. */
@@ -10,6 +12,7 @@ interface WebhookRowData {
     url?: string;
     lastSeenAt?: string | number | null;
     previousValidUntil?: string | null;
+    deliveries?: WebhookDelivery[];
 }
 
 interface PanelProps {
@@ -134,6 +137,7 @@ export function WebhookRow({ row, ctl }: RowProps) {
                     {t('automation_webhook_log.previous_secret_until', 'The previous secret is accepted until {when}.', { when: new Date(row.previousValidUntil).toLocaleString() })}
                 </div>
             )}
+            {row.deliveries && <WebhookDeliveries deliveries={row.deliveries} />}
             {secret && (
                 <div className="flex flex-col gap-1">
                     <div className="flex items-center gap-2">

@@ -8,6 +8,10 @@
  *   AUTOMATION_EVENTS_RPM_PER_IP                     600   provider event pushes one address may send per minute
  *   AUTOMATION_WEBHOOK_ROTATION_OVERLAP_SECONDS      3600  how long the previous secret still signs after
  *                                                          a rotation (0 = it stops at once)
+ *   AUTOMATION_WEBHOOK_DELIVERY_LOG_MAX              100   deliveries kept per webhook
+ *   AUTOMATION_WEBHOOK_DELIVERY_RETENTION_DAYS       30    deliveries older than this are deleted (0 = keep)
+ *   AUTOMATION_WEBHOOK_REJECT_LOG_PER_MINUTE         20    deliveries that started no run written to the log
+ *                                                          per webhook per minute (the rest are not written)
  */
 
 export const AUTOMATION_WEBHOOK_ENV = Object.freeze({
@@ -15,6 +19,9 @@ export const AUTOMATION_WEBHOOK_ENV = Object.freeze({
     rpmPerIp: { env: 'AUTOMATION_WEBHOOK_RPM_PER_IP', fallback: 300 },
     eventsRpmPerIp: { env: 'AUTOMATION_EVENTS_RPM_PER_IP', fallback: 600 },
     rotationOverlapSeconds: { env: 'AUTOMATION_WEBHOOK_ROTATION_OVERLAP_SECONDS', fallback: 3600 },
+    deliveryLogMax: { env: 'AUTOMATION_WEBHOOK_DELIVERY_LOG_MAX', fallback: 100 },
+    deliveryRetentionDays: { env: 'AUTOMATION_WEBHOOK_DELIVERY_RETENTION_DAYS', fallback: 30 },
+    rejectLogPerMinute: { env: 'AUTOMATION_WEBHOOK_REJECT_LOG_PER_MINUTE', fallback: 20 },
 });
 
 export type AutomationWebhookLimits = { -readonly [K in keyof typeof AUTOMATION_WEBHOOK_ENV]: number };

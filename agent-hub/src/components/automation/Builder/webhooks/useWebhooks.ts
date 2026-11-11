@@ -3,6 +3,7 @@ import useAutomationApi from '@/hooks/useAutomationApi';
 import { copyText } from '@/utils/copyText';
 import { useBuilderConfirm } from '../BuilderConfirmContext';
 import { errorMessage, messageOf } from '@/utils/caughtError';
+import type { WebhookDelivery } from './WebhookDeliveries';
 
 /** One inbound webhook row, as the server lists it. */
 export interface Webhook {
@@ -12,6 +13,8 @@ export interface Webhook {
     triggerStepId?: string | null;
     /** While the secret from before the last rotation is still accepted: until when. */
     previousValidUntil?: string | null;
+    /** The newest deliveries to this address: what became of each, never a body. */
+    deliveries?: WebhookDelivery[];
 }
 
 export interface AutomationLike {

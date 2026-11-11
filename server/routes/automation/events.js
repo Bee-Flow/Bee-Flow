@@ -93,6 +93,8 @@ const webhookDeps = {
     check: checkWebhookSignature,
     liveHasTrigger: (/** @type {any} */ automation, /** @type {string} */ stepId) => require('../../core/automationRunner/definitionForRun').liveHasTrigger(automation, stepId),
     execute: (/** @type {any} */ automation, /** @type {Record<string, unknown>} */ options) => require('../../core/automationRunner').executeAutomation(automation, options),
+    logDelivery: (/** @type {Parameters<typeof automationStore.logWebhookDelivery>[0]} */ d) => automationStore.logWebhookDelivery(d),
+    rejectLogPerMinute: () => automationWebhookLimits().rejectLogPerMinute,
     log,
 };
 

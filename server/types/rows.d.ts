@@ -737,6 +737,15 @@ declare namespace DbRow {
         saved_by_user_id: string;
         version: number;
     }
+    /** Row of `automation_webhook_deliveries`. */
+    interface AutomationWebhookDeliveries {
+        body_bytes: number;
+        body_sha256: string | null;
+        id: string;
+        received_at: Date;
+        status: string;
+        webhook_id: string;
+    }
     /** Row of `automation_webhook_seen_nonces`. */
     interface AutomationWebhookSeenNonces {
         nonce: string;

@@ -661,6 +661,18 @@ What comes back:
 | 413 | `Request body too large` | The body is over the server's JSON size limit. |
 | 429 | `Too many requests …` | More than 120 requests a minute to one webhook, or 300 a minute from one IP address (the defaults of `AUTOMATION_WEBHOOK_RPM_PER_SLUG` and `AUTOMATION_WEBHOOK_RPM_PER_IP`; `0` switches a limit off). A `Retry-After` header says when to try again. |
 
+The answer to the sender is deliberately short. The owner reads the reason in
+the builder: every webhook row has **Recent deliveries**, with for each
+delivery when it arrived, what became of it (accepted, signature not accepted,
+timestamp outside the window, nonce used before, automation not active,
+trigger not published yet) and the size of the body. The body itself is never
+kept in this log: only its size and, for a correctly signed delivery, a
+SHA-256 fingerprint. A webhook keeps its newest 100 deliveries, for at most 30
+days (`AUTOMATION_WEBHOOK_DELIVERY_LOG_MAX`,
+`AUTOMATION_WEBHOOK_DELIVERY_RETENTION_DAYS`). `GET
+/api/automation/{automationId}/webhooks` returns the same list per webhook as
+`deliveries`.
+
 In the run, the JSON body is `trigger.output`, so a step reads the example's
 order number as `{{trigger.output.order}}`. A few request headers ride along
 at `trigger.headers.<name>`, lowercased with dashes turned into underscores:

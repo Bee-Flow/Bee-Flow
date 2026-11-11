@@ -149,6 +149,9 @@ const MIGRATIONS = [
     // prev_secret / prev_valid_until on automation_webhooks: the secret from
     // before a rotation still verifies for the overlap. Additive, nullable.
     'automation-webhook-rotation-2026-11',
+    // automation_webhook_deliveries: what arrived at a webhook address (status,
+    // size, a hash, time; never a body). Starts empty.
+    'automation-webhook-deliveries-2026-11',
 ];
 
 const initDB = makeStoreInit('AutomationStore', _initDB);
