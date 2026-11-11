@@ -2,7 +2,8 @@
   "translations": {
     "studio_apps_lk21a.switch.default_label": "Ingeschakeld",
     "studio_apps_lk21a.radio.default_label": "Keuze",
-    "studio_apps_lk21a.radio.no_options": "Nog geen opties."
+    "studio_apps_lk21a.radio.no_options": "Nog geen opties.",
+    "studio_apps_lk21a.slider.default_label": "Niveau"
   },
   "sameAsEnglish": []
 }

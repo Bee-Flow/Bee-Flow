@@ -7,4 +7,5 @@ module.exports = {
     'studio_apps_lk21a.switch.default_label': 'Enabled',
     'studio_apps_lk21a.radio.default_label': 'Choice',
     'studio_apps_lk21a.radio.no_options': 'No options yet.',
+    'studio_apps_lk21a.slider.default_label': 'Level',
 };

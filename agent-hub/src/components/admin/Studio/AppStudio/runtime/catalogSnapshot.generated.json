@@ -731,6 +731,7 @@
         "input_multiselect",
         "input_document",
         "radio",
+        "slider",
         "switch"
     ],
     "eventNames": [
@@ -2476,6 +2477,38 @@
                 "error"
             ]
         },
+        "slider": {
+            "label": "Slider",
+            "category": "Input",
+            "isInput": true,
+            "defaultProps": {
+                "name": "level",
+                "label": "Level",
+                "min": 0,
+                "max": 100,
+                "step": 1,
+                "required": false,
+                "defaultValue": null,
+                "valueFrom": {
+                    "kind": "static",
+                    "value": null
+                }
+            },
+            "defaultStyle": {
+                "span": 6
+            },
+            "since": 3,
+            "mobile": {
+                "reason": "The phone draws the base inputs only; a slider stays in the browser."
+            },
+            "parts": [
+                "root",
+                "label",
+                "control",
+                "value",
+                "error"
+            ]
+        },
         "switch": {
             "label": "Switch",
             "category": "Input",
@@ -2783,6 +2816,9 @@
         "radio": [
             "span"
         ],
+        "slider": [
+            "span"
+        ],
         "switch": [
             "span"
         ]
@@ -2882,6 +2918,9 @@
             "onChange"
         ],
         "radio": [
+            "onChange"
+        ],
+        "slider": [
             "onChange"
         ],
         "switch": [
