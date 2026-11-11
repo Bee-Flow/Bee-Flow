@@ -97,6 +97,7 @@ function tableAt(lines: string[], i: number): { align: Align[] } | null {
 
 function startsBlock(lines: string[], i: number): boolean {
     const line = lines[i];
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- anchored patterns with classes that do not overlap, on one line of text: linear
     return HEADING.test(line) || line.startsWith('```') || BULLET.test(line) || NUMBERED.test(line) || isQuoteLine(line) || tableAt(lines, i) !== null;
 }
 
@@ -109,6 +110,7 @@ function taskOf(text: string): ListItem {
 function readList(lines: string[], from: number, marker: RegExp): Read {
     const items: ListItem[] = [];
     let i = from;
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- the marker is BULLET or NUMBERED: anchored, classes that do not overlap, on one line of text: linear
     while (i < lines.length && marker.test(lines[i])) {
         items.push(taskOf(lines[i].replace(marker, '')));
         i += 1;
@@ -132,6 +134,7 @@ function readTable(lines: string[], from: number, align: Align[]): Read {
 function readFence(lines: string[], from: number): Read {
     const code: string[] = [];
     let i = from + 1;
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- an anchored fence with one trailing class, on one line of text: linear
     while (i < lines.length && !/^```\s*$/.test(lines[i])) { code.push(lines[i]); i += 1; }
     return { block: { kind: 'code', code: code.join('\n') }, next: i + 1 }; // past the closing fence, or the end of the text
 }

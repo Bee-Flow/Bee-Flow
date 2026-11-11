@@ -167,6 +167,7 @@ function isServerRun(row) {
 async function ownJob(req, app) {
     const { RUN_ID_RE } = require('../stores/studioAppData/runPolicy.mts');
     const { actionRunStore } = require('../stores/studioAppData/actionRuns.mts');
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- RUN_ID_RE is the fixed /^sar_[0-9a-f]{32}$/, linear on any input
     const jobId = req.params.jobId;
     const userId = sessionUser(req).id;
     const row = RUN_ID_RE.test(jobId) ? await actionRunStore().getRun(app.id, jobId) : null; // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- RUN_ID_RE is the fixed /^sar_[0-9a-f]{32}$/, linear on any input

@@ -87,6 +87,7 @@ export default function WebhookTriggerDetails({ appId, triggerId, disabled = fal
         onSuccess: (out) => setShown(out.secret),
         onError: (err) => {
             const reason = err instanceof ApiError ? errorBody(err)?.error : null;
+            // nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret -- an i18n key and its message, not a secret value
             toast.error(typeof reason === 'string' && reason ? reason : t('studio_apps_h5.secret_failed', 'The secret could not be read. Try again.'));
         },
     });
@@ -113,6 +114,7 @@ export default function WebhookTriggerDetails({ appId, triggerId, disabled = fal
                 <button type="button" className={LINK_BTN} onClick={() => copy(endpoint.url, t)}>{t('studio_apps_h5.copy', 'Copy')}</button>
             </div>
             <div className="flex flex-wrap items-center gap-2">
+                {/* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret -- a label text, not a secret value */}
                 <span className="text-xs font-medium text-[var(--text-secondary)]">{t('studio_apps_h5.secret', 'Secret')}</span>
                 {shown ? (
                     <>
