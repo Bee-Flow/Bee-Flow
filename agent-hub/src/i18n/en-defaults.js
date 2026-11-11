@@ -39899,6 +39899,8 @@ const EN_DEFAULTS = {
     "studio_apps_w3d.color.no_tokens": "This app has no colour tokens yet. Add them under Theme, Tokens.",
     "studio_apps_w3d.color.token_aria": "Colour token",
     "studio_apps_w3d.color.token_unknown": "Token \"{name}\" is not a colour token of this app, so it paints nothing.",
+    "studio_apps_w3d.section_theme.hint": "Applies to this section only; the page ground stays the one of the screen.",
+    "studio_apps_w3d.section_theme.title": "Theme of this section",
 };
 
 export default EN_DEFAULTS;
