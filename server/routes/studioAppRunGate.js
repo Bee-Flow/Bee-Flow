@@ -200,6 +200,24 @@ function visibleFormValues(def, actionId, role, formValues) {
 }
 
 /**
+ * What a step route adds to the executor's ctx for an app with the wide server scope
+ * (appStudio/actionExecutor/wideScope.mts): the screen params, the other forms and the action
+ * results the request carries. The forms follow the fields this viewer's role sees, as
+ * `formValues` does (visibleFormValues); the owner sends everything. Nothing at all for an app
+ * without the wide scope.
+ * @param {unknown} def  the definition the request runs
+ * @param {string | null | undefined} role
+ * @param {unknown} body  the request body
+ * @returns {{ wideScope?: import('../appStudio/actionExecutor/wideScope.mts').WideScope }}
+ */
+function wideScopeFor(def, role, body) {
+    const input = require('../appStudio/actionExecutor/wideScope.mts').wideScopeInput(def, body);
+    if (!input.wideScope || role === 'owner') return input;
+    const forms = require('../appStudio/formFieldGate.mts').withoutGatedFormsFields(input.wideScope.forms, def, (/** @type {unknown} */ node) => roleAllows(/** @type {{ visibleToRoles?: unknown } | null} */ (node), role));
+    return forms === input.wideScope.forms ? input : { wideScope: { ...input.wideScope, forms } };
+}
+
+/**
  * The role checks the app document pool (appDocuments/pool.mts) walks with:
  * which screens and nodes this viewer sees, which actions they can reach.
  * The same rules as the two gates above, so a document behind an admin-only
@@ -263,4 +281,4 @@ async function resolveViewerRole(req, app, userId) {
     return { role: role || null, model };
 }
 
-module.exports = { loadVisibleApp, roleAllows, actionRoleAccess, assertActionRoleAccess, visibleFormValues, documentChecks, stepDocumentContext, pickDefinition, resolveViewerRole };
+module.exports = { loadVisibleApp, roleAllows, actionRoleAccess, assertActionRoleAccess, visibleFormValues, wideScopeFor, documentChecks, stepDocumentContext, pickDefinition, resolveViewerRole };

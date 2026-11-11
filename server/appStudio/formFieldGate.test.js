@@ -154,3 +154,65 @@ test('visibleWhen and enabledWhen are not read: those values pass as they are', 
     ])]);
     assert.equal(visibleFormValues(def, 'act_save', 'member', VALUES), VALUES);
 });
+
+// ── The other forms of a wide server scope (forms.<form name>.<field>) ──────────
+
+const { withoutGatedFormsFields } = require('./formFieldGate.mts');
+const { wideScopeFor } = require('../routes/studioAppRunGate');
+const { buildServerScope } = require('./actionExecutor/shared');
+
+const WIDE_FORM = () => form([input('title'), input('amount'), input('approvedBy', { visibleToRoles: ['admin'] })]);
+
+test('forms of the wide scope follow the fields the role sees in the form of that name', () => {
+    const def = { ...defOf([WIDE_FORM()]), serverScope: 'wide' };
+    const body = { forms: { request: { ...VALUES } }, screenParams: { id: 'r1' } };
+    const member = wideScopeFor(def, 'member', body).wideScope;
+    assert.deepEqual({ ...member.forms.request }, { title: 'Laptop', amount: 1200 });
+    assert.deepEqual({ ...member.screen.params }, { id: 'r1' }, 'the rest of the scope is untouched');
+    assert.equal(buildServerScope({ wideScope: member }).forms.request.approvedBy, undefined, 'a formula reads nothing there');
+    assert.deepEqual({ ...wideScopeFor(def, null, body).wideScope.forms.request }, { title: 'Laptop', amount: 1200 }, 'a viewer without a role clears open gates only');
+    assert.equal(wideScopeFor(def, 'admin', body).wideScope.forms.request.approvedBy, 'someone', 'the named role sends it');
+    assert.equal(wideScopeFor(def, 'owner', body).wideScope.forms.request.approvedBy, 'someone', 'the owner sends everything');
+});
+
+test('a form without a name is read under its node id, as the page publishes it', () => {
+    const def = { ...defOf([form([input('approvedBy', { visibleToRoles: ['admin'] })], { props: {} })]), serverScope: 'wide' };
+    const out = wideScopeFor(def, 'member', { forms: { frm: { approvedBy: 'x', note: 'y' } } }).wideScope;
+    assert.deepEqual({ ...out.forms.frm }, { note: 'y' });
+});
+
+test('each form is read on its own: the same field name in another form keeps its value', () => {
+    const other = { id: 'frm_2', type: 'form', props: { name: 'review' }, children: [input('approvedBy')] };
+    const def = defOf([WIDE_FORM(), other]);
+    const sent = { request: { approvedBy: 'a' }, review: { approvedBy: 'b' }, unknown: { approvedBy: 'c' } };
+    const out = withoutGatedFormsFields(sent, def, as('member'));
+    assert.deepEqual(JSON.parse(JSON.stringify(out)), { request: {}, review: { approvedBy: 'b' }, unknown: { approvedBy: 'c' } });
+});
+
+test('two variants of one field in the same form, one per role, keep the value for both roles', () => {
+    const def = defOf([form([input('approvedBy', { visibleToRoles: ['admin'] }), input('approvedBy', { visibleToRoles: ['member'] })])]);
+    const sent = { request: { approvedBy: 'a' } };
+    assert.equal(withoutGatedFormsFields(sent, def, as('member')), sent);
+    assert.equal(withoutGatedFormsFields(sent, def, as('admin')), sent);
+    assert.deepEqual({ ...withoutGatedFormsFields(sent, def, as('guest')).request }, {});
+});
+
+test('nothing gated, or nothing to leave out: the same object; an app without the wide scope gets no key', () => {
+    const open = defOf([form([input('title')])]);
+    const sent = { request: { title: 'x' } };
+    assert.equal(withoutGatedFormsFields(sent, open, as('member')), sent);
+    const gated = defOf([WIDE_FORM()]);
+    assert.equal(withoutGatedFormsFields(sent, gated, as('member')), sent);
+    for (const v of [null, undefined, 'text', 3, ['request']]) assert.equal(withoutGatedFormsFields(v, gated, as('member')), v);
+    assert.deepEqual(wideScopeFor(gated, 'member', { forms: { request: { ...VALUES } } }), {}, 'no serverScope: wide');
+});
+
+test('the kept forms stay own keys without a prototype, also one named __proto__', () => {
+    const def = defOf([WIDE_FORM()]);
+    const sent = JSON.parse('{"request":{"approvedBy":"x","__proto__":{"polluted":true},"title":"t"}}');
+    const out = withoutGatedFormsFields(sent, def, as('member'));
+    assert.equal(Object.getPrototypeOf(out), null);
+    assert.equal(Object.getPrototypeOf(out.request), null);
+    assert.deepEqual(Object.keys(out.request), ['__proto__', 'title']);
+    assert.equal(out.request.polluted, undefined);
+});

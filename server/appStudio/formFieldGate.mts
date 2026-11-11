@@ -40,8 +40,8 @@ type Obj = Record<string, unknown>;
 /** May this viewer see the node (its `visibleToRoles`)? The caller binds the role. */
 export type Allows = (node: unknown) => boolean;
 
-/** One form: the actions wired on it or inside it, and its field names split by the role gate. */
-type FormSeen = { runs: Set<string>; shown: Set<string>; gated: Set<string> };
+/** One form: its name, the actions wired on it or inside it, and its field names split by the role gate. */
+type FormSeen = { name: string | null; runs: Set<string>; shown: Set<string>; gated: Set<string> };
 
 /** The forms, plus the actions a component that is not a form starts with a bag of its own. */
 type Seen = { forms: FormSeen[]; others: Set<string> };
@@ -56,6 +56,12 @@ function isObject(v: unknown): v is Obj {
 function fieldNameOf(node: Obj): string | null {
     const props = isObject(node.props) ? node.props : null;
     const name = props ? props.name : null;
+    return typeof name === 'string' && name ? name : null;
+}
+
+/** The name a form's values are published under (`forms.<name>`): props.name, else the node id, as AppForm does. */
+function formNameOf(node: Obj): string | null {
+    const name = fieldNameOf(node) ?? node.id;
     return typeof name === 'string' && name ? name : null;
 }
 
@@ -84,7 +90,7 @@ function readForms(def: unknown, allows: Allows): Seen {
             let within = form;
             let nodeVisible = true;
             if (node.type === 'form') {
-                within = { runs: new Set(), shown: new Set(), gated: new Set() };
+                within = { name: formNameOf(node), runs: new Set(), shown: new Set(), gated: new Set() };
                 seen.forms.push(within);
             } else if (within) {
                 nodeVisible = visible && allows(node);
@@ -140,4 +146,49 @@ export function withoutGatedFormFields<T>(values: T, def: unknown, actionId: str
     if (!keys.some((k) => gated.has(k))) return values;
     // fromEntries defines own properties, so a key such as "__proto__" stays the plain key it was.
     return Object.fromEntries(keys.filter((k) => !gated.has(k)).map((k) => [k, values[k]])) as T;
+}
+
+/** Per form name: the field names gated in a form of that name and visible in none of that name. */
+function gatedFieldsByForm(def: unknown, allows: Allows): Map<string, Set<string>> {
+    const out = new Map<string, Set<string>>();
+    const { forms } = readForms(def, allows);
+    for (const form of forms) {
+        if (form.name === null || form.gated.size === 0) continue;
+        const names = out.get(form.name) ?? new Set<string>();
+        for (const name of form.gated) names.add(name);
+        out.set(form.name, names);
+    }
+    for (const form of forms) {
+        const names = form.name === null ? undefined : out.get(form.name);
+        if (names) for (const name of form.shown) names.delete(name);
+    }
+    return out;
+}
+
+/**
+ * The values of the other forms a request carries (`forms.<form name>.<field>`, the wide server
+ * scope) under the same rule as the submitted form: a field the viewer's role does not see in
+ * the form of that name is left out. Each form is named here, so every form is read on its own;
+ * a key that names no form of the definition passes as it is. The same object when nothing is
+ * left out.
+ */
+export function withoutGatedFormsFields<T>(forms: T, def: unknown, allows: Allows): T {
+    if (!isObject(forms)) return forms;
+    const gatedByForm = gatedFieldsByForm(def, allows);
+    if (gatedByForm.size === 0) return forms;
+    let changed = false;
+    // No prototype, as the bag came in (wideScope.mts): only own keys are values.
+    const out: Obj = Object.create(null);
+    for (const [formName, values] of Object.entries(forms)) {
+        const gated = gatedByForm.get(formName);
+        if (!gated || gated.size === 0 || !isObject(values) || !Object.keys(values).some((k) => gated.has(k))) {
+            out[formName] = values;
+            continue;
+        }
+        const kept: Obj = Object.create(null);
+        for (const [k, v] of Object.entries(values)) if (!gated.has(k)) kept[k] = v;
+        out[formName] = kept;
+        changed = true;
+    }
+    return (changed ? out : forms) as T;
 }

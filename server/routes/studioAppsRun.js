@@ -120,7 +120,7 @@ const ACTION_WAIT_MS = parseInt(process.env.STUDIO_APP_ACTION_WAIT_MS, 10) || 60
 // ── App visibility + role gates ─────────────────────────────────────
 // Extracted to routes/studioAppRunGate.js so the streaming browse bridge shares
 // the SAME copy — a second walk is how one surface drifts wider than the other.
-const { loadVisibleApp, assertActionRoleAccess, visibleFormValues, stepDocumentContext } = require('./studioAppRunGate');
+const { loadVisibleApp, assertActionRoleAccess, visibleFormValues, wideScopeFor, stepDocumentContext } = require('./studioAppRunGate');
 
 // ── Input resolution + final output ─────────────────────────────────
 // resolveInputs (action.inputMapping → automation inputs; the ONLY bridge
@@ -287,7 +287,7 @@ router.post('/:id/actions/:actionId/step', requireAuth, stepLimiter, jsonBody, b
         value,
         // A called action's params (call_action), read as `params.<name>`.
         params: sanitizeBag(req.body?.params),
-        ...require('../appStudio/actionExecutor/wideScope.mts').wideScopeInput(def, req.body), // serverScope: 'wide' only
+        ...wideScopeFor(def, role, req.body), // serverScope: 'wide' only; forms without the fields this role does not see
         // Inside an onError handler: the failure it handles, read as error.message / error.step.
         error: sanitizeErrorScope(req.body?.error),
         // The FULL viewer the row filters see (viewer.<attr> params) —

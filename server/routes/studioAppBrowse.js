@@ -50,7 +50,7 @@ const rlsGateway = require('../appStudio/rlsGateway');
 const actionExecutor = require('../appStudio/actionExecutor');
 const { resolveRequestedStep, STEP_MISMATCH, sanitizeBag, sanitizeErrorScope } = require('../appStudio/actionSequence');
 const { LIMITS } = require('../appStudio/componentSpecs/limits');
-const { loadVisibleApp, assertActionRoleAccess, visibleFormValues } = require('./studioAppRunGate');
+const { loadVisibleApp, assertActionRoleAccess, visibleFormValues, wideScopeFor } = require('./studioAppRunGate');
 const { resolveAudienceContext } = require('../auth/audience');
 const { requireAuth } = require('../auth/permissions');
 const { browseStepLimiter, aiStepLimiter } = require('./studioAppRateLimits');
@@ -208,7 +208,7 @@ router.post('/:id/actions/:actionId/step/stream', requireAuth, jsonBody, validat
                 index: req.body.index,
                 value: req.body.value,
                 params: sanitizeBag(req.body.params),
-                ...require('../appStudio/actionExecutor/wideScope.mts').wideScopeInput(def, req.body), // serverScope: 'wide' only
+                ...wideScopeFor(def, role, req.body), // serverScope: 'wide' only; forms without the fields this role does not see
                 error: sanitizeErrorScope(req.body.error),
                 browse: { send: bridge, isCancelled: () => cancelled },
             })));

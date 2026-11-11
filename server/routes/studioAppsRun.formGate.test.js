@@ -87,9 +87,9 @@ function screensWith(gate) {
 
 let n = 0;
 /** A published app of OWNER's org; ADMIN is a member with the role `admin`, MEMBER has no role. */
-async function makeApp(gate) {
+async function makeApp(gate, extra = {}) {
     const store = require('../stores/studioAppStore');
-    const def = { schemaVersion: 2, meta: { name: 'Forms' }, theme: {}, homeScreenId: 'scr_1', screens: screensWith(gate), actions: ACTIONS };
+    const def = { schemaVersion: 2, meta: { name: 'Forms' }, theme: {}, homeScreenId: 'scr_1', screens: screensWith(gate), actions: ACTIONS, ...extra };
     const app = await store.createStudioApp({ userId: OWNER.id, organizationId: ORG, name: `Forms ${++n}`, definition: def });
     await store.setStudioAppPublished(app.id, true, OWNER.id, [], ORG, def, 1);
     assert.ok(await require('../stores/studioAppDataStore').addMember(app.id, OWNER.id, ADMIN.id, 'admin'), 'admin role given');
@@ -155,4 +155,26 @@ test('a field gated to a role: the role itself and the owner keep it', async () 
     const all = { step: SENT, background: SENT, plain: SENT, typed: { title: 'Laptop', approvedBy: 'someone' } };
     assert.deepEqual(await handedOn(app, ADMIN), all);
     assert.deepEqual(await handedOn(app, OWNER), all);
+});
+
+test('the wide server scope: the forms a step is sent follow the same field gate', async () => {
+    const app = await makeApp(['admin'], { schemaVersion: 3, serverScope: 'wide' });
+    const body = { stepIndex: 0, formValues: SENT, forms: { form_0: SENT, form_1: SENT }, screenParams: { id: 'r1' } };
+    const sentAs = async (user) => {
+        const res = await post(app, 'act_save/step', body, user);
+        assert.equal(res.status, 200, res.text);
+        return JSON.parse(JSON.stringify(stepCalls.at(-1).ctx.wideScope));
+    };
+    const member = await sentAs(MEMBER);
+    assert.deepEqual(member.forms, { form_0: KEPT, form_1: KEPT });
+    assert.deepEqual(member.screen, { params: { id: 'r1' } });
+    assert.deepEqual((await sentAs(ADMIN)).forms, { form_0: SENT, form_1: SENT });
+    assert.deepEqual((await sentAs(OWNER)).forms, { form_0: SENT, form_1: SENT });
+});
+
+test('an app without the wide server scope is handed no forms at all', async () => {
+    const app = await makeApp(['admin']);
+    const res = await post(app, 'act_save/step', { stepIndex: 0, formValues: SENT, forms: { form_0: SENT } }, MEMBER);
+    assert.equal(res.status, 200, res.text);
+    assert.equal(stepCalls.at(-1).ctx.wideScope, undefined);
 });
