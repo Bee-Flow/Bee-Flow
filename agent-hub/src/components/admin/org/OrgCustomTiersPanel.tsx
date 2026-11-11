@@ -3,6 +3,7 @@ import { TranslateParams, useTranslation } from '@/hooks/useTranslation';
 import { API_BASE } from '@/utils/helpers';
 import useConfirm from '../../shared/useConfirm';
 import { request, RefusedError, mutate, errorBody } from '@/api/mutate';
+import { useAdminOrgScope, withOrgIdParam } from '@/api/adminOrgScope';
 
 interface OrgTier {
     id: string;
@@ -53,6 +54,9 @@ const slugifyTierLabel = (label: unknown) => {
 const OrgCustomTiersPanel = () => {
     const { t } = useTranslation();
     const { confirm, confirmDialog } = useConfirm();
+    // The organisation an AdminOrgScopeProvider names (the dashboard's choice), else the caller's own:
+    // GET takes it as ?orgId, the save in its body.
+    const scopeOrgId = useAdminOrgScope();
     const [orgTiers, setOrgTiers] = useState<OrgTier[]>([]);
     const [globalTiers, setGlobalTiers] = useState<OrgTier[]>([]);
     const [availableModels, setAvailableModels] = useState<AvailableModel[]>([]);
@@ -70,7 +74,7 @@ const OrgCustomTiersPanel = () => {
                 throw err;
             };
             const [tiersRes, providersRes] = await Promise.all([
-                request(`${API_BASE}/ai/config/org-custom-chat-models`).catch(refusal),
+                request(withOrgIdParam(`${API_BASE}/ai/config/org-custom-chat-models`, scopeOrgId)).catch(refusal),
                 request(`${API_BASE}/ai/providers`).catch(refusal),
             ]);
             if (!(tiersRes instanceof RefusedError)) {
@@ -171,7 +175,7 @@ const OrgCustomTiersPanel = () => {
                 res = await mutate(`${API_BASE}/ai/config/org-custom-chat-models`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ tiers: orgTiers }),
+                body: JSON.stringify(scopeOrgId ? { tiers: orgTiers, orgId: scopeOrgId } : { tiers: orgTiers }),
             });
             } catch (err) {
                 if (!(err instanceof RefusedError)) throw err;

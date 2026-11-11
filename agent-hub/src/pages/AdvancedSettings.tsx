@@ -157,11 +157,11 @@ const AdvancedSettings = ({ onNavigate, onLogout, user, onUpdateUser, onClose }:
         else window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
     };
 
-    const { handleComplianceNavigate } = useComplianceNavigation(canSeeOrg, onNavigate, setOrgDeepSegs, setActiveTabState);
+    const { handleComplianceNavigate } = useComplianceNavigation(onNavigate, setOrgDeepSegs, setActiveTabState);
 
     const renderContent = () => renderSettingsContent({
         user, activeTab, setActiveTab, isMobile, phoneExemptTab, isOrgSubTab, canSeeOrg, canSeeCompliance, canUseLearning,
-        isConsumerAccount, isSelfHosted, isPlatformAdmin, projectsOn, entitlementsUnknown, orgDeepSegs,
+        isConsumerAccount, isSelfHosted, isPlatformAdmin, projectsOn, entitlementsUnknown,
         // On a phone the hub owns the way back to the section list (its own top bar).
         complianceHub: (
             <ComplianceHub

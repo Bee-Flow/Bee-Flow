@@ -150,10 +150,29 @@ const USAGE_REPORT_TO_MONITORING: Record<string, string> = {
     terminations: 'admin/monitoring/terminations',
 };
 
+// The Users & Groups sub-tabs (Settings' OrgUsersPanel: /users/<tab>) as tabs of
+// Admin > Security > Users (UserManagement). An unknown one opens the people list.
+const ORG_USERS_TAB_TO_SECURITY: Record<string, string> = {
+    users: 'users',
+    groups: 'groups',
+    roles: 'org-roles',
+    customTiers: 'custom-tiers',
+    sync: 'sync',
+    invitations: 'invitations',
+};
+
+/** Admin > Security > Users, on the tab an old Users & Groups sub-tab names. */
+function securityUsersTarget(tab: string | undefined): string {
+    const base = SETTINGS_ORG_ADMIN_TARGETS.org_users;
+    const mapped = tab ? ORG_USERS_TAB_TO_SECURITY[tab] : undefined;
+    return mapped ? `${base}/${mapped}` : base;
+}
+
 /**
  * The admin dashboard page an organisation sub-tab moved to, with the deep
  * segments it carries: Compliance keeps its section and check, a usage report
- * opens the matching Monitoring page. Null for a tab that did not move.
+ * opens the matching Monitoring page, a Users & Groups sub-tab its tab under
+ * Security > Users. Null for a tab that did not move.
  */
 export function settingsOrgAdminTarget(tabId: string, deep: { seg1?: string; seg2?: string } = {}): string | null {
     const base = SETTINGS_ORG_ADMIN_TARGETS[tabId];
@@ -162,6 +181,7 @@ export function settingsOrgAdminTarget(tabId: string, deep: { seg1?: string; seg
         return [base, deep.seg1, deep.seg2 ? encodeURIComponent(deep.seg2) : ''].filter(Boolean).join('/');
     }
     if (tabId === 'org_usage' && deep.seg1) return USAGE_REPORT_TO_MONITORING[deep.seg1] ?? base;
+    if (tabId === 'org_users') return securityUsersTarget(deep.seg1);
     return base;
 }
 
@@ -178,7 +198,7 @@ const ORG_SETTINGS_ADMIN_TARGETS: Record<string, string> = {
 export function orgSettingsAdminTarget(seg1: string | undefined, seg2?: string): string | null {
     const base = seg1 ? ORG_SETTINGS_ADMIN_TARGETS[seg1] : undefined;
     if (!base) return null;
-    return seg1 === 'users' && seg2 ? `${base}/${encodeURIComponent(seg2)}` : base;
+    return seg1 === 'users' ? securityUsersTarget(seg2) : base;
 }
 
 /**
@@ -229,7 +249,7 @@ export function settingsPathForTab(tabId: string): string {
  * Org deep segments: /app/settings/organisation/<sub>/<seg1>/<seg2>.
  * settingsTabFromPath only resolves the sub-tab (parts[3]); these two extra
  * segments drive ComplianceHub's activeSection / focusCheckId and
- * UsageSection's initialReport (usage/safety).
+ * the Monitoring page an old usage/<report> address goes to (settingsOrgAdminTarget).
  */
 export function settingsOrgDeepSegsFromPath(pathname: string | null | undefined = window.location.pathname): { seg1: string; seg2: string } {
     const parts = String(pathname || '').replace(/^\/+|\/+$/g, '').split('/');

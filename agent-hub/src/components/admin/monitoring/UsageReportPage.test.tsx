@@ -33,7 +33,7 @@ describe('Monitoring > Adoption', () => {
     it('asks a platform admin on all organisations to choose one, and reads no adoption', async () => {
         const asked = serveMonitoring();
         renderMonitoring({ page: 'adoption', user: PLATFORM_ADMIN, features: [ADVANCED], choice: orgChoice({ isPlatformAdmin: true }) });
-        expect(await screen.findByTestId('monitoring-choose-org')).toBeTruthy();
+        expect(await screen.findByTestId('admin-choose-org')).toBeTruthy();
         expect(screen.queryByText(HEADLINE)).toBeNull();
         expect(reads(asked, ADOPTION)).toEqual([]);
     });
@@ -41,7 +41,7 @@ describe('Monitoring > Adoption', () => {
     it('waits for the organisation list before reading anything', () => {
         const asked = serveMonitoring();
         renderMonitoring({ page: 'adoption', user: PLATFORM_ADMIN, features: [ADVANCED], choice: orgChoice({ isPlatformAdmin: true, pending: true }) });
-        expect(screen.queryByTestId('monitoring-choose-org')).toBeNull();
+        expect(screen.queryByTestId('admin-choose-org')).toBeNull();
         expect(reads(asked, ADOPTION)).toEqual([]);
     });
 });

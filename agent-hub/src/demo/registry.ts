@@ -193,13 +193,11 @@ export const DEMO_FEATURES = {
         blurb: 'A week of usage across models, assistants, people and app areas — including a local model carrying real traffic at zero provider cost. Synthetic figures that add up.',
         appPath: '/app/admin/monitoring',
         expectText: 'qwen3-8b (local)',
-        /* pages/settings/UsageSection, NOT components/admin/MonitoringPanel.
-           Both are "monitoring" and they are different screens: this is the
-           organisation view the marketing page sells (tabs across the top,
-           filter row, plan and billed-per-cycle cards), the other is the
-           standalone AI Monitor with its own left sidebar. Pointing the demo
-           at the wrong one showed a visitor a screen they will never find. */
-        Component: lazy(() => import('../pages/settings/UsageSection')),
+        /* The organisation usage reports with their own tab bar and range
+           (UsageMonitoringDemo), on the monitoring fixtures. In the product
+           they are pages of Admin > Monitoring, whose AI Monitor reads other
+           endpoints than these fixtures answer. */
+        Component: lazy(() => import('./UsageMonitoringDemo')),
         loadFixtures: () => import('./fixtures/monitoring'),
         props: {},
     },

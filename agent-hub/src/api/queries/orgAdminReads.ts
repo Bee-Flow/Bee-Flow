@@ -6,6 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import { API_BASE, authFetch } from '../../utils/helpers';
 import { logger } from '../../utils/logger';
 import { readOrNull } from './refusableRead';
+import { withOrgIdParam } from '../adminOrgScope';
 import { messageOf } from '../../utils/caughtError';
 
 const orgAdminReadKeys = {
@@ -137,11 +138,11 @@ export function useOrgDefaultLanguage() {
     return { data: query.data ?? null, loading: query.isFetching && query.data === undefined };
 }
 
-/** GET /auth/invitations: the pending invitations; a refusal reads as null (the list keeps empty). */
-export function useOrgInvitationsQuery<T>() {
+/** GET /auth/invitations (of `orgId`, else the caller's own organisation): the pending invitations; a refusal reads as null (the list keeps empty). */
+export function useOrgInvitationsQuery<T>(orgId: string | null = null) {
     return useQuery<T[] | null, Error>({
-        queryKey: ['orgAdmin', 'invitations'] as const,
-        queryFn: ({ signal }) => readOrNull<T[]>(`${API_BASE}/auth/invitations`, signal),
+        queryKey: ['orgAdmin', 'invitations', orgId] as const,
+        queryFn: ({ signal }) => readOrNull<T[]>(withOrgIdParam(`${API_BASE}/auth/invitations`, orgId), signal),
         staleTime: 0,
         retry: false,
     });

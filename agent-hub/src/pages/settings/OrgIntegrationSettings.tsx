@@ -1,5 +1,4 @@
 import OrgNcIntegrationsPanel from '../../components/integrations/nextcloud/OrgNcIntegrationsPanel';
-import HomeOrgOnlyNotice from '../../components/admin/organisation/HomeOrgOnlyNotice';
 import { ServerWideDivider, ServerWideMark } from '../../components/admin/dashboard/serverWideNav';
 import { useTranslation } from '../../hooks/useTranslation';
 import { isPlatformAdmin } from '../../utils/adminAccess';
@@ -12,9 +11,9 @@ interface OrgIntegrationSettingsProps {
     /** The organisation to configure (the admin dashboard's); left out, the user's own. */
     orgId?: string | null;
     /**
-     * The organisation is the viewer's home organisation. n8n is stored under
-     * the caller's own organisation on the server (it takes no organisation
-     * from the request), so for another one it is not offered.
+     * The organisation is the viewer's home organisation. n8n follows the
+     * organisation the dashboard names (?orgId); its access check describes the
+     * viewer's own account, so it is read for the home organisation only.
      */
     homeOrg?: boolean;
     /** The admin dashboard: the instance-wide Google Maps key sits apart, under the "Whole server" divider. */
@@ -37,7 +36,8 @@ function integrationRows(user: OrgIntegrationSettingsProps['user'], homeOrg: boo
     // only a platform admin gets the row; for anyone else every save is refused.
     const showGoogleMaps = platformAdmin && (!ei || ei.includes('google-maps'));
     return {
-        showN8n: homeOrg && (!ei || ei.includes('n8n')),
+        // The viewer's integration list says nothing about another organisation's (a platform admin's choice).
+        showN8n: !homeOrg || !ei || ei.includes('n8n'),
         showGoogleMaps,
         // NC-bound orgs get an additional org-admin panel for Nextcloud
         // integration management. For another organisation than the viewer's
@@ -63,7 +63,7 @@ function SettingsIntro() {
 }
 
 /** The bordered n8n / Maps list; only drawn when it has a row. */
-function N8nMapsList({ showN8n, mapsInList }: { showN8n: boolean; mapsInList: boolean }) {
+function N8nMapsList({ showN8n, mapsInList, homeOrg }: { showN8n: boolean; mapsInList: boolean; homeOrg: boolean }) {
     const { t } = useTranslation();
     if (!showN8n && !mapsInList) return null;
     return (
@@ -78,7 +78,7 @@ function N8nMapsList({ showN8n, mapsInList }: { showN8n: boolean; mapsInList: bo
                         </div>
                     </div>
                     <div className="px-5 pb-4 bg-[var(--bg-secondary)]">
-                        <N8nSection />
+                        <N8nSection diagnostics={homeOrg} />
                     </div>
                 </div>
             )}
@@ -96,7 +96,7 @@ function N8nMapsList({ showN8n, mapsInList }: { showN8n: boolean; mapsInList: bo
 export default function OrgIntegrationSettings({ user, orgId, homeOrg = true, markServerWide = false }: OrgIntegrationSettingsProps) {
     const { t } = useTranslation();
     const { showN8n, showGoogleMaps, showNc, mapsInList } = integrationRows(user, homeOrg, markServerWide);
-    const nothing = homeOrg && !showN8n && !mapsInList && !showNc;
+    const nothing = !showN8n && !mapsInList && !showNc;
 
     return (
         <div className="space-y-4">
@@ -104,13 +104,12 @@ export default function OrgIntegrationSettings({ user, orgId, homeOrg = true, ma
             {/* Provider configuration (Nextcloud, n8n, Google Maps). */}
             <div className="space-y-4">
                 {showNc && <OrgNcIntegrationsPanel user={user} orgId={orgId} />}
-                {!homeOrg && <HomeOrgOnlyNotice />}
                 {nothing && (
                     <div className="rounded-xl px-5 py-4 bg-[var(--bg-secondary)] border border-[var(--border-subtle)]">
                         <p className="text-[13px] text-[var(--text-muted)]">{t('org.integ_none')}</p>
                     </div>
                 )}
-                <N8nMapsList showN8n={showN8n} mapsInList={mapsInList} />
+                <N8nMapsList showN8n={showN8n} mapsInList={mapsInList} homeOrg={homeOrg} />
                 {showGoogleMaps && markServerWide && (
                     <>
                         <ServerWideDivider />

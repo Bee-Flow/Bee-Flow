@@ -269,6 +269,4 @@ module.exports = {
     "admin_org.users_tab_server_roles": "Server roles",
     "admin_org.users_tab_custom_tiers": "Model tiers",
     "admin_org.users_tab_nc_sync": "Nextcloud sync",
-    "admin_org.users_choose_org": "Choose an organisation above to manage its invitations, roles and model tiers.",
-    "admin_org.users_home_org_only": "Invitations, organisation roles and model tiers apply to your own organisation. Choose it above to manage them.",
 };

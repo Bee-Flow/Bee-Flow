@@ -1,14 +1,21 @@
 import { useState, useMemo, useCallback } from 'react';
-import { useTranslation, type TranslateParams } from '../../hooks/useTranslation';
+import { useTranslation, type TranslateParams } from '../hooks/useTranslation';
 import { Users, BarChart3, Coins, ThumbsUp, type LucideIcon } from 'lucide-react';
-import { useLicenseContext } from '../../components/licensing/LicenseContext';
-import { deriveRangeParams } from '../../utils/usageHelpers';
-import { formatDateRange } from './usage/format';
-import RangeControl, { defaultRange } from './usage/RangeControl';
-import UsageReports from './usage/UsageReports';
+import { useLicenseContext } from '../components/licensing/LicenseContext';
+import { deriveRangeParams } from '../utils/usageHelpers';
+import { formatDateRange } from '../pages/settings/usage/format';
+import RangeControl, { defaultRange } from '../pages/settings/usage/RangeControl';
+import UsageReports from '../pages/settings/usage/UsageReports';
+
+/*
+ * The public monitoring demo (demo/registry 'monitoring'): the organisation
+ * usage reports (Overview, Adoption, Spend, Quality) with a tab bar and one
+ * range control, on the demo fixtures (fixtures/monitoring). In the product
+ * these reports are pages of Admin > Monitoring (components/admin/monitoring).
+ */
 
 /* ── Report tabs ─────────────────────────────────────────────────────────── */
-// Safety & Integrations moved to Settings → Organisation → Privacy Shield →
+// Safety & Integrations are on the organisation Privacy Shield (Admin > Security > Guardrails) →
 // "What happened" (?tab=activity) — they are shield monitoring, not
 // consumption reporting. This page keeps the money/usage reports.
 const REPORT_TABS = [
@@ -49,11 +56,11 @@ const ReportTabBar = ({ active, onChange, t: translate, tabs = REPORT_TABS }: Re
     </div>
 );
 
-interface UsageSectionProps {
+interface UsageMonitoringDemoProps {
     initialReport?: string;
 }
 
-const UsageSection = ({ initialReport = '' }: UsageSectionProps) => {
+const UsageMonitoringDemo = ({ initialReport = '' }: UsageMonitoringDemoProps) => {
     const { t } = useTranslation();
     const { hasFeature: hasLicenseFeature } = useLicenseContext();
 
@@ -92,7 +99,7 @@ const UsageSection = ({ initialReport = '' }: UsageSectionProps) => {
             {/* Page header + global range control */}
             <div className="flex items-start justify-between gap-4 flex-wrap">
                 <div className="min-w-0 flex-1">
-                    <h2 data-tour="usage-summary" className="text-lg font-semibold text-[var(--text-primary)]">{t('usage.title')}</h2>
+                    <h2 className="text-lg font-semibold text-[var(--text-primary)]">{t('usage.title')}</h2>
                     <p className="mt-1 text-sm text-[var(--text-muted)]">
                         {t('usage.subtitle')}{rangeLabel ? ` · ${rangeLabel}` : ''}
                     </p>
@@ -106,4 +113,4 @@ const UsageSection = ({ initialReport = '' }: UsageSectionProps) => {
     );
 };
 
-export default UsageSection;
+export default UsageMonitoringDemo;

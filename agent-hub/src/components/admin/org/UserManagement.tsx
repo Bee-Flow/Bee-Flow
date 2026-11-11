@@ -8,7 +8,7 @@ import MyOrganizationSection from './userManagement/MyOrganizationSection';
 import NextcloudBindingsSection from './userManagement/NextcloudBindingsSection';
 import OrganizationModal from './userManagement/OrganizationModal';
 import OrganizationsSection from './userManagement/OrganizationsSection';
-import OrgTabContent, { ORG_ONLY_SECTIONS } from './userManagement/OrgTabContent';
+import OrgTabContent, { ORG_ONLY_SECTIONS, useOrgTabTarget } from './userManagement/OrgTabContent';
 import PermissionsSection from './userManagement/PermissionsSection';
 import RoleModal from './userManagement/RoleModal';
 import RolesSection from './userManagement/RolesSection';
@@ -16,7 +16,6 @@ import useGroupActions from './userManagement/useGroupActions';
 import useOrgActions from './userManagement/useOrgActions';
 import UserModal from './userManagement/UserModal';
 import UsersOrgControls from './userManagement/UsersOrgControls';
-import useOrgTabTarget from './userManagement/useOrgTabTarget';
 import useCustomTiersMeta from './useCustomTiersMeta';
 import type { CustomTierMeta } from './useOrgDirectory';
 import useRoleActions from './userManagement/useRoleActions';
@@ -106,8 +105,8 @@ const UserManagement = ({ activeSection: activeSectionProp = '', onNavigate, use
     useAdminScopeOverride(isPlatformAdmin ? adminSectionScope('security', 'users', activeSection) : 'org');
     // The controls follow the lists: when the server refused them, it refuses the edits too.
     const mayManageListed = !!canManageUsers && !notOrgAdmin;
-    // The organisation-only tabs follow the dashboard's organisation.
-    const orgTabMode = useOrgTabTarget(currentUser);
+    // The organisation-only tabs follow the dashboard's organisation; the requests name it for a platform admin only.
+    const orgTarget = useOrgTabTarget(currentUser);
     
     // Destructive actions route through <ConfirmDialog/> rather than
     // window.confirm: the native dialog is unstyled, unthemeable, blocks the
@@ -176,7 +175,8 @@ const UserManagement = ({ activeSection: activeSectionProp = '', onNavigate, use
                             <UsersOrgControls
                                 key={orgId ?? homeOrgId}
                                 org={organizations.find(o => o.id === (orgId ?? homeOrgId))}
-                                mode={orgTabMode}
+                                needsChoice={orgTarget.needsChoice}
+                                homeOrg={!orgTarget.scopeOrgId || orgTarget.scopeOrgId === homeOrgIdOf(currentUser)}
                                 onChanged={loadData}
                             />
                             <PeopleDirectory
@@ -199,7 +199,7 @@ const UserManagement = ({ activeSection: activeSectionProp = '', onNavigate, use
 
                         {/* Invitations, the organisation's roles, its model tiers and Nextcloud sync */}
                         {(ORG_ONLY_SECTIONS as readonly string[]).includes(activeSection) && (
-                            <OrgTabContent section={activeSection} mode={orgTabMode} users={users} currentUser={currentUser} />
+                            <OrgTabContent section={activeSection} target={orgTarget} users={users} currentUser={currentUser} />
                         )}
 
                         {/* Organizations Section */}

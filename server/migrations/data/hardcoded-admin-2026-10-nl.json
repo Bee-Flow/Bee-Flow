@@ -726,8 +726,6 @@
     "admin_org.users_no_description": "Geen beschrijving",
     "admin_org.users_no_restriction": "Geen beperking ingesteld: leden kunnen elk niveau gebruiken. Klik op een label om de toegang te beperken tot alleen de gekozen niveaus.",
     "admin_org.users_pending": "In afwachting",
-    "admin_org.users_choose_org": "Kies hierboven een organisatie om de uitnodigingen, rollen en modeltiers te beheren.",
-    "admin_org.users_home_org_only": "Uitnodigingen, organisatierollen en modeltiers gelden voor je eigen organisatie. Kies die hierboven om ze te beheren.",
     "admin_org.users_tab_custom_tiers": "Modeltiers",
     "admin_org.users_tab_invitations": "Uitnodigingen",
     "admin_org.users_tab_nc_sync": "Nextcloud-synchronisatie",

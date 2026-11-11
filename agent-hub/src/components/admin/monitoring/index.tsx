@@ -159,16 +159,19 @@ export default function MonitoringPanel({ activeSection = '', onNavigate, user }
             <div className="relative h-full">
                 <div className="absolute inset-0 overflow-y-auto">
                     <div className="mx-auto flex max-w-[1400px] flex-col gap-5 p-4 md:p-6">
-                        <SectionHeader
-                            title={t(meta.labelKey)}
-                            description={scopeLine ? <>{pageDescription}<span className="block">{scopeLine}</span></> : pageDescription}
-                            status={(
-                                <RangeControls
-                                    range={range} setRange={setRange} customStart={customStart} setCustomStart={setCustomStart}
-                                    customEnd={customEnd} setCustomEnd={setCustomEnd} loading={loading} onRefresh={reload}
-                                />
-                            )}
-                        />
+                        {/* The onboarding tours' anchor for the usage report (onboarding/tourAnchors 'usage-summary'). */}
+                        <div data-tour="usage-summary">
+                            <SectionHeader
+                                title={t(meta.labelKey)}
+                                description={scopeLine ? <>{pageDescription}<span className="block">{scopeLine}</span></> : pageDescription}
+                                status={(
+                                    <RangeControls
+                                        range={range} setRange={setRange} customStart={customStart} setCustomStart={setCustomStart}
+                                        customEnd={customEnd} setCustomEnd={setCustomEnd} loading={loading} onRefresh={reload}
+                                    />
+                                )}
+                            />
+                        </div>
                         <MonitoringPage
                             page={page} data={data} range={range} customStart={customStart} customEnd={customEnd}
                             refreshKey={refreshKey} orgId={orgId} onDetail={setDetail} onNavigate={onNavigate}

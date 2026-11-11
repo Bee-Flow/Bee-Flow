@@ -2,7 +2,7 @@
  * The Overview tab: four figures with their change since the previous period,
  * a "needs attention" card that exists only when the data gives it a row, and
  * links into the tabs that hold the rest. The adoption reads come from the demo
- * transport, the same one UsageSection.test.tsx uses.
+ * transport, the same one demo/UsageMonitoringDemo.test.tsx uses.
  */
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';

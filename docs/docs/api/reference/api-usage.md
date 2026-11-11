@@ -25,6 +25,7 @@ toc_max_heading_level: 2
 | `startDate` | string |  | max length 64 |
 | `endDate` | string |  | max length 64 |
 | `group` | string |  | max length 200 |
+| `orgId` | string |  | max length 200 |
 | `kind` | one of `"agent"`, `"automation"`, `"form"`, `"app"`, `"datatable"`, `"kb"`, `"skill"`, `"webpage"`, `"document"`, `"meeting"`, `"playbook"`, `"solution"`, … (13 values) |  |  |
 | `reveal` | one of `"true"`, `"false"` |  |  |
 | `limit` | integer |  | min 1; max 9007199254740991 |
@@ -42,6 +43,7 @@ toc_max_heading_level: 2
 | `startDate` | string |  | max length 64 |
 | `endDate` | string |  | max length 64 |
 | `group` | string |  | max length 200 |
+| `orgId` | string |  | max length 200 |
 | `kind` | one of `"agent"`, `"automation"`, `"form"`, `"app"`, `"datatable"`, `"kb"`, `"skill"`, `"webpage"`, `"document"`, `"meeting"`, `"playbook"`, `"solution"`, … (13 values) |  |  |
 | `reveal` | one of `"true"`, `"false"` |  |  |
 | `limit` | integer |  | min 1; max 9007199254740991 |
@@ -59,6 +61,7 @@ toc_max_heading_level: 2
 | `startDate` | string |  | max length 64 |
 | `endDate` | string |  | max length 64 |
 | `group` | string |  | max length 200 |
+| `orgId` | string |  | max length 200 |
 | `kind` | one of `"agent"`, `"automation"`, `"form"`, `"app"`, `"datatable"`, `"kb"`, `"skill"`, `"webpage"`, `"document"`, `"meeting"`, `"playbook"`, `"solution"`, … (13 values) |  |  |
 | `reveal` | one of `"true"`, `"false"` |  |  |
 | `limit` | integer |  | min 1; max 9007199254740991 |
@@ -76,6 +79,7 @@ toc_max_heading_level: 2
 | `startDate` | string |  | max length 64 |
 | `endDate` | string |  | max length 64 |
 | `group` | string |  | max length 200 |
+| `orgId` | string |  | max length 200 |
 | `kind` | one of `"agent"`, `"automation"`, `"form"`, `"app"`, `"datatable"`, `"kb"`, `"skill"`, `"webpage"`, `"document"`, `"meeting"`, `"playbook"`, `"solution"`, … (13 values) |  |  |
 | `reveal` | one of `"true"`, `"false"` |  |  |
 | `limit` | integer |  | min 1; max 9007199254740991 |
@@ -93,6 +97,7 @@ toc_max_heading_level: 2
 | `startDate` | string |  | max length 64 |
 | `endDate` | string |  | max length 64 |
 | `group` | string |  | max length 200 |
+| `orgId` | string |  | max length 200 |
 | `kind` | one of `"agent"`, `"automation"`, `"form"`, `"app"`, `"datatable"`, `"kb"`, `"skill"`, `"webpage"`, `"document"`, `"meeting"`, `"playbook"`, `"solution"`, … (13 values) |  |  |
 | `reveal` | one of `"true"`, `"false"` |  |  |
 | `limit` | integer |  | min 1; max 9007199254740991 |
@@ -110,6 +115,7 @@ toc_max_heading_level: 2
 | `startDate` | string |  | max length 64 |
 | `endDate` | string |  | max length 64 |
 | `group` | string |  | max length 200 |
+| `orgId` | string |  | max length 200 |
 | `kind` | one of `"agent"`, `"automation"`, `"form"`, `"app"`, `"datatable"`, `"kb"`, `"skill"`, `"webpage"`, `"document"`, `"meeting"`, `"playbook"`, `"solution"`, … (13 values) |  |  |
 | `reveal` | one of `"true"`, `"false"` |  |  |
 | `limit` | integer |  | min 1; max 9007199254740991 |

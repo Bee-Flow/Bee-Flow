@@ -18,7 +18,7 @@ beforeEach(() => {
     vi.stubGlobal('fetch', vi.fn(async () => new Response('{}', { status: 200, headers: { 'content-type': 'application/json' } })));
 });
 
-function renderDashboard({ user = superAdmin, seg1, license = {}, capabilities = [] }: { user?: object; seg1?: string; license?: Partial<LicenseValue>; capabilities?: string[] } = {}) {
+function renderDashboard({ user = superAdmin, seg1, seg2, license = {}, capabilities = [] }: { user?: object; seg1?: string; seg2?: string; license?: Partial<LicenseValue>; capabilities?: string[] } = {}) {
     const onNavigate = vi.fn();
     const onBack = vi.fn();
     const value = { tier: 'community', deploymentMode: 'self-hosted', serverOverride: false, hasTier: () => false, hasFeature: () => false, ...license } as LicenseValue;
@@ -26,7 +26,7 @@ function renderDashboard({ user = superAdmin, seg1, license = {}, capabilities =
     render(withQueryClient(
         <EntitlementsContext.Provider value={entitlements}>
             <LicenseContext.Provider value={value}>
-                <AdminDashboard user={user as never} onBack={onBack} onNavigate={onNavigate} adminPath={{ seg1 }} />
+                <AdminDashboard user={user as never} onBack={onBack} onNavigate={onNavigate} adminPath={{ seg1, seg2 }} />
             </LicenseContext.Provider>
         </EntitlementsContext.Provider>,
     ));
@@ -115,6 +115,12 @@ describe('AdminDashboard navigation', () => {
         expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
         await user.click(screen.getByRole('button', { name: 'Go Back' }));
         expect(onBack).toHaveBeenCalled();
+    });
+
+    it('tells a member of an organisation without a plan whom to ask, on the licence page the gate sends them to', () => {
+        renderDashboard({ user: nobody, seg1: 'organisation', seg2: 'license', license: { deploymentMode: 'cloud' } });
+        expect(screen.getByTestId('admin-access-denied-no-plan')).toHaveTextContent('Ask an administrator of your organisation');
+        expect(screen.queryByRole('heading', { name: 'Access Denied' })).not.toBeInTheDocument();
     });
 });
 

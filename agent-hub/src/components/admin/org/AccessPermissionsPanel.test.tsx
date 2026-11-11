@@ -62,7 +62,7 @@ describe('AccessPermissionsPanel and the dashboard organisation', () => {
 
     it('asks for a choice under "All organisations" instead of picking one', async () => {
         render(panel(null));
-        expect(screen.getByTestId('access-choose-org')).toHaveTextContent('Choose an organisation above to manage its access');
+        expect(screen.getByTestId('admin-choose-org')).toHaveTextContent('Choose an organisation above to manage its access');
         await new Promise(resolve => setTimeout(resolve, 20));
         expect(writes()).toEqual([]);
     });
@@ -75,13 +75,13 @@ describe('AccessPermissionsPanel and the dashboard organisation', () => {
         rerender(panel(null));
         await new Promise(resolve => setTimeout(resolve, 20));
         expect(writes()).toHaveLength(1);
-        expect(screen.getByTestId('access-choose-org')).toBeInTheDocument();
+        expect(screen.getByTestId('admin-choose-org')).toBeInTheDocument();
     });
 
     it('an organisation admin gets their own organisation and no write', async () => {
         render(withQueryClient(<AccessPermissionsPanel user={{ id: 'u2', isAdmin: false, role: 'user', permissions: ['org_admin'] }} activeSection="grants" />));
         await waitFor(() => expect(calls.length).toBeGreaterThan(0));
-        expect(screen.queryByTestId('access-choose-org')).not.toBeInTheDocument();
+        expect(screen.queryByTestId('admin-choose-org')).not.toBeInTheDocument();
         expect(writes()).toEqual([]);
     });
 

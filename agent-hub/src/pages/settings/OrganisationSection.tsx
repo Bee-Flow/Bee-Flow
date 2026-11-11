@@ -1,9 +1,6 @@
 import React, { useState } from 'react';
-import { settingsPathForTab } from '../../authedApp/settingsRoutes';
 import OrgInfoPanel, { SECTIONS as INFO_SECTIONS } from '../../components/admin/org/OrgInfoPanel';
-import OrgUsersPanel from '../../components/admin/org/OrgUsersPanel';
 import OrgAcademyPanel from './OrgAcademyPanel';
-import UsageSection from './UsageSection';
 import GitHubSyncPanel from '../../components/integrations/github/GitHubSyncPanel';
 import NextcloudSyncPanel from '../../components/integrations/nextcloud/NextcloudSyncPanel';
 import OrgMcpAccessPanel from '../../components/mcpAccess/OrgMcpAccessPanel';
@@ -12,11 +9,8 @@ import GoogleMeetAdminPanel from '../../components/meetings/GoogleMeetAdminPanel
 import TeamsAdminPanel from '../../components/meetings/TeamsAdminPanel';
 import SummaryTemplatesAdminPanel from '../../components/meetings/SummaryTemplatesAdminPanel';
 import OrgNcPairingPanel from '../../components/integrations/nextcloud/OrgNcPairingPanel';
-import GroupAccessMatrix from '../../components/admin/org/GroupAccessMatrix';
 import McpLibraryPage from '../../components/mcpLibrary/McpLibraryPage';
-import Tabs from '../../components/shared/Tabs';
 import HomeOrgOnlyNotice from '../../components/admin/organisation/HomeOrgOnlyNotice';
-import OrgIntegrationSettings from './OrgIntegrationSettings';
 import { isOrgAdminRole } from '../../utils/adminAccess';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useEntitlements } from '../../components/licensing/EntitlementsContext';
@@ -28,27 +22,28 @@ import type { SettingsUser } from './shell/settingsShellTypes';
 // the generic save bar below (see showOrgSaveBar).
 const ORG_FORM_SECTIONS = ['license', 'auth', 'info'];
 
-// activeSection is now controlled entirely by the parent sidebar.
-// Possible values: 'license' | 'auth' | 'privacy' | 'info' | 'users' | 'integrations'
+// The section of an organisation the admin dashboard's Organisation tab opens
+// (components/admin/organisation/OrgSectionBody, which draws Integrations and
+// Azure itself), the licence page a phone keeps in Settings, and the
+// Organisation Info tab of /app/org-settings on a phone. activeSection names
+// the section as the Settings tab ids did: an OrgInfoPanel section, 'academy',
+// 'mcp', 'mcp_access', 'github_sync', 'nextcloud_sync', 'meeting_templates'.
 interface OrganisationSectionProps {
     user: (SettingsUser & { enabledIntegrations?: string[] }) | null | undefined;
     activeSection?: string;
-    usageInitialReport?: string;
     /** The organisation to work on (the admin dashboard's); left out, the user's own, as Settings always did. */
     orgId?: string | null;
     /**
      * The organisation is the viewer's home organisation. The parts the server
-     * ties to the caller's own organisation (GitHub Sync, n8n, the summary
-     * templates, Nextcloud pairing codes) are offered for that one only.
+     * ties to the caller's own organisation (the summary templates, Nextcloud
+     * pairing codes) are offered for that one only.
      */
     homeOrg?: boolean;
 }
 
-const OrganisationSection = ({ user, activeSection = 'license', usageInitialReport = '', orgId, homeOrg = true }: OrganisationSectionProps) => {
+const OrganisationSection = ({ user, activeSection = 'license', orgId, homeOrg = true }: OrganisationSectionProps) => {
     const { t } = useTranslation();
     const [orgState, setOrgState] = useState<Omit<OrgInfoSaveState, 'message' | 'handleSave'> & { message: FormMessage | null; handleSave: OrgInfoSaveState['handleSave'] | null }>({ hasChanges: false, saving: false, message: null, handleSave: null });
-    // Integrations sub-tab: 'access' (who can use which integration) | 'settings' (provider credentials / instance URLs)
-    const [intTab, setIntTab] = useState('access');
 
     const perms = user?.permissions || [];
     const isFullAdmin = perms.includes('all') || perms.some(p => p.startsWith('admin_'));
@@ -114,57 +109,9 @@ const OrganisationSection = ({ user, activeSection = 'license', usageInitialRepo
                 />
             )}
 
-            {/* Users & Groups */}
-            {activeSection === 'users' && (
-                <OrgUsersPanel user={user} basePath={settingsPathForTab('org_users')} />
-            )}
-
             {/* Academy — org learning overview */}
             {activeSection === 'academy' && isOrgAdmin && (
                 <OrgAcademyPanel user={user} />
-            )}
-
-            {/* Usage & Monitoring */}
-            {activeSection === 'usage' && (
-                <UsageSection initialReport={usageInitialReport} />
-            )}
-
-            {/* Integrations */}
-            {activeSection === 'integrations' && isOrgAdmin && (
-                <div className="space-y-4">
-                    <div>
-                        <h2 className="text-lg font-semibold text-[var(--text-primary)]">{t('org.integ_title')}</h2>
-                        <p className="mt-1 text-sm text-[var(--text-muted)]">{t('org.integ_subtitle')}</p>
-                    </div>
-                    <Tabs
-                        value={intTab}
-                        onChange={setIntTab}
-                        ariaLabel={t('org.integ_title')}
-                        items={[
-                            { id: 'access', label: t('org.integ_tab_access') },
-                            { id: 'settings', label: t('org.integ_tab_settings') },
-                        ]}
-                    />
-
-                    {/* Integration access — the integrations the subscription
-                        enables (MCP servers included as ordinary integrations).
-                        The org-admin grants each to the whole organisation or a
-                        specific group right here. The page title above and the
-                        selected tab already name it, so the matrix shows no
-                        heading of its own. */}
-                    {intTab === 'access' && (
-                        <GroupAccessMatrix
-                            kinds={['integration']}
-                            hideLocked
-                            hideHeading
-                            subtitle={t('org.integ_access_subtitle', 'Give an integration to your whole organisation or to a specific group. These are the integrations your subscription includes.')}
-                        />
-                    )}
-
-                    {/* Integration settings — configure the integrations
-                        themselves (credentials, instance URLs, workflows). */}
-                    {intTab === 'settings' && <OrgIntegrationSettings user={user} orgId={orgId} homeOrg={homeOrg} />}
-                </div>
             )}
 
             {/* MCP library — the organisation's remote MCP servers */}
@@ -178,7 +125,7 @@ const OrganisationSection = ({ user, activeSection = 'license', usageInitialRepo
             )}
 
             {/* GitHub Sync */}
-            {activeSection === 'github_sync' && isOrgAdmin && (homeOrg ? <GitHubSyncPanel user={user} /> : <HomeOrgOnlyNotice />)}
+            {activeSection === 'github_sync' && isOrgAdmin && <GitHubSyncPanel user={user} />}
 
             {/* Nextcloud Sync. The sync panel leads: its "Nextcloud Sync"
                 header is the page title, and it holds what an admin opens this

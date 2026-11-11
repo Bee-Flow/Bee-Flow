@@ -3228,7 +3228,7 @@ const PRACTICE_TOPICS = {
             "The Group Role dropdown starts at \"User (default)\" and shows the hint \"All members inherit this role\"; the role is added to, never swapped for, the person's own role.",
             "Allowed tiers offers the pills Fast, Thinking, Writer and Deep Thinking plus any custom tiers — the admin names for chat's Fast/Think/Deep Thinking slider plus the Write pill beside it; an empty list means \"No restriction set\".",
             "A tier is permitted if at least one of the person's groups permits it, so an unrestricted group widens everyone in it; the Clear restrictions link returns a group to no restriction in one click.",
-            "Organisation Custom Tiers has no tab button: it opens only via the customTiers sub-page of the Users & Groups address (/app/org-settings/users/customTiers).",
+            "Organisation Custom Tiers is the Model tiers tab of Admin dashboard → Security → Users (/app/admin/security/users/custom-tiers).",
             "On that panel + Add Tier creates \"New tier 1\"; a tier takes an icon, a name (which becomes the id custom:<name>), a short description shown in the tier picker, a Model, an optional EU override and the Available for pills Direct Chat and Agent Chat.",
             "Expanding a custom tier reveals Max Tokens (16384 by default) and Temperature; Save Organisation Tiers commits them, and the Global tiers (read-only) block below comes from the system administrator.",
             "Integrations are granted per scope on Admin dashboard → Access → Integration access: someone gets one if it is granted to All members or to any of their groups — grants stack and never subtract."

@@ -14,7 +14,8 @@
  *   • Studio rail gates      components/admin/Studio/studioApps.jsx  (`gate:`)
  *   • route mounts           server/index.js (requireCapability / requireLicenseFeature)
  *   • route guards           requirePermission(...) inside server/routes/**
- *   • org sub-tabs           pages/AdvancedSettings.jsx (orgSubItems filter)
+ *   • admin dashboard tabs   components/admin/dashboard/adminTabs.ts (`perm`, `capability`)
+ *                            and the Organisation tab's sections (admin/organisation/orgSections.ts)
  *   • role → permission      server/config/orgRoles.json
  * lessonGates.test.js unions these per lesson and fails when a gate does not
  * cover the surfaces its own steps use.
@@ -25,7 +26,7 @@
  *   carries no permission at all — and the permission only bites on create or
  *   change. So a tour step that merely opens a screen contributes `permView`,
  *   and an action step that tells the learner to build something there
- *   contributes `permWrite`. Org settings are the exception: the sub-tab itself
+ *   contributes `permWrite`. The admin dashboard is the exception: the tab itself
  *   is permission-gated, so the two are equal.
  *
  *   feat is ALL-of. Studio's own Playbooks gate is

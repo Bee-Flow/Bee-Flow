@@ -83,13 +83,23 @@ describe('organisation-only tabs of the Users screen', () => {
 
     it.each(TABS)('%s: a platform admin with "All organisations" is asked to choose one', async (section) => {
         open(platformAdmin, section, choice(null));
-        expect(await screen.findByTestId('users-org-only-notice')).toHaveTextContent('Choose an organisation above');
+        expect(await screen.findByTestId('admin-choose-org')).toHaveTextContent('Choose an organisation above');
         expect(screen.queryByText('Organisation Custom Tiers')).not.toBeInTheDocument();
     });
 
-    it.each(TABS)('%s: a platform admin who chose another organisation is told these apply to their own', async (section) => {
+    it.each(TABS)('%s: a platform admin who chose another organisation works on that one', async (section, marker) => {
         open(platformAdmin, section, choice('o2'));
-        expect(await screen.findByTestId('users-org-only-notice')).toHaveTextContent('apply to your own organisation');
+        expect(await screen.findByText(marker)).toBeInTheDocument();
+        const reads = vi.mocked(fetch).mock.calls.map(([u]) => String(u));
+        expect(reads.some(u => u.includes('orgId=o2'))).toBe(true);
+    });
+
+    it('names the chosen organisation when a platform admin invites someone into it', async () => {
+        const user = userEvent.setup();
+        open(platformAdmin, 'invitations', choice('o2'));
+        await user.type(await screen.findByPlaceholderText('colleague@example.com'), 'anna@example.com');
+        await user.click(screen.getByRole('button', { name: /send/i }));
+        await waitFor(() => expect(vi.mocked(fetch).mock.calls.some(([u, init]) => String(u).endsWith('/auth/invitations?orgId=o2') && init?.method === 'POST')).toBe(true));
     });
 
     it('sends an invitation and revokes a pending one', async () => {

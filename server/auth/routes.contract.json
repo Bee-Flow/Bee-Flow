@@ -2329,7 +2329,8 @@
       "via": "superAdmin"
     },
     "GET /api/org-azure-config/:orgId/sync-groups/status": {
-      "gate": "auth"
+      "gate": "scope",
+      "via": "orgAdminOfParam"
     },
     "GET /api/org-collab/:orgId": {
       "gate": "middleware",
@@ -5582,7 +5583,8 @@
       "via": "requireUser"
     },
     "POST /api/org-azure-config/:orgId/sync-groups": {
-      "gate": "auth"
+      "gate": "scope",
+      "via": "orgAdminOfParam"
     },
     "POST /api/org-memory/:orgId/clear": {
       "gate": "auth"
@@ -7238,7 +7240,8 @@
       "via": "superAdmin"
     },
     "PUT /api/org-azure-config/:orgId/sync-groups/settings": {
-      "gate": "auth"
+      "gate": "scope",
+      "via": "orgAdminOfParam"
     },
     "PUT /api/org-collab/:orgId": {
       "gate": "middleware",

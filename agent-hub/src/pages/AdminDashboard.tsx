@@ -59,8 +59,11 @@ const AdminDashboard = ({ user, onBack, adminPath = {}, onNavigate }: AdminDashb
         }
     };
 
+    // The subscription gate sends everyone of a cloud organisation without a plan
+    // to its licence page; someone who cannot open it is told whom to ask.
+    const onOrgLicensePage = adminPath.seg1 === 'organisation' && adminPath.seg2 === 'license';
     // Check if user has ANY admin permission at all
-    if (!canOpenDashboard) return <AdminAccessDenied scope="whole" onBack={onBack} />;
+    if (!canOpenDashboard) return <AdminAccessDenied scope={onOrgLicensePage ? 'no-plan' : 'whole'} onBack={onBack} />;
 
     // Product website — full-screen builder. It escapes the admin chrome
     // entirely (no dashboard rail): the builder owns its own TopBar and
@@ -115,7 +118,7 @@ const AdminDashboard = ({ user, onBack, adminPath = {}, onNavigate }: AdminDashb
                                 </AdminScopeOverrideProvider>
                             </AdminOrgGate>
                         )
-                        : <AdminAccessDenied scope="section" />}
+                        : <AdminAccessDenied scope={onOrgLicensePage ? 'no-plan' : 'section'} inSection />}
                 </div>
             </div>
             <Modal

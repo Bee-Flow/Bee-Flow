@@ -40,9 +40,15 @@ describe('the Organisation tab for a platform admin', () => {
         expect(screen.queryByDisplayValue('Org A')).not.toBeInTheDocument();
     });
 
-    it('offers a part the server ties to the own organisation only for that one', async () => {
+    it('works the GitHub sync of the chosen organisation', async () => {
         asked = stubOrgApi({ github: true });
         renderOrgTab({ section: 'github-sync', search: '?org=org-b' });
+        await waitFor(() => expect(asked.some(u => u.includes('/api/integrations/github-sync/status?orgId=org-b'))).toBe(true));
+        expect(screen.queryByTestId('admin-home-org-only')).not.toBeInTheDocument();
+    });
+
+    it('offers a part the server ties to the own organisation only for that one', async () => {
+        renderOrgTab({ section: 'meeting-templates', search: '?org=org-b', plan: entitlements([], ['meeting_notes']) });
         expect(await screen.findByTestId('admin-home-org-only')).toBeInTheDocument();
     });
 

@@ -18,6 +18,7 @@ const { GUI_DEFAULTS } = require('../i18n/defaults/en');
 
 const placeholders = (s) => [...String(s).matchAll(/\{([a-z_]+)\}/gi)].map((m) => m[1]).sort();
 const SHIPPED_FILE = path.join(__dirname, 'data', 'hardcoded-integrations-agents-2026-10-nl.json');
+const LEARN_SHIPPED_FILE = path.join(__dirname, 'data', 'learn-content-2026-10-nl.json');
 
 test('every key exists in English, has Dutch that is not the English, and keeps its placeholders', () => {
     for (const k of Object.keys(NL_TRANSLATIONS)) {
@@ -35,8 +36,8 @@ test('every key exists in English, has Dutch that is not the English, and keeps 
 });
 
 test('`was` is the Dutch that shipped, so existing installs match it', () => {
-    const shipped = JSON.parse(fs.readFileSync(SHIPPED_FILE, 'utf8'));
-    const table = shipped.translations || shipped;
+    const read = (file) => { const shipped = JSON.parse(fs.readFileSync(file, 'utf8')); return shipped.translations || shipped; };
+    const table = { ...read(SHIPPED_FILE), ...read(LEARN_SHIPPED_FILE) };
     for (const [key, { was }] of Object.entries(NL_REWORDED)) {
         assert.ok(was.includes(table[key]), `${key}: shipped ${JSON.stringify(table[key])}`);
     }
@@ -61,5 +62,7 @@ test('boot runs it after the catalogue whose Dutch it rewords, and before the ro
     assert.ok(me > 0, 'not in the boot ladder');
     const shipper = ladder.indexOf('add-nl-hardcoded-integrations-agents-2026-10-translations');
     assert.ok(shipper >= 0 && shipper < me);
+    const learnShipper = ladder.indexOf('add-nl-learn-content-2026-10-translations');
+    assert.ok(learnShipper >= 0 && learnShipper < me);
     assert.ok(me < ladder.indexOf('rename-routine-i18n-2026-10'));
 });

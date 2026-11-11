@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import ChooseOrgNotice from '@/components/admin/dashboard/ChooseOrgNotice';
 import { useAdminOrgChoice } from '@/components/admin/dashboard/useAdminOrg';
 import UsageReports from '@/pages/settings/usage/UsageReports';
 import { useTranslation } from '@/hooks/useTranslation';
@@ -21,6 +22,7 @@ function useReportOrg() {
     return {
         orgId: choice?.orgId ?? null,
         all: !!choice?.isPlatformAdmin && !choice.orgId,
+        noOrgs: !!choice?.organizationsLoaded && choice.organizations.length === 0,
         pending: !!choice?.pending,
     };
 }
@@ -53,11 +55,7 @@ export function UsageReportPage({ report, range, customStart, customEnd, refresh
     useRefreshOnKey(refreshKey);
     if (org.pending) return null;
     if (report === 'adoption' && org.all) {
-        return (
-            <p className="rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4 text-sm text-[var(--text-secondary)]" data-testid="monitoring-choose-org">
-                {t('admin_monitoring.choose_org_adoption', 'Choose an organisation above: the adoption report covers one organisation.')}
-            </p>
-        );
+        return <ChooseOrgNotice noOrgs={org.noOrgs} text={t('admin_monitoring.choose_org_adoption', 'Choose an organisation above: the adoption report covers one organisation.')} />;
     }
     return (
         <UsageReports

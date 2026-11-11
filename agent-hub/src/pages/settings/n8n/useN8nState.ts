@@ -7,6 +7,13 @@ import {
 } from './n8nModel';
 import { errorMessage } from '@/utils/caughtError';
 import { request, RefusedError, mutate, errorBody } from '@/api/mutate';
+import { withOrgIdParam } from '@/api/adminOrgScope';
+
+/**
+ * An /ai/n8n address for `orgId`: the organisation a platform admin chose in
+ * the admin dashboard (sent as ?orgId=), or null for the caller's own.
+ */
+const n8nPath = (path: string, orgId: string | null) => withOrgIdParam(`${API_BASE}/ai/n8n/${path}`, orgId);
 
 /** The status line's message, and clearing it after a while. */
 export function useFlashMessage() {
@@ -28,7 +35,7 @@ const jsonPut = (url: string, body: unknown, method = 'PUT') => authFetch(url, {
 });
 
 /** The configured workflows, discovery on the instance, and their editing. */
-export function useN8nWorkflows({ setMessage, clearAfter }: Flash) {
+export function useN8nWorkflows({ setMessage, clearAfter }: Flash, orgId: string | null = null) {
     const [workflows, setWorkflows] = useState<N8nWorkflow[]>([]);
     const [discoveredWorkflows, setDiscoveredWorkflows] = useState<DiscoveredWorkflow[]>([]);
     const [discovering, setDiscovering] = useState(false);
@@ -39,7 +46,7 @@ export function useN8nWorkflows({ setMessage, clearAfter }: Flash) {
     const discoverWorkflows = async () => {
         setDiscovering(true);
         try {
-            const res = await authFetch(`${API_BASE}/ai/n8n/workflows`);
+            const res = await authFetch(n8nPath('workflows', orgId));
             if (res.ok) {
                 const data = await res.json();
                 setDiscoveredWorkflows(data.workflows || []);
@@ -57,7 +64,7 @@ export function useN8nWorkflows({ setMessage, clearAfter }: Flash) {
 
     const persistWorkflows = async (wfs: N8nWorkflow[]) => {
         try {
-            await jsonPut(`${API_BASE}/ai/n8n/workflows`, { workflows: wfs });
+            await jsonPut(n8nPath('workflows', orgId), { workflows: wfs });
         } catch (e) { console.error('n8n auto-save failed:', e); }
     };
 
@@ -98,7 +105,7 @@ export function useN8nWorkflows({ setMessage, clearAfter }: Flash) {
     const saveWorkflows = async () => {
         setSaving(true);
         try {
-            const res = await jsonPut(`${API_BASE}/ai/n8n/workflows`, { workflows });
+            const res = await jsonPut(n8nPath('workflows', orgId), { workflows });
             if (res.ok) setMessage({ type: 'success', text: 'Workflows saved' });
             else {
                 const err = await res.json();
@@ -123,7 +130,7 @@ export function useN8nWorkflows({ setMessage, clearAfter }: Flash) {
 export type N8nWorkflows = ReturnType<typeof useN8nWorkflows>;
 
 /** The access-check diagnostics and "Enable for organisation". */
-function useN8nDiagnostics({ setMessage, clearAfter }: Flash) {
+function useN8nDiagnostics({ setMessage, clearAfter }: Flash, orgId: string | null) {
     const [diagLoading, setDiagLoading] = useState(false);
     const [diag, setDiag] = useState<N8nDiagnostics | null>(null);
     const [enablingForOrg, setEnablingForOrg] = useState(false);
@@ -148,7 +155,7 @@ function useN8nDiagnostics({ setMessage, clearAfter }: Flash) {
         try {
             let res: Response | undefined;
             try {
-                res = await mutate(`${API_BASE}/ai/n8n/enable-for-org`, { method: 'POST' });
+                res = await mutate(n8nPath('enable-for-org', orgId), { method: 'POST' });
             } catch (apiErr) {
                 if (!(apiErr instanceof RefusedError)) throw apiErr;
                 const err = errorBody(apiErr) ?? {};
@@ -173,7 +180,7 @@ function useN8nDiagnostics({ setMessage, clearAfter }: Flash) {
 }
 
 /** The connection form: load, save and test the instance URL and API key. */
-export function useN8nConnection(flash: Flash, wf: Pick<N8nWorkflows, 'setWorkflows' | 'setSaving'>) {
+export function useN8nConnection(flash: Flash, wf: Pick<N8nWorkflows, 'setWorkflows' | 'setSaving'>, orgId: string | null = null) {
     const { setMessage, clearAfter } = flash;
     const [loading, setLoading] = useState(true);
     const [n8nUrl, setN8nUrl] = useState('');
@@ -182,13 +189,13 @@ export function useN8nConnection(flash: Flash, wf: Pick<N8nWorkflows, 'setWorkfl
     const [configured, setConfigured] = useState(false);
     const [testing, setTesting] = useState(false);
     const [testResult, setTestResult] = useState<TestResult | null>(null);
-    const diagnostics = useN8nDiagnostics(flash);
+    const diagnostics = useN8nDiagnostics(flash, orgId);
 
     const loadConfig = async () => {
         setLoading(true);
         // nosemgrep: ajinabraham.njsscan.generic.error_disclosure.generic_error_disclosure -- browser-side console log of a failed request; nothing reaches another user or a response
         try {
-            const res = await request(`${API_BASE}/ai/n8n/config`).catch((err: unknown) => {
+            const res = await request(n8nPath('config', orgId)).catch((err: unknown) => {
                 if (err instanceof RefusedError) return null;
                 throw err;
             });
@@ -206,7 +213,7 @@ export function useN8nConnection(flash: Flash, wf: Pick<N8nWorkflows, 'setWorkfl
     const saveConnection = async () => {
         wf.setSaving(true);
         try {
-            const res = await jsonPut(`${API_BASE}/ai/n8n/config`, apiKey ? { n8nUrl, apiKey } : { n8nUrl });
+            const res = await jsonPut(n8nPath('config', orgId), apiKey ? { n8nUrl, apiKey } : { n8nUrl });
             if (res.ok) {
                 setMessage({ type: 'success', text: 'Connection saved' });
                 // The server stores a key only when one was sent: saving the URL alone leaves it as it was.
@@ -230,7 +237,7 @@ export function useN8nConnection(flash: Flash, wf: Pick<N8nWorkflows, 'setWorkfl
         setTestResult(null);
         try {
             // If the user typed new creds but hasn't hit Save, test those instead.
-            const res = await jsonPut(`${API_BASE}/ai/n8n/test`, {
+            const res = await jsonPut(n8nPath('test', orgId), {
                 ...(n8nUrl ? { n8nUrl } : {}),
                 ...(apiKey ? { apiKey } : {}),
             }, 'POST');
@@ -249,14 +256,14 @@ export function useN8nConnection(flash: Flash, wf: Pick<N8nWorkflows, 'setWorkfl
 export type N8nConnection = ReturnType<typeof useN8nConnection>;
 
 /** Who may let the AI modify workflows: load, grant/revoke, create-and-grant. */
-export function useN8nPermissions({ setMessage, clearAfter }: Flash) {
+export function useN8nPermissions({ setMessage, clearAfter }: Flash, orgId: string | null = null) {
     const [permLoading, setPermLoading] = useState(false);
     const [permSummary, setPermSummary] = useState<PermissionSummary | null>(null);
 
     const loadPermissions = async () => {
         setPermLoading(true);
         try {
-            const res = await request(`${API_BASE}/ai/n8n/permissions`).catch((err: unknown) => {
+            const res = await request(n8nPath('permissions', orgId)).catch((err: unknown) => {
                 if (err instanceof RefusedError) return null;
                 throw err;
             });
@@ -272,7 +279,7 @@ export function useN8nPermissions({ setMessage, clearAfter }: Flash) {
 
     const mutatePermission = async (permission: string, groupId: string, action: 'add' | 'remove') => {
         try {
-            const res = await jsonPut(`${API_BASE}/ai/n8n/permissions`, { permission, groupId, action });
+            const res = await jsonPut(n8nPath('permissions', orgId), { permission, groupId, action });
             if (!res.ok) {
                 const err = await res.json().catch(() => ({}));
                 return fail(err.error || 'Failed to update permission');
@@ -292,7 +299,7 @@ export function useN8nPermissions({ setMessage, clearAfter }: Flash) {
         const trimmed = (name || '').trim();
         if (!trimmed) return fail('Group name required', 2500);
         try {
-            const res = await jsonPut(`${API_BASE}/auth/groups`, { name: trimmed, permissions: [permission] }, 'POST');
+            const res = await jsonPut(`${API_BASE}/auth/groups`, { name: trimmed, permissions: [permission], ...(orgId ? { organizationId: orgId } : {}) }, 'POST');
             if (!res.ok) {
                 const err = await res.json().catch(() => ({}));
                 return fail(err.error || 'Failed to create group');

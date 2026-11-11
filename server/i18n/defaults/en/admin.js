@@ -22,6 +22,8 @@ module.exports = {
     'admin.org_hub_group_privacy': 'Privacy & security',
     'admin.org_hub_group_ai': 'AI & data',
     'admin.org_hub_group_connections': 'Connections',
+    'admin.no_plan_title': 'No plan yet',
+    'admin.no_plan_desc': 'Your organisation does not have an active plan yet. Ask an administrator of your organisation to choose one.',
     'admin.scope_personal': 'Personal: only for you',
     'admin.tab_ai_config': 'AI Config',
     'admin.tab_security': 'Security',

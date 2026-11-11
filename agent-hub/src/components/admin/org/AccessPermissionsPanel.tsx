@@ -9,7 +9,7 @@ import { useEntitlements } from '../../licensing/EntitlementsContext';
 import SectionNav from '@/components/shared/SectionNav';
 import StudioShell from '@/components/shared/StudioShell';
 import Spinner from '@/components/shared/Spinner';
-import { ALERT_INFO } from '@/components/mcpLibrary/ui';
+import ChooseOrgNotice from '@/components/admin/dashboard/ChooseOrgNotice';
 import type { AdminCurrentUser } from './userManagement/types';
 import { logger } from '@/utils/logger';
 import { isPlatformAdmin } from '@/utils/adminAccess';
@@ -68,18 +68,6 @@ function useSelectedOrgOnChange(orgId: string | null, enabled: boolean, reloadEn
     }, [orgId, enabled, reloadEntitlements]);
 }
 
-/** In place of an organisation's part while "All organisations" is chosen. */
-function ChooseOrgNotice({ noOrgs }: { noOrgs: boolean }) {
-    const { t } = useTranslation();
-    return (
-        <p className={ALERT_INFO} data-testid="access-choose-org">
-            {noOrgs
-                ? t('admin_org.access_panel_no_orgs', 'No organisations found.')
-                : t('admin.scope_access_choose_org', 'Choose an organisation above to manage its access')}
-        </p>
-    );
-}
-
 export default function AccessPermissionsPanel({ user, activeSection = 'grants', onNavigate }: AccessPermissionsPanelProps) {
     const { t } = useTranslation();
     const isSuperAdmin = isPlatformAdmin(user);
@@ -103,7 +91,7 @@ export default function AccessPermissionsPanel({ user, activeSection = 'grants',
         return <div className="p-6"><Spinner size="sm" /></div>;
     }
 
-    const chooseOrg = <ChooseOrgNotice noOrgs={(choice?.organizations.length ?? 0) === 0} />;
+    const chooseOrg = <ChooseOrgNotice noOrgs={(choice?.organizations.length ?? 0) === 0} text={t('admin.scope_access_choose_org', 'Choose an organisation above to manage its access')} />;
 
     const renderBody = () => {
         if (active === 'grants') {

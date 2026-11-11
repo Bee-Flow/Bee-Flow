@@ -220,7 +220,7 @@ describe('FROZEN_LEGACY: settings paths the server has minted', () => {
     });
 
     it('reads the two deep segments under an organisation sub-tab', () => {
-        // ComplianceHub's section + check id, and UsageSection's report.
+        // ComplianceHub's section + check id, and a usage report.
         expect(settingsOrgDeepSegsFromPath('/app/settings/organisation/compliance/dsr/req%2F1'))
             .toEqual({ seg1: 'dsr', seg2: 'req/1' });
         expect(settingsOrgDeepSegsFromPath('/app/settings/organisation/usage/safety'))
@@ -274,6 +274,16 @@ describe('the organisation pages moved to the admin dashboard (desktop)', () => 
         expect(deep('/app/settings/organisation/usage/unknown')).toBe('admin/monitoring');
     });
 
+    it('opens a Users & Groups sub-tab as its tab under Security > Users', () => {
+        const deep = (path: string) => settingsOrgAdminTarget(settingsTabFromPath(path) as string, settingsOrgDeepSegsFromPath(path));
+        expect(deep('/app/settings/organisation/users')).toBe('admin/security/users');
+        expect(deep('/app/settings/organisation/users/customTiers')).toBe('admin/security/users/custom-tiers');
+        expect(deep('/app/settings/organisation/users/roles')).toBe('admin/security/users/org-roles');
+        expect(deep('/app/settings/organisation/users/groups')).toBe('admin/security/users/groups');
+        expect(deep('/app/settings/organisation/users/sync')).toBe('admin/security/users/sync');
+        expect(deep('/app/settings/organisation/users/unknown')).toBe('admin/security/users');
+    });
+
     it('leaves the personal and consumer tabs where they are', () => {
         for (const id of [...SETTINGS_TOP_LEVEL_TAB_IDS, ...Object.keys(SETTINGS_ACCOUNT_ID_TO_URL)]) {
             expect(settingsOrgAdminTarget(id), id).toBeNull();
@@ -286,6 +296,9 @@ describe('the organisation pages moved to the admin dashboard (desktop)', () => 
         expect(orgSettingsAdminTarget('nextcloud-sync')).toBe('admin/organisation/nextcloud-sync');
         expect(orgSettingsAdminTarget('users')).toBe('admin/security/users');
         expect(orgSettingsAdminTarget('users', 'groups')).toBe('admin/security/users/groups');
+        expect(orgSettingsAdminTarget('users', 'customTiers')).toBe('admin/security/users/custom-tiers');
+        expect(orgSettingsAdminTarget('users', 'roles')).toBe('admin/security/users/org-roles');
+        expect(orgSettingsAdminTarget('users', 'other')).toBe('admin/security/users');
         for (const seg of ['agents', 'knowledge-bases', '', undefined]) expect(orgSettingsAdminTarget(seg)).toBeNull();
     });
 

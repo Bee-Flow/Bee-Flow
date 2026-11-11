@@ -53,7 +53,7 @@ const RULES: Partial<Record<OrgSectionId, Rule>> = {
     // /api/branding/admin answer a platform admin only. The organisation's own
     // group sync (/:orgId/sync-groups*, strict org admin) has no screen of its
     // own on the phone yet: an org admin who is not a platform admin runs it
-    // from the web (Settings > Organisation > Group sync).
+    // from the web (Admin dashboard > Organisation > Group sync).
     org_azure:(i) => i.canSeeOrg && i.isSelfHosted && i.isPlatformAdmin,
     theme: (i) => i.canSeeOrg && i.isPlatformAdmin,
 };

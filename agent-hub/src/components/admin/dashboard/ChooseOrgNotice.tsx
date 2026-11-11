@@ -8,15 +8,17 @@ import { ALERT_INFO } from '@/components/mcpLibrary/ui';
 interface ChooseOrgNoticeProps {
     /** The server has no organisations at all. */
     noOrgs: boolean;
+    /** The page's own sentence (why it needs one organisation); left out, the general one. */
+    text?: string;
 }
 
-export default function ChooseOrgNotice({ noOrgs }: ChooseOrgNoticeProps) {
+export default function ChooseOrgNotice({ noOrgs, text }: ChooseOrgNoticeProps) {
     const { t } = useTranslation();
     return (
-        <p className={ALERT_INFO} data-testid="admin-choose-org">
+        <p role="status" className={ALERT_INFO} data-testid="admin-choose-org">
             {noOrgs
                 ? t('admin_org.access_panel_no_orgs', 'No organisations found.')
-                : t('admin.scope_choose_org', 'Choose an organisation above to manage it')}
+                : text ?? t('admin.scope_choose_org', 'Choose an organisation above to manage it')}
         </p>
     );
 }
