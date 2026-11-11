@@ -1252,7 +1252,7 @@ const RUBRICS = {
         "criteria": [
             "Names a tag and says what should pick the note up because of it — a library filter chip, a knowledge base source, or an automation on \"Meeting note ready\" — rather than a label invented for this one note.",
             "Chooses one of the three real visibility settings (Personal, Entire organisation, or named groups) and justifies it by who needs to read this note.",
-            "Shows that the tag reaches further than the note: the trigger is organisation-wide, or a knowledge base has its own audience.",
+            "Shows that the tag reaches further than the note: a knowledge base source has its own audience, which can be wider than the note's. (A \"Meeting note ready\" automation fires only on the owner's own notes; do not reward a claim that a colleague's automation picks the note up.)",
             "Says what was looked at before widening — for example that the summary itself is readable by everyone the note is shared with."
         ],
         "passScore": 70,
