@@ -25,22 +25,25 @@ const { listTriggerState, setTriggerEnabled } = require('../../appStudio/trigger
 const router = express.Router();
 
 /**
- * The app when the caller owns it; anything else is the 404 of an unknown app.
+ * Middleware: the app when the caller owns it, on `res.locals.ownedApp`; anything else is the 404
+ * of an unknown app. Before the body is read, so a stranger learns nothing from a refused body.
  * @param {import('express').Request<{ id: string }>} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
  */
-async function ownedApp(req) {
+async function gateOwnedApp(req, res, next) {
     const app = await studioAppStore.getStudioApp(req.params.id);
     if (!app || !studioAppStore.canWriteStudioApp(app, sessionUser(req).id)) throw new HttpError(404, 'not_found', 'App not found');
-    return app;
+    res.locals.ownedApp = app;
+    next();
 }
 
-router.get('/:id/triggers', requireAuth, /** @param {import('express').Request<{ id: string }>} req */ async (req, res) => {
-    res.json(await listTriggerState(await ownedApp(req)));
+router.get('/:id/triggers', requireAuth, gateOwnedApp, async (_req, res) => {
+    res.json(await listTriggerState(res.locals.ownedApp));
 });
 
-router.put('/:id/triggers/:triggerId', requireAuth, validate({ params: TriggerParams, body: TriggerSwitchBody }), /** @param {import('express').Request<{ id: string, triggerId: string }>} req */ async (req, res) => {
-    const app = await ownedApp(req);
-    const out = await setTriggerEnabled(app, req.params.triggerId, req.body.enabled === true);
+router.put('/:id/triggers/:triggerId', requireAuth, gateOwnedApp, validate({ params: TriggerParams, body: TriggerSwitchBody }), /** @param {import('express').Request<{ id: string, triggerId: string }>} req */ async (req, res) => {
+    const out = await setTriggerEnabled(res.locals.ownedApp, req.params.triggerId, req.body.enabled === true);
     if (!out.ok) throw new HttpError(out.status, out.code, out.error);
     res.json({ trigger: out.trigger });
 });

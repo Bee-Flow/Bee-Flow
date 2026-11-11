@@ -3,14 +3,14 @@ import useTranslation from '@/hooks/useTranslation';
 import type { RunActors, RunFilters, RunPage, RunSummary, RunsApi } from './runsApi';
 import { runsApi, useRunList } from './runsApi';
 import RunDetail from './RunDetail';
-import { PEOPLE_ORIGINS, TONE_CLASS, actorText, formatCost, formatDuration, originText, statusText, statusTone } from './runsModel';
+import { PEOPLE_ORIGINS, TRIGGER_ORIGIN, TONE_CLASS, actorText, formatCost, formatDuration, originText, statusText, statusTone } from './runsModel';
 
 const STATUSES = ['success', 'error', 'running', 'paused', 'interrupted', 'cancelled'];
 const selectCls = 'rounded border border-[var(--border-default)] bg-[var(--bg-primary)] px-2 py-1 text-sm text-[var(--text-primary)]';
 const thCls = 'py-1 pr-3 font-normal';
 const tdCls = 'py-1.5 pr-3 text-[var(--text-secondary)]';
 
-type FilterState = { actionId: string; status: string; user: string; withTests: boolean };
+type FilterState = { actionId: string; status: string; user: string; withTests: boolean; triggersOnly?: boolean };
 
 /**
  * The Runs overview of an app (inside the Logic view): every logged action run, newest first,
@@ -25,7 +25,7 @@ export default function RunsView({ appId, actionIds, api = runsApi, onOpenLogic 
     const [openRun, setOpenRun] = useState<string | null>(null);
     const filters: RunFilters = useMemo(() => ({
         ...(f.actionId ? { actionId: f.actionId } : {}), ...(f.status ? { status: f.status } : {}), ...(f.user ? { user: f.user } : {}),
-        ...(f.withTests ? {} : { origin: PEOPLE_ORIGINS }),
+        ...originFilter(f),
     }), [f]);
     const q = useRunList(api, appId, filters);
 
@@ -53,6 +53,12 @@ export default function RunsView({ appId, actionIds, api = runsApi, onOpenLogic 
     );
 }
 
+/** The origins asked for: only the runs a trigger started, or what people did (tests and MCP runs with the toggle). */
+function originFilter(f: FilterState): RunFilters {
+    if (f.triggersOnly) return { origin: TRIGGER_ORIGIN };
+    return f.withTests ? {} : { origin: PEOPLE_ORIGINS };
+}
+
 function RunFiltersRow({ value, onChange, actionIds, actors }: {
     value: FilterState; onChange: (next: FilterState) => void; actionIds: string[]; actors: RunActors | undefined;
 }) {
@@ -78,6 +84,10 @@ function RunFiltersRow({ value, onChange, actionIds, actors }: {
             <label className="flex items-center gap-1 text-[var(--text-secondary)]">
                 <input type="checkbox" checked={value.withTests} onChange={(e) => set({ withTests: e.target.checked })} />
                 {t('studio_apps_runs.filter.with_tests', 'Include tests and MCP runs')}
+            </label>
+            <label className="flex items-center gap-1 text-[var(--text-secondary)]">
+                <input type="checkbox" checked={value.triggersOnly === true} onChange={(e) => set({ triggersOnly: e.target.checked })} />
+                {t('studio_apps_schedule.runs.triggers_only', 'Only runs a trigger started')}
             </label>
         </div>
     );

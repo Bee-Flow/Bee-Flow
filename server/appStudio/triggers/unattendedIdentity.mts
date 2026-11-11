@@ -39,7 +39,6 @@
 
 import { createRequire } from 'node:module';
 import { ownAction } from '../actionCalls.mts';
-import { actionFingerprint } from '../backgroundRunIdentity.mts';
 import type { RunMeta } from '../backgroundRunIdentity.mts';
 import type { App, StartInput } from '../backgroundRunParts.mts';
 import type { ActionRunRow } from '../../stores/studioAppData/actionRuns.mts';
@@ -76,6 +75,7 @@ const stale = (code: string, error: string): UnattendedRefusal => ({ ok: false, 
 const held = (code: string, error: string): UnattendedRefusal => ({ ok: false, code, error, stale: false });
 
 const UNPUBLISHED = 'The app is not published, so its triggers do not run.';
+const GONE = 'The trigger that started this run is no longer in the published app, so the run that was waiting was ended.';
 const CHANGED = 'The published app changed since this trigger was armed. Publish the app to arm it again.';
 
 /** The real stores, each loaded when first asked (a test that injects every reader loads none). */
@@ -155,20 +155,23 @@ export async function loadUnattendedContext(armed: ArmedRef, given: Partial<Unat
 }
 
 /**
- * The same rule for a trigger run that was on hold and goes on (backgroundRunResume.mts): the
- * app, the owner and the trigger are read again, and the action must be exactly what the run
- * paused in (rule 5 of backgroundRunIdentity.mts). A run that may not go on ends as `refused`.
+ * A trigger run that was on hold and goes on (backgroundRunResume.mts). Rules 1 to 3 and 6 are
+ * read again. For what it runs, the rule of every paused run holds (backgroundRunIdentity.mts
+ * rule 5): the run walks the actions its pause kept, so an edited action does not end it, but
+ * the trigger must still be in the published definition and switched on, and its action must
+ * still exist there (`trigger_gone`, `action_removed`: the author took it away). The steps of
+ * the kept actions are still refused one by one when they may not run unattended (the run stays
+ * marked `unattended`). A run that may not go on ends as `refused`.
  */
 export async function loadUnattendedResumeContext(row: ActionRunRow, meta: RunMeta, given: Partial<UnattendedDeps> = {}): Promise<{ ok: true; input: StartInput } | { ok: false; code: string; error: string }> {
     const deps = { ...defaultDeps(), ...given };
-    if (!row.triggerId || row.draft) return { ok: false, code: 'trigger_gone', error: CHANGED };
+    const no = (code: string, error: string) => ({ ok: false as const, code, error });
+    if (!row.triggerId || row.draft || meta.role !== 'owner') return no('trigger_gone', GONE);
     const found = await publishedAppOf(row.appId, row.ownerUserId, deps);
-    if ('ok' in found) return { ok: false, code: found.code, error: found.error };
-    const what = triggerOf(found.def, row.triggerId);
-    if ('ok' in what) return { ok: false, code: what.code, error: what.error };
-    if (what.trigger.actionId !== row.actionId || actionFingerprint(found.def.actions, row.actionId) !== meta.fingerprint || meta.role !== 'owner') {
-        return { ok: false, code: 'definition_changed', error: 'The action was changed while this run was waiting, so the run was ended.' };
-    }
-    const input = await ownerInput(found, what.trigger, deps);
-    return 'ok' in input ? { ok: false, code: input.code, error: input.error } : { ok: true, input };
+    if ('ok' in found) return no(found.code, found.error);
+    const trigger = readTriggers(found.def).find((t) => t.id === row.triggerId);
+    if (!trigger || trigger.enabled === false || !triggerKind(trigger.kind)) return no('trigger_gone', GONE);
+    if (!ownAction(found.def.actions, row.actionId)) return no('action_removed', 'The action was removed from the app while this run was waiting, so the run was ended.');
+    const input = await ownerInput(found, { ...trigger, actionId: row.actionId }, deps);
+    return 'ok' in input ? no(input.code, input.error) : { ok: true, input };
 }

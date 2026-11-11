@@ -46,7 +46,7 @@ describe('<RunsView>', () => {
         expect(row.textContent).toContain('Failed');
         expect(row.textContent).toContain('Record r1 was not found');
         expect(row.textContent).toContain('1.2 s');
-        expect(api.list).toHaveBeenCalledWith('app1', { origin: 'click,public,background,mailbox_hook' }, null);
+        expect(api.list).toHaveBeenCalledWith('app1', { origin: 'click,public,background,mailbox_hook,trigger' }, null);
         expect(screen.getByTestId('runs-retention').textContent).toContain('30 days');
     });
 
@@ -59,6 +59,13 @@ describe('<RunsView>', () => {
         await user.selectOptions(screen.getByLabelText('Who'), 'u2');
         await user.click(screen.getByLabelText('Include tests and MCP runs'));
         await waitFor(() => expect(api.list).toHaveBeenLastCalledWith('app1', { actionId: 'act_save', status: 'error', user: 'u2' }, null));
+    });
+
+    it('"Only runs a trigger started" asks for the trigger origin alone', async () => {
+        renderWithClient(<RunsView appId="app1" actionIds={['act_save']} api={api} />);
+        await screen.findByTestId('run-row');
+        await userEvent.setup().click(screen.getByLabelText('Only runs a trigger started'));
+        await waitFor(() => expect(api.list).toHaveBeenLastCalledWith('app1', { origin: 'trigger' }, null));
     });
 
     it('a run opens its steps with durations, the error and the AI tokens and cost', async () => {

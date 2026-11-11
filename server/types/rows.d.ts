@@ -3071,6 +3071,7 @@ declare namespace DbRow {
         status: string;
         step_count: number;
         tracked: boolean;
+        trigger_id: string | null;
         truncated: boolean;
         vars: Json | null;
         viewer_user_id: string | null;
@@ -3241,6 +3242,28 @@ declare namespace DbRow {
         title: string;
         updated_at: Date;
         version: number;
+    }
+    /** Row of `studio_app_triggers`. */
+    interface StudioAppTriggers {
+        action_id: string;
+        app_id: string;
+        armed_at: Date;
+        config: Json;
+        consecutive_failures: number;
+        fingerprint: string;
+        fire_seq: number;
+        kind: string;
+        last_error: string | null;
+        last_fired_at: Date | null;
+        last_run_id: string | null;
+        last_status: string | null;
+        next_fire_at: Date | null;
+        owner_user_id: string;
+        paused_code: string | null;
+        paused_reason: string | null;
+        state: string;
+        trigger_id: string;
+        updated_at: Date;
     }
     /** Row of `studio_app_versions`. */
     interface StudioAppVersions {

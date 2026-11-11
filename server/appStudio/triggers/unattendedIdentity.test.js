@@ -12,7 +12,6 @@ const assert = require('node:assert/strict');
 
 const { loadUnattendedContext, loadUnattendedResumeContext } = require('./unattendedIdentity.mts');
 const { triggerFingerprint } = require('./triggerSpec.mts');
-const { actionFingerprint } = require('../backgroundRunIdentity.mts');
 
 const write = (tableId) => ({ kind: 'create_record', tableId, values: {} });
 const TRIGGER = { id: 'tick', kind: 'schedule', actionId: 'act_job', schedule: { everyMinutes: 15 } };
@@ -120,23 +119,28 @@ test('a refusal names no person', async () => {
 // ── A trigger run that was on hold ──────────────────────────────────────────
 
 const RUN = { id: 'sar_1', appId: 'app_1', ownerUserId: 'owner', viewerUserId: 'owner', actionId: 'act_job', origin: 'trigger', draft: false, triggerId: 'tick' };
-const META = { fingerprint: actionFingerprint(DEF.actions, 'act_job'), role: 'owner', activeMs: 0, written: [] };
+const META = { role: 'owner', activeMs: 0, written: [] };
 
-test('a resume goes on as the owner, on the published definition, when nothing changed', async () => {
-    const out = await loadUnattendedResumeContext(RUN, META, deps());
-    assert.equal(out.ok, true);
-    assert.deepEqual([out.input.viewer.id, out.input.role, out.input.isOwner, out.input.draft], ['owner', 'owner', true, false]);
-    assert.deepEqual(out.input.unattended, { refusedKinds: [] });
+test('a resume goes on as the owner, with the published definition, also when the action was edited meanwhile', async () => {
+    const edited = { app: { ...APP, publishedDefinition: { ...DEF, actions: { ...DEF.actions, act_job: write('edited') } } } };
+    for (const over of [{}, edited]) {
+        const out = await loadUnattendedResumeContext(RUN, META, deps(over));
+        assert.equal(out.ok, true);
+        assert.deepEqual([out.input.viewer.id, out.input.role, out.input.isOwner, out.input.draft, out.input.actionId], ['owner', 'owner', true, false, 'act_job']);
+        assert.deepEqual(out.input.unattended, { refusedKinds: [] }, 'the kept steps are still refused one by one when they need a page');
+    }
 });
 
-test('a resume is refused when the app, the owner, the trigger or the action is no longer what the run paused in', async () => {
+test('a resume is refused when the app, the owner, the trigger or the action is gone', async () => {
     const code = async (over, run = RUN, meta = META) => (await loadUnattendedResumeContext(run, meta, deps(over))).code;
     assert.equal(await code({ app: { ...APP, isPublished: false } }), 'unpublished');
     assert.equal(await code({ owner: { ...OWNER, status: 'deactivated' } }), 'owner_inactive');
     assert.equal(await code({ capability: false }), 'capability_off');
     assert.equal(await code({ app: { ...APP, publishedDefinition: { ...DEF, triggers: [] } } }), 'trigger_gone');
-    assert.equal(await code({ app: { ...APP, publishedDefinition: { ...DEF, actions: { ...DEF.actions, act_sub: write('elsewhere') } } } }), 'definition_changed');
+    assert.equal(await code({ app: { ...APP, publishedDefinition: { ...DEF, triggers: [{ ...TRIGGER, enabled: false }] } } }), 'trigger_gone');
+    assert.equal(await code({ app: { ...APP, publishedDefinition: { ...DEF, actions: { act_sub: DEF.actions.act_sub } } } }), 'action_removed');
     assert.equal(await code({}, { ...RUN, triggerId: null }), 'trigger_gone');
     assert.equal(await code({}, { ...RUN, draft: true }), 'trigger_gone');
-    assert.equal(await code({}, RUN, { ...META, role: 'agent' }), 'definition_changed', 'a run that did not pause as the owner does not go on as the owner');
+    assert.equal(await code({}, RUN, { ...META, role: 'agent' }), 'trigger_gone', 'a run that did not pause as the owner does not go on as the owner');
+    assert.equal(await code({ role: 'agent' }), 'owner_role');
 });

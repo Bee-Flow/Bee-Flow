@@ -70,7 +70,7 @@ export default function RunDetail({ api, appId, runId, onBack, onOpenLogic }: {
 function CancelRunButton({ api, appId, run }: { api: RunsApi; appId: string; run: RunSummary }) {
     const { t } = useTranslation();
     const cancel = useCancelRun(api, appId);
-    if (!api.cancel || run.origin !== 'background' || (run.status !== 'running' && run.status !== 'paused')) return null;
+    if (!api.cancel || (run.origin !== 'background' && run.origin !== 'trigger') || (run.status !== 'running' && run.status !== 'paused')) return null;
     const cancelRun = () => cancel.mutate(run.id, {
         onSuccess: (out) => toast.info(out.status === 'running'
             ? t('studio_apps_durable.runs.cancelling', 'The run stops before its next step.')

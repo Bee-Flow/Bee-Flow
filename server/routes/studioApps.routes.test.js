@@ -59,6 +59,7 @@ const EXPECTED = [
     'get /:id/runs requireAuth validateRequest <anonymous>',
     'get /:id/runs/:runId requireAuth validateRequest <anonymous>',
     'get /:id/runtime requireAuth validateRequest <anonymous>',
+    'get /:id/triggers requireAuth gateOwnedApp <anonymous>',
     'get /:id/versions requireAuth <anonymous>',
     'get /catalog requireAuth <anonymous>',
     'get /mine requireAuth <anonymous>',
@@ -77,6 +78,7 @@ const EXPECTED = [
     'post /templates/import requireAuth <anonymous> rateLimitMiddleware <anonymous>',
     'put /:id requireAuth <anonymous> validateRequest <anonymous>',
     'put /:id/definition requireAuth <anonymous> validateRequest <anonymous>',
+    'put /:id/triggers/:triggerId requireAuth gateOwnedApp validateRequest <anonymous>',
 ];
 
 test('the router answers exactly the same routes with the same middleware chain', () => {

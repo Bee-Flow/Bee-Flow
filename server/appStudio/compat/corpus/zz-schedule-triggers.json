@@ -1,0 +1,210 @@
+{
+  "about": {
+    "source": "hand-made for package H3 (schedule triggers): a cron trigger with a time zone, an interval trigger, a trigger that is switched off, and a button that calls the triggered action and adds the page steps a trigger may not carry",
+    "captured": "2026-11-11"
+  },
+  "definition": {
+    "schemaVersion": 3,
+    "meta": {
+      "name": "Schedule triggers",
+      "description": "A nightly clean-up and a weekday digest, started by the server.",
+      "icon": "Clock"
+    },
+    "theme": {
+      "primary": "#1D4ED8",
+      "radius": "md",
+      "density": "comfortable",
+      "fontScale": "md",
+      "appearance": "auto"
+    },
+    "roles": [],
+    "variables": [
+      {
+        "name": "summary",
+        "label": "Summary",
+        "type": "text",
+        "default": "",
+        "description": ""
+      }
+    ],
+    "screens": [
+      {
+        "id": "scr_home0001",
+        "name": "Home",
+        "icon": "Home",
+        "showInNav": true,
+        "maxWidth": "medium",
+        "sections": [
+          {
+            "id": "sec_main0001",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_head0001",
+                "type": "heading",
+                "props": {
+                  "text": "Digest",
+                  "level": 2,
+                  "accent": "none"
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_btn00001",
+                "type": "button",
+                "props": {
+                  "label": "Write the digest now",
+                  "variant": "primary",
+                  "iconLeft": null,
+                  "role": "button",
+                  "disabledWhen": null
+                },
+                "style": {
+                  "span": 3
+                },
+                "visible": true,
+                "onClick": "act_button01"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "actions": {
+      "act_digest01": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "ai_generate",
+            "prompt": "Summarise what changed today.",
+            "documentMode": "auto",
+            "output": "text",
+            "resultVar": "summary"
+          },
+          {
+            "kind": "create_record",
+            "tableId": "tbl_digest01",
+            "values": {
+              "note": {
+                "kind": "formula",
+                "expr": "vars.summary.text"
+              }
+            }
+          },
+          {
+            "kind": "condition",
+            "expr": "vars.summary.text != \"\"",
+            "then": [
+              {
+                "kind": "call_action",
+                "actionId": "act_shared01"
+              }
+            ],
+            "else": []
+          }
+        ]
+      },
+      "act_shared01": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "update_record",
+            "tableId": "tbl_digest01",
+            "recordId": {
+              "kind": "static",
+              "value": "r1"
+            },
+            "values": {
+              "note": {
+                "kind": "static",
+                "value": "seen"
+              }
+            }
+          }
+        ]
+      },
+      "act_cleanup1": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "delete_record",
+            "tableId": "tbl_digest01",
+            "recordId": {
+              "kind": "static",
+              "value": "r0"
+            }
+          }
+        ]
+      },
+      "act_button01": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "call_action",
+            "actionId": "act_digest01"
+          },
+          {
+            "kind": "toast",
+            "message": "Digest written",
+            "tone": "info"
+          },
+          {
+            "kind": "refresh"
+          }
+        ]
+      }
+    },
+    "homeScreenId": "scr_home0001",
+    "triggers": [
+      {
+        "id": "weekday_digest",
+        "kind": "schedule",
+        "actionId": "act_digest01",
+        "schedule": {
+          "cron": "0 8 * * 1-5",
+          "tz": "Europe/Amsterdam"
+        }
+      },
+      {
+        "id": "nightly_cleanup",
+        "kind": "schedule",
+        "actionId": "act_cleanup1",
+        "schedule": {
+          "everyMinutes": 1440
+        }
+      },
+      {
+        "id": "paused_one",
+        "kind": "schedule",
+        "actionId": "act_shared01",
+        "schedule": {
+          "everyMinutes": 15
+        },
+        "enabled": false
+      }
+    ]
+  },
+  "dataModel": {
+    "tables": [
+      {
+        "id": "tbl_digest01",
+        "key": "digest",
+        "label": "Digest",
+        "fields": [
+          {
+            "key": "note",
+            "label": "Note",
+            "type": "text"
+          }
+        ]
+      }
+    ]
+  }
+}

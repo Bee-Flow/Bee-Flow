@@ -328,7 +328,12 @@ function checkActionsAndVariables(actionsObj, screens, declaredVars, varWrites, 
         // its "My queue" screen was permanently empty and there was no way to
         // put anything in it.
         // checkCallGraph also checks call_action across actions; what a reachable action calls is reachable.
-        const reached = checkCallGraph(actionsObj, ctx, collectReferencedActions(screens, ctx.watchers));
+        const referenced = collectReferencedActions(screens, ctx.watchers);
+        // Schema 3: a server trigger starts its action (definitionKeys/triggers.js), so that action is reachable.
+        for (const trigger of (Array.isArray(ctx.triggers) ? ctx.triggers : [])) {
+            if (trigger && typeof trigger === 'object' && typeof trigger.actionId === 'string') referenced.add(trigger.actionId);
+        }
+        const reached = checkCallGraph(actionsObj, ctx, referenced);
         for (const id of Object.keys(actionsObj)) {
             if (reached.has(id)) continue;
             pushW({
@@ -373,7 +378,7 @@ function buildValidationContext(def, opts, { pushE, pushW, actionIds, screenIds,
         actionIds,
         screenIds,
         roleIds,
-        knownVars, watchers: def.watchers, // watchers: schema 3, their actions are reachable
+        knownVars, watchers: def.watchers, triggers: def.triggers, // watchers and triggers: schema 3, their actions are reachable
         knownVarList: knownVars ? [...knownVars].filter((n) => n !== 'true' && n !== 'false' && n !== 'null').sort() : null,
         varReads: new Set(),
         modalIds: new Set(),

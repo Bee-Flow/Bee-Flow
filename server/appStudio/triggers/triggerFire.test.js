@@ -349,6 +349,50 @@ test('at run time too: a step that may not run unattended stops the run where it
     assert.deepEqual(s.executed.map((e) => e.step.tableId), ['a'], 'nothing after it ran');
 });
 
+test('a trigger run that waits goes on as the owner when its time comes, and the trigger fires again only after it ended', async () => {
+    const BG = require('../backgroundRun.mts');
+    const { pauseUntil } = require('../runPause.mts');
+    const { loadUnattendedResumeContext } = require('./unattendedIdentity.mts');
+    const HOUR = 60 * MINUTE;
+    s.execute = async (_app, _model, step) => (step.tableId === 'wait' ? pauseUntil(s.clock + HOUR) : { ok: true, result: {} });
+    await publish(definition([every(15)], [write('a'), write('wait'), write('b')]));
+    s.clock += 15 * MINUTE;
+    await pass();
+    const runId = (await row()).lastRunId;
+    assert.equal((await settle(runId)).status, 'paused');
+    s.clock += 30 * MINUTE;
+    assert.deepEqual(await pass(), NOTHING, 'its run is on hold: the trigger waits for it');
+    // The wake job, on the real identity check of a trigger run.
+    const resume = h.deps({ loadResumeContext: (run, meta) => loadUnattendedResumeContext(run, meta, h.identity()) });
+    s.clock += HOUR;
+    assert.deepEqual(await BG.wakeDueRuns(resume), { due: 1, resumed: 1 });
+    const done = await settle(runId);
+    assert.equal(done.status, 'success', done.error);
+    assert.deepEqual(s.executed.map((e) => e.step.tableId), ['a', 'wait', 'b']);
+    assert.equal(s.executed[2].ctx.viewerId, 'owner');
+    s.execute = async () => ({ ok: true, result: {} });
+    assert.deepEqual(await pass(), { settled: 1, due: 1, fired: 1, skipped: 0, disarmed: 0 }, 'settled, and due again now that the run ended');
+    await settle((await row()).lastRunId);
+});
+
+test('a trigger run on hold does not go on once the owner is not active', async () => {
+    const BG = require('../backgroundRun.mts');
+    const { pauseUntil } = require('../runPause.mts');
+    const { loadUnattendedResumeContext } = require('./unattendedIdentity.mts');
+    s.execute = async (_app, _model, step) => (step.tableId === 'wait' ? pauseUntil(s.clock + MINUTE) : { ok: true, result: {} });
+    await publish(definition([every(15)], [write('wait'), write('b')]));
+    s.clock += 15 * MINUTE;
+    await pass();
+    const runId = (await row()).lastRunId;
+    await settle(runId);
+    t.owner.status = 'deactivated';
+    s.clock += 2 * MINUTE;
+    await BG.wakeDueRuns(h.deps({ loadResumeContext: (run, meta) => loadUnattendedResumeContext(run, meta, h.identity()) }));
+    const ended = await settle(runId);
+    assert.deepEqual([ended.status, ended.errorCode], ['refused', 'owner_inactive']);
+    assert.deepEqual(s.executed.map((e) => e.step.tableId), ['wait']);
+});
+
 // ── The owner's panel ───────────────────────────────────────────────────────
 
 test('the state the panel reads: not armed in a draft, armed after a publish, not live after a change of the draft', async () => {

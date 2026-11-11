@@ -1,1 +1,10 @@
-{}
+{
+    "app_remove_trigger": {
+        "key": "studio_apps_schedule.act_remove_trigger",
+        "en": "Removed a trigger"
+    },
+    "app_set_trigger": {
+        "key": "studio_apps_schedule.act_set_trigger",
+        "en": "Set a trigger"
+    }
+}

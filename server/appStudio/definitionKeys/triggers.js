@@ -28,7 +28,7 @@ function canon(value, push, ctx) {
 
 /**
  * @param {unknown} value
- * @param {{ def: Record<string, unknown>, pushE: (f: any) => void, pushW: (f: any) => void }} ctx
+ * @param {import('../triggers/triggerSpec.mts').ValidateContext} ctx
  */
 function validate(value, ctx) {
     spec().validateTriggers(value, ctx);
@@ -41,7 +41,8 @@ module.exports = {
     canon,
     validate,
     shape: '[{ id, kind: "schedule", actionId, schedule: { cron, tz } | { everyMinutes }, enabled? }] (max 20)',
-    description: 'Triggers start an action on the server by themselves, with nobody at the page. '
+    description: 'Triggers start an action on the server by themselves, on a schedule. '
+        + 'Nobody is at the page when one runs. '
         + 'kind "schedule" runs actionId at set times: schedule.cron is five fields (minute hour day-of-month month day-of-week, '
         + '"0 8 * * 1-5" is weekdays at 08:00) read in schedule.tz, an IANA time zone that is required with a cron; or schedule.everyMinutes for a fixed interval. '
         + 'A trigger only runs once the app is PUBLISHED: in a draft it does nothing, and a later change goes live with the next publish. '
