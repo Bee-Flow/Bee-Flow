@@ -1,0 +1,30 @@
+{
+  "translations": {
+    "studio_apps_lk16.dark.accent": "Accent op donker",
+    "studio_apps_lk16.dark.canvas": "Paginagrond op donker",
+    "studio_apps_lk16.dark.clear": "Themakleur gebruiken",
+    "studio_apps_lk16.dark.hint": "Gebruikt zolang de app donker is; niet onder het thema met hoog contrast.",
+    "studio_apps_lk16.dark.primary": "Hoofdkleur op donker",
+    "studio_apps_lk16.dark.title": "Donker palet",
+    "studio_apps_lk16.radius.label": "Hoekafronding (px)",
+    "studio_apps_lk16.radius.placeholder": "Uit het thema",
+    "studio_apps_lk16.screen.accent": "Accentkleur",
+    "studio_apps_lk16.screen.appearance": "Weergave",
+    "studio_apps_lk16.screen.canvas": "Paginagrond",
+    "studio_apps_lk16.screen.density": "Dichtheid",
+    "studio_apps_lk16.screen.hint": "Geldt alleen voor dit scherm; de navigatie houdt het thema van de app.",
+    "studio_apps_lk16.screen.primary": "Hoofdkleur",
+    "studio_apps_lk16.screen.radius": "Hoeken",
+    "studio_apps_lk16.screen.same_as_app": "Zoals de app",
+    "studio_apps_lk16.screen.title": "Thema van dit scherm",
+    "studio_apps_lk16.tokens.add": "Token toevoegen",
+    "studio_apps_lk16.tokens.hint": "Gebruik een kleurtoken in een kleurknop als token:<naam>; elk token is ook de CSS-variabele --app-token-<naam>.",
+    "studio_apps_lk16.tokens.name": "Naam van het token",
+    "studio_apps_lk16.tokens.remove": "Verwijderen",
+    "studio_apps_lk16.tokens.value": "Kleur (#rrggbb) of ruimte in pixels"
+  },
+  "sameAsEnglish": [
+    "studio_apps_lk16.tokens.name_placeholder",
+    "studio_apps_lk16.tokens.title"
+  ]
+}

@@ -136,7 +136,7 @@ function cleanCellStyle(raw, push, path) {
     const reportingStyle = /** @type {RuleStyleCleaner} */ ((style, at) => {
         const kept = cleanCellRuleStyle(style);
         const dropped = isObject(style) ? Object.keys(style).filter((k) => !kept || !(k in kept)) : [];
-        if (dropped.length) push('style_rules.knob_dropped', at, `cellStyle sets only ${CELL_STYLE_KNOBS.join(', ')} (a role or #rrggbb for the colours) — dropped: ${dropped.join(', ')}.`);
+        if (dropped.length) push('style_rules.knob_dropped', at, `cellStyle sets only ${CELL_STYLE_KNOBS.join(', ')} (a role, #rrggbb or token:<name> for the colours) — dropped: ${dropped.join(', ')}.`);
         return kept;
     });
     return cleanRuleList(raw, path, push, { max: LIMITS.MAX_CELL_STYLE_RULES, label: 'cellStyle', cleanStyle: reportingStyle });
@@ -156,7 +156,7 @@ function cellStyleSpec(first) {
         description: `${first} `
             + `A list ${RULE_SHAPE} of at most ${LIMITS.MAX_CELL_STYLE_RULES} rules, checked per cell in order: every rule whose formula is true applies, a later one wins. `
             + 'In the formula `item` is the row and `value` this cell\'s value, e.g. { when: "value > 1000", style: { color: "danger", weight: "bold" } } or { when: "item.status == \'late\'", style: { backgroundColor: "warning" } }. '
-            + `Knobs: ${CELL_STYLE_KNOBS.join(', ')}; a colour is a role (${COLOR_ROLES.join(', ')}) or #rrggbb. A role follows light, dark and high contrast, so prefer it. `
+            + `Knobs: ${CELL_STYLE_KNOBS.join(', ')}; a colour is a role (${COLOR_ROLES.join(', ')}), #rrggbb or token:<name> of design.tokens. A role follows light, dark and high contrast, so prefer it. `
             + 'A formula that fails leaves the cell as it is. Set it through the column list of app_update_component { id, props: { columns: [...] } }.',
     };
 }

@@ -7,6 +7,7 @@
 
 import { RADIUS_VALUES, ROLE_COLORS, SOFT_PRIMARY_GRADIENT } from '../styleResolver.constants';
 import { spaceSteps } from './layout';
+import { tokenColorVar } from '../designTokens';
 import type { InlineStyle, StyleKnobs } from '../styleResolver.types';
 
 export function resolveRadius(value?: string | null): string | undefined {
@@ -161,14 +162,15 @@ const isSet = (v: unknown): boolean => v !== undefined && v !== null;
 export function resolveBoxFill(value?: string | null): string | null {
     if (isHex(value)) return value;
     if (isRole(value)) return `color-mix(in srgb, ${ROLE_COLORS[value]} 14%, var(--bg-card))`;
-    return null;
+    // token:<name> of design.tokens (schema 3): exactly the token's colour, like a hex.
+    return tokenColorVar(value);
 }
 
 /** borderColor → a CSS colour: a role is the role colour itself, a hex stays as written. */
 export function resolveBoxBorderColor(value?: string | null): string {
     if (isHex(value)) return value;
     if (isRole(value)) return ROLE_COLORS[value];
-    return BOX_BORDER_DEFAULT;
+    return tokenColorVar(value) ?? BOX_BORDER_DEFAULT;
 }
 
 /**

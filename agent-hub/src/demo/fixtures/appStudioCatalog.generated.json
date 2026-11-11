@@ -703,6 +703,12 @@
                 }
             },
             "description": "Timers that run an action every few seconds while the screen is open. everySeconds is 5 to 3600, at most 3 timers per screen, id is a short name (letters, digits, _ or -). A timer pauses while the browser tab is hidden and skips a tick while its previous run is still busy. It never runs in the editor or a screenshot. Only to reload the data on screen, use the screen's refreshInterval instead: a timer is for running an action, such as a check that writes a variable or a step that advances a status. Write the complete list with app_update_screen { screenId, timers: [{ id: \"poll\", everySeconds: 30, actionId: \"act_…\" }] }, and timers: null removes them."
+        },
+        "theme": {
+            "type": "object",
+            "since": 3,
+            "default": null,
+            "description": "A theme of this screen that differs from the app theme. An object with any of the app theme keys (primary, accent, canvas as #rrggbb, radius, density, fontScale, appearance), only the ones that should differ. It applies to everything on the screen and to nothing else, e.g. a dark control-room screen { appearance: \"dark\", primary: \"#38bdf8\" } in a light app, or a calmer { density: \"spacious\", canvas: \"#f5f5f4\" } on a reading screen. The navigation bar keeps the app theme. A canvas whose text would be hard to read gets a validator warning. Set it with app_update_screen { screenId, theme: { … } } (the object replaces the one there), null removes it."
         }
     },
     "section": {
@@ -1581,7 +1587,7 @@
                             "type": "object",
                             "objectShape": "cellStyle",
                             "since": 3,
-                            "description": "Style of a cell while a formula over its row is true. A list [{ when: \"<formula>\", style: { <knob>: <value> } }] of at most 6 rules, checked per cell in order: every rule whose formula is true applies, a later one wins. In the formula `item` is the row and `value` this cell's value, e.g. { when: \"value > 1000\", style: { color: \"danger\", weight: \"bold\" } } or { when: \"item.status == 'late'\", style: { backgroundColor: \"warning\" } }. Knobs: color, backgroundColor, weight; a colour is a role (primary, neutral, success, warning, danger, info) or #rrggbb. A role follows light, dark and high contrast, so prefer it. A formula that fails leaves the cell as it is. Set it through the column list of app_update_component { id, props: { columns: [...] } }."
+                            "description": "Style of a cell while a formula over its row is true. A list [{ when: \"<formula>\", style: { <knob>: <value> } }] of at most 6 rules, checked per cell in order: every rule whose formula is true applies, a later one wins. In the formula `item` is the row and `value` this cell's value, e.g. { when: \"value > 1000\", style: { color: \"danger\", weight: \"bold\" } } or { when: \"item.status == 'late'\", style: { backgroundColor: \"warning\" } }. Knobs: color, backgroundColor, weight; a colour is a role (primary, neutral, success, warning, danger, info), #rrggbb or token:<name> of design.tokens. A role follows light, dark and high contrast, so prefer it. A formula that fails leaves the cell as it is. Set it through the column list of app_update_component { id, props: { columns: [...] } }."
                         }
                     }
                 },
@@ -1816,7 +1822,7 @@
                             "type": "object",
                             "objectShape": "cellStyle",
                             "since": 3,
-                            "description": "Style of a cell while a formula over its row is true. A list [{ when: \"<formula>\", style: { <knob>: <value> } }] of at most 6 rules, checked per cell in order: every rule whose formula is true applies, a later one wins. In the formula `item` is the row and `value` this cell's value, e.g. { when: \"value > 1000\", style: { color: \"danger\", weight: \"bold\" } } or { when: \"item.status == 'late'\", style: { backgroundColor: \"warning\" } }. Knobs: color, backgroundColor, weight; a colour is a role (primary, neutral, success, warning, danger, info) or #rrggbb. A role follows light, dark and high contrast, so prefer it. A formula that fails leaves the cell as it is. Set it through the column list of app_update_component { id, props: { columns: [...] } }."
+                            "description": "Style of a cell while a formula over its row is true. A list [{ when: \"<formula>\", style: { <knob>: <value> } }] of at most 6 rules, checked per cell in order: every rule whose formula is true applies, a later one wins. In the formula `item` is the row and `value` this cell's value, e.g. { when: \"value > 1000\", style: { color: \"danger\", weight: \"bold\" } } or { when: \"item.status == 'late'\", style: { backgroundColor: \"warning\" } }. Knobs: color, backgroundColor, weight; a colour is a role (primary, neutral, success, warning, danger, info), #rrggbb or token:<name> of design.tokens. A role follows light, dark and high contrast, so prefer it. A formula that fails leaves the cell as it is. Set it through the column list of app_update_component { id, props: { columns: [...] } }."
                         }
                     }
                 },

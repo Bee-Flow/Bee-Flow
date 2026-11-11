@@ -21,7 +21,7 @@ import type { CSSProperties } from 'react';
 import type { AppNode, NodeStyle } from '../inspector/appDefinition';
 
 /** One rule as stored. Every part may be missing or wrong in an old or hand-edited definition. */
-export interface StyleRule {
+interface StyleRule {
     when?: { kind?: string; expr?: unknown } | string | null;
     style?: Record<string, unknown> | null;
 }

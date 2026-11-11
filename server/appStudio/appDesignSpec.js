@@ -31,6 +31,7 @@ const crypto = require('crypto');
 const { valueTypeOf, isAssetRef } = require('./componentSpecs/valueTypes');
 const { LIMITS } = require('./componentSpecs/limits');
 const { cleanAppCss, appCssRepairNote } = require('./appCss.mts');
+const { cleanDesignTokens, cleanRadiusPx, cleanDarkPalette, tokensRepairNote, darkRepairNote, DESIGN_TOKEN_LIMITS } = require('./designTokens.mts');
 
 // Font PAIRING ids, not raw family names: the closed vocabulary keeps the
 // builder/editor honest and every family on the CMS DESIGN_FONTS allowlist.
@@ -53,7 +54,9 @@ const FONT_FAMILIES = Object.freeze({
  * before the key existed keeps its bytes. A base key is always written (its default when
  * absent). A key added later is optional and may use a value type of
  * componentSpecs/valueTypes.js as its `type`.
- * @typedef {{ type: 'enum', values: string[], default: string, optional?: boolean, valuesSince?: Record<string, number>, description?: string } | { type: 'url', default: string | null, maxLen: number, optional?: boolean } | DesignCssEntry} DesignSpecEntry
+ * @typedef {{ type: 'enum', values: string[], default: string, optional?: boolean, valuesSince?: Record<string, number>, description?: string } | { type: 'url', default: string | null, maxLen: number, optional?: boolean } | DesignCssEntry | DesignShapedEntry} DesignSpecEntry
+ * @typedef {{ type: 'shaped', optional: true, since: number, shape: string, clean: (value: unknown) => unknown, repairNote?: (value: unknown) => string | null, toolSchema: Record<string, unknown>, description: string }} DesignShapedEntry
+ *   A key whose value its own clean() keeps (designTokens.mts).
  * @typedef {{ type: 'css', optional: true, since: number, maxLen: number, sanitize: (text: string) => string, repairNote: (text: unknown) => string | null, description: string }} DesignCssEntry
  *   A stylesheet key: stored as `sanitize` returns it; `repairNote` says what saving took out.
  */
@@ -100,6 +103,37 @@ const DESIGN_SPEC = Object.freeze(/** @satisfies {Record<string, DesignSpecEntry
             + 'Selectors that are a contract: [data-app-screen="<screen id>"] (one screen), [data-section-id="<section id>"] (one section), [data-node-id="<node id>"] (the cell of one component), [data-app-type="<type>"] (every component of a type, e.g. [data-app-type="button"]), .u-<name> (every component whose cssClass is <name>), and inside a component the part classes .bfa-<type>__<part> where the type lists parts. Any other class name of the product can change without notice. '
             + 'Colours: prefer the variables var(--app-primary), var(--app-accent), var(--app-canvas), var(--text-primary), var(--bg-card) and var(--border-default) over fixed values. Dark mode: the app root carries data-app-dark="true" or "false", so write :scope[data-app-dark="true"] .u-hero { … } for the dark variant (:scope is the app root, and a selector without it only matches inside the root). Under the high-contrast theme the stylesheet is not applied at all, so nothing may depend on it to be readable. '
             + 'Allowed at-rules: @media, @supports, @container. Comments are not kept. Removed when saved, and named in the repair hints: every other at-rule (@import, @font-face, @keyframes, …), position: fixed, and a url() that is not data:image/… or asset:<id> (an uploaded file of this app). Write it with app_set_theme { customCss: "<the whole stylesheet>" } (the text replaces what was there), and pass null to remove it.',
+    },
+    // Package LK16 (designTokens.mts): named values, a pixel radius and a dark palette.
+    tokens: {
+        type: 'shaped', optional: true, since: 3,
+        shape: `{ "<name>": "#rrggbb" | <0..${DESIGN_TOKEN_LIMITS.MAX_SPACING_PX} px> } (≤${DESIGN_TOKEN_LIMITS.MAX_TOKENS})`,
+        clean: cleanDesignTokens,
+        repairNote: tokensRepairNote,
+        toolSchema: { type: ['object', 'null'] },
+        description: 'Named colours and spacings of the app, used by name. '
+            + `An object { "<name>": "#rrggbb" or a whole number of pixels 0..${DESIGN_TOKEN_LIMITS.MAX_SPACING_PX} }, at most ${DESIGN_TOKEN_LIMITS.MAX_TOKENS}, a name being a lower-case letter then lower-case letters, digits or dashes (≤32). `
+            + 'A colour token is a value of every colour knob that takes a role or #rrggbb (color, borderColor, backgroundColor, and the colours of styleWhen and cellStyle rules): write "token:<name>", e.g. style { backgroundColor: "token:brand-soft" }. Changing the token then recolours every place that uses it. '
+            + 'Every token is also the CSS variable --app-token-<name> on the app, for design.customCss (a spacing token as <n>px). A token is one colour in every theme, like a hex knob: pick it for the appearance the app has, or set theme.appearance. '
+            + 'Write it with app_set_theme { tokens: { … } } (the object replaces the one there), null removes it.',
+    },
+    radiusPx: {
+        type: 'shaped', optional: true, since: 3,
+        shape: `0..${DESIGN_TOKEN_LIMITS.MAX_RADIUS_PX}`,
+        clean: cleanRadiusPx,
+        toolSchema: { type: ['integer', 'null'], minimum: 0, maximum: DESIGN_TOKEN_LIMITS.MAX_RADIUS_PX },
+        description: 'The corner radius of the whole app in pixels, finer than theme.radius. '
+            + `A whole number 0..${DESIGN_TOKEN_LIMITS.MAX_RADIUS_PX}; it replaces theme.radius everywhere the app reads the theme radius (cards, buttons, inputs, sections), and a screen or section theme with its own radius still wins inside it. app_set_theme { radiusPx: 6 }, null removes it.`,
+    },
+    dark: {
+        type: 'shaped', optional: true, since: 3,
+        shape: '{ primary?: "#rrggbb", accent?: "#rrggbb", canvas?: "#rrggbb" }',
+        clean: cleanDarkPalette,
+        repairNote: darkRepairNote,
+        toolSchema: { type: ['object', 'null'], properties: { primary: { type: 'string' }, accent: { type: 'string' }, canvas: { type: 'string' } } },
+        description: 'The colours the app uses on a dark ground. '
+            + 'An object { primary?, accent?, canvas? } of #rrggbb, every key optional: it replaces theme.primary, theme.accent and theme.canvas while the app is dark, which is theme.appearance "dark", or "auto" while the viewer\'s host theme is dark. '
+            + 'Use it when the brand colour is too dark to read on a dark ground. Not applied under the high-contrast host theme. app_set_theme { dark: { primary: "#5eead4" } }, null removes it.',
     },
 }));
 

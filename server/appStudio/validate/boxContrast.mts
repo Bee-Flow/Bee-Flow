@@ -19,11 +19,11 @@ type Mode = 'light' | 'dark';
 type Obj = Record<string, unknown>;
 
 /** WCAG AA for body text. */
-const MIN_CONTRAST = 4.5;
+export const MIN_CONTRAST = 4.5;
 /** Deeper than any legal definition (componentSpecs LIMITS.MAX_DEPTH); a bound on the walk only. */
 const MAX_WALK_DEPTH = 32;
 
-const THEME_TEXT: Record<Mode, { primary: string; secondary: string }> = {
+export const THEME_TEXT: Record<Mode, { primary: string; secondary: string }> = {
     light: { primary: '#0f172a', secondary: '#334155' },
     dark: { primary: '#f8fafc', secondary: '#94a3b8' },
 };
@@ -59,7 +59,7 @@ export function contrastRatio(a: string, b: string): number {
     return (hi + 0.05) / (lo + 0.05);
 }
 
-function modesOf(theme: unknown): Mode[] {
+export function modesOf(theme: unknown): Mode[] {
     const appearance = isObj(theme) ? theme.appearance : undefined;
     if (appearance === 'light' || appearance === 'dark') return [appearance];
     return ['light', 'dark'];
@@ -119,13 +119,19 @@ function walk(nodes: unknown, path: string, depth: number, theme: unknown, pushW
     });
 }
 
+/** The theme a section's nodes see: the app theme under the screen's and the section's override (schema 3). */
+export function scopedTheme(theme: unknown, screen: Obj, section: Obj): unknown {
+    if (!isObj(screen.theme) && !isObj(section.theme)) return theme;
+    return { ...(isObj(theme) ? theme : {}), ...(isObj(screen.theme) ? screen.theme : {}), ...(isObj(section.theme) ? section.theme : {}) };
+}
+
 /** Warn for every node whose hex backgroundColor leaves its text below the AA contrast. */
 export function checkBoxContrast(def: Obj, screens: unknown, pushW: Push): void {
     if (!Array.isArray(screens)) return;
     screens.forEach((screen, si) => {
         if (!isObj(screen) || !Array.isArray(screen.sections)) return;
         screen.sections.forEach((section, ci) => {
-            if (isObj(section)) walk(section.children, `screens[${si}].sections[${ci}].children`, 0, def.theme, pushW);
+            if (isObj(section)) walk(section.children, `screens[${si}].sections[${ci}].children`, 0, scopedTheme(def.theme, screen, section), pushW);
         });
     });
 }

@@ -35,6 +35,15 @@ const SCREEN_SPEC = {
     // clientTriggerSpecs.js, the shapes in shared/appDefinition/clientTriggers.mjs.
     events: SCREEN_TRIGGER_KEYS.events,
     timers: SCREEN_TRIGGER_KEYS.timers,
+    // Schema 3 (optional, emit-when-present): a theme override for this screen
+    // (canonicalize/scopeTheme.mts). Partial: only the keys it names differ from the app theme.
+    theme: {
+        type: 'object', since: 3, default: null,
+        description: 'A theme of this screen that differs from the app theme. '
+            + 'An object with any of the app theme keys (primary, accent, canvas as #rrggbb, radius, density, fontScale, appearance), only the ones that should differ. '
+            + 'It applies to everything on the screen and to nothing else, e.g. a dark control-room screen { appearance: "dark", primary: "#38bdf8" } in a light app, or a calmer { density: "spacious", canvas: "#f5f5f4" } on a reading screen. '
+            + 'The navigation bar keeps the app theme. A canvas whose text would be hard to read gets a validator warning. Set it with app_update_screen { screenId, theme: { … } } (the object replaces the one there), null removes it.',
+    },
 };
 
 // The closed set of node/component EVENT names. Which ones a given type may

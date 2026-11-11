@@ -16,10 +16,9 @@
  *   render(key, spec)   the token for the AI catalogue
  *
  * A value of these types has no default that is written: null or absent means "not set",
- * and the key then stays out of the canonical form. Nothing in the catalogue uses either
- * type yet.
+ * and the key then stays out of the canonical form.
  *
- * @typedef {{ type: string, maxLen?: number, sanitize?: (text: string) => unknown, [k: string]: unknown }} TypedSpec  A knob or design key of one of these types.
+ * @typedef {{ type: string, maxLen?: number, sanitize?: (text: string) => unknown, clean?: (value: unknown) => unknown, shape?: string, [k: string]: unknown }} TypedSpec  A knob or design key of one of these types.
  * @typedef {{ check: (spec: TypedSpec, where: string) => void, clean: (value: unknown, spec: TypedSpec) => unknown, hint: (spec: TypedSpec) => string, render: (key: string, spec: TypedSpec) => string }} ValueType
  */
 
@@ -67,6 +66,18 @@ const VALUE_TYPES = Object.freeze({
         hint: (/** @type {TypedSpec} */ spec) => `Use stylesheet text of at most ${spec.maxLen} characters, or null.`,
         render: (/** @type {string} */ key, /** @type {TypedSpec} */ spec) => `${key}(null|css, max ${spec.maxLen} chars)`,
     }),
+    // A small value of a fixed shape (a number in a range, an object of a few keys) that the
+    // declaring spec cleans itself: `clean(value)` returns what is stored or undefined, `shape`
+    // says what is accepted (design.tokens, design.radiusPx, design.dark: designTokens.mts).
+    shaped: Object.freeze({
+        check(/** @type {TypedSpec} */ spec, /** @type {string} */ where) {
+            if (typeof spec.clean !== 'function') throw new Error(`${where}: a shaped value declares clean(value), returning the value that may be stored`);
+            if (typeof spec.shape !== 'string' || !spec.shape) throw new Error(`${where}: a shaped value declares shape, the accepted form as text`);
+        },
+        clean: (/** @type {unknown} */ value, /** @type {TypedSpec} */ spec) => (typeof spec.clean === 'function' ? spec.clean(value) : undefined),
+        hint: (/** @type {TypedSpec} */ spec) => `Use ${String(spec.shape)}, or null.`,
+        render: (/** @type {string} */ key, /** @type {TypedSpec} */ spec) => `${key}(null|${String(spec.shape)})`,
+    }),
 });
 
 /**
@@ -87,7 +98,10 @@ function valueTypeOf(spec) {
  * @param {TypedSpec} spec
  */
 function isCleanValue(valueType, value, spec) {
-    return value !== undefined && value !== null && valueType.clean(value, spec) === value;
+    if (value === undefined || value === null) return false;
+    const cleaned = valueType.clean(value, spec);
+    // An object or a list is clean when it cleans to the same JSON (the cleaner builds a new one).
+    return cleaned === value || (typeof value === 'object' && cleaned !== undefined && JSON.stringify(cleaned) === JSON.stringify(value));
 }
 
 module.exports = { VALUE_TYPES, valueTypeOf, isCleanValue, isAssetRef };

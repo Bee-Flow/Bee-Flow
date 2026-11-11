@@ -32,7 +32,7 @@
  *
  * An input mapping kind added after the base (`formula`) is read by schemaSinceMappings.mts.
  *
- * One VALUE form has a version too: `asset:<id>`, an uploaded file of the app, accepted in
+ * Two VALUE forms have a version too. `token:<name>` in a colour knob (designTokens.mts). And `asset:<id>`, an uploaded file of the app, accepted in
  * props and design keys that took only an https URL before (appAssets.mts ASSET_REF_SINCE).
  * So does a list of action ids in a component event slot (shared/appDefinition/
  * clientTriggers.mjs ACTION_LIST_SINCE): a slot held one id before schema 3.
@@ -55,6 +55,7 @@ import { definitionKeys } from './definitionKeyRegistry.mts';
 import { ASSET_REF_SINCE, hasAssetRef } from './appAssets.mts';
 import { ACTION_LIST_SINCE, hasActionListSlot } from '../shared/appDefinition/clientTriggers.mjs';
 import { mappingKindSince } from './schemaSinceMappings.mts';
+import { hasStyleTokenRef } from './designTokens.mts';
 import type { DefinitionKeyEntry } from './definitionKeyRegistry.mts';
 
 type SinceMap = Record<string, number>;
@@ -105,6 +106,9 @@ const { QUERY_VALUES_SINCE } = nodeRequire('../core/dataEngine/dataModel/vocabul
 const { HttpError } = nodeRequire('../core/http/errors.js') as {
     HttpError: new (status: number, code: string, message: string) => Error;
 };
+
+/** The schema version a `token:<name>` value in a colour knob needs (designTokens.mts). */
+const TOKEN_REF_SINCE = 3;
 
 /** The code a refusal carries, in canonicalize's `refused` and in a 422 body. */
 export const SCHEMA_NEWER = 'schema_newer';
@@ -272,6 +276,8 @@ export function requiredSchemaVersion(definition: unknown): number {
     // A mapping kind added after the base (schemaSinceMappings.mts) is a value form too, like an asset reference.
     let required = Math.max(requiredWithIndex(definition, index, tests), mappingKindSince(definition));
     if (required < ACTION_LIST_SINCE && hasActionListSlot(definition, specs.EVENT_NAMES)) required = ACTION_LIST_SINCE;
+    // A colour knob holding token:<name> of design.tokens (designTokens.mts) is read by schema 3 only.
+    if (required < TOKEN_REF_SINCE && hasStyleTokenRef(definition)) required = TOKEN_REF_SINCE;
     return required >= ASSET_REF_SINCE || !hasAssetRef(definition) ? required : ASSET_REF_SINCE;
 }
 

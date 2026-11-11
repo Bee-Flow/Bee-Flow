@@ -18,7 +18,7 @@ import type { AppDefinition, AppNode } from './appDefinition';
  */
 
 /** Rules per node, as componentSpecs/limits.js MAX_STYLE_WHEN_RULES. */
-export const MAX_STYLE_WHEN_RULES = 6;
+const MAX_STYLE_WHEN_RULES = 6;
 
 /** The knobs this editor draws, in this order. */
 const EDITED_KNOBS = ['color', 'backgroundColor', 'weight'] as const;

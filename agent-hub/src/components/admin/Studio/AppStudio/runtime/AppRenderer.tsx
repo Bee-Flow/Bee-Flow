@@ -4,6 +4,7 @@ import { useMemo, type JSX } from 'react';
 import './css/layout.css';
 import './css/look.css';
 import './css/motion.css';
+import './css/themeScope.css';
 import './app-tokens.css';
 import { appDesignProps } from './appDesign';
 import AppSection from './AppSection';
@@ -18,6 +19,7 @@ import { applyStyleWhen } from './conditionalStyle';
 import BackgroundImageLayer from './assets/BackgroundImageLayer';
 import { withAuthorClass } from './appCss';
 import { themeVars } from './themeVars';
+import { screenThemeScope } from './themeScope';
 import { tileClickProps } from './tileClick';
 import { definitionReadsUi, useUiScope } from './uiState';
 import useTranslation from '@/hooks/useTranslation';
@@ -441,13 +443,15 @@ export default function AppRenderer({
     // both hosts.
     // Design layer (App Design v2): identity in, nothing out — an absent or
     // all-default definition.design adds no class and no style keys here.
-    const design = appDesignProps(definition);
+    // screen.theme (schema 3, themeScope.ts): the app theme itself and no extra style without one.
+    const scoped = screenThemeScope(definition.theme, screen);
+    const design = appDesignProps(definition, scoped.theme, scoped.override);
     // A screen change fades the new screen in. The animation reads
     // --app-motion-med, which is 0ms under design.motion 'none' AND under the
     // OS reduced-motion setting — so this is free for anyone who opted out.
     // Keyed on the screen id so React remounts the wrapper and the animation
     // actually re-runs instead of only playing on first paint.
-    const runtimeClass = `app-runtime app-screen-enter w-full${hasFillSection ? ' h-full min-h-0 flex-1 flex flex-col' : ''}${design.className ? ` ${design.className}` : ''}`;
+    const runtimeClass = `app-runtime app-screen-enter w-full${hasFillSection ? ' h-full min-h-0 flex-1 flex flex-col' : ''}${design.className ? ` ${design.className}` : ''}${scoped.className}`;
 
     return (
         <RuntimeProvider value={runtimeValue || DEFAULT_RUNTIME}>
@@ -456,13 +460,13 @@ export default function AppRenderer({
                 className={runtimeClass}
                 data-app-screen={screen.id}
                 data-app-screen-kind={(screen.kind as string | undefined) || 'page'}
-                data-app-appearance={(definition.theme as ThemeLike | undefined)?.appearance || 'auto'}
+                data-app-appearance={scoped.appearance}
                 // The CSS hook the responsive-visibility knobs key off: their
                 // media rules skip anything under data-app-edit, so authored
                 // hides never make a node unselectable on the canvas (the same
                 // promise evalVisibility keeps by rendering hidden nodes at 40%).
                 data-app-edit={mode === 'edit' ? 'true' : undefined}
-                style={{ ...themeVars(definition.theme as ThemeLike | undefined), ...design.style, color: 'var(--text-primary)' }}
+                style={{ ...themeVars(definition.theme as ThemeLike | undefined), ...design.style, ...scoped.style, color: 'var(--text-primary)' }}
             >
                 <div
                     className={`w-full flex flex-col${hasFillSection ? ' flex-1 min-h-0' : ''}`}
@@ -485,7 +489,7 @@ export default function AppRenderer({
                         </div>
                     ) : null}
                     {!screenHidden && (screen.sections || []).map((section) => (
-                        <AppSection key={section.id} section={section}>
+                        <AppSection key={section.id} section={section} theme={scoped.theme}>
                             {(section.children || []).map((node) => (
                                 <RenderNode
                                     key={node.id}

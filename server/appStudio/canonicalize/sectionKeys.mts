@@ -17,6 +17,7 @@ type Cleaner = (value: unknown, path: string, push: Push) => unknown;
 const nodeRequire = createRequire(import.meta.url);
 const { LIMITS } = nodeRequire('../componentSpecs/limits.js') as { LIMITS: Record<string, number> };
 const { truncate } = nodeRequire('./shared.js') as { truncate: (s: string, max: number, path: string, push: Push) => string };
+const { cleanSectionTheme } = nodeRequire('./scopeTheme.mts') as { cleanSectionTheme: Cleaner };
 const { cleanBoolOrFormula, cleanRoleRefs } = nodeRequire('./nodes.js') as {
     cleanBoolOrFormula: (raw: unknown, path: string, push: Push, code: string) => unknown;
     cleanRoleRefs: (raw: unknown, path: string, push: Push) => string[] | undefined;
@@ -69,4 +70,6 @@ export const SECTION_KEY_CLEANERS: Readonly<Record<string, Cleaner>> = Object.fr
     maxWidth: cleanMaxWidth,
     visibleWhen: cleanVisibleWhen,
     visibleToRoles: cleanRoles,
+    // Schema 3 (package LK16): a partial theme of the section, every app theme key but canvas.
+    theme: cleanSectionTheme,
 });

@@ -1,0 +1,55 @@
+{
+  "corpus": "vocab-theme-scope",
+  "canonical": {
+    "sha256": "bc0b1500fc114ccac9da3296ec9e98f59614ca02627d9df3b678ea2d725d9f81",
+    "bytes": 2878,
+    "inputIsCanonical": true,
+    "idempotent": true,
+    "keys": [
+      "schemaVersion",
+      "meta",
+      "theme",
+      "roles",
+      "screens",
+      "actions",
+      "design",
+      "homeScreenId"
+    ],
+    "parts": {
+      "schemaVersion": "4e07408562bedb8b",
+      "meta": "3930a0866f1503a1",
+      "theme": "5d7eeb0111b89897",
+      "roles": "4f53cda18c2baa0c",
+      "screens[0] scr_thmscp01": "6cdb0859ff4fedb9",
+      "screens[1] scr_thmscp02": "3bdf8a7651c143d7",
+      "design": "9a3f49db35d57960",
+      "homeScreenId": "db5c8b5b827d8be5"
+    }
+  },
+  "schemaVersion": {
+    "stored": 3,
+    "canonical": 3
+  },
+  "validation": {
+    "strict": {
+      "errors": [],
+      "warnings": [
+        "component.control_inert @ screens[0].sections[0].children[2]",
+        "component.control_inert @ screens[0].sections[1].children[1]",
+        "component.control_inert @ screens[1].sections[0].children[1]"
+      ]
+    },
+    "save": {
+      "errors": [],
+      "warnings": [
+        "component.control_inert @ screens[0].sections[0].children[2]",
+        "component.control_inert @ screens[0].sections[1].children[1]",
+        "component.control_inert @ screens[1].sections[0].children[1]"
+      ]
+    }
+  },
+  "ordinals": {
+    "stored": {},
+    "canonical": "same as stored"
+  }
+}

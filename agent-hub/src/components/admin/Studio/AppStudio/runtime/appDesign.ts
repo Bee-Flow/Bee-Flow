@@ -14,6 +14,8 @@
  * lockstep; runtime/catalogLockstep.test.js pins them.
  */
 
+import { tokenVars } from './designTokens';
+import { darkPaletteVars } from './themeScope';
 import type { CSSProperties } from 'react';
 
 // ── Mirrors (server/appStudio/appDesignSpec.js is authoritative) ────────────
@@ -61,13 +63,18 @@ export const GOOGLE_FONT_FAMILIES: Record<string, string> = {
     poppins: 'Poppins',
 };
 
-/** An app's authored design: each knob (font, surface, motion, …) is a string choice. */
+/** An app's authored design: each knob (font, surface, motion, …) is a string choice. The schema-3 keys tokens, radiusPx and dark are read as unknown. */
 export type AppDesign = Record<string, string>;
 
 /**
  * design → { className, style } for the app roots. Identity in, nothing out.
+ *
+ * `theme` is the theme the root shows (the app theme, or a screen's merged one) and
+ * `scopeOverride` the screen's own override: design.dark is derived from them (themeScope.ts), a
+ * colour the screen sets itself winning over the dark palette. design.tokens and design.radiusPx (schema 3) add their CSS
+ * variables only when set.
  */
-export function appDesignProps(definition?: { design?: AppDesign; [key: string]: unknown } | null) {
+export function appDesignProps(definition?: { design?: AppDesign; [key: string]: unknown } | null, theme: unknown = definition?.theme, scopeOverride: unknown = null) {
     const d = definition?.design;
     const classes: string[] = [];
     const style: CSSProperties = {};
@@ -85,8 +92,20 @@ export function appDesignProps(definition?: { design?: AppDesign; [key: string]:
         else if (d.motion === 'full') classes.push('app-motion--full');
         const stack = FONT_STACKS[d.font];
         if (stack) style.fontFamily = stack;
+        addDesignExtensions(d, theme, scopeOverride, classes, style);
     }
     return { className: classes.join(' '), style };
+}
+
+/** design.tokens, design.radiusPx and design.dark onto the root (package LK16); nothing when absent. */
+function addDesignExtensions(design: AppDesign, theme: unknown, scopeOverride: unknown, classes: string[], style: CSSProperties): void {
+    const d: Record<string, unknown> = design;
+    Object.assign(style, tokenVars(d.tokens));
+    const radius = Number(d.radiusPx);
+    if (d.radiusPx !== undefined && d.radiusPx !== null && Number.isFinite(radius)) (style as Record<string, string>)['--app-radius'] = `${Math.min(32, Math.max(0, Math.round(radius)))}px`;
+    const dark = darkPaletteVars(d.dark, theme, scopeOverride);
+    if (dark.className) classes.push(dark.className);
+    Object.assign(style, dark.style);
 }
 
 // ── Brand chart palette ─────────────────────────────────────────────────────

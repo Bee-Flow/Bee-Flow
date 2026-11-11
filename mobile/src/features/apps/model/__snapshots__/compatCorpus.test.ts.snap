@@ -12202,6 +12202,80 @@ exports[`compat corpus: what the phone plans for every stored app vocab-style-wh
 }
 `;
 
+exports[`compat corpus: what the phone plans for every stored app vocab-theme-scope 1`] = `
+{
+  "defaultScreen": "scr_thmscp01",
+  "navigable": [
+    "scr_thmscp01",
+    "scr_thmscp02",
+  ],
+  "screens": [
+    {
+      "id": "scr_thmscp01",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "id": "cmp_thmscp01",
+                "kind": "heading",
+                "level": 2,
+                "text": "Tokens and the app theme",
+              },
+              {
+                "id": "cmp_thmscp02",
+                "kind": "stat",
+                "label": "Open",
+                "value": "12",
+              },
+              {
+                "id": "cmp_thmscp04",
+                "kind": "text",
+                "muted": false,
+                "text": "A band in the second brand colour, compact.",
+              },
+              {
+                "id": "cmp_thmscp06",
+                "kind": "heading",
+                "level": 2,
+                "text": "A dark hero section",
+              },
+            ],
+            "screen": "scr_thmscp01",
+            "unsupported": [],
+          },
+          "roles": [
+            "(no role)",
+          ],
+        },
+      ],
+    },
+    {
+      "id": "scr_thmscp02",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "id": "cmp_thmscp07",
+                "kind": "heading",
+                "level": 2,
+                "text": "A screen with its own dark theme",
+              },
+            ],
+            "screen": "scr_thmscp02",
+            "unsupported": [],
+          },
+          "roles": [
+            "(no role)",
+          ],
+        },
+      ],
+    },
+  ],
+}
+`;
+
 exports[`compat corpus: what the phone plans for every stored app web-service-step 1`] = `
 {
   "defaultScreen": "scr_htp001",

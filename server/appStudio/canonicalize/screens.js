@@ -33,6 +33,12 @@ const { SCREEN_TRIGGER_CLEANERS } = require('./clientTriggers');
 const SECTION_OPTIONAL_KEYS = require('./sectionKeys.mts').SECTION_KEY_CLEANERS;
 
 /**
+ * The screen keys after the sections, in stored order: the client triggers, then screen.theme
+ * (schema 3, a partial theme of the screen, canonicalize/scopeTheme.mts).
+ */
+const SCREEN_OPTIONAL_CLEANERS = Object.freeze({ ...SCREEN_TRIGGER_CLEANERS, theme: require('./scopeTheme.mts').cleanScreenTheme });
+
+/**
  * @param {string} path
  * @param {(missingCode: string, path: string, arg2: string) => void} push
  */
@@ -129,8 +135,8 @@ function canonScreen(screen, path, ids, push) {
         out.sections.push(emitOptionalKeys({ id: sid, style, children }, section, SECTION_OPTIONAL_KEYS, sp, push));
     });
 
-    // v3 optional: screen.events / screen.timers after the sections, only when present.
-    return emitOptionalKeys(out, screen, SCREEN_TRIGGER_CLEANERS, path, push);
+    // v3 optional: screen.events / screen.timers after the sections, then screen.theme, only when present.
+    return emitOptionalKeys(out, screen, SCREEN_OPTIONAL_CLEANERS, path, push);
 }
 
 module.exports = { canonScreen, SECTION_OPTIONAL_KEYS };
