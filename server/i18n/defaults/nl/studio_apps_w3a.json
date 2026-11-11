@@ -1,0 +1,10 @@
+{
+  "translations": {
+    "studio_apps_w3a.import.assets_carried": "{count} geüploade bestanden (afbeeldingen, logo, lettertypen) zijn meegekomen.",
+    "studio_apps_w3a.import.assets_left": "{count} geüploade bestanden zijn niet meegekomen; upload ze opnieuw in de app.",
+    "studio_apps_w3a.import.triggers_off": "{count} triggers zijn uitgeschakeld meegekomen: ze starten zodra je de app publiceert.",
+    "studio_apps_w3a.import.unknown_roles": "Sommige kolomrechten noemen een rol die de app niet heeft; die rol ziet niets van die velden.",
+    "studio_apps_w3a.import.webhooks_new": "Een webhook-trigger krijgt bij het publiceren een nieuw adres en een nieuw geheim; de oude zijn niet meegekomen."
+  },
+  "sameAsEnglish": []
+}
