@@ -6,7 +6,11 @@ import { DataProvider, useDataState } from './DataContext';
 import type { DataState } from './DataContext';
 import { dataCacheKey, resolveBinding, resolveBindingFilters, resolveBindingParams, resolveBindingShape } from './resolveBinding';
 import type { BindingInput, ConnectorBinding, DataBinding as RecordsBinding } from './resolveBinding.types';
-import useAppDataSource from './useAppDataSource';
+import useAppDataSource, { MIN_REFRESH_MS } from './useAppDataSource';
+import { readsOwnPages } from './pagination';
+import { definitionReadsUi, useUiScope } from './uiState';
+import { sectionHasGate, sectionLoadsData } from './sectionModel';
+import type { SectionModel } from './sectionModel';
 
 /**
  * App Studio runtime — the live-data scope.
@@ -87,6 +91,11 @@ export interface BindingEntry {
     cacheKey: string;
     binding: DataBinding;
     live: LiveSetting | null;
+    /**
+     * Only paged lists read it, and they read their own pages (pagedSource.tsx),
+     * so the screen does not fetch it as well. Absent on every other binding.
+     */
+    pagedOnly?: true;
 }
 
 /** What the render prop gets beside the data. */
@@ -111,11 +120,14 @@ function resolveScreen(definition: ScopeDefinition | null | undefined, screenId:
  * navigation state); id/name come from the definition on both sides.
  */
 function useFetchScope(scope: FetchScope | null | undefined, definition: ScopeDefinition | null | undefined, screenId: string | null | undefined) {
+    // The `ui` root (uiState.ts), for a definition that reads it: a filter can follow a grid's selection.
+    const ui = useUiScope(definitionReadsUi(definition));
     return useMemo(() => {
         const screen = resolveScreen(definition, screenId);
-        if (!screen) return scope;
-        return { ...(scope || {}), screen: { ...(scope?.screen || {}), id: screen.id, name: screen.name } };
-    }, [scope, definition, screenId]);
+        const withUi = ui ? { ...(scope || {}), ui } : scope;
+        if (!screen) return withUi;
+        return { ...(withUi || {}), screen: { ...(scope?.screen || {}), id: screen.id, name: screen.name } };
+    }, [scope, definition, screenId, ui]);
 }
 
 /**
@@ -132,12 +144,19 @@ function useFetchScope(scope: FetchScope | null | undefined, definition: ScopeDe
  * two components are not competing, they are sharing, and the faster one is the
  * only one that would notice being served late.
  */
-export function collectDataBindings(definition: ScopeDefinition | null | undefined, screenId: string | null | undefined) {
+export function collectDataBindings(
+    definition: ScopeDefinition | null | undefined,
+    screenId: string | null | undefined,
+    // A section this answers false for is skipped: the renderer draws nothing of it.
+    loadsSection: ((section: SectionModel) => boolean) | null = null,
+) {
     const screen = resolveScreen(definition, screenId);
     if (!screen) return [];
 
     const out: BindingEntry[] = [];
     const byKey = new Map<string, BindingEntry>();
+    // The sources of paged lists (pagination.ts): found like any binding, marked pagedOnly.
+    const pagedSources = new Set<unknown>();
     const visit = (value: Visitable, liveSeconds: LiveSetting | null) => {
         if (!value || typeof value !== 'object') return;
         if (Array.isArray(value)) {
@@ -149,22 +168,57 @@ export function collectDataBindings(definition: ScopeDefinition | null | undefin
             if (!key) return;
             const found = byKey.get(key);
             if (!found) {
-                const entry = { cacheKey: key, binding: value as DataBinding, live: liveSeconds };
+                const entry: BindingEntry = { cacheKey: key, binding: value as DataBinding, live: liveSeconds };
+                if (pagedSources.has(value)) entry.pagedOnly = true;
                 byKey.set(key, entry);
                 out.push(entry);
-            } else if (liveSeconds && (!found.live || liveSeconds.seconds < found.live.seconds)) {
+                return;
+            }
+            if (!pagedSources.has(value)) delete found.pagedOnly;
+            if (liveSeconds && (!found.live || liveSeconds.seconds < found.live.seconds)) {
                 found.live = liveSeconds;
             }
             return; // a binding's own fields never hold nested data bindings we fetch
         }
+        if (readsOwnPages(value)) pagedSources.add((value.props as { source?: unknown } | undefined)?.source);
         // A node's own liveSeconds applies to every binding underneath it, and
         // a child that asks for its own keeps it.
         const own = Number(value?.props?.liveSeconds) || 0;
         const inherited = own ? { seconds: own, when: value.props?.liveWhile ?? null } : liveSeconds;
         for (const v of Object.values(value) as Visitable[]) visit(v, inherited);
     };
-    for (const section of screen.sections || []) visit(section, null);
+    for (const section of screen.sections || []) {
+        if (loadsSection && section && typeof section === 'object' && !Array.isArray(section) && !loadsSection(section as SectionModel)) continue;
+        visit(section, null);
+    }
     return out;
+}
+
+/**
+ * The section gate of the data layer for one viewer role: null (load every section, as before)
+ * when no role is given or no section of the screen carries a gate, so a screen without one
+ * keeps its memo inputs and its bindings exactly.
+ */
+function useSectionGate(definition: ScopeDefinition | null | undefined, screenId: string | null | undefined, scope: FetchScope | null | undefined, role: string | null | undefined) {
+    const gated = useMemo(() => {
+        if (role === undefined) return false;
+        const sections = resolveScreen(definition, screenId)?.sections || [];
+        return sections.some((s) => !!s && typeof s === 'object' && !Array.isArray(s) && sectionHasGate(s as SectionModel));
+    }, [definition, screenId, role]);
+    return useMemo(
+        () => (gated ? (section: SectionModel) => sectionLoadsData(section, scope || {}, role) : null),
+        [gated, scope, role],
+    );
+}
+
+/**
+ * A component's `liveSeconds` as a polling interval. The spec offers 2, 5, 10
+ * and 30, but the read budget (see MIN_REFRESH_MS) makes anything faster than
+ * the floor unusable, and the data hook ignores such an interval altogether:
+ * those values used to mean "never refresh". They poll at the floor instead.
+ */
+export function liveIntervalMs(seconds: number) {
+    return Math.max(seconds * 1000, MIN_REFRESH_MS);
 }
 
 /**
@@ -184,16 +238,17 @@ function BindingFetcher({ binding, sample, scope, refreshMs, live }: {
     const resolved = useMemo(
         () => (binding.kind === 'connector'
             ? resolveBindingParams(binding, scope)
-            : resolveBindingFilters(resolveBindingShape(binding, scope), scope)),
+            : resolveBindingParams(resolveBindingFilters(resolveBindingShape(binding, scope), scope), scope)),
         [binding, scope],
     );
     // A component's own interval beats the screen's, and `liveWhile` decides
     // whether it runs at all — re-evaluated on every render, so the polling
     // stops the moment the thing it was watching finishes.
     const ownMs = useMemo(() => {
-        if (!live || !live.seconds) return 0;
-        if (live.when == null) return live.seconds * 1000;
-        return resolveBinding(live.when, { scope }).value ? live.seconds * 1000 : 0;
+        // Only a positive interval polls: a stray negative value never did and still does not.
+        if (!live || !(live.seconds > 0)) return 0;
+        if (live.when != null && !resolveBinding(live.when, { scope }).value) return 0;
+        return liveIntervalMs(live.seconds);
     }, [live, scope]);
     useAppDataSource(resolved, { sample, refreshMs: ownMs || refreshMs });
     return null;
@@ -214,19 +269,21 @@ function BindingFetcher({ binding, sample, scope, refreshMs, live }: {
  */
 const MIN_SPACING_MS = 2_500;
 
-function BindingLoaders({ appId, definition, screenId, sample, scope, refreshMs }: {
+function BindingLoaders({ appId, definition, screenId, sample, scope, refreshMs, sectionRole }: {
     appId: string | null | undefined;
     definition: ScopeDefinition | null | undefined;
     screenId: string | null | undefined;
     sample: boolean;
     scope: FetchScope | null | undefined;
     refreshMs: number;
+    sectionRole?: string | null;
 }) {
-    const bindings = useMemo(
-        () => collectDataBindings(definition, screenId),
-        [definition, screenId],
-    );
     const fetchScope = useFetchScope(scope, definition, screenId);
+    const loadsSection = useSectionGate(definition, screenId, fetchScope, sectionRole);
+    const bindings = useMemo(
+        () => collectDataBindings(definition, screenId, loadsSection).filter((b) => !b.pagedOnly),
+        [definition, screenId, loadsSection],
+    );
     const requestsPerRound = useSyncExternalStore(
         subscribeBatchAvailability,
         () => requestsForBindings(appId, bindings.length),
@@ -288,7 +345,8 @@ function DataConsumer({ appId, children }: {
             predicate: (q) => {
                 const k = q.queryKey[3];
                 if (typeof k !== 'string') return false;
-                if (datasetId) return k === `dataset:${datasetId}`;
+                // A dataset read with params keys as 'dataset:<id>:<params>'.
+                if (datasetId) return k === `dataset:${datasetId}` || k.startsWith(`dataset:${datasetId}:`);
                 return k.startsWith(`record:${tableId}:`)
                     || k.startsWith(`records:${tableId}:`)
                     || k.startsWith(`aggregate:${tableId}:`);
@@ -299,7 +357,7 @@ function DataConsumer({ appId, children }: {
     return typeof children === 'function' ? children(dataState, controls) : children;
 }
 
-export default function AppDataScope({ appId, definition, screenId, sample = false, draft = false, scope, refreshMs = 0, children }: {
+export default function AppDataScope({ appId, definition, screenId, sample = false, draft = false, scope, refreshMs = 0, sectionRole, children }: {
     appId: string | null | undefined;
     definition: ScopeDefinition | null | undefined;
     screenId: string | null | undefined;
@@ -307,11 +365,17 @@ export default function AppDataScope({ appId, definition, screenId, sample = fal
     draft?: boolean;
     scope?: FetchScope | null;
     refreshMs?: number;
+    /**
+     * The viewer's role as the renderer gates with it (previewRole). Given, a section hidden
+     * from that role, or by a condition on the roots this scope holds, loads no data
+     * (sectionModel.sectionLoadsData). Left out: every section loads, as before.
+     */
+    sectionRole?: string | null;
     children?: ReactNode | ((dataState: DataState, controls: DataScopeControls) => ReactNode);
 }) {
     return (
         <DataProvider appId={appId} draft={draft}>
-            <BindingLoaders appId={appId} definition={definition} screenId={screenId} sample={sample} scope={scope} refreshMs={refreshMs} />
+            <BindingLoaders appId={appId} definition={definition} screenId={screenId} sample={sample} scope={scope} refreshMs={refreshMs} sectionRole={sectionRole} />
             <DataConsumer appId={appId}>{children}</DataConsumer>
         </DataProvider>
     );

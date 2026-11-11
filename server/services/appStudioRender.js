@@ -28,11 +28,20 @@ const stableJson = require('../utils/stableJson');
 
 const { collectDataBindings } = require('../appStudio/collectDataBindings');
 const queryCompiler = require('../core/dataEngine/queryCompiler');
+const { recordListDescriptor, aggregateDescriptor } = require('../core/dataEngine/readDescriptor.mts');
+const { queryWithComputed } = require('../core/dataEngine/computedRead.mts');
 const rlsGateway = require('../appStudio/rlsGateway');
+const { relatedForAggregate } = require('../core/dataEngine/aggregateRelated.mts');
+const { relationRead, finishRecords } = require('../core/dataEngine/relationRead.mts');
 const { seedVariableDefaults } = require('../appStudio/componentSpecs');
 const { ROLE_PROBE_VIEWER_ID } = require('../appStudio/appDryRun');
-const { compile, tryEvaluate, resolveFilterList, FILTER_SKIP } = require('../shared/expr/index.mjs');
+const { RENDER_PLAN, planShape, planFilters, planParams } = require('../shared/appDefinition/bindingPlan.mjs');
 const { fallback, bestEffort } = require('../utils/bestEffort');
+// The view (chrome, state, appearance, hostTheme, nodeId), the in-process fonts and assets,
+// and the still capture live next to this file: this one is at its line budget.
+const renderView = require('./appStudioRenderView.mts');
+const { makeFileFulfil } = require('./appStudioRenderFiles.mts');
+const { STILL_CSS, shoot, waitForFonts } = require('./appStudioRenderShot.mts');
 
 const RUNTIME_DIR = path.join(__dirname, '..', 'vendor', 'app-runtime');
 const BUNDLE_JS = 'app-runtime.mjs';
@@ -68,15 +77,32 @@ function stableStringify(value) {
     return stableJson.stableStringify(value);
 }
 
+/** The client's readExtras: `match` and `search` join the key only when the binding sets them. */
+function readExtras(binding) {
+    return {
+        ...(binding.match ? { match: binding.match } : {}),
+        ...(binding.search && binding.kind !== 'aggregate' ? { search: binding.search } : {}),
+    };
+}
+
 /** Port of the client dataCacheKey for the server-collected binding kinds. */
 function dataCacheKey(binding) {
     if (!binding || typeof binding !== 'object') return null;
-    if (binding.kind === 'dataset') return `dataset:${binding.datasetId ?? ''}`;
+    if (binding.kind === 'dataset') {
+        // Resolved params join the key only when there are any (the client's rule).
+        const p = binding.params;
+        const keyed = !!p && typeof p === 'object' && !Array.isArray(p) && Object.keys(p).length > 0;
+        return `dataset:${binding.datasetId ?? ''}${keyed ? `:${stableStringify(p)}` : ''}`;
+    }
     if (binding.kind === 'record' || binding.kind === 'records') {
         const shape = stableStringify({
             filter: binding.filter ?? null,
             sort: binding.sort ?? null,
             limit: binding.limit ?? null,
+            ...readExtras(binding),
+            ...(binding.orderBy === undefined || binding.orderBy === null ? {} : { orderBy: binding.orderBy }),
+            ...(binding.expand === undefined || binding.expand === null ? {} : { expand: binding.expand }),
+            ...(binding.fields === undefined || binding.fields === null ? {} : { fields: binding.fields }),
         });
         return `${binding.kind}:${binding.tableId ?? ''}:${shape}`;
     }
@@ -87,72 +113,46 @@ function dataCacheKey(binding) {
             aggregates: binding.aggregates ?? null,
             sort: binding.sort ?? null,
             limit: binding.limit ?? null,
+            ...readExtras(binding),
+            ...(binding.orderBy === undefined || binding.orderBy === null ? {} : { orderBy: binding.orderBy }),
+            ...(binding.groupFilter === undefined || binding.groupFilter === null ? {} : { groupFilter: binding.groupFilter }),
         });
         return `aggregate:${binding.tableId ?? ''}:${shape}`;
     }
     return null;
 }
 
-// The scope roots our screen-level synthetic scope can populate identically to
-// the mounted runtime's scope. `item`/`index` (repeater rows), a live `form`,
-// action results — those resolve per-instance at render time, so a binding
-// referencing them is skipped (its entry key can't be precomputed). `now` is
-// also excluded: it drifts by milliseconds between our key and the renderer's,
-// which would split the key anyway (the client docs tell authors to avoid it).
-const RESOLVABLE_ROOTS = new Set(['currentUser', 'vars', 'forms', 'screen', 'today']);
-const AGGREGATE_SHAPE_FIELDS = ['groupBy', 'aggregates', 'sort', 'limit'];
+// The fetch-or-skip decision is the shared binding planner's, with the render's
+// own option set (RENDER_PLAN: only the scope roots our screen-level synthetic
+// scope fills identically to the mounted runtime's; `item`/`index`, a live
+// `form`, action results and `now` are not among them). Its omission/required
+// semantics are the client's EXACTLY, because they shape the cache key.
 
-function formulaRefsResolvable(expr) {
-    try { return compile(String(expr || '')).refs.every((r) => RESOLVABLE_ROOTS.has(r)); }
-    catch { return false; }
-}
-
-function evalFormula(v, scope) {
-    const expr = v.expr;
-    if (typeof expr !== 'string' || !expr.trim()) return undefined;
-    return tryEvaluate(expr, scope || {}).value;
-}
-
-/** Port of the client resolveBindingShape (aggregate descriptor formulas). */
+/**
+ * The client resolveBindingShape (aggregate descriptor formulas) under the
+ * render's roots. Returns { binding } or { skipped:true }.
+ */
 function resolveShape(binding, scope) {
-    if (binding.kind !== 'aggregate') return { binding };
-    let changed = false;
-    const out = { ...binding };
-    for (const field of AGGREGATE_SHAPE_FIELDS) {
-        const raw = binding[field];
-        if (!raw || typeof raw !== 'object' || raw.kind !== 'formula') continue;
-        if (!formulaRefsResolvable(raw.expr)) return { skipped: true };
-        changed = true;
-        const value = evalFormula(raw, scope);
-        if (value === undefined || value === null) delete out[field];
-        else out[field] = value;
-    }
-    return { binding: changed ? out : binding };
+    const step = planShape(binding, scope, RENDER_PLAN);
+    return step.plan === 'fetch' ? { binding: step.binding } : { skipped: true };
+}
+
+/** The client resolveBindingParams (a dataset binding's param values) under the render's roots. */
+function resolveParams(binding, scope) {
+    const step = planParams(binding, scope, RENDER_PLAN);
+    return step.plan === 'fetch' ? { binding: step.binding } : { skipped: true };
 }
 
 /**
- * Port of the client resolveBindingFilters, plus the dynamic-skip guard: the
- * omission/required semantics must match EXACTLY (they shape the cache key).
- * Returns { binding } or { skipped:true } (no query, no entry — the renderer
- * lands on the same "no key / different key" outcome for that component).
+ * The client resolveBindingFilters under the render's roots. Returns
+ * { binding } or { skipped:true } (no query, no entry — the renderer lands on
+ * the same "no key / different key" outcome for that component). Client:
+ * required + unresolved → the whole binding resolves to null (no query at
+ * all); optional → the entry is omitted.
  */
 function resolveFilters(binding, scope) {
-    if (!Array.isArray(binding.filter) || binding.filter.length === 0) return { binding };
-    const res = resolveFilterList(binding.filter, (raw) => {
-        const v = /** @type {{ kind?: unknown, expr?: unknown } | null} */ (raw);
-        const isFormula = !!v && typeof v === 'object' && v.kind === 'formula';
-        if (isFormula && !formulaRefsResolvable(v.expr)) return FILTER_SKIP;
-        return isFormula ? evalFormula(v, scope) : raw;
-    });
-    // Client: required + unresolved → the whole binding resolves to null (no
-    // query at all); optional → the entry is omitted.
-    if (res.status !== 'ok') return { skipped: true };
-    if (!res.changed) return { binding };
-    if (res.filters.length === 0) {
-        const { filter: _dropped, ...rest } = binding;
-        return { binding: rest };
-    }
-    return { binding: { ...binding, filter: res.filters } };
+    const step = planFilters(binding, scope, RENDER_PLAN);
+    return step.plan === 'fetch' ? { binding: step.binding } : { skipped: true };
 }
 
 // ── Data pass — real rows through the sanctioned read paths ─────────
@@ -176,13 +176,15 @@ function findModelTable(model, ref) {
  * currentUser is the IDENTICAL object we pass to mount(), so a filter formula
  * like `currentUser.id` resolves to the same value on both sides of the key.
  */
-function buildRenderScope(currentUser, variables, screen) {
+function buildRenderScope(currentUser, variables, screen, view = null) {
     const now = Date.now();
+    // A view's state lands on the seeded defaults exactly as the page lays it (mergeRecord in
+    // agent-hub appRuntimeScreenshot.tsx), so both sides key a filtered binding the same way.
     return {
         currentUser,
-        vars: seedVariableDefaults(variables),
-        forms: {},
-        screen: { params: {}, id: screen.id, name: screen.name },
+        vars: { ...seedVariableDefaults(variables), ...((view && view.vars) || {}) },
+        forms: (view && view.forms) || {},
+        screen: { params: (view && view.screenParams) || {}, id: screen.id, name: screen.name },
         now,
         today: new Date(now).toISOString().slice(0, 10),
     };
@@ -212,24 +214,22 @@ async function runTableEntry(binding, { model, app, roleArg, viewer, deps }) {
         const accessFilter = rlsGateway.compileAccessFilter(table, roleArg, viewer, 'read');
         let rows;
         if (binding.kind === 'aggregate') {
-            const { sql, params } = queryCompiler.compileAggregate(table, {
-                filters: binding.filter,
-                groupBy: binding.groupBy,
-                aggregates: binding.aggregates,
-                sort: binding.sort,
-                limit: binding.limit,
-            }, accessFilter);
+            const { sql, params } = queryCompiler.compileAggregate(table,
+                aggregateDescriptor(binding, { filters: binding.filter, limit: binding.limit }), accessFilter,
+                relatedForAggregate(model, table, binding.groupBy, { role: roleArg, viewer }, binding.filter));
             const out = await deps.dbQuery(app.userId, app.id, sql, params);
             rows = Array.isArray(out && out.rows) ? out.rows : [];
         } else {
-            const { sql, params, limit } = queryCompiler.compileRecordList(table, {
+            const compiled = queryCompiler.compileRecordList(table, recordListDescriptor(binding, {
                 filters: binding.filter,
-                sort: binding.sort,
                 limit: binding.kind === 'record' ? 1 : binding.limit,
-            }, accessFilter);
-            const out = await deps.dbQuery(app.userId, app.id, sql, params);
+                readTimeComputed: true,
+            }), accessFilter, relationRead(model, table, { filters: binding.filter, expand: binding.expand, fields: binding.fields }, { role: roleArg, viewer }));
+            const { result: out } = await queryWithComputed(
+                (/** @type {string} */ sql, /** @type {unknown[]} */ params) => deps.dbQuery(app.userId, app.id, sql, params), compiled);
             // The compiler fetches limit+1 as a pagination probe — drop it.
-            rows = (Array.isArray(out && out.rows) ? out.rows : []).slice(0, limit);
+            rows = await finishRecords(compiled, (Array.isArray(out && out.rows) ? out.rows : []).slice(0, compiled.limit),
+                (sql, params) => deps.dbQuery(app.userId, app.id, sql, params));
         }
         const result = binding.kind === 'record' ? (rows[0] ?? null) : rows;
         return entryBase({ ...base, result });
@@ -248,7 +248,7 @@ async function runDatasetEntry(binding, { model, app, viewer, deps }) {
         const ds = await deps.getDataset(binding.datasetId, app.id, app.userId);
         // Unknown dataset → the live endpoint 404s → the client stores null.
         if (!ds) return entryBase({ ...base, result: null });
-        const out = await deps.runDataset(app, model, ds, viewer, { refresh: false });
+        const out = await deps.runDataset(app, model, ds, viewer, binding.params ? { refresh: false, params: binding.params } : { refresh: false });
         return entryBase({ ...base, result: Array.isArray(out && out.rows) ? out.rows : [] });
     } catch (e) {
         return entryBase({ ...base, status: 'error', error: e && e.message ? e.message : String(e) });
@@ -260,17 +260,16 @@ async function runDatasetEntry(binding, { model, app, viewer, deps }) {
  * runtime DataContext will look them up. Per-binding failures become 'error'
  * entries (what the live screen would show), never a throw.
  */
-async function buildDataState({ definition, model, app, screen, roleArg, viewer, currentUser, deps }) {
+async function buildDataState({ definition, model, app, screen, roleArg, viewer, currentUser, deps, view = null }) {
     const dataState = {};
     if (!app || !app.id) return dataState; // nothing to read against — bindings render as loading
-    const scope = buildRenderScope(currentUser, definition.variables, screen);
+    const scope = buildRenderScope(currentUser, definition.variables, screen, view);
     for (const { binding } of collectDataBindings(definition, screen.id)) {
-        let resolved = /** @type {{ binding?: any, skipped?: boolean }} */ ({ binding });
-        if (binding.kind !== 'dataset') {
-            resolved = resolveShape(binding, scope);
-            if (!resolved.skipped) resolved = resolveFilters(resolved.binding, scope);
-            if (resolved.skipped) continue;
-        }
+        // The client's order: shape, filters, params (each a no-op for a kind it does not touch).
+        let resolved = /** @type {{ binding?: any, skipped?: boolean }} */ (resolveShape(binding, scope));
+        if (!resolved.skipped) resolved = resolveFilters(resolved.binding, scope);
+        if (!resolved.skipped) resolved = resolveParams(resolved.binding, scope);
+        if (resolved.skipped) continue;
         const key = dataCacheKey(resolved.binding);
         if (!key || Object.prototype.hasOwnProperty.call(dataState, key)) continue;
         dataState[key] = binding.kind === 'dataset'
@@ -288,15 +287,17 @@ async function buildDataState({ definition, model, app, screen, roleArg, viewer,
  * script imports mount() from the routed bundle URL and flags completion on
  * window so the capture loop knows when to screenshot.
  */
-function composeRenderDocument(payload) {
+function composeRenderDocument(payload, { hostTheme = null } = {}) {
     const json = JSON.stringify(payload).replace(/</g, '\\u003c');
+    // hostTheme is one of renderView.HOST_THEMES (checked before it gets here); none = the page default.
+    const html = hostTheme && renderView.HOST_THEMES.includes(hostTheme) ? `<html data-theme="${hostTheme}">` : '<html>';
     return `<!DOCTYPE html>
-<html>
+${html}
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="stylesheet" href="/${BUNDLE_CSS}">
-<style>html,body{margin:0;padding:0;background:#fff}#root{min-height:100vh}</style>
+<style>html,body{margin:0;padding:0;background:#fff}#root{min-height:100vh}${STILL_CSS}</style>
 </head>
 <body>
 <div id="root"></div>
@@ -321,7 +322,7 @@ try {
  * deliberately has no route to this server, so EVERY url under the fake origin
  * is answered in-process; any other request goes through the host screen.
  */
-async function captureDocument({ doc, assets, viewport }) {
+async function captureDocument({ doc, assets, viewport, fulfil = null, target = null }) {
     const browserProvider = require('./browserProvider');
     const consoleErrors = [];
     const pageErrors = [];
@@ -353,7 +354,10 @@ async function captureDocument({ doc, assets, viewport }) {
                 if (Object.prototype.hasOwnProperty.call(assets, rel)) {
                     return route.fulfill({ status: 200, contentType: assets[rel].contentType, body: assets[rel].body });
                 }
-                return route.fulfill({ status: 204, body: '' });
+                // Fonts and the app's own assets (appStudioRenderFiles.mts); anything else is empty.
+                return Promise.resolve(fulfil ? fulfil(rel) : null)
+                    .catch((e) => fallback('services/appStudioRender:captureDocument#fulfil', e, null))
+                    .then((file) => route.fulfill(file ? { status: 200, contentType: file.contentType, body: file.body } : { status: 204, body: '' }));
             });
             await page.goto(PREVIEW_ORIGIN, { waitUntil: 'load', timeout: NAV_TIMEOUT_MS });
 
@@ -364,15 +368,11 @@ async function captureDocument({ doc, assets, viewport }) {
                 { timeout: MOUNT_WAIT_MS, polling: 100 },
             ).catch((e) => bestEffort('services/appStudioRender:captureDocument#2', e));
             await page.waitForTimeout(SETTLE_MS);
+            await waitForFonts(page);
 
             const mountError = await page.evaluate(() => window.__bfMountError || null).catch((e) => fallback('services/appStudioRender:captureDocument#3', e, null));
-            let png = null;
-            try {
-                const root = await page.$('#root');
-                if (root) png = await root.screenshot({ type: 'png' });
-            } catch (err) { fallback('services/appStudioRender:captureDocument#4', err); /* fall through to viewport shot */ }
-            if (!png) png = await page.screenshot({ type: 'png' });
-            return { png, mountError, consoleErrors, pageErrors };
+            const { png, note } = await shoot(page, target);
+            return { png, mountError, consoleErrors, pageErrors, cropNote: note };
         },
     );
 }
@@ -461,14 +461,17 @@ function unavailable(reason, code) {
  * `input`: `app` is the studio_apps row (data pass skipped without it), `definition` the canonical app
  * definition, `model` the app's data model or null (its `roles` read defensively), `screenId` the screen to
  * render (default: home screen), `asRole` the role to render + read data as (must exist in model.roles),
- * `deps` the injectable edges (tests): readBundle, capture, dbQuery, runDataset, getDataset, hardTimeoutMs.
+ * `deps` the injectable edges (tests): readBundle, capture, dbQuery, runDataset, getDataset, hardTimeoutMs,
+ * files (the fonts/asset fulfilment, appStudioRenderFiles.mts). `view` is app_screenshot's optional
+ * { chrome, state, appearance, hostTheme, nodeId } (appStudioRenderView.mts); absent = the plain screen.
  *
  * @param {{ app?: { id: string, userId: string } | null, definition?: AppDefinition | null,
  *   model?: (Omit<DataModel, 'roles'> & { roles?: unknown }) | null, screenId?: string | null, asRole?: string | null,
  *   viewport?: 'desktop' | 'tablet' | 'mobile' | string | { width: number, height: number },
- *   deps?: Partial<ReturnType<typeof defaultDeps>> | null }} [input]
+ *   deps?: Partial<ReturnType<typeof defaultDeps>> & { files?: Parameters<typeof makeFileFulfil>[1] } | null,
+ *   view?: Record<string, unknown> | null }} [input]
  */
-async function renderAppScreenshot({ app = null, definition = null, model = null, screenId = null, asRole = null, viewport = 'desktop', deps = null } = {}) {
+async function renderAppScreenshot({ app = null, definition = null, model = null, screenId = null, asRole = null, viewport = 'desktop', deps = null, view: rawView = null } = {}) {
     try {
         const d = { ...defaultDeps(), ...(deps || {}) };
 
@@ -482,6 +485,10 @@ async function renderAppScreenshot({ app = null, definition = null, model = null
         }
         const screen = resolveScreen(definition, screenId);
         if (!screen) return unavailable('the app definition has no screens to render');
+
+        const viewed = rawView ? renderView.resolveRenderView(rawView, definition, screen) : null;
+        if (viewed && !viewed.ok) return unavailable(viewed.error, 'bad_view');
+        const view = viewed ? viewed.value : null;
 
         const roles = (model && Array.isArray(model.roles)) ? model.roles : [];
         const role = asRole ? roles.find((r) => r && r.key === asRole) : null;
@@ -504,7 +511,7 @@ async function renderAppScreenshot({ app = null, definition = null, model = null
         const viewer = { id: currentUser.id, role: roleArg };
 
         const dataState = await buildDataState({
-            definition, model, app, screen, roleArg, viewer, currentUser, deps: d,
+            definition, model, app, screen, roleArg, viewer, currentUser, deps: d, view,
         });
 
         const doc = composeRenderDocument({
@@ -514,20 +521,25 @@ async function renderAppScreenshot({ app = null, definition = null, model = null
             // part-drawn, with its line stopping two-thirds of the way across.
             // A reviewer then reads a complete series as truncated data and
             // "fixes" a binding that was never broken. Forcing motion off makes
-            // the picture agree with the page.
-            definition: { ...definition, design: { ...(definition.design || {}), motion: 'none' } },
+            // the picture agree with the page (viewDefinition; it also applies
+            // the view's appearance).
+            definition: renderView.viewDefinition(definition, view),
             screenId: screen.id,
             dataState,
             currentUser,
             previewRole: asRole || null,
-        });
+            // Screenshot mode of the headless entry: query client, assets, shell, start state.
+            screenshot: view ? renderView.screenshotPayload(view) : {},
+        }, { hostTheme: view ? view.hostTheme : null });
         const assets = {
             [BUNDLE_JS]: { contentType: 'text/javascript; charset=utf-8', body: bundle.js },
             [BUNDLE_CSS]: { contentType: 'text/css; charset=utf-8', body: bundle.css },
         };
         const vp = resolveViewport(viewport);
 
-        const shot = await withHardTimeout(d.capture({ doc, assets, viewport: vp }), d.hardTimeoutMs);
+        const target = view && (view.nodeId || view.openModal) ? { nodeId: view.nodeId, fullPage: !!view.openModal } : null;
+        const fulfil = makeFileFulfil(app && app.id ? app : null, (deps && deps.files) || {});
+        const shot = await withHardTimeout(d.capture({ doc, assets, viewport: vp, fulfil, target }), d.hardTimeoutMs);
         if (!shot || !shot.png) {
             return unavailable(shot && shot.mountError
                 ? `the screen failed to mount: ${shot.mountError}`
@@ -545,6 +557,7 @@ async function renderAppScreenshot({ app = null, definition = null, model = null
             mountError: shot.mountError || null,
             consoleErrors: shot.consoleErrors || [],
             pageErrors: shot.pageErrors || [],
+            ...(shot.cropNote ? { cropNote: shot.cropNote } : {}),
         };
     } catch (e) {
         const msg = e && e.message ? e.message : String(e);
@@ -563,6 +576,7 @@ module.exports = {
         stableStringify,
         resolveFilters,
         resolveShape,
+        resolveParams,
         buildRenderScope,
         resolveScreen,
     },

@@ -113,7 +113,7 @@ export function parseBlocks(text: unknown): MarkdownBlock[] {
  * navigator.clipboard is absent on http origins and in some embeddings, so the
  * button hides itself rather than failing on click.
  */
-function CodeBlock({ code }: { code: string }) {
+function CodeBlock({ code, partClasses = false }: { code: string; partClasses?: boolean }) {
     const { t } = useTranslation();
     const [copied, setCopied] = useState(false);
     const canCopy = typeof navigator !== 'undefined' && !!navigator.clipboard?.writeText;
@@ -134,7 +134,7 @@ function CodeBlock({ code }: { code: string }) {
     };
 
     return (
-        <div className="app-code-block relative group">
+        <div className={`app-code-block relative group${partClasses ? ' bfa-markdown__code' : ''}`}>
             <pre
                 className="text-xs p-3 overflow-x-auto border [background:var(--bg-tertiary)] [border-color:var(--border-default)] [border-radius:var(--app-radius)] [color:var(--text-primary)]!"
             >
@@ -160,29 +160,32 @@ function CodeBlock({ code }: { code: string }) {
     );
 }
 
-function Block({ block }: { block: MarkdownBlock }) {
+/** The `bfa-markdown__<part>` token, only where the markdown COMPONENT draws the blocks (the AI chat shares them). */
+const part = (on: boolean, name: string) => (on ? ` bfa-markdown__${name}` : '');
+
+function Block({ block, partClasses = false }: { block: MarkdownBlock; partClasses?: boolean }) {
     switch (block.kind) {
         case 'heading': {
             const Tag = `h${block.level}` as const;
-            return <Tag className={HEADING_CLS[block.level]}>{renderInlineMarkdown(block.text)}</Tag>;
+            return <Tag className={`${HEADING_CLS[block.level]}${part(partClasses, 'heading')}`}>{renderInlineMarkdown(block.text)}</Tag>;
         }
         case 'ul':
             return (
-                <ul className="list-disc pl-5 flex flex-col gap-1">
-                    {block.items.map((item: string, i: number) => <li key={i}>{renderInlineMarkdown(item)}</li>)}
+                <ul className={`list-disc pl-5 flex flex-col gap-1${part(partClasses, 'list')}`}>
+                    {block.items.map((item: string, i: number) => <li key={i} className={partClasses ? 'bfa-markdown__item' : undefined}>{renderInlineMarkdown(item)}</li>)}
                 </ul>
             );
         case 'ol':
             return (
-                <ol className="list-decimal pl-5 flex flex-col gap-1">
-                    {block.items.map((item: string, i: number) => <li key={i}>{renderInlineMarkdown(item)}</li>)}
+                <ol className={`list-decimal pl-5 flex flex-col gap-1${part(partClasses, 'list')}`}>
+                    {block.items.map((item: string, i: number) => <li key={i} className={partClasses ? 'bfa-markdown__item' : undefined}>{renderInlineMarkdown(item)}</li>)}
                 </ol>
             );
         case 'code':
-            return <CodeBlock code={block.code} />;
+            return <CodeBlock code={block.code} partClasses={partClasses} />;
         case 'p':
         default:
-            return <p>{renderInlineMarkdown(block.text)}</p>;
+            return <p className={partClasses ? 'bfa-markdown__paragraph' : undefined}>{renderInlineMarkdown(block.text)}</p>;
     }
 }
 
@@ -191,9 +194,9 @@ function Block({ block }: { block: MarkdownBlock }) {
  * AI chat component so model output renders through the same escaped, no-raw-HTML
  * subset the markdown component uses.
  */
-export function MarkdownBlocks({ text }: { text: unknown }) {
+export function MarkdownBlocks({ text, partClasses = false }: { text: unknown; partClasses?: boolean }) {
     const blocks = parseBlocks(text);
-    return <>{blocks.map((block: MarkdownBlock, i: number) => <Block key={i} block={block} />)}</>;
+    return <>{blocks.map((block: MarkdownBlock, i: number) => <Block key={i} block={block} partClasses={partClasses} />)}</>;
 }
 
 export default function AppMarkdown({ node }: NodeProps<{ content?: string; contentFrom?: BindingInput }>) {
@@ -205,8 +208,8 @@ export default function AppMarkdown({ node }: NodeProps<{ content?: string; cont
     const { value: bound } = resolveBinding(node.props?.contentFrom, { actionState, dataState, scope });
     const text = (typeof bound === 'string' && bound.trim()) ? bound : content;
     return (
-        <div className="flex flex-col gap-2 text-sm" data-app-markdown="true">
-            <MarkdownBlocks text={text} />
+        <div className="flex flex-col gap-2 text-sm bfa-markdown__root" data-app-markdown="true">
+            <MarkdownBlocks text={text} partClasses />
         </div>
     );
 }

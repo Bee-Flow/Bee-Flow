@@ -51,8 +51,15 @@ const {
 } = require('./shared');
 // Best-effort bookkeeping after a committed write (bookkeeping.mts).
 const { bumpVersion, bumpCount, bumpDatatable } = require('./bookkeeping.mts');
+const { applyFieldRules, applyFieldRulesToRows } = require('../../core/dataEngine/fieldRules.mts');
 
 // ── Record writes ───────────────────────────────────────────────────
+
+/** Field rules before either storage (untouched without them); throws FieldValidationError (422). @template V @param {unknown} table @param {V} values @param {unknown} viewer @param {unknown} recordId @returns {V} */
+function withFieldRules(table, values, viewer, recordId) {
+    const op = recordId === undefined || recordId === null ? 'create' : 'update';
+    return applyFieldRules(table, values, { op, viewerId: viewer && typeof viewer === 'object' ? /** @type {{ id?: unknown }} */ (viewer).id : undefined });
+}
 
 /**
  * THE record-write choke point. Every server-side create/update of an app
@@ -86,6 +93,7 @@ const { bumpVersion, bumpCount, bumpDatatable } = require('./bookkeeping.mts');
  * @param {{ viewer?: any, recordId?: string, expectedUpdatedAt?: any }} [opts]
  */
 async function writeRecord(app, model, table, values, { viewer, recordId, expectedUpdatedAt = null } = {}) {
+    values = withFieldRules(table, values, viewer, recordId);
     if (datatableSource.isDatatableBacked(table)) {
         return writeDatatableRecord(app, table, values, { viewer, recordId, expectedUpdatedAt });
     }
@@ -136,6 +144,7 @@ async function writeRecord(app, model, table, values, { viewer, recordId, expect
  * @param {{ viewer?: any }} [opts]
  */
 async function writeRecordBatch(app, model, table, rows, { viewer } = {}) {
+    rows = applyFieldRulesToRows(table, rows, { op: 'create', viewerId: viewer && typeof viewer === 'object' ? viewer.id : undefined });
     if (datatableSource.isDatatableBacked(table)) {
         // The permission is ALSO asked for an empty batch, exactly like
         // the own-storage branch below: "you were not allowed to do this" and "there was
@@ -482,7 +491,7 @@ async function createDatatableRecord(app, table, step, ctx) {
     } catch (e) { const r = sourceRefusal(e); if (r) return r; throw e; }
 
     const scope = buildServerScope(ctx);
-    const values = resolveValues(step.values, ctx, scope);
+    const values = withFieldRules(table, resolveValues(step.values, ctx, scope), writeViewer(ctx), null);
     let id;
     try {
         [id] = await datatableInsert(bound, [values]);
@@ -500,7 +509,7 @@ async function updateDatatableRecord(app, table, step, ctx) {
         bound = await datatableSource.resolveDatatableWrite(sourceCtx(app, ctx), table, 'update');
     } catch (e) { const r = sourceRefusal(e); if (r) return r; throw e; }
 
-    const values = resolveValues(step.values, ctx, scope);
+    const values = withFieldRules(table, resolveValues(step.values, ctx, scope), writeViewer(ctx), recordId);
     // Optioneel compare-and-set, identiek aan de eigen-opslag-tak.
     const expectedRaw = step.expectedUpdatedAt !== undefined
         ? resolveBinding(step.expectedUpdatedAt, ctx, scope)

@@ -12,6 +12,8 @@ const { HARD_DEPTH_CAP, isObject, deepCopy, truncate, isFormulaObj } = require('
 const { cleanFormula } = require('./bindings');
 const { cleanStyle } = require('./style');
 const { cleanProps } = require('./props');
+const { canonActionSlot } = require('./clientTriggers');
+const { isCssClassName } = require('../appCss.mts');
 
 // ---------------------------------------------------------------------------
 // v2 node logic — visibility/enablement flags (boolean | formula), computed
@@ -128,7 +130,7 @@ function canonNode(node, path, depth, ids, push) {
 
     if (spec) {
         out.props = cleanProps(node, spec, id, path, push);
-        out.style = cleanStyle(node.style, expandStyleKnobs(spec.styleKnobs), spec.defaultStyle, `${path}.style`, push);
+        out.style = cleanStyle(node.style, expandStyleKnobs(spec.styleKnobs, undefined, node.type), spec.defaultStyle, `${path}.style`, push);
     } else {
         // Unknown type — validate.js flags it with a closest-match hint; keep
         // the payload intact (minus aliasing) so nothing the user wrote is lost.
@@ -150,10 +152,17 @@ function canonNode(node, path, depth, ids, push) {
     // v2 optional logic fields (only emitted when the input carries them).
     attachNodeLogic(out, node, path, push);
 
+    // The author's class name for the app's stylesheet: written only when given and valid.
+    if (node.cssClass !== undefined && node.cssClass !== null && node.cssClass !== '') {
+        if (isCssClassName(node.cssClass)) out.cssClass = node.cssClass;
+        else push('node.css_class_invalid', `${path}.cssClass`, `cssClass must be a lower-case letter followed by lower-case letters, digits or dashes (at most ${LIMITS.MAX_CSS_CLASS_LEN}) — dropped.`);
+    }
+
     for (const ev of EVENT_NAMES) {
         if (node[ev] === undefined || node[ev] === null) continue;
-        if (typeof node[ev] === 'string' && node[ev]) out[ev] = node[ev];
-        else push('event.invalid', `${path}.${ev}`, `${ev} must be an action id string — dropped.`);
+        // An action id, or since schema 3 a list of them (canonicalize/clientTriggers.js).
+        const slot = canonActionSlot(node[ev], `${path}.${ev}`, push, ev);
+        if (slot !== undefined) out[ev] = slot;
     }
 
     const isContainer = !!(spec && spec.container);
@@ -177,6 +186,10 @@ function canonNode(node, path, depth, ids, push) {
                 out.children.push(...canonNode(child, `${path}.children[${i}]`, depth + 1, ids, push));
             });
         }
+        // A slot container (spec.slotContainer) holds children only when the author gave it
+        // some: its `children` key is written when non-empty and left out otherwise, so a
+        // type that becomes one keeps the bytes of every node stored before.
+        if (spec.slotContainer && out.children.length === 0) delete out.children;
     } else if (rawChildren !== undefined && rawChildren !== null) {
         // children on a non-container: hoist salvageable component nodes as
         // following siblings, drop the rest.

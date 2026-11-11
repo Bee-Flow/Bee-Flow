@@ -15,6 +15,7 @@ import { BindingRefusal, resolveRunBinding } from './runBindings.mts';
 import type { ReadData } from './runBindings.mts';
 import { mockStepResult } from './actionTests/mockStep.mts';
 import { ownAction } from './actionCalls.mts';
+import { guardAllows } from './actionExecutor/stepGuard.mts';
 import type { MockHelpers } from './actionTests/mockStep.mts';
 
 export type App = { id: string; userId: string; name?: string | null; organizationId?: string | null; definition?: unknown; definitionVersion?: number | null };
@@ -222,6 +223,8 @@ export function hostFor(run: Run): WalkHost {
         async decide(step, f, w) {
             const kind = String(step.kind);
             const ctx = ctxFor(run, w);
+            // since 3: a guard the server would check first (actionExecutor/stepGuard.mts). False: reported as skipped, never simulated or run.
+            if (step.guard !== undefined && !guardAllows(step, deps.buildScope(ctx))) return { run: false, status: 'skipped', reason: 'guard: its formula is false here, so the server skips this step' };
             const wouldSend = kind === 'send_email' ? wouldSendOf(run, step, ctx) : undefined;
             const wouldWrite = opts.dryRun && RECORD_WRITES.includes(kind) ? await wouldWriteFor(run, step, ctx) : undefined;
             if (opts.dryRun) noteReplaceWhere(run, step);
@@ -253,6 +256,8 @@ export function hostFor(run: Run): WalkHost {
         },
         sleep: (ms) => new Promise((resolve) => { setTimeout(resolve, ms); }),
         now: () => deps.now(),
+        // A dry run reads top to bottom: the branches of a parallel step run one after another.
+        ...(opts.dryRun ? { sequentialBranches: 'dryRun: the branches of this parallel step ran one after another; a real run starts them side by side.' } : {}),
     };
 }
 

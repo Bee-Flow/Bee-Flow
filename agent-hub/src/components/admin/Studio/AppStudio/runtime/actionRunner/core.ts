@@ -29,6 +29,8 @@ export interface ActionEntry {
     jobId?: string;
     /** A background action: the job's latest progress. */
     progress?: JobProgress | null;
+    /** A field rule refused a write: one sentence per form field name (only when there are any). */
+    fieldErrors?: Record<string, string> | null;
 }
 
 export type ActionState = Record<string, ActionEntry>;
@@ -43,6 +45,9 @@ export interface RunOpts {
     index?: number;
     value?: unknown;
 }
+
+/** What an event slot holds: one action id, or (schema 3) a list of them run in order. */
+export type ActionSlot = string | readonly string[];
 
 /** A navigate effect: the authored string, or the { screenId, params } a return_to_app step sends. */
 type NavigateTarget = string | { screenId?: string; params?: Record<string, unknown> | null } | null;

@@ -42,4 +42,6 @@ export interface ChartProps {
     unitLabel?: string | null;
     orientation?: string;
     source?: BindingInput;
+    /** Schema 3: how the value axis and the tooltip write numbers (appFormat.ts). */
+    formatOptions?: unknown;
 }

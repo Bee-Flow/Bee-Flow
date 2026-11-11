@@ -139,7 +139,7 @@ export default function AppDatasetUpload({ node }: NodeProps<DatasetUploadProps>
     const selected = value && typeof value === 'object' ? value : null;
 
     return (
-        <Field id={id} label={label} required={required} error={error || uploadError}>
+        <Field part="input_dataset" id={id} label={label} required={required} error={error || uploadError}>
             <div className="flex flex-col gap-2">
                 {allowExisting && existing.length > 0 && !busy ? (
                     <select
@@ -161,7 +161,7 @@ export default function AppDatasetUpload({ node }: NodeProps<DatasetUploadProps>
                 ) : null}
 
                 <label
-                    className="relative inline-flex w-fit items-center gap-2 px-3 py-1.5 text-sm cursor-pointer border focus-within:outline focus-within:outline-2 focus-within:outline-offset-1 focus-within:outline-[var(--text-secondary)]"
+                    className="relative inline-flex w-fit items-center gap-2 px-3 py-1.5 text-sm cursor-pointer border focus-within:outline focus-within:outline-2 focus-within:outline-offset-1 focus-within:outline-[var(--text-secondary)] bfa-input_dataset__button"
                     style={{ background: 'var(--bg-card)', borderColor: 'var(--border-default)', borderRadius: 'var(--app-radius)', color: 'var(--text-primary)', opacity: live || mode !== 'run' ? undefined : 0.6 }}
                 >
                     {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" /> : <UploadCloud className="w-3.5 h-3.5" aria-hidden="true" />}
@@ -193,7 +193,7 @@ export default function AppDatasetUpload({ node }: NodeProps<DatasetUploadProps>
 
                 {selected && !busy ? (
                     <div
-                        className="flex items-center gap-2 p-1.5 text-xs border w-fit [background:var(--bg-tertiary)] [border-color:var(--border-default)] [border-radius:var(--app-radius)]"
+                        className="flex items-center gap-2 p-1.5 text-xs border w-fit [background:var(--bg-tertiary)] [border-color:var(--border-default)] [border-radius:var(--app-radius)] bfa-input_dataset__selected"
                     >
                         <Dna className="w-3.5 h-3.5 shrink-0 [color:var(--app-primary)]" aria-hidden="true" />
                         <span className="truncate text-[var(--text-primary)]">
@@ -203,7 +203,7 @@ export default function AppDatasetUpload({ node }: NodeProps<DatasetUploadProps>
                             type="button"
                             onClick={() => commit(null)}
                             aria-label={t('studio_apps_runtime.dataset_upload.clear', 'Clear {name}', { name: selected.name })}
-                            className="ml-1 shrink-0 [color:var(--text-muted)]"
+                            className="ml-1 shrink-0 [color:var(--text-muted)] bfa-input_dataset__remove"
                         >
                             <X className="w-3.5 h-3.5" aria-hidden="true" />
                         </button>

@@ -26,6 +26,7 @@ const DOCUMENT_SPECS = {
         },
         styleKnobs: ['span', 'height', 'radius'],
         defaultStyle: { span: 12, height: 'lg' },
+        parts: ['root', 'header', 'title', 'version', 'body', 'tabs', 'tab', 'message'],
     },
     document_compare: {
         label: 'Document compare', category: 'Content',
@@ -41,8 +42,10 @@ const DOCUMENT_SPECS = {
         },
         styleKnobs: ['span', 'height', 'radius'],
         defaultStyle: { span: 12, height: 'xl' },
+        parts: ['root', 'toolbar', 'message'],
     },
     input_document: {
+        parts: ['root', 'label', 'chips', 'chip', 'control', 'menu', 'option', 'error'],
         label: 'Document picker', category: 'Input', isInput: true,
         description: 'Pick a Studio document. Offers documentIds and/or folderId (the owner\'s), narrowed by kind; submits its id.',
         props: {

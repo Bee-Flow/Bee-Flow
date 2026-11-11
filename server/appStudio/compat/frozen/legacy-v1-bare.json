@@ -1,0 +1,66 @@
+{
+  "corpus": "legacy-v1-bare",
+  "canonical": {
+    "sha256": "aafcf8bc60b362911c6e6bdd519c9cb24fef2bc7c8479d55a1eb76653acf416e",
+    "bytes": 2018,
+    "inputIsCanonical": false,
+    "idempotent": true,
+    "keys": [
+      "schemaVersion",
+      "meta",
+      "theme",
+      "roles",
+      "screens",
+      "actions",
+      "homeScreenId"
+    ],
+    "parts": {
+      "schemaVersion": "d4735e3a265e16ee",
+      "meta": "640f927a3fcc01cb",
+      "theme": "5d7eeb0111b89897",
+      "roles": "4f53cda18c2baa0c",
+      "screens[0] scr_bare01": "edc7038e3e1508f8",
+      "screens[1] scr_bare02": "45a0f01f96b87240",
+      "homeScreenId": "679b229b76af5905"
+    }
+  },
+  "schemaVersion": {
+    "stored": 1,
+    "canonical": 2
+  },
+  "validation": {
+    "strict": {
+      "errors": [],
+      "warnings": [
+        "unknown_formula_root @ screens[0].sections[0].children[3].props.source.filter"
+      ]
+    },
+    "save": {
+      "errors": [],
+      "warnings": [
+        "unknown_formula_root @ screens[0].sections[0].children[3].props.source.filter"
+      ]
+    }
+  },
+  "ordinals": {
+    "stored": {},
+    "canonical": "same as stored"
+  },
+  "reads": [
+    {
+      "at": "cmp_barel1.source",
+      "kind": "records",
+      "table": "tbl_bare01",
+      "sqlite": {
+        "owner": {
+          "skipped": "dynamic"
+        }
+      },
+      "pg": {
+        "owner": {
+          "skipped": "dynamic"
+        }
+      }
+    }
+  ]
+}

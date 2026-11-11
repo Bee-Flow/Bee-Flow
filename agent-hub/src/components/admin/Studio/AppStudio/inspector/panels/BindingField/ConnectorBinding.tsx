@@ -6,7 +6,8 @@ import type { ConnectorParamFieldProps, ConnectorBindingProps } from '../Binding
 import { staticDisplay, parseStatic, isFormulaVal } from './BindingField.helpers';
 
 // One declared param: a literal (Value) OR a {kind:'formula',expr} toggle.
-function ConnectorParamField({ param, value, onChange, definition, node, disabled }: ConnectorParamFieldProps) {
+// Also the value field of a saved view's parameter (DatasetBinding).
+export function ConnectorParamField({ param, value, onChange, definition, node, disabled }: ConnectorParamFieldProps) {
     const { t } = useTranslation();
     const isFormula = isFormulaVal(value);
     return (

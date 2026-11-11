@@ -2,8 +2,9 @@
 'use strict';
 // Part 3 of the TOOL_SCHEMAS array (split out of schemas.js; order is preserved there).
 
-const { FIELD_TYPES } = require('../dataModel');
+const { BASE_FIELD_TYPES: FIELD_TYPES } = require('../../core/dataEngine/dataModel/vocabularySince'); // descriptions name the base words
 const { INSPECT_CATALOG_MAX_COMPONENTS, INSPECT_CATALOG_MAX_STEPS, MAX_GET_ACTIONS } = require('./schemaFragments');
+const { inspectExtensionProps } = require('./schemaTiers.mts');
 
 /** @type {Array<{ type: string, function: { name: string, description: string, parameters: object } }>} */
 const TOOL_SCHEMAS_PART_3 = [
@@ -180,6 +181,20 @@ const TOOL_SCHEMAS_PART_3 = [
                     },
                     openQuestions: { type: 'array', items: { type: 'string' }, description: 'Anything you need the user to confirm before building.' },
                     baseTemplateId: { type: 'string', description: 'When a starter template matches the ask, its id — it will be applied first on approval (call app_list_templates to discover ids).' },
+                    design: {
+                        type: 'object',
+                        description: 'The LOOK you will build, shown to the user in the plan so they approve it with the rest. Decide it from the ask (who uses the app, where, for what), not from habit. Every key is a value app_set_theme takes.',
+                        properties: {
+                            direction: { type: 'string', description: 'One sentence a person would recognise the app by (max 200 chars), e.g. "A calm, dense register for people who live in it all day".' },
+                            preset: { type: 'string', description: 'The app_set_theme preset you start from, or "custom" when none fits.' },
+                            primary: { type: 'string', description: 'Primary colour, #rrggbb.' },
+                            font: { type: 'string', description: 'The typeface (an app_set_theme font).' },
+                            navStyle: { type: 'string', description: 'tabs, sidebar, rail or mega.' },
+                            surface: { type: 'string', description: 'hairline, flat, soft or elevated.' },
+                            signatureMoves: { type: 'array', items: { type: 'string' }, description: 'Up to three concrete design moves that make THIS app its own (max 140 chars each), e.g. "One double-width gradient tile for the headline number".' },
+                        },
+                        required: ['direction'],
+                    },
                 },
                 required: ['title', 'summary', 'screens'],
             },
@@ -256,6 +271,7 @@ const TOOL_SCHEMAS_PART_3 = [
                 properties: {
                     components: { type: 'array', items: { type: 'string' }, description: `Component types to expand (max ${INSPECT_CATALOG_MAX_COMPONENTS}), e.g. ["data_grid", "kanban"].` },
                     steps: { type: 'array', items: { type: 'string' }, description: `Step kinds to expand (max ${INSPECT_CATALOG_MAX_STEPS}), e.g. ["request_approval", "send_email"].` },
+                    ...inspectExtensionProps(), // extension items by name or family: only while the catalogue has any
                 },
             },
         },

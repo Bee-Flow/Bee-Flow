@@ -1,0 +1,111 @@
+{
+  "corpus": "paged-record-lists",
+  "canonical": {
+    "sha256": "3de858bbb75077a42d72d1eb6a08965907018f6ca0e7962123b31b96703d27f4",
+    "bytes": 2384,
+    "inputIsCanonical": true,
+    "idempotent": true,
+    "keys": [
+      "schemaVersion",
+      "meta",
+      "theme",
+      "roles",
+      "screens",
+      "actions",
+      "homeScreenId"
+    ],
+    "parts": {
+      "schemaVersion": "4e07408562bedb8b",
+      "meta": "493c5d8f18363f8b",
+      "theme": "5d7eeb0111b89897",
+      "roles": "4f53cda18c2baa0c",
+      "screens[0] scr_queue01": "b316f0ac637e3df1",
+      "homeScreenId": "18cdb069e726f399"
+    }
+  },
+  "schemaVersion": {
+    "stored": 3,
+    "canonical": 3
+  },
+  "validation": {
+    "strict": {
+      "errors": [],
+      "warnings": []
+    },
+    "save": {
+      "errors": [],
+      "warnings": []
+    }
+  },
+  "ordinals": {
+    "stored": {},
+    "canonical": "same as stored"
+  },
+  "reads": [
+    {
+      "at": "cmp_qtable.source",
+      "kind": "records",
+      "table": "tbl_tick01",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"tickets\" WHERE (1=1) ORDER BY \"opened\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            21
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"tickets\" WHERE (1=1) ORDER BY \"opened\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            21
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_qlist.source",
+      "kind": "records",
+      "table": "tbl_tick01",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"tickets\" WHERE (1=1) AND \"status\" = ? ORDER BY \"opened\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "open",
+            21
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"tickets\" WHERE (1=1) AND \"status\" = ? ORDER BY \"opened\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "open",
+            21
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_qgrid.source",
+      "kind": "records",
+      "table": "tbl_tick01",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"tickets\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            101
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"tickets\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            101
+          ]
+        }
+      }
+    }
+  ]
+}

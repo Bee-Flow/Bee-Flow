@@ -1,0 +1,852 @@
+# template-data-subject-requests
+## screen scr_register (Register)
+<div class="app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(15, 118, 110, 0.1); --app-accent: #0F766E; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(15, 118, 110, 0.1); --app-primary: #0F766E; --app-radius: 4px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-family: "IBM Plex Sans", system-ui, -apple-system, sans-serif; font-size: 15px; min-height: 100vh">
+  <main class="flex flex-1 flex-col min-h-0">
+    <div class="app-runtime app-screen-enter flex flex-1 flex-col h-full min-h-0 w-full" data-app-appearance="auto" data-app-screen="scr_register" data-app-screen-kind="page" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(15, 118, 110, 0.1); --app-accent: #0F766E; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(15, 118, 110, 0.1); --app-primary: #0F766E; --app-radius: 4px; --app-space: 1; color: var(--text-primary); font-family: "IBM Plex Sans", system-ui, -apple-system, sans-serif; font-size: 15px">
+      <div class="flex flex-1 flex-col min-h-0 w-full" style="margin: 0px auto; max-width: none">
+        <section class="app-grid" data-section-id="sec_rgtop" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="page_header" data-node-id="cmp_rghdr" style="grid-column: span 12 / span 12">
+            <header class="app-pageheader--banner min-w-0 w-full" data-app-pageheader="true" data-app-pageheader-look="banner" style="background: var(--app-primary-soft); border-radius: var(--app-radius, 8px); padding: calc(20px * var(--app-space, 1))">
+              <div class="flex flex-wrap items-start" style="gap: calc(12px * var(--app-space, 1))">
+                <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-9 inline-flex items-center justify-center rounded-md shrink-0 w-9" aria-hidden="true">
+                  <svg class="h-4.5 lucide lucide-calendar-clock w-4.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                <div class="basis-64 flex-1 min-w-0">
+                  <h1 class="font-semibold text-[var(--text-primary)] text-xl truncate" title="Data subject requests">
+                    "Data subject requests"
+                  <p class="line-clamp-2 mt-0.5 text-sm" title="One month from the day it arrived (Art. 12(3)). Sorted by the day you run out of time." style="color: var(--text-secondary)">
+                    "One month from the day it arrived (Art. 12(3)). Sorted by the day you run out of time."
+                <div class="flex flex-wrap items-center justify-end ml-auto" data-app-pageheader-actions="true" style="gap: calc(8px * var(--app-space, 1))">
+                  <div class="app-node app-span-3 min-w-0" data-app-type="button" data-node-id="cmp_rgnew" style="grid-column: span 3 / span 3">
+                    <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm transition-opacity" type="button" style="background: var(--app-accent, var(--app-primary)); border-radius: var(--app-radius); color: var(--app-accent-contrast, var(--app-primary-contrast))">
+                      <svg class="h-3.5 lucide lucide-plus w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                      <span>
+                        "Log a request"
+          <div class="app-node app-span-3 min-w-0" data-app-type="stat" data-node-id="cmp_rgs1" style="grid-column: span 3 / span 3">
+            <div class="app-stat app-stat--tinted flex gap-2.5 items-start" style="background: var(--app-primary-soft); border-radius: var(--app-radius, 8px); padding: calc(16px * var(--app-space, 1))">
+              <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-8 inline-flex items-center justify-center mt-0.5 rounded-md shrink-0 w-8">
+                <svg class="h-4 lucide lucide-inbox w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-[var(--text-secondary)] text-xs">
+                  "Open"
+                <div class="flex gap-2 items-baseline min-w-0">
+                  <div class="font-semibold leading-tight text-2xl truncate" title="—">
+                    "—"
+                <div class="text-[var(--text-muted)] text-xs">
+                  "requests still running"
+          <div class="app-node app-span-3 min-w-0" data-app-type="stat" data-node-id="cmp_rgs2" style="color: rgb(239, 68, 68); grid-column: span 3 / span 3">
+            <div class="app-stat app-stat--tinted flex gap-2.5 items-start" style="background: var(--app-primary-soft); border-radius: var(--app-radius, 8px); padding: calc(16px * var(--app-space, 1))">
+              <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-8 inline-flex items-center justify-center mt-0.5 rounded-md shrink-0 w-8">
+                <svg class="h-4 lucide lucide-alert-triangle lucide-triangle-alert w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-[var(--text-secondary)] text-xs">
+                  "Overdue"
+                <div class="flex gap-2 items-baseline min-w-0">
+                  <div class="font-semibold leading-tight text-2xl truncate" title="—">
+                    "—"
+                <div class="text-[var(--text-muted)] text-xs">
+                  "past the statutory deadline"
+          <div class="app-node app-span-3 min-w-0" data-app-type="stat" data-node-id="cmp_rgs3" style="color: rgb(245, 158, 11); grid-column: span 3 / span 3">
+            <div class="app-stat app-stat--tinted flex gap-2.5 items-start" style="background: var(--app-primary-soft); border-radius: var(--app-radius, 8px); padding: calc(16px * var(--app-space, 1))">
+              <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-8 inline-flex items-center justify-center mt-0.5 rounded-md shrink-0 w-8">
+                <svg class="h-4 lucide lucide-timer w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-[var(--text-secondary)] text-xs">
+                  "Due within 7 days"
+                <div class="flex gap-2 items-baseline min-w-0">
+                  <div class="font-semibold leading-tight text-2xl truncate" title="—">
+                    "—"
+                <div class="text-[var(--text-muted)] text-xs">
+                  "answer or extend now"
+          <div class="app-node app-span-3 min-w-0" data-app-type="stat" data-node-id="cmp_rgs4" style="grid-column: span 3 / span 3">
+            <div class="app-stat app-stat--tinted flex gap-2.5 items-start" style="background: var(--app-primary-soft); border-radius: var(--app-radius, 8px); padding: calc(16px * var(--app-space, 1))">
+              <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-8 inline-flex items-center justify-center mt-0.5 rounded-md shrink-0 w-8">
+                <svg class="h-4 lucide lucide-shield-check w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-[var(--text-secondary)] text-xs">
+                  "Identity unverified"
+                <div class="flex gap-2 items-baseline min-w-0">
+                  <div class="font-semibold leading-tight text-2xl truncate" title="—">
+                    "—"
+                <div class="text-[var(--text-muted)] text-xs">
+                  "nothing may be disclosed yet"
+          <div class="app-node app-span-12 min-w-0" data-app-type="callout" data-node-id="cmp_rgnote" style="grid-column: span 12 / span 12">
+            <div class="flex gap-2.5 items-start px-3 py-2.5 text-sm" data-app-callout="info" style="background: rgba(14, 165, 233, 0.1); border-left: 3px solid rgb(14, 165, 233); border-radius: var(--app-radius); color: var(--text-primary)">
+              <svg class="h-4 lucide lucide-info mt-0.5 shrink-0 w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg" style="color: rgb(14, 165, 233)">
+              <div class="min-w-0">
+                <div class="font-medium">
+                  "How the clock works here"
+                <div class="app-callout__body text-[var(--text-secondary)]">
+                  "The due date is stored on each request, not calculated when you look at it. Logging a request sets it to the day it arrived plus 30 days — never later than the statutory month. Taking an extension adds two months and records the reason and the day you told the requester, which is what makes the extension lawful. The due date stays editable in the grid, so you can set the exact calendar date."
+          <div class="app-node app-span-12 min-w-0" data-app-type="filter_bar" data-node-id="cmp_rgfilt" style="grid-column: span 12 / span 12">
+            <div class="flex flex-wrap gap-3 items-end" data-app-filterbar="true">
+              <div class="flex flex-col gap-1 min-w-0" data-app-filter="q">
+                <label class="font-medium text-[var(--text-secondary)] text-xs" for="cmp_rgfilt-flt-q">
+                  "Requester"
+                <div class="relative">
+                  <svg class="-translate-y-1/2 absolute h-3.5 left-2.5 lucide lucide-search text-[var(--text-muted)] top-1/2 w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                  <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none pl-8 px-2.5 py-1.5 text-sm w-full" aria-label="Requester" id="cmp_rgfilt-flt-q" placeholder="Requester" type="text" value="" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+              <div class="flex flex-col gap-1 min-w-0" data-app-filter="request_type">
+                <label class="font-medium text-[var(--text-secondary)] text-xs" for="cmp_rgfilt-flt-request_type">
+                  "Right"
+                <select class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-label="Right" id="cmp_rgfilt-flt-request_type" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                  <option value="">
+                    "All"
+                  <option value="access">
+                    "Access (Art. 15)"
+                  <option value="rectification">
+                    "Rectification (Art. 16)"
+                  <option value="erasure">
+                    "Erasure (Art. 17)"
+                  <option value="restriction">
+                    "Restriction (Art. 18)"
+                  <option value="portability">
+                    "Portability (Art. 20)"
+                  <option value="objection">
+                    "Objection (Art. 21)"
+              <div class="flex flex-col gap-1 min-w-0" data-app-filter="status">
+                <label class="font-medium text-[var(--text-secondary)] text-xs" for="cmp_rgfilt-flt-status">
+                  "Status"
+                <select class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-label="Status" id="cmp_rgfilt-flt-status" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                  <option value="">
+                    "All"
+                  <option value="received">
+                    "Received"
+                  <option value="verifying">
+                    "Verifying identity"
+                  <option value="searching">
+                    "Searching systems"
+                  <option value="preparing">
+                    "Preparing the answer"
+                  <option value="closed">
+                    "Closed"
+              <div class="flex flex-col gap-1 min-w-0" data-app-filter="overdue">
+                <label class="cursor-pointer gap-2 inline-flex items-center py-1.5 text-sm" for="cmp_rgfilt-flt-overdue">
+                  <input class="accent-[var(--app-primary)]" id="cmp_rgfilt-flt-overdue" type="checkbox">
+                  <span class="text-[var(--text-primary)]">
+                    "Overdue only"
+        <section class="app-grid app-section-fill" data-section-id="sec_rgmain" style="flex: 1 1 0px; gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); grid-template-rows: minmax(0, 1fr); min-height: 0px; padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-4 min-w-0" data-app-type="list" data-node-id="cmp_rgurgent" style="flex: 1 1 0px; grid-column: span 4 / span 4; min-height: 0px; min-width: 0px">
+            <div class="flex flex-col gap-1.5 h-full items-center justify-center min-h-0 py-6 text-center">
+              <span class="mb-1 text-[var(--text-tertiary)]">
+                <svg class="block" aria-hidden="true" fill="none" role="presentation" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 96 72" style="height: auto; opacity: 0.9; width: 5.5rem">
+              <span class="font-medium text-[var(--text-primary)] text-sm">
+                "Nothing here yet"
+              <span class="max-w-xs text-[var(--text-muted)] text-sm">
+                "Nothing is due in the next week. That is the goal."
+          <div class="app-node app-span-8 min-w-0" data-app-type="data_grid" data-node-id="cmp_rggrid" style="flex: 1 1 0px; grid-column: span 8 / span 8; min-height: 0px; min-width: 0px">
+            <div class="w-full" data-app-datagrid="true">
+              <div class="flex flex-col gap-1.5 h-full items-center justify-center min-h-0 py-6 text-center">
+                <span class="mb-1 text-[var(--text-tertiary)]">
+                  <svg class="block" aria-hidden="true" fill="none" role="presentation" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 96 72" style="height: auto; opacity: 0.9; width: 5.5rem">
+                <span class="font-medium text-[var(--text-primary)] text-sm">
+                  "Nothing here yet"
+                <span class="max-w-xs text-[var(--text-muted)] text-sm">
+                  "No requests yet. Log the first one."
+## screen scr_intake (Log a request)
+<div class="app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(15, 118, 110, 0.1); --app-accent: #0F766E; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(15, 118, 110, 0.1); --app-primary: #0F766E; --app-radius: 4px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-family: "IBM Plex Sans", system-ui, -apple-system, sans-serif; font-size: 15px; min-height: 100vh">
+  <main class="flex flex-1 flex-col min-h-0">
+    <div class="app-runtime app-screen-enter w-full" data-app-appearance="auto" data-app-screen="scr_intake" data-app-screen-kind="page" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(15, 118, 110, 0.1); --app-accent: #0F766E; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(15, 118, 110, 0.1); --app-primary: #0F766E; --app-radius: 4px; --app-space: 1; color: var(--text-primary); font-family: "IBM Plex Sans", system-ui, -apple-system, sans-serif; font-size: 15px">
+      <div class="flex flex-col w-full" style="margin: 0px auto; max-width: 1280px">
+        <section class="app-grid" data-section-id="sec_intop" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="page_header" data-node-id="cmp_inhdr" style="grid-column: span 12 / span 12">
+            <header class="min-w-0 w-full" data-app-pageheader="true">
+              <div class="flex flex-wrap items-start" style="gap: calc(12px * var(--app-space, 1))">
+                <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-9 inline-flex items-center justify-center rounded-md shrink-0 w-9" aria-hidden="true">
+                  <svg class="h-4.5 lucide lucide-inbox w-4.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                <div class="basis-64 flex-1 min-w-0">
+                  <h1 class="font-semibold text-[var(--text-primary)] text-xl truncate" title="Log a request">
+                    "Log a request"
+                  <p class="line-clamp-2 mt-0.5 text-sm" title="Six fields and a date. Everything else can be filled in on the case file." style="color: var(--text-secondary)">
+                    "Six fields and a date. Everything else can be filled in on the case file."
+          <div class="app-node app-span-12 min-w-0" data-app-type="callout" data-node-id="cmp_innote" style="grid-column: span 12 / span 12">
+            <div class="flex gap-2.5 items-start px-3 py-2.5 text-sm" data-app-callout="warning" style="background: rgba(245, 158, 11, 0.1); border-left: 3px solid rgb(245, 158, 11); border-radius: var(--app-radius); color: var(--text-primary)">
+              <svg class="h-4 lucide lucide-alert-triangle lucide-triangle-alert mt-0.5 shrink-0 w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg" style="color: rgb(245, 158, 11)">
+              <div class="min-w-0">
+                <div class="font-medium">
+                  "Received, not noticed"
+                <div class="app-callout__body text-[var(--text-secondary)]">
+                  "Use the day the request ARRIVED, including one that came in by phone or reached the wrong inbox first. The month runs from then, and the due date is set from it. A request does not have to cite an Article, or the word "GDPR", to be one."
+        <section class="app-grid app-surface" data-section-id="sec_inform" style="background: var(--bg-card); border-radius: var(--app-radius); box-shadow: var(--app-shadow-1, none); gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="form" data-node-id="cmp_inform" style="grid-column: span 12 / span 12">
+            <form class="flex flex-col" novalidate="" style="gap: calc(12px * var(--app-space, 1))">
+              <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                <div class="app-node app-span-3 min-w-0" data-app-type="input_text" data-node-id="cmp_inf1" style="grid-column: span 3 / span 3">
+                  <div class="flex flex-col gap-1 text-left">
+                    <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_inf1-input">
+                      "Reference"
+                      <span class="[color:var(--error)]" aria-hidden="true">
+                        "*"
+                    <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-required="true" id="cmp_inf1-input" name="reference" placeholder="DSR-2026-022" type="text" value="" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                <div class="app-node app-span-3 min-w-0" data-app-type="input_select" data-node-id="cmp_inf2" style="grid-column: span 3 / span 3">
+                  <div class="flex flex-col gap-1 text-left">
+                    <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_inf2-input">
+                      "Which right"
+                      <span class="[color:var(--error)]" aria-hidden="true">
+                        "*"
+                    <select class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-required="true" id="cmp_inf2-input" name="request_type" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                      <option disabled="" value="">
+                        "Choose…"
+                      <option value="access">
+                        "Access (Art. 15)"
+                      <option value="rectification">
+                        "Rectification (Art. 16)"
+                      <option value="erasure">
+                        "Erasure (Art. 17)"
+                      <option value="restriction">
+                        "Restriction (Art. 18)"
+                      <option value="portability">
+                        "Portability (Art. 20)"
+                      <option value="objection">
+                        "Objection (Art. 21)"
+                <div class="app-node app-span-3 min-w-0" data-app-type="input_select" data-node-id="cmp_inf3" style="grid-column: span 3 / span 3">
+                  <div class="flex flex-col gap-1 text-left">
+                    <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_inf3-input">
+                      "How it arrived"
+                    <select class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" id="cmp_inf3-input" name="channel" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                      <option value="">
+                        "Choose…"
+                      <option value="email">
+                        "E-mail"
+                      <option value="webform">
+                        "Web form"
+                      <option value="post">
+                        "Letter"
+                      <option value="phone">
+                        "Telephone"
+                      <option value="in_person">
+                        "In person"
+                <div class="app-node app-span-3 min-w-0" data-app-type="input_date" data-node-id="cmp_inf4" style="grid-column: span 3 / span 3">
+                  <div class="flex flex-col gap-1 text-left">
+                    <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_inf4-input">
+                      "Received on"
+                      <span class="[color:var(--error)]" aria-hidden="true">
+                        "*"
+                    <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-required="true" id="cmp_inf4-input" name="received_date" type="date" value="<date>" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                <div class="app-node app-span-6 min-w-0" data-app-type="input_text" data-node-id="cmp_inf5" style="grid-column: span 6 / span 6">
+                  <div class="flex flex-col gap-1 text-left">
+                    <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_inf5-input">
+                      "Who asked"
+                      <span class="[color:var(--error)]" aria-hidden="true">
+                        "*"
+                    <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-required="true" id="cmp_inf5-input" name="requester_name" type="text" value="" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                <div class="app-node app-span-6 min-w-0" data-app-type="input_text" data-node-id="cmp_inf6" style="grid-column: span 6 / span 6">
+                  <div class="flex flex-col gap-1 text-left">
+                    <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_inf6-input">
+                      "Reply address"
+                    <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" id="cmp_inf6-input" name="requester_email" type="email" value="" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                <div class="app-node app-span-12 min-w-0" data-app-type="input_textarea" data-node-id="cmp_inf7" style="grid-column: span 12 / span 12">
+                  <div class="flex flex-col gap-1 text-left">
+                    <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_inf7-input">
+                      "Identifiers to search on"
+                    <div class="relative">
+                      <textarea class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 resize-y text-sm w-full" id="cmp_inf7-input" name="identifiers" placeholder="Account name, customer number, old e-mail address, order references…" rows="2" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                <div class="app-node app-span-12 min-w-0" data-app-type="input_textarea" data-node-id="cmp_inf8" style="grid-column: span 12 / span 12">
+                  <div class="flex flex-col gap-1 text-left">
+                    <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_inf8-input">
+                      "What exactly was asked"
+                    <div class="relative">
+                      <textarea class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 resize-y text-sm w-full" id="cmp_inf8-input" name="summary" placeholder="In the requester’s own words where possible." rows="4" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+              <div class="flex gap-2 items-center">
+                <button class="[background:var(--app-accent,var(--app-primary))] [border-radius:var(--app-radius)] [color:var(--app-accent-contrast,var(--app-primary-contrast))]! disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm" type="submit">
+                  <span>
+                    "Log it and start the clock"
+## screen scr_case (Case file)
+<div class="app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(15, 118, 110, 0.1); --app-accent: #0F766E; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(15, 118, 110, 0.1); --app-primary: #0F766E; --app-radius: 4px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-family: "IBM Plex Sans", system-ui, -apple-system, sans-serif; font-size: 15px; min-height: 100vh">
+  <main class="flex flex-1 flex-col min-h-0">
+    <div class="app-runtime app-screen-enter w-full" data-app-appearance="auto" data-app-screen="scr_case" data-app-screen-kind="page" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(15, 118, 110, 0.1); --app-accent: #0F766E; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(15, 118, 110, 0.1); --app-primary: #0F766E; --app-radius: 4px; --app-space: 1; color: var(--text-primary); font-family: "IBM Plex Sans", system-ui, -apple-system, sans-serif; font-size: 15px">
+      <div class="flex flex-col w-full" style="margin: 0px auto; max-width: none">
+        <section class="app-grid" data-section-id="sec_cstop" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="page_header" data-node-id="cmp_cshdr" style="grid-column: span 12 / span 12">
+            <header class="min-w-0 w-full" data-app-pageheader="true">
+              <div class="flex flex-wrap items-start" style="gap: calc(12px * var(--app-space, 1))">
+                <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-9 inline-flex items-center justify-center rounded-md shrink-0 w-9" aria-hidden="true">
+                  <svg class="h-4.5 lucide lucide-id-card w-4.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                <div class="basis-64 flex-1 min-w-0">
+                  <h1 class="font-semibold text-[var(--text-primary)] text-xl truncate" title="Case file">
+                    "Case file"
+                <div class="flex flex-wrap items-center justify-end ml-auto" data-app-pageheader-actions="true" style="gap: calc(8px * var(--app-space, 1))">
+                  <div class="app-node app-span-2 min-w-0" data-app-type="button" data-node-id="cmp_csback" style="grid-column: span 2 / span 2">
+                    <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm transition-opacity" type="button" style="background: transparent; border-radius: var(--app-radius); color: var(--app-primary)">
+                      <svg class="h-3.5 lucide lucide-arrow-left w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                      <span>
+                        "Register"
+                  <div class="app-node app-span-3 min-w-0" data-app-type="button" data-node-id="cmp_csext" style="grid-column: span 3 / span 3">
+                    <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm transition-opacity" type="button" style="background: var(--bg-card); border-radius: var(--app-radius); border: 1px solid var(--border-default); color: var(--text-primary)">
+                      <svg class="h-3.5 lucide lucide-calendar-clock w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                      <span>
+                        "Take an extension"
+                  <div class="app-node app-span-3 min-w-0" data-app-type="button" data-node-id="cmp_csref" style="grid-column: span 3 / span 3">
+                    <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm transition-opacity" type="button" style="background: color-mix(in srgb, var(--error) 75%, #000); border-radius: var(--app-radius); color: rgb(255, 255, 255)">
+                      <svg class="h-3.5 lucide lucide-scissors w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                      <span>
+                        "Refuse, with a ground"
+                  <div class="app-node app-span-3 min-w-0" data-app-type="button" data-node-id="cmp_csdone" style="grid-column: span 3 / span 3">
+                    <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm transition-opacity" type="button" style="background: var(--app-accent, var(--app-primary)); border-radius: var(--app-radius); color: var(--app-accent-contrast, var(--app-primary-contrast))">
+                      <svg class="h-3.5 lucide lucide-check-circle-2 lucide-circle-check w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                      <span>
+                        "Close as fulfilled"
+              <hr class="[background:var(--border-default)] border-0 h-px mt-3 w-full" aria-hidden="true">
+          <div class="app-node app-span-12 min-w-0" data-app-type="callout" data-node-id="cmp_cswarn" style="grid-column: span 12 / span 12">
+            <div class="flex gap-2.5 items-start px-3 py-2.5 text-sm" data-app-callout="danger" style="background: rgba(239, 68, 68, 0.1); border-left: 3px solid rgb(239, 68, 68); border-radius: var(--app-radius); color: var(--text-primary)">
+              <svg class="h-4 lucide lucide-alert-circle lucide-circle-alert mt-0.5 shrink-0 w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg" style="color: rgb(239, 68, 68)">
+              <div class="min-w-0">
+                <div class="font-medium">
+                  "Do not disclose anything yet"
+                <div class="app-callout__body text-[var(--text-secondary)]">
+                  "This requester has not been verified. Answering the wrong person is itself a personal data breach. Record the check on the Identity tab — and if identity cannot be established, refuse under Art. 12(6) and record that as the ground, rather than letting the request go quiet."
+          <div class="app-node app-span-12 min-w-0" data-app-type="stepper" data-node-id="cmp_csstep" style="grid-column: span 12 / span 12">
+            <div class="app-stepper flex gap-1 items-start min-w-0 w-full" aria-label="Progress" data-app-stepper="true" data-orientation="horizontal" role="list">
+              <div class="app-stepper-item flex flex-1 gap-1 items-center min-w-0" data-state="upcoming" role="listitem">
+                <span class="app-stepper-step min-w-0 px-1 py-0.5">
+                  <span class="flex flex-col gap-1 items-center min-w-0">
+                    <span class="app-stepper-marker inline-flex items-center justify-center rounded-full shrink-0" aria-hidden="true" data-state="upcoming" style="border-color: var(--border-default); color: var(--text-muted)">
+                      <svg class="h-3 lucide lucide-inbox w-3" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                    <span class="app-stepper-label font-medium text-xs truncate" title="Received" style="color: var(--text-muted)">
+                      "Received"
+                <span class="app-stepper-line flex-1" aria-hidden="true" style="background: var(--border-default)">
+              <div class="app-stepper-item flex flex-1 gap-1 items-center min-w-0" data-state="upcoming" role="listitem">
+                <span class="app-stepper-step min-w-0 px-1 py-0.5">
+                  <span class="flex flex-col gap-1 items-center min-w-0">
+                    <span class="app-stepper-marker inline-flex items-center justify-center rounded-full shrink-0" aria-hidden="true" data-state="upcoming" style="border-color: var(--border-default); color: var(--text-muted)">
+                      <svg class="h-3 lucide lucide-shield-check w-3" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                    <span class="app-stepper-label font-medium text-xs truncate" title="Identity" style="color: var(--text-muted)">
+                      "Identity"
+                <span class="app-stepper-line flex-1" aria-hidden="true" style="background: var(--border-default)">
+              <div class="app-stepper-item flex flex-1 gap-1 items-center min-w-0" data-state="upcoming" role="listitem">
+                <span class="app-stepper-step min-w-0 px-1 py-0.5">
+                  <span class="flex flex-col gap-1 items-center min-w-0">
+                    <span class="app-stepper-marker inline-flex items-center justify-center rounded-full shrink-0" aria-hidden="true" data-state="upcoming" style="border-color: var(--border-default); color: var(--text-muted)">
+                      <svg class="h-3 lucide lucide-search w-3" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                    <span class="app-stepper-label font-medium text-xs truncate" title="Searching" style="color: var(--text-muted)">
+                      "Searching"
+                <span class="app-stepper-line flex-1" aria-hidden="true" style="background: var(--border-default)">
+              <div class="app-stepper-item flex flex-1 gap-1 items-center min-w-0" data-state="upcoming" role="listitem">
+                <span class="app-stepper-step min-w-0 px-1 py-0.5">
+                  <span class="flex flex-col gap-1 items-center min-w-0">
+                    <span class="app-stepper-marker inline-flex items-center justify-center rounded-full shrink-0" aria-hidden="true" data-state="upcoming" style="border-color: var(--border-default); color: var(--text-muted)">
+                      <svg class="h-3 lucide lucide-file-text w-3" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                    <span class="app-stepper-label font-medium text-xs truncate" title="Preparing" style="color: var(--text-muted)">
+                      "Preparing"
+                <span class="app-stepper-line flex-1" aria-hidden="true" style="background: var(--border-default)">
+              <div class="app-stepper-item flex gap-1 items-center min-w-0 shrink-0" data-state="upcoming" role="listitem">
+                <span class="app-stepper-step min-w-0 px-1 py-0.5">
+                  <span class="flex flex-col gap-1 items-center min-w-0">
+                    <span class="app-stepper-marker inline-flex items-center justify-center rounded-full shrink-0" aria-hidden="true" data-state="upcoming" style="border-color: var(--border-default); color: var(--text-muted)">
+                      <svg class="h-3 lucide lucide-check-circle-2 lucide-circle-check w-3" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                    <span class="app-stepper-label font-medium text-xs truncate" title="Closed" style="color: var(--text-muted)">
+                      "Closed"
+          <div class="app-node app-span-12 min-w-0" data-app-type="record_detail" data-node-id="cmp_csdet" style="grid-column: span 12 / span 12">
+            <div class="flex h-full items-center justify-center min-h-0 py-1 text-[var(--text-muted)] text-center text-sm">
+              "Open a request from the register."
+        <section class="app-grid" data-section-id="sec_cstabs" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="tabs" data-node-id="cmp_cstabs" style="grid-column: span 12 / span 12">
+            <div class="min-w-0 w-full" data-app-tabs="true" data-app-tabs-look="boxed">
+              <div class="app-scroll-x flex gap-1 items-end overflow-x-auto" aria-label="Tabs" role="tablist" style="border-bottom: 1px solid var(--border-default)">
+                <button class="-mb-px border font-medium gap-1.5 inline-flex items-center px-3 py-2 shrink-0 text-sm whitespace-nowrap" aria-selected="true" role="tab" type="button" style="background: var(--bg-card); border-color: var(--border-default) var(--border-default) transparent; border-top-left-radius: var(--app-radius); border-top-right-radius: var(--app-radius); color: var(--app-primary); transition: background-color var(--app-motion-fast, 0ms) var(--app-ease, ease-out), color var(--app-motion-fast, 0ms) var(--app-ease, ease-out)">
+                  <svg class="h-3.5 lucide lucide-shield-check w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                  <span>
+                    "Identity"
+                <button class="-mb-px border font-medium gap-1.5 inline-flex items-center px-3 py-2 shrink-0 text-sm whitespace-nowrap" aria-selected="false" role="tab" type="button" style="background: transparent; border-color: transparent; border-top-left-radius: var(--app-radius); border-top-right-radius: var(--app-radius); color: var(--text-secondary); transition: background-color var(--app-motion-fast, 0ms) var(--app-ease, ease-out), color var(--app-motion-fast, 0ms) var(--app-ease, ease-out)">
+                  <svg class="h-3.5 lucide lucide-search w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                  <span>
+                    "Where we looked"
+                <button class="-mb-px border font-medium gap-1.5 inline-flex items-center px-3 py-2 shrink-0 text-sm whitespace-nowrap" aria-selected="false" role="tab" type="button" style="background: transparent; border-color: transparent; border-top-left-radius: var(--app-radius); border-top-right-radius: var(--app-radius); color: var(--text-secondary); transition: background-color var(--app-motion-fast, 0ms) var(--app-ease, ease-out), color var(--app-motion-fast, 0ms) var(--app-ease, ease-out)">
+                  <svg class="h-3.5 lucide lucide-mail w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                  <span>
+                    "What we sent"
+                <button class="-mb-px border font-medium gap-1.5 inline-flex items-center px-3 py-2 shrink-0 text-sm whitespace-nowrap" aria-selected="false" role="tab" type="button" style="background: transparent; border-color: transparent; border-top-left-radius: var(--app-radius); border-top-right-radius: var(--app-radius); color: var(--text-secondary); transition: background-color var(--app-motion-fast, 0ms) var(--app-ease, ease-out), color var(--app-motion-fast, 0ms) var(--app-ease, ease-out)">
+                  <svg class="h-3.5 lucide lucide-scissors w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                  <span>
+                    "What we withheld"
+              <div class="pt-3" data-app-tabpanel="active" role="tabpanel">
+                <div class="app-node app-span-12 min-w-0" data-app-type="tab" data-node-id="cmp_cstab1" style="grid-column: span 12 / span 12">
+                  <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                    <div class="app-node app-span-12 min-w-0" data-app-type="data_grid" data-node-id="cmp_idgrid" style="grid-column: span 12 / span 12">
+                      <div class="w-full" data-app-datagrid="true">
+                        <div class="flex flex-col gap-1.5 h-full items-center justify-center min-h-0 py-6 text-center">
+                          <span class="mb-1 text-[var(--text-tertiary)]">
+                            <svg class="block" aria-hidden="true" fill="none" role="presentation" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 96 72" style="height: auto; opacity: 0.9; width: 5.5rem">
+                          <span class="font-medium text-[var(--text-primary)] text-sm">
+                            "Nothing here yet"
+                          <span class="max-w-xs text-[var(--text-muted)] text-sm">
+                            "No identity check recorded — nothing may be disclosed until there is one. Open a request from the register first."
+                    <div class="app-node app-span-12 min-w-0" data-app-type="form" data-node-id="cmp_idform" style="grid-column: span 12 / span 12">
+                      <form class="flex flex-col" novalidate="" style="gap: calc(12px * var(--app-space, 1))">
+                        <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                          <div class="app-node app-span-4 min-w-0" data-app-type="input_select" data-node-id="cmp_idf1" style="grid-column: span 4 / span 4">
+                            <div class="flex flex-col gap-1 text-left">
+                              <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_idf1-input">
+                                "How was identity checked"
+                                <span class="[color:var(--error)]" aria-hidden="true">
+                                  "*"
+                              <select class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-required="true" id="cmp_idf1-input" name="method" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                                <option disabled="" value="">
+                                  "Choose…"
+                                <option value="account_login">
+                                  "Signed in to the known account"
+                                <option value="id_document">
+                                  "Identity document (redacted copy)"
+                                <option value="known_address">
+                                  "Reply to the address already on file"
+                                <option value="in_person">
+                                  "In person, with identification"
+                                <option value="employer">
+                                  "Confirmed by the employer (staff request)"
+                                <option value="other">
+                                  "Other — see the notes"
+                          <div class="app-node app-span-4 min-w-0" data-app-type="input_select" data-node-id="cmp_idf2" style="grid-column: span 4 / span 4">
+                            <div class="flex flex-col gap-1 text-left">
+                              <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_idf2-input">
+                                "Result"
+                                <span class="[color:var(--error)]" aria-hidden="true">
+                                  "*"
+                              <select class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-required="true" id="cmp_idf2-input" name="outcome" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                                <option disabled="" value="">
+                                  "Choose…"
+                                <option value="verified">
+                                  "Verified"
+                                <option value="more_info">
+                                  "More information requested"
+                                <option value="failed">
+                                  "Could not be verified"
+                          <div class="app-node app-span-4 min-w-0" data-app-type="input_date" data-node-id="cmp_idf3" style="grid-column: span 4 / span 4">
+                            <div class="flex flex-col gap-1 text-left">
+                              <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_idf3-input">
+                                "Checked on"
+                                <span class="[color:var(--error)]" aria-hidden="true">
+                                  "*"
+                              <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-required="true" id="cmp_idf3-input" name="checked_on" type="date" value="<date>" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                          <div class="app-node app-span-12 min-w-0" data-app-type="input_textarea" data-node-id="cmp_idf4" style="grid-column: span 12 / span 12">
+                            <div class="flex flex-col gap-1 text-left">
+                              <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_idf4-input">
+                                "What was seen, and what was not kept"
+                              <div class="relative">
+                                <textarea class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 resize-y text-sm w-full" id="cmp_idf4-input" name="notes" placeholder="Data minimisation: say what you looked at, and confirm the copy was destroyed." rows="2" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                        <div class="flex gap-2 items-center">
+                          <button class="[background:var(--app-accent,var(--app-primary))] [border-radius:var(--app-radius)] [color:var(--app-accent-contrast,var(--app-primary-contrast))]! disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm" type="submit">
+                            <span>
+                              "Record the check"
+              <div class="pt-3" data-app-tabpanel="inactive" hidden="" role="tabpanel" style="display: none">
+                <div class="app-node app-span-12 min-w-0" data-app-type="tab" data-node-id="cmp_cstab2" style="grid-column: span 12 / span 12">
+                  <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                    <div class="app-node app-span-12 min-w-0" data-app-type="callout" data-node-id="cmp_srnote" style="grid-column: span 12 / span 12">
+                      <div class="flex gap-2.5 items-start px-3 py-2.5 text-sm" data-app-callout="info" style="background: rgba(14, 165, 233, 0.1); border-left: 3px solid rgb(14, 165, 233); border-radius: var(--app-radius); color: var(--text-primary)">
+                        <svg class="h-4 lucide lucide-info mt-0.5 shrink-0 w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg" style="color: rgb(14, 165, 233)">
+                        <div class="min-w-0">
+                          <div class="font-medium">
+                            "Searching the knowledge bases"
+                          <div class="app-callout__body text-[var(--text-secondary)]">
+                            "The button below searches this workspace’s knowledge bases for the identifiers on this request and writes what came back straight into the log — dated, attributed and marked as automated. It does nothing until an editor picks the knowledge bases in App Studio (open this app, select the "Search the knowledge bases" action, add them to its knowledge base list). Everything else works without it: log each system you searched by hand. The log is the evidence either way."
+                    <div class="app-node app-span-4 min-w-0" data-app-type="button" data-node-id="cmp_srkb" style="grid-column: span 4 / span 4">
+                      <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm transition-opacity" type="button" style="background: var(--bg-card); border-radius: var(--app-radius); border: 1px solid var(--border-default); color: var(--text-primary)">
+                        <svg class="h-3.5 lucide lucide-sparkles lucide-stars w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                        <span>
+                          "Search the knowledge bases"
+                    <div class="app-node app-span-12 min-w-0" data-app-type="data_grid" data-node-id="cmp_srgrid" style="grid-column: span 12 / span 12">
+                      <div class="w-full" data-app-datagrid="true">
+                        <div class="flex flex-col gap-1.5 h-full items-center justify-center min-h-0 py-6 text-center">
+                          <span class="mb-1 text-[var(--text-tertiary)]">
+                            <svg class="block" aria-hidden="true" fill="none" role="presentation" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 96 72" style="height: auto; opacity: 0.9; width: 5.5rem">
+                          <span class="font-medium text-[var(--text-primary)] text-sm">
+                            "Nothing here yet"
+                          <span class="max-w-xs text-[var(--text-muted)] text-sm">
+                            "Nothing searched yet. A request answered without a search log cannot be shown to have been answered properly."
+                    <div class="app-node app-span-12 min-w-0" data-app-type="form" data-node-id="cmp_srform" style="grid-column: span 12 / span 12">
+                      <form class="flex flex-col" novalidate="" style="gap: calc(12px * var(--app-space, 1))">
+                        <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                          <div class="app-node app-span-4 min-w-0" data-app-type="input_text" data-node-id="cmp_srf1" style="grid-column: span 4 / span 4">
+                            <div class="flex flex-col gap-1 text-left">
+                              <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_srf1-input">
+                                "System searched"
+                                <span class="[color:var(--error)]" aria-hidden="true">
+                                  "*"
+                              <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-required="true" id="cmp_srf1-input" name="system_name" placeholder="CRM, payroll, the shared mailbox…" type="text" value="" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                          <div class="app-node app-span-4 min-w-0" data-app-type="input_select" data-node-id="cmp_srf2" style="grid-column: span 4 / span 4">
+                            <div class="flex flex-col gap-1 text-left">
+                              <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_srf2-input">
+                                "Kind of source"
+                                <span class="[color:var(--error)]" aria-hidden="true">
+                                  "*"
+                              <select class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-required="true" id="cmp_srf2-input" name="source_type" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                                <option disabled="" value="">
+                                  "Choose…"
+                                <option value="knowledge_base">
+                                  "Knowledge base"
+                                <option value="application">
+                                  "Business application"
+                                <option value="mailbox">
+                                  "Mailbox / archive"
+                                <option value="file_share">
+                                  "File share"
+                                <option value="paper">
+                                  "Paper file"
+                                <option value="backup">
+                                  "Backup"
+                          <div class="app-node app-span-4 min-w-0" data-app-type="input_date" data-node-id="cmp_srf3" style="grid-column: span 4 / span 4">
+                            <div class="flex flex-col gap-1 text-left">
+                              <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_srf3-input">
+                                "Searched on"
+                                <span class="[color:var(--error)]" aria-hidden="true">
+                                  "*"
+                              <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-required="true" id="cmp_srf3-input" name="searched_on" type="date" value="<date>" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                          <div class="app-node app-span-8 min-w-0" data-app-type="input_text" data-node-id="cmp_srf4" style="grid-column: span 8 / span 8">
+                            <div class="flex flex-col gap-1 text-left">
+                              <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_srf4-input">
+                                "Exactly what you searched for"
+                              <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" id="cmp_srf4-input" name="query_used" type="text" value="" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                          <div class="app-node app-span-4 min-w-0" data-app-type="input_number" data-node-id="cmp_srf5" style="grid-column: span 4 / span 4">
+                            <div class="flex flex-col gap-1 text-left">
+                              <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_srf5-input">
+                                "Hits"
+                              <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" id="cmp_srf5-input" max="100000" min="0" name="hits_found" step="1" type="number" value="" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                          <div class="app-node app-span-12 min-w-0" data-app-type="input_textarea" data-node-id="cmp_srf6" style="grid-column: span 12 / span 12">
+                            <div class="flex flex-col gap-1 text-left">
+                              <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_srf6-input">
+                                "What was found (or that nothing was)"
+                              <div class="relative">
+                                <textarea class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 resize-y text-sm w-full" id="cmp_srf6-input" name="findings" placeholder=""Nothing" is a finding, and worth recording." rows="2" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                        <div class="flex gap-2 items-center">
+                          <button class="[background:var(--app-accent,var(--app-primary))] [border-radius:var(--app-radius)] [color:var(--app-accent-contrast,var(--app-primary-contrast))]! disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm" type="submit">
+                            <span>
+                              "Log this search"
+              <div class="pt-3" data-app-tabpanel="inactive" hidden="" role="tabpanel" style="display: none">
+                <div class="app-node app-span-12 min-w-0" data-app-type="tab" data-node-id="cmp_cstab3" style="grid-column: span 12 / span 12">
+                  <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                    <div class="app-node app-span-12 min-w-0" data-app-type="data_grid" data-node-id="cmp_dsgrid" style="grid-column: span 12 / span 12">
+                      <div class="w-full" data-app-datagrid="true">
+                        <div class="flex flex-col gap-1.5 h-full items-center justify-center min-h-0 py-6 text-center">
+                          <span class="mb-1 text-[var(--text-tertiary)]">
+                            <svg class="block" aria-hidden="true" fill="none" role="presentation" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 96 72" style="height: auto; opacity: 0.9; width: 5.5rem">
+                          <span class="font-medium text-[var(--text-primary)] text-sm">
+                            "Nothing here yet"
+                          <span class="max-w-xs text-[var(--text-muted)] text-sm">
+                            "Nothing disclosed yet."
+                    <div class="app-node app-span-12 min-w-0" data-app-type="form" data-node-id="cmp_dsform" style="grid-column: span 12 / span 12">
+                      <form class="flex flex-col" novalidate="" style="gap: calc(12px * var(--app-space, 1))">
+                        <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                          <div class="app-node app-span-4 min-w-0" data-app-type="input_select" data-node-id="cmp_dsf1" style="grid-column: span 4 / span 4">
+                            <div class="flex flex-col gap-1 text-left">
+                              <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_dsf1-input">
+                                "How it was delivered"
+                                <span class="[color:var(--error)]" aria-hidden="true">
+                                  "*"
+                              <select class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-required="true" id="cmp_dsf1-input" name="delivery" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                                <option disabled="" value="">
+                                  "Choose…"
+                                <option value="secure_download">
+                                  "Secure download link"
+                                <option value="encrypted_email">
+                                  "Encrypted e-mail"
+                                <option value="registered_post">
+                                  "Registered post"
+                                <option value="in_person">
+                                  "Handed over in person"
+                          <div class="app-node app-span-4 min-w-0" data-app-type="input_date" data-node-id="cmp_dsf2" style="grid-column: span 4 / span 4">
+                            <div class="flex flex-col gap-1 text-left">
+                              <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_dsf2-input">
+                                "Sent on"
+                                <span class="[color:var(--error)]" aria-hidden="true">
+                                  "*"
+                              <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-required="true" id="cmp_dsf2-input" name="sent_on" type="date" value="<date>" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                          <div class="app-node app-span-4 min-w-0" data-app-type="input_checkbox" data-node-id="cmp_dsf3" style="grid-column: span 4 / span 4">
+                            <div class="flex flex-col gap-1 text-left">
+                              <label class="cursor-pointer gap-2 inline-flex items-center select-none text-sm" for="cmp_dsf3-input">
+                                <input class="[accent-color:var(--app-primary)] h-4 w-4" id="cmp_dsf3-input" name="machine_readable" type="checkbox">
+                                <span>
+                                  "Structured, machine-readable format (Art. 20)"
+                          <div class="app-node app-span-12 min-w-0" data-app-type="input_textarea" data-node-id="cmp_dsf4" style="grid-column: span 12 / span 12">
+                            <div class="flex flex-col gap-1 text-left">
+                              <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_dsf4-input">
+                                "What exactly was sent"
+                                <span class="[color:var(--error)]" aria-hidden="true">
+                                  "*"
+                              <div class="relative">
+                                <textarea class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 resize-y text-sm w-full" aria-required="true" id="cmp_dsf4-input" name="contents" placeholder="The categories of data, the files, the covering letter." rows="3" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                        <div class="flex gap-2 items-center">
+                          <button class="[background:var(--app-accent,var(--app-primary))] [border-radius:var(--app-radius)] [color:var(--app-accent-contrast,var(--app-primary-contrast))]! disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm" type="submit">
+                            <span>
+                              "Record what was sent"
+              <div class="pt-3" data-app-tabpanel="inactive" hidden="" role="tabpanel" style="display: none">
+                <div class="app-node app-span-12 min-w-0" data-app-type="tab" data-node-id="cmp_cstab4" style="grid-column: span 12 / span 12">
+                  <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                    <div class="app-node app-span-12 min-w-0" data-app-type="callout" data-node-id="cmp_exnote" style="grid-column: span 12 / span 12">
+                      <div class="flex gap-2.5 items-start px-3 py-2.5 text-sm" data-app-callout="info" style="background: rgba(14, 165, 233, 0.1); border-left: 3px solid rgb(14, 165, 233); border-radius: var(--app-radius); color: var(--text-primary)">
+                        <svg class="h-4 lucide lucide-info mt-0.5 shrink-0 w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg" style="color: rgb(14, 165, 233)">
+                        <div class="min-w-0">
+                          <div class="font-medium">
+                            "Withholding is allowed. Withholding quietly is not."
+                          <div class="app-callout__body text-[var(--text-secondary)]">
+                            "Redacting a colleague’s name out of an e-mail is an exemption like any other: name the ground, say what you took out, and be ready to explain it. A request can be fulfilled and still have withholdings against it — record them here rather than only in a refusal."
+                    <div class="app-node app-span-12 min-w-0" data-app-type="data_grid" data-node-id="cmp_exgrid" style="grid-column: span 12 / span 12">
+                      <div class="w-full" data-app-datagrid="true">
+                        <div class="flex flex-col gap-1.5 h-full items-center justify-center min-h-0 py-6 text-center">
+                          <span class="mb-1 text-[var(--text-tertiary)]">
+                            <svg class="block" aria-hidden="true" fill="none" role="presentation" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 96 72" style="height: auto; opacity: 0.9; width: 5.5rem">
+                          <span class="font-medium text-[var(--text-primary)] text-sm">
+                            "Nothing here yet"
+                          <span class="max-w-xs text-[var(--text-muted)] text-sm">
+                            "Nothing withheld — which is also worth being able to say."
+                    <div class="app-node app-span-12 min-w-0" data-app-type="form" data-node-id="cmp_exform" style="grid-column: span 12 / span 12">
+                      <form class="flex flex-col" novalidate="" style="gap: calc(12px * var(--app-space, 1))">
+                        <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                          <div class="app-node app-span-6 min-w-0" data-app-type="input_select" data-node-id="cmp_exf1" style="grid-column: span 6 / span 6">
+                            <div class="flex flex-col gap-1 text-left">
+                              <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_exf1-input">
+                                "Ground relied on"
+                                <span class="[color:var(--error)]" aria-hidden="true">
+                                  "*"
+                              <select class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-required="true" id="cmp_exf1-input" name="ground" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                                <option disabled="" value="">
+                                  "Choose…"
+                                <option value="third_party">
+                                  "Rights of others (Art. 15(4))"
+                                <option value="legal_privilege">
+                                  "Legal professional privilege"
+                                <option value="legal_retention">
+                                  "Retention required by law (Art. 17(3)(b))"
+                                <option value="excessive">
+                                  "Manifestly unfounded or excessive (Art. 12(5))"
+                                <option value="identity_unproven">
+                                  "Identity not established (Art. 12(6))"
+                                <option value="trade_secret">
+                                  "Trade secret / intellectual property"
+                          <div class="app-node app-span-6 min-w-0" data-app-type="input_date" data-node-id="cmp_exf2" style="grid-column: span 6 / span 6">
+                            <div class="flex flex-col gap-1 text-left">
+                              <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_exf2-input">
+                                "Decided on"
+                                <span class="[color:var(--error)]" aria-hidden="true">
+                                  "*"
+                              <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-required="true" id="cmp_exf2-input" name="decided_on" type="date" value="<date>" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                          <div class="app-node app-span-12 min-w-0" data-app-type="input_text" data-node-id="cmp_exf3" style="grid-column: span 12 / span 12">
+                            <div class="flex flex-col gap-1 text-left">
+                              <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_exf3-input">
+                                "What was withheld"
+                                <span class="[color:var(--error)]" aria-hidden="true">
+                                  "*"
+                              <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-required="true" id="cmp_exf3-input" name="what_withheld" placeholder="Third-party names in the complaint thread" type="text" value="" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                          <div class="app-node app-span-12 min-w-0" data-app-type="input_textarea" data-node-id="cmp_exf4" style="grid-column: span 12 / span 12">
+                            <div class="flex flex-col gap-1 text-left">
+                              <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_exf4-input">
+                                "Why this ground applies here"
+                              <div class="relative">
+                                <textarea class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 resize-y text-sm w-full" id="cmp_exf4-input" name="notes" placeholder="The reasoning you would give a supervisory authority." rows="2" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                        <div class="flex gap-2 items-center">
+                          <button class="[background:var(--app-accent,var(--app-primary))] [border-radius:var(--app-radius)] [color:var(--app-accent-contrast,var(--app-primary-contrast))]! disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm" type="submit">
+                            <span>
+                              "Record the withholding"
+        <section class="app-grid" data-section-id="sec_csdlg" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: 0px">
+## screen scr_evidence (Search log)
+<div class="app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(15, 118, 110, 0.1); --app-accent: #0F766E; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(15, 118, 110, 0.1); --app-primary: #0F766E; --app-radius: 4px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-family: "IBM Plex Sans", system-ui, -apple-system, sans-serif; font-size: 15px; min-height: 100vh">
+  <main class="flex flex-1 flex-col min-h-0">
+    <div class="app-runtime app-screen-enter flex flex-1 flex-col h-full min-h-0 w-full" data-app-appearance="auto" data-app-screen="scr_evidence" data-app-screen-kind="page" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(15, 118, 110, 0.1); --app-accent: #0F766E; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(15, 118, 110, 0.1); --app-primary: #0F766E; --app-radius: 4px; --app-space: 1; color: var(--text-primary); font-family: "IBM Plex Sans", system-ui, -apple-system, sans-serif; font-size: 15px">
+      <div class="flex flex-1 flex-col min-h-0 w-full" style="margin: 0px auto; max-width: none">
+        <section class="app-grid" data-section-id="sec_evtop" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="page_header" data-node-id="cmp_evhdr" style="grid-column: span 12 / span 12">
+            <header class="min-w-0 w-full" data-app-pageheader="true">
+              <div class="flex flex-wrap items-start" style="gap: calc(12px * var(--app-space, 1))">
+                <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-9 inline-flex items-center justify-center rounded-md shrink-0 w-9" aria-hidden="true">
+                  <svg class="h-4.5 lucide lucide-search w-4.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                <div class="basis-64 flex-1 min-w-0">
+                  <h1 class="font-semibold text-[var(--text-primary)] text-xl truncate" title="Search log">
+                    "Search log"
+                  <p class="line-clamp-2 mt-0.5 text-sm" title="The part organisations fail, and the part that proves they did not." style="color: var(--text-secondary)">
+                    "The part organisations fail, and the part that proves they did not."
+          <div class="app-node app-span-3 min-w-0" data-app-type="stat" data-node-id="cmp_evs1" style="grid-column: span 3 / span 3">
+            <div class="app-stat app-stat--tinted flex gap-2.5 items-start" style="background: var(--app-primary-soft); border-radius: var(--app-radius, 8px); padding: calc(16px * var(--app-space, 1))">
+              <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-8 inline-flex items-center justify-center mt-0.5 rounded-md shrink-0 w-8">
+                <svg class="h-4 lucide lucide-search w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-[var(--text-secondary)] text-xs">
+                  "Searches logged"
+                <div class="flex gap-2 items-baseline min-w-0">
+                  <div class="font-semibold leading-tight text-2xl truncate" title="—">
+                    "—"
+                <div class="text-[var(--text-muted)] text-xs">
+                  "across every request"
+          <div class="app-node app-span-3 min-w-0" data-app-type="stat" data-node-id="cmp_evs2" style="grid-column: span 3 / span 3">
+            <div class="app-stat app-stat--tinted flex gap-2.5 items-start" style="background: var(--app-primary-soft); border-radius: var(--app-radius, 8px); padding: calc(16px * var(--app-space, 1))">
+              <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-8 inline-flex items-center justify-center mt-0.5 rounded-md shrink-0 w-8">
+                <svg class="h-4 lucide lucide-hash w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-[var(--text-secondary)] text-xs">
+                  "Records found"
+                <div class="flex gap-2 items-baseline min-w-0">
+                  <div class="font-semibold leading-tight text-2xl truncate" title="—">
+                    "—"
+                <div class="text-[var(--text-muted)] text-xs">
+                  "hits recorded in total"
+          <div class="app-node app-span-3 min-w-0" data-app-type="stat" data-node-id="cmp_evs3" style="grid-column: span 3 / span 3">
+            <div class="app-stat app-stat--tinted flex gap-2.5 items-start" style="background: var(--app-primary-soft); border-radius: var(--app-radius, 8px); padding: calc(16px * var(--app-space, 1))">
+              <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-8 inline-flex items-center justify-center mt-0.5 rounded-md shrink-0 w-8">
+                <svg class="h-4 lucide lucide-file-check w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-[var(--text-secondary)] text-xs">
+                  "Searched nothing found"
+                <div class="flex gap-2 items-baseline min-w-0">
+                  <div class="font-semibold leading-tight text-2xl truncate" title="—">
+                    "—"
+                <div class="text-[var(--text-muted)] text-xs">
+                  "a nil result is still evidence"
+          <div class="app-node app-span-3 min-w-0" data-app-type="stat" data-node-id="cmp_evs4" style="grid-column: span 3 / span 3">
+            <div class="app-stat app-stat--tinted flex gap-2.5 items-start" style="background: var(--app-primary-soft); border-radius: var(--app-radius, 8px); padding: calc(16px * var(--app-space, 1))">
+              <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-8 inline-flex items-center justify-center mt-0.5 rounded-md shrink-0 w-8">
+                <svg class="h-4 lucide lucide-sparkles lucide-stars w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-[var(--text-secondary)] text-xs">
+                  "Automated"
+                <div class="flex gap-2 items-baseline min-w-0">
+                  <div class="font-semibold leading-tight text-2xl truncate" title="—">
+                    "—"
+                <div class="text-[var(--text-muted)] text-xs">
+                  "written by the knowledge base search"
+        <section class="app-grid app-section-fill" data-section-id="sec_evmain" style="flex: 1 1 0px; gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); grid-template-rows: minmax(0, 1fr); min-height: 0px; padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-4 min-w-0" data-app-type="chart" data-node-id="cmp_evchart" style="flex: 1 1 0px; grid-column: span 4 / span 4; min-height: 0px; min-width: 0px">
+            <div class="flex h-full items-center justify-center min-h-0 py-1 text-[var(--text-muted)] text-center text-sm">
+              "No chart data yet."
+          <div class="app-node app-span-8 min-w-0" data-app-type="data_grid" data-node-id="cmp_evgrid" style="flex: 1 1 0px; grid-column: span 8 / span 8; min-height: 0px; min-width: 0px">
+            <div class="w-full" data-app-datagrid="true">
+              <div class="flex flex-col gap-1.5 h-full items-center justify-center min-h-0 py-6 text-center">
+                <span class="mb-1 text-[var(--text-tertiary)]">
+                  <svg class="block" aria-hidden="true" fill="none" role="presentation" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 96 72" style="height: auto; opacity: 0.9; width: 5.5rem">
+                <span class="font-medium text-[var(--text-primary)] text-sm">
+                  "Nothing here yet"
+                <span class="max-w-xs text-[var(--text-muted)] text-sm">
+                  "No searches logged yet."
+## screen scr_report (Report)
+<div class="app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(15, 118, 110, 0.1); --app-accent: #0F766E; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(15, 118, 110, 0.1); --app-primary: #0F766E; --app-radius: 4px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-family: "IBM Plex Sans", system-ui, -apple-system, sans-serif; font-size: 15px; min-height: 100vh">
+  <main class="flex flex-1 flex-col min-h-0">
+    <div class="app-runtime app-screen-enter flex flex-1 flex-col h-full min-h-0 w-full" data-app-appearance="auto" data-app-screen="scr_report" data-app-screen-kind="page" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(15, 118, 110, 0.1); --app-accent: #0F766E; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(15, 118, 110, 0.1); --app-primary: #0F766E; --app-radius: 4px; --app-space: 1; color: var(--text-primary); font-family: "IBM Plex Sans", system-ui, -apple-system, sans-serif; font-size: 15px">
+      <div class="flex flex-1 flex-col min-h-0 w-full" style="margin: 0px auto; max-width: 1280px">
+        <section class="app-grid" data-section-id="sec_rptop" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="page_header" data-node-id="cmp_rphdr" style="grid-column: span 12 / span 12">
+            <header class="min-w-0 w-full" data-app-pageheader="true">
+              <div class="flex flex-wrap items-start" style="gap: calc(12px * var(--app-space, 1))">
+                <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-9 inline-flex items-center justify-center rounded-md shrink-0 w-9" aria-hidden="true">
+                  <svg class="h-4.5 lucide lucide-bar-chart-3 lucide-chart-column w-4.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                <div class="basis-64 flex-1 min-w-0">
+                  <h1 class="font-semibold text-[var(--text-primary)] text-xl truncate" title="Report">
+                    "Report"
+                  <p class="line-clamp-2 mt-0.5 text-sm" title="Accountability (Art. 5(2)) is a thing you can show, or it is not a thing." style="color: var(--text-secondary)">
+                    "Accountability (Art. 5(2)) is a thing you can show, or it is not a thing."
+          <div class="app-node app-span-4 min-w-0" data-app-type="stat" data-node-id="cmp_rps1" style="grid-column: span 4 / span 4">
+            <div class="app-stat app-stat--tinted flex gap-2.5 items-start" style="background: var(--app-primary-soft); border-radius: var(--app-radius, 8px); padding: calc(16px * var(--app-space, 1))">
+              <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-8 inline-flex items-center justify-center mt-0.5 rounded-md shrink-0 w-8">
+                <svg class="h-4 lucide lucide-clipboard-list w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-[var(--text-secondary)] text-xs">
+                  "Requests logged"
+                <div class="flex gap-2 items-baseline min-w-0">
+                  <div class="font-semibold leading-tight text-2xl truncate" title="—">
+                    "—"
+                <div class="text-[var(--text-muted)] text-xs">
+                  "since this register opened"
+          <div class="app-node app-span-4 min-w-0" data-app-type="stat" data-node-id="cmp_rps2" style="grid-column: span 4 / span 4">
+            <div class="app-stat app-stat--tinted flex gap-2.5 items-start" style="background: var(--app-primary-soft); border-radius: var(--app-radius, 8px); padding: calc(16px * var(--app-space, 1))">
+              <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-8 inline-flex items-center justify-center mt-0.5 rounded-md shrink-0 w-8">
+                <svg class="h-4 lucide lucide-scissors w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-[var(--text-secondary)] text-xs">
+                  "Refused"
+                <div class="flex gap-2 items-baseline min-w-0">
+                  <div class="font-semibold leading-tight text-2xl truncate" title="—">
+                    "—"
+                <div class="text-[var(--text-muted)] text-xs">
+                  "each with a recorded ground"
+          <div class="app-node app-span-4 min-w-0" data-app-type="stat" data-node-id="cmp_rps3" style="grid-column: span 4 / span 4">
+            <div class="app-stat app-stat--tinted flex gap-2.5 items-start" style="background: var(--app-primary-soft); border-radius: var(--app-radius, 8px); padding: calc(16px * var(--app-space, 1))">
+              <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-8 inline-flex items-center justify-center mt-0.5 rounded-md shrink-0 w-8">
+                <svg class="h-4 lucide lucide-calendar-clock w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-[var(--text-secondary)] text-xs">
+                  "Extensions taken"
+                <div class="flex gap-2 items-baseline min-w-0">
+                  <div class="font-semibold leading-tight text-2xl truncate" title="—">
+                    "—"
+                <div class="text-[var(--text-muted)] text-xs">
+                  "requester informed in each case"
+        <section class="app-grid app-section-fill" data-section-id="sec_rpmain" style="flex: 1 1 0px; gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); grid-template-rows: minmax(0, 1fr); min-height: 0px; padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-4 min-w-0" data-app-type="chart" data-node-id="cmp_rpc1" style="flex: 1 1 0px; grid-column: span 4 / span 4; min-height: 0px; min-width: 0px">
+            <div class="flex h-full items-center justify-center min-h-0 py-1 text-[var(--text-muted)] text-center text-sm">
+              "No chart data yet."
+          <div class="app-node app-span-4 min-w-0" data-app-type="chart" data-node-id="cmp_rpc2" style="flex: 1 1 0px; grid-column: span 4 / span 4; min-height: 0px; min-width: 0px">
+            <div class="flex h-full items-center justify-center min-h-0 py-1 text-[var(--text-muted)] text-center text-sm">
+              "No chart data yet."
+          <div class="app-node app-span-4 min-w-0" data-app-type="chart" data-node-id="cmp_rpc3" style="flex: 1 1 0px; grid-column: span 4 / span 4; min-height: 0px; min-width: 0px">
+            <div class="flex h-full items-center justify-center min-h-0 py-1 text-[var(--text-muted)] text-center text-sm">
+              "No chart data yet."
+## screen scr_setup (Setup)
+<div class="app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(15, 118, 110, 0.1); --app-accent: #0F766E; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(15, 118, 110, 0.1); --app-primary: #0F766E; --app-radius: 4px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-family: "IBM Plex Sans", system-ui, -apple-system, sans-serif; font-size: 15px; min-height: 100vh">
+  <main class="flex flex-1 flex-col min-h-0">
+    <div class="app-runtime app-screen-enter flex flex-1 flex-col h-full min-h-0 w-full" data-app-appearance="auto" data-app-screen="scr_setup" data-app-screen-kind="page" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(15, 118, 110, 0.1); --app-accent: #0F766E; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(15, 118, 110, 0.1); --app-primary: #0F766E; --app-radius: 4px; --app-space: 1; color: var(--text-primary); font-family: "IBM Plex Sans", system-ui, -apple-system, sans-serif; font-size: 15px">
+      <div class="flex flex-1 flex-col min-h-0 w-full" style="margin: 0px auto; max-width: 1280px">
+        <section class="app-grid" data-section-id="sec_sutop" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="page_header" data-node-id="cmp_suhdr" style="grid-column: span 12 / span 12">
+            <header class="min-w-0 w-full" data-app-pageheader="true">
+              <div class="flex flex-wrap items-start" style="gap: calc(12px * var(--app-space, 1))">
+                <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-9 inline-flex items-center justify-center rounded-md shrink-0 w-9" aria-hidden="true">
+                  <svg class="h-4.5 lucide lucide-table-properties w-4.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                <div class="basis-64 flex-1 min-w-0">
+                  <h1 class="font-semibold text-[var(--text-primary)] text-xl truncate" title="Setup">
+                    "Setup"
+                  <p class="line-clamp-2 mt-0.5 text-sm" title="The vocabulary this register is kept in. Data, not code." style="color: var(--text-secondary)">
+                    "The vocabulary this register is kept in. Data, not code."
+          <div class="app-node app-span-12 min-w-0" data-app-type="callout" data-node-id="cmp_sunote" style="grid-column: span 12 / span 12">
+            <div class="flex gap-2.5 items-start px-3 py-2.5 text-sm" data-app-callout="info" style="background: rgba(14, 165, 233, 0.1); border-left: 3px solid rgb(14, 165, 233); border-radius: var(--app-radius); color: var(--text-primary)">
+              <svg class="h-4 lucide lucide-info mt-0.5 shrink-0 w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg" style="color: rgb(14, 165, 233)">
+              <div class="min-w-0">
+                <div class="font-medium">
+                  "One thing to know"
+                <div class="app-callout__body text-[var(--text-secondary)]">
+                  "Types, statuses and grounds are stored as keys, so adding a row here is enough for the register, the filters, the reports and the case file to use it. The dropdowns on the forms and the filter bar are fixed lists, so a value you add here is stored and reported on correctly but will not appear in those dropdowns until an editor adds it in App Studio."
+        <section class="app-grid app-section-fill" data-section-id="sec_sumain" style="flex: 1 1 0px; gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); grid-template-rows: minmax(0, 1fr); min-height: 0px; padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="tabs" data-node-id="cmp_sutabs" style="grid-column: span 12 / span 12">
+            <div class="min-w-0 w-full" data-app-tabs="true">
+              <div class="app-scroll-x border-b flex gap-1 items-center overflow-x-auto" aria-label="Tabs" role="tablist" style="border-color: var(--border-default)">
+                <button class="-mb-px font-medium gap-1.5 inline-flex items-center px-3 py-2 shrink-0 text-sm whitespace-nowrap" aria-selected="true" role="tab" type="button" style="border-bottom: 2px solid var(--app-primary); color: var(--app-primary)">
+                  <svg class="h-3.5 lucide lucide-tags w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                  <span>
+                    "Request types"
+                <button class="-mb-px font-medium gap-1.5 inline-flex items-center px-3 py-2 shrink-0 text-sm whitespace-nowrap" aria-selected="false" role="tab" type="button" style="border-bottom: 2px solid transparent; color: var(--text-secondary)">
+                  <svg class="h-3.5 lucide lucide-list-checks w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                  <span>
+                    "Statuses"
+                <button class="-mb-px font-medium gap-1.5 inline-flex items-center px-3 py-2 shrink-0 text-sm whitespace-nowrap" aria-selected="false" role="tab" type="button" style="border-bottom: 2px solid transparent; color: var(--text-secondary)">
+                  <svg class="h-3.5 lucide lucide-shield-check w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                  <span>
+                    "Exemption grounds"
+              <div class="pt-3" data-app-tabpanel="active" role="tabpanel">
+                <div class="app-node app-span-12 min-w-0" data-app-type="tab" data-node-id="cmp_sutab1" style="grid-column: span 12 / span 12">
+                  <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                    <div class="app-node app-span-12 min-w-0" data-app-type="data_grid" data-node-id="cmp_sutypes" style="grid-column: span 12 / span 12">
+                      <div class="w-full" data-app-datagrid="true">
+                        <div class="flex flex-col gap-1.5 h-full items-center justify-center min-h-0 py-6 text-center">
+                          <span class="mb-1 text-[var(--text-tertiary)]">
+                            <svg class="block" aria-hidden="true" fill="none" role="presentation" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 96 72" style="height: auto; opacity: 0.9; width: 5.5rem">
+                          <span class="font-medium text-[var(--text-primary)] text-sm">
+                            "Nothing here yet"
+                          <span class="max-w-xs text-[var(--text-muted)] text-sm">
+                            "No request types configured."
+              <div class="pt-3" data-app-tabpanel="inactive" hidden="" role="tabpanel" style="display: none">
+                <div class="app-node app-span-12 min-w-0" data-app-type="tab" data-node-id="cmp_sutab2" style="grid-column: span 12 / span 12">
+                  <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                    <div class="app-node app-span-12 min-w-0" data-app-type="data_grid" data-node-id="cmp_sustats" style="grid-column: span 12 / span 12">
+                      <div class="w-full" data-app-datagrid="true">
+                        <div class="flex flex-col gap-1.5 h-full items-center justify-center min-h-0 py-6 text-center">
+                          <span class="mb-1 text-[var(--text-tertiary)]">
+                            <svg class="block" aria-hidden="true" fill="none" role="presentation" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 96 72" style="height: auto; opacity: 0.9; width: 5.5rem">
+                          <span class="font-medium text-[var(--text-primary)] text-sm">
+                            "Nothing here yet"
+                          <span class="max-w-xs text-[var(--text-muted)] text-sm">
+                            "No statuses configured."
+              <div class="pt-3" data-app-tabpanel="inactive" hidden="" role="tabpanel" style="display: none">
+                <div class="app-node app-span-12 min-w-0" data-app-type="tab" data-node-id="cmp_sutab3" style="grid-column: span 12 / span 12">
+                  <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                    <div class="app-node app-span-12 min-w-0" data-app-type="data_grid" data-node-id="cmp_sugrnds" style="grid-column: span 12 / span 12">
+                      <div class="w-full" data-app-datagrid="true">
+                        <div class="flex flex-col gap-1.5 h-full items-center justify-center min-h-0 py-6 text-center">
+                          <span class="mb-1 text-[var(--text-tertiary)]">
+                            <svg class="block" aria-hidden="true" fill="none" role="presentation" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 96 72" style="height: auto; opacity: 0.9; width: 5.5rem">
+                          <span class="font-medium text-[var(--text-primary)] text-sm">
+                            "Nothing here yet"
+                          <span class="max-w-xs text-[var(--text-muted)] text-sm">
+                            "No exemption grounds configured — a refusal would have nothing to cite."

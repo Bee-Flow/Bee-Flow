@@ -23,6 +23,9 @@ import { childStepSlots } from '../shared/appDefinition/stepFlow.mjs';
 const nodeRequire = createRequire(import.meta.url);
 // Required, not imported: agent-hub's typecheck reaches this file (validate, builder tools) and refuses a `.mts` import path.
 const { staleMs } = nodeRequire('../stores/studioAppData/runPolicy.mts') as { staleMs: (env?: Record<string, string | undefined>) => number };
+const { STEP_POLICY_LISTS } = nodeRequire('./componentSpecs/stepRegistry.js') as {
+    STEP_POLICY_LISTS: { backgroundRefusedKinds: readonly string[]; backgroundDeferredKinds: readonly string[] };
+};
 const { LIMITS } = nodeRequire('./componentSpecs/limits.js') as {
     LIMITS: { MAX_ACTION_DEPTH: number; MAX_CALL_DEPTH: number; MAX_LOCK_KEY_LEN: number; MAX_PROGRESS_TEXT_LEN: number; MAX_DEFERRED_EFFECTS: number };
 };
@@ -30,10 +33,10 @@ const { LIMITS } = nodeRequire('./componentSpecs/limits.js') as {
 type Obj = Record<string, unknown>;
 const isObject = (v: unknown): v is Obj => v !== null && typeof v === 'object' && !Array.isArray(v);
 
-/** Client kinds that cannot run in a server job. */
-export const BACKGROUND_REFUSED_KINDS: readonly string[] = Object.freeze(['navigate', 'open_url', 'open_modal', 'close_modal', 'reset_form', 'download_file', 'ai_browse']);
-/** Client kinds a job records and the browser replays at the end. */
-export const BACKGROUND_DEFERRED_KINDS: readonly string[] = Object.freeze(['toast', 'refresh']);
+/** Kinds that cannot run in a server job: policy row `background: 'refuse'` (componentSpecs/stepMeta.js, or the kind's registry file). */
+export const BACKGROUND_REFUSED_KINDS: readonly string[] = STEP_POLICY_LISTS.backgroundRefusedKinds;
+/** Client kinds a job records and the browser replays at the end: `background: 'defer'`. */
+export const BACKGROUND_DEFERRED_KINDS: readonly string[] = STEP_POLICY_LISTS.backgroundDeferredKinds;
 /** The action-level fields of a background sequence. */
 export const RUN_OPTION_FIELDS: readonly string[] = Object.freeze(['background', 'lockKey', 'progressVar']);
 

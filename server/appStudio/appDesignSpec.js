@@ -28,6 +28,9 @@
 'use strict';
 
 const crypto = require('crypto');
+const { valueTypeOf, isAssetRef } = require('./componentSpecs/valueTypes');
+const { LIMITS } = require('./componentSpecs/limits');
+const { cleanAppCss, appCssRepairNote } = require('./appCss.mts');
 
 // Font PAIRING ids, not raw family names: the closed vocabulary keeps the
 // builder/editor honest and every family on the CMS DESIGN_FONTS allowlist.
@@ -44,14 +47,29 @@ const FONT_FAMILIES = Object.freeze({
     poppins: 'Poppins',
 });
 
-/** @typedef {{ type: 'enum', values: string[], default: string } | { type: 'url', default: string | null, maxLen: number }} DesignSpecEntry */
+/**
+ * One design key. `optional: true` marks a key added after the base seven: it is written
+ * only when the design carries a valid value for it, never as a default, so a design stored
+ * before the key existed keeps its bytes. A base key is always written (its default when
+ * absent). A key added later is optional and may use a value type of
+ * componentSpecs/valueTypes.js as its `type`.
+ * @typedef {{ type: 'enum', values: string[], default: string, optional?: boolean, valuesSince?: Record<string, number>, description?: string } | { type: 'url', default: string | null, maxLen: number, optional?: boolean } | DesignCssEntry} DesignSpecEntry
+ * @typedef {{ type: 'css', optional: true, since: number, maxLen: number, sanitize: (text: string) => string, repairNote: (text: unknown) => string | null, description: string }} DesignCssEntry
+ *   A stylesheet key: stored as `sanitize` returns it; `repairNote` says what saving took out.
+ */
 
 const DESIGN_SPEC = Object.freeze(/** @satisfies {Record<string, DesignSpecEntry>} */ ({
     // Provenance only: applying a preset MATERIALIZES its values into theme /
     // design / nav (themePresets.js precedent) — this field just remembers
     // which gallery card the owner started from, so the editor can show it as
     // selected and "custom" the moment they diverge.
-    preset: { type: 'enum', values: ['custom', 'classic', 'cloud', 'atlas', 'midnight', 'field', 'paper', 'mono'], default: 'custom' },
+    preset: {
+        type: 'enum',
+        values: ['custom', 'classic', 'cloud', 'atlas', 'midnight', 'field', 'paper', 'mono', 'grove', 'ember', 'signal', 'bloom', 'ledger', 'nocturne'],
+        default: 'custom',
+        valuesSince: { grove: 3, ember: 3, signal: 3, bloom: 3, ledger: 3, nocturne: 3 },
+        description: 'The design preset the look started from. Apply one with app_set_theme {preset:"<id>"}, which accepts every id here even where its own list shows fewer: grove (fresh green, rounded, sidebar), ember (warm orange, lifted cards, tabs), signal (dark square control room, icon rail), bloom (soft pink, round and roomy, tabs), ledger (sober stone, square hairlines, sidebar), nocturne (dark product look, lifted cards, mega menu).',
+    },
     font: { type: 'enum', values: Object.keys(FONT_FAMILIES), default: 'system' },
     // ONE surface knob (presets-over-knobs), mapping to semantic elevation
     // tokens --app-shadow-1/2/3 that the high-contrast host theme re-declares
@@ -60,6 +78,7 @@ const DESIGN_SPEC = Object.freeze(/** @satisfies {Record<string, DesignSpecEntry
     surface: { type: 'enum', values: ['hairline', 'flat', 'soft', 'elevated'], default: 'hairline' },
     // 'subtle' is identity: the universal-polish baseline motion. 'none'
     // stamps .app-motion--none; prefers-reduced-motion always wins in CSS.
+    // 'full' is accepted and stored but renders exactly like 'subtle'.
     motion: { type: 'enum', values: ['none', 'subtle', 'full'], default: 'subtle' },
     chartPalette: { type: 'enum', values: ['classic', 'brand'], default: 'classic' },
     // The coloured 3px edge that marks a callout's tone, a toned table row, a
@@ -70,6 +89,18 @@ const DESIGN_SPEC = Object.freeze(/** @satisfies {Record<string, DesignSpecEntry
     // should not have to keep them.
     accentEdge: { type: 'enum', values: ['bar', 'none'], default: 'bar' },
     logoUrl: { type: 'url', default: null, maxLen: 500 },
+    // The app's own stylesheet (appCss.mts says what is kept). Stored sanitised; the page
+    // sanitises it again and mounts it inside @scope ([data-app-css-root]).
+    customCss: {
+        type: 'css', optional: true, since: 3, maxLen: LIMITS.MAX_CUSTOM_CSS_LEN,
+        sanitize: cleanAppCss,
+        repairNote: appCssRepairNote,
+        description: 'A stylesheet of the app, for what theme and style knobs cannot do. '
+            + 'Plain CSS text, applied to the content of every screen of this app (not to its navigation bar) and to nothing outside it. Reach for the theme, the design keys and the style knobs first: they follow dark mode and high contrast by themselves, a stylesheet does not. '
+            + 'Selectors that are a contract: [data-app-screen="<screen id>"] (one screen), [data-section-id="<section id>"] (one section), [data-node-id="<node id>"] (the cell of one component), [data-app-type="<type>"] (every component of a type, e.g. [data-app-type="button"]), .u-<name> (every component whose cssClass is <name>), and inside a component the part classes .bfa-<type>__<part> where the type lists parts. Any other class name of the product can change without notice. '
+            + 'Colours: prefer the variables var(--app-primary), var(--app-accent), var(--app-canvas), var(--text-primary), var(--bg-card) and var(--border-default) over fixed values. Dark mode: the app root carries data-app-dark="true" or "false", so write :scope[data-app-dark="true"] .u-hero { … } for the dark variant (:scope is the app root, and a selector without it only matches inside the root). Under the high-contrast theme the stylesheet is not applied at all, so nothing may depend on it to be readable. '
+            + 'Allowed at-rules: @media, @supports, @container. Comments are not kept. Removed when saved, and named in the repair hints: every other at-rule (@import, @font-face, @keyframes, …), position: fixed, and a url() that is not data:image/… or asset:<id> (an uploaded file of this app). Write it with app_set_theme { customCss: "<the whole stylesheet>" } (the text replaces what was there), and pass null to remove it.',
+    },
 }));
 
 // Four ways to move around an app, so the shape can follow the work:
@@ -93,36 +124,97 @@ function isObject(v) {
 }
 
 /**
+ * @typedef {{ type: string, [k: string]: any }} DesignKeySpec  A design key as canonDesign reads it.
+ * @typedef {(code: string, path: string, message: string) => void} DesignPush
+ */
+
+/**
+ * @param {string} key
+ * @param {DesignKeySpec} spec
+ * @param {unknown} v
+ * @param {DesignPush} push
+ */
+function canonDesignEnum(key, spec, v, push) {
+    if (spec.values.includes(v)) return v;
+    if (v !== undefined) {
+        push('design.value_invalid', `design.${key}`, `design.${key} ${JSON.stringify(v)} is invalid — ${spec.optional ? 'dropped' : `defaulted to ${JSON.stringify(spec.default)}`}. Legal: ${spec.values.join(', ')}.`);
+    }
+    return spec.optional ? undefined : spec.default;
+}
+
+/**
+ * @param {string} key
+ * @param {DesignKeySpec} spec
+ * @param {unknown} v
+ * @param {DesignPush} push
+ */
+function canonDesignUrl(key, spec, v, push) {
+    if (v === null || v === undefined) return spec.default;
+    if (typeof v === 'string' && v.startsWith('https://') && v.length <= spec.maxLen) return v;
+    // An uploaded file of the app (`asset:<id>`, appAssets.mts), e.g. the logo.
+    if (isAssetRef(v)) return v;
+    push('design.value_invalid', `design.${key}`, `design.${key} must be an https:// URL of at most ${spec.maxLen} characters, or asset:<id> of an uploaded file — ${spec.optional ? 'dropped' : 'reset to null'}.`);
+    return spec.optional ? undefined : spec.default;
+}
+
+/**
+ * A value type added later (componentSpecs/valueTypes.js). It has no default to write, so
+ * it only exists as an optional key.
+ * @param {string} key
+ * @param {DesignKeySpec} spec
+ * @param {unknown} v
+ * @param {DesignPush} push
+ */
+function canonDesignTyped(key, spec, v, push) {
+    const valueType = valueTypeOf(spec);
+    if (!valueType || !spec.optional) return undefined;
+    // Empty text is "not set", like null: the key leaves no trace and nothing is reported.
+    if (typeof v === 'string' && !v.trim()) return undefined;
+    const cleaned = valueType.clean(v, spec);
+    // A key whose value is cleaned rather than refused says what it took out.
+    const note = cleaned !== v && typeof spec.repairNote === 'function' ? spec.repairNote(v) : null;
+    if (cleaned === undefined) push('design.value_invalid', `design.${key}`, `design.${key} is not an acceptable value — dropped. ${note || valueType.hint(spec)}`);
+    else if (note) push('design.value_cleaned', `design.${key}`, note);
+    return cleaned;
+}
+
+/**
+ * The value to write for one design key, or undefined to leave the key out. Only an
+ * `optional` key is ever left out: a base key falls back to its default.
+ * @param {string} key
+ * @param {DesignKeySpec} spec
+ * @param {unknown} v
+ * @param {DesignPush} push
+ */
+function canonDesignValue(key, spec, v, push) {
+    // An optional key that is absent (or null: "not set") leaves no trace.
+    if (spec.optional && (v === undefined || v === null)) return undefined;
+    if (spec.type === 'enum') return canonDesignEnum(key, spec, v, push);
+    if (spec.type === 'url') return canonDesignUrl(key, spec, v, push);
+    return canonDesignTyped(key, spec, v, push);
+}
+
+/**
  * Canonicalize a PRESENT `definition.design` object into the complete,
  * deterministic form (all spec keys, invalid values defaulted with a repair).
  * The caller only invokes this when input.design is an object — absence stays
- * absence.
+ * absence. A key marked `optional` is the exception to "all spec keys": it is
+ * written only when present and valid.
+ * @param {unknown} raw
+ * @param {(code: string, path: string, message: string) => void} push
+ * @param {Record<string, unknown>} [designSpec] The key table; DESIGN_SPEC unless a test passes its own.
  */
-function canonDesign(raw, push) {
-    /** @type {Record<string, string | null>} */
+function canonDesign(raw, push, designSpec = DESIGN_SPEC) {
+    /** @type {Record<string, unknown>} */
     const out = {};
     const src = isObject(raw) ? raw : {};
-    for (const [key, spec] of Object.entries(DESIGN_SPEC)) {
-        const v = src[key];
-        if (spec.type === 'enum') {
-            if (spec.values.includes(v)) { out[key] = v; continue; }
-            out[key] = spec.default;
-            if (v !== undefined) {
-                push('design.value_invalid', `design.${key}`, `design.${key} ${JSON.stringify(v)} is invalid — defaulted to ${JSON.stringify(spec.default)}. Legal: ${spec.values.join(', ')}.`);
-            }
-        } else if (spec.type === 'url') {
-            if (v === null || v === undefined) { out[key] = spec.default; continue; }
-            if (typeof v === 'string' && /^https:\/\//.test(v) && v.length <= spec.maxLen) {
-                out[key] = v;
-            } else {
-                out[key] = spec.default;
-                push('design.value_invalid', `design.${key}`, `design.${key} must be an https:// URL of at most ${spec.maxLen} characters — reset to null.`);
-            }
-        }
+    for (const [key, spec] of Object.entries(/** @type {Record<string, DesignKeySpec>} */ (designSpec))) {
+        const value = canonDesignValue(key, spec, src[key], push);
+        if (value !== undefined) out[key] = value;
     }
-    const unknown = Object.keys(src).filter((k) => !(k in DESIGN_SPEC));
+    const unknown = Object.keys(src).filter((k) => !(k in designSpec));
     if (unknown.length) {
-        push('design.unknown_key', 'design', `Dropped unknown design keys: ${unknown.join(', ')}. Legal keys: ${Object.keys(DESIGN_SPEC).join(', ')}.`);
+        push('design.unknown_key', 'design', `Dropped unknown design keys: ${unknown.join(', ')}. Legal keys: ${Object.keys(designSpec).join(', ')}.`);
     }
     return out;
 }

@@ -185,11 +185,16 @@ describe('InspectorPanel — Studio scope in the Content panel', () => {
     };
 
     it('live-evaluates a content-panel formula against the Studio sample scope', async () => {
+        // The editor always runs under the app's query client; "More options"
+        // reads the catalog through it.
+        const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
         render(
-            <AppEditorProvider app={{ definition: STAT_APP, version: 1 }}>
-                <Driver nodeId="cmp_scope1" />
-                <InspectorPanel onCommit={vi.fn()} />
-            </AppEditorProvider>,
+            <QueryClientProvider client={client}>
+                <AppEditorProvider app={{ definition: STAT_APP, version: 1 }}>
+                    <Driver nodeId="cmp_scope1" />
+                    <InspectorPanel onCommit={vi.fn()} />
+                </AppEditorProvider>
+            </QueryClientProvider>,
         );
         await act(async () => {});
         expect(screen.getByDisplayValue('currentUser.name')).toBeInTheDocument();

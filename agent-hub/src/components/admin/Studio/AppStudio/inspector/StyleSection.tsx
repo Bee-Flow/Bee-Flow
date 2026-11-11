@@ -1,18 +1,10 @@
 import useTranslation from '@/hooks/useTranslation';
 import { SelectField, NumberField } from './panels/kit';
-import {
-    STYLE_KNOBS,
-    SECTION_STYLE_KNOBS,
-    SECTION_STYLE_DEFAULTS,
-    getKnobsForType,
-    advancedKnobsFor,
-    effectiveSizeMode,
-    unitRange,
-    clampKnob,
-    knobLabel,
-    valueLabel,
-} from './styleKnobMeta';
+import { STYLE_KNOBS, SECTION_STYLE_KNOBS, SECTION_STYLE_DEFAULTS, getKnobsForType, advancedKnobsFor, effectiveSizeMode, unitRange, clampKnob, knobLabel, valueLabel } from './styleKnobMeta';
+import LayoutSection, { layoutTypeOf } from './LayoutSection';
+import { STYLE_VALUE_CONTROLS, isBaseValueType } from './styleValueControls';
 import TokenColorField from './TokenColorField';
+import ExtensionKnobGroups from './ExtensionKnobGroups';
 import Disclosure from '@/components/shared/Disclosure';
 import FormField from '@/components/shared/FormField';
 import SegmentedControl from '@/components/shared/SegmentedControl';
@@ -87,7 +79,6 @@ export function updateSectionStyle(def: AppDefinition, sectionId: string, patch:
 // ---------------------------------------------------------------------------
 // Knob presentation
 // ---------------------------------------------------------------------------
-
 
 // SegmentedControl values must be string|number — the radius knob's null
 // ("inherit the theme") rides a sentinel and is mapped back on commit.
@@ -236,7 +227,7 @@ function AdvancedSizing({ knobs, style, isSection, patch, disabled }: AdvancedSi
  * Responsive visibility — hideBelow/hideAbove, derived from `span` exactly
  * like the width pair (a type without a grid cell has nothing to hide). Bands
  * are the runtime breakpoints: sm=640, md=1024, lg=1280. On the editor canvas
- * a hidden node stays visible (runtime.css guards on data-app-edit), so these
+ * a hidden node stays visible (css/layout.css guards on data-app-edit), so these
  * knobs only change the RUN view — hence a disclosure, not a primary control.
  */
 interface ResponsiveVisibilityProps {
@@ -322,6 +313,13 @@ export default function StyleSection({
                 const spec = STYLE_KNOBS[knob];
                 if (!spec) return null;
 
+                // A value type added after the base ones: its registered control (styleValueControls.ts), or nothing.
+                if (!isBaseValueType(spec.type)) {
+                    const Control = STYLE_VALUE_CONTROLS[spec.type];
+                    if (!Control) return null;
+                    return <Control key={knob} knob={knob} spec={spec} value={style[knob]} onChange={(v) => patch({ [knob]: v })} definition={definition} disabled={disabled} />;
+                }
+
                 if (spec.type === 'int') {
                     return (
                         <Slider
@@ -384,8 +382,10 @@ export default function StyleSection({
                 );
             })}
 
+            <ExtensionKnobGroups knobs={knobs} node={node} isSection={isSection} style={style} patch={patch} definition={definition} disabled={disabled} />
             <AdvancedSizing knobs={knobs} style={style} isSection={isSection} patch={patch} disabled={disabled} />
             <ResponsiveVisibility knobs={knobs} style={style} patch={patch} disabled={disabled} />
+            <LayoutSection type={layoutTypeOf(isSection, node)} knobs={knobs} style={style} patch={patch} disabled={disabled} />
         </div>
     );
 }

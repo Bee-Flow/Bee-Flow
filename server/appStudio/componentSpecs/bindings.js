@@ -26,6 +26,16 @@
 //               makes "count per status" or "median first response" one binding
 //               instead of an automation.
 const BINDING_KINDS = ['static', 'actionResult', 'formula', 'record', 'records', 'dataset', 'connector', 'aggregate'];
+// A binding kind added after the base is listed here with the schema version
+// that introduced it ({ kind: 3 }); BINDING_KINDS is a list of names and has no
+// entry to carry it. Null-prototype: only own keys are kinds.
+/** @type {Record<string, number>} */
+const BINDING_KIND_SINCE = Object.create(null);
+// What the AI builder reads about a kind listed in BINDING_KIND_SINCE: { kind: { shape, description } }.
+// `shape` is the binding as the catalogue writes one ('{ "kind": "…", "tableId": "<tbl_…>" }'),
+// `description` one sentence on what it resolves to. The base kinds are prompt text, not entries here.
+/** @type {Record<string, { shape: string, description: string }>} */
+const BINDING_KIND_DOCS = Object.create(null);
 const INPUT_MAPPING_KINDS = ['static', 'field'];
 
 // The ONLY root identifiers a formula/filter expression may reference. A root
@@ -51,6 +61,16 @@ const FORMULA_SCOPE_ROOTS = [
     'today',        // ISO date string
 ];
 
+// Scope roots added after the base (schema 3 or later). Not in FORMULA_SCOPE_ROOTS: that
+// list is prompt text and catalogue bytes. A root here is known to the validator; a
+// `clientOnly` one is filled by the browser only, so a server step reading it gets a warning.
+//   ui — the state components keep on screen: ui.tabs.<id>.active, ui.modals.<id>.open,
+//        ui.selection.<id> (documented with the set_ui step, steps/set_ui.js).
+/** @type {Readonly<Record<string, Readonly<{ since: number, clientOnly: boolean }>>>} */
+const EXTENSION_SCOPE_ROOTS = Object.freeze({
+    ui: Object.freeze({ since: 3, clientOnly: true }),
+});
+
 /**
  * The `currentUser` attributes a formula may read.
  *
@@ -64,9 +84,16 @@ const FORMULA_SCOPE_ROOTS = [
  */
 const CURRENT_USER_KEYS = ['id', 'name', 'email', 'roleKey', 'isOwner', 'roles'];
 
+// Columns one `orderBy` may name (queryCompilerOrder.MAX_ORDER_BY; bindings.lockstep.test.js holds the two together).
+const MAX_ORDER_BY = 3;
+
 module.exports = {
+    MAX_ORDER_BY,
     BINDING_KINDS,
+    BINDING_KIND_SINCE,
+    BINDING_KIND_DOCS,
     INPUT_MAPPING_KINDS,
     FORMULA_SCOPE_ROOTS,
     CURRENT_USER_KEYS,
+    EXTENSION_SCOPE_ROOTS,
 };

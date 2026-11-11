@@ -24,13 +24,23 @@ export class StepFailure extends Error {
     attempts = 1;
     /** The kind of the step that failed (error.step in a handler). */
     stepKind: string | null = null;
+    /** A field rule refused the write: one sentence per form field name (the server's `fieldErrors`). */
+    fieldErrors: Record<string, string> | null = null;
 }
 
-function stepFailure(message: string, init: { code?: unknown; retryable: boolean; status: number }): StepFailure {
+/** The server's `fieldErrors` map, strings only; null when there is none. */
+function fieldErrorsOf(raw: unknown): Record<string, string> | null {
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+    const out = Object.fromEntries(Object.entries(raw).filter((e): e is [string, string] => typeof e[1] === 'string'));
+    return Object.keys(out).length ? out : null;
+}
+
+function stepFailure(message: string, init: { code?: unknown; retryable: boolean; status: number; fieldErrors?: unknown }): StepFailure {
     const f = new StepFailure(message);
     f.code = typeof init.code === 'string' && init.code ? init.code : null;
     f.retryable = init.retryable;
     f.status = init.status;
+    f.fieldErrors = fieldErrorsOf(init.fieldErrors);
     return f;
 }
 
@@ -65,9 +75,15 @@ export interface SeqState {
     run?: RunTrack;
 }
 
-/** The body both step endpoints take: the ordinal plus the scope roots the server declares. */
-function stepBody(stepIndex: number | undefined, st: SeqState): Record<string, unknown> {
-    const body: Record<string, unknown> = { stepIndex, formValues: st.formValues || {}, vars: st.vars || {} };
+/**
+ * The body both step endpoints take: the ordinal plus the scope roots the server declares.
+ * `kind` (the step's kind) rides along only for an action that holds a step kind of the
+ * registry, where the server asks for it: every other action posts what it always did.
+ * `wide` is what ./wideScope adds for an app with the wide server scope ({} for every other app).
+ */
+function stepBody(stepIndex: number | undefined, st: SeqState, kind?: string, wide: Record<string, unknown> = {}): Record<string, unknown> {
+    const body: Record<string, unknown> = { stepIndex, formValues: st.formValues || {}, vars: st.vars || {}, ...wide };
+    if (kind) body.kind = kind;
     if (st.item !== undefined) body.item = st.item;
     // `index` is a declared server scope root and the loop tracks it,
     // but it was never put in the body: a create_record inside a loop
@@ -118,12 +134,12 @@ function throwOnFailure(res: Response, payload: Record<string, unknown> | null, 
     }
     if (payload && payload.ok === false) {
         throw stepFailure((payload.error as string) || tr('studio_apps_runtime.actions.step_failed', 'The step failed.'), {
-            code: payload.code, retryable: payload.retryable !== false, status: res.status,
+            code: payload.code, retryable: payload.retryable !== false, status: res.status, fieldErrors: payload.fieldErrors,
         });
     }
 }
 
-export async function dispatchServerStep(ctx: RunnerContext, stepIndex: number | undefined, st: SeqState): Promise<unknown> {
+export async function dispatchServerStep(ctx: RunnerContext, stepIndex: number | undefined, st: SeqState, kind?: string, wide?: Record<string, unknown>): Promise<unknown> {
     const { appId, draft, tr } = ctx;
     const qs = draft ? '?draft=1' : '';
     // The deadline is longer than the server's own AI ceiling, so its message
@@ -132,7 +148,7 @@ export async function dispatchServerStep(ctx: RunnerContext, stepIndex: number |
     // the spinner up forever.
     const res = await postStep(
         `${actionsUrl(appId)}/${encodeURIComponent(st.actionId)}/step${qs}`,
-        stepBody(stepIndex, st),
+        stepBody(stepIndex, st, kind, wide),
         STEP_DEADLINE_MS,
         () => tr('studio_apps_runtime.actions.step_too_long', 'That took too long and was stopped. Try again, or with fewer documents.'),
     );
@@ -161,10 +177,10 @@ async function readBrowseStream(res: Response, actionId: string, publish: Runner
 // server-side and pushes screenshot/action events, which we forward to
 // the live-preview store. The resultVar is resolved from the terminal
 // {type:'result'} frame, exactly like a plain /step result.
-export async function dispatchBrowseStep(ctx: RunnerContext, stepIndex: number | undefined, st: SeqState): Promise<unknown> {
+export async function dispatchBrowseStep(ctx: RunnerContext, stepIndex: number | undefined, st: SeqState, kind?: string, wide?: Record<string, unknown>): Promise<unknown> {
     const { appId, draft, tr } = ctx;
     const { actionId } = st;
-    const body = stepBody(stepIndex, st);
+    const body = stepBody(stepIndex, st, kind, wide);
     const qs = draft ? '?draft=1' : '';
     const publish = ctx.live.current.onBrowseEvent;
     if (publish) publish(actionId, { type: 'reset' });

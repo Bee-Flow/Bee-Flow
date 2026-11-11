@@ -69,7 +69,7 @@ const BatchBody = bodyOf({
     reads: z.unknown().optional(),
 }, 'A batch of reads');
 const UploadFields = bodyOf({
-    fieldKey: worded('fieldKey is the key of the form field.').max(100, 'fieldKey is at most 100 characters.').optional(),
+    fieldKey: worded('fieldKey is the key of the form field.').max(100, 'fieldKey is at most 100 characters.').refine(require('../appStudio/appAssets.mts').isRecordFieldKey, 'fieldKey is the key of the form field.').optional(),
 }, 'An upload');
 
 const studioAppStore = require('../stores/studioAppStore');
@@ -83,15 +83,16 @@ const studioAppQuota = require('../appStudio/studioAppQuota');
 const mailboxAttachments = require('../appStudio/mailboxAttachments');
 const dataReadRunner = require('../appStudio/dataReadRunner');
 const publicAccess = require('../appStudio/publicAccess');
-const { DATA_MUTATING_STEP_KINDS } = require('../appStudio/componentSpecs');
 const { uploadGuard, scanBuffer } = require('../middleware/uploadGuard');
 const { DATA_LIMITS } = require('../appStudio/dataModel');
 const { perUserRateLimit } = require('../utils/perUserRateLimit');
 const { issueVisitorToken, verifyVisitorToken } = require('../auth/publicShareToken');
-const { resolveRequestedStep, sanitizeBag, sanitizeErrorScope, stepNotes, stepFailureExtras } = require('../appStudio/actionSequence');
-const { bestEffort, fallback } = require('../utils/bestEffort');
+const { resolveRequestedStep, STEP_MISMATCH, sanitizeBag, sanitizeErrorScope, stepNotes, stepFailureExtras } = require('../appStudio/actionSequence');
+const { bestEffort } = require('../utils/bestEffort');
+const { optionalListQuery } = require('./studio/appDataContext');
 const { attachmentResponseHeaders } = require('./studioAppAttachmentHeaders.mts');
 const uploadDelete = require('./studioAppUploadDeleteToken.mts');
+const { withViewerAttributes, anonymousViewerAttributes } = require('../appStudio/viewerAttributes.mts');
 
 const { assertAttachmentTotalBytes } = mailboxAttachments;
 
@@ -169,10 +170,11 @@ const TOKEN_RE = /^[a-f0-9]{24,64}$/;
 // Model-calling kinds get their own budget; every other step kind shares
 // stepLimiter. Heavy kinds touch no table, so RLS never sees them — but they
 // spend the owner's quota, which an anonymous caller must not be able to drain.
-const AI_STEP_KINDS = ['ai_extract', 'ai_generate', 'kb_query', 'redact_pdf'];
+const { aiStepKinds: AI_STEP_KINDS } = require('../appStudio/componentSpecs/stepRegistry').STEP_POLICY_LISTS;
+// Which kinds an anonymous visitor may post at all (the `public` policy row of the step catalogue).
+const { publicStepRefusal } = require('./studioAppPublicStepGate.mts');
+const { visibleFormValues } = require('./studioAppRunGate');
 
-// Server step kinds an anonymous visitor may never run, whatever the definition says.
-const PUBLIC_DENIED_STEP_KINDS = ['kb_log_query', 'kb_log_review'];
 
 /**
  * Resolve `:token` to { page, app, definition, surface } or answer 404 and
@@ -249,7 +251,9 @@ async function publicDataContext(found, req, res, { tableId } = {}) {
     // organisation, and a row filter comparing viewer.organizationId must not
     // accidentally match the owner's org rows.
     /** @type {{ id: string, role: typeof role, organizationId: string | null }} */
-    const viewer = { id: req.visitor.viewerId, role, organizationId: null };
+    // The same goes for the attributes a row rule may read (viewerAttributes.mts): a visitor
+    // has no account, is in no group and in no organisation, and no lookup is made for one.
+    const viewer = await withViewerAttributes({ id: req.visitor.viewerId, role, organizationId: null }, model, { anonymous: true });
 
     /** @type {{ app: typeof app, ownerScope: string, viewerId: string, model: DataModel, role: typeof role, viewer: typeof viewer, table?: DataTable }} */
     const ctx = { app, ownerScope: app.userId, viewerId: req.visitor.viewerId, model, role, viewer };
@@ -310,6 +314,9 @@ router.get('/:token', ipLimiter, tokenLimiter, async (/** @type {import('express
             icon: found.app.icon || null,
         },
         definition: publicAccess.buildPublicDefinition(found.definition, found.surface),
+        // The page's OWN logo (publicAccess.design.logoUrl), beside the definition so its bytes stay
+        // as they were: the served design also carries the app's logo, which the page header never draws.
+        page: { logoUrl: found.definition.publicAccess?.design?.logoUrl || null },
         entryScreenId: found.surface.entryScreenId,
         visitorToken,
     });
@@ -338,24 +345,22 @@ router.post('/:token/actions/:actionId/step', ipLimiter, tokenLimiter, jsonBody,
     }
     // A called action's step is reached ONLY through callPath from this public
     // root: posting the callee's own id is the 404 above.
-    const resolved = resolveRequestedStep(found.definition, actionId, req.body?.stepIndex, req.body?.callPath);
+    const resolved = resolveRequestedStep(found.definition, actionId, req.body?.stepIndex, req.body?.callPath, req.body?.kind);
     if ('error' in resolved) {
+        if (resolved.error === 'mismatch') return res.status(409).json(STEP_MISMATCH);
         return res.status(404).json({ error: resolved.error === 'action' ? 'Action not found' : 'Step not found' });
     }
     const { step, ownerActionId } = resolved;
-    if (!DATA_MUTATING_STEP_KINDS.includes(step.kind)) {
-        return res.status(400).json({ error: 'This step does not run on the server' });
-    }
-    // The KB query log holds what people asked and got answered: never reachable by an anonymous visitor.
-    if (PUBLIC_DENIED_STEP_KINDS.includes(step.kind)) {
-        return res.status(403).json({ error: 'This step is not available on a public app' });
-    }
+    // Not a server kind: 400. A kind the visitor may never run (the KB query log holds what people
+    // asked and got answered; a kind added later is closed unless its policy opens it): 403.
+    const refusal = publicStepRefusal(step.kind);
+    if (refusal) return res.status(refusal.status).json({ error: refusal.error });
 
     // Budget by kind, before any work. A model call gets its own bucket —
-    // an action legitimately repeats one per uploaded photo.
+    // an action legitimately repeats one per uploaded photo. A code step also spends its sandbox bucket.
     // Awaited: the Redis-backed limiter decides asynchronously.
     const budget = AI_STEP_KINDS.includes(step.kind) ? aiStepLimiter : stepLimiter;
-    if (!(await budget.check(req, res))) return undefined;
+    if (!(await budget.check(req, res)) || !(await require('./studioAppCodeStepLimit.mts').checkPublicCodeBudget(step.kind, req, res))) return undefined;
 
     const ctx = await publicDataContext(found, req, res);
     if (!ctx || await require('./studioAppBackground').refusePublicLocked(req, res, found, ctx, actionId)) return undefined; // a held lockKey refuses the visitor's foreground walk (#590)
@@ -372,7 +377,7 @@ router.post('/:token/actions/:actionId/step', ipLimiter, tokenLimiter, jsonBody,
         viewerEmail: null,
         role: ctx.role,
         orgId: found.app.organizationId || null,
-        formValues: sanitizeBag(req.body?.formValues),
+        formValues: visibleFormValues(found.definition, actionId, ctx.role, sanitizeBag(req.body?.formValues)),
         vars: sanitizeBag(req.body?.vars),
         variables: Array.isArray(found.definition.variables) ? found.definition.variables : null,
         item: req.body?.item,
@@ -411,14 +416,8 @@ router.get('/:token/data/tables/:tableId/records', ipLimiter, tokenLimiter, requ
         if (!ctx) return undefined;
         if (!rlsGateway.canRead(ctx.table, ctx.role)) return res.status(403).json({ error: 'Forbidden' });
 
-        let filters;
-        let sort;
-        if (typeof req.query.filter === 'string' && req.query.filter) { try { filters = JSON.parse(req.query.filter); } catch (err) { fallback('routes/studioAppPublic:anon#2', err); /* compiler validates */ } }
-        if (typeof req.query.sort === 'string' && req.query.sort) { try { sort = JSON.parse(req.query.sort); } catch (err) { fallback('routes/studioAppPublic:anon#3', err); /* compiler validates */ } }
-        if (filters !== undefined && !Array.isArray(filters)) filters = [filters];
-
         const out = await dataReadRunner.runRecordList(ctx, ctx.table, {
-            filters, sort, cursor: req.query.cursor, limit: req.query.limit,
+            ...R.listQueryOf(req.query), ...optionalListQuery(req.query), cursor: req.query.cursor, limit: req.query.limit, total: req.query.total === '1',
         });
         return res.json(out);
     } catch (err) { return handleErr(res, err, 'records.list'); }
@@ -439,7 +438,7 @@ router.post('/:token/data/query', ipLimiter, tokenLimiter, jsonBody, bodySizeGua
         if (body.datasetId === 'sys_org_members') return res.status(403).json({ error: 'Forbidden' });
 
         if (typeof body.datasetId === 'string' && body.datasetId) {
-            const out = await dataReadRunner.runSavedDataset(ctx, body.datasetId, { refresh: false });
+            const out = await dataReadRunner.runSavedDataset(ctx, body.datasetId, { refresh: false, params: body.params });
             return res.json({ ...out, result: out.rows });
         }
 
@@ -589,7 +588,7 @@ router.get('/:token/data/attachments/:fileId', ipLimiter, tokenLimiter, requireV
     // which is correct, and is why the uploader is never handed a
     // capability by virtue of having uploaded.
     const allowed = await attachmentAccess.viewerMayReadAttachment(found.app, attachment, {
-        id: ctx.viewerId, role: ctx.role, model: ctx.model, organizationId: null,
+        ...anonymousViewerAttributes(), id: ctx.viewerId, role: ctx.role, model: ctx.model, organizationId: null,
     });
     if (!allowed) return res.status(404).json({ error: 'Attachment not found' });
 

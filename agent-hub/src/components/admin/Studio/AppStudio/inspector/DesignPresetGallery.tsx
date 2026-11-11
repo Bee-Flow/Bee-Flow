@@ -5,7 +5,7 @@ import { FONT_STACKS } from '../runtime/appDesign';
 /**
  * The one-click path to a designed app.
  *
- * Six cards, each a COMPLETE look (colour, corners, density, typeface,
+ * One card per preset, each a COMPLETE look (colour, corners, density, typeface,
  * surfaces, motion and navigation style). Clicking one materializes its values
  * into theme + design + nav in a single commit — presets are never stored as a
  * reference, so editing a preset later can't silently restyle an app somebody

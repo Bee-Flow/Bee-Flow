@@ -1,0 +1,89 @@
+# trace-invoice-dashboard
+## screen scr_e5cb0m (Home)
+<div class="app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(15, 118, 110, 0.1); --app-accent: #0F766E; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(15, 118, 110, 0.1); --app-primary: #0F766E; --app-radius: 8px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-size: 15px; min-height: 100vh">
+  <main class="flex flex-1 flex-col min-h-0">
+    <div class="app-runtime app-screen-enter w-full" data-app-appearance="auto" data-app-screen="scr_e5cb0m" data-app-screen-kind="page" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(15, 118, 110, 0.1); --app-accent: #0F766E; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(15, 118, 110, 0.1); --app-primary: #0F766E; --app-radius: 8px; --app-space: 1; color: var(--text-primary); font-size: 15px">
+      <div class="flex flex-col w-full" style="margin: 0px auto; max-width: 960px">
+        <section class="app-grid" data-section-id="sec_36bs9v" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="page_header" data-node-id="cmp_jcncwo" style="grid-column: span 12 / span 12">
+            <header class="min-w-0 w-full" data-app-pageheader="true">
+              <div class="flex flex-wrap items-start" style="gap: calc(12px * var(--app-space, 1))">
+                <div class="basis-64 flex-1 min-w-0">
+                  <h1 class="font-semibold text-[var(--text-primary)] text-xl truncate" title="Facturen">
+                    "Facturen"
+              <hr class="[background:var(--border-default)] border-0 h-px mt-3 w-full" aria-hidden="true">
+          <div class="app-node app-span-6 min-w-0" data-app-type="container" data-node-id="cmp_zd8j06" style="grid-column: span 6 / span 6">
+            <div class="app-grid" data-app-container="true" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+              <div class="app-node app-span-12 app-surface min-w-0" data-app-type="card" data-node-id="cmp_9mx6ci" style="background: var(--bg-card); grid-column: span 12 / span 12; padding: calc(12px * var(--app-space, 1))">
+                <div class="app-card app-card--accent flex flex-col" style="gap: calc(8px * var(--app-space, 1))">
+                  <div>
+                    <div class="font-medium">
+                      "Samenvatting"
+                  <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                    <div class="app-node app-span-4 min-w-0" data-app-type="stat" data-node-id="cmp_t31adc" style="grid-column: span 4 / span 4">
+                      <div class="app-stat app-stat--accent flex gap-2.5 items-start" style="background: var(--bg-card); border-left: 3px solid var(--app-primary); border-radius: var(--app-radius, 8px); box-shadow: var(--app-shadow-1); padding: calc(16px * var(--app-space, 1))">
+                        <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-8 inline-flex items-center justify-center mt-0.5 rounded-md shrink-0 w-8">
+                          <svg class="h-4 lucide lucide-euro w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                        <div class="flex-1 min-w-0">
+                          <div class="font-medium text-[var(--text-secondary)] text-xs">
+                            "Totaal Bedrag"
+                          <div class="flex gap-2 items-baseline min-w-0">
+                            <div class="font-semibold leading-tight text-2xl truncate" title="—">
+                              "—"
+                    <div class="app-node app-span-4 min-w-0" data-app-type="stat" data-node-id="cmp_0c1dwi" style="grid-column: span 4 / span 4">
+                      <div class="app-stat app-stat--tinted flex gap-2.5 items-start" style="background: var(--app-primary-soft); border-radius: var(--app-radius, 8px); padding: calc(16px * var(--app-space, 1))">
+                        <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-8 inline-flex items-center justify-center mt-0.5 rounded-md shrink-0 w-8">
+                          <svg class="h-4 lucide lucide-percent w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                        <div class="flex-1 min-w-0">
+                          <div class="font-medium text-[var(--text-secondary)] text-xs">
+                            "Totaal BTW"
+                          <div class="flex gap-2 items-baseline min-w-0">
+                            <div class="font-semibold leading-tight text-2xl truncate" title="—">
+                              "—"
+                    <div class="app-node app-span-4 min-w-0" data-app-type="stat" data-node-id="cmp_ryek3j" style="grid-column: span 4 / span 4">
+                      <div class="app-stat app-stat--tile flex gap-2.5 items-start" style="background: var(--bg-card); border-radius: var(--app-radius, 8px); border: 1px solid var(--app-hairline, var(--border-default)); box-shadow: var(--app-shadow-1); padding: calc(16px * var(--app-space, 1))">
+                        <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-8 inline-flex items-center justify-center mt-0.5 rounded-md shrink-0 w-8">
+                          <svg class="h-4 lucide lucide-file-text w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                        <div class="flex-1 min-w-0">
+                          <div class="font-medium text-[var(--text-secondary)] text-xs">
+                            "Aantal Facturen"
+                          <div class="flex gap-2 items-baseline min-w-0">
+                            <div class="font-semibold leading-tight text-2xl truncate" title="—">
+                              "—"
+          <div class="app-node app-span-6 min-w-0" data-app-type="container" data-node-id="cmp_upyhmu" style="grid-column: span 6 / span 6">
+            <div class="app-grid" data-app-container="true" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+              <div class="app-node app-span-12 app-surface min-w-0" data-app-type="card" data-node-id="cmp_yurb3l" style="background: var(--bg-card); grid-column: span 12 / span 12; padding: calc(12px * var(--app-space, 1))">
+                <div class="app-card app-card--accent flex flex-col" style="gap: calc(8px * var(--app-space, 1))">
+                  <div>
+                    <div class="font-medium">
+                      "Verdeling"
+                  <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                    <div class="app-node app-span-6 min-w-0" data-app-type="chart" data-node-id="cmp_y7ka6o" style="grid-column: span 6 / span 6; height: 200px; overflow: auto">
+                      <div class="flex h-full items-center justify-center min-h-0 py-1 text-[var(--text-muted)] text-center text-sm">
+                        "No chart data yet."
+                    <div class="app-node app-span-6 min-w-0" data-app-type="chart" data-node-id="cmp_okc7lh" style="grid-column: span 6 / span 6; height: 200px; overflow: auto">
+                      <div class="flex h-full items-center justify-center min-h-0 py-1 text-[var(--text-muted)] text-center text-sm">
+                        "No chart data yet."
+          <div class="app-node app-span-6 min-w-0" data-app-type="container" data-node-id="cmp_i8j6g0" style="grid-column: span 6 / span 6">
+            <div class="app-grid" data-app-container="true" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+              <div class="app-node app-span-12 app-surface min-w-0" data-app-type="card" data-node-id="cmp_s0o0dm" style="background: var(--bg-card); grid-column: span 12 / span 12; padding: calc(12px * var(--app-space, 1))">
+                <div class="app-card app-card--accent flex flex-col" style="gap: calc(8px * var(--app-space, 1))">
+                  <div>
+                    <div class="font-medium">
+                      "Factuuroverzicht"
+                  <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                    <div class="app-node app-span-12 min-w-0" data-app-type="filter_bar" data-node-id="cmp_sjib1q" style="grid-column: span 12 / span 12">
+                      <div class="flex flex-wrap gap-3 items-end" data-app-filterbar="true">
+                        <div class="flex flex-col gap-1 min-w-0" data-app-filter="leverancier">
+                          <div class="relative">
+                            <svg class="-translate-y-1/2 absolute h-3.5 left-2.5 lucide lucide-search text-[var(--text-muted)] top-1/2 w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                            <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none pl-8 px-2.5 py-1.5 text-sm w-full" aria-label="leverancier" id="cmp_sjib1q-flt-leverancier" placeholder="Search…" type="text" value="" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                    <div class="app-node app-span-12 min-w-0" data-app-type="data_grid" data-node-id="cmp_pj6s5b" style="grid-column: span 12 / span 12">
+                      <div class="w-full" data-app-datagrid="true">
+                        <div class="flex flex-col gap-1.5 h-full items-center justify-center min-h-0 py-6 text-center">
+                          <span class="mb-1 text-[var(--text-tertiary)]">
+                            <svg class="block" aria-hidden="true" fill="none" role="presentation" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 96 72" style="height: auto; opacity: 0.9; width: 5.5rem">
+                          <span class="font-medium text-[var(--text-primary)] text-sm">
+                            "Nothing here yet"
+                          <span class="max-w-xs text-[var(--text-muted)] text-sm">
+                            "Geen facturen gevonden."

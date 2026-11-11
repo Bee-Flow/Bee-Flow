@@ -1,0 +1,15 @@
+{
+  "translations": {
+    "studio_apps_device.fit": "Passend in het canvas",
+    "studio_apps_device.frame_title": "Voorbeeld van de app op {device}-breedte",
+    "studio_apps_device.phone": "Telefoon",
+    "studio_apps_device.size_scaled": "{width} px, getoond op {percent}%",
+    "studio_apps_device.switch_aria": "Breedte van het voorbeeld"
+  },
+  "sameAsEnglish": [
+    "studio_apps_device.desktop",
+    "studio_apps_device.option",
+    "studio_apps_device.size",
+    "studio_apps_device.tablet"
+  ]
+}

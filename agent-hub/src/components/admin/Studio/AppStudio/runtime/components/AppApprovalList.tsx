@@ -276,8 +276,8 @@ interface FrameProps {
 function Frame({ children }: FrameProps) {
     const { t } = useTranslation();
     return (
-        <div className="rounded-lg border px-3 py-2 [border-color:var(--border-default,rgba(0,0,0,0.08))] [background:var(--bg-primary,transparent)]" data-component="approval_list">
-            <div className="flex items-center gap-1.5 mb-1 text-[11px] uppercase tracking-wide text-[var(--text-tertiary)]">
+        <div className="rounded-lg border px-3 py-2 [border-color:var(--border-default,rgba(0,0,0,0.08))] [background:var(--bg-primary,transparent)] bfa-approval_list__root" data-component="approval_list">
+            <div className="flex items-center gap-1.5 mb-1 text-[11px] uppercase tracking-wide text-[var(--text-tertiary)] bfa-approval_list__header">
                 <ShieldCheck size={12} aria-hidden="true" /> {t('studio_apps_runtime.approvals.title', 'Approvals')}
             </div>
             {children}
@@ -302,8 +302,8 @@ function RowLine({ row, open, onOpen }: RowLineProps) {
         <>
             {onOpen ? (open ? <ChevronDown size={14} className="shrink-0 text-[var(--text-tertiary)]" /> : <ChevronRight size={14} className="shrink-0 text-[var(--text-tertiary)]" />) : null}
             <span className="flex-1 min-w-0 text-left">
-                <span className="block text-sm truncate text-[var(--text-primary)]" {...hoverable(row.prompt)}>{row.prompt || t('studio_apps_runtime.approvals.requested', 'Approval requested')}</span>
-                <span className="block text-[11px] truncate text-[var(--text-tertiary)]">
+                <span className="block text-sm truncate text-[var(--text-primary)] bfa-approval_list__title" {...hoverable(row.prompt)}>{row.prompt || t('studio_apps_runtime.approvals.requested', 'Approval requested')}</span>
+                <span className="block text-[11px] truncate text-[var(--text-tertiary)] bfa-approval_list__subtitle">
                     {row.automationTitle || '—'}
                     {row.status === 'pending' && row.expiresAt ? <> · <Clock size={10} className="inline -mt-0.5" /> {formatWhen(row.expiresAt)}</> : <> · {formatWhen(row.createdAt)}</>}
                 </span>
@@ -314,12 +314,12 @@ function RowLine({ row, open, onOpen }: RowLineProps) {
                     </span>
                 )}
             </span>
-            <span className={`shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium ${chip.cls}`}>{chip.label}</span>
+            <span className={`shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium ${chip.cls} bfa-approval_list__status`}>{chip.label}</span>
         </>
     );
-    if (!onOpen) return <div className="flex items-center gap-2 py-2">{body}</div>;
+    if (!onOpen) return <div className="flex items-center gap-2 py-2 bfa-approval_list__item">{body}</div>;
     return (
-        <button type="button" onClick={onOpen} className="w-full flex items-center gap-2 py-2 hover:opacity-80 transition" data-testid="approval-list-row">
+        <button type="button" onClick={onOpen} className="w-full flex items-center gap-2 py-2 hover:opacity-80 transition bfa-approval_list__item" data-testid="approval-list-row">
             {body}
         </button>
     );
@@ -342,7 +342,7 @@ function DetailPanel({ detail, onDecide }: DetailPanelProps) {
     if (!approval) return null;
     const chain = approval.status === 'pending' ? stageChainInfo(approval) : null;
     return (
-        <div className="pb-3 pl-6 space-y-3">
+        <div className="pb-3 pl-6 space-y-3 bfa-approval_list__detail">
             {chain?.index && (
                 <div className="text-[12px] text-[var(--text-secondary)]">
                     <span className="text-[var(--text-primary)]">

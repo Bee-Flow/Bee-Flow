@@ -33,7 +33,10 @@ const bad = (error, _fixHint) => ({ error, _fixHint });
  *
  * @typedef {{
  *   error?: string, _fixHint?: string, tableId?: string|null, datasetId?: string|null, limit?: number,
- *   limitClamped?: boolean, requestedLimit?: number, sort?: { field: string, dir: string }, filter?: any[], cursor?: string|null,
+ *   limitClamped?: boolean, requestedLimit?: number, sort?: { field: string, dir: string }, orderBy?: unknown[], filter?: any[], match?: string, search?: { value: string, fields: any[] }, cursor?: string|null,
+ *   total?: boolean,
+ *   params?: Record<string, unknown>,
+ *   expand?: unknown[], fields?: unknown[],
  * }} QueryArgs
  */
 
@@ -79,16 +82,54 @@ function parseQueryArgs(args) {
         sort = { field: a.sort.field, dir: dir.toLowerCase() };
     }
 
+    let orderBy;
+    if (a.orderBy !== undefined && a.orderBy !== null) {
+        if (!Array.isArray(a.orderBy) || !a.orderBy.length || sort) return bad('orderBy must be a list of { field, dir } entries, without sort.', 'Up to 3 columns; dir is "asc" or "desc".');
+        orderBy = a.orderBy;
+    }
+
     let filter;
     if (a.filter !== undefined && a.filter !== null) {
         if (!Array.isArray(a.filter)) return bad('filter must be an array of { field, op, value? }.', `ops: ${FILTER_OPS.join(', ')}.`);
         filter = a.filter;
     }
 
+    let match;
+    if (a.match !== undefined && a.match !== null) {
+        if (a.match !== 'all' && a.match !== 'any') return bad('match must be "all" or "any".', '"any" returns a row when ONE of the filters matches; "all" (the default) needs every one.');
+        match = a.match;
+    }
+    let search;
+    if (a.search !== undefined && a.search !== null) {
+        const s = a.search;
+        if (!s || typeof s !== 'object' || Array.isArray(s) || typeof s.value !== 'string' || !s.value || !Array.isArray(s.fields) || !s.fields.length) {
+            return bad('search must be { value: <text>, fields: [<field keys>] }.', 'It finds rows where ANY of the fields contains the text; it ANDs with filter.');
+        }
+        search = { value: s.value, fields: s.fields };
+    }
+
     if (a.cursor !== undefined && a.cursor !== null && typeof a.cursor !== 'string') {
         return bad('cursor must be the nextCursor string of the previous call.');
     }
-    return { tableId, datasetId, limit, limitClamped, requestedLimit, sort, filter, cursor: a.cursor || null };
+    if (a.total !== undefined && a.total !== null && typeof a.total !== 'boolean') {
+        return bad('total must be true or false.', 'total:true adds totalRows, the number of rows the whole read matches (tableId only).');
+    }
+    const params = a.params && typeof a.params === 'object' && !Array.isArray(a.params) ? a.params : undefined;
+    // Read through a relation (tableId only); the compiler checks the entries against both tables.
+    /** @type {{ expand?: unknown[], fields?: unknown[] }} */
+    const through = {};
+    for (const name of /** @type {const} */ (['expand', 'fields'])) {
+        if (a[name] === undefined || a[name] === null) continue;
+        if (!Array.isArray(a[name]) || !a[name].length) {
+            return bad(`${name} must be a non-empty list.`, name === 'expand' ? 'expand: [{ field: <relation field>, pick?: [<fields of the related table>], as? }].' : 'fields: the field keys to return.');
+        }
+        through[name] = a[name];
+    }
+    return {
+        tableId, datasetId, limit, limitClamped, requestedLimit, sort, ...(orderBy ? { orderBy } : {}), ...through, filter,
+        ...(match ? { match } : {}), ...(search ? { search } : {}), cursor: a.cursor || null,
+        ...(a.total === true ? { total: true } : {}), ...(params ? { params } : {}),
+    };
 }
 
 /** A row without the internal ids a model has no use for. */
@@ -103,11 +144,16 @@ function shapeRow(row) {
 // allow-list, so a column added to the physical table later does not leak.
 const ROW_SYSTEM_KEYS = ['id', 'created_at', 'updated_at'];
 
-/** A table row reduced to the table's declared field keys and the safe system columns. */
-function shapeTableRow(row, table) {
+/**
+ * A table row reduced to the table's declared field keys and the safe system columns, plus the
+ * keys the read's own expansions landed in (`expanded`: the related rows, already reduced to
+ * what was picked).
+ * @param {string[]} [expanded]
+ */
+function shapeTableRow(row, table, expanded = []) {
     if (!row || typeof row !== 'object') return row;
     const fields = table && Array.isArray(table.fields) ? table.fields : [];
-    const allowed = new Set([...ROW_SYSTEM_KEYS, ...fields.map((f) => f && f.key).filter(Boolean)]);
+    const allowed = new Set([...ROW_SYSTEM_KEYS, ...fields.map((f) => f && f.key).filter(Boolean), ...expanded]);
     return Object.fromEntries(Object.entries(row).filter(([k]) => allowed.has(k)));
 }
 

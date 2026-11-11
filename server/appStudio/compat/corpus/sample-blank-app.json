@@ -1,0 +1,43 @@
+{
+  "about": {
+    "source": "agent-hub/src/components/admin/Studio/AppStudio/state/sampleDefinitions.ts BLANK_APP, verbatim",
+    "captured": "2026-11-10"
+  },
+  "definition": {
+    "schemaVersion": 1,
+    "meta": {
+      "name": "Untitled app",
+      "description": "",
+      "icon": "LayoutGrid"
+    },
+    "theme": {
+      "primary": "#0F766E",
+      "radius": "md",
+      "density": "comfortable",
+      "fontScale": "md",
+      "appearance": "auto"
+    },
+    "homeScreenId": "scr_home01",
+    "screens": [
+      {
+        "id": "scr_home01",
+        "name": "Home",
+        "icon": "Home",
+        "showInNav": true,
+        "maxWidth": "medium",
+        "sections": [
+          {
+            "id": "sec_home01",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": []
+          }
+        ]
+      }
+    ],
+    "actions": {}
+  }
+}

@@ -12,6 +12,7 @@
 
 const { LIMITS } = require('../componentSpecs');
 const { canonicalizeAppDefinition } = require('../canonicalize');
+const { schemaNewerMessage } = require('../schemaSince.mts');
 const { pickClosestId } = require('../../automation/validate/helpers');
 const { NODE_VALIDATION_TYPES } = require('./schemas');
 
@@ -25,7 +26,7 @@ const NODE_LOGIC_FIELDS = ['visibleWhen', 'enabledWhen', 'readOnly', 'visibleToR
 
 // The two node fields that are NOT a boolean-or-formula flag: `computed` maps
 // prop keys to formulas (making ANY prop live — the only escape hatch for the
-// 22 component types with no binding-typed prop), `validations` attaches input
+// component types with no binding-typed prop), `validations` attaches input
 // rules. Same story as readOnly: canonicalized, validated and RENDERED, but
 // unreachable from the tool layer, so the model could only conclude that live
 // text on a heading was architecturally impossible. It never was.
@@ -158,7 +159,9 @@ function limitRepairsUnder(nextDef, pathPrefix) {
  * This is THE common tail of every mutating tool.
  */
 function adoptCanonical(draftWrap, nextDef, result) {
-    const { def, repairs } = canonicalizeAppDefinition(nextDef);
+    const { def, repairs, refused } = canonicalizeAppDefinition(nextDef);
+    // Never adopt a definition this install must not rewrite; the draft stays as it was.
+    if (refused) return { error: schemaNewerMessage(nextDef) };
     draftWrap.def = def;
     const teachable = repairs.filter((r) => !BENIGN_REPAIR_CODES.has(r.code));
     if (teachable.length) {

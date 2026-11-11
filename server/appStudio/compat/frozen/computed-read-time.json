@@ -1,0 +1,120 @@
+{
+  "corpus": "computed-read-time",
+  "canonical": {
+    "sha256": "9a7628541758ba0cd79c26175d885ce9164d04cb979993ce55aff8f95eafc63d",
+    "bytes": 1521,
+    "inputIsCanonical": true,
+    "idempotent": true,
+    "keys": [
+      "schemaVersion",
+      "meta",
+      "theme",
+      "roles",
+      "screens",
+      "actions",
+      "homeScreenId"
+    ],
+    "parts": {
+      "schemaVersion": "d4735e3a265e16ee",
+      "meta": "320039a7c8b75895",
+      "theme": "5d7eeb0111b89897",
+      "roles": "4f53cda18c2baa0c",
+      "screens[0] scr_lines01": "d045bbf1ad6d7c51",
+      "homeScreenId": "7249b185444a9226"
+    }
+  },
+  "schemaVersion": {
+    "stored": 2,
+    "canonical": 2
+  },
+  "validation": {
+    "strict": {
+      "errors": [],
+      "warnings": []
+    },
+    "save": {
+      "errors": [],
+      "warnings": []
+    }
+  },
+  "ordinals": {
+    "stored": {},
+    "canonical": "same as stored"
+  },
+  "reads": [
+    {
+      "at": "cmp_lntable.source",
+      "kind": "records",
+      "table": "tbl_lines01",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT *, (\"price\" * \"qty\") AS \"total\", (CASE WHEN \"price\" * \"qty\" >= 100 THEN 'large' ELSE 'small' END) AS \"size_band\", NULL AS \"legacy_flag\" FROM \"lines\" WHERE (1=1) ORDER BY \"item\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            26
+          ]
+        },
+        "clerk": {
+          "sql": "SELECT *, (\"price\" * \"qty\") AS \"total\", (CASE WHEN \"price\" * \"qty\" >= 100 THEN 'large' ELSE 'small' END) AS \"size_band\", NULL AS \"legacy_flag\" FROM \"lines\" WHERE (\"created_by\" = ?) ORDER BY \"item\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "usr_compat_clerk",
+            26
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT *, (\"price\" * \"qty\") AS \"total\", (CASE WHEN \"price\" * \"qty\" >= 100 THEN 'large' ELSE 'small' END) AS \"size_band\", NULL AS \"legacy_flag\" FROM \"lines\" WHERE (1=1) ORDER BY \"item\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            26
+          ]
+        },
+        "clerk": {
+          "sql": "SELECT *, (\"price\" * \"qty\") AS \"total\", (CASE WHEN \"price\" * \"qty\" >= 100 THEN 'large' ELSE 'small' END) AS \"size_band\", NULL AS \"legacy_flag\" FROM \"lines\" WHERE (\"created_by\" = ?) ORDER BY \"item\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "usr_compat_clerk",
+            26
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_lndetail.value",
+      "kind": "record",
+      "table": "tbl_lines01",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT *, (\"price\" * \"qty\") AS \"total\", (CASE WHEN \"price\" * \"qty\" >= 100 THEN 'large' ELSE 'small' END) AS \"size_band\", NULL AS \"legacy_flag\" FROM \"lines\" WHERE (1=1) AND \"item\" = ? ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "pen",
+            51
+          ]
+        },
+        "clerk": {
+          "sql": "SELECT *, (\"price\" * \"qty\") AS \"total\", (CASE WHEN \"price\" * \"qty\" >= 100 THEN 'large' ELSE 'small' END) AS \"size_band\", NULL AS \"legacy_flag\" FROM \"lines\" WHERE (\"created_by\" = ?) AND \"item\" = ? ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "usr_compat_clerk",
+            "pen",
+            51
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT *, (\"price\" * \"qty\") AS \"total\", (CASE WHEN \"price\" * \"qty\" >= 100 THEN 'large' ELSE 'small' END) AS \"size_band\", NULL AS \"legacy_flag\" FROM \"lines\" WHERE (1=1) AND \"item\" = ? ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "pen",
+            51
+          ]
+        },
+        "clerk": {
+          "sql": "SELECT *, (\"price\" * \"qty\") AS \"total\", (CASE WHEN \"price\" * \"qty\" >= 100 THEN 'large' ELSE 'small' END) AS \"size_band\", NULL AS \"legacy_flag\" FROM \"lines\" WHERE (\"created_by\" = ?) AND \"item\" = ? ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "usr_compat_clerk",
+            "pen",
+            51
+          ]
+        }
+      }
+    }
+  ]
+}

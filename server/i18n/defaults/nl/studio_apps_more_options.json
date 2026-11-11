@@ -1,0 +1,15 @@
+{
+  "translations": {
+    "studio_apps_more_options.colour_picker_aria": "Kies een kleur voor {name}",
+    "studio_apps_more_options.hex_aria": "Hexkleur voor {name}",
+    "studio_apps_more_options.item_default": "(standaard)",
+    "studio_apps_more_options.item_default_named": "(standaard: {value})",
+    "studio_apps_more_options.no_action": "Geen actie",
+    "studio_apps_more_options.no_items": "Voeg er eerst een toe onder {list} hierboven.",
+    "studio_apps_more_options.per_item": "{list}: meer per item",
+    "studio_apps_more_options.reset": "Herstellen",
+    "studio_apps_more_options.reset_aria": "{name} herstellen",
+    "studio_apps_more_options.title": "Meer opties"
+  },
+  "sameAsEnglish": ["studio_apps_more_options.hex_placeholder"]
+}

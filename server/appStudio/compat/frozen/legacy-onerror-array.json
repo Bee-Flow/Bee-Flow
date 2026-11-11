@@ -1,0 +1,94 @@
+{
+  "corpus": "legacy-onerror-array",
+  "canonical": {
+    "sha256": "fef02e49a58b6cc195f96665c849ee3e6e72e91c61321c809ed4149dbb66cba9",
+    "bytes": 2818,
+    "inputIsCanonical": false,
+    "idempotent": true,
+    "keys": [
+      "schemaVersion",
+      "meta",
+      "theme",
+      "roles",
+      "screens",
+      "actions",
+      "homeScreenId"
+    ],
+    "parts": {
+      "schemaVersion": "d4735e3a265e16ee",
+      "meta": "b145d501248b26a4",
+      "theme": "5d7eeb0111b89897",
+      "roles": "4f53cda18c2baa0c",
+      "screens[0] scr_lgh001": "79a4d3c649989de2",
+      "actions.act_lghsav": "ecf0a23988c20b52",
+      "actions.act_lghblk": "508b9e61ff6582d8",
+      "actions.act_lghaut": "71ef90ae35bb3ece",
+      "homeScreenId": "433195c5675dd624"
+    }
+  },
+  "schemaVersion": {
+    "stored": 2,
+    "canonical": 2
+  },
+  "validation": {
+    "strict": {
+      "errors": [],
+      "warnings": [
+        "action.automation_unset @ actions.act_lghaut.automationId"
+      ]
+    },
+    "save": {
+      "errors": [],
+      "warnings": [
+        "action.automation_unset @ actions.act_lghaut.automationId"
+      ]
+    }
+  },
+  "ordinals": {
+    "stored": {
+      "act_lghsav": [
+        "0 create_record",
+        "1 refresh",
+        "2 toast",
+        "3 toast"
+      ],
+      "act_lghblk": [
+        "0 condition",
+        "1 update_record",
+        "2 toast",
+        "3 toast",
+        "4 toast",
+        "5 navigate"
+      ],
+      "act_lghaut": [
+        "0 run_automation"
+      ]
+    },
+    "canonical": "same as stored"
+  },
+  "reads": [
+    {
+      "at": "cmp_lghtbl.source",
+      "kind": "records",
+      "table": "tbl_lghtsk",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"tasks\" WHERE (1=1) AND \"status\" = ? ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "open",
+            51
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"tasks\" WHERE (1=1) AND \"status\" = ? ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "open",
+            51
+          ]
+        }
+      }
+    }
+  ]
+}

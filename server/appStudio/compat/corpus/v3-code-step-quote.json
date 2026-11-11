@@ -1,0 +1,436 @@
+{
+  "about": {
+    "source": "hand-made: a published app with publicAccess whose public form runs a code step (schema 3) over a records input and two form values, then writes its result with create_record inside a condition; stored as canonicalizeAppDefinition produced it at capture",
+    "captured": "2026-11-10"
+  },
+  "definition": {
+    "schemaVersion": 3,
+    "meta": {
+      "name": "Quote calculator",
+      "description": "A public quote form whose price is worked out by a code step.",
+      "icon": "Calculator"
+    },
+    "theme": {
+      "primary": "#0F766E",
+      "radius": "md",
+      "density": "comfortable",
+      "fontScale": "md",
+      "appearance": "light"
+    },
+    "roles": [
+      {
+        "id": "sales",
+        "name": "Sales"
+      }
+    ],
+    "screens": [
+      {
+        "id": "scr_cqform",
+        "name": "Quote",
+        "icon": null,
+        "showInNav": false,
+        "maxWidth": "narrow",
+        "sections": [
+          {
+            "id": "sec_cqform",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_cqhead",
+                "type": "heading",
+                "props": {
+                  "text": "Get a quote",
+                  "level": 1,
+                  "accent": "none"
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_cqform",
+                "type": "form",
+                "props": {
+                  "name": "quote",
+                  "submitLabel": "Work it out",
+                  "showReset": false,
+                  "showSubmit": true,
+                  "resetKey": null
+                },
+                "style": {
+                  "span": 6,
+                  "gap": 3,
+                  "padding": 0
+                },
+                "visible": true,
+                "onSubmit": "act_cqquote",
+                "children": [
+                  {
+                    "id": "cmp_cqcust",
+                    "type": "input_text",
+                    "props": {
+                      "name": "customer",
+                      "label": "Your company",
+                      "placeholder": null,
+                      "required": true,
+                      "defaultValue": null,
+                      "inputType": "text",
+                      "valueFrom": {
+                        "kind": "static",
+                        "value": null
+                      }
+                    },
+                    "style": {
+                      "span": 12
+                    },
+                    "visible": true
+                  },
+                  {
+                    "id": "cmp_cqprod",
+                    "type": "input_text",
+                    "props": {
+                      "name": "product",
+                      "label": "Product",
+                      "placeholder": null,
+                      "required": true,
+                      "defaultValue": null,
+                      "inputType": "text",
+                      "valueFrom": {
+                        "kind": "static",
+                        "value": null
+                      }
+                    },
+                    "style": {
+                      "span": 12
+                    },
+                    "visible": true
+                  },
+                  {
+                    "id": "cmp_cqqty",
+                    "type": "input_number",
+                    "props": {
+                      "name": "qty",
+                      "label": "Quantity",
+                      "min": null,
+                      "max": null,
+                      "step": 1,
+                      "required": true,
+                      "defaultValue": null,
+                      "valueFrom": {
+                        "kind": "static",
+                        "value": null
+                      }
+                    },
+                    "style": {
+                      "span": 6
+                    },
+                    "visible": true
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "scr_cqdone",
+        "name": "Your quote",
+        "icon": null,
+        "showInNav": false,
+        "maxWidth": "narrow",
+        "sections": [
+          {
+            "id": "sec_cqdone",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_cqres",
+                "type": "callout",
+                "props": {
+                  "title": "Your quote",
+                  "text": "Thank you, we saved your quote.",
+                  "textFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "tone": "success",
+                  "toneFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "meta": null,
+                  "metaFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "collapsible": false
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "scr_cqback",
+        "name": "Quotes",
+        "icon": null,
+        "showInNav": true,
+        "maxWidth": "wide",
+        "sections": [
+          {
+            "id": "sec_cqback",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_cqgrid",
+                "type": "data_grid",
+                "props": {
+                  "source": {
+                    "kind": "records",
+                    "tableId": "tbl_cqquote"
+                  },
+                  "columns": [
+                    {
+                      "key": "customer",
+                      "label": "Company",
+                      "format": "text"
+                    },
+                    {
+                      "key": "total",
+                      "label": "Total",
+                      "format": "number"
+                    },
+                    {
+                      "key": "note",
+                      "label": "Note",
+                      "format": "text"
+                    }
+                  ],
+                  "pageSize": 25,
+                  "selectable": "none",
+                  "searchable": false,
+                  "rowActions": [],
+                  "toolbarActions": [],
+                  "addRowLabel": null,
+                  "addRowActionId": null,
+                  "bulkActions": [],
+                  "density": "comfortable",
+                  "clamp": "off",
+                  "rowTone": [],
+                  "groupBy": null,
+                  "groupOrder": [],
+                  "activeWhen": null,
+                  "zebra": false,
+                  "emptyText": "Nothing to show yet.",
+                  "look": "default"
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "actions": {
+      "act_cqquote": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "code",
+            "code": "/**\n * A quote for the visitor: the price list, the quantity they asked for and a volume discount.\n */\nfunction main(inputs, ctx) {\n  const item = inputs.items.find((row) => row.name === inputs.product);\n  if (!item) return { ok: false, total: 0, note: \"Unknown product\" };\n  const qty = Math.max(1, Math.floor(Number(inputs.qty) || 1));\n  const tier = qty >= 100 ? 0.15 : qty >= 25 ? 0.05 : 0;\n  const total = Math.round(item.price * qty * (1 - tier) * 100) / 100;\n  ctx.log(\"quote\", item.name, qty, tier);\n  return { ok: true, total, note: tier ? `Volume discount ${tier * 100}%` : \"\" };\n}\n",
+            "inputs": {
+              "items": {
+                "kind": "records",
+                "tableId": "tbl_cqitem",
+                "limit": 200
+              },
+              "product": {
+                "kind": "formula",
+                "expr": "form.product"
+              },
+              "qty": {
+                "kind": "formula",
+                "expr": "form.qty"
+              }
+            },
+            "resultVar": "quote",
+            "timeoutMs": 2000,
+            "onError": {
+              "steps": [
+                {
+                  "kind": "toast",
+                  "message": "The quote could not be worked out.",
+                  "tone": "danger"
+                }
+              ],
+              "stop": true
+            }
+          },
+          {
+            "kind": "condition",
+            "expr": "vars.quote.ok == true",
+            "then": [
+              {
+                "kind": "create_record",
+                "tableId": "tbl_cqquote",
+                "values": {
+                  "customer": {
+                    "kind": "formula",
+                    "expr": "form.customer"
+                  },
+                  "total": {
+                    "kind": "formula",
+                    "expr": "vars.quote.total"
+                  },
+                  "note": {
+                    "kind": "formula",
+                    "expr": "vars.quote.note"
+                  }
+                }
+              },
+              {
+                "kind": "navigate",
+                "screenId": "scr_cqdone"
+              }
+            ],
+            "else": [
+              {
+                "kind": "toast",
+                "message": "We do not know that product.",
+                "tone": "warning"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "homeScreenId": "scr_cqform",
+    "publicAccess": {
+      "entryScreenId": "scr_cqform",
+      "screenIds": [
+        "scr_cqform",
+        "scr_cqdone"
+      ],
+      "roleKey": "public",
+      "title": "Get a quote"
+    }
+  },
+  "dataModel": {
+    "modelVersion": 1,
+    "tables": [
+      {
+        "id": "tbl_cqitem",
+        "key": "items",
+        "name": "Price list",
+        "fields": [
+          {
+            "id": "fld_cqinam",
+            "key": "name",
+            "name": "Name",
+            "type": "text",
+            "required": true,
+            "unique": false
+          },
+          {
+            "id": "fld_cqiprc",
+            "key": "price",
+            "name": "Price",
+            "type": "number",
+            "required": false,
+            "unique": false
+          }
+        ],
+        "access": {
+          "default": "role",
+          "roles": {
+            "public": {
+              "read": "all"
+            },
+            "sales": {
+              "read": "all",
+              "create": true,
+              "update": "all"
+            }
+          },
+          "rowFilters": {}
+        },
+        "icon": null
+      },
+      {
+        "id": "tbl_cqquote",
+        "key": "quotes",
+        "name": "Quotes",
+        "fields": [
+          {
+            "id": "fld_cqqcus",
+            "key": "customer",
+            "name": "Company",
+            "type": "text",
+            "required": true,
+            "unique": false
+          },
+          {
+            "id": "fld_cqqtot",
+            "key": "total",
+            "name": "Total",
+            "type": "number",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_cqqnot",
+            "key": "note",
+            "name": "Note",
+            "type": "text",
+            "required": false,
+            "unique": false
+          }
+        ],
+        "access": {
+          "default": "role",
+          "roles": {
+            "public": {
+              "create": true
+            },
+            "sales": {
+              "read": "all",
+              "update": "all"
+            }
+          },
+          "rowFilters": {}
+        },
+        "icon": null
+      }
+    ],
+    "roles": [
+      {
+        "key": "sales",
+        "label": "Sales"
+      }
+    ],
+    "roleMapping": {
+      "default": "app",
+      "byGroup": {}
+    }
+  }
+}

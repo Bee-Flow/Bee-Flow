@@ -252,3 +252,14 @@ test('member access on a call result, and map/filter/some/every with it', () => 
         rate: STR,
     }));
 });
+
+test('reduce reads its list; a literal and ?? read their parts', () => {
+    const d = def([
+        { id: 'x', type: 'integration_action', tool: 'jira', inputs: {
+            total: { kind: 'expr', value: 'reduce(steps.ai.output.rows, acc + it.qty * steps.ai.output.factor, steps.ai.output.start)' },
+            pair: { kind: 'expr', value: '[steps.ai.output.left, { r: steps.ai.output.right ?? steps.ai.output.other }]' },
+        } },
+    ]);
+    assert.deepEqual(Object.keys(inferAiStepOutputSchema(d, 'ai').schema.properties).sort(), ['factor', 'left', 'other', 'right', 'rows', 'start']);
+    assert.deepEqual(inferAiStepOutputSchema(d, 'ai').schema.properties.rows, { type: 'array' });
+});

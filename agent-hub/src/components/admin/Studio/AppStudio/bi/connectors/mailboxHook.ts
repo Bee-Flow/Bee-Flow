@@ -7,6 +7,7 @@
  * refusal an author is most likely to hit, send_email, so the action can be left out of the
  * list before it fails later.
  */
+import { extraChildLists } from '@shared/appDefinition/stepFlow.mjs';
 
 /** The action as far as the picker reads it. */
 export interface HookAction {
@@ -45,6 +46,8 @@ function* walk(list: unknown): Generator<HookAction> {
         yield* walk(step.default);
         // A refused kind cannot hide in an onError handler (the server's policy walks it too).
         yield* walk((step as { onError?: { steps?: unknown } }).onError?.steps);
+        // The places a registry container adds (a try's catch and finally).
+        for (const list of extraChildLists(step)) yield* walk(list);
     }
 }
 

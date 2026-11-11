@@ -21,6 +21,7 @@ const {
     addColumnDdl,
 } = require('./ddl');
 const { isPhysical, coerceModelShape } = require('./migrationShape');
+const { autonumberBackfillDdl } = require('./autonumber');
 const { exprMentions } = require('./fieldConversion.mts');
 const { survivingAlterable, pushOp, pushProbe, opBase, rebuildStoredComputed, convertingKeysOf } = require('./migrationRebuild');
 const {
@@ -112,6 +113,8 @@ function addColumns(p) {
                 continue;
             }
             p.plan.push(...addColumnDdl(nt.key, nt.id, nf, p.newKeyById, p.dialect));
+            // An autonumber numbers the rows that were there (a new row gets its number on insert).
+            if (nf.type === 'autonumber') p.plan.push(autonumberBackfillDdl(nt.key, nf.key));
         }
     }
 }

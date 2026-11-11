@@ -1,0 +1,37 @@
+{
+  "translations": {
+    "studio_apps_layout.breakpoint.hint": "Voor welke schermgrootte de breedtes zijn die je sleept. De voorvertoning toont het echte resultaat.",
+    "studio_apps_layout.breakpoint.label": "Breedtes indelen voor",
+    "studio_apps_layout.breakpoint.sm": "Telefoon",
+    "studio_apps_layout.hints.columns": "1 tot 12. Leeg: de standaard 12 kolommen.",
+    "studio_apps_layout.hints.responsive": "Herschikken: smalle blokken worden op een tablet een halve rij, brede een hele rij. Behouden: elk blok houdt zijn breedte.",
+    "studio_apps_layout.hints.responsive_columns": "Een raster met een eigen kolomaantal wordt nooit herschikt. Geef een blok een tabletbreedte waar dat nodig is.",
+    "studio_apps_layout.hints.span_md": "Kolommen tussen 640 en 1023 px breed. Leeg: het raster bepaalt het.",
+    "studio_apps_layout.hints.span_sm": "Kolommen onder 640 px breed. Leeg: het blok krijgt de volle breedte, zoals elk blok op een telefoon.",
+    "studio_apps_layout.hints.sticky": "Het blok blijft in beeld naast hogere inhoud in dezelfde rij. Niet zichtbaar tijdens het bewerken: gebruik de voorvertoning.",
+    "studio_apps_layout.knobs.align_self": "Positie in de rij",
+    "studio_apps_layout.knobs.columns": "Kolommen",
+    "studio_apps_layout.knobs.responsive": "Op tablet",
+    "studio_apps_layout.knobs.row_span": "Rijen",
+    "studio_apps_layout.knobs.span_md": "Breedte op tablet",
+    "studio_apps_layout.knobs.span_sm": "Breedte op telefoon",
+    "studio_apps_layout.knobs.sticky": "Vastzetten bij scrollen",
+    "studio_apps_layout.knobs.sticky_offset": "Afstand tot de rand",
+    "studio_apps_layout.section.hint_grid": "Kolommen, tablet en telefoon",
+    "studio_apps_layout.section.hint_node": "Breedte op tablet en telefoon, rijen, vastzetten",
+    "studio_apps_layout.section.title": "Indeling",
+    "studio_apps_layout.values.automatic": "Automatisch",
+    "studio_apps_layout.values.bottom": "Onder",
+    "studio_apps_layout.values.full_width": "Volle breedte",
+    "studio_apps_layout.values.middle": "Midden",
+    "studio_apps_layout.values.responsive_auto": "Herschikken",
+    "studio_apps_layout.values.responsive_manual": "Behouden",
+    "studio_apps_layout.values.sticky_none": "Uit",
+    "studio_apps_layout.values.stretch": "Vullen",
+    "studio_apps_layout.values.top": "Boven"
+  },
+  "sameAsEnglish": [
+    "studio_apps_layout.breakpoint.lg",
+    "studio_apps_layout.breakpoint.md"
+  ]
+}

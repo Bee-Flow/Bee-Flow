@@ -1,34 +1,22 @@
 import { Loader2, Table2 } from 'lucide-react';
-import type { Dispatch, SetStateAction } from 'react';
+import type { ComponentProps, Dispatch, SetStateAction } from 'react';
 import type { UseQueryResult } from '@tanstack/react-query';
 import { inputCls, RepeatableList } from '@/components/admin/product-website/fields';
 import type { TranslateFn, TranslateParams } from '@/hooks/useTranslation';
 import type { DatasetGroup } from './useDatasets';
+import type { AppTable } from './useAppTables';
 import type { TableColumn } from '../inspector/aiFieldMatching';
+import GroupByExtras from './GroupByExtras';
+import { measureIsNumeric } from './aggregateExtras';
+import type { GroupFilterMeasure } from './GroupFilterField';
+import { AGGS, DATE_BUCKETS, DATE_TYPES } from './aggregateVocabulary';
+import type AppChart from '../runtime/components/AppChart';
+import type { ChartMapping } from './ChartDataPanel';
 
 // The pieces of the Query Builder modal: the measure and date-bucket vocabularies,
-// the breakdown and measure lists, the preview result, and the empty and footer rows.
+// the breakdown and measure lists, the preview result and chart, and the empty and footer rows.
 
-// `label` is the English default, `labelKey` its translation key: render
-// with t(x.labelKey, x.label).
-export const AGGS = [
-    { value: 'count', label: 'Count', labelKey: 'studio_apps_bi.query.agg_count' },
-    { value: 'sum', label: 'Sum', labelKey: 'studio_apps_bi.query.agg_sum' },
-    { value: 'avg', label: 'Average', labelKey: 'studio_apps_bi.query.agg_avg' },
-    { value: 'min', label: 'Lowest', labelKey: 'studio_apps_bi.query.agg_min' },
-    { value: 'max', label: 'Highest', labelKey: 'studio_apps_bi.query.agg_max' },
-];
-
-export const DATE_BUCKETS = [
-    { value: '', label: 'Exact', labelKey: 'studio_apps_bi.query.bucket_exact' },
-    { value: 'day', label: 'By day', labelKey: 'studio_apps_bi.query.bucket_day' },
-    { value: 'week', label: 'By week', labelKey: 'studio_apps_bi.query.bucket_week' },
-    { value: 'month', label: 'By month', labelKey: 'studio_apps_bi.query.bucket_month' },
-    { value: 'quarter', label: 'By quarter', labelKey: 'studio_apps_bi.query.bucket_quarter' },
-    { value: 'year', label: 'By year', labelKey: 'studio_apps_bi.query.bucket_year' },
-];
-
-export const DATE_TYPES = new Set<string | undefined>(['date', 'datetime']);
+export { AGGS, DATE_BUCKETS, DATE_TYPES } from './aggregateVocabulary';
 const PREVIEW_ROWS = 8;
 
 /** "Sum of Amount" — the row header for one measure, in plain words. */
@@ -38,6 +26,29 @@ function measureSentence(a: { agg: string; field: string; label: string; }, fiel
     return t('studio_apps_bi.query.measure_of', '{agg} of {field}', { agg: t(agg.labelKey, agg.label), field: fieldName(a.field) || '…' });
 }
 
+
+/** The measures as the group filter offers them: their name, and whether they yield a number. */
+export function groupFilterMeasures(aggregates: Measure[], fieldName: (key: string) => string, fieldType: (key: string | undefined) => string | undefined, t: TranslateFn): GroupFilterMeasure[] {
+    return aggregates.map((a) => ({ label: a.label || measureSentence(a, fieldName, t), numeric: measureIsNumeric(a.agg, fieldType(a.field)) }));
+}
+
+/** The live preview chart, as a static-source chart node over the preview rows. */
+export function previewChartNodeFor(effectiveMapping: ChartMapping, previewRows: unknown[]): ComponentProps<typeof AppChart>['node'] {
+    return {
+    id: 'qb_preview_chart',
+    type: 'chart',
+    props: {
+        chartType: effectiveMapping.chartType,
+        source: { kind: 'static', value: previewRows },
+        xKey: effectiveMapping.xKey,
+        series: effectiveMapping.series,
+        showLegend: true,
+        showGrid: true,
+        valueFormat: 'number',
+    },
+    style: { height: 'md' },
+    };
+}
 
 function formatCell(v: string | number) {
     if (v == null) return '—';
@@ -93,10 +104,11 @@ interface BreakdownFieldProps {
     fields: TableColumn[];
     fieldName: (key: string | undefined) => string;
     fieldType: (key: string | undefined) => string | undefined;
+    tables?: AppTable[];
 }
 
-/** Break it down by: a column per row, with a date grouping for date columns. */
-export function BreakdownField({ t, groupBy, setGroupBy, fields, fieldName, fieldType }: BreakdownFieldProps) {
+/** Break it down by: a column per row, with a date grouping for date columns (and GroupByExtras for relations and numbers). */
+export function BreakdownField({ t, groupBy, setGroupBy, fields, fieldName, fieldType, tables = [] }: BreakdownFieldProps) {
     return (
         <fieldset className="min-w-0">
             <RepeatableList
@@ -108,7 +120,7 @@ export function BreakdownField({ t, groupBy, setGroupBy, fields, fieldName, fiel
                 itemLabel={(g) => fieldName(g.field) || t('studio_apps_bi.query.pick_column_label', 'Pick a column')}
                 renderItem={(g, update) => (
                     <div className="flex flex-col gap-2">
-                        <select className={inputCls} value={g.field || ''} onChange={(e) => update({ ...g, field: e.target.value, bucket: '' })} aria-label={t('studio_apps_bi.query.break_down_by', 'Break down by')}>
+                        <select className={inputCls} value={g.field || ''} onChange={(e) => { const { relatedField: _r, binWidth: _b, ...rest } = g; update({ ...rest, field: e.target.value, bucket: '' }); }} aria-label={t('studio_apps_bi.query.break_down_by', 'Break down by')}>
                             <option value="">{t('studio_apps_bi.chart.pick_column', 'Pick a column…')}</option>
                             {fields.map((f) => <option key={f.key} value={f.key}>{f.name || f.key}</option>)}
                         </select>
@@ -117,6 +129,7 @@ export function BreakdownField({ t, groupBy, setGroupBy, fields, fieldName, fiel
                                 {DATE_BUCKETS.map((b) => <option key={b.value} value={b.value}>{t(b.labelKey, b.label)}</option>)}
                             </select>
                         ) : null}
+                        <GroupByExtras t={t} group={g} update={update} fields={fields} tables={tables} inputClass={inputCls} />
                     </div>
                 )}
             />

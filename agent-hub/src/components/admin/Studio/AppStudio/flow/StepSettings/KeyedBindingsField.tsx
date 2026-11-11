@@ -62,20 +62,40 @@ function RowValueField({ shape, value, onChange, definition, node, formFields, d
         );
     }
 
-    // An automation's inputs: a fixed value, or one of the enclosing form's fields.
+    // An automation's inputs: a fixed value, one of the enclosing form's fields or (since 3) a formula the
+    // server works out when the automation starts.
     const isField = value?.kind === 'field';
+    const isFormula = value?.kind === 'formula';
+    const mappingSource = isFormula ? 'formula' : (isField ? 'field' : 'static');
+    const mappingOfSource: Record<string, RowBinding> = {
+        static: { kind: 'static', value: '' },
+        field: { kind: 'field', name: formFields[0]?.name || '' },
+        formula: { kind: 'formula', expr: '' },
+    };
     return (
         <div className="flex flex-col gap-1.5">
             <SegmentedControl
-                value={isField ? 'field' : 'static'}
-                onChange={(next) => onChange(next === 'field'
-                    ? { kind: 'field', name: formFields[0]?.name || '' }
-                    : { kind: 'static', value: '' })}
-                options={[{ value: 'static', label: t('studio_apps_edit.step_settings.fixed_value_option', 'A fixed value') }, { value: 'field', label: t('studio_apps_edit.step_settings.from_form', 'From the form') }]}
+                value={mappingSource}
+                onChange={(next) => { if (next !== mappingSource) onChange(mappingOfSource[next]); }}
+                options={[
+                    { value: 'static', label: t('studio_apps_edit.step_settings.fixed_value_option', 'A fixed value') },
+                    { value: 'field', label: t('studio_apps_edit.step_settings.from_form', 'From the form') },
+                    { value: 'formula', label: t('studio_apps_edit.step_settings.worked_out', 'Worked out') },
+                ]}
                 size="sm"
                 ariaLabel={t('studio_apps_edit.step_settings.value_source', 'Where this value comes from')}
             />
-            {isField ? (
+            {isFormula ? (
+                <ExpressionInput
+                    variant="inline"
+                    value={value?.expr || ''}
+                    onChange={(expr) => onChange({ kind: 'formula', expr })}
+                    definition={definition}
+                    node={node}
+                    ariaLabel={t('studio_apps_edit.step_settings.value_formula', 'Value formula')}
+                    disabled={disabled}
+                />
+            ) : isField ? (
                 <select
                     className={INPUT_CLS}
                     value={value?.name || ''}

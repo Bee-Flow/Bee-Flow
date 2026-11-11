@@ -61,3 +61,32 @@ test('a hand-written call cycle terminates and grants nothing', () => {
     const def = defWith([], { act_a: SEQ(CALL('act_b')), act_b: SEQ(CALL('act_a')) });
     assert.deepStrictEqual(actionRoleAccess(def, 'act_a', 'member'), { referenced: true, allowed: false });
 });
+
+test('an action a node lists in its props follows that node\'s role gate, whichever list holds it', () => {
+    const wirings = {
+        rowActions: { rowActions: [{ label: 'Open', actionId: 'act_x' }] },
+        itemActions: { itemActions: [{ label: 'Open', actionId: 'act_x' }] },
+        bulkActions: { bulkActions: [{ label: 'Archive', actionId: 'act_x' }] },
+        toolbarActions: { toolbarActions: [{ label: 'Export', actionId: 'act_x' }] },
+        addRowActionId: { addRowActionId: 'act_x' },
+        'columns[].actionId': { columns: [{ field: 'name' }, { label: 'Go', actionId: 'act_x' }] },
+    };
+    for (const [name, props] of Object.entries(wirings)) {
+        const def = { screens: [{ id: 'scr_1', sections: [{ id: 'sec_1', children: [{ id: 'cmp_g', type: 'data_grid', visibleToRoles: ['admin'], props }] }] }], actions: { act_x: MAIL } };
+        assert.deepStrictEqual(actionRoleAccess(def, 'act_x', 'member'), { referenced: true, allowed: false }, name);
+        assert.deepStrictEqual(actionRoleAccess(def, 'act_x', 'admin'), { referenced: true, allowed: true }, name);
+        const res = fakeRes();
+        assert.strictEqual(assertActionRoleAccess(res, def, 'act_x', 'member', { isOwner: false }), false, name);
+        assert.strictEqual(res.statusCode, 403, name);
+        // Without a gate on the node it is open to everyone, as before.
+        const open = JSON.parse(JSON.stringify(def));
+        delete open.screens[0].sections[0].children[0].visibleToRoles;
+        assert.deepStrictEqual(actionRoleAccess(open, 'act_x', 'member'), { referenced: true, allowed: true }, name);
+    }
+});
+
+test('an action nothing wires and nothing calls stays programmatic', () => {
+    const def = defWith([['act_other', ['admin']]], { act_other: MAIL, act_chain: MAIL });
+    assert.deepStrictEqual(actionRoleAccess(def, 'act_chain', 'member'), { referenced: false, allowed: false });
+    assert.strictEqual(assertActionRoleAccess(fakeRes(), def, 'act_chain', 'member', { isOwner: false }), true);
+});

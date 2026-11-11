@@ -586,3 +586,40 @@ test('an unknown table is "not found"', async () => {
     assert.match(r.error, /table not found/i);
     assert.strictEqual(execCalls.length, 0);
 });
+
+// ── Row rules that read the viewer's groups, e-mail and account organisation ──
+
+test('a step reads viewer.groups / viewer.email from the user row, and each operation gets its own rule', async () => {
+    const userReads = [];
+    stub('../stores/userStore', {
+        getUser: async (id) => { userReads.push(id); return id === 'u-ada' ? { id, email: 'ada@example.org', groups: ['g_sales'], organizationId: 'org-9' } : null; },
+    });
+    const table = tableWith({
+        default: 'none',
+        roles: { member: { read: 'all', create: true, update: 'all', delete: 'all' } },
+        rowFilters: { member: { update: 'record.title in viewer.groups', delete: 'record.title == viewer.email && record.title != viewer.orgId' } },
+    });
+    const model = modelWith(table);
+    // What the run route hands the executor: a viewer without the attributes, and nothing from the client.
+    const ctx = (viewerId) => ({ viewerId, role: 'member', orgId: 'org-1', formValues: {}, vars: {}, viewer: { id: viewerId, role: 'member', organizationId: 'org-session' } });
+    const update = { kind: 'update_record', tableId: table.id, recordId: { kind: 'static', value: 'rec_1' }, values: { done: { kind: 'static', value: true } } };
+    const del = { kind: 'delete_record', tableId: table.id, recordId: { kind: 'static', value: 'rec_1' } };
+
+    assert.strictEqual((await actionExecutor.executeDataStep(app, model, update, ctx('u-ada'))).ok, true);
+    assert.match(execCalls[0].sql, /AND \(\(1=1\) AND \(\("title" IN \(\?\)\)\)\)/);
+    assert.ok(execCalls[0].params.includes('g_sales'));
+
+    assert.strictEqual((await actionExecutor.executeDataStep(app, model, del, ctx('u-ada'))).ok, true);
+    assert.match(execCalls[1].sql, /\(\("title" = \?\) AND \("title" != \?\)\)/);
+    assert.deepStrictEqual(execCalls[1].params.slice(-2), ['ada@example.org', 'org-9']);
+
+    // Someone whose row cannot be read: the rule is unknown for them, so it addresses no row.
+    await actionExecutor.executeDataStep(app, model, update, ctx('u-ghost'));
+    assert.match(execCalls[2].sql, /"title" IN \(NULL\)/);
+    assert.deepStrictEqual(userReads, ['u-ada', 'u-ada', 'u-ghost']);
+
+    // A model whose rules read none of this never asks for the user.
+    userReads.length = 0;
+    await actionExecutor.executeDataStep(app, modelWith(tableWith({ default: 'app', roles: {}, rowFilters: { member: 'record.title == viewer.id' } })), update, ctx('u-ada'));
+    assert.deepStrictEqual(userReads, []);
+});

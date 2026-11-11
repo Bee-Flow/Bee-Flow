@@ -2,6 +2,7 @@ import { Trash2 } from 'lucide-react';
 import { SetStateAction, Dispatch, useEffect, useRef, useState } from 'react';
 import ActionChoiceCards from './ActionChoiceCards';
 import ActionRunOptions from './ActionRunOptions';
+import SequenceEffects from './SequenceEffects';
 import { EDITOR_BY_KIND, defaultActionForKind } from './actionKindCatalog';
 import { stepCount } from './actionRefs';
 import AiActionEditor from './AiActionEditors';
@@ -10,6 +11,7 @@ import {
 } from './EventWiringParts';
 import { INPUT_CLS } from './panels/kit';
 import RunAutomationEditor from './RunAutomationEditor';
+import ThenAlsoRun from './ThenAlsoRun';
 import { TYPE_EVENT_LISTS } from './styleKnobMeta';
 import useEventWiring, { NEW_ACTION } from './useEventWiring';
 import useAutomationApi from '@/hooks/useAutomationApi';
@@ -129,6 +131,7 @@ export default function ActionsSection({ node, definition, onCommit, onTestActio
                         titleFor={titleFor}
                         appId={appId}
                     />
+                    <ThenAlsoRun node={node} event={event} definition={definition} onCommit={onCommit} titleFor={titleFor} disabled={disabled} />
                 </div>
             ))}
         </div>
@@ -175,6 +178,7 @@ function EventWiring({ event, node, definition, onCommit, onTestActionResult, di
                         <>
                             <SequenceSummary action={action} onOpen={() => setFlowFor(actionId)} disabled={disabled} />
                             <ActionRunOptions action={action} commitAction={commitAction} definition={definition} node={node} disabled={disabled} />
+                            <SequenceEffects action={action} commitAction={commitAction} definition={definition} disabled={disabled} />
                         </>
                     ) : null}
 
@@ -202,10 +206,7 @@ function EventWiring({ event, node, definition, onCommit, onTestActionResult, di
                         authorable only by the AI. */}
                     {EDITOR_BY_KIND[action.kind] === 'spec' && (
                         <StepSettings
-                            step={action}
-                            onChange={commitAction}
-                            definition={definition}
-                            node={node}
+                            step={action} onChange={commitAction} definition={definition} node={node}
                             screens={definition?.screens || []}
                             formFields={formFields}
                             actionId={actionId}

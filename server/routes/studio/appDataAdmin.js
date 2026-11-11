@@ -12,6 +12,20 @@ const rlsGateway = require('../../appStudio/rlsGateway');
 const { validateDataModel } = require('../../appStudio/dataModel');
 const { loadOwnedApp, handleErr } = require('./appDataContext');
 const { bestEffort } = require('../../utils/bestEffort');
+const { validateDatasetParams } = require('../../appStudio/datasetParams.mts');
+
+/**
+ * A descriptor's parameters checked before it is stored: answered 422 here and
+ * true when they are wrong. A descriptor without parameters always passes.
+ * @param {import('express').Response} res
+ * @param {unknown} descriptor
+ */
+function refuseBadParams(res, descriptor) {
+    const errors = validateDatasetParams(descriptor);
+    if (!errors.length) return false;
+    res.status(422).json({ error: 'Dataset parameters failed validation', errors });
+    return true;
+}
 
 /**
  * @param {import('express').Request<{ id: string }>} req
@@ -35,6 +49,7 @@ async function createDataset(req, res) {
         const app = await loadOwnedApp(req, res);
         if (!app) return;
         const body = (req.body && typeof req.body === 'object' && !Array.isArray(req.body)) ? req.body : {};
+        if (refuseBadParams(res, body.descriptor)) return;
         const dataset = await studioAppDataStore.createDataset(app.id, app.userId, {
             name: typeof body.name === 'string' ? body.name : undefined,
             tableId: typeof body.tableId === 'string' ? body.tableId : null,
@@ -55,6 +70,7 @@ async function updateDataset(req, res) {
         const app = await loadOwnedApp(req, res);
         if (!app) return;
         const body = (req.body && typeof req.body === 'object' && !Array.isArray(req.body)) ? req.body : {};
+        if (body.descriptor !== undefined && refuseBadParams(res, body.descriptor)) return;
         const updates = {};
         if (body.name !== undefined) updates.name = body.name;
         if (body.tableId !== undefined) updates.tableId = body.tableId;
@@ -120,12 +136,17 @@ async function putSchema(req, res) {
         const { errors } = validateDataModel(model);
         /** @type {string[]} */
         const rowFilterErrors = [];
+        // Advice about a rule that is valid (viewer.orgId over viewer.organizationId): sent back
+        // with the save, never a reason to refuse it.
+        /** @type {string[]} */
+        const rowFilterWarnings = [];
         for (const t of (Array.isArray(model.tables) ? model.tables : [])) {
             const rf = t && t.access && typeof t.access.rowFilters === 'object' ? t.access.rowFilters : null;
             if (!rf) continue;
             for (const roleKey of Object.keys(rf)) {
                 const { ok, errors: rfErr } = rlsGateway.validateRowFilter(rf[roleKey], t);
                 if (!ok) rowFilterErrors.push(`table "${t.key}" role "${roleKey}": ${rfErr.join('; ')}`);
+                for (const w of rlsGateway.rowFilterWarnings(rf[roleKey], t)) rowFilterWarnings.push(`table "${t.key}" role "${roleKey}": ${w}`);
             }
         }
         const allErrors = [...errors, ...rowFilterErrors];
@@ -136,6 +157,11 @@ async function putSchema(req, res) {
         if (body.dryRun === true) {
             const preview = await studioAppDataStore.previewDataModelChange(app.id, app.userId, model, { onUnconvertible });
             if (!preview.ok) return res.status(422).json({ error: 'Data model failed validation', errors: preview.errors || [] });
+            // The dry run answers what the save would: a type change it cannot convert is refused.
+            if (preview.report && preview.report.unsupported.length) {
+                migrationRefusal(res, { conversionUnsupported: true, conversions: preview.report.unsupported });
+                return;
+            }
             return res.json({ dryRun: true, currentVersion: preview.currentVersion, report: preview.report });
         }
         const expectedVersion = Number.isInteger(body.expectedVersion) ? body.expectedVersion : null;
@@ -166,7 +192,7 @@ async function putSchema(req, res) {
             log.warn(`[StudioAppData] sync scheduling failed for app ${app.id}: ${/** @type {Error} */ (e).message}`);
         }
 
-        res.json({ success: true, version: result.version, report: result.report });
+        res.json({ success: true, version: result.version, report: result.report, ...(rowFilterWarnings.length ? { warnings: rowFilterWarnings } : {}) });
     } catch (err) { handleErr(res, err, 'schema.put'); }
 }
 
@@ -175,11 +201,19 @@ async function putSchema(req, res) {
  * details): 422 conversion_refused with the counted conversions, 422
  * migration_failed with the fixed reason. True when answered.
  * @param {import('express').Response} res
- * @param {{ conversionRefused?: boolean, conversions?: unknown[], migrationFailed?: boolean, failure?: { message?: string } }} result
+ * @param {{ conversionRefused?: boolean, conversionUnsupported?: boolean, conversions?: unknown[], migrationFailed?: boolean, failure?: { message?: string } }} result
  */
 function migrationRefusal(res, result) {
     if (result && result.conversionRefused) {
         res.status(422).json({ error: 'Some values cannot be converted to the new field type', code: 'conversion_refused', conversions: result.conversions });
+        return true;
+    }
+    if (result && result.conversionUnsupported) {
+        res.status(422).json({
+            error: 'A field cannot change to this type in place. Only text and select, text and number, and whole and decimal numbers convert into each other. Add a new field with the new type instead.',
+            code: 'conversion_unsupported',
+            conversions: result.conversions,
+        });
         return true;
     }
     if (result && result.migrationFailed) {

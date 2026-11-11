@@ -210,6 +210,6 @@ const KIND_CHECKS = {
     delete_record: checkRecordTarget,
 };
 
-module.exports = { DATASET_QUERY_OUTPUTS, KIND_CHECKS, checkWriteFilter };
+module.exports = { DATASET_QUERY_OUTPUTS, FILE_INTAKE_OUTPUTS, KIND_CHECKS, checkWriteFilter };
 
 /** @typedef {import('./shared').ValidationCtx} ValidationCtx */

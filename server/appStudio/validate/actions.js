@@ -33,7 +33,7 @@ const {
 } = require('./refs');
 const { validateBinding } = require('./bindings');
 const { validateContextSources } = require('./contextSources.mts');
-const { containsSendEmail, KIND_CHECKS } = require('./stepKindChecks');
+const { containsSendEmail, KIND_CHECKS, validateStepBranches } = require('./stepKindChecks');
 const { checkCallAction, validateCallParams } = require('./callChecks.mts');
 const { someStepThroughCalls } = require('../actionCalls.mts');
 const { validateTierChoice } = require('./tierChoice.mts');
@@ -179,6 +179,7 @@ function validateAction(id, action, path, ctx) {
     if (action.kind === 'sequence') {
         validateActionSteps(action.steps, `${path}.steps`, 1, { n: 0, reported: false, top: action.steps }, ctx);
         if (action.background !== undefined || action.lockKey !== undefined || action.progressVar !== undefined) require('./backgroundChecks.mts').checkRunOptions(action, id, path, ctx);
+        require('./dynamicChecks.mts').checkSequenceEffects(action, path, ctx, validateEffects);
     }
 
     // Native AI actions (ai_extract / ai_generate / kb_query) share their field
@@ -245,10 +246,10 @@ function checkRecordValueColumns(kind, tableId, values, path, ctx, label) {
 
 /**
  * The step kinds that CHANGE ROWS — the only ones for which `mode:'read'` is an error and not
- * merely a property. Listed explicitly and not derived from `mutatesData`: that flag is ALSO on
+ * merely a property. The kinds flagged `writesRecords` in the step catalogue, not `mutatesData`: that flag is ALSO on
  * run_automation and request_approval, which do not write a `tableId` but CAN NAME one.
  */
-const RECORD_WRITE_STEP_KINDS = new Set(['create_record', 'update_record', 'delete_record']);
+const RECORD_WRITE_STEP_KINDS = new Set(require('../componentSpecs/stepRegistry').STEP_POLICY_LISTS.recordWriteKinds);
 
 /**
  * @param {string} kind
@@ -335,8 +336,8 @@ function validateStepField(kind, field, fs, value, path, depth, counter, ctx, la
             for (const [col, b] of Object.entries(value)) validateBinding(col, b, `${path}.${col}`, ctx);
             return;
         }
-        case 'steps':
-            validateActionSteps(value, path, depth + 1, counter, ctx);
+        case 'steps': // `errorScope`: the list runs with a failure in scope (a try's catch), so `error` has a value there.
+            validateActionSteps(value, path, depth + 1, counter, fs.errorScope ? { ...ctx, inErrorHandler: true } : ctx);
             return;
         case 'switchCases': {
             if (!Array.isArray(value)) { pushE({ code: 'action.step_field_invalid', severity: 'error', path, message: 'switch `cases` must be an array.', hint: 'Use [{ value, steps }].' }); return; }
@@ -346,6 +347,7 @@ function validateStepField(kind, field, fs, value, path, depth, counter, ctx, la
             });
             return;
         }
+        case 'stepBranches': validateStepBranches(value, path, (list, at) => validateActionSteps(list, at, depth + 1, counter, ctx), ctx); return;
         case 'navParams':
             validateNavigateParams(label, value, path, ctx);
             return;
@@ -364,7 +366,7 @@ function validateStepField(kind, field, fs, value, path, depth, counter, ctx, la
         case 'contextSources':
             validateContextSources(field, value, path, ctx);
             return;
-        case 'approvalQuestions': validateApprovalQuestions(field, value, path, ctx); return;
+        case 'approvalQuestions': require('./approvalQuestionChecks.mts').validateApprovalQuestions(field, value, path, ctx); return;
         case 'approvalStages': validateApprovalStages(field, value, path, ctx); return;
         case 'approvalOnDecided': validateApprovalOnDecided(value, path, ctx); return;
         // Checked by stepDataChecks.checkRecordTarget (it needs recordId next to it).
@@ -372,36 +374,9 @@ function validateStepField(kind, field, fs, value, path, depth, counter, ctx, la
         case 'callParams': validateCallParams(field, value, path, ctx); return;
         case 'tierChoice': validateTierChoice(field, fs, value, path, ctx); return;
         case 'errorHandler': case 'retry': validateEnvelopeField(fs.type, value, path, { depth, counter, ctx, validateActionSteps }); return;
-        default:
-            return;
+        // temperature and an AI step's answer checks (schema v3): aiReliability.mts, the automation ai_step's rules.
+        default: require('../aiReliability.mts').validateReliabilityField(field, fs, value, path, ctx);
     }
-}
-
-// Approver questions: the form vocabulary, ≤ 20, and never `file` — approvers
-// download attachments, they do not upload (matches the automation-approval
-// rule in automation/validate.js).
-const APPROVAL_QUESTION_TYPES = new Set(['text', 'textarea', 'number', 'date', 'email', 'select', 'checkbox']);
-/**
- * @param {string} field
- * @param {string} path
- */
-function validateApprovalQuestions(field, value, path, ctx) {
-    const { pushE } = ctx;
-    if (!Array.isArray(value)) { pushE({ code: 'action.approval_questions_invalid', severity: 'error', path, message: `\`${field}\` must be an array of question objects.`, hint: 'Use [{ name, label, type, required? }].' }); return; }
-    if (value.length > 20) { pushE({ code: 'action.approval_questions_invalid', severity: 'error', path, message: `Too many approver questions (${value.length}; max 20).`, hint: 'An approval is a decision, not a form.' }); return; }
-    const seen = new Set();
-    value.forEach((q, i) => {
-        const qp = `${path}[${i}]`;
-        if (!isObject(q) || typeof q.name !== 'string' || !q.name) {
-            pushE({ code: 'action.approval_questions_invalid', severity: 'error', path: qp, message: 'Each question needs a `name`.', hint: 'Use { name, label, type }.' });
-            return;
-        }
-        if (seen.has(q.name)) pushE({ code: 'action.approval_questions_invalid', severity: 'error', path: `${qp}.name`, message: `Duplicate question name ${JSON.stringify(q.name)}.`, hint: 'Names key the answers — keep them unique.' });
-        seen.add(q.name);
-        if (q.type !== undefined && !APPROVAL_QUESTION_TYPES.has(q.type)) {
-            pushE({ code: 'action.approval_questions_invalid', severity: 'error', path: `${qp}.type`, message: `Question type ${JSON.stringify(q.type)} is not legal.`, hint: `Use one of: ${[...APPROVAL_QUESTION_TYPES].join(', ')}. File uploads from approvers are not supported.` });
-        }
-    });
 }
 
 // The stage chain. Caps come from the shared rulebook so the app path and the
@@ -650,7 +625,7 @@ function validateStep(step, path, depth, counter, ctx) {
     }
     const spec = STEP_SPECS[step.kind];
     for (const [field, fs] of Object.entries(spec.fields)) {
-        validateStepField(step.kind, field, fs, step[field], `${path}.${field}`, depth, counter, ctx);
+        if (!require('./dynamicChecks.mts').coveredByExpr(step, field)) validateStepField(step.kind, field, fs, step[field], `${path}.${field}`, depth, counter, ctx);
     }
 
     // A send_email inside a loop is a spam cannon: one click over a 500-row

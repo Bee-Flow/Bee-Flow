@@ -64,8 +64,13 @@
 'use strict';
 
 const { isObject, deepClone, claimText } = require('./portabilityClaims');
+const { envelopeVersionFor, supportedEnvelopeVersions } = require('./schemaSince.mts');
 
 const EXPORT_FORMAT = 'beeflow.apptemplate';
+// The version of a file whose definition is of the base schema. A definition
+// that needs a newer schema is written one higher per schema version
+// (schemaSince.envelopeVersionFor), so an install that does not know that
+// schema refuses the file here instead of dropping what it cannot read.
 const EXPORT_SCHEMA_VERSION = 1;
 
 /**
@@ -78,7 +83,7 @@ const EXPORT_SCHEMA_VERSION = 1;
  * additive change.
  * @type {readonly unknown[]}
  */
-const EXPORT_SUPPORTED_VERSIONS = [1];
+const EXPORT_SUPPORTED_VERSIONS = supportedEnvelopeVersions([1], EXPORT_SCHEMA_VERSION);
 
 /** What a template is allowed to carry across the wire. Nothing else does. */
 const TEMPLATE_PAYLOAD_FIELDS = ['definition', 'dataModel', 'seed', 'seedPeople', 'datasets'];
@@ -174,7 +179,7 @@ function buildExport(template, /** @type {{ exportedAt?: string | null, source?:
     return {
         envelope: {
             format: EXPORT_FORMAT,
-            schemaVersion: EXPORT_SCHEMA_VERSION,
+            schemaVersion: envelopeVersionFor(EXPORT_SCHEMA_VERSION, [stripped.definition]),
             exportedAt: exportedAt || null,
             source: readSource({ source }),
             template: stripped,

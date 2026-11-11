@@ -4,6 +4,7 @@ import type { ComponentType, ReactNode } from 'react';
 import { useEditorChrome } from './EditorChromeContext';
 import AppIdentity from './header/AppIdentity';
 import ConflictDialog from './header/ConflictDialog';
+import DeviceSwitch from './header/DeviceSwitch';
 import { PublishPill, SaveNoticesControl, ViewSegments } from './header/HeaderControls';
 import { PANEL_VIEWS, focusAiComposer, publishStateOf, resolvePathTarget } from './header/headerModel';
 import type { HeaderApp, HeaderView, RevealTarget } from './header/headerModel';
@@ -218,6 +219,8 @@ export default function EditorHeader({
 
             <ViewSegments view={view} onSelect={selectView} isManaged={isManaged} streamLock={streamLock} editing={mode === 'edit'} logicCount={logicCount} />
 
+            {view === 'preview' ? <DeviceSwitch /> : null}
+
             <SaveNoticesControl status={saveStatus} error={saveError} onRetry={onFlush} notices={notices} onShow={showNotice} />
 
             <ViewAsMenu roles={roles} previewRole={previewRole} previewRoleName={previewRoleName} setPreviewRole={setPreviewRole} />
@@ -242,6 +245,9 @@ export default function EditorHeader({
                     // the canvas holds, so a blocker's path resolves against it.
                     definition={definition}
                     onRevealNode={reveal}
+                    // The public page tab edits the draft; Apply saves it first.
+                    onCommit={onCommit}
+                    onFlush={onFlush}
                 />
             ) : null}
 

@@ -4,6 +4,7 @@ import ComboBox, { BindingLoader, useHasQueryClient } from './comboBox';
 import useTranslation from '@/hooks/useTranslation';
 import { useDataContext } from '../DataContext';
 import { useFormContext, useFormField } from '../formContext';
+import useInputChange from '../useInputChange';
 import { hoverable } from '../hoverable';
 import { resolveBinding } from '../resolveBinding';
 import { useRuntime } from '../RuntimeContext';
@@ -65,9 +66,12 @@ export default function AppInputPerson({ node }: NodeProps<InputPersonProps>) {
     const {
         name, label = t('studio_apps_runtime.inputs.person', 'Person'), multiple = false, required = false, allowMe = true,
     } = node.props || {};
-    const { value, setValue, error } = useFormField({
+    const { value, setValue: setField, error } = useFormField({
         name, defaultValue: multiple ? [] : null, required, label,
     });
+    // A pick or a removal is the person's own change: it fires onChange (schema 3).
+    const fireChange = useInputChange(node, name);
+    const setValue = (next: unknown) => { setField(next); fireChange(next); };
     const id = `${node.id}-input`;
 
     const mergedDataState = { ...scopedDataState, ...dataState };
@@ -109,6 +113,7 @@ export default function AppInputPerson({ node }: NodeProps<InputPersonProps>) {
                 error={error}
                 options={options}
                 pinned={pinned}
+                part="input_person"
                 selectedIds={selectedIds}
                 multiple={multiple}
                 placeholder={t('studio_apps_runtime.inputs.search_people', 'Search people…')}

@@ -1,14 +1,16 @@
 import { useCallback, useEffect, useEffectEvent, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { applyEffects as applyEffectObject } from './actionRunner/applyEffects';
 import type { EffectContext } from './actionRunner/applyEffects';
-import { runActionById } from './actionRunner/bareAction';
+import { runActionSlot } from './actionRunner/bareAction';
 import { useOptionalActiveActionJobs } from '@/api/queries/studioAppJobs';
-import type { ActionEntry, ActionState, EffectObject, RunOpts, Translate, Vars } from './actionRunner/core';
+import type { ActionEntry, ActionSlot, ActionState, EffectObject, RunOpts, Translate, Vars } from './actionRunner/core';
 import type {
     BeforeServerStep, BrowseEventSink, ConfirmFn, LiveInputs, NavigateFn, RefreshFn, RunnerContext, RunnerDefinition,
 } from './actionRunner/runnerContext';
 import type { DataState } from './DataContext';
 import { reconcileVariableDefaults, seedVariableDefaults } from './appVariables';
+import { createScreenTrail } from './actionRunner/screenTrail';
+import { definitionReadsUi, getUiSnapshot } from './uiState';
 import useTranslation from '@/hooks/useTranslation';
 
 export { SERVER_STEP_KINDS } from './actionRunner/core';
@@ -105,7 +107,8 @@ export interface ActionRunnerOptions {
 
 export interface ActionRunner {
     actionState: ActionState;
-    runAction: (actionId: string, opts?: RunOpts) => Promise<void>;
+    /** One action id, or (schema 3) a list of them run in order, stopping at the first that fails. */
+    runAction: (actionId: ActionSlot, opts?: RunOpts) => Promise<void>;
     vars: Vars;
     setVar: (name: string, value: unknown) => void;
 }
@@ -165,16 +168,21 @@ export default function useActionRunner(
     // local vars from it and merge set_variable/resultVar writes back in.
     const [vars, setVars] = useDeclaredVariables(definition);
 
+    // The screens this surface showed, for a `back` step; told about every screen it renders.
+    const [screenTrail] = useState(createScreenTrail);
     // One ref so runAction stays identity-stable but never reads stale data.
     // Updated after each commit; the first render's inputs seed it.
     const liveInputs: LiveInputs = {
         actionState, vars, definition, onNavigate, onBrowseEvent, confirm, onRefresh,
         currentUser, dataState, forms, screen, beforeServerStep,
+        // Only a definition that reads `ui` gets the root in its step scope: every other app's scope keeps today's shape.
+        readUi: definitionReadsUi(definition) ? getUiSnapshot : null, screenTrail,
     };
     const live = useRef<LiveInputs>(liveInputs);
     useLayoutEffect(() => {
         live.current = liveInputs;
     });
+    useLayoutEffect(() => { screenTrail.observe(screen); });
 
     const alive = useRef(true);
     useEffect(() => {
@@ -218,7 +226,7 @@ export default function useActionRunner(
         [appId, draft, tr, setEntry, setVar, applyEffects, jobs],
     );
 
-    const runAction = useCallback((actionId: string, opts: RunOpts = {}) => runActionById(ctx, actionId, opts), [ctx]);
+    const runAction = useCallback(async (actionId: ActionSlot, opts: RunOpts = {}) => { await runActionSlot(ctx, actionId, opts); }, [ctx]);
 
     // Background jobs this viewer started earlier (another tab, before a reload) are picked
     // up again: the list comes from a query, the effect only attaches (no fetch in it).

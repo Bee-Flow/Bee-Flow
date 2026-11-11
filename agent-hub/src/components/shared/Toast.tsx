@@ -111,9 +111,35 @@ const KIND_STYLES: Record<ToastKind, { bg: string; color: string; icon: React.Co
     info: { bg: 'rgba(59, 130, 246, 0.12)', color: '#3b82f6', icon: Info },
 };
 
-export function Toaster() {
+/**
+ * Toasters that claimed the corner: the App Studio device preview mounts one
+ * inside its iframe so a toast the app raises shows in the frame. While one is
+ * mounted, the newest captor shows new toasts and every other Toaster lets
+ * them pass. None mounted (everywhere else): every Toaster behaves as before.
+ */
+const captors: object[] = [];
+
+function mayShow(self: object): boolean {
+    return captors.length === 0 || captors[captors.length - 1] === self;
+}
+
+export interface ToasterProps {
+    /** Show new toasts here instead of in the other mounted Toasters. */
+    capture?: boolean;
+}
+
+export function Toaster({ capture = false }: ToasterProps = {}) {
     const { t } = useTranslation();
     const [items, setItems] = useState<ToastItem[]>([]);
+    const [self] = useState<object>(() => ({}));
+    useEffect(() => {
+        if (!capture) return undefined;
+        captors.push(self);
+        return () => {
+            const at = captors.indexOf(self);
+            if (at !== -1) captors.splice(at, 1);
+        };
+    }, [capture, self]);
     // The list is mutated from DOM event handlers that need to READ it to decide
     // whether an arriving message is a repeat, so the ref — not the state — is
     // the working copy; `commit` keeps the two in step.
@@ -141,7 +167,7 @@ export function Toaster() {
 
         const onAdd = (e: Event) => {
             const incoming = (e as CustomEvent<ToastEventDetail>).detail?.item;
-            if (!incoming) return;
+            if (!incoming || !mayShow(self)) return;
             const cur = itemsRef.current;
             const at = incoming.undoLabel ? -1 : cur.findIndex((t) => t.kind === incoming.kind && t.message === incoming.message);
             if (at >= 0) {
@@ -177,7 +203,7 @@ export function Toaster() {
             timerMap.forEach((t) => window.clearTimeout(t));
             timerMap.clear();
         };
-    }, []);
+    }, [self]);
 
     if (items.length === 0) return null;
 

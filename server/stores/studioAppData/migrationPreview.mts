@@ -251,6 +251,7 @@ export interface MigrationIo {
 
 export type SaveRefusal =
     | { ok: false; conversionRefused: true; conversions: ConvertEntry[] }
+    | { ok: false; conversionUnsupported: true; conversions: UnsupportedEntry[] }
     | { ok: false; migrationFailed: true; failure: MigrationFailure };
 
 export type PlannedOutcome = { ok: true; probed: ProbeCount[] } | { ok: false; probed: ProbeCount[]; result: SaveRefusal };
@@ -259,12 +260,17 @@ export type PlannedOutcome = { ok: true; probed: ProbeCount[] } | { ok: false; p
  * Run a planned migration on the per-app engine (`client`: the save's own
  * Postgres transaction). A refusing probe and a failing recompute/convert
  * statement come back as the save's result (the caller rolls back); every
- * other error is thrown.
+ * other error is thrown. `refuseUnsupported` (a save that converts types):
+ * a type change outside the safe pairs is refused before anything runs,
+ * instead of leaving a model whose type no longer matches its column.
  */
 export async function applyPlanned(
     io: MigrationIo,
-    { ownerId, appId, client, planned, nextVersion }: { ownerId: string; appId: string; client: unknown; planned: PlanResult; nextVersion: number },
+    { ownerId, appId, client, planned, nextVersion, refuseUnsupported = false }:
+        { ownerId: string; appId: string; client: unknown; planned: PlanResult; nextVersion: number; refuseUnsupported?: boolean },
 ): Promise<PlannedOutcome> {
+    const unsupported = refuseUnsupported ? buildMigrationReport(planned).unsupported : [];
+    if (unsupported.length) return { ok: false, probed: [], result: { ok: false, conversionUnsupported: true, conversions: unsupported } };
     try {
         const res = await io.applyMigration(ownerId, appId, planned.statements, {
             targetVersion: nextVersion,

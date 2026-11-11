@@ -3,6 +3,7 @@ import { SortableContext, rectSortingStrategy } from '@dnd-kit/sortable';
 import { MousePointerClick } from 'lucide-react';
 import { RefObject, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import BreakpointSwitch from './BreakpointSwitch';
 import BuildBanner from './BuildBanner';
 import { useBuildCue } from './BuildCueContext';
 import { buildNode, sectionDroppableId } from './dnd';
@@ -10,8 +11,12 @@ import GhostCell from './GhostCell';
 import { projectGhostCell } from './ghostCellDraft';
 import useBuildFollow from './useBuildFollow';
 import EditorNodeWrapper from './EditorNodeWrapper';
+import DeviceFrame from './DeviceFrame';
 import Marquee from './Marquee';
+import SectionChips from './SectionChips';
+import AddSectionButton from './AddSectionButton';
 import toast from '@/components/shared/Toast';
+import AppCustomCss from '../runtime/AppCustomCss';
 import AppRenderer from '../runtime/AppRenderer';
 import AppShell from '../runtime/AppShell';
 import AppFontLoader from '../runtime/AppFontLoader';
@@ -77,6 +82,32 @@ type EditorState = ReturnType<typeof useAppEditor>;
  * surface ref, and the section elements found under it after each render of
  * the edit surface (cleared outside edit mode).
  */
+interface EmptySectionDropZonesProps {
+    sections: AppSection[];
+    sectionEls: Map<string | null | undefined, Element>;
+    ghostContainer: Element | null | undefined;
+    onAddStarter: (sectionId: string, type: string) => void;
+    disabled: boolean;
+}
+
+/** A drop zone in every empty section of the screen being edited. */
+function EmptySectionDropZones({ sections, sectionEls, ghostContainer, onAddStarter, disabled }: EmptySectionDropZonesProps) {
+    return (
+        <>
+            {sections.map((section) => {
+                const container = sectionEls.get(section.id);
+                // The ghost takes the empty section's slot while a card is
+                // being typed into it — a drop zone under a ghost would be
+                // two placeholders for one spot.
+                if (ghostContainer && ghostContainer === container) return null;
+                return container
+                    ? <SectionDropZone key={section.id} sectionId={section.id as string} container={container} onAddStarter={onAddStarter} disabled={disabled} />
+                    : null;
+            })}
+        </>
+    );
+}
+
 function useSectionElements(definition: EditorState['definition'], screenId: EditorState['screenId'], mode: EditorState['mode']) {
     const surfaceRef = useRef<HTMLDivElement>(null);
     const [sectionEls, setSectionEls] = useState(() => new Map<string | null | undefined, Element>());
@@ -102,18 +133,19 @@ function useSectionElements(definition: EditorState['definition'], screenId: Edi
 type CanvasPreviewProps = Pick<CanvasBodyProps,
     'appId' | 'onNavigate' | 'actionState' | 'dataState' | 'runAction' | 'vars' | 'setVar'
     | 'forms' | 'screenParams' | 'registerFormValue' | 'confirmDialog'>
-    & Pick<EditorState, 'definition' | 'screenId' | 'previewRole' | 'previewUser'>;
+    & Pick<EditorState, 'definition' | 'screenId' | 'previewRole' | 'previewUser' | 'previewDevice'>;
 
 /**
  * Preview == production: the same AppShell, with the preview user standing
  * in for the viewer (UserMenu hides when there is none) and no onExit (the
- * "Alle apps" link is a run-view affordance).
+ * "Alle apps" link is a run-view affordance). With a device picked, the same
+ * tree renders inside a DeviceFrame of that width; 'fit' renders it as always.
  */
 function CanvasPreview({
-    definition, screenId, previewRole, previewUser, appId, onNavigate, actionState, dataState, runAction,
+    definition, screenId, previewRole, previewUser, previewDevice, appId, onNavigate, actionState, dataState, runAction,
     vars, setVar, forms, screenParams, registerFormValue, confirmDialog,
 }: CanvasPreviewProps) {
-    return (
+    const preview = (
         <div className="h-full min-h-0">
             <AppFontLoader definition={definition} />
             <AppShell
@@ -142,6 +174,9 @@ function CanvasPreview({
             {confirmDialog}
         </div>
     );
+    return previewDevice && previewDevice !== 'fit'
+        ? <DeviceFrame device={previewDevice}>{preview}</DeviceFrame>
+        : preview;
 }
 
 export function CanvasBody({
@@ -151,7 +186,7 @@ export function CanvasBody({
 }: CanvasBodyProps) {
     const {
         definition, screenId, selectedNodeId, selectedNodeIds, mode, streamLock, recentlyAddedIds,
-        previewRole, previewUser, dispatch,
+        previewRole, previewUser, previewDevice, dispatch,
     } = useAppEditor();
     const { t } = useTranslation();
 
@@ -248,7 +283,8 @@ export function CanvasBody({
     }, [streamLock, onCommit, dispatch]);
 
     return (
-        <div className="relative flex-1 min-h-0">
+        // While the app's own stylesheet is applied (AppCustomCss marks its root), the canvas is the box it is cut off at, as the app shell is in the run view.
+        <div className="relative flex-1 min-h-0 has-[[data-app-css-root]]:overflow-clip">
             {mode === 'edit' ? (
                 <div
                     ref={surfaceRef}
@@ -267,6 +303,7 @@ export function CanvasBody({
                         : undefined}
                 >
                     <Marquee surfaceRef={surfaceRef} />
+                    <AppCustomCss definition={definition} appId={appId} />
                     <SortableContext items={sortableIds} strategy={rectSortingStrategy}>
                         <AppRenderer
                             definition={definition}
@@ -290,34 +327,38 @@ export function CanvasBody({
                             registerFormValue={registerFormValue}
                         />
                     </SortableContext>
-                    {emptySections.map((section: AppSection) => {
-                        const container = sectionEls.get(section.id);
-                        // The ghost takes the empty section's slot while a card is
-                        // being typed into it — a drop zone under a ghost would be
-                        // two placeholders for one spot.
-                        if (ghost && ghostContainer === container) return null;
-                        return container
-                            ? (
-                                <SectionDropZone
-                                    key={section.id}
-                                    sectionId={section.id as string}
-                                    container={container}
-                                    onAddStarter={addStarter}
-                                    disabled={streamLock}
-                                />
-                            )
-                            : null;
-                    })}
+                    <EmptySectionDropZones
+                        sections={emptySections}
+                        sectionEls={sectionEls}
+                        ghostContainer={ghost ? ghostContainer : null}
+                        onAddStarter={addStarter}
+                        disabled={streamLock}
+                    />
                     {ghost && ghostContainer ? <GhostCell draft={ghost} container={ghostContainer} /> : null}
+                    <SectionChips
+                        sections={screen?.sections || []}
+                        sectionEls={sectionEls}
+                        selectedId={selectedNodeId && selectedNodeId.startsWith('sec_') ? selectedNodeId : null}
+                        disabled={streamLock}
+                        onSelect={onSelectNode}
+                    />
+                    <AddSectionButton screen={screen} definitionRef={definitionRef} onCommit={onCommit} disabled={streamLock} />
                 </div>
             ) : (
                 <CanvasPreview
-                    definition={definition} screenId={screenId} previewRole={previewRole} previewUser={previewUser}
+                    definition={definition} screenId={screenId} previewRole={previewRole} previewUser={previewUser} previewDevice={previewDevice}
                     appId={appId} onNavigate={onNavigate} actionState={actionState} dataState={dataState} runAction={runAction}
                     vars={vars} setVar={setVar} forms={forms} screenParams={screenParams} registerFormValue={registerFormValue}
                     confirmDialog={confirmDialog}
                 />
             )}
+
+            {/* Which screen size the width grip arranges (span, spanMd, spanSm). Edit mode only. */}
+            {mode === 'edit' ? (
+                <div className="pointer-events-none absolute right-4 top-2 z-20 flex justify-end">
+                    <BreakpointSwitch disabled={streamLock} />
+                </div>
+            ) : null}
 
             {/* streamLock shield — always mounted. It blocks pointer events on the
                 canvas while the AI edits, and NOTHING more: it used to dim the

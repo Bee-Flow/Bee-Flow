@@ -1,3 +1,4 @@
+import type { ComponentType } from 'react';
 import type { AppAction, AppDefinition, AppNode, AppScreen, FormFieldRef } from '../inspector/appDefinition';
 import type useStepReferences from './useStepReferences';
 import type { RefOption, ReferenceKind } from './stepReferences';
@@ -24,6 +25,8 @@ export interface FieldSpec {
     maxLen?: number;
     min?: number | string;
     max?: number | string;
+    /** The schema version that brought the field (3: optional, never written out when blank). */
+    since?: number;
 }
 
 export type StepReferences = ReturnType<typeof useStepReferences>;
@@ -31,7 +34,7 @@ export type StepReferences = ReturnType<typeof useStepReferences>;
 /** A binding row's value, as the keyed-row editors read it. */
 export type RowBinding = { kind?: string; expr?: string; value?: string; name?: string } | null | undefined;
 
-export interface SwitchCase { value?: string | null; steps?: unknown[] }
+export interface SwitchCase { value?: string | null; whenExpr?: string; steps?: unknown[] }
 
 export interface Placeholder { key: string; kind?: string; fields?: string[] }
 
@@ -47,6 +50,17 @@ export interface StepFieldProps {
     references: StepReferences;
     formFields: FormFieldRef[];
     disabled: boolean;
+    /**
+     * Replaces the whole step, for the one edit that has to touch a second field with it: a renamed
+     * schema field carries its writeTo column along, and the first approval stage clears the single
+     * approver it supersedes. Absent (a caller that only edits one field), such a control writes only
+     * its own field.
+     */
+    onStepChange?: (next: AppAction) => void;
+    /** The label and hint a registry step kind gives this field ([key, English]); absent: the panel's own. */
+    text?: { label?: [string, string]; hint?: [string, string] };
+    /** Controls by field type, in place of the registered ones (fieldTypes.ts). Left out everywhere but in tests. */
+    fieldControls?: Record<string, ComponentType<StepFieldProps & { label: string; hint?: string; required: boolean }>>;
 }
 
 /**
@@ -114,6 +128,8 @@ export interface SwitchCasesFieldProps {
     value: SwitchCase[] | undefined;
     onChange: (next: unknown) => void;
     disabled: boolean;
+    definition?: AppDefinition | null;
+    node?: AppNode | null;
 }
 
 /**

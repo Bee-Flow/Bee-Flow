@@ -1,0 +1,1209 @@
+{
+  "corpus": "template-sprint-board",
+  "canonical": {
+    "sha256": "33e1dd26b360375c6a6ccde615f71e3b54006fb534792d96e578184267799069",
+    "bytes": 61620,
+    "inputIsCanonical": true,
+    "idempotent": true,
+    "keys": [
+      "schemaVersion",
+      "meta",
+      "theme",
+      "roles",
+      "variables",
+      "screens",
+      "actions",
+      "design",
+      "nav",
+      "homeScreenId"
+    ],
+    "parts": {
+      "schemaVersion": "d4735e3a265e16ee",
+      "meta": "ba7669e8268593f4",
+      "theme": "9808c055ba383bd8",
+      "roles": "e3950c2167531130",
+      "variables": "ee9cd550feb7fb39",
+      "screens[0] scr_board": "1f649ade49fe2451",
+      "screens[1] scr_backlog": "72792c00d8183201",
+      "screens[2] scr_sprints": "90b075e326cb3c8e",
+      "screens[3] scr_item": "4b1193a512be8acf",
+      "screens[4] scr_epics": "b29980168d362f21",
+      "screens[5] scr_setup": "5f3de7e8b47284f4",
+      "actions.act_bdpick": "e5a38cff21ba7134",
+      "actions.act_bdmove": "535b7d1df8c34c4b",
+      "actions.act_bdopen": "dde90f19b00cd3c3",
+      "actions.act_gotoitem": "d505823ac6929202",
+      "actions.act_gotorow": "e9192277519e6236",
+      "actions.act_blopen": "c375b9d6ada2f94e",
+      "actions.act_blcreate": "393e35e4fa19f45f",
+      "actions.act_blsave": "42fb7b31c6f28cb5",
+      "actions.act_blmine": "4a0e8a8b41fc7445",
+      "actions.act_imine": "5b575fd2737961c5",
+      "actions.act_iassign": "ea32f7f37803448c",
+      "actions.act_tosprint": "d997d223dc6cd321",
+      "actions.act_sppick": "9e29f98ef33ba7ee",
+      "actions.act_spclear": "a17ff9de48172038",
+      "actions.act_spopen": "dfbc30080275fa3a",
+      "actions.act_spcreate": "508f3a3048b523e5",
+      "actions.act_spdrop": "635ec11846d35bb6",
+      "actions.act_igoboard": "2423eead60a52e3c",
+      "actions.act_ipickkid": "7e95d5aaacf72ebf",
+      "actions.act_inote": "008be113d1987d6e",
+      "actions.act_sucolsave": "ab0fa4f955731c7d",
+      "actions.act_sustsave": "88c0553e65370d76",
+      "actions.act_sutysave": "1380ca0d8006334f",
+      "actions.act_subdopen": "0c327e274fc51a76",
+      "actions.act_subdadd": "0fe8bfd451ee683b",
+      "actions.act_subddel": "8ce0395c1f2ae8d7",
+      "actions.act_sucolopen": "2fb38bc6db65245c",
+      "actions.act_sucoladd2": "f090b9c06a31f605",
+      "actions.act_sucoldel": "6e11ba4f38a44283",
+      "actions.act_sustopen": "2a6357af0e50a4c0",
+      "actions.act_sustadd": "62c9193154eb2dfe",
+      "actions.act_sustdel": "97e22282118f4c99",
+      "actions.act_sutyopen": "50dd625cdee3ff58",
+      "actions.act_sutyadd": "8997f9a69ea3bc42",
+      "actions.act_sutydel": "f300bf19d40fa534",
+      "actions.act_sumemopen": "747d8f802dce3916",
+      "actions.act_sumemadd": "87fe40e9a5168fde",
+      "actions.act_sumemdel": "071a0d8dc7053570",
+      "actions.act_subdsave": "7a9066e177da764b",
+      "actions.act_sumemsave": "a4622f93f33d3ef8",
+      "design": "a94cdc53f212ec7d",
+      "nav": "a982b22a3c881705",
+      "homeScreenId": "d7705a5cc99d566d"
+    }
+  },
+  "schemaVersion": {
+    "stored": 2,
+    "canonical": 2
+  },
+  "validation": {
+    "strict": {
+      "errors": [],
+      "warnings": []
+    },
+    "save": {
+      "errors": [],
+      "warnings": []
+    }
+  },
+  "ordinals": {
+    "stored": {
+      "act_bdpick": [
+        "0 set_variable",
+        "1 set_variable"
+      ],
+      "act_bdmove": [
+        "0 condition",
+        "1 update_record",
+        "2 refresh",
+        "3 toast",
+        "4 refresh"
+      ],
+      "act_bdopen": [
+        "0 set_variable",
+        "1 open_modal"
+      ],
+      "act_gotoitem": [
+        "0 close_modal",
+        "1 navigate"
+      ],
+      "act_gotorow": [
+        "0 set_variable",
+        "1 navigate"
+      ],
+      "act_blopen": [
+        "0 open_modal"
+      ],
+      "act_blcreate": [
+        "0 create_record",
+        "1 close_modal",
+        "2 reset_form",
+        "3 refresh",
+        "4 toast"
+      ],
+      "act_blsave": [
+        "0 update_record",
+        "1 refresh"
+      ],
+      "act_blmine": [
+        "0 update_record",
+        "1 refresh",
+        "2 toast"
+      ],
+      "act_imine": [
+        "0 update_record",
+        "1 set_variable",
+        "2 refresh",
+        "3 toast"
+      ],
+      "act_iassign": [
+        "0 update_record",
+        "1 set_variable",
+        "2 reset_form",
+        "3 refresh",
+        "4 toast"
+      ],
+      "act_tosprint": [
+        "0 condition",
+        "1 update_record",
+        "2 refresh",
+        "3 toast",
+        "4 toast"
+      ],
+      "act_sppick": [
+        "0 set_variable"
+      ],
+      "act_spclear": [
+        "0 set_variable"
+      ],
+      "act_spopen": [
+        "0 open_modal"
+      ],
+      "act_spcreate": [
+        "0 create_record",
+        "1 reset_form",
+        "2 close_modal",
+        "3 refresh",
+        "4 toast"
+      ],
+      "act_spdrop": [
+        "0 update_record",
+        "1 refresh"
+      ],
+      "act_igoboard": [
+        "0 navigate"
+      ],
+      "act_ipickkid": [
+        "0 set_variable"
+      ],
+      "act_inote": [
+        "0 create_record",
+        "1 reset_form",
+        "2 refresh"
+      ],
+      "act_sucolsave": [
+        "0 update_record",
+        "1 refresh"
+      ],
+      "act_sustsave": [
+        "0 update_record",
+        "1 refresh"
+      ],
+      "act_sutysave": [
+        "0 update_record",
+        "1 refresh"
+      ],
+      "act_subdopen": [
+        "0 open_modal"
+      ],
+      "act_subdadd": [
+        "0 create_record",
+        "1 close_modal",
+        "2 reset_form",
+        "3 refresh",
+        "4 toast"
+      ],
+      "act_subddel": [
+        "0 confirm",
+        "1 delete_record",
+        "2 refresh"
+      ],
+      "act_sucolopen": [
+        "0 open_modal"
+      ],
+      "act_sucoladd2": [
+        "0 condition",
+        "1 create_record",
+        "2 close_modal",
+        "3 reset_form",
+        "4 refresh",
+        "5 toast",
+        "6 toast"
+      ],
+      "act_sucoldel": [
+        "0 confirm",
+        "1 delete_record",
+        "2 refresh"
+      ],
+      "act_sustopen": [
+        "0 open_modal"
+      ],
+      "act_sustadd": [
+        "0 create_record",
+        "1 close_modal",
+        "2 reset_form",
+        "3 refresh",
+        "4 toast"
+      ],
+      "act_sustdel": [
+        "0 confirm",
+        "1 delete_record",
+        "2 refresh"
+      ],
+      "act_sutyopen": [
+        "0 open_modal"
+      ],
+      "act_sutyadd": [
+        "0 create_record",
+        "1 close_modal",
+        "2 reset_form",
+        "3 refresh",
+        "4 toast"
+      ],
+      "act_sutydel": [
+        "0 confirm",
+        "1 delete_record",
+        "2 refresh"
+      ],
+      "act_sumemopen": [
+        "0 open_modal"
+      ],
+      "act_sumemadd": [
+        "0 create_record",
+        "1 close_modal",
+        "2 reset_form",
+        "3 refresh"
+      ],
+      "act_sumemdel": [
+        "0 confirm",
+        "1 delete_record",
+        "2 refresh"
+      ],
+      "act_subdsave": [
+        "0 update_record",
+        "1 refresh"
+      ],
+      "act_sumemsave": [
+        "0 update_record",
+        "1 refresh"
+      ]
+    },
+    "canonical": "same as stored"
+  },
+  "installHash": {
+    "stored": "df83b1b2dc367b8788cce7d42a51716c3ee18778014ebbe781bdce6da99decb2",
+    "afterResave": "df83b1b2dc367b8788cce7d42a51716c3ee18778014ebbe781bdce6da99decb2"
+  },
+  "reads": [
+    {
+      "at": "cmp_bdbrds.source",
+      "kind": "records",
+      "table": "tbl_boards1",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"boards\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "lead": {
+          "sql": "SELECT * FROM \"boards\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "member": {
+          "sql": "SELECT * FROM \"boards\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"boards\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "lead": {
+          "sql": "SELECT * FROM \"boards\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "member": {
+          "sql": "SELECT * FROM \"boards\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_bdkb.source",
+      "kind": "records",
+      "table": "tbl_items01",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"work_items\" WHERE (1=1) ORDER BY \"rank\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            401
+          ]
+        },
+        "lead": {
+          "sql": "SELECT * FROM \"work_items\" WHERE (1=1) ORDER BY \"rank\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            401
+          ]
+        },
+        "member": {
+          "sql": "SELECT * FROM \"work_items\" WHERE (1=1) ORDER BY \"rank\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            401
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"work_items\" WHERE (1=1) ORDER BY \"rank\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            401
+          ]
+        },
+        "lead": {
+          "sql": "SELECT * FROM \"work_items\" WHERE (1=1) ORDER BY \"rank\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            401
+          ]
+        },
+        "member": {
+          "sql": "SELECT * FROM \"work_items\" WHERE (1=1) ORDER BY \"rank\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            401
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_bdkb.columnsSource",
+      "kind": "records",
+      "table": "tbl_bcols01",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"board_columns\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            25
+          ]
+        },
+        "lead": {
+          "sql": "SELECT * FROM \"board_columns\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            25
+          ]
+        },
+        "member": {
+          "sql": "SELECT * FROM \"board_columns\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            25
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"board_columns\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            25
+          ]
+        },
+        "lead": {
+          "sql": "SELECT * FROM \"board_columns\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            25
+          ]
+        },
+        "member": {
+          "sql": "SELECT * FROM \"board_columns\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            25
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_blstat1.value",
+      "kind": "aggregate",
+      "table": "tbl_items01",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"work_items\" WHERE (1=1) LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "lead": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"work_items\" WHERE (1=1) LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "member": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"work_items\" WHERE (1=1) LIMIT ?",
+          "params": [
+            1
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"work_items\" WHERE (1=1) LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "lead": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"work_items\" WHERE (1=1) LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "member": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"work_items\" WHERE (1=1) LIMIT ?",
+          "params": [
+            1
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_blstat2.value",
+      "kind": "aggregate",
+      "table": "tbl_items01",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT SUM(\"points\") AS \"pts\" FROM \"work_items\" WHERE (1=1) LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "lead": {
+          "sql": "SELECT SUM(\"points\") AS \"pts\" FROM \"work_items\" WHERE (1=1) LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "member": {
+          "sql": "SELECT SUM(\"points\") AS \"pts\" FROM \"work_items\" WHERE (1=1) LIMIT ?",
+          "params": [
+            1
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT SUM(\"points\") AS \"pts\" FROM \"work_items\" WHERE (1=1) LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "lead": {
+          "sql": "SELECT SUM(\"points\") AS \"pts\" FROM \"work_items\" WHERE (1=1) LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "member": {
+          "sql": "SELECT SUM(\"points\") AS \"pts\" FROM \"work_items\" WHERE (1=1) LIMIT ?",
+          "params": [
+            1
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_blstat3.value",
+      "kind": "aggregate",
+      "table": "tbl_items01",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"work_items\" WHERE (1=1) AND \"points\" IS NULL LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "lead": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"work_items\" WHERE (1=1) AND \"points\" IS NULL LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "member": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"work_items\" WHERE (1=1) AND \"points\" IS NULL LIMIT ?",
+          "params": [
+            1
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"work_items\" WHERE (1=1) AND \"points\" IS NULL LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "lead": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"work_items\" WHERE (1=1) AND \"points\" IS NULL LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "member": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"work_items\" WHERE (1=1) AND \"points\" IS NULL LIMIT ?",
+          "params": [
+            1
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_blstat4.value",
+      "kind": "aggregate",
+      "table": "tbl_items01",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"work_items\" WHERE (1=1) AND \"assignee_id\" = ? LIMIT ?",
+          "params": [
+            "usr_compat_owner",
+            1
+          ]
+        },
+        "lead": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"work_items\" WHERE (1=1) AND \"assignee_id\" = ? LIMIT ?",
+          "params": [
+            "usr_compat_lead",
+            1
+          ]
+        },
+        "member": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"work_items\" WHERE (1=1) AND \"assignee_id\" = ? LIMIT ?",
+          "params": [
+            "usr_compat_member",
+            1
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"work_items\" WHERE (1=1) AND \"assignee_id\" = ? LIMIT ?",
+          "params": [
+            "usr_compat_owner",
+            1
+          ]
+        },
+        "lead": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"work_items\" WHERE (1=1) AND \"assignee_id\" = ? LIMIT ?",
+          "params": [
+            "usr_compat_lead",
+            1
+          ]
+        },
+        "member": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"work_items\" WHERE (1=1) AND \"assignee_id\" = ? LIMIT ?",
+          "params": [
+            "usr_compat_member",
+            1
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_blgrid.source",
+      "kind": "records",
+      "table": "tbl_items01",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"work_items\" WHERE (1=1) ORDER BY \"rank\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            401
+          ]
+        },
+        "lead": {
+          "sql": "SELECT * FROM \"work_items\" WHERE (1=1) ORDER BY \"rank\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            401
+          ]
+        },
+        "member": {
+          "sql": "SELECT * FROM \"work_items\" WHERE (1=1) ORDER BY \"rank\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            401
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"work_items\" WHERE (1=1) ORDER BY \"rank\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            401
+          ]
+        },
+        "lead": {
+          "sql": "SELECT * FROM \"work_items\" WHERE (1=1) ORDER BY \"rank\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            401
+          ]
+        },
+        "member": {
+          "sql": "SELECT * FROM \"work_items\" WHERE (1=1) ORDER BY \"rank\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            401
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_spcap.value",
+      "kind": "aggregate",
+      "table": "tbl_items01",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT SUM(\"points\") AS \"pts\" FROM \"work_items\" WHERE (1=1) LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "lead": {
+          "sql": "SELECT SUM(\"points\") AS \"pts\" FROM \"work_items\" WHERE (1=1) LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "member": {
+          "sql": "SELECT SUM(\"points\") AS \"pts\" FROM \"work_items\" WHERE (1=1) LIMIT ?",
+          "params": [
+            1
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT SUM(\"points\") AS \"pts\" FROM \"work_items\" WHERE (1=1) LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "lead": {
+          "sql": "SELECT SUM(\"points\") AS \"pts\" FROM \"work_items\" WHERE (1=1) LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "member": {
+          "sql": "SELECT SUM(\"points\") AS \"pts\" FROM \"work_items\" WHERE (1=1) LIMIT ?",
+          "params": [
+            1
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_splist.source",
+      "kind": "records",
+      "table": "tbl_sprint1",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"sprints\" WHERE (1=1) ORDER BY \"start_date\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "lead": {
+          "sql": "SELECT * FROM \"sprints\" WHERE (1=1) ORDER BY \"start_date\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "member": {
+          "sql": "SELECT * FROM \"sprints\" WHERE (1=1) ORDER BY \"start_date\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"sprints\" WHERE (1=1) ORDER BY \"start_date\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "lead": {
+          "sql": "SELECT * FROM \"sprints\" WHERE (1=1) ORDER BY \"start_date\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "member": {
+          "sql": "SELECT * FROM \"sprints\" WHERE (1=1) ORDER BY \"start_date\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_spgrid.source",
+      "kind": "records",
+      "table": "tbl_items01",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"work_items\" WHERE (1=1) ORDER BY \"rank\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            201
+          ]
+        },
+        "lead": {
+          "sql": "SELECT * FROM \"work_items\" WHERE (1=1) ORDER BY \"rank\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            201
+          ]
+        },
+        "member": {
+          "sql": "SELECT * FROM \"work_items\" WHERE (1=1) ORDER BY \"rank\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            201
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"work_items\" WHERE (1=1) ORDER BY \"rank\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            201
+          ]
+        },
+        "lead": {
+          "sql": "SELECT * FROM \"work_items\" WHERE (1=1) ORDER BY \"rank\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            201
+          ]
+        },
+        "member": {
+          "sql": "SELECT * FROM \"work_items\" WHERE (1=1) ORDER BY \"rank\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            201
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_ikids.source",
+      "kind": "records",
+      "table": "tbl_items01",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"work_items\" WHERE (1=1) ORDER BY \"rank\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "lead": {
+          "sql": "SELECT * FROM \"work_items\" WHERE (1=1) ORDER BY \"rank\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "member": {
+          "sql": "SELECT * FROM \"work_items\" WHERE (1=1) ORDER BY \"rank\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            101
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"work_items\" WHERE (1=1) ORDER BY \"rank\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "lead": {
+          "sql": "SELECT * FROM \"work_items\" WHERE (1=1) ORDER BY \"rank\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "member": {
+          "sql": "SELECT * FROM \"work_items\" WHERE (1=1) ORDER BY \"rank\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            101
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_inotes.source",
+      "kind": "records",
+      "table": "tbl_notes01",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"work_item_notes\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "lead": {
+          "sql": "SELECT * FROM \"work_item_notes\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "member": {
+          "sql": "SELECT * FROM \"work_item_notes\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            101
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"work_item_notes\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "lead": {
+          "sql": "SELECT * FROM \"work_item_notes\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "member": {
+          "sql": "SELECT * FROM \"work_item_notes\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            101
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_epgrid.source",
+      "kind": "records",
+      "table": "tbl_items01",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"work_items\" WHERE (1=1) AND \"item_type\" = ? ORDER BY \"rank\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "epic",
+            101
+          ]
+        },
+        "lead": {
+          "sql": "SELECT * FROM \"work_items\" WHERE (1=1) AND \"item_type\" = ? ORDER BY \"rank\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "epic",
+            101
+          ]
+        },
+        "member": {
+          "sql": "SELECT * FROM \"work_items\" WHERE (1=1) AND \"item_type\" = ? ORDER BY \"rank\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "epic",
+            101
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"work_items\" WHERE (1=1) AND \"item_type\" = ? ORDER BY \"rank\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "epic",
+            101
+          ]
+        },
+        "lead": {
+          "sql": "SELECT * FROM \"work_items\" WHERE (1=1) AND \"item_type\" = ? ORDER BY \"rank\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "epic",
+            101
+          ]
+        },
+        "member": {
+          "sql": "SELECT * FROM \"work_items\" WHERE (1=1) AND \"item_type\" = ? ORDER BY \"rank\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "epic",
+            101
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_epchart.source",
+      "kind": "aggregate",
+      "table": "tbl_items01",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT \"epic_key\" AS \"epic\", COUNT(*) AS \"items\" FROM \"work_items\" WHERE (1=1) AND \"item_type\" != ? GROUP BY \"epic_key\" LIMIT ?",
+          "params": [
+            "epic",
+            20
+          ]
+        },
+        "lead": {
+          "sql": "SELECT \"epic_key\" AS \"epic\", COUNT(*) AS \"items\" FROM \"work_items\" WHERE (1=1) AND \"item_type\" != ? GROUP BY \"epic_key\" LIMIT ?",
+          "params": [
+            "epic",
+            20
+          ]
+        },
+        "member": {
+          "sql": "SELECT \"epic_key\" AS \"epic\", COUNT(*) AS \"items\" FROM \"work_items\" WHERE (1=1) AND \"item_type\" != ? GROUP BY \"epic_key\" LIMIT ?",
+          "params": [
+            "epic",
+            20
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT \"epic_key\" AS \"epic\", COUNT(*) AS \"items\" FROM \"work_items\" WHERE (1=1) AND \"item_type\" != ? GROUP BY \"epic_key\" LIMIT ?",
+          "params": [
+            "epic",
+            20
+          ]
+        },
+        "lead": {
+          "sql": "SELECT \"epic_key\" AS \"epic\", COUNT(*) AS \"items\" FROM \"work_items\" WHERE (1=1) AND \"item_type\" != ? GROUP BY \"epic_key\" LIMIT ?",
+          "params": [
+            "epic",
+            20
+          ]
+        },
+        "member": {
+          "sql": "SELECT \"epic_key\" AS \"epic\", COUNT(*) AS \"items\" FROM \"work_items\" WHERE (1=1) AND \"item_type\" != ? GROUP BY \"epic_key\" LIMIT ?",
+          "params": [
+            "epic",
+            20
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_suboards.source",
+      "kind": "records",
+      "table": "tbl_boards1",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"boards\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "lead": {
+          "sql": "SELECT * FROM \"boards\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "member": {
+          "sql": "SELECT * FROM \"boards\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"boards\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "lead": {
+          "sql": "SELECT * FROM \"boards\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "member": {
+          "sql": "SELECT * FROM \"boards\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_sucols.source",
+      "kind": "records",
+      "table": "tbl_bcols01",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"board_columns\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "lead": {
+          "sql": "SELECT * FROM \"board_columns\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "member": {
+          "sql": "SELECT * FROM \"board_columns\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"board_columns\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "lead": {
+          "sql": "SELECT * FROM \"board_columns\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "member": {
+          "sql": "SELECT * FROM \"board_columns\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_sustates.source",
+      "kind": "records",
+      "table": "tbl_states1",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"workflow_states\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "lead": {
+          "sql": "SELECT * FROM \"workflow_states\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "member": {
+          "sql": "SELECT * FROM \"workflow_states\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"workflow_states\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "lead": {
+          "sql": "SELECT * FROM \"workflow_states\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "member": {
+          "sql": "SELECT * FROM \"workflow_states\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_sutypes.source",
+      "kind": "records",
+      "table": "tbl_types01",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"item_types\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "lead": {
+          "sql": "SELECT * FROM \"item_types\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "member": {
+          "sql": "SELECT * FROM \"item_types\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"item_types\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "lead": {
+          "sql": "SELECT * FROM \"item_types\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "member": {
+          "sql": "SELECT * FROM \"item_types\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_sumem.source",
+      "kind": "records",
+      "table": "tbl_member1",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"team_members\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "lead": {
+          "sql": "SELECT * FROM \"team_members\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "member": {
+          "sql": "SELECT * FROM \"team_members\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            101
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"team_members\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "lead": {
+          "sql": "SELECT * FROM \"team_members\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "member": {
+          "sql": "SELECT * FROM \"team_members\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            101
+          ]
+        }
+      }
+    }
+  ]
+}

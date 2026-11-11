@@ -1,7 +1,7 @@
 /** Types of the App Studio binding resolver (resolveBinding.ts). */
 
 /** A filter / aggregate-shape value: a literal, or `{ kind: 'formula', expr }` resolved against the scope. */
-export type FilterValue = FormulaValue | string | number | boolean | null | undefined | (unknown[] & { kind?: undefined; expr?: undefined });
+type FilterValue = FormulaValue | string | number | boolean | null | undefined | (unknown[] & { kind?: undefined; expr?: undefined });
 
 interface FormulaValue {
     kind?: string;
@@ -24,7 +24,7 @@ export interface ActionResultBinding {
     path?: unknown;
 }
 
-export interface FormulaBinding {
+interface FormulaBinding {
     kind: 'formula';
     expr?: unknown;
     value?: unknown;
@@ -35,12 +35,26 @@ export interface DataBinding {
     tableId?: string | null;
     datasetId?: string | null;
     filter?: unknown;
+    /** How the top-level filters join: every one (default) or any one. */
+    match?: 'all' | 'any';
+    /** A free search over some columns; `value` may be a formula (a search box). Records bindings only. */
+    search?: { value?: FilterValue; fields?: string[] };
     sort?: FilterValue;
+    /** Up to three `{ field, dir }` entries; replaces `sort` when present. */
+    orderBy?: unknown;
     limit?: FilterValue;
     groupBy?: FilterValue;
     aggregates?: FilterValue;
+    /** record / records only: `[{ field: <relation field>, pick?, as? }]`, the related row of each record (under `as`, or `<field>_record`). */
+    expand?: unknown;
+    /** record / records only: the columns to return (next to `id`). */
+    fields?: unknown;
+    /** Aggregate only: `[{ field: <aggregate alias>, op, value }]`, the groups to keep. */
+    groupFilter?: unknown;
     pick?: PickSpec | null;
     path?: unknown;
+    /** dataset only: values for the parameters the dataset declares (literals or formulas). */
+    params?: unknown;
 }
 
 export interface ConnectorBinding {

@@ -216,3 +216,32 @@ test('a step after a transaction reads the resultVar of a child as vars.<name>',
     assert.deepEqual(calls.map((c) => c.kind), ['transaction', 'update_record']);
     assert.equal(calls[1].vars.order.id, 'rec_9');
 });
+
+test('raise_error fails the run with its own message, a try catches it, and return ends the run early', async () => {
+    const raise = { kind: 'raise_error', message: { kind: 'static', value: 'No subject on this mail' }, code: 'no_subject' };
+    appRow.definition = { actions: { act_hook: { kind: 'sequence', steps: [raise, { kind: 'update_record' }] } } };
+    let report = await runNewRecordHook({ id: 'app_1' }, {}, CONNECTOR, { thread: [], message: [msg('r1', 'inbound')] }, deps());
+    assert.equal(report.failed, 1);
+    assert.equal(recorded[0].error, 'No subject on this mail');
+    assert.equal(calls.length, 0);
+
+    calls = []; recorded = [];
+    appRow.definition = { actions: { act_hook: { kind: 'sequence', steps: [
+        { kind: 'try', steps: [raise], catch: [{ kind: 'ai_generate' }] },
+        { kind: 'return', value: { kind: 'static', value: 'done' } },
+        { kind: 'update_record' },
+    ] } } };
+    report = await runNewRecordHook({ id: 'app_1' }, {}, CONNECTOR, { thread: [], message: [msg('r2', 'inbound')] }, deps());
+    assert.deepEqual(report, { ran: 1, failed: 0, refused: 0, skippedLimit: 0 });
+    assert.deepEqual(calls.map((c) => c.kind), ['ai_generate'], 'the step after the return never ran');
+});
+
+test('a while and a parallel step are refused on an arriving mail', async () => {
+    for (const step of [{ kind: 'while', expr: 'yes', steps: [] }, { kind: 'parallel', branches: [{ steps: [{ kind: 'ai_generate' }] }] }]) {
+        calls = []; recorded = [];
+        appRow.definition = { actions: { act_hook: { kind: 'sequence', steps: [step] } } };
+        const report = await runNewRecordHook({ id: 'app_1' }, {}, CONNECTOR, { thread: [], message: [msg('r1', 'inbound')] }, deps());
+        assert.equal(report.refused, 1, step.kind);
+        assert.equal(calls.length, 0);
+    }
+});

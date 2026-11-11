@@ -1,9 +1,10 @@
-import { render } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
 import AppProgress from './AppProgress';
-import { RuntimeProvider, buildScope, DEFAULT_RUNTIME } from '../RuntimeContext';
-import type { ReactElement, ComponentProps } from 'react';
+import { buildScope } from '../RuntimeContext';
+import { renderInRuntime as withRuntime } from '@/test/appRuntimeRender';
+import type { ComponentProps } from 'react';
 import { stub } from '@/test/mocks';
+import { withoutPartClasses } from '@/test/appPartClasses';
 
 /**
  * progress.segments (spec: server/appStudio/componentSpecs.js) — the stacked
@@ -12,11 +13,6 @@ import { stub } from '@/test/mocks';
  * replaces the fill with side-by-side segments whose widths normalize on the
  * sum. Works for looks 'bar' and 'slim'; 'ring' ignores segments.
  */
-
-function withRuntime(ui: ReactElement, overrides = {}) {
-    const value = { ...DEFAULT_RUNTIME, scope: buildScope({ now: '2026-01-01T00:00:00.000Z' }), ...overrides };
-    return render(<RuntimeProvider value={value}>{ui}</RuntimeProvider>);
-}
 
 const progressNode = (props = {}, style = {}) => ({
     id: 'cmp_prg', type: 'progress', visible: true,
@@ -38,7 +34,7 @@ describe('AppProgress — segments', () => {
         const { container } = withRuntime(<AppProgress node={stub<ComponentProps<typeof AppProgress>['node']>(progressNode({ segments: [] }))} />);
         expect(container.querySelector('[data-app-progress-segments]')).toBeNull();
         const track = container.querySelector('[role="progressbar"]');
-        expect(track!.className).toBe('w-full h-2 rounded-full overflow-hidden');
+        expect(withoutPartClasses(track!.className)).toBe('w-full h-2 rounded-full overflow-hidden');
         expect((track!.firstChild as HTMLElement).style.width).toBe('45%');
         expect(container.querySelector('[data-app-progress-caption]')!.textContent).toBe('45%');
     });

@@ -22,7 +22,16 @@ const CONNECTOR_KINDS = Object.freeze(['integration_tool', 'automation', 'rest',
 const MAX_VIEWER_PARAMS = 50;
 const MAX_PARAM_KEY_LEN = 100;
 const MAX_PARAM_STR_LEN = 2000;
-const MAX_CONNECTOR_ROWS = 500;      // hard ceiling on rows returned to a viewer
+// Hard ceiling on rows returned to a viewer and written by one sync run.
+// STUDIO_APP_CONNECTOR_MAX_ROWS overrides it; 0 means unlimited. Unset or
+// invalid keeps 500, which sync, chains and validation all share.
+function readMaxRows(raw) {
+    if (raw === undefined || raw === '') return 500;
+    const n = Number(raw);
+    if (!Number.isInteger(n) || n < 0) return 500;
+    return n === 0 ? Infinity : n;
+}
+const MAX_CONNECTOR_ROWS = readMaxRows(process.env.STUDIO_APP_CONNECTOR_MAX_ROWS);
 const REST_TIMEOUT_MS = parseInt(process.env.STUDIO_APP_CONNECTOR_TIMEOUT_MS, 10) || 10_000;
 const MAX_REST_BYTES = 4 * 1024 * 1024;
 
@@ -253,7 +262,7 @@ module.exports = {
  * @typedef {{ key: string, type?: string, required?: boolean }} ConnectorParam
  * @typedef {{ tool?: string, argsFrom?: Record<string, string>, fixedArgs?: Record<string, unknown>, merge?: string, alias?: string, expand?: string, ownTable?: boolean }} ChainStep  One follow-up tool call, run once per row.
  * @typedef {{ credentialProvider?: string, type?: string, header?: string }} ConnectorAuth
- * @typedef {{ id: string, kind: string, name?: string, params?: ConnectorParam[], integrationId?: string, runAs?: string, tool?: string, fixedArgs?: Record<string, unknown>, rowsPath?: string, chain?: ChainStep[], automationId?: string, url?: string, headers?: Record<string, unknown>, auth?: ConnectorAuth, maxRows?: number, nextPagePath?: string, sync?: import('../connectorSync').SyncBlock }} Connector  A connector as stored on model.connectors[].
+ * @typedef {{ id: string, kind: string, name?: string, params?: ConnectorParam[], integrationId?: string, runAs?: string, tool?: string, fixedArgs?: Record<string, unknown>, rowsPath?: string, chain?: ChainStep[], automationId?: string, url?: string, headers?: Record<string, unknown>, auth?: ConnectorAuth, maxRows?: number, nextPagePath?: string, method?: string, body?: unknown, sync?: import('../connectorSync').SyncBlock }} Connector  A connector as stored on model.connectors[].
  * @typedef {{ id: string, userId: string, organizationId?: string, name?: string }} ConnectorApp  The studio app a connector runs for.
  * @typedef {Record<string, unknown>} ConnectorRow
  */

@@ -36,7 +36,9 @@
 const { z, typeError } = require('../../../utils/zod');
 const studioAppStore = require('../../../stores/studioAppStore');
 const studioAppDataStore = require('../../../stores/studioAppDataStore');
+const { datasetEntry } = require('../../../appStudio/datasetParams.mts');
 const { canonicalizeAppDefinition } = require('../../../appStudio/canonicalize');
+const { schemaNewerError } = require('../../../appStudio/schemaSince.mts');
 const { emptyDefinition } = require('../../../appStudio/componentSpecs');
 const { briefForNaming } = require('../../../appStudio/builderTools/appNaming');
 const { describeLinkedTables, overlayLinkedRowCounts } = require('../../../appStudio/linkedTables');
@@ -155,9 +157,11 @@ async function loadDraftWrap(req, { userId, requestedAppId, clientSession }) {
             const info = await managedParts.managedInfo(app.projectId);
             if (info) throw managedParts.managedPartError(info);
         }
-        const { def } = canonicalizeAppDefinition(
+        const { def, refused } = canonicalizeAppDefinition(
             app.definition && Object.keys(app.definition).length ? app.definition : emptyDefinition(app.name),
         );
+        // Pre-SSE, like the managed refusal above: a clean 422 schema_newer.
+        if (refused) throw schemaNewerError(app.definition);
         priorSnapshot = await studioAppStore.getBuilderSession(app.id, userId).catch((e) => fallback('routes/ai/appStudioBuilder/turnSetup:loadDraftWrap', e, null));
         draftWrap = {
             userId,
@@ -194,7 +198,7 @@ async function loadTurnDataModel(draftWrap, userId) {
         draftWrap.dataModelVersion = dataMeta?.modelVersion ?? 0;
         draftWrap.rowCounts = normalizeRowCounts(draftWrap.dataModel, dataMeta?.rowCounts);
         const datasetRows = await studioAppDataStore.listDatasets(draftWrap.appId, userId);
-        draftWrap.datasetIds = (datasetRows || []).map((d) => ({ id: d.id, name: d.name }));
+        draftWrap.datasetIds = (datasetRows || []).map(datasetEntry);
         // Tables whose rows live in a Studio datatable (a Nextcloud mirror,
         // an org table): what they are and how many LIVE rows they hold —
         // the per-app recount above says 0 for them. Lazy: an app with no

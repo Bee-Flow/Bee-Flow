@@ -34,6 +34,8 @@ const RUNTIME_PAYLOAD = {
 
 beforeEach(() => {
     vi.clearAllMocks();
+    // A screen change writes #/s/<id> into the URL; start every test without one.
+    window.history.replaceState(null, '', '/');
     studioAppsApi.getRuntime.mockResolvedValue(RUNTIME_PAYLOAD);
     studioAppsApi.listAccessible.mockResolvedValue({ apps: [] });
     studioAppsApi.listMine.mockResolvedValue({ apps: [] });

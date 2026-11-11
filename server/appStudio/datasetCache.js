@@ -44,6 +44,10 @@ const studioAppDataStore = require('../stores/studioAppDataStore');
 const studioAppDbStore = require('../stores/studioAppDbStore');
 const queryCompiler = require('./queryCompiler');
 const rlsGateway = require('./rlsGateway');
+const { aggregateDescriptor } = require('../core/dataEngine/readDescriptor.mts');
+const { resolveDatasetParams, paramCacheMaxEntries } = require('./datasetParams.mts');
+const { readError } = require('./readError');
+const { relatedForAggregate } = require('../core/dataEngine/aggregateRelated.mts');
 const { bestEffort } = require('../utils/bestEffort');
 
 const DEFAULT_TTL_SECONDS = 60;
@@ -71,12 +75,15 @@ function stableStringify(value) {
  * compiled access ⇒ same key (safe to share); any difference ⇒ different key
  * (never shared). This is the security control described in the file header.
  */
-function computeViewerScopeKey(role, accessFilter) {
+function computeViewerScopeKey(role, accessFilter, related) {
     const af = accessFilter && typeof accessFilter === 'object' ? accessFilter : {};
     const identity = {
         role: role || null,
         where: typeof af.where === 'string' ? af.where : '',
         params: Array.isArray(af.params) ? af.params : [],
+        // A groupBy through a relation also reads the related table under the
+        // viewer's predicate on it. Only then: a dataset without one keeps its key.
+        ...(related ? { related: Object.fromEntries(Object.entries(related).map(([k, r]) => [k, { where: r.accessFilter.where, params: r.accessFilter.params }])) } : {}),
     };
     return sha256('viewerscope:v1:' + stableStringify(identity));
 }
@@ -91,6 +98,9 @@ function computeParamsHash(tableKey, descriptor) {
         aggregates: d.aggregates ?? null,
         sort: d.sort ?? null,
         limit: d.limit ?? null,
+        // Only when the descriptor has one: a descriptor without it keeps its hash.
+        ...(d.orderBy !== undefined && d.orderBy !== null ? { orderBy: d.orderBy } : {}),
+        ...(d.groupFilter !== undefined && d.groupFilter !== null ? { groupFilter: d.groupFilter } : {}),
     };
     return sha256('params:v1:' + stableStringify(norm));
 }
@@ -100,12 +110,17 @@ function resolveTable(model, tableRef) {
     return tables.find((t) => t && (t.id === tableRef || t.key === tableRef)) || null;
 }
 
-/** The table's current cache-invalidation token (0 when no meta row yet). */
-async function currentDataVersion(app, tableKey) {
+/**
+ * The table's current cache-invalidation token (0 when no meta row yet). With
+ * related tables (a groupBy through a relation) it is the sum over all of them:
+ * each version only grows, so a write to any of them moves the sum.
+ * @param {string[]} [relatedKeys]
+ */
+async function currentDataVersion(app, tableKey, relatedKeys = []) {
     try {
         const meta = await studioAppDataStore.getDataModel(app.id, app.userId);
         const versions = meta && meta.dataVersions && typeof meta.dataVersions === 'object' ? meta.dataVersions : {};
-        return parseInt(versions[tableKey], 10) || 0;
+        return [tableKey, ...relatedKeys].reduce((sum, key) => sum + (parseInt(versions[key], 10) || 0), 0);
     } catch {
         return 0;
     }
@@ -123,13 +138,18 @@ async function currentDataVersion(app, tableKey) {
  *   { tableId | tableKey, descriptor | aggregate }  — run live (no id → the
  *   dataset_cache FK can't hold it, so inline queries are never persisted).
  *
+ * `params` are the values a binding sends for the parameters the dataset
+ * declares (datasetParams.mts); a dataset that declares none ignores them.
+ *
  * `viewer` is the server-derived viewer object ({ id, role?, organizationId?,
  * userGroups? }). When `viewer.role` is provided the caller has already resolved
  * it (the route path); otherwise it's resolved here via rlsGateway. The same
  * `viewer` object is handed to compileAccessFilter so row filters reading
  * viewer.<attr> bind correctly.
+ * @param {{ refresh?: boolean, params?: unknown }} [opts]
  */
-async function runDataset(app, model, datasetOrDescriptor, viewer, { refresh = false } = {}) {
+async function runDataset(app, model, datasetOrDescriptor, viewer, opts = {}) {
+    const { refresh = false, params } = opts;
     if (!app || !app.id) throw new rlsGateway.AccessError('app is required', 400);
     if (!model || !Array.isArray(model.tables)) throw new rlsGateway.AccessError('data model is required', 400);
 
@@ -155,9 +175,19 @@ async function runDataset(app, model, datasetOrDescriptor, viewer, { refresh = f
     // here from the (role, viewer) so a member's chart folds only their rows.
     const accessFilter = rlsGateway.compileAccessFilter(table, role, v, 'read');
 
-    const viewerScopeKey = computeViewerScopeKey(role, accessFilter);
-    const paramsHash = computeParamsHash(table.key, descriptor);
-    const dataVersion = await currentDataVersion(app, table.key);
+    // Parameter values (datasetParams.mts). A dataset that declares none gets
+    // its own descriptor back unchanged, so its key and its SQL stay as they
+    // were and whatever was sent is ignored. One that does is compiled, and
+    // keyed, on the descriptor with the values filled in.
+    const bound = resolveDatasetParams(descriptor, params);
+    if (bound.status === 'invalid') throw readError(400, `Invalid value for dataset parameter "${bound.name}".`);
+    if (bound.status === 'required') return { columns: [], rows: [], truncated: false, cached: false };
+    const query = bound.descriptor;
+    const related = relatedForAggregate(model, table, query.groupBy, { role, viewer: v }, query.filters);
+
+    const viewerScopeKey = computeViewerScopeKey(role, accessFilter, related);
+    const paramsHash = computeParamsHash(table.key, query);
+    const dataVersion = await currentDataVersion(app, table.key, related ? Object.values(related).map((r) => r.tableMeta.key) : []);
     const ttlSeconds = Number.isFinite(dod.cacheTtlSeconds) ? dod.cacheTtlSeconds : DEFAULT_TTL_SECONDS;
 
     // Only SAVED datasets are cache-persisted (studio_app_dataset_cache FKs the
@@ -177,16 +207,12 @@ async function runDataset(app, model, datasetOrDescriptor, viewer, { refresh = f
         }
     }
 
-    // Miss / forced refresh / inline → compile (scoped) and run live.
-    const { sql, params } = queryCompiler.compileAggregate(table, {
-        filters: descriptor.filters,
-        groupBy: descriptor.groupBy,
-        aggregates: descriptor.aggregates,
-        sort: descriptor.sort,
-        limit: descriptor.limit,
-    }, accessFilter);
+    // Miss / forced refresh / inline → compile (scoped) and run live. A saved
+    // dataset joins its filters as it always did: `match` is a key of a binding.
+    const { sql, params: sqlParams } = queryCompiler.compileAggregate(table,
+        aggregateDescriptor(query, { limit: query.limit, match: undefined }), accessFilter, related);
 
-    const out = await studioAppDbStore.query(app.userId, app.id, sql, params);
+    const out = await studioAppDbStore.query(app.userId, app.id, sql, sqlParams);
     const result = {
         columns: Array.isArray(out.columns) ? out.columns : [],
         rows: Array.isArray(out.rows) ? out.rows : [],
@@ -202,6 +228,7 @@ async function runDataset(app, model, datasetOrDescriptor, viewer, { refresh = f
                 result,
                 rowCount: result.rows.length,
                 ttlSeconds,
+                ...(bound.values ? { maxEntries: paramCacheMaxEntries() } : {}),
             });
         } catch (err) { bestEffort('appStudio/datasetCache:runDataset', err); /* cache write is advisory — a failed memoise must never fail the read */ }
     }
@@ -225,7 +252,7 @@ module.exports = {
 
 /** @typedef {{ where?: string, params?: unknown[] }} AccessFilterLike */
 
-/** @typedef {{ tableId?: string, tableKey?: string, filters?: unknown, groupBy?: unknown, aggregates?: unknown, sort?: unknown, limit?: unknown }} Descriptor */
+/** @typedef {{ tableId?: string, tableKey?: string, filters?: unknown, groupBy?: unknown, aggregates?: unknown, sort?: unknown, orderBy?: unknown, groupFilter?: unknown, limit?: unknown, params?: unknown }} Descriptor */
 
 /**
  * @typedef {Descriptor & { id?: string, descriptor?: Descriptor, aggregate?: Descriptor, cacheTtlSeconds?: number }} DatasetOrDescriptor

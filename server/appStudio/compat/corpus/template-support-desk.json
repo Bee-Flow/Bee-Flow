@@ -1,0 +1,3331 @@
+{
+  "about": {
+    "source": "server/appStudio/templates.js template \"app-support-desk\" version 1",
+    "stored": "definition = canonicalizeAppDefinition(deep clone of template.definition).def (routes/studioApps/crud.js create-from-template, no name override); dataModel = canonicalizeDataModel(template.dataModel).model (templateInstall.js); datasets as the template declares them",
+    "captured": "2026-11-10",
+    "templateId": "app-support-desk"
+  },
+  "definition": {
+    "schemaVersion": 2,
+    "meta": {
+      "name": "Support desk",
+      "description": "A shared inbox for your team.",
+      "icon": "LifeBuoy"
+    },
+    "theme": {
+      "primary": "#0F766E",
+      "radius": "md",
+      "density": "comfortable",
+      "fontScale": "md",
+      "appearance": "auto"
+    },
+    "roles": [
+      {
+        "id": "admin",
+        "name": "Admin"
+      },
+      {
+        "id": "agent",
+        "name": "Agent"
+      }
+    ],
+    "screens": [
+      {
+        "id": "scr_sdinbox",
+        "name": "Inbox",
+        "icon": "Inbox",
+        "showInNav": true,
+        "maxWidth": "full",
+        "refreshInterval": 30,
+        "sections": [
+          {
+            "id": "sec_sdsplit",
+            "style": {
+              "padding": 0,
+              "gap": 0,
+              "background": "none",
+              "height": "fill"
+            },
+            "children": [
+              {
+                "id": "cmp_sdside",
+                "type": "pane",
+                "props": {
+                  "direction": "vertical",
+                  "scroll": "auto"
+                },
+                "style": {
+                  "span": 3,
+                  "gap": 3,
+                  "height": "fill",
+                  "padding": 3,
+                  "background": "surface"
+                },
+                "visible": true,
+                "children": [
+                  {
+                    "id": "cmp_sdfilter",
+                    "type": "filter_bar",
+                    "props": {
+                      "fields": [
+                        {
+                          "name": "q",
+                          "label": "Search",
+                          "type": "search",
+                          "options": []
+                        },
+                        {
+                          "name": "mine",
+                          "label": "Only mine",
+                          "type": "toggle",
+                          "options": []
+                        }
+                      ]
+                    },
+                    "style": {
+                      "span": 12,
+                      "size": "sm",
+                      "gap": 2
+                    },
+                    "visible": true
+                  },
+                  {
+                    "id": "cmp_sdpills",
+                    "type": "badge_list",
+                    "props": {
+                      "source": {
+                        "kind": "aggregate",
+                        "tableId": "tbl_sdthr",
+                        "limit": 20,
+                        "groupBy": [
+                          {
+                            "field": "status"
+                          }
+                        ],
+                        "aggregates": [
+                          {
+                            "fn": "count",
+                            "as": "count"
+                          }
+                        ]
+                      },
+                      "labelKey": "status",
+                      "colorKey": "status",
+                      "countKey": "count",
+                      "colorMap": [
+                        {
+                          "value": "new",
+                          "label": "New",
+                          "color": "info"
+                        },
+                        {
+                          "value": "open",
+                          "label": "Open",
+                          "color": "primary"
+                        },
+                        {
+                          "value": "awaiting_user",
+                          "label": "Waiting on customer",
+                          "color": "neutral"
+                        },
+                        {
+                          "value": "awaiting_agent",
+                          "label": "Waiting on us",
+                          "color": "warning"
+                        },
+                        {
+                          "value": "resolved",
+                          "label": "Resolved",
+                          "color": "success"
+                        }
+                      ],
+                      "emptyText": "No tickets yet.",
+                      "activeWhen": null,
+                      "look": "soft"
+                    },
+                    "style": {
+                      "span": 12,
+                      "size": "sm",
+                      "align": "start"
+                    },
+                    "visible": true,
+                    "onRowClick": "act_sdfilter"
+                  },
+                  {
+                    "id": "cmp_sdlist",
+                    "type": "list",
+                    "props": {
+                      "source": {
+                        "kind": "records",
+                        "tableId": "tbl_sdthr",
+                        "filter": [
+                          {
+                            "field": "subject",
+                            "op": "contains",
+                            "value": {
+                              "kind": "formula",
+                              "expr": "vars.filters.q"
+                            }
+                          },
+                          {
+                            "field": "status",
+                            "op": "eq",
+                            "value": {
+                              "kind": "formula",
+                              "expr": "vars.statusfilter"
+                            }
+                          }
+                        ],
+                        "sort": [
+                          {
+                            "field": "last_message_at",
+                            "dir": "desc"
+                          }
+                        ],
+                        "limit": 100
+                      },
+                      "titleKey": "subject",
+                      "subtitleKey": "requester_email",
+                      "metaKey": "assignee_name",
+                      "timestampKey": "last_message_at",
+                      "badgeKey": "status",
+                      "tagsKey": "labels",
+                      "badgeToneMap": [
+                        {
+                          "value": "new",
+                          "label": "New",
+                          "tone": "info"
+                        },
+                        {
+                          "value": "open",
+                          "label": "Open",
+                          "tone": "primary"
+                        },
+                        {
+                          "value": "awaiting_user",
+                          "label": "Waiting on customer",
+                          "tone": "neutral"
+                        },
+                        {
+                          "value": "awaiting_agent",
+                          "label": "Waiting on us",
+                          "tone": "warning"
+                        },
+                        {
+                          "value": "resolved",
+                          "label": "Resolved",
+                          "tone": "success"
+                        }
+                      ],
+                      "unreadKey": "has_unread",
+                      "badgePlacement": "meta",
+                      "selectedWhen": "item.thread_key == vars.thread",
+                      "selectedDetailKey": null,
+                      "groupKey": null,
+                      "groupOrder": [],
+                      "groupLabelMap": [],
+                      "icon": null,
+                      "emptyText": "Nothing here yet. Label a message “support” in your mailbox and it will show up within a couple of minutes.",
+                      "look": "rows",
+                      "peekSource": null,
+                      "peekMatchKey": null,
+                      "peekRowKey": null,
+                      "peekTitleKey": null,
+                      "peekTextKey": null,
+                      "peekGroupKey": null,
+                      "peekGroupLabelMap": [],
+                      "peekCountKey": null,
+                      "peekLimit": 6,
+                      "peekTitle": null,
+                      "peekMoreText": null,
+                      "peekBadge": false
+                    },
+                    "style": {
+                      "span": 12,
+                      "size": "sm",
+                      "height": "fill"
+                    },
+                    "visible": true,
+                    "onRowClick": "act_sdpick"
+                  }
+                ]
+              },
+              {
+                "id": "cmp_sdmain",
+                "type": "pane",
+                "props": {
+                  "direction": "vertical",
+                  "scroll": "none"
+                },
+                "style": {
+                  "span": 9,
+                  "gap": 3,
+                  "height": "fill",
+                  "padding": 3
+                },
+                "visible": true,
+                "children": [
+                  {
+                    "id": "cmp_sdhead",
+                    "type": "page_header",
+                    "props": {
+                      "title": "Conversation",
+                      "subtitle": null,
+                      "titleFrom": {
+                        "kind": "formula",
+                        "expr": "vars.subject"
+                      },
+                      "subtitleFrom": {
+                        "kind": "formula",
+                        "expr": "vars.requester"
+                      },
+                      "tagsFrom": {
+                        "kind": "formula",
+                        "expr": "vars.labels"
+                      },
+                      "icon": "Mail",
+                      "showDivider": true,
+                      "look": "plain"
+                    },
+                    "style": {
+                      "span": 12,
+                      "gap": 2,
+                      "padding": 0
+                    },
+                    "visible": true,
+                    "children": [
+                      {
+                        "id": "cmp_sdassignb",
+                        "type": "button",
+                        "props": {
+                          "label": "Assign to me",
+                          "variant": "secondary",
+                          "iconLeft": "UserCheck",
+                          "role": "button",
+                          "disabledWhen": null
+                        },
+                        "style": {
+                          "span": 3,
+                          "size": "sm"
+                        },
+                        "visible": true,
+                        "onClick": "act_sdassign"
+                      },
+                      {
+                        "id": "cmp_sdfilesb",
+                        "type": "button",
+                        "props": {
+                          "label": "Files",
+                          "variant": "ghost",
+                          "iconLeft": "Paperclip",
+                          "role": "button",
+                          "disabledWhen": null
+                        },
+                        "style": {
+                          "span": 3,
+                          "size": "sm"
+                        },
+                        "visible": true,
+                        "onClick": "act_sdopenfiles"
+                      }
+                    ]
+                  },
+                  {
+                    "id": "cmp_sdtriage",
+                    "type": "form",
+                    "props": {
+                      "name": "triage",
+                      "submitLabel": "Save",
+                      "showReset": false,
+                      "showSubmit": false,
+                      "resetKey": null
+                    },
+                    "style": {
+                      "span": 12,
+                      "gap": 2,
+                      "padding": 0
+                    },
+                    "visible": true,
+                    "children": [
+                      {
+                        "id": "cmp_sdstat",
+                        "type": "input_select",
+                        "props": {
+                          "name": "status",
+                          "label": "Status",
+                          "options": [
+                            {
+                              "value": "new",
+                              "label": "New"
+                            },
+                            {
+                              "value": "open",
+                              "label": "Open"
+                            },
+                            {
+                              "value": "awaiting_user",
+                              "label": "Waiting on customer"
+                            },
+                            {
+                              "value": "awaiting_agent",
+                              "label": "Waiting on us"
+                            },
+                            {
+                              "value": "resolved",
+                              "label": "Resolved"
+                            }
+                          ],
+                          "required": false,
+                          "defaultValue": null,
+                          "placeholder": "Set status",
+                          "valueFrom": {
+                            "kind": "formula",
+                            "expr": "vars.status"
+                          },
+                          "optionsFrom": null,
+                          "optionValueKey": null,
+                          "optionLabelKey": null
+                        },
+                        "style": {
+                          "span": 3,
+                          "size": "sm"
+                        },
+                        "visible": true,
+                        "onChange": "act_sdstatus"
+                      },
+                      {
+                        "id": "cmp_sdprio",
+                        "type": "input_select",
+                        "props": {
+                          "name": "priority",
+                          "label": "Priority",
+                          "options": [
+                            {
+                              "value": "low",
+                              "label": "Low"
+                            },
+                            {
+                              "value": "normal",
+                              "label": "Normal"
+                            },
+                            {
+                              "value": "high",
+                              "label": "High"
+                            },
+                            {
+                              "value": "urgent",
+                              "label": "Urgent"
+                            }
+                          ],
+                          "required": false,
+                          "defaultValue": null,
+                          "placeholder": "Set priority",
+                          "valueFrom": {
+                            "kind": "formula",
+                            "expr": "vars.priority"
+                          },
+                          "optionsFrom": null,
+                          "optionValueKey": null,
+                          "optionLabelKey": null
+                        },
+                        "style": {
+                          "span": 3,
+                          "size": "sm"
+                        },
+                        "visible": true,
+                        "onChange": "act_sdpriority"
+                      },
+                      {
+                        "id": "cmp_sdtags",
+                        "type": "input_multiselect",
+                        "props": {
+                          "name": "tags",
+                          "label": "Tags",
+                          "options": [
+                            {
+                              "value": "delivery",
+                              "label": "Delivery"
+                            },
+                            {
+                              "value": "billing",
+                              "label": "Billing"
+                            },
+                            {
+                              "value": "complaint",
+                              "label": "Complaint"
+                            },
+                            {
+                              "value": "question",
+                              "label": "Question"
+                            }
+                          ],
+                          "required": false,
+                          "defaultValue": [],
+                          "valueFrom": {
+                            "kind": "formula",
+                            "expr": "vars.tags"
+                          }
+                        },
+                        "style": {
+                          "span": 6,
+                          "size": "sm"
+                        },
+                        "visible": true,
+                        "onChange": "act_sdtags"
+                      }
+                    ]
+                  },
+                  {
+                    "id": "cmp_sdthread",
+                    "type": "message_thread",
+                    "props": {
+                      "source": {
+                        "kind": "records",
+                        "tableId": "tbl_sdmsg",
+                        "filter": [
+                          {
+                            "field": "thread_key",
+                            "op": "eq",
+                            "value": {
+                              "kind": "formula",
+                              "expr": "vars.thread"
+                            },
+                            "required": true
+                          }
+                        ],
+                        "sort": [
+                          {
+                            "field": "received_at",
+                            "dir": "asc"
+                          }
+                        ],
+                        "limit": 100
+                      },
+                      "bodyField": "body_text",
+                      "htmlField": "body_html",
+                      "authorField": "from_name",
+                      "timestampField": "received_at",
+                      "sideField": "direction",
+                      "sideMap": [
+                        {
+                          "value": "inbound",
+                          "side": "left",
+                          "tone": "neutral"
+                        },
+                        {
+                          "value": "outbound",
+                          "side": "right",
+                          "tone": "primary"
+                        }
+                      ],
+                      "attachmentsField": null,
+                      "attachmentLabelKey": "filename",
+                      "attachmentsSource": {
+                        "kind": "records",
+                        "tableId": "tbl_sdatt",
+                        "filter": [
+                          {
+                            "field": "thread_key",
+                            "op": "eq",
+                            "value": {
+                              "kind": "formula",
+                              "expr": "vars.thread"
+                            },
+                            "required": true
+                          }
+                        ],
+                        "limit": 200
+                      },
+                      "attachmentMatchKey": "provider_message_id",
+                      "attachmentFileKey": "file",
+                      "inlineContentIdKey": "content_id",
+                      "citationsField": null,
+                      "citationLabelKey": "title",
+                      "emailField": null,
+                      "toField": null,
+                      "subjectField": null,
+                      "showAvatar": false,
+                      "centerMeta": "hidden",
+                      "eventsSource": null,
+                      "eventsBodyField": "detail",
+                      "eventsTimestampField": "at",
+                      "rowLimit": 100,
+                      "emptyText": "Pick a ticket on the left to read the conversation."
+                    },
+                    "style": {
+                      "span": 12,
+                      "height": "fill",
+                      "size": "md"
+                    },
+                    "visible": true
+                  },
+                  {
+                    "id": "cmp_sdform",
+                    "type": "form",
+                    "props": {
+                      "name": "reply",
+                      "submitLabel": "Send reply",
+                      "showReset": false,
+                      "showSubmit": true,
+                      "resetKey": null
+                    },
+                    "style": {
+                      "span": 12,
+                      "gap": 2,
+                      "padding": 0
+                    },
+                    "visible": true,
+                    "onSubmit": "act_sdsend",
+                    "children": [
+                      {
+                        "id": "cmp_sdbody",
+                        "type": "input_textarea",
+                        "props": {
+                          "name": "body",
+                          "label": "Your reply",
+                          "placeholder": "Write a reply… or type / for a saved reply",
+                          "required": true,
+                          "rows": 4,
+                          "valueFrom": {
+                            "kind": "formula",
+                            "expr": "vars.draft"
+                          },
+                          "snippets": {
+                            "kind": "records",
+                            "tableId": "tbl_sdcan",
+                            "limit": 50
+                          },
+                          "snippetKey": "shortcut",
+                          "snippetBody": "body",
+                          "snippetLabel": "title"
+                        },
+                        "style": {
+                          "span": 12
+                        },
+                        "visible": true
+                      },
+                      {
+                        "id": "cmp_sddraft",
+                        "type": "button",
+                        "props": {
+                          "label": "AI draft",
+                          "variant": "secondary",
+                          "iconLeft": "Sparkles",
+                          "role": "button",
+                          "disabledWhen": null
+                        },
+                        "style": {
+                          "span": 3,
+                          "size": "sm"
+                        },
+                        "visible": true,
+                        "onClick": "act_sddraft"
+                      }
+                    ]
+                  },
+                  {
+                    "id": "cmp_sdfiles",
+                    "type": "modal",
+                    "props": {
+                      "title": "Files on this conversation",
+                      "size": "lg",
+                      "placement": "center",
+                      "triggerLabel": null
+                    },
+                    "style": {
+                      "gap": 3,
+                      "padding": 3
+                    },
+                    "visible": true,
+                    "children": [
+                      {
+                        "id": "cmp_sdattl",
+                        "type": "list",
+                        "props": {
+                          "source": {
+                            "kind": "records",
+                            "tableId": "tbl_sdatt",
+                            "filter": [
+                              {
+                                "field": "thread_key",
+                                "op": "eq",
+                                "value": {
+                                  "kind": "formula",
+                                  "expr": "vars.thread"
+                                },
+                                "required": true
+                              },
+                              {
+                                "field": "is_inline",
+                                "op": "eq",
+                                "value": false
+                              }
+                            ],
+                            "sort": [
+                              {
+                                "field": "filename",
+                                "dir": "asc"
+                              }
+                            ],
+                            "limit": 20
+                          },
+                          "titleKey": "filename",
+                          "subtitleKey": "mime_type",
+                          "metaKey": null,
+                          "timestampKey": null,
+                          "badgeKey": null,
+                          "tagsKey": null,
+                          "badgeToneMap": [],
+                          "unreadKey": null,
+                          "badgePlacement": "meta",
+                          "selectedWhen": null,
+                          "selectedDetailKey": null,
+                          "groupKey": null,
+                          "groupOrder": [],
+                          "groupLabelMap": [],
+                          "icon": "Paperclip",
+                          "emptyText": "No attachments on this conversation.",
+                          "look": "rows",
+                          "peekSource": null,
+                          "peekMatchKey": null,
+                          "peekRowKey": null,
+                          "peekTitleKey": null,
+                          "peekTextKey": null,
+                          "peekGroupKey": null,
+                          "peekGroupLabelMap": [],
+                          "peekCountKey": null,
+                          "peekLimit": 6,
+                          "peekTitle": null,
+                          "peekMoreText": null,
+                          "peekBadge": false
+                        },
+                        "style": {
+                          "span": 4,
+                          "size": "sm",
+                          "height": "md"
+                        },
+                        "visible": true,
+                        "onRowClick": "act_sdpickatt"
+                      },
+                      {
+                        "id": "cmp_sdattv",
+                        "type": "file_preview",
+                        "props": {
+                          "source": {
+                            "kind": "formula",
+                            "expr": "vars.att"
+                          },
+                          "emptyText": "Pick a file on the left to read it here.",
+                          "allowDownload": true,
+                          "viewer": "browser",
+                          "textLayer": false
+                        },
+                        "style": {
+                          "span": 8,
+                          "height": "md"
+                        },
+                        "visible": true
+                      },
+                      {
+                        "id": "cmp_sdsummarise",
+                        "type": "button",
+                        "props": {
+                          "label": "Summarise",
+                          "variant": "secondary",
+                          "iconLeft": "Sparkles",
+                          "role": "button",
+                          "disabledWhen": null
+                        },
+                        "style": {
+                          "span": 3,
+                          "size": "sm"
+                        },
+                        "visible": true,
+                        "onClick": "act_sdsummarise"
+                      },
+                      {
+                        "id": "cmp_sdextract",
+                        "type": "button",
+                        "props": {
+                          "label": "Read into a table",
+                          "variant": "secondary",
+                          "iconLeft": "Table",
+                          "role": "button",
+                          "disabledWhen": null
+                        },
+                        "style": {
+                          "span": 3,
+                          "size": "sm"
+                        },
+                        "visible": true,
+                        "onClick": "act_sdextract"
+                      },
+                      {
+                        "id": "cmp_sdsummary",
+                        "type": "markdown",
+                        "props": {
+                          "content": "",
+                          "contentFrom": {
+                            "kind": "formula",
+                            "expr": "vars.summary"
+                          }
+                        },
+                        "style": {
+                          "span": 12
+                        },
+                        "visible": true
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "scr_sdmine",
+        "name": "My queue",
+        "icon": "UserCheck",
+        "showInNav": true,
+        "maxWidth": "wide",
+        "refreshInterval": 60,
+        "sections": [
+          {
+            "id": "sec_sdmine",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_sdmineh",
+                "type": "page_header",
+                "props": {
+                  "title": "Assigned to me",
+                  "subtitle": "Everything currently on your plate.",
+                  "titleFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "subtitleFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "tagsFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "icon": "UserCheck",
+                  "showDivider": true,
+                  "look": "plain"
+                },
+                "style": {
+                  "span": 12,
+                  "gap": 2,
+                  "padding": 0
+                },
+                "visible": true,
+                "children": []
+              },
+              {
+                "id": "cmp_sdminegrid",
+                "type": "data_grid",
+                "props": {
+                  "source": {
+                    "kind": "records",
+                    "tableId": "tbl_sdthr",
+                    "filter": [
+                      {
+                        "field": "assignee",
+                        "op": "eq",
+                        "value": {
+                          "kind": "formula",
+                          "expr": "currentUser.id"
+                        }
+                      }
+                    ],
+                    "sort": [
+                      {
+                        "field": "last_message_at",
+                        "dir": "desc"
+                      }
+                    ],
+                    "limit": 200
+                  },
+                  "columns": [
+                    {
+                      "key": "subject",
+                      "label": "Subject",
+                      "format": "text",
+                      "sortable": true
+                    },
+                    {
+                      "key": "requester_email",
+                      "label": "Customer",
+                      "format": "text"
+                    },
+                    {
+                      "key": "status",
+                      "label": "Status",
+                      "format": "badge",
+                      "sortable": true
+                    },
+                    {
+                      "key": "priority",
+                      "label": "Priority",
+                      "format": "badge",
+                      "sortable": true
+                    },
+                    {
+                      "key": "last_message_at",
+                      "label": "Last message",
+                      "format": "date",
+                      "sortable": true
+                    }
+                  ],
+                  "pageSize": 25,
+                  "selectable": "none",
+                  "searchable": true,
+                  "rowActions": [],
+                  "toolbarActions": [],
+                  "addRowLabel": null,
+                  "addRowActionId": null,
+                  "bulkActions": [],
+                  "density": "comfortable",
+                  "clamp": "off",
+                  "rowTone": [],
+                  "groupBy": null,
+                  "groupOrder": [],
+                  "activeWhen": null,
+                  "zebra": false,
+                  "emptyText": "Nothing assigned to you right now.",
+                  "look": "default"
+                },
+                "style": {
+                  "span": 12,
+                  "size": "md",
+                  "height": "lg"
+                },
+                "visible": true,
+                "onRowClick": "act_sdpick"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "scr_sdcust",
+        "name": "Customer",
+        "icon": "User",
+        "showInNav": true,
+        "maxWidth": "wide",
+        "sections": [
+          {
+            "id": "sec_sdcust",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_sdcusth",
+                "type": "page_header",
+                "props": {
+                  "title": "Customer history",
+                  "subtitle": "Everything this person has written to you before.",
+                  "titleFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "subtitleFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "tagsFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "icon": "User",
+                  "showDivider": true,
+                  "look": "plain"
+                },
+                "style": {
+                  "span": 12,
+                  "gap": 2,
+                  "padding": 0
+                },
+                "visible": true,
+                "children": []
+              },
+              {
+                "id": "cmp_sdcustnote",
+                "type": "callout",
+                "props": {
+                  "title": "Pick a ticket first",
+                  "text": "Open a ticket in the Inbox — this screen then shows every other conversation from the same person. Click any row to jump straight to that conversation.",
+                  "textFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "tone": "info",
+                  "toneFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "meta": null,
+                  "metaFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "collapsible": false
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_sdcustlist",
+                "type": "data_grid",
+                "props": {
+                  "source": {
+                    "kind": "records",
+                    "tableId": "tbl_sdthr",
+                    "filter": [
+                      {
+                        "field": "requester_email",
+                        "op": "eq",
+                        "value": {
+                          "kind": "formula",
+                          "expr": "vars.requester"
+                        },
+                        "required": true
+                      }
+                    ],
+                    "sort": [
+                      {
+                        "field": "last_message_at",
+                        "dir": "desc"
+                      }
+                    ],
+                    "limit": 100
+                  },
+                  "columns": [
+                    {
+                      "key": "subject",
+                      "label": "Subject",
+                      "format": "text"
+                    },
+                    {
+                      "key": "status",
+                      "label": "Status",
+                      "format": "badge"
+                    },
+                    {
+                      "key": "message_count",
+                      "label": "Messages",
+                      "format": "number"
+                    },
+                    {
+                      "key": "last_message_at",
+                      "label": "Last message",
+                      "format": "date"
+                    }
+                  ],
+                  "pageSize": 25,
+                  "selectable": "none",
+                  "searchable": false,
+                  "rowActions": [],
+                  "toolbarActions": [],
+                  "addRowLabel": null,
+                  "addRowActionId": null,
+                  "bulkActions": [],
+                  "density": "comfortable",
+                  "clamp": "off",
+                  "rowTone": [],
+                  "groupBy": null,
+                  "groupOrder": [],
+                  "activeWhen": null,
+                  "zebra": false,
+                  "emptyText": "No earlier conversations from this person.",
+                  "look": "default"
+                },
+                "style": {
+                  "span": 12,
+                  "size": "md",
+                  "height": "md"
+                },
+                "visible": true,
+                "onRowClick": "act_sdpick"
+              },
+              {
+                "id": "cmp_sdcustact",
+                "type": "timeline",
+                "props": {
+                  "source": {
+                    "kind": "records",
+                    "tableId": "tbl_sdact",
+                    "filter": [
+                      {
+                        "field": "thread_key",
+                        "op": "eq",
+                        "value": {
+                          "kind": "formula",
+                          "expr": "vars.thread"
+                        },
+                        "required": true
+                      }
+                    ],
+                    "sort": [
+                      {
+                        "field": "at",
+                        "dir": "desc"
+                      }
+                    ],
+                    "limit": 50
+                  },
+                  "titleKey": "detail",
+                  "dateKey": "at",
+                  "descriptionKey": "actor",
+                  "metaKey": null,
+                  "icon": null,
+                  "rowLimit": 50,
+                  "emptyText": "Nothing has happened on this ticket yet."
+                },
+                "style": {
+                  "span": 12,
+                  "size": "sm"
+                },
+                "visible": true
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "scr_sdstats",
+        "name": "Insights",
+        "icon": "BarChart3",
+        "showInNav": true,
+        "maxWidth": "wide",
+        "sections": [
+          {
+            "id": "sec_sdtiles",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_sdt1",
+                "type": "stat",
+                "props": {
+                  "label": "Open now",
+                  "value": {
+                    "kind": "aggregate",
+                    "tableId": "tbl_sdthr",
+                    "filter": [
+                      {
+                        "field": "status",
+                        "op": "eq",
+                        "value": "open"
+                      }
+                    ],
+                    "limit": 1,
+                    "aggregates": [
+                      {
+                        "fn": "count",
+                        "as": "count"
+                      }
+                    ],
+                    "pick": {
+                      "row": "first",
+                      "column": "count"
+                    }
+                  },
+                  "caption": null,
+                  "captionSegments": [],
+                  "icon": "Inbox",
+                  "delta": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "deltaFormat": "number",
+                  "trend": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "positiveIsGood": false,
+                  "look": "plain"
+                },
+                "style": {
+                  "span": 3,
+                  "size": "md"
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_sdt2",
+                "type": "stat",
+                "props": {
+                  "label": "Median first response (s)",
+                  "value": {
+                    "kind": "aggregate",
+                    "tableId": "tbl_sdthr",
+                    "limit": 1,
+                    "aggregates": [
+                      {
+                        "fn": "p50",
+                        "field": "first_response_secs",
+                        "as": "median"
+                      }
+                    ],
+                    "pick": {
+                      "row": "first",
+                      "column": "median"
+                    }
+                  },
+                  "caption": "Half of replies are faster than this.",
+                  "captionSegments": [],
+                  "icon": "Timer",
+                  "delta": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "deltaFormat": "number",
+                  "trend": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "positiveIsGood": false,
+                  "look": "plain"
+                },
+                "style": {
+                  "span": 3,
+                  "size": "md"
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_sdt3",
+                "type": "stat",
+                "props": {
+                  "label": "Slowest 10% (s)",
+                  "value": {
+                    "kind": "aggregate",
+                    "tableId": "tbl_sdthr",
+                    "limit": 1,
+                    "aggregates": [
+                      {
+                        "fn": "p90",
+                        "field": "first_response_secs",
+                        "as": "p90"
+                      }
+                    ],
+                    "pick": {
+                      "row": "first",
+                      "column": "p90"
+                    }
+                  },
+                  "caption": "Where the pain actually is.",
+                  "captionSegments": [],
+                  "icon": "AlertTriangle",
+                  "delta": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "deltaFormat": "number",
+                  "trend": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "positiveIsGood": false,
+                  "look": "plain"
+                },
+                "style": {
+                  "span": 3,
+                  "size": "md"
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_sdt4",
+                "type": "stat",
+                "props": {
+                  "label": "Waiting on us",
+                  "value": {
+                    "kind": "aggregate",
+                    "tableId": "tbl_sdthr",
+                    "filter": [
+                      {
+                        "field": "has_unread",
+                        "op": "eq",
+                        "value": true
+                      }
+                    ],
+                    "limit": 1,
+                    "aggregates": [
+                      {
+                        "fn": "count",
+                        "as": "count"
+                      }
+                    ],
+                    "pick": {
+                      "row": "first",
+                      "column": "count"
+                    }
+                  },
+                  "caption": "Conversations with an unread customer message.",
+                  "captionSegments": [],
+                  "icon": "AlertTriangle",
+                  "delta": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "deltaFormat": "number",
+                  "trend": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "positiveIsGood": false,
+                  "look": "plain"
+                },
+                "style": {
+                  "span": 3,
+                  "size": "md"
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_sdbyst",
+                "type": "chart",
+                "props": {
+                  "chartType": "bar",
+                  "orientation": "vertical",
+                  "source": {
+                    "kind": "aggregate",
+                    "tableId": "tbl_sdthr",
+                    "limit": 20,
+                    "groupBy": [
+                      {
+                        "field": "status"
+                      }
+                    ],
+                    "aggregates": [
+                      {
+                        "fn": "count",
+                        "as": "count"
+                      }
+                    ]
+                  },
+                  "title": "Tickets by status",
+                  "xKey": "status",
+                  "xType": "category",
+                  "series": [
+                    {
+                      "key": "count",
+                      "label": "Tickets"
+                    }
+                  ],
+                  "stacked": false,
+                  "showLegend": false,
+                  "showGrid": true,
+                  "valueFormat": "number",
+                  "yMin": null,
+                  "yMax": null,
+                  "referenceLines": [],
+                  "referenceBands": [],
+                  "unitLabel": null
+                },
+                "style": {
+                  "span": 6,
+                  "height": "md"
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_sdbyhr",
+                "type": "chart",
+                "props": {
+                  "chartType": "bar",
+                  "orientation": "vertical",
+                  "source": {
+                    "kind": "aggregate",
+                    "tableId": "tbl_sdmsg",
+                    "filter": [
+                      {
+                        "field": "direction",
+                        "op": "eq",
+                        "value": "inbound"
+                      }
+                    ],
+                    "sort": [
+                      {
+                        "field": "hour",
+                        "dir": "asc"
+                      }
+                    ],
+                    "limit": 24,
+                    "groupBy": [
+                      {
+                        "field": "received_at",
+                        "bucket": "hour",
+                        "as": "hour"
+                      }
+                    ],
+                    "aggregates": [
+                      {
+                        "fn": "count",
+                        "as": "count"
+                      }
+                    ]
+                  },
+                  "title": "Busiest hours",
+                  "xKey": "hour",
+                  "xType": "category",
+                  "series": [
+                    {
+                      "key": "count",
+                      "label": "Messages"
+                    }
+                  ],
+                  "stacked": false,
+                  "showLegend": false,
+                  "showGrid": true,
+                  "valueFormat": "number",
+                  "yMin": null,
+                  "yMax": null,
+                  "referenceLines": [],
+                  "referenceBands": [],
+                  "unitLabel": null
+                },
+                "style": {
+                  "span": 6,
+                  "height": "md"
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_sdvol",
+                "type": "chart",
+                "props": {
+                  "chartType": "area",
+                  "orientation": "vertical",
+                  "source": {
+                    "kind": "aggregate",
+                    "tableId": "tbl_sdthr",
+                    "sort": [
+                      {
+                        "field": "day",
+                        "dir": "asc"
+                      }
+                    ],
+                    "limit": 90,
+                    "groupBy": [
+                      {
+                        "field": "last_message_at",
+                        "bucket": "day",
+                        "as": "day"
+                      }
+                    ],
+                    "aggregates": [
+                      {
+                        "fn": "count",
+                        "as": "count"
+                      }
+                    ]
+                  },
+                  "title": "Volume over time",
+                  "xKey": "day",
+                  "xType": "category",
+                  "series": [
+                    {
+                      "key": "count",
+                      "label": "Tickets"
+                    }
+                  ],
+                  "stacked": false,
+                  "showLegend": false,
+                  "showGrid": true,
+                  "valueFormat": "number",
+                  "yMin": null,
+                  "yMax": null,
+                  "referenceLines": [],
+                  "referenceBands": [],
+                  "unitLabel": null
+                },
+                "style": {
+                  "span": 6,
+                  "height": "md"
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_sdlead",
+                "type": "data_grid",
+                "props": {
+                  "source": {
+                    "kind": "aggregate",
+                    "tableId": "tbl_sdthr",
+                    "sort": [
+                      {
+                        "field": "tickets",
+                        "dir": "desc"
+                      }
+                    ],
+                    "limit": 50,
+                    "groupBy": [
+                      {
+                        "field": "assignee_name"
+                      }
+                    ],
+                    "aggregates": [
+                      {
+                        "fn": "count",
+                        "as": "tickets"
+                      },
+                      {
+                        "fn": "p50",
+                        "field": "first_response_secs",
+                        "as": "median_response"
+                      }
+                    ]
+                  },
+                  "columns": [
+                    {
+                      "key": "assignee_name",
+                      "label": "Agent",
+                      "format": "text"
+                    },
+                    {
+                      "key": "tickets",
+                      "label": "Tickets",
+                      "format": "number"
+                    },
+                    {
+                      "key": "median_response",
+                      "label": "Median response (s)",
+                      "format": "number"
+                    }
+                  ],
+                  "pageSize": 10,
+                  "selectable": "none",
+                  "searchable": false,
+                  "rowActions": [],
+                  "toolbarActions": [],
+                  "addRowLabel": null,
+                  "addRowActionId": null,
+                  "bulkActions": [],
+                  "density": "compact",
+                  "clamp": "off",
+                  "rowTone": [],
+                  "groupBy": null,
+                  "groupOrder": [],
+                  "activeWhen": null,
+                  "zebra": false,
+                  "emptyText": "Nobody has been assigned a ticket yet.",
+                  "look": "default"
+                },
+                "style": {
+                  "span": 6,
+                  "size": "sm",
+                  "height": "md"
+                },
+                "visible": true
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "scr_sdset",
+        "name": "Settings",
+        "icon": "Settings",
+        "showInNav": true,
+        "maxWidth": "wide",
+        "visibleToRoles": [
+          "admin"
+        ],
+        "sections": [
+          {
+            "id": "sec_sdset",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_sdsetnote",
+                "type": "callout",
+                "props": {
+                  "title": "How the mailbox works",
+                  "text": "The Support mailbox connector under Data reads mail labelled “support” using the Google or Microsoft account you signed in to Bee Flow with. Conversations become tickets by themselves; status, priority, assignee and tags belong to your team and are never overwritten by a refresh.",
+                  "textFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "tone": "info",
+                  "toneFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "meta": null,
+                  "metaFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "collapsible": false
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_sdtabs",
+                "type": "tabs",
+                "props": {
+                  "look": "underline"
+                },
+                "style": {
+                  "span": 12,
+                  "gap": 3,
+                  "padding": 0
+                },
+                "visible": true,
+                "children": [
+                  {
+                    "id": "cmp_sdtab1",
+                    "type": "tab",
+                    "props": {
+                      "label": "Saved replies",
+                      "icon": "MessageSquareQuote",
+                      "badge": null,
+                      "badgeTone": "neutral"
+                    },
+                    "style": {
+                      "gap": 3,
+                      "padding": 0
+                    },
+                    "visible": true,
+                    "children": [
+                      {
+                        "id": "cmp_sdcang",
+                        "type": "data_grid",
+                        "props": {
+                          "source": {
+                            "kind": "records",
+                            "tableId": "tbl_sdcan",
+                            "limit": 100
+                          },
+                          "columns": [
+                            {
+                              "key": "title",
+                              "label": "Title",
+                              "format": "text",
+                              "editable": true
+                            },
+                            {
+                              "key": "shortcut",
+                              "label": "Shortcut",
+                              "format": "text",
+                              "editable": true
+                            },
+                            {
+                              "key": "body",
+                              "label": "Body",
+                              "format": "text",
+                              "editable": true
+                            }
+                          ],
+                          "pageSize": 25,
+                          "selectable": "none",
+                          "searchable": true,
+                          "rowActions": [],
+                          "toolbarActions": [],
+                          "addRowLabel": null,
+                          "addRowActionId": null,
+                          "bulkActions": [],
+                          "density": "comfortable",
+                          "clamp": "off",
+                          "rowTone": [],
+                          "groupBy": null,
+                          "groupOrder": [],
+                          "activeWhen": null,
+                          "zebra": false,
+                          "emptyText": "No saved replies yet.",
+                          "look": "default"
+                        },
+                        "style": {
+                          "span": 12,
+                          "height": "md"
+                        },
+                        "visible": true
+                      },
+                      {
+                        "id": "cmp_sdcanform",
+                        "type": "form",
+                        "props": {
+                          "name": "new_reply",
+                          "submitLabel": "Add saved reply",
+                          "showReset": false,
+                          "showSubmit": true,
+                          "resetKey": null
+                        },
+                        "style": {
+                          "span": 12,
+                          "gap": 2,
+                          "padding": 0
+                        },
+                        "visible": true,
+                        "onSubmit": "act_sdaddcan",
+                        "children": [
+                          {
+                            "id": "cmp_sdcanti",
+                            "type": "input_text",
+                            "props": {
+                              "name": "title",
+                              "label": "Title",
+                              "placeholder": null,
+                              "required": true,
+                              "defaultValue": null,
+                              "inputType": "text",
+                              "valueFrom": {
+                                "kind": "static",
+                                "value": null
+                              }
+                            },
+                            "style": {
+                              "span": 6
+                            },
+                            "visible": true
+                          },
+                          {
+                            "id": "cmp_sdcansh",
+                            "type": "input_text",
+                            "props": {
+                              "name": "shortcut",
+                              "label": "Shortcut",
+                              "placeholder": "/thanks",
+                              "required": false,
+                              "defaultValue": null,
+                              "inputType": "text",
+                              "valueFrom": {
+                                "kind": "static",
+                                "value": null
+                              }
+                            },
+                            "style": {
+                              "span": 6
+                            },
+                            "visible": true
+                          },
+                          {
+                            "id": "cmp_sdcanbo",
+                            "type": "input_textarea",
+                            "props": {
+                              "name": "body",
+                              "label": "Body",
+                              "placeholder": null,
+                              "required": true,
+                              "rows": 4,
+                              "valueFrom": {
+                                "kind": "static",
+                                "value": null
+                              },
+                              "snippets": {
+                                "kind": "static",
+                                "value": null
+                              },
+                              "snippetKey": "shortcut",
+                              "snippetBody": "body",
+                              "snippetLabel": "title"
+                            },
+                            "style": {
+                              "span": 12
+                            },
+                            "visible": true
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "id": "cmp_sdtab4",
+                    "type": "tab",
+                    "props": {
+                      "label": "Activity",
+                      "icon": "History",
+                      "badge": null,
+                      "badgeTone": "neutral"
+                    },
+                    "style": {
+                      "gap": 3,
+                      "padding": 0
+                    },
+                    "visible": true,
+                    "children": [
+                      {
+                        "id": "cmp_sdactg",
+                        "type": "data_grid",
+                        "props": {
+                          "source": {
+                            "kind": "records",
+                            "tableId": "tbl_sdact",
+                            "sort": [
+                              {
+                                "field": "at",
+                                "dir": "desc"
+                              }
+                            ],
+                            "limit": 200
+                          },
+                          "columns": [
+                            {
+                              "key": "at",
+                              "label": "When",
+                              "format": "date"
+                            },
+                            {
+                              "key": "actor",
+                              "label": "Who",
+                              "format": "text"
+                            },
+                            {
+                              "key": "kind",
+                              "label": "What",
+                              "format": "badge"
+                            },
+                            {
+                              "key": "detail",
+                              "label": "Detail",
+                              "format": "text"
+                            }
+                          ],
+                          "pageSize": 50,
+                          "selectable": "none",
+                          "searchable": true,
+                          "rowActions": [],
+                          "toolbarActions": [],
+                          "addRowLabel": null,
+                          "addRowActionId": null,
+                          "bulkActions": [],
+                          "density": "compact",
+                          "clamp": "off",
+                          "rowTone": [],
+                          "groupBy": null,
+                          "groupOrder": [],
+                          "activeWhen": null,
+                          "zebra": false,
+                          "emptyText": "No activity recorded yet.",
+                          "look": "default"
+                        },
+                        "style": {
+                          "span": 12,
+                          "height": "lg"
+                        },
+                        "visible": true
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "actions": {
+      "act_sdpick": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "set_variable",
+            "name": "thread",
+            "value": {
+              "kind": "formula",
+              "expr": "form.thread_key"
+            }
+          },
+          {
+            "kind": "set_variable",
+            "name": "ticketId",
+            "value": {
+              "kind": "formula",
+              "expr": "form.id"
+            }
+          },
+          {
+            "kind": "set_variable",
+            "name": "requester",
+            "value": {
+              "kind": "formula",
+              "expr": "form.requester_email"
+            }
+          },
+          {
+            "kind": "set_variable",
+            "name": "subject",
+            "value": {
+              "kind": "formula",
+              "expr": "form.subject"
+            }
+          },
+          {
+            "kind": "set_variable",
+            "name": "labels",
+            "value": {
+              "kind": "formula",
+              "expr": "form.labels"
+            }
+          },
+          {
+            "kind": "set_variable",
+            "name": "status",
+            "value": {
+              "kind": "formula",
+              "expr": "form.status"
+            }
+          },
+          {
+            "kind": "set_variable",
+            "name": "priority",
+            "value": {
+              "kind": "formula",
+              "expr": "form.priority"
+            }
+          },
+          {
+            "kind": "set_variable",
+            "name": "tags",
+            "value": {
+              "kind": "formula",
+              "expr": "form.tags"
+            }
+          },
+          {
+            "kind": "set_variable",
+            "name": "draft",
+            "value": {
+              "kind": "static",
+              "value": ""
+            }
+          },
+          {
+            "kind": "set_variable",
+            "name": "att",
+            "value": {
+              "kind": "static",
+              "value": null
+            }
+          },
+          {
+            "kind": "set_variable",
+            "name": "summary",
+            "value": {
+              "kind": "static",
+              "value": ""
+            }
+          },
+          {
+            "kind": "navigate",
+            "screenId": "scr_sdinbox"
+          }
+        ]
+      },
+      "act_sdfilter": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "set_variable",
+            "name": "statusfilter",
+            "value": {
+              "kind": "formula",
+              "expr": "vars.statusfilter == form.status ? null : form.status"
+            }
+          }
+        ]
+      },
+      "act_sdopenfiles": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "open_modal",
+            "modalId": "cmp_sdfiles"
+          }
+        ]
+      },
+      "act_sdstatus": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "update_record",
+            "tableId": "tbl_sdthr",
+            "recordId": {
+              "kind": "formula",
+              "expr": "vars.ticketId"
+            },
+            "values": {
+              "status": {
+                "kind": "formula",
+                "expr": "form.status"
+              }
+            }
+          },
+          {
+            "kind": "set_variable",
+            "name": "status",
+            "value": {
+              "kind": "formula",
+              "expr": "form.status"
+            }
+          },
+          {
+            "kind": "create_record",
+            "tableId": "tbl_sdact",
+            "values": {
+              "thread_key": {
+                "kind": "formula",
+                "expr": "vars.thread"
+              },
+              "at": {
+                "kind": "formula",
+                "expr": "now"
+              },
+              "actor": {
+                "kind": "formula",
+                "expr": "currentUser.name"
+              },
+              "kind": {
+                "kind": "static",
+                "value": "status"
+              },
+              "detail": {
+                "kind": "formula",
+                "expr": "form.status"
+              }
+            }
+          },
+          {
+            "kind": "refresh",
+            "tableId": "tbl_sdthr"
+          }
+        ]
+      },
+      "act_sdpriority": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "update_record",
+            "tableId": "tbl_sdthr",
+            "recordId": {
+              "kind": "formula",
+              "expr": "vars.ticketId"
+            },
+            "values": {
+              "priority": {
+                "kind": "formula",
+                "expr": "form.priority"
+              }
+            }
+          },
+          {
+            "kind": "set_variable",
+            "name": "priority",
+            "value": {
+              "kind": "formula",
+              "expr": "form.priority"
+            }
+          },
+          {
+            "kind": "create_record",
+            "tableId": "tbl_sdact",
+            "values": {
+              "thread_key": {
+                "kind": "formula",
+                "expr": "vars.thread"
+              },
+              "at": {
+                "kind": "formula",
+                "expr": "now"
+              },
+              "actor": {
+                "kind": "formula",
+                "expr": "currentUser.name"
+              },
+              "kind": {
+                "kind": "static",
+                "value": "priority"
+              },
+              "detail": {
+                "kind": "formula",
+                "expr": "form.priority"
+              }
+            }
+          },
+          {
+            "kind": "refresh",
+            "tableId": "tbl_sdthr"
+          }
+        ]
+      },
+      "act_sdtags": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "update_record",
+            "tableId": "tbl_sdthr",
+            "recordId": {
+              "kind": "formula",
+              "expr": "vars.ticketId"
+            },
+            "values": {
+              "tags": {
+                "kind": "formula",
+                "expr": "form.tags"
+              }
+            }
+          },
+          {
+            "kind": "set_variable",
+            "name": "tags",
+            "value": {
+              "kind": "formula",
+              "expr": "form.tags"
+            }
+          },
+          {
+            "kind": "refresh",
+            "tableId": "tbl_sdthr"
+          }
+        ]
+      },
+      "act_sdassign": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "update_record",
+            "tableId": "tbl_sdthr",
+            "recordId": {
+              "kind": "formula",
+              "expr": "vars.ticketId"
+            },
+            "values": {
+              "assignee": {
+                "kind": "formula",
+                "expr": "currentUser.id"
+              },
+              "assignee_name": {
+                "kind": "formula",
+                "expr": "currentUser.name"
+              }
+            }
+          },
+          {
+            "kind": "create_record",
+            "tableId": "tbl_sdact",
+            "values": {
+              "thread_key": {
+                "kind": "formula",
+                "expr": "vars.thread"
+              },
+              "at": {
+                "kind": "formula",
+                "expr": "now"
+              },
+              "actor": {
+                "kind": "formula",
+                "expr": "currentUser.name"
+              },
+              "kind": {
+                "kind": "static",
+                "value": "assigned"
+              },
+              "detail": {
+                "kind": "formula",
+                "expr": "currentUser.name"
+              }
+            }
+          },
+          {
+            "kind": "toast",
+            "message": "Assigned to you",
+            "tone": "success"
+          },
+          {
+            "kind": "refresh",
+            "tableId": "tbl_sdthr"
+          }
+        ]
+      },
+      "act_sddraft": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "ai_generate",
+            "prompt": "You are a support agent. Write a short, friendly reply to the customer in their own language, based only on the conversation below. Messages are listed newest first. Do not invent facts, prices or dates.",
+            "promptContext": {
+              "kind": "records",
+              "tableId": "tbl_sdmsg",
+              "filter": [
+                {
+                  "field": "thread_key",
+                  "op": "eq",
+                  "value": {
+                    "kind": "formula",
+                    "expr": "vars.thread"
+                  },
+                  "required": true
+                }
+              ],
+              "sort": [
+                {
+                  "field": "received_at",
+                  "dir": "desc"
+                }
+              ],
+              "limit": 20
+            },
+            "documentMode": "auto",
+            "output": "text",
+            "modelTier": "thinking",
+            "knowledgeBaseIds": [],
+            "resultVar": "generated"
+          },
+          {
+            "kind": "set_variable",
+            "name": "draft",
+            "value": {
+              "kind": "formula",
+              "expr": "actions.act_sddraft.result.text"
+            }
+          }
+        ]
+      },
+      "act_sdsend": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "send_email",
+            "connectorId": "conn_sdmail",
+            "body": {
+              "kind": "formula",
+              "expr": "form.body"
+            },
+            "bodyFormat": "markdown",
+            "replyToThreadKey": {
+              "kind": "formula",
+              "expr": "vars.thread"
+            },
+            "mode": "send",
+            "recordOutbound": true,
+            "resultVar": "sent"
+          },
+          {
+            "kind": "update_record",
+            "tableId": "tbl_sdthr",
+            "recordId": {
+              "kind": "formula",
+              "expr": "vars.ticketId"
+            },
+            "values": {
+              "status": {
+                "kind": "static",
+                "value": "awaiting_user"
+              }
+            }
+          },
+          {
+            "kind": "create_record",
+            "tableId": "tbl_sdact",
+            "values": {
+              "thread_key": {
+                "kind": "formula",
+                "expr": "vars.thread"
+              },
+              "at": {
+                "kind": "formula",
+                "expr": "now"
+              },
+              "actor": {
+                "kind": "formula",
+                "expr": "currentUser.name"
+              },
+              "kind": {
+                "kind": "static",
+                "value": "replied"
+              },
+              "detail": {
+                "kind": "formula",
+                "expr": "vars.subject"
+              }
+            }
+          },
+          {
+            "kind": "set_variable",
+            "name": "draft",
+            "value": {
+              "kind": "formula",
+              "expr": "vars.draft === '' ? null : ''"
+            }
+          },
+          {
+            "kind": "refresh",
+            "tableId": "tbl_sdmsg"
+          },
+          {
+            "kind": "toast",
+            "message": "Reply sent",
+            "tone": "success"
+          }
+        ]
+      },
+      "act_sdpickatt": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "set_variable",
+            "name": "att",
+            "value": {
+              "kind": "formula",
+              "expr": "form.file"
+            }
+          },
+          {
+            "kind": "set_variable",
+            "name": "attname",
+            "value": {
+              "kind": "formula",
+              "expr": "form.filename"
+            }
+          },
+          {
+            "kind": "set_variable",
+            "name": "summary",
+            "value": {
+              "kind": "static",
+              "value": ""
+            }
+          }
+        ]
+      },
+      "act_sdextract": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "ai_extract",
+            "source": {
+              "kind": "formula",
+              "expr": "vars.att"
+            },
+            "schema": [
+              {
+                "name": "description",
+                "type": "string",
+                "description": "What the line is for",
+                "required": true
+              },
+              {
+                "name": "quantity",
+                "type": "number",
+                "description": "How many"
+              },
+              {
+                "name": "unit_price",
+                "type": "number",
+                "description": "Price per unit, excluding tax"
+              },
+              {
+                "name": "line_total",
+                "type": "number",
+                "description": "Total for this line"
+              },
+              {
+                "name": "currency",
+                "type": "string",
+                "description": "ISO currency code, e.g. EUR"
+              }
+            ],
+            "documentMode": "auto",
+            "modelTier": "thinking",
+            "knowledgeBaseIds": [],
+            "writeTo": {
+              "tableId": "tbl_sdinv",
+              "mapping": {
+                "description": "description",
+                "quantity": "quantity",
+                "unit_price": "unit_price",
+                "line_total": "line_total",
+                "currency": "currency"
+              },
+              "constants": {
+                "thread_key": {
+                  "kind": "formula",
+                  "expr": "vars.thread"
+                },
+                "source_file": {
+                  "kind": "formula",
+                  "expr": "vars.attname"
+                },
+                "extracted_at": {
+                  "kind": "formula",
+                  "expr": "now"
+                }
+              }
+            },
+            "resultDetail": "full",
+            "resultVar": "extracted"
+          },
+          {
+            "kind": "refresh",
+            "tableId": "tbl_sdinv"
+          },
+          {
+            "kind": "create_record",
+            "tableId": "tbl_sdact",
+            "values": {
+              "thread_key": {
+                "kind": "formula",
+                "expr": "vars.thread"
+              },
+              "at": {
+                "kind": "formula",
+                "expr": "now"
+              },
+              "actor": {
+                "kind": "formula",
+                "expr": "currentUser.name"
+              },
+              "kind": {
+                "kind": "static",
+                "value": "note"
+              },
+              "detail": {
+                "kind": "formula",
+                "expr": "vars.attname"
+              }
+            }
+          },
+          {
+            "kind": "toast",
+            "message": "Document read into the table",
+            "tone": "success"
+          }
+        ]
+      },
+      "act_sdsummarise": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "ai_generate",
+            "prompt": "Summarise the attached document for a support agent in at most six bullet points. State amounts, dates and reference numbers exactly as written. If something is not in the document, do not mention it.",
+            "promptContext": {
+              "kind": "static",
+              "value": null
+            },
+            "attachments": {
+              "kind": "formula",
+              "expr": "vars.att"
+            },
+            "documentMode": "auto",
+            "output": "text",
+            "modelTier": "thinking",
+            "knowledgeBaseIds": [],
+            "resultVar": "summarised"
+          },
+          {
+            "kind": "set_variable",
+            "name": "summary",
+            "value": {
+              "kind": "formula",
+              "expr": "actions.act_sdsummarise.result.text"
+            }
+          }
+        ]
+      },
+      "act_sdaddcan": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "create_record",
+            "tableId": "tbl_sdcan",
+            "values": {
+              "title": {
+                "kind": "formula",
+                "expr": "form.title"
+              },
+              "shortcut": {
+                "kind": "formula",
+                "expr": "form.shortcut"
+              },
+              "body": {
+                "kind": "formula",
+                "expr": "form.body"
+              }
+            }
+          },
+          {
+            "kind": "refresh",
+            "tableId": "tbl_sdcan"
+          },
+          {
+            "kind": "toast",
+            "message": "Saved reply added",
+            "tone": "success"
+          }
+        ]
+      }
+    },
+    "homeScreenId": "scr_sdinbox"
+  },
+  "dataModel": {
+    "modelVersion": 1,
+    "tables": [
+      {
+        "id": "tbl_sdthr",
+        "key": "tickets",
+        "name": "Tickets",
+        "icon": "Inbox",
+        "fields": [
+          {
+            "id": "fld_sdtk",
+            "key": "thread_key",
+            "name": "Conversation",
+            "type": "text",
+            "required": true,
+            "unique": true
+          },
+          {
+            "id": "fld_sdtsu",
+            "key": "subject",
+            "name": "Subject",
+            "type": "text",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_sdtre",
+            "key": "requester_email",
+            "name": "Customer",
+            "type": "text",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_sdtrn",
+            "key": "requester_name",
+            "name": "Customer name",
+            "type": "text",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_sdtla",
+            "key": "last_message_at",
+            "name": "Last message",
+            "type": "datetime",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_sdtmc",
+            "key": "message_count",
+            "name": "Messages",
+            "type": "number",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_sdtun",
+            "key": "has_unread",
+            "name": "Unread",
+            "type": "bool",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_sdtma",
+            "key": "mailbox_address",
+            "name": "Mailbox",
+            "type": "text",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_sdtpv",
+            "key": "provider",
+            "name": "Provider",
+            "type": "text",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_sdtlb",
+            "key": "labels",
+            "name": "Labels",
+            "type": "text",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_sdtst",
+            "key": "status",
+            "name": "Status",
+            "type": "select",
+            "options": [
+              {
+                "value": "new",
+                "label": "New"
+              },
+              {
+                "value": "open",
+                "label": "Open"
+              },
+              {
+                "value": "awaiting_user",
+                "label": "Waiting on customer"
+              },
+              {
+                "value": "awaiting_agent",
+                "label": "Waiting on us"
+              },
+              {
+                "value": "resolved",
+                "label": "Resolved"
+              }
+            ],
+            "default": "new",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_sdtpr",
+            "key": "priority",
+            "name": "Priority",
+            "type": "select",
+            "options": [
+              {
+                "value": "low",
+                "label": "Low"
+              },
+              {
+                "value": "normal",
+                "label": "Normal"
+              },
+              {
+                "value": "high",
+                "label": "High"
+              },
+              {
+                "value": "urgent",
+                "label": "Urgent"
+              }
+            ],
+            "default": "normal",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_sdtas",
+            "key": "assignee",
+            "name": "Assignee",
+            "type": "text",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_sdtan",
+            "key": "assignee_name",
+            "name": "Assignee name",
+            "type": "text",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_sdttg",
+            "key": "tags",
+            "name": "Tags",
+            "type": "multiselect",
+            "options": [
+              {
+                "value": "delivery",
+                "label": "Delivery"
+              },
+              {
+                "value": "billing",
+                "label": "Billing"
+              },
+              {
+                "value": "complaint",
+                "label": "Complaint"
+              },
+              {
+                "value": "question",
+                "label": "Question"
+              }
+            ],
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_sdtfr",
+            "key": "first_response_secs",
+            "name": "First response (s)",
+            "type": "number",
+            "required": false,
+            "unique": false
+          }
+        ],
+        "access": {
+          "default": "role",
+          "roles": {
+            "admin": {
+              "read": "all",
+              "create": false,
+              "update": "all",
+              "delete": "all"
+            },
+            "agent": {
+              "read": "all",
+              "create": false,
+              "update": "all",
+              "delete": false
+            }
+          },
+          "rowFilters": {}
+        }
+      },
+      {
+        "id": "tbl_sdmsg",
+        "key": "messages",
+        "name": "Messages",
+        "icon": "Mail",
+        "fields": [
+          {
+            "id": "fld_sdmtr",
+            "key": "ticket",
+            "name": "Ticket",
+            "type": "relation",
+            "relation": {
+              "table": "tbl_sdthr"
+            },
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_sdmid",
+            "key": "provider_message_id",
+            "name": "Message id",
+            "type": "text",
+            "required": true,
+            "unique": true
+          },
+          {
+            "id": "fld_sdmtk",
+            "key": "thread_key",
+            "name": "Conversation",
+            "type": "text",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_sdmrf",
+            "key": "rfc822_message_id",
+            "name": "RFC822 id",
+            "type": "text",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_sdmir",
+            "key": "in_reply_to",
+            "name": "In reply to",
+            "type": "text",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_sdmre",
+            "key": "references",
+            "name": "References",
+            "type": "text",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_sdmpt",
+            "key": "provider_thread_id",
+            "name": "Provider thread",
+            "type": "text",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_sdmdr",
+            "key": "direction",
+            "name": "Direction",
+            "type": "select",
+            "options": [
+              {
+                "value": "inbound",
+                "label": "From customer"
+              },
+              {
+                "value": "outbound",
+                "label": "From us"
+              }
+            ],
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_sdmfe",
+            "key": "from_email",
+            "name": "From",
+            "type": "text",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_sdmfn",
+            "key": "from_name",
+            "name": "From name",
+            "type": "text",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_sdmte",
+            "key": "to_emails",
+            "name": "To",
+            "type": "text",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_sdmce",
+            "key": "cc_emails",
+            "name": "Cc",
+            "type": "text",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_sdmsu",
+            "key": "subject",
+            "name": "Subject",
+            "type": "text",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_sdmsp",
+            "key": "snippet",
+            "name": "Snippet",
+            "type": "text",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_sdmbt",
+            "key": "body_text",
+            "name": "Body",
+            "type": "richtext",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_sdmbh",
+            "key": "body_html",
+            "name": "Body (HTML)",
+            "type": "richtext",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_sdmra",
+            "key": "received_at",
+            "name": "Received",
+            "type": "datetime",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_sdmis",
+            "key": "is_read",
+            "name": "Read",
+            "type": "bool",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_sdmha",
+            "key": "has_attachments",
+            "name": "Has attachments",
+            "type": "bool",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_sdmab",
+            "key": "is_auto_or_bulk",
+            "name": "Auto/bulk",
+            "type": "bool",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_sdmma",
+            "key": "mailbox_address",
+            "name": "Mailbox",
+            "type": "text",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_sdmpr",
+            "key": "provider",
+            "name": "Provider",
+            "type": "text",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_sdmlb",
+            "key": "labels",
+            "name": "Labels",
+            "type": "text",
+            "required": false,
+            "unique": false
+          }
+        ],
+        "access": {
+          "default": "role",
+          "roles": {
+            "admin": {
+              "read": "all",
+              "create": false,
+              "update": false,
+              "delete": "all"
+            },
+            "agent": {
+              "read": "all",
+              "create": false,
+              "update": false,
+              "delete": false
+            }
+          },
+          "rowFilters": {}
+        }
+      },
+      {
+        "id": "tbl_sdact",
+        "key": "activity",
+        "name": "Activity",
+        "icon": "History",
+        "fields": [
+          {
+            "id": "fld_sdatk",
+            "key": "thread_key",
+            "name": "Conversation",
+            "type": "text",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_sdaat",
+            "key": "at",
+            "name": "When",
+            "type": "datetime",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_sdaac",
+            "key": "actor",
+            "name": "Who",
+            "type": "text",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_sdakd",
+            "key": "kind",
+            "name": "What",
+            "type": "select",
+            "options": [
+              {
+                "value": "status",
+                "label": "Status changed"
+              },
+              {
+                "value": "priority",
+                "label": "Priority changed"
+              },
+              {
+                "value": "assigned",
+                "label": "Assigned"
+              },
+              {
+                "value": "replied",
+                "label": "Replied"
+              },
+              {
+                "value": "note",
+                "label": "Internal note"
+              }
+            ],
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_sdade",
+            "key": "detail",
+            "name": "Detail",
+            "type": "text",
+            "required": false,
+            "unique": false
+          }
+        ],
+        "access": {
+          "default": "role",
+          "roles": {
+            "admin": {
+              "read": "all",
+              "create": true,
+              "update": false,
+              "delete": false
+            },
+            "agent": {
+              "read": "all",
+              "create": true,
+              "update": false,
+              "delete": false
+            }
+          },
+          "rowFilters": {}
+        }
+      },
+      {
+        "id": "tbl_sdatt",
+        "key": "attachments",
+        "name": "Attachments",
+        "icon": "Paperclip",
+        "fields": [
+          {
+            "id": "fld_sdxms",
+            "key": "message",
+            "name": "Message",
+            "type": "relation",
+            "relation": {
+              "table": "tbl_sdmsg"
+            },
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_sdxid",
+            "key": "provider_attachment_id",
+            "name": "Attachment id",
+            "type": "text",
+            "required": true,
+            "unique": true
+          },
+          {
+            "id": "fld_sdxmi",
+            "key": "provider_message_id",
+            "name": "Message id",
+            "type": "text",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_sdxfn",
+            "key": "filename",
+            "name": "Filename",
+            "type": "text",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_sdxmt",
+            "key": "mime_type",
+            "name": "Type",
+            "type": "text",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_sdxsz",
+            "key": "size",
+            "name": "Size",
+            "type": "number",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_sdxin",
+            "key": "is_inline",
+            "name": "Inline",
+            "type": "bool",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_sdxci",
+            "key": "content_id",
+            "name": "Content-ID",
+            "type": "text",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_sdxfi",
+            "key": "file",
+            "name": "File",
+            "type": "file",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_sdxtk",
+            "key": "thread_key",
+            "name": "Conversation",
+            "type": "text",
+            "required": false,
+            "unique": false
+          }
+        ],
+        "access": {
+          "default": "role",
+          "roles": {
+            "admin": {
+              "read": "all",
+              "create": false,
+              "update": false,
+              "delete": "all"
+            },
+            "agent": {
+              "read": "all",
+              "create": false,
+              "update": false,
+              "delete": false
+            }
+          },
+          "rowFilters": {}
+        }
+      },
+      {
+        "id": "tbl_sdinv",
+        "key": "document_lines",
+        "name": "Document lines",
+        "icon": "Table",
+        "fields": [
+          {
+            "id": "fld_sdltk",
+            "key": "thread_key",
+            "name": "Conversation",
+            "type": "text",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_sdlsf",
+            "key": "source_file",
+            "name": "Document",
+            "type": "text",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_sdlds",
+            "key": "description",
+            "name": "Description",
+            "type": "text",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_sdlqt",
+            "key": "quantity",
+            "name": "Quantity",
+            "type": "number",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_sdlup",
+            "key": "unit_price",
+            "name": "Unit price",
+            "type": "number",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_sdllt",
+            "key": "line_total",
+            "name": "Line total",
+            "type": "number",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_sdlcu",
+            "key": "currency",
+            "name": "Currency",
+            "type": "text",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_sdlat",
+            "key": "extracted_at",
+            "name": "Extracted",
+            "type": "datetime",
+            "required": false,
+            "unique": false
+          }
+        ],
+        "access": {
+          "default": "role",
+          "roles": {
+            "admin": {
+              "read": "all",
+              "create": true,
+              "update": false,
+              "delete": "all"
+            },
+            "agent": {
+              "read": "all",
+              "create": true,
+              "update": false,
+              "delete": "own"
+            }
+          },
+          "rowFilters": {}
+        }
+      },
+      {
+        "id": "tbl_sdcan",
+        "key": "canned_replies",
+        "name": "Saved replies",
+        "icon": "MessageSquareQuote",
+        "fields": [
+          {
+            "id": "fld_sdcti",
+            "key": "title",
+            "name": "Title",
+            "type": "text",
+            "required": true,
+            "unique": false
+          },
+          {
+            "id": "fld_sdcsh",
+            "key": "shortcut",
+            "name": "Shortcut",
+            "type": "text",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_sdcbo",
+            "key": "body",
+            "name": "Body",
+            "type": "richtext",
+            "required": false,
+            "unique": false
+          }
+        ],
+        "access": {
+          "default": "role",
+          "roles": {
+            "admin": {
+              "read": "all",
+              "create": true,
+              "update": "all",
+              "delete": "all"
+            },
+            "agent": {
+              "read": "all",
+              "create": false,
+              "update": false,
+              "delete": false
+            }
+          },
+          "rowFilters": {}
+        }
+      }
+    ],
+    "roles": [
+      {
+        "key": "admin",
+        "label": "Admin"
+      },
+      {
+        "key": "agent",
+        "label": "Agent"
+      }
+    ],
+    "roleMapping": {
+      "default": null,
+      "byGroup": {}
+    },
+    "connectors": [
+      {
+        "id": "conn_sdmail",
+        "kind": "mailbox",
+        "name": "Support mailbox",
+        "provider": "gmail",
+        "mode": "personal",
+        "folder": "inbox",
+        "query": "label:support",
+        "lookbackDays": 7,
+        "maxPerRun": 100,
+        "includeBody": true,
+        "includeAttachmentMeta": true,
+        "groupIntoThreads": true,
+        "runAs": "viewer",
+        "sync": {
+          "tableId": "tbl_sdthr",
+          "mode": "upsert",
+          "keyField": "thread_key",
+          "incremental": {
+            "field": "last_message_at",
+            "format": "iso"
+          },
+          "schedule": {
+            "everyMinutes": 2
+          },
+          "retentionDays": 90,
+          "refreshOnView": true,
+          "children": [
+            {
+              "tableId": "tbl_sdmsg",
+              "level": 1,
+              "relationField": "ticket",
+              "keyField": "provider_message_id",
+              "mode": "upsert",
+              "retentionCascade": true
+            },
+            {
+              "tableId": "tbl_sdatt",
+              "level": 2,
+              "parentLevel": 1,
+              "relationField": "message",
+              "keyField": "provider_attachment_id",
+              "mode": "upsert",
+              "retentionCascade": true
+            }
+          ]
+        },
+        "integrationId": "gmail",
+        "sharedMode": "delivered_alias"
+      }
+    ]
+  }
+}

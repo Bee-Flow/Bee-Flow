@@ -42,19 +42,19 @@ export default function AppDocumentViewer({ node }: NodeProps<Props>) {
     const view = useAppDocument(docScope, ref);
     const [tab, setTab] = useState(0);
 
-    if (!ref) return <DocShell node={node} status="empty"><EmptyText text={emptyText} /></DocShell>;
+    if (!ref) return <DocShell node={node} status="empty" partClass="bfa-document_viewer__root"><EmptyText text={emptyText} /></DocShell>;
     if (!docScope.live) {
         return (
-            <DocShell node={node} status="design">
-                <DocMessage icon={<FileText className="h-6 w-6 text-[var(--text-muted)]" aria-hidden="true" />}>{t('studio_app_documents.viewer_design', 'The document shows here when the app runs.')}</DocMessage>
+            <DocShell node={node} status="design" partClass="bfa-document_viewer__root">
+                <DocMessage partClass="bfa-document_viewer__message" icon={<FileText className="h-6 w-6 text-[var(--text-muted)]" aria-hidden="true" />}>{t('studio_app_documents.viewer_design', 'The document shows here when the app runs.')}</DocMessage>
             </DocShell>
         );
     }
-    if (view.isError) return <DocShell node={node} status="error"><DocMessage retry={() => { void view.refetch(); }}>{documentErrorText(t, view.error)}</DocMessage></DocShell>;
+    if (view.isError) return <DocShell node={node} status="error" partClass="bfa-document_viewer__root"><DocMessage partClass="bfa-document_viewer__message" retry={() => { void view.refetch(); }}>{documentErrorText(t, view.error)}</DocMessage></DocShell>;
     if (!view.data) {
         return (
-            <DocShell node={node} status="loading">
-                <DocMessage icon={<Loader2 className="h-5 w-5 animate-spin text-[var(--text-muted)]" aria-hidden="true" />}>{t('studio_app_documents.loading', 'Loading the document…')}</DocMessage>
+            <DocShell node={node} status="loading" partClass="bfa-document_viewer__root">
+                <DocMessage partClass="bfa-document_viewer__message" icon={<Loader2 className="h-5 w-5 animate-spin text-[var(--text-muted)]" aria-hidden="true" />}>{t('studio_app_documents.loading', 'Loading the document…')}</DocMessage>
             </DocShell>
         );
     }
@@ -63,23 +63,23 @@ export default function AppDocumentViewer({ node }: NodeProps<Props>) {
     const tabs = sheet?.tabs || [];
     const current = tabs[Math.min(tab, Math.max(tabs.length - 1, 0))];
     return (
-        <DocShell node={node} status="ready">
+        <DocShell node={node} status="ready" partClass="bfa-document_viewer__root">
             {props.showHeader !== false ? (
-                <div className="flex h-10 shrink-0 items-center gap-2 border-b border-[var(--border-default)] px-3">
+                <div className="flex h-10 shrink-0 items-center gap-2 border-b border-[var(--border-default)] px-3 bfa-document_viewer__header">
                     <FamilyIcon family={document.family} />
-                    <span className="min-w-0 truncate text-sm font-medium text-[var(--text-primary)]" data-document-name="true">{document.name}</span>
-                    {ref.versionId ? <span className="shrink-0 rounded bg-[var(--bg-tertiary)] px-1.5 py-0.5 text-[11px] text-[var(--text-secondary)]">{t('studio_app_documents.earlier_version', 'Earlier version')}</span> : null}
+                    <span className="min-w-0 truncate text-sm font-medium text-[var(--text-primary)] bfa-document_viewer__title" data-document-name="true">{document.name}</span>
+                    {ref.versionId ? <span className="shrink-0 rounded bg-[var(--bg-tertiary)] px-1.5 py-0.5 text-[11px] text-[var(--text-secondary)] bfa-document_viewer__version">{t('studio_app_documents.earlier_version', 'Earlier version')}</span> : null}
                 </div>
             ) : null}
             {html !== undefined ? (
-                <div className="min-h-0 flex-1"><DocumentFrame html={html} title={document.name} /></div>
+                <div className="min-h-0 flex-1 bfa-document_viewer__body"><DocumentFrame html={html} title={document.name} /></div>
             ) : (
                 <>
                     {tabs.length > 1 ? (
-                        <div className="flex shrink-0 gap-1 overflow-x-auto border-b border-[var(--border-default)] px-2 py-1" role="tablist" aria-label={t('studio_app_documents.tabs', 'Tabs')}>
+                        <div className="flex shrink-0 gap-1 overflow-x-auto border-b border-[var(--border-default)] px-2 py-1 bfa-document_viewer__tabs" role="tablist" aria-label={t('studio_app_documents.tabs', 'Tabs')}>
                             {tabs.map((tb, i) => (
                                 <button key={tb.name} type="button" role="tab" aria-selected={tb === current} onClick={() => setTab(i)}
-                                    className="shrink-0 rounded px-2 py-1 text-xs text-[var(--text-secondary)] aria-selected:bg-[var(--bg-tertiary)] aria-selected:text-[var(--text-primary)]">
+                                    className="shrink-0 rounded px-2 py-1 text-xs text-[var(--text-secondary)] aria-selected:bg-[var(--bg-tertiary)] aria-selected:text-[var(--text-primary)] bfa-document_viewer__tab">
                                     {tb.name}
                                 </button>
                             ))}

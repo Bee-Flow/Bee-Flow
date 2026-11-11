@@ -9,11 +9,19 @@ import { NAV_STYLES, NAV_DEFAULT_STYLE, DESIGN_ENUMS, DESIGN_DEFAULTS } from '..
 import { APP_COLOR_PRESETS } from '../runtime/themeVars';
 import { updateTheme, updateMeta, updateScreen, updateNav, updateDesign, updateAiBrowsing } from '../state/definitionOps';
 import DesignPresetGallery from './DesignPresetGallery';
+import ScreenTriggers from './ScreenTriggers';
 import type { DesignPreset } from './DesignPresetGallery';
 import type { AppDefinition, AppScreen } from './appDefinition';
 import type { ScreenView, ScreenPatch, ThemeValues, OptionalColorFieldProps, ScreenSettingsProps, ThemePanelProps } from './ThemePanel.types';
 import { designFields, fontLabels, widthLabels, refreshLabels, navStyleLabels, options, themeFields } from './ThemePanel.helpers';
 import { SectionTitle, AiBrowsingSettings } from './AiBrowsingSettings';
+import { LinkHostsSettings } from './LinkHostsSettings';
+import { updateAllowedLinkHosts } from '../state/linkHostOps';
+import { ServerScopeSettings } from './ServerScopeSettings';
+import { updateServerScope } from '../state/serverScopeOps';
+import { THEME_SECTIONS } from './themeSections';
+import AssetRefField from './assets/AssetRefField';
+import { useEditorChrome } from '../editor/EditorChromeContext';
 
 /**
  * ThemePanel — shown when nothing is selected: the whole-app knobs.
@@ -126,6 +134,7 @@ export default function ThemePanel({ definition, onCommit, disabled = false, scr
     const meta = definition?.meta || {};
     const design = definition?.design || {};
     const screen = (definition?.screens || []).find((s) => s.id === screenId) || null;
+    const appId = useEditorChrome()?.appId ?? null;
 
     const commitTheme = (patch: Record<string, unknown>) => {
         const next = updateTheme(definition, patch);
@@ -147,6 +156,14 @@ export default function ThemePanel({ definition, onCommit, disabled = false, scr
         const next = updateAiBrowsing(definition, patch);
         if (next !== definition) onCommit(next);
     };
+    const commitLinkHosts = (hosts: string[]) => {
+        const next = updateAllowedLinkHosts(definition, hosts);
+        if (next !== definition) onCommit(next);
+    };
+    const commitServerScope = (wide: boolean) => {
+        const next = updateServerScope(definition, wide);
+        if (next !== definition) onCommit(next);
+    };
     // A design change makes the look the author's own — unless it IS a preset
     // being applied (that branch sets the provenance itself).
     const commitDesign = (patch: Record<string, string | null>) => {
@@ -165,6 +182,7 @@ export default function ThemePanel({ definition, onCommit, disabled = false, scr
     return (
         <div className="p-4 flex flex-col gap-4" data-testid="theme-panel">
             <ScreenSettings screen={screen} onCommit={commitScreen} disabled={disabled} />
+            <ScreenTriggers definition={definition} screenId={screenId} onCommit={onCommit} disabled={disabled} />
 
             <div>
                 <SectionTitle>{t('studio_apps_insp.theme.look', 'Look')}</SectionTitle>
@@ -213,10 +231,12 @@ export default function ThemePanel({ definition, onCommit, disabled = false, scr
                             />
                         </FormField>
                     ))}
-                    <TextField
+                    <AssetRefField
                         label={t('studio_apps_insp.theme.logo_url', 'Logo URL')}
                         value={design.logoUrl || ''}
-                        onChange={(v) => commitDesign({ logoUrl: v && v.trim() ? v.trim() : null })}
+                        onChange={(v) => commitDesign({ logoUrl: v })}
+                        appId={appId}
+                        definition={definition}
                         placeholder={t('studio_apps_insp.theme.url_placeholder', 'https://…')}
                         disabled={disabled}
                     />
@@ -242,6 +262,10 @@ export default function ThemePanel({ definition, onCommit, disabled = false, scr
                     </FormField>
                 </div>
             </div>
+
+            {THEME_SECTIONS.map(({ name, Section }) => (
+                <Section key={name} definition={definition} onCommit={onCommit} disabled={disabled} screenId={screenId} />
+            ))}
 
             <div>
                 <SectionTitle>{t('studio_apps_insp.theme.app', 'App')}</SectionTitle>
@@ -275,6 +299,10 @@ export default function ThemePanel({ definition, onCommit, disabled = false, scr
                 onCommit={commitAiBrowsing}
                 disabled={disabled}
             />
+
+            <LinkHostsSettings value={definition?.allowedLinkHosts} onCommit={commitLinkHosts} disabled={disabled} />
+
+            <ServerScopeSettings value={definition?.serverScope} onCommit={commitServerScope} disabled={disabled} />
         </div>
     );
 }

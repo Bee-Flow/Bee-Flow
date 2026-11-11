@@ -1,0 +1,365 @@
+{
+  "about": {
+    "source": "hand-made for package LK14 (value formatting): the top-level format key and formatOptions on table and data_grid columns, a chart and a stat",
+    "captured": "2026-11-10"
+  },
+  "definition": {
+    "schemaVersion": 3,
+    "meta": {
+      "name": "Value formatting",
+      "description": "",
+      "icon": "LayoutGrid"
+    },
+    "theme": {
+      "primary": "#0F766E",
+      "radius": "md",
+      "density": "comfortable",
+      "fontScale": "md",
+      "appearance": "auto"
+    },
+    "roles": [],
+    "screens": [
+      {
+        "id": "scr_w7pbkb",
+        "name": "Home",
+        "icon": "Home",
+        "showInNav": true,
+        "maxWidth": "medium",
+        "sections": [
+          {
+            "id": "sec_288hcx",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_vfstat01",
+                "type": "stat",
+                "props": {
+                  "label": "Revenue",
+                  "value": {
+                    "kind": "static",
+                    "value": 1234567.5
+                  },
+                  "caption": null,
+                  "captionSegments": [],
+                  "icon": null,
+                  "delta": {
+                    "kind": "static",
+                    "value": 2.25
+                  },
+                  "deltaFormat": "percent",
+                  "trend": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "positiveIsGood": true,
+                  "look": "plain",
+                  "formatOptions": {
+                    "currency": "EUR",
+                    "compact": true
+                  }
+                },
+                "style": {
+                  "span": 4
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_vfstat02",
+                "type": "stat",
+                "props": {
+                  "label": "Orders",
+                  "value": {
+                    "kind": "static",
+                    "value": 4321
+                  },
+                  "caption": null,
+                  "captionSegments": [],
+                  "icon": null,
+                  "delta": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "deltaFormat": "number",
+                  "trend": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "positiveIsGood": true,
+                  "look": "plain"
+                },
+                "style": {
+                  "span": 4
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_vftabl01",
+                "type": "table",
+                "props": {
+                  "source": {
+                    "kind": "static",
+                    "value": [
+                      {
+                        "item": "Licences",
+                        "amount": 1234.5,
+                        "share": 0.256,
+                        "growth": 12.345,
+                        "due": "2026-03-01",
+                        "paid_at": "2026-07-04T21:05:03Z",
+                        "progress": 40
+                      },
+                      {
+                        "item": "Hosting",
+                        "amount": 98765.432,
+                        "share": 0.05,
+                        "growth": -3,
+                        "due": "2026-12-31",
+                        "paid_at": "2026-01-02T08:00:00Z",
+                        "progress": 75
+                      }
+                    ]
+                  },
+                  "columns": [
+                    {
+                      "key": "item",
+                      "label": "Item",
+                      "format": "text"
+                    },
+                    {
+                      "key": "amount",
+                      "label": "Amount",
+                      "format": "currency",
+                      "formatOptions": {
+                        "decimals": 2
+                      }
+                    },
+                    {
+                      "key": "share",
+                      "label": "Share",
+                      "format": "percent",
+                      "formatOptions": {
+                        "decimals": 1,
+                        "percentScale": "fraction"
+                      }
+                    },
+                    {
+                      "key": "growth",
+                      "label": "Growth",
+                      "format": "number",
+                      "formatOptions": {
+                        "decimals": 1
+                      }
+                    },
+                    {
+                      "key": "due",
+                      "label": "Due",
+                      "format": "date",
+                      "formatOptions": {
+                        "pattern": "dd MMM yyyy"
+                      }
+                    },
+                    {
+                      "key": "paid_at",
+                      "label": "Paid",
+                      "format": "datetime"
+                    },
+                    {
+                      "key": "progress",
+                      "label": "Done",
+                      "format": "progress",
+                      "formatOptions": {
+                        "compact": true
+                      }
+                    }
+                  ],
+                  "emptyText": "Nothing to show yet.",
+                  "rowLimit": 25,
+                  "look": "default"
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_vfgrid01",
+                "type": "data_grid",
+                "props": {
+                  "source": {
+                    "kind": "static",
+                    "value": [
+                      {
+                        "item": "Licences",
+                        "amount": 1234.5,
+                        "share": 0.256,
+                        "growth": 12.345,
+                        "due": "2026-03-01",
+                        "paid_at": "2026-07-04T21:05:03Z",
+                        "progress": 40
+                      },
+                      {
+                        "item": "Hosting",
+                        "amount": 98765.432,
+                        "share": 0.05,
+                        "growth": -3,
+                        "due": "2026-12-31",
+                        "paid_at": "2026-01-02T08:00:00Z",
+                        "progress": 75
+                      }
+                    ]
+                  },
+                  "columns": [
+                    {
+                      "key": "item",
+                      "label": "Item",
+                      "format": "text"
+                    },
+                    {
+                      "key": "amount",
+                      "label": "Amount",
+                      "format": "currency",
+                      "formatOptions": {
+                        "currency": "GBP",
+                        "decimals": 0
+                      }
+                    },
+                    {
+                      "key": "share",
+                      "label": "Share",
+                      "format": "percent",
+                      "formatOptions": {
+                        "decimals": 1,
+                        "percentScale": "fraction"
+                      }
+                    },
+                    {
+                      "key": "growth",
+                      "label": "Growth",
+                      "format": "number",
+                      "formatOptions": {
+                        "decimals": 1
+                      }
+                    },
+                    {
+                      "key": "due",
+                      "label": "Due",
+                      "format": "date",
+                      "formatOptions": {
+                        "pattern": "dd MMM yyyy"
+                      }
+                    },
+                    {
+                      "key": "paid_at",
+                      "label": "Paid",
+                      "format": "datetime"
+                    },
+                    {
+                      "key": "progress",
+                      "label": "Done",
+                      "format": "progress",
+                      "formatOptions": {
+                        "compact": true
+                      }
+                    }
+                  ],
+                  "pageSize": 25,
+                  "selectable": "none",
+                  "searchable": false,
+                  "rowActions": [],
+                  "toolbarActions": [],
+                  "addRowLabel": null,
+                  "addRowActionId": null,
+                  "bulkActions": [],
+                  "density": "comfortable",
+                  "clamp": "off",
+                  "rowTone": [],
+                  "groupBy": null,
+                  "groupOrder": [],
+                  "activeWhen": null,
+                  "zebra": false,
+                  "emptyText": "Nothing to show yet.",
+                  "look": "default"
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_vfchart1",
+                "type": "chart",
+                "props": {
+                  "chartType": "bar",
+                  "orientation": "vertical",
+                  "source": {
+                    "kind": "static",
+                    "value": [
+                      {
+                        "item": "Licences",
+                        "amount": 1234.5,
+                        "share": 0.256,
+                        "growth": 12.345,
+                        "due": "2026-03-01",
+                        "paid_at": "2026-07-04T21:05:03Z",
+                        "progress": 40
+                      },
+                      {
+                        "item": "Hosting",
+                        "amount": 98765.432,
+                        "share": 0.05,
+                        "growth": -3,
+                        "due": "2026-12-31",
+                        "paid_at": "2026-01-02T08:00:00Z",
+                        "progress": 75
+                      }
+                    ]
+                  },
+                  "title": null,
+                  "xKey": "item",
+                  "xType": "category",
+                  "series": [
+                    {
+                      "key": "amount",
+                      "label": "Amount"
+                    }
+                  ],
+                  "stacked": false,
+                  "showLegend": true,
+                  "showGrid": true,
+                  "valueFormat": "currency",
+                  "yMin": null,
+                  "yMax": null,
+                  "referenceLines": [],
+                  "referenceBands": [],
+                  "unitLabel": null,
+                  "formatOptions": {
+                    "decimals": 1,
+                    "compact": true
+                  }
+                },
+                "style": {
+                  "span": 6,
+                  "height": "md"
+                },
+                "visible": true
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "actions": {},
+    "homeScreenId": "scr_w7pbkb",
+    "format": {
+      "language": "en-US",
+      "currency": "USD",
+      "currencyDecimals": 2,
+      "dateFormat": "d MMM yyyy",
+      "timeZone": "Europe/Amsterdam"
+    }
+  }
+}

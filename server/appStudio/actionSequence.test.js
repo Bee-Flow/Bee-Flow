@@ -84,6 +84,57 @@ test('stepFailureExtras and sanitizeErrorScope', () => {
     assert.deepEqual(stepFailureExtras({ ok: false, retryable: false, ref: 'abcd1234' }), { retryable: false, ref: 'abcd1234' });
     assert.deepEqual(stepFailureExtras({ ok: false, ref: 'not a ref' }), {});
     assert.deepEqual(stepFailureExtras(null), {});
+    // A field rule's sentences ride along, bounded; anything else in the map is dropped.
+    assert.deepEqual(stepFailureExtras({ ok: false, retryable: false, fieldErrors: { qty: 'Too low.', bad: 5, ['x'.repeat(65)]: 'long key' } }), { retryable: false, fieldErrors: { qty: 'Too low.' } });
+    assert.deepEqual(stepFailureExtras({ ok: false, fieldErrors: [] }), {});
     assert.equal(sanitizeErrorScope(undefined), undefined);
     assert.deepEqual(sanitizeErrorScope({ message: 'm', step: 'ai_generate', attempts: 2 }), { message: 'm', step: 'ai_generate', code: null, attempts: 2 });
+});
+
+// ── The kind echo: a client that numbers or walks the steps differently is told so ──
+
+const V3 = { actions: {
+    act_plain: { kind: 'sequence', steps: [{ kind: 'toast', message: 'x' }, { kind: 'create_record', tableId: 'tbl_a' }] },
+    act_loop: { kind: 'sequence', steps: [
+        { kind: 'while', expr: 'vars.go', steps: [{ kind: 'create_record', tableId: 'tbl_a' }] },
+        { kind: 'try', steps: [{ kind: 'update_record', tableId: 'tbl_a' }], catch: [{ kind: 'toast', message: 'x' }], finally: [{ kind: 'delete_record', tableId: 'tbl_a' }] },
+        { kind: 'call_action', actionId: 'act_plain' },
+    ] },
+    act_exit: { kind: 'sequence', steps: [{ kind: 'condition', expr: 'vars.done', then: [{ kind: 'return' }], else: [] }, { kind: 'create_record', tableId: 'tbl_b' }] },
+    act_caller: { kind: 'sequence', steps: [{ kind: 'call_action', actionId: 'act_exit' }, { kind: 'create_record', tableId: 'tbl_c' }] },
+} };
+
+test('an action of base kinds resolves with or without a sent kind, and a wrong one is a mismatch', () => {
+    const step = V3.actions.act_plain.steps[1];
+    assert.deepEqual(resolveRequestedStep(V3, 'act_plain', 1), { step, ownerActionId: 'act_plain' });
+    assert.deepEqual(resolveRequestedStep(V3, 'act_plain', 1, undefined, 'create_record'), { step, ownerActionId: 'act_plain' });
+    assert.deepEqual(resolveRequestedStep(V3, 'act_plain', 1, undefined, 'toast'), { error: 'mismatch' });
+    for (const empty of [undefined, null, '', 7, {}]) assert.deepEqual(resolveRequestedStep(V3, 'act_plain', 1, undefined, empty), { step, ownerActionId: 'act_plain' }, 'not a kind: as if none was sent');
+});
+
+test('an action with a registry kind must be sent the kind of the step', () => {
+    const flat = flattenSteps(normalizeSequence(V3.actions.act_loop));
+    assert.deepEqual(flat.map((s) => s.kind), ['while', 'create_record', 'try', 'update_record', 'toast', 'delete_record', 'call_action']);
+    for (const i of [1, 3, 5]) {
+        assert.deepEqual(resolveRequestedStep(V3, 'act_loop', i), { error: 'mismatch' }, 'a client that sends no kind does not know the containers');
+        assert.deepEqual(resolveRequestedStep(V3, 'act_loop', i, undefined, flat[i].kind), { step: flat[i], ownerActionId: 'act_loop' });
+    }
+    // The ordinal a client without the while would post for the first write of the try.
+    assert.deepEqual(resolveRequestedStep(V3, 'act_loop', 2, undefined, 'update_record'), { error: 'mismatch' });
+    // A leaf kind is enough: a client that does not know `return` would walk on past it.
+    assert.deepEqual(resolveRequestedStep(V3, 'act_exit', 2), { error: 'mismatch' });
+    assert.deepEqual(resolveRequestedStep(V3, 'act_exit', 2, undefined, 'create_record'), { step: V3.actions.act_exit.steps[1], ownerActionId: 'act_exit' });
+});
+
+test('the rule follows the callPath: a registry kind anywhere on the way asks for the kind', () => {
+    const inner = V3.actions.act_plain.steps[1];
+    assert.deepEqual(resolveRequestedStep(V3, 'act_loop', 1, [6]), { error: 'mismatch' }, 'the root holds a while');
+    assert.deepEqual(resolveRequestedStep(V3, 'act_loop', 1, [6], 'create_record'), { step: inner, ownerActionId: 'act_plain' });
+    assert.deepEqual(resolveRequestedStep(V3, 'act_caller', 2, [0]), { error: 'mismatch' }, 'the called action holds a return');
+    assert.deepEqual(resolveRequestedStep(V3, 'act_caller', 1), { step: V3.actions.act_caller.steps[1], ownerActionId: 'act_caller' }, 'the caller itself is base only');
+});
+
+test('a missing action or step is still reported as such, before the kind', () => {
+    assert.deepEqual(resolveRequestedStep(V3, 'act_nope', 0, undefined, 'toast'), { error: 'action' });
+    assert.deepEqual(resolveRequestedStep(V3, 'act_loop', 99, undefined, 'toast'), { error: 'step' });
 });

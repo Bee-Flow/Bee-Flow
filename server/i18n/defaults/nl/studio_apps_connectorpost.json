@@ -1,0 +1,11 @@
+{
+  "translations": {
+    "studio_apps_connectorpost.body": "Aanvraagbody (JSON)",
+    "studio_apps_connectorpost.body_hint": "Gebruik {placeholder}-plaatsaanduidingen voor gedeclareerde parameters. Een waarde die alleen uit een plaatsaanduiding bestaat, behoudt het type van de parameter.",
+    "studio_apps_connectorpost.method": "Aanvraagmethode",
+    "studio_apps_connectorpost.method_post": "POST (JSON-body)"
+  },
+  "sameAsEnglish": [
+    "studio_apps_connectorpost.method_get"
+  ]
+}

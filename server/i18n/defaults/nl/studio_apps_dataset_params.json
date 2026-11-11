@@ -1,0 +1,27 @@
+{
+  "translations": {
+    "studio_apps_dataset_params.binding.hint": "Laat er een leeg om de standaardwaarde te gebruiken, of om het filter weg te laten als er geen is.",
+    "studio_apps_dataset_params.binding.title": "Parameters van deze weergave",
+    "studio_apps_dataset_params.builder.access_note": "Het onderdeel dat deze weergave toont, vult elke waarde in. Een parameter beperkt wat de weergave laat zien; wie welke rijen mag zien, bepalen nog steeds de toegangsregels van de tabel.",
+    "studio_apps_dataset_params.builder.add": "Parameter toevoegen",
+    "studio_apps_dataset_params.builder.bad_default": "De standaardwaarde past niet bij deze kolom.",
+    "studio_apps_dataset_params.builder.bad_name": "Een naam begint met een letter en bevat alleen letters, cijfers en _.",
+    "studio_apps_dataset_params.builder.default": "Standaardwaarde (optioneel)",
+    "studio_apps_dataset_params.builder.default_aria": "Standaardwaarde",
+    "studio_apps_dataset_params.builder.duplicate": "Elke parameter heeft een eigen naam nodig.",
+    "studio_apps_dataset_params.builder.field_aria": "Kolom waarop de parameter filtert",
+    "studio_apps_dataset_params.builder.name": "Naam, bijv. regio",
+    "studio_apps_dataset_params.builder.name_aria": "Naam van de parameter",
+    "studio_apps_dataset_params.builder.no": "Nee",
+    "studio_apps_dataset_params.builder.no_default": "Geen standaardwaarde",
+    "studio_apps_dataset_params.builder.no_field": "Kies de kolom waarop deze parameter filtert.",
+    "studio_apps_dataset_params.builder.op_aria": "Vergelijking",
+    "studio_apps_dataset_params.builder.pick_field": "Kies een kolom…",
+    "studio_apps_dataset_params.builder.required": "Zonder waarde niets tonen (in plaats van dit filter te negeren)",
+    "studio_apps_dataset_params.builder.unnamed": "Nieuwe parameter",
+    "studio_apps_dataset_params.builder.yes": "Ja"
+  },
+  "sameAsEnglish": [
+    "studio_apps_dataset_params.builder.title"
+  ]
+}

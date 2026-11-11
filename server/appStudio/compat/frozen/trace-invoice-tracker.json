@@ -1,0 +1,64 @@
+{
+  "corpus": "trace-invoice-tracker",
+  "canonical": {
+    "sha256": "1286df0815c0d5478c1f2f212363f46d3b6a5d9edc91e8a8a2b177f53db32b67",
+    "bytes": 3933,
+    "inputIsCanonical": true,
+    "idempotent": true,
+    "keys": [
+      "schemaVersion",
+      "meta",
+      "theme",
+      "roles",
+      "screens",
+      "actions",
+      "homeScreenId"
+    ],
+    "parts": {
+      "schemaVersion": "d4735e3a265e16ee",
+      "meta": "96ca921ffeadb7e0",
+      "theme": "5d7eeb0111b89897",
+      "roles": "4f53cda18c2baa0c",
+      "screens[0] scr_qrtfpm": "abb97b6e4f7ced0a",
+      "actions.act_bh1ok6": "210e7fd560b8d84f",
+      "actions.act_20bns1": "c916ce736cd5cec2",
+      "homeScreenId": "f948067649d151d3"
+    }
+  },
+  "schemaVersion": {
+    "stored": 2,
+    "canonical": 2
+  },
+  "validation": {
+    "strict": {
+      "errors": [],
+      "warnings": [
+        "action.unreachable @ actions.act_20bns1",
+        "action.unreachable @ actions.act_bh1ok6",
+        "form.no_submit_action @ screens[0].sections[0].children[0].children[0]",
+        "form.no_submit_action @ screens[0].sections[0].children[1].children[0]"
+      ]
+    },
+    "save": {
+      "errors": [],
+      "warnings": [
+        "action.unreachable @ actions.act_20bns1",
+        "action.unreachable @ actions.act_bh1ok6",
+        "form.no_submit_action @ screens[0].sections[0].children[0].children[0]",
+        "form.no_submit_action @ screens[0].sections[0].children[1].children[0]"
+      ]
+    }
+  },
+  "ordinals": {
+    "stored": {
+      "act_bh1ok6": [
+        "0 create_record"
+      ],
+      "act_20bns1": [
+        "0 create_record"
+      ]
+    },
+    "canonical": "same as stored"
+  },
+  "reads": []
+}

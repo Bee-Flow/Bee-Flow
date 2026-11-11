@@ -1,0 +1,1377 @@
+{
+  "corpus": "template-breach-register",
+  "canonical": {
+    "sha256": "b996c3ac73648b522dd9384eaef3471d127d9902a368e6d2fb22a712a875152f",
+    "bytes": 62934,
+    "inputIsCanonical": true,
+    "idempotent": true,
+    "keys": [
+      "schemaVersion",
+      "meta",
+      "theme",
+      "roles",
+      "variables",
+      "screens",
+      "actions",
+      "design",
+      "nav",
+      "homeScreenId"
+    ],
+    "parts": {
+      "schemaVersion": "d4735e3a265e16ee",
+      "meta": "61af8204b80a6b52",
+      "theme": "32cdccc1438024f8",
+      "roles": "13d77bd07f1b40cc",
+      "variables": "c4ad51951388439e",
+      "screens[0] scr_clock": "1efb1cb180720012",
+      "screens[1] scr_report": "7c1539906e151939",
+      "screens[2] scr_breach": "5a6787422778934a",
+      "screens[3] scr_closed": "ca67b658b2470e5d",
+      "screens[4] scr_setup": "9c28c3ff1797cab7",
+      "actions.act_goclock": "83651ec970f96b59",
+      "actions.act_goreport": "465d23e588ff7448",
+      "actions.act_bopen": "4f4d32a9283f02d9",
+      "actions.act_report": "eaf15794e0b3bd14",
+      "actions.act_assess": "ccc0ad1cbb5c7fd1",
+      "actions.act_authnote": "9521d7684b5778d2",
+      "actions.act_notnotify": "ec6b102c2d1a4264",
+      "actions.act_subjnote": "1c03f67b0ac36914",
+      "actions.act_subjexmpt": "1ab0aee67d2f39d4",
+      "actions.act_logadd": "404557114107ac47",
+      "actions.act_sysadd": "187d367a44c6e44f",
+      "actions.act_sysdel": "89eb46fc8be95847",
+      "actions.act_close": "d94915b5265dd4cf",
+      "actions.act_sevopen": "4d14708695624b02",
+      "actions.act_sevadd": "af9be00326342b95",
+      "actions.act_sevsave": "7a47ca333119f9e5",
+      "actions.act_sevdel": "4d972f21c8a53a24",
+      "design": "c1447d2415f284b0",
+      "nav": "ef9720af083df191",
+      "homeScreenId": "598953caa620eac7"
+    }
+  },
+  "schemaVersion": {
+    "stored": 2,
+    "canonical": 2
+  },
+  "validation": {
+    "strict": {
+      "errors": [],
+      "warnings": []
+    },
+    "save": {
+      "errors": [],
+      "warnings": []
+    }
+  },
+  "ordinals": {
+    "stored": {
+      "act_goclock": [
+        "0 navigate"
+      ],
+      "act_goreport": [
+        "0 navigate"
+      ],
+      "act_bopen": [
+        "0 set_variable",
+        "1 navigate"
+      ],
+      "act_report": [
+        "0 create_record",
+        "1 create_record",
+        "2 refresh",
+        "3 refresh",
+        "4 reset_form",
+        "5 toast",
+        "6 navigate"
+      ],
+      "act_assess": [
+        "0 condition",
+        "1 update_record",
+        "2 create_record",
+        "3 refresh",
+        "4 refresh",
+        "5 reset_form",
+        "6 toast",
+        "7 toast"
+      ],
+      "act_authnote": [
+        "0 condition",
+        "1 update_record",
+        "2 create_record",
+        "3 refresh",
+        "4 refresh",
+        "5 reset_form",
+        "6 toast",
+        "7 toast"
+      ],
+      "act_notnotify": [
+        "0 condition",
+        "1 update_record",
+        "2 create_record",
+        "3 refresh",
+        "4 refresh",
+        "5 reset_form",
+        "6 toast",
+        "7 toast"
+      ],
+      "act_subjnote": [
+        "0 condition",
+        "1 update_record",
+        "2 create_record",
+        "3 refresh",
+        "4 refresh",
+        "5 reset_form",
+        "6 toast",
+        "7 toast"
+      ],
+      "act_subjexmpt": [
+        "0 condition",
+        "1 update_record",
+        "2 create_record",
+        "3 refresh",
+        "4 refresh",
+        "5 reset_form",
+        "6 toast",
+        "7 toast"
+      ],
+      "act_logadd": [
+        "0 condition",
+        "1 create_record",
+        "2 refresh",
+        "3 reset_form",
+        "4 toast"
+      ],
+      "act_sysadd": [
+        "0 condition",
+        "1 create_record",
+        "2 refresh",
+        "3 reset_form",
+        "4 toast"
+      ],
+      "act_sysdel": [
+        "0 confirm",
+        "1 delete_record",
+        "2 refresh"
+      ],
+      "act_close": [
+        "0 condition",
+        "1 update_record",
+        "2 create_record",
+        "3 refresh",
+        "4 refresh",
+        "5 reset_form",
+        "6 toast",
+        "7 navigate",
+        "8 toast"
+      ],
+      "act_sevopen": [
+        "0 open_modal"
+      ],
+      "act_sevadd": [
+        "0 create_record",
+        "1 close_modal",
+        "2 reset_form",
+        "3 refresh",
+        "4 toast"
+      ],
+      "act_sevsave": [
+        "0 update_record",
+        "1 refresh"
+      ],
+      "act_sevdel": [
+        "0 confirm",
+        "1 delete_record",
+        "2 refresh"
+      ]
+    },
+    "canonical": "same as stored"
+  },
+  "installHash": {
+    "stored": "c25fdb87648af888e60bbaaee9763648f7d5cea272e738f82adee7d3bbd680e5",
+    "afterResave": "c25fdb87648af888e60bbaaee9763648f7d5cea272e738f82adee7d3bbd680e5"
+  },
+  "reads": [
+    {
+      "at": "cmp_ckst1.value",
+      "kind": "aggregate",
+      "table": "tbl_brchs01",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"breaches\" WHERE (1=1) AND \"stage\" != ? LIMIT ?",
+          "params": [
+            "closed",
+            1
+          ]
+        },
+        "dpo": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"breaches\" WHERE (1=1) AND \"stage\" != ? LIMIT ?",
+          "params": [
+            "closed",
+            1
+          ]
+        },
+        "responder": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"breaches\" WHERE (1=1) AND \"stage\" != ? LIMIT ?",
+          "params": [
+            "closed",
+            1
+          ]
+        },
+        "reporter": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"breaches\" WHERE (\"created_by\" = ?) AND \"stage\" != ? LIMIT ?",
+          "params": [
+            "usr_compat_reporter",
+            "closed",
+            1
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"breaches\" WHERE (1=1) AND \"stage\" != ? LIMIT ?",
+          "params": [
+            "closed",
+            1
+          ]
+        },
+        "dpo": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"breaches\" WHERE (1=1) AND \"stage\" != ? LIMIT ?",
+          "params": [
+            "closed",
+            1
+          ]
+        },
+        "responder": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"breaches\" WHERE (1=1) AND \"stage\" != ? LIMIT ?",
+          "params": [
+            "closed",
+            1
+          ]
+        },
+        "reporter": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"breaches\" WHERE (\"created_by\" = ?) AND \"stage\" != ? LIMIT ?",
+          "params": [
+            "usr_compat_reporter",
+            "closed",
+            1
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_ckst2.value",
+      "kind": "aggregate",
+      "table": "tbl_brchs01",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"breaches\" WHERE (1=1) AND \"authority_required\" = ? AND \"authority_notified_at\" IS NULL AND \"notify_due_date\" <= ? LIMIT ?",
+          "params": [
+            1,
+            "2026-01-15",
+            1
+          ]
+        },
+        "dpo": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"breaches\" WHERE (1=1) AND \"authority_required\" = ? AND \"authority_notified_at\" IS NULL AND \"notify_due_date\" <= ? LIMIT ?",
+          "params": [
+            1,
+            "2026-01-15",
+            1
+          ]
+        },
+        "responder": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"breaches\" WHERE (1=1) AND \"authority_required\" = ? AND \"authority_notified_at\" IS NULL AND \"notify_due_date\" <= ? LIMIT ?",
+          "params": [
+            1,
+            "2026-01-15",
+            1
+          ]
+        },
+        "reporter": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"breaches\" WHERE (\"created_by\" = ?) AND \"authority_required\" = ? AND \"authority_notified_at\" IS NULL AND \"notify_due_date\" <= ? LIMIT ?",
+          "params": [
+            "usr_compat_reporter",
+            1,
+            "2026-01-15",
+            1
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"breaches\" WHERE (1=1) AND \"authority_required\" = ? AND \"authority_notified_at\" IS NULL AND \"notify_due_date\" <= ? LIMIT ?",
+          "params": [
+            true,
+            "2026-01-15",
+            1
+          ]
+        },
+        "dpo": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"breaches\" WHERE (1=1) AND \"authority_required\" = ? AND \"authority_notified_at\" IS NULL AND \"notify_due_date\" <= ? LIMIT ?",
+          "params": [
+            true,
+            "2026-01-15",
+            1
+          ]
+        },
+        "responder": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"breaches\" WHERE (1=1) AND \"authority_required\" = ? AND \"authority_notified_at\" IS NULL AND \"notify_due_date\" <= ? LIMIT ?",
+          "params": [
+            true,
+            "2026-01-15",
+            1
+          ]
+        },
+        "reporter": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"breaches\" WHERE (\"created_by\" = ?) AND \"authority_required\" = ? AND \"authority_notified_at\" IS NULL AND \"notify_due_date\" <= ? LIMIT ?",
+          "params": [
+            "usr_compat_reporter",
+            true,
+            "2026-01-15",
+            1
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_ckst3.value",
+      "kind": "aggregate",
+      "table": "tbl_brchs01",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"breaches\" WHERE (1=1) AND \"authority_hours\" > ? LIMIT ?",
+          "params": [
+            72,
+            1
+          ]
+        },
+        "dpo": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"breaches\" WHERE (1=1) AND \"authority_hours\" > ? LIMIT ?",
+          "params": [
+            72,
+            1
+          ]
+        },
+        "responder": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"breaches\" WHERE (1=1) AND \"authority_hours\" > ? LIMIT ?",
+          "params": [
+            72,
+            1
+          ]
+        },
+        "reporter": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"breaches\" WHERE (\"created_by\" = ?) AND \"authority_hours\" > ? LIMIT ?",
+          "params": [
+            "usr_compat_reporter",
+            72,
+            1
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"breaches\" WHERE (1=1) AND \"authority_hours\" > ? LIMIT ?",
+          "params": [
+            72,
+            1
+          ]
+        },
+        "dpo": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"breaches\" WHERE (1=1) AND \"authority_hours\" > ? LIMIT ?",
+          "params": [
+            72,
+            1
+          ]
+        },
+        "responder": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"breaches\" WHERE (1=1) AND \"authority_hours\" > ? LIMIT ?",
+          "params": [
+            72,
+            1
+          ]
+        },
+        "reporter": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"breaches\" WHERE (\"created_by\" = ?) AND \"authority_hours\" > ? LIMIT ?",
+          "params": [
+            "usr_compat_reporter",
+            72,
+            1
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_ckst4.value",
+      "kind": "aggregate",
+      "table": "tbl_brchs01",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"breaches\" WHERE (1=1) AND \"outcome\" = ? LIMIT ?",
+          "params": [
+            "recorded_only",
+            1
+          ]
+        },
+        "dpo": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"breaches\" WHERE (1=1) AND \"outcome\" = ? LIMIT ?",
+          "params": [
+            "recorded_only",
+            1
+          ]
+        },
+        "responder": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"breaches\" WHERE (1=1) AND \"outcome\" = ? LIMIT ?",
+          "params": [
+            "recorded_only",
+            1
+          ]
+        },
+        "reporter": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"breaches\" WHERE (\"created_by\" = ?) AND \"outcome\" = ? LIMIT ?",
+          "params": [
+            "usr_compat_reporter",
+            "recorded_only",
+            1
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"breaches\" WHERE (1=1) AND \"outcome\" = ? LIMIT ?",
+          "params": [
+            "recorded_only",
+            1
+          ]
+        },
+        "dpo": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"breaches\" WHERE (1=1) AND \"outcome\" = ? LIMIT ?",
+          "params": [
+            "recorded_only",
+            1
+          ]
+        },
+        "responder": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"breaches\" WHERE (1=1) AND \"outcome\" = ? LIMIT ?",
+          "params": [
+            "recorded_only",
+            1
+          ]
+        },
+        "reporter": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"breaches\" WHERE (\"created_by\" = ?) AND \"outcome\" = ? LIMIT ?",
+          "params": [
+            "usr_compat_reporter",
+            "recorded_only",
+            1
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_ckgrid.source",
+      "kind": "records",
+      "table": "tbl_brchs01",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"breaches\" WHERE (1=1) AND \"stage\" != ? ORDER BY \"notify_due_at\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "closed",
+            201
+          ]
+        },
+        "dpo": {
+          "sql": "SELECT * FROM \"breaches\" WHERE (1=1) AND \"stage\" != ? ORDER BY \"notify_due_at\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "closed",
+            201
+          ]
+        },
+        "responder": {
+          "sql": "SELECT * FROM \"breaches\" WHERE (1=1) AND \"stage\" != ? ORDER BY \"notify_due_at\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "closed",
+            201
+          ]
+        },
+        "reporter": {
+          "sql": "SELECT * FROM \"breaches\" WHERE (\"created_by\" = ?) AND \"stage\" != ? ORDER BY \"notify_due_at\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "usr_compat_reporter",
+            "closed",
+            201
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"breaches\" WHERE (1=1) AND \"stage\" != ? ORDER BY \"notify_due_at\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "closed",
+            201
+          ]
+        },
+        "dpo": {
+          "sql": "SELECT * FROM \"breaches\" WHERE (1=1) AND \"stage\" != ? ORDER BY \"notify_due_at\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "closed",
+            201
+          ]
+        },
+        "responder": {
+          "sql": "SELECT * FROM \"breaches\" WHERE (1=1) AND \"stage\" != ? ORDER BY \"notify_due_at\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "closed",
+            201
+          ]
+        },
+        "reporter": {
+          "sql": "SELECT * FROM \"breaches\" WHERE (\"created_by\" = ?) AND \"stage\" != ? ORDER BY \"notify_due_at\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "usr_compat_reporter",
+            "closed",
+            201
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_rprec.source",
+      "kind": "records",
+      "table": "tbl_brchs01",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"breaches\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            9
+          ]
+        },
+        "dpo": {
+          "sql": "SELECT * FROM \"breaches\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            9
+          ]
+        },
+        "responder": {
+          "sql": "SELECT * FROM \"breaches\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            9
+          ]
+        },
+        "reporter": {
+          "sql": "SELECT * FROM \"breaches\" WHERE (\"created_by\" = ?) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "usr_compat_reporter",
+            9
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"breaches\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            9
+          ]
+        },
+        "dpo": {
+          "sql": "SELECT * FROM \"breaches\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            9
+          ]
+        },
+        "responder": {
+          "sql": "SELECT * FROM \"breaches\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            9
+          ]
+        },
+        "reporter": {
+          "sql": "SELECT * FROM \"breaches\" WHERE (\"created_by\" = ?) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "usr_compat_reporter",
+            9
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_brstep.value",
+      "kind": "record",
+      "table": "tbl_brchs01",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"breaches\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "dpo": {
+          "sql": "SELECT * FROM \"breaches\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "responder": {
+          "sql": "SELECT * FROM \"breaches\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "reporter": {
+          "sql": "SELECT * FROM \"breaches\" WHERE (\"created_by\" = ?) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "usr_compat_reporter",
+            2
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"breaches\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "dpo": {
+          "sql": "SELECT * FROM \"breaches\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "responder": {
+          "sql": "SELECT * FROM \"breaches\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "reporter": {
+          "sql": "SELECT * FROM \"breaches\" WHERE (\"created_by\" = ?) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "usr_compat_reporter",
+            2
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_brdet.source",
+      "kind": "record",
+      "table": "tbl_brchs01",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"breaches\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "dpo": {
+          "sql": "SELECT * FROM \"breaches\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "responder": {
+          "sql": "SELECT * FROM \"breaches\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "reporter": {
+          "sql": "SELECT * FROM \"breaches\" WHERE (\"created_by\" = ?) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "usr_compat_reporter",
+            2
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"breaches\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "dpo": {
+          "sql": "SELECT * FROM \"breaches\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "responder": {
+          "sql": "SELECT * FROM \"breaches\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "reporter": {
+          "sql": "SELECT * FROM \"breaches\" WHERE (\"created_by\" = ?) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "usr_compat_reporter",
+            2
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_asguide.source",
+      "kind": "records",
+      "table": "tbl_sevs001",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"severity_levels\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            31
+          ]
+        },
+        "dpo": {
+          "sql": "SELECT * FROM \"severity_levels\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            31
+          ]
+        },
+        "responder": {
+          "sql": "SELECT * FROM \"severity_levels\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            31
+          ]
+        },
+        "reporter": {
+          "sql": "SELECT * FROM \"severity_levels\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            31
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"severity_levels\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            31
+          ]
+        },
+        "dpo": {
+          "sql": "SELECT * FROM \"severity_levels\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            31
+          ]
+        },
+        "responder": {
+          "sql": "SELECT * FROM \"severity_levels\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            31
+          ]
+        },
+        "reporter": {
+          "sql": "SELECT * FROM \"severity_levels\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            31
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_sygrid.source",
+      "kind": "records",
+      "table": "tbl_bsys001",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"breach_systems\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "dpo": {
+          "sql": "SELECT * FROM \"breach_systems\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "responder": {
+          "sql": "SELECT * FROM \"breach_systems\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "reporter": {
+          "note": "no read access for this role"
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"breach_systems\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "dpo": {
+          "sql": "SELECT * FROM \"breach_systems\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "responder": {
+          "sql": "SELECT * FROM \"breach_systems\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "reporter": {
+          "note": "no read access for this role"
+        }
+      }
+    },
+    {
+      "at": "cmp_lgline.source",
+      "kind": "records",
+      "table": "tbl_bacts01",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"breach_actions\" WHERE (1=1) ORDER BY \"happened_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "dpo": {
+          "sql": "SELECT * FROM \"breach_actions\" WHERE (1=1) ORDER BY \"happened_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "responder": {
+          "sql": "SELECT * FROM \"breach_actions\" WHERE (1=1) ORDER BY \"happened_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "reporter": {
+          "sql": "SELECT * FROM \"breach_actions\" WHERE (\"created_by\" = ?) ORDER BY \"happened_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "usr_compat_reporter",
+            101
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"breach_actions\" WHERE (1=1) ORDER BY \"happened_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "dpo": {
+          "sql": "SELECT * FROM \"breach_actions\" WHERE (1=1) ORDER BY \"happened_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "responder": {
+          "sql": "SELECT * FROM \"breach_actions\" WHERE (1=1) ORDER BY \"happened_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "reporter": {
+          "sql": "SELECT * FROM \"breach_actions\" WHERE (\"created_by\" = ?) ORDER BY \"happened_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "usr_compat_reporter",
+            101
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_cldst1.value",
+      "kind": "aggregate",
+      "table": "tbl_brchs01",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"breaches\" WHERE (1=1) AND \"stage\" = ? LIMIT ?",
+          "params": [
+            "closed",
+            1
+          ]
+        },
+        "dpo": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"breaches\" WHERE (1=1) AND \"stage\" = ? LIMIT ?",
+          "params": [
+            "closed",
+            1
+          ]
+        },
+        "responder": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"breaches\" WHERE (1=1) AND \"stage\" = ? LIMIT ?",
+          "params": [
+            "closed",
+            1
+          ]
+        },
+        "reporter": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"breaches\" WHERE (\"created_by\" = ?) AND \"stage\" = ? LIMIT ?",
+          "params": [
+            "usr_compat_reporter",
+            "closed",
+            1
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"breaches\" WHERE (1=1) AND \"stage\" = ? LIMIT ?",
+          "params": [
+            "closed",
+            1
+          ]
+        },
+        "dpo": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"breaches\" WHERE (1=1) AND \"stage\" = ? LIMIT ?",
+          "params": [
+            "closed",
+            1
+          ]
+        },
+        "responder": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"breaches\" WHERE (1=1) AND \"stage\" = ? LIMIT ?",
+          "params": [
+            "closed",
+            1
+          ]
+        },
+        "reporter": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"breaches\" WHERE (\"created_by\" = ?) AND \"stage\" = ? LIMIT ?",
+          "params": [
+            "usr_compat_reporter",
+            "closed",
+            1
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_cldst2.value",
+      "kind": "aggregate",
+      "table": "tbl_brchs01",
+      "sqlite": {
+        "owner": {
+          "sql": "WITH __src AS (SELECT \"authority_hours\" AS \"__pv_0\", ROW_NUMBER() OVER (ORDER BY (CASE WHEN \"authority_hours\" IS NULL THEN 1 ELSE 0 END), \"authority_hours\") AS \"__rn_0\", COUNT(\"authority_hours\") OVER () AS \"__cn_0\" FROM \"breaches\" WHERE (1=1) AND \"authority_hours\" IS NOT NULL) SELECT MIN(CASE WHEN \"__rn_0\" >= CAST(0.5 * \"__cn_0\" + 0.5 AS INTEGER) THEN \"__pv_0\" END) AS \"p50h\" FROM __src LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "dpo": {
+          "sql": "WITH __src AS (SELECT \"authority_hours\" AS \"__pv_0\", ROW_NUMBER() OVER (ORDER BY (CASE WHEN \"authority_hours\" IS NULL THEN 1 ELSE 0 END), \"authority_hours\") AS \"__rn_0\", COUNT(\"authority_hours\") OVER () AS \"__cn_0\" FROM \"breaches\" WHERE (1=1) AND \"authority_hours\" IS NOT NULL) SELECT MIN(CASE WHEN \"__rn_0\" >= CAST(0.5 * \"__cn_0\" + 0.5 AS INTEGER) THEN \"__pv_0\" END) AS \"p50h\" FROM __src LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "responder": {
+          "sql": "WITH __src AS (SELECT \"authority_hours\" AS \"__pv_0\", ROW_NUMBER() OVER (ORDER BY (CASE WHEN \"authority_hours\" IS NULL THEN 1 ELSE 0 END), \"authority_hours\") AS \"__rn_0\", COUNT(\"authority_hours\") OVER () AS \"__cn_0\" FROM \"breaches\" WHERE (1=1) AND \"authority_hours\" IS NOT NULL) SELECT MIN(CASE WHEN \"__rn_0\" >= CAST(0.5 * \"__cn_0\" + 0.5 AS INTEGER) THEN \"__pv_0\" END) AS \"p50h\" FROM __src LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "reporter": {
+          "sql": "WITH __src AS (SELECT \"authority_hours\" AS \"__pv_0\", ROW_NUMBER() OVER (ORDER BY (CASE WHEN \"authority_hours\" IS NULL THEN 1 ELSE 0 END), \"authority_hours\") AS \"__rn_0\", COUNT(\"authority_hours\") OVER () AS \"__cn_0\" FROM \"breaches\" WHERE (\"created_by\" = ?) AND \"authority_hours\" IS NOT NULL) SELECT MIN(CASE WHEN \"__rn_0\" >= CAST(0.5 * \"__cn_0\" + 0.5 AS INTEGER) THEN \"__pv_0\" END) AS \"p50h\" FROM __src LIMIT ?",
+          "params": [
+            "usr_compat_reporter",
+            1
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT PERCENTILE_DISC(0.5) WITHIN GROUP (ORDER BY \"authority_hours\") AS \"p50h\" FROM \"breaches\" WHERE (1=1) AND \"authority_hours\" IS NOT NULL LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "dpo": {
+          "sql": "SELECT PERCENTILE_DISC(0.5) WITHIN GROUP (ORDER BY \"authority_hours\") AS \"p50h\" FROM \"breaches\" WHERE (1=1) AND \"authority_hours\" IS NOT NULL LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "responder": {
+          "sql": "SELECT PERCENTILE_DISC(0.5) WITHIN GROUP (ORDER BY \"authority_hours\") AS \"p50h\" FROM \"breaches\" WHERE (1=1) AND \"authority_hours\" IS NOT NULL LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "reporter": {
+          "sql": "SELECT PERCENTILE_DISC(0.5) WITHIN GROUP (ORDER BY \"authority_hours\") AS \"p50h\" FROM \"breaches\" WHERE (\"created_by\" = ?) AND \"authority_hours\" IS NOT NULL LIMIT ?",
+          "params": [
+            "usr_compat_reporter",
+            1
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_cldst3.value",
+      "kind": "aggregate",
+      "table": "tbl_brchs01",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT MAX(\"authority_hours\") AS \"worst\" FROM \"breaches\" WHERE (1=1) AND \"authority_hours\" IS NOT NULL LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "dpo": {
+          "sql": "SELECT MAX(\"authority_hours\") AS \"worst\" FROM \"breaches\" WHERE (1=1) AND \"authority_hours\" IS NOT NULL LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "responder": {
+          "sql": "SELECT MAX(\"authority_hours\") AS \"worst\" FROM \"breaches\" WHERE (1=1) AND \"authority_hours\" IS NOT NULL LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "reporter": {
+          "sql": "SELECT MAX(\"authority_hours\") AS \"worst\" FROM \"breaches\" WHERE (\"created_by\" = ?) AND \"authority_hours\" IS NOT NULL LIMIT ?",
+          "params": [
+            "usr_compat_reporter",
+            1
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT MAX(\"authority_hours\") AS \"worst\" FROM \"breaches\" WHERE (1=1) AND \"authority_hours\" IS NOT NULL LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "dpo": {
+          "sql": "SELECT MAX(\"authority_hours\") AS \"worst\" FROM \"breaches\" WHERE (1=1) AND \"authority_hours\" IS NOT NULL LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "responder": {
+          "sql": "SELECT MAX(\"authority_hours\") AS \"worst\" FROM \"breaches\" WHERE (1=1) AND \"authority_hours\" IS NOT NULL LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "reporter": {
+          "sql": "SELECT MAX(\"authority_hours\") AS \"worst\" FROM \"breaches\" WHERE (\"created_by\" = ?) AND \"authority_hours\" IS NOT NULL LIMIT ?",
+          "params": [
+            "usr_compat_reporter",
+            1
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_cldgrid.source",
+      "kind": "records",
+      "table": "tbl_brchs01",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"breaches\" WHERE (1=1) AND \"stage\" = ? ORDER BY \"became_aware_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "closed",
+            201
+          ]
+        },
+        "dpo": {
+          "sql": "SELECT * FROM \"breaches\" WHERE (1=1) AND \"stage\" = ? ORDER BY \"became_aware_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "closed",
+            201
+          ]
+        },
+        "responder": {
+          "sql": "SELECT * FROM \"breaches\" WHERE (1=1) AND \"stage\" = ? ORDER BY \"became_aware_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "closed",
+            201
+          ]
+        },
+        "reporter": {
+          "sql": "SELECT * FROM \"breaches\" WHERE (\"created_by\" = ?) AND \"stage\" = ? ORDER BY \"became_aware_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "usr_compat_reporter",
+            "closed",
+            201
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"breaches\" WHERE (1=1) AND \"stage\" = ? ORDER BY \"became_aware_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "closed",
+            201
+          ]
+        },
+        "dpo": {
+          "sql": "SELECT * FROM \"breaches\" WHERE (1=1) AND \"stage\" = ? ORDER BY \"became_aware_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "closed",
+            201
+          ]
+        },
+        "responder": {
+          "sql": "SELECT * FROM \"breaches\" WHERE (1=1) AND \"stage\" = ? ORDER BY \"became_aware_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "closed",
+            201
+          ]
+        },
+        "reporter": {
+          "sql": "SELECT * FROM \"breaches\" WHERE (\"created_by\" = ?) AND \"stage\" = ? ORDER BY \"became_aware_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "usr_compat_reporter",
+            "closed",
+            201
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_cldpie.source",
+      "kind": "aggregate",
+      "table": "tbl_brchs01",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT \"outcome\" AS \"outcome\", COUNT(*) AS \"n\" FROM \"breaches\" WHERE (1=1) AND \"stage\" = ? GROUP BY \"outcome\" LIMIT ?",
+          "params": [
+            "closed",
+            20
+          ]
+        },
+        "dpo": {
+          "sql": "SELECT \"outcome\" AS \"outcome\", COUNT(*) AS \"n\" FROM \"breaches\" WHERE (1=1) AND \"stage\" = ? GROUP BY \"outcome\" LIMIT ?",
+          "params": [
+            "closed",
+            20
+          ]
+        },
+        "responder": {
+          "sql": "SELECT \"outcome\" AS \"outcome\", COUNT(*) AS \"n\" FROM \"breaches\" WHERE (1=1) AND \"stage\" = ? GROUP BY \"outcome\" LIMIT ?",
+          "params": [
+            "closed",
+            20
+          ]
+        },
+        "reporter": {
+          "sql": "SELECT \"outcome\" AS \"outcome\", COUNT(*) AS \"n\" FROM \"breaches\" WHERE (\"created_by\" = ?) AND \"stage\" = ? GROUP BY \"outcome\" LIMIT ?",
+          "params": [
+            "usr_compat_reporter",
+            "closed",
+            20
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT \"outcome\" AS \"outcome\", COUNT(*) AS \"n\" FROM \"breaches\" WHERE (1=1) AND \"stage\" = ? GROUP BY \"outcome\" LIMIT ?",
+          "params": [
+            "closed",
+            20
+          ]
+        },
+        "dpo": {
+          "sql": "SELECT \"outcome\" AS \"outcome\", COUNT(*) AS \"n\" FROM \"breaches\" WHERE (1=1) AND \"stage\" = ? GROUP BY \"outcome\" LIMIT ?",
+          "params": [
+            "closed",
+            20
+          ]
+        },
+        "responder": {
+          "sql": "SELECT \"outcome\" AS \"outcome\", COUNT(*) AS \"n\" FROM \"breaches\" WHERE (1=1) AND \"stage\" = ? GROUP BY \"outcome\" LIMIT ?",
+          "params": [
+            "closed",
+            20
+          ]
+        },
+        "reporter": {
+          "sql": "SELECT \"outcome\" AS \"outcome\", COUNT(*) AS \"n\" FROM \"breaches\" WHERE (\"created_by\" = ?) AND \"stage\" = ? GROUP BY \"outcome\" LIMIT ?",
+          "params": [
+            "usr_compat_reporter",
+            "closed",
+            20
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_cldbar.source",
+      "kind": "aggregate",
+      "table": "tbl_brchs01",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT strftime('%Y-%m', \"became_aware_at\") AS \"month\", COUNT(*) AS \"n\" FROM \"breaches\" WHERE (1=1) GROUP BY strftime('%Y-%m', \"became_aware_at\") LIMIT ?",
+          "params": [
+            24
+          ]
+        },
+        "dpo": {
+          "sql": "SELECT strftime('%Y-%m', \"became_aware_at\") AS \"month\", COUNT(*) AS \"n\" FROM \"breaches\" WHERE (1=1) GROUP BY strftime('%Y-%m', \"became_aware_at\") LIMIT ?",
+          "params": [
+            24
+          ]
+        },
+        "responder": {
+          "sql": "SELECT strftime('%Y-%m', \"became_aware_at\") AS \"month\", COUNT(*) AS \"n\" FROM \"breaches\" WHERE (1=1) GROUP BY strftime('%Y-%m', \"became_aware_at\") LIMIT ?",
+          "params": [
+            24
+          ]
+        },
+        "reporter": {
+          "sql": "SELECT strftime('%Y-%m', \"became_aware_at\") AS \"month\", COUNT(*) AS \"n\" FROM \"breaches\" WHERE (\"created_by\" = ?) GROUP BY strftime('%Y-%m', \"became_aware_at\") LIMIT ?",
+          "params": [
+            "usr_compat_reporter",
+            24
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT to_char(\"became_aware_at\"::timestamptz, 'YYYY-MM') AS \"month\", COUNT(*) AS \"n\" FROM \"breaches\" WHERE (1=1) GROUP BY to_char(\"became_aware_at\"::timestamptz, 'YYYY-MM') LIMIT ?",
+          "params": [
+            24
+          ]
+        },
+        "dpo": {
+          "sql": "SELECT to_char(\"became_aware_at\"::timestamptz, 'YYYY-MM') AS \"month\", COUNT(*) AS \"n\" FROM \"breaches\" WHERE (1=1) GROUP BY to_char(\"became_aware_at\"::timestamptz, 'YYYY-MM') LIMIT ?",
+          "params": [
+            24
+          ]
+        },
+        "responder": {
+          "sql": "SELECT to_char(\"became_aware_at\"::timestamptz, 'YYYY-MM') AS \"month\", COUNT(*) AS \"n\" FROM \"breaches\" WHERE (1=1) GROUP BY to_char(\"became_aware_at\"::timestamptz, 'YYYY-MM') LIMIT ?",
+          "params": [
+            24
+          ]
+        },
+        "reporter": {
+          "sql": "SELECT to_char(\"became_aware_at\"::timestamptz, 'YYYY-MM') AS \"month\", COUNT(*) AS \"n\" FROM \"breaches\" WHERE (\"created_by\" = ?) GROUP BY to_char(\"became_aware_at\"::timestamptz, 'YYYY-MM') LIMIT ?",
+          "params": [
+            "usr_compat_reporter",
+            24
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_cldsev.source",
+      "kind": "aggregate",
+      "table": "tbl_brchs01",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT \"severity\" AS \"severity\", COUNT(*) AS \"n\" FROM \"breaches\" WHERE (1=1) GROUP BY \"severity\" LIMIT ?",
+          "params": [
+            20
+          ]
+        },
+        "dpo": {
+          "sql": "SELECT \"severity\" AS \"severity\", COUNT(*) AS \"n\" FROM \"breaches\" WHERE (1=1) GROUP BY \"severity\" LIMIT ?",
+          "params": [
+            20
+          ]
+        },
+        "responder": {
+          "sql": "SELECT \"severity\" AS \"severity\", COUNT(*) AS \"n\" FROM \"breaches\" WHERE (1=1) GROUP BY \"severity\" LIMIT ?",
+          "params": [
+            20
+          ]
+        },
+        "reporter": {
+          "sql": "SELECT \"severity\" AS \"severity\", COUNT(*) AS \"n\" FROM \"breaches\" WHERE (\"created_by\" = ?) GROUP BY \"severity\" LIMIT ?",
+          "params": [
+            "usr_compat_reporter",
+            20
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT \"severity\" AS \"severity\", COUNT(*) AS \"n\" FROM \"breaches\" WHERE (1=1) GROUP BY \"severity\" LIMIT ?",
+          "params": [
+            20
+          ]
+        },
+        "dpo": {
+          "sql": "SELECT \"severity\" AS \"severity\", COUNT(*) AS \"n\" FROM \"breaches\" WHERE (1=1) GROUP BY \"severity\" LIMIT ?",
+          "params": [
+            20
+          ]
+        },
+        "responder": {
+          "sql": "SELECT \"severity\" AS \"severity\", COUNT(*) AS \"n\" FROM \"breaches\" WHERE (1=1) GROUP BY \"severity\" LIMIT ?",
+          "params": [
+            20
+          ]
+        },
+        "reporter": {
+          "sql": "SELECT \"severity\" AS \"severity\", COUNT(*) AS \"n\" FROM \"breaches\" WHERE (\"created_by\" = ?) GROUP BY \"severity\" LIMIT ?",
+          "params": [
+            "usr_compat_reporter",
+            20
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_stgrid.source",
+      "kind": "records",
+      "table": "tbl_sevs001",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"severity_levels\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "dpo": {
+          "sql": "SELECT * FROM \"severity_levels\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "responder": {
+          "sql": "SELECT * FROM \"severity_levels\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "reporter": {
+          "sql": "SELECT * FROM \"severity_levels\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"severity_levels\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "dpo": {
+          "sql": "SELECT * FROM \"severity_levels\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "responder": {
+          "sql": "SELECT * FROM \"severity_levels\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "reporter": {
+          "sql": "SELECT * FROM \"severity_levels\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      }
+    }
+  ]
+}

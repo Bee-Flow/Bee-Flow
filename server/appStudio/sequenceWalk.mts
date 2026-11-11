@@ -33,24 +33,37 @@
  *
  * Ordinals are flattenSteps(normalizeSequence(action)) positions, mapped by object identity,
  * so a walker path and a browser stepIndex always name the same step.
+ *
+ * The control kinds of the step registry (return, break, continue, while, raise_error, try,
+ * parallel) are walked by sequenceWalkFlow.mts; its header says how leaving early (`w.signal`)
+ * and try/catch/finally work, sequenceWalkParallel.mts how the branches of a parallel step run
+ * on forks of the walk state. Their paths: a while body `.steps[i]`, a try `.steps[i]`,
+ * `.catch[i]`, `.finally[i]`, a parallel branch `.branches[k].steps[i]`. A registry control kind this walker does not know fails its
+ * step: it never falls through to the host as if it were a browser step.
  */
 
 import { createRequire } from 'node:module';
 import { childStepSlots, errorHandlerOf } from '../shared/appDefinition/stepFlow.mjs';
+import { parallelRefusal } from '../shared/appDefinition/parallelRules.mjs';
 import { calleeTop, ordinalMap, stepPaths, topOf } from './sequencePaths.mts';
 import { attemptStep, errorScopeOf } from './stepErrorFlow.mts';
+import { FLOW_KINDS, walkFlowStep, walkLoop } from './sequenceWalkFlow.mts';
 import type { Decision, Obj, Outcome, OutcomeView, Step, StepEndEvent, StepEvent, StepResult, WalkHost, WalkState } from './sequenceWalkTypes.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 const { LIMITS } = nodeRequire('./componentSpecs/limits.js') as {
     LIMITS: { MAX_ACTION_DEPTH: number; MAX_ACTION_LOOP_ITERATIONS: number; MAX_CALL_DEPTH: number; MAX_CALL_PARAMS: number };
 };
+const { stepMetaOf } = nodeRequire('./componentSpecs/stepRegistry.js') as { stepMetaOf: (kind: unknown) => { side?: string; since?: number } | null };
 
 // The contract and the paths live beside the walker; one import path for its users.
 export type { Decision, Obj, Outcome, OutcomeView, Step, StepEndEvent, StepEvent, StepPath, StepResult, StepStatus, WalkHost, WalkState } from './sequenceWalkTypes.mts';
 export { stepPaths };
 
-export const CONTROL_KINDS: readonly string[] = Object.freeze(['condition', 'switch', 'loop']);
+/** The base control kinds, walked here. */
+const BASE_CONTROL_KINDS: readonly string[] = Object.freeze(['condition', 'switch', 'loop']);
+/** Every kind the walker evaluates itself instead of asking the host: the base three and the registry's control kinds. */
+export const CONTROL_KINDS: readonly string[] = Object.freeze([...BASE_CONTROL_KINDS, ...FLOW_KINDS]);
 /** Distinct paths kept in `outcomes` (a report never needs more). */
 export const MAX_OUTCOMES = 300;
 const MAX_NOTES = 50;
@@ -77,9 +90,13 @@ export function newWalkState(init: { vars?: Obj; form?: Obj; item?: unknown; ind
 
 // ── The walk ────────────────────────────────────────────────────────────────
 
-type Frame = {
+export type Frame = {
     w: WalkState; host: WalkHost; ordinals: Map<object, number>; ownerActionId: string;
     loop: { index: number; count: number } | null; depth: number;
+    /** Inside the body of a loop or while of the SAME action: where break and continue work. */
+    breakable: boolean;
+    /** Under a branch of a `parallel` step: in the action that holds it (`branch`) or in one it calls (`called`). */
+    parallel?: 'branch' | 'called';
 };
 
 function eventOf(fr: Frame, step: unknown, path: string, kind: string): StepEvent {
@@ -93,7 +110,7 @@ function addNote(w: WalkState, text: string): void {
     if (w.notes.size < MAX_NOTES) w.notes.add(text);
 }
 
-type Ended = Omit<StepEndEvent, keyof StepEvent | 'ms'> & { prompt?: string };
+export type Ended = Omit<StepEndEvent, keyof StepEvent | 'ms'> & { prompt?: string };
 
 function keepOutcome(w: WalkState, ev: StepEvent, end: Ended, ms: number): void {
     const prev = w.outcomes.get(ev.path);
@@ -119,9 +136,9 @@ async function record(fr: Frame, ev: StepEvent, end: Ended, startedAt: number): 
     await fr.host.onStepEnd?.({ ...ev, ...rest, ms });
 }
 
-async function fail(fr: Frame, ev: StepEvent, res: { error?: string; code?: string }, startedAt: number, extra: Partial<Ended> = {}): Promise<void> {
+async function fail(fr: Frame, ev: StepEvent, res: { error?: string; code?: string }, startedAt: number, extra: Partial<Ended> = {}, cause?: string): Promise<void> {
     const error = String(res.error || 'The step failed without a reason');
-    fr.w.failed = { path: ev.path, kind: ev.kind, ordinal: ev.ordinal, error, ...(res.code ? { code: res.code } : {}) };
+    fr.w.failed = { path: ev.path, kind: ev.kind, ordinal: ev.ordinal, error, ...(res.code ? { code: res.code } : {}), ...(cause && cause !== ev.kind ? { step: cause } : {}) };
     fr.w.stopped = `${ev.path} failed`;
     await record(fr, ev, { ...extra, status: 'error', error, ...(res.code ? { code: res.code } : {}) }, startedAt);
 }
@@ -136,11 +153,14 @@ async function resolveIn(fr: Frame, binding: unknown, ctx: Obj, scope: unknown):
     }
 }
 
+/** What sequenceWalkFlow.mts borrows (function declarations, so the order in this file does not matter). */
+const FLOW_API = { walkList, record, fail, resolveIn, addNote };
+
 async function walkList(fr: Frame, list: unknown, base: string): Promise<void> {
     const steps = Array.isArray(list) ? list : [];
     const { w, host } = fr;
     for (let i = 0; i < steps.length; i += 1) {
-        if (w.stopped) return;
+        if (w.stopped || w.signal) return;
         const stop = host.shouldStop ? host.shouldStop(w) : null;
         if (stop) { w.stopped = stop; w.truncated = true; return; }
         const step = steps[i];
@@ -163,9 +183,17 @@ async function walkStep(fr: Frame, step: Step, path: string): Promise<void> {
     if (fr.depth > MAX_WALK_DEPTH) {
         return fail(fr, ev, { error: `Steps are nested deeper than ${MAX_WALK_DEPTH - 1} levels` }, startedAt);
     }
+    if (fr.parallel && parallelRefusal(kind, fr.parallel === 'branch')) {
+        return fail(fr, ev, { error: `A ${kind} step cannot run inside a branch of a parallel step`, code: 'not_in_parallel' }, startedAt);
+    }
     if (kind === 'set_variable') return setVariable(fr, step, ev, startedAt);
     if (kind === 'call_action') return walkCall(fr, step, ev, startedAt);
-    if (CONTROL_KINDS.includes(kind)) return walkControl(fr, step, ev, startedAt);
+    if (BASE_CONTROL_KINDS.includes(kind)) return walkControl(fr, step, ev, startedAt);
+    if (FLOW_KINDS.includes(kind)) return walkFlowStep(FLOW_API, fr, step, ev, startedAt);
+    const meta = stepMetaOf(kind);
+    if (meta?.side === 'control' && meta.since !== undefined) {
+        return fail(fr, ev, { error: `A ${kind} step cannot run here yet`, code: 'kind_unsupported' }, startedAt);
+    }
     return walkLeaf(fr, step, ev, startedAt);
 }
 
@@ -244,7 +272,7 @@ type Failure = { res: StepResult; attempts: number; startedAt: number; extra: Pa
 async function failOrHandle(fr: Frame, step: Step, ev: StepEvent, f: Failure): Promise<void> {
     const { w } = fr;
     const handler = errorHandlerOf(step);
-    if (!handler) return fail(fr, ev, f.res, f.startedAt, f.extra);
+    if (!handler) return fail(fr, ev, f.res, f.startedAt, f.extra, f.kind);
     const error = String(f.res.error || 'The step failed without a reason');
     await record(fr, ev, { ...f.extra, status: 'error', error, ...(f.res.code ? { code: f.res.code } : {}), attempts: f.attempts, handled: true }, f.startedAt);
     const saved = w.error;
@@ -272,48 +300,16 @@ async function walkControl(fr: Frame, step: Step, ev: StepEvent, startedAt: numb
     }
     if (step.kind === 'switch') {
         const value = host.evaluate(String(step.expr ?? ''), scope);
-        const cases = Array.isArray(step.cases) ? step.cases as Array<{ value?: unknown } | null> : [];
-        const at = cases.findIndex((c) => !!c && same(c.value, value));
+        const cases = Array.isArray(step.cases) ? step.cases as Array<{ value?: unknown; whenExpr?: unknown } | null> : [];
+        // A case without a `value` but with a `whenExpr` formula (since 3) is picked when that formula is true.
+        const picks = (c: { value?: unknown; whenExpr?: unknown }): boolean => (c.value === undefined && typeof c.whenExpr === 'string' && c.whenExpr !== ''
+            ? !!host.evaluate(c.whenExpr, scope) : same(c.value, value));
+        const at = cases.findIndex((c) => !!c && picks(c));
         await record(fr, ev, { status: 'ok', result: { case: at >= 0 ? at : 'default' } }, startedAt);
         const slot = slots[at >= 0 ? at : slots.length - 1];
         return walkList(inner, slot.steps, `${ev.path}${slot.suffix}`);
     }
-    return walkLoop(inner, step, ev, startedAt, { ctx, scope });
-}
-
-async function walkLoop(fr: Frame, step: Step, ev: StepEvent, startedAt: number, at: { ctx: Obj; scope: unknown }): Promise<void> {
-    const { w } = fr;
-    const got = await resolveIn(fr, step.source, at.ctx, at.scope);
-    if ('error' in got) return fail(fr, ev, got, startedAt);
-    const source = got.value;
-    if (!Array.isArray(source)) {
-        addNote(w, `${ev.path}: the loop source did not resolve to a list. Bind it to a records binding, or to a formula that returns a list (e.g. rows passed in scope.vars).`);
-        return record(fr, ev, { status: 'skipped', error: 'source did not resolve to a list', result: { iterations: 0 } }, startedAt);
-    }
-    const own = typeof step.maxIterations === 'number' && step.maxIterations > 0 ? step.maxIterations : MAX_LOOP_ITERATIONS;
-    const cap = Math.min(own, MAX_LOOP_ITERATIONS);
-    const count = Math.min(source.length, cap);
-    if (source.length > count) addNote(w, `${ev.path}: looped ${count} of ${source.length} rows (cap ${cap}).`);
-    await record(fr, ev, { status: 'ok', result: { iterations: count } }, startedAt);
-    const saved = { vars: w.vars, item: w.item, index: w.index };
-    for (let n = 0; n < count && !w.stopped; n += 1) {
-        w.item = source[n];
-        w.index = n;
-        const bound: Obj = {};
-        if (typeof step.itemVar === 'string' && step.itemVar) bound[step.itemVar] = source[n];
-        if (typeof step.indexVar === 'string' && step.indexVar) bound[step.indexVar] = n;
-        w.vars = { ...w.vars, ...bound };
-        await walkList({ ...fr, loop: { index: n, count } }, step.steps, `${ev.path}.steps`);
-    }
-    // itemVar/indexVar are iteration-scoped, as in the browser; other writes carry on.
-    const carried: Obj = { ...w.vars };
-    for (const name of [step.itemVar, step.indexVar]) {
-        if (typeof name !== 'string' || !name) continue;
-        if (Object.hasOwn(saved.vars, name)) carried[name] = saved.vars[name]; else delete carried[name];
-    }
-    w.vars = carried;
-    w.item = saved.item;
-    w.index = saved.index;
+    return walkLoop(FLOW_API, inner, step, ev, startedAt, { ctx, scope });
 }
 
 /** Why a call_action cannot run, or null. */
@@ -350,8 +346,10 @@ async function walkCall(fr: Frame, step: Step, ev: StepEvent, startedAt: number)
     Object.assign(w, { params: got.value, item: undefined, index: undefined, value: undefined, lastResult: NO_RESULT, callChain: [...w.callChain, id] });
     const { list, base } = calleeTop(callee, `${ev.path}.call.steps`);
     try {
-        await walkList({ ...fr, ordinals: ordinalMap(callee), ownerActionId: id, depth: 1 }, list, base);
+        await walkList({ ...fr, ordinals: ordinalMap(callee), ownerActionId: id, depth: 1, breakable: false, ...(fr.parallel ? { parallel: 'called' as const } : {}) }, list, base);
     } finally {
+        // A return ends the called action only: the caller goes on.
+        if (w.signal) w.signal = null;
         const produced = w.lastResult !== NO_RESULT;
         const result = produced ? w.lastResult : null;
         Object.assign(w, { params: saved.params, item: saved.item, index: saved.index, value: saved.value, callChain: saved.callChain, lastResult: produced ? result : saved.lastResult });
@@ -373,9 +371,11 @@ export async function walkAction(w: WalkState, action: Obj, host: WalkHost, opts
     const resolveCallee = own ? (id: string) => own(id) : undefined;
     for (const p of stepPaths(action, { resolveCallee, rootId: opts.actionId })) if (!w.known.has(p.path)) w.known.set(p.path, p.kind);
     if (!w.callChain.length) w.callChain = [opts.actionId];
-    const fr: Frame = { w, host, ordinals: ordinalMap(action), ownerActionId: opts.actionId, loop: null, depth: 1 };
+    const fr: Frame = { w, host, ordinals: ordinalMap(action), ownerActionId: opts.actionId, loop: null, depth: 1, breakable: false };
     const { list, base } = topOf(action);
     await walkList(fr, list, base);
+    // A return ended the action: that is how it ends, not a stop.
+    if (w.signal) w.signal = null;
 }
 
 /** The walk as data: ok/stopped, the vars, the last server result, and an outcome for EVERY known path. */

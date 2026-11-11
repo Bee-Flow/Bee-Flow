@@ -1,0 +1,856 @@
+# template-breach-register
+## screen scr_clock (Open breaches)
+<div class="app-design--surface-soft app-shell flex flex-col w-full" data-app-appearance="dark" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(185, 28, 28, 0.1); --app-accent: #B91C1C; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(185, 28, 28, 0.1); --app-primary: #B91C1C; --app-radius: 8px; --app-space: 0.75; background: var(--app-canvas, var(--bg-primary)); color-scheme: dark; color: var(--text-primary); font-family: "Geist", system-ui, -apple-system, sans-serif; font-size: 15px; min-height: 100vh">
+  <main class="flex flex-1 flex-col min-h-0">
+    <div class="app-design--surface-soft app-runtime app-screen-enter flex flex-1 flex-col h-full min-h-0 w-full" data-app-appearance="dark" data-app-screen="scr_clock" data-app-screen-kind="page" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(185, 28, 28, 0.1); --app-accent: #B91C1C; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(185, 28, 28, 0.1); --app-primary: #B91C1C; --app-radius: 8px; --app-space: 0.75; color-scheme: dark; color: var(--text-primary); font-family: "Geist", system-ui, -apple-system, sans-serif; font-size: 15px">
+      <div class="flex flex-1 flex-col min-h-0 w-full" style="margin: 0px auto; max-width: none">
+        <section class="app-grid" data-section-id="sec_cktop" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="page_header" data-node-id="cmp_ckhdr" style="grid-column: span 12 / span 12">
+            <header class="app-pageheader--banner min-w-0 w-full" data-app-pageheader="true" data-app-pageheader-look="banner" style="background: var(--app-primary-soft); border-radius: var(--app-radius, 8px); padding: calc(20px * var(--app-space, 1))">
+              <div class="flex flex-wrap items-start" style="gap: calc(12px * var(--app-space, 1))">
+                <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-9 inline-flex items-center justify-center rounded-md shrink-0 w-9" aria-hidden="true">
+                  <svg class="h-4.5 lucide lucide-alert-triangle lucide-triangle-alert w-4.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                <div class="basis-64 flex-1 min-w-0">
+                  <h1 class="font-semibold text-[var(--text-primary)] text-xl truncate" title="Open breaches">
+                    "Open breaches"
+                  <p class="line-clamp-2 mt-0.5 text-sm" title="Ordered by the Article 33 deadline — 72 hours from the moment we became aware, not from when it happened." style="color: var(--text-secondary)">
+                    "Ordered by the Article 33 deadline — 72 hours from the moment we became aware, not from when it happened."
+                <div class="flex flex-wrap items-center justify-end ml-auto" data-app-pageheader-actions="true" style="gap: calc(8px * var(--app-space, 1))">
+                  <div class="app-node app-span-3 min-w-0" data-app-type="button" data-node-id="cmp_cknew" style="grid-column: span 3 / span 3">
+                    <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm transition-opacity" type="button" style="background: var(--app-accent, var(--app-primary)); border-radius: var(--app-radius); color: var(--app-accent-contrast, var(--app-primary-contrast))">
+                      <svg class="h-3.5 lucide lucide-plus w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                      <span>
+                        "Report a breach"
+          <div class="app-node app-span-3 min-w-0" data-app-type="stat" data-node-id="cmp_ckst1" style="grid-column: span 3 / span 3">
+            <div class="app-stat app-stat--accent flex gap-2.5 items-start" style="background: var(--bg-card); border-left: 3px solid var(--app-primary); border-radius: var(--app-radius, 8px); box-shadow: var(--app-shadow-1); padding: calc(16px * var(--app-space, 1))">
+              <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-8 inline-flex items-center justify-center mt-0.5 rounded-md shrink-0 w-8">
+                <svg class="h-4 lucide lucide-inbox w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-[var(--text-secondary)] text-xs">
+                  "Open"
+                <div class="flex gap-2 items-baseline min-w-0">
+                  <div class="font-semibold leading-tight text-2xl truncate" title="—">
+                    "—"
+                <div class="text-[var(--text-muted)] text-xs">
+                  "breaches still being handled"
+          <div class="app-node app-span-3 min-w-0" data-app-type="stat" data-node-id="cmp_ckst2" style="grid-column: span 3 / span 3">
+            <div class="app-stat app-stat--accent flex gap-2.5 items-start" style="background: var(--bg-card); border-left: 3px solid var(--app-primary); border-radius: var(--app-radius, 8px); box-shadow: var(--app-shadow-1); padding: calc(16px * var(--app-space, 1))">
+              <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-8 inline-flex items-center justify-center mt-0.5 rounded-md shrink-0 w-8">
+                <svg class="h-4 lucide lucide-timer w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-[var(--text-secondary)] text-xs">
+                  "Due now"
+                <div class="flex gap-2 items-baseline min-w-0">
+                  <div class="font-semibold leading-tight text-2xl truncate" title="—">
+                    "—"
+                <div class="text-[var(--text-muted)] text-xs">
+                  "authority not notified, 72 hours up today or already past"
+          <div class="app-node app-span-3 min-w-0" data-app-type="stat" data-node-id="cmp_ckst3" style="grid-column: span 3 / span 3">
+            <div class="app-stat app-stat--accent flex gap-2.5 items-start" style="background: var(--bg-card); border-left: 3px solid var(--app-primary); border-radius: var(--app-radius, 8px); box-shadow: var(--app-shadow-1); padding: calc(16px * var(--app-space, 1))">
+              <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-8 inline-flex items-center justify-center mt-0.5 rounded-md shrink-0 w-8">
+                <svg class="h-4 lucide lucide-history lucide-rotate-ccw-clock w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-[var(--text-secondary)] text-xs">
+                  "Notified late"
+                <div class="flex gap-2 items-baseline min-w-0">
+                  <div class="font-semibold leading-tight text-2xl truncate" title="—">
+                    "—"
+                <div class="text-[var(--text-muted)] text-xs">
+                  "ever — each needs a reason for the delay on file"
+          <div class="app-node app-span-3 min-w-0" data-app-type="stat" data-node-id="cmp_ckst4" style="grid-column: span 3 / span 3">
+            <div class="app-stat app-stat--accent flex gap-2.5 items-start" style="background: var(--bg-card); border-left: 3px solid var(--app-primary); border-radius: var(--app-radius, 8px); box-shadow: var(--app-shadow-1); padding: calc(16px * var(--app-space, 1))">
+              <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-8 inline-flex items-center justify-center mt-0.5 rounded-md shrink-0 w-8">
+                <svg class="h-4 lucide lucide-file-check w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-[var(--text-secondary)] text-xs">
+                  "Recorded, not notifiable"
+                <div class="flex gap-2 items-baseline min-w-0">
+                  <div class="font-semibold leading-tight text-2xl truncate" title="—">
+                    "—"
+                <div class="text-[var(--text-muted)] text-xs">
+                  "assessed as no risk and documented (Art. 33(5))"
+          <div class="app-node app-span-12 min-w-0" data-app-type="filter_bar" data-node-id="cmp_ckfilt" style="grid-column: span 12 / span 12">
+            <div class="flex flex-wrap gap-3 items-end" data-app-filterbar="true">
+              <div class="flex flex-col gap-1 min-w-0" data-app-filter="q">
+                <label class="font-medium text-[var(--text-secondary)] text-xs" for="cmp_ckfilt-flt-q">
+                  "Search"
+                <div class="relative">
+                  <svg class="-translate-y-1/2 absolute h-3.5 left-2.5 lucide lucide-search text-[var(--text-muted)] top-1/2 w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                  <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none pl-8 px-2.5 py-1.5 text-sm w-full" aria-label="Search" id="cmp_ckfilt-flt-q" placeholder="Search" type="text" value="" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+              <div class="flex flex-col gap-1 min-w-0" data-app-filter="severity">
+                <label class="font-medium text-[var(--text-secondary)] text-xs" for="cmp_ckfilt-flt-severity">
+                  "Severity"
+                <select class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-label="Severity" id="cmp_ckfilt-flt-severity" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                  <option value="">
+                    "All"
+                  <option value="unassessed">
+                    "Not assessed"
+                  <option value="none">
+                    "No risk"
+                  <option value="low">
+                    "Low risk"
+                  <option value="medium">
+                    "Risk"
+                  <option value="high">
+                    "High risk"
+              <div class="flex flex-col gap-1 min-w-0" data-app-filter="stage">
+                <label class="font-medium text-[var(--text-secondary)] text-xs" for="cmp_ckfilt-flt-stage">
+                  "Stage"
+                <select class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-label="Stage" id="cmp_ckfilt-flt-stage" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                  <option value="">
+                    "All"
+                  <option value="reported">
+                    "Reported"
+                  <option value="assessed">
+                    "Assessed"
+                  <option value="notified">
+                    "Notified"
+                  <option value="closed">
+                    "Closed"
+              <div class="flex flex-col gap-1 min-w-0" data-app-filter="due">
+                <label class="cursor-pointer gap-2 inline-flex items-center py-1.5 text-sm" for="cmp_ckfilt-flt-due">
+                  <input class="accent-[var(--app-primary)]" id="cmp_ckfilt-flt-due" type="checkbox">
+                  <span class="text-[var(--text-primary)]">
+                    "Deadline reached"
+        <section class="app-grid app-section-fill" data-section-id="sec_ckmain" style="flex: 1 1 0px; gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); grid-template-rows: minmax(0, 1fr); min-height: 0px; padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="data_grid" data-node-id="cmp_ckgrid" style="flex: 1 1 0px; grid-column: span 12 / span 12; min-height: 0px; min-width: 0px">
+            <div class="w-full" data-app-datagrid="true">
+              <div class="flex flex-col gap-1.5 h-full items-center justify-center min-h-0 py-6 text-center">
+                <span class="mb-1 text-[var(--text-tertiary)]">
+                  <svg class="block" aria-hidden="true" fill="none" role="presentation" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 96 72" style="height: auto; opacity: 0.9; width: 5.5rem">
+                <span class="font-medium text-[var(--text-primary)] text-sm">
+                  "Nothing here yet"
+                <span class="max-w-xs text-[var(--text-muted)] text-sm">
+                  "Nothing open. When something happens, report it here — the clock starts the moment anyone in the organisation knows."
+## screen scr_report (Report a breach)
+<div class="app-design--surface-soft app-shell flex flex-col w-full" data-app-appearance="dark" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(185, 28, 28, 0.1); --app-accent: #B91C1C; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(185, 28, 28, 0.1); --app-primary: #B91C1C; --app-radius: 8px; --app-space: 0.75; background: var(--app-canvas, var(--bg-primary)); color-scheme: dark; color: var(--text-primary); font-family: "Geist", system-ui, -apple-system, sans-serif; font-size: 15px; min-height: 100vh">
+  <main class="flex flex-1 flex-col min-h-0">
+    <div class="app-design--surface-soft app-runtime app-screen-enter flex flex-1 flex-col h-full min-h-0 w-full" data-app-appearance="dark" data-app-screen="scr_report" data-app-screen-kind="page" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(185, 28, 28, 0.1); --app-accent: #B91C1C; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(185, 28, 28, 0.1); --app-primary: #B91C1C; --app-radius: 8px; --app-space: 0.75; color-scheme: dark; color: var(--text-primary); font-family: "Geist", system-ui, -apple-system, sans-serif; font-size: 15px">
+      <div class="flex flex-1 flex-col min-h-0 w-full" style="margin: 0px auto; max-width: 1280px">
+        <section class="app-grid" data-section-id="sec_rptop" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="page_header" data-node-id="cmp_rphdr" style="grid-column: span 12 / span 12">
+            <header class="min-w-0 w-full" data-app-pageheader="true">
+              <div class="flex flex-wrap items-start" style="gap: calc(12px * var(--app-space, 1))">
+                <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-9 inline-flex items-center justify-center rounded-md shrink-0 w-9" aria-hidden="true">
+                  <svg class="h-4.5 lucide lucide-plus w-4.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                <div class="basis-64 flex-1 min-w-0">
+                  <h1 class="font-semibold text-[var(--text-primary)] text-xl truncate" title="Report a breach">
+                    "Report a breach"
+                  <p class="line-clamp-2 mt-0.5 text-sm" title="Report first, investigate second. A record you can correct beats a deadline you missed while gathering detail." style="color: var(--text-secondary)">
+                    "Report first, investigate second. A record you can correct beats a deadline you missed while gathering detail."
+                <div class="flex flex-wrap items-center justify-end ml-auto" data-app-pageheader-actions="true" style="gap: calc(8px * var(--app-space, 1))">
+                  <div class="app-node app-span-3 min-w-0" data-app-type="button" data-node-id="cmp_rpback" style="grid-column: span 3 / span 3">
+                    <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm transition-opacity" type="button" style="background: transparent; border-radius: var(--app-radius); color: var(--app-primary)">
+                      <svg class="h-3.5 lucide lucide-arrow-left w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                      <span>
+                        "Back to the register"
+          <div class="app-node app-span-12 min-w-0" data-app-type="callout" data-node-id="cmp_rpnote" style="grid-column: span 12 / span 12">
+            <div class="flex gap-2.5 items-start px-3 py-2.5 text-sm" data-app-callout="warning" style="background: rgba(245, 158, 11, 0.1); border-left: 3px solid rgb(245, 158, 11); border-radius: var(--app-radius); color: var(--text-primary)">
+              <svg class="h-4 lucide lucide-alert-triangle lucide-triangle-alert mt-0.5 shrink-0 w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg" style="color: rgb(245, 158, 11)">
+              <div class="min-w-0">
+                <div class="font-medium">
+                  "The clock starts at awareness, not at the incident"
+                <div class="app-callout__body text-[var(--text-secondary)]">
+                  "The 72 hours of Article 33 run from the moment the organisation became"
+                  <strong>
+                    "aware"
+                  "— which can be days or months after the thing itself happened. A backup found missing this morning, lost last spring, is due within 72 hours of this morning. If a processor told you, awareness is the moment"
+                  <strong>
+                    "they told you"
+                  "; record that on the Systems tab afterwards."
+        <section class="app-grid app-section-fill" data-section-id="sec_rpmain" style="flex: 1 1 0px; gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); grid-template-rows: minmax(0, 1fr); min-height: 0px; padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-8 min-w-0" data-app-type="form" data-node-id="cmp_rpform" style="grid-column: span 8 / span 8">
+            <form class="flex flex-col" novalidate="" style="gap: calc(12px * var(--app-space, 1))">
+              <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                <div class="app-node app-span-4 min-w-0" data-app-type="input_text" data-node-id="cmp_rpf1" style="grid-column: span 4 / span 4">
+                  <div class="flex flex-col gap-1 text-left">
+                    <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_rpf1-input">
+                      "Reference"
+                      <span class="[color:var(--error)]" aria-hidden="true">
+                        "*"
+                    <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-required="true" id="cmp_rpf1-input" name="reference" placeholder="BR-2026-018" type="text" value="" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                <div class="app-node app-span-8 min-w-0" data-app-type="input_text" data-node-id="cmp_rpf2" style="grid-column: span 8 / span 8">
+                  <div class="flex flex-col gap-1 text-left">
+                    <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_rpf2-input">
+                      "What happened, in one line"
+                      <span class="[color:var(--error)]" aria-hidden="true">
+                        "*"
+                    <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-required="true" id="cmp_rpf2-input" name="title" placeholder="Mailing sent with every recipient in the To field" type="text" value="" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                <div class="app-node app-span-4 min-w-0" data-app-type="input_datetime" data-node-id="cmp_rpf3" style="grid-column: span 4 / span 4">
+                  <div class="flex flex-col gap-1 text-left">
+                    <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_rpf3-input">
+                      "We became aware (date and time)"
+                      <span class="[color:var(--error)]" aria-hidden="true">
+                        "*"
+                    <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-required="true" id="cmp_rpf3-input" name="became_aware_at" type="datetime-local" value="<datetime>" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                <div class="app-node app-span-4 min-w-0" data-app-type="input_datetime" data-node-id="cmp_rpf4" style="grid-column: span 4 / span 4">
+                  <div class="flex flex-col gap-1 text-left">
+                    <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_rpf4-input">
+                      "It happened (if known)"
+                    <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" id="cmp_rpf4-input" name="occurred_at" type="datetime-local" value="" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                <div class="app-node app-span-4 min-w-0" data-app-type="input_select" data-node-id="cmp_rpf5" style="grid-column: span 4 / span 4">
+                  <div class="flex flex-col gap-1 text-left">
+                    <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_rpf5-input">
+                      "Kind of breach"
+                      <span class="[color:var(--error)]" aria-hidden="true">
+                        "*"
+                    <select class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-required="true" id="cmp_rpf5-input" name="breach_type" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                      <option disabled="" value="">
+                        "Choose…"
+                      <option value="confidentiality">
+                        "Confidentiality — data seen by the wrong people"
+                      <option value="integrity">
+                        "Integrity — data altered without authorisation"
+                      <option value="availability">
+                        "Availability — data lost or unreachable"
+                <div class="app-node app-span-12 min-w-0" data-app-type="input_textarea" data-node-id="cmp_rpf6" style="grid-column: span 12 / span 12">
+                  <div class="flex flex-col gap-1 text-left">
+                    <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_rpf6-input">
+                      "What we know so far"
+                      <span class="[color:var(--error)]" aria-hidden="true">
+                        "*"
+                    <div class="relative">
+                      <textarea class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 resize-y text-sm w-full" aria-required="true" id="cmp_rpf6-input" name="description" placeholder="What was exposed, how it came to light, who is involved." rows="4" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                <div class="app-node app-span-8 min-w-0" data-app-type="input_text" data-node-id="cmp_rpf7" style="grid-column: span 8 / span 8">
+                  <div class="flex flex-col gap-1 text-left">
+                    <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_rpf7-input">
+                      "Categories of personal data affected (Art. 33(3)(a))"
+                    <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" id="cmp_rpf7-input" name="data_categories" placeholder="Name, e-mail address, order history" type="text" value="" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                <div class="app-node app-span-4 min-w-0" data-app-type="input_number" data-node-id="cmp_rpf8" style="grid-column: span 4 / span 4">
+                  <div class="flex flex-col gap-1 text-left">
+                    <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_rpf8-input">
+                      "People affected (estimate)"
+                    <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" id="cmp_rpf8-input" max="100000000" min="0" name="people_affected" step="1" type="number" value="" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                <div class="app-node app-span-12 min-w-0" data-app-type="input_textarea" data-node-id="cmp_rpf9" style="grid-column: span 12 / span 12">
+                  <div class="flex flex-col gap-1 text-left">
+                    <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_rpf9-input">
+                      "What has already been done to contain it"
+                    <div class="relative">
+                      <textarea class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 resize-y text-sm w-full" id="cmp_rpf9-input" name="containment" placeholder="Mailing recalled, account locked, server disconnected." rows="3" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+              <div class="flex gap-2 items-center">
+                <button class="[background:var(--app-accent,var(--app-primary))] [border-radius:var(--app-radius)] [color:var(--app-accent-contrast,var(--app-primary-contrast))]! disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm" type="submit">
+                  <span>
+                    "Record it and start the clock"
+          <div class="app-node app-span-4 min-w-0" data-app-type="list" data-node-id="cmp_rprec" style="flex: 1 1 0px; grid-column: span 4 / span 4; min-height: 0px; min-width: 0px">
+            <div class="flex flex-col gap-1.5 h-full items-center justify-center min-h-0 py-6 text-center">
+              <span class="mb-1 text-[var(--text-tertiary)]">
+                <svg class="block" aria-hidden="true" fill="none" role="presentation" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 96 72" style="height: auto; opacity: 0.9; width: 5.5rem">
+              <span class="font-medium text-[var(--text-primary)] text-sm">
+                "Nothing here yet"
+              <span class="max-w-xs text-[var(--text-muted)] text-sm">
+                "Nothing reported yet."
+## screen scr_breach (Breach file)
+<div class="app-design--surface-soft app-shell flex flex-col w-full" data-app-appearance="dark" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(185, 28, 28, 0.1); --app-accent: #B91C1C; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(185, 28, 28, 0.1); --app-primary: #B91C1C; --app-radius: 8px; --app-space: 0.75; background: var(--app-canvas, var(--bg-primary)); color-scheme: dark; color: var(--text-primary); font-family: "Geist", system-ui, -apple-system, sans-serif; font-size: 15px; min-height: 100vh">
+  <main class="flex flex-1 flex-col min-h-0">
+    <div class="app-design--surface-soft app-runtime app-screen-enter flex flex-1 flex-col h-full min-h-0 w-full" data-app-appearance="dark" data-app-screen="scr_breach" data-app-screen-kind="page" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(185, 28, 28, 0.1); --app-accent: #B91C1C; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(185, 28, 28, 0.1); --app-primary: #B91C1C; --app-radius: 8px; --app-space: 0.75; color-scheme: dark; color: var(--text-primary); font-family: "Geist", system-ui, -apple-system, sans-serif; font-size: 15px">
+      <div class="flex flex-1 flex-col min-h-0 w-full" style="margin: 0px auto; max-width: none">
+        <section class="app-grid" data-section-id="sec_brtop" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="page_header" data-node-id="cmp_brhdr" style="grid-column: span 12 / span 12">
+            <header class="min-w-0 w-full" data-app-pageheader="true">
+              <div class="flex flex-wrap items-start" style="gap: calc(12px * var(--app-space, 1))">
+                <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-9 inline-flex items-center justify-center rounded-md shrink-0 w-9" aria-hidden="true">
+                  <svg class="h-4.5 lucide lucide-file-text w-4.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                <div class="basis-64 flex-1 min-w-0">
+                  <h1 class="font-semibold text-[var(--text-primary)] text-xl truncate" title="Breach file">
+                    "Breach file"
+                <div class="flex flex-wrap items-center justify-end ml-auto" data-app-pageheader-actions="true" style="gap: calc(8px * var(--app-space, 1))">
+                  <div class="app-node app-span-3 min-w-0" data-app-type="button" data-node-id="cmp_brback" style="grid-column: span 3 / span 3">
+                    <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm transition-opacity" type="button" style="background: transparent; border-radius: var(--app-radius); color: var(--app-primary)">
+                      <svg class="h-3.5 lucide lucide-arrow-left w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                      <span>
+                        "Back to the register"
+              <hr class="[background:var(--border-default)] border-0 h-px mt-3 w-full" aria-hidden="true">
+          <div class="app-node app-span-12 min-w-0" data-app-type="callout" data-node-id="cmp_brnone" style="grid-column: span 12 / span 12">
+            <div class="flex gap-2.5 items-start px-3 py-2.5 text-sm" data-app-callout="info" style="background: rgba(14, 165, 233, 0.1); border-left: 3px solid rgb(14, 165, 233); border-radius: var(--app-radius); color: var(--text-primary)">
+              <svg class="h-4 lucide lucide-info mt-0.5 shrink-0 w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg" style="color: rgb(14, 165, 233)">
+              <div class="min-w-0">
+                <div class="font-medium">
+                  "No breach open"
+                <div class="app-callout__body text-[var(--text-secondary)]">
+                  "Pick one from the register — Open breaches, or the closed register — and its file, its clock and its action log appear here."
+          <div class="app-node app-span-12 min-w-0" data-app-type="record_detail" data-node-id="cmp_brdet" style="grid-column: span 12 / span 12">
+            <div class="flex h-full items-center justify-center min-h-0 py-1 text-[var(--text-muted)] text-center text-sm">
+              "Open a breach from the register to see its file."
+        <section class="app-grid app-section-fill" data-section-id="sec_brmain" style="flex: 1 1 0px; gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); grid-template-rows: minmax(0, 1fr); min-height: 0px; padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="tabs" data-node-id="cmp_brtabs" style="grid-column: span 12 / span 12">
+            <div class="min-w-0 w-full" data-app-tabs="true">
+              <div class="app-scroll-x border-b flex gap-1 items-center overflow-x-auto" aria-label="Tabs" role="tablist" style="border-color: var(--border-default)">
+                <button class="-mb-px font-medium gap-1.5 inline-flex items-center px-3 py-2 shrink-0 text-sm whitespace-nowrap" aria-selected="true" role="tab" type="button" style="border-bottom: 2px solid var(--app-primary); color: var(--app-primary)">
+                  <svg class="h-3.5 lucide lucide-gauge w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                  <span>
+                    "Assessment"
+                <button class="-mb-px font-medium gap-1.5 inline-flex items-center px-3 py-2 shrink-0 text-sm whitespace-nowrap" aria-selected="false" role="tab" type="button" style="border-bottom: 2px solid transparent; color: var(--text-secondary)">
+                  <svg class="h-3.5 lucide lucide-building-2 lucide-building-complex w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                  <span>
+                    "Authority (Art. 33)"
+                <button class="-mb-px font-medium gap-1.5 inline-flex items-center px-3 py-2 shrink-0 text-sm whitespace-nowrap" aria-selected="false" role="tab" type="button" style="border-bottom: 2px solid transparent; color: var(--text-secondary)">
+                  <svg class="h-3.5 lucide lucide-users w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                  <span>
+                    "People affected (Art. 34)"
+                <button class="-mb-px font-medium gap-1.5 inline-flex items-center px-3 py-2 shrink-0 text-sm whitespace-nowrap" aria-selected="false" role="tab" type="button" style="border-bottom: 2px solid transparent; color: var(--text-secondary)">
+                  <svg class="h-3.5 lucide lucide-boxes w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                  <span>
+                    "Systems and processors"
+                <button class="-mb-px font-medium gap-1.5 inline-flex items-center px-3 py-2 shrink-0 text-sm whitespace-nowrap" aria-selected="false" role="tab" type="button" style="border-bottom: 2px solid transparent; color: var(--text-secondary)">
+                  <svg class="h-3.5 lucide lucide-history lucide-rotate-ccw-clock w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                  <span>
+                    "Action log"
+                <button class="-mb-px font-medium gap-1.5 inline-flex items-center px-3 py-2 shrink-0 text-sm whitespace-nowrap" aria-selected="false" role="tab" type="button" style="border-bottom: 2px solid transparent; color: var(--text-secondary)">
+                  <svg class="h-3.5 lucide lucide-check-circle-2 lucide-circle-check w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                  <span>
+                    "Close"
+              <div class="pt-3" data-app-tabpanel="active" role="tabpanel">
+                <div class="app-node app-span-12 min-w-0" data-app-type="tab" data-node-id="cmp_brt1" style="grid-column: span 12 / span 12">
+                  <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                    <div class="app-node app-span-5 min-w-0" data-app-type="list" data-node-id="cmp_asguide" style="grid-column: span 5 / span 5; height: 320px; overflow: auto">
+                      <div class="flex flex-col gap-1.5 h-full items-center justify-center min-h-0 py-6 text-center">
+                        <span class="mb-1 text-[var(--text-tertiary)]">
+                          <svg class="block" aria-hidden="true" fill="none" role="presentation" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 96 72" style="height: auto; opacity: 0.9; width: 5.5rem">
+                        <span class="font-medium text-[var(--text-primary)] text-sm">
+                          "Nothing here yet"
+                        <span class="max-w-xs text-[var(--text-muted)] text-sm">
+                          "No severity levels configured — add them on Setup."
+                    <div class="app-node app-span-7 min-w-0" data-app-type="form" data-node-id="cmp_asform" style="grid-column: span 7 / span 7">
+                      <form class="flex flex-col" novalidate="" style="gap: calc(12px * var(--app-space, 1))">
+                        <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                          <div class="app-node app-span-6 min-w-0" data-app-type="input_select" data-node-id="cmp_asf1" style="grid-column: span 6 / span 6">
+                            <div class="flex flex-col gap-1 text-left">
+                              <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_asf1-input">
+                                "Severity"
+                                <span class="[color:var(--error)]" aria-hidden="true">
+                                  "*"
+                              <select class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-required="true" id="cmp_asf1-input" name="severity" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                                <option disabled="" value="">
+                                  "Choose…"
+                                <option value="unassessed">
+                                  "Not assessed"
+                                <option value="none">
+                                  "No risk"
+                                <option value="low">
+                                  "Low risk"
+                                <option value="medium">
+                                  "Risk"
+                                <option value="high">
+                                  "High risk"
+                          <div class="app-node app-span-6 min-w-0" data-app-type="input_select" data-node-id="cmp_asf2" style="grid-column: span 6 / span 6">
+                            <div class="flex flex-col gap-1 text-left">
+                              <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_asf2-input">
+                                "Who must be told?"
+                                <span class="[color:var(--error)]" aria-hidden="true">
+                                  "*"
+                              <select class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-required="true" id="cmp_asf2-input" name="notify_decision" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                                <option disabled="" value="">
+                                  "Choose…"
+                                <option value="nobody">
+                                  "Nobody — unlikely to result in a risk (Art. 33(1))"
+                                <option value="authority_only">
+                                  "The supervisory authority (Art. 33)"
+                                <option value="authority_and_subjects">
+                                  "The authority AND the people affected (Art. 34)"
+                          <div class="app-node app-span-12 min-w-0" data-app-type="input_textarea" data-node-id="cmp_asf3" style="grid-column: span 12 / span 12">
+                            <div class="flex flex-col gap-1 text-left">
+                              <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_asf3-input">
+                                "Risk to the rights and freedoms of the people affected — and, if you are not notifying, why not (Art. 33(5))"
+                                <span class="[color:var(--error)]" aria-hidden="true">
+                                  "*"
+                              <div class="relative">
+                                <textarea class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 resize-y text-sm w-full" aria-required="true" id="cmp_asf3-input" name="risk_summary" placeholder="What could happen to them, how likely, and what makes it more or less severe." rows="4" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                          <div class="app-node app-span-4 min-w-0" data-app-type="input_number" data-node-id="cmp_asf4" style="grid-column: span 4 / span 4">
+                            <div class="flex flex-col gap-1 text-left">
+                              <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_asf4-input">
+                                "People affected"
+                              <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" id="cmp_asf4-input" max="100000000" min="0" name="people_affected" step="1" type="number" value="" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                          <div class="app-node app-span-4 min-w-0" data-app-type="input_number" data-node-id="cmp_asf5" style="grid-column: span 4 / span 4">
+                            <div class="flex flex-col gap-1 text-left">
+                              <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_asf5-input">
+                                "Records affected"
+                              <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" id="cmp_asf5-input" max="100000000" min="0" name="records_affected" step="1" type="number" value="" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                          <div class="app-node app-span-4 min-w-0" data-app-type="input_checkbox" data-node-id="cmp_asf6" style="grid-column: span 4 / span 4">
+                            <div class="flex flex-col gap-1 text-left">
+                              <label class="cursor-pointer gap-2 inline-flex items-center select-none text-sm" for="cmp_asf6-input">
+                                <input class="[accent-color:var(--app-primary)] h-4 w-4" id="cmp_asf6-input" name="special_categories" type="checkbox">
+                                <span>
+                                  "Special-category data is involved (Art. 9)"
+                          <div class="app-node app-span-12 min-w-0" data-app-type="input_text" data-node-id="cmp_asf7" style="grid-column: span 12 / span 12">
+                            <div class="flex flex-col gap-1 text-left">
+                              <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_asf7-input">
+                                "Categories of personal data affected"
+                              <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" id="cmp_asf7-input" name="data_categories" placeholder="Name, e-mail address, order history" type="text" value="" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                        <div class="flex gap-2 items-center">
+                          <button class="[background:var(--app-accent,var(--app-primary))] [border-radius:var(--app-radius)] [color:var(--app-accent-contrast,var(--app-primary-contrast))]! disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm" type="submit">
+                            <span>
+                              "Record the assessment"
+              <div class="pt-3" data-app-tabpanel="inactive" hidden="" role="tabpanel" style="display: none">
+                <div class="app-node app-span-12 min-w-0" data-app-type="tab" data-node-id="cmp_brt2" style="grid-column: span 12 / span 12">
+                  <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                    <div class="app-node app-span-12 min-w-0" data-app-type="callout" data-node-id="cmp_aunote" style="grid-column: span 12 / span 12">
+                      <div class="flex gap-2.5 items-start px-3 py-2.5 text-sm" data-app-callout="info" style="background: rgba(14, 165, 233, 0.1); border-left: 3px solid rgb(14, 165, 233); border-radius: var(--app-radius); color: var(--text-primary)">
+                        <svg class="h-4 lucide lucide-info mt-0.5 shrink-0 w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg" style="color: rgb(14, 165, 233)">
+                        <div class="min-w-0">
+                          <div class="font-medium">
+                            "Notify within 72 hours, or say why not"
+                          <div class="app-callout__body text-[var(--text-secondary)]">
+                            "Record the notification the moment it is sent — the register works out the hours from awareness for you and keeps them as the evidence. Later than 72 hours is allowed, but the notification itself must carry the"
+                            <strong>
+                              "reasons for the delay"
+                            ", so write them here too."
+                    <div class="app-node app-span-6 min-w-0" data-app-type="form" data-node-id="cmp_auform" style="grid-column: span 6 / span 6">
+                      <form class="flex flex-col" novalidate="" style="gap: calc(12px * var(--app-space, 1))">
+                        <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                          <div class="app-node app-span-12 min-w-0" data-app-type="input_datetime" data-node-id="cmp_auf1" style="grid-column: span 12 / span 12">
+                            <div class="flex flex-col gap-1 text-left">
+                              <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_auf1-input">
+                                "Notified the authority at"
+                                <span class="[color:var(--error)]" aria-hidden="true">
+                                  "*"
+                              <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-required="true" id="cmp_auf1-input" name="notified_at" type="datetime-local" value="<datetime>" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                          <div class="app-node app-span-12 min-w-0" data-app-type="input_text" data-node-id="cmp_auf2" style="grid-column: span 12 / span 12">
+                            <div class="flex flex-col gap-1 text-left">
+                              <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_auf2-input">
+                                "Their reference number"
+                              <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" id="cmp_auf2-input" name="authority_reference" placeholder="AP-2026-000000" type="text" value="" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                          <div class="app-node app-span-12 min-w-0" data-app-type="input_textarea" data-node-id="cmp_auf3" style="grid-column: span 12 / span 12">
+                            <div class="flex flex-col gap-1 text-left">
+                              <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_auf3-input">
+                                "Reasons for the delay (only if later than 72 hours)"
+                              <div class="relative">
+                                <textarea class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 resize-y text-sm w-full" id="cmp_auf3-input" name="late_reason" placeholder="Why the notification could not be made within 72 hours of becoming aware." rows="3" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                        <div class="flex gap-2 items-center">
+                          <button class="[background:var(--app-accent,var(--app-primary))] [border-radius:var(--app-radius)] [color:var(--app-accent-contrast,var(--app-primary-contrast))]! disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm" type="submit">
+                            <span>
+                              "Record the notification"
+                    <div class="app-node app-span-6 min-w-0" data-app-type="form" data-node-id="cmp_nnform" style="grid-column: span 6 / span 6">
+                      <form class="flex flex-col" novalidate="" style="gap: calc(12px * var(--app-space, 1))">
+                        <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                          <div class="app-node app-span-12 min-w-0" data-app-type="input_textarea" data-node-id="cmp_nnf1" style="grid-column: span 12 / span 12">
+                            <div class="flex flex-col gap-1 text-left">
+                              <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_nnf1-input">
+                                "Why a risk to people is unlikely (Art. 33(1))"
+                                <span class="[color:var(--error)]" aria-hidden="true">
+                                  "*"
+                              <div class="relative">
+                                <textarea class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 resize-y text-sm w-full" aria-required="true" id="cmp_nnf1-input" name="justification" placeholder="What was affected, why it cannot harm anyone, and what makes you confident of that." rows="4" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                          <div class="app-node app-span-12 min-w-0" data-app-type="input_date" data-node-id="cmp_nnf2" style="grid-column: span 12 / span 12">
+                            <div class="flex flex-col gap-1 text-left">
+                              <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_nnf2-input">
+                                "Decided on"
+                                <span class="[color:var(--error)]" aria-hidden="true">
+                                  "*"
+                              <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-required="true" id="cmp_nnf2-input" name="decided_on" type="date" value="<date>" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                        <div class="flex gap-2 items-center">
+                          <button class="[background:var(--app-accent,var(--app-primary))] [border-radius:var(--app-radius)] [color:var(--app-accent-contrast,var(--app-primary-contrast))]! disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm" type="submit">
+                            <span>
+                              "Record as not notifiable"
+              <div class="pt-3" data-app-tabpanel="inactive" hidden="" role="tabpanel" style="display: none">
+                <div class="app-node app-span-12 min-w-0" data-app-type="tab" data-node-id="cmp_brt3" style="grid-column: span 12 / span 12">
+                  <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                    <div class="app-node app-span-12 min-w-0" data-app-type="callout" data-node-id="cmp_sunote" style="grid-column: span 12 / span 12">
+                      <div class="flex gap-2.5 items-start px-3 py-2.5 text-sm" data-app-callout="info" style="background: rgba(14, 165, 233, 0.1); border-left: 3px solid rgb(14, 165, 233); border-radius: var(--app-radius); color: var(--text-primary)">
+                        <svg class="h-4 lucide lucide-info mt-0.5 shrink-0 w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg" style="color: rgb(14, 165, 233)">
+                        <div class="min-w-0">
+                          <div class="font-medium">
+                            "High risk means telling the people themselves"
+                          <div class="app-callout__body text-[var(--text-secondary)]">
+                            "Article 34 has no 72-hour clock — it says"
+                            <strong>
+                              "without undue delay"
+                            ". Tell them in clear, plain language what happened, what it means for them and what they can do. You may skip it only on one of the three grounds in Article 34(3), and the ground has to be recorded."
+                    <div class="app-node app-span-6 min-w-0" data-app-type="form" data-node-id="cmp_suform" style="grid-column: span 6 / span 6">
+                      <form class="flex flex-col" novalidate="" style="gap: calc(12px * var(--app-space, 1))">
+                        <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                          <div class="app-node app-span-12 min-w-0" data-app-type="input_datetime" data-node-id="cmp_suf1" style="grid-column: span 12 / span 12">
+                            <div class="flex flex-col gap-1 text-left">
+                              <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_suf1-input">
+                                "People told at"
+                                <span class="[color:var(--error)]" aria-hidden="true">
+                                  "*"
+                              <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-required="true" id="cmp_suf1-input" name="notified_at" type="datetime-local" value="<datetime>" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                          <div class="app-node app-span-12 min-w-0" data-app-type="input_select" data-node-id="cmp_suf2" style="grid-column: span 12 / span 12">
+                            <div class="flex flex-col gap-1 text-left">
+                              <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_suf2-input">
+                                "How"
+                                <span class="[color:var(--error)]" aria-hidden="true">
+                                  "*"
+                              <select class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-required="true" id="cmp_suf2-input" name="method" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                                <option disabled="" value="">
+                                  "Choose…"
+                                <option value="individual">
+                                  "Individually (e-mail, letter, in person)"
+                                <option value="public">
+                                  "Public communication (Art. 34(3)(c))"
+                          <div class="app-node app-span-12 min-w-0" data-app-type="input_textarea" data-node-id="cmp_suf3" style="grid-column: span 12 / span 12">
+                            <div class="flex flex-col gap-1 text-left">
+                              <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_suf3-input">
+                                "What we told them"
+                                <span class="[color:var(--error)]" aria-hidden="true">
+                                  "*"
+                              <div class="relative">
+                                <textarea class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 resize-y text-sm w-full" aria-required="true" id="cmp_suf3-input" name="summary" placeholder="The message sent, and where it went." rows="3" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                        <div class="flex gap-2 items-center">
+                          <button class="[background:var(--app-accent,var(--app-primary))] [border-radius:var(--app-radius)] [color:var(--app-accent-contrast,var(--app-primary-contrast))]! disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm" type="submit">
+                            <span>
+                              "Record that we told them"
+                    <div class="app-node app-span-6 min-w-0" data-app-type="form" data-node-id="cmp_seform" style="grid-column: span 6 / span 6">
+                      <form class="flex flex-col" novalidate="" style="gap: calc(12px * var(--app-space, 1))">
+                        <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                          <div class="app-node app-span-12 min-w-0" data-app-type="input_select" data-node-id="cmp_sef1" style="grid-column: span 12 / span 12">
+                            <div class="flex flex-col gap-1 text-left">
+                              <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_sef1-input">
+                                "Ground for not telling them"
+                                <span class="[color:var(--error)]" aria-hidden="true">
+                                  "*"
+                              <select class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-required="true" id="cmp_sef1-input" name="ground" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                                <option disabled="" value="">
+                                  "Choose…"
+                                <option value="encryption">
+                                  "Art. 34(3)(a) — data was unintelligible (encrypted)"
+                                <option value="measures">
+                                  "Art. 34(3)(b) — later measures removed the high risk"
+                                <option value="disproportionate">
+                                  "Art. 34(3)(c) — disproportionate effort; public communication instead"
+                          <div class="app-node app-span-12 min-w-0" data-app-type="input_textarea" data-node-id="cmp_sef2" style="grid-column: span 12 / span 12">
+                            <div class="flex flex-col gap-1 text-left">
+                              <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_sef2-input">
+                                "Why that ground applies here"
+                                <span class="[color:var(--error)]" aria-hidden="true">
+                                  "*"
+                              <div class="relative">
+                                <textarea class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 resize-y text-sm w-full" aria-required="true" id="cmp_sef2-input" name="reason" placeholder="For encryption: which algorithm, where the keys were, and why they are safe." rows="4" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                        <div class="flex gap-2 items-center">
+                          <button class="[background:var(--app-accent,var(--app-primary))] [border-radius:var(--app-radius)] [color:var(--app-accent-contrast,var(--app-primary-contrast))]! disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm" type="submit">
+                            <span>
+                              "Record the exemption"
+              <div class="pt-3" data-app-tabpanel="inactive" hidden="" role="tabpanel" style="display: none">
+                <div class="app-node app-span-12 min-w-0" data-app-type="tab" data-node-id="cmp_brt4" style="grid-column: span 12 / span 12">
+                  <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                    <div class="app-node app-span-12 min-w-0" data-app-type="data_grid" data-node-id="cmp_sygrid" style="grid-column: span 12 / span 12">
+                      <div class="w-full" data-app-datagrid="true">
+                        <div class="flex flex-col gap-1.5 h-full items-center justify-center min-h-0 py-6 text-center">
+                          <span class="mb-1 text-[var(--text-tertiary)]">
+                            <svg class="block" aria-hidden="true" fill="none" role="presentation" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 96 72" style="height: auto; opacity: 0.9; width: 5.5rem">
+                          <span class="font-medium text-[var(--text-primary)] text-sm">
+                            "Nothing here yet"
+                          <span class="max-w-xs text-[var(--text-muted)] text-sm">
+                            "Nothing listed yet — add the systems, processors and recipients the data passed through."
+                    <div class="app-node app-span-12 min-w-0" data-app-type="form" data-node-id="cmp_syform" style="grid-column: span 12 / span 12">
+                      <form class="flex flex-col" novalidate="" style="gap: calc(12px * var(--app-space, 1))">
+                        <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                          <div class="app-node app-span-4 min-w-0" data-app-type="input_text" data-node-id="cmp_syf1" style="grid-column: span 4 / span 4">
+                            <div class="flex flex-col gap-1 text-left">
+                              <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_syf1-input">
+                                "System or organisation"
+                                <span class="[color:var(--error)]" aria-hidden="true">
+                                  "*"
+                              <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-required="true" id="cmp_syf1-input" name="name" placeholder="Nimbusveld Mailing BV" type="text" value="" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                          <div class="app-node app-span-3 min-w-0" data-app-type="input_select" data-node-id="cmp_syf2" style="grid-column: span 3 / span 3">
+                            <div class="flex flex-col gap-1 text-left">
+                              <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_syf2-input">
+                                "Role"
+                                <span class="[color:var(--error)]" aria-hidden="true">
+                                  "*"
+                              <select class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-required="true" id="cmp_syf2-input" name="party_role" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                                <option disabled="" value="">
+                                  "Choose…"
+                                <option value="own_system">
+                                  "Our own system"
+                                <option value="processor">
+                                  "Processor"
+                                <option value="sub_processor">
+                                  "Sub-processor"
+                                <option value="recipient">
+                                  "Third-party recipient"
+                          <div class="app-node app-span-5 min-w-0" data-app-type="input_datetime" data-node-id="cmp_syf3" style="grid-column: span 5 / span 5">
+                            <div class="flex flex-col gap-1 text-left">
+                              <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_syf3-input">
+                                "They told us at (processors)"
+                              <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" id="cmp_syf3-input" name="told_us_at" type="datetime-local" value="" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                          <div class="app-node app-span-5 min-w-0" data-app-type="input_text" data-node-id="cmp_syf4" style="grid-column: span 5 / span 5">
+                            <div class="flex flex-col gap-1 text-left">
+                              <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_syf4-input">
+                                "What it held"
+                              <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" id="cmp_syf4-input" name="data_held" placeholder="Newsletter recipients and their names" type="text" value="" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                          <div class="app-node app-span-4 min-w-0" data-app-type="input_text" data-node-id="cmp_syf5" style="grid-column: span 4 / span 4">
+                            <div class="flex flex-col gap-1 text-left">
+                              <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_syf5-input">
+                                "Contact"
+                              <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" id="cmp_syf5-input" name="contact" placeholder="privacy@example.com" type="email" value="" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                          <div class="app-node app-span-3 min-w-0" data-app-type="input_checkbox" data-node-id="cmp_syf6" style="grid-column: span 3 / span 3">
+                            <div class="flex flex-col gap-1 text-left">
+                              <label class="cursor-pointer gap-2 inline-flex items-center select-none text-sm" for="cmp_syf6-input">
+                                <input class="[accent-color:var(--app-primary)] h-4 w-4" id="cmp_syf6-input" name="contained" type="checkbox">
+                                <span>
+                                  "Contained"
+                        <div class="flex gap-2 items-center">
+                          <button class="[background:var(--app-accent,var(--app-primary))] [border-radius:var(--app-radius)] [color:var(--app-accent-contrast,var(--app-primary-contrast))]! disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm" type="submit">
+                            <span>
+                              "Add"
+              <div class="pt-3" data-app-tabpanel="inactive" hidden="" role="tabpanel" style="display: none">
+                <div class="app-node app-span-12 min-w-0" data-app-type="tab" data-node-id="cmp_brt5" style="grid-column: span 12 / span 12">
+                  <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                    <div class="app-node app-span-7 min-w-0" data-app-type="timeline" data-node-id="cmp_lgline" style="grid-column: span 7 / span 7; height: 320px; overflow: auto">
+                      <div class="flex flex-col gap-1.5 h-full items-center justify-center min-h-0 py-6 text-center">
+                        <span class="mb-1 text-[var(--text-tertiary)]">
+                          <svg class="block" aria-hidden="true" fill="none" role="presentation" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 96 72" style="height: auto; opacity: 0.9; width: 5.5rem">
+                        <span class="font-medium text-[var(--text-primary)] text-sm">
+                          "Nothing logged yet"
+                        <span class="max-w-xs text-[var(--text-muted)] text-sm">
+                          "No entries yet — open a breach, or add the first step taken."
+                    <div class="app-node app-span-5 min-w-0" data-app-type="form" data-node-id="cmp_lgform" style="grid-column: span 5 / span 5">
+                      <form class="flex flex-col" novalidate="" style="gap: calc(12px * var(--app-space, 1))">
+                        <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                          <div class="app-node app-span-12 min-w-0" data-app-type="input_datetime" data-node-id="cmp_lgf1" style="grid-column: span 12 / span 12">
+                            <div class="flex flex-col gap-1 text-left">
+                              <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_lgf1-input">
+                                "When"
+                                <span class="[color:var(--error)]" aria-hidden="true">
+                                  "*"
+                              <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-required="true" id="cmp_lgf1-input" name="happened_at" type="datetime-local" value="<datetime>" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                          <div class="app-node app-span-12 min-w-0" data-app-type="input_select" data-node-id="cmp_lgf2" style="grid-column: span 12 / span 12">
+                            <div class="flex flex-col gap-1 text-left">
+                              <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_lgf2-input">
+                                "What kind of step"
+                                <span class="[color:var(--error)]" aria-hidden="true">
+                                  "*"
+                              <select class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-required="true" id="cmp_lgf2-input" name="action_type" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                                <option disabled="" value="">
+                                  "Choose…"
+                                <option value="detected">
+                                  "Detected / became aware"
+                                <option value="contained">
+                                  "Containment measure"
+                                <option value="assessed">
+                                  "Risk assessed"
+                                <option value="notified_authority">
+                                  "Authority notified"
+                                <option value="notified_subjects">
+                                  "Data subjects notified"
+                                <option value="communication">
+                                  "Communication with a processor or third party"
+                                <option value="remediation">
+                                  "Remediation"
+                                <option value="note">
+                                  "Note"
+                                <option value="closed">
+                                  "Case closed"
+                          <div class="app-node app-span-12 min-w-0" data-app-type="input_textarea" data-node-id="cmp_lgf3" style="grid-column: span 12 / span 12">
+                            <div class="flex flex-col gap-1 text-left">
+                              <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_lgf3-input">
+                                "What was done"
+                                <span class="[color:var(--error)]" aria-hidden="true">
+                                  "*"
+                              <div class="relative">
+                                <textarea class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 resize-y text-sm w-full" aria-required="true" id="cmp_lgf3-input" name="summary" placeholder="Who did what, and what it changed." rows="4" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                        <div class="flex gap-2 items-center">
+                          <button class="[background:var(--app-accent,var(--app-primary))] [border-radius:var(--app-radius)] [color:var(--app-accent-contrast,var(--app-primary-contrast))]! disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm" type="submit">
+                            <span>
+                              "Add to the log"
+              <div class="pt-3" data-app-tabpanel="inactive" hidden="" role="tabpanel" style="display: none">
+                <div class="app-node app-span-12 min-w-0" data-app-type="tab" data-node-id="cmp_brt6" style="grid-column: span 12 / span 12">
+                  <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                    <div class="app-node app-span-12 min-w-0" data-app-type="callout" data-node-id="cmp_clnote" style="grid-column: span 12 / span 12">
+                      <div class="flex gap-2.5 items-start px-3 py-2.5 text-sm" data-app-callout="info" style="background: rgba(14, 165, 233, 0.1); border-left: 3px solid rgb(14, 165, 233); border-radius: var(--app-radius); color: var(--text-primary)">
+                        <svg class="h-4 lucide lucide-info mt-0.5 shrink-0 w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg" style="color: rgb(14, 165, 233)">
+                        <div class="min-w-0">
+                          <div class="font-medium">
+                            "Closing does not remove anything"
+                          <div class="app-callout__body text-[var(--text-secondary)]">
+                            "A closed breach moves to the closed register and stays there — that register IS the Article 33(5) documentation. Write down what was changed so it cannot happen again; that is the part an authority reads first."
+                    <div class="app-node app-span-12 min-w-0" data-app-type="form" data-node-id="cmp_clform" style="grid-column: span 12 / span 12">
+                      <form class="flex flex-col" novalidate="" style="gap: calc(12px * var(--app-space, 1))">
+                        <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                          <div class="app-node app-span-8 min-w-0" data-app-type="input_textarea" data-node-id="cmp_clf1" style="grid-column: span 8 / span 8">
+                            <div class="flex flex-col gap-1 text-left">
+                              <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_clf1-input">
+                                "What was changed so it cannot happen again"
+                                <span class="[color:var(--error)]" aria-hidden="true">
+                                  "*"
+                              <div class="relative">
+                                <textarea class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 resize-y text-sm w-full" aria-required="true" id="cmp_clf1-input" name="remediation" placeholder="Process, system or training change — and who owns it." rows="4" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                          <div class="app-node app-span-4 min-w-0" data-app-type="input_date" data-node-id="cmp_clf2" style="grid-column: span 4 / span 4">
+                            <div class="flex flex-col gap-1 text-left">
+                              <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_clf2-input">
+                                "Closed on"
+                                <span class="[color:var(--error)]" aria-hidden="true">
+                                  "*"
+                              <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-required="true" id="cmp_clf2-input" name="closed_on" type="date" value="<date>" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                        <div class="flex gap-2 items-center">
+                          <button class="[background:var(--app-accent,var(--app-primary))] [border-radius:var(--app-radius)] [color:var(--app-accent-contrast,var(--app-primary-contrast))]! disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm" type="submit">
+                            <span>
+                              "Close this breach"
+## screen scr_closed (Closed register)
+<div class="app-design--surface-soft app-shell flex flex-col w-full" data-app-appearance="dark" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(185, 28, 28, 0.1); --app-accent: #B91C1C; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(185, 28, 28, 0.1); --app-primary: #B91C1C; --app-radius: 8px; --app-space: 0.75; background: var(--app-canvas, var(--bg-primary)); color-scheme: dark; color: var(--text-primary); font-family: "Geist", system-ui, -apple-system, sans-serif; font-size: 15px; min-height: 100vh">
+  <main class="flex flex-1 flex-col min-h-0">
+    <div class="app-design--surface-soft app-runtime app-screen-enter flex flex-1 flex-col h-full min-h-0 w-full" data-app-appearance="dark" data-app-screen="scr_closed" data-app-screen-kind="page" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(185, 28, 28, 0.1); --app-accent: #B91C1C; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(185, 28, 28, 0.1); --app-primary: #B91C1C; --app-radius: 8px; --app-space: 0.75; color-scheme: dark; color: var(--text-primary); font-family: "Geist", system-ui, -apple-system, sans-serif; font-size: 15px">
+      <div class="flex flex-1 flex-col min-h-0 w-full" style="margin: 0px auto; max-width: none">
+        <section class="app-grid" data-section-id="sec_cltop" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="page_header" data-node-id="cmp_cldhdr" style="grid-column: span 12 / span 12">
+            <header class="min-w-0 w-full" data-app-pageheader="true">
+              <div class="flex flex-wrap items-start" style="gap: calc(12px * var(--app-space, 1))">
+                <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-9 inline-flex items-center justify-center rounded-md shrink-0 w-9" aria-hidden="true">
+                  <svg class="h-4.5 lucide lucide-book-open w-4.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                <div class="basis-64 flex-1 min-w-0">
+                  <h1 class="font-semibold text-[var(--text-primary)] text-xl truncate" title="Closed register (datalekregister)">
+                    "Closed register (datalekregister)"
+                  <p class="line-clamp-2 mt-0.5 text-sm" title="Article 33(5): every breach documented, whether or not it was notified — this is what an authority asks to see." style="color: var(--text-secondary)">
+                    "Article 33(5): every breach documented, whether or not it was notified — this is what an authority asks to see."
+          <div class="app-node app-span-4 min-w-0" data-app-type="stat" data-node-id="cmp_cldst1" style="grid-column: span 4 / span 4">
+            <div class="app-stat app-stat--accent flex gap-2.5 items-start" style="background: var(--bg-card); border-left: 3px solid var(--app-primary); border-radius: var(--app-radius, 8px); box-shadow: var(--app-shadow-1); padding: calc(16px * var(--app-space, 1))">
+              <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-8 inline-flex items-center justify-center mt-0.5 rounded-md shrink-0 w-8">
+                <svg class="h-4 lucide lucide-book-open w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-[var(--text-secondary)] text-xs">
+                  "Closed"
+                <div class="flex gap-2 items-baseline min-w-0">
+                  <div class="font-semibold leading-tight text-2xl truncate" title="—">
+                    "—"
+                <div class="text-[var(--text-muted)] text-xs">
+                  "cases documented"
+          <div class="app-node app-span-4 min-w-0" data-app-type="stat" data-node-id="cmp_cldst2" style="grid-column: span 4 / span 4">
+            <div class="app-stat app-stat--accent flex gap-2.5 items-start" style="background: var(--bg-card); border-left: 3px solid var(--app-primary); border-radius: var(--app-radius, 8px); box-shadow: var(--app-shadow-1); padding: calc(16px * var(--app-space, 1))">
+              <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-8 inline-flex items-center justify-center mt-0.5 rounded-md shrink-0 w-8">
+                <svg class="h-4 lucide lucide-timer w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-[var(--text-secondary)] text-xs">
+                  "Median hours to notify"
+                <div class="flex gap-2 items-baseline min-w-0">
+                  <div class="font-semibold leading-tight text-2xl truncate" title="—">
+                    "—"
+                <div class="text-[var(--text-muted)] text-xs">
+                  "from awareness to the authority — the ceiling is 72"
+          <div class="app-node app-span-4 min-w-0" data-app-type="stat" data-node-id="cmp_cldst3" style="grid-column: span 4 / span 4">
+            <div class="app-stat app-stat--accent flex gap-2.5 items-start" style="background: var(--bg-card); border-left: 3px solid var(--app-primary); border-radius: var(--app-radius, 8px); box-shadow: var(--app-shadow-1); padding: calc(16px * var(--app-space, 1))">
+              <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-8 inline-flex items-center justify-center mt-0.5 rounded-md shrink-0 w-8">
+                <svg class="h-4 lucide lucide-alert-triangle lucide-triangle-alert w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-[var(--text-secondary)] text-xs">
+                  "Slowest notification"
+                <div class="flex gap-2 items-baseline min-w-0">
+                  <div class="font-semibold leading-tight text-2xl truncate" title="—">
+                    "—"
+                <div class="text-[var(--text-muted)] text-xs">
+                  "hours — anything over 72 needs its reason on file"
+          <div class="app-node app-span-12 min-w-0" data-app-type="filter_bar" data-node-id="cmp_cldfilt" style="grid-column: span 12 / span 12">
+            <div class="flex flex-wrap gap-3 items-end" data-app-filterbar="true">
+              <div class="flex flex-col gap-1 min-w-0" data-app-filter="q">
+                <label class="font-medium text-[var(--text-secondary)] text-xs" for="cmp_cldfilt-flt-q">
+                  "Search"
+                <div class="relative">
+                  <svg class="-translate-y-1/2 absolute h-3.5 left-2.5 lucide lucide-search text-[var(--text-muted)] top-1/2 w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                  <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none pl-8 px-2.5 py-1.5 text-sm w-full" aria-label="Search" id="cmp_cldfilt-flt-q" placeholder="Search" type="text" value="" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+              <div class="flex flex-col gap-1 min-w-0" data-app-filter="outcome">
+                <label class="font-medium text-[var(--text-secondary)] text-xs" for="cmp_cldfilt-flt-outcome">
+                  "Outcome"
+                <select class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-label="Outcome" id="cmp_cldfilt-flt-outcome" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                  <option value="">
+                    "All"
+                  <option value="pending">
+                    "Not decided yet"
+                  <option value="recorded_only">
+                    "Recorded, not notifiable (Art. 33(5))"
+                  <option value="notified_authority">
+                    "Authority notified"
+                  <option value="notified_all">
+                    "Authority and data subjects notified"
+                  <option value="not_a_breach">
+                    "Assessed as not a personal data breach"
+              <div class="flex flex-col gap-1 min-w-0" data-app-filter="severity">
+                <label class="font-medium text-[var(--text-secondary)] text-xs" for="cmp_cldfilt-flt-severity">
+                  "Severity"
+                <select class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-label="Severity" id="cmp_cldfilt-flt-severity" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                  <option value="">
+                    "All"
+                  <option value="unassessed">
+                    "Not assessed"
+                  <option value="none">
+                    "No risk"
+                  <option value="low">
+                    "Low risk"
+                  <option value="medium">
+                    "Risk"
+                  <option value="high">
+                    "High risk"
+        <section class="app-grid app-section-fill" data-section-id="sec_clmain" style="flex: 1 1 0px; gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); grid-template-rows: minmax(0, 1fr); min-height: 0px; padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-8 min-w-0" data-app-type="data_grid" data-node-id="cmp_cldgrid" style="flex: 1 1 0px; grid-column: span 8 / span 8; min-height: 0px; min-width: 0px">
+            <div class="w-full" data-app-datagrid="true">
+              <div class="flex flex-col gap-1.5 h-full items-center justify-center min-h-0 py-6 text-center">
+                <span class="mb-1 text-[var(--text-tertiary)]">
+                  <svg class="block" aria-hidden="true" fill="none" role="presentation" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 96 72" style="height: auto; opacity: 0.9; width: 5.5rem">
+                <span class="font-medium text-[var(--text-primary)] text-sm">
+                  "Nothing here yet"
+                <span class="max-w-xs text-[var(--text-muted)] text-sm">
+                  "Nothing closed yet."
+          <div class="app-node app-span-4 min-w-0" data-app-type="chart" data-node-id="cmp_cldpie" style="flex: 1 1 0px; grid-column: span 4 / span 4; min-height: 0px; min-width: 0px">
+            <div class="flex h-full items-center justify-center min-h-0 py-1 text-[var(--text-muted)] text-center text-sm">
+              "No chart data yet."
+        <section class="app-grid" data-section-id="sec_clchart" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-6 min-w-0" data-app-type="chart" data-node-id="cmp_cldbar" style="grid-column: span 6 / span 6; height: 200px; overflow: auto">
+            <div class="flex h-full items-center justify-center min-h-0 py-1 text-[var(--text-muted)] text-center text-sm">
+              "No chart data yet."
+          <div class="app-node app-span-6 min-w-0" data-app-type="chart" data-node-id="cmp_cldsev" style="grid-column: span 6 / span 6; height: 200px; overflow: auto">
+            <div class="flex h-full items-center justify-center min-h-0 py-1 text-[var(--text-muted)] text-center text-sm">
+              "No chart data yet."
+## screen scr_setup (Setup)
+<div class="app-design--surface-soft app-shell flex flex-col w-full" data-app-appearance="dark" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(185, 28, 28, 0.1); --app-accent: #B91C1C; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(185, 28, 28, 0.1); --app-primary: #B91C1C; --app-radius: 8px; --app-space: 0.75; background: var(--app-canvas, var(--bg-primary)); color-scheme: dark; color: var(--text-primary); font-family: "Geist", system-ui, -apple-system, sans-serif; font-size: 15px; min-height: 100vh">
+  <main class="flex flex-1 flex-col min-h-0">
+    <div class="app-design--surface-soft app-runtime app-screen-enter flex flex-1 flex-col h-full min-h-0 w-full" data-app-appearance="dark" data-app-screen="scr_setup" data-app-screen-kind="page" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(185, 28, 28, 0.1); --app-accent: #B91C1C; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(185, 28, 28, 0.1); --app-primary: #B91C1C; --app-radius: 8px; --app-space: 0.75; color-scheme: dark; color: var(--text-primary); font-family: "Geist", system-ui, -apple-system, sans-serif; font-size: 15px">
+      <div class="flex flex-1 flex-col min-h-0 w-full" style="margin: 0px auto; max-width: 1280px">
+        <section class="app-grid" data-section-id="sec_sttop" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="page_header" data-node-id="cmp_sthdr" style="grid-column: span 12 / span 12">
+            <header class="min-w-0 w-full" data-app-pageheader="true">
+              <div class="flex flex-wrap items-start" style="gap: calc(12px * var(--app-space, 1))">
+                <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-9 inline-flex items-center justify-center rounded-md shrink-0 w-9" aria-hidden="true">
+                  <svg class="h-4.5 lucide lucide-settings w-4.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                <div class="basis-64 flex-1 min-w-0">
+                  <h1 class="font-semibold text-[var(--text-primary)] text-xl truncate" title="Setup">
+                    "Setup"
+                  <p class="line-clamp-2 mt-0.5 text-sm" title="Severity tiers are data, not code — what you write here is what the person assessing a breach reads." style="color: var(--text-secondary)">
+                    "Severity tiers are data, not code — what you write here is what the person assessing a breach reads."
+                <div class="flex flex-wrap items-center justify-end ml-auto" data-app-pageheader-actions="true" style="gap: calc(8px * var(--app-space, 1))">
+                  <div class="app-node app-span-3 min-w-0" data-app-type="button" data-node-id="cmp_stadd" style="grid-column: span 3 / span 3">
+                    <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm transition-opacity" type="button" style="background: var(--app-accent, var(--app-primary)); border-radius: var(--app-radius); color: var(--app-accent-contrast, var(--app-primary-contrast))">
+                      <svg class="h-3.5 lucide lucide-plus w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                      <span>
+                        "Add a severity level"
+          <div class="app-node app-span-12 min-w-0" data-app-type="callout" data-node-id="cmp_stnote" style="grid-column: span 12 / span 12">
+            <div class="flex gap-2.5 items-start px-3 py-2.5 text-sm" data-app-callout="info" style="background: rgba(14, 165, 233, 0.1); border-left: 3px solid rgb(14, 165, 233); border-radius: var(--app-radius); color: var(--text-primary)">
+              <svg class="h-4 lucide lucide-info mt-0.5 shrink-0 w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg" style="color: rgb(14, 165, 233)">
+              <div class="min-w-0">
+                <div class="font-medium">
+                  "One thing to know"
+                <div class="app-callout__body text-[var(--text-secondary)]">
+                  "A tier you add here is stored, filtered and shown correctly everywhere, and the Assessment tab reads its guidance live. The one exception is the Severity"
+                  <strong>
+                    "dropdown"
+                  "on that tab and in the filter bars: those lists are fixed in the app design, so a new tier will not appear in them until an editor adds it there."
+          <div class="app-node app-span-12 min-w-0" data-app-type="markdown" data-node-id="cmp_stlaw" style="grid-column: span 12 / span 12">
+            <div class="flex flex-col gap-2 text-sm" data-app-markdown="true">
+              <p>
+                <strong>
+                  "What the register has to contain."
+                "Article 33(5) asks you to document the facts of the breach, its effects, and the remedial action taken — for"
+                <strong>
+                  "every"
+                "breach, notified or not."
+              <p>
+                <strong>
+                  "Notify the authority"
+                "within 72 hours of becoming aware, unless a risk to people is unlikely (Art. 33(1)). Later is allowed with reasons for the delay."
+              <p>
+                <strong>
+                  "Tell the people affected"
+                "without undue delay where the risk to them is high (Art. 34(1)), unless one of the three grounds in Article 34(3) applies."
+              <p>
+                <strong>
+                  "A processor"
+                "must tell you without undue delay (Art. 33(2)); your own 72 hours start when they do."
+        <section class="app-grid app-section-fill" data-section-id="sec_stmain" style="flex: 1 1 0px; gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); grid-template-rows: minmax(0, 1fr); min-height: 0px; padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="data_grid" data-node-id="cmp_stgrid" style="flex: 1 1 0px; grid-column: span 12 / span 12; min-height: 0px; min-width: 0px">
+            <div class="w-full" data-app-datagrid="true">
+              <div class="flex flex-col gap-1.5 h-full items-center justify-center min-h-0 py-6 text-center">
+                <span class="mb-1 text-[var(--text-tertiary)]">
+                  <svg class="block" aria-hidden="true" fill="none" role="presentation" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 96 72" style="height: auto; opacity: 0.9; width: 5.5rem">
+                <span class="font-medium text-[var(--text-primary)] text-sm">
+                  "Nothing here yet"
+                <span class="max-w-xs text-[var(--text-muted)] text-sm">
+                  "No severity levels yet — add the tiers your DPO assesses in."
+        <section class="app-grid" data-section-id="sec_stdlg" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: 0px">

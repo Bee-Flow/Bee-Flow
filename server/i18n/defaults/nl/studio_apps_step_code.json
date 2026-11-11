@@ -1,0 +1,15 @@
+{
+  "translations": {
+    "studio_apps_step_code.catalog.blurb": "Reken een waarde uit met een paar regels JavaScript over de invoer die je meegeeft. Geen netwerk, geen database.",
+    "studio_apps_step_code.catalog.label": "Code uitvoeren",
+    "studio_apps_step_code.field.contract": "Schrijf function main(inputs, ctx) en geef een waarde terug: die komt in vars.<resultaatvariabele>. ctx.log(…) noteert een regel. Er is geen netwerk, geen database en geen koppeling; schrijf met een stap na deze.",
+    "studio_apps_step_code.field.inputs": "Je code leest: {names}",
+    "studio_apps_step_code.field.inputs_hint": "Elke invoer wordt gelezen voordat de code start, met de rijtoegang van wie de actie uitvoert, en komt in de code binnen als inputs.<naam>.",
+    "studio_apps_step_code.field.length": "{count} van {max} tekens.",
+    "studio_apps_step_code.field.no_inputs": "Nog geen invoer: voeg die toe onder Inputs, elk een waarde, een formule of rijen uit een tabel.",
+    "studio_apps_step_code.field.timeout_hint": "Laat leeg voor de standaard (1 s rekenen binnen 5 s). Hoogstens 30000.",
+    "studio_apps_step_code.field.timeout_label": "Tijdslimiet (ms)",
+    "studio_apps_step_code.field.too_long": "{count} van hoogstens {max} tekens: maak de code korter."
+  },
+  "sameAsEnglish": []
+}

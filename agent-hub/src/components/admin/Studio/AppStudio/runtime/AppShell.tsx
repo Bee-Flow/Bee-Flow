@@ -7,6 +7,7 @@ import { navModel, type NavDefinition } from './shell/navModel';
 import NavSidebar from './shell/NavSidebar';
 import NavTabs from './shell/NavTabs';
 import UserMenu from './shell/UserMenu';
+import AppCustomCss from './AppCustomCss';
 import AppKbNotice from './shell/AppKbNotice';
 import { CANVAS_GROUND, themeVars } from './themeVars';
 import type { NavigateFn } from './actionRunner/runnerContext';
@@ -88,7 +89,7 @@ export default function AppShell({
      * (ConnectionsPreflight) share the box instead of the banner pushing
      * 100%-of-main past the bottom. Harmless for a normal screen.
      */
-    const main = <main className="flex flex-col flex-1 min-h-0 overflow-auto"><AppKbNotice definition={definition} />{children}</main>;
+    const main = <main className="flex flex-col flex-1 min-h-0 overflow-auto"><AppCustomCss definition={definition} appId={appId} /><AppKbNotice definition={definition} />{children}</main>;
 
     if (navStyle === 'sidebar' || navStyle === 'rail') {
         return (

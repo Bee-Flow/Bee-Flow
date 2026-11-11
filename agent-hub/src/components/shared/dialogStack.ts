@@ -85,8 +85,24 @@ function lockScroll(): () => void {
 
 let releaseScroll: (() => void) | null = null;
 
-export function openDialog(entry: DialogEntry): void {
+/**
+ * Dialogs open in ANOTHER document (the App Studio device preview's iframe):
+ * a key pressed in there never reaches this document, so the stack listens in
+ * that document as well, for as long as a dialog is open in it.
+ */
+const foreignDocs = new Map<DialogEntry, Document>();
+
+function foreignDocInUse(doc: Document): boolean {
+    for (const each of foreignDocs.values()) if (each === doc) return true;
+    return false;
+}
+
+export function openDialog(entry: DialogEntry, doc?: Document): void {
     if (stack.includes(entry)) return;
+    if (doc && doc !== document) {
+        if (!foreignDocInUse(doc)) doc.addEventListener('keydown', onKeyDown);
+        foreignDocs.set(entry, doc);
+    }
     // On top, except under a dialog nested inside this one that registered
     // first: React runs a child's layout effects before its parent's, so a
     // parent and child that open in the same render arrive child-first.
@@ -103,6 +119,11 @@ export function closeDialog(entry: DialogEntry): void {
     const at = stack.indexOf(entry);
     if (at === -1) return;
     stack.splice(at, 1);
+    const doc = foreignDocs.get(entry);
+    if (doc) {
+        foreignDocs.delete(entry);
+        if (!foreignDocInUse(doc)) doc.removeEventListener('keydown', onKeyDown);
+    }
     if (stack.length === 0) {
         document.removeEventListener('keydown', onKeyDown);
         releaseScroll?.();

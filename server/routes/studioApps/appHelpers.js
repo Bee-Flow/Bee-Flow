@@ -8,7 +8,6 @@
 
 const log = require('../../telemetry/log');
 const studioAppDataStore = require('../../stores/studioAppDataStore');
-const automationStore = require('../../stores/automationStore');
 // `managed` on GET /:id: which Solution stage, if any, owns this app.
 const managedParts = require('../../stores/managedPartsDefault');
 const solutionStageStore = require('../../stores/solutionStageStore');
@@ -49,12 +48,9 @@ function sanitizeAppRow(app) {
     return rest;
 }
 
-// Owner's automations in the shape validate.js expects for opts.ownedAutomations.
-/** @param {string} ownerId */
-async function loadOwnedAutomations(ownerId) {
-    const owned = await automationStore.getAutomationsForUser(ownerId);
-    return (owned || []).flatMap(a => (a ? [a] : [])).map(a => ({ id: a.id, userId: a.userId, isActive: a.isActive }));
-}
+// Owner's automations in the shape validate.js expects for opts.ownedAutomations:
+// the one lookup the AI builder's app_finalize uses too (appStudio/ownedAutomations.mts).
+const { loadOwnedAutomations } = require('../../appStudio/ownedAutomations.mts');
 
 // The app's data model and dataset ids in the shape that validate.js expects for
 // opts.dataModel/opts.datasets (data-reference cross-checks). `model` is null
@@ -76,6 +72,9 @@ async function loadDataRefs(appId, ownerId) {
         dataModel: (meta && meta.model) ? meta.model : null,
         datasets: (datasets || []).map(d => d.id),
         datatables: await require('../../appStudio/datatableSource').listOwnerDatatableIds(ownerId),
+        // The app's uploaded files, for the `asset.missing` warning; a failed read leaves them unchecked.
+        assetIds: await require('../../appStudio/appAssetStore.mts').listAssetIds({ id: appId, userId: ownerId })
+            .catch((/** @type {unknown} */ e) => require('../../utils/bestEffort').fallback('routes/studioApps/appHelpers:assetIds', e, undefined)),
     };
 }
 

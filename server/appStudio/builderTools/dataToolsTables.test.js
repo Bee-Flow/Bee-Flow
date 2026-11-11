@@ -134,13 +134,110 @@ test('app_get_data_model shows whether a computed field is stored and its expr; 
             { key: 'qty', type: 'number' },
             { key: 'dbl', type: 'computed', computed: { expr: 'qty * 2', type: 'number', stored: true } },
             { key: 'label', type: 'computed', computed: { expr: "'x'" } },
+            // Names a field listed after it: checked against the whole field list.
+            { key: 'twice', type: 'computed', computed: { expr: 'later * 2' } },
+            { key: 'legacy', type: 'computed', computed: { expr: 'iif(qty > 1, 1, 0)' } },
+            { key: 'later', type: 'number' },
         ],
     });
-    assert.ok(r._hints.some((h) => /"label" is a read-time computed field: it is not evaluated yet/.test(h)));
+    assert.ok(r._hints.some((h) => /"label" is a read-time computed field: it is worked out on every read/.test(h)));
+    assert.ok(r._hints.some((h) => /"twice" is a read-time computed field: it is worked out on every read/.test(h)));
+    assert.ok(r._hints.some((h) => /"legacy" is a read-time computed field and reads empty: function iif\(\) is not available on both database engines/.test(h)));
     const withIds = renderDataBlock(wrap.dataModel, [], {}, null, { fieldIds: true });
     assert.match(withIds, /dbl computed id=fld_[a-z0-9]+ \(read-only\) stored returns=number expr="qty \* 2"/);
-    assert.match(withIds, /label computed id=fld_[a-z0-9]+ \(read-only\) read-time \(not evaluated\) expr="'x'"/);
+    assert.match(withIds, /label computed id=fld_[a-z0-9]+ \(read-only\) read-time \(evaluated on read, not filterable or sortable\) expr="'x'"/);
+    // Only what the compiler evaluates is called evaluated: the rest keeps the old warning, with why.
+    assert.match(withIds, /legacy computed id=fld_[a-z0-9]+ \(read-only\) read-time \(not evaluated, reads empty: function iif\(\) is not available on both database engines/);
     const perTurn = renderDataBlock(wrap.dataModel, [], {});
     assert.match(perTurn, /^ {4}dbl computed \(read-only\)$/m, 'the per-turn block is unchanged');
     assert.match(perTurn, /^ {4}label computed \(read-only\)$/m);
+});
+
+test('field rules: a valid rule is stored as given, a bad one is refused with the validator sentence', async () => {
+    const wrap = reset();
+    const r = await applyUpsertTable(wrap, { key: 'orders', name: 'Orders', fields: [
+        { key: 'qty', type: 'number', validation: { min: 1, max: 10 } },
+        { key: 'placed_on', type: 'date', dynamicDefault: 'today' },
+    ] });
+    assert.ok(!r.error, JSON.stringify(r));
+    const [qty, placed] = wrap.dataModel.tables[0].fields;
+    assert.deepStrictEqual(qty.validation, { min: 1, max: 10 });
+    assert.strictEqual(placed.dynamicDefault, 'today');
+    // app_get_data_model shows them; the per-turn block stays as it was.
+    const full = renderDataBlock(wrap.dataModel, [], {}, null, { fieldIds: true });
+    assert.match(full, /qty number id=fld_\w+ validation=\{"min":1,"max":10\}/);
+    assert.match(full, /placed_on date id=fld_\w+ dynamicDefault=today/);
+    assert.doesNotMatch(renderDataBlock(wrap.dataModel, [], {}), /validation=|dynamicDefault=/);
+    const bad = await applyUpsertTable(wrap, { tableId: r.tableId, fields: [{ key: 'qty', type: 'number', validation: { pattern: '^x' } }, { key: 'placed_on', type: 'date' }] });
+    assert.ok(bad.error, 'refused');
+    assert.ok(bad.errors.some((e) => /validation\.pattern does not apply to a number field/.test(e)), JSON.stringify(bad.errors));
+});
+
+test('schema-3 fields: autonumber is made unique, format and display are stored and shown, a bad one is refused', async () => {
+    const wrap = reset();
+    const r = await applyUpsertTable(wrap, { key: 'orders', name: 'Orders', fields: [
+        { key: 'no', type: 'autonumber' },
+        { key: 'mail', type: 'text', format: 'email' },
+        { key: 'price', type: 'number', display: { currency: 'EUR', decimals: 2 } },
+        { key: 'meta', type: 'json' },
+        { key: 'owner', type: 'user', dynamicDefault: 'currentUser.id' },
+    ] });
+    assert.ok(!r.error, JSON.stringify(r));
+    const [no, mail, price] = wrap.dataModel.tables[0].fields;
+    assert.deepStrictEqual([no.unique, no.required], [true, false]);
+    assert.strictEqual(mail.format, 'email');
+    assert.deepStrictEqual(price.display, { currency: 'EUR', decimals: 2 });
+    const full = renderDataBlock(wrap.dataModel, [], {}, null, { fieldIds: true });
+    assert.match(full, /mail text id=fld_\w+ format=email/);
+    assert.match(full, /price number id=fld_\w+ display=\{"currency":"EUR","decimals":2\}/);
+    assert.doesNotMatch(renderDataBlock(wrap.dataModel, [], {}), /format=|display=/, 'the per-turn block stays as it was');
+    const bad = await applyUpsertTable(wrap, { tableId: r.tableId, fields: [{ key: 'mail', type: 'number', format: 'email' }] });
+    assert.ok(bad.errors.some((e) => /format applies to a text field/.test(e)), JSON.stringify(bad));
+});
+
+test('the tool schema takes the late field types in its enum; the field options come from app_inspect_catalog', () => {
+    const { TOOL_SCHEMAS_PART_2 } = require('./schemasPart2');
+    const upsert = TOOL_SCHEMAS_PART_2.find((s) => s.function.name === 'app_upsert_table');
+    assert.ok(upsert, 'app_upsert_table is in part 2');
+    const items = upsert.function.parameters.properties.fields.items.properties;
+    assert.ok(items.type.enum.includes('autonumber') && items.type.enum.includes('json') && items.type.enum.includes('user'));
+    // The options are no schema properties (that would move the pinned bytes): the schema stays
+    // open and the handler reads them (the test above writes all four through it).
+    for (const key of ['validation', 'dynamicDefault', 'format', 'display']) assert.equal(items[key], undefined, key);
+});
+
+test('access.rowFilters takes a rule per operation and a list of the viewer, kept as given', async () => {
+    const wrap = reset();
+    const rule = { read: 'record.status in viewer.groups || record.title == viewer.email', update: 'record.status in viewer.groups' };
+    const r = await applyUpsertTable(wrap, {
+        key: 'tasks', name: 'Tasks', fields: [{ key: 'title', type: 'text' }, { key: 'status', type: 'text' }],
+        access: { default: 'role', roles: { staff: { read: 'all', update: 'all', delete: 'all' } }, rowFilters: { staff: rule } },
+    });
+    assert.ok(!r.error, JSON.stringify(r));
+    assert.deepStrictEqual(wrap.dataModel.tables[0].access.rowFilters.staff, rule);
+    assert.ok(!r._hints, 'nothing to remark on');
+});
+
+test('a malformed per-operation rule is refused with the operation it is under', async () => {
+    const wrap = reset();
+    const r = await applyUpsertTable(wrap, {
+        key: 'tasks', name: 'Tasks', fields: [{ key: 'title', type: 'text' }, { key: 'amount', type: 'number' }],
+        access: { default: 'role', roles: { staff: { read: 'all' } }, rowFilters: { staff: { read: 'record.amount in viewer.groups', write: 'record.title == "x"' } } },
+    });
+    assert.match(String(r.error), /rowFilters/);
+    assert.ok(r.errors.some((e) => /role "staff": read: field "amount" cannot be tested with "in"/.test(e)), JSON.stringify(r.errors));
+    assert.ok(r.errors.some((e) => /"write" is not a row rule operation/.test(e)), JSON.stringify(r.errors));
+    assert.match(r._fixHint, /record\.<text field> in viewer\.groups/);
+    assert.strictEqual(state.saveCalls.length, 0);
+});
+
+test('viewer.organizationId saves, with the recommendation for viewer.orgId as a hint', async () => {
+    const wrap = reset();
+    const r = await applyUpsertTable(wrap, {
+        key: 'tasks', name: 'Tasks', fields: [{ key: 'title', type: 'text' }],
+        access: { default: 'role', roles: { staff: { read: 'all' } }, rowFilters: { staff: 'record.org_id == viewer.organizationId' } },
+    });
+    assert.ok(!r.error, JSON.stringify(r));
+    assert.ok(r._hints.some((h) => /role "staff": viewer\.organizationId .* use viewer\.orgId in a new rule/.test(h)), JSON.stringify(r._hints));
+    assert.strictEqual(state.saveCalls.length, 1);
 });

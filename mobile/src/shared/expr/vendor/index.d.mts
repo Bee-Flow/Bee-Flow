@@ -11,12 +11,12 @@
 /**
  * One segment of a member path: `a`, `.b`, `[expr]`, `[*]`. A path that reads
  * on from a value starts with `base` (`first(x).y`), and `it` inside
- * map/filter/some/every starts with `local`.
+ * map/filter/some/every/reduce (and `acc` inside reduce) starts with `local`.
  */
 export type ExprPathSegment =
     | { kind: 'name'; v: string }
     | { kind: 'base'; expr: ExprNode }
-    | { kind: 'local'; v: 'it' }
+    | { kind: 'local'; v: 'it' | 'acc' }
     | { kind: 'index'; expr: ExprNode }
     | { kind: 'wildcard' }
     | { kind: 'match'; key: string; value: string | number | boolean | null };
@@ -32,6 +32,14 @@ export type ExprNode =
     | { kind: 'ternary'; cond: ExprNode; a: ExprNode; b: ExprNode }
     | { kind: 'call'; name: string; args: ExprNode[] }
     | { kind: 'each'; name: 'map' | 'filter' | 'some' | 'every'; args: [ExprNode, ExprNode] }
+    /** reduce(list, expr, start): `expr` reads the item as `it` and the result so far as `acc`. */
+    | { kind: 'reduce'; name: 'reduce'; args: [ExprNode, ExprNode, ExprNode] }
+    /** `[a, b]` */
+    | { kind: 'list'; args: ExprNode[] }
+    /** `{ k: a }`: `keys[i]` names `args[i]`. */
+    | { kind: 'object'; keys: string[]; args: ExprNode[] }
+    /** A call of a pure host function (an author's own function). */
+    | { kind: 'usercall'; name: string; args: ExprNode[] }
     | { kind: 'path'; segments: ExprPathSegment[] };
 
 export declare class ExprError extends Error {
@@ -46,6 +54,8 @@ export interface ExprFunctionDoc {
     name: string;
     signature: string;
     description: string;
+    /** The schema version of the app definition the function arrived with, when later than the first. */
+    since?: number;
 }
 
 /** A host function: parsed like a whitelisted one, answered by the caller. */
@@ -55,12 +65,22 @@ export interface ExprHostFunction {
     /** Thrown when the expression is evaluated without `fn`. */
     unanswered?: string;
     fn?: (...args: unknown[]) => unknown;
+    /**
+     * Answered from its arguments alone: usable inside map/filter/reduce and
+     * other calls, never listed by collectHostCalls. Carries `fn`, or `params`
+     * and `body` (a parsed expression that reads only the parameters).
+     */
+    pure?: boolean;
+    params?: string[];
+    body?: ExprNode;
 }
 
 export type ExprHostTable = Readonly<Record<string, ExprHostFunction>>;
 
 export interface ExprOptions {
     host?: ExprHostTable;
+    /** false: an object literal `{ … }` stays the parse error it was (automation expressions). */
+    objects?: boolean;
 }
 
 /** A host call node (`{ kind: 'call' }`) found by collectHostCalls. */
@@ -75,6 +95,8 @@ export declare function tryEvaluate(
     opts?: ExprOptions,
 ): { value: unknown; error: string | null };
 export declare function collectHostCalls(node: ExprNode, out?: ExprCallNode[]): ExprCallNode[];
+/** The app definition schema version an expression needs: 3 for vocabulary added with version 3, else 0. */
+export declare function exprSince(src: string | ExprNode, opts?: ExprOptions): number;
 export declare const FUNCTIONS: Readonly<Record<string, ExprFunction>>;
 export declare const EXPR_FUNCTIONS: readonly ExprFunctionDoc[];
 export declare const EXPR_FUNCTION_NAMES: readonly string[];
@@ -86,6 +108,26 @@ export declare function collectEachCalls(node: ExprNode, out?: ExprEachNode[]): 
 export declare function collectRefs(node: ExprNode, out: Set<string>): Set<string>;
 /** True when the expression reads `it` as the item of an enclosing list function. */
 export declare function readsItem(node: ExprNode): boolean;
+
+// ── An author's own functions (userFunctions.mjs) ────────────────────────
+export interface UserFunctionProblem {
+    /** Position in the list; -1 for a problem with the list itself. */
+    index: number;
+    name: string | null;
+    code: string;
+    message: string;
+}
+/** `[{ name, params, expr }]` → a host table; safe to pass as `opts.host` even with problems. */
+export declare function compileUserFunctions(
+    defs: unknown,
+    opts?: { maxExprLength?: number; reserved?: Iterable<string> },
+): { host: ExprHostTable; problems: UserFunctionProblem[] };
+export declare function isFunctionIdentifier(s: unknown): boolean;
+export declare const MAX_USER_FUNCTIONS: number;
+export declare const MAX_USER_FUNCTION_PARAMS: number;
+export declare const MAX_RANGE_ITEMS: number;
+export declare const MAX_LITERAL_DEPTH: number;
+
 export declare const MAX_REGEX_PATTERN_CHARS: number;
 export declare function regexProblem(pattern: unknown, flags: unknown): string | null;
 export declare function hasNestedQuantifier(source: string): boolean;

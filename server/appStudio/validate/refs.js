@@ -7,7 +7,7 @@
 
 'use strict';
 
-const { LIMITS, FORMULA_SCOPE_ROOTS, INPUT_MAPPING_KINDS } = require('../componentSpecs');
+const { LIMITS, FORMULA_SCOPE_ROOTS } = require('../componentSpecs');
 const { pickClosestId } = require('../../automation/validate/helpers');
 // Data-engine vocabularies (single source of truth for the per-app database):
 // the filter-op grammar, the system columns every table carries, and the
@@ -21,6 +21,7 @@ const {
 } = require('../dataModel');
 const { isObject, pushDataRef } = require('./shared');
 const { validateFormula } = require('./formulas');
+const { mappingKinds, checkMappingFormula } = require('./serverScopeChecks.mts');
 
 // Table / dataset references mirror run_automation.automationId: an UNSET
 // reference is a soft warning (connect-it-later), an unresolved one is a
@@ -46,7 +47,6 @@ function checkRef(id, path, ctx, { label, known, codeUnset, codeInvalid, codeMis
         pushW({ code: codeUnverified, severity: 'warning', path, message: `${label} references ${JSON.stringify(id)} — not verified until publish.`, hint: 'Publishing checks it exists.' });
     }
 }
-
 
 /**
  * @param {string} path
@@ -411,11 +411,11 @@ function validateInputMapping(actionId, mapping, path, ctx) {
     }
     for (const [param, m] of Object.entries(mapping)) {
         const p = `${path}.${param}`;
-        if (!isObject(m) || !INPUT_MAPPING_KINDS.includes(m.kind)) {
-            pushE({ code: 'action.mapping_kind_invalid', severity: 'error', path: p, message: `Mapping for "${param}" has invalid kind ${JSON.stringify(isObject(m) ? m.kind : m)}.`, hint: `Use one of: ${INPUT_MAPPING_KINDS.join(', ')}.` });
+        if (!isObject(m) || !mappingKinds().includes(m.kind)) {
+            pushE({ code: 'action.mapping_kind_invalid', severity: 'error', path: p, message: `Mapping for "${param}" has invalid kind ${JSON.stringify(isObject(m) ? m.kind : m)}.`, hint: `Use one of: ${mappingKinds().join(', ')}.` });
             continue;
         }
-        if (m.kind !== 'field') continue;
+        if (m.kind !== 'field') { if (m.kind === 'formula') checkMappingFormula(m, String(actionId), param, p, ctx, validateFormula); continue; }
         if (typeof m.name !== 'string' || !m.name) {
             pushE({ code: 'action.mapping_name_missing', severity: 'error', path: p, message: `Field mapping for "${param}" needs a \`name\`.`, hint: 'Use the props.name of an input component.' });
             continue;

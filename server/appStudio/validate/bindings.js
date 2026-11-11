@@ -9,10 +9,13 @@
 const { BINDING_KINDS, FORMULA_SCOPE_ROOTS } = require('../componentSpecs');
 const { pickClosestId } = require('../../automation/validate/helpers');
 const { relativePathTokens, suggestRelativeSpelling } = require('../../core/automationModel/refPaths');
-const { FILTER_OPS } = require('../dataModel');
 const { isObject } = require('./shared');
-const { countFilterLeaves, MAX_FILTER_CLAUSES: MAX_FILTERS } = require('../../shared/expr/filterGroups.mjs');
+const { MAX_ORDER_BY } = require('../componentSpecs');
+const { validateBindingFilter, validateReadFilter } = require('./bindingFilters');
 const { validateFormula } = require('./formulas');
+const { validateReadKeys } = require('./readKeys');
+const { groupByAlias, validateExtendedGroupBy, validateGroupFilter } = require('./aggregateChecks.mts');
+const { validateExpand, validateFields } = require('./relationReadChecks.mts');
 const {
     checkTableRef,
     checkTableSource,
@@ -45,112 +48,35 @@ function checkBindingPath(p, at, ctx) {
     });
 }
 
-// ---------------------------------------------------------------------------
-// record/records binding filter & sort — the exact query-descriptor grammar
-// the compiler accepts. A filter is an ARRAY of { field, op, value? } where
-// `value` may be a JSON literal, an array of literals (in/between), or a
-// {kind:'formula', expr} resolved CLIENT-SIDE against live scope before the
-// fetch (the expr is parse-compiled here, never executed). A legacy string
-// filter is treated as one formula expression. Sort is [{ field, dir }].
-// ---------------------------------------------------------------------------
-
 /**
- * @param {string} path
- */
-function validateFilterValue(v, path, ctx) {
-    const { pushE } = ctx;
-    if (v === undefined || v === null) return;
-    const t = typeof v;
-    if (t === 'string' || t === 'number' || t === 'boolean') return;
-    if (isObject(v)) {
-        if (v.kind === 'formula') { validateFormula(v.expr, `${path}.expr`, ctx, FORMULA_SCOPE_ROOTS); return; }
-        pushE({ code: 'binding.filter_invalid', severity: 'error', path, message: 'A filter value must be a literal, an array of literals (for in/between), or {kind:"formula", expr}.', hint: 'Wrap dynamic values as {kind:"formula", expr:"vars.…"}.' });
-        return;
-    }
-    if (Array.isArray(v)) {
-        v.forEach((item, j) => validateFilterValue(item, `${path}[${j}]`, ctx));
-        return;
-    }
-    pushE({ code: 'binding.filter_invalid', severity: 'error', path, message: 'Unsupported filter value.', hint: 'Use a string/number/boolean/null literal, an array of literals, or {kind:"formula", expr}.' });
-}
-
-/**
+ * `orderBy`: 1..MAX_ORDER_BY { field, dir? } entries, each field once. For an
+ * aggregate the fields are its output columns (`allowedAliases`).
  * @param {string} path
  * @param {string} label
  */
-function validateBindingFilter(filter, path, ctx, tableId, label) {
+function validateBindingOrderBy(value, path, ctx, label, allowedAliases) {
     const { pushE } = ctx;
-    if (typeof filter === 'string') {
-        // Legacy formula-expression filter — compiled, never executed.
-        validateFormula(filter, path, ctx, FORMULA_SCOPE_ROOTS);
+    const orderBy = value.orderBy;
+    if (!Array.isArray(orderBy) || orderBy.length === 0 || orderBy.length > MAX_ORDER_BY) {
+        pushE({ code: 'binding.sort_invalid', severity: 'error', path, message: `${label} orderBy must be a list of 1 to ${MAX_ORDER_BY} { field, dir? } entries.`, hint: 'e.g. [{ "field": "status", "dir": "asc" }, { "field": "due", "dir": "desc" }].' });
         return;
     }
-    if (!Array.isArray(filter)) {
-        pushE({ code: 'binding.filter_invalid', severity: 'error', path, message: `${label} filter must be an array of { field, op, value? } entries.`, hint: `Ops: ${FILTER_OPS.join(', ')}. value may be a literal or {kind:"formula", expr}.` });
-        return;
+    if (value.sort !== undefined && value.sort !== null) {
+        pushE({ code: 'binding.sort_invalid', severity: 'error', path, message: `${label} has both sort and orderBy.`, hint: 'Keep orderBy (it sorts on every column it lists) and remove sort.' });
     }
-    filter.forEach((entry, i) => {
-        const p = `${path}[${i}]`;
-        if (isObject(entry) && entry.any !== undefined) validateAnyGroup(entry, p, ctx, tableId, label);
-        else validateFilterClause(entry, p, ctx, tableId, label);
-    });
-    const leaves = countFilterLeaves(filter);
-    if (leaves > MAX_FILTERS) {
-        pushE({ code: 'binding.filter_too_many', severity: 'error', path, message: `${label} filter has ${leaves} clauses; the limit is ${MAX_FILTERS}, counting the clauses inside any groups.`, hint: 'Combine values with op "in" instead of one clause per value.' });
-    }
-}
-
-/**
- * One `{ any: [clause, …] }` OR group: a non-empty list of clauses, one level deep.
- * @param {Record<string, unknown>} entry
- * @param {string} p
- * @param {string} label
- */
-function validateAnyGroup(entry, p, ctx, tableId, label) {
-    const { pushE } = ctx;
-    if (entry.field !== undefined || entry.op !== undefined || entry.value !== undefined) {
-        pushE({ code: 'binding.filter_invalid', severity: 'error', path: p, message: 'A filter entry is either a clause { field, op, value? } or an OR group { any: [...] }, not both.', hint: 'Move the clause into the group\'s any list, or next to the group.' });
-    }
-    if (!Array.isArray(entry.any) || entry.any.length === 0) {
-        pushE({ code: 'binding.filter_group_empty', severity: 'error', path: `${p}.any`, message: 'An OR group needs a non-empty any list of clauses.', hint: '{ "any": [{ "field": "status", "op": "eq", "value": "open" }, { "field": "priority", "op": "eq", "value": "high" }] }' });
-        return;
-    }
-    if (entry.required !== undefined && typeof entry.required !== 'boolean') {
-        pushE({ code: 'binding.filter_invalid', severity: 'error', path: `${p}.required`, message: '`required` must be true or false.', hint: 'Set required:true when the component should show nothing until one of the clauses has a value.' });
-    }
-    entry.any.forEach((clause, j) => {
-        const cp = `${p}.any[${j}]`;
-        if (isObject(clause) && clause.any !== undefined) {
-            pushE({ code: 'binding.filter_group_nested', severity: 'error', path: cp, message: 'An OR group cannot hold another group.', hint: 'Put its clauses directly in this group\'s any list (a OR (b OR c) is a OR b OR c).' });
-            return;
+    validateBindingSort(orderBy, path, ctx, value.tableId, label, allowedAliases);
+    // A groupBy or aggregates formula names its output columns only when it runs.
+    const isFormula = (/** @type {unknown} */ v) => isObject(v) && /** @type {{ kind?: unknown }} */ (v).kind === 'formula';
+    const strictAliases = Boolean(allowedAliases) && !isFormula(value.groupBy) && !isFormula(value.aggregates);
+    const seen = new Set();
+    orderBy.forEach((entry, i) => {
+        if (!isObject(entry) || typeof entry.field !== 'string') return;
+        if (strictAliases && !allowedAliases.has(entry.field)) {
+            pushE({ code: 'binding.sort_invalid', severity: 'error', path: `${path}[${i}].field`, message: `${label} orderBy names ${JSON.stringify(entry.field)}, which is not one of its output columns.`, hint: `Use one of: ${Array.from(allowedAliases).join(', ')}.` });
         }
-        validateFilterClause(clause, cp, ctx, tableId, label);
+        if (seen.has(entry.field)) pushE({ code: 'binding.sort_invalid', severity: 'error', path: `${path}[${i}].field`, message: `orderBy names ${JSON.stringify(entry.field)} twice.`, hint: 'List each field once.' });
+        seen.add(entry.field);
     });
-}
-
-/**
- * One filter clause { field, op, value?, required? }.
- * @param {string} p
- * @param {string} label
- */
-function validateFilterClause(entry, p, ctx, tableId, label) {
-    const { pushE } = ctx;
-    if (!isObject(entry)) {
-        pushE({ code: 'binding.filter_invalid', severity: 'error', path: p, message: 'Each filter entry must be an object { field, op, value? }.', hint: `Ops: ${FILTER_OPS.join(', ')}.` });
-        return;
-    }
-    if (typeof entry.field !== 'string' || !entry.field) {
-        pushE({ code: 'binding.filter_invalid', severity: 'error', path: `${p}.field`, message: 'Each filter entry needs a non-empty string `field`.', hint: 'Use a field key from the bound table (system columns id/created_at/updated_at/created_by/org_id also resolve).' });
-    } else {
-        checkFieldRef(tableId, entry.field, `${p}.field`, ctx, `${label} filter`);
-    }
-    if (!FILTER_OPS.includes(entry.op)) {
-        pushE({ code: 'binding.filter_invalid', severity: 'error', path: `${p}.op`, message: `Unknown filter op ${JSON.stringify(entry.op)}.`, hint: `Use one of: ${FILTER_OPS.join(', ')}.` });
-    }
-    if (entry.required !== undefined && typeof entry.required !== 'boolean') {
-        pushE({ code: 'binding.filter_invalid', severity: 'error', path: `${p}.required`, message: '`required` must be true or false.', hint: 'Set required:true when the component should show nothing until this value exists.' });
-    }
-    validateFilterValue(entry.value, `${p}.value`, ctx);
 }
 
 /**
@@ -161,8 +87,8 @@ function aggregateAliases(binding) {
     const out = new Set();
     for (const g of Array.isArray(binding.groupBy) ? binding.groupBy : []) {
         if (!isObject(g)) continue;
-        if (typeof g.as === 'string' && g.as) out.add(g.as);
-        else if (typeof g.field === 'string' && g.field) out.add(g.bucket ? `${g.field}_${g.bucket}` : g.field);
+        const alias = groupByAlias(g);
+        if (alias) out.add(alias);
     }
     for (const a of Array.isArray(binding.aggregates) ? binding.aggregates : []) {
         if (!isObject(a)) continue;
@@ -234,14 +160,21 @@ function validateBinding(key, value, path, ctx) {
         // if the answer is no, so it has to be said by name here. A table with its own storage passes
         // through undisturbed.
         checkTableSource(value.tableId, `${path}.tableId`, ctx, label);
-        if (value.filter !== undefined && value.filter !== null) validateBindingFilter(value.filter, `${path}.filter`, ctx, value.tableId, label);
+        if (value.filter !== undefined && value.filter !== null) validateReadFilter(value.filter, `${path}.filter`, ctx, value.tableId, label);
+        validateReadKeys(value, path, ctx, label);
         // An aggregate may sort by the columns it produces, which is what the
         // compiler does too.
         const aggAliases = value.kind === 'aggregate' ? aggregateAliases(value) : null;
         if (value.sort !== undefined && value.sort !== null) validateBindingSort(value.sort, `${path}.sort`, ctx, value.tableId, label, aggAliases);
+        if (value.orderBy !== undefined && value.orderBy !== null) validateBindingOrderBy(value, `${path}.orderBy`, ctx, label, aggAliases);
         if (value.limit !== undefined && value.limit !== null && (typeof value.limit !== 'number' || !Number.isInteger(value.limit) || value.limit < 1)) {
             pushE({ code: 'binding.limit_invalid', severity: 'error', path: `${path}.limit`, message: `${label} limit must be a positive integer.`, hint: 'Use an integer ≥ 1, or omit it.' });
         }
+    }
+    if (value.kind === 'record' || value.kind === 'records') {
+        // Since v3, only when present: the related rows to read along, and the columns to return.
+        if (value.expand !== undefined && value.expand !== null) validateExpand(value, path, ctx);
+        if (value.fields !== undefined && value.fields !== null) validateFields(value, path, ctx, `${value.kind} binding`);
     }
     if (value.kind === 'record') {
         checkBindingPath(value.path, `${path}.path`, ctx);
@@ -304,16 +237,38 @@ function validateBinding(key, value, path, ctx) {
                 checkFieldRef(value.tableId, a.field, `${path}.aggregates[${i}].field`, ctx, 'aggregate binding', { codePrefix: 'binding' });
             }
         });
+        validateExtendedGroupBy(groupBy, path, value.tableId, ctx);
+        if (value.groupFilter !== undefined && value.groupFilter !== null) validateGroupFilter(value, path, ctx);
     }
     if (value.kind === 'dataset') {
         checkDatasetRef(value.datasetId, `${path}.datasetId`, ctx, 'dataset binding');
         if (value.params !== undefined && value.params !== null && !isObject(value.params)) {
             pushE({ code: 'binding.params_invalid', severity: 'error', path: `${path}.params`, message: 'dataset params must be an object.', hint: 'Use { paramName: value }.' });
+        } else if (isObject(value.params)) {
+            checkDatasetParamFormulas(value.params, `${path}.params`, ctx);
         }
     }
     if (value.kind === 'connector') {
         checkConnectorRef(value.connectorId, `${path}.connectorId`, ctx, 'connector binding');
         if (value.params !== undefined && value.params !== null) validateConnectorParams(value.params, `${path}.params`, ctx);
+    }
+}
+
+/**
+ * The formula values of a dataset binding's `params`. They were stored and
+ * never read until datasets could declare parameters, so an app may carry one
+ * that does not parse: what the checker finds is a WARNING here, never an
+ * error that would stop such an app from publishing. Checking them is also
+ * what counts their `vars.<name>` reads as uses of the variable.
+ * @param {Record<string, unknown>} params
+ * @param {string} path
+ * @param {ValidationCtx} ctx
+ */
+function checkDatasetParamFormulas(params, path, ctx) {
+    const soft = { ...ctx, pushE: (/** @type {import('./shared').Finding} */ f) => ctx.pushW({ ...f, severity: 'warning' }) };
+    for (const [key, v] of Object.entries(params)) {
+        const formula = /** @type {{ kind?: unknown, expr?: unknown }} */ (isObject(v) ? v : {});
+        if (formula.kind === 'formula') validateFormula(formula.expr, `${path}.${key}.expr`, soft, FORMULA_SCOPE_ROOTS);
     }
 }
 

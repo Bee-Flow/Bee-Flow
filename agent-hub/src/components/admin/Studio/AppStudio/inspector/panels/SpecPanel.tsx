@@ -1,13 +1,18 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import BindingField from './BindingField';
 import ExpressionInput from '../logic/ExpressionInput';
-import { TextField, TextAreaField, NumberField, IconField, usePatch } from './kit';
+import { TextField, TextAreaField, IconField, INPUT_CLS, usePatch } from './kit';
+import { SpecListField } from './SpecListField';
+import { clearedPropValue, firstSentence, humanize, isClearedProp, isLateEntry } from './specProps';
 import useTranslation from '@/hooks/useTranslation';
 import FormField from '@/components/shared/FormField';
 import Toggle from '@/components/shared/Toggle';
-import { RepeatableList, inputCls } from '@/components/admin/product-website/fields';
+import { inputCls } from '@/components/admin/product-website/fields';
+import { deepEqual } from '@/utils/deepEqual';
 import { getComponentEntry } from '../../runtime/componentRegistry';
 import { studioAppsApi } from '../../studioAppsApi';
+import type { ListItem, PropSpec } from './specProps';
 import type { BindingInput } from '../../runtime/resolveBinding.types';
 import type { AppNode, AppDefinition, PanelProps } from '../appDefinition';
 
@@ -16,16 +21,20 @@ import type { AppNode, AppDefinition, PanelProps } from '../appDefinition';
  * catalog's prop specs (GET /api/studio-apps/catalog — componentSpecs.js
  * verbatim). Any component type without a bespoke panel falls back to this
  * (see registry.getInspectorForType), so a new catalog type gets a working
- * inspector for free instead of a silent editing gap.
+ * inspector for free instead of a silent editing gap. The same controls fill
+ * the "More options" block under a bespoke panel (MoreOptions.tsx).
  *
  * Prop-type → control mapping:
  *   string/url    → text field          markdown → textarea
  *   number/int    → number field        boolean  → toggle
  *   enum          → select              icon     → icon field
  *   binding       → BindingField        formula  → ExpressionInput
- *   list          → RepeatableList over itemShape (string/enum/int/boolean
- *                   item fields; nested lists are left to bespoke panels)
+ *   list          → SpecListField over itemShape (every item key, nested
+ *                   lists, bindings and icons included)
  *   stringList    → comma-separated text field
+ *
+ * A prop that holds something other than what a node without it would hold
+ * shows a "Reset" link, which writes back exactly that (specProps.clearedPropValue).
  *
  * The catalog is fetched once and cached for the session (react-query,
  * staleTime Infinity). If it is unavailable (offline draft), a minimal spec
@@ -62,29 +71,6 @@ export function useCatalogStepSpecs() {
     return useCatalog()?.actions?.stepSpecs || null;
 }
 
-/** 'labelKey' / 'group_by' → 'Label key' / 'Group by'. */
-function humanize(key: string) {
-    const words = String(key)
-        .replace(/_/g, ' ')
-        .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
-        .toLowerCase();
-    return words.charAt(0).toUpperCase() + words.slice(1);
-}
-
-/** One prop's entry in the catalog's prop spec (or an inferred one). */
-interface PropSpec {
-    type: string;
-    default?: unknown;
-    values?: unknown[];
-    min?: number;
-    max?: number;
-    itemShape?: Record<string, PropSpec> | null;
-    required?: boolean;
-}
-
-/** One row of a list prop: its fields by key, as the form holds them. */
-type ListItem = Record<string, unknown>;
-
 /** Offline fallback: infer a minimal prop spec from registry defaultProps. */
 function inferSpecProps(defaultProps: Record<string,unknown>|undefined) {
     const out: Record<string, PropSpec> = {};
@@ -98,129 +84,62 @@ function inferSpecProps(defaultProps: Record<string,unknown>|undefined) {
     return out;
 }
 
-// ── list-of-objects editor (spec itemShape driven) ──────────────────────────
-
-function newListItem(itemShape: Record<string, PropSpec> | null | undefined): ListItem {
-    const item: ListItem = {};
-    for (const [k, fs] of Object.entries(itemShape || {})) {
-        if (fs.type === 'enum') item[k] = fs.default ?? fs.values?.[0] ?? '';
-        else if (fs.type === 'boolean') item[k] = fs.default ?? false;
-        else if (fs.type === 'int') item[k] = fs.default ?? null;
-        else if (fs.type === 'list') item[k] = [];
-        else item[k] = '';
-    }
-    return item;
+/** The value a control hands over, as the definition should hold it. */
+function normalizeCommit(fs: PropSpec, value: unknown) {
+    // A late prop is only written while it holds something other than its
+    // default: an empty text, the default value or null all mean "not set".
+    if (isLateEntry(fs) && (value === '' || value === undefined || deepEqual(value, fs.default ?? null))) return null;
+    return value;
 }
 
-interface ItemFieldProps {
-    itemKey: string;
+/** Clamp a typed number to the spec range (and to an integer for `int`). */
+function clampNumber(fs: PropSpec, raw: number) {
+    let n = fs.type === 'int' ? Math.round(raw) : raw;
+    if (typeof fs.min === 'number' && Number.isFinite(fs.min) && n < fs.min) n = fs.min;
+    if (typeof fs.max === 'number' && Number.isFinite(fs.max) && n > fs.max) n = fs.max;
+    return n;
+}
+
+interface SpecNumberFieldProps {
+    label: string;
     fs: PropSpec;
     value: unknown;
-    onChange: (value: string | number | boolean | null) => void;
-}
-
-function ItemField({ itemKey, fs, value, onChange }: ItemFieldProps) {
-    const { t } = useTranslation();
-    // What a text-like control shows: the stored value as text, nothing for a gap.
-    const shown = value == null ? '' : String(value);
-    if (fs.type === 'enum') {
-        return (
-            <select
-                className={inputCls}
-                value={shown}
-                onChange={(e) => onChange(e.target.value)}
-                aria-label={humanize(itemKey)}
-            >
-                {(fs.values || []).map((v) => (
-                    <option key={String(v)} value={v == null ? '' : String(v)}>{v === null ? t('studio_apps_panels.spec.default_option', '(default)') : String(v)}</option>
-                ))}
-            </select>
-        );
-    }
-    if (fs.type === 'boolean') {
-        return (
-            <label className="inline-flex items-center gap-1.5 text-xs text-[var(--text-secondary)]">
-                <input
-                    type="checkbox"
-                    checked={!!value}
-                    onChange={(e) => onChange(e.target.checked)}
-                    className="accent-[var(--accent-primary)]"
-                />
-                {humanize(itemKey)}
-            </label>
-        );
-    }
-    if (fs.type === 'int') {
-        return (
-            <input
-                type="number"
-                className={inputCls}
-                value={shown}
-                min={fs.min}
-                max={fs.max}
-                onChange={(e) => {
-                    const n = Number(e.target.value);
-                    onChange(e.target.value === '' || !Number.isFinite(n) ? null : Math.round(n));
-                }}
-                aria-label={humanize(itemKey)}
-            />
-        );
-    }
-    // string (nested lists are bespoke-panel territory — not rendered here)
-    return (
-        <input
-            type="text"
-            className={inputCls}
-            value={shown}
-            onChange={(e) => onChange(e.target.value)}
-            placeholder={humanize(itemKey)}
-            spellCheck={false}
-            aria-label={humanize(itemKey)}
-        />
-    );
-}
-
-interface SpecListFieldProps {
-    label: string;
-    itemShape: Record<string, PropSpec> | null | undefined;
-    items: ListItem[] | undefined;
-    onChange: (items: ListItem[]) => void;
+    commit: (v: unknown) => void;
     disabled: boolean;
 }
 
-export function SpecListField({ label, itemShape, items, onChange, disabled }: SpecListFieldProps) {
-    const { t } = useTranslation();
-    const shapeEntries = Object.entries(itemShape || {}).filter(([, fs]) => fs.type !== 'list');
-    const labelKey = shapeEntries[0]?.[0];
+/**
+ * A number prop. While the box is being typed in it shows what was typed, and
+ * every valid number is committed at once; a box left empty commits the
+ * cleared value when it loses focus, so wiping the field to type a new number
+ * does not snap back to the default in between.
+ */
+function SpecNumberField({ label, fs, value, commit, disabled }: SpecNumberFieldProps) {
+    const [draft, setDraft] = useState<string | null>(null);
+    const ranged = typeof fs.min === 'number' && typeof fs.max === 'number' && Number.isFinite(fs.min) && Number.isFinite(fs.max);
     return (
-        <fieldset disabled={disabled} className="min-w-0">
-            <RepeatableList
-                label={label}
-                items={Array.isArray(items) ? items : []}
-                onChange={onChange}
-                makeNew={() => newListItem(itemShape)}
-                addLabel={t('studio_apps_panels.spec.add_item', 'Add {item}', { item: label.toLowerCase().replace(/s$/, '') })}
-                collapsible
-                itemLabel={(item: ListItem) => (labelKey ? String(item?.[labelKey] ?? '') : '')}
-                renderItem={(item: ListItem, update: (next: ListItem) => void) => (
-                    <div className="flex flex-col gap-2">
-                        {shapeEntries.map(([k, fs]) => (
-                            <ItemField
-                                key={k}
-                                itemKey={k}
-                                fs={fs}
-                                value={item?.[k]}
-                                onChange={(v) => update({ ...item, [k]: v })}
-                            />
-                        ))}
-                    </div>
-                )}
+        <FormField label={label} hint={ranged ? `${fs.min}–${fs.max}` : undefined}>
+            <input
+                type="number"
+                className={INPUT_CLS}
+                value={draft ?? (value == null ? '' : String(value))}
+                step={fs.type === 'int' ? 1 : 'any'}
+                onChange={(e) => {
+                    const text = e.target.value;
+                    setDraft(text);
+                    const n = Number(text);
+                    if (text !== '' && Number.isFinite(n)) commit(clampNumber(fs, n));
+                }}
+                onBlur={() => {
+                    if (draft === '') commit(clearedPropValue(fs));
+                    setDraft(null);
+                }}
+                disabled={disabled}
+                aria-label={label}
             />
-        </fieldset>
+        </FormField>
     );
 }
-
-// ── one prop → one control ───────────────────────────────────────────────────
 
 interface SpecFieldProps {
     propKey: string;
@@ -232,10 +151,34 @@ interface SpecFieldProps {
     disabled: boolean;
 }
 
+function SpecEnumField({ label, fs, value, commit, disabled }: Omit<SpecNumberFieldProps, 'fs'> & { fs: PropSpec }) {
+    const { t } = useTranslation();
+    const values = fs.values || [];
+    // A late enum is absent until set: offer that state as its own option.
+    const offerUnset = isLateEntry(fs) && !values.includes(null);
+    return (
+        <FormField label={label}>
+            <select
+                className={inputCls}
+                value={value == null ? '' : String(value)}
+                onChange={(e) => commit(e.target.value === '' ? null : e.target.value)}
+                disabled={disabled}
+                aria-label={label}
+            >
+                {offerUnset ? <option value="">{t('studio_apps_panels.spec.default_option', '(default)')}</option> : null}
+                {values.map((v) => (
+                    <option key={String(v)} value={v == null ? '' : String(v)}>{v === null ? t('studio_apps_panels.spec.default_option', '(default)') : String(v)}</option>
+                ))}
+            </select>
+        </FormField>
+    );
+}
+
+/** One prop → one control. */
 function SpecField({ propKey, fs, value, patch, definition, node, disabled }: SpecFieldProps) {
     const { t } = useTranslation();
     const label = humanize(propKey);
-    const commit = (v: unknown) => patch({ [propKey]: v });
+    const commit = (v: unknown) => patch({ [propKey]: normalizeCommit(fs, v) });
 
     switch (fs.type) {
         case 'binding':
@@ -245,6 +188,7 @@ function SpecField({ propKey, fs, value, patch, definition, node, disabled }: Sp
                     value={value as BindingInput}
                     onChange={commit}
                     definition={definition}
+                    node={node}
                     disabled={disabled}
                 />
             );
@@ -254,49 +198,25 @@ function SpecField({ propKey, fs, value, patch, definition, node, disabled }: Sp
             return <IconField label={label} value={value == null ? null : String(value)} onChange={commit} disabled={disabled} />;
         case 'number':
         case 'int':
-            return (
-                <NumberField
-                    label={label}
-                    value={value == null ? undefined : String(value)}
-                    step={fs.type === 'int' ? 1 : undefined}
-                    onChange={(v) => {
-                        if (v == null) { commit(null); return; }
-                        let n = fs.type === 'int' ? Math.round(v) : v;
-                        if (typeof fs.min === 'number' && Number.isFinite(fs.min) && n < fs.min) n = fs.min;
-                        if (typeof fs.max === 'number' && Number.isFinite(fs.max) && n > fs.max) n = fs.max;
-                        commit(n);
-                    }}
-                    hint={typeof fs.min === 'number' && typeof fs.max === 'number' && Number.isFinite(fs.min) && Number.isFinite(fs.max) ? `${fs.min}–${fs.max}` : undefined}
-                    disabled={disabled}
-                />
-            );
-        case 'boolean':
-            return <Toggle label={label} checked={!!value} onChange={(v) => commit(v)} disabled={disabled} size="sm" />;
+            return <SpecNumberField label={label} fs={fs} value={value} commit={commit} disabled={disabled} />;
+        case 'boolean': {
+            const checked = value === undefined || value === null ? fs.default === true : !!value;
+            return <Toggle label={label} checked={checked} onChange={(v) => commit(v)} disabled={disabled} size="sm" />;
+        }
         case 'enum':
-            return (
-                <FormField label={label}>
-                    <select
-                        className={inputCls}
-                        value={value == null ? '' : String(value)}
-                        onChange={(e) => commit(e.target.value === '' ? null : e.target.value)}
-                        disabled={disabled}
-                        aria-label={label}
-                    >
-                        {(fs.values || []).map((v) => (
-                            <option key={String(v)} value={v == null ? '' : String(v)}>{v === null ? t('studio_apps_panels.spec.default_option', '(default)') : String(v)}</option>
-                        ))}
-                    </select>
-                </FormField>
-            );
+            return <SpecEnumField label={label} fs={fs} value={value} commit={commit} disabled={disabled} />;
         case 'list': {
             if (!fs.itemShape) return null; // inferred fallback list — needs the real catalog
             return (
                 <SpecListField
                     label={label}
                     itemShape={fs.itemShape}
+                    maxItems={fs.maxItems}
                     items={Array.isArray(value) ? value : undefined}
                     onChange={(items: ListItem[]) => commit(items)}
                     disabled={disabled}
+                    definition={definition}
+                    node={node}
                 />
             );
         }
@@ -326,6 +246,9 @@ function SpecField({ propKey, fs, value, patch, definition, node, disabled }: Sp
                     />
                 </FormField>
             );
+        case 'object':
+            // A small fixed object (formatOptions): its bespoke panel edits it, never a text box.
+            return null;
         case 'string':
         case 'url':
         default:
@@ -341,6 +264,33 @@ function SpecField({ propKey, fs, value, patch, definition, node, disabled }: Sp
     }
 }
 
+/**
+ * A prop's control, its one-line description from the catalog, and a Reset
+ * link while it holds something a node without it would not.
+ */
+export function SpecPropRow(props: SpecFieldProps & { describe?: boolean }) {
+    const { t } = useTranslation();
+    const { propKey, fs, value, patch, disabled, describe = false } = props;
+    const gloss = describe ? firstSentence(fs.description) : undefined;
+    return (
+        <div className="flex flex-col gap-1" data-spec-prop={propKey}>
+            <SpecField {...props} />
+            {gloss ? <p className="text-[11px] text-[var(--text-muted)]">{gloss}</p> : null}
+            {isClearedProp(fs, value) ? null : (
+                <button
+                    type="button"
+                    className="self-start text-[11px] text-[var(--text-secondary)] hover:underline disabled:opacity-50"
+                    onClick={() => patch({ [propKey]: clearedPropValue(fs) })}
+                    disabled={disabled}
+                    aria-label={t('studio_apps_more_options.reset_aria', 'Reset {name}', { name: humanize(propKey) })}
+                >
+                    {t('studio_apps_more_options.reset', 'Reset')}
+                </button>
+            )}
+        </div>
+    );
+}
+
 export default function SpecPanel({ node, definition, onCommit, disabled = false }: PanelProps) {
     const props = node.props || {};
     const patch = usePatch(node, definition, onCommit);
@@ -354,7 +304,7 @@ export default function SpecPanel({ node, definition, onCommit, disabled = false
     return (
         <div className="flex flex-col gap-4" data-spec-panel={node.type}>
             {entries.map(([key, fs]) => (
-                <SpecField
+                <SpecPropRow
                     key={key}
                     propKey={key}
                     fs={fs}

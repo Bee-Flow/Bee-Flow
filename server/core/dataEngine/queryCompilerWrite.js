@@ -2,6 +2,7 @@
 const { SYSTEM_COLUMNS } = require('./dataModel/vocabulary');
 const { newRecordId } = require('./dataModel/ids');
 const { resolveDialect } = require('./engineFlag');
+const { autonumberValueSql } = require('./dataModel/autonumber');
 const { CompileError, assertRowsWritable, qi, assertTableMeta, fieldMap, coerceValue, assertRecordId, assertAccessFilter } = require('./queryCompilerBase');
 
 /**
@@ -29,6 +30,7 @@ function compileInsert(tableMeta, values, {
     const id = idOpt === undefined ? newRecordId() : assertRecordId(idOpt);
     const now = new Date().toISOString();
     const cols = ['id', 'created_at', 'updated_at', 'created_by', 'org_id'];
+    /** @type {unknown[]} */
     const params = [id, now, now, createdBy, orgId];
 
     const vals = (values && typeof values === 'object' && !Array.isArray(values)) ? values : {};
@@ -36,13 +38,31 @@ function compileInsert(tableMeta, values, {
         if (SYSTEM_COLUMNS.includes(k)) continue; // clients cannot set system columns
         if (!fm.has(k)) throw new CompileError(`unknown field: ${k}`);
         const f = fm.get(k);
-        if (f.type === 'computed') continue; // computed columns are derived, never written
+        // computed columns are derived, autonumber is assigned below: neither is written by a caller
+        if (f.type === 'computed' || f.type === 'autonumber') continue;
         cols.push(f.key);
         params.push(coerceValue(v, f, dialect));
     }
+    const placeholders = cols.map(() => '?');
+    addAutonumbers(tableMeta, cols, placeholders);
     const sql = `INSERT INTO ${qi(tableMeta.key)} (${cols.map(qi).join(', ')}) `
-        + `VALUES (${cols.map(() => '?').join(', ')})`;
+        + `VALUES (${placeholders.join(', ')})`;
     return { sql, params, id, createdAt: now };
+}
+
+/**
+ * An autonumber column is filled by the INSERT itself (ddl.autonumberValueSql); a table without one
+ * compiles exactly as before.
+ * @param {import('./queryCompiler').TableMeta} tableMeta
+ * @param {string[]} cols
+ * @param {string[]} placeholders
+ */
+function addAutonumbers(tableMeta, cols, placeholders) {
+    for (const f of (tableMeta.fields || [])) {
+        if (!f || f.type !== 'autonumber' || typeof f.key !== 'string') continue;
+        cols.push(f.key);
+        placeholders.push(autonumberValueSql(tableMeta.key, f.key));
+    }
 }
 
 /**
@@ -109,12 +129,13 @@ function compileSetClause(tableMeta, values, dialect) {
     const fm = fieldMap(tableMeta);
     const vals = (values && typeof values === 'object' && !Array.isArray(values)) ? values : {};
     const sets = [`${qi('updated_at')} = ?`];
+    /** @type {unknown[]} */
     const params = [new Date().toISOString()];
     for (const [k, v] of Object.entries(vals)) {
         if (SYSTEM_COLUMNS.includes(k)) continue; // system columns are server-owned
         if (!fm.has(k)) throw new CompileError(`unknown field: ${k}`);
         const f = fm.get(k);
-        if (f.type === 'computed') continue;
+        if (f.type === 'computed' || f.type === 'autonumber') continue; // derived / server-assigned
         sets.push(`${qi(f.key)} = ?`);
         params.push(coerceValue(v, f, dialect));
     }
@@ -178,7 +199,7 @@ function compileUpsertByKey(tableMeta, keyFieldName, values, accessFilter, {
     assertRowsWritable(tableMeta, { allowLockedRows });
     assertAccessFilter(accessFilter);
     const fm = fieldMap(tableMeta);
-    const keyField = fm.get(keyFieldName);
+    const keyField = fm.get(String(keyFieldName));
     if (!keyField) throw new CompileError(`unknown field: ${keyFieldName}`);
     if (keyField.unique !== true) {
         throw new CompileError(`compileUpsertByKey needs "${keyFieldName}" to be a unique column`);
@@ -191,6 +212,7 @@ function compileUpsertByKey(tableMeta, keyFieldName, values, accessFilter, {
     const id = newRecordId();
     const now = new Date().toISOString();
     const cols = ['id', 'created_at', 'updated_at', 'created_by', 'org_id'];
+    /** @type {unknown[]} */
     const params = [id, now, now, createdBy, orgId];
     // Only the caller's own columns are refreshed on a conflict. id,
     // created_at and created_by stay whatever the row already had: the row IS

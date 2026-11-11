@@ -3,6 +3,7 @@ import { Settings2 } from 'lucide-react';
 import { VIEW_OPTIONS } from './gridViewPrefs';
 import useTranslation from '@/hooks/useTranslation';
 import type { TranslateFn } from '@/hooks/useTranslation';
+import { usePortalDocument } from '@/components/shared/portalRoot';
 
 /**
  * The reader's own controls for one grid: how tall the rows are, how they are
@@ -99,6 +100,7 @@ export default function GridViewMenu({ view, onChange, onReset, hasOverrides }: 
     const { t } = useTranslation();
     const [open, setOpen] = useState(false);
     const wrapRef = useRef<HTMLDivElement>(null);
+    const doc = usePortalDocument();
 
     // Click-outside and Escape both close it. Without the outside handler the
     // panel stayed open behind the next thing you clicked, which on a wide
@@ -107,10 +109,10 @@ export default function GridViewMenu({ view, onChange, onReset, hasOverrides }: 
         if (!open) return undefined;
         const onDown = (e: MouseEvent) => { if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false); };
         const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
-        document.addEventListener('mousedown', onDown);
-        document.addEventListener('keydown', onKey);
-        return () => { document.removeEventListener('mousedown', onDown); document.removeEventListener('keydown', onKey); };
-    }, [open]);
+        doc.addEventListener('mousedown', onDown);
+        doc.addEventListener('keydown', onKey);
+        return () => { doc.removeEventListener('mousedown', onDown); doc.removeEventListener('keydown', onKey); };
+    }, [open, doc]);
 
     return (
         <div ref={wrapRef} className="relative shrink-0" data-app-grid-viewmenu="true">

@@ -27,7 +27,15 @@ export interface BindingDraft {
     actionId?: string | null;
     path?: string;
     filter?: unknown;
+    match?: 'all' | 'any';
+    search?: { value?: string | { kind: string; expr?: string }; fields?: string[] };
     sort?: unknown;
+    /** Up to three `{ field, dir }` entries; replaces `sort` when present. */
+    orderBy?: unknown;
+    /** record / records: `[{ field: <relation field>, pick?, as? }]`, the linked record of each row. */
+    expand?: unknown;
+    /** record / records: the columns to load (all when absent). */
+    fields?: unknown;
     limit?: number;
     groupBy?: Array<DatasetGroup | null>;
     aggregates?: Array<DatasetAggregate | null>;
@@ -130,6 +138,9 @@ export interface DatasetBindingProps {
     componentType: string;
     singleValue: boolean;
     disabled: boolean;
+    /** For the formula fields of a view's parameters. */
+    definition?: AppDefinition;
+    node?: AppNode | null;
 }
 
 export interface ConnectorParamFieldProps {

@@ -47,6 +47,10 @@ const studioAppDbStore = require('../stores/studioAppDbStore');
 const studioAppDataStore = require('../stores/studioAppDataStore');
 const datatableSource = require('./datatableSource');
 const { readError } = require('./readError');
+const { recordListDescriptor, aggregateDescriptor } = require('../core/dataEngine/readDescriptor.mts');
+const { queryWithComputed } = require('../core/dataEngine/computedRead.mts');
+const { relatedForAggregate } = require('../core/dataEngine/aggregateRelated.mts');
+const { relationRead, finishRecords } = require('../core/dataEngine/relationRead.mts');
 const log = require('../telemetry/log');
 const { bestEffort } = require('../utils/bestEffort');
 
@@ -140,35 +144,70 @@ function readPlan(ctx, table) {
  * The compiler asks for limit+1 rows so "is there a next page" needs no second
  * query; trimming that extra row and minting the cursor is this function's job
  * and must not be copied into each router.
+ *
+ * `opts` is a read descriptor; recordListDescriptor picks the query fields the
+ * compiler takes, so a caller may hand over a whole batch read. `match` (how the
+ * filters join) and `search` (a free search over some columns) travel only when
+ * the request carries them, so a read without them compiles as it always did.
+ *
+ * Read-time computed fields are evaluated (queryWithComputed); one that reads
+ * empty is named in `notes`, which is present only then.
+ *
+ * `total: true` (exactly true) adds `total`: how many records match the whole
+ * read, counted with the same WHERE (row rules, filters) and without the page.
+ * A read without it answers exactly as before, with no count query.
  */
-async function runRecordList(ctx, table, { filters, sort, cursor, limit } = {}) {
+async function runRecordList(ctx, table, opts = {}) {
     const plan = await readPlan(ctx, table);
     const accessFilter = rlsGateway.compileAccessFilter(plan.tableMeta, plan.role, plan.viewer, 'read', { dialect: plan.dialect });
-    const compiled = queryCompiler.compileRecordList(plan.tableMeta, { filters, sort, cursor, limit, dialect: plan.dialect }, accessFilter);
-    const { rows } = await plan.query(compiled.sql, compiled.params);
+    // Reading through a relation (expand, a relation.field filter) stays inside the app's own
+    // storage: a linked Studio table gets no model to resolve relations in, so the compiler
+    // refuses those by name. `fields` narrows either kind of table.
+    const read = relationRead(datatableSource.isDatatableBacked(table) ? null : ctx.model, plan.tableMeta, opts, plan);
+    if (read && read.expand !== undefined && datatableSource.isDatatableBacked(table)) {
+        throw readError(400, 'A linked Studio table cannot expand a relation.');
+    }
+    const descriptor = recordListDescriptor(opts, { cursor: opts.cursor, limit: opts.limit, dialect: plan.dialect, readTimeComputed: true });
+    const compiled = queryCompiler.compileRecordList(plan.tableMeta, descriptor, accessFilter, read);
+    const { result, notes } = await queryWithComputed(plan.query, compiled);
+    const { rows } = /** @type {{ rows: Record<string, unknown>[] }} */ (result);
 
     /** @type {string | null} */
     let nextCursor = null;
     if (rows.length > compiled.limit) {
         const last = rows[compiled.limit - 1];
         rows.length = compiled.limit;
-        nextCursor = queryCompiler.encodeCursor(last[compiled.primaryField], last.id);
+        nextCursor = queryCompiler.nextCursor(compiled, last);
     }
-    return { records: rows, nextCursor };
+    const total = opts.total === true ? { total: await countRecords(plan, descriptor, accessFilter, read) } : {};
+    // The related rows, each under its own table's row rules, and only the columns asked for.
+    const records = await finishRecords(compiled, rows, plan.query);
+    return { records, nextCursor, ...total, ...(notes.length ? { notes } : {}) };
+}
+
+/**
+ * The size of a whole record read: one COUNT over the read's own WHERE.
+ * @param {ReadPlan} plan
+ * @param {Record<string, unknown>} descriptor  the compileRecordList options of the read
+ * @param {{ where: string, params: unknown[] }} accessFilter
+ * @param {unknown} [read]  the relation read of the list, for a filter on a linked record's field
+ */
+async function countRecords(plan, descriptor, accessFilter, read) {
+    const { sql, params } = queryCompiler.compileRecordCount(plan.tableMeta, descriptor, accessFilter, read);
+    const { rows } = await plan.query(sql, params);
+    // Postgres answers COUNT(*) as a bigint, which the driver hands over as text.
+    const n = Number(rows[0] && rows[0].total);
+    return Number.isFinite(n) && n >= 0 ? n : 0;
 }
 
 /** An inline aggregate descriptor — a count/sum/group-by with no saved dataset. */
 async function runInlineAggregate(ctx, table, descriptor = {}) {
     const plan = await readPlan(ctx, table);
     const accessFilter = rlsGateway.compileAccessFilter(plan.tableMeta, plan.role, plan.viewer, 'read', { dialect: plan.dialect });
-    const { sql, params } = queryCompiler.compileAggregate(plan.tableMeta, {
-        filters: descriptor.filters,
-        groupBy: descriptor.groupBy,
-        aggregates: descriptor.aggregates,
-        sort: descriptor.sort,
-        limit: descriptor.limit,
-        dialect: plan.dialect,
-    }, accessFilter);
+    // A groupBy through a relation reads the related table under the same role and viewer.
+    const related = relatedForAggregate(datatableSource.isDatatableBacked(table) ? null : ctx.model, plan.tableMeta, descriptor.groupBy, plan, descriptor.filters);
+    const { sql, params } = queryCompiler.compileAggregate(plan.tableMeta,
+        aggregateDescriptor(descriptor, { limit: descriptor.limit, dialect: plan.dialect }), accessFilter, related);
     const { rows } = await plan.query(sql, params);
     return { rows };
 }
@@ -179,9 +218,12 @@ async function runInlineAggregate(ctx, table, descriptor = {}) {
  * The dataset row is OWNER-scoped (getDataset gates on it) while the access
  * filter runDataset builds is VIEWER-scoped — that split is the whole reason a
  * cached dataset is safe to share between viewers, and it is preserved here
- * unchanged.
+ * unchanged. `params` are the binding's values for the parameters the dataset
+ * declares; runDataset ignores them for a dataset that declares none.
+ * @param {{ refresh?: boolean, params?: unknown }} [opts]
  */
-async function runSavedDataset(ctx, datasetId, { refresh = false } = {}) {
+async function runSavedDataset(ctx, datasetId, opts = {}) {
+    const { refresh = false, params } = opts;
     const dataset = studioAppDataStore.getDataset
         ? await studioAppDataStore.getDataset(datasetId, ctx.app.id, ctx.app.userId)
         : null;
@@ -195,7 +237,7 @@ async function runSavedDataset(ctx, datasetId, { refresh = false } = {}) {
     if (datatableSource.isDatatableBacked(table)) {
         throw readError(501, 'A saved dataset cannot read a linked Studio table yet.');
     }
-    const out = await datasetCache.runDataset(ctx.app, ctx.model, dataset, ctx.viewer, { refresh });
+    const out = await datasetCache.runDataset(ctx.app, ctx.model, dataset, ctx.viewer, { refresh, params });
     return { rows: out.rows, columns: out.columns, truncated: out.truncated, cached: out.cached };
 }
 
@@ -232,7 +274,7 @@ async function runBatchRead(ctx, read) {
         // 404, the client degrades a 404 to "empty", and a people-picker that
         // silently shows nobody is worse than one that says it cannot load.
         if (datasetId.startsWith('sys_')) throw readError(400, 'Platform datasets are not available in a batch');
-        const out = await runSavedDataset(ctx, datasetId, { refresh: false });
+        const out = await runSavedDataset(ctx, datasetId, { refresh: false, params: read.params });
         // `result` mirrors the dataset-binding contract the runtime reads.
         return { payload: { ...out, result: out.rows }, table: null };
     }
@@ -241,15 +283,7 @@ async function runBatchRead(ctx, read) {
     if (kind === 'aggregate') {
         return { payload: await runInlineAggregate(ctx, table, read), table };
     }
-    return {
-        payload: await runRecordList(ctx, table, {
-            filters: read.filters,
-            sort: read.sort,
-            cursor: read.cursor,
-            limit: read.limit,
-        }),
-        table,
-    };
+    return { payload: await runRecordList(ctx, table, read), table };
 }
 
 /**
@@ -311,5 +345,5 @@ module.exports = {
  *   app: { id: string, userId: string, organizationId?: string | null }, ownerScope: string,
  *   _datatablePlans?: Map<string, Promise<ReadPlan>>,
  * }} ReadCtx  the per-request context of a read
- * @typedef {{ id?: unknown, kind?: unknown, datasetId?: unknown, tableId?: unknown, filters?: unknown, groupBy?: unknown, aggregates?: unknown, sort?: unknown, cursor?: string | null, limit?: unknown }} BatchRead  one descriptor of a batch
+ * @typedef {{ id?: unknown, kind?: unknown, datasetId?: unknown, tableId?: unknown, filters?: unknown, groupBy?: unknown, aggregates?: unknown, sort?: unknown, orderBy?: unknown, groupFilter?: unknown, expand?: unknown, fields?: unknown, cursor?: string | null, limit?: unknown, total?: unknown, params?: unknown }} BatchRead  one descriptor of a batch (`params`: a dataset's parameter values)
  */

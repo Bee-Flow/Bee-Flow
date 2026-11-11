@@ -308,6 +308,30 @@ test('stream: the owner gets the bytes with a nosniff header', async () => {
     assert.deepStrictEqual(Buffer.concat(r.chunks), PNG);
 });
 
+test('stream: the same disposition and policy as the public route, per type', async () => {
+    const { attachmentResponseHeaders } = require('./studioAppAttachmentHeaders.mts');
+    const app = makeApp();
+    const cases = [
+        { mime: 'image/png', disposition: 'inline', csp: true },
+        { mime: 'image/svg+xml', disposition: 'attachment', csp: true },
+        { mime: 'image/tiff', disposition: 'attachment', csp: true },
+        { mime: 'text/csv', disposition: 'attachment', csp: true },
+        { mime: 'application/pdf', disposition: 'inline', csp: false },
+    ];
+    for (const c of cases) {
+        const att = await seedAttachment(app, { mime: c.mime, buffer: Buffer.from(`bytes of ${c.mime}`) });
+        const r = await dispatch(getReq(`/${app.id}/data/attachments/${att.id}`, { user: OWNER }));
+        assert.strictEqual(r.statusCode, 200, c.mime);
+        assert.strictEqual(r.headers['content-type'], c.mime);
+        assert.strictEqual(r.headers['x-content-type-options'], 'nosniff', c.mime);
+        assert.strictEqual(r.headers['content-disposition'], c.disposition, c.mime);
+        if (c.csp) assert.match(r.headers['content-security-policy'], /sandbox/, c.mime);
+        else assert.strictEqual(r.headers['content-security-policy'], undefined, c.mime);
+        const expected = attachmentResponseHeaders(c.mime);
+        for (const [name, value] of Object.entries(expected)) assert.strictEqual(r.headers[name.toLowerCase()], value, `${c.mime} ${name}`);
+    }
+});
+
 test('stream: a non-owner who CAN read the owning record gets the file', async () => {
     const app = makeApp();
     state.model = { tables: [{ id: 'tbl_1', key: 'docs', fields: [{ id: 'fld_1', key: 'file', type: 'file' }], access: { default: 'app' } }] };

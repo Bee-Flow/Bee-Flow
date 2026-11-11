@@ -16,13 +16,20 @@ export const TOKEN = {
     LT: '<', LTE: '<=', GT: '>', GTE: '>=',
     PLUS: '+', MINUS: '-', STAR: '*', SLASH: '/', PERCENT: '%', CARET: '^',
     BANG: '!', ASSIGN: '=', EOF: 'EOF',
+    // `??`, and the braces of an object literal. Before they existed `??` was
+    // two question marks (always a parse error) and a brace an "Unexpected
+    // character", so no stored expression can contain either outside a text.
+    NULLISH: '??', LBRACE: '{', RBRACE: '}',
 };
 
 /**
  * @param {unknown} src
+ * @param {{ objects?: boolean } | null} [opts] `objects: false` keeps a brace
+ *   the "Unexpected character" it was before object literals existed: the
+ *   automation builder tells its author to build an object with a set step.
  * @returns {Array<{ t: string, v?: string | number | boolean, raw?: string, i: number }>}
  */
-export function tokenize(src) {
+export function tokenize(src, opts) {
     if (typeof src !== 'string') throw new ExprError('Expression must be a string', 0);
     const tokens = [];
     let i = 0;
@@ -31,7 +38,7 @@ export function tokenize(src) {
         const c = src[i];
         if (c === ' ' || c === '\t' || c === '\n' || c === '\r') { i++; continue; }
         const prev = tokens[tokens.length - 1];
-        const memberDot = c === '.' && prev && (prev.t === TOKEN.IDENT || prev.t === TOKEN.RBRACK || prev.t === TOKEN.RPAREN);
+        const memberDot = c === '.' && prev && (prev.t === TOKEN.IDENT || prev.t === TOKEN.RBRACK || prev.t === TOKEN.RPAREN || prev.t === TOKEN.RBRACE);
         if (memberDot) { tokens.push({ t: TOKEN.DOT, i }); i++; continue; }
         // Right after a member dot, a name is a KEY whatever it looks like:
         // `items.0.subject` (digits), `flags.true`, `naam.prénom`. The same
@@ -40,12 +47,15 @@ export function tokenize(src) {
         const afterDot = tokens.length > 0 && tokens[tokens.length - 1].t === TOKEN.DOT;
         if (afterDot && /[\p{L}\p{N}_$]/u.test(c)) {
             let j = i;
+            // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- one character class tested on a single character: linear
             while (j < src.length && /[\p{L}\p{N}\p{M}_$]/u.test(src[j])) j++;
             tokens.push({ t: TOKEN.IDENT, v: src.slice(i, j), i });
             i = j; continue;
         }
+        // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- single-character class tests, each on one character: linear
         if (/[0-9]/.test(c) || (c === '.' && /[0-9]/.test(src[i + 1] || ''))) {
             let j = i;
+            // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- one character class tested on a single character: linear
             while (j < src.length && /[0-9.]/.test(src[j])) j++;
             tokens.push({ t: TOKEN.NUMBER, v: parseFloat(src.slice(i, j)), raw: src.slice(i, j), i });
             i = j; continue;
@@ -57,6 +67,7 @@ export function tokenize(src) {
                     const n = src[j + 1];
                     // JSON's escapes, so a key the builder quoted with
                     // JSON.stringify (path.mjs formatKey) reads back here too.
+                    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- an anchored fixed count of one class, on a 4-character slice: linear
                     if (n === 'u' && /^[0-9a-fA-F]{4}$/.test(src.slice(j + 2, j + 6))) {
                         out += String.fromCharCode(parseInt(src.slice(j + 2, j + 6), 16));
                         j += 6;
@@ -72,6 +83,7 @@ export function tokenize(src) {
         }
         if (/[\p{L}_$]/u.test(c)) {
             let j = i;
+            // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- one character class tested on a single character: linear
             while (j < src.length && /[\p{L}\p{N}\p{M}_$]/u.test(src[j])) j++;
             const word = src.slice(i, j);
             if (word === 'true' || word === 'false') tokens.push({ t: TOKEN.BOOL, v: word === 'true', i });
@@ -83,6 +95,7 @@ export function tokenize(src) {
         const three = src.slice(i, i + 3);
         if (three === '===') { tokens.push({ t: TOKEN.SEQ, i }); i += 3; continue; }
         if (three === '!==') { tokens.push({ t: TOKEN.SNEQ, i }); i += 3; continue; }
+        if (two === '??') { tokens.push({ t: TOKEN.NULLISH, i }); i += 2; continue; }
         if (two === '||') { tokens.push({ t: TOKEN.OR, i }); i += 2; continue; }
         if (two === '&&') { tokens.push({ t: TOKEN.AND, i }); i += 2; continue; }
         if (two === '==') { tokens.push({ t: TOKEN.EQ, i }); i += 2; continue; }
@@ -100,11 +113,13 @@ export function tokenize(src) {
             // non-programmer who types 2^10 means 1024. Before this it was an
             // "Unexpected character", so no stored expression can contain one.
             '^': TOKEN.CARET,
+            '{': TOKEN.LBRACE, '}': TOKEN.RBRACE,
         };
         // A single `=` only exists inside a path's brackets, as the match
         // segment `headers[name="Subject"]` (path.mjs). Anywhere else it is
         // still the old error, so `a = b` keeps telling the author to write ==.
         if (c === '=' && brackets > 0) { tokens.push({ t: TOKEN.ASSIGN, i }); i++; continue; }
+        if ((c === '{' || c === '}') && opts?.objects === false) throw new ExprError(`Unexpected character in expression: ${c}`, i);
         if (c === '[') brackets++;
         else if (c === ']' && brackets > 0) brackets--;
         if (single[c]) { tokens.push({ t: single[c], i }); i++; continue; }

@@ -10,10 +10,12 @@
 const { MAX_SEED_RECORDS } = require('./schemas');
 const { AGG_FNS } = require('../dataModel');
 const { parseQueryArgs, shapeTableRow, pageDatasetRows, pageMeta, queryFailure, MAX_QUERY_LIMIT } = require('./queryDataArgs');
+const { expandAlias } = require('../validate/relationReadChecks.mts');
 const { persistDraft } = require('./persistence');
 const { isDatatableBacked } = require('../datatableSource');
 const { linkedTableRefusal, rowCountsById, findModelTable, tableIdHint, persistDataModel, dataModelPersistError } = require('./dataToolsShared');
 const { mergeTableOp, applyUpsertTable, findTableRefs, applyRemoveTable, applySetRoles } = require('./dataToolsTables');
+const { validateDatasetParams, DATASET_PARAM_TYPES, datasetParamNames, datasetEntry } = require('../datasetParams.mts');
 
 // ── Data engine (per-app database) ──────────────────────────────────
 //
@@ -97,6 +99,24 @@ async function applySeedRecords(draftWrap, args) {
     return result;
 }
 
+/** Why a dataset descriptor cannot be saved as it is (a tool result), or null. */
+function descriptorRefusal(descriptor) {
+    if (!descriptor || typeof descriptor !== 'object' || Array.isArray(descriptor)) {
+        return { error: 'descriptor must be an object { groupBy?, aggregates, filters? }.' };
+    }
+    if (!Array.isArray(descriptor.aggregates) || !descriptor.aggregates.length) {
+        return { error: 'descriptor.aggregates must be a non-empty array of { fn, field?, as }.', _fixHint: `Aggregate fns: ${AGG_FNS.join(', ')}; count needs no field.` };
+    }
+    const paramErrors = validateDatasetParams(descriptor);
+    if (paramErrors.length) {
+        return {
+            error: `descriptor.params: ${paramErrors.join(' ')}`,
+            _fixHint: `params: [{ name, type?: ${DATASET_PARAM_TYPES.join('|')}, default?, label? }]; a filter takes one as its value: { param: "<name>" }.`,
+        };
+    }
+    return null;
+}
+
 async function applyUpsertDataset(draftWrap, args) {
     const model = draftWrap.dataModel;
     const table = findModelTable(model, args?.tableId);
@@ -105,12 +125,8 @@ async function applyUpsertDataset(draftWrap, args) {
     }
     if (isDatatableBacked(table)) return linkedTableRefusal(table, 'dataset');
     const descriptor = args?.descriptor;
-    if (!descriptor || typeof descriptor !== 'object' || Array.isArray(descriptor)) {
-        return { error: 'descriptor must be an object { groupBy?, aggregates, filters? }.' };
-    }
-    if (!Array.isArray(descriptor.aggregates) || !descriptor.aggregates.length) {
-        return { error: 'descriptor.aggregates must be a non-empty array of { fn, field?, as }.', _fixHint: `Aggregate fns: ${AGG_FNS.join(', ')}; count needs no field.` };
-    }
+    const refused = descriptorRefusal(descriptor);
+    if (refused) return refused;
     if (!draftWrap.appId) {
         const created = await persistDraft(draftWrap);
         if (created.error) return created;
@@ -157,7 +173,8 @@ async function applyUpsertDataset(draftWrap, args) {
         const out = await datasetCache.runDataset(app, model, row, { id: draftWrap.userId, role: 'owner' }, { refresh: true });
         const rows = Array.isArray(out.rows) ? out.rows : [];
         const list = Array.isArray(draftWrap.datasetIds) ? [...draftWrap.datasetIds] : [];
-        const entry = { id: row.id, name: row.name };
+        const paramNames = datasetParamNames(row);
+        const entry = datasetEntry(row);
         const idx = list.findIndex((d) => ((d && d.id) || d) === row.id);
         if (idx >= 0) list[idx] = entry; else list.push(entry);
         draftWrap.datasetIds = list;
@@ -165,6 +182,8 @@ async function applyUpsertDataset(draftWrap, args) {
             datasetId: row.id,
             name: row.name,
             tableId: table.id,
+            // The preview ran with each parameter's default (or without its clause).
+            ...(paramNames ? { params: paramNames } : {}),
             preview: rows.slice(0, 10),
             rowCount: rows.length,
             ...(out.truncated ? { truncated: true } : {}),
@@ -209,7 +228,7 @@ async function applyQueryData(draftWrap, args) {
     }
     const parsed = parseQueryArgs(args);
     if (parsed.error) return { ...parsed, ...(parsed._fixHint ? {} : { _fixHint: tableIdHint(model) }) };
-    const { tableId, datasetId, limit, filter, sort, cursor } = parsed;
+    const { tableId, datasetId, limit, filter, sort, orderBy, cursor, match, search, total, expand, fields } = parsed;
     const studioAppStore = require('../../stores/studioAppStore');
     let app = null;
     try { app = await studioAppStore.getStudioApp(draftWrap.appId); } catch (_) { app = null; }
@@ -218,7 +237,7 @@ async function applyQueryData(draftWrap, args) {
     let linked = false;
     try {
         if (datasetId) {
-            if (filter || sort) {
+            if (filter || sort || orderBy || match || search || expand || fields) {
                 return { error: 'filter and sort apply to raw table rows (tableId); a saved dataset returns its own aggregation.', _fixHint: 'Page through a dataset with cursor, or query its source table with tableId.' };
             }
             const studioAppDataStore = require('../../stores/studioAppDataStore');
@@ -228,7 +247,7 @@ async function applyQueryData(draftWrap, args) {
                 return { error: `Unknown datasetId ${JSON.stringify(datasetId)}.`, _fixHint: `Known datasets: ${known.join(', ') || '(none)'}.` };
             }
             const datasetCache = require('../datasetCache');
-            const out = await datasetCache.runDataset(app, model, ds, { id: draftWrap.userId, role: 'owner' });
+            const out = await datasetCache.runDataset(app, model, ds, { id: draftWrap.userId, role: 'owner' }, { params: parsed.params });
             const page = pageDatasetRows(Array.isArray(out.rows) ? out.rows : [], cursor, limit);
             return { ...page, ...pageMeta({}, parsed) };
         }
@@ -249,13 +268,16 @@ async function applyQueryData(draftWrap, args) {
             viewer: { id: draftWrap.userId, role: 'owner' },
             model,
         };
-        const out = await dataReadRunner.runRecordList(ctx, table, { filters: filter, sort, cursor, limit });
-        const rows = (Array.isArray(out.records) ? out.records : []).map((r) => shapeTableRow(r, table));
+        const out = await dataReadRunner.runRecordList(ctx, table, { filters: filter, sort, orderBy, match, search, cursor, limit, ...(total ? { total: true } : {}), ...(expand ? { expand } : {}), ...(fields ? { fields } : {}) });
+        const expanded = (expand || []).map((e) => expandAlias(/** @type {Record<string, unknown>} */ (e && typeof e === 'object' ? e : {}))).filter(Boolean);
+        const rows = (Array.isArray(out.records) ? out.records : []).map((r) => shapeTableRow(r, table, expanded));
         return {
             rows,
             rowCount: rows.length,
+            ...(typeof out.total === 'number' ? { totalRows: out.total } : {}),
             ...pageMeta({ more: !!out.nextCursor, nextCursor: out.nextCursor }, parsed),
             ...(linked ? { linked: true } : {}),
+            ...(out.notes ? { notes: out.notes } : {}),
         };
     } catch (e) {
         return queryFailure(e, { appId: draftWrap.appId, linked });
@@ -292,7 +314,7 @@ module.exports = {
 
 /** @typedef {import('../builderTools').ToolResult} ToolResult */
 
-/** @typedef {{ id: string, key: string, name?: string, type: string, required?: boolean, unique?: boolean, subtype?: string, default?: unknown, options?: unknown[], relation?: { table: string, tableId?: string, displayField?: string }, computed?: { expr: string, type?: string, stored?: boolean } }} DataField */
+/** @typedef {{ id: string, key: string, name?: string, type: string, required?: boolean, unique?: boolean, subtype?: string, default?: unknown, options?: unknown[], relation?: { table: string, tableId?: string, displayField?: string }, computed?: { expr: string, type?: string, stored?: boolean }, validation?: unknown, dynamicDefault?: unknown, format?: unknown, display?: unknown }} DataField */
 
 /** @typedef {{ id: string, key: string, name?: string, icon?: string|null, fields?: DataField[], access?: { default?: string, roles?: Record<string, Record<string, string|boolean>>, rowFilters?: Record<string, string> }, source?: { kind?: string, mode?: string, datatableId?: string } }} DataTable */
 

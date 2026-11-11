@@ -1,0 +1,15 @@
+{
+  "translations": {
+    "studio_apps_backdrop.knobs.fit": "Weergave",
+    "studio_apps_backdrop.knobs.image": "Afbeelding",
+    "studio_apps_backdrop.knobs.overlay": "Sluier",
+    "studio_apps_backdrop.title": "Achtergrondafbeelding",
+    "studio_apps_backdrop.values.contain": "Passend",
+    "studio_apps_backdrop.values.cover": "Vullen",
+    "studio_apps_backdrop.values.dim": "Donker",
+    "studio_apps_backdrop.values.light": "Licht",
+    "studio_apps_backdrop.values.none": "Geen",
+    "studio_apps_backdrop.values.tile": "Tegelen"
+  },
+  "sameAsEnglish": []
+}

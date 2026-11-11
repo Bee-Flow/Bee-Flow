@@ -62,7 +62,7 @@ function groupLabel(t: (key: string | undefined, fallbackOrParams?: string | Tra
  * (`color-mix(var(--type-ai) 14%)`, the artboard's exact recipe).
  *
  * A DEVIATION from the artboard, recorded in the plan (Track P): the catalog
- * holds ~50 types, which no eight chips can carry — so "All components"
+ * holds far more types than eight chips can carry — so "All components"
  * unfolds the full ribbon below the row, and the search field searches the
  * whole catalog.
  */

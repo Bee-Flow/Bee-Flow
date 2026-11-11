@@ -13,7 +13,7 @@
 import { EN_ONLY, type Msg, type Translate } from '../msg';
 import type { AppDefinition, AppNode } from '../types';
 
-export type ReferenceKind = 'screen' | 'modal' | 'table' | 'dataset' | 'automation' | 'connector' | 'document' | 'action';
+export type ReferenceKind = 'screen' | 'modal' | 'table' | 'dataset' | 'automation' | 'connector' | 'document' | 'action' | 'node';
 
 /** Which reference a field key names. Keys are the STEP_SPECS field names. */
 export const REFERENCE_FIELDS: Readonly<Record<string, ReferenceKind>> = {
@@ -26,6 +26,8 @@ export const REFERENCE_FIELDS: Readonly<Record<string, ReferenceKind>> = {
     documentId: 'document',
     // call_action: another action of this app.
     actionId: 'action',
+    // focus, scroll_to, set_ui: a component on a screen.
+    nodeId: 'node',
 };
 
 /** The web's keys (studio_apps_edit.step_refs.*), word for word. */
@@ -41,6 +43,7 @@ export const REFERENCE_PLACEHOLDERS: Readonly<Record<ReferenceKind, Msg>> = {
     connector: m('pick_connector', 'Pick a connection…'),
     document: m('pick_document', 'Pick a document…'),
     action: m('pick_action', 'Pick an action…'),
+    node: { i18nKey: 'studio_apps_ui_steps.refs.pick_node', en: 'Pick a component…' },
 };
 
 /** Why a list is empty, and what to do about it. */
@@ -56,6 +59,7 @@ export const REFERENCE_EMPTY_HINTS: Readonly<Record<ReferenceKind, Msg>> = {
         'No designed documents yet — make the invoice, quote or letter in Studio → Documents first.',
     ),
     action: m('empty_action', 'This app has no other actions yet.'),
+    node: { i18nKey: 'studio_apps_ui_steps.refs.empty_node', en: 'No component fits this step yet: add one to a screen first.' },
 };
 
 export interface RefOption {

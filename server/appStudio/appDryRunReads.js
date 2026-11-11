@@ -13,19 +13,18 @@
 const queryCompiler = require('./queryCompiler');
 const rlsGateway = require('./rlsGateway');
 const { seedVariableDefaults } = require('./componentSpecs');
-const { compile, tryEvaluate, resolveFilterList, FILTER_SKIP } = require('../shared/expr/index.mjs');
+const { DRY_RUN_PLAN, planFilters, planParams } = require('../shared/appDefinition/bindingPlan.mjs');
 const { isDatatableBacked } = require('./datatableSource');
+const { recordListDescriptor, aggregateDescriptor } = require('../core/dataEngine/readDescriptor.mts');
+const { queryWithComputed } = require('../core/dataEngine/computedRead.mts');
+const { relatedForAggregate } = require('../core/dataEngine/aggregateRelated.mts');
+const { relationRead } = require('../core/dataEngine/relationRead.mts');
 const log = require('../telemetry/log');
 
 // Read-only probe page — a couple of rows is enough to prove a binding returns
 // SOMETHING (or nothing); we never render the data.
 const DRY_RUN_LIMIT = 3;
 
-// The scope roots the synthetic owner/role scope can populate. A formula filter
-// value referencing anything else (item/index/value in a repeater, the current
-// `form`, actions/records/datasets) can't be simulated statically → the binding
-// is reported skipped:'dynamic' rather than run with a wrong value.
-const SYNTHETIC_SCOPE_ROOTS = new Set(['currentUser', 'vars', 'forms', 'screen', 'now', 'today']);
 function isPlainObject(v) { return v !== null && typeof v === 'object' && !Array.isArray(v); }
 
 /**
@@ -49,39 +48,30 @@ function syntheticScope(currentUser, variables) {
 }
 
 /**
- * Resolve a record/records binding's filter for the dry-run, mirroring the
- * client resolveBindingFilters contract against the synthetic scope:
+ * Resolve a record/records binding's filter for the dry-run: the shared binding
+ * planner with the dry run's own option set (DRY_RUN_PLAN), against the
+ * synthetic scope:
  *   • isNull/isNotNull entries pass through untouched;
- *   • a {kind:'formula',expr} value referencing a non-populatable root → the
- *     WHOLE binding is skipped (dynamic — can't simulate it);
+ *   • a {kind:'formula',expr} value referencing a root the synthetic owner/role
+ *     scope cannot populate (item/index/value in a repeater, the current
+ *     `form`, actions/records/datasets), or one that does not compile → the
+ *     WHOLE binding is skipped (dynamic — can't simulate it, and a bad formula
+ *     is a STATIC error);
  *   • a formula that resolves to undefined/null has its entry OMITTED;
- *   • literals pass through.
- * Returns { filters } (an array, possibly empty) or { skipped:true }.
+ *   • literals pass through, `required` is not enforced;
+ *   • a legacy whole-filter formula string references live scope → skipped.
+ * A binding's `search` resolves the same way (a value of no text leaves it out).
+ * Returns { filters } (an array, possibly empty), with `search` beside it when
+ * the binding has one, or { skipped:true }.
+ * @returns {{ skipped: true, filters?: undefined, search?: undefined } | { skipped?: undefined, filters: unknown[], search?: unknown }}
  */
 function resolveDryRunFilters(binding, scope) {
-    const filter = binding.filter;
-    if (filter === undefined || filter === null) return { filters: undefined };
-    // A legacy whole-filter formula string references live scope — can't simulate.
-    if (typeof filter === 'string') return { skipped: true };
-    if (!Array.isArray(filter)) return { filters: undefined };
-
-    const res = resolveFilterList(filter, (raw) => {
-        const v = /** @type {{ kind?: unknown, expr?: unknown }} */ (raw);
-        if (!isPlainObject(v) || v.kind !== 'formula') return raw;
-        let refs;
-        try { refs = compile(String(v.expr || '')).refs; }
-        catch { return FILTER_SKIP; } // a bad formula is a STATIC error; skip data
-        if (refs.some((r) => !SYNTHETIC_SCOPE_ROOTS.has(r))) return FILTER_SKIP;
-        return tryEvaluate(v.expr, scope).value; // undefined/null → omitted, matches the client
-    }, {
-        ignoreRequired: true,
-        // A literal stays as written (as before); only a formula that resolved to nothing is omitted.
-        isUnset: (value, clause) => (value === undefined || value === null) && isPlainObject(clause.value) && /** @type {{ kind?: unknown }} */ (clause.value).kind === 'formula',
-    });
-    if (res.status !== 'ok') return { skipped: true };
-    return { filters: res.filters };
+    const step = planFilters(binding, scope, DRY_RUN_PLAN);
+    if (step.plan !== 'fetch') return { skipped: true };
+    const planned = /** @type {{ filter: unknown[], search?: unknown }} */ (step.binding);
+    if (binding && binding.search !== undefined) return { filters: planned.filter, search: planned.search };
+    return { filters: planned.filter };
 }
-
 
 const GENERIC_READ_FAILURE = 'The data read failed on the server (details are in the server log).';
 
@@ -122,6 +112,8 @@ function linkedReadCtx(app, ownerScope, dataModel, roleArg, viewer) {
 async function runRecordBinding(binding, table, { roleArg, viewer, scope, app, ownerScope, deps, dataModel }) {
     const resolved = resolveDryRunFilters(binding, scope);
     if (resolved.skipped) return { ok: true, skipped: 'dynamic' };
+    const searched = 'search' in resolved ? { search: resolved.search } : {};
+    const descriptor = recordListDescriptor(binding, { filters: resolved.filters, ...searched, limit: DRY_RUN_LIMIT });
     try {
         if (isDatatableBacked(table)) {
             // The rows are in a Studio table, not the per-app database: read them
@@ -129,19 +121,20 @@ async function runRecordBinding(binding, table, { roleArg, viewer, scope, app, o
             // synthetic app role has nothing to say about it.
             if (roleArg !== 'owner') return { ok: true, skipped: 'linked' };
             const ctx = linkedReadCtx(app, ownerScope, dataModel, roleArg, viewer);
-            const out = await deps.readRecords(ctx, table, { filters: resolved.filters, sort: binding.sort, limit: DRY_RUN_LIMIT });
+            const out = await deps.readRecords(ctx, table, descriptor);
             const rows = Array.isArray(out && out.records) ? out.records : [];
             return readSummary(rows, resolved.filters, !!(out && out.nextCursor));
         }
         const accessFilter = rlsGateway.compileAccessFilter(table, roleArg, viewer, 'read');
-        const { sql, params } = queryCompiler.compileRecordList(
-            table,
-            { filters: resolved.filters, sort: binding.sort, limit: DRY_RUN_LIMIT },
-            accessFilter,
-        );
-        const out = await deps.dbQuery(ownerScope, app.id, sql, params);
+        // Compiled with what the binding reads through a relation, so a bad expand or relation
+        // filter is reported here; the rows are only counted, so the lookups themselves do not run.
+        const read = relationRead(dataModel, table, { filters: descriptor.filters, expand: binding.expand, fields: binding.fields }, { role: roleArg, viewer });
+        const compiled = queryCompiler.compileRecordList(table, { ...descriptor, readTimeComputed: true }, accessFilter, read);
+        const { result: out, notes } = await queryWithComputed(
+            (/** @type {string} */ sql, /** @type {unknown[]} */ params) => deps.dbQuery(ownerScope, app.id, sql, params), compiled);
         const rows = Array.isArray(out && out.rows) ? out.rows : [];
-        return readSummary(rows, resolved.filters, rows.length > DRY_RUN_LIMIT);
+        // A read-time computed field that reads empty is named, so the author sees it here.
+        return { ...readSummary(rows, resolved.filters, rows.length > DRY_RUN_LIMIT), ...(notes.length ? { notes } : {}) };
     } catch (e) {
         return bindingFailure(e, binding);
     }
@@ -164,13 +157,10 @@ async function runRecordBinding(binding, table, { roleArg, viewer, scope, app, o
 async function runAggregateBinding(binding, table, { roleArg, viewer, scope, app, ownerScope, deps, dataModel }) {
     const resolved = resolveDryRunFilters(binding, scope);
     if (resolved.skipped) return { ok: true, skipped: 'dynamic' };
-    const descriptor = {
+    const descriptor = aggregateDescriptor(binding, {
         filters: resolved.filters,
-        groupBy: binding.groupBy,
-        aggregates: binding.aggregates,
-        sort: binding.sort,
         limit: DRY_RUN_LIMIT + 1, // one more than shown, so exactly-3 is not "sampled"
-    };
+    });
     try {
         if (isDatatableBacked(table)) {
             if (roleArg !== 'owner') return { ok: true, skipped: 'linked' };
@@ -180,7 +170,8 @@ async function runAggregateBinding(binding, table, { roleArg, viewer, scope, app
             return readSummary(rows, resolved.filters, rows.length > DRY_RUN_LIMIT);
         }
         const accessFilter = rlsGateway.compileAccessFilter(table, roleArg, viewer, 'read');
-        const { sql, params } = queryCompiler.compileAggregate(table, descriptor, accessFilter);
+        const related = relatedForAggregate(dataModel, table, descriptor.groupBy, { role: roleArg, viewer }, descriptor.filters);
+        const { sql, params } = queryCompiler.compileAggregate(table, descriptor, accessFilter, related);
         const out = await deps.dbQuery(ownerScope, app.id, sql, params);
         const rows = Array.isArray(out && out.rows) ? out.rows : [];
         return readSummary(rows, resolved.filters, rows.length > DRY_RUN_LIMIT);
@@ -189,12 +180,28 @@ async function runAggregateBinding(binding, table, { roleArg, viewer, scope, app
     }
 }
 
+/**
+ * A dataset binding's `params` against the synthetic scope: the shared binding
+ * planner's params step with the dry run's option set. Returns { params } (the
+ * resolved object, or undefined when the binding sends none) or { skipped:true }
+ * when a formula reads a root the dry run cannot populate (or does not parse).
+ */
+function resolveDryRunParams(binding, scope) {
+    const step = planParams(binding, scope, DRY_RUN_PLAN);
+    if (step.plan !== 'fetch') return { skipped: true };
+    const params = /** @type {{ params?: unknown }} */ (step.binding).params;
+    return { params: isPlainObject(params) ? params : undefined };
+}
+
 /** Execute one dataset binding read-only via datasetCache.runDataset. */
-async function runDatasetBinding(binding, { dataModel, app, viewer, appId, ownerId, deps }) {
+async function runDatasetBinding(binding, { dataModel, app, viewer, appId, ownerId, deps, scope }) {
     try {
         const ds = await deps.getDataset(binding.datasetId, appId, ownerId);
         if (!ds) return { ok: true, skipped: 'unresolved' }; // STATIC flags unknown_dataset
-        const out = await deps.runDataset(app, dataModel, ds, viewer, { refresh: true });
+        const resolved = resolveDryRunParams(binding, scope || {});
+        if (resolved.skipped) return { ok: true, skipped: 'dynamic' };
+        const { params } = resolved;
+        const out = await deps.runDataset(app, dataModel, ds, viewer, params ? { refresh: true, params } : { refresh: true });
         const rows = Array.isArray(out && out.rows) ? out.rows : [];
         return { ok: true, rowCount: rows.length };
     } catch (e) {

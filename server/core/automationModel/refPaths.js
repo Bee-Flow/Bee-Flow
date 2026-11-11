@@ -250,7 +250,8 @@ function suggestExprSpelling(src, opts) {
 
 /** Parse an expression: `{ ast }` or `{ error }`, never a throw. */
 function tryParseExpr(src, opts) {
-    try { return { ast: parseExpr(src, opts) }; } catch (e) { return { error: e }; }
+    // An automation expression has no object literals: an object is built with a set step.
+    try { return { ast: parseExpr(src, { ...opts, objects: false }) }; } catch (e) { return { error: e }; }
 }
 
 /**

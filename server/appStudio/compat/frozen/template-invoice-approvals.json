@@ -1,0 +1,2908 @@
+{
+  "corpus": "template-invoice-approvals",
+  "canonical": {
+    "sha256": "bcab7fd2f9f985cfa10038ea94741a37386ad7781e8ee08ba499e05054b9b85c",
+    "bytes": 110899,
+    "inputIsCanonical": true,
+    "idempotent": true,
+    "keys": [
+      "schemaVersion",
+      "meta",
+      "theme",
+      "roles",
+      "variables",
+      "screens",
+      "actions",
+      "design",
+      "nav",
+      "homeScreenId"
+    ],
+    "parts": {
+      "schemaVersion": "d4735e3a265e16ee",
+      "meta": "2cd3775087b59952",
+      "theme": "5d7eeb0111b89897",
+      "roles": "fca3545251754c51",
+      "variables": "751df5ecbd6433bf",
+      "screens[0] scr_iahome": "f07297a24cb3d979",
+      "screens[1] scr_iaintake": "5afa1865643115e5",
+      "screens[2] scr_iainvs": "dd2520f71ce4849c",
+      "screens[3] scr_iadetail": "968df08837fa16e0",
+      "screens[4] scr_iaappr": "6aa09540a85bdfec",
+      "screens[5] scr_iapay": "a1e17559983130cb",
+      "screens[6] scr_iarep": "b5badd9dd92b72d5",
+      "screens[7] scr_iasupp": "432d0367da199bd3",
+      "screens[8] scr_iapol": "bb51a5e3586c1272",
+      "screens[9] scr_iaaudit": "cbadc9a33bd27a4b",
+      "actions.act_iaopen": "80a7cb96f353c8c5",
+      "actions.act_iaback": "1c254533943b2196",
+      "actions.act_iagonew": "264e626ee5cfded6",
+      "actions.act_iagoappr": "c7b83c5c40684bac",
+      "actions.act_iagopay": "e122592162a70088",
+      "actions.act_iagopol": "bdc87b3e2d0d3af6",
+      "actions.act_iarefresh": "f9cd38aa8746f162",
+      "actions.act_iadl": "0be7fbcd69abaae2",
+      "actions.act_iaread": "9caade8e77973a8f",
+      "actions.act_iasave": "b74ae2e8d40d2592",
+      "actions.act_iasetsup": "f65cfe93f549b4e6",
+      "actions.act_iasubmit": "5cfddf93d7a52e9f",
+      "actions.act_iadecided": "96a2ba3d26a4aea4",
+      "actions.act_iahold": "f238ae324b510728",
+      "actions.act_iaholdsave": "ecb738755f0f7c5a",
+      "actions.act_iaunhold": "9f196c3658090fce",
+      "actions.act_iaschedule": "7c68ecb479672c1d",
+      "actions.act_iapayopen": "ca9bc0c27efd7373",
+      "actions.act_iapaysave": "afadf9cd53692612",
+      "actions.act_ialineadd": "8156050aa70cd790",
+      "actions.act_ialineedit": "64077e5a2ce1057b",
+      "actions.act_ialinedel": "73566c2cde514da0",
+      "actions.act_iasupadd": "acca659580366753",
+      "actions.act_iasupedit": "38466303704b1d24",
+      "actions.act_iapoledit": "2e2b465c00eb6f22",
+      "design": "8540bd44835d7d8d",
+      "nav": "91d43759ef4b02b6",
+      "homeScreenId": "34933369383dd22b"
+    }
+  },
+  "schemaVersion": {
+    "stored": 2,
+    "canonical": 2
+  },
+  "validation": {
+    "strict": {
+      "errors": [],
+      "warnings": []
+    },
+    "save": {
+      "errors": [],
+      "warnings": []
+    }
+  },
+  "ordinals": {
+    "stored": {
+      "act_iaopen": [
+        "0 set_variable",
+        "1 navigate"
+      ],
+      "act_iaback": [
+        "0 navigate"
+      ],
+      "act_iagonew": [
+        "0 navigate"
+      ],
+      "act_iagoappr": [
+        "0 navigate"
+      ],
+      "act_iagopay": [
+        "0 navigate"
+      ],
+      "act_iagopol": [
+        "0 navigate"
+      ],
+      "act_iarefresh": [
+        "0 refresh",
+        "1 toast"
+      ],
+      "act_iadl": [
+        "0 download_file"
+      ],
+      "act_iaread": [
+        "0 ai_extract",
+        "1 create_record",
+        "2 loop",
+        "3 condition",
+        "4 update_record",
+        "5 ai_extract",
+        "6 create_record",
+        "7 create_record",
+        "8 refresh",
+        "9 refresh",
+        "10 set_variable",
+        "11 reset_form",
+        "12 toast",
+        "13 navigate"
+      ],
+      "act_iasave": [
+        "0 update_record",
+        "1 create_record",
+        "2 refresh",
+        "3 refresh",
+        "4 toast"
+      ],
+      "act_iasetsup": [
+        "0 loop",
+        "1 condition",
+        "2 update_record",
+        "3 create_record",
+        "4 refresh",
+        "5 refresh",
+        "6 toast"
+      ],
+      "act_iasubmit": [
+        "0 confirm",
+        "1 update_record",
+        "2 condition",
+        "3 update_record",
+        "4 create_record",
+        "5 toast",
+        "6 switch",
+        "7 request_approval",
+        "8 request_approval",
+        "9 request_approval",
+        "10 request_approval",
+        "11 update_record",
+        "12 create_record",
+        "13 toast",
+        "14 refresh",
+        "15 refresh"
+      ],
+      "act_iadecided": [
+        "0 create_record",
+        "1 refresh",
+        "2 refresh",
+        "3 toast"
+      ],
+      "act_iahold": [
+        "0 open_modal"
+      ],
+      "act_iaholdsave": [
+        "0 update_record",
+        "1 create_record",
+        "2 close_modal",
+        "3 refresh",
+        "4 refresh",
+        "5 toast"
+      ],
+      "act_iaunhold": [
+        "0 confirm",
+        "1 update_record",
+        "2 create_record",
+        "3 refresh",
+        "4 refresh",
+        "5 toast"
+      ],
+      "act_iaschedule": [
+        "0 update_record",
+        "1 create_record",
+        "2 refresh",
+        "3 refresh",
+        "4 toast"
+      ],
+      "act_iapayopen": [
+        "0 set_variable",
+        "1 open_modal"
+      ],
+      "act_iapaysave": [
+        "0 update_record",
+        "1 create_record",
+        "2 close_modal",
+        "3 refresh",
+        "4 refresh",
+        "5 toast"
+      ],
+      "act_ialineadd": [
+        "0 create_record",
+        "1 refresh",
+        "2 toast"
+      ],
+      "act_ialineedit": [
+        "0 switch",
+        "1 update_record",
+        "2 update_record",
+        "3 update_record",
+        "4 update_record",
+        "5 update_record",
+        "6 update_record",
+        "7 update_record",
+        "8 update_record",
+        "9 refresh"
+      ],
+      "act_ialinedel": [
+        "0 confirm",
+        "1 delete_record",
+        "2 refresh",
+        "3 toast"
+      ],
+      "act_iasupadd": [
+        "0 create_record",
+        "1 reset_form",
+        "2 refresh",
+        "3 toast"
+      ],
+      "act_iasupedit": [
+        "0 switch",
+        "1 update_record",
+        "2 update_record",
+        "3 update_record",
+        "4 update_record",
+        "5 update_record",
+        "6 update_record",
+        "7 update_record",
+        "8 update_record",
+        "9 update_record",
+        "10 refresh"
+      ],
+      "act_iapoledit": [
+        "0 switch",
+        "1 update_record",
+        "2 update_record",
+        "3 update_record",
+        "4 update_record",
+        "5 update_record",
+        "6 update_record",
+        "7 update_record",
+        "8 refresh"
+      ]
+    },
+    "canonical": "same as stored"
+  },
+  "installHash": {
+    "stored": "907fd5004b640761d977e6144c0ca2445bde4fda55635e3b6672c20b2a547554",
+    "afterResave": "907fd5004b640761d977e6144c0ca2445bde4fda55635e3b6672c20b2a547554"
+  },
+  "reads": [
+    {
+      "at": "cmp_iahk1.value",
+      "kind": "aggregate",
+      "table": "tbl_iainv",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"invoices\" WHERE (1=1) AND \"status\" = ? LIMIT ?",
+          "params": [
+            "needs_review",
+            1
+          ]
+        },
+        "finance": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"invoices\" WHERE (1=1) AND \"status\" = ? LIMIT ?",
+          "params": [
+            "needs_review",
+            1
+          ]
+        },
+        "ap": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"invoices\" WHERE (1=1) AND \"status\" = ? LIMIT ?",
+          "params": [
+            "needs_review",
+            1
+          ]
+        },
+        "approver": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"invoices\" WHERE (1=1) AND \"status\" = ? LIMIT ?",
+          "params": [
+            "needs_review",
+            1
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"invoices\" WHERE (1=1) AND \"status\" = ? LIMIT ?",
+          "params": [
+            "needs_review",
+            1
+          ]
+        },
+        "finance": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"invoices\" WHERE (1=1) AND \"status\" = ? LIMIT ?",
+          "params": [
+            "needs_review",
+            1
+          ]
+        },
+        "ap": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"invoices\" WHERE (1=1) AND \"status\" = ? LIMIT ?",
+          "params": [
+            "needs_review",
+            1
+          ]
+        },
+        "approver": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"invoices\" WHERE (1=1) AND \"status\" = ? LIMIT ?",
+          "params": [
+            "needs_review",
+            1
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_iahk2.value",
+      "kind": "aggregate",
+      "table": "tbl_iainv",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"invoices\" WHERE (1=1) AND \"status\" = ? LIMIT ?",
+          "params": [
+            "in_approval",
+            1
+          ]
+        },
+        "finance": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"invoices\" WHERE (1=1) AND \"status\" = ? LIMIT ?",
+          "params": [
+            "in_approval",
+            1
+          ]
+        },
+        "ap": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"invoices\" WHERE (1=1) AND \"status\" = ? LIMIT ?",
+          "params": [
+            "in_approval",
+            1
+          ]
+        },
+        "approver": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"invoices\" WHERE (1=1) AND \"status\" = ? LIMIT ?",
+          "params": [
+            "in_approval",
+            1
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"invoices\" WHERE (1=1) AND \"status\" = ? LIMIT ?",
+          "params": [
+            "in_approval",
+            1
+          ]
+        },
+        "finance": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"invoices\" WHERE (1=1) AND \"status\" = ? LIMIT ?",
+          "params": [
+            "in_approval",
+            1
+          ]
+        },
+        "ap": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"invoices\" WHERE (1=1) AND \"status\" = ? LIMIT ?",
+          "params": [
+            "in_approval",
+            1
+          ]
+        },
+        "approver": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"invoices\" WHERE (1=1) AND \"status\" = ? LIMIT ?",
+          "params": [
+            "in_approval",
+            1
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_iahk3.value",
+      "kind": "aggregate",
+      "table": "tbl_iainv",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT SUM(\"amount_total\") AS \"value\" FROM \"invoices\" WHERE (1=1) AND \"status\" = ? LIMIT ?",
+          "params": [
+            "in_approval",
+            1
+          ]
+        },
+        "finance": {
+          "sql": "SELECT SUM(\"amount_total\") AS \"value\" FROM \"invoices\" WHERE (1=1) AND \"status\" = ? LIMIT ?",
+          "params": [
+            "in_approval",
+            1
+          ]
+        },
+        "ap": {
+          "sql": "SELECT SUM(\"amount_total\") AS \"value\" FROM \"invoices\" WHERE (1=1) AND \"status\" = ? LIMIT ?",
+          "params": [
+            "in_approval",
+            1
+          ]
+        },
+        "approver": {
+          "sql": "SELECT SUM(\"amount_total\") AS \"value\" FROM \"invoices\" WHERE (1=1) AND \"status\" = ? LIMIT ?",
+          "params": [
+            "in_approval",
+            1
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT SUM(\"amount_total\") AS \"value\" FROM \"invoices\" WHERE (1=1) AND \"status\" = ? LIMIT ?",
+          "params": [
+            "in_approval",
+            1
+          ]
+        },
+        "finance": {
+          "sql": "SELECT SUM(\"amount_total\") AS \"value\" FROM \"invoices\" WHERE (1=1) AND \"status\" = ? LIMIT ?",
+          "params": [
+            "in_approval",
+            1
+          ]
+        },
+        "ap": {
+          "sql": "SELECT SUM(\"amount_total\") AS \"value\" FROM \"invoices\" WHERE (1=1) AND \"status\" = ? LIMIT ?",
+          "params": [
+            "in_approval",
+            1
+          ]
+        },
+        "approver": {
+          "sql": "SELECT SUM(\"amount_total\") AS \"value\" FROM \"invoices\" WHERE (1=1) AND \"status\" = ? LIMIT ?",
+          "params": [
+            "in_approval",
+            1
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_iahk4.value",
+      "kind": "aggregate",
+      "table": "tbl_iainv",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"invoices\" WHERE (1=1) AND \"due_date\" < ? AND \"status\" != ? LIMIT ?",
+          "params": [
+            "2026-01-15",
+            "paid",
+            1
+          ]
+        },
+        "finance": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"invoices\" WHERE (1=1) AND \"due_date\" < ? AND \"status\" != ? LIMIT ?",
+          "params": [
+            "2026-01-15",
+            "paid",
+            1
+          ]
+        },
+        "ap": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"invoices\" WHERE (1=1) AND \"due_date\" < ? AND \"status\" != ? LIMIT ?",
+          "params": [
+            "2026-01-15",
+            "paid",
+            1
+          ]
+        },
+        "approver": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"invoices\" WHERE (1=1) AND \"due_date\" < ? AND \"status\" != ? LIMIT ?",
+          "params": [
+            "2026-01-15",
+            "paid",
+            1
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"invoices\" WHERE (1=1) AND \"due_date\" < ? AND \"status\" != ? LIMIT ?",
+          "params": [
+            "2026-01-15",
+            "paid",
+            1
+          ]
+        },
+        "finance": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"invoices\" WHERE (1=1) AND \"due_date\" < ? AND \"status\" != ? LIMIT ?",
+          "params": [
+            "2026-01-15",
+            "paid",
+            1
+          ]
+        },
+        "ap": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"invoices\" WHERE (1=1) AND \"due_date\" < ? AND \"status\" != ? LIMIT ?",
+          "params": [
+            "2026-01-15",
+            "paid",
+            1
+          ]
+        },
+        "approver": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"invoices\" WHERE (1=1) AND \"due_date\" < ? AND \"status\" != ? LIMIT ?",
+          "params": [
+            "2026-01-15",
+            "paid",
+            1
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_iahgrid.source",
+      "kind": "records",
+      "table": "tbl_iainv",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) AND \"status\" IN (?, ?, ?, ?) ORDER BY \"due_date\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "draft",
+            "needs_review",
+            "on_hold",
+            "rejected",
+            51
+          ]
+        },
+        "finance": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) AND \"status\" IN (?, ?, ?, ?) ORDER BY \"due_date\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "draft",
+            "needs_review",
+            "on_hold",
+            "rejected",
+            51
+          ]
+        },
+        "ap": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) AND \"status\" IN (?, ?, ?, ?) ORDER BY \"due_date\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "draft",
+            "needs_review",
+            "on_hold",
+            "rejected",
+            51
+          ]
+        },
+        "approver": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) AND \"status\" IN (?, ?, ?, ?) ORDER BY \"due_date\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "draft",
+            "needs_review",
+            "on_hold",
+            "rejected",
+            51
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) AND \"status\" IN (?, ?, ?, ?) ORDER BY \"due_date\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "draft",
+            "needs_review",
+            "on_hold",
+            "rejected",
+            51
+          ]
+        },
+        "finance": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) AND \"status\" IN (?, ?, ?, ?) ORDER BY \"due_date\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "draft",
+            "needs_review",
+            "on_hold",
+            "rejected",
+            51
+          ]
+        },
+        "ap": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) AND \"status\" IN (?, ?, ?, ?) ORDER BY \"due_date\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "draft",
+            "needs_review",
+            "on_hold",
+            "rejected",
+            51
+          ]
+        },
+        "approver": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) AND \"status\" IN (?, ?, ?, ?) ORDER BY \"due_date\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "draft",
+            "needs_review",
+            "on_hold",
+            "rejected",
+            51
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_iahchart.source",
+      "kind": "aggregate",
+      "table": "tbl_iainv",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT \"status\" AS \"status\", COUNT(*) AS \"invoices\" FROM \"invoices\" WHERE (1=1) GROUP BY \"status\" LIMIT ?",
+          "params": [
+            12
+          ]
+        },
+        "finance": {
+          "sql": "SELECT \"status\" AS \"status\", COUNT(*) AS \"invoices\" FROM \"invoices\" WHERE (1=1) GROUP BY \"status\" LIMIT ?",
+          "params": [
+            12
+          ]
+        },
+        "ap": {
+          "sql": "SELECT \"status\" AS \"status\", COUNT(*) AS \"invoices\" FROM \"invoices\" WHERE (1=1) GROUP BY \"status\" LIMIT ?",
+          "params": [
+            12
+          ]
+        },
+        "approver": {
+          "sql": "SELECT \"status\" AS \"status\", COUNT(*) AS \"invoices\" FROM \"invoices\" WHERE (1=1) GROUP BY \"status\" LIMIT ?",
+          "params": [
+            12
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT \"status\" AS \"status\", COUNT(*) AS \"invoices\" FROM \"invoices\" WHERE (1=1) GROUP BY \"status\" LIMIT ?",
+          "params": [
+            12
+          ]
+        },
+        "finance": {
+          "sql": "SELECT \"status\" AS \"status\", COUNT(*) AS \"invoices\" FROM \"invoices\" WHERE (1=1) GROUP BY \"status\" LIMIT ?",
+          "params": [
+            12
+          ]
+        },
+        "ap": {
+          "sql": "SELECT \"status\" AS \"status\", COUNT(*) AS \"invoices\" FROM \"invoices\" WHERE (1=1) GROUP BY \"status\" LIMIT ?",
+          "params": [
+            12
+          ]
+        },
+        "approver": {
+          "sql": "SELECT \"status\" AS \"status\", COUNT(*) AS \"invoices\" FROM \"invoices\" WHERE (1=1) GROUP BY \"status\" LIMIT ?",
+          "params": [
+            12
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_iainsgrid.source",
+      "kind": "records",
+      "table": "tbl_iasup",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"suppliers\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            201
+          ]
+        },
+        "finance": {
+          "sql": "SELECT * FROM \"suppliers\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            201
+          ]
+        },
+        "ap": {
+          "sql": "SELECT * FROM \"suppliers\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            201
+          ]
+        },
+        "approver": {
+          "sql": "SELECT * FROM \"suppliers\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            201
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"suppliers\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            201
+          ]
+        },
+        "finance": {
+          "sql": "SELECT * FROM \"suppliers\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            201
+          ]
+        },
+        "ap": {
+          "sql": "SELECT * FROM \"suppliers\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            201
+          ]
+        },
+        "approver": {
+          "sql": "SELECT * FROM \"suppliers\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            201
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_iaivgrid.source",
+      "kind": "records",
+      "table": "tbl_iainv",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            501
+          ]
+        },
+        "finance": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            501
+          ]
+        },
+        "ap": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            501
+          ]
+        },
+        "approver": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            501
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            501
+          ]
+        },
+        "finance": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            501
+          ]
+        },
+        "ap": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            501
+          ]
+        },
+        "approver": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            501
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_iadhdr.titleFrom",
+      "kind": "record",
+      "table": "tbl_iainv",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "finance": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "ap": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "approver": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "finance": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "ap": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "approver": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_iadhdr.subtitleFrom",
+      "kind": "record",
+      "table": "tbl_iainv",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "finance": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "ap": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "approver": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "finance": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "ap": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "approver": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_iadstep.value",
+      "kind": "record",
+      "table": "tbl_iainv",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "finance": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "ap": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "approver": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "finance": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "ap": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "approver": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_iadprev.source",
+      "kind": "record",
+      "table": "tbl_iainv",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "finance": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "ap": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "approver": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "finance": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "ap": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "approver": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_iadf01.valueFrom",
+      "kind": "record",
+      "table": "tbl_iainv",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "finance": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "ap": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "approver": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "finance": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "ap": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "approver": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_iadf02.valueFrom",
+      "kind": "record",
+      "table": "tbl_iainv",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "finance": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "ap": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "approver": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "finance": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "ap": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "approver": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_iadf03.valueFrom",
+      "kind": "record",
+      "table": "tbl_iainv",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "finance": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "ap": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "approver": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "finance": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "ap": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "approver": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_iadf04.valueFrom",
+      "kind": "record",
+      "table": "tbl_iainv",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "finance": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "ap": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "approver": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "finance": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "ap": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "approver": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_iadf05.valueFrom",
+      "kind": "record",
+      "table": "tbl_iainv",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "finance": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "ap": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "approver": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "finance": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "ap": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "approver": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_iadf09.valueFrom",
+      "kind": "record",
+      "table": "tbl_iainv",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "finance": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "ap": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "approver": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "finance": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "ap": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "approver": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_iadf10.valueFrom",
+      "kind": "record",
+      "table": "tbl_iainv",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "finance": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "ap": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "approver": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "finance": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "ap": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "approver": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_iadro.source",
+      "kind": "record",
+      "table": "tbl_iainv",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "finance": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "ap": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "approver": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "finance": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "ap": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "approver": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_iadsn1.valueFrom",
+      "kind": "record",
+      "table": "tbl_iainv",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "finance": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "ap": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "approver": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "finance": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "ap": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "approver": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_iadsn2.valueFrom",
+      "kind": "record",
+      "table": "tbl_iainv",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "finance": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "ap": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "approver": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "finance": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "ap": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "approver": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_iadsn3.valueFrom",
+      "kind": "record",
+      "table": "tbl_iainv",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "finance": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "ap": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "approver": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "finance": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "ap": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "approver": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_iadsn5.valueFrom",
+      "kind": "record",
+      "table": "tbl_iainv",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "finance": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "ap": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "approver": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "finance": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "ap": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "approver": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_iadsn6.valueFrom",
+      "kind": "record",
+      "table": "tbl_iainv",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "finance": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "ap": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "approver": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "finance": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "ap": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "approver": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_iadsn7.valueFrom",
+      "kind": "record",
+      "table": "tbl_iainv",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "finance": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "ap": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "approver": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "finance": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "ap": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        },
+        "approver": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            2
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_iadlines.source",
+      "kind": "records",
+      "table": "tbl_ialine",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"invoice_lines\" WHERE (1=1) ORDER BY \"line_no\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            201
+          ]
+        },
+        "finance": {
+          "sql": "SELECT * FROM \"invoice_lines\" WHERE (1=1) ORDER BY \"line_no\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            201
+          ]
+        },
+        "ap": {
+          "sql": "SELECT * FROM \"invoice_lines\" WHERE (1=1) ORDER BY \"line_no\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            201
+          ]
+        },
+        "approver": {
+          "sql": "SELECT * FROM \"invoice_lines\" WHERE (1=1) ORDER BY \"line_no\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            201
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"invoice_lines\" WHERE (1=1) ORDER BY \"line_no\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            201
+          ]
+        },
+        "finance": {
+          "sql": "SELECT * FROM \"invoice_lines\" WHERE (1=1) ORDER BY \"line_no\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            201
+          ]
+        },
+        "ap": {
+          "sql": "SELECT * FROM \"invoice_lines\" WHERE (1=1) ORDER BY \"line_no\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            201
+          ]
+        },
+        "approver": {
+          "sql": "SELECT * FROM \"invoice_lines\" WHERE (1=1) ORDER BY \"line_no\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            201
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_iadsupg.source",
+      "kind": "records",
+      "table": "tbl_iasup",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"suppliers\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            201
+          ]
+        },
+        "finance": {
+          "sql": "SELECT * FROM \"suppliers\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            201
+          ]
+        },
+        "ap": {
+          "sql": "SELECT * FROM \"suppliers\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            201
+          ]
+        },
+        "approver": {
+          "sql": "SELECT * FROM \"suppliers\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            201
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"suppliers\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            201
+          ]
+        },
+        "finance": {
+          "sql": "SELECT * FROM \"suppliers\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            201
+          ]
+        },
+        "ap": {
+          "sql": "SELECT * FROM \"suppliers\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            201
+          ]
+        },
+        "approver": {
+          "sql": "SELECT * FROM \"suppliers\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            201
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_iadtl2.source",
+      "kind": "records",
+      "table": "tbl_iaevt",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"invoice_events\" WHERE (1=1) ORDER BY \"at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "finance": {
+          "sql": "SELECT * FROM \"invoice_events\" WHERE (1=1) ORDER BY \"at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "ap": {
+          "sql": "SELECT * FROM \"invoice_events\" WHERE (1=1) ORDER BY \"at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "approver": {
+          "sql": "SELECT * FROM \"invoice_events\" WHERE (1=1) ORDER BY \"at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            101
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"invoice_events\" WHERE (1=1) ORDER BY \"at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "finance": {
+          "sql": "SELECT * FROM \"invoice_events\" WHERE (1=1) ORDER BY \"at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "ap": {
+          "sql": "SELECT * FROM \"invoice_events\" WHERE (1=1) ORDER BY \"at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "approver": {
+          "sql": "SELECT * FROM \"invoice_events\" WHERE (1=1) ORDER BY \"at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            101
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_iaapgrid.source",
+      "kind": "records",
+      "table": "tbl_iainv",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) AND \"status\" = ? ORDER BY \"submitted_at\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "in_approval",
+            201
+          ]
+        },
+        "finance": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) AND \"status\" = ? ORDER BY \"submitted_at\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "in_approval",
+            201
+          ]
+        },
+        "ap": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) AND \"status\" = ? ORDER BY \"submitted_at\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "in_approval",
+            201
+          ]
+        },
+        "approver": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) AND \"status\" = ? ORDER BY \"submitted_at\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "in_approval",
+            201
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) AND \"status\" = ? ORDER BY \"submitted_at\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "in_approval",
+            201
+          ]
+        },
+        "finance": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) AND \"status\" = ? ORDER BY \"submitted_at\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "in_approval",
+            201
+          ]
+        },
+        "ap": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) AND \"status\" = ? ORDER BY \"submitted_at\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "in_approval",
+            201
+          ]
+        },
+        "approver": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) AND \"status\" = ? ORDER BY \"submitted_at\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "in_approval",
+            201
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_iapyk1.value",
+      "kind": "aggregate",
+      "table": "tbl_iainv",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"invoices\" WHERE (1=1) AND \"status\" = ? LIMIT ?",
+          "params": [
+            "approved",
+            1
+          ]
+        },
+        "finance": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"invoices\" WHERE (1=1) AND \"status\" = ? LIMIT ?",
+          "params": [
+            "approved",
+            1
+          ]
+        },
+        "ap": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"invoices\" WHERE (1=1) AND \"status\" = ? LIMIT ?",
+          "params": [
+            "approved",
+            1
+          ]
+        },
+        "approver": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"invoices\" WHERE (1=1) AND \"status\" = ? LIMIT ?",
+          "params": [
+            "approved",
+            1
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"invoices\" WHERE (1=1) AND \"status\" = ? LIMIT ?",
+          "params": [
+            "approved",
+            1
+          ]
+        },
+        "finance": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"invoices\" WHERE (1=1) AND \"status\" = ? LIMIT ?",
+          "params": [
+            "approved",
+            1
+          ]
+        },
+        "ap": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"invoices\" WHERE (1=1) AND \"status\" = ? LIMIT ?",
+          "params": [
+            "approved",
+            1
+          ]
+        },
+        "approver": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"invoices\" WHERE (1=1) AND \"status\" = ? LIMIT ?",
+          "params": [
+            "approved",
+            1
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_iapyk2.value",
+      "kind": "aggregate",
+      "table": "tbl_iainv",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT SUM(\"amount_total\") AS \"value\" FROM \"invoices\" WHERE (1=1) AND \"status\" IN (?, ?) LIMIT ?",
+          "params": [
+            "approved",
+            "scheduled",
+            1
+          ]
+        },
+        "finance": {
+          "sql": "SELECT SUM(\"amount_total\") AS \"value\" FROM \"invoices\" WHERE (1=1) AND \"status\" IN (?, ?) LIMIT ?",
+          "params": [
+            "approved",
+            "scheduled",
+            1
+          ]
+        },
+        "ap": {
+          "sql": "SELECT SUM(\"amount_total\") AS \"value\" FROM \"invoices\" WHERE (1=1) AND \"status\" IN (?, ?) LIMIT ?",
+          "params": [
+            "approved",
+            "scheduled",
+            1
+          ]
+        },
+        "approver": {
+          "sql": "SELECT SUM(\"amount_total\") AS \"value\" FROM \"invoices\" WHERE (1=1) AND \"status\" IN (?, ?) LIMIT ?",
+          "params": [
+            "approved",
+            "scheduled",
+            1
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT SUM(\"amount_total\") AS \"value\" FROM \"invoices\" WHERE (1=1) AND \"status\" IN (?, ?) LIMIT ?",
+          "params": [
+            "approved",
+            "scheduled",
+            1
+          ]
+        },
+        "finance": {
+          "sql": "SELECT SUM(\"amount_total\") AS \"value\" FROM \"invoices\" WHERE (1=1) AND \"status\" IN (?, ?) LIMIT ?",
+          "params": [
+            "approved",
+            "scheduled",
+            1
+          ]
+        },
+        "ap": {
+          "sql": "SELECT SUM(\"amount_total\") AS \"value\" FROM \"invoices\" WHERE (1=1) AND \"status\" IN (?, ?) LIMIT ?",
+          "params": [
+            "approved",
+            "scheduled",
+            1
+          ]
+        },
+        "approver": {
+          "sql": "SELECT SUM(\"amount_total\") AS \"value\" FROM \"invoices\" WHERE (1=1) AND \"status\" IN (?, ?) LIMIT ?",
+          "params": [
+            "approved",
+            "scheduled",
+            1
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_iapyk3.value",
+      "kind": "aggregate",
+      "table": "tbl_iainv",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT SUM(\"amount_total\") AS \"value\" FROM \"invoices\" WHERE (1=1) AND \"status\" = ? LIMIT ?",
+          "params": [
+            "paid",
+            1
+          ]
+        },
+        "finance": {
+          "sql": "SELECT SUM(\"amount_total\") AS \"value\" FROM \"invoices\" WHERE (1=1) AND \"status\" = ? LIMIT ?",
+          "params": [
+            "paid",
+            1
+          ]
+        },
+        "ap": {
+          "sql": "SELECT SUM(\"amount_total\") AS \"value\" FROM \"invoices\" WHERE (1=1) AND \"status\" = ? LIMIT ?",
+          "params": [
+            "paid",
+            1
+          ]
+        },
+        "approver": {
+          "sql": "SELECT SUM(\"amount_total\") AS \"value\" FROM \"invoices\" WHERE (1=1) AND \"status\" = ? LIMIT ?",
+          "params": [
+            "paid",
+            1
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT SUM(\"amount_total\") AS \"value\" FROM \"invoices\" WHERE (1=1) AND \"status\" = ? LIMIT ?",
+          "params": [
+            "paid",
+            1
+          ]
+        },
+        "finance": {
+          "sql": "SELECT SUM(\"amount_total\") AS \"value\" FROM \"invoices\" WHERE (1=1) AND \"status\" = ? LIMIT ?",
+          "params": [
+            "paid",
+            1
+          ]
+        },
+        "ap": {
+          "sql": "SELECT SUM(\"amount_total\") AS \"value\" FROM \"invoices\" WHERE (1=1) AND \"status\" = ? LIMIT ?",
+          "params": [
+            "paid",
+            1
+          ]
+        },
+        "approver": {
+          "sql": "SELECT SUM(\"amount_total\") AS \"value\" FROM \"invoices\" WHERE (1=1) AND \"status\" = ? LIMIT ?",
+          "params": [
+            "paid",
+            1
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_iapygrid.source",
+      "kind": "records",
+      "table": "tbl_iainv",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) AND \"status\" IN (?, ?) ORDER BY \"due_date\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "approved",
+            "scheduled",
+            201
+          ]
+        },
+        "finance": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) AND \"status\" IN (?, ?) ORDER BY \"due_date\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "approved",
+            "scheduled",
+            201
+          ]
+        },
+        "ap": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) AND \"status\" IN (?, ?) ORDER BY \"due_date\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "approved",
+            "scheduled",
+            201
+          ]
+        },
+        "approver": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) AND \"status\" IN (?, ?) ORDER BY \"due_date\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "approved",
+            "scheduled",
+            201
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) AND \"status\" IN (?, ?) ORDER BY \"due_date\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "approved",
+            "scheduled",
+            201
+          ]
+        },
+        "finance": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) AND \"status\" IN (?, ?) ORDER BY \"due_date\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "approved",
+            "scheduled",
+            201
+          ]
+        },
+        "ap": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) AND \"status\" IN (?, ?) ORDER BY \"due_date\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "approved",
+            "scheduled",
+            201
+          ]
+        },
+        "approver": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) AND \"status\" IN (?, ?) ORDER BY \"due_date\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "approved",
+            "scheduled",
+            201
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_iapyplist.source",
+      "kind": "records",
+      "table": "tbl_iainv",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) AND \"status\" = ? ORDER BY \"paid_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "paid",
+            26
+          ]
+        },
+        "finance": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) AND \"status\" = ? ORDER BY \"paid_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "paid",
+            26
+          ]
+        },
+        "ap": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) AND \"status\" = ? ORDER BY \"paid_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "paid",
+            26
+          ]
+        },
+        "approver": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) AND \"status\" = ? ORDER BY \"paid_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "paid",
+            26
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) AND \"status\" = ? ORDER BY \"paid_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "paid",
+            26
+          ]
+        },
+        "finance": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) AND \"status\" = ? ORDER BY \"paid_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "paid",
+            26
+          ]
+        },
+        "ap": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) AND \"status\" = ? ORDER BY \"paid_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "paid",
+            26
+          ]
+        },
+        "approver": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) AND \"status\" = ? ORDER BY \"paid_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "paid",
+            26
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_iarpm.source",
+      "kind": "aggregate",
+      "table": "tbl_iainv",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT strftime('%Y-%m', \"invoice_date\") AS \"month\", SUM(\"amount_total\") AS \"spend\" FROM \"invoices\" WHERE (1=1) GROUP BY strftime('%Y-%m', \"invoice_date\") ORDER BY \"month\" ASC LIMIT ?",
+          "params": [
+            24
+          ]
+        },
+        "finance": {
+          "sql": "SELECT strftime('%Y-%m', \"invoice_date\") AS \"month\", SUM(\"amount_total\") AS \"spend\" FROM \"invoices\" WHERE (1=1) GROUP BY strftime('%Y-%m', \"invoice_date\") ORDER BY \"month\" ASC LIMIT ?",
+          "params": [
+            24
+          ]
+        },
+        "ap": {
+          "sql": "SELECT strftime('%Y-%m', \"invoice_date\") AS \"month\", SUM(\"amount_total\") AS \"spend\" FROM \"invoices\" WHERE (1=1) GROUP BY strftime('%Y-%m', \"invoice_date\") ORDER BY \"month\" ASC LIMIT ?",
+          "params": [
+            24
+          ]
+        },
+        "approver": {
+          "sql": "SELECT strftime('%Y-%m', \"invoice_date\") AS \"month\", SUM(\"amount_total\") AS \"spend\" FROM \"invoices\" WHERE (1=1) GROUP BY strftime('%Y-%m', \"invoice_date\") ORDER BY \"month\" ASC LIMIT ?",
+          "params": [
+            24
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT to_char(\"invoice_date\"::timestamptz, 'YYYY-MM') AS \"month\", SUM(\"amount_total\") AS \"spend\" FROM \"invoices\" WHERE (1=1) GROUP BY to_char(\"invoice_date\"::timestamptz, 'YYYY-MM') ORDER BY \"month\" ASC LIMIT ?",
+          "params": [
+            24
+          ]
+        },
+        "finance": {
+          "sql": "SELECT to_char(\"invoice_date\"::timestamptz, 'YYYY-MM') AS \"month\", SUM(\"amount_total\") AS \"spend\" FROM \"invoices\" WHERE (1=1) GROUP BY to_char(\"invoice_date\"::timestamptz, 'YYYY-MM') ORDER BY \"month\" ASC LIMIT ?",
+          "params": [
+            24
+          ]
+        },
+        "ap": {
+          "sql": "SELECT to_char(\"invoice_date\"::timestamptz, 'YYYY-MM') AS \"month\", SUM(\"amount_total\") AS \"spend\" FROM \"invoices\" WHERE (1=1) GROUP BY to_char(\"invoice_date\"::timestamptz, 'YYYY-MM') ORDER BY \"month\" ASC LIMIT ?",
+          "params": [
+            24
+          ]
+        },
+        "approver": {
+          "sql": "SELECT to_char(\"invoice_date\"::timestamptz, 'YYYY-MM') AS \"month\", SUM(\"amount_total\") AS \"spend\" FROM \"invoices\" WHERE (1=1) GROUP BY to_char(\"invoice_date\"::timestamptz, 'YYYY-MM') ORDER BY \"month\" ASC LIMIT ?",
+          "params": [
+            24
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_iarpb.source",
+      "kind": "aggregate",
+      "table": "tbl_iainv",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT \"band\" AS \"band\", COUNT(*) AS \"invoices\" FROM \"invoices\" WHERE (1=1) GROUP BY \"band\" LIMIT ?",
+          "params": [
+            8
+          ]
+        },
+        "finance": {
+          "sql": "SELECT \"band\" AS \"band\", COUNT(*) AS \"invoices\" FROM \"invoices\" WHERE (1=1) GROUP BY \"band\" LIMIT ?",
+          "params": [
+            8
+          ]
+        },
+        "ap": {
+          "sql": "SELECT \"band\" AS \"band\", COUNT(*) AS \"invoices\" FROM \"invoices\" WHERE (1=1) GROUP BY \"band\" LIMIT ?",
+          "params": [
+            8
+          ]
+        },
+        "approver": {
+          "sql": "SELECT \"band\" AS \"band\", COUNT(*) AS \"invoices\" FROM \"invoices\" WHERE (1=1) GROUP BY \"band\" LIMIT ?",
+          "params": [
+            8
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT \"band\" AS \"band\", COUNT(*) AS \"invoices\" FROM \"invoices\" WHERE (1=1) GROUP BY \"band\" LIMIT ?",
+          "params": [
+            8
+          ]
+        },
+        "finance": {
+          "sql": "SELECT \"band\" AS \"band\", COUNT(*) AS \"invoices\" FROM \"invoices\" WHERE (1=1) GROUP BY \"band\" LIMIT ?",
+          "params": [
+            8
+          ]
+        },
+        "ap": {
+          "sql": "SELECT \"band\" AS \"band\", COUNT(*) AS \"invoices\" FROM \"invoices\" WHERE (1=1) GROUP BY \"band\" LIMIT ?",
+          "params": [
+            8
+          ]
+        },
+        "approver": {
+          "sql": "SELECT \"band\" AS \"band\", COUNT(*) AS \"invoices\" FROM \"invoices\" WHERE (1=1) GROUP BY \"band\" LIMIT ?",
+          "params": [
+            8
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_iarps.source",
+      "kind": "aggregate",
+      "table": "tbl_iainv",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT \"supplier_name\" AS \"supplier\", SUM(\"amount_total\") AS \"spend\" FROM \"invoices\" WHERE (1=1) GROUP BY \"supplier_name\" ORDER BY \"spend\" DESC LIMIT ?",
+          "params": [
+            12
+          ]
+        },
+        "finance": {
+          "sql": "SELECT \"supplier_name\" AS \"supplier\", SUM(\"amount_total\") AS \"spend\" FROM \"invoices\" WHERE (1=1) GROUP BY \"supplier_name\" ORDER BY \"spend\" DESC LIMIT ?",
+          "params": [
+            12
+          ]
+        },
+        "ap": {
+          "sql": "SELECT \"supplier_name\" AS \"supplier\", SUM(\"amount_total\") AS \"spend\" FROM \"invoices\" WHERE (1=1) GROUP BY \"supplier_name\" ORDER BY \"spend\" DESC LIMIT ?",
+          "params": [
+            12
+          ]
+        },
+        "approver": {
+          "sql": "SELECT \"supplier_name\" AS \"supplier\", SUM(\"amount_total\") AS \"spend\" FROM \"invoices\" WHERE (1=1) GROUP BY \"supplier_name\" ORDER BY \"spend\" DESC LIMIT ?",
+          "params": [
+            12
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT \"supplier_name\" AS \"supplier\", SUM(\"amount_total\") AS \"spend\" FROM \"invoices\" WHERE (1=1) GROUP BY \"supplier_name\" ORDER BY \"spend\" DESC LIMIT ?",
+          "params": [
+            12
+          ]
+        },
+        "finance": {
+          "sql": "SELECT \"supplier_name\" AS \"supplier\", SUM(\"amount_total\") AS \"spend\" FROM \"invoices\" WHERE (1=1) GROUP BY \"supplier_name\" ORDER BY \"spend\" DESC LIMIT ?",
+          "params": [
+            12
+          ]
+        },
+        "ap": {
+          "sql": "SELECT \"supplier_name\" AS \"supplier\", SUM(\"amount_total\") AS \"spend\" FROM \"invoices\" WHERE (1=1) GROUP BY \"supplier_name\" ORDER BY \"spend\" DESC LIMIT ?",
+          "params": [
+            12
+          ]
+        },
+        "approver": {
+          "sql": "SELECT \"supplier_name\" AS \"supplier\", SUM(\"amount_total\") AS \"spend\" FROM \"invoices\" WHERE (1=1) GROUP BY \"supplier_name\" ORDER BY \"spend\" DESC LIMIT ?",
+          "params": [
+            12
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_iarpc.source",
+      "kind": "aggregate",
+      "table": "tbl_iainv",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT \"cost_center\" AS \"cost_centre\", SUM(\"amount_total\") AS \"spend\" FROM \"invoices\" WHERE (1=1) GROUP BY \"cost_center\" ORDER BY \"spend\" DESC LIMIT ?",
+          "params": [
+            12
+          ]
+        },
+        "finance": {
+          "sql": "SELECT \"cost_center\" AS \"cost_centre\", SUM(\"amount_total\") AS \"spend\" FROM \"invoices\" WHERE (1=1) GROUP BY \"cost_center\" ORDER BY \"spend\" DESC LIMIT ?",
+          "params": [
+            12
+          ]
+        },
+        "ap": {
+          "sql": "SELECT \"cost_center\" AS \"cost_centre\", SUM(\"amount_total\") AS \"spend\" FROM \"invoices\" WHERE (1=1) GROUP BY \"cost_center\" ORDER BY \"spend\" DESC LIMIT ?",
+          "params": [
+            12
+          ]
+        },
+        "approver": {
+          "sql": "SELECT \"cost_center\" AS \"cost_centre\", SUM(\"amount_total\") AS \"spend\" FROM \"invoices\" WHERE (1=1) GROUP BY \"cost_center\" ORDER BY \"spend\" DESC LIMIT ?",
+          "params": [
+            12
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT \"cost_center\" AS \"cost_centre\", SUM(\"amount_total\") AS \"spend\" FROM \"invoices\" WHERE (1=1) GROUP BY \"cost_center\" ORDER BY \"spend\" DESC LIMIT ?",
+          "params": [
+            12
+          ]
+        },
+        "finance": {
+          "sql": "SELECT \"cost_center\" AS \"cost_centre\", SUM(\"amount_total\") AS \"spend\" FROM \"invoices\" WHERE (1=1) GROUP BY \"cost_center\" ORDER BY \"spend\" DESC LIMIT ?",
+          "params": [
+            12
+          ]
+        },
+        "ap": {
+          "sql": "SELECT \"cost_center\" AS \"cost_centre\", SUM(\"amount_total\") AS \"spend\" FROM \"invoices\" WHERE (1=1) GROUP BY \"cost_center\" ORDER BY \"spend\" DESC LIMIT ?",
+          "params": [
+            12
+          ]
+        },
+        "approver": {
+          "sql": "SELECT \"cost_center\" AS \"cost_centre\", SUM(\"amount_total\") AS \"spend\" FROM \"invoices\" WHERE (1=1) GROUP BY \"cost_center\" ORDER BY \"spend\" DESC LIMIT ?",
+          "params": [
+            12
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_iarppiv.source",
+      "kind": "records",
+      "table": "tbl_iainv",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"invoice_date\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            501
+          ]
+        },
+        "finance": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"invoice_date\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            501
+          ]
+        },
+        "ap": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"invoice_date\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            501
+          ]
+        },
+        "approver": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"invoice_date\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            501
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"invoice_date\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            501
+          ]
+        },
+        "finance": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"invoice_date\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            501
+          ]
+        },
+        "ap": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"invoice_date\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            501
+          ]
+        },
+        "approver": {
+          "sql": "SELECT * FROM \"invoices\" WHERE (1=1) ORDER BY \"invoice_date\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            501
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_iasugrid.source",
+      "kind": "records",
+      "table": "tbl_iasup",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"suppliers\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            201
+          ]
+        },
+        "finance": {
+          "sql": "SELECT * FROM \"suppliers\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            201
+          ]
+        },
+        "ap": {
+          "sql": "SELECT * FROM \"suppliers\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            201
+          ]
+        },
+        "approver": {
+          "sql": "SELECT * FROM \"suppliers\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            201
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"suppliers\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            201
+          ]
+        },
+        "finance": {
+          "sql": "SELECT * FROM \"suppliers\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            201
+          ]
+        },
+        "ap": {
+          "sql": "SELECT * FROM \"suppliers\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            201
+          ]
+        },
+        "approver": {
+          "sql": "SELECT * FROM \"suppliers\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            201
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_iaplgrid.source",
+      "kind": "records",
+      "table": "tbl_iapol",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"approval_policy\" WHERE (1=1) ORDER BY \"rank\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "finance": {
+          "sql": "SELECT * FROM \"approval_policy\" WHERE (1=1) ORDER BY \"rank\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "ap": {
+          "sql": "SELECT * FROM \"approval_policy\" WHERE (1=1) ORDER BY \"rank\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "approver": {
+          "sql": "SELECT * FROM \"approval_policy\" WHERE (1=1) ORDER BY \"rank\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"approval_policy\" WHERE (1=1) ORDER BY \"rank\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "finance": {
+          "sql": "SELECT * FROM \"approval_policy\" WHERE (1=1) ORDER BY \"rank\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "ap": {
+          "sql": "SELECT * FROM \"approval_policy\" WHERE (1=1) ORDER BY \"rank\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "approver": {
+          "sql": "SELECT * FROM \"approval_policy\" WHERE (1=1) ORDER BY \"rank\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_iaplccg.source",
+      "kind": "records",
+      "table": "tbl_iacc",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"cost_centres\" WHERE (1=1) ORDER BY \"key\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "finance": {
+          "sql": "SELECT * FROM \"cost_centres\" WHERE (1=1) ORDER BY \"key\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "ap": {
+          "sql": "SELECT * FROM \"cost_centres\" WHERE (1=1) ORDER BY \"key\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "approver": {
+          "sql": "SELECT * FROM \"cost_centres\" WHERE (1=1) ORDER BY \"key\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            101
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"cost_centres\" WHERE (1=1) ORDER BY \"key\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "finance": {
+          "sql": "SELECT * FROM \"cost_centres\" WHERE (1=1) ORDER BY \"key\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "ap": {
+          "sql": "SELECT * FROM \"cost_centres\" WHERE (1=1) ORDER BY \"key\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "approver": {
+          "sql": "SELECT * FROM \"cost_centres\" WHERE (1=1) ORDER BY \"key\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            101
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_iaaugrid.source",
+      "kind": "records",
+      "table": "tbl_iaevt",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"invoice_events\" WHERE (1=1) ORDER BY \"at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            501
+          ]
+        },
+        "finance": {
+          "sql": "SELECT * FROM \"invoice_events\" WHERE (1=1) ORDER BY \"at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            501
+          ]
+        },
+        "ap": {
+          "sql": "SELECT * FROM \"invoice_events\" WHERE (1=1) ORDER BY \"at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            501
+          ]
+        },
+        "approver": {
+          "sql": "SELECT * FROM \"invoice_events\" WHERE (1=1) ORDER BY \"at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            501
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"invoice_events\" WHERE (1=1) ORDER BY \"at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            501
+          ]
+        },
+        "finance": {
+          "sql": "SELECT * FROM \"invoice_events\" WHERE (1=1) ORDER BY \"at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            501
+          ]
+        },
+        "ap": {
+          "sql": "SELECT * FROM \"invoice_events\" WHERE (1=1) ORDER BY \"at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            501
+          ]
+        },
+        "approver": {
+          "sql": "SELECT * FROM \"invoice_events\" WHERE (1=1) ORDER BY \"at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            501
+          ]
+        }
+      }
+    }
+  ]
+}

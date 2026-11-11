@@ -1,5 +1,6 @@
 import type { TranslateParams } from '../../../../../hooks/useTranslation';
 import type { ActionStep } from './stepCatalog';
+import { extensionScopesOf, isExtensionStepKind, withExtensionScope } from './stepGraphSlots';
 /**
  * The codec between an action's nested STEP TREE and the flat node+edge GRAPH a
  * canvas draws — and back again, losslessly.
@@ -28,6 +29,9 @@ import type { ActionStep } from './stepCatalog';
  * addressed by a prefixed id (`s2/then/s5`) — the same trick the automation
  * builder's inline flowlets use, so the ids stay flat and unique while the
  * nesting stays real.
+ *
+ * A container kind of the step registry (while, try) is drawn the same way,
+ * from the child slots the server declares for it (./stepGraphSlots).
  *
  * ── ORDERING ────────────────────────────────────────────────────────
  * Reading a scope back is a STABLE topological sort: a step that lost its edges
@@ -155,7 +159,7 @@ function kindScopesOf(step: FlowStep, t: TranslateFnLike) {
             ];
         }
         default:
-            return [];
+            return isExtensionStepKind(step.kind) ? extensionScopesOf(step, (key, en) => tr(t, key, en)) : [];
     }
 }
 
@@ -175,6 +179,7 @@ function withScope(step: FlowStep, key: string, steps: FlowStep[]): FlowStep {
         ));
         return { ...step, cases };
     }
+    if (isExtensionStepKind(step.kind)) return withExtensionScope(step, key, steps);
     return step;
 }
 

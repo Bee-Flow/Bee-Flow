@@ -3079,7 +3079,7 @@ const PRACTICE_TOPICS = {
             "An input mapping is either field (a value from a named form field) or static (a fixed value); with no mapping, a Studio App trigger takes the form field of the same name.",
             "Make an automation for this app creates an automation that already carries a Studio App trigger, seeded with inputs matching the form the button sits in.",
             "Publish refuses an app whose action points at an automation the app owner does not own or that is not active; draft saves still go through.",
-            "One action sequence may hold 60 steps counted recursively, nest six levels deep, and a For each step tops out at 200 iterations; an app may hold 60 actions in total.",
+            "One action sequence may hold 120 steps counted recursively, nest eight levels deep, and a For each step tops out at 200 iterations; an app may hold 200 actions in total.",
             "Test with what is on screen makes a real run with the values standing in the form and opens it in the automation builder; file inputs are skipped in that test."
         ]
     },

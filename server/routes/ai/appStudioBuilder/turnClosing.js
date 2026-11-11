@@ -40,7 +40,7 @@ const { bestEffort } = require('../../../utils/bestEffort');
  *   persistBroken: boolean,
  *   clientGone: boolean,
  * }} BuilderTurn
- * @typedef {import('../../../appStudio/builderTools').BuilderDraft & { _todos?: unknown[] }} TurnDraft
+ * @typedef {import('../../../appStudio/builderTools').BuilderDraft & { _todos?: unknown[], _designBrief?: string|null }} TurnDraft
  * @typedef {{ phases?: Array<{ label?: string|null }> }} ApprovedPlan
  * @typedef {{ token: string, nextPhase: { index: number, label: string|null } }} Continuation
  */
@@ -178,7 +178,7 @@ async function persistTurnSnapshot(turn, {
                     : String(effectiveMessage) },
                 ...(proseParts.length ? [{ role: 'assistant', content: proseParts.join('') }] : []),
             ];
-            /** @type {{ sessionId: string, appId: string, messages: Array<{ role: string, content: string }>, lastValidation: unknown, summary: string, updatedAt: string, lastTier: string, todos?: unknown, brief?: string, approvedPlan?: unknown, pendingPlan?: unknown, continueToken?: string, reviewQuestions?: unknown, questionsMeta?: unknown }} */
+            /** @type {{ sessionId: string, appId: string, messages: Array<{ role: string, content: string }>, lastValidation: unknown, summary: string, updatedAt: string, lastTier: string, todos?: unknown, brief?: string, designBrief?: string, approvedPlan?: unknown, pendingPlan?: unknown, continueToken?: string, reviewQuestions?: unknown, questionsMeta?: unknown }} */
             const snapshotBody = {
                 sessionId: draftWrap.builderSessionId,
                 appId: draftWrap.appId,
@@ -199,6 +199,8 @@ async function persistTurnSnapshot(turn, {
                     || null;
                 if (pendingPlan) snapshotBody.pendingPlan = pendingPlan;
                 if (continuation) snapshotBody.continueToken = continuation.token;
+                // The design brief of this build (./designBrief.mts): written once, read again every turn.
+                if (draftWrap._designBrief) snapshotBody.designBrief = draftWrap._designBrief;
             }
             // Work modes: the open question card, and the mark that this plan
             // has had its one question round. The mark lasts until a plan is

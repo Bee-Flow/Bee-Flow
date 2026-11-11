@@ -8,8 +8,20 @@
 
 const { isObject, pushDataRef } = require('./shared');
 const { checkCallAction } = require('./callChecks.mts');
+const { checkLoopExit, checkWhile, checkTry } = require('./controlFlowChecks.mts');
+const { checkParallel, validateStepBranches } = require('./parallelChecks.mts');
 const { someStepThroughCalls } = require('../actionCalls.mts');
-const { TRANSACTION_CHILD_KINDS, MAX_TRANSACTION_STEPS } = require('../../shared/appDefinition/stepFlow.mjs');
+const { TRANSACTION_CHILD_KINDS, MAX_TRANSACTION_STEPS, extraChildLists } = require('../../shared/appDefinition/stepFlow.mjs');
+const { STEP_META, EXTENSION_STEP_ENTRIES } = require('../componentSpecs/stepRegistry');
+const { checkOpenUrl, checkSwitchCases } = require('./dynamicChecks.mts');
+
+// The base kinds are told in this order (the order the warnings have always come in); registry kinds follow.
+const LOOP_FINDING_ORDER = ['generate_presentation', 'generate_file', 'fill_document'];
+const LOOP_FINDING_KINDS = [
+    ...LOOP_FINDING_ORDER.filter((k) => STEP_META[k]?.inLoop),
+    ...Object.keys(STEP_META).filter((k) => STEP_META[k].inLoop && !LOOP_FINDING_ORDER.includes(k)),
+];
+const REGISTRY_NO_LOOP_KINDS = EXTENSION_STEP_ENTRIES.filter((e) => e.noLoop === true).map((e) => e.kind);
 
 /**
  * A step of `kind` under these steps, or in an action they call.
@@ -39,8 +51,15 @@ function containsSendEmail(steps) {
             }
         }
         if (containsSendEmail(s.default)) return true;
+        // The places a registry container adds (a try's catch and finally).
+        if (extraChildLists(s).some((list) => containsSendEmail(list))) return true;
     }
     return false;
+}
+
+/** The step lists of a switch's cases (each case that is an object). */
+function caseStepLists(s) {
+    return Array.isArray(s.cases) ? s.cases.filter(isObject).map((c) => c.steps) : [];
 }
 
 // Same whole-subtree walk, for any kind. (containsSendEmail predates this and
@@ -55,14 +74,12 @@ function containsStepKind(steps, kind) {
         if (!isObject(s)) continue;
         if (s.kind === kind) return true;
         if (containsStepKind(s.steps, kind) || containsStepKind(s.then, kind) || containsStepKind(s.else, kind)) return true;
-        if (Array.isArray(s.cases)) {
-            for (const c of s.cases) {
-                if (isObject(c) && containsStepKind(c.steps, kind)) return true;
-            }
-        }
+        if (caseStepLists(s).some((list) => containsStepKind(list, kind))) return true;
         if (containsStepKind(s.default, kind)) return true;
         // A step's onError handler runs too (automationRefs.walkSteps descends into it as well).
         if (containsStepKind(s.onError?.steps, kind)) return true;
+        // The places a registry container adds (a try's catch and finally).
+        if (extraChildLists(s).some((list) => containsStepKind(list, kind))) return true;
     }
     return false;
 }
@@ -259,38 +276,20 @@ function checkGeneratePresentation(step, path, ctx) {
 
 function checkLoopCosts(step, path, ctx) {
     const { pushW } = ctx;
-// A deck inside a loop is the fill_document shape: one stored file per
-// iteration, against the attachment quota. A warning about the cost.
-if (step.kind === 'loop' && containsThroughCalls(step.steps, 'generate_presentation', ctx)) {
-    pushW({
-        code: 'action.generate_presentation_in_loop', severity: 'warning', path: `${path}.steps`,
-        message: 'A "generate presentation" step runs inside a loop — one stored deck per iteration.',
-        hint: 'Usually one deck over all rows is wanted; bind `slides` to the whole set instead of looping.',
-    });
-}
-
-// A generate_file inside a loop is legal (one file per order is a real
-// shape) but easy to reach by accident — each iteration writes a blob
-// against the app's attachment quota, and a quota 409 halfway leaves a
-// partial run. A warning, where send_email-in-loop is an error.
-if (step.kind === 'loop' && containsThroughCalls(step.steps, 'generate_file', ctx)) {
-    pushW({
-        code: 'action.generate_file_in_loop', severity: 'warning', path: `${path}.steps`,
-        message: 'A "generate file" step runs inside a loop — one stored file per iteration.',
-        hint: 'Usually one file over all rows is wanted; bind `rows` to the whole set instead of looping.',
-    });
-}
-
-// fill_document in a loop is the same quota shape — but the other way
-// round: one invoice PER row is the normal thing to want, where one export
-// over all rows is. So it warns about the cost rather than the intent.
-if (step.kind === 'loop' && containsThroughCalls(step.steps, 'fill_document', ctx)) {
-    pushW({
-        code: 'action.fill_document_in_loop', severity: 'warning', path: `${path}.steps`,
-        message: 'A "fill document" step runs inside a loop — one stored PDF per iteration.',
-        hint: 'That is usually intended (one invoice per row); keep the list short, since each file counts against the app\'s storage quota.',
-    });
-}
+    if (step.kind !== 'loop' && step.kind !== 'while') return;
+    // What a loop holding a kind is told is on the kind's catalogue entry (`inLoop`, `noLoop`).
+    for (const kind of LOOP_FINDING_KINDS) {
+        const finding = STEP_META[kind].inLoop;
+        if (finding && containsThroughCalls(step.steps, kind, ctx)) {
+            (finding.severity === 'error' ? ctx.pushE : pushW)({ code: finding.code, severity: finding.severity, path: `${path}.steps`, message: finding.message, hint: finding.hint });
+        }
+    }
+    // A registry kind marked `noLoop` gets the generic refusal (send_email keeps its own, in actions.js).
+    for (const kind of REGISTRY_NO_LOOP_KINDS) {
+        if (containsThroughCalls(step.steps, kind, ctx)) {
+            ctx.pushE({ code: 'action.step_in_loop', severity: 'error', path: `${path}.steps`, message: `A "${kind}" step may not run inside a loop.`, hint: 'Run it once, before or after the loop.' });
+        }
+    }
 }
 
 function checkAiBrowse(step, path, ctx) {
@@ -373,8 +372,21 @@ const KIND_CHECKS = {
     ai_browse: checkAiBrowse,
     copy_document: checkCopyDocument,
     call_action: checkCallAction,
+    // The control kinds of the step registry (controlFlowChecks.mts); a while is told what a loop is told.
+    break: checkLoopExit,
+    continue: checkLoopExit,
+    while: (step, path, ctx) => { checkWhile(step, path, ctx); checkLoopCosts(step, path, ctx); },
+    try: checkTry,
+    parallel: checkParallel,
+    // Registry kinds (componentSpecs/steps/<kind>.js) whose fields need more than their types.
+    code: require('./codeStepChecks.mts').checkCodeStep,
+    http_request: require('./httpRequestChecks.mts').checkHttpRequest,
+    open_url: checkOpenUrl,
+    switch: checkSwitchCases,
 };
 
-module.exports = { containsSendEmail, KIND_CHECKS };
+// The browser steps that name a component (focus, scroll_to, set_ui, set_form_field).
+Object.assign(KIND_CHECKS, require('./uiStepChecks.mts').UI_STEP_CHECKS);
+module.exports = { containsSendEmail, KIND_CHECKS, validateStepBranches };
 
 /** @typedef {import('./shared').ValidationCtx} ValidationCtx */

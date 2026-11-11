@@ -45,7 +45,7 @@ function versionLabel(v: AppDocumentVersion, locale?: string): string {
 export default function CompareToolbar(p: CompareToolbarProps) {
     const { t } = useTranslation();
     return (
-        <div className="flex min-h-10 shrink-0 flex-wrap items-center gap-0.5 border-b border-[var(--border-default)] px-1.5 py-1" role="toolbar" aria-label={t('studio_app_documents.toolbar', 'Document comparison')}>
+        <div className="flex min-h-10 shrink-0 flex-wrap items-center gap-0.5 border-b border-[var(--border-default)] px-1.5 py-1 bfa-document_compare__toolbar" role="toolbar" aria-label={t('studio_app_documents.toolbar', 'Document comparison')}>
             <ToolButton label={t('studio_app_documents.mode_side', 'Side by side')} pressed={p.mode === 'side'} onClick={() => p.onMode('side')}><Columns2 className={ICON} aria-hidden="true" /></ToolButton>
             <ToolButton label={t('studio_app_documents.mode_inline', 'Inline')} pressed={p.mode === 'inline'} onClick={() => p.onMode('inline')}><Rows3 className={ICON} aria-hidden="true" /></ToolButton>
             <Sep />

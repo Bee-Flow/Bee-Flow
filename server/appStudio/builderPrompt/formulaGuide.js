@@ -30,6 +30,14 @@ const FORMULA_WRAP_COLS = 108;
 /** Names the compact catalog leaves out (see the header). */
 const NOT_IN_COMPACT = new Set(['unique', 'regexMatch', 'regexReplace', 'map', 'filter', 'some', 'every']);
 
+/**
+ * Functions that arrived with schema version 3 (`since: 3` on their doc entry:
+ * sort, reverse, slice, groupBy, keys, values, merge, range, reduce). The
+ * catalog text is byte-pinned, so neither rendering prints them; they are
+ * served on demand.
+ */
+const SINCE_3 = new Set(EXPR_FUNCTIONS.filter((f) => /** @type {{ since?: number }} */ (f).since !== undefined).map((f) => f.name));
+
 /** Signatures the compact catalog keeps in their earlier, shorter form. */
 const COMPACT_SIGNATURES = new Map([['sum', 'sum(list)']]);
 
@@ -41,7 +49,8 @@ const ANY_GROUP_TEXT = ' OR: an entry {"any":[<entries>]} matches when ONE of th
 
 /**
  * The callable names a formula may use, wrapped.
- * @param {{ compact?: boolean }} [opts]
+ * `skip` leaves names out (catalogDiet.mts names those without a signature).
+ * @param {{ compact?: boolean, skip?: ReadonlySet<string> }} [opts]
  */
 function renderFormulaFunctions(opts = {}) {
     const signatureByName = new Map(EXPR_FUNCTIONS.map((f) => [f.name, f.signature]));
@@ -49,7 +58,8 @@ function renderFormulaFunctions(opts = {}) {
     const lines = [];
     let line = '';
     for (const name of EXPR_FUNCTION_NAMES) {
-        if (opts.compact && NOT_IN_COMPACT.has(name)) continue;
+        if (SINCE_3.has(name)) continue;
+        if ((opts.compact && NOT_IN_COMPACT.has(name)) || (opts.skip && opts.skip.has(name))) continue;
         const sig = (opts.compact && COMPACT_SIGNATURES.get(name)) || signatureByName.get(name) || `${name}(…)`;
         const next = line ? `${line}, ${sig}` : sig;
         if (line && next.length > FORMULA_WRAP_COLS) {
@@ -63,4 +73,4 @@ function renderFormulaFunctions(opts = {}) {
     return lines.join('\n');
 }
 
-module.exports = { renderFormulaFunctions, LIST_FORMS_TEXT, ANY_GROUP_TEXT, NOT_IN_COMPACT, COMPACT_SIGNATURES };
+module.exports = { renderFormulaFunctions, LIST_FORMS_TEXT, ANY_GROUP_TEXT, NOT_IN_COMPACT, COMPACT_SIGNATURES, SINCE_3 };

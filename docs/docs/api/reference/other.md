@@ -9,7 +9,7 @@ toc_max_heading_level: 2
 
 # Other endpoints
 
-227 routes, 116 with a request schema. Back to the [endpoint reference](../reference.md).
+228 routes, 116 with a request schema. Back to the [endpoint reference](../reference.md).
 
 ## `(root)`
 
@@ -964,6 +964,7 @@ No request schema.
 | Field | Type | Required | Notes |
 |-------|------|:--------:|-------|
 | `stepIndex` | integer | yes | min 0; max 9007199254740991 |
+| `kind` | string |  | min length 1; max length 40 |
 | `formValues` | object or null |  |  |
 | `vars` | object or null |  |  |
 | `item` | any |  |  |
@@ -978,6 +979,15 @@ No request schema.
 | `error.attempts` | integer | yes | min 1; max 4 |
 | `error.stepIndex` | integer |  | min 0; max 9007199254740991 |
 | `runKey` | string |  | pattern `^rk_[A-Za-z0-9_-]{16,64}$` |
+| `screenParams` | object or null |  |  |
+| `forms` | object or null |  |  |
+| `actionResults` | object or null |  |  |
+
+### `GET /api/public-app/:token/assets/:assetId`
+
+**Access:** no gate in the middleware chain: the handler decides (it checks the session itself, or the route is public)
+
+No request schema.
 
 ### `POST /api/public-app/:token/data/attachments`
 
@@ -1027,9 +1037,15 @@ No request schema.
 |-------|------|:--------:|-------|
 | `filter` | string |  | max length 20000 |
 | `sort` | string |  | max length 20000 |
+| `match` | one of `"all"`, `"any"` |  |  |
+| `search` | string |  | max length 20000 |
+| `orderBy` | string |  | max length 20000 |
+| `expand` | string |  | max length 20000 |
+| `fields` | string |  | max length 20000 |
 | `cursor` | string |  | max length 500 |
 | `limit` | integer |  | min 1; max 9007199254740991 |
 | `sample` | one of `"0"`, `"1"` |  |  |
+| `total` | one of `"0"`, `"1"` |  |  |
 
 ## `api/public-share`
 

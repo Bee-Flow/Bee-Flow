@@ -1,8 +1,7 @@
-import { render, RenderResult } from '@testing-library/react';
+import type { RenderResult } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
 import AppBadgeList from './AppBadgeList';
-import { RuntimeProvider, buildScope, DEFAULT_RUNTIME } from '../RuntimeContext';
-import type { ReactElement } from 'react';
+import { renderInRuntime as withRuntime } from '@/test/appRuntimeRender';
 import type { ComponentProps } from 'react';
 import { stub } from '@/test/mocks';
 
@@ -15,11 +14,6 @@ import { stub } from '@/test/mocks';
  * attribute. The default tests here pin that byte-for-byte, so a stored
  * definition that canonicalize backfills with look:'soft' cannot drift.
  */
-
-function withRuntime(ui: ReactElement, overrides = {}) {
-    const value = { ...DEFAULT_RUNTIME, scope: buildScope({ now: '2026-01-01T00:00:00.000Z' }), ...overrides };
-    return render(<RuntimeProvider value={value}>{ui}</RuntimeProvider>);
-}
 
 const ROWS = [
     { label: 'Open', tone: 'open' },

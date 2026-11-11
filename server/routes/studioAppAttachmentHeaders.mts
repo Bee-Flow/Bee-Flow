@@ -1,7 +1,8 @@
 /**
- * How a public App Studio page serves a stored attachment: raster images and
- * PDF inline, everything else (SVG included) as a download, and every type
- * but PDF under a sandbox policy so a file never runs as a page of this origin.
+ * How App Studio serves a stored attachment, on the public page's route
+ * (studioAppPublic.js) and the signed-in route (studioAppFiles.js) alike: raster
+ * images and PDF inline, everything else (SVG included) as a download, and every
+ * type but PDF under a sandbox policy so a file never runs as a page of this origin.
  */
 const INLINE_IMAGE = /^image\/(png|jpe?g|gif|webp|avif|bmp)$/i;
 

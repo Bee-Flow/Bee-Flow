@@ -1,0 +1,48 @@
+{
+  "corpus": "hover-backdrop",
+  "canonical": {
+    "sha256": "33dc44817f2a10d1bd0f26a74a8fb2e5a91c8046e57821337f349d8e689d1ed6",
+    "bytes": 1946,
+    "inputIsCanonical": true,
+    "idempotent": true,
+    "keys": [
+      "schemaVersion",
+      "meta",
+      "theme",
+      "roles",
+      "screens",
+      "actions",
+      "homeScreenId"
+    ],
+    "parts": {
+      "schemaVersion": "4e07408562bedb8b",
+      "meta": "0af9fc14569cff25",
+      "theme": "87df6a9096a03b63",
+      "roles": "4f53cda18c2baa0c",
+      "screens[0] scr_hvbg001": "6d923dc67148f2c8",
+      "homeScreenId": "e575abebeb5e5af6"
+    }
+  },
+  "schemaVersion": {
+    "stored": 3,
+    "canonical": 3
+  },
+  "validation": {
+    "strict": {
+      "errors": [],
+      "warnings": [
+        "style.image_without_overlay @ screens[0].sections[0].children[7].style.backgroundImage"
+      ]
+    },
+    "save": {
+      "errors": [],
+      "warnings": [
+        "style.image_without_overlay @ screens[0].sections[0].children[7].style.backgroundImage"
+      ]
+    }
+  },
+  "ordinals": {
+    "stored": {},
+    "canonical": "same as stored"
+  }
+}

@@ -1,0 +1,348 @@
+{
+  "about": {
+    "source": "hand-made: a form writing a table whose fields declare validation (min/max, lengths, pattern, enforceOptions, message) and dynamic defaults (now, today, currentUser.id); definition = canonicalizeAppDefinition(input).def, dataModel = canonicalizeDataModel(input).model",
+    "captured": "2026-11-10"
+  },
+  "definition": {
+    "schemaVersion": 2,
+    "meta": {
+      "name": "Order intake",
+      "description": "A form whose table checks its fields on save",
+      "icon": "ClipboardList"
+    },
+    "theme": {
+      "primary": "#0F766E",
+      "radius": "md",
+      "density": "comfortable",
+      "fontScale": "md",
+      "appearance": "auto"
+    },
+    "roles": [],
+    "screens": [
+      {
+        "id": "scr_order1",
+        "name": "New order",
+        "icon": "Plus",
+        "showInNav": true,
+        "maxWidth": "medium",
+        "sections": [
+          {
+            "id": "sec_order1",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_ordhd1",
+                "type": "heading",
+                "props": {
+                  "text": "New order",
+                  "level": 2,
+                  "accent": "none"
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_ordfm1",
+                "type": "form",
+                "props": {
+                  "name": "order",
+                  "submitLabel": "Place order",
+                  "showReset": false,
+                  "showSubmit": true,
+                  "resetKey": null
+                },
+                "style": {
+                  "span": 6,
+                  "gap": 3,
+                  "padding": 0
+                },
+                "visible": true,
+                "onSubmit": "act_order1",
+                "children": [
+                  {
+                    "id": "cmp_ordti1",
+                    "type": "input_text",
+                    "props": {
+                      "name": "title",
+                      "label": "Title",
+                      "placeholder": null,
+                      "required": false,
+                      "defaultValue": null,
+                      "inputType": "text",
+                      "valueFrom": {
+                        "kind": "static",
+                        "value": null
+                      }
+                    },
+                    "style": {
+                      "span": 12
+                    },
+                    "visible": true
+                  },
+                  {
+                    "id": "cmp_ordqt1",
+                    "type": "input_number",
+                    "props": {
+                      "name": "qty",
+                      "label": "Quantity",
+                      "min": null,
+                      "max": null,
+                      "step": 1,
+                      "required": false,
+                      "defaultValue": null,
+                      "valueFrom": {
+                        "kind": "static",
+                        "value": null
+                      }
+                    },
+                    "style": {
+                      "span": 6
+                    },
+                    "visible": true
+                  },
+                  {
+                    "id": "cmp_ordcd1",
+                    "type": "input_text",
+                    "props": {
+                      "name": "code",
+                      "label": "Code",
+                      "placeholder": null,
+                      "required": false,
+                      "defaultValue": null,
+                      "inputType": "text",
+                      "valueFrom": {
+                        "kind": "static",
+                        "value": null
+                      }
+                    },
+                    "style": {
+                      "span": 12
+                    },
+                    "visible": true
+                  },
+                  {
+                    "id": "cmp_ordst1",
+                    "type": "input_select",
+                    "props": {
+                      "name": "state",
+                      "label": "State",
+                      "options": [
+                        {
+                          "value": "open",
+                          "label": "Open"
+                        },
+                        {
+                          "value": "done",
+                          "label": "Done"
+                        }
+                      ],
+                      "required": false,
+                      "defaultValue": null,
+                      "placeholder": null,
+                      "valueFrom": {
+                        "kind": "static",
+                        "value": null
+                      },
+                      "optionsFrom": null,
+                      "optionValueKey": null,
+                      "optionLabelKey": null
+                    },
+                    "style": {
+                      "span": 6
+                    },
+                    "visible": true
+                  }
+                ]
+              },
+              {
+                "id": "cmp_ordls1",
+                "type": "list",
+                "props": {
+                  "source": {
+                    "kind": "records",
+                    "tableId": "tbl_order1"
+                  },
+                  "titleKey": "title",
+                  "subtitleKey": null,
+                  "metaKey": null,
+                  "timestampKey": null,
+                  "badgeKey": null,
+                  "tagsKey": null,
+                  "badgeToneMap": [],
+                  "unreadKey": null,
+                  "badgePlacement": "meta",
+                  "selectedWhen": null,
+                  "selectedDetailKey": null,
+                  "groupKey": null,
+                  "groupOrder": [],
+                  "groupLabelMap": [],
+                  "icon": null,
+                  "emptyText": "Nothing to show yet.",
+                  "look": "rows",
+                  "peekSource": null,
+                  "peekMatchKey": null,
+                  "peekRowKey": null,
+                  "peekTitleKey": null,
+                  "peekTextKey": null,
+                  "peekGroupKey": null,
+                  "peekGroupLabelMap": [],
+                  "peekCountKey": null,
+                  "peekLimit": 6,
+                  "peekTitle": null,
+                  "peekMoreText": null,
+                  "peekBadge": false
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "actions": {
+      "act_order1": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "create_record",
+            "tableId": "tbl_order1",
+            "values": {
+              "title": {
+                "kind": "formula",
+                "expr": "form.title"
+              },
+              "qty": {
+                "kind": "formula",
+                "expr": "form.qty"
+              },
+              "code": {
+                "kind": "formula",
+                "expr": "form.code"
+              },
+              "state": {
+                "kind": "formula",
+                "expr": "form.state"
+              }
+            }
+          },
+          {
+            "kind": "toast",
+            "message": "Order placed",
+            "tone": "success"
+          }
+        ]
+      }
+    },
+    "homeScreenId": "scr_order1"
+  },
+  "dataModel": {
+    "modelVersion": 1,
+    "tables": [
+      {
+        "id": "tbl_order1",
+        "key": "orders",
+        "name": "Orders",
+        "icon": null,
+        "fields": [
+          {
+            "id": "fld_order1",
+            "key": "title",
+            "name": "Title",
+            "type": "text",
+            "required": true,
+            "unique": false,
+            "validation": {
+              "minLength": 2,
+              "maxLength": 80
+            }
+          },
+          {
+            "id": "fld_order2",
+            "key": "qty",
+            "name": "Quantity",
+            "type": "number",
+            "required": false,
+            "unique": false,
+            "validation": {
+              "min": 1,
+              "max": 100,
+              "message": "Order between 1 and 100."
+            }
+          },
+          {
+            "id": "fld_order3",
+            "key": "code",
+            "name": "Code",
+            "type": "text",
+            "required": false,
+            "unique": false,
+            "validation": {
+              "pattern": "^[A-Z]{3}-[0-9]{3}$"
+            }
+          },
+          {
+            "id": "fld_order4",
+            "key": "state",
+            "name": "State",
+            "type": "select",
+            "required": false,
+            "unique": false,
+            "options": [
+              "open",
+              "done"
+            ],
+            "validation": {
+              "enforceOptions": true
+            }
+          },
+          {
+            "id": "fld_order5",
+            "key": "placed_at",
+            "name": "Placed at",
+            "type": "datetime",
+            "required": false,
+            "unique": false,
+            "dynamicDefault": "now"
+          },
+          {
+            "id": "fld_order6",
+            "key": "placed_on",
+            "name": "Placed on",
+            "type": "date",
+            "required": false,
+            "unique": false,
+            "dynamicDefault": "today"
+          },
+          {
+            "id": "fld_order7",
+            "key": "placed_by",
+            "name": "Placed by",
+            "type": "text",
+            "required": false,
+            "unique": false,
+            "dynamicDefault": "currentUser.id"
+          }
+        ],
+        "access": {
+          "default": "app",
+          "roles": {},
+          "rowFilters": {}
+        }
+      }
+    ],
+    "roles": [],
+    "roleMapping": {
+      "default": "app",
+      "byGroup": {}
+    }
+  }
+}

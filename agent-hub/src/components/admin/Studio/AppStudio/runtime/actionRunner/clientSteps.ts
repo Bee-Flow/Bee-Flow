@@ -11,9 +11,11 @@ import { resolveBinding } from '../resolveBinding';
 import type { ResolveResult } from '../resolveBinding.types';
 import { attachmentUrl, getAuthed } from '@/api/actionHttp';
 import { SEQ_ABORT, defaultConfirm, resolveNavParams, showToast } from './core';
+import { browserStepFor } from './browserSteps';
 import type { RunStep } from './core';
 import type { RunnerContext } from './runnerContext';
 import type { SeqState } from './serverSteps';
+import { resolveOpenUrl, resolveScreenId, withResolvedText } from './dynamicSteps';
 
 /** The resolveBinding bag ({ actionState, dataState, scope }) for the sequence's current state. */
 export type LiveBag = (st: SeqState) => { actionState: unknown; dataState: unknown; scope: unknown };
@@ -87,11 +89,17 @@ async function refreshStep({ ctx }: ClientStepEnv, step: RunStep): Promise<void>
 const CLIENT_STEPS: Record<string, ClientStepHandler> = {
     navigate: ({ ctx, liveBag }, step, st) => {
         const onNavigate = ctx.live.current.onNavigate;
-        if (onNavigate) onNavigate(step.screenId as string, resolveNavParams(step.params, liveBag(st).scope));
+        const { scope } = liveBag(st);
+        const screenId = resolveScreenId(step, scope, ctx.live.current.definition?.screens, ctx.tr);
+        if (onNavigate) onNavigate(screenId, resolveNavParams(step.params, scope));
     },
-    toast: (_env, step) => { showToast(step.tone, step.message); },
-    open_url: (_env, step) => {
-        const url = String(step.url || '').trim();
+    toast: ({ liveBag }, step, st) => {
+        const shown = withResolvedText(step, liveBag(st).scope);
+        showToast(shown.tone, shown.message);
+    },
+    open_url: ({ ctx, liveBag }, step, st) => {
+        const dynamic = resolveOpenUrl(step, liveBag(st).scope, ctx.live.current.definition?.allowedLinkHosts, ctx.tr);
+        const url = (dynamic || String(step.url || '')).trim();
         if (url.toLowerCase().startsWith('https://')) {
             window.open(url, step.newTab === false ? '_self' : '_blank', 'noopener,noreferrer');
         }
@@ -100,9 +108,9 @@ const CLIENT_STEPS: Record<string, ClientStepHandler> = {
     close_modal: (_env, step) => { if (step.modalId) closeAppModal(step.modalId); },
     reset_form: (_env, step) => { if (typeof step.form === 'string' && step.form) resetAppForm(step.form); },
     download_file: downloadFile,
-    confirm: async ({ ctx }, step) => {
+    confirm: async ({ ctx, liveBag }, step, st) => {
         const ask = ctx.live.current.confirm || ((st2: RunStep) => defaultConfirm(st2, ctx.tr));
-        const ok = await ask(step);
+        const ok = await ask(withResolvedText(step, liveBag(st).scope));
         if (!ok) throw SEQ_ABORT;
     },
     set_variable: ({ ctx, liveBag }, step, st) => {
@@ -115,11 +123,11 @@ const CLIENT_STEPS: Record<string, ClientStepHandler> = {
     refresh: refreshStep,
 };
 
-/** Runs a client step kind. False when the kind is not a client kind. */
+/** Runs a client step kind (a base kind above, or a registry kind of ./browserSteps). False when the kind is not a client kind. */
 export async function runClientStep(env: ClientStepEnv, step: RunStep, st: SeqState): Promise<boolean> {
     const handler = Object.prototype.hasOwnProperty.call(CLIENT_STEPS, step.kind as string)
         ? CLIENT_STEPS[step.kind as string]
-        : null;
+        : browserStepFor(step.kind);
     if (!handler) return false;
     await handler(env, step, st);
     return true;

@@ -166,7 +166,17 @@ export type DataRecord = Record<string, unknown>;
 
 export interface RecordsQuery {
     filter?: unknown;
+    /** How the filters join: 'all' (default) or 'any'. */
+    match?: 'all' | 'any';
+    /** `{ value: <text>, fields: [<field keys>] }`: rows where any field contains the text. */
+    search?: unknown;
     sort?: unknown;
+    /** Up to three `{ field, dir }` entries; replaces `sort` when present. */
+    orderBy?: unknown;
+    /** `[{ field: <relation field>, pick?, as? }]`: the related row of each record, under `as` or `<field>_record`. */
+    expand?: unknown;
+    /** The columns to return (next to `id`). */
+    fields?: unknown;
     cursor?: string;
     limit?: number;
     sample?: boolean;

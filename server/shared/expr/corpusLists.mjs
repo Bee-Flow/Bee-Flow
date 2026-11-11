@@ -4,8 +4,11 @@
  * (map/filter/some/every, unique, sum with a field) and regexMatch /
  * regexReplace, evaluated against corpus.mjs's SCOPE. corpus.mjs spreads them
  * into CASES and REJECT, so every runner of the corpus (server, browser
- * parity: RE2 against the native engine) runs them too.
+ * parity: RE2 against the native engine) runs them too. The cases of the
+ * collection functions, the literals and `??` (corpusCollections.mjs) ride along.
  */
+
+import { COLLECTION_CASES, COLLECTION_REJECT } from './corpusCollections.mjs'; // literals, ??, sort … reduce
 
 export const LIST_CASES = [
     // member access on a call result or a parenthesised value
@@ -41,6 +44,7 @@ export const LIST_CASES = [
     { expr: 'regexReplace("2026-07-04", "([0-9]+)-([0-9]+)-([0-9]+)", "$3/$2/$1")', expected: '04/07/2026' },
     { expr: 'regexReplace("a1b22", "[0-9]+", "<$&>")', expected: 'a<1>b<22>' },
     { expr: 'regexReplace("Total", "t", "$$", "i")', expected: '$o$al' },
+    ...COLLECTION_CASES,
 ];
 
 // Expressions that MUST throw at parse time.
@@ -59,4 +63,5 @@ export const LIST_REJECT = [
     'regexMatch(form.email, "a", "g")',         // unknown flag
     'regexMatch(form.email, "[")',              // not a pattern
     'regexReplace(form.email, "a", "b", "i", 1)',
+    ...COLLECTION_REJECT,
 ];

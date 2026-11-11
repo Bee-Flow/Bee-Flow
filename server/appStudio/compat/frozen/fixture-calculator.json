@@ -1,0 +1,179 @@
+{
+  "corpus": "fixture-calculator",
+  "canonical": {
+    "sha256": "b49d7db0f84031580b011e44ff4f4b1910dc218a8ba7ac17f923e633b5d884d1",
+    "bytes": 18996,
+    "inputIsCanonical": true,
+    "idempotent": true,
+    "keys": [
+      "schemaVersion",
+      "meta",
+      "theme",
+      "roles",
+      "variables",
+      "screens",
+      "actions",
+      "design",
+      "nav",
+      "homeScreenId"
+    ],
+    "parts": {
+      "schemaVersion": "d4735e3a265e16ee",
+      "meta": "8e1bf5b98a5b434d",
+      "theme": "f5355af464901f64",
+      "roles": "4f53cda18c2baa0c",
+      "variables": "8789d327f3a7ef35",
+      "screens[0] scr_0001": "3a4dc35c27306714",
+      "screens[1] scr_0026": "8c0ddf5d9ba4f51c",
+      "actions.act_0042": "d352565efa959651",
+      "actions.act_0043": "0623e3b8af45e39e",
+      "actions.act_0044": "63997b5e6d778524",
+      "actions.act_0045": "7d43b1af81db85ec",
+      "actions.act_0046": "da07c22d7300c753",
+      "actions.act_0047": "7a3a3f2d5f89ddca",
+      "actions.act_0048": "eecf8fdd18ed5fe9",
+      "actions.act_0049": "6fb0a82b4b40e0eb",
+      "actions.act_0050": "0825accbdf3c9389",
+      "actions.act_0051": "66741aaa335bd24e",
+      "actions.act_0052": "91e3588fac1e0357",
+      "actions.act_0053": "707f8fbbb4f3ee7e",
+      "actions.act_0054": "84f3963283705c91",
+      "actions.act_0055": "c4c9336a91804aa8",
+      "actions.act_0056": "01ad1d3e582d54eb",
+      "actions.act_0057": "e2984d7fc6185340",
+      "actions.act_0058": "1960d32bd79f733a",
+      "actions.act_0059": "36a3a9079583bacb",
+      "actions.act_0060": "d91279e37828b4f5",
+      "actions.act_0061": "83e8ad6d103027a6",
+      "actions.act_0062": "f9efa329ef6097f2",
+      "actions.act_0063": "bab03c987ab688fd",
+      "design": "c1447d2415f284b0",
+      "nav": "0a4e25711d5b3c15",
+      "homeScreenId": "5de509f33a4b00ac"
+    }
+  },
+  "schemaVersion": {
+    "stored": 2,
+    "canonical": 2
+  },
+  "validation": {
+    "strict": {
+      "errors": [],
+      "warnings": []
+    },
+    "save": {
+      "errors": [],
+      "warnings": []
+    }
+  },
+  "ordinals": {
+    "stored": {
+      "act_0042": [
+        "0 set_variable",
+        "1 set_variable"
+      ],
+      "act_0043": [
+        "0 set_variable",
+        "1 set_variable"
+      ],
+      "act_0044": [
+        "0 set_variable",
+        "1 set_variable"
+      ],
+      "act_0045": [
+        "0 set_variable",
+        "1 set_variable"
+      ],
+      "act_0046": [
+        "0 set_variable",
+        "1 set_variable",
+        "2 set_variable",
+        "3 set_variable"
+      ],
+      "act_0047": [
+        "0 set_variable",
+        "1 set_variable"
+      ],
+      "act_0048": [
+        "0 set_variable",
+        "1 set_variable",
+        "2 set_variable",
+        "3 set_variable"
+      ],
+      "act_0049": [
+        "0 set_variable",
+        "1 set_variable",
+        "2 set_variable",
+        "3 set_variable"
+      ],
+      "act_0050": [
+        "0 set_variable",
+        "1 set_variable"
+      ],
+      "act_0051": [
+        "0 set_variable",
+        "1 set_variable"
+      ],
+      "act_0052": [
+        "0 set_variable",
+        "1 set_variable"
+      ],
+      "act_0053": [
+        "0 set_variable",
+        "1 set_variable",
+        "2 set_variable",
+        "3 set_variable"
+      ],
+      "act_0054": [
+        "0 set_variable",
+        "1 set_variable"
+      ],
+      "act_0055": [
+        "0 set_variable",
+        "1 set_variable"
+      ],
+      "act_0056": [
+        "0 set_variable",
+        "1 set_variable"
+      ],
+      "act_0057": [
+        "0 set_variable",
+        "1 set_variable",
+        "2 set_variable",
+        "3 set_variable"
+      ],
+      "act_0058": [
+        "0 set_variable",
+        "1 set_variable"
+      ],
+      "act_0059": [
+        "0 set_variable",
+        "1 set_variable"
+      ],
+      "act_0060": [
+        "0 set_variable",
+        "1 set_variable"
+      ],
+      "act_0061": [
+        "0 switch",
+        "1 set_variable",
+        "2 set_variable",
+        "3 set_variable",
+        "4 set_variable",
+        "5 set_variable",
+        "6 set_variable",
+        "7 set_variable",
+        "8 set_variable"
+      ],
+      "act_0062": [
+        "0 set_variable",
+        "1 set_variable"
+      ],
+      "act_0063": [
+        "0 set_variable",
+        "1 set_variable"
+      ]
+    },
+    "canonical": "same as stored"
+  }
+}

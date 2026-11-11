@@ -1,0 +1,745 @@
+{
+  "about": {
+    "source": "agent-hub/src/components/admin/Studio/AppStudio/state/sampleDefinitions.ts V21_BATCH, verbatim",
+    "captured": "2026-11-10"
+  },
+  "definition": {
+    "schemaVersion": 2,
+    "meta": {
+      "name": "v2.1 components",
+      "description": "Every v2.1 component.",
+      "icon": "LayoutGrid"
+    },
+    "theme": {
+      "primary": "#0F766E",
+      "radius": "md",
+      "density": "comfortable",
+      "fontScale": "md",
+      "appearance": "auto"
+    },
+    "homeScreenId": "scr_v21a01",
+    "roles": [],
+    "screens": [
+      {
+        "id": "scr_v21a01",
+        "name": "Batch",
+        "icon": "LayoutDashboard",
+        "showInNav": true,
+        "maxWidth": "wide",
+        "sections": [
+          {
+            "id": "sec_v21a01",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_v21ph",
+                "type": "page_header",
+                "visible": true,
+                "props": {
+                  "title": "Hive tasks",
+                  "subtitle": "Everything in flight",
+                  "icon": "LayoutGrid",
+                  "showDivider": true
+                },
+                "style": {
+                  "span": 12,
+                  "gap": 3,
+                  "padding": 0
+                },
+                "children": [
+                  {
+                    "id": "cmp_v21pb",
+                    "type": "button",
+                    "visible": true,
+                    "onClick": "act_v21t",
+                    "props": {
+                      "label": "New task",
+                      "variant": "primary",
+                      "iconLeft": null,
+                      "role": "button"
+                    },
+                    "style": {
+                      "span": 3
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "cmp_v21ct",
+                "type": "container",
+                "visible": true,
+                "props": {},
+                "style": {
+                  "span": 6,
+                  "gap": 3
+                },
+                "children": [
+                  {
+                    "id": "cmp_v21md",
+                    "type": "markdown",
+                    "visible": true,
+                    "props": {
+                      "content": "## Notes\n\nKeep the **smoker** ready.\n\n- check queen\n- refill feeder\n\n```\nbrood ok\n```"
+                    },
+                    "style": {
+                      "span": 12
+                    }
+                  },
+                  {
+                    "id": "cmp_v21pr",
+                    "type": "progress",
+                    "visible": true,
+                    "props": {
+                      "value": {
+                        "kind": "static",
+                        "value": 40
+                      },
+                      "max": 100,
+                      "format": "percent",
+                      "label": "Season prep",
+                      "tone": "success"
+                    },
+                    "style": {
+                      "span": 12,
+                      "size": "md"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "cmp_v21bl",
+                "type": "badge_list",
+                "visible": true,
+                "props": {
+                  "source": {
+                    "kind": "static",
+                    "value": [
+                      {
+                        "id": "rec_1",
+                        "title": "Fix hive",
+                        "status": "open",
+                        "owner": "Ann",
+                        "due": "2026-03-03",
+                        "done": 40,
+                        "tag": "urgent"
+                      },
+                      {
+                        "id": "rec_2",
+                        "title": "Order frames",
+                        "status": "open",
+                        "owner": "Bo",
+                        "due": "2026-03-10",
+                        "done": 10,
+                        "tag": "supply"
+                      },
+                      {
+                        "id": "rec_3",
+                        "title": "Paint boxes",
+                        "status": "done",
+                        "owner": "Cy",
+                        "due": "2026-03-27",
+                        "done": 100,
+                        "tag": "yard"
+                      }
+                    ]
+                  },
+                  "labelKey": "tag",
+                  "colorKey": "status",
+                  "colorMap": [
+                    {
+                      "value": "open",
+                      "color": "info"
+                    },
+                    {
+                      "value": "done",
+                      "color": "success"
+                    }
+                  ],
+                  "emptyText": "No tags."
+                },
+                "style": {
+                  "span": 6,
+                  "size": "md",
+                  "align": "start"
+                }
+              },
+              {
+                "id": "cmp_v21tl",
+                "type": "timeline",
+                "visible": true,
+                "onRowClick": "act_v21t",
+                "props": {
+                  "source": {
+                    "kind": "static",
+                    "value": [
+                      {
+                        "id": "rec_1",
+                        "title": "Fix hive",
+                        "status": "open",
+                        "owner": "Ann",
+                        "due": "2026-03-03",
+                        "done": 40,
+                        "tag": "urgent"
+                      },
+                      {
+                        "id": "rec_2",
+                        "title": "Order frames",
+                        "status": "open",
+                        "owner": "Bo",
+                        "due": "2026-03-10",
+                        "done": 10,
+                        "tag": "supply"
+                      },
+                      {
+                        "id": "rec_3",
+                        "title": "Paint boxes",
+                        "status": "done",
+                        "owner": "Cy",
+                        "due": "2026-03-27",
+                        "done": 100,
+                        "tag": "yard"
+                      }
+                    ]
+                  },
+                  "titleKey": "title",
+                  "dateKey": "due",
+                  "descriptionKey": "owner",
+                  "icon": null,
+                  "rowLimit": 25,
+                  "emptyText": "Nothing yet."
+                },
+                "style": {
+                  "span": 6,
+                  "size": "md"
+                }
+              },
+              {
+                "id": "cmp_v21rd",
+                "type": "record_detail",
+                "visible": true,
+                "props": {
+                  "source": {
+                    "kind": "static",
+                    "value": {
+                      "id": "rec_1",
+                      "title": "Fix hive",
+                      "status": "open",
+                      "owner": "Ann",
+                      "due": "2026-03-03",
+                      "done": 40,
+                      "tag": "urgent"
+                    }
+                  },
+                  "fields": [
+                    {
+                      "key": "title",
+                      "label": "Title",
+                      "format": "text"
+                    },
+                    {
+                      "key": "due",
+                      "label": "Due",
+                      "format": "date"
+                    },
+                    {
+                      "key": "status",
+                      "label": "Status",
+                      "format": "badge"
+                    }
+                  ],
+                  "columns": 2,
+                  "emptyText": "No record selected."
+                },
+                "style": {
+                  "span": 12
+                }
+              },
+              {
+                "id": "cmp_v21fb",
+                "type": "filter_bar",
+                "visible": true,
+                "props": {
+                  "fields": [
+                    {
+                      "name": "q",
+                      "label": "Search",
+                      "type": "search",
+                      "options": []
+                    },
+                    {
+                      "name": "status",
+                      "label": "Status",
+                      "type": "select",
+                      "options": [
+                        {
+                          "value": "open",
+                          "label": "Open"
+                        },
+                        {
+                          "value": "done",
+                          "label": "Done"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                "style": {
+                  "span": 12,
+                  "size": "md",
+                  "gap": 3
+                }
+              },
+              {
+                "id": "cmp_v21kb",
+                "type": "kanban",
+                "visible": true,
+                "onRowClick": "act_v21t",
+                "onCardMove": "act_v21t",
+                "props": {
+                  "source": {
+                    "kind": "static",
+                    "value": [
+                      {
+                        "id": "rec_1",
+                        "title": "Fix hive",
+                        "status": "open",
+                        "owner": "Ann",
+                        "due": "2026-03-03",
+                        "done": 40,
+                        "tag": "urgent"
+                      },
+                      {
+                        "id": "rec_2",
+                        "title": "Order frames",
+                        "status": "open",
+                        "owner": "Bo",
+                        "due": "2026-03-10",
+                        "done": 10,
+                        "tag": "supply"
+                      },
+                      {
+                        "id": "rec_3",
+                        "title": "Paint boxes",
+                        "status": "done",
+                        "owner": "Cy",
+                        "due": "2026-03-27",
+                        "done": 100,
+                        "tag": "yard"
+                      }
+                    ]
+                  },
+                  "groupByField": "status",
+                  "columns": [
+                    {
+                      "value": "open",
+                      "label": "Open",
+                      "color": "info"
+                    },
+                    {
+                      "value": "done",
+                      "label": "Done",
+                      "color": "success"
+                    }
+                  ],
+                  "titleKey": "title",
+                  "subtitleKey": "owner",
+                  "badgeKey": "tag",
+                  "allowDrag": true
+                },
+                "style": {
+                  "span": 12,
+                  "size": "md"
+                }
+              },
+              {
+                "id": "cmp_v21cl",
+                "type": "calendar",
+                "visible": true,
+                "onRowClick": "act_v21t",
+                "props": {
+                  "source": {
+                    "kind": "static",
+                    "value": [
+                      {
+                        "id": "rec_1",
+                        "title": "Fix hive",
+                        "status": "open",
+                        "owner": "Ann",
+                        "due": "2026-03-03",
+                        "done": 40,
+                        "tag": "urgent"
+                      },
+                      {
+                        "id": "rec_2",
+                        "title": "Order frames",
+                        "status": "open",
+                        "owner": "Bo",
+                        "due": "2026-03-10",
+                        "done": 10,
+                        "tag": "supply"
+                      },
+                      {
+                        "id": "rec_3",
+                        "title": "Paint boxes",
+                        "status": "done",
+                        "owner": "Cy",
+                        "due": "2026-03-27",
+                        "done": 100,
+                        "tag": "yard"
+                      }
+                    ]
+                  },
+                  "dateKey": "due",
+                  "endDateKey": null,
+                  "titleKey": "title",
+                  "colorKey": null,
+                  "view": "month",
+                  "emptyText": "No events yet."
+                },
+                "style": {
+                  "span": 12
+                }
+              },
+              {
+                "id": "cmp_v21ap",
+                "type": "approval_list",
+                "visible": true,
+                "props": {
+                  "scope": "mine",
+                  "show": "waiting",
+                  "limit": 10,
+                  "emptyText": "No approvals right now.",
+                  "showDetails": true
+                },
+                "style": {
+                  "span": 12
+                }
+              },
+              {
+                "id": "cmp_v21ai",
+                "type": "ai_chat",
+                "visible": true,
+                "props": {
+                  "systemPrompt": "You answer questions about the tasks board.",
+                  "modelTier": "auto",
+                  "knowledgeBaseIds": [],
+                  "greeting": "Ask me about this board.",
+                  "placeholder": "Ask a question…",
+                  "starters": [
+                    "What is overdue?"
+                  ],
+                  "mode": "chat"
+                },
+                "style": {
+                  "span": 12
+                }
+              },
+              {
+                "id": "cmp_v21pn",
+                "type": "pane",
+                "visible": true,
+                "props": {
+                  "direction": "horizontal",
+                  "scroll": "none"
+                },
+                "style": {
+                  "span": 12,
+                  "gap": 3,
+                  "height": "fill"
+                },
+                "children": [
+                  {
+                    "id": "cmp_v21pl",
+                    "type": "list",
+                    "visible": true,
+                    "onRowClick": "act_v21t",
+                    "props": {
+                      "source": {
+                        "kind": "static",
+                        "value": [
+                          {
+                            "id": "rec_1",
+                            "title": "Fix hive",
+                            "status": "open",
+                            "owner": "Ann",
+                            "due": "2026-03-03",
+                            "done": 40,
+                            "tag": "urgent"
+                          },
+                          {
+                            "id": "rec_2",
+                            "title": "Order frames",
+                            "status": "open",
+                            "owner": "Bo",
+                            "due": "2026-03-10",
+                            "done": 10,
+                            "tag": "supply"
+                          },
+                          {
+                            "id": "rec_3",
+                            "title": "Paint boxes",
+                            "status": "done",
+                            "owner": "Cy",
+                            "due": "2026-03-27",
+                            "done": 100,
+                            "tag": "yard"
+                          }
+                        ]
+                      },
+                      "titleKey": "title",
+                      "subtitleKey": "owner",
+                      "icon": null,
+                      "emptyText": "Nothing to show yet."
+                    },
+                    "style": {
+                      "span": 4,
+                      "height": "fill"
+                    }
+                  },
+                  {
+                    "id": "cmp_v21pd",
+                    "type": "text",
+                    "visible": true,
+                    "props": {
+                      "content": "Pick a task on the left."
+                    },
+                    "style": {
+                      "span": 8,
+                      "height": "fill"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "cmp_v21mt",
+                "type": "message_thread",
+                "visible": true,
+                "onRowClick": "act_v21t",
+                "props": {
+                  "source": {
+                    "kind": "static",
+                    "value": [
+                      {
+                        "id": "msg_1",
+                        "author_kind": "requester",
+                        "author": "Jan Klant",
+                        "body": "Waar blijft mijn pakket?",
+                        "sent_at": "2026-03-01T09:00:00Z",
+                        "attachments": [
+                          {
+                            "filename": "bon.pdf"
+                          }
+                        ]
+                      },
+                      {
+                        "id": "msg_2",
+                        "author_kind": "agent",
+                        "author": "Ann",
+                        "body": "Het is onderweg, morgen bezorgd.",
+                        "sent_at": "2026-03-01T09:12:00Z",
+                        "attachments": []
+                      },
+                      {
+                        "id": "msg_3",
+                        "author_kind": "system",
+                        "author": null,
+                        "body": "Ticket gesloten",
+                        "sent_at": "2026-03-02T08:00:00Z",
+                        "attachments": []
+                      }
+                    ]
+                  },
+                  "bodyField": "body",
+                  "htmlField": null,
+                  "authorField": "author",
+                  "timestampField": "sent_at",
+                  "sideField": "author_kind",
+                  "sideMap": [
+                    {
+                      "value": "requester",
+                      "side": "left",
+                      "tone": "neutral"
+                    },
+                    {
+                      "value": "agent",
+                      "side": "right",
+                      "tone": "primary"
+                    },
+                    {
+                      "value": "system",
+                      "side": "center",
+                      "tone": "neutral"
+                    }
+                  ],
+                  "attachmentsField": "attachments",
+                  "attachmentLabelKey": "filename",
+                  "citationsField": null,
+                  "citationLabelKey": "title",
+                  "rowLimit": 100,
+                  "emptyText": "No messages yet."
+                },
+                "style": {
+                  "span": 12,
+                  "height": "fill"
+                }
+              },
+              {
+                "id": "cmp_v21fp",
+                "type": "file_preview",
+                "visible": true,
+                "props": {
+                  "source": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "emptyText": "No document selected.",
+                  "allowDownload": true
+                },
+                "style": {
+                  "span": 12,
+                  "height": "lg"
+                }
+              },
+              {
+                "id": "cmp_v21pc",
+                "type": "pdf_compare",
+                "visible": true,
+                "props": {
+                  "left": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "right": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "leftLabel": "Original",
+                  "rightLabel": "Cleaned",
+                  "emptyText": "No documents to compare.",
+                  "mode": "side",
+                  "allowDownload": true
+                },
+                "style": {
+                  "span": 12,
+                  "height": "xl"
+                }
+              },
+              {
+                "id": "cmp_v21st",
+                "type": "stepper",
+                "visible": true,
+                "onRowClick": "act_v21t",
+                "props": {
+                  "value": {
+                    "kind": "static",
+                    "value": "open"
+                  },
+                  "steps": [
+                    {
+                      "value": "new",
+                      "label": "New",
+                      "icon": null
+                    },
+                    {
+                      "value": "open",
+                      "label": "Open",
+                      "icon": null
+                    },
+                    {
+                      "value": "done",
+                      "label": "Done",
+                      "icon": null
+                    }
+                  ],
+                  "orientation": "horizontal",
+                  "tone": "primary",
+                  "showLabels": true
+                },
+                "style": {
+                  "span": 12
+                }
+              },
+              {
+                "id": "cmp_v21fg",
+                "type": "file_gallery",
+                "visible": true,
+                "onRowClick": "act_v21t",
+                "props": {
+                  "source": {
+                    "kind": "static",
+                    "value": [
+                      {
+                        "id": "att_1",
+                        "filename": "drawing.pdf",
+                        "mime_type": "application/pdf",
+                        "size": 284213,
+                        "file": {
+                          "name": "drawing.pdf",
+                          "mimeType": "application/pdf"
+                        }
+                      },
+                      {
+                        "id": "att_2",
+                        "filename": "photo.jpg",
+                        "mime_type": "image/jpeg",
+                        "size": 91240,
+                        "file": {
+                          "name": "photo.jpg",
+                          "mimeType": "image/jpeg"
+                        }
+                      },
+                      {
+                        "id": "att_3",
+                        "filename": "parts.xlsx",
+                        "mime_type": "application/vnd.ms-excel",
+                        "size": 15870,
+                        "file": {
+                          "name": "parts.xlsx",
+                          "mimeType": "application/vnd.ms-excel"
+                        }
+                      }
+                    ]
+                  },
+                  "fileKey": "file",
+                  "titleKey": "filename",
+                  "subtitleKey": "mime_type",
+                  "sizeKey": "size",
+                  "columns": 3,
+                  "rowLimit": 24,
+                  "emptyText": "No files yet."
+                },
+                "style": {
+                  "span": 12
+                }
+              },
+              {
+                "id": "cmp_v21cs",
+                "type": "connector_status",
+                "visible": true,
+                "props": {
+                  "connectorId": "conn_v21m",
+                  "title": "Mailbox",
+                  "showSync": true
+                },
+                "style": {
+                  "span": 12
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "actions": {
+      "act_v21t": {
+        "kind": "toast",
+        "message": "v2.1",
+        "tone": "info"
+      }
+    }
+  }
+}

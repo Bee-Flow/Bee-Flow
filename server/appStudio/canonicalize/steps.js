@@ -7,11 +7,12 @@
 'use strict';
 
 const { LIMITS, STEP_SPECS } = require('../componentSpecs');
-const { HARD_DEPTH_CAP, isObject, deepCopy, truncate } = require('./shared');
+const { HARD_DEPTH_CAP, isObject, deepCopy, truncate, isLateEntry } = require('./shared');
 const { cleanBinding, cleanRecordFilter } = require('./bindings');
 const { cleanInputMapping, cleanNavParams, cleanCallParams } = require('./mappings');
 const { cleanStringList, cleanAiSchema, cleanAiWriteTo, cleanContextSources, cleanTierChoice } = require('./aiFields');
 const { cleanApprovalQuestions, cleanApprovalStages, cleanApprovalOnDecided } = require('./approvals');
+const { cleanAiChecks } = require('../aiReliability.mts');
 
 // ---------------------------------------------------------------------------
 // v2 action sequences — a { kind:'sequence', steps:[Step] } action. Each Step
@@ -65,8 +66,49 @@ function cleanSwitchCases(raw, path, depth, push) {
         }
         const out = {};
         if (c.value !== undefined) out.value = deepCopy(c.value);
+        // since 3: a formula that picks the case when truthy; emitted only when the case carries one. NOT named
+        // `when`: stored apps hold cases with a stray `when` that has always been dropped here, and honouring
+        // it would change them (compat corpus: lockstep-sample).
+        if (typeof c.whenExpr === 'string') out.whenExpr = truncate(c.whenExpr, LIMITS.MAX_FORMULA_LEN, `${cp}.whenExpr`, push);
+        else if (c.whenExpr !== undefined) push('step.field_invalid', `${cp}.whenExpr`, 'A case `whenExpr` must be a formula string — dropped.');
         out.steps = cleanSteps(c.steps, `${cp}.steps`, depth, push);
         return out;
+    });
+}
+
+/**
+ * A code step's source text, kept whole: a cut would leave broken code; validate refuses past maxLen.
+ * undefined = no value (absent, or dropped with a note).
+ *
+ * @param {string} field
+ * @param {string} path
+ * @param {(arg0: string, arg1: string, arg2: string) => void} push
+ * @returns {string | undefined}
+ */
+function cleanCodeField(field, v, path, push) {
+    if (typeof v === 'string') return v;
+    if (v !== undefined) push('step.field_invalid', path, `${field} must be a string of JavaScript — dropped.`);
+    return undefined;
+}
+
+/**
+ * The branches of a parallel step: `[{ steps }]`. A branch keeps only its steps.
+ *
+ * @param {string} path
+ * @param {number} depth
+ * @param {(arg0: string, arg1: string, arg2: string) => void} push
+ */
+function cleanStepBranches(raw, path, depth, push) {
+    if (!Array.isArray(raw)) {
+        push('steps.invalid', path, 'branches must be an array of { steps } — reset to [].');
+        return [];
+    }
+    return raw.map((b, i) => {
+        if (!isObject(b)) {
+            push('step.invalid', `${path}[${i}]`, 'Each branch must be an object { steps } — kept for the validator.');
+            return deepCopy(b);
+        }
+        return { steps: cleanSteps(b.steps, `${path}[${i}].steps`, depth, push) };
     });
 }
 
@@ -90,6 +132,7 @@ function cleanStep(raw, path, depth, push) {
     for (const [field, fs] of Object.entries(spec.fields)) {
         const p = `${path}.${field}`;
         const v = raw[field];
+        if (v === undefined && isLateEntry(fs)) continue; // a field added after the base: only when the step carries it
         if (fs.type === 'string' || fs.type === 'url') {
             if (typeof v === 'string') out[field] = truncate(v, fs.maxLen || LIMITS.MAX_STRING, p, push);
             else if (v === null && fs.nullable) out[field] = null;
@@ -101,9 +144,11 @@ function cleanStep(raw, path, depth, push) {
         } else if (fs.type === 'boolean') {
             if (typeof v === 'boolean') out[field] = v;
             else if (v !== undefined && fs.default !== undefined) { out[field] = fs.default; push('step.field_invalid', p, `${field} must be a boolean — set to ${fs.default}.`); }
-        } else if (fs.type === 'int') {
+        } else if (fs.type === 'int' || fs.type === 'number') {
             if (typeof v === 'string' && v.trim() !== '' && Number.isFinite(Number(v))) { push('props.coerced', p, `Coerced numeric string ${JSON.stringify(v)} to ${Number(v)}.`); out[field] = Number(v); }
             else if (v !== undefined) out[field] = deepCopy(v); // range clamp is validate.js's job
+        } else if (fs.type === 'aiChecks') {
+            if (v !== undefined) { const c = cleanAiChecks(v, p, push); if (c !== undefined) out[field] = c; }
         } else if (fs.type === 'formula') {
             if (typeof v === 'string') out[field] = truncate(v, LIMITS.MAX_FORMULA_LEN, p, push);
             else if (v !== undefined) out[field] = deepCopy(v);
@@ -120,6 +165,8 @@ function cleanStep(raw, path, depth, push) {
             if (v !== undefined) out[field] = cleanSteps(v, p, depth + 1, push);
         } else if (fs.type === 'switchCases') {
             if (v !== undefined) out[field] = cleanSwitchCases(v, p, depth + 1, push);
+        } else if (fs.type === 'stepBranches') {
+            if (v !== undefined) out[field] = cleanStepBranches(v, p, depth + 1, push);
         } else if (fs.type === 'navParams') {
             if (v !== undefined) { const m = cleanNavParams(v, p, push); if (m !== undefined) out[field] = m; }
         } else if (fs.type === 'stringList') {
@@ -140,6 +187,8 @@ function cleanStep(raw, path, depth, push) {
             if (v !== undefined) out[field] = cleanCallParams(v, p, push);
         } else if (fs.type === 'tierChoice') {
             if (v !== undefined) { const t = cleanTierChoice(v, fs.maxLen || LIMITS.MAX_STRING, p, push); if (t !== undefined) out[field] = t; }
+        } else if (fs.type === 'code') {
+            const c = cleanCodeField(field, v, p, push); if (c !== undefined) out[field] = c;
         } else if (fs.type === 'errorHandler' || fs.type === 'retry') {
             if (v !== undefined) { const e = cleanEnvelopeField(fs.type, v, p, depth, push); if (e !== undefined) out[field] = e; }
         }

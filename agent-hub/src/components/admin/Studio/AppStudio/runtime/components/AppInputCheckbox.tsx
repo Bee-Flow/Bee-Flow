@@ -32,8 +32,8 @@ export default function AppInputCheckbox({ node }: NodeProps<CheckboxProps>) {
     return (
         // The visible text belongs to the checkbox itself, so Field carries no
         // label of its own — only the error, which is what was missing.
-        <Field id={id} label={null} error={error}>
-            <label htmlFor={id} className="inline-flex items-center gap-2 text-sm cursor-pointer select-none">
+        <Field part="input_checkbox" id={id} label={null} error={error}>
+            <label htmlFor={id} className="inline-flex items-center gap-2 text-sm cursor-pointer select-none bfa-input_checkbox__label">
                 <input
                     id={id}
                     name={name}
@@ -43,7 +43,7 @@ export default function AppInputCheckbox({ node }: NodeProps<CheckboxProps>) {
                     aria-required={required || undefined}
                     aria-invalid={error ? true : undefined}
                     aria-describedby={error ? `${id}-error` : undefined}
-                    className="h-4 w-4 [accent-color:var(--app-primary)]"
+                    className="h-4 w-4 [accent-color:var(--app-primary)] bfa-input_checkbox__control"
                 />
                 <span>
                     {label}

@@ -1,0 +1,340 @@
+{
+  "about": {
+    "source": "server/appStudio/templates.js template \"app-event-planner\" version 1",
+    "stored": "definition = canonicalizeAppDefinition(deep clone of template.definition).def (routes/studioApps/crud.js create-from-template, no name override); dataModel = canonicalizeDataModel(template.dataModel).model (templateInstall.js); datasets as the template declares them",
+    "captured": "2026-11-10",
+    "templateId": "app-event-planner"
+  },
+  "definition": {
+    "schemaVersion": 2,
+    "meta": {
+      "name": "Event planner",
+      "description": "Plan and schedule team events.",
+      "icon": "CalendarDays"
+    },
+    "theme": {
+      "primary": "#B45309",
+      "radius": "md",
+      "density": "comfortable",
+      "fontScale": "md",
+      "appearance": "auto"
+    },
+    "roles": [],
+    "screens": [
+      {
+        "id": "scr_evcal",
+        "name": "Calendar",
+        "icon": "CalendarDays",
+        "showInNav": true,
+        "maxWidth": "wide",
+        "sections": [
+          {
+            "id": "sec_evcal",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_evh1",
+                "type": "heading",
+                "props": {
+                  "text": "Event calendar",
+                  "level": 1,
+                  "accent": "none"
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_evcal",
+                "type": "calendar",
+                "props": {
+                  "source": {
+                    "kind": "records",
+                    "tableId": "tbl_evevt"
+                  },
+                  "dateKey": "date",
+                  "endDateKey": "end_date",
+                  "titleKey": "title",
+                  "colorKey": "category",
+                  "view": "month",
+                  "emptyText": "No events yet."
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "scr_evnew",
+        "name": "Add event",
+        "icon": "Plus",
+        "showInNav": true,
+        "maxWidth": "narrow",
+        "sections": [
+          {
+            "id": "sec_evnew",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_evh2",
+                "type": "heading",
+                "props": {
+                  "text": "Add an event",
+                  "level": 1,
+                  "accent": "none"
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_evform",
+                "type": "form",
+                "props": {
+                  "name": "event",
+                  "submitLabel": "Add event",
+                  "showReset": false,
+                  "showSubmit": true,
+                  "resetKey": null
+                },
+                "style": {
+                  "span": 12,
+                  "gap": 3,
+                  "padding": 0
+                },
+                "visible": true,
+                "onSubmit": "act_evsubmit",
+                "children": [
+                  {
+                    "id": "cmp_evtitle",
+                    "type": "input_text",
+                    "props": {
+                      "name": "title",
+                      "label": "Title",
+                      "placeholder": null,
+                      "required": true,
+                      "defaultValue": null,
+                      "inputType": "text",
+                      "valueFrom": {
+                        "kind": "static",
+                        "value": null
+                      }
+                    },
+                    "style": {
+                      "span": 12
+                    },
+                    "visible": true
+                  },
+                  {
+                    "id": "cmp_evdate",
+                    "type": "input_date",
+                    "props": {
+                      "name": "date",
+                      "label": "Date",
+                      "required": true,
+                      "defaultValue": null,
+                      "valueFrom": {
+                        "kind": "static",
+                        "value": null
+                      }
+                    },
+                    "style": {
+                      "span": 6
+                    },
+                    "visible": true
+                  },
+                  {
+                    "id": "cmp_evloc",
+                    "type": "input_text",
+                    "props": {
+                      "name": "location",
+                      "label": "Location",
+                      "placeholder": null,
+                      "required": false,
+                      "defaultValue": null,
+                      "inputType": "text",
+                      "valueFrom": {
+                        "kind": "static",
+                        "value": null
+                      }
+                    },
+                    "style": {
+                      "span": 6
+                    },
+                    "visible": true
+                  },
+                  {
+                    "id": "cmp_evcat",
+                    "type": "input_select",
+                    "props": {
+                      "name": "category",
+                      "label": "Category",
+                      "options": [
+                        {
+                          "value": "meeting",
+                          "label": "Meeting"
+                        },
+                        {
+                          "value": "deadline",
+                          "label": "Deadline"
+                        },
+                        {
+                          "value": "social",
+                          "label": "Social"
+                        }
+                      ],
+                      "required": false,
+                      "defaultValue": null,
+                      "placeholder": null,
+                      "valueFrom": {
+                        "kind": "static",
+                        "value": null
+                      },
+                      "optionsFrom": null,
+                      "optionValueKey": null,
+                      "optionLabelKey": null
+                    },
+                    "style": {
+                      "span": 6
+                    },
+                    "visible": true
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "actions": {
+      "act_evsubmit": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "create_record",
+            "tableId": "tbl_evevt",
+            "values": {
+              "title": {
+                "kind": "formula",
+                "expr": "form.title"
+              },
+              "date": {
+                "kind": "formula",
+                "expr": "form.date"
+              },
+              "location": {
+                "kind": "formula",
+                "expr": "form.location"
+              },
+              "category": {
+                "kind": "formula",
+                "expr": "form.category"
+              }
+            }
+          },
+          {
+            "kind": "toast",
+            "message": "Event added.",
+            "tone": "success"
+          },
+          {
+            "kind": "navigate",
+            "screenId": "scr_evcal"
+          }
+        ]
+      }
+    },
+    "homeScreenId": "scr_evcal"
+  },
+  "dataModel": {
+    "modelVersion": 1,
+    "tables": [
+      {
+        "id": "tbl_evevt",
+        "key": "events",
+        "name": "Events",
+        "icon": "Calendar",
+        "fields": [
+          {
+            "id": "fld_evtitle",
+            "key": "title",
+            "name": "Title",
+            "type": "text",
+            "required": true,
+            "unique": false
+          },
+          {
+            "id": "fld_evdate",
+            "key": "date",
+            "name": "Date",
+            "type": "date",
+            "required": true,
+            "unique": false
+          },
+          {
+            "id": "fld_evend",
+            "key": "end_date",
+            "name": "End date",
+            "type": "date",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_evloc",
+            "key": "location",
+            "name": "Location",
+            "type": "text",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_evcat",
+            "key": "category",
+            "name": "Category",
+            "type": "select",
+            "options": [
+              {
+                "value": "meeting",
+                "label": "Meeting"
+              },
+              {
+                "value": "deadline",
+                "label": "Deadline"
+              },
+              {
+                "value": "social",
+                "label": "Social"
+              }
+            ],
+            "required": false,
+            "unique": false
+          }
+        ],
+        "access": {
+          "default": "app",
+          "roles": {},
+          "rowFilters": {}
+        }
+      }
+    ],
+    "roles": [],
+    "roleMapping": {
+      "default": "app",
+      "byGroup": {}
+    }
+  }
+}

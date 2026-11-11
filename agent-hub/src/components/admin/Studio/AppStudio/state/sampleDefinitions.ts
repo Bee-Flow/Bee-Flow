@@ -4,8 +4,8 @@
  *
  * The schema is owned by server/appStudio/componentSpecs.js (authoritative).
  * BLANK_APP mirrors the server's emptyDefinition() with deterministic ids;
- * KITCHEN_SINK is a valid definition exercising all 19 component types, all
- * four action kinds, a form wired to a run_automation action and a table
+ * KITCHEN_SINK is a valid definition exercising the v1 component types, the v1
+ * action kinds, a form wired to a run_automation action and a table
  * bound to that action's result, across two screens.
  *
  * Both fixtures are deep-frozen: definition ops are immutable by contract,

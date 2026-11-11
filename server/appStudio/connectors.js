@@ -18,7 +18,8 @@
  * only expose a connector whose pinned surface is safe to share with the app's
  * whole audience.
  *
- * Three kinds:
+ * The kinds (CONNECTOR_KINDS in connectors/shared.js; `mailbox`, which reads a
+ * Gmail/Outlook mailbox into an app table, runs in mailboxConnector.js):
  *   • integration_tool — dispatch a platform tool (Gmail, Sheets, …) via
  *     toolDispatcher.executeTool with the owner's session; the connector's
  *     declared `params` are the allow-list for viewer input (undeclared keys are

@@ -3,8 +3,11 @@ import useTranslation from '@/hooks/useTranslation';
 import FilterRowsEditor from '@/components/admin/Studio/AppStudio/bi/FilterRowsEditor';
 import useAppTables, { fieldsForTable } from '@/components/admin/Studio/AppStudio/bi/useAppTables';
 import type { BindingDraft, TableBindingProps } from '../BindingField.types';
-import { normSort } from './BindingField.helpers';
+import { SortLevels } from './SortLevels';
 import { PickValueField } from './AggregateBinding';
+import { MatchMode, SearchOption } from './ReadOptions';
+import { RelatedFields } from './RelatedFields';
+import { relationFilterFields } from '@/components/admin/Studio/AppStudio/bi/relationRead';
 
 export function TableBinding({ binding, onChange, appId, disabled, definition, node, singleValue = false }: TableBindingProps) {
     const { t } = useTranslation();
@@ -12,7 +15,6 @@ export function TableBinding({ binding, onChange, appId, disabled, definition, n
     const isSingle = binding.kind === 'record';
     const tableId = binding.tableId || '';
     const fields = fieldsForTable(tables, tableId);
-    const sort = normSort(binding.sort);
 
     if (!appId) {
         return <p className="text-xs text-[var(--text-secondary)]">{t('studio_apps_panels.binding.open_app_use_table', 'Open the app to use one of its tables.')}</p>;
@@ -42,38 +44,53 @@ export function TableBinding({ binding, onChange, appId, disabled, definition, n
             {tableId ? (
                 <>
                     <FilterRowsEditor
-                        fields={fields}
+                        fields={[...fields, ...relationFilterFields(tables, tableId)]}
                         filters={Array.isArray(binding.filter) ? binding.filter : []}
                         onChange={(filter) => patch({ filter: filter.length ? filter : undefined })}
                         allowFormula
                         allowGroups
+                        allowIgnoreCase
                         disabled={disabled}
                         definition={definition}
                         node={node}
                     />
 
-                    <div className="grid grid-cols-2 gap-2">
-                        <select
-                            className={INPUT_CLS}
-                            value={sort?.field || ''}
-                            onChange={(e) => patch({ sort: e.target.value ? [{ field: e.target.value, dir: sort?.dir || 'asc' }] : undefined })}
-                            disabled={disabled}
-                            aria-label={t('studio_apps_panels.binding.sort_field', 'Sort field')}
-                        >
-                            <option value="">{t('studio_apps_panels.binding.no_sort', 'No sort')}</option>
-                            {fields.map((f) => <option key={f.key} value={f.key}>{f.name || f.key}</option>)}
-                        </select>
-                        <select
-                            className={INPUT_CLS}
-                            value={sort?.dir || 'asc'}
-                            onChange={(e) => patch({ sort: sort?.field ? [{ field: sort.field, dir: e.target.value }] : undefined })}
-                            disabled={disabled || !sort?.field}
-                            aria-label={t('studio_apps_panels.binding.sort_direction', 'Sort direction')}
-                        >
-                            <option value="asc">{t('studio_apps_panels.binding.sort_asc', 'Ascending')}</option>
-                            <option value="desc">{t('studio_apps_panels.binding.sort_desc', 'Descending')}</option>
-                        </select>
-                    </div>
+                    {Array.isArray(binding.filter) && binding.filter.length > 1 ? (
+                        <MatchMode match={binding.match} onChange={(match) => patch({ match })} disabled={disabled} />
+                    ) : null}
+                    <SearchOption
+                        search={binding.search}
+                        fields={fields}
+                        onChange={(search) => patch({ search })}
+                        disabled={disabled}
+                        definition={definition}
+                        node={node}
+                    />
+
+                    <SortLevels
+                        binding={binding}
+                        fields={fields}
+                        disabled={disabled}
+                        onPatch={({ sort, orderBy }) => {
+                            // `orderBy` exists only on a binding that sorts on several columns.
+                            const { orderBy: _dropped, ...rest } = binding;
+                            onChange(orderBy === undefined ? { ...rest, sort } : { ...rest, sort, orderBy });
+                        }}
+                    />
+
+                    <RelatedFields
+                        binding={binding}
+                        tables={tables}
+                        fields={fields}
+                        disabled={disabled}
+                        onPatch={(p) => {
+                            // `expand` and `fields` exist only on a binding that uses them.
+                            const next = { ...binding, ...p };
+                            if (next.expand === undefined) delete next.expand;
+                            if (next.fields === undefined) delete next.fields;
+                            onChange(next);
+                        }}
+                    />
 
                     <div className="flex items-center gap-2">
                         <label className="inline-flex items-center gap-1.5 text-xs text-[var(--text-secondary)]">

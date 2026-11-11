@@ -504,7 +504,7 @@
       "count": 1
     },
     "max-depth": {
-      "count": 3
+      "count": 1
     },
     "max-lines-per-function": {
       "count": 1
@@ -694,7 +694,7 @@
   },
   "appStudio/validate/bindings.js": {
     "complexity": {
-      "count": 2
+      "count": 1
     },
     "max-lines-per-function": {
       "count": 1
@@ -3547,18 +3547,7 @@
       "count": 2
     }
   },
-  "core/dataEngine/queryCompiler.js": {
-    "complexity": {
-      "count": 1
-    },
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
   "core/dataEngine/queryCompilerBase.js": {
-    "complexity": {
-      "count": 2
-    },
     "max-params": {
       "count": 1
     }
@@ -8288,7 +8277,7 @@
   },
   "routes/studioAppFiles.js": {
     "complexity": {
-      "count": 2
+      "count": 1
     }
   },
   "routes/studioAppPublic.js": {

@@ -1,0 +1,44 @@
+{
+  "corpus": "typography-text-knobs",
+  "canonical": {
+    "sha256": "f46d97049c614d7be90701c14c8dfd4467a7e7e35481982f714acfa93a138ffd",
+    "bytes": 1576,
+    "inputIsCanonical": true,
+    "idempotent": true,
+    "keys": [
+      "schemaVersion",
+      "meta",
+      "theme",
+      "roles",
+      "screens",
+      "actions",
+      "homeScreenId"
+    ],
+    "parts": {
+      "schemaVersion": "4e07408562bedb8b",
+      "meta": "4c74dfe9e904f98b",
+      "theme": "5d7eeb0111b89897",
+      "roles": "4f53cda18c2baa0c",
+      "screens[0] scr_textkn01": "a7c35534fb9afab9",
+      "homeScreenId": "08e89fe30433672e"
+    }
+  },
+  "schemaVersion": {
+    "stored": 3,
+    "canonical": 3
+  },
+  "validation": {
+    "strict": {
+      "errors": [],
+      "warnings": []
+    },
+    "save": {
+      "errors": [],
+      "warnings": []
+    }
+  },
+  "ordinals": {
+    "stored": {},
+    "canonical": "same as stored"
+  }
+}

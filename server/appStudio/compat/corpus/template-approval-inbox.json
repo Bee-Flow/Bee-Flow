@@ -1,0 +1,271 @@
+{
+  "about": {
+    "source": "server/appStudio/templates.js template \"app-approval-inbox\" version 1",
+    "stored": "definition = canonicalizeAppDefinition(deep clone of template.definition).def (routes/studioApps/crud.js create-from-template, no name override); dataModel = canonicalizeDataModel(template.dataModel).model (templateInstall.js); datasets as the template declares them",
+    "captured": "2026-11-10",
+    "templateId": "app-approval-inbox"
+  },
+  "definition": {
+    "schemaVersion": 2,
+    "meta": {
+      "name": "Approval inbox",
+      "description": "Review and decide on pending items.",
+      "icon": "CheckSquare"
+    },
+    "theme": {
+      "primary": "#1D4ED8",
+      "radius": "md",
+      "density": "comfortable",
+      "fontScale": "md",
+      "appearance": "auto"
+    },
+    "roles": [],
+    "screens": [
+      {
+        "id": "scr_apprhome",
+        "name": "Inbox",
+        "icon": "Inbox",
+        "showInNav": true,
+        "maxWidth": "medium",
+        "sections": [
+          {
+            "id": "sec_apprlist",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_apprtitle",
+                "type": "heading",
+                "props": {
+                  "text": "Pending approvals",
+                  "level": 1,
+                  "accent": "none"
+                },
+                "style": {
+                  "span": 9
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_apprload",
+                "type": "button",
+                "props": {
+                  "label": "Load pending",
+                  "variant": "ghost",
+                  "iconLeft": "RefreshCw",
+                  "role": "button",
+                  "disabledWhen": null
+                },
+                "style": {
+                  "span": 3,
+                  "align": "end"
+                },
+                "visible": true,
+                "onClick": "act_apprload"
+              },
+              {
+                "id": "cmp_apprlist",
+                "type": "list",
+                "props": {
+                  "source": {
+                    "kind": "actionResult",
+                    "actionId": "act_apprload",
+                    "path": "items"
+                  },
+                  "titleKey": "title",
+                  "subtitleKey": "requester",
+                  "metaKey": null,
+                  "timestampKey": null,
+                  "badgeKey": null,
+                  "tagsKey": null,
+                  "badgeToneMap": [],
+                  "unreadKey": null,
+                  "badgePlacement": "meta",
+                  "selectedWhen": null,
+                  "selectedDetailKey": null,
+                  "groupKey": null,
+                  "groupOrder": [],
+                  "groupLabelMap": [],
+                  "icon": "FileText",
+                  "emptyText": "Nothing waiting for you. Load pending to check again.",
+                  "look": "rows",
+                  "peekSource": null,
+                  "peekMatchKey": null,
+                  "peekRowKey": null,
+                  "peekTitleKey": null,
+                  "peekTextKey": null,
+                  "peekGroupKey": null,
+                  "peekGroupLabelMap": [],
+                  "peekCountKey": null,
+                  "peekLimit": 6,
+                  "peekTitle": null,
+                  "peekMoreText": null,
+                  "peekBadge": false
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              }
+            ]
+          },
+          {
+            "id": "sec_apprdecide",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "surface"
+            },
+            "children": [
+              {
+                "id": "cmp_apprdhead",
+                "type": "heading",
+                "props": {
+                  "text": "Make a decision",
+                  "level": 3,
+                  "accent": "none"
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_apprfrm",
+                "type": "form",
+                "props": {
+                  "name": "decision",
+                  "submitLabel": "Submit decision",
+                  "showReset": true,
+                  "showSubmit": true,
+                  "resetKey": null
+                },
+                "style": {
+                  "span": 12,
+                  "gap": 3,
+                  "padding": 0
+                },
+                "visible": true,
+                "onSubmit": "act_apprdecide",
+                "children": [
+                  {
+                    "id": "cmp_apprid",
+                    "type": "input_text",
+                    "props": {
+                      "name": "item_id",
+                      "label": "Item ID",
+                      "placeholder": "Copy it from the list above",
+                      "required": true,
+                      "defaultValue": null,
+                      "inputType": "text",
+                      "valueFrom": {
+                        "kind": "static",
+                        "value": null
+                      }
+                    },
+                    "style": {
+                      "span": 6
+                    },
+                    "visible": true
+                  },
+                  {
+                    "id": "cmp_apprverdict",
+                    "type": "input_select",
+                    "props": {
+                      "name": "decision",
+                      "label": "Decision",
+                      "options": [
+                        {
+                          "value": "approve",
+                          "label": "Approve"
+                        },
+                        {
+                          "value": "reject",
+                          "label": "Reject"
+                        }
+                      ],
+                      "required": true,
+                      "defaultValue": null,
+                      "placeholder": null,
+                      "valueFrom": {
+                        "kind": "static",
+                        "value": null
+                      },
+                      "optionsFrom": null,
+                      "optionValueKey": null,
+                      "optionLabelKey": null
+                    },
+                    "style": {
+                      "span": 6
+                    },
+                    "visible": true
+                  },
+                  {
+                    "id": "cmp_apprnote",
+                    "type": "input_textarea",
+                    "props": {
+                      "name": "note",
+                      "label": "Note (optional)",
+                      "placeholder": null,
+                      "required": false,
+                      "rows": 3,
+                      "valueFrom": {
+                        "kind": "static",
+                        "value": null
+                      },
+                      "snippets": {
+                        "kind": "static",
+                        "value": null
+                      },
+                      "snippetKey": "shortcut",
+                      "snippetBody": "body",
+                      "snippetLabel": "title"
+                    },
+                    "style": {
+                      "span": 12
+                    },
+                    "visible": true
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "actions": {
+      "act_apprload": {
+        "kind": "run_automation",
+        "automationId": null,
+        "inputMapping": {},
+        "onError": {
+          "toast": {
+            "message": "Could not load pending items.",
+            "tone": "danger"
+          }
+        }
+      },
+      "act_apprdecide": {
+        "kind": "run_automation",
+        "automationId": null,
+        "inputMapping": {},
+        "onSuccess": {
+          "toast": {
+            "message": "Decision recorded.",
+            "tone": "success"
+          }
+        },
+        "onError": {
+          "toast": {
+            "message": "Could not record the decision.",
+            "tone": "danger"
+          }
+        }
+      }
+    },
+    "homeScreenId": "scr_apprhome"
+  }
+}

@@ -1321,8 +1321,7 @@ test('app_finalize blocks a run_automation wired to an automation the owner does
     assert.ok(blocked.error, 'finalize rejected');
     assert.ok(blocked.validation.errors.some((e) => e.code === 'action.automation_missing'), JSON.stringify(blocked.validation.errors));
 
-    // An automation the owner DOES have — fine, even while inactive (draft-level
-    // finalize only blocks on missing automations; publish gates activity).
+    // An automation the owner DOES have finalizes even while inactive: a warning here, publish refuses it.
     const fixed = await applyToolCall('app_set_action', {
         actionId: Object.keys(wrap.def.actions)[0],
         action: { kind: 'run_automation', automationId: 'auto-2' },
@@ -1330,6 +1329,7 @@ test('app_finalize blocks a run_automation wired to an automation the owner does
     assert.ok(!fixed.error);
     const ok = await applyToolCall('app_finalize', {}, wrap);
     assert.ok(ok.finalized, JSON.stringify(ok));
+    assert.ok((ok.warnings || []).some((w) => w.code === 'action.automation_inactive' && w.severity === 'warning'), JSON.stringify(ok.warnings));
 });
 
 // ── Wave 2A: node logic pass-through + data-aware finalize ──────────
@@ -2204,7 +2204,7 @@ const {
     EVENT_NAMES, ACTION_KINDS, STEP_KINDS, VARIABLE_TYPES, LIMITS, COMPONENT_SPECS,
 } = require('./componentSpecs');
 const { APP_DESIGN_PRESETS } = require('./appDesignPresets');
-const { FIELD_TYPES, FILTER_OPS, AGG_FNS, DATE_BUCKETS, ACCESS_MODES } = require('./dataModel');
+const { FIELD_TYPES, ACCESS_MODES } = require('./dataModel'), { BASE_FILTER_OPS: FILTER_OPS, BASE_AGG_FNS: AGG_FNS, BASE_DATE_BUCKETS: DATE_BUCKETS } = require('../core/dataEngine/dataModel/vocabularySince'); // enums take the whole list, descriptions the base words
 const {
     MAX_COMPONENTS_PER_CALL, MAX_SEED_RECORDS, TEMP_ID_MAX, TEMP_ID_RX, SECTION_HEIGHT_MODES,
 } = require('./builderTools/schemas');
@@ -2229,10 +2229,10 @@ test('schema enums are derived from the componentSpecs/appDesignPresets/dataMode
     assert.deepStrictEqual(theme.surface.enum, [...DESIGN_SPEC.surface.values]);
     assert.deepStrictEqual(theme.motion.enum, [...DESIGN_SPEC.motion.values]);
     assert.deepStrictEqual(theme.chartPalette.enum, [...DESIGN_SPEC.chartPalette.values]);
-    // Completeness: every knob applySetTheme accepts is settable via the schema
-    // (THEME_SPEC keys + DESIGN_SPEC keys minus the provenance-only `preset`).
+    // Completeness: every BASE knob applySetTheme accepts is settable via the schema (THEME_SPEC keys + DESIGN_SPEC
+    // keys minus the provenance-only `preset`). A design key added later (`since`) is not in this pinned schema.
     for (const k of Object.keys(THEME_SPEC)) assert.ok(theme[k], `theme knob ${k} declared`);
-    for (const k of Object.keys(DESIGN_SPEC).filter((x) => x !== 'preset')) assert.ok(theme[k], `design knob ${k} declared`);
+    for (const k of Object.keys(DESIGN_SPEC).filter((x) => x !== 'preset' && DESIGN_SPEC[x].since === undefined)) assert.ok(theme[k], `design knob ${k} declared`);
 
     // app_add_screen / app_update_screen — SCREEN_SPEC enums.
     for (const name of ['app_add_screen', 'app_update_screen']) {

@@ -73,6 +73,23 @@ test('TablesManager noemt dezelfde ENE schrijfbare mode en dezelfde kind', () =>
     assert.equal((body.match(/source\.kind ===/g) || []).length, TABLE_SOURCE_KINDS.length);
 });
 
+test('app-only field types stay out of the datatable column types', () => {
+    const { FIELD_TYPES, APP_ONLY_FIELD_TYPES } = require('./vocabulary');
+    const { DATA_VOCABULARY_MARKS } = require('./vocabularySince');
+    const { DATATABLE_FIELD_TYPES } = require('./datatableFields');
+    for (const t of DATATABLE_FIELD_TYPES) assert.ok(!APP_ONLY_FIELD_TYPES.includes(t), `${t} is app-only`);
+    // Every type added after the base is a known type AND app-only: automation datatables, the phone's
+    // datatable screens (mobile COLUMN_TYPE_IDS) and the datatable designer (COLUMN_TYPES) know none.
+    for (const t of Object.keys(DATA_VOCABULARY_MARKS.fieldTypes)) {
+        assert.ok(FIELD_TYPES.includes(t), `${t} is a field type`);
+        assert.ok(APP_ONLY_FIELD_TYPES.includes(t), `${t} is app-only`);
+    }
+    // The literal list the phone and the datatable designer copy: a new field type has to be
+    // declared app-only or added to those copies, never land in them by itself.
+    assert.deepEqual([...DATATABLE_FIELD_TYPES],
+        ['text', 'richtext', 'number', 'date', 'datetime', 'bool', 'select', 'multiselect', 'file']);
+});
+
 test('het vocabulaire zelf blijft de kleinst mogelijke lijst', () => {
     // Not cosmetic: every value here is a right that is enforced somewhere, and
     // `WRITABLE_TABLE_SOURCE_MODE` must be one of them.

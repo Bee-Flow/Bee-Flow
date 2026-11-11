@@ -1,0 +1,31 @@
+# hover-backdrop
+## screen scr_hvbg001 (Hover)
+<div class="app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(29, 78, 216, 0.1); --app-accent: #1D4ED8; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(29, 78, 216, 0.1); --app-primary: #1D4ED8; --app-radius: 8px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-size: 15px; min-height: 100vh">
+  <main class="flex flex-1 flex-col min-h-0">
+    <div class="app-runtime app-screen-enter w-full" data-app-appearance="auto" data-app-screen="scr_hvbg001" data-app-screen-kind="page" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(29, 78, 216, 0.1); --app-accent: #1D4ED8; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(29, 78, 216, 0.1); --app-primary: #1D4ED8; --app-radius: 8px; --app-space: 1; color: var(--text-primary); font-size: 15px">
+      <div class="flex flex-col w-full" style="margin: 0px auto; max-width: 960px">
+        <section class="app-grid" data-section-id="sec_hvbg001" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-hover-lift app-node app-span-4 min-w-0" data-app-type="heading" data-node-id="cmp_hvbg01" style="background: color-mix(in srgb, var(--app-primary) 14%, var(--bg-card)); grid-column: span 4 / span 4">
+            <h2 class="break-words font-semibold text-xl">
+              "Lift on hover"
+          <div class="app-hover-tint app-node app-span-4 min-w-0" data-app-type="heading" data-node-id="cmp_hvbg02" style="grid-column: span 4 / span 4">
+            <h2 class="break-words font-semibold text-xl">
+              "Tint on hover"
+          <div class="app-hover-outline app-node app-span-4 min-w-0" data-app-type="heading" data-node-id="cmp_hvbg03" style="grid-column: span 4 / span 4">
+            <h2 class="break-words font-semibold text-xl">
+              "Outline on hover"
+          <div class="app-hover-grow app-node app-span-4 min-w-0" data-app-type="heading" data-node-id="cmp_hvbg04" style="grid-column: span 4 / span 4">
+            <h2 class="break-words font-semibold text-xl">
+              "Grow on hover"
+          <div class="app-node app-span-4 min-w-0" data-app-type="heading" data-node-id="cmp_hvbg05" style="grid-column: span 4 / span 4">
+            <h2 class="break-words font-semibold text-xl">
+              "Hover none is the identity"
+          <div class="app-has-backdrop app-node app-span-12 min-w-0" data-app-type="heading" data-node-id="cmp_hvbg06" style="color: rgb(255, 255, 255); grid-column: span 12 / span 12">
+            <h2 class="break-words font-semibold text-xl">
+              "Picture with a dim veil"
+          <div class="app-has-backdrop app-node app-span-6 min-w-0" data-app-type="heading" data-node-id="cmp_hvbg07" style="grid-column: span 6 / span 6">
+            <h2 class="break-words font-semibold text-xl">
+              "Tiled pattern"
+          <div class="app-has-backdrop app-hover-lift app-node app-span-6 min-w-0" data-app-type="heading" data-node-id="cmp_hvbg08" style="grid-column: span 6 / span 6">
+            <h2 class="break-words font-semibold text-xl">
+              "Contained with a hover"

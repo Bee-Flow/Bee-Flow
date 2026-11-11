@@ -269,7 +269,8 @@ function App() {
     // Handle browser back/forward
     useEffect(() => {
         const handlePopState = () => whenMayNavigate(() => {
-            const page = pageFromPath(window.location.pathname);
+            // Same rule as the first render, so Back between an embedded app's screens stays in it.
+            const page = parseNcStudioAppParam() ? 'appRun' : pageFromPath(window.location.pathname);
             setCurrentPage(page);
             setAdminPath(parseAdminPath(window.location.pathname));
             setOrgSettingsPath(parseOrgSettingsPath(window.location.pathname));

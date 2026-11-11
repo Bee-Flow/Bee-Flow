@@ -52,6 +52,9 @@ export interface AppSection {
     id: string;
     style?: Record<string, unknown>;
     children?: AppNode[];
+    /** Optional section gates (schema 3): role keys, and a condition the phone does not evaluate. */
+    visibleToRoles?: string[] | null;
+    visibleWhen?: unknown;
 }
 
 export interface AppScreen {

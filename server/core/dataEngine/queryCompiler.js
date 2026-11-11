@@ -65,57 +65,23 @@
 
 'use strict';
 
-// The vocabulary and the id minter directly, NOT appStudio's dataModel.js
-// facade: that facade also carries the connector/mailbox validators, which
-// are a feature concern and must not be pulled down into core.
-const { AGG_FNS, PERCENTILE_FNS, DATE_BUCKETS } = require('./dataModel/vocabulary');
+// The layout, one concern per module (each pinned by queryCompiler.snapshot.test.js):
+//   queryCompilerCore.js        limits, errors, quoting, the field resolver, binding, page size
+//   queryCompilerFilter.mts     the filter tree: clauses, any-groups, match, search
+//   queryCompilerSelect.mts     the select list of a record read
+//   queryCompilerOrder.mts      sort, ORDER BY and the keyset cursor
+//   queryCompilerAggregate.mts  group-by, date buckets, aggregate functions, percentiles
+//   queryCompilerRelation.mts   reads through a relation: expand lookups, relation.field filters, the fields list
+//   queryCompilerWrite.js / queryCompilerMaintenance.js / queryCompilerBulk.mts  the writes
+// This file composes the record reads and is the one import every caller uses.
 const { resolveDialect } = require('./engineFlag');
-const { dateBucketSql } = require('./dateBuckets');
-const { MAX_RESULT_ROWS, DEFAULT_LIMIT, MAX_KEY_INDEX_KEYS, MAX_GROUP_BY, MAX_AGGREGATES, ALIAS_RE, CompileError, RowsLockedError, assertRowsWritable, qi, assertTableMeta, fieldMap, resolveColumn, scalar, assertAccessFilter, MATCH_MODES, buildWhere, clampLimit } = require('./queryCompilerBase');
+const { MAX_RESULT_ROWS, DEFAULT_LIMIT, MAX_KEY_INDEX_KEYS, MAX_AGGREGATES, CompileError, RowsLockedError, assertRowsWritable, qi, assertTableMeta, fieldMap, resolveColumn, scalar, assertAccessFilter, MATCH_MODES, buildWhere, clampLimit } = require('./queryCompilerBase');
 const { compileInsert, compileUpdate, compileDelete, compileUpsertByKey, compileUpsertById } = require('./queryCompilerWrite');
 const { compileIdList, compileKeyValues, compileDeleteAll, compileDeleteOlderThan, compileSelectOlderThan, compileDeleteOrphans, compileDoomedUnderParent, compileRetentionDelete } = require('./queryCompilerMaintenance');
-const { bestEffort } = require('../../utils/bestEffort');
-
-// ── Table + field resolution ────────────────────────────────────────
-
-// ── Value binding ───────────────────────────────────────────────────
-
-// ── Access filter guard ─────────────────────────────────────────────
-
-// ── WHERE builder (filters AND access) ──────────────────────────────
-
-// ── Limit + keyset cursor ───────────────────────────────────────────
-
-// Opaque base64url keyset cursor of (primary-sort-value, id) — mirrors
-// automationStore/runs.js. A malformed cursor decodes to null (fall back to
-// page 1) rather than 500.
-function encodeCursor(v, i) {
-    if (v === undefined || v === null || i === undefined || i === null) return null;
-    return Buffer.from(JSON.stringify({ v, i }), 'utf8').toString('base64url');
-}
-function decodeCursor(cursor) {
-    if (!cursor || typeof cursor !== 'string') return null;
-    try {
-        const o = JSON.parse(Buffer.from(cursor, 'base64url').toString('utf8'));
-        if (o && o.v !== undefined && o.v !== null && o.i !== undefined && o.i !== null) {
-            return { v: o.v, i: o.i };
-        }
-    } catch (err) { bestEffort('core/dataEngine/queryCompiler:decodeCursor', err); /* fall through */ }
-    return null;
-}
-
-// Single-column keyset sort: the first valid `sort` entry becomes the primary
-// column (default created_at DESC); `id` is the tiebreaker in the same
-// direction, making (col, id) a total order for a correct row-value keyset.
-function resolvePrimarySort(tableMeta, fm, sort) {
-    const first = Array.isArray(sort) ? sort[0] : sort;
-    if (first && typeof first === 'object' && typeof first.field === 'string' && first.field) {
-        const column = resolveColumn(tableMeta, first.field, fm);
-        const dir = String(first.dir || first.direction || 'desc').toLowerCase() === 'asc' ? 'asc' : 'desc';
-        return { fieldKey: first.field, column, dir };
-    }
-    return { fieldKey: 'created_at', column: qi('created_at'), dir: 'desc' };
-}
+const { encodeCursor, decodeCursor, resolvePrimarySort, keysetClause, recordOrderBy, MAX_ORDER_BY, resolveOrderBy, orderByClause, orderKeysetClause, encodeOrderCursor } = require('./queryCompilerOrder.mts');
+const { recordSelectList, computedSelectFor, computedReadMeta } = require('./queryCompilerSelect.mts');
+const { compileAggregate } = require('./queryCompilerAggregate.mts');
+const { recordShape, compileExpandLookup, EXPAND_LOOKUP_BATCH } = require('./queryCompilerRelation.mts');
 
 // ── Public compilers ────────────────────────────────────────────────
 
@@ -129,190 +95,137 @@ function resolvePrimarySort(tableMeta, fm, sort) {
  *
  * `match: 'any'` ORs the client filters; the access predicate stays ANDed
  * outside that group. `maxLimit` caps the page below MAX_RESULT_ROWS.
+ *
+ * `readTimeComputed: true` (set by the caller, never taken from a client
+ * descriptor) adds every read-time computed field to the select list, and the
+ * result gains `readTimeComputed { keys, refused, columns, fallbackSql }`. Run
+ * such a read through computedRead.mts, so a failing expression reads NULL with
+ * a note instead of failing the read. Without the option, or on a table without
+ * such a field, the SQL and the result are what they always were.
+ *
+ * `read` (optional; built by the server in relationRead.mts, never taken from
+ * the client descriptor) is what reads through a relation and narrows the
+ * columns: `{ related, expand, fields }`. With it the result also carries
+ * `expand` (the lookups to run after the list, relationRead.mts) and
+ * `project` (the keys a record keeps), each only when asked for. Without it
+ * the read compiles exactly as before.
  */
-function compileRecordList(tableMeta, opts = {}, accessFilter) {
+function compileRecordList(tableMeta, opts = {}, accessFilter, read) {
     const dialect = resolveDialect(opts);
     assertTableMeta(tableMeta);
     const fm = fieldMap(tableMeta);
     const { where, params } = buildWhere(
-        tableMeta, fm, opts.filters, accessFilter, dialect, opts.match, opts.search);
+        tableMeta, fm, opts.filters, accessFilter, dialect, opts.match, opts.search, read ? read.related : undefined);
     const limit = clampLimit(opts.limit, opts.maxLimit);
-    const { fieldKey, column, dir } = resolvePrimarySort(tableMeta, fm, opts.sort);
-    const DIR = dir.toUpperCase();
-    const cmp = dir === 'asc' ? '>' : '<';
+    const shape = read ? recordShape(tableMeta, fm, read, dialect) : null;
+    const order = resolveOrderBy(tableMeta, fm, opts.orderBy);
+    if (order) {
+        const select = shape ? shape.select(order.map((c) => c.column)) : undefined;
+        const computed = computedSelectFor(tableMeta, opts, dialect);
+        const listed = recordListOrdered(tableMeta, { where, params, limit, order, cursor: opts.cursor, select, computed });
+        return shape ? { ...listed, ...shape.result } : listed;
+    }
+    const primary = resolvePrimarySort(tableMeta, fm, opts.sort);
 
     let clause = where;
     const allParams = [...params];
     const cur = decodeCursor(opts.cursor);
     if (cur) {
-        clause += ` AND (${column}, ${qi('id')}) ${cmp} (?, ?)`;
-        allParams.push(cur.v, cur.i);
+        const keyset = keysetClause(primary, cur);
+        clause += keyset.sql;
+        allParams.push(...keyset.params);
     }
 
-    const sql = `SELECT * FROM ${qi(tableMeta.key)} ${clause} `
-        + `ORDER BY ${column} ${DIR}, ${qi('id')} ${DIR} LIMIT ?`;
+    const computed = computedSelectFor(tableMeta, opts, dialect);
+    const select = shape ? shape.select([primary.column]) : undefined;
+    /** @param {string} list */
+    const sqlWith = (list) => `SELECT ${list} FROM ${qi(tableMeta.key)} ${clause} `
+        + `${recordOrderBy(primary)} LIMIT ?`;
     allParams.push(limit + 1); // probe row → nextCursor
-    return { sql, params: allParams, primaryField: fieldKey, limit };
-}
-
-/** SELECT one record by id, access-scoped. Hidden rows return 0 rows → 404. */
-function compileGetById(tableMeta, id, accessFilter, opts = {}) {
-    resolveDialect(opts);
-    assertTableMeta(tableMeta);
-    assertAccessFilter(accessFilter);
-    if (typeof id !== 'string' || !id) throw new CompileError('record id is required');
-    return {
-        sql: `SELECT * FROM ${qi(tableMeta.key)} WHERE ${qi('id')} = ? AND (${accessFilter.where}) LIMIT 1`,
-        params: [id, ...accessFilter.params],
+    const listed = {
+        sql: sqlWith(recordSelectList(select, computed)), params: allParams, primaryField: primary.fieldKey, limit,
+        ...computedReadMeta(computed, sqlWith, select),
     };
-}
-
-function safeAlias(alias) {
-    if (typeof alias !== 'string' || !ALIAS_RE.test(alias)) throw new CompileError(`invalid alias: ${alias}`);
-    return alias;
-}
-
-function resolveAggSort(sort, knownAliases) {
-    const first = Array.isArray(sort) ? sort[0] : sort;
-    if (!first || typeof first !== 'object' || typeof first.field !== 'string' || !first.field) return null;
-    if (!knownAliases.has(first.field)) throw new CompileError(`cannot sort by unknown output column: ${first.field}`);
-    const dir = String(first.dir || first.direction || 'desc').toLowerCase() === 'asc' ? 'ASC' : 'DESC';
-    return `${qi(first.field)} ${dir}`;
+    return shape ? { ...listed, ...shape.result } : listed;
 }
 
 /**
- * Grouped aggregate query.
- *   compileAggregate(tableMeta, { filters, groupBy:[{field,bucket,as}],
- *     aggregates:[{fn,field,as}], sort, limit }, accessFilter)
- * The access predicate is ANDed into the WHERE BEFORE GROUP BY, so buckets fold
- * only visible rows (no cross-tenant/cross-owner aggregate leakage).
+ * The record list of an `orderBy` read (up to MAX_ORDER_BY columns, `id` last).
+ * Returns `orderFields` next to the usual fields; the caller mints the next
+ * cursor with nextCursor(compiled, lastRow).
+ * @param {TableMeta} tableMeta
+ * @param {{ where: string, params: unknown[], limit: number, order: Array<{ fieldKey: string, column: string, dir: 'asc' | 'desc' }>, cursor?: string, select?: string[], computed?: import('./queryCompilerComputed.mts').ComputedSelect | null }} parts
  */
-function compileAggregate(tableMeta, opts = {}, accessFilter) {
+function recordListOrdered(tableMeta, { where, params, limit, order, cursor, select, computed = null }) {
+    let clause = where;
+    const allParams = [...params];
+    const cur = decodeCursor(cursor);
+    if (cur) {
+        const keyset = orderKeysetClause(order, cur);
+        clause += keyset.sql;
+        allParams.push(...keyset.params);
+    }
+    /** @param {string} list */
+    const sqlWith = (list) => `SELECT ${list} FROM ${qi(tableMeta.key)} ${clause} ${orderByClause(order)} LIMIT ?`;
+    allParams.push(limit + 1); // probe row → nextCursor
+    return {
+        sql: sqlWith(recordSelectList(select, computed)), params: allParams, primaryField: order[0].fieldKey, limit,
+        orderFields: order.map((c) => c.fieldKey), ...computedReadMeta(computed, sqlWith, select),
+    };
+}
+
+/**
+ * The cursor for the page after `lastRow`, for either kind of record list: the
+ * (value, id) pair of a `sort` read, or every sort value of an `orderBy` read.
+ * One function, so a caller cannot mint the wrong kind.
+ * @param {{ primaryField: string, orderFields?: string[] }} compiled
+ * @param {Record<string, unknown>} lastRow
+ * @returns {string | null}
+ */
+function nextCursor(compiled, lastRow) {
+    if (Array.isArray(compiled.orderFields)) {
+        return encodeOrderCursor(compiled.orderFields.map((fieldKey) => ({ fieldKey, column: '', dir: 'asc' })), lastRow);
+    }
+    return encodeCursor(lastRow[compiled.primaryField], lastRow.id);
+}
+
+/**
+ * How many records a list read matches, for a page that shows a total.
+ *   compileRecordCount(tableMeta, { filters, match, search }, accessFilter)
+ * Returns { sql, params } that select one row `{ total }`. The WHERE is the one
+ * compileRecordList builds from the same descriptor (access filter, client
+ * filters, match, search); the cursor, the order and the limit are left out,
+ * because the total is the size of the whole result, not of one page. `read`
+ * is the one compileRecordList takes: only its related tables count here, for a
+ * filter on a field of a linked record.
+ */
+function compileRecordCount(tableMeta, opts = {}, accessFilter, read) {
     const dialect = resolveDialect(opts);
     assertTableMeta(tableMeta);
     const fm = fieldMap(tableMeta);
-    const { where, params } = buildWhere(tableMeta, fm, opts.filters, accessFilter, dialect, opts.match);
-    const allParams = [...params];
+    const { where, params } = buildWhere(
+        tableMeta, fm, opts.filters, accessFilter, dialect, opts.match, opts.search, read ? read.related : undefined);
+    return { sql: `SELECT COUNT(*) AS ${qi('total')} FROM ${qi(tableMeta.key)} ${where}`, params: [...params] };
+}
 
-    const groupBy = Array.isArray(opts.groupBy) ? opts.groupBy : [];
-    const aggregates = Array.isArray(opts.aggregates) ? opts.aggregates : [];
-    if (groupBy.length > MAX_GROUP_BY) throw new CompileError(`too many groupBy fields (max ${MAX_GROUP_BY})`);
-    if (aggregates.length > MAX_AGGREGATES) throw new CompileError(`too many aggregates (max ${MAX_AGGREGATES})`);
-    if (groupBy.length === 0 && aggregates.length === 0) {
-        throw new CompileError('aggregate query needs at least one groupBy or aggregate');
-    }
-
-    const selectParts = [];
-    const groupExprs = [];
-    const groupAliases = [];
-    const knownAliases = new Set();
-
-    for (const g of groupBy) {
-        if (!g || typeof g !== 'object') throw new CompileError('groupBy entry must be an object');
-        const col = resolveColumn(tableMeta, g.field, fm);
-        if (g.bucket && !DATE_BUCKETS.includes(g.bucket)) throw new CompileError(`unknown date bucket: ${g.bucket}`);
-        const expr = g.bucket ? dateBucketSql(col, g.bucket, dialect) : col;
-        if (expr === null) throw new CompileError(`unknown date bucket: ${g.bucket}`);
-        const alias = safeAlias(g.as || (g.bucket ? `${g.field}_${g.bucket}` : g.field));
-        selectParts.push(`${expr} AS ${qi(alias)}`);
-        groupExprs.push(expr);
-        groupAliases.push(alias);
-        knownAliases.add(alias);
-    }
-
-    // Percentiles need a ranked window over the rows, so they take a different
-    // shape (a CTE) from the plain aggregates. Detected first so the simple path
-    // compiles byte-identically to before when none is requested.
-    const percentiles = [];
-
-    for (const a of aggregates) {
-        if (!a || typeof a !== 'object') throw new CompileError('aggregate entry must be an object');
-        if (!AGG_FNS.includes(a.fn)) throw new CompileError(`unknown aggregate fn: ${a.fn}`);
-        const alias = safeAlias(a.as || `${a.fn}_${a.field && a.field !== '*' ? a.field : 'all'}`);
-
-        if (PERCENTILE_FNS[a.fn] !== undefined) {
-            if (a.field === undefined || a.field === null || a.field === '*') {
-                throw new CompileError(`${a.fn} needs a field to rank`);
-            }
-            const pcol = resolveColumn(tableMeta, a.field, fm);
-            if (dialect === 'pg') {
-                // Postgres HAS a discrete-percentile aggregate, so pg keeps the
-                // plain single-query shape — the access filter stays in the one
-                // WHERE that feeds the aggregate, same invariant as the CTE.
-                // The fraction comes from the frozen PERCENTILE_FNS map (0.5 /
-                // 0.9), never from the client, so interpolating it is safe.
-                selectParts.push(
-                    `PERCENTILE_DISC(${PERCENTILE_FNS[a.fn]}) WITHIN GROUP (ORDER BY ${pcol}) AS ${qi(alias)}`,
-                );
-                knownAliases.add(alias);
-                continue;
-            }
-            percentiles.push({ alias, fraction: PERCENTILE_FNS[a.fn], col: pcol });
-            knownAliases.add(alias);
-            continue;
-        }
-
-        let inner;
-        if (a.fn === 'count' && (a.field === undefined || a.field === null || a.field === '*')) {
-            inner = '*';
-        } else {
-            inner = resolveColumn(tableMeta, a.field, fm);
-        }
-        selectParts.push(`${a.fn.toUpperCase()}(${inner}) AS ${qi(alias)}`);
-        knownAliases.add(alias);
-    }
-
-    const limit = clampLimit(opts.limit);
-
-    if (percentiles.length === 0) {
-        let sql = `SELECT ${selectParts.join(', ')} FROM ${qi(tableMeta.key)} ${where}`;
-        if (groupExprs.length) sql += ` GROUP BY ${groupExprs.join(', ')}`;
-        const orderBy = resolveAggSort(opts.sort, knownAliases);
-        if (orderBy) sql += ` ORDER BY ${orderBy}`;
-        sql += ` LIMIT ?`;
-        allParams.push(limit);
-        return { sql, params: allParams };
-    }
-
-    /*
-     * Nearest-rank percentile via a window function.
-     *
-     * The access predicate lives in the CTE's WHERE, NOT the outer query. That
-     * placement is the whole security story here: the window ranks whatever the
-     * CTE returns, so filtering afterwards would compute the median over rows
-     * the viewer is not allowed to see and then hand them the answer. Assert on
-     * it in tests, not just in review.
-     *
-     * ORDER BY puts NULLs last and COUNT(col) counts non-NULLs, so a column with
-     * gaps ranks over its real values instead of over a pile of nulls.
-     */
-    const partition = groupExprs.length ? `PARTITION BY ${groupExprs.join(', ')} ` : '';
-    const srcParts = [...groupExprs.map((expr, i) => `${expr} AS ${qi(groupAliases[i])}`)];
-    const outerParts = [...groupAliases.map((alias) => qi(alias))];
-
-    // The non-percentile aggregates still work — they just fold the CTE.
-    for (const part of selectParts.slice(groupBy.length)) outerParts.push(part);
-
-    percentiles.forEach((p, i) => {
-        const v = `__pv_${i}`;
-        const rn = `__rn_${i}`;
-        const cn = `__cn_${i}`;
-        srcParts.push(`${p.col} AS ${qi(v)}`);
-        srcParts.push(`ROW_NUMBER() OVER (${partition}ORDER BY (CASE WHEN ${p.col} IS NULL THEN 1 ELSE 0 END), ${p.col}) AS ${qi(rn)}`);
-        srcParts.push(`COUNT(${p.col}) OVER (${partition}) AS ${qi(cn)}`);
-        outerParts.push(
-            `MIN(CASE WHEN ${qi(rn)} >= CAST(${p.fraction} * ${qi(cn)} + 0.5 AS INTEGER) THEN ${qi(v)} END) AS ${qi(p.alias)}`,
-        );
-    });
-
-    let sql = `WITH __src AS (SELECT ${srcParts.join(', ')} FROM ${qi(tableMeta.key)} ${where})`
-        + ` SELECT ${outerParts.join(', ')} FROM __src`;
-    if (groupAliases.length) sql += ` GROUP BY ${groupAliases.map((a) => qi(a)).join(', ')}`;
-    const orderBy = resolveAggSort(opts.sort, knownAliases);
-    if (orderBy) sql += ` ORDER BY ${orderBy}`;
-    sql += ` LIMIT ?`;
-    allParams.push(limit);
-    return { sql, params: allParams };
+/**
+ * SELECT one record by id, access-scoped. Hidden rows return 0 rows → 404.
+ * `opts.readTimeComputed: true` adds the read-time computed fields, as in
+ * compileRecordList.
+ */
+function compileGetById(tableMeta, id, accessFilter, opts = {}) {
+    const dialect = resolveDialect(opts);
+    assertTableMeta(tableMeta);
+    assertAccessFilter(accessFilter);
+    if (typeof id !== 'string' || !id) throw new CompileError('record id is required');
+    const computed = computedSelectFor(tableMeta, opts, dialect);
+    /** @param {string} list */
+    const sqlWith = (list) => `SELECT ${list} FROM ${qi(tableMeta.key)} WHERE ${qi('id')} = ? AND (${accessFilter.where}) LIMIT 1`;
+    return {
+        sql: sqlWith(recordSelectList(undefined, computed)),
+        params: [id, ...accessFilter.params],
+        ...computedReadMeta(computed, sqlWith),
+    };
 }
 
 /**
@@ -348,12 +261,15 @@ function compileKeyIndex(tableMeta, keyFieldName, keys, accessFilter, opts = {})
 
 module.exports = {
     compileRecordList,
+    compileRecordCount,
     compileGetById,
     compileAggregate,
     compileInsert,
     compileUpdate,
     compileDelete,
     compileKeyIndex,
+    compileExpandLookup,
+    EXPAND_LOOKUP_BATCH,
     compileUpsertByKey,
     compileUpsertById,
     compileIdList,
@@ -364,6 +280,8 @@ module.exports = {
     compileDeleteOrphans, compileDoomedUnderParent, compileRetentionDelete,
     encodeCursor,
     decodeCursor,
+    nextCursor,
+    MAX_ORDER_BY,
     // Exported so a route clamps with the compiler's own rule, not a copy.
     clampLimit,
     CompileError,
@@ -402,7 +320,8 @@ module.exports = {
 
 /**
  * @typedef {{ dialect?: string, filters?: FilterSpec[], match?: string, search?: SearchSpec | null,
- *   sort?: SortEntry | SortEntry[], cursor?: string, limit?: unknown, maxLimit?: number }} ListOpts
+ *   sort?: SortEntry | SortEntry[], orderBy?: SortEntry | SortEntry[], cursor?: string, limit?: unknown, maxLimit?: number,
+ *   readTimeComputed?: boolean }} ListOpts
  */
 
 /**

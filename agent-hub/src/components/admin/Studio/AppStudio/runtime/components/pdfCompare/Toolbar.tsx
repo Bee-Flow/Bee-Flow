@@ -84,7 +84,7 @@ function ChangeControls(p: ToolbarProps) {
 export default function Toolbar(p: ToolbarProps) {
     const { t } = useTranslation();
     return (
-        <div className="flex h-10 shrink-0 items-center gap-0.5 overflow-x-auto border-b border-[var(--border-default)] px-1.5" role="toolbar" aria-label={t('studio_apps_runtime.pdf_compare.toolbar', 'Document comparison')}>
+        <div className="flex h-10 shrink-0 items-center gap-0.5 overflow-x-auto border-b border-[var(--border-default)] px-1.5 bfa-pdf_compare__toolbar" role="toolbar" aria-label={t('studio_apps_runtime.pdf_compare.toolbar', 'Document comparison')}>
             <ToolButton label={t('studio_apps_runtime.pdf_compare.thumbs_toggle', 'Page overview')} pressed={p.thumbs} onClick={() => p.onThumbs(!p.thumbs)}><PanelLeft className={ICON} aria-hidden="true" /></ToolButton>
             <PageNav page={p.page} numPages={p.numPages} onPage={p.onPage} />
             <Sep />

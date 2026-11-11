@@ -10,7 +10,12 @@
     "scripts/*.mjs",
     "vite.config.js",
     "vite.runtime.config.js",
-    "src/components/admin/Studio/AppStudio/runtime/components/pdfCompare/pdfEngine.stub.ts"
+    "src/components/admin/Studio/AppStudio/runtime/components/pdfCompare/pdfEngine.stub.ts",
+    "src/components/admin/Studio/AppStudio/flow/StepSettings/fieldTypes/*.tsx",
+    "src/components/admin/Studio/AppStudio/flow/steps/*.ts",
+    "src/components/admin/Studio/AppStudio/runtime/actionRunner/browserSteps/*.ts",
+    "src/components/admin/Studio/AppStudio/runtime/styleKnobs/*.ts",
+    "src/components/admin/Studio/AppStudio/inspector/themeSections/*.tsx"
   ],
   "project": [
     "src/**/*.{js,jsx,ts,tsx,mjs}",
@@ -122,6 +127,12 @@
     "src/components/admin/Studio/AppStudio/runtime/styleResolver.ts": [
       "exports",
       "types"
+    ],
+    "src/components/admin/Studio/AppStudio/runtime/styleResolver/box.ts": [
+      "exports"
+    ],
+    "src/components/admin/Studio/AppStudio/runtime/styleResolver/text.ts": [
+      "exports"
     ],
     "src/components/admin/Studio/AppStudio/state/clipboard.ts": [
       "exports",

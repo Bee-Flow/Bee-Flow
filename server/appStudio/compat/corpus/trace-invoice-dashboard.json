@@ -1,0 +1,532 @@
+{
+  "about": {
+    "source": "server/appStudio/builderTools/traces/2026-09-16-invoice-dashboard.json call 3 (section id mapped), replayed with applyToolCall against the linked Facturen table (as traces.dashboard.replay.test.js builds it); ids as minted at capture",
+    "captured": "2026-11-10"
+  },
+  "definition": {
+    "schemaVersion": 2,
+    "meta": {
+      "name": "Facturen",
+      "description": "",
+      "icon": "LayoutGrid"
+    },
+    "theme": {
+      "primary": "#0F766E",
+      "radius": "md",
+      "density": "comfortable",
+      "fontScale": "md",
+      "appearance": "auto"
+    },
+    "roles": [],
+    "screens": [
+      {
+        "id": "scr_e5cb0m",
+        "name": "Home",
+        "icon": "Home",
+        "showInNav": true,
+        "maxWidth": "medium",
+        "sections": [
+          {
+            "id": "sec_36bs9v",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_jcncwo",
+                "type": "page_header",
+                "props": {
+                  "title": "Facturen",
+                  "subtitle": null,
+                  "titleFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "subtitleFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "tagsFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "icon": null,
+                  "showDivider": true,
+                  "look": "plain"
+                },
+                "style": {
+                  "span": 12,
+                  "gap": 3,
+                  "padding": 0
+                },
+                "visible": true,
+                "children": []
+              },
+              {
+                "id": "cmp_zd8j06",
+                "type": "container",
+                "props": {
+                  "look": "plain"
+                },
+                "style": {
+                  "span": 6,
+                  "gap": 3
+                },
+                "visible": true,
+                "children": [
+                  {
+                    "id": "cmp_9mx6ci",
+                    "type": "card",
+                    "props": {
+                      "title": "Samenvatting",
+                      "description": null,
+                      "look": "accent"
+                    },
+                    "style": {
+                      "span": 12,
+                      "padding": 3,
+                      "gap": 3,
+                      "background": "surface"
+                    },
+                    "visible": true,
+                    "children": [
+                      {
+                        "id": "cmp_t31adc",
+                        "type": "stat",
+                        "props": {
+                          "label": "Totaal Bedrag",
+                          "value": {
+                            "kind": "aggregate",
+                            "tableId": "tbl_ab859b",
+                            "aggregates": [
+                              {
+                                "fn": "sum",
+                                "field": "totaal_bedrag",
+                                "as": "sum_totaal"
+                              }
+                            ],
+                            "pick": {
+                              "row": "first",
+                              "column": "sum_totaal"
+                            }
+                          },
+                          "caption": null,
+                          "captionSegments": [],
+                          "icon": "Euro",
+                          "delta": {
+                            "kind": "static",
+                            "value": null
+                          },
+                          "deltaFormat": "number",
+                          "trend": {
+                            "kind": "static",
+                            "value": null
+                          },
+                          "positiveIsGood": true,
+                          "look": "accent"
+                        },
+                        "style": {
+                          "span": 4
+                        },
+                        "visible": true
+                      },
+                      {
+                        "id": "cmp_0c1dwi",
+                        "type": "stat",
+                        "props": {
+                          "label": "Totaal BTW",
+                          "value": {
+                            "kind": "aggregate",
+                            "tableId": "tbl_ab859b",
+                            "aggregates": [
+                              {
+                                "fn": "sum",
+                                "field": "btw_bedrag",
+                                "as": "sum_btw"
+                              }
+                            ],
+                            "pick": {
+                              "row": "first",
+                              "column": "sum_btw"
+                            }
+                          },
+                          "caption": null,
+                          "captionSegments": [],
+                          "icon": "Percent",
+                          "delta": {
+                            "kind": "static",
+                            "value": null
+                          },
+                          "deltaFormat": "number",
+                          "trend": {
+                            "kind": "static",
+                            "value": null
+                          },
+                          "positiveIsGood": true,
+                          "look": "tinted"
+                        },
+                        "style": {
+                          "span": 4
+                        },
+                        "visible": true
+                      },
+                      {
+                        "id": "cmp_ryek3j",
+                        "type": "stat",
+                        "props": {
+                          "label": "Aantal Facturen",
+                          "value": {
+                            "kind": "aggregate",
+                            "tableId": "tbl_ab859b",
+                            "aggregates": [
+                              {
+                                "fn": "count",
+                                "as": "cnt"
+                              }
+                            ],
+                            "pick": {
+                              "row": "first",
+                              "column": "cnt"
+                            }
+                          },
+                          "caption": null,
+                          "captionSegments": [],
+                          "icon": "FileText",
+                          "delta": {
+                            "kind": "static",
+                            "value": null
+                          },
+                          "deltaFormat": "number",
+                          "trend": {
+                            "kind": "static",
+                            "value": null
+                          },
+                          "positiveIsGood": true,
+                          "look": "tile"
+                        },
+                        "style": {
+                          "span": 4
+                        },
+                        "visible": true
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "cmp_upyhmu",
+                "type": "container",
+                "props": {
+                  "look": "plain"
+                },
+                "style": {
+                  "span": 6,
+                  "gap": 3
+                },
+                "visible": true,
+                "children": [
+                  {
+                    "id": "cmp_yurb3l",
+                    "type": "card",
+                    "props": {
+                      "title": "Verdeling",
+                      "description": null,
+                      "look": "accent"
+                    },
+                    "style": {
+                      "span": 12,
+                      "padding": 3,
+                      "gap": 3,
+                      "background": "surface"
+                    },
+                    "visible": true,
+                    "children": [
+                      {
+                        "id": "cmp_y7ka6o",
+                        "type": "chart",
+                        "props": {
+                          "chartType": "pie",
+                          "orientation": "vertical",
+                          "source": {
+                            "kind": "aggregate",
+                            "tableId": "tbl_ab859b",
+                            "groupBy": [
+                              {
+                                "field": "leverancier",
+                                "as": "leverancier"
+                              }
+                            ],
+                            "aggregates": [
+                              {
+                                "fn": "sum",
+                                "field": "totaal_bedrag",
+                                "as": "totaal"
+                              }
+                            ]
+                          },
+                          "title": "Per Leverancier",
+                          "xKey": "leverancier",
+                          "xType": "category",
+                          "series": [
+                            {
+                              "key": "totaal"
+                            }
+                          ],
+                          "stacked": false,
+                          "showLegend": true,
+                          "showGrid": true,
+                          "valueFormat": "number",
+                          "yMin": null,
+                          "yMax": null,
+                          "referenceLines": [],
+                          "referenceBands": [],
+                          "unitLabel": null
+                        },
+                        "style": {
+                          "span": 6,
+                          "height": "md"
+                        },
+                        "visible": true
+                      },
+                      {
+                        "id": "cmp_okc7lh",
+                        "type": "chart",
+                        "props": {
+                          "chartType": "bar",
+                          "orientation": "vertical",
+                          "source": {
+                            "kind": "aggregate",
+                            "tableId": "tbl_ab859b",
+                            "groupBy": [
+                              {
+                                "field": "factuur_datum",
+                                "bucket": "month",
+                                "as": "maand"
+                              }
+                            ],
+                            "aggregates": [
+                              {
+                                "fn": "sum",
+                                "field": "totaal_bedrag",
+                                "as": "totaal"
+                              }
+                            ]
+                          },
+                          "title": "Per Maand",
+                          "xKey": "maand",
+                          "xType": "time",
+                          "series": [
+                            {
+                              "key": "totaal"
+                            }
+                          ],
+                          "stacked": false,
+                          "showLegend": true,
+                          "showGrid": true,
+                          "valueFormat": "currency",
+                          "yMin": null,
+                          "yMax": null,
+                          "referenceLines": [],
+                          "referenceBands": [],
+                          "unitLabel": null
+                        },
+                        "style": {
+                          "span": 6,
+                          "height": "md"
+                        },
+                        "visible": true
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "cmp_i8j6g0",
+                "type": "container",
+                "props": {
+                  "look": "plain"
+                },
+                "style": {
+                  "span": 6,
+                  "gap": 3
+                },
+                "visible": true,
+                "children": [
+                  {
+                    "id": "cmp_s0o0dm",
+                    "type": "card",
+                    "props": {
+                      "title": "Factuuroverzicht",
+                      "description": null,
+                      "look": "accent"
+                    },
+                    "style": {
+                      "span": 12,
+                      "padding": 3,
+                      "gap": 3,
+                      "background": "surface"
+                    },
+                    "visible": true,
+                    "children": [
+                      {
+                        "id": "cmp_sjib1q",
+                        "type": "filter_bar",
+                        "props": {
+                          "fields": [
+                            {
+                              "name": "leverancier",
+                              "type": "search"
+                            }
+                          ]
+                        },
+                        "style": {
+                          "span": 12
+                        },
+                        "visible": true
+                      },
+                      {
+                        "id": "cmp_pj6s5b",
+                        "type": "data_grid",
+                        "props": {
+                          "source": {
+                            "kind": "records",
+                            "tableId": "tbl_ab859b",
+                            "filter": [
+                              {
+                                "field": "leverancier",
+                                "op": "contains",
+                                "value": {
+                                  "expr": "vars.filters.leverancier",
+                                  "kind": "formula"
+                                }
+                              }
+                            ],
+                            "sort": [
+                              {
+                                "dir": "desc",
+                                "field": "factuur_datum"
+                              }
+                            ]
+                          },
+                          "columns": [
+                            {
+                              "format": "date",
+                              "key": "factuur_datum",
+                              "label": "Datum"
+                            },
+                            {
+                              "key": "leverancier",
+                              "label": "Leverancier"
+                            },
+                            {
+                              "format": "currency",
+                              "key": "totaal_bedrag",
+                              "label": "Totaal Bedrag"
+                            }
+                          ],
+                          "pageSize": 25,
+                          "selectable": "none",
+                          "searchable": true,
+                          "rowActions": [],
+                          "toolbarActions": [],
+                          "addRowLabel": null,
+                          "addRowActionId": null,
+                          "bulkActions": [],
+                          "density": "comfortable",
+                          "clamp": "off",
+                          "rowTone": [],
+                          "groupBy": null,
+                          "groupOrder": [],
+                          "activeWhen": null,
+                          "zebra": false,
+                          "emptyText": "Geen facturen gevonden.",
+                          "look": "striped"
+                        },
+                        "style": {
+                          "span": 12
+                        },
+                        "visible": true
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "actions": {},
+    "homeScreenId": "scr_e5cb0m"
+  },
+  "dataModel": {
+    "modelVersion": 1,
+    "tables": [
+      {
+        "id": "tbl_ab859b",
+        "key": "facturen",
+        "name": "Facturen",
+        "source": {
+          "kind": "datatable",
+          "datatableId": "dt_1",
+          "mode": "read"
+        },
+        "fields": [
+          {
+            "id": "fld_26d49d",
+            "key": "factuur_datum",
+            "name": "Factuurdatum",
+            "type": "date",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_d4fe63",
+            "key": "leverancier",
+            "name": "Leverancier",
+            "type": "text",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_d8cdad",
+            "key": "totaal_bedrag",
+            "name": "Totaal bedrag",
+            "type": "number",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_903913",
+            "key": "btw_bedrag",
+            "name": "BTW bedrag",
+            "type": "number",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_6dd38b",
+            "key": "status",
+            "name": "Status",
+            "type": "text",
+            "required": false,
+            "unique": false
+          }
+        ],
+        "icon": null,
+        "access": {
+          "default": "app",
+          "roles": {},
+          "rowFilters": {}
+        }
+      }
+    ],
+    "roles": [],
+    "roleMapping": {
+      "default": "app",
+      "byGroup": {}
+    }
+  }
+}

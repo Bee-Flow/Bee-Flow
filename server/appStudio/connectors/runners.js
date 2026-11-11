@@ -12,6 +12,7 @@ const {
 } = require('./shared');
 const { providerFor, resolveViewerExecution, dispatchTool } = require('./dispatch');
 const { applyChainStep } = require('./chain');
+const { renderRestBody, bodyPlaceholders } = require('./restBody.mts');
 const log = require('../../telemetry/log');
 const { fallback } = require('../../utils/bestEffort');
 
@@ -205,7 +206,9 @@ async function runRestConnector(connector, { app, params, deps }) {
 
     // Fill declared placeholders with URL-encoded viewer params only.
     const placeholders = [...template.matchAll(/\{([a-zA-Z0-9_]+)\}/g)].map((m) => m[1]);
-    const safe = sanitizeViewerParams(params, placeholders);
+    const isPost = connector.method === 'POST';
+    const allowed = isPost && connector.body !== undefined ? [...placeholders, ...bodyPlaceholders(connector.body)] : placeholders;
+    const safe = sanitizeViewerParams(params, allowed);
     const urlStr = template.replace(/\{([a-zA-Z0-9_]+)\}/g, (_, key) => {
         const v = safe[key];
         return (v === undefined || v === null) ? '' : encodeURIComponent(String(v));
@@ -226,6 +229,12 @@ async function runRestConnector(connector, { app, params, deps }) {
     // Owner static headers + owner credential (from the credential store).
     /** @type {Record<string, string>} */
     const headers = { Accept: 'application/json' };
+    /** @type {string | undefined} */
+    let bodyText;
+    if (isPost && connector.body !== undefined) {
+        bodyText = JSON.stringify(renderRestBody(connector.body, safe));
+        headers['Content-Type'] = 'application/json';
+    }
     if (isPlainObject(connector.headers)) {
         for (const [k, v] of Object.entries(connector.headers)) {
             if (typeof k === 'string' && (typeof v === 'string' || typeof v === 'number')) headers[k] = String(v);
@@ -247,7 +256,7 @@ async function runRestConnector(connector, { app, params, deps }) {
     const timer = setTimeout(() => ac.abort(), REST_TIMEOUT_MS);
     let text;
     try {
-        const resp = await deps.safeFetch(parsed.toString(), { method: 'GET', headers, redirect: 'follow', signal: ac.signal });
+        const resp = await deps.safeFetch(parsed.toString(), { method: isPost ? 'POST' : 'GET', headers, ...(bodyText !== undefined ? { body: bodyText } : {}), redirect: 'follow', signal: ac.signal });
         if (!resp || !resp.ok) {
             throw connectorError(502, `connector fetch failed (${resp ? resp.status : 'no response'})`, 'connector_failed');
         }

@@ -2,11 +2,18 @@
 'use strict';
 // Part 2 of the TOOL_SCHEMAS array (split out of schemas.js; order is preserved there).
 
-const { LIMITS, THEME_SPEC, DESIGN_SPEC, VARIABLE_TYPES } = require('../componentSpecs');
-const { FIELD_TYPES, FILTER_OPS, AGG_FNS, DATE_BUCKETS, ACCESS_MODES } = require('../dataModel');
+const { LIMITS, VARIABLE_TYPES } = require('../componentSpecs');
+const { themeDesignProps } = require('./themeDesignSchema.mts');
+const { FIELD_TYPES, ACCESS_MODES } = require('../dataModel');
+// Enums take the whole list; a description names the base words only, so a word added later
+// (vocabularySince.js) moves no pinned text.
+const { BASE_FILTER_OPS: FILTER_OPS, BASE_AGG_FNS: AGG_FNS, BASE_DATE_BUCKETS: DATE_BUCKETS } = require('../../core/dataEngine/dataModel/vocabularySince');
+const { GROUP_FILTER_OPS } = require('../../core/dataEngine/dataModel/vocabulary');
 const { MAX_SEED_RECORDS } = require('./schemaFragments');
-const { MAX_QUERY_LIMIT } = require('./queryDataArgs');
+const { APP_QUERY_DATA_SCHEMA } = require('./schemaQueryData');
 const { HOOK_TARGETS } = require('../mailboxHookPolicy.mts');
+const { DATASET_PARAM_TYPES } = require('../datasetParams.mts');
+const { SCREENSHOT_VIEW_PROPERTIES } = require('./screenshotView.mts');
 
 /** @type {Array<{ type: string, function: { name: string, description: string, parameters: object } }>} */
 const TOOL_SCHEMAS_PART_2 = [
@@ -78,7 +85,7 @@ const TOOL_SCHEMAS_PART_2 = [
                                         // filtered or aggregated on it then failed with "is a
                                         // read-time computed field and cannot be queried", from a
                                         // call whose only intent was to edit a different field.
-                                        stored: { type: 'boolean', description: 'true materialises a real column, so the field can be FILTERED, SORTED and AGGREGATED on (a read-time expression can only be read). Adding one to a populated table, or changing its expr, computes it for every row. Without stored the field is read-time: it is not evaluated yet, so use stored:true for a value you show.' },
+                                        stored: { type: 'boolean', description: 'true materialises a real column, so the field can be FILTERED, SORTED and AGGREGATED on (a read-time expression can only be read). Adding one to a populated table, or changing its expr, computes it for every row. Without stored the field is read-time: worked out on every read when its expr names only this table\'s own columns and functions both engines have (the answer says when one reads empty), shown but not filtered or sorted.' },
                                     },
                                     required: ['expr'],
                                 },
@@ -199,27 +206,14 @@ const TOOL_SCHEMAS_PART_2 = [
                             theme: {
                                 type: 'object',
                                 description: 'The public page\'s own theme, merged over the app theme. Name only what differs — e.g. { canvas: "#ffda00", accent: "#009b3e", primary: "#0064b0" } for a customer whose brand is a yellow ground, green buttons and blue headings.',
-                                properties: {
-                                    primary: { type: 'string', description: '#rrggbb — headings, links, progress, badges.' },
-                                    accent: { type: 'string', description: '#rrggbb — primary buttons and form submits. Unset = the primary.' },
-                                    canvas: { type: 'string', description: '#rrggbb — the page ground behind the sections.' },
-                                    radius: { type: 'string', enum: [...THEME_SPEC.radius.values] },
-                                    density: { type: 'string', enum: [...THEME_SPEC.density.values] },
-                                    fontScale: { type: 'string', enum: [...THEME_SPEC.fontScale.values] },
-                                    appearance: { type: 'string', enum: [...THEME_SPEC.appearance.values] },
-                                },
+                                // From THEME_SPEC (themeDesignSchema.mts): a key marked since 3 joins by itself.
+                                properties: themeDesignProps('publicTheme'),
                             },
                             design: {
                                 type: 'object',
                                 description: 'The public page\'s own design knobs, merged over the app design. Typically just the typeface and a logo.',
-                                properties: {
-                                    font: { type: 'string', enum: [...DESIGN_SPEC.font.values] },
-                                    logoUrl: { type: 'string', description: 'https:// URL of the customer\'s logo.' },
-                                    surface: { type: 'string', enum: [...DESIGN_SPEC.surface.values] },
-                                    motion: { type: 'string', enum: [...DESIGN_SPEC.motion.values] },
-                                    accentEdge: { type: 'string', enum: [...DESIGN_SPEC.accentEdge.values] },
-                                    chartPalette: { type: 'string', enum: [...DESIGN_SPEC.chartPalette.values] },
-                                },
+                                // From DESIGN_SPEC, the same way.
+                                properties: themeDesignProps('publicDesign'),
                             },
                         },
                         required: ['entryScreenId'],
@@ -261,11 +255,14 @@ const TOOL_SCHEMAS_PART_2 = [
                     tableId: { type: 'string', description: 'The source table id (tbl_…).' },
                     descriptor: {
                         type: 'object',
-                        description: `The aggregation: groupBy?: [{field, bucket?}] (bucket for date fields: ${DATE_BUCKETS.join('|')}); aggregates: [{fn: ${AGG_FNS.join('|')}, field?, as}] (count needs no field); filters?: [{field, op, value?}] (ops: ${FILTER_OPS.join(', ')}).`,
+                        description: `The aggregation: groupBy?: [{field, bucket?}] (bucket for date fields: ${DATE_BUCKETS.join('|')}); aggregates: [{fn: ${AGG_FNS.join('|')}, field?, as}] (count needs no field); filters?: [{field, op, value?}] (ops: ${FILTER_OPS.join(', ')}). Optional params?: [{name, type?: ${DATASET_PARAM_TYPES.join('|')}, default?, label?}] make the view reusable: a filter value { param: "<name>" } takes the value the binding sends ({kind:"dataset", datasetId, params:{<name>: literal or {kind:"formula",expr}}}); unset without a default drops that filter.`,
                         properties: {
                             groupBy: { type: 'array', items: { type: 'object' } },
                             aggregates: { type: 'array', items: { type: 'object' } },
                             filters: { type: 'array', items: { type: 'object' } },
+                            params: { type: 'array', items: { type: 'object' } },
+                            orderBy: { type: 'array', items: { type: 'object' }, description: 'Optional: sort the result on up to 3 of its output columns, [{field, dir}].' },
+                            groupFilter: { type: 'array', items: { type: 'object' }, description: `Optional: keep only the groups whose aggregate passes, [{field: <an aggregate's as>, op: ${GROUP_FILTER_OPS.join('|')}, value: <number>}] (SQL HAVING).` },
                         },
                         required: ['aggregates'],
                     },
@@ -283,28 +280,7 @@ const TOOL_SCHEMAS_PART_2 = [
             parameters: { type: 'object', properties: {} },
         },
     },
-    {
-        type: 'function',
-        function: {
-            name: 'app_query_data',
-            description: 'Read rows from the app\'s data (owner-scoped, never mutates) — verify seeds landed, inspect real values, or check what a dataset returns. Pass tableId for raw rows (with optional filter/sort) OR datasetId for a saved aggregation, not both. More rows than one page: the answer has more:true and a nextCursor to pass back.',
-            parameters: {
-                type: 'object',
-                properties: {
-                    tableId: { type: 'string', description: 'Table id (tbl_…) to list rows from.' },
-                    datasetId: { type: 'string', description: 'Saved dataset id to run instead of a raw table read.' },
-                    filter: {
-                        type: 'array',
-                        description: `Optional literal filters: [{field, op, value?}] with ops ${FILTER_OPS.join(', ')}; an entry {any:[clauses]} matches when one of its clauses does.`,
-                        items: { type: 'object' },
-                    },
-                    sort: { type: 'object', description: 'Optional { field, dir: "asc"|"desc" } (tableId only).' },
-                    limit: { type: 'number', description: `Max rows per call (default 5, max ${MAX_QUERY_LIMIT}; a larger value is clamped and the answer says limitClamped and requestedLimit). Page on with cursor.` },
-                    cursor: { type: 'string', description: 'The nextCursor of the previous answer, to read the next page.' },
-                },
-            },
-        },
-    },
+    APP_QUERY_DATA_SCHEMA,
     {
         type: 'function',
         function: {
@@ -362,6 +338,7 @@ const TOOL_SCHEMAS_PART_2 = [
                     screenId: { type: 'string', description: 'Screen to render (scr_…); omit for the app\'s home screen.' },
                     asRole: { type: 'string', description: 'Render — and read data — as this role key (from the data model\'s roles), exactly as a member with that role would see the screen.' },
                     viewport: { type: 'string', enum: ['desktop', 'tablet', 'mobile'], description: 'Screen width to render at (default desktop). Shoot "mobile" once per screen before finalizing: a 12-column row that reads well on a laptop wraps into a stack on a phone, and that is where cramped or clipped layouts show up.' },
+                    ...SCREENSHOT_VIEW_PROPERTIES,
                 },
             },
         },

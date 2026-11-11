@@ -8,6 +8,8 @@
 'use strict';
 
 const { LIMITS, FORMULA_SCOPE_ROOTS, CURRENT_USER_KEYS } = require('../componentSpecs');
+const { EXTENSION_SCOPE_ROOTS } = require('../componentSpecs/bindings');
+const { checkClientOnlyRoots } = require('./clientOnlyRoots.mts');
 // The shared expr engine, via server/automation/expr.js — the project's CJS
 // re-export of shared/expr/index.mjs. Going through this boundary (rather than
 // require()-ing the .mjs directly) keeps App Studio on the CommonJS surface the
@@ -19,6 +21,13 @@ const { compile, collectEachCalls, collectRefs, readsItem } = require('../../sha
 // v2 shared checks — formula compilation (NEVER execution), and reference
 // resolution for tables/datasets/automations (publish-gated like automationId).
 // ---------------------------------------------------------------------------
+
+/**
+ * A root the formula may name: one of `roots`, or a root added after the base (ui).
+ * @param {string[]} roots
+ * @param {string} r
+ */
+const isKnownRoot = (roots, r) => roots.includes(r) || Object.hasOwn(EXTENSION_SCOPE_ROOTS, r);
 
 // Syntax-check a formula string with the shared compiler and flag any root
 // identifier outside the app's scope. NEVER evaluates.
@@ -43,7 +52,7 @@ function validateFormula(expr, path, ctx, allowedRoots) {
     }
     const roots = allowedRoots || FORMULA_SCOPE_ROOTS;
     for (const r of refs) {
-        if (!roots.includes(r)) {
+        if (!isKnownRoot(roots, r)) {
             pushW({ code: 'unknown_formula_root', severity: 'warning', path, message: `Formula references unknown root "${r}" — it resolves to undefined at runtime.`, hint: `In-scope roots: ${roots.join(', ')}.` });
         }
     }
@@ -132,6 +141,8 @@ const CURRENT_USER_ATTR_RE = /\bcurrentUser\s*\.\s*([A-Za-z_$][\w$]*)/g;
  */
 function checkServerFormulaScope(expr, path, ctx) {
     if (typeof expr !== 'string' || !expr) return;
+    checkClientOnlyRoots(expr, path, ctx);
+    require('./serverScopeChecks.mts').checkServerScopeRoots(expr, path, ctx); // a root that is empty on the server
     for (const m of expr.matchAll(CURRENT_USER_ATTR_RE)) {
         const attr = m[1];
         if (CURRENT_USER_KEYS.includes(attr)) continue;
@@ -146,6 +157,7 @@ function checkServerFormulaScope(expr, path, ctx) {
 /** Walk a step's authored values for formulas and scope-check each one. */
 function checkServerFormulas(value, path, ctx, depth = 0) {
     if (depth > 6 || !value || typeof value !== 'object') return;
+    if (depth === 0) require('./serverScopeChecks.mts').checkServerStep(value, path, ctx); // guard, plain formula fields
     if (Array.isArray(value)) {
         value.forEach((v, i) => checkServerFormulas(v, `${path}[${i}]`, ctx, depth + 1));
         return;
