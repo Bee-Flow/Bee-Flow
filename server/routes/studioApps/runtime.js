@@ -17,7 +17,7 @@ const { validateAppDefinition } = require('../../appStudio/validate');
 const { resolveTemplate } = require('../../appStudio/templateRegistry');
 const { installTemplate } = require('../../appStudio/templateInstall');
 const { hashDefinition, isPristine, upgradeCandidate } = require('../../appStudio/templateUpgrade');
-const { carryTemplateAssets } = require('../../appStudio/portableAssetStore.mts');
+const { carryAssetsInto } = require('../../appStudio/portableAssetStore.mts');
 const { requireAuth } = require('../../auth/permissions');
 const { CheckBody, DraftQuery } = require('./schemas');
 const { requireManageApps, audienceFor, refuseRead } = require('./access');
@@ -156,7 +156,10 @@ router.post('/:id/template-upgrade', requireAuth, requireManageApps, /** @param 
     if (refused) return res.status(422).json(schemaNewerBody(copy));
     // The new version's uploaded files go into the app (a file it already holds is reused),
     // and the definition saved and stamped below refers to their ids here.
-    const { definition: canonical, report: assets, ids: assetIds } = await carryTemplateAssets({ app, definition: canonicalCopy, seed: template.seed, assets: template.assets });
+    // Only the files the definition names: an upgrade seeds no table that holds rows, so a file
+    // only a sample row names would sit unused; a row it does seed (an empty table) gets null
+    // for such a file, through assetIds below.
+    const { definition: canonical, report: assets, ids: assetIds } = await carryAssetsInto(app, canonicalCopy, template.assets);
     // Report mode, as on create from a template: the upgrade is not refused over validator findings.
     const findings = gateFindings(gateDefinition(canonical));
 
