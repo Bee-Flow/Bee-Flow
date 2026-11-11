@@ -27,3 +27,18 @@ test('a failed rate lookup is not cached as 1.0: a strict caller still refuses, 
     fail = false;
     assert.strictEqual(await currency.getUsdToCurrencyRate('ZZA', { strict: true }), 7.5);
 });
+
+test('fxFactor converts through the configured USD rates: EUR to USD inverts, USD to EUR is the rate', async (t) => {
+    currency.invalidateFxCache();
+    t.mock.method(configStore, 'getConfig', async (/** @type {string} */ k) => (k === 'currency_fx_usd_eur' ? '0.8' : null));
+    assert.ok(Math.abs(await currency.fxFactor('EUR', 'USD') - 1.25) < 1e-12);
+    assert.strictEqual(await currency.fxFactor('USD', 'EUR'), 0.8);
+    assert.strictEqual(await currency.fxFactor('USD', 'USD'), 1);
+});
+
+test('fxFactor passes strict through: a failed lookup with no last-good rate throws', async (t) => {
+    currency.invalidateFxCache();
+    t.mock.method(configStore, 'getConfig', async () => { throw new Error('db down'); });
+    await assert.rejects(() => currency.fxFactor('ZZB', 'USD', { strict: true }), /fx_rate_unavailable/);
+    assert.strictEqual(await currency.fxFactor('ZZB', 'USD'), 1, 'best-effort: the 1.0 fallback');
+});

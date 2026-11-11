@@ -16,6 +16,8 @@ const { synthesizeDryRunOutput } = require('./execIntegrationAction');
 const { toolIdentity } = require('./toolIdentity');
 const safety = require('./safety');
 const { runWithProbe, markLocal } = require('../http/outboundProbe');
+const { isToolErrorResult } = require('./shared');
+const { _flattenToolRoundTrips: flattenToolRoundTrips } = require('../agentRuntime/toolRound/toolContent');
 
 // Tool-calling loop. When tools are off (the default) this collapses to
 // a single chat call exactly as before. When tools are on, the model can
@@ -25,7 +27,30 @@ const MAX_AI_STEP_TOOL_ITERATIONS = 4;
 
 const pushToolMessage = (messages, tc, payload) => {
     messages.push({ role: 'tool', tool_call_id: tc.id, content: JSON.stringify(payload) });
+    return payload;
 };
+
+/**
+ * Did this tool call fail? The `{ error }` convention (isToolErrorResult), and
+ * the plain "Search failed: …" text the other web-search providers still return.
+ * @param {unknown} result
+ */
+function isFailedToolResult(result) {
+    return isToolErrorResult(result) || (typeof result === 'string' && result.startsWith('Search failed: '));
+}
+
+/**
+ * Record one answered tool call on the loop's tally: its name and, when it
+ * failed, the error the model read (cut short: it goes into a step error).
+ * @param {AiToolTally} tally
+ * @param {string} name
+ * @param {unknown} result
+ */
+function noteToolOutcome(tally, name, result) {
+    if (!isFailedToolResult(result)) { tally.push({ name, error: null }); return; }
+    const raw = typeof result === 'string' ? result : String(/** @type {{ error: unknown }} */ (result).error);
+    tally.push({ name, error: raw.slice(0, 160) });
+}
 
 /** The assistant turn that asked for `response.toolCalls`, as the next request replays it. */
 function assistantToolCallMessage(response) {
@@ -103,8 +128,10 @@ async function dispatchAiToolCall(tc, callArgs, toolAudit, env) {
 
 /**
  * Answer one tool call the model asked for: push the `tool` message the next
- * round reads. Never throws for a tool failure (that is the model's to read);
- * only a non-block guard failure on the result propagates.
+ * round reads, and return the result it holds. Never throws for a tool failure
+ * (that is the model's to read); only a non-block guard failure on the result
+ * propagates.
+ * @returns {Promise<unknown>}
  */
 async function handleAiToolCall(tc, env) {
     const { step, ctx, mode, policy, auditBase, shieldGate, allowedToolNames, messages } = env;
@@ -112,8 +139,7 @@ async function handleAiToolCall(tc, env) {
     try { args = typeof tc.function.arguments === 'string' ? JSON.parse(tc.function.arguments) : tc.function.arguments; }
     catch { args = {}; }
     if (!allowedToolNames.has(tc.function.name)) {
-        pushToolMessage(messages, tc, { error: `Tool "${tc.function.name}" is not in the permitted tool set for this step` });
-        return;
+        return pushToolMessage(messages, tc, { error: `Tool "${tc.function.name}" is not in the permitted tool set for this step` });
     }
     // Dry-run parity with execIntegrationAction: an AI step's tool
     // loop must never fire a real side effect during a dry-run
@@ -121,8 +147,7 @@ async function handleAiToolCall(tc, env) {
     // youtrack_create_issue would really create the issue).
     // Reads still run for real.
     if (mode === 'dry_run' && isSideEffect(tc.function.name)) {
-        pushToolMessage(messages, tc, { ...synthesizeDryRunOutput(tc.function.name, args), _dryRunSynthesised: true });
-        return;
+        return pushToolMessage(messages, tc, { ...synthesizeDryRunOutput(tc.function.name, args), _dryRunSynthesised: true });
     }
     /** @type {{ error: string; }} */
     let toolResult;
@@ -138,10 +163,7 @@ async function handleAiToolCall(tc, env) {
             destination: argMeta && argMeta.isLocal ? 'internal' : 'external',
         });
         const refusal = await shieldGate.refuse(tc.function.name, callArgs);
-        if (refusal) {
-            pushToolMessage(messages, tc, { error: refusal.modelError });
-            return;
-        }
+        if (refusal) return pushToolMessage(messages, tc, { error: refusal.modelError });
         toolResult = await dispatchAiToolCall(tc, callArgs, toolAudit, env);
     } catch (e) {
         toolResult = { error: /** @type {Error} */ (e).message };
@@ -169,6 +191,7 @@ async function handleAiToolCall(tc, env) {
             tc.function.name,
         ),
     });
+    return toolResult;
 }
 
 /**
@@ -192,24 +215,74 @@ function stepShieldGate(step, mode, policy, auditBase) {
 // default is aiStepReliability.AI_STEP_DEFAULT_TEMPERATURE; same number).
 const DEFAULT_TEMPERATURE = 0.2;
 
+// The last word of a tool loop that ran out of rounds: what the model reads
+// before the one call that has to answer without tools.
+const WRAP_UP_MESSAGE = 'You have used every tool call this step allows. Answer now, from the tool results above, in the requested format. Do not ask for more tools.';
+
+const isPlain = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
+
+/**
+ * The one call after a tool loop that hit its cap: no tools, on the whole
+ * conversation including every tool result. The tool round trips go as plain
+ * text, because a request that carries tool calls but defines no tools is
+ * refused by some providers (Anthropic). With `answerTool` (a declared
+ * schema) it is the forced structured call the no-tools route makes, with
+ * that route's fallbacks (native json_schema, forced tool, parse-after).
+ * @param {AiStepChatCall} call
+ * @param {(msgs: AiChatMessage[], options: Record<string, unknown>) => Promise<AiChatResponse>} send
+ * @param {Record<string, unknown>} options
+ * @returns {Promise<AiChatResponse & { structured?: Record<string, unknown>|null }>}
+ */
+async function finalAnswerWithoutTools(call, send, options) {
+    const msgs = [...flattenToolRoundTrips(call.messages), { role: 'user', content: WRAP_UP_MESSAGE }];
+    if (!call.answerTool) {
+        const response = await send(msgs, options);
+        call.accrueUsage(response);
+        return response;
+    }
+    const llmClient = call.llmClient || require('../llm/llmClient');
+    const r = await llmClient.chatForcedTool(call.modelId, msgs, call.answerTool, {
+        ...options, rateLimit: { signal: call.ctx && call.ctx.cancelSignal },
+    });
+    call.accrueUsage(r);
+    return {
+        content: typeof r?.content === 'string' ? r.content : '',
+        structured: isPlain(r?.structured) ? r.structured : null,
+        stopReason: r?.stopReason || null,
+    };
+}
+
 /**
  * Call the model for an ai_step. `call` carries
  * { adapter, cfg, modelId, messages, maxOutputTokens, stepReasoningEffort,
  *   temperature, tools, accrueUsage, step, ctx, mode, policy, auditBase,
- *   agentBinding }; `messages` grows in place with the tool rounds.
- * Every request goes through the provider limiter (queue + Retry-After
- * backoff, cancelled with the run). Returns `{ response, hitIterationCap }`.
+ *   agentBinding, answerTool?, llmClient? }; `messages` grows in place with
+ * the tool rounds. Every request goes through the provider limiter (queue +
+ * Retry-After backoff, cancelled with the run).
+ *
+ * A loop that ends with the model still asking for tools (the iteration cap)
+ * gets ONE more call without tools on everything gathered so far
+ * (finalAnswerWithoutTools), so the step answers from its tool results
+ * instead of ending on a tool request with no text.
+ *
+ * Returns `{ response, hitIterationCap, toolTally }`: `toolTally` is the
+ * tally of every tool call answered (name, and the error when it failed);
+ * `response.structured` is set when the final call was the forced one.
+ * @param {AiStepChatCall} call
  */
 async function runAiStepChat(call) {
     const { adapter, cfg, modelId, messages, maxOutputTokens, stepReasoningEffort, tools, accrueUsage, ctx } = call;
     const { limitedChat } = require('../llm/providerLimiter');
     const temperature = Number.isFinite(call.temperature) ? call.temperature : DEFAULT_TEMPERATURE;
     const effort = stepReasoningEffort !== undefined ? { reasoningEffort: stepReasoningEffort } : {};
-    const send = (options) => limitedChat({ adapter, cfg, modelId, messages, options, signal: ctx && ctx.cancelSignal });
+    const plain = { maxTokens: maxOutputTokens, temperature, ...effort };
+    const send = (msgs, options) => limitedChat({ adapter, cfg, modelId, messages: msgs, options, signal: ctx && ctx.cancelSignal });
+    /** @type {AiToolTally} */
+    const toolTally = [];
     if (!tools) {
-        const response = await send({ maxTokens: maxOutputTokens, temperature, ...effort });
+        const response = await send(messages, plain);
         accrueUsage(response);
-        return { response, hitIterationCap: false };
+        return { response, hitIterationCap: false, toolTally };
     }
     const { executeTool } = require('../tools/toolDispatcher');
     const shieldGate = stepShieldGate(call.step, call.mode, call.policy, call.auditBase);
@@ -222,21 +295,24 @@ async function runAiStepChat(call) {
     const env = { ...call, executeTool, shieldGate, allowedToolNames };
     let response;
     for (let iter = 0; iter < MAX_AI_STEP_TOOL_ITERATIONS; iter++) {
-        response = await send({ maxTokens: maxOutputTokens, temperature, tools, toolChoice: 'auto', ...effort });
+        response = await send(messages, { ...plain, tools, toolChoice: 'auto' });
         accrueUsage(response);
         if (!response.toolCalls || response.toolCalls.length === 0) break;
         messages.push(assistantToolCallMessage(response));
-        for (const tc of response.toolCalls) await handleAiToolCall(tc, env);
+        for (const tc of response.toolCalls) noteToolOutcome(toolTally, tc.function.name, await handleAiToolCall(tc, env));
     }
     // Exhausted the loop with the model still wanting to call tools.
-    return { response, hitIterationCap: !!(response && response.toolCalls && response.toolCalls.length) };
+    const hitIterationCap = !!(response && response.toolCalls && response.toolCalls.length);
+    if (hitIterationCap) response = await finalAnswerWithoutTools(call, send, plain);
+    return { response, hitIterationCap, toolTally };
 }
 
-module.exports = { runAiStepChat, MAX_AI_STEP_TOOL_ITERATIONS, dispatchAiToolCall };
+module.exports = { runAiStepChat, MAX_AI_STEP_TOOL_ITERATIONS, dispatchAiToolCall, isFailedToolResult, WRAP_UP_MESSAGE };
 
 /**
  * @typedef {{ id: string, function: { name: string, arguments: unknown }, _thought_signature?: unknown, _raw_content_parts?: unknown }} AiToolCallRequest
- * @typedef {{ content?: string|null, toolCalls?: AiToolCallRequest[], stop_reason?: string|null, stopReason?: string|null, usage?: unknown }} AiChatResponse
+ * @typedef {{ content?: string|null, toolCalls?: AiToolCallRequest[], stop_reason?: string|null, stopReason?: string|null, usage?: unknown, structured?: Record<string, unknown>|null }} AiChatResponse
+ * @typedef {Array<{ name: string, error: string|null }>} AiToolTally
  * @typedef {{ role: string, content?: unknown, tool_call_id?: string, tool_calls?: unknown[] }} AiChatMessage
  * @typedef {import('./safety').SafetyCtx & import('./toolIdentity').IdentityCtx & { userOrgIds?: string[], rootRunId?: string|null,
  *   cancelSignal?: AbortSignal|null }} AiStepRunCtx
@@ -244,7 +320,9 @@ module.exports = { runAiStepChat, MAX_AI_STEP_TOOL_ITERATIONS, dispatchAiToolCal
  *   maxOutputTokens: number|null, stepReasoningEffort?: string|null, temperature?: number,
  *   tools: import('./aiStepAgent').AgentTool[]|null, accrueUsage: (response: AiChatResponse) => void,
  *   step: { id?: string }, ctx: AiStepRunCtx, mode: string, policy: import('./safety').SafetyPolicy,
- *   auditBase: import('./safety').AuditBase, agentBinding?: { agentId?: string }|null }} AiStepChatCall
+ *   auditBase: import('./safety').AuditBase, agentBinding?: { agentId?: string }|null,
+ *   answerTool?: { type: string, function: { name: string, description?: string, parameters: object } }|null,
+ *   llmClient?: { chatForcedTool: (modelId: string, messages: unknown[], toolDef: unknown, options?: any) => Promise<any> } }} AiStepChatCall
  * @typedef {AiStepChatCall & { executeTool: typeof import('../tools/toolDispatcher').executeTool,
  *   shieldGate: ReturnType<typeof stepShieldGate>, allowedToolNames: Set<string> }} AiToolLoopEnv
  */

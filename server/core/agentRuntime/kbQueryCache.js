@@ -26,7 +26,7 @@ const MAX_ENTRIES_PER_CONV = 64;
 const CONV_IDLE_TTL_MS = 60 * 60 * 1000; // 1 hour
 const GC_INTERVAL_MS = 10 * 60 * 1000;   // 10 minutes
 
-// conversationId → { lastAccess: number, entries: Map<key, value>, chunks: Map<chunk_id, {title,section,content,source_uri}> }
+// conversationId → { lastAccess: number, entries: Map<key, value>, chunks: Map<chunk_id, {title,section,content,source_uri,kb_id}> }
 // entries Map order is LRU-ordered (most-recently-used last).
 const _cache = new Map();
 
@@ -119,7 +119,7 @@ function invalidate(conversationId) {
  * Stash every chunk returned by a kb_search so a subsequent kb_fetch can
  * resolve full content by chunk_id without re-querying the DB / search-service.
  * @param {string} conversationId
- * @param {Array<{ chunk_id?: string | number, title?: string, section?: string, content?: string, source_uri?: string }>} chunks
+ * @param {Array<{ chunk_id?: string | number, title?: string, section?: string, content?: string, source_uri?: string, kb_id?: string }>} chunks
  */
 function setChunks(conversationId, chunks) {
     if (!conversationId || !Array.isArray(chunks)) return;
@@ -137,6 +137,8 @@ function setChunks(conversationId, chunks) {
             section: c.section || '',
             content: c.content || '',
             source_uri: c.source_uri || '',
+            // The base the chunk sits in: kb_fetch re-checks it against what the asker may read now.
+            kb_id: c.kb_id ? String(c.kb_id) : '',
         });
     }
     bucket.lastAccess = Date.now();

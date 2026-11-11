@@ -122,7 +122,12 @@ async function handleCheckoutCompleted(session, opts = {}) {
         log.info(`[Stripe Webhook] Org checkout completed for org ${orgId}, plan ${planId}`);
         // A completed checkout provisions the bought plan: clear stale limit
         // overrides even when the org already had that plan_id (BFSF-249).
-        await storeForTarget({ scope: 'organization', id: orgId }, subData, { resetLimits: true });
+        // Only the first application of this Stripe subscription resets: the
+        // success-page reconcile and the webhook both run this, and the second
+        // one must not wipe an override an admin set in between.
+        const existing = await userStore.getOrgSubscription(orgId);
+        const resetLimits = existing?.stripe_subscription_id !== session.subscription;
+        await storeForTarget({ scope: 'organization', id: orgId }, subData, { resetLimits });
         await userStore.logSubscriptionAudit('assign_subscription', 'organization', orgId, 'stripe_webhook', null, { plan_id: planId, stripe_subscription_id: session.subscription, payment_status: subData.payment_status });
         log.info(`[Stripe Webhook] Subscription assigned to org ${orgId}`);
         await issueLicenseFromPlan({ scope: 'organization', organizationId: orgId, planId, session });

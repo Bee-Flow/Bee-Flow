@@ -30,9 +30,28 @@ function redactAndTokenizeToolResult(text, entities, blockCats, existingTokenMap
     if (typeof text !== 'string' || !Array.isArray(entities) || entities.length === 0) {
         return { content: text, tokenMap: {}, redactedLabels: [], redactedLogLabels: [], blockedCount: 0, tokenizedCount: 0 };
     }
+    const block = blockCats instanceof Set ? blockCats : new Set(blockCats || []);
+    // A JSON result (most tool results, toolRound/toolContent.js) keeps its
+    // shape: no span may cross a string literal's quote, so one token can
+    // never swallow two values of an array. See jsonSpans.mts.
+    const { parseJsonContainer, redactJson } = require('./jsonSpans.mts');
+    const parsed = parseJsonContainer(text);
+    if (parsed === undefined) return redactPlain(text, entities, block, existingTokenMap);
+    return redactJson(text, parsed, entities, (t, e, m) => redactPlain(t, e, block, m), existingTokenMap || {});
+}
+
+/**
+ * The redaction of plain text: tokenise, then replace blocked values.
+ *
+ * @param {string} text
+ * @param {Array<{ text?: string, category: string, label?: string, offset: number, length: number, alsoCategories?: string[] }>} entities
+ * @param {Set<string>} block
+ * @param {Record<string, string>} existingTokenMap
+ * @returns {{ content: string, tokenMap: Record<string, string>, redactedLabels: string[], redactedLogLabels: string[], blockedCount: number, tokenizedCount: number }}
+ */
+function redactPlain(text, entities, block, existingTokenMap) {
     const { tokenizeText, _tokenCategoryKey } = require('../privacy/piiDetection');
     const { isCustomTypeId } = require('../privacy/customTypes/ids');
-    const block = blockCats instanceof Set ? blockCats : new Set(blockCats || []);
 
     const blocked = [];
     const tokenizable = [];

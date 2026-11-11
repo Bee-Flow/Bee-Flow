@@ -329,6 +329,20 @@ If you still see it after upgrading to a connector built from commit `af26662` o
 2. Confirm no upstream reverse proxy (nginx, traefik) is re-introducing chunked encoding on the NC → browser hop — check `proxy_buffering off;` and `proxy_http_version 1.1;` in the NC vhost.
 3. Capture a `curl -N -v https://<nc-host>/index.php/apps/app_api/proxy/bee_flow/api/...` against an SSE endpoint and attach the headers to a bug report — the response should have `Connection: close` and no `Transfer-Encoding`.
 
+## Attachments fail with "too large" (413) {#attachments-too-large}
+
+**Symptom.** Sending a message with a PDF or another file fails, while a message without a file works.
+Bee Flow answers that the message or its attachments are too large for the connection, even for a file
+well under 1 MB.
+
+**Cause.** The chat sends a file inside the request body, as base64 (a third larger than the file).
+The web server or proxy in front of the connector has a body limit, and nginx's default is 1 MB.
+
+**Fix.** Raise the body limit of the proxy that serves Nextcloud's `/exapps/` path to at least 32 MB. In
+nginx that is `client_max_body_size 32m;` in the `/exapps/` location (see
+[the `/exapps/` rule](./deploy-daemon.md#exapps-rule)); in Apache, `LimitRequestBody`; in other proxies,
+the setting for the maximum request body. Bee Flow itself accepts files up to 14.5 MB.
+
 ## Nextcloud events do not reach automations
 
 File, tag, calendar, Forms, Tables and Deck triggers are delivered by Nextcloud's bundled `webhook_listeners` app. If that app is not enabled the connector logs:

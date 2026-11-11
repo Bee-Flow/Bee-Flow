@@ -179,6 +179,57 @@ function enrichWithCostSplit(rows) {
     });
 }
 
+// ── Azure service costs in the plan currency ─────────────────────────────
+// azure_service_usage_log keeps its costs in USD (stores/azureServiceUsageStore.js,
+// core/kb/embeddingCost.js converts a EUR price card to it). The ai_usage_log
+// figures of the same answer are in the plan currency: stores/usage/logUsage.js
+// converts every row into the currency of the plan of its organisation (or, for a
+// consumer, their own plan). These answers convert the USD figures into that same
+// currency, so a total adds like with like and the dashboard's currency symbol is
+// true for both. A rate that cannot be read counts as 1.0, as for a non-metered
+// plan in logUsage: these figures are informational, never billed.
+
+/**
+ * The factor from USD to the plan currency of what these filters cover.
+ * @param {Record<string, any> | undefined} filters
+ * @returns {Promise<number>}
+ */
+async function usdToPlanFactor(filters) {
+    const orgId = filters?.organizationId || null;
+    try {
+        const { _resolvePlanCurrency } = require('../stores/usage/payg');
+        const plan = await _resolvePlanCurrency(orgId, orgId ? null : filters?.userId || null);
+        const factor = await require('../core/text/currency').fxFactor('USD', plan);
+        return Number.isFinite(factor) && factor > 0 ? factor : 1;
+    } catch (e) {
+        log.warn('[usage] no USD rate for the plan currency; Azure service costs shown unconverted', e);
+        return 1;
+    }
+}
+
+/**
+ * Rows of azure_service_usage_log figures with their cost fields in the plan
+ * currency. Nothing is looked up when there is no cost to convert.
+ * @template {Record<string, any>} R
+ * @param {R[]} rows
+ * @param {Record<string, any> | undefined} filters
+ * @returns {Promise<R[]>}
+ */
+async function azureCostsInPlanCurrency(rows, filters) {
+    const hasCost = rows.some((r) => Number(r?.total_cost) > 0 || Number(r?.estimated_cost) > 0);
+    if (!hasCost) return rows;
+    const factor = await usdToPlanFactor(filters);
+    if (factor === 1) return rows;
+    const scaled = (/** @type {unknown} */ v) => (v == null ? v : Number(v) * factor);
+    return rows.map((r) => {
+        if (!r) return r;
+        const out = { ...r };
+        if ('total_cost' in r) Object.assign(out, { total_cost: scaled(r.total_cost) });
+        if ('estimated_cost' in r) Object.assign(out, { estimated_cost: scaled(r.estimated_cost) });
+        return out;
+    });
+}
+
 // 1. Summary Overview (enriched with input/output cost + Azure service costs)
 router.get('/summary', async (req, res) => {
     const summary = await usageStore.getUsageSummary(req.usageFilters);
@@ -195,7 +246,8 @@ router.get('/summary', async (req, res) => {
     try {
         const azSvcStore = require('../stores/azureServiceUsageStore');
         const azSummary = await azSvcStore.getAzureServiceSummary(req.usageFilters);
-        azure_services_total_cost = azSummary?.total_cost || 0;
+        const [inPlan] = await azureCostsInPlanCurrency([{ total_cost: Number(azSummary?.total_cost) || 0 }], req.usageFilters);
+        azure_services_total_cost = inPlan.total_cost;
     } catch (_) { log.warn('Azure service usage summary failed, reporting zero cost', _); }
     const fullPayload = {
         ...(summary || { total_calls: 0, total_tokens: 0, total_estimated_cost: 0, total_prompt_tokens: 0, total_completion_tokens: 0 }),
@@ -578,35 +630,37 @@ const azureServiceUsageStore = require('../stores/azureServiceUsageStore');
 // 28. Azure Service Summary
 router.get('/azure-services/summary', async (req, res) => {
     const summary = await azureServiceUsageStore.getAzureServiceSummary(req.usageFilters);
-    res.json(summary || { total_calls: 0, total_cost: 0, total_pages: 0, total_chars: 0, total_tokens: 0, unique_services: 0, unique_users: 0 });
+    if (!summary) return res.json({ total_calls: 0, total_cost: 0, total_pages: 0, total_chars: 0, total_tokens: 0, unique_services: 0, unique_users: 0 });
+    const [inPlan] = await azureCostsInPlanCurrency([summary], req.usageFilters);
+    res.json(inPlan);
 });
 
 // 29. Azure Service by Type
 router.get('/azure-services/by-type', async (req, res) => {
     const data = await azureServiceUsageStore.getAzureServiceByType(req.usageFilters);
-    res.json(data || []);
+    res.json(await azureCostsInPlanCurrency(data || [], req.usageFilters));
 });
 
 // 30. Azure Service by User
 router.get('/azure-services/by-user', async (req, res) => {
-    const data = await azureServiceUsageStore.getAzureServiceByUser(req.usageFilters);
+    const data = await azureCostsInPlanCurrency(await azureServiceUsageStore.getAzureServiceByUser(req.usageFilters) || [], req.usageFilters);
     const userMap = await getUserMap();
-    res.json((data || []).map(row => withUser(row, userMap)));
+    res.json(data.map(row => withUser(row, userMap)));
 });
 
 // 31. Azure Service Timeline
 router.get('/azure-services/timeline', async (req, res) => {
     const interval = req.query.interval === 'hour' ? 'hour' : 'day';
     const data = await azureServiceUsageStore.getAzureServiceTimeline(req.usageFilters, interval);
-    res.json(data || []);
+    res.json(await azureCostsInPlanCurrency(data || [], req.usageFilters));
 });
 
 // 32. Recent Azure Service Usage
 router.get('/azure-services/recent', async (req, res) => {
     const limit = Math.min(parseInt(req.query.limit, 10) || 50, RECENT_MAX);
-    const data = await azureServiceUsageStore.getRecentAzureServiceUsage(limit, req.usageFilters);
+    const data = await azureCostsInPlanCurrency(await azureServiceUsageStore.getRecentAzureServiceUsage(limit, req.usageFilters) || [], req.usageFilters);
     const userMap = await getUserMap();
-    res.json((data || []).map(row => withUser(row, userMap)));
+    res.json(data.map(row => withUser(row, userMap)));
 });
 
 // 33. Azure Service Cost Rates (current pricing config)

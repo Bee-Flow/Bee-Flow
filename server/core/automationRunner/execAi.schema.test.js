@@ -23,16 +23,22 @@
 
 'use strict';
 
+require('../../boot/featureModules'); // the tool-route tests: withholdConfirmTools reads the tool registry
 const { test, beforeEach, after } = require('node:test');
 const assert = require('node:assert');
 
 const { installResolveStub } = require('../../testUtils/stubRequire');
 const { forcedToolViaChat } = require('../../testUtils/forcedToolViaChat');
+const { configStoreStub } = require('../../testUtils/toolPiiGateHarness');
 
 // ── The doubles ────────────────────────────────────────────────────────────
 
 const chatCalls = [];
 let chatReply = '{"ok":true}';
+/** The step's tool catalog: empty, except in the tool-route tests. */
+let catalog = [];
+/** When set, answers the adapter whole (tool calls included) instead of chatReply. */
+let responder = null;
 
 const TIERS = {
     fast: { modelId: 'model-fast', maxTokens: 4096 },
@@ -43,7 +49,8 @@ const TIERS = {
 };
 
 async function fakeChat(_key, _url, modelId, messages, options) {
-    chatCalls.push({ modelId, options });
+    chatCalls.push({ modelId, options, messages });
+    if (responder) return responder(options);
     return { content: typeof chatReply === 'function' ? chatReply() : chatReply, usage: {} };
 }
 
@@ -68,7 +75,17 @@ const restore = installResolveStub({
         async guardAiOutput(content) { return { content }; },
         restoreForRunState: (v) => v,
         buildPiiSummary() { return null; },
+        async guardToolInput(args) { return { value: args }; },
+        prepareForEgress: (value) => value,
+        async guardToolOutput(result) { return { result }; },
+        async logEgress() {},
     },
+    '../integrations/integrationTools': { getIntegrationTools: async () => ({ tools: catalog }) },
+    '../tools/toolDispatcher': { executeTool: async () => ({ error: 'Search failed: timeout after 30 s' }) },
+    '../http/outboundProbe': { runWithProbe: async (fn) => ({ result: await fn(), probe: null }), markLocal: () => {} },
+    '../../stores/guardrailEventStore': { async logGuardrailEvent() {} },
+    // aiStepModel and the tool policy read their settings here (as in execAi.toolPiiGate.test.js).
+    '../../stores/configStore': configStoreStub(),
     '../../stores/usageStore': { async logUsage() {} },
     '../../stores/terminationStore': { async logTermination() {} },
 });
@@ -85,6 +102,8 @@ function step(over = {}) {
 beforeEach(() => {
     chatCalls.length = 0;
     chatReply = '{"ok":true}';
+    catalog = [];
+    responder = null;
 });
 
 // ── 1. The ceiling follows the tier the author picked ──────────────────────
@@ -184,4 +203,57 @@ test('with no schema at all, a plain string answer is left alone', async () => {
     chatReply = 'Zomaar tekst.';
     const r = await execAiStep(step(), { ...CTX, definition: { steps: [] } }, {}, 'live');
     assert.strictEqual(r.output, 'Zomaar tekst.');
+});
+
+// ── 3. The tool route keeps the contract too ────────────────────
+
+const SEARCH_TOOL = { type: 'function', function: { name: 'agent_search', description: 'web', parameters: { type: 'object', properties: { query: { type: 'string' } } } } };
+const DECLARED = {
+    type: 'object',
+    properties: { samenvatting: { type: 'string' }, aantal: { type: 'integer' } },
+    required: ['samenvatting'],
+};
+
+test('with tools, a declared schema whose required field is missing fails, naming the fields', async () => {
+    catalog = [SEARCH_TOOL];
+    chatReply = '{"aantal":"drie"}';
+    await assert.rejects(
+        () => execAiStep(step({ id: 'ai_web', allowTools: true, outputSchema: DECLARED }), CTX, {}, 'live'),
+        (e) => {
+            assert.strictEqual(e.errorClass, 'ValidationError');
+            assert.match(e.message, /samenvatting: this field is required/);
+            assert.match(e.message, /aantal: this field must be of type integer/);
+            assert.match(e.message, /steps\.ai_web\.output/);
+            return true;
+        },
+    );
+    assert.strictEqual(chatCalls[0].options.tools[0].function.name, 'agent_search', 'the step took the tool route');
+    assert.strictEqual(chatCalls[0].options.toolChoice, 'auto');
+});
+
+test('with tools, a declared schema that is met passes untouched', async () => {
+    catalog = [SEARCH_TOOL];
+    chatReply = '{"samenvatting":"Zonnig","aantal":3}';
+    const r = await execAiStep(step({ allowTools: true, outputSchema: DECLARED }), CTX, {}, 'live');
+    assert.deepStrictEqual(r.output, { samenvatting: 'Zonnig', aantal: 3 });
+});
+
+test('prose after a capped tool loop says the cap was hit', async () => {
+    catalog = [SEARCH_TOOL];
+    let seq = 0;
+    // Every round that offers tools asks for a search; the final call (forced, no tools) answers in prose.
+    responder = (options) => (options.tools && options.tools[0].function.name === 'agent_search'
+        ? { content: '', toolCalls: [{ id: `c${++seq}`, type: 'function', function: { name: 'agent_search', arguments: '{"query":"weer"}' } }], usage: {} }
+        : { content: 'Ik kon niets vinden.', usage: {} });
+    await assert.rejects(
+        () => execAiStep(step({ id: 'ai_web', allowTools: true, outputSchema: { samenvatting: 'string' } }), CTX, {}, 'live'),
+        (e) => {
+            assert.match(e.message, /answered with something else/);
+            assert.match(e.message, /hit its cap before the model gave a final answer \(tool calls: 4, failed: 4, iteration cap hit: yes\)/);
+            assert.match(e.message, /Ik kon niets vinden/);
+            return true;
+        },
+    );
+    const last = chatCalls[chatCalls.length - 1];
+    assert.strictEqual(last.options.tools[0].function.name, 'step_answer', 'the final call is the forced structured one');
 });

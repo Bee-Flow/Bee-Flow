@@ -8,7 +8,7 @@
  * not arrive as eight megabytes of JPEG; a resize that fails falls back to the
  * original rather than dropping the file.
  *
- * The 20MB cap is enforced here for the same reason: it is a property of "what
+ * The size cap is enforced here for the same reason: it is a property of "what
  * may be attached", not of the button that happened to be clicked.
  */
 import { resizeImageForUpload, readAsDataUrl } from '@/utils/imageResize';
@@ -21,17 +21,26 @@ export interface Attachment {
 }
 
 /**
- * Turn a list of File objects into attachment records, skipping anything over
- * the size cap. Returns a (possibly empty) array — the caller decides what to
- * do with it.
+ * Raw size cap per file. The file travels as base64 (4/3 of its size) inside
+ * the JSON turn body, which the server accepts up to 20 MB: 14.5 MB raw is
+ * about 19.3 MB on the wire, with room for the message and history.
  */
-export async function buildAttachments(files: Iterable<File>): Promise<Attachment[]> {
+export const MAX_ATTACHMENT_BYTES = Math.floor(14.5 * 1024 * 1024);
+
+/** The cap as the number a person reads in a notice ("14.5 MB"). */
+export const MAX_ATTACHMENT_MB = '14.5';
+
+/**
+ * Turn a list of File objects into attachment records, skipping anything over
+ * the size cap. Returns a (possibly empty) array; `onTooLarge` is told about
+ * every skipped file so the caller can say so, instead of the file vanishing.
+ */
+export async function buildAttachments(files: Iterable<File>, onTooLarge?: (file: File) => void): Promise<Attachment[]> {
     const newAttachments: Attachment[] = [];
 
     for (const file of files) {
-        // Limit file size to 20MB
-        if (file.size > 20 * 1024 * 1024) {
-            console.warn(`File ${file.name} is too large (${(file.size / 1024 / 1024).toFixed(1)}MB), max 20MB`);
+        if (file.size > MAX_ATTACHMENT_BYTES) {
+            onTooLarge?.(file);
             continue;
         }
 

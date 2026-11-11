@@ -3840,11 +3840,6 @@
       "count": 1
     }
   },
-  "core/dlp/toolResultRedact.js": {
-    "complexity": {
-      "count": 1
-    }
-  },
   "core/dlp/untokeniseStream.js": {
     "max-lines-per-function": {
       "count": 1

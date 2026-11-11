@@ -106,7 +106,7 @@ async function buildTurnMessages({
                                 adapter, modelId, providerType: config?.providerType,
                                 shieldActive: isShieldActive(_psShield), tokenised: _wasTokenised,
                                 base64Data: att.content.includes(',') ? att.content.split(',')[1] : att.content,
-                                mediaType: att.type, filename: att.name, tag: 'WebpageChat',
+                                mediaType: att.type, filename: att.name, pages: result.meta?.numPages, tag: 'WebpageChat',
                             });
                             if (pdfPart) contentParts.push(pdfPart);
                         }

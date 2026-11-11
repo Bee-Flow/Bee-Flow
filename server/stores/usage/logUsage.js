@@ -16,6 +16,7 @@ const { currentClient } = require('../../telemetry/requestClient');
 const log = require('../../telemetry/log');
 const { initDB } = require('./schema');
 const { _resolvePaygTarget, _resolvePlanCurrency } = require('./payg');
+const { fxFactorVia } = require('../../utils/fxFactor.mts');
 
 // ============ Logging ============
 
@@ -99,25 +100,18 @@ function createLogUsage({ rateUsage, resolveBilledModel, loadCurrency, loadPaygD
 
     /**
      * Conversion factor `from` -> `to` (price currency -> plan currency).
-     * Resolves through the USD-based rate table of core/text/currency, with the same
-     * strict switch: a failed lookup for a metered plan throws (no wrong number is
-     * logged), anything else falls back to the configured-or-1.0 behaviour.
-     * Returns NaN for a rate that cannot be inverted or divided.
+     * Resolves through the USD-based rate table of core/text/currency
+     * (utils/fxFactor.mts, with the lookup of the lazily loaded helper), with
+     * the same strict switch: a failed lookup for a metered plan throws (no wrong
+     * number is logged), anything else falls back to the configured-or-1.0
+     * behaviour. Returns NaN for a rate that cannot be inverted or divided.
+     * @param {string} from
      * @param {string} to
      * @param {boolean} strict
      */
-    async function _fxFactor(from, to, strict) {
+    function _fxFactor(from, to, strict) {
         const currency = _currency();
-        if (from === 'USD') return currency.getUsdToCurrencyRate(to, { strict });
-        if (to === 'USD') {
-            const r = await currency.getUsdToCurrencyRate(from, { strict });
-            return Number.isFinite(r) && r > 0 ? 1 / r : NaN;
-        }
-        const [rFrom, rTo] = await Promise.all([
-            currency.getUsdToCurrencyRate(from, { strict }),
-            currency.getUsdToCurrencyRate(to, { strict }),
-        ]);
-        return Number.isFinite(rFrom) && rFrom > 0 && Number.isFinite(rTo) && rTo > 0 ? rTo / rFrom : NaN;
+        return fxFactorVia((c, opts) => currency.getUsdToCurrencyRate(c, opts), from, to, strict);
     }
 
     async function logUsage(entry) {
