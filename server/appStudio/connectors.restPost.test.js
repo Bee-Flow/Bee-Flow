@@ -73,8 +73,12 @@ test('validation: method and body rules', () => {
     assert.ok(errsOf({ id: 'conn_aut001', kind: 'automation', automationId: 'a', method: 'POST' }).some((e) => /only supported for rest/.test(e)));
 });
 
+// The cap is read once at load, so each value needs a fresh process. The child gets the
+// module's absolute path: a relative id would resolve from the child's cwd, not from here.
+const CONNECTORS_MODULE = require.resolve('./connectors');
+
 function capIn(env) {
-    const r = spawnSync(process.execPath, ['-e', "console.log(String(require('./appStudio/connectors')._MAX_CONNECTOR_ROWS))"], {
+    const r = spawnSync(process.execPath, ['-e', `console.log(String(require(${JSON.stringify(CONNECTORS_MODULE)})._MAX_CONNECTOR_ROWS))`], {
         cwd: require('node:path').join(__dirname, '..'), env: { ...process.env, ...env }, encoding: 'utf8',
     });
     return r.stdout.trim();
