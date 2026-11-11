@@ -9,7 +9,9 @@
  *   - the frontend        (served verbatim via GET /api/studio-apps/catalog;
  *                          the palette and inspector are generated from it)
  *
- * An app definition is a structured component tree — never code:
+ * An app definition is a structured component tree. It runs author code in one place only:
+ * the `code` step of an action (since 3, componentSpecs/steps/code.js), which the server runs
+ * in the isolated code sandbox over the values its inputs resolved, with no other reach.
  *
  *   { schemaVersion: 2,
  *     meta:   { name, description, icon },
