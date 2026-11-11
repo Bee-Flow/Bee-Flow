@@ -4,11 +4,13 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
-import { describeApp, fixedClock, noSession, SNAPSHOT_DIR } from '@/test/appLookRegression';
+import { fileURLToPath } from 'node:url';
+import { describeApp, fixedClock, noSession } from '@/test/appLookRegression';
 
 const HOSTS = ['', 'light', 'dark', 'high-contrast'] as const;
 // The stylesheet as the browser gets it (vitest leaves CSS imports empty), parsed by the CSSOM.
-const themeScopeCss = fs.readFileSync(path.resolve(SNAPSHOT_DIR, '../css/themeScope.css'), 'utf8');
+// Resolved from this file's own folder, so crossRepoPaths.test.ts can check the path.
+const themeScopeCss = fs.readFileSync(path.resolve(path.dirname(fileURLToPath(import.meta.url)), './css/themeScope.css'), 'utf8');
 
 function setHost(theme: string) {
     if (theme) document.documentElement.setAttribute('data-theme', theme);

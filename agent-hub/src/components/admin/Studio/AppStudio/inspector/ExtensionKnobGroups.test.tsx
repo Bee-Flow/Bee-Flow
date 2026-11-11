@@ -28,7 +28,11 @@ describe('extension knob groups in the inspector', () => {
             ['hover', ['hover']],
             ['placement', ['spanMd', 'spanSm', 'rowSpan', 'alignSelf', 'sticky', 'stickyOffset']],
         ]);
-        expect(earnedKnobGroups(['span', 'size', 'align'], 'button').map((g) => g.name)).toEqual(['hover', 'placement']);
+        // A type in grantedTo earns the group without its knob: the button draws text knobs.
+        const granted = [{ name: 't', grantedBy: 'color', knobs: ['x'], grantedTo: ['button'] }];
+        expect(earnedKnobGroups(['span'], 'button', granted).map((g) => g.knobs)).toEqual([['x']]);
+        expect(earnedKnobGroups(['span'], 'stat', granted)).toEqual([]);
+        expect(earnedKnobGroups(['span', 'size', 'align'], 'button').map((g) => g.name)).toEqual(['hover', 'placement', 'text']);
     });
 
     it('a heading gets a closed Box disclosure, a button none', () => {
