@@ -210,8 +210,8 @@ router.post('/stream', requireAuth, builderRateLimit, async (req, res) => {
     //    no monitoring tables). Codes: subscription_limit | rate_limited |
     //    model_unavailable | transient_upstream | budget_exhausted |
     //    validation_failed | save_conflict | internal. ──
-    /** @type {import('./buildRound').BuildCtx['sendError']} */
     let turnFailed = false; // an `error` went out: the turn leaves no end-of-turn version row
+    /** @type {import('./buildRound').BuildCtx['sendError']} */
     const sendError = (code, userMessage) => {
         turnFailed = true;
         send('error', { message: userMessage, code });

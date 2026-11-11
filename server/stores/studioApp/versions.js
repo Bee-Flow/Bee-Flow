@@ -38,7 +38,6 @@ const MAX_VERSIONS_PER_APP = 20;
  * @param {object|string} definition Definition object (JSON-stringified here)
  *   or an already-serialized JSON string (the publish path's frozen payload).
  * @param {string} [summary]
- * @param {{ client?: any, skipIfSameAsNewest?: boolean }} [opts]
  */
 async function createVersionSnapshot(appId, ownerId, definition, summary = 'Checkpoint', { client = null, skipIfSameAsNewest = false } = {}) {
     const row = { appId, ownerId, definition, summary, skipIfSameAsNewest };
