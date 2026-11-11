@@ -59,8 +59,10 @@ A run can be **cancelled** with **Cancel run** in the run log or on the page's p
 person who started it or the app owner. A run on hold ends as cancelled at once. A running one
 stops before its next step. Steps that already ran are not undone.
 
-When the server restarts, a run that was running ends as interrupted and does not continue,
-because its steps may already have written rows or sent mail.
+A run on hold survives a server restart: it is kept in the database and goes on at its time, or
+when its decision lands, as if nothing happened. A run that was running when the server restarts
+ends as interrupted and does not continue, because its steps may already have written rows or
+sent mail.
 
 On self-hosted, the limits are environment variables (`STUDIO_APP_PAUSE_MAX_MS`,
 `STUDIO_APP_PAUSED_PER_APP`, `STUDIO_APP_PAUSE_STATE_MAX_BYTES` and the wake job settings; see

@@ -395,7 +395,10 @@ Org admins can see per-app and total storage under **App Studio usage**
 
 **New → From a template** ships ready-made, data-backed starting points (CRM pipeline,
 ticket tracker, asset inventory, event planner, team directory) — each with a data
-model and sample data. Choose **Remix with AI** to instantiate a template and open the
+model and sample data. Four of them start from the newer building blocks (many relations,
+column rights, triggers, wizards, value formats): the field service planner, the request and
+approval flow, the sales dashboard and inbound orders. Their triggers stay off until you publish
+the app. Choose **Remix with AI** to instantiate a template and open the
 builder with a prompt prefilled, so you can adapt it by describing the changes.
 
 ## Where to next
