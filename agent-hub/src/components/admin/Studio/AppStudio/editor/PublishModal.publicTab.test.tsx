@@ -36,7 +36,8 @@ describe('PublishModal tabs', () => {
         expect(screen.getByRole('tab', { name: 'Audience', selected: true })).toBeInTheDocument();
         expect(screen.queryByTestId('public-page-tab')).toBeNull();
         await userEvent.click(screen.getByRole('tab', { name: 'Public page' }));
-        expect(screen.getByTestId('public-page-tab')).toBeInTheDocument();
+        // The tab is its own chunk, loaded when it is opened.
+        expect(await screen.findByTestId('public-page-tab', {}, { timeout: 5000 })).toBeInTheDocument();
         expect(await screen.findByText('No public URL yet.')).toBeInTheDocument();
     });
 

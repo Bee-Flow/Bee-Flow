@@ -89,7 +89,7 @@ async function openImportTab() {
     render(<AppList onOpen={vi.fn()} />);
     await screen.findByText('My tracker');
     await user.click(screen.getByRole('button', { name: /New app/ }));
-    await screen.findByRole('dialog');
+    await screen.findByRole('dialog', {}, { timeout: 5000 });
     await user.click(screen.getByRole('tab', { name: 'From a file' }));
     return { user, input: screen.getByTestId('app-template-import-input') };
 }
@@ -199,7 +199,7 @@ describe('AppList — importing an app archive', () => {
         render(<AppList onOpen={onOpen} />);
         await screen.findByText('My tracker');
         await user.click(screen.getByRole('button', { name: /New app/ }));
-        await screen.findByRole('dialog');
+        await screen.findByRole('dialog', {}, { timeout: 5000 });
         await user.click(screen.getByRole('tab', { name: 'From a file' }));
         const input = screen.getByTestId('app-template-import-input');
 
@@ -273,7 +273,7 @@ describe('AppList — exporting a gallery template', () => {
         render(<AppList onOpen={vi.fn()} />);
         await screen.findByText('My tracker');
         await user.click(screen.getByRole('button', { name: /New app/ }));
-        await screen.findByRole('dialog');
+        await screen.findByRole('dialog', {}, { timeout: 5000 });
         await user.click(screen.getByRole('tab', { name: 'From template' }));
         await screen.findByText('Ticket tracker');
 

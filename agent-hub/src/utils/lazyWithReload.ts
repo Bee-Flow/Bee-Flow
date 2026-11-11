@@ -44,37 +44,43 @@ export function lazyWithI18n(importer: () => Promise<{ default: ComponentType }>
 
 export function lazy<T>(importer: () => Promise<{ default: T }>): ExoticComponent<PropsOf<T>>;
 export function lazy(importer: () => Promise<{ default: ComponentType }>): ExoticComponent {
-    return reactLazy(async () => {
+    return reactLazy(() => importWithReload(importer));
+}
+
+/**
+ * The import behind `lazy`, for a module loaded outside React.lazy (a component that
+ * preloads its own chunk): the same retry, reload and loop guard.
+ */
+export async function importWithReload<M>(importer: () => Promise<M>): Promise<M> {
+    try {
+        const mod = await importer();
+        try { sessionStorage.removeItem(RELOAD_FLAG); } catch (err) { logger.debug('private mode', err); }
+        return mod;
+    } catch (err) {
+        if (!isChunkLoadError(err)) throw err;
+
+        // One in-process retry before reaching for the reload hammer.
         try {
+            await new Promise(res => setTimeout(res, 250));
             const mod = await importer();
-            try { sessionStorage.removeItem(RELOAD_FLAG); } catch (err) { logger.debug('private mode', err); }
+            try { sessionStorage.removeItem(RELOAD_FLAG); } catch (err) { logger.debug('ignore', err); }
             return mod;
-        } catch (err) {
-            if (!isChunkLoadError(err)) throw err;
+        } catch (retryErr) {
+            if (!isChunkLoadError(retryErr)) throw retryErr;
 
-            // One in-process retry before reaching for the reload hammer.
-            try {
-                await new Promise(res => setTimeout(res, 250));
-                const mod = await importer();
+            // Guard against an infinite reload loop on a genuinely broken
+            // deploy: if we've already reloaded this tab once, give up.
+            let alreadyReloaded = false;
+            try { alreadyReloaded = !!sessionStorage.getItem(RELOAD_FLAG); } catch (err) { logger.debug('ignore', err); }
+            if (alreadyReloaded) {
                 try { sessionStorage.removeItem(RELOAD_FLAG); } catch (err) { logger.debug('ignore', err); }
-                return mod;
-            } catch (retryErr) {
-                if (!isChunkLoadError(retryErr)) throw retryErr;
-
-                // Guard against an infinite reload loop on a genuinely broken
-                // deploy: if we've already reloaded this tab once, give up.
-                let alreadyReloaded = false;
-                try { alreadyReloaded = !!sessionStorage.getItem(RELOAD_FLAG); } catch (err) { logger.debug('ignore', err); }
-                if (alreadyReloaded) {
-                    try { sessionStorage.removeItem(RELOAD_FLAG); } catch (err) { logger.debug('ignore', err); }
-                    throw retryErr;
-                }
-                try { sessionStorage.setItem(RELOAD_FLAG, String(Date.now())); } catch (err) { logger.debug('ignore', err); }
-                if (typeof window !== 'undefined') window.location.reload();
-                // Hang the Suspense promise so the user sees the existing
-                // fallback (not an error flash) while the reload runs.
-                return new Promise(() => {});
+                throw retryErr;
             }
+            try { sessionStorage.setItem(RELOAD_FLAG, String(Date.now())); } catch (err) { logger.debug('ignore', err); }
+            if (typeof window !== 'undefined') window.location.reload();
+            // Hang the Suspense promise so the user sees the existing
+            // fallback (not an error flash) while the reload runs.
+            return new Promise<M>(() => {});
         }
-    });
+    }
 }

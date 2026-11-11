@@ -72,6 +72,12 @@ beforeEach(() => {
     asMock(studioAppsApi.deleteApp).mockResolvedValue({ success: true });
 });
 
+/** "New app" is its own chunk, loaded when it is first opened: open it and wait for its dialog. */
+async function openNewApp(user: ReturnType<typeof userEvent.setup>) {
+    await user.click(screen.getByRole('button', { name: /New app/ }));
+    await screen.findByRole('dialog', {}, { timeout: 5000 });
+}
+
 describe('AppList', () => {
     it('renders owned and shared apps, deduped, with shared cards linking to the run view', async () => {
         render(<AppList onOpen={vi.fn()} />);
@@ -109,7 +115,7 @@ describe('AppList', () => {
         render(<AppList onOpen={onOpen} />);
         await screen.findByText('My tracker');
 
-        await user.click(screen.getByRole('button', { name: /New app/ }));
+        await openNewApp(user);
         expect(await screen.findByRole('dialog')).toBeInTheDocument();
 
         await user.click(screen.getByRole('tab', { name: 'From template' }));
@@ -137,7 +143,7 @@ describe('AppList', () => {
         render(<AppList onOpen={onOpen} />);
         await screen.findByText('My tracker');
 
-        await user.click(screen.getByRole('button', { name: /New app/ }));
+        await openNewApp(user);
         await user.click(screen.getByRole('tab', { name: 'From template' }));
         await screen.findByText('Ticket tracker');
         await user.click(screen.getByText('Ticket tracker'));
@@ -155,7 +161,7 @@ describe('AppList', () => {
         render(<AppList onOpen={onOpen} />);
         await screen.findByText('My tracker');
 
-        await user.click(screen.getByRole('button', { name: /New app/ }));
+        await openNewApp(user);
         await user.click(screen.getByRole('tab', { name: 'From template' }));
         await screen.findByText('Ticket tracker');
 
@@ -183,7 +189,7 @@ describe('AppList', () => {
         render(<AppList onOpen={onOpen} />);
         await screen.findByText('My tracker');
 
-        await user.click(screen.getByRole('button', { name: /New app/ }));
+        await openNewApp(user);
         await user.click(screen.getByRole('tab', { name: 'From template' }));
         await screen.findByText('Ticket tracker');
 
@@ -208,7 +214,7 @@ describe('AppList', () => {
 
         render(<AppList onOpen={vi.fn()} />);
         await screen.findByText('My tracker');
-        await user.click(screen.getByRole('button', { name: /New app/ }));
+        await openNewApp(user);
         await user.click(screen.getByRole('tab', { name: 'From template' }));
         await screen.findByText('Aanvraag automatisering');
 
@@ -236,7 +242,7 @@ describe('AppList', () => {
 
         render(<AppList onOpen={vi.fn()} />);
         await screen.findByText('My tracker');
-        await user.click(screen.getByRole('button', { name: /New app/ }));
+        await openNewApp(user);
         await user.click(screen.getByRole('tab', { name: 'From template' }));
         await screen.findByText('Eigen sjabloon');
 
@@ -251,7 +257,7 @@ describe('AppList', () => {
         render(<AppList onOpen={onOpen} />);
         await screen.findByText('My tracker');
 
-        await user.click(screen.getByRole('button', { name: /New app/ }));
+        await openNewApp(user);
         await user.clear(screen.getByPlaceholderText('e.g. Vacation requests'));
         await user.type(screen.getByPlaceholderText('e.g. Vacation requests'), 'Vacation requests');
         await user.click(screen.getByRole('button', { name: /Create app/ }));
@@ -325,7 +331,7 @@ describe('AppList', () => {
         render(<AppList onOpen={vi.fn()} />);
         await screen.findByText('My tracker');
 
-        await user.click(screen.getByRole('button', { name: /New app/ }));
+        await openNewApp(user);
         await user.click(screen.getByRole('tab', { name: 'From template' }));
 
         // The failed fetch leaves templates null — the load must NOT loop.

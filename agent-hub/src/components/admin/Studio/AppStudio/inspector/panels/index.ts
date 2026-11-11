@@ -46,8 +46,9 @@ import './KanbanInspector';
 import './RecordDetailInspector';
 // AI — needs the shared model-tier + knowledge-base pickers SpecPanel can't render.
 import './AiChatInspector';
-// The custom block: its template and stylesheet as text, what the sanitiser leaves out, a preview.
-import './CustomBlockInspector';
+// The custom block: its template and stylesheet as text, what the sanitiser leaves out, a preview
+// (loaded when a block is selected).
+import './CustomBlockPanel';
 
 ;
 ;

@@ -5,6 +5,7 @@ import { screenApp } from '@/test/appScreenRender';
 import { findNode } from '../../state/definitionOps';
 import type { AppDefinition, AppNode } from '../appDefinition';
 import CustomBlockInspector from './CustomBlockInspector';
+import CustomBlockPanel from './CustomBlockPanel';
 import { getInspectorForType, getPanelCoverage } from '../registry';
 
 const ID = 'cmp_blk000001';
@@ -20,9 +21,13 @@ function panel(block: Record<string, unknown> | undefined, extra: Record<string,
 }
 
 describe('CustomBlockInspector', () => {
-    it('is the panel of custom_block and edits its one prop', () => {
-        expect(getInspectorForType('custom_block')).toBe(CustomBlockInspector);
+    it('is the panel of custom_block and edits its one prop', async () => {
+        // Registered through CustomBlockPanel, which loads this panel when a block is selected.
+        expect(getInspectorForType('custom_block')).toBe(CustomBlockPanel);
         expect(getPanelCoverage('custom_block')).toEqual({ props: ['block'] });
+        const definition = screenApp([{ id: ID, type: 'custom_block', visible: true, style: { span: 12 }, props: { block: { template: '<p>a</p>' } } }], ACTIONS);
+        render(<CustomBlockPanel node={findNode(definition, ID).node as AppNode} definition={definition} onCommit={vi.fn()} />);
+        expect(await screen.findByLabelText('HTML template', {}, { timeout: 5000 })).toBeTruthy();
     });
 
     it('writes the template as typed and keeps the rest of the block', async () => {

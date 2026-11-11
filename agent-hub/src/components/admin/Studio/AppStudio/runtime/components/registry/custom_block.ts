@@ -1,10 +1,13 @@
 import { CodeXml } from 'lucide-react';
-import AppCustomBlock from '../customBlock/AppCustomBlock';
+import CustomBlockLoader from '../customBlock/CustomBlockLoader';
 import type { ComponentExtension } from '../../componentRegistry.types';
 
-/** `custom_block`: the builder's own HTML template and stylesheet in a frame without script (../customBlock/). */
+/**
+ * `custom_block`: the builder's own HTML template and stylesheet in a frame without script
+ * (../customBlock/). The renderer loads its own chunk when an app draws a block.
+ */
 const customBlock: ComponentExtension = {
-    Component: AppCustomBlock as ComponentExtension['Component'],
+    Component: CustomBlockLoader as ComponentExtension['Component'],
     icon: CodeXml,
     sample: {
         props: {

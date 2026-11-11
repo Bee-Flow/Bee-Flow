@@ -1,6 +1,11 @@
 import { act } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { renderScreen } from '@/test/appScreenRender';
+import { loadCustomBlock } from './CustomBlockLoader';
+
+// The registry draws the block through its loader (its own chunk); loaded first, it draws on
+// the first render, as in the headless render.
+beforeAll(async () => { await loadCustomBlock(); });
 
 const ACTION = 'act_pick000001';
 const BLOCK = {

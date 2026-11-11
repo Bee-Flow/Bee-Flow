@@ -5,11 +5,12 @@ import {
     Loader2,
     Plus,
 } from 'lucide-react';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { Suspense, useCallback, useEffect, useState } from 'react';
 import { CardBody, SkeletonGrid } from './list/AppCard';
 import { CARD_CLASSES, CARD_STYLE } from './list/cardStyle';
-import NewAppModal from './list/NewAppModal';
 import OwnerMenu from './list/OwnerMenu';
+import useAdjustOnChange from '@/hooks/useAdjustOnChange';
+import { lazy } from '@/utils/lazyWithReload';
 import { studioAppsApi } from './studioAppsApi';
 import useTranslation, { TranslateParams } from '@/hooks/useTranslation';
 import ConfirmDialog from '@/components/shared/ConfirmDialog';
@@ -17,6 +18,9 @@ import EmptyState from '@/components/shared/EmptyState';
 import Modal from '@/components/shared/Modal';
 import toast from '@/components/shared/Toast';
 import type { StudioApp, OpenOptions } from './list/types';
+
+// "New app" (blank, the template gallery, a template file) is its own chunk, loaded when it is first opened.
+const NewAppModal = lazy(() => import('./list/NewAppModal'));
 
 /**
  * App Studio — the Apps gallery (Studio section landing view).
@@ -52,6 +56,9 @@ export default function AppList({ onOpen }: AppListProps) {
     const [error, setError] = useState<string | null>(null);
 
     const [showCreate, setShowCreate] = useState(false);
+    // The modal is mounted from its first opening on, so it keeps its templates between openings.
+    const [createMounted, setCreateMounted] = useState(false);
+    useAdjustOnChange([showCreate], () => { if (showCreate) setCreateMounted(true); });
     const [renameTarget, setRenameTarget] = useState<StudioApp | null>(null);
     const [renameValue, setRenameValue] = useState('');
     const [renameBusy, setRenameBusy] = useState(false);
@@ -176,11 +183,15 @@ export default function AppList({ onOpen }: AppListProps) {
 
             <AppListSection loading={loading} isEmpty={isEmpty} t={t} setShowCreate={setShowCreate} apps={apps} ownedIds={ownedIds} onOpen={onOpen} setUpgradeTarget={setUpgradeTarget} startRename={startRename} setDeleteTarget={setDeleteTarget} />
 
-            <NewAppModal
-                open={showCreate}
-                onClose={() => setShowCreate(false)}
-                onCreated={handleCreated}
-            />
+            {createMounted ? (
+                <Suspense fallback={null}>
+                    <NewAppModal
+                        open={showCreate}
+                        onClose={() => setShowCreate(false)}
+                        onCreated={handleCreated}
+                    />
+                </Suspense>
+            ) : null}
 
             <Modal
                 open={!!renameTarget}

@@ -7,7 +7,6 @@ import FormField from '@/components/shared/FormField';
 import SegmentedControl from '@/components/shared/SegmentedControl';
 import useTranslation from '@/hooks/useTranslation';
 import ActionPicker from '../ActionPicker';
-import { registerInspector } from '../registry';
 import { updateNodeProps } from '../../state/definitionOps';
 import { BLOCK_CSS_MAX, sanitizeBlockCssClient } from '../../runtime/components/customBlock/blockCss';
 import { blockEntries, buildBlockFrame, type BlockFinding, type BlockValue } from '../../runtime/components/customBlock/blockPipeline';
@@ -25,6 +24,9 @@ import type { AppDefinition, AppNode, PanelProps } from '../appDefinition';
  * The preview is built by the same code as the block on the page (blockPipeline.ts), in the
  * same kind of frame. It knows the inputs with a fixed value only: the canvas shows the block
  * with the app's data.
+ *
+ * Registered through ./CustomBlockPanel.tsx, which loads this panel (and the template engine
+ * it brings) when a custom_block is selected.
  */
 
 type Tab = 'template' | 'css';
@@ -286,5 +288,3 @@ export default function CustomBlockInspector({ node, definition, onCommit, disab
         </div>
     );
 }
-
-registerInspector('custom_block', CustomBlockInspector, { props: ['block'] });
