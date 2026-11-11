@@ -39895,6 +39895,10 @@ const EN_DEFAULTS = {
     "studio_apps_variables.editor.persist_local": "On this device",
     "studio_apps_variables.editor.persist_none": "No",
     "studio_apps_variables.editor.persist_session": "Until the browser tab closes",
+    "studio_apps_w3d.color.mode_token": "Token",
+    "studio_apps_w3d.color.no_tokens": "This app has no colour tokens yet. Add them under Theme, Tokens.",
+    "studio_apps_w3d.color.token_aria": "Colour token",
+    "studio_apps_w3d.color.token_unknown": "Token \"{name}\" is not a colour token of this app, so it paints nothing.",
 };
 
 export default EN_DEFAULTS;
