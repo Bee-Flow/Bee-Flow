@@ -43,15 +43,43 @@ function makeKbPassagesText({ userOrgForTiers, userId }) {
 }
 
 /**
+ * The source cards for passages that went into the prompt: one `kb_sources`
+ * event in the shared citation shape (core/kb/citation.js), the same one the
+ * kb_search tool, agents and notebook chat send. Called with exactly the
+ * passages the prompt got (quickKBSearch has already made its relevance cut
+ * and cap, and the Privacy Shield strip has rewritten their text in place), so
+ * a card never points at text the model did not see. The citations also go
+ * into `kbSources`, the turn's collector that finalizeRows stores on the
+ * assistant message, so the cards are there again when the chat is reopened.
+ * Best effort: a card that cannot be built never costs the answer.
+ * @param {{ send?: ((event: string, data: unknown) => void) | null, kbSources?: any[] | null }} sink
+ * @param {any[]} passages
+ */
+async function emitKbSources({ send = null, kbSources = null }, passages) {
+    if (!Array.isArray(passages) || passages.length === 0) return;
+    try {
+        const { toCitations, addCitations } = require('../../../core/kb/citation');
+        const { withOriginalFlags } = require('../../../core/kb/originals.mts');
+        const sources = toCitations(await withOriginalFlags(passages), { kind: 'kb_chunk' });
+        if (sources.length === 0) return;
+        if (typeof send === 'function') send('kb_sources', { sources });
+        addCitations(kbSources, sources);
+    } catch (e) {
+        log.warn('[DirectChat] KB source cards failed:', /** @type {Error} */ (e).message);
+    }
+}
+
+/**
  * Project context. `projectId` comes from the REQUEST BODY and is therefore
  * attacker-chosen: it is resolved into `validProjectId` ONCE, here, and only
  * that is used from this point on. Memory retrieval drops its `user_id`
  * filter whenever a projectId is present (memoryStore.findRelevantMemories),
  * so an unvalidated id would inject any project's memories into the prompt.
  * @param {{ req: any, userId: string, projectId?: string | null, message: string, kbPassagesText: (chunks: any[]) => Promise<string>,
- *   queryLog?: import('../../../core/kb/queryLog/hook.mts').LogOption | null, queryLogs?: object | null }} p
+ *   queryLog?: import('../../../core/kb/queryLog/hook.mts').LogOption | null, queryLogs?: object | null,
+ *   send?: ((event: string, data: unknown) => void) | null, kbSources?: any[] | null }} p
  */
-async function projectContextFor({ req, userId, projectId, message, kbPassagesText, queryLog = null, queryLogs = null }) {
+async function projectContextFor({ req, userId, projectId, message, kbPassagesText, queryLog = null, queryLogs = null, send = null, kbSources = null }) {
     const out = { stable: '', volatile: '', validProjectId: null, extractMemoriesEnabled: false };
     if (!projectId) return out;
     const { resolveRequestedProject } = require('../../../auth/projectAccess');
@@ -76,6 +104,7 @@ async function projectContextFor({ req, userId, projectId, message, kbPassagesTe
             // Retrieved against THIS turn's message: volatile.
             out.volatile += `\n\n[PROJECT KNOWLEDGE BASE — "${project.name}"]\nRelevant information from this project's knowledge base:\n${kbText}`;
             log.info(`[DirectChat] Injected ${kbResults.length} KB chunks from project "${project.name}"`);
+            await emitKbSources({ send, kbSources }, kbResults);
         }
     } catch (kbErr) {
         log.warn('[DirectChat] Project KB search failed:', kbErr.message);
@@ -90,9 +119,10 @@ async function projectContextFor({ req, userId, projectId, message, kbPassagesTe
  * promptAssembly.js). `usableKbIds` is what survived both checks, and also
  * what gets persisted at the end of the turn.
  * @param {{ req: any, userId: string, message: string, requestedKbIds?: string[] | null, orgIdsForTiers?: any, kbPassagesText: (chunks: any[]) => Promise<string>,
- *   queryLog?: import('../../../core/kb/queryLog/hook.mts').LogOption | null, queryLogs?: object | null }} p
+ *   queryLog?: import('../../../core/kb/queryLog/hook.mts').LogOption | null, queryLogs?: object | null,
+ *   send?: ((event: string, data: unknown) => void) | null, kbSources?: any[] | null }} p
  */
-async function attachedKbContext({ req, userId, message, requestedKbIds, orgIdsForTiers, kbPassagesText, queryLog = null, queryLogs = null }) {
+async function attachedKbContext({ req, userId, message, requestedKbIds, orgIdsForTiers, kbPassagesText, queryLog = null, queryLogs = null, send = null, kbSources = null }) {
     const out = { volatile: '', usableKbIds: [] };
     if (!(Array.isArray(requestedKbIds) && requestedKbIds.length > 0)) return out;
     const { resolveUsableKbIds } = require('../../../core/kb/kbSelection');
@@ -121,6 +151,7 @@ async function attachedKbContext({ req, userId, message, requestedKbIds, orgIdsF
             // Retrieved against THIS turn's message: volatile.
             out.volatile += `\n\n[ATTACHED KNOWLEDGE BASES]\nRelevant information from the knowledge bases attached to this chat:\n${kbText}`;
             log.info(`[DirectChat] Injected ${kbResults.length} KB chunks from ${out.usableKbIds.length} attached KBs`);
+            await emitKbSources({ send, kbSources }, kbResults);
         }
     } catch (kbErr) {
         log.warn('[DirectChat] Direct-chat KB search failed:', kbErr.message);
@@ -294,7 +325,7 @@ function capabilityContextFor(directChatTools) {
 }
 
 module.exports = {
-    makeKbPassagesText, projectContextFor, attachedKbContext, retrieveMemories, houseStyleContextFor,
+    makeKbPassagesText, emitKbSources, projectContextFor, attachedKbContext, retrieveMemories, houseStyleContextFor,
     notebookContextFor, sidePanelContext, skillsContextFor, capabilityContextFor,
 };
 

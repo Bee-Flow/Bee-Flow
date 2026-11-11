@@ -277,6 +277,44 @@ function toCitations(rows, opts = {}) {
     return rows.map((row, index) => toCitation(row, { ...opts, index }));
 }
 
+/**
+ * What makes two citations of one answer the same passage: the chunk, else the
+ * live table row, else title, section and the start of the text. The web
+ * client merges `kb_sources` events by the same rule
+ * (agent-hub useChatEngine/sse/handlers/answerParts.ts `sourceKey`), so a
+ * stored answer lists what the live one showed.
+ * @param {CitationLike | null | undefined} c  a citation
+ * @returns {string}
+ */
+function citationKey(c) {
+    if (c?.chunkId != null) return `chunk:${String(c.chunkId)}`;
+    if (c?.datatableId != null && c?.rowId != null) return `row:${String(c.datatableId)}:${String(c.rowId)}`;
+    return `text:${String(c?.title ?? '')}::${String(c?.section ?? '')}::${String(c?.content || '').slice(0, 100)}`;
+}
+
+/**
+ * Append the citations `list` does not hold yet (by `citationKey`). Mutates `list`.
+ * @param {CitationLike[] | null | undefined} list
+ * @param {CitationLike[] | null | undefined} citations
+ */
+function addCitations(list, citations) {
+    if (!Array.isArray(list) || !Array.isArray(citations)) return;
+    const seen = new Set(list.map(citationKey));
+    for (const c of citations) {
+        const key = citationKey(c);
+        if (seen.has(key)) continue;
+        seen.add(key);
+        list.push(c);
+    }
+}
+
+/**
+ * What `citationKey` reads of a citation: a `toCitation` result, or the same
+ * shape from a tool that built its own.
+ * @typedef {{ chunkId?: unknown, datatableId?: unknown, rowId?: unknown, title?: unknown, section?: unknown, content?: unknown }} CitationLike
+ */
+
 module.exports = {
     toCitation, toCitations, sectionLabelOf, pageOf, rowRangeOf, rowRefOf, occurredAtOf, CITATION_FIELDS,
+    citationKey, addCitations,
 };

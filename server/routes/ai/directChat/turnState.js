@@ -122,6 +122,10 @@ function createTurnState({
         memoryUsed: /** @type {PromptAndHistory['memoryUsed']} */ ([]),
         // KB query log: the collector of this turn's searches (core/kb/queryLog/hook.mts).
         queryLogs: /** @type {PromptAndHistory['queryLogs']} */ (undefined),
+        // The source cards of this turn (core/kb/citation.js shape): the injected
+        // passages (promptContext.js), then every kb_search result
+        // (toolResultEvents.js). Stored on the assistant message as `kbSources`.
+        kbSources: /** @type {PromptAndHistory['kbSources']} */ ([]),
 
         // ── The shared project thread's turn lock ─────────────────────
         // On the state and not in the handler because the `finally` that
