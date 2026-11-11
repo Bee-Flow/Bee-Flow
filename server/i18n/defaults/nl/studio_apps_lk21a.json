@@ -5,7 +5,9 @@
     "studio_apps_lk21a.radio.no_options": "Nog geen opties.",
     "studio_apps_lk21a.slider.default_label": "Niveau",
     "studio_apps_lk21a.rating.default_label": "Beoordeling",
-    "studio_apps_lk21a.rating.star": "{n} van {max}"
+    "studio_apps_lk21a.rating.star": "{n} van {max}",
+    "studio_apps_lk21a.accordion.empty": "Voeg onderdelen toe aan deze harmonica.",
+    "studio_apps_lk21a.accordion.section": "Onderdeel {n}"
   },
   "sameAsEnglish": [
     "studio_apps_lk21a.avatar.label"

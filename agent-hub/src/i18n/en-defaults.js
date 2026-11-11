@@ -39184,6 +39184,8 @@ const EN_DEFAULTS = {
     "studio_apps_lk21a.rating.default_label": "Rating",
     "studio_apps_lk21a.rating.star": "{n} of {max}",
     "studio_apps_lk21a.avatar.label": "Avatar",
+    "studio_apps_lk21a.accordion.empty": "Add items to this accordion.",
+    "studio_apps_lk21a.accordion.section": "Section {n}",
     "studio_apps_more_options.colour_picker_aria": "Pick a colour for {name}",
     "studio_apps_more_options.hex_aria": "Hex colour for {name}",
     "studio_apps_more_options.hex_placeholder": "#rrggbb",

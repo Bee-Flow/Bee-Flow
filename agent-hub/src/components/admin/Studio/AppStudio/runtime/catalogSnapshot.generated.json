@@ -2446,6 +2446,39 @@
                 "error"
             ]
         },
+        "accordion": {
+            "label": "Accordion",
+            "category": "Layout",
+            "container": true,
+            "defaultProps": {
+                "items": [
+                    {
+                        "title": "Section 1"
+                    },
+                    {
+                        "title": "Section 2"
+                    }
+                ],
+                "multiple": false
+            },
+            "defaultStyle": {
+                "span": 12,
+                "gap": 3,
+                "padding": 0
+            },
+            "since": 3,
+            "mobile": {
+                "reason": "The phone draws the base layout types only; an accordion stays in the browser."
+            },
+            "parts": [
+                "root",
+                "item",
+                "header",
+                "title",
+                "icon",
+                "panel"
+            ]
+        },
         "avatar": {
             "label": "Avatar",
             "category": "Content",
@@ -2866,6 +2899,11 @@
         "input_document": [
             "span",
             "size"
+        ],
+        "accordion": [
+            "span",
+            "gap",
+            "padding"
         ],
         "avatar": [
             "span",
