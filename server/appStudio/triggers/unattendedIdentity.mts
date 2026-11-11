@@ -42,6 +42,7 @@ import { ownAction } from '../actionCalls.mts';
 import type { RunMeta } from '../backgroundRunIdentity.mts';
 import type { App, StartInput } from '../backgroundRunParts.mts';
 import type { ActionRunRow } from '../../stores/studioAppData/actionRuns.mts';
+import { chainRefusedKinds } from './recordTriggerRule.mts';
 import { refusedKindsOf, triggerKind } from './triggerKinds.mts';
 import { readTriggers, triggerFingerprint } from './triggerSpec.mts';
 import type { AppTrigger } from './triggerSpec.mts';
@@ -56,7 +57,11 @@ type UserRow = Obj & { id: string; status?: string | null; organizationId?: stri
 type AppRow = App & { isPublished?: boolean; publishedDefinition?: Obj | null; publishedVersion?: number | null };
 
 /** What a fire is checked against: the armed row's owner, trigger and fingerprint. */
-export type ArmedRef = { appId: string; triggerId: string; ownerUserId: string; fingerprint: string };
+export type ArmedRef = {
+    appId: string; triggerId: string; ownerUserId: string; fingerprint: string;
+    /** Step kinds this one fire refuses besides: what the chain it is in refuses (recordTriggerRule.mts rule 6). */
+    refusedKinds?: readonly string[];
+};
 
 export type UnattendedRefusal = { ok: false; code: string; error: string; stale: boolean };
 export type UnattendedContext = { ok: true; input: StartInput; trigger: AppTrigger } | UnattendedRefusal;
@@ -118,19 +123,19 @@ async function publishedAppOf(appId: string, ownerUserId: string, deps: Unattend
 }
 
 /** Rules 4 and 5 for a trigger of the published definition (its fingerprint is the caller's to compare). */
-function triggerOf(def: Obj, triggerId: string): { trigger: AppTrigger } | UnattendedRefusal {
+function triggerOf(def: Obj, triggerId: string, chainRefused: readonly string[]): { trigger: AppTrigger } | UnattendedRefusal {
     const trigger = readTriggers(def).find((t) => t.id === triggerId);
     if (!trigger || trigger.enabled === false || !triggerKind(trigger.kind)) return stale('trigger_gone', CHANGED);
     const action = ownAction(def.actions, trigger.actionId);
     const problems = unattendedActionProblems(action, trigger.actionId, {
-        resolveCalled: (id) => ownAction(def.actions, id), refusedKinds: refusedKindsOf(triggerKind(trigger.kind), trigger),
+        resolveCalled: (id) => ownAction(def.actions, id), refusedKinds: [...refusedKindsOf(triggerKind(trigger.kind), trigger), ...chainRefused],
     });
     if (problems.length) return held('not_unattended', problems[0].message);
     return { trigger };
 }
 
 /** Rule 6: the run's identity. The viewer is the owner; anything else than role `owner` refuses. */
-async function ownerInput(found: { app: AppRow; def: Obj; owner: UserRow }, trigger: AppTrigger, deps: UnattendedDeps): Promise<StartInput | UnattendedRefusal> {
+async function ownerInput(found: { app: AppRow; def: Obj; owner: UserRow }, trigger: AppTrigger, deps: UnattendedDeps, chainRefused: readonly string[] = []): Promise<StartInput | UnattendedRefusal> {
     const { app, def, owner } = found;
     const model = await deps.getModel(app);
     const role = await deps.resolveRole(app, owner.id, model);
@@ -142,8 +147,14 @@ async function ownerInput(found: { app: AppRow; def: Obj; owner: UserRow }, trig
         definitionVersion: typeof app.publishedVersion === 'number' ? app.publishedVersion : null,
         viewer: { id: owner.id, name: text(owner.name) ?? text(owner.username), email: text(owner.email), organizationId: text(owner.organizationId) },
         scope: {},
-        unattended: { refusedKinds: refusedKindsOf(triggerKind(trigger.kind), trigger) },
+        unattended: { refusedKinds: [...refusedKindsOf(triggerKind(trigger.kind), trigger), ...chainRefused], ...chainStartOf(trigger) },
     };
+}
+
+/** How this trigger starts a chain of runs, when a call from outside or a stranger's write can start it (recordTriggerRule.mts rule 6). */
+function chainStartOf(trigger: AppTrigger): { start?: 'public' | 'webhook' } {
+    if (trigger.kind === 'webhook') return { start: 'webhook' };
+    return trigger.kind === 'record' && trigger.allowPublicWrites === true ? { start: 'public' } : {};
 }
 
 /** What a fire of the armed trigger runs as, or why it does not run (the rule in the header). */
@@ -151,12 +162,13 @@ export async function loadUnattendedContext(armed: ArmedRef, given: Partial<Unat
     const deps = { ...defaultDeps(), ...given };
     const found = await publishedAppOf(armed.appId, armed.ownerUserId, deps);
     if ('ok' in found) return found;
-    const what = triggerOf(found.def, armed.triggerId);
+    const chainRefused = armed.refusedKinds ?? [];
+    const what = triggerOf(found.def, armed.triggerId, chainRefused);
     // Rule 4 before rule 5: a trigger that is not what was armed is stale, whatever its steps are.
     const trigger = 'trigger' in what ? what.trigger : readTriggers(found.def).find((t) => t.id === armed.triggerId);
     if (trigger && triggerFingerprint(found.def, trigger) !== armed.fingerprint) return stale('definition_changed', CHANGED);
     if ('ok' in what) return what;
-    const input = await ownerInput(found, what.trigger, deps);
+    const input = await ownerInput(found, what.trigger, deps, chainRefused);
     return 'ok' in input ? input : { ok: true, input, trigger: what.trigger };
 }
 
@@ -178,8 +190,9 @@ export async function loadUnattendedResumeContext(row: ActionRunRow, meta: RunMe
     const trigger = readTriggers(found.def).find((t) => t.id === row.triggerId);
     if (!trigger || trigger.enabled === false || !triggerKind(trigger.kind)) return no('trigger_gone', GONE);
     if (!ownAction(found.def.actions, row.actionId)) return no('action_removed', 'The action was removed from the app while this run was waiting, so the run was ended.');
-    const input = await ownerInput(found, { ...trigger, actionId: row.actionId }, deps);
-    if ('ok' in input) return no(input.code, input.error);
     const scope = await deps.resumeScope(row.id, trigger);
+    // The chain the run is in is read again from its root: what it refused before the wait, it refuses after it.
+    const input = await ownerInput(found, { ...trigger, actionId: row.actionId }, deps, chainRefusedKinds(scope));
+    if ('ok' in input) return no(input.code, input.error);
     return { ok: true, input: scope ? { ...input, scope: { ...input.scope, trigger: scope } } : input };
 }

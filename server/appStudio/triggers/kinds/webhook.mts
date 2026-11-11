@@ -14,10 +14,13 @@
  *
  * A webhook run may not carry an http_request step: what a delivery brings in does not leave
  * again over HTTP (personal data leaves Bee Flow only by e-mail, and a webhook must not become
- * a relay). Everything else an unattended run may do, it may do.
+ * a relay). Everything else an unattended run may do, it may do. The same holds for every run
+ * further down a chain a delivery starts: a record trigger that fires on a row a webhook run
+ * wrote runs no http_request either (recordTriggerRule.mts rule 6).
  */
 
 import type { Finding, KindValidateCtx, Obj, Push, TriggerKind } from '../triggerKinds.mts';
+import { INBOUND_REFUSED_KINDS } from '../recordTriggerRule.mts';
 
 export const WEBHOOK_AUTH = 'hmac';
 
@@ -47,13 +50,13 @@ const webhook: TriggerKind = {
     canon,
     validate,
     config: () => ({ auth: WEBHOOK_AUTH }),
-    refusedKinds: ['http_request'],
+    refusedKinds: INBOUND_REFUSED_KINDS,
     shape: '{ id, kind: "webhook", actionId, auth: "hmac", enabled? }',
     description: 'webhook runs the action when another system sends a signed POST with a JSON body to the trigger\'s address. '
         + 'The action reads the delivery as trigger.webhook.body (the parsed JSON), trigger.webhook.headers, trigger.webhook.deliveryId and trigger.webhook.receivedAt. '
         + 'The body is untrusted input: check what you read from it, as with a form. '
         + 'The address and the signing secret are made when the app is published and are shown to the owner in the Triggers panel; they are never part of the app and you cannot read or set them. '
-        + 'A webhook run may not hold an http_request step.',
+        + 'A webhook run may not hold an http_request step, and neither may a record trigger\'s run that a row written by a webhook run starts.',
 };
 
 export default webhook;

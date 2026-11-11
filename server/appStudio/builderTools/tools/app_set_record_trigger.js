@@ -14,7 +14,7 @@ module.exports = {
         + 'It fires on a change a person makes in the app (a grid or form edit, or a create_record / update_record / delete_record step by record id) and on such a step of another trigger run. '
         + 'It does NOT fire on rows written by app_seed_records, app_update_records, app_run_action or app_run_tests, on imports, template installs or connector sync, on the mailbox hook, ai_extract or file_intake rows, '
         + 'on a transaction step, or on update_record / delete_record with a filter. '
-        + 'If visitors of a public page can write the table (the public role may create, update or delete in it), pass allowPublicWrites: true; the action may then hold no send_email, run_automation, request_approval or delete_record step. '
+        + 'If visitors of a public page can write the table (the public role may create, update or delete in it), pass allowPublicWrites: true; the action may then hold no send_email, run_automation, request_approval, delete_record or http_request step. '
         + 'Loops end by themselves: a trigger never fires on a row its own run wrote, and a chain of trigger runs stops after 3. Runs come one at a time per trigger, in the order of the changes. '
         + 'The action must exist (app_set_action first) and may hold only steps that run unattended; a refused call names the step. '
         + 'This changes the draft only: the trigger runs once a person PUBLISHES the app, as the app owner (role owner, with the owner\'s access to every row). Say so to the user. '

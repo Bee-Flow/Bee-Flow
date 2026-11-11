@@ -24,6 +24,7 @@
     "studio_apps_h4.runs.by_owner": "door de eigenaar",
     "studio_apps_h4.runs.by_public": "door een bezoeker",
     "studio_apps_h4.runs.by_trigger": "door een andere trigger",
+    "studio_apps_h4.runs.by_webhook": "door een run die een webhook startte",
     "studio_apps_h4.runs.event_create": "Rij toegevoegd",
     "studio_apps_h4.runs.event_delete": "Rij verwijderd",
     "studio_apps_h4.runs.event_update": "Rij gewijzigd",

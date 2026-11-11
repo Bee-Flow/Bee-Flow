@@ -30,9 +30,11 @@ export type StartInput = {
     /**
      * A run nobody started by hand (a trigger): the viewer is the app owner and there is no page.
      * The host then refuses, step by step, every kind that may not run unattended
-     * (triggers/unattendedPolicy.mts); `refusedKinds` are the ones the trigger's kind adds.
+     * (triggers/unattendedPolicy.mts); `refusedKinds` are the ones the trigger's kind adds, and
+     * the ones the chain the run is in adds (triggers/recordTriggerRule.mts rule 6). `start`: how
+     * the run's own trigger starts a chain, when a stranger or a call from outside can start it.
      */
-    unattended?: { refusedKinds: readonly string[] };
+    unattended?: { refusedKinds: readonly string[]; start?: 'public' | 'webhook' };
 };
 
 export type RunnerDeps = {

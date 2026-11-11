@@ -21,7 +21,11 @@ const { makeRecordEventStore } = require('../../stores/studioAppData/recordEvent
 const { writeThrough, _setOutboxDeps, changedFields } = require('./recordOutbox.mts');
 const { recordEventPass, resumeScope } = require('./recordDrain.mts');
 const { recordTriggerLimits } = require('./recordTriggerLimits.mts');
-const { deliveryRefusal, writerKindOf, readWriteSource, publicWritableEvents, needsPublicOptIn, PUBLIC_REFUSED_KINDS, UNKNOWN_DEPTH } = require('./recordTriggerRule.mts');
+const {
+    deliveryRefusal, writerKindOf, writerKeyOf, readWriteSource, publicWritableEvents, needsPublicOptIn, chainOriginOf, chainRefusedKinds,
+    PUBLIC_REFUSED_KINDS, INBOUND_REFUSED_KINDS, UNKNOWN_DEPTH,
+} = require('./recordTriggerRule.mts');
+const { triggerCtx } = require('./runTriggerCtx.mts');
 const { validateTriggers } = require('./triggerSpec.mts');
 const { armedTriggersOf } = require('./triggerSync.mts');
 const { triggerLimits } = require('./triggerLimits.mts');
@@ -330,6 +334,81 @@ test('one writer cannot start more runs per minute than the burst limit; the tri
     await pass();
     await write(TABLES.orders, 'create', { viewer: { id: 'u_ben', role: 'agent' } });
     assert.equal((await drain()).fired, 2, 'the limit is per writer');
+});
+
+test('visitors of public pages are one writer for the burst limit, whatever id each visit carries', async () => {
+    assert.equal(writerKeyOf('public', { id: 'anon:1', role: 'public' }, 'app_1'), writerKeyOf('public', { id: 'anon:2', role: 'public' }, 'app_1'));
+    assert.notEqual(writerKeyOf('member', MEMBER, 'app_1'), writerKeyOf('member', { id: 'u_ben', role: 'agent' }, 'app_1'));
+    rl.writerBurst = 1;
+    await publish(def([onRecord('on_intake', 'tbl_intake', { on: ['create'], allowPublicWrites: true })]));
+    await write(TABLES.intake, 'create', { viewer: { id: 'anon:aaaa', role: 'public' } });
+    assert.equal((await drain()).fired, 1);
+    for (const r of await runs()) await settle(r.id);
+    await pass();
+    await write(TABLES.intake, 'create', { viewer: { id: 'anon:bbbb', role: 'public' } });
+    assert.deepEqual([(await drain()).fired, (await row('on_intake')).lastStatus], [0, 'skipped']);
+    assert.match((await row('on_intake')).lastError, /STUDIO_APP_RECORD_TRIGGER_WRITER_BURST=1/);
+});
+
+// ── Rule 6: a chain keeps its start ─────────────────────────────────────────
+
+test('a run that a visitor\'s write could start writes as public again: the next trigger needs the opt-in too', async () => {
+    assert.ok(PUBLIC_REFUSED_KINDS.includes('http_request'), 'a step a public page may not run is not run for a visitor by a trigger either');
+    for (const [optIn, fires] of [[false, 0], [true, 1]]) {
+        await h.pg.query('DELETE FROM studio_app_record_events');
+        s.executed.length = 0;
+        await publish(def([
+            onRecord('on_intake', 'tbl_intake', { on: ['create'], allowPublicWrites: true }),
+            onRecord('on_log', 'tbl_log', { on: ['create'], actionId: 'act_tell', ...(optIn ? { allowPublicWrites: true } : {}) }),
+        ], { act_tell: { kind: 'sequence', steps: [h.write('orders')] } }));
+        await write(TABLES.intake, 'create', { viewer: VISITOR });
+        assert.equal((await drain()).fired, 1);
+        await settle((await row('on_intake')).lastRunId);
+        const { ctx } = s.executed[0];
+        assert.deepEqual(ctx.writeSource, { kind: 'trigger', depth: 1, triggerId: 'on_intake', origin: 'public' });
+        // The run's own write, as actionExecutor/records.js hands it on.
+        await write(TABLES.log, 'create', { source: readWriteSource(ctx.writeSource), viewer: OWNER });
+        const recorded = (await outbox()).filter((e) => e.trigger_id === 'on_log').map((e) => [e.writer_kind, e.writer_key, e.depth]);
+        assert.deepEqual(recorded, optIn ? [['public', null, 1]] : [], `allowPublicWrites=${optIn}: recorded`);
+        await pass();
+        assert.equal((await drain()).fired, fires, `allowPublicWrites=${optIn}: fired`);
+        if (!fires) assert.match((await row('on_log')).lastError, /allowPublicWrites/);
+        for (const r of await runs()) await settle(r.id);
+        await unpublish();
+    }
+});
+
+test('a chain a webhook delivery started runs no http_request further down, at the fire and after a wait', async () => {
+    const CALL = { kind: 'http_request', connectorId: 'conn_ab12cd', method: 'GET', path: '/v1/orders' };
+    // What a webhook trigger's run hands its record writes.
+    const webhookRun = { unattended: { refusedKinds: ['http_request'], start: 'webhook' }, scope: { trigger: { kind: 'webhook', webhook: { body: { kind: 'record', record: { by: 'member', depth: 0 } } } } } };
+    const source = triggerCtx(webhookRun).writeSource;
+    assert.deepEqual(source, { kind: 'trigger', depth: 1, triggerId: null, origin: 'webhook' }, 'nothing in the body changes the chain');
+    assert.equal(chainOriginOf(null, { kind: 'record', record: { by: 'webhook' } }), 'webhook');
+    assert.equal(chainOriginOf('webhook', { kind: 'record', record: { by: 'public' } }), 'public', 'of two starts the stricter one counts');
+    assert.equal(chainOriginOf(null, { kind: 'record', record: { by: 'member' } }), null);
+
+    await publish(def([onRecord('calls_out', 'tbl_orders', { on: ['create'], actionId: 'act_call' }), onRecord('plain', 'tbl_orders', { on: ['create'] })],
+        { act_call: { kind: 'sequence', steps: [CALL] } }));
+    await write(TABLES.orders, 'create', { source: readWriteSource(source), viewer: OWNER });
+    assert.deepEqual((await outbox()).map((e) => [e.trigger_id, e.writer_kind, e.writer_key]), [['calls_out', 'webhook', null], ['plain', 'webhook', null]]);
+    const out = await drain();
+    assert.deepEqual([out.fired, out.skipped], [1, 1]);
+    const refused = await row('calls_out');
+    assert.equal(refused.lastStatus, 'refused');
+    assert.match(refused.lastError, /http_request/);
+    const run = await settle((await row('plain')).lastRunId);
+    assert.equal(run.status, 'success');
+    assert.equal(s.executed.at(-1).ctx.writeSource.origin, 'webhook', 'the run it did start carries the start on');
+    assert.deepEqual(chainRefusedKinds(s.executed.at(-1).ctx.trigger), INBOUND_REFUSED_KINDS, 'and refuses the step again while it runs and when it goes on after a wait');
+    assert.deepEqual(chainRefusedKinds({ kind: 'record', record: { by: null, depth: UNKNOWN_DEPTH } }), INBOUND_REFUSED_KINDS, 'a chain that cannot be read refuses it too');
+    assert.deepEqual(chainRefusedKinds({ kind: 'record', record: { by: 'member', depth: 0 } }), []);
+
+    // The same change written by a member starts both.
+    for (const r of await runs()) await settle(r.id);
+    await pass();
+    await write(TABLES.orders, 'create', { viewer: MEMBER });
+    assert.equal(await runToQuiet(), 2);
 });
 
 test('back-pressure: a change beyond the pending limit of the app is dropped and the trigger says so; the per-app fire limit still holds', async () => {

@@ -20,6 +20,7 @@ function writerText(by: string, t: TranslateFn): string {
     if (by === 'owner') return t('studio_apps_h4.runs.by_owner', 'by the owner');
     if (by === 'public') return t('studio_apps_h4.runs.by_public', 'by a visitor');
     if (by === 'trigger') return t('studio_apps_h4.runs.by_trigger', 'by another trigger');
+    if (by === 'webhook') return t('studio_apps_h4.runs.by_webhook', 'by a run a webhook started');
     return '';
 }
 

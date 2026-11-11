@@ -38,7 +38,7 @@ import type { TriggerRow } from '../../stores/studioAppData/triggers.mts';
 import { changedFields } from './recordOutbox.mts';
 import { recordLimitLabel, recordTriggerLimits } from './recordTriggerLimits.mts';
 import type { RecordTriggerLimits } from './recordTriggerLimits.mts';
-import { UNKNOWN_DEPTH, deliveryRefusal } from './recordTriggerRule.mts';
+import { UNKNOWN_DEPTH, chainRefusedKinds, deliveryRefusal } from './recordTriggerRule.mts';
 import { defaultFireDeps as fireDefaults, fireTrigger, triggerPass } from './triggerFire.mts';
 import { triggerScope } from './triggerScope.mts';
 import type { FireDeps, PassResult } from './triggerFire.mts';
@@ -143,7 +143,8 @@ async function deliver(ready: RecordDelivery, deps: DrainDeps, out: DrainResult)
         out.skipped += 1;
         return;
     }
-    const outcome = await fireTrigger(row, deps.fire, { trigger: triggerScopeOf(d) });
+    const root = triggerScopeOf(d);
+    const outcome = await fireTrigger(row, deps.fire, { trigger: root }, chainRefusedKinds(root));
     if (outcome === 'lost') {
         await events.release(d.seq);
         return;

@@ -132,9 +132,10 @@ export type FireOutcome = 'fired' | 'skipped' | 'disarmed' | 'lost';
 /**
  * Fire one armed row: the claim, the fresh identity, the limits, the start. `lost`: another
  * instance took the fire (or the row is no longer armed). `scope` is what a kind hands its
- * action (nothing for a schedule).
+ * action (nothing for a schedule). `refusedKinds`: step kinds this one fire refuses on top of the
+ * trigger's own, because of the chain it is in (recordTriggerRule.mts rule 6).
  */
-export async function fireTrigger(row: TriggerRow, deps: FireDeps, scope: StartInput['scope'] = {}): Promise<FireOutcome> {
+export async function fireTrigger(row: TriggerRow, deps: FireDeps, scope: StartInput['scope'] = {}, refusedKinds: readonly string[] = []): Promise<FireOutcome> {
     const store = deps.store();
     const now = deps.now();
     const kind = triggerKind(row.kind);
@@ -144,7 +145,7 @@ export async function fireTrigger(row: TriggerRow, deps: FireDeps, scope: StartI
     if (!claimed) return 'lost';
     let ctx: UnattendedContext;
     try {
-        ctx = await deps.context({ appId: row.appId, triggerId: row.triggerId, ownerUserId: row.ownerUserId, fingerprint: row.fingerprint });
+        ctx = await deps.context({ appId: row.appId, triggerId: row.triggerId, ownerUserId: row.ownerUserId, fingerprint: row.fingerprint, ...(refusedKinds.length ? { refusedKinds } : {}) });
     } catch (e) {
         deps.log.warn(`[StudioTriggers] app=${row.appId} trigger=${row.triggerId} could not be checked (${(e as Error)?.name || 'error'}); this fire is skipped`);
         await store.recordSkip(claimed, 'skipped', 'Skipped: the app could not be read.');

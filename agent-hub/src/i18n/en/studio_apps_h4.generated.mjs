@@ -30,6 +30,7 @@ export default {
     "studio_apps_h4.runs.by_owner": "by the owner",
     "studio_apps_h4.runs.by_public": "by a visitor",
     "studio_apps_h4.runs.by_trigger": "by another trigger",
+    "studio_apps_h4.runs.by_webhook": "by a run a webhook started",
     "studio_apps_h4.runs.event_create": "Row added",
     "studio_apps_h4.runs.event_delete": "Row deleted",
     "studio_apps_h4.runs.event_update": "Row changed",

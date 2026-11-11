@@ -148,7 +148,7 @@ async function recordChanges(app: App, table: Table, hooks: ArmedHook[], changes
         const limits = d.limits();
         const store = d.store();
         const writerKind = writerKindOf(source, viewer, app.userId);
-        const writerKey = writerKeyOf(writerKind, viewer, app.id);
+        const writerKey = writerKeyOf(writerKind, viewer, app.id, source);
         const depth = source.kind === 'trigger' ? source.depth : 0;
         const causeTriggerId = source.kind === 'trigger' ? source.triggerId : null;
         const tableId = typeof table.id === 'string' && table.id ? table.id : table.key;
