@@ -116,11 +116,15 @@ async function executeKbFetchTool(args, context = {}) {
 
     if (ids.length === 0) return { error: 'kb_fetch requires chunk_ids' };
 
+    // Access to a base can be withdrawn while its chunks sit in the cache: a
+    // chunk of a base the asker may not read now, or whose base is unknown, is
+    // answered like an id the cache never held.
+    const visible = new Set((await agentVisibleKbIds(context)).map(String));
     const hits = [];
     const misses = [];
     for (const id of ids) {
         const cached = kbQueryCache.getChunk(conversationId, id);
-        if (cached) {
+        if (cached && cached.kb_id && visible.has(cached.kb_id)) {
             hits.push({ chunk_id: id, title: cached.title, section: cached.section, content: cached.content });
         } else {
             misses.push(id);
@@ -342,6 +346,7 @@ async function executeKbSearchTool(toolName, args, context = {}) {
             section: sectionLabel,
             content: r.content,
             source_uri: r.source_uri || r.source_url || '',
+            kb_id: r.knowledge_base_id ? String(r.knowledge_base_id) : '',
         })));
 
         const payload = {

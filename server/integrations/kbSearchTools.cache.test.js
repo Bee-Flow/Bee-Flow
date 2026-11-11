@@ -20,7 +20,7 @@ const resolveProvider = require('../core/kb/resolveProvider');
 const localKBIngest = require('../core/kb/localKBIngest');
 const tool = require('./kbSearchTools');
 
-const chunk = (id, content) => ({ id, chunk_id: 0, document_id: `doc-${id}`, title: 'Handbook', source_uri: 'handbook.pdf', content, score: 0.9 });
+const chunk = (id, content) => ({ id, chunk_id: 0, document_id: `doc-${id}`, knowledge_base_id: id.replace(/-chunk$/, ''), title: 'Handbook', source_uri: 'handbook.pdf', content, score: 0.9 });
 
 /**
  * The agent has kb-shared and kb-hr; `access` says which of them each asker
@@ -85,4 +85,24 @@ test('kb_fetch resolves only chunks the asker\'s own search returned', async (t)
     const refused = await fetch('guest');
     assert.ok(refused.error, 'a chunk of a base the guest may not read is not served');
     assert.equal(JSON.stringify(refused).includes('content of kb-hr'), false);
+});
+
+test('kb_fetch no longer serves a cached chunk once its base is not visible to the asker', async (t) => {
+    /** @type {Record<string, string[]>} */
+    const access = { hr: ['kb-shared', 'kb-hr'] };
+    arrange(t, access);
+    await ask('hr', 'conv-withdrawn');
+    const fetch = () => tool.executeKbSearchTool('kb_fetch', { chunk_ids: ['kb-hr-chunk', 'kb-shared-chunk'] }, { userId: 'hr', agentId: 'a1', conversationId: 'conv-withdrawn' });
+
+    const before = await fetch();
+    assert.deepEqual(before.chunks.map((c) => c.chunk_id), ['kb-hr-chunk', 'kb-shared-chunk']);
+
+    access.hr = ['kb-shared'];
+    const after = await fetch();
+    assert.deepEqual(after.chunks.map((c) => c.chunk_id), ['kb-shared-chunk']);
+    assert.equal(JSON.stringify(after).includes('content of kb-hr'), false);
+
+    access.hr = [];
+    const none = await fetch();
+    assert.ok(none.error, 'with no visible base every id is not found');
 });

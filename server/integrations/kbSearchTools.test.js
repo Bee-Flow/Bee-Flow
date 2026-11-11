@@ -4,7 +4,7 @@ const assert = require('node:assert');
 const { preloadStubs } = require('../testUtils/stubRequire');
 
 const CHUNK = {
-    id: '11111111-2222-3333-4444-555555555555', chunk_id: 0, document_id: 'doc-1', source_id: 'src-1',
+    id: '11111111-2222-3333-4444-555555555555', chunk_id: 0, document_id: 'doc-1', knowledge_base_id: 'kb1', source_id: 'src-1',
     title: 'Handbook', source_uri: 'handbook.pdf', content: 'Leave requests go through the HR portal within five days.', score: 0.9,
 };
 
