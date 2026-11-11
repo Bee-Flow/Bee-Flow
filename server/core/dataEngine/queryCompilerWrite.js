@@ -30,6 +30,7 @@ function compileInsert(tableMeta, values, {
     const id = idOpt === undefined ? newRecordId() : assertRecordId(idOpt);
     const now = new Date().toISOString();
     const cols = ['id', 'created_at', 'updated_at', 'created_by', 'org_id'];
+    /** @type {unknown[]} */
     const params = [id, now, now, createdBy, orgId];
 
     const vals = (values && typeof values === 'object' && !Array.isArray(values)) ? values : {};
@@ -128,6 +129,7 @@ function compileSetClause(tableMeta, values, dialect) {
     const fm = fieldMap(tableMeta);
     const vals = (values && typeof values === 'object' && !Array.isArray(values)) ? values : {};
     const sets = [`${qi('updated_at')} = ?`];
+    /** @type {unknown[]} */
     const params = [new Date().toISOString()];
     for (const [k, v] of Object.entries(vals)) {
         if (SYSTEM_COLUMNS.includes(k)) continue; // system columns are server-owned
@@ -197,7 +199,7 @@ function compileUpsertByKey(tableMeta, keyFieldName, values, accessFilter, {
     assertRowsWritable(tableMeta, { allowLockedRows });
     assertAccessFilter(accessFilter);
     const fm = fieldMap(tableMeta);
-    const keyField = fm.get(keyFieldName);
+    const keyField = fm.get(String(keyFieldName));
     if (!keyField) throw new CompileError(`unknown field: ${keyFieldName}`);
     if (keyField.unique !== true) {
         throw new CompileError(`compileUpsertByKey needs "${keyFieldName}" to be a unique column`);
@@ -210,6 +212,7 @@ function compileUpsertByKey(tableMeta, keyFieldName, values, accessFilter, {
     const id = newRecordId();
     const now = new Date().toISOString();
     const cols = ['id', 'created_at', 'updated_at', 'created_by', 'org_id'];
+    /** @type {unknown[]} */
     const params = [id, now, now, createdBy, orgId];
     // Only the caller's own columns are refreshed on a conflict. id,
     // created_at and created_by stay whatever the row already had: the row IS

@@ -26,7 +26,7 @@ export async function loadOwnedAutomations(ownerId: string, store: AutomationLis
 
 const INACTIVE_AUTOMATION = 'action.automation_inactive';
 
-type Finding = { code?: string; severity?: string } & Record<string, unknown>;
+type Finding = { code?: string; severity?: string };
 type Validation = { ok: boolean; errors: Finding[]; warnings: Finding[] };
 
 const isInactive = (e: Finding | null | undefined): boolean => !!e && e.code === INACTIVE_AUTOMATION;
