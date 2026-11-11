@@ -230,6 +230,7 @@ export const INTEGRATION_CATALOG: CatalogEntry[] = [
     app('nmbrs', 'Productivity', { i18nKey: 'mobile.integrations.app_nmbrs', en: 'NMBRS' }, { i18nKey: 'mobile.integrations.app_nmbrs_desc', en: 'Read NMBRS payroll and HR data' }),
     app('vplan', 'Productivity', { i18nKey: 'mobile.integrations.app_vplan', en: 'vPlan' }, { i18nKey: 'mobile.integrations.app_vplan_desc', en: 'Read vPlan planning and time tracking' }),
     app('firebird', 'Productivity', { i18nKey: 'mobile.integrations.app_firebird', en: 'Firebird database' }, { i18nKey: 'mobile.integrations.app_firebird_desc', en: 'Read a Firebird database such as Syntess Atrium (SELECT only)' }),
+    app('frappe-crm', 'Productivity', { i18nKey: 'mobile.integrations.app_frappe_crm', en: 'Frappe CRM' }, { i18nKey: 'mobile.integrations.app_frappe_crm_desc', en: 'Read and update leads, deals, contacts, tasks and notes in Frappe CRM' }),
 
     app('withings', 'Health', WITHINGS, { i18nKey: 'mobile.integrations.app_withings_desc', en: 'Weight, blood pressure, sleep and activity' }),
 

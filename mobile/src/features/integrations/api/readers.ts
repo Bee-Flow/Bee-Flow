@@ -41,6 +41,7 @@ export const readUserSettings: (raw: unknown) => UserSettings | null = nullable(
         hasNmbrsConfig: flag,
         hasVplanConfig: flag,
         hasFirebirdConfig: flag,
+        hasFrappeCrmConfig: flag,
         hasLinkedInConfig: flag,
         hasWithingsConfig: flag,
         hasN8nConfig: flag,

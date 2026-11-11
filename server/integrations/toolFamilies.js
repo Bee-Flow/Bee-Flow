@@ -358,8 +358,8 @@ const INTEGRATION_TOOL_FAMILIES = [
     { name: 'nmbrs', order: 160, isTool: isNmbrsTool, execute: (n, a, ctx) => executeNmbrsTool(n, a, ctx.userId, { orgId: ctx.orgId }) },
     { name: 'vplan', order: 170, isTool: isVplanTool, execute: byUser(executeVplanTool) },
     { name: 'firebird', order: 175, isTool: n => require('./firebirdTools').isFirebirdTool(n), execute: byUser((n, a, u) => require('./firebirdTools').executeFirebirdTool(n, a, u)) }, // lazy: the driver loads on first use
-    // The run scope lets scaleway_download_invoice keep the PDF for this
-    // automation run and hand on a generated_file handle.
+    { name: 'frappe_crm', order: 177, isTool: n => require('./frappeCrmTools.mts').isFrappeCrmTool(n), execute: byUser((n, a, u) => require('./frappeCrmTools.mts').executeFrappeCrmTool(n, a, u)) },
+    // The run scope lets scaleway_download_invoice keep the PDF for this automation run and hand on a generated_file handle.
     { name: 'scaleway_billing', order: 180, isTool: isScalewayBillingTool, execute: (n, a, ctx) => executeScalewayBillingTool(n, a, ctx.userId, { automationId: ctx.automationId || null, runScope: ctx.runScope || null }) },
     // Lazily required: withingsTools pulls in automationAuth (and through it the
     // credential vault), which nothing else on this hot path needs.

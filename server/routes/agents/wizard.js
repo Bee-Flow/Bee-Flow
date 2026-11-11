@@ -130,6 +130,9 @@ async function getAvailableIntegrations(userId) {
         && !!(await configStore.getSecret(`firebird_database_user_${userId}`).catch((e) => fallback('routes/agents/wizard:getAvailableIntegrations#22', e, null)))
         && !!(await configStore.getSecret(`firebird_user_user_${userId}`).catch((e) => fallback('routes/agents/wizard:getAvailableIntegrations#23', e, null)))
         && !!(await configStore.getSecret(`firebird_password_user_${userId}`).catch((e) => fallback('routes/agents/wizard:getAvailableIntegrations#24', e, null)));
+    const hasFrappeCrmConfig = !!(await configStore.getSecret(`frappe_crm_url_user_${userId}`).catch((e) => fallback('routes/agents/wizard:getAvailableIntegrations#25', e, null)))
+        && !!(await configStore.getSecret(`frappe_crm_api_key_user_${userId}`).catch((e) => fallback('routes/agents/wizard:getAvailableIntegrations#26', e, null)))
+        && !!(await configStore.getSecret(`frappe_crm_api_secret_user_${userId}`).catch((e) => fallback('routes/agents/wizard:getAvailableIntegrations#27', e, null)));
     const hasScalewayBillingConfig = !!(await configStore.getSecret(`scaleway_billing_secret_key_user_${userId}`).catch((e) => fallback('routes/agents/wizard:getAvailableIntegrations#15', e, null)));
     const hasLinkedInConfig = !!(await configStore.getSecret('linkedin_client_id').catch((e) => fallback('routes/agents/wizard:getAvailableIntegrations#16', e, null)));
     let hasN8nConfig = false;
@@ -142,7 +145,7 @@ async function getAvailableIntegrations(userId) {
     }
 
     /** @type {Record<string, boolean>} */
-    const status = { isGoogleUser, isMicrosoftUser, hasFirefliesKey, hasYouTrackConfig, hasGammaKey, hasAfasConfig, hasNmbrsConfig, hasVplanConfig, hasFirebirdConfig, hasScalewayBillingConfig, hasLinkedInConfig, hasN8nConfig };
+    const status = { isGoogleUser, isMicrosoftUser, hasFirefliesKey, hasYouTrackConfig, hasGammaKey, hasAfasConfig, hasNmbrsConfig, hasVplanConfig, hasFirebirdConfig, hasFrappeCrmConfig, hasScalewayBillingConfig, hasLinkedInConfig, hasN8nConfig };
 
     return INTEGRATION_CATALOG.filter(item => {
         if (orgEnabled && !orgEnabled.includes(item.id)) return false;

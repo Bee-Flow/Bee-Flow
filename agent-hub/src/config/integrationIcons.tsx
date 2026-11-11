@@ -88,6 +88,10 @@ const INTEGRATION_ICONS: Record<string, React.ReactElement> = {
     firebird: (
         <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="2" width="20" height="20" rx="4" fill="#475569" /><ellipse cx="12" cy="7.5" rx="5.5" ry="2.2" fill="white" /><path d="M6.5 7.5v9c0 1.2 2.5 2.2 5.5 2.2s5.5-1 5.5-2.2v-9c0 1.2-2.5 2.2-5.5 2.2s-5.5-1-5.5-2.2z" fill="white" fillOpacity="0.85" /><path d="M6.5 12c0 1.2 2.5 2.2 5.5 2.2s5.5-1 5.5-2.2" stroke="#475569" strokeWidth="1" /></svg>
     ),
+    // A neutral contact-card tile (no brand mark).
+    'frappe-crm': (
+        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="2" width="20" height="20" rx="4" fill="#0F766E" /><circle cx="9" cy="10" r="2.4" fill="white" /><path d="M5.2 17c.4-2.3 1.9-3.6 3.8-3.6s3.4 1.3 3.8 3.6z" fill="white" fillOpacity="0.9" /><rect x="14" y="8.4" width="5" height="1.6" rx="0.8" fill="white" fillOpacity="0.9" /><rect x="14" y="11.6" width="4" height="1.6" rx="0.8" fill="white" fillOpacity="0.7" /><rect x="14" y="14.8" width="3" height="1.6" rx="0.8" fill="white" fillOpacity="0.5" /></svg>
+    ),
     // Scaleway's mark is not bundled; a brand-purple receipt tile instead.
     'scaleway-billing': (
         <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="2" width="20" height="20" rx="4" fill="#4F0599" /><path d="M7 5.5h10v13l-1.7-1.2-1.6 1.2-1.7-1.2-1.7 1.2-1.6-1.2L7 18.5v-13z" fill="white" /><rect x="9" y="8.5" width="6" height="1.4" rx="0.7" fill="#4F0599" /><rect x="9" y="11.3" width="6" height="1.4" rx="0.7" fill="#4F0599" fillOpacity="0.7" /><rect x="9" y="14.1" width="3.5" height="1.4" rx="0.7" fill="#4F0599" fillOpacity="0.5" /></svg>

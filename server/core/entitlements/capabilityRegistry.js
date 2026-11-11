@@ -121,6 +121,7 @@ const INTEGRATION_CATALOG = [
     { id: 'nmbrs',            name: 'NMBRS',                 description: 'Read NMBRS payroll & HR data (read-only)',    category: 'Productivity' },
     { id: 'vplan',            name: 'vPlan',                 description: 'Read vPlan planning, capacity & time tracking (read-only)', category: 'Productivity' },
     { id: 'firebird',         name: 'Firebird database',     description: 'Read a Firebird database such as Syntess Atrium (SELECT only)', category: 'Productivity' },
+    { id: 'frappe-crm',       name: 'Frappe CRM',            description: 'Read and update leads, deals, contacts, tasks and notes in Frappe CRM', category: 'Productivity' },
     { id: 'scaleway-billing', name: 'Scaleway Billing',      description: 'Fetch Scaleway invoices (PDF) for automations (read-only)', category: 'Productivity' },
     { id: 'youtrack',         name: 'YouTrack',              description: 'Issue tracking',                             category: 'Developer' },
     { id: 'github',           name: 'GitHub',                description: 'Repository management, view code',           category: 'Developer' },
@@ -136,8 +137,7 @@ const INTEGRATION_CATALOG = [
 const AUTO_ON_INTEGRATIONS = new Set([
     'agent-search', 'browser-fetch', 'image-gen', 'music-gen', 'video-gen', 'elevenlabs', 'maps',
     'linkedin', 'github', 'google-contacts', 'google-keep', 'outlook',
-    'outlook-readonly', 'ms-calendar', 'onedrive', 'ms-contacts', 'google-groups',
-    'n8n', 'webpages',
+    'outlook-readonly', 'ms-calendar', 'onedrive', 'ms-contacts', 'google-groups', 'n8n', 'webpages',
 ]);
 
 // MCP servers are NOT a separate kind. Each installed MCP server is projected

@@ -48,6 +48,7 @@ export const INTEGRATION_CATALOG: IntegrationEntry[] = [
     { id: 'nmbrs', label: 'NMBRS', description: 'Read NMBRS payroll & HR data (read-only)', category: 'Productivity' },
     { id: 'vplan', label: 'vPlan', description: 'Read vPlan planning, capacity & time tracking (read-only)', category: 'Productivity' },
     { id: 'firebird', label: 'Firebird database', description: 'Read a Firebird database such as Syntess Atrium (SELECT only)', category: 'Productivity' },
+    { id: 'frappe-crm', label: 'Frappe CRM', description: 'Read and update leads, deals, contacts, tasks and notes in Frappe CRM', category: 'Productivity' },
     { id: 'scaleway-billing', label: 'Scaleway Billing', description: 'Fetch Scaleway invoices (PDF) for automations (read-only)', category: 'Productivity' },
     { id: 'n8n', label: 'n8n', description: 'Workflow automation', category: 'Automation' },
     { id: 'linkedin', label: 'LinkedIn', description: 'Post to LinkedIn', category: 'Social' },

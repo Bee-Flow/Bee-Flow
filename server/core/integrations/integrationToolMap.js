@@ -64,6 +64,8 @@ const INTEGRATION_PREFIXES = {
     vplan_:         { integration: 'vplan',           label: 'vPlan',               server: 'api.vplan.com' },
     // Firebird host is user-defined (the customer's own database server).
     firebird_:      { integration: 'firebird',        label: 'Firebird database',   serverFn: () => null },
+    // Frappe CRM site is user-defined (Frappe Cloud or self-hosted).
+    frappe_crm_:    { integration: 'frappe-crm',      label: 'Frappe CRM',          serverFn: () => null },
     scaleway_:      { integration: 'scaleway-billing', label: 'Scaleway Billing',   server: 'api.scaleway.com' },
     linkedin_:      { integration: 'linkedin',        label: 'LinkedIn',            server: 'api.linkedin.com' },
     withings_:      { integration: 'withings',        label: 'Withings',            server: 'wbsapi.withings.net' },
@@ -232,6 +234,8 @@ const INTEGRATION_TOOL_MAP = {
 
     // Firebird and vPlan: integrationToolMap.databases.js
     ...require('./integrationToolMap.databases'),
+    // Frappe CRM: integrationToolMap.crm.mts
+    ...require('./integrationToolMap.crm.mts').FRAPPE_CRM_TOOL_MAP,
 
     // ── Scaleway Billing (read-only invoices) ────────────────
     // Invoices are the organisation's own financial records.
