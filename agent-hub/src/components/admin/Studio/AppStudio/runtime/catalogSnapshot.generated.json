@@ -2502,6 +2502,33 @@
                 "initials"
             ]
         },
+        "carousel": {
+            "label": "Carousel",
+            "category": "Layout",
+            "container": true,
+            "defaultProps": {
+                "loop": false,
+                "showDots": true
+            },
+            "defaultStyle": {
+                "span": 12,
+                "gap": 3,
+                "padding": 0
+            },
+            "since": 3,
+            "mobile": {
+                "reason": "The phone draws the base layout types only; a carousel stays in the browser."
+            },
+            "parts": [
+                "root",
+                "viewport",
+                "slide",
+                "previous",
+                "next",
+                "dots",
+                "dot"
+            ]
+        },
         "radio": {
             "label": "Radio group",
             "category": "Input",
@@ -2908,6 +2935,11 @@
         "avatar": [
             "span",
             "align"
+        ],
+        "carousel": [
+            "span",
+            "gap",
+            "padding"
         ],
         "radio": [
             "span"

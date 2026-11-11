@@ -7,7 +7,14 @@
     "studio_apps_lk21a.rating.default_label": "Beoordeling",
     "studio_apps_lk21a.rating.star": "{n} van {max}",
     "studio_apps_lk21a.accordion.empty": "Voeg onderdelen toe aan deze harmonica.",
-    "studio_apps_lk21a.accordion.section": "Onderdeel {n}"
+    "studio_apps_lk21a.accordion.section": "Onderdeel {n}",
+    "studio_apps_lk21a.carousel.empty": "Voeg dia’s toe aan deze carrousel.",
+    "studio_apps_lk21a.carousel.go_to": "Ga naar dia {n}",
+    "studio_apps_lk21a.carousel.label": "Carrousel",
+    "studio_apps_lk21a.carousel.next": "Volgende dia",
+    "studio_apps_lk21a.carousel.previous": "Vorige dia",
+    "studio_apps_lk21a.carousel.slide": "Dia {n} van {total}",
+    "studio_apps_lk21a.carousel.slides": "Dia’s"
   },
   "sameAsEnglish": [
     "studio_apps_lk21a.avatar.label"

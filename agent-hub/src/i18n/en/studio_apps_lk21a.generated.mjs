@@ -15,4 +15,11 @@ export default {
     "studio_apps_lk21a.avatar.label": "Avatar",
     "studio_apps_lk21a.accordion.empty": "Add items to this accordion.",
     "studio_apps_lk21a.accordion.section": "Section {n}",
+    "studio_apps_lk21a.carousel.empty": "Add slides to this carousel.",
+    "studio_apps_lk21a.carousel.go_to": "Go to slide {n}",
+    "studio_apps_lk21a.carousel.label": "Carousel",
+    "studio_apps_lk21a.carousel.next": "Next slide",
+    "studio_apps_lk21a.carousel.previous": "Previous slide",
+    "studio_apps_lk21a.carousel.slide": "Slide {n} of {total}",
+    "studio_apps_lk21a.carousel.slides": "Slides",
 };
