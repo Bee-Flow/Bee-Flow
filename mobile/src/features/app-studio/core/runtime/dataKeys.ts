@@ -33,6 +33,13 @@ const readExtras = (b: Binding): Record<string, unknown> => ({
     ...(b.search && b.kind !== 'aggregate' ? { search: b.search } : {}),
 });
 
+/** The key of a dataset binding. Parameter values join it only when there are any. */
+function datasetKey(b: Binding): string {
+    const p = b.params;
+    const hasParams = !!p && typeof p === 'object' && !Array.isArray(p) && Object.keys(p).length > 0;
+    return hasParams ? `dataset:${b.datasetId ?? ''}:${stableStringify(p)}` : `dataset:${b.datasetId ?? ''}`;
+}
+
 /**
  * The cache key a record/records/aggregate/dataset/connector binding's result
  * is stored under (the same one the fetch layer writes). Null otherwise.
@@ -41,12 +48,8 @@ export function dataCacheKey(binding: unknown): string | null {
     if (!binding || typeof binding !== 'object') return null;
     const b = binding as Binding;
     switch (b.kind) {
-        case 'dataset': {
-            // Parameter values join the key only when there are any.
-            const p = b.params;
-            const hasParams = !!p && typeof p === 'object' && !Array.isArray(p) && Object.keys(p).length > 0;
-            return hasParams ? `dataset:${b.datasetId ?? ''}:${stableStringify(p)}` : `dataset:${b.datasetId ?? ''}`;
-        }
+        case 'dataset':
+            return datasetKey(b);
         case 'record':
         case 'records':
             return `${b.kind}:${b.tableId ?? ''}:${shapeOf(b, ['filter', 'sort', 'limit'], ['orderBy', 'expand', 'fields'])}`;
