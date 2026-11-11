@@ -141,6 +141,8 @@ const RUNS = [
     'send_email', 'run_automation', 'request_approval',
     // A run on the server holds a wait (durably when long) and waits for an approval: both run unattended.
     'wait', 'await_approval',
+    // A web service through a REST connection a person made, with every rule of the step (an owner decision).
+    'http_request',
     'break', 'code', 'continue', 'parallel', 'raise_error', 'return', 'try', 'while',
 ];
 
@@ -155,7 +157,7 @@ test('contract: nothing that needs a page or a visitor runs unattended, and an u
         // set_variable writes a run variable; a wait is held by the server in a run on the server.
         if (meta.side === 'client' && kind !== 'set_variable' && kind !== 'wait') assert.equal(runsUnattended(kind), false, kind);
     }
-    for (const kind of ['confirm', 'toast', 'refresh', 'navigate', 'ai_browse', 'copy_document', 'kb_log_query', 'kb_log_review', 'http_request', 'made_up', undefined]) {
+    for (const kind of ['confirm', 'toast', 'refresh', 'navigate', 'ai_browse', 'copy_document', 'kb_log_query', 'kb_log_review', 'made_up', undefined]) {
         assert.equal(runsUnattended(kind), false, String(kind));
     }
     assert.equal(runsUnattended('send_email'), true);

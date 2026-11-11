@@ -12,6 +12,10 @@
  *            for role `owner`, the same budgets and daily mail limit, the same outbound checks.
  *            Also `wait` and `await_approval`: a run on the server holds the wait (a long one
  *            puts the run on hold) and waits for the decision; it goes on as the owner again.
+ *            And `http_request`: only through a `rest` connector a person made, with the owner's
+ *            stored credential, the outbound privacy check and the size and time limits of the
+ *            step (actionExecutor/steps/http_request.mts). A trigger kind that must not call out
+ *            (a record change or a webhook may decide so) lists it in its `refusedKinds`.
  *
  *   MAY NOT  - anything that needs a page: navigate, open_url, the modal steps, reset_form,
  *              download_file, confirm (also as a first step: nobody answers), toast and refresh
@@ -19,8 +23,6 @@
  *            - ai_browse (it streams into a visitor's page), copy_document (it needs a viewer's
  *              document pool), kb_log_query and kb_log_review (the query log holds what people
  *              asked: read only with a person present);
- *            - http_request: its own row refuses it until that step's outbound rules are decided
- *              for runs without a person;
  *            - a kind nobody declared, or one its trigger kind refuses (TriggerKind.refusedKinds);
  *            - through a called action either: the check follows call_action.
  *

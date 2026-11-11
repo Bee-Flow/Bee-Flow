@@ -4,6 +4,10 @@
  * The host, the stored credential and the fixed headers come from the connector a person made
  * under Data; the step only says which path on that host, with what method, query, headers and
  * body. There is no field for a URL (actionExecutor/steps/http_request.mts).
+ *
+ * It runs in an unattended run (a schedule trigger) like on a click: the same connector, the same
+ * privacy check and limits, the owner's stored credential. A trigger kind that must not call out
+ * lists the step in its `refusedKinds` (triggers/triggerKinds.mts).
  */
 
 'use strict';
@@ -33,7 +37,7 @@ module.exports = {
     retrySafe: true,
     budget: 'heavy',
     handler: 'file',
-    policy: { click: 'step', background: 'run', mailboxHook: 'refuse', unattended: 'refuse', mcpRun: 'run', mcpDryRun: 'run', public: 'refuse' },
+    policy: { click: 'step', background: 'run', mailboxHook: 'refuse', unattended: 'run', mcpRun: 'run', mcpDryRun: 'run', public: 'refuse' },
     /** @param {Record<string, unknown>} s */
     summary: (s) => `http_request(${typeof s.method === 'string' ? s.method : 'GET'} ${typeof s.path === 'string' && s.path ? s.path.slice(0, 60) : '/'})`,
     description: 'Calls a web service through a REST connection of this app. '
@@ -42,6 +46,6 @@ module.exports = {
         + 'The answer lands in `resultVar` as { status, body }: read vars.<resultVar>.body.<field> in later steps. A status outside 200-299 fails the step with error.code "http_status" (handle it with onError). '
         + 'Everything the step sends (path values, query, headers, body) passes the organisation\'s privacy check first: when it finds personal data the step fails with error.code "pii_blocked" and nothing is sent; there is no override, so send ids and amounts, not names or e-mail addresses. '
         + 'A write (anything but GET) is never repeated on its own: `retry` on a write needs `idempotencyKey`. '
-        + 'Runs on a click and in a background action; not on a public page and not from a mailbox hook. In app_run_action with dryRun a GET is really sent, a write is simulated (the result says what would be sent). '
+        + 'Runs on a click, in a background action and in an action a schedule trigger starts; not on a public page and not from a mailbox hook. In app_run_action with dryRun a GET is really sent, a write is simulated (the result says what would be sent). '
         + 'The answer is at most 1 MB. Example: { "kind": "http_request", "connectorId": "conn_ab12cd", "method": "POST", "path": "/v1/orders/{{form.orderId}}/notes", "body": { "kind": "static", "value": { "text": "{{form.note}}", "lines": "{{vars.lineCount}}" } }, "idempotencyKey": { "kind": "formula", "expr": "form.orderId" }, "resultVar": "note" }.',
 };
