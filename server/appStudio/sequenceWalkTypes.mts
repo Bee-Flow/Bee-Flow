@@ -17,8 +17,13 @@ export type Step = Obj & { kind?: string };
  *   tokenHash      sha256 (hex) of a resume token: over HTTP only its holder may resume
  *   timeoutResult  the step's result when `until` passes without a resume. Left out on a pause
  *                  with a `kind` or a `tokenHash`: the step then fails with `pause_expired`
+ *   waitingFor     display only: who or what the run waits for (the run tray reads it)
  */
-export type PauseRequest = { until?: number | null; kind?: string | null; ref?: string | null; tokenHash?: string | null; timeoutResult?: unknown };
+export type PauseRequest = {
+    until?: number | null; kind?: string | null; ref?: string | null; tokenHash?: string | null; timeoutResult?: unknown;
+    /** Who or what the run waits for, as the run tray shows it (await_approval: who decides). Display only. */
+    waitingFor?: Obj | null;
+};
 
 export type StepResult = { ok: boolean; result?: unknown; error?: string; code?: string; retryable?: boolean; notes?: string[]; pause?: PauseRequest };
 

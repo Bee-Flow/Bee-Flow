@@ -6,6 +6,7 @@ const { LIMITS } = require('./limits');
 const { ACTION_KINDS, STEP_KINDS, DATA_MUTATING_STEP_KINDS, CLIENT_STEP_KINDS, TOAST_TONES, AI_SCHEMA_FIELD_TYPES, AI_EXTRACT_FIELDS, AI_GENERATE_FIELDS, KB_QUERY_FIELDS, SEND_EMAIL_FIELDS, GENERATE_FILE_FIELDS, FILL_DOCUMENT_FIELDS, GENERATE_PRESENTATION_FORMATS, GENERATE_PRESENTATION_FIELDS, REDACT_PDF_FIELDS, FILE_INTAKE_FIELDS, DATASET_QUERY_FIELDS } = require('./actionSpecsActionKinds');
 const { COPY_DOCUMENT_FIELDS } = require('./documentSpecs');
 const { withErrorEnvelope } = require('./stepEnvelope');
+const { requestApprovalFields } = require('./approvalRequestFields');
 
 /**
  * call_action — run another action of the app as a subroutine. `params` is a
@@ -277,45 +278,7 @@ const STEP_SPECS = {
      */
     request_approval: {
         mutatesData: true,
-        fields: {
-            prompt: { type: 'binding', required: true },
-            details: { type: 'binding' },                       // markdown shown to the approver
-            fields: { type: 'approvalQuestions' },              // questions answered at decide time
-            assigneeUserId: { type: 'string', maxLen: 80, nullable: true },
-            assigneeGroupId: { type: 'string', maxLen: 80, nullable: true },
-            // Panel (multiple approvers) — used INSTEAD of the assignee.
-            // Seats are the users plus the groups (a group seat is filled by
-            // whichever member votes first), ≤ 10 in total. `rule` decides
-            // how votes resolve; quorumCount is N for rule 'quorum'; the
-            // final approver is an optional second sign-off stage.
-            approverUserIds: { type: 'stringList' },
-            approverGroupIds: { type: 'stringList' },
-            rule: { type: 'enum', values: ['all', 'first', 'quorum'], default: 'all' },
-            quorumCount: { type: 'int', min: 1, max: 10 },
-            finalApproverUserId: { type: 'string', maxLen: 80, nullable: true },
-            finalApproverGroupId: { type: 'string', maxLen: 80, nullable: true },
-            // Stages — an ORDERED chain of up to five named steps, each with
-            // its own approvers and its own rule. Set INSTEAD of the assignee,
-            // the panel and the final approver: those are the one-stage and
-            // two-stage shapes written out longhand, and combining them with a
-            // chain would leave a configured approver nobody ever asks.
-            // A stage's optional `when` is evaluated ONCE, at request time,
-            // against the action scope — which is how "over €5,000 also needs
-            // the director" is expressed without a second action.
-            stages: { type: 'approvalStages' },
-            expiresInHours: { type: 'int', min: 0, max: 720 },  // absent = no deadline (0 too)
-            // Nudge + takeover clocks; both must land before the deadline or
-            // they are dropped at request time. Escalation WIDENS the decider
-            // set (the original approver keeps their rights).
-            remindAfterHours: { type: 'int', min: 1, max: 720 },
-            escalateToUserId: { type: 'string', maxLen: 80, nullable: true },
-            escalateToGroupId: { type: 'string', maxLen: 80, nullable: true },
-            escalateAfterHours: { type: 'int', min: 1, max: 720 },
-            attachments: { type: 'binding' },                   // studio_attachment descriptor(s)
-            context: { type: 'recordValues' },                  // { key: binding } — resolved at request time
-            onDecided: { type: 'approvalOnDecided' },           // record-write hook, snapshotted
-            resultVar: { type: 'string', maxLen: 60 },
-        },
+        fields: requestApprovalFields(),
     },
     ai_extract: { mutatesData: true, fields: AI_EXTRACT_FIELDS },
     ai_generate: { mutatesData: true, fields: AI_GENERATE_FIELDS },

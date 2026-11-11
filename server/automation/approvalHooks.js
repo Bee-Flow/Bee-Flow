@@ -88,14 +88,32 @@ function resolveTemplate(value, scope) {
     }).join('');
 }
 
+// Required by a variable path: agent-hub's typecheck follows literal requires and cannot read a .mts module.
+const APPROVAL_WAITS = '../appStudio/approvalWaits.mts';
+
 /**
  * Run the hook for a row that just reached a final status. Never throws.
  * Returns { ran, error? } for callers that surface it (tests, the decide
  * response's audit trail).
  *
+ * After the record write, an App Studio run that waits for this decision
+ * (an await_approval step) goes on with it: every final transition of an
+ * approval passes through here, so this is the one place that continues it.
+ *
  * @param {HookApproval} approval
  */
 async function runOnDecidedHook(approval) {
+    const out = await runRecordHook(approval);
+    await require(APPROVAL_WAITS).continueWaitingRuns(approval);
+    return out;
+}
+
+/**
+ * The record write of the hook itself.
+ *
+ * @param {HookApproval} approval
+ */
+async function runRecordHook(approval) {
     // A test approval (a dry run's above all) is a rehearsal: the decision
     // writes no app record. Run-sourced rows carry no hook today; this keeps
     // it that way should one ever be snapshotted onto a test row.

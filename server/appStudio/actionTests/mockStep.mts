@@ -10,6 +10,9 @@
  *   ai_extract                { rows }, array, object  → { rows, count, written: 0, incomplete, ... }
  *   kb_query                  array or { results }     → { results, count }
  *   dataset_query             anything                 → as is
+ *   await_approval            "approved" | "rejected" | "expired" | "cancelled", or { decision,
+ *                             reason?, answers?, decidedBy?, decidedByName? } → the decision
+ *                             (mockDecision.mts; without a mock a test run takes "approved")
  *   any                       { "$error": text, "$code"?, "$retryable"? } → the step fails
  *   any                       { "$sequence": [answer | {$error…}, …] } → one answer per
  *                             attempt of a step with `retry` (the last one repeats)
@@ -22,6 +25,9 @@ import { createRequire } from 'node:module';
 import { stepPaths } from '../sequenceWalk.mts';
 import type { StepPath, StepResult } from '../sequenceWalk.mts';
 import { MOCKABLE_KINDS } from '../mcpRunActionPolicy.mts';
+import { mockDecision } from './mockDecision.mts';
+
+export { defaultMockOf } from './mockDecision.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 
@@ -127,6 +133,7 @@ export function mockStepResult(step: Obj, answer: unknown, opts: { prompt?: stri
         case 'ai_extract': return mockExtract(step, answer, h);
         case 'kb_query': return mockKb(answer);
         case 'dataset_query': return { ok: true, result: answer ?? null };
+        case 'await_approval': return mockDecision(answer);
         default: return { ok: false, error: `${String(step.kind)} cannot be mocked` };
     }
 }

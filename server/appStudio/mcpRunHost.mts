@@ -13,7 +13,7 @@ import type { Obj, RunLimits, RunScope, Step } from './mcpRunActionPolicy.mts';
 import type { StepEndEvent, StepEvent, StepResult, WalkHost, WalkState } from './sequenceWalk.mts';
 import { BindingRefusal, resolveRunBinding } from './runBindings.mts';
 import type { ReadData } from './runBindings.mts';
-import { mockStepResult } from './actionTests/mockStep.mts';
+import { defaultMockOf, mockStepResult } from './actionTests/mockStep.mts';
 import { ownAction } from './actionCalls.mts';
 import { guardAllows } from './actionExecutor/stepGuard.mts';
 import type { MockHelpers } from './actionTests/mockStep.mts';
@@ -231,7 +231,8 @@ export function hostFor(run: Run): WalkHost {
             return decideStep(step, opts.dryRun, f.loop !== null, wouldSend, wouldWrite);
         },
         execute: (step, f, w) => executeFor(run, step, f, w),
-        mockFor: (path) => (Object.hasOwn(opts.mock, path) ? { value: opts.mock[path] } : null),
+        // A step that waits for a person always has a mocked answer here: a test run never asks anybody (await_approval: approved).
+        mockFor: (path, step) => (Object.hasOwn(opts.mock, path) ? { value: opts.mock[path] } : defaultMockOf(step)),
         mocked(step, value, ctx, attempt) {
             run.mocked += 1;
             const prompt = step.kind === 'ai_generate' ? deps.promptOf(step, ctx) : undefined;

@@ -111,6 +111,14 @@ export function resumeOutcome(how: ResumeBy, record: PausedRecord): ResumeOutcom
     return { result: record.wake.timeoutResult ?? null };
 }
 
+/** `progress.waitingFor` of a run on hold: a small display object the step gave (who decides), or nothing. */
+export function waitingForOf(request: PauseRequest): { waitingFor: Obj } | Record<string, never> {
+    const w = request.waitingFor;
+    if (!isObject(w) || typeof w.kind !== 'string') return {};
+    const text = JSON.stringify(w);
+    return text.length <= 400 ? { waitingFor: w } : { waitingFor: { kind: w.kind } };
+}
+
 /** `progress.waiting` of a run on hold: what it waits for ('approval'), 'resume' for a token, else 'timer'. */
 export function waitingLabel(request: PauseRequest): string {
     const { waitKind, tokenHash } = waitOf(request);

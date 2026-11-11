@@ -48,9 +48,22 @@ export type RunnerDeps = {
      * the app, the definition, the starter and their role today, or why the run may not go on.
      */
     loadResumeContext: (row: ActionRunRow, meta: RunMeta) => Promise<ResumeContext>;
+    /**
+     * What a wait for something else needs from outside the run (approvalWaits.mts): settle a due
+     * wait (an approval that was decided, or has to be closed), release the request of a run that
+     * will not wait. Null: no such waits (a test that injects its own store and leaves this out).
+     */
+    waits: WaitHandlers | null;
     /** Timers for the heartbeat (fake in tests). */
     setInterval: (fn: () => void, ms: number) => unknown;
     clearInterval: (handle: unknown) => void;
+};
+
+export type WaitHandlers = {
+    /** The wake job reached a run waiting for (kind, ref): true when this continued it, false leaves it to the timer. */
+    settle: (row: ActionRunRow) => Promise<boolean>;
+    /** The run of `appId` will not wait for (kind, ref) after all: withdraw what it asked. */
+    release: (appId: string, waitKind: unknown, waitRef: unknown, reason: string) => Promise<boolean>;
 };
 
 export type StartResult =
@@ -59,7 +72,11 @@ export type StartResult =
 
 export type JobView = {
     jobId: string; actionId: string; status: string;
-    progress: { stepIndex: number | null; kind: string | null; executed: number; message: string | null; loop: { index: number; count: number } | null; waiting: string | null };
+    progress: {
+        stepIndex: number | null; kind: string | null; executed: number; message: string | null; loop: { index: number; count: number } | null; waiting: string | null;
+        /** A run on hold for an approval: who decides (await_approval). */
+        waitingFor?: Obj;
+    };
     result?: unknown; vars?: Obj; effects?: unknown[];
     error: string | null; errorStep: Obj | null; startedAt: string | null; finishedAt: string | null; durationMs: number | null;
     /** A run on hold only: when the server continues it by itself (null: when something resumes it) and what it waits for. */
@@ -103,12 +120,25 @@ export function toJobView(row: ActionRunRow): JobView {
             executed: typeof p.executed === 'number' ? p.executed : 0,
             message: typeof p.message === 'string' ? p.message : null,
             loop, waiting: typeof p.waiting === 'string' ? p.waiting : null,
+            ...(row.status === 'paused' && isObject(p.waitingFor) ? { waitingFor: p.waitingFor } : {}),
         },
         ...(row.status === 'success' ? { result: row.result ?? null } : {}),
         ...(row.vars ? { vars: row.vars } : {}),
         ...(row.effects ? { effects: row.effects } : {}),
         ...(row.status === 'paused' ? { wakeAt: row.wakeAt, waitKind: row.waitKind } : {}),
         error: row.error, errorStep: row.errorStep, startedAt: row.startedAt, finishedAt: row.endedAt, durationMs: row.durationMs,
+    };
+}
+
+/** The waits for an approval (approvalWaits.mts), required when first used. */
+function defaultWaits(): WaitHandlers {
+    const waits = () => nodeRequire('./approvalWaits.mts') as {
+        settleDueWait: (row: ActionRunRow) => Promise<boolean>;
+        releaseWait: WaitHandlers['release'];
+    };
+    return {
+        settle: (row) => waits().settleDueWait(row),
+        release: (appId, waitKind, waitRef, reason) => waits().releaseWait(appId, waitKind, waitRef, reason),
     };
 }
 
@@ -133,6 +163,7 @@ export function withDefaults(given: Partial<RunnerDeps>): RunnerDeps {
         loadResumeContext: given.loadResumeContext
             ?? ((row, meta) => (nodeRequire('./backgroundRunIdentity.mts') as { loadResumeContext: RunnerDeps['loadResumeContext'] }).loadResumeContext(row, meta)),
         instanceId: given.instanceId ?? `${process.pid}`,
+        waits: given.waits !== undefined ? given.waits : (given.store ? null : defaultWaits()),
         setInterval: given.setInterval ?? ((fn, ms) => { const t = setInterval(fn, ms); t.unref?.(); return t; }),
         clearInterval: given.clearInterval ?? ((h) => clearInterval(h as ReturnType<typeof setInterval>)),
     };

@@ -20,7 +20,8 @@ import { NOOP_RECORDER, startRun, withRunLog } from './runLog/recorder.mts';
 import { ownAction } from './actionCalls.mts';
 import { BACKGROUND_DEFERRED_KINDS, BACKGROUND_REFUSED_KINDS, MAX_DEFERRED_EFFECTS, leadingConfirmCount, limitLabel, progressText, readRunOptions } from './backgroundRunPolicy.mts';
 import type { BackgroundLimits } from './backgroundRunPolicy.mts';
-import { pauseRefusal, pausedCapRefusal, pausedRecord, waitOf, waitingLabel, wakePlan } from './backgroundRunDurable.mts';
+import { pauseRefusal, pausedCapRefusal, pausedRecord, waitOf, waitingForOf, waitingLabel, wakePlan } from './backgroundRunDurable.mts';
+import { runServerWait } from './durableWait.mts';
 import type { Refusal } from './backgroundRunDurable.mts';
 import { actionFingerprint } from './backgroundRunIdentity.mts';
 import { trimToBytes, writtenVars } from './backgroundRunParts.mts';
@@ -227,7 +228,8 @@ function hostFor(job: Job): WalkHost {
             }
             return { run: true, step };
         },
-        execute: (step, f, w) => executeFor(job, step, f, w),
+        // A wait is the run's own (durableWait.mts): held here, or the run goes on hold. Every other step goes to the executor.
+        execute: (step, f, w) => (step.kind === 'wait' ? waitIn(job, step, f, w) : executeFor(job, step, f, w)),
         resolve: (binding, ctx, scope) => resolveWith(input, deps, binding, ctx, scope),
         evaluate: (expr, scope) => deps.evaluate(expr, scope),
         buildScope: (ctx) => deps.buildScope(ctx),
@@ -245,7 +247,11 @@ function hostFor(job: Job): WalkHost {
         shouldStop: (w) => stopReason(job, w),
         beforeStep: () => readCancel(job),
         canPause: true,
-        acceptPause: (request, state) => acceptPause(job, request, state),
+        acceptPause: async (request, state) => {
+            const refused = await acceptPause(job, request, state);
+            if (refused) await releaseWait(job, request, 'The run that asked could not wait for the decision.');
+            return refused;
+        },
         sleep: (ms) => deps.sleep(ms),
         now: () => deps.now(),
     };
@@ -258,6 +264,26 @@ async function readCancel(job: Job): Promise<void> {
     if (job.lastCancelPoll && now - job.lastCancelPoll < CANCEL_POLL_MS) return;
     job.lastCancelPoll = now || 1;
     try { if (await job.deps.store().cancelRequested(job.jobId)) job.cancelled = true; } catch { /* a missed read is made up for at the next step */ }
+}
+
+/** A `wait` step of this run, in the run's scope. */
+function waitIn(job: Job, step: Step, f: StepEvent, w: WalkState): Promise<StepResult> {
+    const { deps, input } = job;
+    return runServerWait(step, {
+        now: () => deps.now(),
+        sleep: (ms) => deps.sleep(ms),
+        stopped: () => job.cancelled || isShuttingDown(),
+        resolveUntil: (binding) => {
+            const ctx = baseCtx(input, w, f.ownerActionId);
+            return resolveWith(input, deps, binding, ctx, deps.buildScope(ctx), 'until');
+        },
+    });
+}
+
+/** This run will not wait for what its step asked after all (refused, cancelled): the request is withdrawn. */
+async function releaseWait(job: Job, request: PauseRequest, reason: string): Promise<void> {
+    const waits = job.deps.waits;
+    if (waits && request.kind) await waits.release(job.input.app.id, request.kind, request.ref, reason);
 }
 
 /** A step asked to wait: the operator's limits decide whether this run may be put on hold. */
@@ -290,10 +316,11 @@ async function holdRun(job: Job, vars: Obj): Promise<string> {
     const run = { fingerprint: actionFingerprint(actions, input.actionId), role: input.role, activeMs: activeMsOf(job), written: Object.keys(vars) };
     const held = await store.pauseRun(jobId, {
         state: { ...pausedRecord(paused.state, run, paused.request, plan) }, wakeAt: plan.wakeAt, ...waitOf(paused.request),
-        progress: { ...job.progress, executed: w.executed, waiting: waitingLabel(paused.request) },
+        progress: { ...job.progress, executed: w.executed, waiting: waitingLabel(paused.request), ...waitingForOf(paused.request) },
     });
     if (held) return 'paused';
     // Not put on hold: a cancel was asked while the step ran (or the row is no longer this job's).
+    await releaseWait(job, paused.request, 'The run that asked was cancelled.');
     await store.finishRun(jobId, { status: 'cancelled', error: CANCELLED, errorCode: 'cancelled', durationMs: activeMsOf(job), stepCount: w.executed, truncated: true, endedBy: 'user' });
     return 'cancelled';
 }

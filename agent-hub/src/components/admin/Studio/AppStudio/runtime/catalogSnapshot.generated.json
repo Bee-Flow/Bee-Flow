@@ -878,6 +878,11 @@
             "client": false,
             "mutatesData": true
         },
+        "await_approval": {
+            "client": false,
+            "mutatesData": true,
+            "since": 3
+        },
         "back": {
             "client": true,
             "mutatesData": false,

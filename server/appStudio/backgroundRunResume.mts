@@ -114,13 +114,18 @@ export async function resumeWaiting(waitKind: string, waitRef: string, payload: 
     return out;
 }
 
-/** One pass of the wake job: every paused run whose wake time passed is continued (or ended, when it may not go on). */
+/**
+ * One pass of the wake job: every paused run whose wake time passed is continued (or ended, when
+ * it may not go on). A run that waits for something else (an approval) is settled by what it
+ * waits for first (deps.waits): a decision that is already there continues it with that decision.
+ */
 export async function wakeDueRuns(given: Partial<RunnerDeps> = {}): Promise<{ due: number; resumed: number }> {
     const deps = withDefaults(given);
     const rows = isShuttingDown() ? [] : await deps.store().listDueWakes(deps.limits().wakeBatch);
     let resumed = 0;
     for (const row of rows) {
         try {
+            if (row.waitKind && deps.waits && await deps.waits.settle(row)) { resumed += 1; continue; }
             if ((await resumeBackgroundRun(row.id, { by: 'timer' }, given)).ok) resumed += 1;
         } catch (e) {
             deps.log.warn(`[StudioBackground] ${row.id} app=${row.appId} could not be woken (${(e as Error)?.name || 'error'}); it stays on hold`);
@@ -142,6 +147,11 @@ export async function cancelBackgroundRun(appId: string, jobId: string, given: P
         if (job) job.cancelled = true;
         return 'cancelling';
     }
-    if (status === 'cancelled') deps.log.info(`[StudioBackground] ${jobId} app=${appId} cancelled while on hold`);
+    if (status === 'cancelled') {
+        deps.log.info(`[StudioBackground] ${jobId} app=${appId} cancelled while on hold`);
+        // The question it waited for has nobody to answer to any more: withdraw it.
+        const row = deps.waits ? await deps.store().getRunById(jobId) : null;
+        if (row?.waitKind && deps.waits) await deps.waits.release(appId, row.waitKind, row.waitRef, 'The run that asked was cancelled.');
+    }
     return status;
 }
