@@ -18,9 +18,10 @@
     "studio_apps_dataset_params.builder.op_aria": "Vergelijking",
     "studio_apps_dataset_params.builder.pick_field": "Kies een kolom…",
     "studio_apps_dataset_params.builder.required": "Zonder waarde niets tonen (in plaats van dit filter te negeren)",
-    "studio_apps_dataset_params.builder.title": "Parameters",
     "studio_apps_dataset_params.builder.unnamed": "Nieuwe parameter",
     "studio_apps_dataset_params.builder.yes": "Ja"
   },
-  "sameAsEnglish": []
+  "sameAsEnglish": [
+    "studio_apps_dataset_params.builder.title"
+  ]
 }
