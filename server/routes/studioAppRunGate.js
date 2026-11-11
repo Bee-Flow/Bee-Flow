@@ -13,8 +13,8 @@
 
 const studioAppStore = require('../stores/studioAppStore');
 const { resolveAudienceContext } = require('../auth/audience');
-const { EVENT_NAMES } = require('../appStudio/componentSpecs');
-const { screenTriggerRefs, slotNames, watchersOf } = require('../shared/appDefinition/clientTriggers.mjs');
+const { nodeActionRefs } = require('../appStudio/nodeActionRefs.mts');
+const { screenTriggerRefs, watchersOf } = require('../shared/appDefinition/clientTriggers.mjs');
 const { sessionUser } = require('../core/http/sessionUser');
 
 // ── App visibility ──────────────────────────────────────────────────
@@ -63,9 +63,9 @@ function roleAllows(nodeOrScreen, role) {
 
 // Can `role` reach `actionId` through the UI? Walks screens → sections → node
 // trees for an event wiring (EVENT_NAMES, one id or a list of them), a screen's
-// onOpen or timer, a watcher (every viewer runs those), OR a per-row action
-// (props.rowActions on data_grid, props.itemActions on repeater) naming the
-// action; a wiring counts only when its screen, its section (section.visibleToRoles)
+// onOpen or timer, a watcher (every viewer runs those), OR an action a node lists in
+// its props (rowActions, itemActions, bulkActions, toolbarActions, addRowActionId, a
+// column's actionId) naming the action; a wiring counts only when its screen, its section (section.visibleToRoles)
 // AND every ancestor container clear the gate too. referenced:false means NO node wires the action and no
 // other action calls it — it is programmatic (an onSuccess chain), which role
 // gating never described, so the caller keeps running it.
@@ -85,15 +85,8 @@ function wiredRoleAccess(def, actionId, role) {
         for (const node of (Array.isArray(nodes) ? nodes : [])) {
             if (!node || typeof node !== 'object') continue;
             const nodeVisible = visible && roleAllows(node, role);
-            let wired = EVENT_NAMES.some((ev) => slotNames(node[ev], actionId));
-            if (!wired) {
-                const props = (node.props && typeof node.props === 'object') ? node.props : {};
-                for (const listKey of ['rowActions', 'itemActions']) {
-                    const entries = props[listKey];
-                    if (!Array.isArray(entries)) continue;
-                    if (entries.some((e) => e && typeof e === 'object' && e.actionId === actionId)) { wired = true; break; }
-                }
-            }
+            // Every way a node runs an action, from the one shared reader (appStudio/nodeActionRefs.mts).
+            const wired = nodeActionRefs(node).some((/** @type {{ actionId: string }} */ ref) => ref.actionId === actionId);
             if (wired) {
                 referenced = true;
                 if (nodeVisible) allowed = true;
