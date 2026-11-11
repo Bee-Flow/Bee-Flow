@@ -35,6 +35,13 @@ const NODE_VALUE_FIELDS = ['computed', 'validations'];
 // Everything a component entry / update patch may carry beyond props+style.
 const NODE_AUTHORABLE_FIELDS = [...NODE_LOGIC_FIELDS, ...NODE_VALUE_FIELDS];
 
+// Node keys added after the base (schema 3) that app_update_component takes beside the fields
+// above without a schema parameter of their own (the tool schemas are pinned): the catalogue
+// entry of each key (app_inspect_catalog, componentSpecs/keys/node/<key>.js) tells the builder
+// to send it.
+//   styleWhen — conditional style rules (canonicalize/styleWhen.mts cleans them)
+const NODE_EXTENSION_FIELDS = ['styleWhen'];
+
 /**
  * Normalize one logic-field value from tool args to the node shape.
  * Returns { value } or { error }.
@@ -110,6 +117,9 @@ function normalizeValidations(v) {
  * @param {string} field
  */
 function normalizeNodeField(field, v) {
+    if (field === 'styleWhen') {
+        return Array.isArray(v) ? { value: v } : { error: 'styleWhen must be a list of { when: "<formula>", style: { <knob>: <value> } } rules (pass null to clear).' };
+    }
     if (field === 'computed') return normalizeComputed(v);
     if (field === 'validations') return normalizeValidations(v);
     return normalizeLogicValue(field, v);
@@ -202,6 +212,7 @@ module.exports = {
     NODE_LOGIC_FIELDS,
     NODE_VALUE_FIELDS,
     NODE_AUTHORABLE_FIELDS,
+    NODE_EXTENSION_FIELDS,
     normalizeLogicValue,
     normalizeComputed,
     normalizeValidations,

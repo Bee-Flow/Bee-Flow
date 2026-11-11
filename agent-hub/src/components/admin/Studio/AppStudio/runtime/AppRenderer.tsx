@@ -14,6 +14,7 @@ import { evalBoolFlag, evalVisibility } from './nodeVisibility';
 import { resolveBinding } from './resolveBinding';
 import { RuntimeProvider, ScopeProvider, DEFAULT_RUNTIME, buildScope, rowKey, useRuntime, type ExpressionScope, type RuntimeValue } from './RuntimeContext';
 import { resolveNodeStyle } from './styleResolver';
+import { applyStyleWhen } from './conditionalStyle';
 import BackgroundImageLayer from './assets/BackgroundImageLayer';
 import { withAuthorClass } from './appCss';
 import { themeVars } from './themeVars';
@@ -262,12 +263,15 @@ function RenderNode({ node, scope, NodeWrapper, mode }: RenderNodeProps) {
         actionState: runtime.actionState,
         dataState: runtime.dataState,
     });
-    const formulaError = vis.error || enabled.error || computedRes.error || null;
+    // node.styleWhen (schema 3, conditionalStyle.ts): the same node when it has no rule list, so
+    // the cell and the component read the conditional knobs the way they read the base style.
+    const conditional = applyStyleWhen(node, nodeScope);
+    const formulaError = vis.error || enabled.error || computedRes.error || conditional.error || null;
 
     const effProps = computedRes.props
         ? { ...(node.props || {}), ...computedRes.props }
         : node.props;
-    const effectiveNode = effProps === node.props ? node : { ...node, props: effProps };
+    const effectiveNode = effProps === node.props ? conditional.node : { ...conditional.node, props: effProps };
 
     const entry = APP_COMPONENT_TYPES[node.type];
     let content: JSX.Element;
@@ -299,7 +303,7 @@ function RenderNode({ node, scope, NodeWrapper, mode }: RenderNodeProps) {
         return nodeScope === runtime.scope ? bare : <ScopeProvider scope={nodeScope}>{bare}</ScopeProvider>;
     }
 
-    const { className, style } = resolveNodeStyle(node);
+    const { className, style } = resolveNodeStyle(conditional.node);
     const cellStyle = hidden ? { ...style, opacity: 0.4 } : style;
 
     const interactive = tileClickProps(node, mode, runtime.runAction, enabled.disabled);

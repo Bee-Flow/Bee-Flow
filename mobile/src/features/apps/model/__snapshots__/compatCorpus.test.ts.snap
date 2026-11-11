@@ -12159,6 +12159,49 @@ exports[`compat corpus: what the phone plans for every stored app vocab-section-
 }
 `;
 
+exports[`compat corpus: what the phone plans for every stored app vocab-style-when 1`] = `
+{
+  "defaultScreen": "scr_stywhen1",
+  "navigable": [
+    "scr_stywhen1",
+  ],
+  "screens": [
+    {
+      "id": "scr_stywhen1",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "id": "cmp_stywhen1",
+                "kind": "heading",
+                "level": 2,
+                "text": "Over budget",
+              },
+              {
+                "id": "cmp_stywhen3",
+                "kind": "text",
+                "muted": false,
+                "text": "Formula that fails keeps the base style.",
+              },
+            ],
+            "screen": "scr_stywhen1",
+            "unsupported": [
+              "stat",
+              "table",
+              "data_grid",
+            ],
+          },
+          "roles": [
+            "(no role)",
+          ],
+        },
+      ],
+    },
+  ],
+}
+`;
+
 exports[`compat corpus: what the phone plans for every stored app web-service-step 1`] = `
 {
   "defaultScreen": "scr_htp001",

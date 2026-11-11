@@ -20,6 +20,8 @@ export interface GridColumnMeta {
     toneMap?: unknown[] | null;
     help?: string | null;
     actionId?: string | null;
+    /** columns[].cellStyle (schema 3): the column's conditional cell style rules. */
+    cellStyle?: unknown[] | null;
 }
 
 /** A row action, bulk action or toolbar action as the spec stores it. */

@@ -73,7 +73,9 @@
         "MAX_FORMAT_DECIMALS": 10,
         "MAX_FORMAT_PATTERN_LEN": 40,
         "MAX_FORMAT_LANGUAGE_LEN": 35,
-        "MAX_FORMAT_TIME_ZONE_LEN": 64
+        "MAX_FORMAT_TIME_ZONE_LEN": 64,
+        "MAX_STYLE_WHEN_RULES": 6,
+        "MAX_CELL_STYLE_RULES": 6
     },
     "theme": {
         "primary": {
@@ -1574,6 +1576,12 @@
                             "objectShape": "formatOptions",
                             "since": 3,
                             "description": "How this column writes its numbers, amounts and dates. An object { currency?: \"USD\", decimals?: 0..10, pattern?: \"dd-MM-yyyy\", compact?: true, percentScale?: \"whole\"|\"fraction\" }, every key optional, set only what should differ. It applies to the number, currency, percent, progress, date, datetime and relative formats of the column. currency (ISO 4217) and decimals win over the app-level `format`. compact writes 1.2K / 3.4M. percentScale \"fraction\" reads 0.25 as 25% (the default \"whole\" reads 25 as 25%). pattern is a date pattern from yyyy yy MMMM MMM MM M dd d EEEE EEE HH H hh h mm ss a, literal letters in single quotes. Absent keeps the default way of writing the value."
+                        },
+                        "cellStyle": {
+                            "type": "object",
+                            "objectShape": "cellStyle",
+                            "since": 3,
+                            "description": "Style of a cell while a formula over its row is true. A list [{ when: \"<formula>\", style: { <knob>: <value> } }] of at most 6 rules, checked per cell in order: every rule whose formula is true applies, a later one wins. In the formula `item` is the row and `value` this cell's value, e.g. { when: \"value > 1000\", style: { color: \"danger\", weight: \"bold\" } } or { when: \"item.status == 'late'\", style: { backgroundColor: \"warning\" } }. Knobs: color, backgroundColor, weight; a colour is a role (primary, neutral, success, warning, danger, info) or #rrggbb. A role follows light, dark and high contrast, so prefer it. A formula that fails leaves the cell as it is. Set it through the column list of app_update_component { id, props: { columns: [...] } }."
                         }
                     }
                 },
@@ -1803,6 +1811,12 @@
                             "objectShape": "formatOptions",
                             "since": 3,
                             "description": "How this column writes its numbers, amounts and dates. An object { currency?: \"USD\", decimals?: 0..10, pattern?: \"dd-MM-yyyy\", compact?: true, percentScale?: \"whole\"|\"fraction\" }, every key optional, set only what should differ. It applies to the number, currency, percent, progress, date, datetime and relative formats of the column. currency (ISO 4217) and decimals win over the app-level `format`. compact writes 1.2K / 3.4M. percentScale \"fraction\" reads 0.25 as 25% (the default \"whole\" reads 25 as 25%). pattern is a date pattern from yyyy yy MMMM MMM MM M dd d EEEE EEE HH H hh h mm ss a, literal letters in single quotes. Absent keeps the default way of writing the value."
+                        },
+                        "cellStyle": {
+                            "type": "object",
+                            "objectShape": "cellStyle",
+                            "since": 3,
+                            "description": "Style of a cell while a formula over its row is true. A list [{ when: \"<formula>\", style: { <knob>: <value> } }] of at most 6 rules, checked per cell in order: every rule whose formula is true applies, a later one wins. In the formula `item` is the row and `value` this cell's value, e.g. { when: \"value > 1000\", style: { color: \"danger\", weight: \"bold\" } } or { when: \"item.status == 'late'\", style: { backgroundColor: \"warning\" } }. Knobs: color, backgroundColor, weight; a colour is a role (primary, neutral, success, warning, danger, info) or #rrggbb. A role follows light, dark and high contrast, so prefer it. A formula that fails leaves the cell as it is. Set it through the column list of app_update_component { id, props: { columns: [...] } }."
                         }
                     }
                 },

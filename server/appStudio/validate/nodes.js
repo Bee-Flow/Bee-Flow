@@ -29,6 +29,7 @@ const { nodeActionRefs } = require('../nodeActionRefs.mts');
 const { noteUiTarget } = require('./uiStepChecks.mts');
 const { screenTriggerRefs, watchersOf } = require('../../shared/appDefinition/clientTriggers.mjs');
 const { checkObjectValue } = require('./objectChecks.mts');
+const { checkStyleRules } = require('./styleRuleChecks.mts');
 
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -289,6 +290,7 @@ function validateNodeLogic(node, path, ctx, spec) {
     if (node.cssClass !== undefined && !require('../appCss.mts').isCssClassName(node.cssClass)) {
         pushE({ code: 'node.css_class_invalid', severity: 'error', path: `${path}.cssClass`, message: 'cssClass must be a lower-case letter followed by lower-case letters, digits or dashes.', hint: `e.g. "hero" (at most ${LIMITS.MAX_CSS_CLASS_LEN} characters), styled as .u-hero in design.customCss.` });
     }
+    checkStyleRules(node, path, ctx); // styleWhen and columns[].cellStyle (validate/styleRuleChecks.mts)
 }
 
 // ---------------------------------------------------------------------------

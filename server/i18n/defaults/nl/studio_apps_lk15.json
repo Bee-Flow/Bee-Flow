@@ -1,0 +1,16 @@
+{
+  "translations": {
+    "studio_apps_lk15.rules.add": "Regel toevoegen",
+    "studio_apps_lk15.rules.color": "Tekstkleur",
+    "studio_apps_lk15.rules.fill": "Vulkleur",
+    "studio_apps_lk15.rules.hint": "Elke regel geldt zolang de formule waar is; een latere regel wint. Een formule die mislukt verandert niets.",
+    "studio_apps_lk15.rules.remove": "Regel verwijderen",
+    "studio_apps_lk15.rules.title": "Voorwaardelijke stijl",
+    "studio_apps_lk15.rules.unchanged": "Ongewijzigd",
+    "studio_apps_lk15.rules.weight": "Gewicht",
+    "studio_apps_lk15.rules.when": "Als"
+  },
+  "sameAsEnglish": [
+    "studio_apps_lk15.rules.when_placeholder"
+  ]
+}
