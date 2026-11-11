@@ -50,6 +50,10 @@ const OPEN_ROUTES = new Map(/** @type {Array<[string, OpenReason]>} */ ([
         reden: 'Stripe-webhook — authenticatie is de Stripe-handtekening over de raw body (mount vóór bodyParser, index.js), geen sessie.',
         bewijs: { file: 'routes/stripe/webhook.js', marker: 'constructWebhookEvent' },
     }],
+    ['POST /api/app-hooks/:endpointId', {
+        reden: 'the address of a webhook trigger of a published Studio app: another system delivers without a session, and the HMAC signature over timestamp, delivery id and the bytes sent is the credential (per-trigger secret, constant-time compare, replay window). An unknown address, a wrong signature, a paused trigger and an unpublished app are the same 404; per-address and per-trigger rate limits; the endpoint row, never the request, names the app and the trigger.',
+        bewijs: { file: 'routes/studioAppWebhook.mts', marker: 'sameSignature' },
+    }],
     ['mount:/api/mod', {
         reden: 'dynamische dispatcher voor remote modules — routers ontstaan bij module-activatie en zijn statisch onzichtbaar; het pakketkanaal is getekend/geverifieerd en dispatchRouter 404-verbergt inactieve modules.',
         bewijs: { file: 'modules/packageLoader.js', marker: 'dispatchRouter' },

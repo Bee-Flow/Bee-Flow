@@ -2751,6 +2751,9 @@
     "GET /api/studio-apps/:id/triggers": {
       "gate": "auth"
     },
+    "GET /api/studio-apps/:id/triggers/:triggerId/webhook": {
+      "gate": "auth"
+    },
     "GET /api/studio-apps/:id/versions": {
       "gate": "auth"
     },
@@ -4489,6 +4492,10 @@
       "gate": "platform",
       "via": "superAdmin"
     },
+    "POST /api/app-hooks/:endpointId": {
+      "gate": "handler",
+      "via": "handler"
+    },
     "POST /api/automation": {
       "gate": "auth"
     },
@@ -6108,6 +6115,12 @@
         "all",
         "manage_apps"
       ]
+    },
+    "POST /api/studio-apps/:id/triggers/:triggerId/webhook/rotate": {
+      "gate": "auth"
+    },
+    "POST /api/studio-apps/:id/triggers/:triggerId/webhook/secret": {
+      "gate": "auth"
     },
     "POST /api/studio-apps/:id/versions/:versionId/restore": {
       "gate": "permission",

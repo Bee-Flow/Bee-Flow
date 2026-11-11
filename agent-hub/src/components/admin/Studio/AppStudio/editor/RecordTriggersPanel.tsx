@@ -85,10 +85,10 @@ function RecordTriggerFields({ trigger, tables, disabled, onChange }: { trigger:
                 </fieldset>
             ) : null}
             <input
-                type="text" className={`${INPUT_CLS} w-full font-mono`} value={trigger.when ?? ''} placeholder={'trigger.row.status == "done"'} spellCheck={false} disabled={disabled}
+                type="text" className={`${INPUT_CLS} w-full font-mono`} value={trigger.when ?? ''} placeholder={'trigger.record.row.status == "done"'} spellCheck={false} disabled={disabled}
                 onChange={(e) => onChange(withWhen(trigger, e.target.value))}
                 aria-label={t('studio_apps_h4.panel.when', 'Only if (formula)')}
-                title={t('studio_apps_h4.panel.when_hint', 'For example trigger.row.status == "done". Read the row as trigger.row, the row before the change as trigger.before, and the event as trigger.event.')}
+                title={t('studio_apps_h4.panel.when_hint', 'For example trigger.record.row.status == "done". Read the row as trigger.record.row, the row before the change as trigger.record.before, and the event as trigger.record.event.')}
             />
             <label className={CHECK}>
                 <input type="checkbox" checked={trigger.allowPublicWrites === true} disabled={disabled} onChange={(e) => onChange(withAllowPublic(trigger, e.target.checked))} />
@@ -128,10 +128,11 @@ export function RecordTriggersList({ appId, definition, onCommit, disabled = fal
     });
 
     return (
-        <section className="mt-6" data-testid="logic-record-triggers">
+        <section className="mt-3" data-testid="logic-record-triggers">
             <div className="mb-2 flex flex-wrap items-start justify-between gap-2">
                 <div className="min-w-0">
-                    <h3 className="text-sm font-semibold text-[var(--text-primary)]">{t('studio_apps_h4.panel.title', 'When a record changes')}</h3>
+                    {/* A part of the Triggers area (ServerTriggersPanel holds its heading): this one names its kind. */}
+                    <h4 className="text-xs font-semibold text-[var(--text-primary)]">{t('studio_apps_h4.panel.title', 'When a record changes')}</h4>
                     <p className="text-xs text-[var(--text-tertiary)]">
                         {t('studio_apps_h4.panel.desc', 'A record trigger runs an action on the server when a row of a table is added, changed or deleted. It only runs once the app is published.')}
                     </p>

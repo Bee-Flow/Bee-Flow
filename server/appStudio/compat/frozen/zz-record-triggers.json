@@ -1,8 +1,8 @@
 {
   "corpus": "zz-record-triggers",
   "canonical": {
-    "sha256": "41a1a3c47ba90913c2cd92b61a6c9f9b37b7acf52c73dc4d71aad1d89dd12f7a",
-    "bytes": 2779,
+    "sha256": "a8354df1c275e2fa9684f7f53fc5f9f265bf03243c15dc5792d71183287a54fc",
+    "bytes": 2821,
     "inputIsCanonical": true,
     "idempotent": true,
     "keys": [
@@ -26,10 +26,10 @@
       "actions.act_digest01": "828ea4c9562ef591",
       "actions.act_shared01": "ee7cbc5ef5c24aea",
       "actions.act_button01": "8b9d235f3d4990d1",
-      "actions.act_logrow01": "34ea5c8460cbcaa4",
-      "actions.act_done0001": "bfa47d69d92f9e65",
+      "actions.act_logrow01": "1702c5c0599f376d",
+      "actions.act_done0001": "0b5c2f432a32a130",
       "homeScreenId": "6a2da6c22cefbb52",
-      "triggers": "3324ad0b77af6072"
+      "triggers": "4a95a712603227cc"
     }
   },
   "schemaVersion": {

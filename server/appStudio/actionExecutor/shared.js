@@ -60,15 +60,6 @@ function plainObjectOr(v, fallback) {
     return v && typeof v === 'object' && !Array.isArray(v) ? /** @type {Record<string, unknown>} */ (v) : fallback;
 }
 
-/**
- * The `trigger` root: what started a trigger run (triggers/kinds/record.mts). Set by the server
- * runner only; every other scope has no such root, so its bytes are what they were.
- * @param {{ trigger?: unknown }} ctx
- */
-function triggerRoot(ctx) {
-    return ctx.trigger && typeof ctx.trigger === 'object' ? { trigger: ctx.trigger } : {};
-}
-
 function buildServerScope(ctx) {
     const now = new Date().toISOString();
     const clientVars = (ctx.vars && typeof ctx.vars === 'object') ? ctx.vars : {};
@@ -110,6 +101,9 @@ function buildServerScope(ctx) {
         // Inside a step's onError handler: { message, step, code, attempts, stepIndex? }
         // (null otherwise). Client-supplied on the /step routes, bounded by clampErrorScope.
         error: plainObjectOr(ctx.error, null),
+        // What started an unattended run ({ kind, <kind>: { … } }, appStudio/triggers/triggerScope.mts). Set by the
+        // server for a run a trigger started and by nothing else, so every other scope has no such key.
+        ...(plainObjectOr(ctx.trigger, null) ? { trigger: ctx.trigger } : {}),
         currentUser: {
             id: ctx.viewerId ?? null,
             // A person's display name is the whole point of an audit column.
@@ -125,7 +119,6 @@ function buildServerScope(ctx) {
         datasets: {},
         now,
         today: now.slice(0, 10),
-        ...triggerRoot(ctx),
     };
     // A derived variable (schema 3) is never taken from the browser: the value the client sent
     // under its name is replaced by the formula worked out again over this scope. An app

@@ -73,6 +73,7 @@ let _running = false;
  *   pruneStudioActionRuns?: (opts: { resultTtlHours: number, retentionDays: number, batch?: number, onEndedWait?: (wait: { appId: string, waitKind: string | null, waitRef: string | null }) => Promise<unknown> }) => Promise<{ nulled: number, deleted: number, expired?: number }>,
  *   releaseStudioWait?: (appId: string, waitKind: string | null, waitRef: string | null, reason: string) => Promise<unknown>,
  *   pruneStudioRunLog?: (opts: { maxPerApp: number, idleMs: number, staleMs: number, batch?: number }) => Promise<{ closed: number, overflow: number }>,
+ *   pruneStudioWebhookDeliveries?: () => Promise<number>,
  *   log: typeof import('../telemetry/log'),
  * }} PlatformRetentionDeps
  */
@@ -101,6 +102,8 @@ function deps() {
                 const overflow = await store.pruneOverflow({ maxPerApp: opts.maxPerApp, batch: opts.batch });
                 return { closed, overflow };
             },
+            // The delivery log of webhook triggers: STUDIO_APP_WEBHOOK_DELIVERY_RETENTION_DAYS (0 = keep).
+            pruneStudioWebhookDeliveries: () => require('../stores/studioAppData/webhookTriggers.mts').pruneWebhookDeliveries(),
             log: require('../telemetry/log'),
         };
     }
@@ -208,6 +211,10 @@ async function _actionRunPasses(d, knobs, runLog, policy) {
         if (nulled || deleted || expired) d.log.info(`[platformRetention] action runs: ${nulled} payload(s) cleared, ${deleted} row(s) deleted, ${expired} run(s) on hold ended`);
     }
     if (runLog) await _pruneRunLog(d, runLog, policy);
+    if (d.pruneStudioWebhookDeliveries) {
+        const gone = await d.pruneStudioWebhookDeliveries();
+        if (gone) d.log.info(`[platformRetention] webhook triggers: ${gone} delivery log row(s) deleted`);
+    }
 }
 
 /**

@@ -24,7 +24,7 @@ module.exports = {
     "studio_apps_h4.panel.table_missing": "{table} (no longer in the app)",
     "studio_apps_h4.panel.title": "When a record changes",
     "studio_apps_h4.panel.when": "Only if (formula)",
-    "studio_apps_h4.panel.when_hint": "For example trigger.row.status == \"done\". Read the row as trigger.row, the row before the change as trigger.before, and the event as trigger.event.",
+    "studio_apps_h4.panel.when_hint": "For example trigger.record.row.status == \"done\". Read the row as trigger.record.row, the row before the change as trigger.record.before, and the event as trigger.record.event.",
     "studio_apps_h4.runs.by_member": "by a member",
     "studio_apps_h4.runs.by_owner": "by the owner",
     "studio_apps_h4.runs.by_public": "by a visitor",

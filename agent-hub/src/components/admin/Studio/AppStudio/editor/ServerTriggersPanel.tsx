@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { Plus, X } from 'lucide-react';
 import IconButton from '@/components/shared/IconButton';
 import toast from '@/components/shared/Toast';
@@ -7,15 +8,21 @@ import { ApiError, errorBody } from '@/api/mutate';
 import { INPUT_CLS } from '../inspector/panels/kit';
 import { useActionChoices } from '../inspector/ThenAlsoRun';
 import {
-    MAX_EVERY_MINUTES, MAX_SERVER_TRIGGERS, clampMinutes, definitionTriggers, isInterval, newScheduleTrigger, setTriggers, withEnabled,
+    MAX_EVERY_MINUTES, MAX_SERVER_TRIGGERS, clampMinutes, definitionTriggers, isInterval, isWebhookTrigger, newScheduleTrigger, newWebhookTrigger, setTriggers, withEnabled,
     type ServerTrigger, type TriggerSchedule,
 } from '../state/serverTriggerOps';
 import { triggersApi, useTriggerState, useTriggerSwitch, type TriggerView, type TriggersApi } from './serverTriggersApi';
+import { isRecordTrigger } from '../state/recordTriggerOps';
 import type { AppDefinition } from '../inspector/appDefinition';
 
+// Only an app with a webhook trigger loads its address, secret and delivery list.
+const WebhookTriggerDetails = lazy(() => import('./WebhookTriggerDetails'));
+
 /**
- * The app's server triggers in the Logic tab (schema 3, definition.triggers): "at these times,
- * run that action", on the server, with nobody at the page. The list edits the draft; what is
+ * The app's server triggers in the Logic tab (schema 3, definition.triggers): "at these times, or
+ * when another system calls this address, run that action", on the server, with nobody at the
+ * page. One area for every kind under one heading: the schedule and webhook rows are here, the
+ * record rows in RecordTriggersPanel right below it (ServerTriggersSlot). The list edits the draft; what is
  * ARMED is read from the server and only exists for a published app. A trigger runs as the
  * owner of the app, which the panel says in so many words.
  */
@@ -129,6 +136,23 @@ function ScheduleFields({ schedule, onChange, disabled }: { schedule: TriggerSch
     );
 }
 
+/** One button per kind of trigger; each adds a trigger of that kind for the first action. */
+function AddButtons({ disabled, onAdd }: { disabled: boolean; onAdd: (make: (taken: ServerTrigger[], actionId: string) => ServerTrigger) => void }) {
+    const { t } = useTranslation();
+    return (
+        <div className="flex flex-wrap gap-2">
+            <button type="button" className={ADD_BTN} disabled={disabled} onClick={() => onAdd(newScheduleTrigger)}>
+                <Plus className="h-3.5 w-3.5" aria-hidden="true" />
+                {t('studio_apps_schedule.panel.add', 'Add a schedule')}
+            </button>
+            <button type="button" className={ADD_BTN} disabled={disabled} onClick={() => onAdd(newWebhookTrigger)}>
+                <Plus className="h-3.5 w-3.5" aria-hidden="true" />
+                {t('studio_apps_h5.add', 'Add a webhook')}
+            </button>
+        </div>
+    );
+}
+
 export default function ServerTriggersPanel({ appId, definition, onCommit, disabled = false, api = triggersApi }: ServerTriggersPanelProps) {
     const { t } = useTranslation();
     const choices = useActionChoices(definition);
@@ -154,27 +178,24 @@ export default function ServerTriggersPanel({ appId, definition, onCommit, disab
         <section className="mt-6" data-testid="logic-server-triggers">
             <div className="mb-2 flex flex-wrap items-start justify-between gap-2">
                 <div className="min-w-0">
-                    <h3 className="text-sm font-semibold text-[var(--text-primary)]">{t('studio_apps_schedule.panel.title', 'On a schedule')}</h3>
+                    <h3 className="text-sm font-semibold text-[var(--text-primary)]">{t('studio_apps_h5.area_title', 'Triggers')}</h3>
                     <p className="text-xs text-[var(--text-tertiary)]">
-                        {t('studio_apps_schedule.panel.desc', 'A trigger runs an action on the server at set times, with nobody at the page. It only runs once the app is published.')}
+                        {t('studio_apps_h5.area_desc', 'A trigger runs an action on the server, with nobody at the page: at set times, when another system calls its address, or when a record of the app changes. It only runs once the app is published.')}
                     </p>
                     <p className="text-xs font-medium text-[var(--text-secondary)]" data-testid="triggers-runs-as">
                         {t('studio_apps_schedule.panel.runs_as', 'It runs as the owner of this app: with the owner’s access to every row, the owner’s mailbox and the owner’s automations.')}
                     </p>
                 </div>
-                {triggers.length < MAX_SERVER_TRIGGERS && first ? (
-                    <button type="button" className={ADD_BTN} disabled={disabled} onClick={() => commit([...triggers, newScheduleTrigger(triggers, first)])}>
-                        <Plus className="h-3.5 w-3.5" aria-hidden="true" />
-                        {t('studio_apps_schedule.panel.add', 'Add a schedule')}
-                    </button>
-                ) : null}
+                {triggers.length < MAX_SERVER_TRIGGERS && first ? <AddButtons disabled={disabled} onAdd={(make) => commit([...triggers, make(triggers, first)])} /> : null}
             </div>
             {state.isError ? <p className="mb-2 text-xs text-[var(--error)]" role="alert">{t('studio_apps_schedule.panel.state_failed', 'Whether the triggers are armed could not be read.')}</p> : null}
-            {/* A trigger of another kind has its own form (RecordTriggersPanel); the index stays the one in the whole list. */}
-            {triggers.map((tr, i) => (tr.kind !== 'schedule' ? null : (
+            {/* A record trigger has its own form (RecordTriggersPanel, below); the index stays the one in the whole list. */}
+            {triggers.map((tr, i) => (isRecordTrigger(tr) ? null : (
                 <div key={tr.id || i} className="mb-3 flex flex-col gap-1" data-app-trigger={tr.id}>
                     <div className="flex flex-wrap items-center gap-2">
-                        <ScheduleFields schedule={tr.schedule} disabled={disabled} onChange={(schedule) => patch(i, (cur) => ({ ...cur, schedule }))} />
+                        {isWebhookTrigger(tr)
+                            ? <span className="text-xs font-medium text-[var(--text-secondary)]" data-trigger-kind="webhook">{t('studio_apps_h5.when', 'When another system calls its address')}</span>
+                            : <ScheduleFields schedule={tr.schedule} disabled={disabled} onChange={(schedule) => patch(i, (cur) => ({ ...cur, schedule }))} />}
                         <select
                             className={`${INPUT_CLS} min-w-[10rem] flex-1`} value={tr.actionId} disabled={disabled}
                             onChange={(e) => patch(i, (cur) => ({ ...cur, actionId: e.target.value }))}
@@ -192,6 +213,9 @@ export default function ServerTriggersPanel({ appId, definition, onCommit, disab
                         </IconButton>
                     </div>
                     <TriggerStatus view={views.get(tr.id)} published={state.data?.published} busy={flip.isPending} onSwitch={(enabled) => onSwitch(tr.id, enabled)} />
+                    {isWebhookTrigger(tr) && state.data ? (
+                        <Suspense fallback={null}><WebhookTriggerDetails appId={appId} triggerId={tr.id} disabled={disabled} /></Suspense>
+                    ) : null}
                 </div>
             )))}
             {triggers.length ? (

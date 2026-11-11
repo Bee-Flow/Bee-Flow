@@ -1,0 +1,191 @@
+{
+  "about": {
+    "source": "hand-made for package H5 (webhook trigger): a webhook trigger whose action reads trigger.webhook.body as untrusted input and calls a shared action, a webhook trigger that is switched off, and a button with the page steps a trigger may not carry",
+    "captured": "2026-11-11"
+  },
+  "definition": {
+    "schemaVersion": 3,
+    "meta": {
+      "name": "Webhook trigger",
+      "description": "Another system reports an order; the server files it.",
+      "icon": "Webhook"
+    },
+    "theme": {
+      "primary": "#1D4ED8",
+      "radius": "md",
+      "density": "comfortable",
+      "fontScale": "md",
+      "appearance": "auto"
+    },
+    "roles": [],
+    "variables": [
+      {
+        "name": "reference",
+        "label": "Reference",
+        "type": "text",
+        "default": "",
+        "description": ""
+      }
+    ],
+    "screens": [
+      {
+        "id": "scr_home0001",
+        "name": "Home",
+        "icon": "Home",
+        "showInNav": true,
+        "maxWidth": "medium",
+        "sections": [
+          {
+            "id": "sec_main0001",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_head0001",
+                "type": "heading",
+                "props": {
+                  "text": "Orders",
+                  "level": 2,
+                  "accent": "none"
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_btn00001",
+                "type": "button",
+                "props": {
+                  "label": "File a test order",
+                  "variant": "primary",
+                  "iconLeft": null,
+                  "role": "button",
+                  "disabledWhen": null
+                },
+                "style": {
+                  "span": 3
+                },
+                "visible": true,
+                "onClick": "act_button01"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "actions": {
+      "act_order001": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "set_variable",
+            "name": "reference",
+            "value": {
+              "kind": "formula",
+              "expr": "trigger.webhook.body.reference ?? \"\""
+            }
+          },
+          {
+            "kind": "condition",
+            "expr": "len(vars.reference) > 0 && len(vars.reference) <= 40",
+            "then": [
+              {
+                "kind": "create_record",
+                "tableId": "tbl_orders01",
+                "values": {
+                  "note": {
+                    "kind": "formula",
+                    "expr": "vars.reference"
+                  }
+                }
+              },
+              {
+                "kind": "call_action",
+                "actionId": "act_shared01"
+              }
+            ],
+            "else": []
+          }
+        ]
+      },
+      "act_shared01": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "update_record",
+            "tableId": "tbl_orders01",
+            "recordId": {
+              "kind": "static",
+              "value": "r1"
+            },
+            "values": {
+              "note": {
+                "kind": "formula",
+                "expr": "trigger.webhook.deliveryId"
+              }
+            }
+          }
+        ]
+      },
+      "act_button01": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "create_record",
+            "tableId": "tbl_orders01",
+            "values": {
+              "note": {
+                "kind": "static",
+                "value": "test"
+              }
+            }
+          },
+          {
+            "kind": "toast",
+            "message": "Order filed",
+            "tone": "info"
+          },
+          {
+            "kind": "refresh"
+          }
+        ]
+      }
+    },
+    "homeScreenId": "scr_home0001",
+    "triggers": [
+      {
+        "id": "order_in",
+        "kind": "webhook",
+        "actionId": "act_order001",
+        "auth": "hmac"
+      },
+      {
+        "id": "paused_hook",
+        "kind": "webhook",
+        "actionId": "act_shared01",
+        "auth": "hmac",
+        "enabled": false
+      }
+    ]
+  },
+  "dataModel": {
+    "tables": [
+      {
+        "id": "tbl_orders01",
+        "key": "orders",
+        "label": "Orders",
+        "fields": [
+          {
+            "key": "note",
+            "label": "Note",
+            "type": "text"
+          }
+        ]
+      }
+    ]
+  }
+}

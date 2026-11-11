@@ -8,26 +8,27 @@
  *                      Studio table is refused)
  *   on                 the events it listens to, at least one
  *   fields             for `update`: fire only when one of these fields changed value
- *   when               a formula over the `trigger` root; the run starts only when it is true.
+ *   when               a formula over the `trigger` root (trigger.record.*); the run starts only when it is true.
  *                      Evaluated on the server (recordDrain.mts), inside the expression engine's
  *                      work budget; a formula that fails starts nothing and the trigger says why
  *   allowPublicWrites  only written as true: the trigger may also start on a write by a visitor
  *                      of a public page, and on any write into a table such visitors can write.
  *                      Its action then holds none of PUBLIC_REFUSED_KINDS
  *
- * The run is the app owner (unattendedIdentity.mts) and reads the change as the `trigger` root:
+ * The run is the app owner (unattendedIdentity.mts) and reads the change as the `trigger` root,
+ * under its kind's own name (triggerScope.mts), so no other kind can claim the same path:
  *
- *   trigger.kind       'record'
- *   trigger.event      'create' | 'update' | 'delete'
- *   trigger.tableId    the table
- *   trigger.id         the row's id
- *   trigger.row        the row after the change (for a delete: the row as it was), as the owner reads it
- *   trigger.before     the row before an update or a delete; null for a create
- *   trigger.changed    the field keys whose value changed (update), else []
- *   trigger.by         who wrote it, as a kind: 'member', 'owner', 'public' or 'trigger'. Never a
- *                      name or an account
- *   trigger.depth      how many trigger runs led to this change (0: a person wrote it)
- *   trigger.triggerId  this trigger's id
+ *   trigger.kind               'record'
+ *   trigger.record.event       'create' | 'update' | 'delete'
+ *   trigger.record.tableId     the table
+ *   trigger.record.id          the row's id
+ *   trigger.record.row         the row after the change (for a delete: the row as it was), as the owner reads it
+ *   trigger.record.before      the row before an update or a delete; null for a create
+ *   trigger.record.changed     the field keys whose value changed (update), else []
+ *   trigger.record.by          who wrote it, as a kind: 'member', 'owner', 'public' or 'trigger'.
+ *                              Never a name or an account
+ *   trigger.record.depth       how many trigger runs led to this change (0: a person wrote it)
+ *   trigger.record.triggerId   this trigger's id
  *
  * Which writes fire it, the public-table rule and the loop guard: recordTriggerRule.mts.
  */
@@ -154,7 +155,7 @@ function validate(trigger: Obj, at: string, ctx: KindValidateCtx): void {
     }
     if (read.config.when) {
         const problem = whenProblem(read.config.when);
-        if (problem) ctx.pushE({ code: 'triggers.record_when_invalid', severity: 'error', path: `${at}.when`, message: `Record trigger: ${problem}.`, hint: 'Read the change as trigger.row.<field>, trigger.before.<field>, trigger.event and trigger.changed.' });
+        if (problem) ctx.pushE({ code: 'triggers.record_when_invalid', severity: 'error', path: `${at}.when`, message: `Record trigger: ${problem}.`, hint: 'Read the change as trigger.record.row.<field>, trigger.record.before.<field>, trigger.record.event and trigger.record.changed.' });
     }
     if (read.config.fields && !read.config.on.includes('update')) {
         ctx.pushW({ code: 'triggers.record_fields_unused', severity: 'warning', path: `${at}.fields`, message: 'Record trigger: fields only narrows the update event, and this trigger does not listen to update.', hint: 'Add "update" to on, or remove fields.' });
@@ -176,9 +177,10 @@ const record: TriggerKind = {
     refusedKindsFor: (trigger) => (trigger.allowPublicWrites === true ? PUBLIC_REFUSED_KINDS : []),
     shape: '{ id, kind: "record", actionId, tableId, on: ["create" | "update" | "delete"], fields?, when?, allowPublicWrites?, enabled? }',
     description: 'record runs the action when a row of table tableId (a table of the app itself, not one linked to a Studio table) is created, updated or deleted; on lists the events. '
-        + 'fields narrows update to changes of those fields; when is a formula that must be true, e.g. "trigger.row.status == \\"done\\"". '
-        + 'The action reads the change as the trigger root: trigger.event, trigger.tableId, trigger.id, trigger.row (the row after the change; for a delete the row as it was), '
-        + 'trigger.before (update and delete), trigger.changed (the changed fields), trigger.by ("member", "owner", "public" or "trigger") and trigger.depth. '
+        + 'fields narrows update to changes of those fields; when is a formula that must be true, e.g. "trigger.record.row.status == \\"done\\"". '
+        + 'The action reads the change under trigger.record (and trigger.kind is "record"): trigger.record.event, trigger.record.tableId, trigger.record.id, '
+        + 'trigger.record.row (the row after the change; for a delete the row as it was), trigger.record.before (update and delete), trigger.record.changed (the changed fields), '
+        + 'trigger.record.by ("member", "owner", "public" or "trigger") and trigger.record.depth. '
         + 'It fires on a change a person makes in the app (a grid or form edit, a create_record / update_record / delete_record step by id) and on such a step of another trigger run. '
         + 'It does NOT fire on rows written by the builder tools (app_seed_records, app_update_records, app_run_action, app_run_tests), imports, template installs, connector sync, '
         + 'the mailbox hook, ai_extract, file_intake, a transaction step, or an update_record / delete_record with a filter. '

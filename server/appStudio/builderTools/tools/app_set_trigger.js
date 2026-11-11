@@ -6,6 +6,8 @@ module.exports = {
     since: 3,
     description: 'Add a trigger to the app, or replace the one with the same id: it starts one action on the server by itself, with nobody at the page. '
         + 'kind "schedule" (the default) runs actionId at set times: pass schedule { cron, tz } (five fields: minute hour day-of-month month day-of-week, e.g. "0 8 * * 1-5" with tz "Europe/Amsterdam") or schedule { everyMinutes }. '
+        + 'kind "webhook" runs actionId when another system sends a signed delivery to the trigger\'s address: pass auth "hmac"; the action reads the JSON body as trigger.webhook.body. '
+        + 'The address and the secret are made at publish and shown to the owner only; never ask for them and never write them anywhere. '
         + 'The action must exist (app_set_action first) and may hold only steps that run unattended; a refused call names the step. '
         + 'Read the full rules with app_inspect_catalog {keys:["triggers"]}. '
         + 'This changes the draft only: the trigger runs once a person PUBLISHES the app, as the app owner. Say so to the user. '
@@ -25,6 +27,7 @@ module.exports = {
                     everyMinutes: { type: 'integer', description: 'A fixed interval in minutes (1 to 525600), instead of cron.' },
                 },
             },
+            auth: { type: 'string', description: 'For kind "webhook": "hmac" (the only value).' },
             enabled: { type: 'boolean', description: 'false keeps the trigger in the app without arming it at a publish. Leave out for a trigger that is on.' },
         },
         required: ['actionId'],

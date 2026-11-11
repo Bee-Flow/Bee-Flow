@@ -9,7 +9,7 @@ toc_max_heading_level: 2
 
 # `/api/studio-apps`
 
-90 routes, 53 with a request schema. Back to the [endpoint reference](../reference.md).
+93 routes, 56 with a request schema. Back to the [endpoint reference](../reference.md).
 
 ## `(root)`
 
@@ -910,6 +910,39 @@ No request schema.
 | Field | Type | Required | Notes |
 |-------|------|:--------:|-------|
 | `enabled` | boolean | yes |  |
+
+### `GET /api/studio-apps/:id/triggers/:triggerId/webhook`
+
+**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate`, `gateOwnedApp` · the handler also checks who the caller is
+
+**Path parameters**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `id` | string | yes | min length 1; max length 200 |
+| `triggerId` | string | yes | min length 1; max length 40 |
+
+### `POST /api/studio-apps/:id/triggers/:triggerId/webhook/rotate`
+
+**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate`, `gateOwnedApp`
+
+**Path parameters**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `id` | string | yes | min length 1; max length 200 |
+| `triggerId` | string | yes | min length 1; max length 40 |
+
+### `POST /api/studio-apps/:id/triggers/:triggerId/webhook/secret`
+
+**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate`, `gateOwnedApp`
+
+**Path parameters**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `id` | string | yes | min length 1; max length 200 |
+| `triggerId` | string | yes | min length 1; max length 40 |
 
 ### `GET /api/studio-apps/:id/versions`
 

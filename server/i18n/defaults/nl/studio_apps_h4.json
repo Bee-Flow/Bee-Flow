@@ -19,7 +19,7 @@
     "studio_apps_h4.panel.table_missing": "{table} (niet meer in de app)",
     "studio_apps_h4.panel.title": "Als een record wijzigt",
     "studio_apps_h4.panel.when": "Alleen als (formule)",
-    "studio_apps_h4.panel.when_hint": "Bijvoorbeeld trigger.row.status == \"done\". Lees de rij als trigger.row, de rij vóór de wijziging als trigger.before en de gebeurtenis als trigger.event.",
+    "studio_apps_h4.panel.when_hint": "Bijvoorbeeld trigger.record.row.status == \"done\". Lees de rij als trigger.record.row, de rij vóór de wijziging als trigger.record.before en de gebeurtenis als trigger.record.event.",
     "studio_apps_h4.runs.by_member": "door een lid",
     "studio_apps_h4.runs.by_owner": "door de eigenaar",
     "studio_apps_h4.runs.by_public": "door een bezoeker",

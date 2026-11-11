@@ -156,11 +156,11 @@
             "values": {
               "note": {
                 "kind": "formula",
-                "expr": "trigger.event + \" \" + trigger.id"
+                "expr": "trigger.record.event + \" \" + trigger.record.id"
               },
               "by": {
                 "kind": "formula",
-                "expr": "trigger.by"
+                "expr": "trigger.record.by"
               }
             }
           }
@@ -171,14 +171,14 @@
         "steps": [
           {
             "kind": "condition",
-            "expr": "trigger.before.status != \"done\"",
+            "expr": "trigger.record.before.status != \"done\"",
             "then": [
               {
                 "kind": "update_record",
                 "tableId": "tbl_orders01",
                 "recordId": {
                   "kind": "formula",
-                  "expr": "trigger.id"
+                  "expr": "trigger.record.id"
                 },
                 "values": {
                   "closed": {
@@ -219,7 +219,7 @@
         "fields": [
           "status"
         ],
-        "when": "trigger.row.status == \"done\""
+        "when": "trigger.record.row.status == \"done\""
       },
       {
         "id": "on_intake",

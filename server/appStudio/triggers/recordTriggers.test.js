@@ -181,9 +181,9 @@ test('a change starts the action as the app owner, with the change as the trigge
     const { ctx } = s.executed[0];
     assert.equal(ctx.viewerId, 'owner');
     assert.equal(ctx.role, 'owner');
-    assert.deepEqual(ctx.trigger, {
-        kind: 'record', triggerId: 'on_orders', event: 'create', tableId: 'tbl_orders', id: rowId,
-        row: { id: rowId, title: 'A', status: 'new' }, before: null, changed: [], by: 'member', depth: 0,
+    assert.deepEqual(ctx.trigger, { kind: 'record', record: {
+        triggerId: 'on_orders', event: 'create', tableId: 'tbl_orders', id: rowId,
+        row: { id: rowId, title: 'A', status: 'new' }, before: null, changed: [], by: 'member', depth: 0 },
     });
     assert.deepEqual(ctx.writeSource, { kind: 'trigger', depth: 1, triggerId: 'on_orders' });
     const [e] = await outbox();
@@ -199,7 +199,7 @@ test('a trigger takes its changes one at a time and in the order they were writt
     assert.equal((await drain()).fired, 1);
     assert.equal((await drain()).ready, 0, 'the run of the first is still to be settled: the trigger is not ready');
     await runToQuiet();
-    assert.deepEqual(s.executed.map((x) => [x.ctx.trigger.event, x.ctx.trigger.row.title]), [['create', 'first'], ['update', 'second'], ['update', 'third']]);
+    assert.deepEqual(s.executed.map((x) => [x.ctx.trigger.record.event, x.ctx.trigger.record.row.title]), [['create', 'first'], ['update', 'second'], ['update', 'third']]);
 });
 
 test('two instances that take the same change start one run (the claim is a compare-and-set)', async () => {
@@ -215,8 +215,8 @@ test('two instances that take the same change start one run (the claim is a comp
 test('watched fields and the when formula decide quietly; a formula that fails starts nothing and says so', async () => {
     await publish(def([
         onRecord('on_status', 'tbl_orders', { on: ['update'], fields: ['status'] }),
-        onRecord('on_done', 'tbl_orders', { on: ['update'], when: 'trigger.row.status == "done"' }),
-        onRecord('on_broken', 'tbl_orders', { on: ['update'], when: 'trigger.row.status.' }),
+        onRecord('on_done', 'tbl_orders', { on: ['update'], when: 'trigger.record.row.status == "done"' }),
+        onRecord('on_broken', 'tbl_orders', { on: ['update'], when: 'trigger.record.row.status.' }),
     ]));
     const a = await write(TABLES.orders, 'create', { values: { title: 'A', status: 'new' } });
     await write(TABLES.orders, 'update', { id: a.rowId, values: { title: 'B' } });
@@ -230,7 +230,7 @@ test('watched fields and the when formula decide quietly; a formula that fails s
 });
 
 test('the when formula runs inside the engine\'s work budget: one that exceeds it starts nothing', async () => {
-    await publish(def([onRecord('on_orders', 'tbl_orders', { when: 'trigger.row.title == "x"' })]));
+    await publish(def([onRecord('on_orders', 'tbl_orders', { when: 'trigger.record.row.title == "x"' })]));
     await write(TABLES.orders, 'create', { values: { title: 'x' } });
     const out = await drain({ evaluate: () => ({ value: undefined, error: 'One formula produced more than 10 items (EXPR_MAX_WORK=10)' }) });
     assert.equal(out.fired, 0);
@@ -349,7 +349,7 @@ test('back-pressure: a change beyond the pending limit of the app is dropped and
 function runsWrite(byAction) {
     s.execute = async (_app, _model, step, ctx) => {
         const todo = byAction[ctx.actionId];
-        if (todo) await write(TABLES[todo.table], todo.event, { id: todo.sameRow ? ctx.trigger.id : undefined, values: { status: `by ${ctx.actionId}` }, source: ctx.writeSource, viewer: ctx.viewer });
+        if (todo) await write(TABLES[todo.table], todo.event, { id: todo.sameRow ? ctx.trigger.record.id : undefined, values: { status: `by ${ctx.actionId}` }, source: ctx.writeSource, viewer: ctx.viewer });
         return { ok: true, result: { step: step.kind } };
     };
 }
@@ -400,9 +400,9 @@ test('a write of a schedule run counts as depth 1; a run that goes on after a wa
     await drain();
     const armed = await row('on_orders');
     const kept = await resumeScope(armed.lastRunId, { id: 'on_orders', kind: 'record', actionId: 'act_job' }, { events: () => events });
-    assert.deepEqual([kept.event, kept.depth, kept.by], ['create', 1, 'trigger']);
+    assert.deepEqual([kept.kind, kept.record.event, kept.record.depth, kept.record.by], ['record', 'create', 1, 'trigger']);
     const lost = await resumeScope('run_unknown', { id: 'on_orders', kind: 'record', actionId: 'act_job' }, { events: () => events });
-    assert.equal(lost.depth, UNKNOWN_DEPTH);
+    assert.equal(lost.record.depth, UNKNOWN_DEPTH);
     assert.equal(await resumeScope('run_unknown', { id: 'tick', kind: 'schedule', actionId: 'act_job' }, { events: () => events }), null);
     await settle(armed.lastRunId);
 });
@@ -457,9 +457,9 @@ test('app_set_record_trigger writes a record trigger into the draft and refuses 
         return { userId: 'usr_test', def: { ...base, actions: { act_job1: { kind: 'sequence', steps } } } };
     };
     const plain = draft([h.write('log')]);
-    const out = tool.apply(plain, { actionId: 'act_job1', tableId: 'tbl_orders', on: ['update', 'create'], fields: ['status'], when: 'trigger.row.status == "done"' });
+    const out = tool.apply(plain, { actionId: 'act_job1', tableId: 'tbl_orders', on: ['update', 'create'], fields: ['status'], when: 'trigger.record.row.status == "done"' });
     assert.equal(out.ok, true, JSON.stringify(out));
-    assert.deepEqual(plain.def.triggers, [{ id: 'trigger1', kind: 'record', actionId: 'act_job1', tableId: 'tbl_orders', on: ['create', 'update'], fields: ['status'], when: 'trigger.row.status == "done"' }]);
+    assert.deepEqual(plain.def.triggers, [{ id: 'trigger1', kind: 'record', actionId: 'act_job1', tableId: 'tbl_orders', on: ['create', 'update'], fields: ['status'], when: 'trigger.record.row.status == "done"' }]);
     assert.equal(plain.def.schemaVersion, 3);
     assert.match(tool.apply(draft([h.write('log')]), { actionId: 'act_job1', tableId: 'tbl_orders', on: ['sometimes'] }).error, /on lists at least one of create, update, delete/);
     const erasing = draft([{ kind: 'delete_record', tableId: 'log', recordId: { kind: 'static', value: 'r1' } }]);

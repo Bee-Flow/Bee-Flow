@@ -72,6 +72,7 @@ export function baseCtx(input: StartInput, w: WalkState, ownerActionId: string):
         role, orgId: app.organizationId || null,
         formValues: w.form, vars: w.vars, params: w.params,
         ...(w.error ? { error: w.error } : {}),
+        ...(w.trigger ? { trigger: w.trigger } : {}),
         variables: Array.isArray(def.variables) ? def.variables : null,
         item: w.item, index: w.index, value: w.value,
         viewer: { id: viewer.id, role: role || null, organizationId: viewer.organizationId || null },
@@ -81,14 +82,17 @@ export function baseCtx(input: StartInput, w: WalkState, ownerActionId: string):
 
 /**
  * What a run adds for record triggers (triggers/recordTriggerRule.mts): where its record writes
- * come from, and for a trigger run the `trigger` root. A run a person started writes as that
- * person; a run a trigger started carries the depth of its chain.
+ * come from, and for a trigger run the `trigger` root as the runner handed it (on a resume: as
+ * unattendedIdentity.mts read it again). A run a person started writes as that person; a run a
+ * trigger started carries the depth of its chain, which only a record trigger's own root
+ * (`trigger.record`, triggers/triggerScope.mts) gives: every other kind starts a chain at 1.
  */
 function triggerCtx(input: StartInput): Obj {
     if (!input.unattended) return { writeSource: { kind: 'user' } };
     const trigger = input.scope.trigger;
-    const depth = trigger && typeof trigger.depth === 'number' ? trigger.depth : 0;
-    const triggerId = trigger && typeof trigger.triggerId === 'string' ? trigger.triggerId : null;
+    const record = trigger && trigger.kind === 'record' && trigger.record && typeof trigger.record === 'object' ? trigger.record as Obj : null;
+    const depth = record && typeof record.depth === 'number' ? record.depth : 0;
+    const triggerId = record && typeof record.triggerId === 'string' ? record.triggerId : null;
     return { writeSource: { kind: 'trigger', depth: depth + 1, triggerId }, ...(trigger ? { trigger } : {}) };
 }
 
@@ -122,7 +126,7 @@ export function newJob(jobId: string, input: StartInput, action: Obj, deps: Runn
     const startedAt = deps.now();
     return {
         jobId, input, action, deps, limits, startedAt,
-        w: newWalkState({ vars: scope.vars, form: scope.formValues, item: scope.item, index: scope.index, value: scope.value }),
+        w: newWalkState({ vars: scope.vars, form: scope.formValues, item: scope.item, index: scope.index, value: scope.value, trigger: scope.trigger }),
         deadline: limits.maxRunMs ? startedAt + limits.maxRunMs : 0,
         leading: leadingConfirmCount(action.steps),
         progressVar: readRunOptions(action).progressVar,

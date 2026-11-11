@@ -20,7 +20,7 @@ export type App = { id: string; userId: string; name?: string | null; organizati
 export type Viewer = { id: string; name?: string | null; email?: string | null; organizationId?: string | null };
 export type RunScopeInput = {
     formValues?: Obj; vars?: Obj; item?: unknown; index?: number; value?: unknown;
-    /** What started a trigger run, read by its steps as the `trigger` root (triggers/kinds/record.mts). Absent for every other run. */
+    /** What started an unattended run, as the `trigger` scope root: `{ kind, <kind>: { … } }` (triggers/triggerScope.mts). */
     trigger?: Obj;
 };
 

@@ -90,6 +90,20 @@ describe('<RecordTriggersPanel>', () => {
         await userEvent.setup().click(screen.getByLabelText('On when published'));
         expect(last(onCommit)).toEqual([ON_ORDERS, { ...HOURLY, enabled: false }]);
     });
+
+    it('the Triggers area shows every kind under one neutral heading: schedule and webhook rows above, record rows below', () => {
+        const HOOK = { id: 'hook', kind: 'webhook', actionId: 'act_job1', auth: 'hmac' };
+        const definition = DEF([ON_ORDERS, HOURLY, HOOK]);
+        renderWithClient(<><ServerTriggersPanel appId="app1" definition={definition} onCommit={vi.fn()} api={api as unknown as TriggersApi} />
+            <RecordTriggersPanel appId="app1" definition={definition} onCommit={vi.fn()} api={api as unknown as TriggersApi} tables={TABLES} /></>);
+        const area = screen.getByTestId('logic-server-triggers');
+        expect(within(area).getByRole('heading', { level: 3 }).textContent).toBe('Triggers');
+        expect(area.textContent).not.toContain('On a schedule');
+        expect(within(area).getByText('When another system calls its address')).toBeTruthy();
+        expect(area.querySelector('[data-app-trigger="tick"]')).not.toBeNull();
+        expect(area.querySelector('[data-app-trigger="hook"]')).not.toBeNull();
+        expect(screen.getByTestId('logic-record-triggers').querySelector('[data-app-trigger="trigger1"]')).not.toBeNull();
+    });
 });
 
 describe('recordTriggerOps', () => {

@@ -3295,6 +3295,29 @@ declare namespace DbRow {
         summary: string | null;
         user_id: string;
     }
+    /** Row of `studio_app_webhook_deliveries`. */
+    interface StudioAppWebhookDeliveries {
+        body_bytes: number;
+        body_sha256: string | null;
+        endpoint_id: string;
+        id: string;
+        nonce_hash: string | null;
+        received_at: Date;
+        run_id: string | null;
+        status: string;
+    }
+    /** Row of `studio_app_webhook_endpoints`. */
+    interface StudioAppWebhookEndpoints {
+        app_id: string;
+        created_at: Date;
+        endpoint_id: string;
+        prev_secret_cipher: string | null;
+        prev_valid_until: Date | null;
+        rotated_at: Date | null;
+        secret_cipher: string;
+        secret_shown_at: Date | null;
+        trigger_id: string;
+    }
     /** Row of `studio_apps`. */
     interface StudioApps {
         accent_color: string | null;

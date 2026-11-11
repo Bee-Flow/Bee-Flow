@@ -169,6 +169,7 @@ async function _initDB() {
     ]);
     await initTriggers();
     await require('./recordEventsSchema').initRecordEvents(exec); // the outbox of record triggers
+    await require('./webhookTriggersSchema').initWebhookTriggers(exec); // webhook addresses and what arrived there
     log.info('[StudioAppDataStore] PostgreSQL initialized');
 }
 

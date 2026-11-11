@@ -39,7 +39,8 @@ import { changedFields } from './recordOutbox.mts';
 import { recordLimitLabel, recordTriggerLimits } from './recordTriggerLimits.mts';
 import type { RecordTriggerLimits } from './recordTriggerLimits.mts';
 import { UNKNOWN_DEPTH, deliveryRefusal } from './recordTriggerRule.mts';
-import { defaultDeps as fireDefaults, fireTrigger, triggerPass } from './triggerFire.mts';
+import { defaultFireDeps as fireDefaults, fireTrigger, triggerPass } from './triggerFire.mts';
+import { triggerScope } from './triggerScope.mts';
 import type { FireDeps, PassResult } from './triggerFire.mts';
 import { backoffMs } from './triggerLimits.mts';
 import type { AppTrigger } from './triggerSpec.mts';
@@ -76,14 +77,19 @@ function defaultDeps(): DrainDeps {
     };
 }
 
-/** The `trigger` root a delivery hands its run (kinds/record.mts lists the fields). */
-export function triggerScopeOf(d: RecordDelivery): Obj {
+/** What a delivery hands its run under `trigger.record` (kinds/record.mts lists the fields). */
+function recordValuesOf(d: RecordDelivery): Obj {
     return {
-        kind: 'record', triggerId: d.triggerId, event: d.event, tableId: d.tableId, id: d.rowId,
+        triggerId: d.triggerId, event: d.event, tableId: d.tableId, id: d.rowId,
         row: d.after ?? d.before, before: d.event === 'create' ? null : d.before,
         changed: d.event === 'update' ? changedFields(d.before, d.after) : [],
         by: d.writerKind, depth: d.depth,
     };
+}
+
+/** The `trigger` root a delivery hands its run: `{ kind: 'record', record: { … } }` (triggerScope.mts). */
+export function triggerScopeOf(d: RecordDelivery): Obj {
+    return triggerScope('record', recordValuesOf(d)).trigger as Obj;
 }
 
 type Verdict = { go: true } | { go: false; code: string; note: string | null };
@@ -103,7 +109,7 @@ async function verdictFor(d: RecordDelivery, row: TriggerRow, deps: DrainDeps, n
     if (refusal) return refusal.code === 'event_off' || refusal.code === 'own_write' ? quiet(refusal.code) : shown(refusal.code, refusal.reason);
     const scope = triggerScopeOf(d);
     const watched = Array.isArray(config.fields) ? config.fields : [];
-    if (d.event === 'update' && watched.length && !(scope.changed as string[]).some((name) => watched.includes(name))) return quiet('fields_unchanged');
+    if (d.event === 'update' && watched.length && !((scope.record as Obj).changed as string[]).some((name) => watched.includes(name))) return quiet('fields_unchanged');
     if (typeof config.when === 'string' && config.when) {
         const iso = new Date(now).toISOString();
         const out = deps.evaluate(config.when, { trigger: scope, now: iso, today: iso.slice(0, 10) });
@@ -196,7 +202,7 @@ export async function triggerAndRecordPass(): Promise<PassResult> {
  */
 export async function resumeScope(runId: string, trigger: AppTrigger, given: Partial<Pick<DrainDeps, 'events'>> = {}): Promise<Obj | null> {
     if (trigger.kind !== 'record') return null;
-    const lost: Obj = { kind: 'record', triggerId: trigger.id, event: null, tableId: null, id: null, row: null, before: null, changed: [], by: null, depth: UNKNOWN_DEPTH };
+    const lost = triggerScope('record', { triggerId: trigger.id, event: null, tableId: null, id: null, row: null, before: null, changed: [], by: null, depth: UNKNOWN_DEPTH }).trigger as Obj;
     try {
         const events = given.events ? given.events() : defaultDeps().events();
         const d = await events.forRun(runId);
