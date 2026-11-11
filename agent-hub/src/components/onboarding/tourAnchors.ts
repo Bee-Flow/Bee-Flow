@@ -36,7 +36,7 @@ export const TOUR_ANCHORS: Record<string, TourAnchor> = {
     'integration-card': { selector: '[data-tour="integration-card"]', owner: 'settings/IntegrationsSection.jsx', reveal: {} },
     'memory-manage': { selector: '[data-tour="memory-manage"]', owner: 'settings/MemorySection.tsx', reveal: {} },
     'automation-create': { selector: '[data-tour="automation-create"]', owner: 'automation/index.jsx', reveal: {} },
-    'usage-summary': { selector: '[data-tour="usage-summary"]', owner: 'settings/UsageSection.jsx', reveal: {} },
+    'usage-summary': { selector: '[data-tour="usage-summary"]', owner: 'admin/monitoring/index.tsx', reveal: {} },
 
     // Automations start screen (visible when no automation is selected).
     'automation-start-tabs': { selector: '[data-tour="automation-start-tabs"]', owner: 'Studio/AutomationsStudio/AutomationsLauncher.jsx', reveal: {} },

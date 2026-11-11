@@ -1023,7 +1023,7 @@ No request schema.
 
 ### `GET /auth/org-roles`
 
-**Access:** Permission `manage_users`
+**Access:** Permission `manage_users` · the handler also checks who the caller is
 
 No request schema.
 

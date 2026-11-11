@@ -14,7 +14,8 @@
  *   • Studio rail gates      components/admin/Studio/studioApps.jsx  (`gate:`)
  *   • route mounts           server/index.js (requireCapability / requireLicenseFeature)
  *   • route guards           requirePermission(...) inside server/routes/**
- *   • org sub-tabs           pages/AdvancedSettings.jsx (orgSubItems filter)
+ *   • admin dashboard tabs   components/admin/dashboard/adminTabs.ts (`perm`, `capability`)
+ *                            and the Organisation tab's sections (admin/organisation/orgSections.ts)
  *   • role → permission      server/config/orgRoles.json
  * lessonGates.test.js unions these per lesson and fails when a gate does not
  * cover the surfaces its own steps use.
@@ -25,7 +26,7 @@
  *   carries no permission at all — and the permission only bites on create or
  *   change. So a tour step that merely opens a screen contributes `permView`,
  *   and an action step that tells the learner to build something there
- *   contributes `permWrite`. Org settings are the exception: the sub-tab itself
+ *   contributes `permWrite`. The admin dashboard is the exception: the tab itself
  *   is permission-gated, so the two are equal.
  *
  *   feat is ALL-of. Studio's own Playbooks gate is
@@ -48,18 +49,18 @@ export const NAV_SURFACE_GATES: Record<string, SurfaceGate> = {
     'settings/appearance':                     { feat: [], permView: [], permWrite: [] },
     'settings/integrations':                   { feat: [], permView: [], permWrite: [] },
     'settings/memory':                         { feat: [], permView: [], permWrite: [] },
-    'settings/organisation/academy':           { feat: ['learning_center'], permView: ['org_admin'], permWrite: ['org_admin'] },
-    'settings/organisation/auth':              { feat: [], permView: ['org_admin'], permWrite: ['org_admin'] },
-    'settings/organisation/azure':             { feat: [], permView: ['org_admin'], permWrite: ['org_admin'] },
-    'settings/organisation/compliance':        { feat: ['compliance_hub_gdpr'], permView: ['admin_compliance'], permWrite: ['admin_compliance'] },
-    'settings/organisation/encryption':        { feat: [], permView: ['org_admin'], permWrite: ['org_admin'] },
-    'settings/organisation/info':              { feat: [], permView: ['org_admin'], permWrite: ['org_admin'] },
-    'settings/organisation/integrations':      { feat: [], permView: ['org_admin'], permWrite: ['org_admin'] },
-    'settings/organisation/license':           { feat: [], permView: ['org_admin'], permWrite: ['org_admin'] },
-    'settings/organisation/meeting-templates': { feat: ['meeting_notes'], permView: ['org_admin'], permWrite: ['org_admin'] },
-    'settings/organisation/privacy':           { feat: [], permView: ['org_admin'], permWrite: ['org_admin'] },
-    'settings/organisation/usage':             { feat: [], permView: ['org_admin'], permWrite: ['org_admin'] },
-    'settings/organisation/users':             { feat: [], permView: ['manage_users'], permWrite: ['manage_users'] },
+    'admin/organisation/academy':           { feat: ['learning_center'], permView: ['org_admin'], permWrite: ['org_admin'] },
+    'admin/organisation/auth':              { feat: [], permView: ['org_admin'], permWrite: ['org_admin'] },
+    'admin/organisation/azure':             { feat: [], permView: ['org_admin'], permWrite: ['org_admin'] },
+    'admin/compliance':        { feat: ['compliance_hub_gdpr'], permView: ['admin_compliance'], permWrite: ['admin_compliance'] },
+    'admin/organisation/encryption':        { feat: [], permView: ['org_admin'], permWrite: ['org_admin'] },
+    'admin/organisation/info':              { feat: [], permView: ['org_admin'], permWrite: ['org_admin'] },
+    'admin/organisation/integrations':      { feat: [], permView: ['org_admin'], permWrite: ['org_admin'] },
+    'admin/organisation/license':           { feat: [], permView: ['org_admin'], permWrite: ['org_admin'] },
+    'admin/organisation/meeting-templates': { feat: ['meeting_notes'], permView: ['org_admin'], permWrite: ['org_admin'] },
+    'admin/security/guardrails':           { feat: [], permView: ['org_admin'], permWrite: ['org_admin'] },
+    'admin/monitoring':             { feat: [], permView: ['org_admin'], permWrite: ['org_admin'] },
+    'admin/security/users':             { feat: [], permView: ['manage_users'], permWrite: ['manage_users'] },
     'settings/preferences':                    { feat: [], permView: [], permWrite: [] },
     'settings/security':                       { feat: [], permView: [], permWrite: [] },
     'studio/agents':                           { feat: [], permView: [], permWrite: ['manage_agents'] },

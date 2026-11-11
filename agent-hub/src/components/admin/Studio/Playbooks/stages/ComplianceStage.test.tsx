@@ -130,7 +130,7 @@ describe('ComplianceStage — the closing reading', () => {
         expect(done).not.toContain('processing_register');
         // And it lands on THAT entry, not just the register page.
         await user.click(screen.getByTestId('playbook-compliance-open-ropa'));
-        expect(onNavigate).toHaveBeenCalledWith('settings/organisation/compliance/ropa/datatable%3Atbl_1');
+        expect(onNavigate).toHaveBeenCalledWith('admin/compliance/ropa/datatable%3Atbl_1');
     });
 
     it('a finding points at the thing it is about', async () => {

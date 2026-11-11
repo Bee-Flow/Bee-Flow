@@ -1,12 +1,10 @@
 /**
  * Fixtures for the organisation Usage & Monitoring demo.
  *
- * Targets `pages/settings/UsageSection` — the view at
- * /app/settings/organisation/usage with the Overview / Safety & Guardrails /
- * Integrations / Feedback / Terminations tabs. NOT
- * `components/admin/MonitoringPanel`, which is the standalone "AI Monitor"
- * with its own sidebar; they are different screens and the marketing page
- * sells this one.
+ * Targets `demo/UsageMonitoringDemo` — the organisation usage reports with
+ * their Overview / Adoption / Spend / Quality tabs. NOT
+ * `components/admin/monitoring` (the AI Monitor with its own sidebar), which
+ * reads other endpoints.
  *
  * FIELD NAMES MATTER MORE THAN THE NUMBERS. Three bugs here were all the same
  * mistake — a near-miss name that renders as a silent zero or throws:

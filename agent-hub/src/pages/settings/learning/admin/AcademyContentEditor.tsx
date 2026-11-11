@@ -1,6 +1,6 @@
 import { Plus, ArrowLeft, ArrowUp, ArrowDown, Trash2, BookOpen, Globe, GlobeLock, Save } from 'lucide-react';
 import React, { useCallback, useEffect, useState } from 'react';
-import { academyApi } from './academyApi';
+import { useAcademyApi } from './academyApi';
 import MarkdownRenderer from '@/components/renderers/MarkdownRenderer';
 import useConfirm from '@/components/shared/useConfirm';
 import { useTranslation, type TranslateParams } from '@/hooks/useTranslation';
@@ -15,7 +15,6 @@ import type { TFn, Choice, SlideStep, QuizStep, ExerciseStep, Step, StepPatch, L
  * followed by a course save so the lesson id lands in the course's lessonIds
  * (see server/routes/ai/learningAdmin.js).
  */
-
 // Mirrors server learningContentStore.LIMITS — the server is authoritative,
 // these only keep the UI from offering inputs that would be rejected anyway.
 const MAX_CHOICES = 6;
@@ -429,6 +428,7 @@ function LessonEditor({ lesson, onChange, onSave, onBack, busy, error, notice, t
 export default function AcademyContentEditor() {
     const { t } = useTranslation();
     const { confirm, confirmDialog } = useConfirm();
+    const academyApi = useAcademyApi();
     const [courses, setCourses] = useState<CourseEntry[] | null>(null);
     const [loadingList, setLoadingList] = useState(true);
     const [course, setCourse] = useState<Course | null>(null);      // editable course, id=null until first save
@@ -450,7 +450,7 @@ export default function AcademyContentEditor() {
         } finally {
             setLoadingList(false);
         }
-    }, []);
+    }, [academyApi]);
 
     useEffect(() => { loadList(); }, [loadList]);
 

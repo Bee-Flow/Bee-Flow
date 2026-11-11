@@ -6,6 +6,7 @@ import { API_BASE } from '@/utils/helpers';
 import { errorMessage } from '@/utils/caughtError';
 import type { OrgRolePermissions } from './useOrgDirectory';
 import { mutate, errorBody, RefusedError } from '@/api/mutate';
+import { useAdminOrgScope, withOrgIdParam } from '@/api/adminOrgScope';
 
 interface RolePermissionEditorProps {
     role: { id: string; color: string };
@@ -33,6 +34,8 @@ interface RolePermissionEditorProps {
  */
 const RolePermissionEditor = ({ role, mapping, editablePermissions, canEdit, onSaved }: RolePermissionEditorProps) => {
     const { t } = useTranslation();
+    // The organisation an AdminOrgScopeProvider names (the dashboard's choice), else the caller's own.
+    const scopeOrgId = useAdminOrgScope();
     const [draft, setDraft] = useState<string[] | null>(null);   // null = untouched, mirrors `mapping`
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | undefined>('');
@@ -73,7 +76,7 @@ const RolePermissionEditor = ({ role, mapping, editablePermissions, canEdit, onS
         try {
             let res: Response;
             try {
-                res = await mutate(`${API_BASE}/auth/org-roles/${encodeURIComponent(role.id)}`, {
+                res = await mutate(withOrgIdParam(`${API_BASE}/auth/org-roles/${encodeURIComponent(role.id)}`, scopeOrgId), {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ permissions: current }),

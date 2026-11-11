@@ -10,14 +10,47 @@ const tab = (id: string) => ADMIN_TABS.find(t => t.id === id) as AdminTab;
 describe('canOpenAdminTab', () => {
     it('hides cloud-only tabs on self-hosted and enterprise tabs below enterprise', () => {
         expect(canOpenAdminTab(tab('subscriptions'), access({ isCloud: false, isSelfHosted: true }))).toBe(false);
-        expect(canOpenAdminTab(tab('monitoring'), access({ tier: 'community' }))).toBe(false);
+        expect(canOpenAdminTab(tab('appearance'), access({ tier: 'community' }))).toBe(false);
         expect(canOpenAdminTab(tab('ai-config'), access({ tier: 'community' }))).toBe(true);
+    });
+
+    it('opens Monitoring below enterprise for an organisation admin by role, and for a holder of admin_monitoring', () => {
+        const community = { tier: 'community', isSuperAdmin: false };
+        expect(canOpenAdminTab(tab('monitoring'), access({ ...community, hasPermission: p => p === 'org_admin' }))).toBe(true);
+        expect(canOpenAdminTab(tab('monitoring'), access({ ...community, hasPermission: p => p === 'admin_monitoring' }))).toBe(true);
+        expect(canOpenAdminTab(tab('monitoring'), access({ ...community, hasPermission: p => p === 'admin_security' }))).toBe(false);
     });
 
     it('hides subscriptions while a server-wide licence governs, and super-admin tabs from others', () => {
         expect(canOpenAdminTab(tab('subscriptions'), access({ serverOverride: true }))).toBe(false);
         expect(canOpenAdminTab(tab('modules'), access({ isSuperAdmin: false }))).toBe(false);
         expect(canOpenAdminTab(tab('security'), access({ isSuperAdmin: false, hasPermission: p => p === 'admin_security' }))).toBe(true);
+    });
+});
+
+describe('the Organisation tab', () => {
+    it('sits right after Agents in the registry, so the fallback tab stays Agents, and heads the rail by its group', () => {
+        expect(ADMIN_TABS.map(t => t.id).slice(0, 2)).toEqual(['agents', 'organisation']);
+        expect(ADMIN_TAB_GROUPS[0].id).toBe('organisation');
+        // Its connection sections get a group of their own, after Security & access.
+        expect(ADMIN_TAB_GROUPS.map(g => g.id)).toEqual(['organisation', 'ai', 'security', 'connections', 'platform', 'operations', 'website']);
+        expect(resolveAdminTab({}, () => true).activeTab).toBe('agents');
+        expect(groupAdminTabs([tab('agents'), tab('organisation')]).map(g => g.id)).toEqual(['organisation', 'ai']);
+    });
+
+    it('opens with org_admin on any tier and deployment, never for a holder of other admin permissions alone', () => {
+        const orgAdmin = access({ isSuperAdmin: false, tier: 'community', hasPermission: p => p === 'org_admin' });
+        expect(canOpenAdminTab(tab('organisation'), orgAdmin)).toBe(true);
+        expect(canOpenAdminTab(tab('organisation'), { ...orgAdmin, isCloud: false, isSelfHosted: true })).toBe(true);
+        expect(canOpenAdminTab(tab('organisation'), access({ isSuperAdmin: false, hasPermission: p => p === 'admin_security' }))).toBe(false);
+    });
+
+    it('is the organisation the dashboard works on, with the Azure setup and the Maps key server-wide', () => {
+        expect(adminScopeOf(tab('organisation'), 'info')).toBe('mixed');
+        expect(adminSectionScope('organisation', 'azure')).toBe('mixed');
+        expect(adminSectionScope('organisation', 'azure', 'config')).toBe('instance');
+        expect(adminSectionScope('organisation', 'integrations', 'maps')).toBe('instance');
+        expect(fixedOrgViewOf('organisation', 'info')).toBeNull();
     });
 });
 
@@ -151,7 +184,8 @@ describe('buildAdminRailSections', () => {
         const ids = (s: typeof org) => s.groups.flatMap(g => g.tabs.map(t => t.id));
         expect(ids(server).every(id => tab(id).scope === 'instance')).toBe(true);
         expect(ids(org).every(id => tab(id).scope !== 'instance')).toBe(true);
-        expect(ids(org)).toEqual(expect.arrayContaining(['agents', 'security', 'access', 'monitoring', 'compliance']));
+        expect(ids(org)).toEqual(expect.arrayContaining(['organisation', 'agents', 'security', 'access', 'monitoring', 'compliance']));
+        expect(ids(org)[0]).toBe('organisation');
         expect(ids(org).length + ids(server).length).toBe(all.length);
     });
 

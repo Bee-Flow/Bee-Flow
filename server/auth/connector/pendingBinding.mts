@@ -26,7 +26,7 @@ export async function isAddressOfOrgAdmin(orgId: string, email: string | null | 
 /** What the setup screen shows for an address the code is not sent to. */
 export function notOrgAdminAnswer(): { error: string; code: string } {
     return {
-        error: 'The verification code is sent only to an administrator of the Bee Flow organisation this Nextcloud is being linked to. Open this page as a Nextcloud admin with the e-mail address of a Bee Flow organisation admin, or ask a Bee Flow organisation admin for a pairing code (Settings → Organisation → Pair a new Nextcloud) and enter it on the Bee Flow setup page.',
+        error: 'The verification code is sent only to an administrator of the Bee Flow organisation this Nextcloud is being linked to. Open this page as a Nextcloud admin with the e-mail address of a Bee Flow organisation admin, or ask a Bee Flow organisation admin for a pairing code (Admin dashboard → Organisation → Nextcloud Sync → Pair a new Nextcloud) and enter it on the Bee Flow setup page.',
         code: 'email_not_in_org',
     };
 }

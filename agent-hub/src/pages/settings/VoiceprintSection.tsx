@@ -1,6 +1,6 @@
 import { Fingerprint, Check, Loader2 } from 'lucide-react';
 import React, { useState } from 'react';
-import { Row } from './shared/settingsPrimitives';
+import { Row } from '@/components/settings/shared/settingsPrimitives';
 import VoiceprintEnrollModal from './VoiceprintEnrollModal';
 import { useTranslation } from '../../hooks/useTranslation';
 import { API_BASE } from '../../utils/helpers';

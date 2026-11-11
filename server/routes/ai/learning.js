@@ -38,12 +38,11 @@ const {
 } = require('../../learning/trainingGates');
 const { evaluateForRequest } = require('../../learning/requireTraining');
 
-// Published org-authored courses for the caller, as completion.js extraCourses
+// Published org-authored courses of `orgId` (default: the caller's org), as completion.js extraCourses
 // + catalog-overlay entries. Empty unless the org has the custom-content beta.
-/** @param {import('express').Request} req */
-async function orgCoursesFor(req) {
+/** @param {import('express').Request} req @param {string | null} [orgId] */
+async function orgCoursesFor(req, orgId = req.session.user.organizationId || null) {
     const userId = req.session.user.id;
-    const orgId = req.session.user.organizationId || null;
     if (!orgId) return [];
     try {
         const entitled = await hasCapability('learning_custom_content', { userId, orgId, session: req.session, req });
@@ -602,7 +601,7 @@ router.get('/certificate/:certId/certificate.pdf', requireAuth, (/** @type {impo
 
 // ── Org learning overview (admin) ─────────────────────────────────────────────
 
-// Per-member completion summary for the caller's OWN org — courses done,
+// Per-member completion summary for req.primaryOrgId (own org; a platform admin's ?orgId) — courses done,
 // badges, certificates (ids/levels/dates only, never serials or tokens),
 // last activity. Org-admin gated; 60s-cached aggregation over two batched
 // configStore reads, so safe to refresh freely from the panel.
@@ -641,7 +640,7 @@ router.get('/training-gates', requireAuth, async (req, res) => {
 router.get('/training-rules', requireAuth, requirePrimaryOrgAdmin(), async (req, res) => {
     const [settings, orgPublished] = await Promise.all([
         getTrainingSettings(req.primaryOrgId),
-        orgCoursesFor(req),
+        orgCoursesFor(req, req.primaryOrgId),
     ]);
     const courses = [
         ...COURSES.map((c) => ({ id: c.id, title: c.title, lessons: (c.lessonIds || []).length, own: false })),
@@ -663,7 +662,7 @@ router.put('/training-rules', requireAuth, requirePrimaryOrgAdmin(), validate({ 
     if (!incoming || typeof incoming !== 'object' || Array.isArray(incoming)) {
         return res.status(400).json({ error: 'areas must be an object of { areaId: courseId }' });
     }
-    const orgPublished = await orgCoursesFor(req);
+    const orgPublished = await orgCoursesFor(req, req.primaryOrgId);
     const knownCourseIds = new Set([
         ...COURSES.map((c) => c.id),
         ...orgPublished.map(({ course }) => course.id),

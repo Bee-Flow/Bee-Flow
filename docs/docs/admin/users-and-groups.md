@@ -7,7 +7,7 @@ title: "Users & groups"
 Two places manage people:
 
 - **Admin → Security → Users** on the admin dashboard. A full admin gets the tabs Users, Organizations, Nextcloud, Groups, Roles and Permissions, across every organisation on the server. Anyone else who can open Admin → Security gets Users, Groups and, when they belong to an organisation, My Organization. Adding, editing and deleting needs the Manage Users or Privacy Shield permission.
-- **Settings → Organisation → Users & Groups** for an org admin, scoped to their own organisation, with the tabs Users, Groups and Roles. Invitations and approvals live here.
+- The same screen for an org admin, scoped to their own organisation, with the tabs Users, Groups and Roles. Invitations and approvals live here.
 
 What a user or group may *use* (features, beta features, integrations) is not set on these screens: that is **Admin → Access → Grants**, see [Beta features](beta-features.md). The Nextcloud integrations have their own panel, see [Nextcloud integrations](nc-integrations.md).
 
@@ -39,7 +39,7 @@ Deleting or demoting the last org admin of an organisation that still has other 
 | **Permissions** | The list of permissions roles and groups can carry (read-only). |
 | **My Organization** | Your own organisation's details and logo. |
 
-## Organisation admins: Settings → Organisation → Users & Groups
+## Organisation admins: Admin → Security → Users
 
 | Tab | What it offers |
 |-----|----------------|
@@ -67,11 +67,11 @@ Groups are how access is handed out:
 - agents shared with a group;
 - the permissions, roles, allowed agent types and budgets set on the group itself.
 
-A group comes from one of three places: made in Bee Flow, mirrored from Nextcloud by the [Nextcloud sync](#nextcloud-sync), or synced from Azure AD. Azure groups are marked **Managed** under Settings → Organisation → Users & Groups and are changed by syncing, not by hand.
+A group comes from one of three places: made in Bee Flow, mirrored from Nextcloud by the [Nextcloud sync](#nextcloud-sync), or synced from Azure AD. Azure groups are marked **Managed** under Admin → Security → Users and are changed by syncing, not by hand.
 
 ## Nextcloud sync
 
-Path: **Settings → Organisation → Nextcloud Sync**, for organisations bound to a Nextcloud instance (and for super-admins). It decides which Nextcloud users get a Bee Flow account.
+Path: **Admin → Organisation → Nextcloud Sync**, for organisations bound to a Nextcloud instance (and for super-admins). It decides which Nextcloud users get a Bee Flow account.
 
 | Mode | Behaviour |
 |------|-----------|

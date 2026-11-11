@@ -9,6 +9,7 @@ const authFetch = vi.fn();
 vi.mock('../../utils/helpers', () => ({ API_BASE: '', authFetch: (...args: unknown[]) => authFetch(...args) }));
 
 import N8nSection from './N8nSection';
+import { AdminOrgScopeProvider } from '../../api/adminOrgScope';
 
 const ok = (body: unknown) => ({ ok: true, status: 200, json: async () => body });
 
@@ -35,7 +36,7 @@ describe('N8nSection', () => {
 
     it('links Users & Groups to the settings address when the server sends a bare path', async () => {
         serve({ modify_n8n_workflows: [], availableGroups: [], orgAdminAlways: true, editUrl: '/settings/organisation/users' });
-        expect(await openPermissions()).toHaveAttribute('href', '/app/settings/organisation/users');
+        expect(await openPermissions()).toHaveAttribute('href', '/app/admin/security/users');
     });
 
     it('does not claim a stored API key after saving the URL alone', async () => {
@@ -55,7 +56,23 @@ describe('N8nSection', () => {
     });
 
     it('follows an app address from the server', async () => {
-        serve({ modify_n8n_workflows: [], availableGroups: [], orgAdminAlways: true, editUrl: '/app/settings/organisation/users' });
-        expect(await openPermissions()).toHaveAttribute('href', '/app/settings/organisation/users');
+        serve({ modify_n8n_workflows: [], availableGroups: [], orgAdminAlways: true, editUrl: '/app/admin/security/users' });
+        expect(await openPermissions()).toHaveAttribute('href', '/app/admin/security/users');
+    });
+
+    it('works on the organisation the admin dashboard names, and leaves the own-account check out', async () => {
+        const user = userEvent.setup();
+        authFetch.mockImplementation(async (url: string) => {
+            if (url === '/ai/n8n/config?orgId=org-b') return ok({ n8nUrl: 'https://n8n.example.test', hasApiKey: true, configured: true, workflows: [] });
+            if (url === '/ai/n8n/permissions?orgId=org-b') return ok({ modify_n8n_workflows: [], availableGroups: [], orgAdminAlways: true });
+            return { ok: false, status: 404, json: async () => ({}) };
+        });
+        render(<AdminOrgScopeProvider value="org-b"><N8nSection diagnostics={false} /></AdminOrgScopeProvider>);
+        expect(await screen.findByDisplayValue('https://n8n.example.test')).toBeTruthy();
+        await user.click(screen.getByRole('tab', { name: 'Permissions' }));
+        await screen.findByRole('link', { name: /Users & Groups/ });
+        const asked = authFetch.mock.calls.map(([u]) => String(u));
+        expect(asked).toContain('/ai/n8n/permissions?orgId=org-b');
+        expect(asked.some(u => u.includes('/ai/n8n/diagnostics'))).toBe(false);
     });
 });

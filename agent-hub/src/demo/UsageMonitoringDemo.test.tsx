@@ -1,5 +1,5 @@
 /**
- * The Adoption report tab of Usage & Monitoring: present only with the
+ * The public monitoring demo's Adoption report tab: present only with the
  * `advanced_usage_monitoring` licence feature (like Feedback and
  * Terminations), reachable by deep link, and without the page's
  * user/agent/model/source filter bar, which does not apply to it.
@@ -13,7 +13,7 @@ import { createDemoTransport, type DemoRoutes } from '@/demo/demoTransport';
 import { createState, ROUTES } from '@/demo/fixtures/monitoring';
 import { renderWithClient } from '@/test/render';
 import { setDemoTransport } from '@/utils/helpers';
-import UsageSection from './UsageSection';
+import UsageMonitoringDemo from './UsageMonitoringDemo';
 
 type License = ContextType<typeof LicenseContext>;
 
@@ -21,7 +21,7 @@ function renderSection(features: string[], initialReport = '') {
     const value = { hasFeature: (name: string) => features.includes(name), deploymentMode: 'self-hosted' } as unknown as License;
     return renderWithClient(
         <LicenseContext.Provider value={value}>
-            <UsageSection initialReport={initialReport} />
+            <UsageMonitoringDemo initialReport={initialReport} />
         </LicenseContext.Provider>,
     );
 }
@@ -29,7 +29,7 @@ function renderSection(features: string[], initialReport = '') {
 beforeEach(() => { setDemoTransport(createDemoTransport(ROUTES as unknown as DemoRoutes, createState())); });
 afterEach(() => { setDemoTransport(null); });
 
-describe('UsageSection: tabs and header', () => {
+describe('UsageMonitoringDemo: tabs and header', () => {
     it('orders Overview, Adoption, Spend, Quality behind advanced_usage_monitoring', () => {
         renderSection(['advanced_usage_monitoring']);
         const labels = ['Overview', 'Adoption', 'Spend', 'Quality'];
@@ -48,7 +48,7 @@ describe('UsageSection: tabs and header', () => {
         renderSection(['advanced_usage_monitoring'], 'adoption');
         expect(await screen.findByText('107 of 148 members used AI')).toBeTruthy();
         expect(screen.queryByText('Filters')).toBeNull();
-        expect(screen.getByRole('heading', { name: 'Usage & Monitoring' }).getAttribute('data-tour')).toBe('usage-summary');
+        expect(screen.getByRole('heading', { name: 'Usage & Monitoring' })).toBeTruthy();
     });
 
     it('switches to Adoption and Spend from the tab bar', async () => {

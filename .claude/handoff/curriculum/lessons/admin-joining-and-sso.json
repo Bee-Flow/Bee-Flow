@@ -17,14 +17,14 @@
       "id": "three-doors",
       "icon": "🚪",
       "title": "There are three doors into your organisation",
-      "bodyMd": "Van Dijk Groep is a Dutch installation firm with sixty staff, and all sixty have to be let in before Monday. They will arrive through one of three doors, and each one behaves differently.\n\n- **An invitation you send.** From **Settings → Organisation → Users & Groups**, the **Invite User** button. The person arrives **active**, with the role you picked and the organisation's default groups.\n- **An SSO newcomer.** Someone signs in with their Google or Microsoft account. Unless you switched on auto-approve, they land in your organisation as **pending**: no role, no groups, no AI.\n- **Azure AD sync** (self-hosted only). **Azure Configuration → Microsoft SSO → Sync Now** pulls in the groups and users assigned to your enterprise app.\n\nThe door you use is decided by one setting you will look at next — and it is the only one in this lesson you cannot undo."
+      "bodyMd": "Van Dijk Groep is a Dutch installation firm with sixty staff, and all sixty have to be let in before Monday. They will arrive through one of three doors, and each one behaves differently.\n\n- **An invitation you send.** From **Admin dashboard → Security → Users**, the **Invite User** button. The person arrives **active**, with the role you picked and the organisation's default groups.\n- **An SSO newcomer.** Someone signs in with their Google or Microsoft account. Unless you switched on auto-approve, they land in your organisation as **pending**: no role, no groups, no AI.\n- **Azure AD sync** (self-hosted only). **Azure Configuration → Microsoft SSO → Sync Now** pulls in the groups and users assigned to your enterprise app.\n\nThe door you use is decided by one setting you will look at next — and it is the only one in this lesson you cannot undo."
     },
     {
       "type": "slide",
       "id": "one-choice",
       "icon": "🔒",
       "title": "Sign-in Method: chosen once, locked forever",
-      "bodyMd": "**Settings → Organisation → Sign-in Method** offers three cards: **Username & Password**, **Sign in with Google**, **Sign in with Microsoft**. Under them sits the warning:\n\n> **Choose carefully:** Once saved, this cannot be changed. Each user's data is protected with a unique key that is tied to how they sign in. Switching later would make existing conversations unreadable.\n\nThis is not a policy, it is cryptography. Bee Flow derives each person's encryption key from how they authenticate, so changing the method would orphan the key that unlocks their content.\n\nAfter you save, the chosen card shows a lock chip reading **Active**, the banner **Sign-in method is locked** appears, and the row vanishes from the settings menu altogether. So decide this before you invite anybody."
+      "bodyMd": "**Admin dashboard → Organisation → Sign-in Method** offers three cards: **Username & Password**, **Sign in with Google**, **Sign in with Microsoft**. Under them sits the warning:\n\n> **Choose carefully:** Once saved, this cannot be changed. Each user's data is protected with a unique key that is tied to how they sign in. Switching later would make existing conversations unreadable.\n\nThis is not a policy, it is cryptography. Bee Flow derives each person's encryption key from how they authenticate, so changing the method would orphan the key that unlocks their content.\n\nAfter you save, the chosen card shows a lock chip reading **Active**, the banner **Sign-in method is locked** appears, and the row vanishes from the settings menu altogether. So decide this before you invite anybody."
     },
     {
       "type": "quiz",
@@ -162,7 +162,7 @@
       "id": "azure-sync",
       "icon": "🔄",
       "title": "Azure AD Group Sync: the door that opens itself",
-      "bodyMd": "Self-hosted organisations on Microsoft can let the directory do the admitting. **Settings → Organisation → Azure Configuration → Microsoft SSO** holds the credentials (**Application (Client) ID**, **Client Secret**, **Directory (Tenant) ID**) and the card **Azure AD Group Sync** with a **Sync Now** button, which answers *\"Sync completed: N group(s), M new user(s)\"*.\n\nFirst, the permissions the screen lists under **Required Azure Permissions** — `GroupMember.Read.All`, `User.Read.All`, `Application.Read.All`, granted as Application permissions **with admin consent**. Without that consent Sync Now fails before it reads a single group.\n\nThen three switches under **Sync Settings**:\n\n- **Auto-activate synced users** — on, they are immediately active; off, they still require admin approval.\n- **Destructive sync** — removes groups and memberships in Bee Flow once they disappear in Azure.\n- **Automatic periodic sync** — with **Sync every** 1, 3, 6, 12, 24 or 48 hours, or Weekly.\n\nSynced groups appear on the Groups tab marked **Managed**, with no delete button."
+      "bodyMd": "Self-hosted organisations on Microsoft can let the directory do the admitting. **Admin dashboard → Organisation → Azure Configuration → Microsoft SSO** holds the credentials (**Application (Client) ID**, **Client Secret**, **Directory (Tenant) ID**) and the card **Azure AD Group Sync** with a **Sync Now** button, which answers *\"Sync completed: N group(s), M new user(s)\"*.\n\nFirst, the permissions the screen lists under **Required Azure Permissions** — `GroupMember.Read.All`, `User.Read.All`, `Application.Read.All`, granted as Application permissions **with admin consent**. Without that consent Sync Now fails before it reads a single group.\n\nThen three switches under **Sync Settings**:\n\n- **Auto-activate synced users** — on, they are immediately active; off, they still require admin approval.\n- **Destructive sync** — removes groups and memberships in Bee Flow once they disappear in Azure.\n- **Automatic periodic sync** — with **Sync every** 1, 3, 6, 12, 24 or 48 hours, or Weekly.\n\nSynced groups appear on the Groups tab marked **Managed**, with no delete button."
     },
     {
       "type": "sim",
@@ -224,7 +224,7 @@
         "items": [
           {
             "id": "open",
-            "label": "Open Settings → Organisation → Users & Groups and set the status filter to Pending"
+            "label": "Open Admin dashboard → Security → Users and set the status filter to Pending"
           },
           {
             "id": "approve",
@@ -272,7 +272,7 @@
       "title": "Send one real invitation",
       "instruction": "Open Users & Groups, stay on the Users tab and click Invite User. Enter a colleague's address, pick their role (leave it on User if in doubt) and click Send. Check the new row under PENDING INVITATIONS, and if the line says delivery failed, click Copy invite link straight away. If this was only practice, revoke it afterwards with the ✕. Sending and reading invitations are Organisation Admin only, so this one is verified for org admins and taken on trust from everyone else.",
       "launch": {
-        "navigateTo": "settings/organisation/users",
+        "navigateTo": "admin/security/users",
         "label": "Open Users & Groups"
       }
     },
@@ -317,7 +317,7 @@
       "checkId": "invite-sent",
       "existing": false,
       "label": "Send an invitation",
-      "hint": "Settings → Organisation → Users & Groups → Users tab → Invite User → fill in EMAIL ADDRESS → Send. Sending and listing invitations are both Organisation Admin work.",
+      "hint": "Admin dashboard → Security → Users → Users tab → Invite User → fill in EMAIL ADDRESS → Send. Sending and listing invitations are both Organisation Admin work.",
       "endpoints": [
         {
           "method": "GET",

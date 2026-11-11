@@ -22,8 +22,7 @@ The **Adoption** report answers four questions about your organisation:
 - what your organisation built in Studio, who built it, and how much it is used;
 - how adoption differs per group and per person.
 
-Path: **Settings → Organisation → Usage & Monitoring → Adoption**
-(`/app/settings/organisation/usage/adoption`). It is a report tab next to Overview,
+Path: **Admin → Monitoring → Adoption**. It is a report tab next to Overview,
 Feedback and Terminations.
 
 ## Who can see it

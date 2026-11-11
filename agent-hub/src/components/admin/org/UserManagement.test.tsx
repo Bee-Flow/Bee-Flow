@@ -1,4 +1,5 @@
-import { render, screen, cleanup, waitFor, within } from '@testing-library/react';
+import { screen, cleanup, waitFor, within } from '@testing-library/react';
+import { renderWithClient as render } from '@/test/render';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import UserManagement from './UserManagement';
@@ -50,6 +51,8 @@ const FIXTURES: Record<string, unknown> = {
 };
 
 const LIST_ENDPOINTS = Object.keys(FIXTURES);
+// The Users tab also asks for the connector-health blockers of the viewer's organisation.
+const HEALTH_ENDPOINT = '/auth/admin/connector-health/mine';
 
 const fullAdmin = { id: 'me', permissions: ['all'], isAdmin: true, organizations: ['o1'] };
 const orgScoped = { id: 'me', permissions: ['page_chat'], isAdmin: false, organizations: ['o1'] };
@@ -66,23 +69,23 @@ describe('UserManagement', () => {
         });
     });
 
-    it('fires the five list endpoints on mount, the directory lists scoped to the admin dashboard', async () => {
+    it('fires the five list endpoints and the health check on mount, the directory lists scoped to the admin dashboard', async () => {
         render(<UserManagement user={fullAdmin} />);
-        await waitFor(() => expect(authFetch).toHaveBeenCalledTimes(5));
-        expect(asMock(authFetch).mock.calls.map(([url]) => url).sort()).toEqual([...LIST_ENDPOINTS].sort());
+        await waitFor(() => expect(authFetch).toHaveBeenCalledTimes(6));
+        expect(asMock(authFetch).mock.calls.map(([url]) => url).sort()).toEqual([...LIST_ENDPOINTS, HEALTH_ENDPOINT].sort());
     });
 
     it('asks an organisation-scoped caller for the admin-scoped lists and never the server-wide role table', async () => {
         render(<UserManagement user={allHolder} />);
         await screen.findByText('Jan de Vries');
         const urls = asMock(authFetch).mock.calls.map(([url]) => String(url));
-        expect(urls.sort()).toEqual(LIST_ENDPOINTS.filter((u) => u !== '/auth/roles').sort());
+        expect([...new Set(urls)].sort()).toEqual([...LIST_ENDPOINTS.filter((u) => u !== '/auth/roles'), HEALTH_ENDPOINT].sort());
     });
 
     it('offers the org-scoped section set to an \'all\' holder who is not a platform admin', async () => {
         render(<UserManagement user={allHolder} />);
         expect(await screen.findByText('admin.users_tab_my_org')).toBeInTheDocument();
-        expect(screen.queryByText('admin.users_tab_roles')).not.toBeInTheDocument();
+        expect(screen.queryByText('admin_org.users_tab_server_roles')).not.toBeInTheDocument();
         expect(screen.queryByText('admin.users_tab_organizations')).not.toBeInTheDocument();
         expect(screen.queryByText('admin.users_tab_nextcloud')).not.toBeInTheDocument();
     });
@@ -119,8 +122,8 @@ describe('UserManagement', () => {
 
     it('offers the full-admin section set to a full admin', async () => {
         render(<UserManagement user={fullAdmin} />);
-        for (const key of ['users', 'organizations', 'nextcloud', 'groups', 'roles', 'permissions']) {
-            expect(await screen.findByText(`admin.users_tab_${key}`)).toBeInTheDocument();
+        for (const key of ['admin.users_tab_users', 'admin.users_tab_organizations', 'admin.users_tab_nextcloud', 'admin.users_tab_groups', 'admin_org.users_tab_invitations', 'admin_org.users_tab_org_roles', 'admin_org.users_tab_custom_tiers', 'admin_org.users_tab_server_roles', 'admin.users_tab_permissions']) {
+            expect(await screen.findByText(key)).toBeInTheDocument();
         }
         expect(screen.queryByText('admin.users_tab_my_org')).not.toBeInTheDocument();
     });
@@ -130,7 +133,7 @@ describe('UserManagement', () => {
         expect(await screen.findByText('admin.users_tab_users')).toBeInTheDocument();
         expect(screen.getByText('admin.users_tab_groups')).toBeInTheDocument();
         expect(screen.getByText('admin.users_tab_my_org')).toBeInTheDocument();
-        expect(screen.queryByText('admin.users_tab_roles')).not.toBeInTheDocument();
+        expect(screen.queryByText('admin_org.users_tab_server_roles')).not.toBeInTheDocument();
         expect(screen.queryByText('admin.users_tab_organizations')).not.toBeInTheDocument();
     });
 
@@ -145,7 +148,7 @@ describe('UserManagement', () => {
     it('marks the section from the URL as the selected tab', async () => {
         render(<UserManagement user={fullAdmin} activeSection="roles" />);
         const tabs = await screen.findByRole('tablist', { name: 'admin.sec_users' });
-        expect(within(tabs).getByRole('tab', { name: 'admin.users_tab_roles admin.scope_instance' })).toHaveAttribute('aria-selected', 'true');
+        expect(within(tabs).getByRole('tab', { name: 'admin_org.users_tab_server_roles admin.scope_instance' })).toHaveAttribute('aria-selected', 'true');
         expect(within(tabs).getByRole('tab', { name: 'admin.users_tab_users' })).toHaveAttribute('aria-selected', 'false');
     });
 

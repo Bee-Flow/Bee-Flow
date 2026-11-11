@@ -15,7 +15,7 @@
       "id": "why",
       "icon": "🧭",
       "title": "The tab that has to survive a question",
-      "bodyMd": "Van Dijk Groep, a sixty-person installation firm near Zwolle. In March the board asks their office manager one question: **what personal data left our building last month?**\n\nOverview and the four numbered steps of the Privacy Shield say what *should* happen. **What happened**, at the end of the path, says what *did*.\n\n**Settings → Organisation → Privacy Shield → What happened.** The header reads \"Each time the shield acted on a message, and every call your organisation made to an outside service.\", with a period control offering `7 days`, `30 days` and `90 days`. It opens on **30 days**.\n\nTwo things to know before you read a single number. It is part of the Enterprise plan; without it you get a lock card, \"See what actually happened\". And if the shield is off right now, a grey line says so: you are looking at past activity."
+      "bodyMd": "Van Dijk Groep, a sixty-person installation firm near Zwolle. In March the board asks their office manager one question: **what personal data left our building last month?**\n\nOverview and the four numbered steps of the Privacy Shield say what *should* happen. **What happened**, at the end of the path, says what *did*.\n\n**Admin dashboard → Security → Guardrails → Org Privacy Shield → What happened.** The header reads \"Each time the shield acted on a message, and every call your organisation made to an outside service.\", with a period control offering `7 days`, `30 days` and `90 days`. It opens on **30 days**.\n\nTwo things to know before you read a single number. It is part of the Enterprise plan; without it you get a lock card, \"See what actually happened\". And if the shield is off right now, a grey line says so: you are looking at past activity."
     },
     {
       "type": "slide",
@@ -195,7 +195,7 @@
       "title": "Close the one blind spot in the ledger",
       "instruction": "Open the Privacy Shield and go to Leaving your org. Switch on \"Check connected-app traffic for personal data\", then press Save changes and wait for the confirmation. Every connected-app call is recorded either way, with its host, country and result; this setting is what lets those rows also say which kinds of personal data travelled with them. Without it, In short counts those calls as not checked for personal data.",
       "launch": {
-        "navigateTo": "settings/organisation/privacy",
+        "navigateTo": "admin/security/guardrails",
         "label": "Open Privacy Shield"
       }
     },
@@ -244,7 +244,7 @@
     "title": "Reading the Privacy Shield's What happened tab",
     "summary": "How an org admin turns the shield's evidence tab into a defensible statement about what left the organisation.",
     "facts": [
-      "The evidence tab is called \"What happened\" and sits on Settings → Organisation → Privacy Shield, with the periods 7 days, 30 days and 90 days and 30 days selected by default.",
+      "The evidence tab is called \"What happened\" and sits on Admin dashboard → Security → Guardrails → Org Privacy Shield, with the periods 7 days, 30 days and 90 days and 30 days selected by default.",
       "The tab opens with In short (the period in one sentence plus outcome pills) and Worth a look (the findings), then four cards: Shield stepped in, Personal data found, Left with a tool, unchanged, and Stayed in Europe.",
       "Shield stepped in is replaced plus stopped; Stayed in Europe is a percentage: the share of calls with a known location that stayed on your own server or inside Europe (EEA); calls not placed are left out.",
       "Worth a look lists every finding that applies: tool calls that carried personal data out unchanged, a lot of data leaving Europe (below 40%), a lot of personal data caught (more than 10 messages), calls that could not be placed, and good news last.",

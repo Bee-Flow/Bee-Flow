@@ -79,7 +79,7 @@ export const WEB_ORG_SECTIONS: readonly OrgSection[] = [
  * decision with a reason, not a gap nobody noticed: the lockstep tests skip
  * exactly these and nothing else, and a deep link to one opens the org index.
  *
- *   org_mcp — the MCP library (Settings → Organisation → MCP), a web-only
+ *   org_mcp — the MCP library (Admin dashboard → Organisation → MCP), a web-only
  *             screen for now; no mobile port planned in this round.
  *   org_mcp_access — MCP tokens and scopes for outside clients: an admin
  *             task done at a desk, where the token is pasted into a client.

@@ -37,7 +37,7 @@ Open **Bee Flow** from the Nextcloud top bar as an administrator and pick a card
 - **Self-hosted server.** The URL of your Bee Flow server, optionally the URL of its web app, and a
   pairing code (`XXXX-XXXX`) that joins this Nextcloud to an organisation on that server. A
   self-hosted server links a Nextcloud by pairing code by default: generate one in Bee Flow under
-  **Settings → Organisation → Pair a new Nextcloud**. Without a code such a server answers
+  **Admin → Organisation → Nextcloud Sync → Pair a new Nextcloud**. Without a code such a server answers
   "Pairing code required" for a Nextcloud it does not know.
   The card links to the [self-hosting guide](../self-hosting/docker-compose.md); the whole route is
   in [Bee Flow on your own server next to Nextcloud](own-server.md). No server yet? The form opens an install help with the
@@ -98,7 +98,7 @@ Named failures, shown in the administrator's Nextcloud language (English and Dut
 | Server unreachable | The address does not answer from the connector container. |
 | Certificate not trusted | The server's certificate does not verify. Use a certificate from a public certificate authority, or give your own certificate authority in `BEEFLOW_SERVER_CA_CERT`. |
 | Version mismatch | The server and the connector do not work together in these versions. |
-| Pairing code required | The server does not create an organisation by itself; generate a code in Bee Flow under **Settings → Organisation → Pair a new Nextcloud**. |
+| Pairing code required | The server does not create an organisation by itself; generate a code in Bee Flow under **Admin → Organisation → Nextcloud Sync → Pair a new Nextcloud**. |
 | Pairing code not accepted | The code is mistyped, expired or already used. Generate a new one in the same place and enter it on the setup page; nothing has to be installed again. |
 
 ## The same choice in Nextcloud's settings
@@ -231,7 +231,7 @@ The setup page stays available. A switch from one server to another:
 
 There is no "disconnect". To return to the not-set-up state, remove the app with its data
 (`occ app_api:app:unregister bee_flow --rm-data`) and install it again. The organisation stays on
-the server it was created on until it is deleted there (**Settings → Organisation → Danger zone**).
+the server it was created on until it is deleted there (**Admin → Organisation → Organisation Info → Danger zone**).
 
 ## What about the tenant key?
 

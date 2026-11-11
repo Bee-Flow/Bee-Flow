@@ -11,7 +11,7 @@ import { IN_COLOR, OUT_COLOR, ShareBar } from './ShareBar';
 import { headlineCost, perDay } from './spendFormat';
 import { CARD } from './tableStyle';
 
-const MEMBERS_SETTINGS_ROUTE = '/app/settings/organisation/users';
+const MEMBERS_SETTINGS_ROUTE = '/app/admin/security/users';
 
 interface SpendHeroProps {
     data: OverviewTabProps['data'];

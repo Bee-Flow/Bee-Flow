@@ -30,7 +30,7 @@ import { ShieldOrg, GuardStatus } from './useShieldEnvironment';
  *
  * ── Why the tab is a QUERY PARAM and not a path segment ───────────────────
  * This component is mounted twice, on two unrelated routes: the org settings
- * page (/app/settings/organisation/privacy) and the admin console
+ * page (/app/admin/security/guardrails) and the admin console
  * (/app/admin/security/guardrails/organisations). `useUrlTab` writes a PATH,
  * so a tab click in the admin console would navigate the console out of
  * itself. On the settings side it would also fight `AdvancedSettings`, which
@@ -53,10 +53,12 @@ import { ShieldOrg, GuardStatus } from './useShieldEnvironment';
  * @param {string|null} [props.urlParam]   Query param carrying the active tab.
  *   `null` opts out of URL sync entirely — for hosts that own the URL already.
  * @param {boolean} [props.showActivityTab] Offer the "What happened" monitoring tab.
- *   Default OFF, and the admin GuardrailsHub must NEVER pass it: the
- *   monitoring endpoints derive the organisation from the SESSION, so on a
- *   mount that can pin a different org the tab would silently show the wrong
- *   organisation's activity. Only the org-settings mount opts in.
+ *   Default OFF. The monitoring endpoints answer for the SESSION's organisation
+ *   unless a platform admin names one with `?orgId`, so a mount that can show
+ *   an organisation other than the caller's own must pass `activityOrgId` too,
+ *   or the tab would show the wrong organisation's activity.
+ * @param {string|null} [props.activityOrgId] The organisation the activity tab reads
+ *   (a platform admin's choice); null = the caller's own.
  */
 interface OrgShieldEditorProps {
     orgId?: string | null;
@@ -65,9 +67,10 @@ interface OrgShieldEditorProps {
     onSaved?: () => void;
     urlParam?: string;
     showActivityTab?: boolean;
+    activityOrgId?: string | null;
 }
 
-const OrgShieldEditor = ({ orgId = null, allowOrgPicker = false, readOnly = false, onSaved, urlParam = 'tab', showActivityTab = false }: OrgShieldEditorProps) => {
+const OrgShieldEditor = ({ orgId = null, allowOrgPicker = false, readOnly = false, onSaved, urlParam = 'tab', showActivityTab = false, activityOrgId = null }: OrgShieldEditorProps) => {
     const { t } = useTranslation();
     // 'pii_tokenize' unlocks the Tokenize action; 'web_search_guard' unlocks the
     // Web Search Guard block and external tool-call blocking. Both Enterprise —
@@ -115,7 +118,7 @@ const OrgShieldEditor = ({ orgId = null, allowOrgPicker = false, readOnly = fals
     // mount that offers the activity pane — its endpoints read the SESSION's
     // organisation — and only on a plan that has them. `null` = unknown.
     const showActivity = showActivityTab && canSeeActivity;
-    const evidence = useShieldEvidence({ enabled: showActivity });
+    const evidence = useShieldEvidence({ enabled: showActivity, orgId: activityOrgId });
     const egress = useMemo(() => (evidence ? {
         piiNonEuCount: evidence.piiNonEuCount,
         toolPii: toolGapCount(evidence),
@@ -179,7 +182,7 @@ const OrgShieldEditor = ({ orgId = null, allowOrgPicker = false, readOnly = fals
     );
 
     const goToCompliance = () => {
-        window.location.assign('/app/settings/organisation/compliance');
+        window.location.assign('/app/admin/compliance');
     };
     const diagnoseGuard = () => {
         // The installer lives in the platform-admin console, which an org
@@ -227,7 +230,7 @@ const OrgShieldEditor = ({ orgId = null, allowOrgPicker = false, readOnly = fals
                             showActivity={showActivity} showActivityTab={showActivityTab} licence={licence} env={env} t={t} onGoTo={setTab}
                             onDiagnoseGuard={diagnoseGuard} onOpenCompliance={goToCompliance} categories={PII_CATEGORIES_LIST}
                             orgId={selectedOrgId} typeErrors={typeErrors} toggleToolPiiCat={toggleToolPiiCat} setToolPiiCats={setToolPiiCats}
-                            canSeeActivity={canSeeActivity} upgradeUrl={upgradeUrl} saved={saved}
+                            canSeeActivity={canSeeActivity} upgradeUrl={upgradeUrl} saved={saved} activityOrgId={activityOrgId}
                         />
                     </div>
 

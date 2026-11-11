@@ -60,10 +60,9 @@ export const TABS: ShieldTab[] = [
 /**
  * The monitoring tab — evidence, where the other four are policy. It is
  * OPT-IN per mount (`showActivityTab` on OrgShieldEditor) because its data
- * endpoints derive the organisation from the SESSION: on the admin
- * GuardrailsHub mount, which can pin a DIFFERENT org, the tab would silently
- * show the wrong organisation's activity. Only the org-settings mount (own
- * org, always) offers it.
+ * endpoints answer for the SESSION's organisation unless a platform admin
+ * names one (`activityOrgId`): a mount that can show another organisation
+ * passes both.
  */
 export const ACTIVITY_TAB: ShieldTab = { id: 'activity', labelKey: 'admin.shield_tab_activity', fallback: 'What happened', Icon: Activity };
 

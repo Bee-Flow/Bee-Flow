@@ -403,7 +403,7 @@ test('a pairing code that could not be made is reported by the install, with wha
     const dir = world(t);
     const refused = await install(dir, { BEEFLOW_ORGANISATION: 'Acme', STUB_EXEC_STATUS: '3' });
     assert.strictEqual(refused.status, 0, refused.out);
-    shows(refused, 'Pairing code:  NOT MADE', 'refused the sign-in as admin', 'Settings -> Organisation -> Pair a new Nextcloud', 'beeflow-install.sh pairing-code');
+    shows(refused, 'Pairing code:  NOT MADE', 'refused the sign-in as admin', 'Admin dashboard -> Organisation -> Nextcloud Sync -> Pair a new Nextcloud', 'beeflow-install.sh pairing-code');
     const failed = await install(dir, { BEEFLOW_ORGANISATION: 'Acme', STUB_EXEC_STATUS: '1', BEEFLOW_DIR: 'other' });
     assert.strictEqual(failed.status, 0, failed.out);
     shows(failed, 'Pairing code:  NOT MADE', 'could not be made (sign-in as admin answered 401)');
@@ -434,7 +434,7 @@ test('pairing-code prints a fresh code for an organisation of an existing instal
 test('pairing-code says when the sign-in is refused, and needs an organisation and an install', opts, async (t) => {
     const dir = await installed(t, NEW);
     stopped(run(dir, ['pairing-code', '--yes', '--organisation', 'Acme'], { STUB_EXEC_STATUS: '3' }),
-        'refused the sign-in as admin', 'a second factor', 'Make the code in the web app', 'Settings -> Organisation -> Pair a new Nextcloud');
+        'refused the sign-in as admin', 'a second factor', 'Make the code in the web app', 'Admin dashboard -> Organisation -> Nextcloud Sync -> Pair a new Nextcloud');
     stopped(run(dir, ['pairing-code', '--yes']), 'BEEFLOW_ORGANISATION is needed');
     stopped(run(dir, ['pairing-code', '--yes', '--organisation', 'Acme', '--dir', 'elsewhere']), 'elsewhere is not there');
 });

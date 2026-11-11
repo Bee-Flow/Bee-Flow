@@ -2,6 +2,7 @@ import { Link2, Loader2, ShieldCheck, Workflow } from 'lucide-react';
 import { useEffect, useEffectEvent, useState } from 'react';
 import Tabs from '../../components/shared/Tabs';
 import { useTranslation } from '../../hooks/useTranslation';
+import { useAdminOrgScope } from '../../api/adminOrgScope';
 import N8nConnectionTab from './n8n/N8nConnectionTab';
 import N8nPermissionsTab from './n8n/N8nPermissionsTab';
 import { StatusPill } from './n8n/N8nStatus';
@@ -16,21 +17,32 @@ const TABS = [
     { id: 'permissions' as const, labelKey: 'settings.n8n.tab_permissions', label: 'Permissions', Icon: ShieldCheck },
 ];
 
-/** Settings → Organisation → Integrations → n8n: connection, workflows as AI tools, permissions. */
-export default function N8nSection() {
+interface N8nSectionProps {
+    /**
+     * Read the access check. It describes the viewer's own account in their
+     * home organisation (the server takes no organisation for it), so it is
+     * left out while a platform admin works on another organisation.
+     */
+    diagnostics?: boolean;
+}
+
+/** Admin > Organisation > Integrations > n8n: connection, workflows as AI tools, permissions. */
+export default function N8nSection({ diagnostics = true }: N8nSectionProps) {
     const { t } = useTranslation();
     const [tab, setTab] = useState<N8nTab>('connection');
+    // The organisation an AdminOrgScopeProvider names (the dashboard's choice), else the caller's own.
+    const orgId = useAdminOrgScope();
     const flash = useFlashMessage();
-    const wfs = useN8nWorkflows(flash);
-    const conn = useN8nConnection(flash, wfs);
-    const perms = useN8nPermissions(flash);
+    const wfs = useN8nWorkflows(flash, orgId);
+    const conn = useN8nConnection(flash, wfs, orgId);
+    const perms = useN8nPermissions(flash, orgId);
 
     const loadInitial = useEffectEvent(() => { conn.loadConfig(); });
     useEffect(() => { loadInitial(); }, []);
 
     const loadForTab = useEffectEvent(() => {
         if (tab === 'permissions' && !perms.permSummary) perms.loadPermissions();
-        if (tab === 'connection' && conn.configured && !conn.diag) conn.loadDiagnostics();
+        if (tab === 'connection' && diagnostics && conn.configured && !conn.diag) conn.loadDiagnostics();
     });
     useEffect(() => { loadForTab(); }, [tab, conn.configured]);
 

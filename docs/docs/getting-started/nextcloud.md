@@ -387,7 +387,7 @@ sudo -u www-data php occ app_api:app:update bee_flow
 sudo -u www-data php occ app_api:app:unregister bee_flow
 ```
 
-This stops the container, removes it, and cleans up the AppAPI registration. Without `--rm-data` the connector's data volume is kept, so installing again finds the same server and binding; with `--rm-data` the connector starts again without a Bee Flow server. The organisation is **not** deleted either way — your data stays on the Bee Flow server that was chosen until you delete the organisation explicitly via **Settings → Organisation → Danger zone**.
+This stops the container, removes it, and cleans up the AppAPI registration. Without `--rm-data` the connector's data volume is kept, so installing again finds the same server and binding; with `--rm-data` the connector starts again without a Bee Flow server. The organisation is **not** deleted either way — your data stays on the Bee Flow server that was chosen until you delete the organisation explicitly via **Admin → Organisation → Organisation Info → Danger zone**.
 
 ## Troubleshooting
 

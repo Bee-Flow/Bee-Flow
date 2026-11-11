@@ -45,6 +45,11 @@ const MOCKS = {
         syncPending: async () => [],
     },
     '../../stores/configStore': { getSecret: async () => 'ghp_test' },
+    '../../stores/userStore': {
+        logAccessAudit: async (...args) => { touched.push({ what: 'logAccessAudit', args }); },
+    },
+    // The dashboard's choice: here every named organisation exists and may be chosen.
+    '../../auth/permissions': { resolveChosenOrgId: async (req, own) => req.query.orgId || own },
     '../../utils/routeHelpers': { getEffectiveUserId: () => 'u1' },
 };
 
@@ -132,4 +137,35 @@ test('the routes that take no input are unaffected', async () => {
     const res = await dispatch({ method: 'POST', url: '/push' });
     assert.strictEqual(res.statusCode, 200);
     assert.deepStrictEqual(res.body, { success: true, results: [] });
+});
+
+// ── A platform admin acting on another organisation (`?orgId`) ──────
+
+const audits = () => touched.filter((t) => t.what === 'logAccessAudit').map((t) => t.args);
+
+test('configure, disconnect and both pushes on a chosen organisation are audited under it, as ids only', async () => {
+    const calls = [
+        [{ method: 'POST', url: '/configure?orgId=orgB', body: REPO }, 'github_sync.configure'],
+        [{ method: 'DELETE', url: '/configure?orgId=orgB' }, 'github_sync.disconnect'],
+        [{ method: 'POST', url: '/push?orgId=orgB' }, 'github_sync.push'],
+        [{ method: 'POST', url: '/push-pending?orgId=orgB' }, 'github_sync.push_pending'],
+    ];
+    for (const [req, action] of calls) {
+        touched.length = 0;
+        const res = await dispatch(req);
+        assert.strictEqual(res.statusCode, 200, action);
+        assert.deepStrictEqual(audits(), [[action, 'github_sync', 'orgB', 'u1', null, { homeOrgId: 'orgA' }, 'orgB']]);
+    }
+});
+
+test('the caller\'s own organisation, named or not, and a refused configure leave no audit row', async () => {
+    for (const url of ['/push', '/push?orgId=orgA']) {
+        touched.length = 0;
+        assert.strictEqual((await dispatch({ method: 'POST', url })).statusCode, 200);
+        assert.deepStrictEqual(audits(), [], url);
+    }
+    touched.length = 0;
+    const refused = await dispatch({ method: 'POST', url: '/configure?orgId=orgB', body: { ...REPO, autoSync: 'true' } });
+    assert.strictEqual(refused.statusCode, 400);
+    assert.deepStrictEqual(audits(), []);
 });

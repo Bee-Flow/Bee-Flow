@@ -58,7 +58,7 @@
  *   conflates two billing paths that should never overlap.
  */
 
-// MUST stay in sync with agent-hub/src/components/LicenseContext.jsx → TIER_HIERARCHY.
+// MUST stay in sync with agent-hub/src/components/licensing/licenseTiers.ts → TIER_HIERARCHY.
 // A repo-root shared module would be cleaner, but server/ and agent-hub/
 // each Docker-build from their own sub-tree and can't reach back up. The
 // CI smoke test in Phase 12 asserts the two stay in lock-step.

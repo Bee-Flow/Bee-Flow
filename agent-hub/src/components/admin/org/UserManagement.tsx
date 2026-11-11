@@ -1,5 +1,5 @@
-import { Building, Cloud, Key, Shield, Tag, Users } from 'lucide-react';
-import React, { useState } from 'react';
+import { Building, Cloud, Key, Layers, RefreshCw, Send, Shield, Tag, Users, UserCog } from 'lucide-react';
+import React, { useState, type ComponentType } from 'react';
 import PeopleDirectory from './people/PeopleDirectory';
 
 import GroupModal from './userManagement/GroupModal';
@@ -8,12 +8,16 @@ import MyOrganizationSection from './userManagement/MyOrganizationSection';
 import NextcloudBindingsSection from './userManagement/NextcloudBindingsSection';
 import OrganizationModal from './userManagement/OrganizationModal';
 import OrganizationsSection from './userManagement/OrganizationsSection';
+import OrgTabContent, { ORG_ONLY_SECTIONS, useOrgTabTarget } from './userManagement/OrgTabContent';
 import PermissionsSection from './userManagement/PermissionsSection';
 import RoleModal from './userManagement/RoleModal';
 import RolesSection from './userManagement/RolesSection';
 import useGroupActions from './userManagement/useGroupActions';
 import useOrgActions from './userManagement/useOrgActions';
 import UserModal from './userManagement/UserModal';
+import UsersOrgControls from './userManagement/UsersOrgControls';
+import useCustomTiersMeta from './useCustomTiersMeta';
+import type { CustomTierMeta } from './useOrgDirectory';
 import useRoleActions from './userManagement/useRoleActions';
 import useUserActions from './userManagement/useUserActions';
 import useUserManagementData, { type UserManagementData } from './userManagement/useUserManagementData';
@@ -46,24 +50,40 @@ interface UserManagementProps {
  * is not enough: its holder's lists cover their own organisation only, and
  * the server-wide role table is not read for them.
  */
-function sectionsFor(isPlatformAdmin: boolean | undefined, hasOrg: boolean) {
+interface SectionDef {
+    key: string;
+    labelKey: string;
+    /** English text for a label whose key is not in the generated dictionary yet. */
+    fallback?: string;
+    icon: ComponentType<{ className?: string }>;
+}
+
+function sectionsFor(isPlatformAdmin: boolean | undefined, hasOrg: boolean, mayManage: boolean, hasNcSync: boolean): SectionDef[] {
+    // The organisation-only tabs, in the order Settings > Organisation > Users & Groups had them.
+    const orgTabs = [
+        ...(mayManage ? [{ key: 'invitations', labelKey: 'admin_org.users_tab_invitations', fallback: 'Invitations', icon: Send }] : []),
+        { key: 'groups', labelKey: 'admin.users_tab_groups', icon: Shield },
+        { key: 'org-roles', labelKey: 'admin_org.users_tab_org_roles', fallback: 'Organisation roles', icon: UserCog },
+        ...(mayManage ? [{ key: 'custom-tiers', labelKey: 'admin_org.users_tab_custom_tiers', fallback: 'Model tiers', icon: Layers }] : []),
+        ...(hasNcSync ? [{ key: 'sync', labelKey: 'admin_org.users_tab_nc_sync', fallback: 'Nextcloud sync', icon: RefreshCw }] : []),
+    ];
     return isPlatformAdmin ? [
         { key: 'users', labelKey: 'admin.users_tab_users', icon: Users },
         { key: 'organizations', labelKey: 'admin.users_tab_organizations', icon: OrgIcon },
         { key: 'nextcloud', labelKey: 'admin.users_tab_nextcloud', icon: Cloud },
-        { key: 'groups', labelKey: 'admin.users_tab_groups', icon: Shield },
-        { key: 'roles', labelKey: 'admin.users_tab_roles', icon: Tag },
+        ...orgTabs,
+        { key: 'roles', labelKey: 'admin_org.users_tab_server_roles', fallback: 'Server roles', icon: Tag },
         { key: 'permissions', labelKey: 'admin.users_tab_permissions', icon: Key },
     ] : [
         { key: 'users', labelKey: 'admin.users_tab_users', icon: Users },
-        { key: 'groups', labelKey: 'admin.users_tab_groups', icon: Shield },
+        ...orgTabs,
         ...(hasOrg ? [{ key: 'my-organization', labelKey: 'admin.users_tab_my_org', icon: Building }] : []),
     ];
 }
 
 const UserManagement = ({ activeSection: activeSectionProp = '', onNavigate, user: currentUser }: UserManagementProps) => {
     const { t } = useTranslation();
-    const VALID_SECTIONS = ['users', 'organizations', 'nextcloud', 'groups', 'roles', 'permissions', 'my-organization'];
+    const VALID_SECTIONS = ['users', 'organizations', 'nextcloud', 'groups', 'roles', 'permissions', 'my-organization', ...ORG_ONLY_SECTIONS];
     const activeSection = VALID_SECTIONS.includes(activeSectionProp) ? activeSectionProp : 'users';
 
     // Permission check: full admin can do everything, org-scoped users are limited
@@ -85,7 +105,9 @@ const UserManagement = ({ activeSection: activeSectionProp = '', onNavigate, use
     useAdminScopeOverride(isPlatformAdmin ? adminSectionScope('security', 'users', activeSection) : 'org');
     // The controls follow the lists: when the server refused them, it refuses the edits too.
     const mayManageListed = !!canManageUsers && !notOrgAdmin;
-
+    // The organisation-only tabs follow the dashboard's organisation; the requests name it for a platform admin only.
+    const orgTarget = useOrgTabTarget(currentUser);
+    
     // Destructive actions route through <ConfirmDialog/> rather than
     // window.confirm: the native dialog is unstyled, unthemeable, blocks the
     // event loop, and cannot be driven by a test.
@@ -104,10 +126,12 @@ const UserManagement = ({ activeSection: activeSectionProp = '', onNavigate, use
     const userActions = useUserActions({ loadData, setMessage, askConfirm, t, isSelfHosted });
     const groupActions = useGroupActions({ loadData, setMessage, askConfirm, t, isSelfHosted });
     const roleActions = useRoleActions({ loadData, setMessage, askConfirm, t });
+    // The pills are read once a group is being edited.
+    const customTiersMeta = useCustomTiersMeta(groupActions.showEditGroup);
     const orgActions = useOrgActions({ loadData, setMessage, askConfirm, t, activeSection, myOrg });
 
     // The server-wide tabs go last, behind a "Whole server" divider, each with the server icon.
-    const sections = serverWideLast(sectionsFor(isPlatformAdmin, userOrgIds.length > 0), s => isPlatformAdmin && isServerWideTab(s.key));
+    const sections = serverWideLast(sectionsFor(isPlatformAdmin, userOrgIds.length > 0, mayManageListed, !!(currentUser?.ncOrg as { instanceId?: string | null } | null | undefined)?.instanceId), s => isPlatformAdmin && isServerWideTab(s.key));
 
     return (
         <div className="h-full flex flex-col">
@@ -117,9 +141,9 @@ const UserManagement = ({ activeSection: activeSectionProp = '', onNavigate, use
                     ariaLabel={t('admin.sec_users')}
                     value={activeSection}
                     onChange={(key) => { if (onNavigate) onNavigate(`admin/security/users/${key}`); }}
-                    items={sections.map(({ key, labelKey, icon: Icon, serverWide, startsServerGroup }) => ({
+                    items={sections.map(({ key, labelKey, fallback, icon: Icon, serverWide, startsServerGroup }) => ({
                         id: key,
-                        label: t(labelKey),
+                        label: t(labelKey, fallback),
                         icon: <Icon className="h-4 w-4" aria-hidden="true" />,
                         mark: serverWide ? <ServerWideMark /> : undefined,
                         dividerBefore: startsServerGroup ? t('admin.scope_instance', 'Whole server') : undefined,
@@ -147,6 +171,14 @@ const UserManagement = ({ activeSection: activeSectionProp = '', onNavigate, use
                     <>
                         {/* Users Section */}
                         {activeSection === 'users' && (
+                            <>
+                            <UsersOrgControls
+                                key={orgId ?? homeOrgId}
+                                org={organizations.find(o => o.id === (orgId ?? homeOrgId))}
+                                needsChoice={orgTarget.needsChoice}
+                                homeOrg={!orgTarget.scopeOrgId || orgTarget.scopeOrgId === homeOrgIdOf(currentUser)}
+                                onChanged={loadData}
+                            />
                             <PeopleDirectory
                                 users={users}
                                 groups={groups}
@@ -159,7 +191,15 @@ const UserManagement = ({ activeSection: activeSectionProp = '', onNavigate, use
                                 onEditUser={userActions.openEditUser}
                                 onResetMfa={userActions.handleResetMfa}
                                 onDeleteUser={(user) => userActions.handleDeleteUser(user.id)}
+                                onApproveUser={userActions.handleApproveUser}
+                                onRejectUser={userActions.handleRejectUser}
                             />
+                            </>
+                        )}
+
+                        {/* Invitations, the organisation's roles, its model tiers and Nextcloud sync */}
+                        {(ORG_ONLY_SECTIONS as readonly string[]).includes(activeSection) && (
+                            <OrgTabContent section={activeSection} target={orgTarget} users={users} currentUser={currentUser} />
                         )}
 
                         {/* Organizations Section */}
@@ -230,7 +270,7 @@ const UserManagement = ({ activeSection: activeSectionProp = '', onNavigate, use
 
             <UserManagementModals
                 userActions={userActions} orgActions={orgActions} groupActions={groupActions} roleActions={roleActions}
-                groups={groups} organizations={organizations} permissions={permissions} roles={roles}
+                groups={groups} organizations={organizations} permissions={permissions} roles={roles} customTiersMeta={customTiersMeta}
                 isFullAdmin={isFullAdmin} isPlatformAdmin={isPlatformAdmin} currentUser={currentUser} t={t}
             />
 
@@ -261,6 +301,7 @@ interface UserManagementModalsProps {
     organizations: UserManagementData['organizations'];
     permissions: UserManagementData['permissions'];
     roles: UserManagementData['roles'];
+    customTiersMeta: CustomTierMeta[];
     isFullAdmin: boolean | undefined;
     isPlatformAdmin: boolean;
     currentUser: UserManagementProps['user'];
@@ -269,7 +310,7 @@ interface UserManagementModalsProps {
 
 /** The four add/edit dialogs (user, organisation, group, role), each opened by its own actions hook. */
 function UserManagementModals({
-    userActions, orgActions, groupActions, roleActions, groups, organizations, permissions, roles,
+    userActions, orgActions, groupActions, roleActions, groups, organizations, permissions, roles, customTiersMeta,
     isFullAdmin, isPlatformAdmin, currentUser, t,
 }: UserManagementModalsProps) {
     const { isSelfHosted } = useDeploymentMode();
@@ -324,6 +365,7 @@ function UserManagementModals({
             isFullAdmin={isFullAdmin}
             currentUser={currentUser}
             isSelfHosted={isSelfHosted}
+            customTiersMeta={customTiersMeta}
             onSubmitAdd={groupActions.handleAddGroup}
             onSubmitUpdate={groupActions.handleUpdateGroup}
             t={t}

@@ -6,6 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import { API_BASE, authFetch } from '../../utils/helpers';
 import { logger } from '../../utils/logger';
 import { readOrNull } from './refusableRead';
+import { withOrgIdParam } from '../adminOrgScope';
 import { messageOf } from '../../utils/caughtError';
 
 const orgAdminReadKeys = {
@@ -137,11 +138,11 @@ export function useOrgDefaultLanguage() {
     return { data: query.data ?? null, loading: query.isFetching && query.data === undefined };
 }
 
-/** GET /auth/invitations: the pending invitations; a refusal reads as null (the list keeps empty). */
-export function useOrgInvitationsQuery<T>() {
+/** GET /auth/invitations (of `orgId`, else the caller's own organisation): the pending invitations; a refusal reads as null (the list keeps empty). */
+export function useOrgInvitationsQuery<T>(orgId: string | null = null) {
     return useQuery<T[] | null, Error>({
-        queryKey: ['orgAdmin', 'invitations'] as const,
-        queryFn: ({ signal }) => readOrNull<T[]>(`${API_BASE}/auth/invitations`, signal),
+        queryKey: ['orgAdmin', 'invitations', orgId] as const,
+        queryFn: ({ signal }) => readOrNull<T[]>(withOrgIdParam(`${API_BASE}/auth/invitations`, orgId), signal),
         staleTime: 0,
         retry: false,
     });
@@ -180,4 +181,50 @@ export function useFreeEmailDomains() {
         loading: query.isPending,
         loadFailed: query.isError || query.data === null,
     };
+}
+
+const NO_ROWS: never[] = [];
+
+/**
+ * GET /ai/config/custom-tiers-list: the custom tiers' pills. A refusal, an answer without a list
+ * or a network failure reads as no tiers. `enabled` false reads nothing.
+ */
+export function useCustomTiersList<T extends { id: string }>(enabled = true): T[] {
+    const query = useQuery<T[], Error>({
+        queryKey: ['orgAdmin', 'customTiersList'] as const,
+        enabled,
+        retry: false,
+        staleTime: 0,
+        queryFn: async ({ signal }) => {
+            try {
+                const data = await readOrNull<{ tiers?: T[] }>(`${API_BASE}/ai/config/custom-tiers-list`, signal);
+                return Array.isArray(data?.tiers) ? data.tiers : [];
+            } catch (err) {
+                logger.debug('non-critical', err);
+                return [];
+            }
+        },
+    });
+    return query.data ?? NO_ROWS;
+}
+
+/** One organisation role's grant, as GET /auth/org-roles returns it. */
+export interface OrgRoleGrant { id: string; permissions: string[] }
+export interface OrgRoleMapping { roles: OrgRoleGrant[]; editablePermissions: string[] }
+
+/** The cache key of `orgId`'s role mapping (null: the caller's own organisation), for a save that splices one role in. */
+export const orgRolesKey = (orgId: string | null) => ['orgAdmin', 'orgRoles', orgId] as const;
+
+/** GET /auth/org-roles (of `orgId`, else the caller's own organisation); a refusal reads as no roles. */
+export function useOrgRoles(orgId: string | null) {
+    const query = useQuery<OrgRoleMapping, Error>({
+        queryKey: orgRolesKey(orgId),
+        retry: false,
+        staleTime: 0,
+        queryFn: async ({ signal }) => {
+            const body = await readOrNull<{ roles?: OrgRoleGrant[]; editablePermissions?: string[] }>(withOrgIdParam(`${API_BASE}/auth/org-roles`, orgId), signal);
+            return { roles: body?.roles || [], editablePermissions: body?.editablePermissions || [] };
+        },
+    });
+    return { mapping: query.data?.roles ?? NO_ROWS, editablePermissions: query.data?.editablePermissions ?? NO_ROWS, loading: query.isPending };
 }

@@ -24,7 +24,7 @@
       "id": "create",
       "icon": "🏗️",
       "title": "Create it, then staff it",
-      "bodyMd": "Settings → Organisation → **Users & Groups** → tab **Groups**.\n\nClick **Create New Group**, fill in **Group name** (`Inkoop`) and **Description (optional)**, then **Create**. The card appears with *0 members*.\n\nTwo things worth knowing before you type the name:\n\n- The name becomes the group's internal id, lower-cased with anything that is not a letter or number turned into a hyphen. Reuse a name and you get *\"Group already exists\"*.\n- People you invite land in the organisation's **default groups** automatically, so day-one access is a property of the group rather than something an admin has to remember.\n\nTo staff it: expand the card, click **Add member**, and type in **Search users to add…** — the list shows the first twenty matches. You can also work from the other side: the person-plus button on someone's row on the **Users** tab (**Assign groups**) ticks several groups at once."
+      "bodyMd": "Admin dashboard → Security → **Users** → tab **Groups**.\n\nClick **Create New Group**, fill in **Group name** (`Inkoop`) and **Description (optional)**, then **Create**. The card appears with *0 members*.\n\nTwo things worth knowing before you type the name:\n\n- The name becomes the group's internal id, lower-cased with anything that is not a letter or number turned into a hyphen. Reuse a name and you get *\"Group already exists\"*.\n- People you invite land in the organisation's **default groups** automatically, so day-one access is a property of the group rather than something an admin has to remember.\n\nTo staff it: expand the card, click **Add member**, and type in **Search users to add…** — the list shows the first twenty matches. You can also work from the other side: the person-plus button on someone's row on the **Users** tab (**Assign groups**) ticks several groups at once."
     },
     {
       "type": "sim",
@@ -37,7 +37,7 @@
         "items": [
           {
             "id": "open",
-            "label": "Open Settings → Organisation → Users & Groups"
+            "label": "Open Admin dashboard → Security → Users"
           },
           {
             "id": "tab",
@@ -150,7 +150,7 @@
       "id": "customtiers",
       "icon": "✨",
       "title": "Where the custom pills come from",
-      "bodyMd": "\"Plus any custom tiers\" is easy to read past. A custom tier is one your organisation defines itself: your own name, your own model behind it.\n\nYou build them on **Organisation Custom Tiers** — *\"Create tiers scoped to this organisation. They appear alongside global tiers for your members.\"* Be warned: this panel has **no tab button** in Users & Groups. It opens only by typing the sub-page `customTiers` onto the Users & Groups address in the browser bar (`/app/org-settings/users/customTiers`). Bookmark it once and you never hunt for it again.\n\n**+ Add Tier** drops in *New tier 1*. Give it an icon and a tier name — the name becomes the id, lower-cased as `custom:<name>` — a **Short description (shown in tier picker)**, a **Model**, an optional **EU override**, and the **Available for** pills **Direct Chat** and **Agent Chat**. Expand the row for **Max Tokens** (16384 by default) and **Temperature**. Then **Save Organisation Tiers**.\n\nVan Dijk Groep's office manager makes one called *Offerte-check*, pinned to a small EU-hosted model and available for **Direct Chat** only. Underneath sits a **Global tiers (read-only)** block — those come from the system administrator and you cannot edit them here. Deleting your own asks first: *\"Delete this custom tier? This cannot be undone.\"*"
+      "bodyMd": "\"Plus any custom tiers\" is easy to read past. A custom tier is one your organisation defines itself: your own name, your own model behind it.\n\nYou build them on **Organisation Custom Tiers** — *\"Create tiers scoped to this organisation. They appear alongside global tiers for your members.\"* It is the **Model tiers** tab of **Admin dashboard → Security → Users** (`/app/admin/security/users/custom-tiers`), next to Groups.\n\n**+ Add Tier** drops in *New tier 1*. Give it an icon and a tier name — the name becomes the id, lower-cased as `custom:<name>` — a **Short description (shown in tier picker)**, a **Model**, an optional **EU override**, and the **Available for** pills **Direct Chat** and **Agent Chat**. Expand the row for **Max Tokens** (16384 by default) and **Temperature**. Then **Save Organisation Tiers**.\n\nVan Dijk Groep's office manager makes one called *Offerte-check*, pinned to a small EU-hosted model and available for **Direct Chat** only. Underneath sits a **Global tiers (read-only)** block — those come from the system administrator and you cannot edit them here. Deleting your own asks first: *\"Delete this custom tier? This cannot be undone.\"*"
     },
     {
       "type": "quiz",
@@ -249,7 +249,7 @@
           {
             "id": "sales",
             "left": "Sales needs the SignRequest e-signature integration; nobody else in the organisation should get it.",
-            "right": "A group grant on Settings → Organisation → Integrations → Integration access",
+            "right": "A group grant on Admin dashboard → Access → Integration access",
             "note": "Integrations are granted per scope. Grant it to the Sales group rather than to All members, or everyone gets it."
           },
           {
@@ -272,7 +272,7 @@
       "id": "access",
       "icon": "🔌",
       "title": "Granting a tool is not adding a member",
-      "bodyMd": "Integrations are handed out in Settings → Organisation → **Integrations** → **Integration access** — the tab that screen opens on. Pick a scope on the left — **All members**, or one group — then flip the toggles; saving is immediate.\n\nThe rule is simple: someone gets an integration if it is granted to All members **or** to any group they belong to. Pick a group and the screen says so — *\"grants stack on top of All members\"* — and anything already granted to everyone appears on the group's card marked *\"Granted to all members\"*, switched on and not clickable. Only what your subscription includes is listed here at all.\n\nSo there are two different actions on the same group: putting people in it, and granting it things. Adding Bilal to Sales gives him everything Sales has been granted — which is usually what you want, and occasionally exactly what you did not intend."
+      "bodyMd": "Integrations are handed out in Admin dashboard → Access → **Integration access** — the page Access opens on. Pick a scope on the left — **All members**, or one group — then flip the toggles; saving is immediate.\n\nThe rule is simple: someone gets an integration if it is granted to All members **or** to any group they belong to. Pick a group and the screen says so — *\"grants stack on top of All members\"* — and anything already granted to everyone appears on the group's card marked *\"Granted to all members\"*, switched on and not clickable. Only what your subscription includes is listed here at all.\n\nSo there are two different actions on the same group: putting people in it, and granting it things. Adding Bilal to Sales gives him everything Sales has been granted — which is usually what you want, and occasionally exactly what you did not intend."
     },
     {
       "type": "quiz",
@@ -315,7 +315,7 @@
       "title": "Build one real group and staff it",
       "instruction": "In Users & Groups → Groups, click Create New Group, give it a real team name and description, and click Create. Expand the card and use Add member to put at least one colleague (or yourself) in it. Optionally set a Group Role or click an Allowed tiers pill — both are reversible.",
       "launch": {
-        "navigateTo": "settings/organisation/users",
+        "navigateTo": "admin/security/users",
         "label": "Open Users & Groups"
       }
     },
@@ -331,21 +331,21 @@
       "id": "recap",
       "icon": "✅",
       "title": "What you can do now",
-      "bodyMd": "- **Build a team group and staff it** — Groups tab, **Create New Group**, then **Add member** on the expanded card, or **Assign groups** from a person's row.\n- **Attach policy instead of repeating it** — a **Group Role** that every member inherits, an **Allowed tiers** list that narrows the model picker — including any pill you added yourself on **Organisation Custom Tiers**, the panel that opens only via the `customTiers` address — and integration grants made per group on Settings → Organisation → Integrations → **Integration access**.\n- **Predict the outcome for someone in two groups** — roles, grants and tiers all add up, so the widest group decides and nothing a group carries can ever subtract. Check every group a person is in before promising a limit.\n\nEverything here is reversible: **Clear restrictions**, **User (default)** and an untoggled grant put a group straight back."
+      "bodyMd": "- **Build a team group and staff it** — Groups tab, **Create New Group**, then **Add member** on the expanded card, or **Assign groups** from a person's row.\n- **Attach policy instead of repeating it** — a **Group Role** that every member inherits, an **Allowed tiers** list that narrows the model picker — including any pill you added yourself on **Organisation Custom Tiers**, the panel that opens only via the `customTiers` address — and integration grants made per group on Admin dashboard → Access → **Integration access**.\n- **Predict the outcome for someone in two groups** — roles, grants and tiers all add up, so the widest group decides and nothing a group carries can ever subtract. Check every group a person is in before promising a limit.\n\nEverything here is reversible: **Clear restrictions**, **User (default)** and an untoggled grant put a group straight back."
     }
   ],
   "practiceTopic": {
     "title": "Groups, group roles and allowed tiers",
     "summary": "How a group in Users & Groups carries a role, a model-tier restriction and capability grants, and how those combine for someone in more than one group.",
     "facts": [
-      "Groups live in Settings → Organisation → Users & Groups, on the Groups tab, and are created with the Create New Group button; a name clash returns \"Group already exists\".",
+      "Groups live in Admin dashboard → Security → Users, on the Groups tab, and are created with the Create New Group button; a name clash returns \"Group already exists\".",
       "The Group Role dropdown starts at \"User (default)\" and shows the hint \"All members inherit this role\"; the role is added to, never swapped for, the person's own role.",
       "Allowed tiers offers the pills Fast, Thinking, Writer and Deep Thinking plus any custom tiers — the admin names for chat's Fast/Think/Deep Thinking slider plus the Write pill beside it; an empty list means \"No restriction set\".",
       "A tier is permitted if at least one of the person's groups permits it, so an unrestricted group widens everyone in it; the Clear restrictions link returns a group to no restriction in one click.",
-      "Organisation Custom Tiers has no tab button: it opens only via the customTiers sub-page of the Users & Groups address (/app/org-settings/users/customTiers).",
+      "Organisation Custom Tiers is the Model tiers tab of Admin dashboard → Security → Users (/app/admin/security/users/custom-tiers).",
       "On that panel + Add Tier creates \"New tier 1\"; a tier takes an icon, a name (which becomes the id custom:<name>), a short description shown in the tier picker, a Model, an optional EU override and the Available for pills Direct Chat and Agent Chat.",
       "Expanding a custom tier reveals Max Tokens (16384 by default) and Temperature; Save Organisation Tiers commits them, and the Global tiers (read-only) block below comes from the system administrator.",
-      "Integrations are granted per scope on Settings → Organisation → Integrations → Integration access: someone gets one if it is granted to All members or to any of their groups — grants stack and never subtract."
+      "Integrations are granted per scope on Admin dashboard → Access → Integration access: someone gets one if it is granted to All members or to any of their groups — grants stack and never subtract."
     ]
   },
   "actionChecks": [
@@ -353,7 +353,7 @@
       "checkId": "group-exists",
       "existing": false,
       "label": "Create and staff a group",
-      "hint": "In Settings → Organisation → Users & Groups → Groups, use Create New Group, then Add member on the expanded card.",
+      "hint": "In Admin dashboard → Security → Users → Groups, use Create New Group, then Add member on the expanded card.",
       "endpoints": [
         {
           "method": "GET",

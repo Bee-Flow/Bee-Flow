@@ -39,6 +39,10 @@ export interface AdminGroup {
     roles?: string[];
     organizationId?: string;
     allowedAgentTypes?: string[];
+    /** Tier ids the members may use; empty or absent = every tier. */
+    allowedTiers?: string[];
+    /** The organisation role every member of the group inherits; empty = none. */
+    orgRole?: string | null;
     /** Self-hosted AI budget in EUR that EACH member gets; null = none. */
     perUserCostLimit?: number | null;
     [key: string]: unknown;
@@ -152,6 +156,10 @@ export interface GroupFormData {
     roles: string[];
     organizationId: string;
     allowedAgentTypes: string[];
+    /** Tier ids the members may use (edit only); empty = every tier. */
+    allowedTiers?: string[];
+    /** The organisation role the members inherit (edit only); empty = none. */
+    orgRole?: string;
     /** AI budget per member as typed (self-hosted only); empty = no limit. */
     perUserCostLimit: string;
 }

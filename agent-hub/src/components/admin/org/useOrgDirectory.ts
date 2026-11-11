@@ -2,8 +2,8 @@ import { useCallback, useEffect, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import { API_BASE } from '@/utils/helpers';
 import { settled } from '@/api/settled';
-import { logger } from '@/utils/logger';
 import { useDeploymentMode } from '@/hooks/useDeploymentMode';
+import useCustomTiersMeta from './useCustomTiersMeta';
 
 /**
  * One member, as GET /auth/users returns them. Only what the panel reads is
@@ -121,10 +121,8 @@ export default function useOrgDirectory({ user }: UseOrgDirectoryOptions): OrgDi
     const [loading, setLoading] = useState(true);
     const [notOrgAdmin, setNotOrgAdmin] = useState(false);
 
-    // Custom tier metadata — used alongside the four standard tiers in the
-    // group's Allowed-tiers editor. Empty allowedTiers on a group means "no
-    // restriction"; non-empty = only those ids are usable by group members.
-    const [customTiersMeta, setCustomTiersMeta] = useState<CustomTierMeta[]>([]);
+    // Custom tier metadata, for the group's Allowed-tiers editor.
+    const customTiersMeta = useCustomTiersMeta();
 
     // Per-user AI usage (last 30 days)
     const [usageByUser, setUsageByUser] = useState<Map<string, MemberUsage>>(new Map());
@@ -182,18 +180,6 @@ export default function useOrgDirectory({ user }: UseOrgDirectoryOptions): OrgDi
     }, [user?.organizationId]);
 
     useEffect(() => { fetchData(); }, [fetchData]);
-
-    useEffect(() => {
-        (async () => {
-            try {
-                const res = await settled(`${API_BASE}/ai/config/custom-tiers-list`, undefined, 'empty');
-                if (res.ok) {
-                    const data: { tiers?: CustomTierMeta[] } | null = await res.res.json();
-                    if (Array.isArray(data?.tiers)) setCustomTiersMeta(data.tiers);
-                }
-            } catch (err) { logger.debug('non-critical', err); }
-        })();
-    }, []);
 
     // Fetch per-user AI usage once; non-blocking for the panel. Self-hosted
     // reads the calendar month, the period the monthly AI budget is enforced

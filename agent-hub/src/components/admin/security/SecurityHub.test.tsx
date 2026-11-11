@@ -5,6 +5,7 @@ import type { Mock } from 'vitest';
 import SecurityHub from './SecurityHub';
 import { AdminScopeOverrideProvider } from '../dashboard/useAdminScopeOverride';
 import type { AdminScope } from '../dashboard/adminTabs';
+import { AdminOrgProvider, type AdminOrgChoice } from '../dashboard/useAdminOrg';
 
 type SetScope = Mock<(scope: AdminScope | null) => void>;
 
@@ -23,13 +24,19 @@ vi.mock('./guardrails/GuardrailsHub', () => ({
     default: ({ section }: { section?: string }) => <div data-testid="guardrails-panel" data-section={section || ''} />,
 }));
 vi.mock('./guardrails/OrgGuardrails', () => ({
-    default: ({ orgId }: { orgId: string | null }) => <div data-testid="org-guardrails-panel" data-org={orgId || ''} />,
+    default: ({ orgId, activityOrgId, allowOrgPicker }: { orgId: string | null; activityOrgId?: string | null; allowOrgPicker?: boolean }) => (
+        <div data-testid="org-guardrails-panel" data-org={orgId || ''} data-activity-org={activityOrgId || ''} data-picker={String(!!allowOrgPicker)} />
+    ),
 }));
 vi.mock('./SSOConfigPanel', () => ({ default: () => <div data-testid="sso-panel" /> }));
 vi.mock('../org/UserManagement', () => ({ default: () => <div data-testid="user-management" /> }));
 vi.mock('../../integrations/health/ConnectorHealthPanel', () => ({
     default: ({ initialOrgId }: { initialOrgId?: string }) => <div data-testid="connector-health-panel" data-org={initialOrgId || ''} />,
 }));
+
+const choiceOf = (orgId: string | null): AdminOrgChoice => ({
+    isPlatformAdmin: true, orgId, orgName: null, organizations: [], organizationsLoaded: true, pending: false, homeOrganization: null, setOrgId: () => {},
+});
 
 const fullAdmin = { permissions: ['all'], isAdmin: true };
 const orgAdmin = { permissions: ['admin_security'], isAdmin: false };
@@ -48,20 +55,22 @@ describe('SecurityHub', () => {
         expect(screen.getByText('admin.sec_sso')).toBeInTheDocument();
     });
 
-    it('hides guardrails on a community install', () => {
+    it('keeps the organisation shield on a community install, without the server console', () => {
         hasTier.mockReturnValue(false);
-        render(<SecurityHub user={fullAdmin} />);
-        expect(screen.queryByText('admin.sec_guardrails')).not.toBeInTheDocument();
-        expect(screen.getByText('admin.sec_users')).toBeInTheDocument();
+        render(<SecurityHub user={fullAdmin} activeSection="guardrails" />);
+        expect(screen.getByText('admin.sec_guardrails')).toBeInTheDocument();
+        expect(screen.queryByTestId('guardrails-panel')).not.toBeInTheDocument();
+        // No organisation chosen: the editor's own picker.
+        expect(screen.getByTestId('org-guardrails-panel').getAttribute('data-picker')).toBe('true');
     });
 
     it('resolves the tier against the real licence, with no super-admin elevation', () => {
         hasTier.mockReturnValue(false);
-        render(<SecurityHub user={fullAdmin} />);
-        // A super-admin on community still does not see an enterprise section:
+        render(<SecurityHub user={fullAdmin} activeSection="guardrails" />);
+        // A super-admin on community still does not get the enterprise server console:
         // LicenseContext.hasTier reads the REAL tier by documented invariant.
         expect(hasTier).toHaveBeenCalledWith('enterprise');
-        expect(screen.queryByText('admin.sec_guardrails')).not.toBeInTheDocument();
+        expect(screen.queryByTestId('guardrails-panel')).not.toBeInTheDocument();
     });
 
     it('hides sso from a non-full admin', () => {
@@ -87,11 +96,23 @@ describe('SecurityHub', () => {
         expect(screen.queryByTestId('sso-panel')).not.toBeInTheDocument();
     });
 
-    it('falls back to users when a community admin lands on guardrails', () => {
+    it('shows an organisation admin their own shield on a community install', () => {
         hasTier.mockReturnValue(false);
-        render(<SecurityHub user={fullAdmin} activeSection="guardrails" />);
-        expect(screen.getByTestId('user-management')).toBeInTheDocument();
-        expect(screen.queryByTestId('guardrails-panel')).not.toBeInTheDocument();
+        render(<SecurityHub user={{ ...orgAdmin, organizationId: 'org-1', isHomeOrgAdmin: true }} activeSection="guardrails" />);
+        expect(screen.getByTestId('org-guardrails-panel').getAttribute('data-org')).toBe('org-1');
+        expect(screen.getByTestId('org-guardrails-panel').getAttribute('data-activity-org')).toBe('');
+    });
+
+    it('gives a platform admin the dashboard organisation as the shield and the activity organisation', () => {
+        hasTier.mockReturnValue(false);
+        render(
+            <AdminOrgProvider value={{ ...choiceOf('org-9') }}>
+                <SecurityHub user={fullAdmin} activeSection="guardrails" />
+            </AdminOrgProvider>,
+        );
+        const panel = screen.getByTestId('org-guardrails-panel');
+        expect(panel.getAttribute('data-org')).toBe('org-9');
+        expect(panel.getAttribute('data-activity-org')).toBe('org-9');
     });
 
     it('navigates to the section path when a rail button is clicked', async () => {

@@ -29,9 +29,13 @@ const Module = require('module');
 const fx = {
     users: {},
     groups: [],
+    orgs: { orgA: { id: 'orgA' }, orgB: { id: 'orgB' } },
     userThrows: false,
+    config: {},       // stored settings by key
+    secrets: {},      // stored secrets by key
 };
 const written = [];   // every configStore write the routes performed
+const sent = [];      // every n8n request: [url, X-N8N-API-KEY]
 
 const userStoreStub = {
     getUser: async (id) => {
@@ -39,16 +43,25 @@ const userStoreStub = {
         return fx.users[id] || null;
     },
     getAllGroups: async () => fx.groups,
+    getOrganization: async (id) => fx.orgs[id] || null,
+    getAllUsers: async () => [],
 };
 
 const MOCKS = {
     '../../../stores/userStore': userStoreStub,
     '../stores/userStore': userStoreStub,
     '../../../stores/configStore': {
-        getConfig: async () => null,
-        getSecret: async () => null,
+        getConfig: async (k) => fx.config[k] ?? null,
+        getSecret: async (k) => fx.secrets[k] ?? null,
         setConfig: async (k, v) => { written.push([k, v]); },
         setSecret: async (k, v) => { written.push([k, v]); },
+        deleteConfig: async (k) => { written.push([k, 'deleted']); return true; },
+    },
+    '../../../integrations/n8nHttp': {
+        n8nFetch: async (url, init) => {
+            sent.push([url, init.headers['X-N8N-API-KEY']]);
+            return { ok: true, json: async () => ({ data: [] }), text: async () => '' };
+        },
     },
     '../../../integrations/n8nTools': {
         listActiveWebhookWorkflows: async () => [],
@@ -115,7 +128,10 @@ async function call(method, url, { user = null, body = null } = {}) {
 
 test.beforeEach(() => {
     written.length = 0;
+    sent.length = 0;
     fx.userThrows = false;
+    fx.config = {};
+    fx.secrets = {};
     fx.groups = [{ id: 'g1', organizationId: 'orgB' }];
     fx.users = {
         'u-home': { id: 'u-home', role: 'user', orgRole: 'org_admin', organizationId: 'orgA', groups: [] },
@@ -174,4 +190,77 @@ test('an unreadable identity refuses the read too', async () => {
     fx.userThrows = true;
     const r = await call('GET', '/ai/n8n/config', { user: 'u-home' });
     assert.notStrictEqual(r.status, 200);
+});
+
+// ── `?orgId`: the organisation chosen in the admin dashboard ────────
+
+test('a platform admin writes and reads the connection of the org named by ?orgId', async () => {
+    const put = await call('PUT', '/ai/n8n/config?orgId=orgB', { user: 'u-super', body: { n8nUrl: 'https://n8n.example' } });
+    assert.strictEqual(put.status, 200);
+    assert.deepStrictEqual(written, [['n8n_url_org_orgB', 'https://n8n.example']]);
+    assert.strictEqual((await call('GET', '/ai/n8n/config?orgId=orgB', { user: 'u-super' })).status, 200);
+    assert.strictEqual((await call('GET', '/ai/n8n/permissions?orgId=orgB', { user: 'u-super' })).status, 200);
+});
+
+test('a platform admin naming an unknown org gets a 404 and writes nothing', async () => {
+    const r = await call('PUT', '/ai/n8n/config?orgId=nope', { user: 'u-super', body: { n8nUrl: 'https://n8n.example' } });
+    assert.strictEqual(r.status, 404);
+    assert.deepStrictEqual(written, []);
+});
+
+test('an org admin may name only their own org', async () => {
+    const other = await call('PUT', '/ai/n8n/config?orgId=orgB', { user: 'u-home', body: { n8nUrl: 'https://n8n.example' } });
+    assert.strictEqual(other.status, 403);
+    assert.deepStrictEqual(written, []);
+    assert.strictEqual((await call('GET', '/ai/n8n/config?orgId=orgB', { user: 'u-home' })).status, 403);
+    const own = await call('PUT', '/ai/n8n/config?orgId=orgA', { user: 'u-home', body: { n8nUrl: 'https://n8n.example' } });
+    assert.strictEqual(own.status, 200);
+    assert.deepStrictEqual(written, [['n8n_url_org_orgA', 'https://n8n.example']]);
+    assert.strictEqual((await call('GET', '/ai/n8n/config?orgId=orgA&orgId=orgA', { user: 'u-home' })).status, 400, 'a repeated orgId is refused');
+});
+
+// ── The stored key goes only to the stored address ──────────────────
+
+/** orgB has a connection: an address and the key saved with it. */
+function storedConnection() {
+    fx.config.n8n_url_org_orgB = 'https://n8n.b.example';
+    fx.secrets.n8n_api_key_org_orgB = 'stored-key';
+}
+
+test('the connection test uses the stored key with the stored address', async () => {
+    storedConnection();
+    const r = await call('POST', '/ai/n8n/test?orgId=orgB', { user: 'u-super', body: { n8nUrl: 'https://n8n.b.example/' } });
+    assert.strictEqual(r.status, 200);
+    assert.strictEqual(r.json.ok, true);
+    assert.deepStrictEqual(sent.map(([url, key]) => [url.split('/api/v1')[0], key]), [['https://n8n.b.example', 'stored-key'], ['https://n8n.b.example', 'stored-key']]);
+});
+
+test('testing another address needs a typed key: the stored one is never sent there', async () => {
+    storedConnection();
+    const r = await call('POST', '/ai/n8n/test?orgId=orgB', { user: 'u-super', body: { n8nUrl: 'https://elsewhere.example' } });
+    assert.strictEqual(r.status, 400);
+    assert.strictEqual(r.json.ok, false);
+    assert.deepStrictEqual(sent, [], 'nothing is sent');
+    const typed = await call('POST', '/ai/n8n/test?orgId=orgB', { user: 'u-super', body: { n8nUrl: 'https://elsewhere.example', apiKey: 'typed-key' } });
+    assert.strictEqual(typed.json.ok, true);
+    assert.ok(sent.every(([url, key]) => url.startsWith('https://elsewhere.example/') && key === 'typed-key'));
+});
+
+test('saving another address without a new key removes the stored key', async () => {
+    storedConnection();
+    const r = await call('PUT', '/ai/n8n/config?orgId=orgB', { user: 'u-super', body: { n8nUrl: 'https://elsewhere.example' } });
+    assert.strictEqual(r.status, 200);
+    assert.strictEqual(r.json.apiKeyCleared, true);
+    assert.deepStrictEqual(written, [['n8n_url_org_orgB', 'https://elsewhere.example'], ['n8n_api_key_org_orgB', 'deleted']]);
+});
+
+test('saving the same address, or another one with its key, keeps or replaces the key as sent', async () => {
+    storedConnection();
+    const same = await call('PUT', '/ai/n8n/config?orgId=orgB', { user: 'u-super', body: { n8nUrl: 'https://n8n.b.example/' } });
+    assert.strictEqual(same.json.apiKeyCleared, undefined);
+    assert.deepStrictEqual(written, [['n8n_url_org_orgB', 'https://n8n.b.example/']]);
+    written.length = 0;
+    const withKey = await call('PUT', '/ai/n8n/config?orgId=orgB', { user: 'u-super', body: { n8nUrl: 'https://elsewhere.example', apiKey: 'new-key' } });
+    assert.strictEqual(withKey.json.apiKeyCleared, undefined);
+    assert.deepStrictEqual(written, [['n8n_url_org_orgB', 'https://elsewhere.example'], ['n8n_api_key_org_orgB', 'new-key']]);
 });

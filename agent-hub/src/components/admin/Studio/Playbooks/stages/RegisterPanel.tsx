@@ -133,7 +133,7 @@ export default function RegisterPanel({
                 {onNavigate && (
                     <button
                         type="button"
-                        onClick={() => onNavigate(`settings/organisation/compliance/ropa/${encodeURIComponent(`datatable:${table.id}`)}`)}
+                        onClick={() => onNavigate(`admin/compliance/ropa/${encodeURIComponent(`datatable:${table.id}`)}`)}
                         className="mt-2.5 inline-flex items-center gap-1 text-xs font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 [color:var(--type-ai)]! [outline-color:var(--type-ai)]!"
                         data-testid="playbook-compliance-open-ropa"
                     >

@@ -1,7 +1,8 @@
 // The Users screen inside the admin dashboard: its server-wide tabs come last
 // and carry the server icon, it tells the dashboard the scope of the open tab,
 // and the dashboard's chosen organisation narrows the member lists.
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
+import { renderWithClient as render } from '@/test/render';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import UserManagement from './UserManagement';
 import { AdminOrgProvider, type AdminOrgChoice } from '@/components/admin/dashboard/useAdminOrg';
@@ -31,9 +32,9 @@ describe('UserManagement in the admin dashboard', () => {
         render(<UserManagement user={platformAdmin} />);
         const tabs = within(await screen.findByRole('tablist'));
         const all = tabs.getAllByRole('tab');
-        expect(all.map(tab => tab.textContent?.trim())).toEqual(['Users', 'Groups', 'Organizations', 'Nextcloud', 'Roles', 'Permissions']);
-        for (const tab of all.slice(2)) expect(within(tab).getByRole('img', { name: 'Whole server' })).toBeInTheDocument();
-        for (const tab of all.slice(0, 2)) expect(within(tab).queryByRole('img')).not.toBeInTheDocument();
+        expect(all.map(tab => tab.textContent?.trim())).toEqual(['Users', 'Invitations', 'Groups', 'Organisation roles', 'Model tiers', 'Organizations', 'Nextcloud', 'Server roles', 'Permissions']);
+        for (const tab of all.slice(5)) expect(within(tab).getByRole('img', { name: 'Whole server' })).toBeInTheDocument();
+        for (const tab of all.slice(0, 5)) expect(within(tab).queryByRole('img')).not.toBeInTheDocument();
         expect(tabs.getAllByText('Whole server', { selector: 'span[aria-hidden="true"]' })).toHaveLength(1);
     });
 

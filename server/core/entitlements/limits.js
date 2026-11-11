@@ -200,7 +200,7 @@ async function checkSubscriptionLimits(orgId, agentType, userId = null) {
         orgHealth.problem('chat.subscription_blocked', {
             orgId, source: 'limits', meta: { agentType, reason: 'no_subscription' },
         });
-        return 'Your organization does not have an active subscription. Ask an organisation admin to choose a plan in Settings → Organisation → License & Usage.';
+        return 'Your organization does not have an active subscription. Ask an organisation admin to choose a plan in Admin dashboard → Organisation → License & Usage.';
     }
 
     // A suspended, dunning-capped or cancelled subscription is fully blocked.

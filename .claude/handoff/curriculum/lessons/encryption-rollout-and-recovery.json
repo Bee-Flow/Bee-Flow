@@ -15,7 +15,7 @@
       "id": "new-writes",
       "icon": "🧭",
       "title": "Turning it on protects tomorrow, not yesterday",
-      "bodyMd": "You can switch encryption on this afternoon and still have two years of readable staff conversations in the database tonight. The screen is not lying to you — it just does less than most admins assume.\n\nMarieke is the organisation admin at **Van Dijk Groep**, a Dutch builder's merchant of sixty staff. She is the one who runs the workspace — Erik, the director, signs in like any other colleague. She opens **Settings → Organisation → Encryption** and reads the line at the top:\n\n> \"Choose how your organisation's conversation content is stored. This affects new messages; existing messages are left exactly as they are and stay readable either way.\"\n\nOnly new messages follow the setting. Reading works either way, because the app recognises each stored message for what it is. So:\n\n- switching **on** leaves the older messages as plain readable text;\n- switching **off** leaves the already-encrypted ones openable — no key is thrown away;\n- flipping the switch never rewrites a single old message.\n\nHistory is protected only once whoever runs your server runs the one-off **backfill** script: a dry run first to see the counts, then for real."
+      "bodyMd": "You can switch encryption on this afternoon and still have two years of readable staff conversations in the database tonight. The screen is not lying to you — it just does less than most admins assume.\n\nMarieke is the organisation admin at **Van Dijk Groep**, a Dutch builder's merchant of sixty staff. She is the one who runs the workspace — Erik, the director, signs in like any other colleague. She opens **Admin dashboard → Organisation → Encryption** and reads the line at the top:\n\n> \"Choose how your organisation's conversation content is stored. This affects new messages; existing messages are left exactly as they are and stay readable either way.\"\n\nOnly new messages follow the setting. Reading works either way, because the app recognises each stored message for what it is. So:\n\n- switching **on** leaves the older messages as plain readable text;\n- switching **off** leaves the already-encrypted ones openable — no key is thrown away;\n- flipping the switch never rewrites a single old message.\n\nHistory is protected only once whoever runs your server runs the one-off **backfill** script: a dry run first to see the counts, then for real."
     },
     {
       "type": "quiz",
@@ -235,7 +235,7 @@
       "id": "verify",
       "icon": "🔎",
       "title": "Afterwards: check what is actually enforced",
-      "bodyMd": "Two words are worth keeping apart.\n\n- **Scope** is what was asked for: the places the organisation wants encrypted.\n- **Effective** is what is enforced: that list narrowed to what this build really encrypts.\n\nNeither is printed on the Encryption screen. Both come back from the same admin call the screen makes when it loads, `GET /auth/organizations/<org id>/encryption`. Today all seven places are wired, so the two lists match — but scope is the promise and effective is the fact, so effective is the one to read.\n\nSecond, every tier change is recorded as the action `org.encryption.update`. Marieke finds it in **Settings → Organisation → Compliance → Access log**, filtered on that event. The row names the organisation and who changed it; the old and new tier ride in the record, so **Export (JSON)** is what she hands an auditor."
+      "bodyMd": "Two words are worth keeping apart.\n\n- **Scope** is what was asked for: the places the organisation wants encrypted.\n- **Effective** is what is enforced: that list narrowed to what this build really encrypts.\n\nNeither is printed on the Encryption screen. Both come back from the same admin call the screen makes when it loads, `GET /auth/organizations/<org id>/encryption`. Today all seven places are wired, so the two lists match — but scope is the promise and effective is the fact, so effective is the one to read.\n\nSecond, every tier change is recorded as the action `org.encryption.update`. Marieke finds it in **Admin dashboard → Compliance → Access log**, filtered on that event. The row names the organisation and who changed it; the old and new tier ride in the record, so **Export (JSON)** is what she hands an auditor."
     },
     {
       "type": "action",
@@ -243,9 +243,9 @@
       "icon": "🏗️",
       "checkId": "encryption-tier-on",
       "title": "Switch encryption on — we'll verify it",
-      "instruction": "Open Settings → Organisation → Encryption, select the Managed card and click Save. You should see the toast \"Encryption settings saved\", and nobody is signed out. If Managed is greyed out, the reason is printed under the card — either your plan or a key this server is missing. Do not pick Zero-knowledge as a rehearsal: that really does sign out your whole organisation. Managed is reversible — Off is always selectable, even later.",
+      "instruction": "Open Admin dashboard → Organisation → Encryption, select the Managed card and click Save. You should see the toast \"Encryption settings saved\", and nobody is signed out. If Managed is greyed out, the reason is printed under the card — either your plan or a key this server is missing. Do not pick Zero-knowledge as a rehearsal: that really does sign out your whole organisation. Managed is reversible — Off is always selectable, even later.",
       "launch": {
-        "navigateTo": "settings/organisation/encryption",
+        "navigateTo": "admin/organisation/encryption",
         "label": "Open Encryption"
       }
     },
@@ -276,14 +276,14 @@
     "title": "Encryption rollout and recovery",
     "summary": "How switching the organisation's encryption tier behaves in practice, and how a lost PIN is rescued.",
     "facts": [
-      "The Encryption screen lives at Settings → Organisation → Encryption and says the setting affects new messages only; existing messages are left exactly as they are and stay readable either way.",
+      "The Encryption screen lives at Admin dashboard → Organisation → Encryption and says the setting affects new messages only; existing messages are left exactly as they are and stay readable either way.",
       "Selecting Zero-knowledge shows a red warning before saving, and saving signs out everyone in the organisation, including the admin who saved it; choosing Managed signs nobody out.",
       "On Zero-knowledge, message bodies written before the switch can never be backfilled, because their key is derived from each person's own secret at sign-in.",
       "SSO users see a full-screen Set Up Data Encryption gate and choose an encryption PIN of at least 6 characters, which the screen says is separate from their SSO login.",
       "The recovery key is shown once, as 8 groups of 8 characters; a recovery-key rescue issues a new key and invalidates the old one, and Recover Your Account is the only screen in the app that asks for one.",
       "An admin setting a password without the old one wipes the password-protected copy of that user's content key: on Managed the escrowed copy survives and nothing is lost, on Zero-knowledge the old conversations stop opening.",
       "Wrong PIN attempts trigger a growing delay from the third failure, capped at an hour, and a hard lockout at twenty failures; the recovery-key path hard-locks after ten.",
-      "Every tier change is recorded in Settings → Organisation → Compliance → Access log as the action org.encryption.update, with the acting user; the old and new tier ride in the record and come out in the Export (JSON)."
+      "Every tier change is recorded in Admin dashboard → Compliance → Access log as the action org.encryption.update, with the acting user; the old and new tier ride in the record and come out in the Export (JSON)."
     ]
   },
   "actionChecks": [
@@ -291,7 +291,7 @@
       "checkId": "encryption-tier-on",
       "existing": false,
       "label": "Switch encryption on for your organisation",
-      "hint": "In Settings → Organisation → Encryption, select Managed and click Save. The tier must no longer be Off.",
+      "hint": "In Admin dashboard → Organisation → Encryption, select Managed and click Save. The tier must no longer be Off.",
       "endpoints": [
         {
           "method": "GET",

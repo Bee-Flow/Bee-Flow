@@ -6,12 +6,13 @@
 import { useQuery } from '@tanstack/react-query';
 import { API_BASE, authFetch } from '../../utils/helpers';
 import { request, RefusedError } from '../mutate';
+import { useAdminOrgScope, withOrgIdParam } from '../adminOrgScope';
 
 const orgReportKeys = {
     all: ['org-reports'] as const,
     feedback: (q: string, reveal: boolean) => [...orgReportKeys.all, 'feedback', reveal ? 'revealed' : 'pseudonymous', q] as const,
     terminations: (q: string, interval: string, reveal: boolean) => [...orgReportKeys.all, 'terminations', reveal ? 'revealed' : 'pseudonymous', q, interval] as const,
-    academy: () => [...orgReportKeys.all, 'academy'] as const,
+    academy: (orgId: string | null) => [...orgReportKeys.all, 'academy', orgId] as const,
 };
 
 /** The JSON of an answer, or null when it was refused or unreadable. */
@@ -140,14 +141,15 @@ export function useOrgTerminationsQuery<Summary, Timeline, Row, ByAgent>(q: stri
     });
 }
 
-/** GET /ai/learning/org-overview; a refusal throws `HTTP <status>`. */
+/** GET /ai/learning/org-overview (of the organisation an AdminOrgScopeProvider names, else the caller's own); a refusal throws `HTTP <status>`. */
 export function useOrgAcademyOverviewQuery<T>() {
+    const orgId = useAdminOrgScope();
     return useQuery<T, Error>({
-        queryKey: orgReportKeys.academy(),
+        queryKey: orgReportKeys.academy(orgId),
         queryFn: async ({ signal }) => {
             let res: Response;
             try {
-                res = await request(`${API_BASE}/ai/learning/org-overview`, { signal });
+                res = await request(withOrgIdParam(`${API_BASE}/ai/learning/org-overview`, orgId), { signal });
             } catch (err) {
                 if (!(err instanceof RefusedError)) throw err;
                 throw new Error(`HTTP ${err.status}`);

@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AdminDashboard from './AdminDashboard';
+import EntitlementsContext, { type EntitlementsValue } from '@/components/licensing/EntitlementsContext';
 import LicenseContext from '@/components/licensing/LicenseContext';
 import { withQueryClient } from '@/test/queryWrapper';
 
@@ -17,29 +18,37 @@ beforeEach(() => {
     vi.stubGlobal('fetch', vi.fn(async () => new Response('{}', { status: 200, headers: { 'content-type': 'application/json' } })));
 });
 
-function renderDashboard({ user = superAdmin, seg1, license = {} }: { user?: object; seg1?: string; license?: Partial<LicenseValue> } = {}) {
+function renderDashboard({ user = superAdmin, seg1, seg2, license = {}, capabilities = [] }: { user?: object; seg1?: string; seg2?: string; license?: Partial<LicenseValue>; capabilities?: string[] } = {}) {
     const onNavigate = vi.fn();
     const onBack = vi.fn();
     const value = { tier: 'community', deploymentMode: 'self-hosted', serverOverride: false, hasTier: () => false, hasFeature: () => false, ...license } as LicenseValue;
+    const entitlements = { loading: false, degraded: false, error: null, can: (id: string) => capabilities.includes(id), inCeiling: (id: string) => capabilities.includes(id) } as EntitlementsValue;
     render(withQueryClient(
-        <LicenseContext.Provider value={value}>
-            <AdminDashboard user={user as never} onBack={onBack} onNavigate={onNavigate} adminPath={{ seg1 }} />
-        </LicenseContext.Provider>,
+        <EntitlementsContext.Provider value={entitlements}>
+            <LicenseContext.Provider value={value}>
+                <AdminDashboard user={user as never} onBack={onBack} onNavigate={onNavigate} adminPath={{ seg1, seg2 }} />
+            </LicenseContext.Provider>
+        </EntitlementsContext.Provider>,
     ));
     return { onNavigate, onBack };
 }
 
 const rail = () => screen.getByRole('navigation', { name: 'Admin Dashboard' });
+/** The rows of a part of the rail, by name (a server-wide row's mark adds no text). */
+const rowNames = (el: HTMLElement) => within(el).getAllByRole('link').map(a => a.textContent?.trim());
 
 describe('AdminDashboard navigation', () => {
     it('lists only the tabs a community self-hosted super-admin may open, grouped', () => {
         renderDashboard({ seg1: 'licenses' });
         const nav = within(rail());
-        for (const name of ['AI Config', 'Security', 'Integrations', 'Access', 'Server licence', 'Modules', 'Languages']) {
+        for (const name of ['Organisation Info', 'AI Config', 'Security', 'Access', 'Monitoring', 'Server licence', 'Modules', 'Languages']) {
             expect(nav.getByRole('link', { name })).toBeInTheDocument();
         }
+        // Two rows named Integrations: the organisation's own (Connections) and the server's.
+        expect(within(nav.getByTestId('admin-rail-section-instance')).getByRole('link', { name: 'Integrations' })).toHaveAttribute('href', expect.stringContaining('/admin/integrations'));
+        expect(within(nav.getByTestId('admin-rail-section-org')).getByRole('link', { name: 'Integrations' })).toHaveAttribute('href', expect.stringContaining('/admin/organisation/integrations'));
         // Enterprise-only and cloud-only tabs stay hidden, even from the operator.
-        for (const name of ['Agents', 'Monitoring', 'Compliance', 'Subscriptions', 'Product Website', 'Release Notes']) {
+        for (const name of ['Agents', 'Compliance', 'Subscriptions', 'Product Website', 'Release Notes']) {
             expect(nav.queryByRole('link', { name })).not.toBeInTheDocument();
         }
         expect(nav.getByText('Security & access')).toBeInTheDocument();
@@ -47,13 +56,24 @@ describe('AdminDashboard navigation', () => {
     });
 
     it('shows the enterprise and cloud tabs on an enterprise cloud install', () => {
-        renderDashboard({ seg1: 'licenses', license: { tier: 'enterprise', deploymentMode: 'cloud' } });
+        renderDashboard({ seg1: 'licenses', license: { tier: 'enterprise', deploymentMode: 'cloud' }, capabilities: ['compliance_hub_gdpr'] });
         const nav = within(rail());
-        for (const name of ['Agents', 'Monitoring', 'Compliance', 'Subscriptions', 'Product Website', 'Release Notes']) {
+        for (const name of ['Agents', 'Compliance', 'Subscriptions', 'Product Website', 'Release Notes']) {
             expect(nav.getByRole('link', { name })).toBeInTheDocument();
         }
         // The whole-server block is one flat list: no "Website" sub-heading.
         expect(within(nav.getByTestId('admin-rail-section-instance')).getByRole('link', { name: 'Release Notes' })).toBeInTheDocument();
+    });
+
+    // Compliance follows the capability, as Settings did: the plan name is not the rule.
+    it('offers Compliance on the capability, below Enterprise, and not without it', () => {
+        renderDashboard({ seg1: 'licenses', capabilities: ['compliance_hub_gdpr'] });
+        expect(within(rail()).getByRole('link', { name: 'Compliance' })).toBeInTheDocument();
+    });
+
+    it('hides Compliance on an Enterprise plan that lacks the capability', () => {
+        renderDashboard({ seg1: 'licenses', license: { tier: 'enterprise', deploymentMode: 'cloud' } });
+        expect(within(rail()).queryByRole('link', { name: 'Compliance' })).not.toBeInTheDocument();
     });
 
     it('shows an org admin only the tabs their permission opens', () => {
@@ -101,6 +121,12 @@ describe('AdminDashboard navigation', () => {
         await user.click(screen.getByRole('button', { name: 'Go Back' }));
         expect(onBack).toHaveBeenCalled();
     });
+
+    it('tells a member of an organisation without a plan whom to ask, on the licence page the gate sends them to', () => {
+        renderDashboard({ user: nobody, seg1: 'organisation', seg2: 'license', license: { deploymentMode: 'cloud' } });
+        expect(screen.getByTestId('admin-access-denied-no-plan')).toHaveTextContent('Ask an administrator of your organisation');
+        expect(screen.queryByRole('heading', { name: 'Access Denied' })).not.toBeInTheDocument();
+    });
 });
 
 describe('AdminDashboard scope groups', () => {
@@ -109,35 +135,63 @@ describe('AdminDashboard scope groups', () => {
         permissions: ['org_admin', 'admin_agents', 'admin_ai_config', 'admin_security', 'admin_monitoring', 'admin_compliance', 'manage_users'],
     };
     const enterprise = { tier: 'enterprise', deploymentMode: 'self-hosted' } as const;
+    const COMPLIANCE = ['compliance_hub_gdpr'];
 
     it('gives a platform admin both groups: the organisation and the whole server', () => {
-        renderDashboard({ seg1: 'agents', license: enterprise });
+        renderDashboard({ seg1: 'agents', license: enterprise, capabilities: COMPLIANCE });
         const nav = within(rail());
         expect(nav.getByTestId('admin-rail-section-org')).toHaveTextContent('Organisations');
         expect(nav.getByTestId('admin-rail-section-org')).not.toHaveTextContent('Your organisation');
         expect(nav.getByTestId('admin-rail-section-instance')).toHaveTextContent('Whole server');
-        expect(within(nav.getByTestId('admin-rail-section-org')).getAllByRole('link').map(a => a.textContent))
-            .toEqual(['Agents', 'Security', 'Access', 'Compliance', 'Monitoring']);
+        // The Organisation tab's sections are rows in their groups; the account says cloud, so License & Usage is one.
+        expect(rowNames(nav.getByTestId('admin-rail-section-org'))).toEqual([
+            'Organisation Info', 'Sign-in Method', 'License & Usage',
+            'Agents', 'AI & Collaboration', 'Answer Reuse',
+            'Security', 'Access', 'Compliance', 'Encryption',
+            'Integrations', 'MCP Library', 'MCP Access', 'Nextcloud Sync',
+            'Monitoring',
+        ]);
+        expect(nav.queryByRole('link', { name: 'Organisation' })).not.toBeInTheDocument();
         const server = within(nav.getByTestId('admin-rail-section-instance')).getAllByRole('link').map(a => a.textContent);
         expect(server).toEqual(expect.arrayContaining(['AI Config', 'Integrations', 'Modules', 'Server licence', 'Languages']));
         expect(server).not.toContain('Agents');
     });
 
     it('gives an organisation admin one group and no tab about the whole server', () => {
-        renderDashboard({ user: orgAdmin, seg1: 'agents', license: enterprise });
+        renderDashboard({ user: orgAdmin, seg1: 'agents', license: enterprise, capabilities: COMPLIANCE });
         const nav = within(rail());
         expect(nav.getByTestId('admin-rail-section-org')).toHaveTextContent('Your organisation');
         expect(nav.queryByTestId('admin-rail-section-instance')).not.toBeInTheDocument();
         expect(nav.queryByText('Whole server')).not.toBeInTheDocument();
-        expect(nav.getAllByRole('link').map(a => a.textContent)).toEqual(['Agents', 'Security', 'Access', 'Compliance', 'Monitoring']);
+        expect(rowNames(rail())).toEqual([
+            'Organisation Info', 'Sign-in Method', 'License & Usage',
+            'Agents', 'AI & Collaboration', 'Answer Reuse',
+            'Security', 'Access', 'Compliance', 'Encryption',
+            'Integrations', 'MCP Library', 'MCP Access',
+            'Monitoring',
+        ]);
+        expect(nav.queryByTestId('server-wide-mark')).not.toBeInTheDocument();
     });
 
     it('leaves the Agents tab out when the viewer has no agent section left', () => {
         const systemOnly = { ...orgAdmin, permissions: [...orgAdmin.permissions, 'admin_agents_system'], allowedAgentTypes: ['system'] };
         renderDashboard({ user: systemOnly, seg1: 'agents', license: enterprise });
-        const links = within(rail()).getAllByRole('link').map(a => a.textContent);
+        const links = rowNames(rail());
         expect(links).not.toContain('Agents');
-        expect(links[0]).toBe('Security');
+        expect(links.slice(0, 4)).toEqual(['Organisation Info', 'Sign-in Method', 'License & Usage', 'AI & Collaboration']);
+    });
+
+    it('opens the Organisation tab for an organisation admin by role alone, and falls back to it without Agents', () => {
+        const byRole = { id: 'u5', isAdmin: false, role: 'user', orgRole: 'admin', organizationId: 'org-1', permissions: [] };
+        renderDashboard({ user: byRole, license: enterprise });
+        // No 'org_admin' permission: the organisation-admin role opens it (and Access, which takes org_admin too).
+        expect(rowNames(rail())).toEqual([
+            'Organisation Info', 'Sign-in Method', 'License & Usage', 'AI & Collaboration', 'Answer Reuse',
+            'Access', 'Encryption', 'Integrations', 'MCP Library', 'MCP Access', 'Monitoring',
+        ]);
+        // admin/ alone falls back to the Organisation tab, which opens its first section.
+        expect(within(rail()).getByRole('link', { name: 'Organisation Info' })).toHaveAttribute('aria-current', 'page');
+        expect(screen.getByTestId('admin-tab-organisation')).toBeInTheDocument();
     });
 
     it('sends an organisation admin who follows a link to a server-wide tab to the first visible tab', () => {

@@ -474,7 +474,7 @@ jobs:
               - 'agent-hub/src/components/icons/iconRegistry.ts'
               - 'agent-hub/src/components/integrations/azure/{ChatModelsSection.tsx,SSOSection.tsx,SSOSection.types.ts,SSOSectionSection.tsx,constants.ts}'
               - 'agent-hub/src/components/integrations/nextcloud/{NextcloudSyncPanel.tsx,OrgNcPairingPanel.tsx}'
-              - 'agent-hub/src/components/licensing/{EntitlementsContext.tsx,LicenseContext.tsx}'
+              - 'agent-hub/src/components/licensing/{EntitlementsContext.tsx,LicenseContext.tsx,licenseTiers.ts}'
               - 'agent-hub/src/components/renderers/{CodeRenderer.tsx,CollapsibleCodeBlock.tsx,MarkdownRenderer.tsx}'
               - 'agent-hub/src/components/shared/{kindColors.ts,statusTone.ts}'
               - 'agent-hub/src/components/shared/builder/formatElapsed.ts'

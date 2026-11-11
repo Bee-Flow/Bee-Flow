@@ -6,6 +6,7 @@ import type { NcCatalogItem, NcGroup, NcIntegrationsConfig } from '@/api/queries
 import { TranslateParams, useTranslation } from '@/hooks/useTranslation';
 import { errorMessage } from '@/utils/caughtError';
 import { mutate, ApiError } from '@/api/mutate';
+import { panelOrgId } from '@/utils/adminAccess';
 
 interface FlashMessage {
     type: 'ok' | 'error';
@@ -14,6 +15,8 @@ interface FlashMessage {
 
 interface OrgNcIntegrationsPanelProps {
     user?: { organizationId?: string } | null;
+    /** The organisation to act on; left out, the user's home organisation (outside the admin dashboard). */
+    orgId?: string | null;
 }
 
 /**
@@ -24,9 +27,9 @@ interface OrgNcIntegrationsPanelProps {
  * Conflict resolution at runtime is "enable wins" — see
  * server/core/integrationTools.js isAppOn().
  */
-const OrgNcIntegrationsPanel = ({ user }: OrgNcIntegrationsPanelProps) => {
+const OrgNcIntegrationsPanel = ({ user, orgId: orgIdProp }: OrgNcIntegrationsPanelProps) => {
     const { t } = useTranslation();
-    const orgId = user?.organizationId;
+    const orgId = panelOrgId(orgIdProp, user) ?? undefined;
     const ncQuery = useNcIntegrationsQuery(orgId);
     // Unsaved edits on top of the server answer: the org-wide switches, and per-group exceptions (optimistic).
     const [enabledDraft, setEnabledDraft] = useState<string[] | null>(null);

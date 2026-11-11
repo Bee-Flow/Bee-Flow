@@ -11,6 +11,7 @@ import Spinner from '@/components/shared/Spinner';
 import SectionHeader from '@/components/shared/SectionHeader';
 import Tabs from '@/components/shared/Tabs';
 import { adminSectionScope } from '@/components/admin/dashboard/adminTabs';
+import { useAdminOrgChoice } from '@/components/admin/dashboard/useAdminOrg';
 import { useAdminScopeOverride } from '@/components/admin/dashboard/useAdminScopeOverride';
 
 /**
@@ -35,6 +36,8 @@ interface GuardrailsHubProps {
 const GuardrailsHub = ({ section, onNavigate }: GuardrailsHubProps) => {
     const { t } = useTranslation();
     const data = useGuardrailsData();
+    // The organisation the dashboard works on; none = every organisation, then the editor's own picker applies.
+    const chosenOrgId = useAdminOrgChoice()?.orgId ?? null;
     const { capabilities, loading, error } = data;
 
     const sections = useMemo(() => availableSections(capabilities), [capabilities]);
@@ -143,10 +146,12 @@ const GuardrailsHub = ({ section, onNavigate }: GuardrailsHubProps) => {
                 )}
 
                 {active === 'organisations' && (
-                    /* Still the full editor in Fase 1. It becomes a read-only
-                       overview with an explicit super-admin unlock in Fase 4;
-                       allowOrgPicker is what keeps today's behaviour until then. */
-                    <OrgShieldEditor allowOrgPicker />
+                    /* The dashboard's organisation, pinned and with its "What happened" tab;
+                       with none chosen the editor's own picker applies (no activity tab:
+                       the endpoints need to know which organisation to read). */
+                    chosenOrgId
+                        ? <OrgShieldEditor key={chosenOrgId} orgId={chosenOrgId} showActivityTab activityOrgId={chosenOrgId} />
+                        : <OrgShieldEditor allowOrgPicker />
                 )}
             </div>
         </div>

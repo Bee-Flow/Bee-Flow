@@ -19,7 +19,6 @@ const ctx = (over: Partial<SettingsContentContext>): SettingsContentContext => (
     isPlatformAdmin: false,
     projectsOn: false,
     entitlementsUnknown: false,
-    orgDeepSegs: { seg1: '', seg2: '' },
     complianceHub: null,
     defaultAgentMode: 'auto',
     setDefaultAgentMode: vi.fn(),

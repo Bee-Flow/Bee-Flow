@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useOrgInvitationsQuery } from '@/api/queries/orgAdminReads';
+import { useAdminOrgScope, withOrgIdParam } from '@/api/adminOrgScope';
 import type { Dispatch, SetStateAction } from 'react';
 import { API_BASE } from '@/utils/helpers';
 import { mutate, ApiError, RefusedError, errorBody } from '@/api/mutate';
@@ -48,9 +49,17 @@ export interface OrgInvitations {
  * Inviting someone who has no account yet, and the pending invitations that
  * result. `inviteResult` carries the whole outcome — including the link to
  * share by hand when the mail could not be delivered, and the seat-cap flag
- * that sends an admin to the upgrade flow instead of a dead end.
+ * that sends an admin to the upgrade flow instead of a dead end. They are the
+ * invitations of the organisation an AdminOrgScopeProvider names (the
+ * dashboard's choice), else of the caller's own.
  */
 const NO_INVITATIONS: Invitation[] = [];
+
+/** The invitations read for the organisation an AdminOrgScopeProvider names (null: the caller's own). */
+function useScopedInvitations() {
+    const orgId = useAdminOrgScope();
+    return { orgId, invitationsQuery: useOrgInvitationsQuery<Invitation>(orgId) };
+}
 
 export default function useOrgInvitations(): OrgInvitations {
     // Invitation state
@@ -60,7 +69,7 @@ export default function useOrgInvitations(): OrgInvitations {
     const [sendingInvite, setSendingInvite] = useState(false);
     const [inviteResult, setInviteResult] = useState<InviteResult | null>(null);
 
-    const invitationsQuery = useOrgInvitationsQuery<Invitation>();
+    const { orgId, invitationsQuery } = useScopedInvitations();
     const invitations = invitationsQuery.data ?? NO_INVITATIONS;
     const loadingInvitations = invitationsQuery.isFetching;
     const fetchInvitations = async () => { await invitationsQuery.refetch(); };
@@ -77,7 +86,7 @@ export default function useOrgInvitations(): OrgInvitations {
                 emailSent?: boolean; inviteUrl?: string;
             };
             try {
-                const res = await mutate(`${API_BASE}/auth/invitations`, {
+                const res = await mutate(withOrgIdParam(`${API_BASE}/auth/invitations`, orgId), {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ email: inviteEmail.trim(), role: inviteRole }),
@@ -118,7 +127,7 @@ export default function useOrgInvitations(): OrgInvitations {
 
     const handleRevokeInvite = async (invitationId: string) => {
         try {
-            const res = await mutate(`${API_BASE}/auth/invitations/${invitationId}`, { method: 'DELETE' }).catch((err: unknown) => {
+            const res = await mutate(withOrgIdParam(`${API_BASE}/auth/invitations/${invitationId}`, orgId), { method: 'DELETE' }).catch((err: unknown) => {
                 if (err instanceof ApiError) return null;
                 throw err;
             });

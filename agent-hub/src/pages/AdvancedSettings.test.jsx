@@ -4,11 +4,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 /**
  * Characterisation of the SETTINGS SHELL — the screen around the sections:
- * which sidebar rows exist for which account, which org sub-items survive the
- * permission/licence/deployment filter and in which groups they are drawn,
- * which panel a segment opens, where the bounce effects (Simple Mode,
- * self-hosted, phone, self-hosted licence, Learning Center, Notifications)
- * land, and how the Organisation accordion behaves.
+ * which sidebar rows exist for which account, which panel a segment opens,
+ * where the bounce effects (Simple Mode, self-hosted, phone, self-hosted
+ * licence, Learning Center, Notifications) land, and where an organisation
+ * address goes: to the admin dashboard on a desktop (its sections' own rules
+ * are pinned by components/admin/organisation), a phone keeping Compliance and
+ * the no-plan licence page.
  *
  * The URL⟷tab mapping itself lives in authedApp/settingsRoutes.js and is
  * frozen by settingsRoutes.test.js; this file pins the SCREEN, so it asserts
@@ -147,6 +148,7 @@ vi.mock('../components/admin/org/OrgInfoPanel', async () => {
 });
 
 import AdvancedSettings from './AdvancedSettings';
+import { SETTINGS_ORG_ADMIN_TARGETS, SETTINGS_ORG_ID_TO_URL } from '../authedApp/settingsRoutes';
 import { renderWithClient } from '../test/render';
 import { authFetch } from '../utils/helpers';
 
@@ -182,11 +184,11 @@ async function settle() {
     for (let i = 0; i < 8; i++) await act(async () => { await new Promise(resolve => setTimeout(resolve, 0)); });
 }
 
-async function mount({ user = MEMBER, path = '/app/settings', ...props } = {}) {
+async function mount({ user = MEMBER, path = '/app/settings', onNavigate = vi.fn(), ...props } = {}) {
     window.history.replaceState({}, '', path);
-    const view = renderWithClient(<AdvancedSettings user={user} {...props} />);
+    const view = renderWithClient(<AdvancedSettings user={user} onNavigate={onNavigate} {...props} />);
     await settle();
-    return view;
+    return { ...view, onNavigate };
 }
 
 /** A real click (pointer + mouse + click events), settled. */
@@ -204,19 +206,6 @@ const topGroups = (c) => {
     }
     return out.filter(g => g.length > 0);
 };
-/** The expanded organisation sub-items, in render order. */
-const subRows = (c) => [...navEl(c).querySelectorAll('div.space-y-px.overflow-hidden button')].map(b => b.textContent.trim());
-/** The expanded organisation sub-items, split into groups at each divider. */
-const subGroups = (c) => {
-    const box = navEl(c).querySelector('div.space-y-px.overflow-hidden');
-    if (!box) return [];
-    const out = [[]];
-    for (const el of box.children) {
-        if (el.tagName === 'BUTTON') out[out.length - 1].push(el.textContent.trim());
-        else out.push([]);
-    }
-    return out;
-};
 const headers = (c) => [...navEl(c).querySelectorAll('p')].map(p => p.textContent.trim());
 const rowByLabel = (c, label) => [...navEl(c).querySelectorAll('button')].find(b => b.textContent.trim() === label);
 /** The user mini-card above the nav (the phone back button comes first in DOM order). */
@@ -228,7 +217,6 @@ const panel = () => {
     const el = document.querySelector('[data-testid^="section-"]');
     return el ? el.getAttribute('data-testid') : null;
 };
-const expand = (c) => click(rowByLabel(c, 'Organisation'));
 
 beforeEach(() => {
     cleanup();
@@ -333,7 +321,7 @@ describe('AdvancedSettings — what the sidebar tells assistive tech', () => {
     });
 
     it('titles every row with its full label, for the labels the narrow sidebar truncates', async () => {
-        const { container } = await mount({ user: ORG_ADMIN, path: '/app/settings/organisation/info' });
+        const { container } = await mount({ user: ORG_ADMIN, path: '/app/settings/memory' });
         for (const btn of navEl(container).querySelectorAll('button')) {
             expect(btn.getAttribute('title')).toBe(btn.textContent.trim());
         }
@@ -355,183 +343,54 @@ describe('AdvancedSettings — what the sidebar tells assistive tech', () => {
     });
 });
 
-/* ══ Sidebar: the Workspace group ════════════════════════════════════════ */
-describe('AdvancedSettings — who gets the Organisation group', () => {
-    it('gives an org admin the Workspace header and the Organisation parent row', async () => {
-        const { container } = await mount({ user: ORG_ADMIN });
-        expect(headers(container)).toEqual(['Personal', 'Workspace']);
-        expect(topRows(container)).toContain('Organisation');
+/* ══ The organisation's pages: in the admin dashboard on a desktop ═══════ */
+describe('AdvancedSettings — organisation addresses on a desktop', () => {
+    it('draws no Workspace group: not for an org admin, a platform admin or a DPO', async () => {
+        for (const user of [ORG_ADMIN, { ...MEMBER, permissions: ['org_admin'] }, SUPER_ADMIN, DPO]) {
+            const { container } = await mount({ user });
+            expect(headers(container)).toEqual(['Personal']);
+            expect(topRows(container)).not.toContain('Organisation');
+            expect(topRows(container)).not.toContain('Compliance');
+            cleanup();
+        }
     });
 
-    it('accepts the org_admin PERMISSION alone as well as the role', async () => {
-        const { container } = await mount({ user: { ...MEMBER, permissions: ['org_admin'] } });
-        expect(topRows(container)).toContain('Organisation');
+    it('replaces every /app/settings/organisation/<segment> with its dashboard page, and renders no panel meanwhile', async () => {
+        for (const [id, segment] of Object.entries(SETTINGS_ORG_ID_TO_URL)) {
+            const { onNavigate } = await mount({ user: SUPER_ADMIN, path: `/app/settings/organisation/${segment}` });
+            expect(onNavigate, segment).toHaveBeenCalledWith(SETTINGS_ORG_ADMIN_TARGETS[id], { replace: true });
+            expect(panel(), segment).toBeNull();
+            cleanup();
+        }
     });
 
-    it('gives a pure DPO the group with Compliance as its only entry', async () => {
-        const { container } = await mount({ user: DPO });
-        expect(headers(container)).toEqual(['Personal', 'Workspace']);
-        expect(subRows(container)).toEqual([]);           // collapsed at first
-        await expand(container);
-        expect(subRows(container)).toEqual(['Compliance']);
+    it('keeps the query string, so a Stripe return reaches the licence page with its result', async () => {
+        const { onNavigate } = await mount({ user: ORG_ADMIN, path: '/app/settings/organisation/license?checkout=success&session_id=cs_1' });
+        expect(onNavigate).toHaveBeenCalledWith('admin/organisation/license?checkout=success&session_id=cs_1', { replace: true });
     });
 
-    it('withholds the group from a DPO whose org is below Enterprise', async () => {
-        capabilities = new Set(['learning_center', 'projects']);      // no compliance_hub_gdpr
-        const { container } = await mount({ user: DPO });
-        expect(headers(container)).toEqual(['Personal']);
-        expect(topRows(container)).not.toContain('Organisation');
-    });
-
-    it('withholds it from an ordinary member', async () => {
-        const { container } = await mount();
-        expect(topRows(container)).not.toContain('Organisation');
-    });
-});
-
-/* ══ Sidebar: the org sub-items filter ═══════════════════════════════════ */
-describe('AdvancedSettings — organisation sub-items', () => {
-    it('lists the full cloud set for an org admin with every gate open, in topic order', async () => {
-        serve({ githubConnected: true });
-        const user = { ...ORG_ADMIN, permissions: ['org_admin', 'admin_compliance'], ncOrg: { instanceId: 'nc1' } };
-        const { container } = await mount({ user });
-        await expand(container);
-        expect(subRows(container)).toEqual([
-            'Organisation Info',
-            'License & Usage',
-            'Usage & Monitoring',
-            'Users & Groups',
-            // 'Sign-in Method' is absent: this org is NC-bound.
-            'Academy',
-            'Privacy Shield',
-            'Encryption',
-            'Compliance',
-            'AI & Collaboration',
-            'Answer Reuse',
-            'Meeting Templates',
-            'Integrations',
-            'MCP Library',
-            'MCP Access',
-            'GitHub Sync',
-            'Nextcloud Sync',
-        ]);
-    });
-
-    it('is what a plain org admin sees, in five topic groups: no Compliance, no GitHub Sync, no Nextcloud Sync', async () => {
-        const { container } = await mount({ user: ORG_ADMIN });
-        await expand(container);
-        expect(subGroups(container)).toEqual([
-            ['Organisation Info', 'License & Usage', 'Usage & Monitoring'],
-            ['Users & Groups', 'Sign-in Method', 'Academy'],
-            ['Privacy Shield', 'Encryption'],
-            ['AI & Collaboration', 'Answer Reuse', 'Meeting Templates'],
-            ['Integrations', 'MCP Library', 'MCP Access'],
-        ]);
-    });
-
-    it('hides Users & Groups from an org admin identified by PERMISSION only (wart)', async () => {
-        // canSeeOrg accepts perms ['org_admin']; canManageUsers does not — it
-        // wants 'all', 'manage_users', or an orgRole of admin/org_admin. So the
-        // same account gets the Organisation group but no Users & Groups.
-        const { container } = await mount({ user: { ...MEMBER, permissions: ['org_admin'] } });
-        await expand(container);
-        expect(subRows(container)).toContain('Organisation Info');
-        expect(subRows(container)).not.toContain('Users & Groups');
-    });
-
-    it('hides Academy when the plan has no Learning Center', async () => {
-        capabilities = new Set(['compliance_hub_gdpr', 'projects']);
-        const { container } = await mount({ user: ORG_ADMIN });
-        await expand(container);
-        expect(subRows(container)).not.toContain('Academy');
-        expect(subRows(container)).toContain('Integrations');
-    });
-
-    it('hides Meeting Templates when the plan ceiling has no Meeting Notes, and while it loads', async () => {
-        // The page (templates and the Meet / Teams panels) is behind the
-        // meeting_notes licence on the server: without it the page is empty.
-        ceiling = new Set();
-        const { container } = await mount({ user: ORG_ADMIN });
-        await expand(container);
-        expect(subRows(container)).not.toContain('Meeting Templates');
-        expect(subRows(container)).toContain('Answer Reuse');
+    it('carries the deep segments: a Compliance section and check, a usage report', async () => {
+        const first = await mount({ user: DPO, path: '/app/settings/organisation/compliance/dsr/req%2F7' });
+        expect(first.onNavigate).toHaveBeenCalledWith('admin/compliance/dsr/req%2F7', { replace: true });
         cleanup();
-
-        ceiling = new Set(['meeting_notes']);
-        entitlementsLoading = true;
-        const loading = await mount({ user: ORG_ADMIN, path: '/app/settings/organisation/info' });
-        expect(subRows(loading.container)).not.toContain('Meeting Templates');
+        const second = await mount({ user: SUPER_ADMIN, path: '/app/settings/organisation/usage/spend' });
+        expect(second.onNavigate).toHaveBeenCalledWith('admin/monitoring/spend', { replace: true });
     });
 
-    it('adds GitHub Sync only once the org has connected GitHub', async () => {
-        serve({ githubConnected: true });
-        const { container } = await mount({ user: ORG_ADMIN });
-        await expand(container);
-        expect(subRows(container)).toContain('GitHub Sync');
+    it('sends an unknown organisation segment to the licence page, as it always resolved', async () => {
+        const { onNavigate } = await mount({ user: ORG_ADMIN, path: '/app/settings/organisation/does-not-exist' });
+        expect(onNavigate).toHaveBeenCalledWith('admin/organisation/license', { replace: true });
     });
 
-    it('shows Nextcloud Sync to a super-admin whose own org is not NC-bound', async () => {
-        const { container } = await mount({ user: SUPER_ADMIN });
-        await expand(container);
-        expect(subRows(container)).toContain('Nextcloud Sync');
-    });
-
-    it('hides Sign-in Method for a Nextcloud-connector user, NC org or not', async () => {
-        const { container } = await mount({ user: { ...ORG_ADMIN, provider: 'nextcloud_connector' } });
-        await expand(container);
-        expect(subRows(container)).not.toContain('Sign-in Method');
-        expect(subRows(container)).not.toContain('Nextcloud Sync');   // org itself is not NC-bound
-    });
-
-    it('hides Sign-in Method once the org has locked its auth method', async () => {
-        serve({ orgs: json([{ id: 'org1', authMethod: 'password' }]) });
-        const { container } = await mount({ user: ORG_ADMIN });
-        await expand(container);
-        expect(subRows(container)).not.toContain('Sign-in Method');
-    });
-
-    it('keeps Sign-in Method after the lock on self-hosted, where it also holds Allowed Domains', async () => {
-        serve({ orgs: json([{ id: 'org1', authMethod: 'password' }]) });
-        const { container } = await mount({ user: { ...ORG_ADMIN, ...SELF_HOSTED } });
-        await expand(container);
-        expect(subRows(container)).toContain('Sign-in Method');
-    });
-
-    it('swaps License & Usage for Azure Configuration on self-hosted, for a platform admin', async () => {
-        const { container } = await mount({
-            user: { ...SUPER_ADMIN, ...SELF_HOSTED },
-            path: '/app/settings/preferences',
-        });
-        await expand(container);
-        const rows = subRows(container);
-        expect(rows).not.toContain('License & Usage');
-        expect(rows[0]).toBe('Organisation Info');
-        expect(rows[rows.length - 1]).toBe('Azure Configuration');
+    it('leaves every other address alone', async () => {
+        const { onNavigate } = await mount({ user: ORG_ADMIN, path: '/app/settings/memory' });
+        expect(onNavigate).not.toHaveBeenCalled();
+        expect(panel()).toBe('section-memory');
     });
 
     it('never asks for the org list when the user cannot see the org', async () => {
         await mount({ user: MEMBER });
         expect(authFetch.mock.calls.map(c => String(c[0]))).not.toContain('/auth/organizations');
-    });
-
-    it('SECURITY: a failing org-list call leaves Sign-in Method on the menu', async () => {
-        // fetchOrgAuthLocked returns early on !res.ok, so orgAuthLocked stays
-        // false — the menu is WIDER after a failed probe than after a
-        // successful one that says "locked".
-        serve({ orgs: json({ error: 'nope' }, false) });
-        const { container } = await mount({ user: ORG_ADMIN });
-        await expand(container);
-        expect(subRows(container)).toContain('Sign-in Method');
-    });
-
-    it('SECURITY: with no organizationId it reads the FIRST org in the response', async () => {
-        // orgs[0] is a fallback for "which org am I in?" — for a super-admin
-        // the list is every org on the deployment, so a foreign org's
-        // authMethod decides whether this menu entry is shown.
-        serve({ orgs: json([{ id: 'other-org', authMethod: 'sso' }, { id: 'mine', authMethod: null }]) });
-        const { container } = await mount({ user: { ...SUPER_ADMIN, organizationId: undefined } });
-        await expand(container);
-        expect(subRows(container)).not.toContain('Sign-in Method');
     });
 });
 
@@ -547,7 +406,7 @@ describe('AdvancedSettings — consumer account group', () => {
 
     it('drops them again as soon as the same account can see an org', async () => {
         const { container } = await mount({ user: { ...CONSUMER, permissions: ['org_admin'] } });
-        expect(headers(container)).toEqual(['Personal', 'Workspace']);
+        expect(headers(container)).toEqual(['Personal']);
         expect(topRows(container)).not.toContain('Beta Features');
     });
 
@@ -599,54 +458,6 @@ describe('AdvancedSettings — the panel a segment opens', () => {
         expect(panel()).toBeNull();
     });
 
-    it('maps each org sub-tab onto the activeSection OrganisationSection expects', async () => {
-        const map = [
-            ['/app/settings/organisation/users', 'users'],
-            ['/app/settings/organisation/academy', 'academy'],
-            ['/app/settings/organisation/integrations', 'integrations'],
-            ['/app/settings/organisation/usage', 'usage'],
-            ['/app/settings/organisation/github-sync', 'github_sync'],
-            ['/app/settings/organisation/nextcloud-sync', 'nextcloud_sync'],
-            ['/app/settings/organisation/meeting-templates', 'meeting_templates'],
-            ['/app/settings/organisation/license', 'license'],
-            ['/app/settings/organisation/info', 'info'],
-            ['/app/settings/organisation/ai-context', 'ai_context'],
-            ['/app/settings/organisation/integration-cache', 'integration_cache'],
-        ];
-        for (const [path, active] of map) {
-            await mount({ user: SUPER_ADMIN, path });
-            expect(screen.getByTestId('section-organisation').dataset.active, path).toBe(active);
-            cleanup();
-        }
-    });
-
-    it('still renders Meeting Templates on a deep link when its row is hidden', async () => {
-        ceiling = new Set();
-        await mount({ user: ORG_ADMIN, path: '/app/settings/organisation/meeting-templates' });
-        expect(screen.getByTestId('section-organisation').dataset.active).toBe('meeting_templates');
-    });
-
-    it('passes the deep usage segment through as the initial report', async () => {
-        await mount({ user: SUPER_ADMIN, path: '/app/settings/organisation/usage/safety' });
-        const el = screen.getByTestId('section-organisation');
-        expect(el.dataset.active).toBe('usage');
-        expect(el.dataset.report).toBe('safety');
-    });
-
-    it('opens the Azure panel on its own segment, not OrganisationSection', async () => {
-        await mount({ user: { ...SUPER_ADMIN, ...SELF_HOSTED }, path: '/app/settings/organisation/azure' });
-        expect(panel()).toBe('section-azure');
-    });
-
-    it('resolves an unknown organisation sub-segment to the License section', async () => {
-        await mount({ user: ORG_ADMIN, path: '/app/settings/organisation/does-not-exist' });
-        // settingsTabFromPath maps an unknown org segment to the 'license' TAB,
-        // so this lands in the `isOrgSubTab` branch. Nothing ever sets
-        // activeTab to 'organisation': the parent row only toggles the
-        // accordion.
-        expect(screen.getByTestId('section-organisation').dataset.active).toBe('license');
-    });
-
     it('hands Preferences an empty list when the agents call is refused, never the error body', async () => {
         // The old loader never checked res.ok: a 500's error BODY landed in `agents`,
         // and PreferencesSection calls agents.map() once the startup mode is 'specific'.
@@ -657,7 +468,10 @@ describe('AdvancedSettings — the panel a segment opens', () => {
 });
 
 /* ══ Compliance ══════════════════════════════════════════════════════════ */
+// A phone keeps the Compliance Center in Settings (a desktop opens it in the dashboard).
 describe('AdvancedSettings — Compliance Center', () => {
+    beforeEach(() => { viewport = PHONE; });
+
     it('wraps the hub in the enterprise tier gate and passes the deep segments', async () => {
         await mount({ user: { ...ORG_ADMIN, permissions: ['org_admin', 'admin_compliance'] },
             path: '/app/settings/organisation/compliance/dsr/req%2F7' });
@@ -687,7 +501,7 @@ describe('AdvancedSettings — Compliance Center', () => {
         // is the component that fails OPEN when entitlements are unavailable.
         capabilities = new Set([]);
         const { container } = await mount({ user: DPO, path: '/app/settings/organisation/compliance' });
-        expect(topRows(container)).not.toContain('Organisation');
+        expect(topRows(container)).not.toContain('Compliance');
         expect(screen.getByTestId('section-compliance')).toBeInTheDocument();
     });
 
@@ -711,16 +525,6 @@ describe('AdvancedSettings — Compliance Center', () => {
         await user.click(screen.getByText('go-redirect'));
         expect(window.location.pathname + window.location.search).toBe('/app/settings/organisation/compliance/training');
         expect(window.history.length).toBe(before + 1);
-    });
-
-    it('lands a guardrails remediation link on Organisation → Privacy', async () => {
-        const onNavigate = vi.fn();
-        await mount({ user: { ...ORG_ADMIN, permissions: ['org_admin', 'admin_compliance'] },
-            path: '/app/settings/organisation/compliance', onNavigate });
-        await click(screen.getByText('go-guardrails'));
-        expect(window.location.pathname).toBe('/app/settings/organisation/privacy');
-        expect(screen.getByTestId('section-organisation').dataset.active).toBe('privacy');
-        expect(onNavigate).not.toHaveBeenCalled();
     });
 
     it('forwards the same link to the app router when the user cannot see the org', async () => {
@@ -824,39 +628,31 @@ describe('AdvancedSettings — Compliance is the one org section a phone keeps',
         expect(titleBar(container).textContent).toBe('Settings');
     });
 
-    it('keeps the settings title bar on the phone section LIST, and on desktop', async () => {
+    it('keeps the settings title bar on the phone section LIST', async () => {
         viewport = PHONE;
         const { container } = await mount({ user: DPO });
         expect(screen.getByLabelText('Back')).toBeInTheDocument();
         expect(titleBar(container).textContent).toBe('Settings');
-
-        cleanup();
-        viewport = { isMobile: false, isCompact: false, isDesktop: true, width: 1920 };
-        const { container: desktop } = await mount({ user: DPO, path: '/app/settings/organisation/compliance' });
-        expect(titleBar(desktop).textContent).toBe('Settings');
-        expect(screen.getByTestId('section-compliance').dataset.onback).toBe('null');
     });
 });
 
 /* ══ The Compliance count badge ══════════════════════════════════════════ */
 describe('AdvancedSettings — the count badge on the Compliance row', () => {
-    it('asks for the one key it shows, once, without a poll', async () => {
+    it('asks for the one key it shows, once, without a poll, on a phone only', async () => {
+        viewport = PHONE;
         await mount({ user: DPO });
         expect(countsHookOpts[0]).toEqual({ enabled: true, poll: false, keys: ['attention_open'] });
+        cleanup();
+        countsHookOpts.length = 0;
+        viewport = { isMobile: false, isCompact: false, isDesktop: true, width: 1920 };
+        await mount({ user: DPO });
+        expect(countsHookOpts.every(o => o.enabled === false)).toBe(true);
     });
 
     it('does not ask at all when the row is not shown', async () => {
         capabilities = new Set([]);
         await mount({ user: MEMBER });
         expect(countsHookOpts.every(o => o.enabled === false)).toBe(true);
-    });
-
-    it('renders the open count on the desktop sub-item', async () => {
-        complianceCounts = { attention_open: 3 };
-        const { container } = await mount({ user: DPO, path: '/app/settings/organisation/compliance' });
-        expect(screen.getByTestId('nav-compliance-count')).toHaveTextContent('3');
-        // On the Compliance row itself, not loose in the sidebar.
-        expect(rowByLabel(container, 'Compliance3')).toBeTruthy();
     });
 
     it('renders it on the phone row too', async () => {
@@ -867,6 +663,7 @@ describe('AdvancedSettings — the count badge on the Compliance row', () => {
     });
 
     it('shows NOTHING while the count is unknown, and nothing at zero', async () => {
+        viewport = PHONE;
         complianceCounts = null;                       // endpoint has not answered
         await mount({ user: DPO, path: '/app/settings/organisation/compliance' });
         expect(screen.queryByTestId('nav-compliance-count')).toBeNull();
@@ -880,39 +677,6 @@ describe('AdvancedSettings — the count badge on the Compliance row', () => {
         complianceCounts = { attention_open: 0 };       // answered: nothing to do
         await mount({ user: DPO, path: '/app/settings/organisation/compliance' });
         expect(screen.queryByTestId('nav-compliance-count')).toBeNull();
-    });
-
-    it('leaves every other sub-item without a badge', async () => {
-        complianceCounts = { attention_open: 3 };
-        const { container } = await mount({ user: { ...ORG_ADMIN, permissions: ['org_admin', 'admin_compliance'] },
-            path: '/app/settings/organisation/info' });
-        expect(subRows(container).filter(r => /\d/.test(r))).toEqual(['Compliance3']);
-    });
-});
-
-/* ══ Deep links the nav filter hides ═════════════════════════════════════ */
-describe('AdvancedSettings — deep links to sub-tabs the sidebar hides', () => {
-    it('SECURITY: /organisation/users renders for an org admin without manage_users', async () => {
-        const user = { ...MEMBER, permissions: ['org_admin'] };   // canSeeOrg, not canManageUsers
-        const { container } = await mount({ user, path: '/app/settings/organisation/users' });
-        // The deep link expands the accordion by itself.
-        expect(subRows(container)).not.toContain('Users & Groups');
-        // …and the panel behind the hidden row renders anyway.
-        expect(screen.getByTestId('section-organisation').dataset.active).toBe('users');
-    });
-
-    it('SECURITY: /organisation/auth renders after the org locked its sign-in method', async () => {
-        serve({ orgs: json([{ id: 'org1', authMethod: 'sso' }]) });
-        const { container } = await mount({ user: ORG_ADMIN, path: '/app/settings/organisation/auth' });
-        expect(subRows(container)).not.toContain('Sign-in Method');
-        expect(screen.getByTestId('section-organisation').dataset.active).toBe('auth');
-    });
-
-    it('SECURITY: /organisation/academy renders without the Learning Center capability', async () => {
-        capabilities = new Set([]);
-        const { container } = await mount({ user: ORG_ADMIN, path: '/app/settings/organisation/academy' });
-        expect(subRows(container)).not.toContain('Academy');
-        expect(screen.getByTestId('section-organisation').dataset.active).toBe('academy');
     });
 });
 
@@ -930,10 +694,12 @@ describe('AdvancedSettings — bounces', () => {
         expect(window.location.pathname).toBe('/app/settings/preferences');
     });
 
-    it('bounces the per-org licence page on self-hosted to the first row the sidebar draws', async () => {
+    it('bounces the per-org licence page on self-hosted to Preferences on a phone', async () => {
+        subscription = { hasActiveSub: false, sub: null, loading: false };
+        viewport = PHONE;
         await mount({ user: { ...ORG_ADMIN, ...SELF_HOSTED }, path: '/app/settings/organisation/license' });
-        expect(window.location.pathname).toBe('/app/settings/organisation/info');
-        expect(screen.getByTestId('section-organisation').dataset.active).toBe('info');
+        expect(window.location.pathname).toBe('/app/settings/preferences');
+        expect(panel()).toBe('section-preferences');
     });
 
     it('bounces /learning to Preferences when the capability is off', async () => {
@@ -978,8 +744,6 @@ describe('AdvancedSettings — bounces', () => {
         expect(window.location.pathname).toBe('/app/settings/notifications');
         expect(panel()).toBe('section-notifications');
         expect(topRows(container)).toContain('Notifications');
-        await click(rowByLabel(container, 'Organisation'));
-        expect(subRows(container)).toContain('Meeting Templates');
     });
 
     it('bounces a desktop-only tab on a phone', async () => {
@@ -1037,74 +801,6 @@ describe('AdvancedSettings — bounces', () => {
     });
 });
 
-/* ══ The Organisation accordion ══════════════════════════════════════════ */
-describe('AdvancedSettings — the Organisation accordion', () => {
-    it('starts expanded on an org deep link, and says so', async () => {
-        const { container } = await mount({ user: ORG_ADMIN, path: '/app/settings/organisation/info' });
-        expect(subRows(container)).toContain('Organisation Info');
-        const parent = rowByLabel(container, 'Organisation');
-        expect(isActive(parent)).toBe(false);
-        expect(parent.getAttribute('aria-expanded')).toBe('true');
-        expect(parent.getAttribute('aria-controls')).toBe('settings-org-subnav');
-        expect(container.querySelector('#settings-org-subnav')).toBe(navEl(container).querySelector('div.space-y-px.overflow-hidden'));
-        expect(isActive(rowByLabel(container, 'Organisation Info'))).toBe(true);
-    });
-
-    it('expands and auto-selects the first row the sidebar draws on the parent click', async () => {
-        const { container } = await mount({ user: ORG_ADMIN, path: '/app/settings/preferences' });
-        expect(subRows(container)).toEqual([]);
-        expect(rowByLabel(container, 'Organisation').getAttribute('aria-expanded')).toBe('false');
-        await expand(container);
-        expect(window.location.pathname).toBe('/app/settings/organisation/info');
-        expect(screen.getByTestId('section-organisation').dataset.active).toBe('info');
-        expect(subRows(container).length).toBeGreaterThan(5);
-    });
-
-    it('only collapses when clicked on an org page: the page stays, and the parent row carries it', async () => {
-        const { container } = await mount({ user: ORG_ADMIN, path: '/app/settings/organisation/usage' });
-        await expand(container);
-        expect(window.location.pathname).toBe('/app/settings/organisation/usage');
-        expect(screen.getByTestId('section-organisation').dataset.active).toBe('usage');
-        expect(subRows(container)).toEqual([]);
-        const parent = rowByLabel(container, 'Organisation');
-        expect(isActive(parent)).toBe(true);
-        expect(parent.getAttribute('aria-expanded')).toBe('false');
-
-        // Opening it again selects nothing new either.
-        await expand(container);
-        expect(window.location.pathname).toBe('/app/settings/organisation/usage');
-        expect(isActive(rowByLabel(container, 'Usage & Monitoring'))).toBe(true);
-    });
-
-    it('marks the parent row active only while it is collapsed on a sub-tab', async () => {
-        const { container } = await mount({ user: ORG_ADMIN, path: '/app/settings/preferences' });
-        await expand(container);            // expand + select Organisation Info
-        expect(isActive(rowByLabel(container, 'Organisation'))).toBe(false);
-        expect(isActive(rowByLabel(container, 'Organisation Info'))).toBe(true);
-    });
-
-    it('re-expands itself when the active tab comes back to an org sub-tab', async () => {
-        const { container } = await mount({ user: ORG_ADMIN, path: '/app/settings/organisation/info' });
-        await expand(container);                                     // collapse, stay on Info
-        await click(rowByLabel(container, 'Memory'));
-        window.history.replaceState({}, '', '/app/settings/organisation/usage');
-        await act(async () => { window.dispatchEvent(new PopStateEvent('popstate')); });
-        expect(subRows(container)).toContain('Usage & Monitoring');
-    });
-
-    it('gives AI & Collaboration and Answer Reuse an address of their own', async () => {
-        // Both rows used to fall back to the bare /app/settings, so a reload
-        // or Back landed on Preferences.
-        const { container } = await mount({ user: ORG_ADMIN, path: '/app/settings/organisation/info' });
-        await click(rowByLabel(container, 'AI & Collaboration'));
-        expect(window.location.pathname).toBe('/app/settings/organisation/ai-context');
-        expect(screen.getByTestId('section-organisation').dataset.active).toBe('ai_context');
-        await click(rowByLabel(container, 'Answer Reuse'));
-        expect(window.location.pathname).toBe('/app/settings/organisation/integration-cache');
-        expect(screen.getByTestId('section-organisation').dataset.active).toBe('integration_cache');
-    });
-});
-
 /* ══ History, master–detail and the title bar ════════════════════════════ */
 describe('AdvancedSettings — navigation mechanics', () => {
     it('pushes the tab URL on a nav click and switches the panel', async () => {
@@ -1127,13 +823,6 @@ describe('AdvancedSettings — navigation mechanics', () => {
         window.history.replaceState({}, '', '/app/studio');
         await act(async () => { window.dispatchEvent(new PopStateEvent('popstate')); });
         expect(panel()).toBe('section-memory');
-    });
-
-    it('resets the org deep segments on any nav click', async () => {
-        await mount({ user: SUPER_ADMIN, path: '/app/settings/organisation/usage/safety' });
-        expect(screen.getByTestId('section-organisation').dataset.report).toBe('safety');
-        await click(screen.getByText('Usage & Monitoring'));
-        expect(screen.getByTestId('section-organisation').dataset.report).toBe('');
     });
 
     it('opens Preferences from the user mini-card', async () => {
@@ -1267,9 +956,13 @@ describe('AdvancedSettings — chrome', () => {
         expect(widthOf().className).toContain('max-w-[640px]');
         cleanup();
 
-        await mount({ user: SUPER_ADMIN, path: '/app/settings/organisation/info' });
+        // A phone's organisation page: the no-plan licence page.
+        subscription = { hasActiveSub: false, sub: null, loading: false };
+        viewport = PHONE;
+        await mount({ user: SUPER_ADMIN, path: '/app/settings/organisation/license' });
         expect(widthOf().className).toContain('max-w-5xl');
         cleanup();
+        viewport = { isMobile: false, isCompact: false, isDesktop: true, width: 1920 };
 
         // Every consumer page, the licence plan grid included.
         for (const seg of ['license', 'privacy', 'usage', 'integrations', 'beta']) {
@@ -1278,11 +971,7 @@ describe('AdvancedSettings — chrome', () => {
             cleanup();
         }
 
-        await mount({ user: SUPER_ADMIN, path: '/app/settings/organisation/usage' });
-        expect(widthOf().style.maxWidth).toBe('100%');
-        expect(widthOf().style.padding).toBe('24px 32px 32px');
-        cleanup();
-
+        viewport = PHONE;
         await mount({ user: SUPER_ADMIN, path: '/app/settings/organisation/compliance' });
         const gate = document.querySelector('[data-testid="require-tier"]').parentElement;
         expect(gate.style.padding).toBe('0px');
@@ -1351,15 +1040,13 @@ describe('AdvancedSettings — chrome', () => {
         expect(settingsCalls()).toBe(before);
     });
 
-    it('reveals the org GitHub Sync row as soon as GitHub is connected', async () => {
-        const { container } = await mount({ user: ORG_ADMIN, path: '/app/settings/integrations' });
+    it('re-reads the GitHub status after a connect', async () => {
+        await mount({ user: ORG_ADMIN, path: '/app/settings/integrations' });
         expect(screen.getByTestId('section-integrations').dataset.github).toBe('false');
 
         serve({ githubConnected: true });
         await click(screen.getByText('saved-github'));
         await waitFor(() => expect(screen.getByTestId('section-integrations').dataset.github).toBe('true'));
-        await expand(container);
-        expect(subRows(container)).toContain('GitHub Sync');
     });
 
     it('gives Help & Support the Learning Center link only where that page opens', async () => {

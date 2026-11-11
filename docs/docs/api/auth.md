@@ -146,7 +146,7 @@ it like a private key and keep it out of shell history and version control.
 
 ## OAuth (social login)
 
-Configure Google, Microsoft Entra or Nextcloud OAuth in **Settings → Organisation → SSO**
+Configure Google, Microsoft Entra or Nextcloud OAuth in **Admin → Organisation → Sign-in Method**
 (client id, client secret, and the tenant id for Entra). The login screen shows a button per
 configured provider. GitHub is not a login provider — it is an ISO-evidence connector.
 
@@ -187,7 +187,7 @@ Enterprise SSO today is OpenID Connect / OAuth 2.0:
 | Google Workspace | OIDC | Enterprise (`sso_saml` capability) |
 | Nextcloud | OAuth 2.0 | Community — exempt from the capability gate |
 
-Configure them in **Settings → Organisation → SSO**: a client id and client
+Configure them in **Admin → Organisation → Sign-in Method**: a client id and client
 secret per provider, plus the tenant id for Entra. Bee Flow's redirect URI is
 `https://your-host/auth/callback/<provider>`.
 

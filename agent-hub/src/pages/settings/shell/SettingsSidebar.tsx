@@ -6,9 +6,9 @@ import { useTranslation } from '@/hooks/useTranslation';
 import { formatVersion, formatVersionWithDate } from '@/utils/appVersion';
 import { roleLabel } from '../roleLabel';
 import { AvatarDisplay } from './AvatarDisplay';
-import { Chevron, CONSUMER_NAV_ITEMS, NavDivider, NavItem, ORG_PARENT_ITEM, OrgSubItem } from './SettingsNav';
+import { CONSUMER_NAV_ITEMS, NavDivider, NavItem } from './SettingsNav';
 import type { NavRow } from './SettingsNav';
-import type { OrgSubItem as OrgSubItemData, SettingsUser } from './settingsShellTypes';
+import type { SettingsUser } from './settingsShellTypes';
 
 export interface SettingsSidebarProps {
     user?: SettingsUser | null;
@@ -22,18 +22,21 @@ export interface SettingsSidebarProps {
     showComplianceNav: boolean;
     isConsumerAccount: boolean;
     complianceBadge: ReactNode;
-    orgExpanded: boolean;
-    orgNavGroups: OrgSubItemData[][];
     settingsNavRows: NavRow[];
     resourceNavRows: NavRow[];
     onNavClick: (id: string) => void;
     setActiveTab: (id: string) => void;
 }
 
-/** The settings sidebar: user card, the personal rows, the organisation accordion, the consumer account rows and the build footer. */
+/**
+ * The settings sidebar: user card, the personal rows, the consumer account rows
+ * and the build footer. The organisation's pages live in the admin dashboard
+ * (Admin → Organisation, and the tabs they merged into); a phone keeps
+ * Compliance as a row of its own.
+ */
 export function SettingsSidebar({
     user, activeTab, isOrgSubTab, isMobile, isSimpleMode, mobileDetail, setMobileDetail, canSeeOrg, showComplianceNav,
-    isConsumerAccount, complianceBadge, orgExpanded, orgNavGroups, settingsNavRows, resourceNavRows, onNavClick, setActiveTab,
+    isConsumerAccount, complianceBadge, settingsNavRows, resourceNavRows, onNavClick, setActiveTab,
 }: SettingsSidebarProps) {
     const { t } = useTranslation();
     const effectiveRole = user?.orgRole || user?.role;
@@ -90,13 +93,12 @@ export function SettingsSidebar({
 
                 {settingsNavRows.map(renderTopRow)}
 
-                {/* Compliance on a phone. The Organisation group it
-                    normally lives in stays hidden here, so the section
-                    is promoted to a top-level row rather than being
-                    unreachable: artboard frame 1h is a phone frame, and
-                    the deadline a DPO is chasing does not wait for a
-                    laptop. Same id, same address — only the row moves.
-                    It is a setting, so it sits above the resources. */}
+                {/* Compliance on a phone. A desktop opens it in the admin
+                    dashboard (Admin → Compliance), which a phone does not
+                    have, so the section is a top-level row here rather
+                    than unreachable: the deadline a DPO is chasing does
+                    not wait for a laptop. It is a setting, so it sits
+                    above the resources. */}
                 {!isSimpleMode && isMobile && showComplianceNav && (
                     <NavItem
                         id="org_compliance"
@@ -112,55 +114,6 @@ export function SettingsSidebar({
                     not settings: a thin rule above the first of them. */}
                 {resourceNavRows.length > 0 && <NavDivider />}
                 {resourceNavRows.map(renderTopRow)}
-
-                {/* Organisation accordion — only if permitted. Hidden on
-                    mobile: phones show user settings only. Pure-DPO users
-                    (showComplianceNav without canSeeOrg) get the group
-                    with just the Compliance entry. */}
-                {!isSimpleMode && !isMobile && (canSeeOrg || showComplianceNav) && (
-                    <>
-                        <NavDivider />
-                        <p className={`${SECTION_LBL} px-3 pb-1 pt-1`}>
-                            {t('settings.workspace_section')}
-                        </p>
-                        {/* Parent row: only opens and closes the group.
-                            Active while the group is closed on one of
-                            its pages. */}
-                        <NavItem
-                            id="organisation"
-                            label={t(ORG_PARENT_ITEM.labelKey)}
-                            icon={ORG_PARENT_ITEM.icon}
-                            isActive={isOrgSubTab && !orgExpanded}
-                            onClick={onNavClick}
-                            rightSlot={<Chevron open={orgExpanded} />}
-                            ariaExpanded={orgExpanded}
-                            ariaControls={orgExpanded ? 'settings-org-subnav' : undefined}
-                        />
-
-                        {/* Sub-items — animated slide-down, in topic
-                            groups (ORG_NAV_GROUPS) with a thin rule
-                            between them. */}
-                        {orgExpanded && (
-                            <div id="settings-org-subnav" className="space-y-px overflow-hidden [animation:fadeIn_120ms_ease]">
-                                {orgNavGroups.map((group, gi) => (
-                                    <React.Fragment key={group[0].id}>
-                                        {gi > 0 && <NavDivider inset />}
-                                        {group.map(s => (
-                                            <OrgSubItem
-                                                key={s.id}
-                                                section={s}
-                                                label={t(s.labelKey)}
-                                                isActive={activeTab === s.id}
-                                                onClick={setActiveTab}
-                                                rightSlot={s.id === 'org_compliance' ? complianceBadge : null}
-                                            />
-                                        ))}
-                                    </React.Fragment>
-                                ))}
-                            </div>
-                        )}
-                    </>
-                )}
 
                 {/* Consumer Account section — for org-less cloud users.
                     Hidden on mobile (user settings only). */}

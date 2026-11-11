@@ -105,7 +105,7 @@ Legend: ✅ available · — not available
 
 The **MCP Server Marketplace** is a Community feature but a *later
 implementation* — treat it as on the roadmap rather than fully stabilised. It
-lives under **Settings → Organisation → MCP library**; a server administrator
+lives under **Admin → Organisation → MCP library**; a server administrator
 also gets its **Server-wide** tab there.
 
 ## Admin dashboard by tier

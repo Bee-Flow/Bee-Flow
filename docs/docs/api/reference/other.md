@@ -734,7 +734,11 @@ No request schema.
 
 **Access:** Signed-in user · Admin of their own organisation
 
-**Query:** object (no other keys)
+**Query**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `orgId` | string |  |  |
 
 ### `PUT /api/org/mcp-access`
 
@@ -789,13 +793,13 @@ No request schema.
 
 ### `POST /api/org-azure-config/:orgId/sync-groups`
 
-**Access:** Signed-in user · the handler also checks who the caller is
+**Access:** Signed-in user · Admin of the organisation in `:orgId` · middleware `boundOrg`
 
 **Body:** object (no other keys)
 
 ### `PUT /api/org-azure-config/:orgId/sync-groups/settings`
 
-**Access:** Signed-in user · the handler also checks who the caller is
+**Access:** Signed-in user · Admin of the organisation in `:orgId` · middleware `boundOrg`
 
 **Body**
 
@@ -808,7 +812,7 @@ No request schema.
 
 ### `GET /api/org-azure-config/:orgId/sync-groups/status`
 
-**Access:** Signed-in user · the handler also checks who the caller is
+**Access:** Signed-in user · Admin of the organisation in `:orgId`
 
 No request schema.
 

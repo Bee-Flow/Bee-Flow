@@ -2,7 +2,6 @@ import { ROW_ACTIVE, ROW_IDLE } from '@/components/shell/sidebar/sidebarTokens';
 import { BarChart2, CreditCard, Link2, Shield, Sparkles } from 'lucide-react';
 import React from 'react';
 import type { ReactNode } from 'react';
-import type { OrgSubItem as OrgSubItemData } from './settingsShellTypes';
 
 /** One top-level row of the settings nav (settingsNavItems.jsx hands these over). */
 export interface NavRow {
@@ -24,23 +23,6 @@ export const CONSUMER_NAV_ITEMS: NavRow[] = [
 /* A thin rule between groups of rows. */
 export const NavDivider = ({ inset = false }: { inset?: boolean }) => (
     <div aria-hidden="true" className={`h-px bg-[var(--border-subtle)] ${inset ? 'mt-1 mb-1 ml-9 mr-3' : 'my-1.5 mx-2'}`} />
-);
-
-export const ORG_PARENT_ITEM = {
-    id: 'organisation', labelKey: 'settings.organisation',
-    icon: <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="15" height="15"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>,
-};
-
-/* ── Chevron icon ─────────────────────────────────────────────────────────── */
-export const Chevron = ({ open }: { open: boolean }) => (
-    <svg
-        width="11" height="11" viewBox="0 0 24 24" fill="none"
-        stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-        aria-hidden="true"
-        className={`flex-shrink-0 transition-transform duration-200 ${open ? 'rotate-90' : ''}`}
-    >
-        <path d="M9 18l6-6-6-6" />
-    </svg>
 );
 
 /* ── NavItem ─────────────────────────────────────────────────────────────── */
@@ -77,36 +59,3 @@ export const NavItem = ({ id, label, icon, isActive, onClick, rightSlot, ariaExp
         {rightSlot}
     </button>
 );
-
-/* ── Org sub-menu item ───────────────────────────────────────────────────── */
-interface OrgSubItemProps {
-    section: OrgSubItemData;
-    label: string;
-    isActive: boolean;
-    onClick: (id: string) => void;
-    rightSlot?: ReactNode;
-}
-
-export const OrgSubItem = ({ section, label, isActive, onClick, rightSlot = null }: OrgSubItemProps) => {
-    const Icon = section.icon;
-    return (
-        <button
-            type="button"
-            onClick={() => onClick(section.id)}
-            className={`w-full flex items-center gap-2 h-7 pl-9 pr-3 rounded-md text-left transition-colors duration-100 ${isActive ? ROW_ACTIVE : ROW_IDLE}`}
-            aria-current={isActive ? 'page' : undefined}
-            title={label}
-            data-testid={`settings-nav-${section.id}`}
-        >
-            {/* The row's own accent only while active; `section.color` is a
-                per-row value (a hex or a var()), so it stays a style. */}
-            <Icon className="w-3 h-3 flex-shrink-0" style={{ color: isActive ? section.color : 'var(--text-muted)' }} />
-            <span className={`min-w-0 flex-1 text-[12px] truncate ${isActive ? 'text-[var(--text-primary)] font-medium' : 'text-[var(--text-secondary)] font-normal'}`}>
-                {label}
-            </span>
-            {/* A count pill ('Settings Nav.dc.html': Compliance carries its open
-                items). */}
-            {rightSlot && <span className="flex items-center">{rightSlot}</span>}
-        </button>
-    );
-};

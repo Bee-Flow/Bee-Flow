@@ -40,6 +40,7 @@ test('numbers, dates, the kind and the reveal flag are checked', async () => {
         ['/api/usage/adoption/studio/items?kind=nope', 'query.kind', /kind is one of agent, automation/],
         ['/api/usage/adoption/people?reveal=yes', 'query.reveal', /true or false/],
         ['/api/usage/adoption/people?limit=0', 'query.limit', /whole number/],
+        ['/api/usage/adoption/summary?orgId=' + 'x'.repeat(201), 'query.orgId', /at most 200 characters/],
         ['/api/usage/adoption/people?cursor=-1', 'query.cursor', /position/],
     ];
     for (const [url, path, message] of cases) h.assertRefused(assert, await api.call('GET', url), path, message);

@@ -80,7 +80,7 @@ While the assistant speaks, the mic stays open. If the user starts speaking (ene
 | | ElevenLabs (`ELEVENLABS_API_KEY`) | Higher voice fidelity, more languages. |
 | Local STT | Whisper (`OLLAMA_BASE_URL` + a Whisper model) | Fully offline option. |
 
-Switch provider in **Settings → Organisation → Voice**. Per-user voice (e.g. one Talk room uses a Dutch voice, another an English voice) is on the roadmap.
+Switch provider in **Admin → Organisation → Voice**. Per-user voice (e.g. one Talk room uses a Dutch voice, another an English voice) is on the roadmap.
 
 ## Sticky language
 

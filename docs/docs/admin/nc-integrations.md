@@ -4,7 +4,7 @@ title: Nextcloud integrations
 
 # Nextcloud integrations
 
-Path: **Settings → Organisation → Integrations → Integration settings**, the **Nextcloud integrations** panel. Org admins see it when their organisation is bound to a Nextcloud instance; for any other organisation the panel is not shown.
+Path: **Admin → Organisation → Integrations → Integration settings**, the **Nextcloud integrations** panel. Org admins see it when their organisation is bound to a Nextcloud instance; for any other organisation the panel is not shown.
 
 This panel decides which of the 14 Nextcloud integrations your organisation's agents may use, with exceptions per Nextcloud group. It is separate from **Admin → Access → Grants**: the Nextcloud integrations are not rows in that matrix, and every member is entitled to them unless this panel says otherwise.
 
@@ -55,11 +55,11 @@ One row per **Nextcloud group** of the organisation (the groups the Nextcloud sy
 
 ![NC integrations per group](../img/screenshots/admin/nc-integrations-per-group/)
 
-If no group is listed yet, the Nextcloud sync has not mirrored any groups; it runs every 6 hours, or use **Sync now** under **Settings → Organisation → Nextcloud Sync** (see [Users & groups](users-and-groups.md#nextcloud-sync)).
+If no group is listed yet, the Nextcloud sync has not mirrored any groups; it runs every 6 hours, or use **Sync now** under **Admin → Organisation → Nextcloud Sync** (see [Users & groups](users-and-groups.md#nextcloud-sync)).
 
 ## Walkthrough: turn off Mail for interns
 
-1. Go to **Settings → Organisation → Integrations → Integration settings**.
+1. Go to **Admin → Organisation → Integrations → Integration settings**.
 2. Under **Per-group exceptions**, open the `interns` row.
 3. Tick **Disable Mail**.
 

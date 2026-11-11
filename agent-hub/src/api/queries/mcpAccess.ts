@@ -10,6 +10,7 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ApiError, apiClient } from '../client';
+import { useAdminOrgScope, withOrgIdParam } from '../adminOrgScope';
 
 export type McpServerId = 'integrations' | 'automations' | 'studio' | 'cms';
 export type McpLevel = 'read' | 'write';
@@ -121,8 +122,9 @@ export class McpAccessError extends Error {
 const mcpAccessKeys = {
     all: ['mcp-access'] as const,
     tokens: () => [...mcpAccessKeys.all, 'tokens'] as const,
-    policy: () => [...mcpAccessKeys.all, 'policy'] as const,
-    members: () => [...mcpAccessKeys.all, 'members'] as const,
+    // The policy and the members are keyed by the organisation an AdminOrgScopeProvider names (null: the caller's own).
+    policy: (orgId: string | null = null) => [...mcpAccessKeys.all, 'policy', orgId] as const,
+    members: (orgId: string | null = null) => [...mcpAccessKeys.all, 'members', orgId] as const,
 };
 
 const NO_RETRY = { retry: false as const };
@@ -211,26 +213,32 @@ export function useRevokeMcpToken() {
 }
 
 export function useMcpAccessQuery() {
+    const orgId = useAdminOrgScope();
     return useQuery<McpAccessResponse, McpAccessError>({
-        queryKey: mcpAccessKeys.policy(),
-        queryFn: ({ signal }) => call(() => apiClient.get<McpAccessResponse>('/api/org/mcp-access', { signal }), 'The MCP access policy could not be loaded.'),
+        queryKey: mcpAccessKeys.policy(orgId),
+        queryFn: ({ signal }) => call(() => apiClient.get<McpAccessResponse>(withOrgIdParam('/api/org/mcp-access', orgId), { signal }), 'The MCP access policy could not be loaded.'),
         // A 403 will not fix itself on retry.
         retry: (count, err) => !(err?.status && err.status < 500) && count < 2,
     });
 }
 
 export function useSaveMcpAccess() {
+    const orgId = useAdminOrgScope();
     const qc = useQueryClient();
     return useMutation<{ policy: McpAccessPolicy }, McpAccessError, McpAccessPolicy>({
-        mutationFn: (policy) => call(() => apiClient.put<{ policy: McpAccessPolicy }>('/api/org/mcp-access', policy, NO_RETRY), 'The policy could not be saved.'),
+        mutationFn: (policy) => call(() => apiClient.put<{ policy: McpAccessPolicy }>(withOrgIdParam('/api/org/mcp-access', orgId), policy, NO_RETRY), 'The policy could not be saved.'),
         onSuccess: (res) => {
             // Keep the caller's address; only the policy changed.
-            qc.setQueryData<McpAccessResponse>(mcpAccessKeys.policy(), (old) => ({ callerIp: old?.callerIp ?? null, policy: res.policy }));
+            qc.setQueryData<McpAccessResponse>(mcpAccessKeys.policy(orgId), (old) => ({ callerIp: old?.callerIp ?? null, policy: res.policy }));
         },
     });
 }
 
-/** A member the policy can name. GET /auth/users already returns exactly the members the caller may see. */
+/**
+ * A member the policy can name. GET /auth/users already returns exactly the
+ * members the caller may see; for an organisation a platform admin chose, the
+ * dashboard's read of that organisation's members (?scope=admin&orgId=).
+ */
 export interface McpPickerMember {
     id: string;
     label: string;
@@ -238,11 +246,13 @@ export interface McpPickerMember {
 }
 
 export function useMcpMembersQuery({ enabled }: { enabled: boolean }) {
+    const orgId = useAdminOrgScope();
     return useQuery<McpPickerMember[], McpAccessError>({
-        queryKey: mcpAccessKeys.members(),
+        queryKey: mcpAccessKeys.members(orgId),
         enabled,
         queryFn: async ({ signal }) => {
-            const rows = await call(() => apiClient.get<Array<{ id: string; email?: string; username?: string; displayName?: string }>>('/auth/users', { signal }), 'The members could not be loaded.');
+            const path = orgId ? withOrgIdParam('/auth/users?scope=admin', orgId) : '/auth/users';
+            const rows = await call(() => apiClient.get<Array<{ id: string; email?: string; username?: string; displayName?: string }>>(path, { signal }), 'The members could not be loaded.');
             return (Array.isArray(rows) ? rows : []).map(u => ({
                 id: u.id,
                 label: u.displayName || u.username || u.email || u.id,

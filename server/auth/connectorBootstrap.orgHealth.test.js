@@ -553,7 +553,7 @@ test('a Nextcloud this server cannot reach: 403 with a remediation that fits any
 // at install time is the other way. Codes and statuses are the contract with
 // the connector, the remediation is the sentence its setup page shows.
 
-const SAYS_SETUP_PAGE = /pairing code \(Settings → Organisation → Pair a new Nextcloud\) and enter it on the Bee Flow setup page in Nextcloud\. A pairing code may also be given at install time \(BEEFLOW_PAIRING_CODE\)\./;
+const SAYS_SETUP_PAGE = /pairing code \(Admin dashboard → Organisation → Nextcloud Sync → Pair a new Nextcloud\) and enter it on the Bee Flow setup page in Nextcloud\. A pairing code may also be given at install time \(BEEFLOW_PAIRING_CODE\)\./;
 
 test('a pairing code the server does not know: 401 pairing_code_invalid, entered on the setup page', async () => {
     resetFx();

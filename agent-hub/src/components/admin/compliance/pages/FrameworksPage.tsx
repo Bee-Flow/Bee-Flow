@@ -25,10 +25,10 @@ import { logger } from '@/utils/logger';
  * Calendar, `?tab=per_automation` → AI Act › Systems. The AI Act phasing is
  * the AI Act's own Timeline tab, so it is not repeated here.
  *
- * Route to the licence page for "View plan ↗": `settings/organisation/license`
- * (authedApp/settingsRoutes.js — the organisation `license` tab).
+ * Route to the licence page for "View plan ↗": `admin/organisation/license`
+ * (the Organisation tab's `license` section).
  */
-export const LICENSE_PATH = 'settings/organisation/license';
+export const LICENSE_PATH = 'admin/organisation/license';
 
 /** Every non-core framework, enabled or not, locked or not — the design shows locked cards, it never hides them. */
 /** A framework as the list endpoint sends it: the card's fields, plus the core flag this page splits on. */

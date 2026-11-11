@@ -22,7 +22,7 @@ export const DEMO_CAPABILITIES = [
     'integrations', 'chat_basic', 'kb_unlimited', 'learning_center',
     'notebooks', 'projects',
     // Gates the Safety & Guardrails / Integrations / Feedback / Terminations
-    // tabs in pages/settings/UsageSection (`canSeeAdvancedUsage`, line ~82).
+    // tabs in demo/UsageMonitoringDemo (`canSeeAdvancedUsage`).
     // Without it the tab list is filtered down to Overview alone and the
     // fixtures for those tabs load but are never rendered — which looks
     // exactly like the fixtures being missing.

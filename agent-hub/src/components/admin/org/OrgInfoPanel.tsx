@@ -25,6 +25,8 @@ interface OrgInfoPanelUser extends OrgInfoUser {
 
 interface OrgInfoPanelProps {
     user?: OrgInfoPanelUser | null;
+    /** The organisation to edit (the admin dashboard's); left out, the user's own. */
+    orgId?: string | null;
     activeSection?: string;
     onSave?: () => void;
     onStateChange?: (state: OrgInfoSaveState) => void;
@@ -34,10 +36,10 @@ interface OrgInfoPanelProps {
  * BFSF-251: jump to the org Users panel where seats are added (inviting a user
  * is what adds a billed seat on per-seat plans). Mirrors the app's own
  * back/forward routing — pushState the canonical settings URL, then fire a
- * popstate so the AdvancedSettings shell switches to the Users sub-tab.
+ * popstate so the app shell opens Admin > Security > Users > Invitations.
  */
 function goToUsersPanel() {
-    const url = '/app/settings/organisation/users';
+    const url = '/app/admin/security/users/invitations';
     try {
         if (window.location.pathname !== url) window.history.pushState({}, '', url);
         window.dispatchEvent(new PopStateEvent('popstate'));
@@ -59,7 +61,7 @@ function NoOrganisation() {
     );
 }
 
-const OrgInfoPanel = ({ user, activeSection, onSave: parentOnSave, onStateChange }: OrgInfoPanelProps) => {
+const OrgInfoPanel = ({ user, orgId, activeSection, onSave: parentOnSave, onStateChange }: OrgInfoPanelProps) => {
     const { t } = useTranslation();
     const licenseCtx = useLicenseContext();
     // An org running on a licence key (e.g. a Full-tier internal org on cloud)
@@ -76,7 +78,7 @@ const OrgInfoPanel = ({ user, activeSection, onSave: parentOnSave, onStateChange
     const deploymentMode = user?.featureFlags?.deploymentMode || 'cloud';
     const ncOrg = user?.ncOrg || null;
     const isNcOrg = !!ncOrg?.instanceId;
-    const { loading, saving, orgData, setOrgData, isAuthLocked, handleLogoUpload, handleLogoRemove } = useOrgInfoForm({ user, t, onSave: parentOnSave, onStateChange });
+    const { loading, saving, orgData, setOrgData, isAuthLocked, handleLogoUpload, handleLogoRemove } = useOrgInfoForm({ user, orgId, t, onSave: parentOnSave, onStateChange });
     const billing = useOrgSubscription(orgData?.id, deploymentMode, t);
 
     if (loading) return <Skeleton />;
