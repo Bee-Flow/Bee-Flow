@@ -22,10 +22,12 @@ const path = require('path');
 // them, so they go through Babel like the vendored copy; their helper imports
 // resolve through the @babel/runtime mapper below. The shared value formatter
 // (server/shared/format/*.mjs, which componentSpecs/objectShapes.js requires)
-// is the same case. A server `.mts` file (strict
+// is the same case, and so is the custom block's template engine
+// (server/shared/blockTemplate/*.mjs, which the block's cleaner requires). A
+// server `.mts` file (strict
 // TypeScript, e.g. automationModel/runProfile.mts, which definitionForRun.js
 // requires) is ESM with type annotations, so it goes through Babel as well.
-const SERVER_DIR = path.resolve(__dirname, '..', 'server').replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '/(?!shared/(?:expr|appDefinition|format)/)(?!.*\\.mts$)';
+const SERVER_DIR = path.resolve(__dirname, '..', 'server').replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '/(?!shared/(?:expr|appDefinition|format|blockTemplate)/)(?!.*\\.mts$)';
 
 // `.mjs` and `.mts` go through the same Babel as `.ts`/`.js`: the expression
 // engine is vendored verbatim as .mjs (src/shared/expr/vendor), new server code
