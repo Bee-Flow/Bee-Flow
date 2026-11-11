@@ -31,6 +31,10 @@ import type { JobView, RunnerDeps, StartInput } from './backgroundRunParts.mts';
 const nodeRequire = createRequire(import.meta.url);
 type Attribution = { withUsageAttribution: <T>(a: { actorUserId?: string | null; runId?: string | null }, fn: () => T) => T };
 const { withUsageAttribution } = nodeRequire('./usageAttribution') as Attribution;
+const stableJson = nodeRequire('../utils/stableJson') as { stableStringify: (v: unknown, o: { undefined: 'drop' }) => string };
+
+/** What makes two deferred effects the same one, whatever the order of their keys (a paused run reads them back from JSONB). */
+export const effectKey = (effect: Obj): string => stableJson.stableStringify(effect, { undefined: 'drop' });
 
 const isObject = (v: unknown): v is Obj => v !== null && typeof v === 'object' && !Array.isArray(v);
 const LOOP_ROWS = 200;
@@ -148,7 +152,7 @@ function deferEffect(job: Job, step: Step, ownerActionId: string): void {
     const effect: Obj = step.kind === 'toast'
         ? { kind: 'toast', message: toastMessage(job, step, ownerActionId), tone: typeof step.tone === 'string' ? step.tone : 'info' }
         : { kind: 'refresh', ...(typeof step.tableId === 'string' ? { tableId: step.tableId } : {}), ...(typeof step.datasetId === 'string' ? { datasetId: step.datasetId } : {}) };
-    const key = JSON.stringify(effect);
+    const key = effectKey(effect);
     if (job.seenEffects.has(key) || job.w.deferred.length >= MAX_DEFERRED_EFFECTS) return;
     job.seenEffects.add(key);
     job.w.deferred.push(effect);
