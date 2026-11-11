@@ -53,6 +53,12 @@ export interface UseDraftHistoryReturn<T extends Draft> {
     reset: () => void;
     /** Record the state before a streamed external edit as one undo entry. */
     checkpoint: (before: T) => void;
+    /**
+     * Record `before` as ONE undo entry and apply `next`, in one synchronous
+     * step: for a change that was already shown transiently (an AI turn's
+     * drafts), whatever the live draft happens to be right now.
+     */
+    commitFrom: (before: T, next: T) => void;
 }
 
 interface Stacks<T> {
@@ -125,6 +131,15 @@ export default function useDraftHistory<T extends Draft>(
         lastCommitAtRef.current = 0;
     }, [setStacksBoth]);
 
+    const commitFrom = useCallback((before: T, next: T) => {
+        if (before != null && !sameDraft(before, next)) {
+            setStacksBoth({ past: [...stacksRef.current.past, safeClone(before)].slice(-CAP), future: [] });
+        }
+        // The next edit starts an entry of its own, never one with this change.
+        lastCommitAtRef.current = 0;
+        applyRef.current?.(next);
+    }, [setStacksBoth]);
+
     const undo = useCallback(() => {
         const { past: p, future: f } = stacksRef.current;
         if (p.length === 0) return;
@@ -154,6 +169,7 @@ export default function useDraftHistory<T extends Draft>(
     return {
         commit,
         checkpoint,
+        commitFrom,
         undo,
         redo,
         canUndo: past.length > 0,
