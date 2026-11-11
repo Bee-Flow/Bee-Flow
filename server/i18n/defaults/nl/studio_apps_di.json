@@ -1,0 +1,35 @@
+{
+  "translations": {
+    "studio_apps_di.type_lookup": "Opzoeken",
+    "studio_apps_di.type_rollup": "Samenvatting",
+    "studio_apps_di.choose": "Kies…",
+    "studio_apps_di.many": "Bevat meerdere records",
+    "studio_apps_di.many_hint": "De waarde is een lijst records. Filter erop met “bevat”.",
+    "studio_apps_di.on_delete": "Als het gekoppelde record wordt verwijderd",
+    "studio_apps_di.on_delete_default": "Standaard",
+    "studio_apps_di.on_delete_restrict": "Verwijderen weigeren",
+    "studio_apps_di.on_delete_set_null": "Dit veld leegmaken",
+    "studio_apps_di.on_delete_cascade": "Deze records ook verwijderen",
+    "studio_apps_di.on_delete_hint": "Wie verwijdert, moet elk gekoppeld record mogen wijzigen of verwijderen, anders wordt er niets verwijderd.",
+    "studio_apps_di.lookup_relation": "Via relatie",
+    "studio_apps_di.lookup_field": "Toon veld",
+    "studio_apps_di.lookup_hint": "Alleen-lezen. Toont het veld van het gekoppelde record, en blijft leeg als de kijker dat record niet mag zien.",
+    "studio_apps_di.rollup_source": "Records die hiernaar verwijzen",
+    "studio_apps_di.rollup_fn": "Bereken",
+    "studio_apps_di.fn_count": "Aantal",
+    "studio_apps_di.fn_sum": "Som",
+    "studio_apps_di.fn_min": "Laagste",
+    "studio_apps_di.fn_max": "Hoogste",
+    "studio_apps_di.fn_avg": "Gemiddelde",
+    "studio_apps_di.rollup_field": "Van veld",
+    "studio_apps_di.rollup_filter_kept": "Alleen records die aan {n} filterregel(s) voldoen tellen mee; de regels blijven zoals ze zijn.",
+    "studio_apps_di.rollup_hint": "Alleen-lezen. Alleen de records die de kijker mag zien tellen mee.",
+    "studio_apps_di.indexes": "Indexen",
+    "studio_apps_di.index_hint": "Maakt filteren en sorteren op deze kolommen snel bij grote tabellen. Een index toevoegen of verwijderen verandert nooit een rij.",
+    "studio_apps_di.add_index": "Index toevoegen",
+    "studio_apps_di.remove_index": "Index verwijderen"
+  },
+  "sameAsEnglish": [
+    "studio_apps_di.index_n"
+  ]
+}
