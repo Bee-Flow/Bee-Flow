@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import ConnectionsManager from './ConnectionsManager';
 import { Microsoft365Group } from './Microsoft365Integration';
 import FirebirdIntegration from './FirebirdIntegration';
+import FrappeCrmIntegration from './FrappeCrmIntegration';
 import VplanIntegration from './VplanIntegration';
 import NMBRSIntegration from './NmbrsIntegration';
 import ScalewayBillingIntegration from './ScalewayBillingIntegration';
@@ -572,6 +573,7 @@ const IntegrationsSection = ({ statuses, onSaved, user }: IntegrationsSectionPro
                 isEnabled('afas-profit') && ['afas-profit', (last: boolean): React.ReactNode => <AFASIntegration hasAfasConfig={statuses.hasAfasConfig as boolean | undefined} onSaved={() => onSaved('afas-profit')} last={last} />],
                 isEnabled('vplan') && ['vplan', (last: boolean): React.ReactNode => <VplanIntegration hasVplanConfig={statuses.hasVplanConfig as boolean | undefined} onSaved={() => onSaved('vplan')} last={last} />],
                 isEnabled('firebird') && ['firebird', (last: boolean): React.ReactNode => <FirebirdIntegration hasFirebirdConfig={statuses.hasFirebirdConfig as boolean | undefined} onSaved={() => onSaved('firebird')} last={last} />],
+                isEnabled('frappe-crm') && ['frappe-crm', (last: boolean): React.ReactNode => <FrappeCrmIntegration hasFrappeCrmConfig={statuses.hasFrappeCrmConfig as boolean | undefined} onSaved={() => onSaved('frappe-crm')} last={last} />],
                 isEnabled('scaleway-billing') && ['scaleway-billing', (last: boolean): React.ReactNode => <ScalewayBillingIntegration hasScalewayBillingConfig={!!statuses.hasScalewayBillingConfig} onSaved={() => onSaved('scaleway-billing')} last={last} />],
                 isEnabled('nmbrs') && ['nmbrs', (last: boolean): React.ReactNode => <NMBRSIntegration hasNmbrsConfig={statuses.hasNmbrsConfig as boolean | undefined} hasNmbrsSubscriptionKey={statuses.hasNmbrsSubscriptionKey as boolean | undefined} hasNmbrsClient={statuses.hasNmbrsClient as boolean | undefined} apiMode={statuses.nmbrsApiMode as string | undefined} subdomain={statuses.nmbrsSubdomain as string | undefined} email={statuses.nmbrsEmail as string | undefined} env={statuses.nmbrsEnv as string | undefined} onSaved={() => onSaved('nmbrs')} last={last} />],
             ]} />

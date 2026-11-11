@@ -304,3 +304,16 @@ test('a Firebird user with a separator is refused', async () => {
     assert.strictEqual(res.statusCode, 400);
     assert.match(res.body.error, /Firebird user is invalid/);
 });
+
+// ── Frappe CRM ─────────────────────────────────────────────────────────
+test('a Frappe CRM connection is saved as typed; a key with a colon is refused and nothing is saved', async () => {
+    const bad = await post({ frappeCrmUrl: 'https://crm.example.com', frappeCrmApiKey: 'key:withcolon', frappeCrmApiSecret: 's3cret' });
+    assert.strictEqual(bad.statusCode, 400);
+    assert.match(bad.body.error, /Frappe CRM API key is invalid/);
+    assert.deepStrictEqual(touched, []);
+    const res = await post({ frappeCrmUrl: ' https://crm.example.com ', frappeCrmApiKey: 'abc123', frappeCrmApiSecret: 's3cret' });
+    assert.strictEqual(res.statusCode, 200);
+    assert.strictEqual(written('frappe_crm_url_user_u1').value, 'https://crm.example.com');
+    assert.strictEqual(written('frappe_crm_api_key_user_u1').value, 'abc123');
+    assert.strictEqual(written('frappe_crm_api_secret_user_u1').value, 's3cret');
+});

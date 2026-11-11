@@ -194,6 +194,7 @@ const sidebars: SidebarsConfig = {
           items: [
             'integrations/vplan',
             'integrations/firebird',
+            'integrations/frappe-crm',
           ],
         },
         {

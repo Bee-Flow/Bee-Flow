@@ -48,10 +48,13 @@ function _truncate(s, n) {
  * Answers the parsed JSON, the raw text, or null (an empty body).
  * @param {string} url  absolute URL
  * @param {{ method?: string, headers?: Record<string, string>, body?: unknown, timeoutMs?: number,
- *   errorPrefix?: string, maxErrorChars?: number, allowPrivate?: boolean, fetchImpl?: Function }} [opts]  `method` GET by
+ *   errorPrefix?: string, maxErrorChars?: number, allowPrivate?: boolean, redirect?: RequestRedirect,
+ *   fetchImpl?: Function }} [opts]  `method` GET by
  *   default; `body` an object (JSON-encoded) or a string; `timeoutMs` 30000 by default; `errorPrefix`
  *   ('API') starts thrown error messages; `maxErrorChars` (500) truncates the error body;
- *   `allowPrivate` skips the SSRF guard (self-host internal services); `fetchImpl` is a test seam
+ *   `allowPrivate` skips the SSRF guard (self-host internal services); `redirect` is passed to
+ *   fetch when set ('manual' answers a 3xx as an HTTP error instead of following it, for an
+ *   `allowPrivate` caller whose check covers only the first hop); `fetchImpl` is a test seam
  *   (default: the guarded safeFetch, or the global fetch with `allowPrivate`)
  */
 async function jsonApiRequest(url, opts = {}) {
@@ -63,6 +66,7 @@ async function jsonApiRequest(url, opts = {}) {
         errorPrefix = 'API',
         maxErrorChars = DEFAULT_MAX_ERROR_CHARS,
         allowPrivate = false,
+        redirect,
         fetchImpl = testFetch || (allowPrivate ? fetch : safeFetch),
     } = opts;
 
@@ -93,6 +97,7 @@ async function jsonApiRequest(url, opts = {}) {
             headers: reqHeaders,
             body: payload,
             signal: AbortSignal.timeout(timeoutMs),
+            ...(redirect ? { redirect } : {}),
         });
     } catch (e) {
         if (!allowPrivate && isPrivateAddressError(e)) throw refused();

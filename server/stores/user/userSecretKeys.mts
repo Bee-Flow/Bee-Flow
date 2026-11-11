@@ -35,6 +35,9 @@ export const SECRETS: Readonly<Record<string, string>> = Object.freeze({
     firebirdUser: 'firebird_user',
     firebirdPassword: 'firebird_password',
     firebirdCharset: 'firebird_charset',
+    frappeCrmUrl: 'frappe_crm_url',
+    frappeCrmApiKey: 'frappe_crm_api_key',
+    frappeCrmApiSecret: 'frappe_crm_api_secret',
     scalewayBillingSecretKey: 'scaleway_billing_secret_key',
     scalewayBillingOrgId: 'scaleway_billing_org_id',
 });
