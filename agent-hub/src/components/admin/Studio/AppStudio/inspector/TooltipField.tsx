@@ -9,7 +9,7 @@ import type { AppDefinition, AppNode } from './appDefinition';
  */
 
 /** The longest tooltip; the server's MAX_TOOLTIP_LEN (componentSpecs/tooltipKey.js). */
-export const TOOLTIP_MAX = 200;
+const TOOLTIP_MAX = 200;
 
 /** The definition with `nodeId`'s tooltip set, or removed for an empty text. */
 export function setNodeTooltip(definition: AppDefinition, nodeId: string, text: string): AppDefinition {

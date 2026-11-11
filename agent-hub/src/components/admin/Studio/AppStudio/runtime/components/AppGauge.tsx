@@ -66,7 +66,7 @@ function numberOr(v: unknown, fallback: number): number {
 }
 
 /** Everything the gauge draws, from its props and the resolved value. */
-export function gaugeModel(props: GaugeProps, raw: unknown, size: unknown) {
+function gaugeModel(props: GaugeProps, raw: unknown, size: unknown) {
     const min = numberOr(props.min, 0);
     const max = numberOr(props.max, 100);
     const value = raw === null || raw === undefined || raw === '' ? NaN : Number(raw);

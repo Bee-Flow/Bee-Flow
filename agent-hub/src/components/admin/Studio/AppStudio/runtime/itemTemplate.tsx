@@ -23,7 +23,7 @@ export const ItemTemplateContext = createContext<RenderNodes | null>(null);
 const HOST_TYPES: ReadonlySet<string> = new Set(['list', 'kanban']);
 
 /** Does `node` carry an item template? */
-export function hasItemTemplate(node: Pick<AppNode, 'type' | 'children'> | null | undefined): boolean {
+function hasItemTemplate(node: Pick<AppNode, 'type' | 'children'> | null | undefined): boolean {
     return !!node && HOST_TYPES.has(node.type) && Array.isArray(node.children) && node.children.length > 0;
 }
 
@@ -49,7 +49,8 @@ export function useItemTemplate(node: Pick<AppNode, 'id' | 'type' | 'children'>,
             style={{ gridTemplateColumns: gridTemplate(), gap: spaceSteps(2) }}
             data-app-item-template={node.id}
         >
-            {render(nodes, { ...scope, item, index, value: item }, rowKey(item, index))}
+            {/* The runtime's scope is the full scope AppRenderer built (buildScope), typed loosely in RuntimeValue. */}
+            {render(nodes, { ...scope, item, index, value: item } as ExpressionScope, rowKey(item as Parameters<typeof rowKey>[0], index))}
         </div>
     );
 }

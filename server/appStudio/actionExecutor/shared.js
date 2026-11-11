@@ -60,6 +60,16 @@ function plainObjectOr(v, fallback) {
     return v && typeof v === 'object' && !Array.isArray(v) ? /** @type {Record<string, unknown>} */ (v) : fallback;
 }
 
+/**
+ * What started an unattended run ({ kind, <kind>: { … } }, appStudio/triggers/triggerScope.mts). Set by the
+ * server for a run a trigger started (and as a mock by a test run) and by nothing else, so every other scope
+ * has no such key.
+ * @param {{ trigger?: unknown }} ctx
+ */
+function triggerRoot(ctx) {
+    return plainObjectOr(ctx.trigger, null) ? { trigger: ctx.trigger } : {};
+}
+
 function buildServerScope(ctx) {
     const now = new Date().toISOString();
     const clientVars = (ctx.vars && typeof ctx.vars === 'object') ? ctx.vars : {};
@@ -101,9 +111,7 @@ function buildServerScope(ctx) {
         // Inside a step's onError handler: { message, step, code, attempts, stepIndex? }
         // (null otherwise). Client-supplied on the /step routes, bounded by clampErrorScope.
         error: plainObjectOr(ctx.error, null),
-        // What started an unattended run ({ kind, <kind>: { … } }, appStudio/triggers/triggerScope.mts). Set by the
-        // server for a run a trigger started and by nothing else, so every other scope has no such key.
-        ...(plainObjectOr(ctx.trigger, null) ? { trigger: ctx.trigger } : {}),
+        ...triggerRoot(ctx),
         currentUser: {
             id: ctx.viewerId ?? null,
             // A person's display name is the whole point of an audit column.

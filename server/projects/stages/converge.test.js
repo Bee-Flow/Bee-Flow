@@ -52,7 +52,7 @@ function harness(steps) {
             },
         },
         reconcileAppUsage: async (id) => { log.push(['app_usage', id]); },
-        syncAppTriggers: async (id) => { log.push(['app_triggers', id]); return { synced: { armed: 1, updated: 0, kept: 0, removed: 0 } }; },
+        syncAppTriggers: /** @type {(id: string) => Promise<import('../../appStudio/triggers/deploySync.mts').DeploySyncOutcome>} */ (async (id) => { log.push(['app_triggers', id]); return { synced: { armed: 1, updated: 0, kept: 0, removed: 0 } }; }),
         revokeRemoteSubscriptions: async (id, owner) => { log.push(['revoke', id, owner]); },
         emitProjectEvent: async (projectId, event) => { log.push(['feed', projectId, event.kind, event.payload.deploymentId]); },
         sleep: async (ms) => { log.push(['sleep', ms]); },

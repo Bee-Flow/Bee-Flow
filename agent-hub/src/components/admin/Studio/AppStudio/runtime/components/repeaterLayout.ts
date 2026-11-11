@@ -15,7 +15,7 @@ import type { InlineStyle } from '../styleResolver.types';
  * in ../css/repeaterLayout.css.
  */
 
-export type RepeaterLayout = 'grid' | 'row';
+type RepeaterLayout = 'grid' | 'row';
 
 interface RepeaterLayoutProps {
     layout?: unknown;

@@ -38,7 +38,7 @@ type Activate = (item: TreeNode, toggle: (item: TreeNode) => void) => void;
 const clampInt = (v: unknown, lo: number, hi: number, fallback: number) => (Number.isInteger(v) ? Math.max(lo, Math.min(hi, Number(v))) : fallback);
 
 /** What a key does on the focused item: the item to focus next and whether it opens or closes. */
-export function treeKeyMove(key: string, focus: TreeNode, items: readonly TreeNode[], roots: readonly TreeNode[], expanded: ReadonlySet<string>): { to?: TreeNode; toggle?: boolean } | null {
+function treeKeyMove(key: string, focus: TreeNode, items: readonly TreeNode[], roots: readonly TreeNode[], expanded: ReadonlySet<string>): { to?: TreeNode; toggle?: boolean } | null {
     const at = items.indexOf(focus);
     const isOpen = expanded.has(focus.key);
     switch (key) {

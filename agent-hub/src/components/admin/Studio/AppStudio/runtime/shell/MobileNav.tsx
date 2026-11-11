@@ -140,7 +140,7 @@ export default function MobileNav({ model, activeScreen, onNavigate, variant = '
                             {group.screens.map(renderRow)}
                         </div>
                     ))}
-                    <NavLinks variant="drawer" items={items} screenId={activeScreen?.id} onNavigate={onNavigate} onPicked={() => setOpen(false)} />
+                    <NavLinks variant="drawer" items={items} screenId={activeScreen?.id} onNavigate={onNavigate ?? null} onPicked={() => setOpen(false)} />
                 </div>
             </div>
         </Modal>

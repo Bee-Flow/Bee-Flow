@@ -104,7 +104,7 @@ function RecordTriggerFields({ trigger, tables, disabled, onChange }: { trigger:
 }
 
 /** The panel with the tables it was handed. */
-export function RecordTriggersList({ appId, definition, onCommit, disabled = false, api = triggersApi, tables }: RecordTriggersPanelProps & { tables: AppTable[] }) {
+function RecordTriggersList({ appId, definition, onCommit, disabled = false, api = triggersApi, tables }: RecordTriggersPanelProps & { tables: AppTable[] }) {
     const { t } = useTranslation();
     const choices = useActionChoices(definition);
     const triggers = definitionTriggers(definition);
