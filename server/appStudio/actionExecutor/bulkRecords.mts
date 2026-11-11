@@ -129,7 +129,7 @@ async function runBulk(app: App, model: unknown, step: Obj, ctx: Obj, op: Op): P
         const p = await prepare(app, model, step, ctx, op);
         if ('result' in p) return p.result;
         const out = op === 'update'
-            ? await updateMatching(app, p.target, p.filters, applyFieldRules(p.target.table, shared.resolveValues(step.values, ctx, p.scope), { op: 'update' }), p.limit)
+            ? await updateMatching(app, p.target, p.filters, applyFieldRules(p.target.table, shared.resolveValues(step.values, ctx, p.scope), { op: 'update', role: shared.writeViewer(ctx).role ?? null }), p.limit)
             : await eraseMatching(p.target, p.filters, p.limit);
         // Counts only: no values, no ids (they are customer data in someone's table).
         log.info('[ActionExecutor] bulk record write', { appId: app.id, table: p.target.table.key, op, matched: out.matched, changed: out.changed, remaining: out.remaining });

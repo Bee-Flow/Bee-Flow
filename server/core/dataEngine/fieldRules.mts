@@ -20,6 +20,10 @@
  * Dynamic defaults are filled on CREATE only, when the value is missing or empty
  * (a form submits null for a field nobody touched).
  *
+ * It is also where a write meets COLUMN RIGHTS (`field.access`, columnRights.mts):
+ * every caller passes the writer's `role`, and a table without column rights is
+ * not looked at.
+ *
  * A refusal is a FieldValidationError: status 422, code 'field_invalid', a
  * sentence per field in `fieldErrors` keyed by field key. The sentences name the
  * field by its label and the rule, never the value that was written.
@@ -51,6 +55,10 @@ const shapes = nodeRequire('./fieldFormats.mts') as {
     fieldShapeErrors(field: RuleField, at: string): string[];
     hasValueShape(field: RuleField): boolean;
     valueShapeProblem(field: RuleField, value: unknown, label: string): string | null;
+};
+const rights = nodeRequire('./columnRights.mts') as {
+    hasColumnRights(table: unknown): boolean;
+    writableValues<T>(table: unknown, role: unknown, values: T, op: 'create' | 'update'): T;
 };
 type UserPattern = {
     compileUserPattern(p: unknown, o?: { caseInsensitive?: boolean }): Compiled;
@@ -248,15 +256,21 @@ function breach(field: RuleField, value: unknown): string | null {
     return v && typeof v.message === 'string' && v.message.trim() ? v.message : problem;
 }
 
-export type FieldRuleOpts = { op: 'create' | 'update'; viewerId?: unknown; now?: Date };
+/** `role`: the writer's role, for a table with column rights (columnRights.mts). Left out, the writer has no role. */
+export type FieldRuleOpts = { op: 'create' | 'update'; viewerId?: unknown; role?: unknown; now?: Date };
 
 /**
  * The values a write compiles, with dynamic defaults filled (create only) and
  * every written field that declares a rule checked. Throws FieldValidationError.
  * Returns the input object itself when the table declares no rule at all, and
  * never mutates it.
+ *
+ * Column rights come first, on the values as the writer sent them: a value for
+ * a field the role may not write throws FieldAccessError (403), before any
+ * default the server fills is added.
  */
-export function applyFieldRules<T>(table: unknown, values: T, opts: FieldRuleOpts): T {
+export function applyFieldRules<T>(table: unknown, written: T, opts: FieldRuleOpts): T {
+    const values = rights.writableValues(table, opts.role, written, opts.op);
     const ruled = ruledFields(table);
     if (!ruled.length) return values;
     const source: Obj = isPlainObject(values) ? values : {};
@@ -287,7 +301,7 @@ export function applyFieldRules<T>(table: unknown, values: T, opts: FieldRuleOpt
  * so an all-or-nothing batch writes nothing. The rows share one clock.
  */
 export function applyFieldRulesToRows<T>(table: unknown, rows: T[], opts: FieldRuleOpts): T[] {
-    if (!ruledFields(table).length || !Array.isArray(rows)) return rows;
+    if (!Array.isArray(rows) || (!ruledFields(table).length && !rights.hasColumnRights(table))) return rows;
     const shared = { ...opts, now: opts.now ?? new Date() };
     return rows.map((row) => applyFieldRules(table, row, shared));
 }

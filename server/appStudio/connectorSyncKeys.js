@@ -11,8 +11,9 @@
 const KEY_LOOKUP_CHUNK = 200;
 
 // The owner sees the whole table — a sync is the owner's own refresh of their
-// own feed. Passed explicitly so the compilers stay un-callable unscoped.
-const OWNER_FILTER = Object.freeze({ where: '1=1', params: [] });
+// own feed. Passed explicitly so the compilers stay un-callable unscoped
+// (every row, and every column of a table with column rights).
+const { OWNER_ACCESS: OWNER_FILTER } = require('../core/dataEngine/accessFilter');
 
 /**
  * Which of THESE key values already have a record, as (key → record id).

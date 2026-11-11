@@ -29,7 +29,7 @@ const { RELATION_READ_LIMITS, EXPAND_DEFAULT_SUFFIX, SYSTEM_COLUMNS } = nodeRequ
     EXPAND_DEFAULT_SUFFIX: string;
     SYSTEM_COLUMNS: readonly string[];
 };
-const refs = (): { checkFieldRef(tableId: unknown, col: unknown, path: string, ctx: Ctx, label: string, o?: { codePrefix: string }): void } => nodeRequire('./refs');
+const refs = (): { checkFieldRef(tableId: unknown, col: unknown, path: string, ctx: Ctx, label: string, o?: { codePrefix?: string; output?: boolean }): void } => nodeRequire('./refs');
 
 const isObject = (v: unknown): v is Obj => v !== null && typeof v === 'object' && !Array.isArray(v);
 const present = (v: unknown): boolean => v !== undefined && v !== null;
@@ -82,7 +82,7 @@ function checkPick(entry: Obj, at: string, target: string | undefined, ctx: Ctx)
     }
     entry.pick.forEach((key, j) => {
         if (typeof key !== 'string' || !key) ctx.pushE(invalid(`${at}.pick[${j}]`, 'Each pick entry is a field key of the related table.', 'e.g. "name".'));
-        else if (target) refs().checkFieldRef(target, key, `${at}.pick[${j}]`, ctx, 'expand pick');
+        else if (target) refs().checkFieldRef(target, key, `${at}.pick[${j}]`, ctx, 'expand pick', { output: true });
     });
 }
 
@@ -138,7 +138,7 @@ export function validateFields(binding: Obj, path: string, ctx: Ctx, label: stri
     }
     raw.forEach((key, i) => {
         if (typeof key !== 'string' || !key) ctx.pushE(invalid(`${at}[${i}]`, 'Each entry of fields is a field key.', 'e.g. "title".'));
-        else refs().checkFieldRef(binding.tableId, key, `${at}[${i}]`, ctx, `${label} fields`);
+        else refs().checkFieldRef(binding.tableId, key, `${at}[${i}]`, ctx, `${label} fields`, { output: true });
     });
 }
 

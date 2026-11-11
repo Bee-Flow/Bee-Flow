@@ -97,6 +97,45 @@ exports[`compat corpus: what the phone plans for every stored app box-knobs 1`] 
 }
 `;
 
+exports[`compat corpus: what the phone plans for every stored app column-rights 1`] = `
+{
+  "defaultScreen": "scr_tasks01",
+  "navigable": [
+    "scr_tasks01",
+  ],
+  "screens": [
+    {
+      "id": "scr_tasks01",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "id": "cmp_taskh1",
+                "kind": "heading",
+                "level": 2,
+                "text": "Tasks and budgets",
+              },
+            ],
+            "screen": "scr_tasks01",
+            "unsupported": [
+              "stat",
+              "list",
+            ],
+          },
+          "roles": [
+            "(no role)",
+            "member",
+            "lead",
+            "auditor",
+          ],
+        },
+      ],
+    },
+  ],
+}
+`;
+
 exports[`compat corpus: what the phone plans for every stored app computed-read-time 1`] = `
 {
   "defaultScreen": "scr_lines01",

@@ -249,14 +249,20 @@ function buildViewer(user, role) {
 // organisation it lives in, not to this app. What the client does need to know
 // is in `linkedTableFlags` below — THAT a table is linked and whether it is
 // read-only, without saying to what.
-/** @param {DataTable} t */
-function publicTable(t) {
+//
+// `role` is the viewer's: a field that role may not read (column rights) is not
+// listed, so the table shows the same fields its records carry.
+/**
+ * @param {DataTable} t
+ * @param {string | null} role
+ */
+function publicTable(t, role) {
     return {
         id: t.id,
         key: t.key,
         name: t.name,
         icon: t.icon ?? null,
-        fields: (Array.isArray(t.fields) ? t.fields : []).map((f) => ({
+        fields: (Array.isArray(t.fields) ? t.fields : []).filter((f) => rlsGateway.canReadField(t, role, f.key)).map((f) => ({
             id: f.id,
             key: f.key,
             name: f.name,

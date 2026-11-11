@@ -291,12 +291,12 @@ function checkDatasetRef(datasetId, path, ctx, label) {
  * Field-key resolution against the data model (data-model mode only; no-op
  * otherwise or when the table itself did not resolve — the unknown-table
  * record already covers that). `allowSystem` admits the five system columns
- * (filter/sort may address them; step writes may not).
+ * (filter/sort may address them; step writes may not). `output`: columnRightsChecks.mts.
  * @param {string} fieldKey
  * @param {string} path
  * @param {string} label
  */
-function checkFieldRef(tableId, fieldKey, path, ctx, label, { codePrefix = 'binding', allowSystem = true } = {}) {
+function checkFieldRef(tableId, fieldKey, path, ctx, label, { codePrefix = 'binding', allowSystem = true, output = false } = {}) {
     if (!ctx.dataTables || typeof tableId !== 'string' || !tableId) return;
     const fields = ctx.dataTables.get(tableId);
     if (!fields) return;
@@ -307,7 +307,7 @@ function checkFieldRef(tableId, fieldKey, path, ctx, label, { codePrefix = 'bind
     // does not exist, with the real column list in hand.
     if (ctx.dataTableSources && ctx.dataTableSources.get(tableId)) return;
     if (typeof fieldKey !== 'string' || !fieldKey) return; // structural error reported by the caller
-    if (fields.has(fieldKey)) return;
+    if (fields.has(fieldKey)) return require('./columnRightsChecks.mts').warnRestrictedField(ctx, tableId, fieldKey, path, label, { codePrefix, output }); // advice: column rights
     if (SYSTEM_COLUMNS.includes(fieldKey)) {
         if (allowSystem) return;
         pushDataRef(ctx, {

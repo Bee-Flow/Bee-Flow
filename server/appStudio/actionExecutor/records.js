@@ -55,10 +55,11 @@ const { applyFieldRules, applyFieldRulesToRows } = require('../../core/dataEngin
 
 // ── Record writes ───────────────────────────────────────────────────
 
-/** Field rules before either storage (untouched without them); throws FieldValidationError (422). @template V @param {unknown} table @param {V} values @param {unknown} viewer @param {unknown} recordId @returns {V} */
+/** Field rules and column rights before either storage (untouched without them); throws FieldValidationError (422) or FieldAccessError (403). @template V @param {unknown} table @param {V} values @param {unknown} viewer @param {unknown} recordId @returns {V} */
 function withFieldRules(table, values, viewer, recordId) {
     const op = recordId === undefined || recordId === null ? 'create' : 'update';
-    return applyFieldRules(table, values, { op, viewerId: viewer && typeof viewer === 'object' ? /** @type {{ id?: unknown }} */ (viewer).id : undefined });
+    const v = /** @type {{ id?: unknown, role?: unknown }} */ (viewer && typeof viewer === 'object' ? viewer : {});
+    return applyFieldRules(table, values, { op, viewerId: v.id, role: v.role ?? null });
 }
 
 /**
@@ -144,7 +145,7 @@ async function writeRecord(app, model, table, values, { viewer, recordId, expect
  * @param {{ viewer?: any }} [opts]
  */
 async function writeRecordBatch(app, model, table, rows, { viewer } = {}) {
-    rows = applyFieldRulesToRows(table, rows, { op: 'create', viewerId: viewer && typeof viewer === 'object' ? viewer.id : undefined });
+    rows = applyFieldRulesToRows(table, rows, { op: 'create', viewerId: viewer && typeof viewer === 'object' ? viewer.id : undefined, role: viewer && typeof viewer === 'object' ? viewer.role ?? null : null });
     if (datatableSource.isDatatableBacked(table)) {
         // The permission is ALSO asked for an empty batch, exactly like
         // the own-storage branch below: "you were not allowed to do this" and "there was
