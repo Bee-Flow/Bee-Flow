@@ -13083,6 +13083,97 @@ exports[`compat corpus: what the phone plans for every stored app widget-item-te
 }
 `;
 
+exports[`compat corpus: what the phone plans for every stored app widgets-advanced 1`] = `
+{
+  "defaultScreen": "scr_adv00001",
+  "navigable": [
+    "scr_adv00001",
+  ],
+  "screens": [
+    {
+      "id": "scr_adv00001",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "id": "cmp_head0001",
+                "kind": "heading",
+                "level": 2,
+                "text": "Pipeline",
+              },
+              {
+                "action": {
+                  "actionId": "act_toast001",
+                  "kind": "toast",
+                  "label": "Refresh",
+                  "runnable": false,
+                },
+                "id": "cmp_btn00001",
+                "kind": "button",
+              },
+              {
+                "action": {
+                  "actionId": "act_toast001",
+                  "kind": "toast",
+                  "label": "Submit",
+                  "runnable": false,
+                },
+                "description": null,
+                "id": "cmp_form0001",
+                "inputs": [
+                  {
+                    "initial": null,
+                    "inputType": "text",
+                    "label": "Name",
+                    "max": null,
+                    "min": null,
+                    "name": "name",
+                    "nodeId": "cmp_name0001",
+                    "options": [],
+                    "placeholder": null,
+                    "required": true,
+                    "rows": 4,
+                    "type": "input_text",
+                  },
+                  {
+                    "initial": null,
+                    "inputType": "text",
+                    "label": "Company",
+                    "max": null,
+                    "min": null,
+                    "name": "company",
+                    "nodeId": "cmp_comp0001",
+                    "options": [],
+                    "placeholder": null,
+                    "required": false,
+                    "rows": 4,
+                    "type": "input_text",
+                  },
+                ],
+                "kind": "form",
+                "submitLabel": "Send",
+                "title": "signup",
+              },
+            ],
+            "screen": "scr_adv00001",
+            "unsupported": [
+              "gauge (browser-only)",
+              "chart",
+              "tree (browser-only)",
+              "text",
+            ],
+          },
+          "roles": [
+            "(no role)",
+          ],
+        },
+      ],
+    },
+  ],
+}
+`;
+
 exports[`compat corpus: what the phone plans for every stored app wishlist-variables 1`] = `
 {
   "defaultScreen": "scr_list0001",
@@ -13240,6 +13331,49 @@ exports[`compat corpus: what the phone plans for every stored app zz-schedule-tr
                   "actionId": "act_button01",
                   "kind": "sequence",
                   "label": "Write the digest now",
+                  "runnable": false,
+                },
+                "id": "cmp_btn00001",
+                "kind": "button",
+              },
+            ],
+            "screen": "scr_home0001",
+            "unsupported": [],
+          },
+          "roles": [
+            "(no role)",
+          ],
+        },
+      ],
+    },
+  ],
+}
+`;
+
+exports[`compat corpus: what the phone plans for every stored app zz-webhook-trigger 1`] = `
+{
+  "defaultScreen": "scr_home0001",
+  "navigable": [
+    "scr_home0001",
+  ],
+  "screens": [
+    {
+      "id": "scr_home0001",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "id": "cmp_head0001",
+                "kind": "heading",
+                "level": 2,
+                "text": "Orders",
+              },
+              {
+                "action": {
+                  "actionId": "act_button01",
+                  "kind": "sequence",
+                  "label": "File a test order",
                   "runnable": false,
                 },
                 "id": "cmp_btn00001",
