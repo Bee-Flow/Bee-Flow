@@ -1,18 +1,17 @@
 import { Plus, X } from 'lucide-react';
 import IconButton from '@/components/shared/IconButton';
-import toast from '@/components/shared/Toast';
 import useTranslation from '@/hooks/useTranslation';
-import { ApiError, errorBody } from '@/api/mutate';
 import useAppTables, { fieldsForTable, type AppTable } from '../bi/useAppTables';
 import { INPUT_CLS } from '../inspector/panels/kit';
 import { useActionChoices } from '../inspector/ThenAlsoRun';
-import { MAX_SERVER_TRIGGERS, definitionTriggers, setTriggers, withEnabled, type ServerTrigger } from '../state/serverTriggerOps';
+import { MAX_SERVER_TRIGGERS, definitionTriggers, withEnabled, type ServerTrigger } from '../state/serverTriggerOps';
 import {
     RECORD_EVENTS, isRecordTrigger, newRecordTrigger, withAllowPublic, withEvent, withField, withTable, withWhen,
     type RecordEvent, type RecordTrigger,
 } from '../state/recordTriggerOps';
 import { TriggerStatus } from './ServerTriggersPanel';
-import { triggersApi, useTriggerState, useTriggerSwitch, type TriggersApi } from './serverTriggersApi';
+import { triggersApi, type TriggersApi } from './serverTriggersApi';
+import { useTriggerList } from './useTriggerList';
 import type { AppDefinition } from '../inspector/appDefinition';
 import type { TranslateFn } from '@/hooks/useTranslation';
 
@@ -108,24 +107,11 @@ function RecordTriggersList({ appId, definition, onCommit, disabled = false, api
     const { t } = useTranslation();
     const choices = useActionChoices(definition);
     const triggers = definitionTriggers(definition);
-    const mine = triggers.some(isRecordTrigger);
     // The armed state is only asked for an app that has a record trigger (the schedule panel shares the answer).
-    const state = useTriggerState(api, appId, mine && !!appId);
-    const flip = useTriggerSwitch(api, appId);
-    const commit = (list: ServerTrigger[]) => {
-        const next = setTriggers(definition, list);
-        if (next !== definition) onCommit(next);
-    };
+    const { state, flip, commit, views, onSwitch } = useTriggerList(api, appId, definition, onCommit, triggers.some(isRecordTrigger));
     const patch = (i: number, next: ServerTrigger) => commit(triggers.map((tr, j) => (j === i ? next : tr)));
     const firstAction = choices[0]?.id;
     const firstTable = tables[0]?.id;
-    const views = new Map((state.data?.triggers ?? []).map((v) => [v.id, v]));
-    const onSwitch = (triggerId: string, enabled: boolean) => flip.mutate({ triggerId, enabled }, {
-        onError: (err) => {
-            const reason = err instanceof ApiError ? errorBody(err)?.error : null;
-            toast.error(typeof reason === 'string' && reason ? reason : t('studio_apps_schedule.panel.switch_failed', 'The trigger could not be switched. Try again.'));
-        },
-    });
 
     return (
         <section className="mt-3" data-testid="logic-record-triggers">

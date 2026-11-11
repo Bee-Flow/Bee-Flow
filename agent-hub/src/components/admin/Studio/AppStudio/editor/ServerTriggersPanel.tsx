@@ -1,17 +1,16 @@
 import { lazy, Suspense } from 'react';
 import { Plus, X } from 'lucide-react';
 import IconButton from '@/components/shared/IconButton';
-import toast from '@/components/shared/Toast';
 import useTranslation from '@/hooks/useTranslation';
 import type { TranslateFn } from '@/hooks/useTranslation';
-import { ApiError, errorBody } from '@/api/mutate';
 import { INPUT_CLS } from '../inspector/panels/kit';
 import { useActionChoices } from '../inspector/ThenAlsoRun';
 import {
-    MAX_EVERY_MINUTES, MAX_SERVER_TRIGGERS, clampMinutes, definitionTriggers, isInterval, isWebhookTrigger, newScheduleTrigger, newWebhookTrigger, setTriggers, withEnabled,
+    MAX_EVERY_MINUTES, MAX_SERVER_TRIGGERS, clampMinutes, definitionTriggers, isInterval, isWebhookTrigger, newScheduleTrigger, newWebhookTrigger, withEnabled,
     type ServerTrigger, type TriggerSchedule,
 } from '../state/serverTriggerOps';
-import { triggersApi, useTriggerState, useTriggerSwitch, type TriggerView, type TriggersApi } from './serverTriggersApi';
+import { triggersApi, type TriggerView, type TriggersApi } from './serverTriggersApi';
+import { useTriggerList } from './useTriggerList';
 import { isRecordTrigger } from '../state/recordTriggerOps';
 import type { AppDefinition } from '../inspector/appDefinition';
 
@@ -158,21 +157,9 @@ export default function ServerTriggersPanel({ appId, definition, onCommit, disab
     const choices = useActionChoices(definition);
     const triggers = definitionTriggers(definition);
     // The armed state is only asked for an app that has, or had, a trigger: an app without one makes no request.
-    const state = useTriggerState(api, appId, triggers.length > 0 && !!appId);
-    const flip = useTriggerSwitch(api, appId);
-    const commit = (list: ServerTrigger[]) => {
-        const next = setTriggers(definition, list);
-        if (next !== definition) onCommit(next);
-    };
+    const { state, flip, commit, views, onSwitch } = useTriggerList(api, appId, definition, onCommit, triggers.length > 0);
     const patch = (i: number, change: (trigger: ServerTrigger) => ServerTrigger) => commit(triggers.map((tr, j) => (j === i ? change(tr) : tr)));
     const first = choices[0]?.id;
-    const views = new Map((state.data?.triggers ?? []).map((v) => [v.id, v]));
-    const onSwitch = (triggerId: string, enabled: boolean) => flip.mutate({ triggerId, enabled }, {
-        onError: (err) => {
-            const reason = err instanceof ApiError ? errorBody(err)?.error : null;
-            toast.error(typeof reason === 'string' && reason ? reason : t('studio_apps_schedule.panel.switch_failed', 'The trigger could not be switched. Try again.'));
-        },
-    });
 
     return (
         <section className="mt-6" data-testid="logic-server-triggers">

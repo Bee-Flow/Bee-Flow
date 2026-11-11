@@ -3,13 +3,13 @@ import { useId, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } 
 import useTranslation from '@/hooks/useTranslation';
 import type { TranslateFn } from '@/hooks/useTranslation';
 import AppIcon from '@/components/icons/AppIcon';
-import { resolveBinding, walkPath } from '../resolveBinding';
-import type { BindingInput } from '../resolveBinding.types';
-import { useRuntime } from '../RuntimeContext';
-import { isFill } from '../styleResolver.helpers';
-import { EmptyText, ErrorText, SkeletonLines, displayValue, useStickyBinding } from '../uiBits';
 import type { NodeProps } from './appNode.types';
 import { buildTree, parentOf, visibleNodes, type TreeNode, type TreeRow } from './treeModel';
+import { EmptyText, ErrorText, SkeletonLines, displayValue, useStickyBinding } from '../uiBits';
+import { isFill } from '../styleResolver.helpers';
+import type { BindingInput } from '../resolveBinding.types';
+import { resolveBinding, walkPath } from '../resolveBinding';
+import { useRuntime } from '../RuntimeContext';
 
 /**
  * App Studio runtime - 'tree' (schema 3). Spec: server/appStudio/componentSpecs/types/tree.js.

@@ -1,10 +1,10 @@
-import useTranslation from '@/hooks/useTranslation';
-import { resolveBinding } from '../resolveBinding';
+import type { NodeProps } from './appNode.types';
 import type { BindingInput } from '../resolveBinding.types';
-import { useRuntime } from '../RuntimeContext';
 import { ROLE_COLORS } from '../styleResolver.constants';
 import { Skeleton, useStickyBinding } from '../uiBits';
-import type { NodeProps } from './appNode.types';
+import { resolveBinding } from '../resolveBinding';
+import { useRuntime } from '../RuntimeContext';
+import useTranslation from '@/hooks/useTranslation';
 
 /**
  * App Studio runtime - 'gauge' (schema 3). Spec: server/appStudio/componentSpecs/types/gauge.js.
