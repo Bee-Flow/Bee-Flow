@@ -111,6 +111,16 @@ const JobParams = closedObject({
     jobId: worded(RUN_ID_TEXT).min(1, RUN_ID_TEXT).max(64, RUN_ID_TEXT),
 }, 'A background job address');
 
+const RESUME_TOKEN_TEXT = 'token is the resume token this run was paused with.';
+/**
+ * …/actions/jobs/:jobId/resume. The token travels in the body, never in the address. Bounded
+ * here; whether it is this run's token is decided after the app gate, in constant time.
+ */
+const ResumeBody = bodyOf({
+    token: worded(RESUME_TOKEN_TEXT).min(1, RESUME_TOKEN_TEXT).max(200, RESUME_TOKEN_TEXT),
+    payload: z.unknown().optional(),
+}, 'A resume of a run on hold');
+
 /** …/actions/jobs?active=1&actionId=… : the caller's own runs. */
 const JobsQuery = queryOf({
     active: choice(['0', '1'], 'active is 1 for running jobs only.').optional(),
@@ -199,4 +209,4 @@ function relationQueryOf(query) {
     return out;
 }
 
-module.exports = { listQueryOf, relationQueryOf, DraftQuery, StepBody, RunBody, RunEndBody, BackgroundBody, JobParams, JobsQuery, ChatBody, RecordsQuery, ErrorScope };
+module.exports = { listQueryOf, relationQueryOf, DraftQuery, StepBody, RunBody, RunEndBody, BackgroundBody, JobParams, JobsQuery, ResumeBody, ChatBody, RecordsQuery, ErrorScope };

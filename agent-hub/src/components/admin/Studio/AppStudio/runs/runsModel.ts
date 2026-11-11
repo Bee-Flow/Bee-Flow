@@ -9,7 +9,7 @@ export type Tone = 'ok' | 'error' | 'warning' | 'neutral' | 'running';
 export function statusTone(status: string): Tone {
     if (status === 'success' || status === 'ok') return 'ok';
     if (status === 'error') return 'error';
-    if (status === 'running') return 'running';
+    if (status === 'running' || status === 'paused') return 'running';
     if (status === 'interrupted' || status === 'refused' || status === 'deferred') return 'warning';
     return 'neutral';
 }
@@ -75,6 +75,7 @@ export function statusText(status: string, t: TranslateFn): string {
         case 'success': return t('studio_apps_runs.status.success', 'Succeeded');
         case 'error': return t('studio_apps_runs.status.error', 'Failed');
         case 'running': return t('studio_apps_runs.status.running', 'Running');
+        case 'paused': return t('studio_apps_durable.runs.status_paused', 'On hold');
         case 'interrupted': return t('studio_apps_runs.status.interrupted', 'Interrupted');
         case 'cancelled': return t('studio_apps_runs.status.cancelled', 'Cancelled');
         case 'refused': return t('studio_apps_runs.status.refused', 'Refused');

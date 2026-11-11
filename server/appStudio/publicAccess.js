@@ -283,8 +283,8 @@ function redactAction(action) {
     if (!isObject(action)) return action;
     if (action.kind === 'sequence') {
         // A public visitor walks the action in the foreground: there is no public start of a
-        // background job, so its run options (and the lockKey binding) do not travel.
-        const { background: _background, lockKey: _lockKey, progressVar: _progressVar, ...rest } = action;
+        // server run, so its run options (and the lockKey binding) do not travel.
+        const { background: _background, lockKey: _lockKey, progressVar: _progressVar, runOn: _runOn, ...rest } = action;
         return { ...rest, steps: (Array.isArray(action.steps) ? action.steps : []).map(redactStep) };
     }
     // A bare v1 action IS its own single step.

@@ -7,11 +7,20 @@
  *                                           background: true -> 202 { jobId, status }
  *   GET  /:id/actions/jobs                  the caller's own jobs (?active=1, ?actionId)
  *   GET  /:id/actions/jobs/:jobId           one job: its progress and, at the end, its result
+ *   POST /:id/actions/jobs/:jobId/cancel    cancel a running job (it stops before its next step)
+ *                                           or one on hold (it ends at once) -> the job
+ *   POST /:id/actions/jobs/:jobId/resume    continue a job on hold with its resume token
+ *                                           (in the body) -> 202 { jobId, status }
+ *
+ * An action with `runOn: 'server'` starts through the same POST …/background: the server run is
+ * the same, the page waits for it instead of letting it go.
  *
  * The job itself is appStudio/backgroundRun.mts: it runs detached from the request, so
  * leaving or closing the page does not stop it. Readers of a job are whoever started it and
  * the app owner; anyone else gets a uniform 404. Non-owners always run the published
- * definition (?draft=1 is the owner's).
+ * definition (?draft=1 is the owner's). The same two may cancel a job, and resume one with its
+ * token: both are decided on the row read under the app the request was gated on, never on an
+ * id alone, and the runner checks again who and what a resumed job continues as.
  */
 
 'use strict';
@@ -22,8 +31,9 @@ const R = require('./studio/appRuntimeSchemas');
 const { loadVisibleApp, assertActionRoleAccess, visibleFormValues, pickDefinition, resolveViewerRole } = require('./studioAppRunGate');
 const { sanitizeBag, flattenSteps, normalizeSequence } = require('../appStudio/actionSequence');
 const { HEAVY_STEP_KINDS } = require('./studioAppStepBudget.mts');
+const { HttpError } = require('../core/http/errors');
 
-/** @typedef {{ kind?: unknown, background?: unknown, lockKey?: unknown, steps?: unknown }} RunAction  an action of the definition, as far as these routes read it */
+/** @typedef {{ kind?: unknown, background?: unknown, runOn?: unknown, lockKey?: unknown, steps?: unknown }} RunAction  an action of the definition, as far as these routes read it */
 /** @typedef {{ actions?: Record<string, RunAction>, [key: string]: unknown }} RunDef  the definition a request runs */
 /** @typedef {import('../appStudio/backgroundRunParts.mts').App & { definitionVersion?: number | null, publishedVersion?: number | null }} RunApp */
 
@@ -100,7 +110,7 @@ async function refusePublicLocked(req, res, found, ctx, actionId) {
  */
 function hasLockKey(def, actionId) {
     const action = def && def.actions && Object.hasOwn(def.actions, actionId) ? def.actions[actionId] : null;
-    return !!action && action.kind === 'sequence' && action.background === true && !!action.lockKey;
+    return !!action && action.kind === 'sequence' && (action.background === true || action.runOn === 'server') && !!action.lockKey;
 }
 
 /**
@@ -127,7 +137,7 @@ function backgroundActionOf(res, def, actionId) {
         res.status(404).json({ error: 'Action not found' });
         return null;
     }
-    if (action.kind !== 'sequence' || action.background !== true) {
+    if (action.kind !== 'sequence' || (action.background !== true && action.runOn !== 'server')) {
         res.status(400).json({ error: 'This action does not run in the background.', code: 'not_background' });
         return null;
     }
@@ -140,7 +150,38 @@ function hasHeavyStep(action) {
 }
 
 /**
- * Mount the three routes on `router` with the action-run router's middleware.
+ * The job `jobId` of `app` when the caller may act on it (they started it, or own the app). Any
+ * other answer is the same 404: a malformed id, a job of another app, another viewer's job.
+ * @param {import('express').Request<{ id: string, jobId: string }>} req
+ * @param {RunApp} app  the app the request was gated on
+ */
+async function ownJob(req, app) {
+    const { RUN_ID_RE } = require('../stores/studioAppData/runPolicy.mts');
+    const { actionRunStore } = require('../stores/studioAppData/actionRuns.mts');
+    const jobId = req.params.jobId;
+    const userId = sessionUser(req).id;
+    const row = RUN_ID_RE.test(jobId) ? await actionRunStore().getRun(app.id, jobId) : null; // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- RUN_ID_RE is the fixed /^sar_[0-9a-f]{32}$/, linear on any input
+    if (!row || row.origin !== 'background' || (row.viewerUserId !== userId && app.userId !== userId)) {
+        throw new HttpError(404, 'not_found', 'Run not found');
+    }
+    return row;
+}
+
+/**
+ * Middleware: the app gate and ownJob, their answer on `res.locals.ownJob` for the handler.
+ * @param {import('express').Request<{ id: string, jobId: string }>} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ */
+async function gateOwnJob(req, res, next) {
+    const app = await loadVisibleApp(req, res);
+    if (!app) return;
+    res.locals.ownJob = { app, row: await ownJob(req, app) };
+    next();
+}
+
+/**
+ * Mount the routes on `router` with the action-run router's middleware.
  * @param {import('express').Router} router
  * @param {{ requireAuth: import('express').RequestHandler, actionRunLimiter: import('express').RequestHandler, jobStatusLimiter: import('express').RequestHandler, jsonBody: import('express').RequestHandler, bodySizeGuard: import('express').RequestHandler }} mw
  */
@@ -191,6 +232,28 @@ function mountBackgroundRoutes(router, mw) {
             return res.status(404).json({ error: 'Run not found' });
         }
         res.json(backgroundRun().toJobView(row));
+    });
+
+    router.post('/:id/actions/jobs/:jobId/cancel', mw.requireAuth, mw.actionRunLimiter, validate({ params: R.JobParams }), /** @param {import('express').Request<{ id: string, jobId: string }>} req */ async (req, res) => {
+        const app = await loadVisibleApp(req, res);
+        if (!app) return;
+        const row = await ownJob(req, app);
+        const outcome = await backgroundRun().cancelBackgroundRun(app.id, row.id);
+        // Cancelling an ended job changes nothing and answers the job as it is.
+        const { actionRunStore } = require('../stores/studioAppData/actionRuns.mts');
+        const after = await actionRunStore().getRun(app.id, row.id);
+        res.status(outcome === 'cancelling' ? 202 : 200).json(backgroundRun().toJobView(after || row));
+    });
+
+    // The app and the job are gated BEFORE the body is looked at: a stranger reads 404, never what a token should look like.
+    router.post('/:id/actions/jobs/:jobId/resume', mw.requireAuth, mw.actionRunLimiter, mw.jsonBody, mw.bodySizeGuard, validate({ params: R.JobParams }), gateOwnJob, validate({ body: R.ResumeBody }), /** @param {import('express').Request<{ id: string, jobId: string }>} req */ async (req, res) => {
+        const { app, row } = /** @type {{ app: RunApp, row: import('../stores/studioAppData/actionRuns.mts').ActionRunRow }} */ (res.locals.ownJob);
+        const out = await backgroundRun().resumeBackgroundRun(row.id, { by: 'token', appId: app.id, userId: sessionUser(req).id, token: String(req.body.token), payload: req.body.payload });
+        if (!out.ok) {
+            const refused = /** @type {{ status: number, code: string, error: string }} */ (out);
+            throw new HttpError(refused.status, refused.code, refused.error);
+        }
+        res.status(202).json({ jobId: row.id, status: 'running' });
     });
 }
 

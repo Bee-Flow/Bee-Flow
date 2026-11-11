@@ -163,14 +163,44 @@ async function _initDB() {
         // forever — which for a 2-minute mailbox means hammering a provider
         // that is already throttling us.
         `ALTER TABLE studio_app_connector_sync ADD COLUMN IF NOT EXISTS consecutive_errors INTEGER NOT NULL DEFAULT 0`,
+        ...PAUSED_RUN_DDL,
+        // The next addition to the run table or beside it (a trigger table and its columns on a
+        // run row) goes here, after the paused-run columns it builds on.
     ]);
     log.info('[StudioAppDataStore] PostgreSQL initialized');
 }
 
 /**
+ * A paused run (appStudio/backgroundRunDurable.mts): the columns for a database that had the run
+ * table before them (CREATE TABLE below carries them for a new one), and their indexes.
+ *   paused_state       where the walk was and the scope it needs to go on (JSON). Personal data
+ *                      at rest: dropped the moment the run is resumed, cancelled or ended, and
+ *                      with the row when the retention ends a pause that outlived it
+ *   paused_at          when the run was put on hold
+ *   wake_at            when the wake job continues it (jobs/studioAppRunWake.js)
+ *   wait_kind/_ref     what it waits for besides time; a server-side resume names the pair
+ *   resume_seq         counts resumes: a resume is a compare-and-set on it, so one of two wins
+ *   resume_token_hash  sha256 of the resume token; cleared by the resume that used it
+ *   cancel_requested   a running job stops at its next step when it reads this
+ */
+const PAUSED_RUN_DDL = [
+    `ALTER TABLE studio_app_action_runs ADD COLUMN IF NOT EXISTS paused_state JSONB`,
+    `ALTER TABLE studio_app_action_runs ADD COLUMN IF NOT EXISTS paused_at TIMESTAMPTZ`,
+    `ALTER TABLE studio_app_action_runs ADD COLUMN IF NOT EXISTS wake_at TIMESTAMPTZ`,
+    `ALTER TABLE studio_app_action_runs ADD COLUMN IF NOT EXISTS wait_kind TEXT`,
+    `ALTER TABLE studio_app_action_runs ADD COLUMN IF NOT EXISTS wait_ref TEXT`,
+    `ALTER TABLE studio_app_action_runs ADD COLUMN IF NOT EXISTS resume_seq INTEGER NOT NULL DEFAULT 0`,
+    `ALTER TABLE studio_app_action_runs ADD COLUMN IF NOT EXISTS resume_token_hash TEXT`,
+    `ALTER TABLE studio_app_action_runs ADD COLUMN IF NOT EXISTS cancel_requested BOOLEAN NOT NULL DEFAULT FALSE`,
+    `CREATE INDEX IF NOT EXISTS idx_studio_app_action_runs_wake ON studio_app_action_runs(wake_at) WHERE status = 'paused'`,
+    `CREATE INDEX IF NOT EXISTS idx_studio_app_action_runs_wait ON studio_app_action_runs(wait_kind, wait_ref) WHERE status = 'paused'`,
+];
+
+/**
  * Action runs (queries in ./actionRuns.mts). A background job IS a run row (its jobId is the
  * row id); the run log adds its own rows to the same table later. `lock_key` is unique per app
- * among RUNNING rows (a partial index, so the lock holds across replicas); a heartbeat writes
+ * among RUNNING rows (a partial index, so the lock holds across replicas) and, with the second
+ * index, among running and PAUSED rows together: a run on hold keeps its lock; a heartbeat writes
  * `last_activity_at`, and a row that stops beating is swept to `interrupted`
  * (jobs/studioAppActionRuns.js). Payload columns (result, vars, effects, progress) are nulled
  * after the result TTL and rows are deleted after the retention (jobs/platformRetention.js).
@@ -216,10 +246,20 @@ async function initActionRuns() {
             ai_calls INTEGER NOT NULL DEFAULT 0,
             prompt_tokens INTEGER NOT NULL DEFAULT 0,
             completion_tokens INTEGER NOT NULL DEFAULT 0,
-            cost_by_currency JSONB NOT NULL DEFAULT '{}'::jsonb
+            cost_by_currency JSONB NOT NULL DEFAULT '{}'::jsonb,
+            paused_state JSONB,
+            paused_at TIMESTAMPTZ,
+            wake_at TIMESTAMPTZ,
+            wait_kind TEXT,
+            wait_ref TEXT,
+            resume_seq INTEGER NOT NULL DEFAULT 0,
+            resume_token_hash TEXT,
+            cancel_requested BOOLEAN NOT NULL DEFAULT FALSE
         );
         CREATE UNIQUE INDEX IF NOT EXISTS uq_studio_app_action_runs_lock
             ON studio_app_action_runs(app_id, lock_key) WHERE status = 'running' AND lock_key IS NOT NULL;
+        CREATE UNIQUE INDEX IF NOT EXISTS uq_studio_app_action_runs_lock_held
+            ON studio_app_action_runs(app_id, lock_key) WHERE status IN ('running', 'paused') AND lock_key IS NOT NULL;
         CREATE UNIQUE INDEX IF NOT EXISTS uq_studio_app_action_runs_client_key
             ON studio_app_action_runs(app_id, client_run_key) WHERE client_run_key IS NOT NULL;
         CREATE INDEX IF NOT EXISTS idx_studio_app_action_runs_app ON studio_app_action_runs(app_id, started_at DESC, id DESC);
@@ -228,10 +268,16 @@ async function initActionRuns() {
         CREATE INDEX IF NOT EXISTS idx_studio_app_action_runs_started ON studio_app_action_runs(started_at);
         CREATE INDEX IF NOT EXISTS idx_studio_app_action_runs_active ON studio_app_action_runs(last_activity_at) WHERE status = 'running';
     `);
-    // The run log's step rows (package 8): one per step a run reached, in order. Duration,
-    // status, the error (already cleaned by runLogError: no prompt text, no customer values),
-    // and per AI step the model, tokens and the estimated cost. Never results, scope or prompts.
-    // They go with their run (ON DELETE CASCADE), so retention and app deletion need no second pass.
+    await initActionRunSteps();
+}
+
+/**
+ * The run log's step rows (package 8): one per step a run reached, in order. Duration,
+ * status, the error (already cleaned by runLogError: no prompt text, no customer values),
+ * and per AI step the model, tokens and the estimated cost. Never results, scope or prompts.
+ * They go with their run (ON DELETE CASCADE), so retention and app deletion need no second pass.
+ */
+async function initActionRunSteps() {
     await exec(`
         CREATE TABLE IF NOT EXISTS studio_app_action_run_steps (
             run_id TEXT NOT NULL REFERENCES studio_app_action_runs(id) ON DELETE CASCADE,

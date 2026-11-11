@@ -234,11 +234,12 @@ test('create_record is an action AND a step, off one shared field table', () => 
 });
 
 test('every server step (and call_action) carries the error-handling envelope; outside-effect kinds take no retry', () => {
-    const { RETRY_UNSAFE_KINDS } = require('../shared/appDefinition/stepFlow.mjs');
+    // A registry kind with `retrySafe: false` (await_approval) is as retry-unsafe as the base list.
+    const { isRetryUnsafeKind } = require('../shared/appDefinition/stepFlow.mjs');
     for (const k of DATA_MUTATING_STEP_KINDS) {
         const f = STEP_SPECS[k].fields;
         assert.equal(f.onError?.type, 'errorHandler', `${k} has onError`);
-        assert.equal(!!f.retry, !RETRY_UNSAFE_KINDS.includes(k), `${k} retry`);
+        assert.equal(!!f.retry, !isRetryUnsafeKind(k), `${k} retry`);
     }
     for (const k of CLIENT_STEP_KINDS) {
         assert.equal(!!STEP_SPECS[k].fields.onError, k === 'call_action', `${k} onError`);

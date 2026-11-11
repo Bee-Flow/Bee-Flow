@@ -6024,6 +6024,12 @@
     "POST /api/studio-apps/:id/actions/:actionId/step/stream": {
       "gate": "auth"
     },
+    "POST /api/studio-apps/:id/actions/jobs/:jobId/cancel": {
+      "gate": "auth"
+    },
+    "POST /api/studio-apps/:id/actions/jobs/:jobId/resume": {
+      "gate": "auth"
+    },
     "POST /api/studio-apps/:id/ai/chat": {
       "gate": "auth"
     },

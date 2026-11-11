@@ -3186,6 +3186,14 @@
                         "type": "effects",
                         "since": 3,
                         "description": "A toast and/or a screen to open after the sequence failed. The failure is toasted either way. Effects are applied once and never chain."
+                    },
+                    "runOn": {
+                        "type": "enum",
+                        "values": [
+                            "server"
+                        ],
+                        "since": 3,
+                        "description": "Runs the whole sequence on the server as one run. Without it the page walks the steps one by one. With it the page sends one request and waits. The result and the written variables come back when the run ends, and its toasts and refreshes show then. Use it for a sequence that must not depend on the page staying open between steps, or whose steps wait. Only steps that need no page may be in it: no navigate, open_url, open_modal, close_modal, reset_form or download, and a confirm only as the first step(s). lockKey and progressVar work as with background. With background: true as well, the page does not wait. A public page and the phone app walk the steps themselves, as without it."
                     }
                 }
             }
@@ -3231,6 +3239,7 @@
             "switch",
             "call_action",
             "transaction",
+            "await_approval",
             "back",
             "break",
             "code",
@@ -4631,6 +4640,116 @@
                     }
                 }
             },
+            "await_approval": {
+                "mutatesData": true,
+                "fields": {
+                    "prompt": {
+                        "type": "binding",
+                        "required": true
+                    },
+                    "details": {
+                        "type": "binding"
+                    },
+                    "fields": {
+                        "type": "approvalQuestions"
+                    },
+                    "assigneeUserId": {
+                        "type": "string",
+                        "maxLen": 80,
+                        "nullable": true
+                    },
+                    "assigneeGroupId": {
+                        "type": "string",
+                        "maxLen": 80,
+                        "nullable": true
+                    },
+                    "approverUserIds": {
+                        "type": "stringList"
+                    },
+                    "approverGroupIds": {
+                        "type": "stringList"
+                    },
+                    "rule": {
+                        "type": "enum",
+                        "values": [
+                            "all",
+                            "first",
+                            "quorum"
+                        ],
+                        "default": "all"
+                    },
+                    "quorumCount": {
+                        "type": "int",
+                        "min": 1,
+                        "max": 10
+                    },
+                    "finalApproverUserId": {
+                        "type": "string",
+                        "maxLen": 80,
+                        "nullable": true
+                    },
+                    "finalApproverGroupId": {
+                        "type": "string",
+                        "maxLen": 80,
+                        "nullable": true
+                    },
+                    "stages": {
+                        "type": "approvalStages"
+                    },
+                    "timeoutHours": {
+                        "type": "int",
+                        "min": 1,
+                        "max": 720,
+                        "description": "How long the request stays open, in hours (1 to 720). Then it expires and the step goes on with decision \"expired\". Left out: it waits until someone decides (at most the longest wait the server allows)."
+                    },
+                    "remindAfterHours": {
+                        "type": "int",
+                        "min": 1,
+                        "max": 720
+                    },
+                    "escalateToUserId": {
+                        "type": "string",
+                        "maxLen": 80,
+                        "nullable": true
+                    },
+                    "escalateToGroupId": {
+                        "type": "string",
+                        "maxLen": 80,
+                        "nullable": true
+                    },
+                    "escalateAfterHours": {
+                        "type": "int",
+                        "min": 1,
+                        "max": 720
+                    },
+                    "attachments": {
+                        "type": "binding"
+                    },
+                    "context": {
+                        "type": "recordValues"
+                    },
+                    "onDecided": {
+                        "type": "approvalOnDecided"
+                    },
+                    "resultVar": {
+                        "type": "string",
+                        "maxLen": 60,
+                        "description": "The variable that gets the decision: { decision, reason, answers, decidedBy, decidedByName, decidedAt, approvalId }."
+                    },
+                    "onError": {
+                        "type": "errorHandler",
+                        "envelope": true
+                    },
+                    "guard": {
+                        "type": "formula",
+                        "since": 3,
+                        "envelope": true,
+                        "description": "Skips the step on the server when this formula is false. The server works it out before it runs the step. When it gives false or nothing, or cannot be worked out, the step is skipped: nothing is written or sent, its result is null and the sequence goes on. Use it for a rule the browser must not be able to switch off, for example currentUser.roleKey == \"manager\" or form.amount <= 500. A condition step decides in the browser, a guard decides on the server. It reads the roots a server step has (form, vars, item, index, value, params, currentUser, now, today), and screen, forms and actions only when the app sets serverScope to \"wide\". Only currentUser comes from the server: every other root is sent by the browser, so decide who may do something with currentUser, never with vars, form or actions. A guard covers its own step only, so each step that needs the rule carries it. Every server step kind takes it, the kinds added later too. A step inside a transaction takes no guard of its own: put it on the transaction."
+                    }
+                },
+                "since": 3,
+                "retrySafe": false
+            },
             "back": {
                 "mutatesData": false,
                 "fields": {},
@@ -4931,10 +5050,13 @@
                 "fields": {
                     "seconds": {
                         "type": "int",
-                        "required": true,
                         "min": 1,
-                        "max": 30,
-                        "description": "How long to pause, in whole seconds (1 to 30)."
+                        "max": 2592000,
+                        "description": "How long to pause, in whole seconds. In the browser 1 to 30; in a run on the server up to 2592000 (30 days)."
+                    },
+                    "until": {
+                        "type": "binding",
+                        "description": "Wait until this moment instead: a date-time (ISO text such as \"2026-12-01T09:00:00Z\", or epoch milliseconds). A moment that has passed does not wait. Only in a run on the server."
                     }
                 },
                 "since": 3,
@@ -5015,6 +5137,7 @@
             "kb_log_query",
             "kb_log_review",
             "transaction",
+            "await_approval",
             "code",
             "http_request"
         ]

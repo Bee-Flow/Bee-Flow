@@ -118,7 +118,7 @@ test('pruneRuns nulls payloads after the TTL and deletes rows after the retentio
     await store.finishRun(b, { status: 'success', result: { n: 1 } });
     await pg.query("UPDATE studio_app_action_runs SET ended_at = NOW() - INTERVAL '2 days' WHERE id = $1", [a]);
     await pg.query("UPDATE studio_app_action_runs SET started_at = NOW() - INTERVAL '40 days', ended_at = NOW() - INTERVAL '40 days' WHERE id = $1", [b]);
-    assert.deepEqual(await store.pruneRuns({ resultTtlHours: 0, retentionDays: 0 }), { nulled: 0, deleted: 0 });
+    assert.deepEqual(await store.pruneRuns({ resultTtlHours: 0, retentionDays: 0 }), { nulled: 0, deleted: 0, expired: 0 });
     const out = await store.pruneRuns({ resultTtlHours: 24, retentionDays: 30 });
     assert.ok(out.nulled >= 1 && out.deleted >= 1, JSON.stringify(out));
     const kept = await store.getRun('app_a', a);

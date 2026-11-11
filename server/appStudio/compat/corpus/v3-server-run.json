@@ -1,0 +1,289 @@
+{
+ "about": {
+  "source": "hand-made for package H1 (durable core of the server walk): runOn \"server\" on a sequence, alone, with lockKey and progressVar, with background, on an action another action calls, and a public page that receives the action without its run options",
+  "captured": "2026-11-11"
+ },
+ "definition": {
+  "schemaVersion": 3,
+  "meta": {
+   "name": "Server run",
+   "description": "Sequences the server walks as one run instead of step by step from the page.",
+   "icon": "Server"
+  },
+  "theme": {
+   "primary": "#1D4ED8",
+   "radius": "md",
+   "density": "comfortable",
+   "fontScale": "md",
+   "appearance": "auto"
+  },
+  "roles": [],
+  "variables": [
+   {
+    "name": "status",
+    "label": "status",
+    "type": "text",
+    "default": "",
+    "description": ""
+   }
+  ],
+  "screens": [
+   {
+    "id": "scr_run00001",
+    "name": "Orders",
+    "icon": null,
+    "showInNav": true,
+    "maxWidth": "medium",
+    "sections": [
+     {
+      "id": "sec_run00001",
+      "style": {
+       "padding": 4,
+       "gap": 3,
+       "background": "none"
+      },
+      "children": [
+       {
+        "id": "cmp_runhead1",
+        "type": "heading",
+        "props": {
+         "text": "Orders",
+         "level": 2,
+         "accent": "none"
+        },
+        "style": {
+         "span": 12
+        },
+        "visible": true
+       },
+       {
+        "id": "cmp_runbtn01",
+        "type": "button",
+        "props": {
+         "label": "Process",
+         "variant": "primary",
+         "iconLeft": null,
+         "role": "button",
+         "disabledWhen": null
+        },
+        "style": {
+         "span": 4
+        },
+        "visible": true,
+        "onClick": "act_runseq01"
+       },
+       {
+        "id": "cmp_runbtn02",
+        "type": "button",
+        "props": {
+         "label": "Process later",
+         "variant": "primary",
+         "iconLeft": null,
+         "role": "button",
+         "disabledWhen": null
+        },
+        "style": {
+         "span": 4
+        },
+        "visible": true,
+        "onClick": "act_runseq02"
+       },
+       {
+        "id": "cmp_runbtn03",
+        "type": "button",
+        "props": {
+         "label": "Process all",
+         "variant": "primary",
+         "iconLeft": null,
+         "role": "button",
+         "disabledWhen": null
+        },
+        "style": {
+         "span": 4
+        },
+        "visible": true,
+        "onClick": "act_runseq03"
+       }
+      ]
+     }
+    ]
+   }
+  ],
+  "actions": {
+   "act_runseq01": {
+    "kind": "sequence",
+    "steps": [
+     {
+      "kind": "confirm",
+      "message": "Process this order?"
+     },
+     {
+      "kind": "set_variable",
+      "name": "status",
+      "value": {
+       "kind": "static",
+       "value": "Writing the log"
+      }
+     },
+     {
+      "kind": "create_record",
+      "tableId": "tbl_runlog01",
+      "values": {
+       "note": {
+        "kind": "formula",
+        "expr": "concat(\"Processed \", item.id)"
+       }
+      },
+      "resultVar": "entry"
+     },
+     {
+      "kind": "loop",
+      "source": {
+       "kind": "static",
+       "value": [
+        {
+         "id": "a"
+        },
+        {
+         "id": "b"
+        }
+       ]
+      },
+      "itemVar": "row",
+      "steps": [
+       {
+        "kind": "update_record",
+        "tableId": "tbl_runlog01",
+        "recordId": {
+         "kind": "formula",
+         "expr": "vars.row.id"
+        },
+        "values": {
+         "note": {
+          "kind": "static",
+          "value": "done"
+         }
+        },
+        "onError": {
+         "steps": [
+          {
+           "kind": "set_variable",
+           "name": "status",
+           "value": {
+            "kind": "formula",
+            "expr": "error.message"
+           }
+          }
+         ]
+        }
+       }
+      ]
+     },
+     {
+      "kind": "refresh",
+      "tableId": "tbl_runlog01"
+     },
+     {
+      "kind": "toast",
+      "message": "Processed",
+      "tone": "success"
+     }
+    ],
+    "lockKey": {
+     "kind": "formula",
+     "expr": "item.id"
+    },
+    "progressVar": "status",
+    "runOn": "server"
+   },
+   "act_runseq02": {
+    "kind": "sequence",
+    "steps": [
+     {
+      "kind": "create_record",
+      "tableId": "tbl_runlog01",
+      "values": {
+       "note": {
+        "kind": "static",
+        "value": "later"
+       }
+      }
+     },
+     {
+      "kind": "toast",
+      "message": "Queued",
+      "tone": "info"
+     }
+    ],
+    "background": true,
+    "runOn": "server"
+   },
+   "act_runseq03": {
+    "kind": "sequence",
+    "steps": [
+     {
+      "kind": "call_action",
+      "actionId": "act_runseq04",
+      "params": {
+       "note": {
+        "kind": "static",
+        "value": "all"
+       }
+      }
+     },
+     {
+      "kind": "toast",
+      "message": "All processed",
+      "tone": "success"
+     }
+    ],
+    "runOn": "server"
+   },
+   "act_runseq04": {
+    "kind": "sequence",
+    "steps": [
+     {
+      "kind": "create_record",
+      "tableId": "tbl_runlog01",
+      "values": {
+       "note": {
+        "kind": "formula",
+        "expr": "params.note"
+       }
+      }
+     }
+    ]
+   }
+  },
+  "homeScreenId": "scr_run00001",
+  "publicAccess": {
+   "entryScreenId": "scr_run00001",
+   "screenIds": [
+    "scr_run00001"
+   ],
+   "roleKey": "public"
+  }
+ },
+ "dataModel": {
+  "tables": [
+   {
+    "id": "tbl_runlog01",
+    "key": "run_log",
+    "label": "Run log",
+    "fields": [
+     {
+      "key": "note",
+      "label": "Note",
+      "type": "text"
+     }
+    ]
+   }
+  ],
+  "roles": [
+   {
+    "key": "public",
+    "label": "Public"
+   }
+  ]
+ }
+}

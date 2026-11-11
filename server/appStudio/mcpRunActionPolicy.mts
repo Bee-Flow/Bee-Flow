@@ -85,6 +85,7 @@ export function short(v: unknown, max = 200): string | null {
  */
 export function decideStep(step: Step, dryRun: boolean, inLoop: boolean, wouldSend?: Obj, wouldWrite?: Obj): Decision {
     const kind = String(step.kind);
+    if (kind === 'wait') return { run: false, status: 'skipped', reason: 'wait: a test run does not wait; a real run waits here (on the server it may go on hold and continue later)' };
     if (!SERVER_KINDS.includes(kind)) return { run: false, status: 'skipped', reason: 'client step (runs in the browser; skipped here)' };
     if (kind === 'send_email') {
         if (dryRun) return { run: false, status: 'skipped', reason: 'dryRun: send_email is never executed', result: { wouldSend: wouldSend ?? {} } };

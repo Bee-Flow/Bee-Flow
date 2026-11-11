@@ -5,7 +5,7 @@ import { runsApi, useRunList } from './runsApi';
 import RunDetail from './RunDetail';
 import { PEOPLE_ORIGINS, TONE_CLASS, actorText, formatCost, formatDuration, originText, statusText, statusTone } from './runsModel';
 
-const STATUSES = ['success', 'error', 'running', 'interrupted', 'cancelled'];
+const STATUSES = ['success', 'error', 'running', 'paused', 'interrupted', 'cancelled'];
 const selectCls = 'rounded border border-[var(--border-default)] bg-[var(--bg-primary)] px-2 py-1 text-sm text-[var(--text-primary)]';
 const thCls = 'py-1 pr-3 font-normal';
 const tdCls = 'py-1.5 pr-3 text-[var(--text-secondary)]';

@@ -9,7 +9,7 @@ toc_max_heading_level: 2
 
 # `/api/studio-apps`
 
-86 routes, 50 with a request schema. Back to the [endpoint reference](../reference.md).
+88 routes, 52 with a request schema. Back to the [endpoint reference](../reference.md).
 
 ## `(root)`
 
@@ -205,6 +205,35 @@ No request schema.
 |-------|------|:--------:|-------|
 | `id` | string | yes | min length 1; max length 200 |
 | `jobId` | string | yes | min length 1; max length 64 |
+
+### `POST /api/studio-apps/:id/actions/jobs/:jobId/cancel`
+
+**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate`
+
+**Path parameters**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `id` | string | yes | min length 1; max length 200 |
+| `jobId` | string | yes | min length 1; max length 64 |
+
+### `POST /api/studio-apps/:id/actions/jobs/:jobId/resume`
+
+**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate`, `gateOwnJob`
+
+**Path parameters**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `id` | string | yes | min length 1; max length 200 |
+| `jobId` | string | yes | min length 1; max length 64 |
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `token` | string | yes | min length 1; max length 200 |
+| `payload` | any |  |  |
 
 ### `GET /api/studio-apps/:id/actions/runs/:runId`
 
@@ -794,7 +823,7 @@ No request schema.
 | Field | Type | Required | Notes |
 |-------|------|:--------:|-------|
 | `actionId` | string |  | max length 80; pattern `^[A-Za-z0-9_-]{1,80}$` |
-| `status` | one of `"running"`, `"success"`, `"error"`, `"interrupted"`, `"cancelled"`, `"refused"` |  |  |
+| `status` | one of `"running"`, `"success"`, `"error"`, `"interrupted"`, `"cancelled"`, `"refused"`, `"paused"` |  |  |
 | `origin` | string |  | max length 120; pattern `^(click\|public\|mcp\|test\|background\|mailbox_hook)(,(click\|...` |
 | `user` | string |  | max length 200 |
 | `since` | string |  | max length 40 |

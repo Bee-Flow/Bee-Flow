@@ -1,0 +1,203 @@
+{
+  "about": {
+    "source": "hand-made for package H2 (durable waits): await_approval with questions and a timeout in a runOn \"server\" sequence, a long wait and a wait until a moment in a background sequence, and the short browser wait in a click",
+    "captured": "2026-11-11"
+  },
+  "definition": {
+    "schemaVersion": 3,
+    "meta": {
+      "name": "Waits",
+      "description": "Sequences that wait: a while, until a moment, and for an approval decision.",
+      "icon": "Hourglass"
+    },
+    "theme": {
+      "primary": "#1D4ED8",
+      "radius": "md",
+      "density": "comfortable",
+      "fontScale": "md",
+      "appearance": "auto"
+    },
+    "roles": [],
+    "variables": [
+      {
+        "name": "remindAt",
+        "label": "remindAt",
+        "type": "text",
+        "default": "",
+        "description": ""
+      }
+    ],
+    "screens": [
+      {
+        "id": "scr_wait0001",
+        "name": "Orders",
+        "icon": null,
+        "showInNav": true,
+        "maxWidth": "medium",
+        "sections": [
+          {
+            "id": "sec_wait0001",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_waithead",
+                "type": "heading",
+                "props": {
+                  "text": "Orders",
+                  "level": 2,
+                  "accent": "none"
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_waitbtn1",
+                "type": "button",
+                "props": {
+                  "label": "Ask finance",
+                  "variant": "primary",
+                  "iconLeft": null,
+                  "role": "button",
+                  "disabledWhen": null
+                },
+                "style": {
+                  "span": 4
+                },
+                "visible": true,
+                "onClick": "act_waitapr1"
+              },
+              {
+                "id": "cmp_waitbtn2",
+                "type": "button",
+                "props": {
+                  "label": "Remind tomorrow",
+                  "variant": "primary",
+                  "iconLeft": null,
+                  "role": "button",
+                  "disabledWhen": null
+                },
+                "style": {
+                  "span": 4
+                },
+                "visible": true,
+                "onClick": "act_waitlong"
+              },
+              {
+                "id": "cmp_waitbtn3",
+                "type": "button",
+                "props": {
+                  "label": "Show and go",
+                  "variant": "primary",
+                  "iconLeft": null,
+                  "role": "button",
+                  "disabledWhen": null
+                },
+                "style": {
+                  "span": 4
+                },
+                "visible": true,
+                "onClick": "act_waitshrt"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "actions": {
+      "act_waitapr1": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "await_approval",
+            "prompt": {
+              "kind": "static",
+              "value": "Approve this order?"
+            },
+            "fields": [
+              {
+                "name": "costCenter",
+                "type": "text",
+                "label": "Cost center"
+              }
+            ],
+            "assigneeUserId": null,
+            "assigneeGroupId": "grp_finance",
+            "rule": "all",
+            "finalApproverUserId": null,
+            "finalApproverGroupId": null,
+            "timeoutHours": 48,
+            "escalateToUserId": null,
+            "escalateToGroupId": null,
+            "resultVar": "approval"
+          },
+          {
+            "kind": "condition",
+            "expr": "vars.approval.decision == \"approved\"",
+            "then": [
+              {
+                "kind": "toast",
+                "message": "Approved",
+                "tone": "success"
+              }
+            ],
+            "else": [
+              {
+                "kind": "toast",
+                "message": "Not approved",
+                "tone": "warning"
+              }
+            ]
+          }
+        ],
+        "runOn": "server"
+      },
+      "act_waitlong": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "wait",
+            "seconds": 86400
+          },
+          {
+            "kind": "wait",
+            "until": {
+              "kind": "formula",
+              "expr": "vars.remindAt"
+            }
+          },
+          {
+            "kind": "toast",
+            "message": "Reminder sent",
+            "tone": "info"
+          }
+        ],
+        "background": true
+      },
+      "act_waitshrt": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "toast",
+            "message": "Saved",
+            "tone": "success"
+          },
+          {
+            "kind": "wait",
+            "seconds": 2
+          },
+          {
+            "kind": "navigate",
+            "screenId": "scr_wait0001"
+          }
+        ]
+      }
+    },
+    "homeScreenId": "scr_wait0001"
+  }
+}

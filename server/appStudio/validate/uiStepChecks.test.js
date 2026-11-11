@@ -123,8 +123,11 @@ test('the ui root is a known root in a browser formula, and a warning in a serve
     assert.ok(server.every((w) => w.path.includes('steps[2]')), JSON.stringify(server));
 });
 
+// wait is the exception: a run on the server holds it, or goes on hold for it (componentSpecs/steps/wait.js).
+const PAGE_ONLY_KINDS = UI_KINDS.filter((kind) => kind !== 'wait');
+
 test('every server-side execution form keeps the browser steps out, exactly like navigate', () => {
-    for (const kind of UI_KINDS) {
+    for (const kind of PAGE_ONLY_KINDS) {
         for (const form of ['click', 'background', 'mailboxHook', 'unattended', 'mcpRun', 'mcpDryRun', 'public']) {
             assert.equal(stepPolicy(kind, form), stepPolicy('navigate', form), `${kind}.${form}`);
         }
@@ -137,5 +140,5 @@ test('every server-side execution form keeps the browser steps out, exactly like
 test('a background sequence with a browser step is refused at save', () => {
     const { def } = canonicalizeAppDefinition(app({ act_main01: { kind: 'sequence', background: true, steps: [{ kind: 'ai_generate', prompt: 'Hi', resultVar: 'x' }, { kind: 'wait', seconds: 3 }, { kind: 'set_ui', nodeId: 'cmp_modal1', state: 'open', value: stat(false) }] } }));
     const errs = codes(validateAppDefinition(def).errors, 'action.background_step_unsupported');
-    assert.equal(errs.length, 2, JSON.stringify(errs));
+    assert.deepEqual(errs.map((e) => e.path), ['actions.act_main01.steps[2]'], 'the set_ui; a server run holds the wait');
 });
