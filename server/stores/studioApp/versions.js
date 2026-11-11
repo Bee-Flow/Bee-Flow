@@ -47,7 +47,7 @@ async function createVersionSnapshot(appId, ownerId, definition, summary = 'Chec
 }
 
 /**
- * @param {any} client
+ * @param {{ query: (sql: string, params: unknown[]) => Promise<{ rows: Array<Record<string, unknown>> }> }} client
  * @param {{ appId: string, ownerId: string, definition: object|string, summary: string, skipIfSameAsNewest: boolean }} row
  */
 async function writeVersionSnapshot(client, { appId, ownerId, definition, summary, skipIfSameAsNewest }) {

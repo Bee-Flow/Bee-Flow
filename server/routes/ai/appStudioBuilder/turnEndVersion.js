@@ -31,18 +31,27 @@ const BUILD_FINISHED_SUMMARY = 'AI build finished';
 const CHANGE_SUMMARY = 'AI change';
 
 /**
+ * The list under `key` of an object, or an empty list.
+ * @param {unknown} holder
+ * @param {string} key
+ * @returns {unknown[]}
+ */
+function listOf(holder, key) {
+    const value = holder !== null && typeof holder === 'object' ? /** @type {Record<string, unknown>} */ (holder)[key] : undefined;
+    return Array.isArray(value) ? value : [];
+}
+
+/**
  * Whether a definition has nothing on its screens yet (the empty draft a new app starts from).
- * @param {any} def
+ * @param {unknown} def
  */
 function hasNoComponents(def) {
-    const screens = Array.isArray(def?.screens) ? def.screens : [];
-    return !screens.some((/** @type {any} */ s) => (Array.isArray(s?.sections) ? s.sections : [])
-        .some((/** @type {any} */ sec) => Array.isArray(sec?.children) && sec.children.length > 0));
+    return !listOf(def, 'screens').some((s) => listOf(s, 'sections').some((sec) => listOf(sec, 'children').length > 0));
 }
 
 /**
  * What the route records at the start of a turn, to decide at its end.
- * @param {any} def the draft's definition as the turn begins
+ * @param {unknown} def the draft's definition as the turn begins
  * @returns {{ startJson: string, startedBlank: boolean }}
  */
 function turnStartState(def) {
@@ -52,7 +61,7 @@ function turnStartState(def) {
 /**
  * The summary of the row a turn should leave, or null for none.
  * @param {{ lastFinalized: boolean, persistBroken: boolean, clientGone: boolean }} turn
- * @param {{ start: { startJson: string, startedBlank: boolean }, def: any, failed: boolean, planRan: boolean }} opts
+ * @param {{ start: { startJson: string, startedBlank: boolean }, def: unknown, failed: boolean, planRan: boolean }} opts
  * @returns {string|null}
  */
 function turnEndSummary(turn, { start, def, failed, planRan }) {
@@ -67,7 +76,7 @@ function turnEndSummary(turn, { start, def, failed, planRan }) {
  * write is logged and the turn ends as it would have.
  * @param {{ lastFinalized: boolean, persistBroken: boolean, clientGone: boolean }} turn
  * @param {{
- *   draftWrap: { appId?: string|null, def: any }, userId: string,
+ *   draftWrap: { appId?: string|null, def: object }, userId: string,
  *   start: { startJson: string, startedBlank: boolean }, failed: boolean, planRan: boolean,
  *   send: (event: string, data: unknown) => void,
  * }} opts
