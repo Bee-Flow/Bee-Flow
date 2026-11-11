@@ -37,7 +37,7 @@ export const DESIGN_DEFAULTS = {
     logoUrl: null,
 };
 
-export const NAV_STYLES: Array<string | undefined> = ['tabs', 'sidebar', 'mega', 'rail'];
+export const NAV_STYLES: Array<string | undefined> = ['tabs', 'sidebar', 'mega', 'rail', 'none'];
 export const NAV_DEFAULT_STYLE = 'tabs';
 
 // Pairing id → CSS stack. `system` is identity (no fontFamily emitted). The

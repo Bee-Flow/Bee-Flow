@@ -32,6 +32,7 @@ const { valueTypeOf, isAssetRef } = require('./componentSpecs/valueTypes');
 const { LIMITS } = require('./componentSpecs/limits');
 const { cleanAppCss, appCssRepairNote } = require('./appCss.mts');
 const fontRoles = require('./appFontRoles');
+const { canonNavShell, resolveNavShell, hasNavShell } = require('./navShell.mts');
 
 // Font PAIRING ids, not raw family names: the closed vocabulary keeps the
 // builder/editor honest and every family on the CMS DESIGN_FONTS allowlist.
@@ -124,7 +125,9 @@ const DESIGN_SPEC = Object.freeze(/** @satisfies {Record<string, DesignSpecEntry
 //             definition declares no groups, so choosing it is never a dead end.
 //   rail    — an icon-only sidebar with tooltips; groups become separators.
 //             For dense tool-shaped apps where the screen is the workspace.
-const NAV_STYLES = Object.freeze(['tabs', 'sidebar', 'mega', 'rail']);
+//   none    — (schema 3, navShell.mts) no navigation chrome at all: a single-screen or
+//             embedded app. The viewer keeps a small corner menu.
+const NAV_STYLES = Object.freeze(['tabs', 'sidebar', 'mega', 'rail', 'none']);
 const NAV_DEFAULT_STYLE = 'tabs';
 const MAX_NAV_GROUPS = 10;
 const MAX_NAV_GROUP_LABEL = 40;
@@ -296,6 +299,8 @@ function canonNavShape(raw, push) {
             if (groups.length) out.groups = groups;
         }
     }
+    // The shell options (schema 3): header, items, footerText, brand.
+    canonNavShell(src, out, push);
     return out;
 }
 
@@ -305,7 +310,8 @@ function canonNavShape(raw, push) {
  * screen renders in one nav place), and drop groups that end up empty.
  * Mutates and returns `nav`; returns undefined when nothing survives but the
  * default style (so the definition stays minimal — style-only navs are kept
- * only when the style is non-default).
+ * only when the style is non-default). Nav item screen refs (navShell.mts) are
+ * resolved here too, and a nav with a shell key is kept.
  * @param {(arg0: string, arg1: string, arg2: string) => void} push
  */
 function resolveNavScreens(nav, renameMap, validScreenIds, push) {
@@ -337,7 +343,8 @@ function resolveNavScreens(nav, renameMap, validScreenIds, push) {
         if (groups.length) nav.groups = groups;
         else delete nav.groups;
     }
-    if (!nav.groups && nav.style === NAV_DEFAULT_STYLE) return undefined;
+    resolveNavShell(nav, renameMap, validScreenIds, push);
+    if (!nav.groups && nav.style === NAV_DEFAULT_STYLE && !hasNavShell(nav)) return undefined;
     return nav;
 }
 

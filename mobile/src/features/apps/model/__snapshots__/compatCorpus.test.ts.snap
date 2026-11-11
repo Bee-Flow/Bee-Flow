@@ -1899,6 +1899,85 @@ exports[`compat corpus: what the phone plans for every stored app logic-parallel
 }
 `;
 
+exports[`compat corpus: what the phone plans for every stored app nav-shell-options 1`] = `
+{
+  "defaultScreen": "scr_shellk01",
+  "navigable": [
+    "scr_shellk01",
+    "scr_shellk02",
+  ],
+  "screens": [
+    {
+      "id": "scr_shellk01",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "divider": true,
+                "id": "cmp_shellk01",
+                "kind": "page_header",
+                "subtitle": "Everything that came in this week",
+                "title": "Requests",
+              },
+            ],
+            "screen": "scr_shellk01",
+            "unsupported": [],
+          },
+          "roles": [
+            "(no role)",
+          ],
+        },
+      ],
+    },
+    {
+      "id": "scr_shellk02",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "id": "cmp_shellk02",
+                "kind": "heading",
+                "level": 2,
+                "text": "Rooms",
+              },
+            ],
+            "screen": "scr_shellk02",
+            "unsupported": [],
+          },
+          "roles": [
+            "(no role)",
+          ],
+        },
+      ],
+    },
+    {
+      "id": "scr_shellk03",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "id": "cmp_shellk03",
+                "kind": "text",
+                "muted": false,
+                "text": "Send a request, we answer within a day.",
+              },
+            ],
+            "screen": "scr_shellk03",
+            "unsupported": [],
+          },
+          "roles": [
+            "(no role)",
+          ],
+        },
+      ],
+    },
+  ],
+}
+`;
+
 exports[`compat corpus: what the phone plans for every stored app paged-record-lists 1`] = `
 {
   "defaultScreen": "scr_queue01",

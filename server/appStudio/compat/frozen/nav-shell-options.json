@@ -1,0 +1,48 @@
+{
+  "corpus": "nav-shell-options",
+  "canonical": {
+    "sha256": "3a0050993dca93de0580211b68f80916c6f251023398e70c8f8d3867cb6bd8ec",
+    "bytes": 1919,
+    "inputIsCanonical": true,
+    "idempotent": true,
+    "keys": [
+      "schemaVersion",
+      "meta",
+      "theme",
+      "roles",
+      "screens",
+      "actions",
+      "nav",
+      "homeScreenId"
+    ],
+    "parts": {
+      "schemaVersion": "4e07408562bedb8b",
+      "meta": "50da37b48db07b6f",
+      "theme": "5d7eeb0111b89897",
+      "roles": "4f53cda18c2baa0c",
+      "screens[0] scr_shellk01": "628b2322930accfe",
+      "screens[1] scr_shellk02": "f23a8c2665518444",
+      "screens[2] scr_shellk03": "a8dd22150791a347",
+      "nav": "a872ebc32032238d",
+      "homeScreenId": "31b245945077e0f8"
+    }
+  },
+  "schemaVersion": {
+    "stored": 3,
+    "canonical": 3
+  },
+  "validation": {
+    "strict": {
+      "errors": [],
+      "warnings": []
+    },
+    "save": {
+      "errors": [],
+      "warnings": []
+    }
+  },
+  "ordinals": {
+    "stored": {},
+    "canonical": "same as stored"
+  }
+}

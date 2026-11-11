@@ -46,5 +46,6 @@
     "app_update_records",
     "app_search_documents",
     "app_read_document",
-    "app_list_assets"
+    "app_list_assets",
+    "app_set_shell"
 ]

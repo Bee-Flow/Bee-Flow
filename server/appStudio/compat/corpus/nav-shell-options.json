@@ -1,0 +1,163 @@
+{
+  "about": {
+    "source": "hand-made for package LK18 (app shell): nav.header hidden on a sidebar, nav.items to a hidden screen and to an address, nav.footerText and nav.brand with its own name and logo",
+    "captured": "2026-11-11",
+    "lookChrome": true
+  },
+  "definition": {
+    "schemaVersion": 3,
+    "meta": {
+      "name": "Facilities desk",
+      "description": "Shell options: a sidebar without the phone bar, own links, a footer line and its own brand.",
+      "icon": "Building2"
+    },
+    "theme": {
+      "primary": "#0F766E",
+      "radius": "md",
+      "density": "comfortable",
+      "fontScale": "md",
+      "appearance": "auto"
+    },
+    "roles": [],
+    "screens": [
+      {
+        "id": "scr_shellk01",
+        "name": "Requests",
+        "icon": "Inbox",
+        "showInNav": true,
+        "maxWidth": "medium",
+        "sections": [
+          {
+            "id": "sec_shellk01",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_shellk01",
+                "type": "page_header",
+                "props": {
+                  "title": "Requests",
+                  "subtitle": "Everything that came in this week",
+                  "titleFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "subtitleFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "tagsFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "icon": null,
+                  "showDivider": true,
+                  "look": "plain"
+                },
+                "style": {
+                  "span": 12,
+                  "gap": 3,
+                  "padding": 0
+                },
+                "visible": true,
+                "children": []
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "scr_shellk02",
+        "name": "Rooms",
+        "icon": "DoorOpen",
+        "showInNav": true,
+        "maxWidth": "medium",
+        "sections": [
+          {
+            "id": "sec_shellk02",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_shellk02",
+                "type": "heading",
+                "props": {
+                  "text": "Rooms",
+                  "level": 2,
+                  "accent": "none"
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "scr_shellk03",
+        "name": "How it works",
+        "icon": null,
+        "showInNav": false,
+        "maxWidth": "medium",
+        "sections": [
+          {
+            "id": "sec_shellk03",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_shellk03",
+                "type": "text",
+                "props": {
+                  "text": "Send a request, we answer within a day.",
+                  "muted": false
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "actions": {},
+    "nav": {
+      "style": "sidebar",
+      "header": "hidden",
+      "items": [
+        {
+          "id": "nvi_help01",
+          "label": "How it works",
+          "icon": "LifeBuoy",
+          "screenId": "scr_shellk03"
+        },
+        {
+          "id": "nvi_hand01",
+          "label": "Handbook",
+          "icon": "BookOpen",
+          "url": "https://example.org/handbook"
+        }
+      ],
+      "footerText": "Facilities · extension 4410",
+      "brand": {
+        "name": "Desk",
+        "logo": "https://example.org/desk-logo.png",
+        "showName": true
+      }
+    },
+    "homeScreenId": "scr_shellk01"
+  }
+}

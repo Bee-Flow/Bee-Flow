@@ -2265,7 +2265,7 @@ test('schema descriptions spell out the closed vocabularies and caps they teach'
     for (const id of APP_DESIGN_PRESETS.map((p) => p.id)) {
         assert.ok(theme.preset.description.includes(id), `preset description explains "${id}"`);
     }
-    for (const nav of NAV_STYLES) {
+    for (const nav of NAV_STYLES.filter((v) => !Object.hasOwn(require('./componentSpecs/keyMarks').KEY_MARKS.nav.style?.valuesSince || {}, v))) { // a later style is taught by its nav.style entry
         assert.ok(theme.navStyle.description.includes(nav), `navStyle description explains "${nav}"`);
     }
 

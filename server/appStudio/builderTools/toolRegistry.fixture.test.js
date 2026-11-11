@@ -39,7 +39,9 @@ function draft() {
 test('the registry tools come after every base tool; the base menu is the shipped one, in order', () => {
     const all = names(TOOL_SCHEMAS);
     assert.deepEqual(all.slice(-FIXTURES.length), FIXTURES);
-    assert.deepEqual(all.slice(0, -FIXTURES.length), webNames, 'the base names are the generated list, unchanged');
+    // The generated list also names the tools shipped in tools/, which the fixtures replace here.
+    const shipped = new Set(registry.loadRegistryTools().map((t) => t.name));
+    assert.deepEqual(all.slice(0, -FIXTURES.length), webNames.filter((n) => !shipped.has(n)), 'the base names are the generated list, unchanged');
     const note = TOOL_SCHEMAS.find((t) => t.function.name === 'app_zz_note');
     assert.equal(note.type, 'function');
     assert.deepEqual(note.function.parameters.required, ['text']);

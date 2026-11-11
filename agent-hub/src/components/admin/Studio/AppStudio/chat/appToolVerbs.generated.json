@@ -1,1 +1,6 @@
-{}
+{
+    "app_set_shell": {
+        "key": "studio_apps_lk18.act_set_shell",
+        "en": "Changed the app shell"
+    }
+}
