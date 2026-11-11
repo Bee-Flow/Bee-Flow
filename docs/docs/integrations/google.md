@@ -132,7 +132,7 @@ Meeting Notes adds two scopes to the Google connection:
 
 - Every calendar meeting with a Meet link shows in **Meeting Notes → Upcoming** with a per-meeting **record / skip toggle** — per occurrence, or for the whole series.
 - With **auto-record configuration** enabled in settings, toggling a meeting on pre-sets Meet's auto-recording on the conference space — but **only for meetings you organize**: Google restricts this to the host, and it requires a Workspace edition with recording. Meetings organized by someone else show **Record in Meet** instead — someone still has to press record in the call; Bee Flow picks the recording up afterwards.
-- Auto-import (off by default), import scope (only meetings you organize vs. any calendar meeting with a Meet link) and default transcription language live in **Settings → Preferences → Meeting notes**; org admins get the same controls org-wide under **Settings → Organisation**.
+- Auto-import (off by default), import scope (only meetings you organize vs. any calendar meeting with a Meet link) and default transcription language live in **Settings → Preferences → Meeting notes**; org admins get the same controls org-wide under **Admin → Organisation**.
 - Manual import always works: **New transcription → Google Meet** lists your recent recorded meetings.
 
 ### Statuses & errors

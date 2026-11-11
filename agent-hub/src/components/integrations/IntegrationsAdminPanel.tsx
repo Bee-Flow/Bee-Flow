@@ -35,11 +35,11 @@ export default function IntegrationsAdminPanel({ activeSection: activeProp = 'fe
             && (!ENTERPRISE_ONLY_SECTIONS.has(s.id) || isEnterprise)
     );
     const active = visibleSections.map(s => s.id).includes(activeProp) ? activeProp : 'features';
-    // The MCP marketplace moved to Settings → Organisation → MCP library
+    // The MCP marketplace moved to Admin dashboard → Organisation → MCP library
     // (its "Server-wide" tab for server administrators). An old link or
     // bookmark to admin/integrations/mcp lands there instead of on Features.
     React.useEffect(() => {
-        if (activeProp === 'mcp' && onNavigate) onNavigate('settings/organisation/mcp');
+        if (activeProp === 'mcp' && onNavigate) onNavigate('admin/organisation/mcp');
     }, [activeProp, onNavigate]);
     const handleSectionClick = (id: string) => {
         if (onNavigate) onNavigate(`admin/integrations/${id}`);

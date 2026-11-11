@@ -21,13 +21,13 @@
       "id": "period-vs-range",
       "icon": "📅",
       "title": "The period is not the month, the range is not the gauge",
-      "bodyMd": "Two windows are easy to mix up.\n\nThe **billing period** follows the subscription's billing cycle start, not the calendar month. If Van Dijk Groep's cycle starts on the 6th, usage resets on the 6th.\n\nOn **Settings → Organisation → Usage & Monitoring**, the bar **AI usage vs. cap** is drawn against that billing period: green under 80%, amber from 80%, red from 95%.\n\nThe **RANGE** control at the top right (Today, 24h, 7d, 30d, 90d, All, Custom — 30d when you open the page) changes every list *underneath* the gauge. It never moves the gauge. Set the range to 7d and the gauge still shows the whole period."
+      "bodyMd": "Two windows are easy to mix up.\n\nThe **billing period** follows the subscription's billing cycle start, not the calendar month. If Van Dijk Groep's cycle starts on the 6th, usage resets on the 6th.\n\nOn **Admin dashboard → Monitoring**, the bar **AI usage vs. cap** is drawn against that billing period: green under 80%, amber from 80%, red from 95%.\n\nThe **RANGE** control at the top right (Today, 24h, 7d, 30d, 90d, All, Custom — 30d when you open the page) changes every list *underneath* the gauge. It never moves the gauge. Set the range to 7d and the gauge still shows the whole period."
     },
     {
       "type": "tour",
       "id": "page-header",
       "target": "[data-tour=\"usage-summary\"]",
-      "navigateTo": "settings/organisation/usage",
+      "navigateTo": "admin/monitoring",
       "placement": "bottom",
       "optional": true,
       "timeoutMs": 7000,
@@ -40,7 +40,7 @@
       "id": "where-to-change",
       "icon": "🎛️",
       "title": "The report shows, License & Usage decides",
-      "bodyMd": "Nothing on Usage & Monitoring changes behaviour. The two controls that do sit at the top of the same Organisation group, on **Settings → Organisation → License & Usage**:\n\n- the **plan card**, with the plan limits — users, agents and knowledge sources — and the **monthly cost cap** with its own percentage-used figure;\n- the section **AI usage sharing**, with the toggle **Share AI usage across the organisation** and the caption **Pooled across the organisation** or **Each user has their own budget**.\n\nThat section only appears when the organisation has a subscription with a real cost budget. On a self-hosted install neither control is here: there is no License & Usage row and no subscription, so this lesson's cap applies to Bee Flow Cloud. Both changes are reversible — the toggle can go back the same afternoon, and the gauge simply re-reads the new cap."
+      "bodyMd": "Nothing on Usage & Monitoring changes behaviour. The two controls that do sit in the Organisation tab, on **Admin dashboard → Organisation → License & Usage**:\n\n- the **plan card**, with the plan limits — users, agents and knowledge sources — and the **monthly cost cap** with its own percentage-used figure;\n- the section **AI usage sharing**, with the toggle **Share AI usage across the organisation** and the caption **Pooled across the organisation** or **Each user has their own budget**.\n\nThat section only appears when the organisation has a subscription with a real cost budget. On a self-hosted install neither control is here: there is no License & Usage row and no subscription, so this lesson's cap applies to Bee Flow Cloud. Both changes are reversible — the toggle can go back the same afternoon, and the gauge simply re-reads the new cap."
     },
     {
       "type": "sim",
@@ -87,7 +87,7 @@
       "id": "cost-30d",
       "icon": "💶",
       "title": "The one-line shortcut: cost · 30d",
-      "bodyMd": "Marieke does not always need the report to know who the heavy users are. On **Settings → Organisation → Users & Groups**, every row under **Organisation Members** carries an amount on the right with the caption **cost · 30d**. Hover it and the tooltip spells the figure out: *\"{calls} requests · {cost} (last 30 days)\"* — for Sanne in sales, something like *1,284 requests · $41.9032 (last 30 days)*.\n\nTwo cautions. The window is a rolling **last 30 days**: it is not the billing period the gauge measures, and the RANGE control on Usage & Monitoring does not move it. And the amount is only drawn for members with recorded spend, on wider screens — a row without it is a colleague who has spent nothing, not a figure that failed to load."
+      "bodyMd": "Marieke does not always need the report to know who the heavy users are. On **Admin dashboard → Security → Users**, every row under **Organisation Members** carries an amount on the right with the caption **cost · 30d**. Hover it and the tooltip spells the figure out: *\"{calls} requests · {cost} (last 30 days)\"* — for Sanne in sales, something like *1,284 requests · $41.9032 (last 30 days)*.\n\nTwo cautions. The window is a rolling **last 30 days**: it is not the billing period the gauge measures, and the RANGE control on Usage & Monitoring does not move it. And the amount is only drawn for members with recorded spend, on wider screens — a row without it is a colleague who has spent nothing, not a figure that failed to load."
     },
     {
       "type": "sim",
@@ -179,7 +179,7 @@
           "id": "b",
           "label": "Her colleague lacks the organisation-admin role, so the page renders in a reduced form.",
           "correct": false,
-          "feedback": "Without the organisation-admin role the whole Settings → Organisation group is out of reach — there would be no Usage & Monitoring page at all, not a page with fewer tabs."
+          "feedback": "Without the organisation-admin role the whole Admin dashboard → Organisation group is out of reach — there would be no Usage & Monitoring page at all, not a page with fewer tabs."
         },
         {
           "id": "c",
@@ -307,7 +307,7 @@
       "The cap warning email is sent once per billing period to at most five administrator addresses; at 100% of the cost cap AI calls are blocked until the next period, while the reporting screens keep working.",
       "The bar AI usage vs. cap is green below 80%, amber from 80% and red from 95%, and it measures the billing period, which follows the subscription's billing cycle start rather than the calendar month.",
       "The RANGE presets are Today, 24h, 7d, 30d, 90d, All and Custom, with 30d selected on open; the range moves the lists under the gauge but never the gauge itself.",
-      "The cost cap and the section AI usage sharing, with the toggle Share AI usage across the organisation, live on Settings → Organisation → License & Usage, not on Usage & Monitoring.",
+      "The cost cap and the section AI usage sharing, with the toggle Share AI usage across the organisation, live on Admin dashboard → Organisation → License & Usage, not on Usage & Monitoring.",
       "With sharing off each active seat gets the cap divided by the number of active seats, while the organisation-wide 80% warning still fires off the pooled total, so the bill itself does not go down.",
       "The Feedback tab (Enterprise licence, like Terminations) shows Positive, Negative, With Comments and With Conversation with a Positive rate, and warns below 60% positive on at least 5 items; without that licence only Overview renders.",
       "The Terminations tab groups early stops as Max tokens, Max iterations, Errors and Aborted, adds a Large input signal, and logs only sanitised metadata — never message content.",

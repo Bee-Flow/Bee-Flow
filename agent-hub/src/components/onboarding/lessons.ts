@@ -359,7 +359,7 @@ const ORG_USAGE_STEPS: LessonStep[] = [
         bodyMdFallback: 'As an admin you can see how your organisation uses Bee Flow — **activity** and where **spend** is going, broken down by source and model over any date range. The Workspace area also holds **Privacy Shield** and monitoring: your controls for PII handling and oversight.',
     },
     {
-        id: 'usage-summary', navigateTo: 'settings/organisation/usage', target: '[data-tour="usage-summary"]',
+        id: 'usage-summary', navigateTo: 'admin/monitoring', target: '[data-tour="usage-summary"]',
         placement: 'bottom', optional: true, timeoutMs: 6000, icon: '📈',
         titleKey: 'learn.org-usage.summary.title', titleFallback: 'Usage at a glance',
         bodyKey: 'learn.org-usage.summary.body',

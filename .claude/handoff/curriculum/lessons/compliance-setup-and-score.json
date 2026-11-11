@@ -251,7 +251,7 @@
       "title": "Put your own first score on the board",
       "instruction": "Open Compliance and work through the four setup steps: your DPO's name and e-mail, at least one legal basis, residency and retention, and at least one breach notification recipient. Press \"Finish setup and run the first scan\" — the first run starts on its own, and \"Run now\" on the Overview re-runs the checks whenever you like. Wait for the three framework cards and the Needs attention card to fill.",
       "launch": {
-        "navigateTo": "settings/organisation/compliance",
+        "navigateTo": "admin/compliance",
         "label": "Open Compliance"
       }
     },

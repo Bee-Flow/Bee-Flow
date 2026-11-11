@@ -8,7 +8,9 @@
  *   /app/admin/<tab>[/<sub>]               the admin dashboard's org-admin tabs
  *                                          (auth/connectorJwt.js links
  *                                          /app/admin/security/users; the
- *                                          compliance tab is routeCompliance.ts)
+ *                                          compliance tab is routeCompliance.ts;
+ *                                          /app/admin/organisation/<segment>
+ *                                          uses the segment table above)
  *
  * The segment table is pinned to the web's and to features/org's section
  * registry by routeOrg.lockstep.test.ts rather than imported: an import of a
@@ -72,6 +74,7 @@ const ADMIN_TABS: Readonly<Record<string, string>> = {
  */
 const ADMIN_SUBS: Readonly<Record<string, string>> = {
     'security/users': '/org/members?status=pending',
+    'security/guardrails': '/org/shield',
 };
 
 /** `/app/settings/organisation/<segment>`; an unknown segment opens the index. */
@@ -86,11 +89,23 @@ export function legacyOrgSettingsTarget(tab: string | undefined, sub: string | u
 }
 
 /**
+ * `/app/admin/organisation[/<segment>]`: the segment is a settings segment, so
+ * the screen is the one the settings address opens. The hub itself and a
+ * segment with no screen on the phone (MCP, MCP access) open the index.
+ */
+function organisationTarget(segment: string | undefined): NotificationTarget {
+    if (!segment) return { href: '/org' };
+    const href = ORG_SETTINGS_SEGMENTS[segment];
+    return href ? { href } : { href: '/org', approximate: true };
+}
+
+/**
  * `/app/admin/<tab>/…`: security → members, compliance → its section or
  * record, and so on; the rest → the index. `rest` is what follows the tab.
  */
 export function adminTarget(tab: string | undefined, rest: readonly string[] = [], query = ''): NotificationTarget {
     if (tab === 'compliance') return complianceTarget(rest[0], rest[1], query);
+    if (tab === 'organisation') return organisationTarget(rest[0]);
     const href = (tab && rest[0] ? ADMIN_SUBS[`${tab}/${rest[0]}`] : undefined) ?? (tab ? ADMIN_TABS[tab] : undefined);
     return href ? { href } : { href: '/org', approximate: true };
 }

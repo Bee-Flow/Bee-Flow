@@ -119,7 +119,7 @@ nothing: it keeps its connection, and Nextcloud updates the connector itself thr
 3. **Sign in to Bee Flow** at that address, change the administrator password and add a model
    provider.
 
-4. **Generate a pairing code** in Bee Flow: **Settings → Organisation → Pair a new Nextcloud**. A
+4. **Generate a pairing code** in Bee Flow: **Admin → Organisation → Nextcloud Sync → Pair a new Nextcloud**. A
    self-hosted server does not create an organisation for a Nextcloud it does not know; the pairing
    code is how you link the two. This is the default for every self-hosted server.
 

@@ -35,7 +35,7 @@ describe('N8nSection', () => {
 
     it('links Users & Groups to the settings address when the server sends a bare path', async () => {
         serve({ modify_n8n_workflows: [], availableGroups: [], orgAdminAlways: true, editUrl: '/settings/organisation/users' });
-        expect(await openPermissions()).toHaveAttribute('href', '/app/settings/organisation/users');
+        expect(await openPermissions()).toHaveAttribute('href', '/app/admin/security/users');
     });
 
     it('does not claim a stored API key after saving the URL alone', async () => {
@@ -55,7 +55,7 @@ describe('N8nSection', () => {
     });
 
     it('follows an app address from the server', async () => {
-        serve({ modify_n8n_workflows: [], availableGroups: [], orgAdminAlways: true, editUrl: '/app/settings/organisation/users' });
-        expect(await openPermissions()).toHaveAttribute('href', '/app/settings/organisation/users');
+        serve({ modify_n8n_workflows: [], availableGroups: [], orgAdminAlways: true, editUrl: '/app/admin/security/users' });
+        expect(await openPermissions()).toHaveAttribute('href', '/app/admin/security/users');
     });
 });

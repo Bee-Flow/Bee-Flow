@@ -15,7 +15,7 @@
       "id": "why",
       "icon": "🧭",
       "title": "The question Van Dijk Groep has to answer",
-      "bodyMd": "Van Dijk Groep is a Dutch SME of sixty staff. Supplier quotations, HR notes and meeting recordings all pass through Bee Flow.\n\nA customer's security questionnaire lands on Marieke's desk with one line on it: **is our data encrypted, and who can read it?**\n\nThe first half is easy. The second half is where organisations talk themselves into trouble, by repeating a reassuring phrase they cannot defend.\n\nBoth halves are decided on one screen — **Settings → Organisation → Encryption** — where three cards are offered: **Off**, **Managed** and **Zero-knowledge**. An organisation starts on **Off**, unless the server operator configured a higher default for newly created organisations.\n\nBy the end of this lesson you can pick one of those cards and say out loud what it does *not* protect against."
+      "bodyMd": "Van Dijk Groep is a Dutch SME of sixty staff. Supplier quotations, HR notes and meeting recordings all pass through Bee Flow.\n\nA customer's security questionnaire lands on Marieke's desk with one line on it: **is our data encrypted, and who can read it?**\n\nThe first half is easy. The second half is where organisations talk themselves into trouble, by repeating a reassuring phrase they cannot defend.\n\nBoth halves are decided on one screen — **Admin dashboard → Organisation → Encryption** — where three cards are offered: **Off**, **Managed** and **Zero-knowledge**. An organisation starts on **Off**, unless the server operator configured a higher default for newly created organisations.\n\nBy the end of this lesson you can pick one of those cards and say out loud what it does *not* protect against."
     },
     {
       "type": "tour",
@@ -243,7 +243,7 @@
     "title": "Encryption tiers",
     "summary": "The three organisation encryption tiers, what each protects against, and who still holds a key.",
     "facts": [
-      "The tier is chosen at Settings → Organisation → Encryption, on three cards labelled Off, Managed and Zero-knowledge.",
+      "The tier is chosen at Admin dashboard → Organisation → Encryption, on three cards labelled Off, Managed and Zero-knowledge.",
       "Off is the default tier for an organisation, and the screen states that the choice affects new messages while existing messages stay readable either way.",
       "Managed escrows a second wrapping of each user's key under the organisation, so an admin can reset a password without data loss — and the server operator can still read content.",
       "Zero-knowledge derives the message-body key from the user's own secret; saving it signs out everyone in the organisation, including the admin who saved it.",

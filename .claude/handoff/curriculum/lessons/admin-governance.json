@@ -17,7 +17,7 @@
       "id": "stakes",
       "icon": "🧭",
       "title": "The doors that only open one way",
-      "bodyMd": "Van Dijk Groep has sixty people in one workspace, and Marieke, its organisation admin, is about to change something for all of them. You already know the parts: roles, groups, sign-in, the grants that give a team its tools. This chapter is the part nobody writes down — the **order** you touch them in, what you say beforehand, and which doors only open one way.\n\nAlmost everything under **Settings → Organisation** can be clicked back. Two things cannot, and a third undoes the setting but not its consequences.\n\n- **Sign-in Method.** The card warns *\"Choose carefully: Once saved, this cannot be changed.\"* After the save the row leaves the settings nav behind a lock.\n- **Reject** on a pending member. The confirm is blunt — *\"Reject and remove this user? They can sign up again later.\"* The account is deleted.\n- **The Zero-knowledge encryption level.** Pick another level tomorrow if you like; the save cannot be un-rung. Everyone was signed out, and each key now comes from its owner's own secret — so nobody, not you and not Bee Flow, can recover that data once the password and recovery key are gone.\n\nRoles, groups, tiers, grants and shield settings are adjustments. Treat those three as decisions."
+      "bodyMd": "Van Dijk Groep has sixty people in one workspace, and Marieke, its organisation admin, is about to change something for all of them. You already know the parts: roles, groups, sign-in, the grants that give a team its tools. This chapter is the part nobody writes down — the **order** you touch them in, what you say beforehand, and which doors only open one way.\n\nAlmost everything under **Admin dashboard → Organisation** can be clicked back. Two things cannot, and a third undoes the setting but not its consequences.\n\n- **Sign-in Method.** The card warns *\"Choose carefully: Once saved, this cannot be changed.\"* After the save the row leaves the settings nav behind a lock.\n- **Reject** on a pending member. The confirm is blunt — *\"Reject and remove this user? They can sign up again later.\"* The account is deleted.\n- **The Zero-knowledge encryption level.** Pick another level tomorrow if you like; the save cannot be un-rung. Everyone was signed out, and each key now comes from its owner's own secret — so nobody, not you and not Bee Flow, can recover that data once the password and recovery key are gone.\n\nRoles, groups, tiers, grants and shield settings are adjustments. Treat those three as decisions."
     },
     {
       "type": "quiz",
@@ -177,7 +177,7 @@
       "type": "tour",
       "id": "usage-anchor",
       "target": "[data-tour=\"usage-summary\"]",
-      "navigateTo": "settings/organisation/usage",
+      "navigateTo": "admin/monitoring",
       "placement": "bottom",
       "optional": true,
       "timeoutMs": 7000,

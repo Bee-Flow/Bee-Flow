@@ -14,7 +14,7 @@
       "id": "three-gates",
       "icon": "🪜",
       "title": "Three gates stand between a tool and a person",
-      "bodyMd": "Pieter, the buyer in Van Dijk Groep's Inkoop team, asks the question every admin gets sooner or later: *\"why can't the agent read our shared drive?\"* It sounds like a bug. It is almost always access — and access is three gates stacked on top of each other.\n\n1. **The ceiling** — does the subscription (cloud) or the server licence (self-hosted) include this integration at all? You cannot raise it.\n2. **The grant** — have you handed it out, in **Settings → Organisation → Integrations → Integration access**?\n3. **The connection** — has Pieter stored his own credential under **Settings → Connections**?\n\nMiss one and the tool is simply absent from the agent's toolbox. No error, no warning. Gate 2 is the one you own, and every screen in this lesson is really the same question in a different costume: *who is this for, and who owns the credential?*"
+      "bodyMd": "Pieter, the buyer in Van Dijk Groep's Inkoop team, asks the question every admin gets sooner or later: *\"why can't the agent read our shared drive?\"* It sounds like a bug. It is almost always access — and access is three gates stacked on top of each other.\n\n1. **The ceiling** — does the subscription (cloud) or the server licence (self-hosted) include this integration at all? You cannot raise it.\n2. **The grant** — have you handed it out, in **Admin dashboard → Access → Integration access**?\n3. **The connection** — has Pieter stored his own credential under **Settings → Connections**?\n\nMiss one and the tool is simply absent from the agent's toolbox. No error, no warning. Gate 2 is the one you own, and every screen in this lesson is really the same question in a different costume: *who is this for, and who owns the credential?*"
     },
     {
       "type": "slide",
@@ -60,7 +60,7 @@
       "id": "hidden-locked",
       "icon": "🔒",
       "title": "An absence has two meanings",
-      "bodyMd": "Integrations outside your subscription are **not shown at all** on the organisation page — no padlock, no greyed-out row. You can only hand out what you have — but because a missing row looks the same as a row that was never built, admins report *\"that integration does not exist\"* when they mean *\"we never bought it\"*. An empty tab reads **\"Your subscription doesn't include any integrations yet.\"**\n\nTo see what you *do* have, leave Settings and open the admin dashboard at **Admin → Access → Ceiling**: a read-only list of your organisation's capabilities, grouped as **Features**, **Beta features** and **Integrations** with a count each. Absent there means the plan or licence does not include it. Check it before you promise anything.\n\nThe **Grants** rail beside it shows an org admin only Features and Beta features — integrations stay on **Settings → Organisation → Integrations**."
+      "bodyMd": "Integrations outside your subscription are **not shown at all** on the organisation page — no padlock, no greyed-out row. You can only hand out what you have — but because a missing row looks the same as a row that was never built, admins report *\"that integration does not exist\"* when they mean *\"we never bought it\"*. An empty tab reads **\"Your subscription doesn't include any integrations yet.\"**\n\nTo see what you *do* have, leave Settings and open the admin dashboard at **Admin → Access → Ceiling**: a read-only list of your organisation's capabilities, grouped as **Features**, **Beta features** and **Integrations** with a count each. Absent there means the plan or licence does not include it. Check it before you promise anything.\n\nThe **Grants** rail beside it shows an org admin only Features and Beta features — integrations stay on **Admin dashboard → Organisation → Integrations**."
     },
     {
       "type": "sim",
@@ -116,7 +116,7 @@
         "items": [
           {
             "id": "tab",
-            "label": "Open Settings → Organisation → Integrations and switch to the Integration settings tab"
+            "label": "Open Admin dashboard → Organisation → Integrations and switch to the Integration settings tab"
           },
           {
             "id": "conn",
@@ -194,7 +194,7 @@
       "id": "arrivals",
       "icon": "📥",
       "title": "Rows you did not create, and the condition behind each",
-      "bodyMd": "Two rows in this area appear on somebody else's say-so. Recognising the condition saves an afternoon of hunting.\n\n**MCP servers.** An MCP server is an external tool server that hands your agents extra tools. Installing one means running a program on the deployment, so it is a *platform super-admin* act, and an **Enterprise** feature. Once installed it stops being special: it shows up in the **Integrations** section of the access matrix as an ordinary card, you grant it to All members or a group, and every user stores their own credential for it under **Settings → Connections**.\n\n**GitHub Sync.** The **Settings → Organisation → GitHub Sync** row — mirroring agent configurations to a repository — appears only once a GitHub personal access token with **repo** scope has been connected on **Settings → Connections**. The status check reads *your own* account, not the organisation's.\n\nSame shape as the ceiling, one step down: an absent row is usually a condition somebody has not met yet, not a missing feature."
+      "bodyMd": "Two rows in this area appear on somebody else's say-so. Recognising the condition saves an afternoon of hunting.\n\n**MCP servers.** An MCP server is an external tool server that hands your agents extra tools. Installing one means running a program on the deployment, so it is a *platform super-admin* act, and an **Enterprise** feature. Once installed it stops being special: it shows up in the **Integrations** section of the access matrix as an ordinary card, you grant it to All members or a group, and every user stores their own credential for it under **Settings → Connections**.\n\n**GitHub Sync.** The **Admin dashboard → Organisation → GitHub Sync** row — mirroring agent configurations to a repository — appears only once a GitHub personal access token with **repo** scope has been connected on **Settings → Connections**. The status check reads *your own* account, not the organisation's.\n\nSame shape as the ceiling, one step down: an absent row is usually a condition somebody has not met yet, not a missing feature."
     },
     {
       "type": "quiz",
@@ -204,7 +204,7 @@
       "choices": [
         {
           "id": "a",
-          "label": "You install it from Settings → Organisation → Integrations",
+          "label": "You install it from Admin dashboard → Organisation → Integrations",
           "correct": false,
           "feedback": "There is no install button there. The organisation page only hands out capabilities that already exist on the deployment."
         },
@@ -233,7 +233,7 @@
       "id": "nextcloud",
       "icon": "☁️",
       "title": "Nextcloud breaks the rule on purpose",
-      "bodyMd": "Same question — who may use what — with the answer inverted. If your organisation is paired to a Nextcloud instance, **Integration settings** also shows **Nextcloud integrations**, and it is the one surface here that subtracts.\n\n- **Org-wide** — tick the Nextcloud apps your agents may touch. That is the default for every member.\n- **Per-group exceptions** — expand a synced group and tick **\"Disable <tool>\"**. It is a *disable* list, and **enable wins**: a user keeps a tool as long as one of their groups still allows it.\n\nSo the habit from the matrix — *grant it to the one group that should have it* — backfires here: you must switch it on for everyone and then disable it for **every** group that should not have it, or a second membership hands it straight back.\n\nA tool switched off org-wide is greyed everywhere, tooltip *\"Enable org-wide first\"*. An empty group list means nothing has synced yet — press **Sync now** on **Settings → Organisation → Nextcloud Sync**, which decides which *people* come across, while this panel decides which *apps* agents may use."
+      "bodyMd": "Same question — who may use what — with the answer inverted. If your organisation is paired to a Nextcloud instance, **Integration settings** also shows **Nextcloud integrations**, and it is the one surface here that subtracts.\n\n- **Org-wide** — tick the Nextcloud apps your agents may touch. That is the default for every member.\n- **Per-group exceptions** — expand a synced group and tick **\"Disable <tool>\"**. It is a *disable* list, and **enable wins**: a user keeps a tool as long as one of their groups still allows it.\n\nSo the habit from the matrix — *grant it to the one group that should have it* — backfires here: you must switch it on for everyone and then disable it for **every** group that should not have it, or a second membership hands it straight back.\n\nA tool switched off org-wide is greyed everywhere, tooltip *\"Enable org-wide first\"*. An empty group list means nothing has synced yet — press **Sync now** on **Admin dashboard → Organisation → Nextcloud Sync**, which decides which *people* come across, while this panel decides which *apps* agents may use."
     },
     {
       "type": "quiz",
@@ -275,7 +275,7 @@
       "title": "Grant one integration to one group",
       "instruction": "Open Integration access, pick a group in the left rail (create one under Users & Groups if the list is empty), and switch on a single integration that group actually needs — one All members does not already have, or the card will be greyed as inherited. Wait for \"Saved\", then come back: we check that at least one group carries a grant of its own.",
       "launch": {
-        "navigateTo": "settings/organisation/integrations",
+        "navigateTo": "admin/organisation/integrations",
         "label": "Open Integrations"
       }
     },
@@ -328,7 +328,7 @@
     "title": "Organisation integrations and access",
     "summary": "How an org admin hands out integrations to All members or a group, and which surface owns which decision.",
     "facts": [
-      "Settings → Organisation → Integrations has two tabs: \"Integration access\" (who may use what) and \"Integration settings\", which carries the org-owned credentials — the n8n row (\"Connect n8n workflows as AI tools\") and the Google Maps row (\"Directions, route maps & places search in chat\").",
+      "Admin dashboard → Organisation → Integrations has two tabs: \"Integration access\" (who may use what) and \"Integration settings\", which carries the org-owned credentials — the n8n row (\"Connect n8n workflows as AI tools\") and the Google Maps row (\"Directions, route maps & places search in chat\").",
       "The n8n row has its own Connection, Workflows and Permissions tabs: Connection holds the n8n Instance URL and API Key with a \"Test Connection\" button, Workflows lists what comes back, and Permissions decides which groups may run workflows and which may modify them.",
       "The access matrix is grant-only: effective access is All-members grants plus every group the person belongs to, and inside a group an All-members grant is ticked, read-only and labelled \"Granted to all members\" — it can never be un-inherited.",
       "Integrations outside the subscription are hidden on the organisation page, not padlocked; Admin → Access → Ceiling is a read-only list of the capabilities the organisation does have, grouped as Features, Beta features and Integrations.",
@@ -343,7 +343,7 @@
       "checkId": "org-group-grant",
       "existing": false,
       "label": "Grant an integration to a group",
-      "hint": "In Settings → Organisation → Integrations → Integration access, pick a group in the left rail and switch one integration on.",
+      "hint": "In Admin dashboard → Access → Integration access, pick a group in the left rail and switch one integration on.",
       "endpoints": [
         {
           "method": "GET",

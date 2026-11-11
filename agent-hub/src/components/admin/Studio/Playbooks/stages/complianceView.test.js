@@ -25,7 +25,7 @@ describe('complianceView — what the phase shows', () => {
         expect(linkFor({ target: { kind: 'table', id: 'tbl_1' } })).toBe('studio/datatables/tbl_1');
         expect(linkFor({ target: { kind: 'app', id: 'app_1' } })).toBe('studio/apps/app_1');
         // The register is a place, not a thing.
-        expect(linkFor({ link: 'register' })).toBe('settings/organisation/compliance/ropa');
+        expect(linkFor({ link: 'register' })).toBe('admin/compliance/ropa');
         // A finding stored before targets existed still knows where to go.
         expect(linkFor({ link: 'app' }, { app: { id: 'app_9' } })).toBe('studio/apps/app_9');
         expect(linkFor({ link: 'automation' })).toBeNull();

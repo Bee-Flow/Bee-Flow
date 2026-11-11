@@ -61,7 +61,7 @@ describe('SpendTab: hero', () => {
         const hero = screen.getByRole('region', { name: 'Spend summary' });
         expect(within(hero).getByText(/Estimated AI cost/)).toBeTruthy();
         expect(within(hero).getByText('none set')).toBeTruthy();
-        expect(within(hero).getByRole('link', { name: /Set a budget per member or group/ }).getAttribute('href')).toBe('/app/settings/organisation/users');
+        expect(within(hero).getByRole('link', { name: /Set a budget per member or group/ }).getAttribute('href')).toBe('/app/admin/security/users');
         expect(await within(hero).findByTestId('delta-pill')).toBeTruthy();
     });
 

@@ -4,9 +4,9 @@ title: Admin
 
 # Admin
 
-Org-admin operations live under **Settings → Organisation** in the SPA. This section is the reference for what each panel does.
+Org-admin operations live in the admin dashboard in the SPA: **Admin → Organisation** for the organisation's own settings, and the Security, Access, Monitoring and Compliance tabs for people, grants, usage and compliance. A platform admin picks the organisation to work on at the top of the dashboard; an organisation admin always works on their own. This section is the reference for what each panel does.
 
-URL inside Bee Flow: `/app/admin` and `/app/org-settings`.
+URL inside Bee Flow: `/app/admin`. The former Settings addresses (`/app/settings/organisation/…`, `/app/org-settings/…`) forward to the matching admin page.
 
 ## Who is an admin
 

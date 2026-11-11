@@ -10,7 +10,7 @@ The Compliance Hub is a licensed feature (`compliance_hub_gdpr`). Self-hosted it
 
 :::
 
-Paths: **Admin → Compliance**, or for organisation admins and DPOs: **Settings → Organisation → Compliance**. The `dpo` organisation role grants access to the Compliance Hub and monitoring without full admin rights.
+Path: **Admin → Compliance**, for platform admins, organisation admins and DPOs alike. The `dpo` organisation role grants access to the Compliance Hub and monitoring without full admin rights.
 
 ## The Compliance Hub
 

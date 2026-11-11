@@ -10,7 +10,7 @@ Read-only LinkedIn lookups via OAuth.
 
 1. Create a LinkedIn Developer App at [https://www.linkedin.com/developers/apps](https://www.linkedin.com/developers/apps).
 2. Add redirect URI: `https://your-host/api/integrations/linkedin/callback`.
-3. Set the client id and secret in **Settings → Organisation → Integrations → LinkedIn**. They are stored as encrypted secrets. As a fallback the server also reads `LINKEDIN_CLIENT_ID` / `LINKEDIN_CLIENT_SECRET` from the environment — note the names have no `OAUTH_` prefix.
+3. Set the client id and secret in **Admin → Organisation → Integrations → LinkedIn**. They are stored as encrypted secrets. As a fallback the server also reads `LINKEDIN_CLIENT_ID` / `LINKEDIN_CLIENT_SECRET` from the environment — note the names have no `OAUTH_` prefix.
 4. Restart the server only if you used the environment variables; secrets set in the UI take effect immediately.
 
 ## Scopes

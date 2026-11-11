@@ -597,7 +597,7 @@ describe('OrgUsersPanel — invitations', () => {
         fireEvent.change(screen.getByPlaceholderText('colleague@example.com'), { target: { value: 'new@acme.nl' } });
         await userEvent.click(screen.getByText('Send'));
         expect(await screen.findByText('Seat cap reached')).toBeInTheDocument();
-        expect(screen.getByText('View plans & upgrade').getAttribute('href')).toBe('/app/settings/organisation/license');
+        expect(screen.getByText('View plans & upgrade').getAttribute('href')).toBe('/app/admin/organisation/license');
     });
 
     it('reports a non-JSON server reply as a network error (wrat)', async () => {

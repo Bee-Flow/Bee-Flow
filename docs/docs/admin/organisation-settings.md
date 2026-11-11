@@ -4,7 +4,7 @@ title: Organisation settings
 
 # Organisation settings
 
-Path: **Settings → Organisation** (URL `/app/org-settings`).
+Path: **Admin → Organisation** (URL `/app/admin/organisation`). It used to sit under Settings; the old addresses forward here.
 
 A grab-bag of org-wide configuration. Sub-pages within:
 
@@ -65,7 +65,7 @@ Path: **Org settings → Licence & usage**.
 | Refresh now | Manual re-check button. |
 
 How much AI your organisation uses, where it goes and who uses it is under
-**Settings → Organisation → Usage & Monitoring**; the Adoption tab there is described in
+**Admin → Monitoring**; the Adoption tab there is described in
 [Usage & adoption](usage-and-adoption.md).
 
 ## Privacy
@@ -111,7 +111,7 @@ See [Audit & compliance](audit-and-compliance.md) for the data model.
 
 ## Integrations (other than NC)
 
-**Settings → Organisation → Integrations** has two tabs. **Integration access** grants each integration your subscription includes to the whole organisation or to a group (grant-only: a user has an integration when All members or any of their groups has it). **Integration settings** configures the integrations themselves; for an organisation bound to Nextcloud it holds the [Nextcloud integrations panel](nc-integrations.md), which works differently (org-wide switches with per-group exceptions).
+**Admin → Access → Grants** grants each integration your subscription includes to the whole organisation or to a group (grant-only: a user has an integration when All members or any of their groups has it). **Admin → Organisation → Integrations** (**Integration settings**) configures the integrations themselves; for an organisation bound to Nextcloud it holds the [Nextcloud integrations panel](nc-integrations.md), which works differently (org-wide switches with per-group exceptions).
 
 ## Memory
 

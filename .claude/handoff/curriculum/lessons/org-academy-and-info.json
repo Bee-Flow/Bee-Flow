@@ -14,7 +14,7 @@
       "id": "intro",
       "icon": "🧭",
       "title": "Proof, not a feeling",
-      "bodyMd": "Marieke is the organisation admin at **Van Dijk Groep**, a sixty-person Dutch installation firm. Every quarter someone asks her the same question: *did the training land?*\n\nThe answer lives in one screen. Settings sidebar → **Organisation** → **Academy**, subtitle **\"Course progress, badges and certificates across your team.\"**\n\nTwo things to know before she opens it:\n\n- It is a **desktop screen**. The whole Organisation section is hidden on phones.\n- It reports on **members**: everyone whose organisation is Van Dijk Groep, plus everyone in one of its groups. System accounts and people who have not accepted their invite yet are left out."
+      "bodyMd": "Marieke is the organisation admin at **Van Dijk Groep**, a sixty-person Dutch installation firm. Every quarter someone asks her the same question: *did the training land?*\n\nThe answer lives in one screen. Admin dashboard → **Organisation** → **Academy**, subtitle **\"Course progress, badges and certificates across your team.\"**\n\nTwo things to know before she opens it:\n\n- It is a **desktop screen**.\n- It reports on **members**: everyone whose organisation is Van Dijk Groep, plus everyone in one of its groups. System accounts and people who have not accepted their invite yet are left out."
     },
     {
       "type": "slide",
@@ -195,7 +195,7 @@
       "title": "Finish the organisation profile",
       "instruction": "Open Organisation Info and complete the Legal & Invoicing block the way an invoice to your organisation would have to carry it: fill in Street and the VAT Number, and add Postal code, City, Country and the Chamber of Commerce (KVK) number while you are there. Then set New User Language to the language your next colleague should land in, because it is read at account creation and not afterwards. Click Save changes when the Unsaved changes bar appears — we then check the saved profile for a street address and a VAT number.",
       "launch": {
-        "navigateTo": "settings/organisation/info",
+        "navigateTo": "admin/organisation/info",
         "label": "Open Organisation Info"
       }
     },
@@ -240,7 +240,7 @@
       "checkId": "org-info",
       "existing": false,
       "label": "Fill in the invoicing details on the organisation profile",
-      "hint": "Settings → Organisation → Organisation Info → Legal & Invoicing: fill in Street and VAT Number, then Save changes.",
+      "hint": "Admin dashboard → Organisation → Organisation Info → Legal & Invoicing: fill in Street and VAT Number, then Save changes.",
       "endpoints": [
         {
           "method": "GET",

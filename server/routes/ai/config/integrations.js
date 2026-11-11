@@ -446,9 +446,9 @@ router.get('/n8n/permissions', requireOrgAdminForN8n, async (req, res) => {
         // Enforced in permissions.js via orgRoles.json → org_admin perms, with
         // legacy orgRole='admin' normalised to 'org_admin' at resolution time.
         orgAdminAlways: true,
-        // Settings → Organisation → Users & Groups. The bare /settings/... form
+        // Admin dashboard → Security → Users. The bare /settings/... form
         // is not an app route and opened the app home.
-        editUrl: '/app/settings/organisation/users',
+        editUrl: '/app/admin/security/users',
     });
 });
 
