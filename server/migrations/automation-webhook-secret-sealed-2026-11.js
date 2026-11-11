@@ -38,7 +38,7 @@ function isSealed(stored) {
 async function up({
     getAll = (sql, params) => require('../db').getAll(sql, params),
     run = (sql, params) => require('../db').run(sql, params),
-    seal = (secret, orgId) => String(require('../stores/configEncryption').encryptValue(secret, /** @type {any} */ (orgId))),
+    seal = (secret, orgId) => String(/** @type {(plain: string, orgId: string | null) => string} */ (require('../stores/configEncryption').encryptValue)(secret, orgId)),
 } = {}) {
     const rows = await getAll(
         `SELECT w.id, w.secret, a.organization_id

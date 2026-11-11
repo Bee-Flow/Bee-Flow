@@ -87,13 +87,16 @@ function pickWebhookHeaders(req) {
 // signs what it sent (webhookSignature.js explains the accepted forms).
 const webhookJson = express.json({ limit: '256kb', verify: (req, _res, buf) => { /** @type {import('http').IncomingMessage & { rawBody?: string }} */ (req).rawBody = buf.toString('utf8'); } });
 
-/** What the delivery needs from the rest of the server; resolved at call time. */
+/**
+ * What the delivery needs from the rest of the server; resolved at call time.
+ * @type {import('./webhookReceive.mts').ReceiveDeps}
+ */
 const webhookDeps = {
     store: automationStore,
     check: checkWebhookSignature,
-    liveHasTrigger: (/** @type {any} */ automation, /** @type {string} */ stepId) => require('../../core/automationRunner/definitionForRun').liveHasTrigger(automation, stepId),
-    execute: (/** @type {any} */ automation, /** @type {Record<string, unknown>} */ options) => require('../../core/automationRunner').executeAutomation(automation, options),
-    logDelivery: (/** @type {Parameters<typeof automationStore.logWebhookDelivery>[0]} */ d) => automationStore.logWebhookDelivery(d),
+    liveHasTrigger: (automation, stepId) => require('../../core/automationRunner/definitionForRun').liveHasTrigger(automation, stepId),
+    execute: (automation, options) => require('../../core/automationRunner').executeAutomation(automation, options),
+    logDelivery: (d) => automationStore.logWebhookDelivery(d),
     rejectLogPerMinute: () => automationWebhookLimits().rejectLogPerMinute,
     log,
 };

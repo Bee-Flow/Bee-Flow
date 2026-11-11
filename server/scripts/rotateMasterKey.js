@@ -37,8 +37,7 @@
  *
  *     'config-v1'         configStore     — config.value, users.mfa_secret,
  *                                           webpage_public_shares.token_cipher,
- *                                           studio_app_webhook_endpoints.secret_cipher / prev_secret_cipher,
- *                                           automation_webhooks.secret / prev_secret
+ *                                           studio_app_webhook_endpoints.secret_cipher / prev_secret_cipher, automation_webhooks.secret / prev_secret
  *     'routine-vault-v1'  orgVault        — integration_connections.secret,
  *                                           automation_credentials.access_token,
  *                                           automation_credentials.refresh_token,
@@ -238,8 +237,7 @@ async function main() {
         console.log(`[rotate] ${label} done — rotated=${colRotated} already_new=${colAlreadyNew} plaintext_sealed=${colPlain} unreadable=${colUnreadable}`);
     }
 
-    const WEBHOOK = { table: 'studio_app_webhook_endpoints', idCol: 'endpoint_id' }; // the signing secrets of App Studio webhook triggers
-    const AUTOMATION_WEBHOOK = { table: 'automation_webhooks', idCol: 'id' }; // the signing secrets of automation webhook triggers
+    const [WEBHOOK, AUTOMATION_WEBHOOK] = [{ table: 'studio_app_webhook_endpoints', idCol: 'endpoint_id' }, { table: 'automation_webhooks', idCol: 'id' }]; // the signing secrets of App Studio and automation webhook triggers
     for (const col of [{ table: 'users', idCol: 'id', valueCol: 'mfa_secret', quoteId: true }, { ...WEBHOOK, valueCol: 'secret_cipher' }, { ...WEBHOOK, valueCol: 'prev_secret_cipher' }, { ...AUTOMATION_WEBHOOK, valueCol: 'secret' }, { ...AUTOMATION_WEBHOOK, valueCol: 'prev_secret' }, { table: 'webpage_public_shares', idCol: 'id', valueCol: 'token_cipher' }]) {
         const label = `${col.table}.${col.valueCol}`;
         await runPass(label, async () => { await rotateEnvelopeColumn({ ...col, label }); });

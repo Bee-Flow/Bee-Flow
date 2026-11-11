@@ -39,7 +39,7 @@ async function newSealedSecret(automationId) {
  * @param {string} secret
  * @param {string | null | undefined} orgId
  */
-const seal = (secret, orgId) => String(encryptValue(secret, /** @type {any} */ (orgId || null)));
+const seal = (secret, orgId) => String(/** @type {(plain: string, orgId: string | null) => string} */ (encryptValue)(secret, orgId || null));
 
 /** @param {unknown} v  a timestamp column */
 const iso = (v) => (v instanceof Date ? v.toISOString() : (typeof v === 'string' ? v : null));
