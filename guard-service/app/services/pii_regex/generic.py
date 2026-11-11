@@ -194,7 +194,22 @@ _IPV6_RE = re.compile(
     r"(?![0-9A-Za-z.:])"
 )
 
-_URL_RE = re.compile(r"https?://\S+|www\.[A-Za-z0-9\-]+\.[A-Za-z]{2,}\S*")
+# URLs. The body used to be `\S+`, which ran on past the end of the address
+# wherever no space followed it. In a tool result serialised as compact JSON
+# (`["…","http://example.nl","Jan Jansen"]`) the match took `http://example.nl",
+# "Jan`, the overlap resolver merged it with the name next to it, and one
+# `[url_1]` token swallowed two array elements. The body now stops at
+# every character that cannot appear unescaped in a URL (RFC 3986: whitespace,
+# `"`, `'`, `<`, `>`, `\`, `^`, backtick, `{`, `}`, `|`), and the last character
+# may not be the sentence punctuation the model-span repair trims as well
+# (`.,;:!?)]`, pii/postprocess.py _TRAILING_PUNCT; `}` is already out). One
+# character class then one character: linear, no nested quantifier.
+_URL_CHAR = r"""[^\s"'<>\\^`{}|]"""
+_URL_LAST = r"""[^\s"'<>\\^`{}|.,;:!?)\]]"""
+_URL_RE = re.compile(
+    rf"https?://{_URL_CHAR}*{_URL_LAST}"
+    rf"|www\.[A-Za-z0-9\-]+\.[A-Za-z]{{2,}}(?:{_URL_CHAR}*{_URL_LAST})?"
+)
 
 # Specific high-precision secret patterns.
 _SECRET_RES: tuple[tuple[str, re.Pattern[str]], ...] = (
