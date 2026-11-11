@@ -22,6 +22,41 @@ export interface TurnEndDeps {
     reloadConversation: () => (() => Promise<ChatMessage[] | null | undefined>) | undefined;
 }
 
+/** The server (or a proxy in front of it) refused the turn before any stream began. */
+export class HttpTurnError extends Error {
+    readonly status: number;
+    /** The server's own `{error}` text, when the body was Bee Flow's JSON. */
+    readonly serverMessage: string | null;
+    constructor(status: number, serverMessage: string | null) {
+        super(`Failed to send message (${status})`);
+        this.name = 'HttpTurnError';
+        this.status = status;
+        this.serverMessage = serverMessage;
+    }
+}
+
+/** Read status and the `{error}` text of a non-OK turn response; a non-JSON body (a proxy page) is ignored. */
+export async function httpTurnErrorFrom(response: Pick<Response, 'status' | 'json'>): Promise<HttpTurnError> {
+    // A proxy answers with an HTML page, not JSON: that body carries no message.
+    const body = await response.json().catch(() => null) as { error?: unknown } | null;
+    const serverMessage = body && typeof body.error === 'string' && body.error.trim() ? body.error.trim() : null;
+    return new HttpTurnError(response.status, serverMessage);
+}
+
+/** What the user reads for a refused turn: a clear cause, never the bare generic line. */
+function httpErrorText(err: HttpTurnError, t: TranslateFn): string {
+    if (err.status === 413) return t('chat.error.request_too_large');
+    if (err.status === 502 || err.status === 503 || err.status === 504) return t('chat.error.gateway_timeout');
+    return err.serverMessage || t('chat.error.http_status', { status: err.status });
+}
+
+/** The turn was refused with an HTTP status: keep it an error and say why. */
+function finishHttpError(err: HttpTurnError, turn: ChatTurn, deps: TurnEndDeps): void {
+    const content = httpErrorText(err, deps.t());
+    patchMessage(deps, turn.assistantMsgId, m => ({ ...m, isStreaming: false, isError: true, content }));
+    deps.setIsLoading(false);
+}
+
 /** Quick first attempt, then every 4 s up to ~60 s in total. */
 export const RECOVERY_DELAYS_MS = [1200, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000];
 
@@ -81,7 +116,7 @@ function abnormalEnd(m: ChatMessage, turn: ChatTurn, interrupted: boolean, t: Tr
     // actionable reason; replacing it with a generic "interrupted"/"Error
     // generating response." would be strictly less true. Just close it out.
     if (m.isError) return { ...m, isStreaming: false };
-    if (!interrupted) return { ...m, isStreaming: false, isError: true, content: 'Error generating response.' };
+    if (!interrupted) return { ...m, isStreaming: false, isError: true, content: t('chat.error.generic') };
     const prior = (m.content && m.content.trim()) ? m.content.trimEnd() + '\n\n' : '';
     // When we know WHAT was produced, lead with an explicit success
     // confirmation so users don't retry and duplicate.
@@ -175,7 +210,9 @@ export function finishWithError(e: unknown, turn: ChatTurn, deps: TurnEndDeps): 
     // m.content, so the prior content prepended to the notice is complete.
     turn.flusher.flushNow();
     if (err.name === 'AbortError') return;
-    if (turn.sawDone) {
+    if (err instanceof HttpTurnError) {
+        finishHttpError(err, turn, deps);
+    } else if (turn.sawDone) {
         logger.debug('[useChatEngine] stream teardown after done', err);
         finishAfterDone(turn, deps);
     } else {

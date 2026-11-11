@@ -186,7 +186,7 @@ async function handlePdf(att, ctx) {
             const pdfPart = nativePdfPart({
                 adapter, modelId, providerType: config?.providerType,
                 shieldActive: isShieldActive(shield), tokenised: wasTokenised,
-                base64Data, mediaType: att.type, filename: att.name, tag: 'DirectChat',
+                base64Data, mediaType: att.type, filename: att.name, pages: result.meta?.numPages, tag: 'DirectChat',
             });
             if (pdfPart) contentParts.push(pdfPart);
             await pushAttachment({ name: att.name, type: att.type, url: pdfProxyUrl }, docText);

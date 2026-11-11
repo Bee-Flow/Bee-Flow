@@ -182,6 +182,7 @@ const NL_TRANSLATIONS = [
     'add-nl-forms-validation-translations',
     'add-nl-forms-style-translations',
     'add-nl-cowork-translations',
+    'add-nl-chat-request-errors-translations',
     'add-nl-studio-fundament-translations',
     'add-nl-dlp-review-translations',
     // ── The eleven from the shelf (U6) ────────────────────────────────────────

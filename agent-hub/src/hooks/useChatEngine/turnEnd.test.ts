@@ -2,7 +2,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { SetStateAction } from 'react';
 import {
-    finishAbnormally, finishStreamEnd, finishWithError, recoverPersistedReply, turnMemoryWatch,
+    HttpTurnError, httpTurnErrorFrom, finishAbnormally, finishStreamEnd, finishWithError, recoverPersistedReply, turnMemoryWatch,
     RECOVERY_DELAYS_MS, type TurnEndDeps,
 } from './turnEnd';
 import type { ChatTurn } from './turnStream';
@@ -43,7 +43,7 @@ describe('finishAbnormally', () => {
     it('is a hard error when nothing was produced', () => {
         const { state, deps } = harness([streaming()]);
         finishAbnormally(newTurn(), deps);
-        expect(state.messages[0]).toMatchObject({ isStreaming: false, isError: true, content: 'Error generating response.' });
+        expect(state.messages[0]).toMatchObject({ isStreaming: false, isError: true, content: 'chat.error.generic' });
         expect(state.loading).toBe(false);
     });
 
@@ -123,5 +123,40 @@ describe('turnMemoryWatch', () => {
         expect(turnMemoryWatch(turn, { ...ok, customEndpoint: '/x' })).toBeNull();
         expect(turnMemoryWatch(turn, { ...ok, memoryWriteEnabled: () => false })).toBeNull();
         expect(turnMemoryWatch(newTurn(), ok)).toBeNull();
+    });
+});
+
+describe('a turn refused with an HTTP status', () => {
+    const run = (err: HttpTurnError) => {
+        const { state, deps } = harness([streaming()]);
+        finishWithError(err, newTurn(), deps);
+        return state;
+    };
+
+    it('413 says the request is too large and stays an error', () => {
+        const state = run(new HttpTurnError(413, 'Request body too large'));
+        expect(state.messages[0]).toMatchObject({ isStreaming: false, isError: true, content: 'chat.error.request_too_large' });
+        expect(state.loading).toBe(false);
+    });
+
+    it('502, 503 and 504 say the server did not answer in time', () => {
+        for (const status of [502, 503, 504]) {
+            expect(run(new HttpTurnError(status, null)).messages[0]).toMatchObject({ isError: true, content: 'chat.error.gateway_timeout' });
+        }
+    });
+
+    it('another status shows the JSON error text of the server', () => {
+        expect(run(new HttpTurnError(400, 'Attachment type not allowed')).messages[0]).toMatchObject({ isError: true, content: 'Attachment type not allowed' });
+    });
+
+    it('without a body it names the status', () => {
+        expect(run(new HttpTurnError(500, null)).messages[0]).toMatchObject({ isError: true, content: 'chat.error.http_status' });
+    });
+
+    it('httpTurnErrorFrom reads {error} from a JSON body and survives a non-JSON one', async () => {
+        const withBody = await httpTurnErrorFrom({ status: 400, json: async () => ({ error: ' Nope ', code: 'x' }) });
+        expect(withBody).toMatchObject({ status: 400, serverMessage: 'Nope' });
+        const html = await httpTurnErrorFrom({ status: 413, json: async () => { throw new SyntaxError('not json'); } });
+        expect(html).toMatchObject({ status: 413, serverMessage: null });
     });
 });

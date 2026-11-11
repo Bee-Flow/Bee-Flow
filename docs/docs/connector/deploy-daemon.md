@@ -76,6 +76,9 @@ server {
         # Streaming answers: never buffer, and wait as long as HaRP does (1800 s).
         proxy_buffering off;
         proxy_request_buffering off;
+        # Chat attachments travel in the request body (base64, a third larger than the file);
+        # nginx's default of 1 MB refuses a PDF of 800 KB with a 413.
+        client_max_body_size 32m;
         proxy_read_timeout 1800s;
         proxy_send_timeout 1800s;
     }

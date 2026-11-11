@@ -17,6 +17,9 @@ function toFriendlyTurnError(raw) {
     if (/no low surrogate|invalid.*surrogate/i.test(raw)) {
         return 'De conversatie bevat ongeldige Unicode-tekens. Probeer een nieuw bericht; oudere berichten worden bij de volgende compactie opgeschoond.';
     }
+    if (/prompt is too long|context_length_exceeded|maximum context length/i.test(raw)) {
+        return 'Het gesprek past niet meer in het contextvenster van dit AI-model (te veel tekst of bijlagen). Start een nieuwe chat, verwijder oudere bijlagen of gebruik een kortere tekst.';
+    }
     if (/API error 4\d\d/.test(raw)) {
         return `AI-provider gaf een fout terug: ${raw}`;
     }

@@ -4,7 +4,7 @@ import type { ContentFlusher } from './useChatEngine/contentFlusher';
 import type { ChatAttachment } from './useChatEngine/historyAttachment';
 import { dispatchSSEEvent } from './useChatEngine/sseEvents';
 import type { ChatSignalsTurnSurface } from './useChatEngine/turnEndpoint';
-import { finishPermissionDenied, finishStreamEnd, finishWithError, type TurnEndDeps } from './useChatEngine/turnEnd';
+import { finishPermissionDenied, finishStreamEnd, finishWithError, httpTurnErrorFrom, type TurnEndDeps } from './useChatEngine/turnEnd';
 import { buildTurnRequest } from './useChatEngine/turnRequest';
 import { noteServerClock, openTurn, turnTarget } from './useChatEngine/turnStart';
 import { readTurnStream } from './useChatEngine/turnStream';
@@ -392,7 +392,7 @@ export default function useChatEngine({
                 finishPermissionDenied(turn, endDeps);
                 return;
             }
-            if (!response.ok) throw new Error('Failed to send message');
+            if (!response.ok) throw await httpTurnErrorFrom(response);
 
             await readTurnStream(response, controller.signal, turn, {
                 dispatch: (event, data, ids) => handleSSEEventRef.current(event, data, ids),

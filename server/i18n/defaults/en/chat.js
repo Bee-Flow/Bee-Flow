@@ -6,6 +6,11 @@ module.exports = {
     // ── Chat ─────────────────────────────────────────────────────
     'chat.earlierMessagesSummarised': 'Earlier messages were summarised',
     'chat.input_placeholder': 'Type a message...',
+    'chat.error.generic': 'Error generating response.',
+    'chat.error.request_too_large': 'The message or its attachments are too large for the connection to Bee Flow. Try a smaller file, or ask your administrator to raise the upload limit of the proxy in front of Bee Flow.',
+    'chat.error.gateway_timeout': 'Bee Flow did not answer in time. Try again in a moment.',
+    'chat.error.http_status': 'The message could not be sent (error {status}).',
+    'chat.attachment_too_large': '{name} is too large to attach (maximum {limit} MB).',
     'chat.documents_button': 'Documents',
     'chat.documents_close': 'Close',
     'chat.documents_picker_title': 'Open a document',

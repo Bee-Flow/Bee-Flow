@@ -110,6 +110,21 @@ describe('nativePdfPart: capability and size', () => {
         assert.equal(acceptsNativePdf({ ...base, bytes: 0 }), false);
     });
 
+    test('page cap: 100 on a window of 200K or less, 600 above it, unknown pages allowed', () => {
+        const base = { providerType: 'claude', supportsDocuments: true, shieldActive: false, tokenised: false, bytes: 10 };
+        assert.equal(nativePdfDecision({ ...base, pages: 100, contextWindow: 200_000 }).send, true);
+        assert.deepEqual(nativePdfDecision({ ...base, pages: 101, contextWindow: 200_000 }), { send: false, reason: 'too_many_pages' });
+        assert.equal(nativePdfDecision({ ...base, pages: 600, contextWindow: 1_000_000 }).send, true);
+        assert.equal(nativePdfDecision({ ...base, pages: 601, contextWindow: 1_000_000 }).reason, 'too_many_pages');
+        assert.equal(nativePdfDecision({ ...base, pages: 101 }).reason, 'too_many_pages');
+        assert.equal(nativePdfDecision(base).send, true);
+    });
+
+    test('a 150-page PDF is not attached to a 128K model, a short one is', () => {
+        assert.equal(part({ pages: 150 }), null);
+        assert.ok(part({ pages: 12 }));
+    });
+
     test('missing adapter → none', () => {
         assert.equal(part({ adapter: null }), null);
     });

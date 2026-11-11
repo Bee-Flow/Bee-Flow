@@ -14,7 +14,9 @@
  */
 import { useCallback, type Dispatch, type RefObject, type SetStateAction } from 'react';
 
-import { buildAttachments } from './attachmentFiles';
+import useTranslation from '@/hooks/useTranslation';
+import { toast } from '@/components/shared/Toast';
+import { buildAttachments, MAX_ATTACHMENT_MB } from './attachmentFiles';
 
 export type ComposerAttachment = {
     name: string;
@@ -32,15 +34,18 @@ interface UseFileIntakeArgs {
 }
 
 export default function useFileIntake({ setAttachments, setIsDragOver, fileInputRef, dropZoneRef }: UseFileIntakeArgs) {
+    const { t } = useTranslation();
     // Process files (shared between file input, drop, and paste)
     const processFiles = useCallback(async (files: File[]) => {
         if (files.length === 0) return;
-        const newAttachments = await buildAttachments(files);
+        const newAttachments = await buildAttachments(files, file => {
+            toast.error(t('chat.attachment_too_large', { name: file.name, limit: MAX_ATTACHMENT_MB }));
+        });
 
         if (newAttachments.length > 0) {
             setAttachments((prev: ComposerAttachment[]) => [...prev, ...newAttachments]);
         }
-    }, [setAttachments]);
+    }, [setAttachments, t]);
 
     const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = Array.from(e.target.files || []);
