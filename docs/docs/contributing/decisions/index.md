@@ -32,3 +32,9 @@ decision that changes gets a new record that supersedes the old one.
 | [0017](./connector-no-default-server.md) | The Nextcloud connector has no Bee Flow server until an administrator chooses one; nothing is sent before that choice |
 | [0018](./teams-meeting-import-permissions.md) | Teams meetings are imported per organiser with delegated permissions by default; application permissions are opt-in per organisation, take the tenant only from verified sources and re-check coverage at use |
 | [0019](./org-admin-is-not-platform-admin.md) | An organisation admin is not a platform admin in any deployment mode, and administers only the organisations where one strict check holds |
+| [0020](./app-definition-schema-versions.md) | App definitions have schema versions; the lowest sufficient version is written, and a corpus of stored apps gates every change |
+| [0021](./author-code-only-in-the-code-step.md) | An app may run its author's code, but only in the isolated code step, over named inputs |
+| [0022](./look-closed-vocabulary-scoped-css.md) | The look of an app is a closed vocabulary plus a scoped stylesheet; there is no free markup in the SPA |
+| [0023](./unattended-runs-act-as-the-owner.md) | Unattended runs act as the app owner, and are armed only from a published definition |
+| [0024](./trigger-chain-keeps-its-start.md) | A chain of trigger runs keeps the rules of what started it |
+| [0025](./column-rights-in-the-data-layer.md) | Column rights are enforced in the data layer and proved by oracle tests |

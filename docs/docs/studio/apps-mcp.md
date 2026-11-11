@@ -65,6 +65,21 @@ plus three entry points:
 | `studio_list_apps` | The apps this token's user owns. |
 | `studio_create_app` | A new app, optionally installed from a built-in template. |
 
+Newer parts of App Studio (the components, steps, style settings and data options that
+came after the first catalogue) are listed in the guide as a short index. The agent reads the
+full entry of an item with `app_inspect_catalog { extensions: ["<name>"] }`, or a whole family
+with `{ family: "<family>" }`, before it uses it. Besides the tools above there are
+`app_set_shell` (the navigation style, brand, header, links and footer), `app_update_step`
+(change one step of an action by its path), `app_set_trigger`, `app_set_record_trigger` and
+`app_remove_trigger` (see [Server runs and triggers](./apps-server-runs.md)), `app_move_section`,
+`app_remove_section`, `app_reorder_screens`, `app_remove_dataset` and `app_list_assets` (the
+files uploaded to the app). `app_set_theme` also takes tokens, a dark palette, fonts per role
+and a stylesheet.
+
+An agent cannot create a REST connector, read or set a webhook's address or signing secret,
+set the hosts a link may open, switch on server steps, or add watchers: the owner does that
+in Studio.
+
 Every `app_*` tool takes an `appId`. Each call is independent and re-reads the
 app from the database, so nothing is held in a server-side session that could
 expire mid-build, and a browser tab open on the same app cannot silently lose
@@ -81,6 +96,11 @@ the run goes on; a step with `retry` reports how many `attempts` it took. A
 (`wouldWrite`), and commits all of them or none in a live run. A mock answer of
 `{ "$sequence": [ { "$error": "…" }, "answer" ] }` gives one answer per attempt, so a
 saved test (`app_save_test`) can check that a retry recovers (`steps[0].attempts`).
+
+A test run of the action of a trigger takes the trigger's input in `scope`, for example
+`{ trigger: { kind: "record", record: { event, row, before, changed } } }`; a test never starts a
+trigger. A wait is skipped in a test run, and a step that waits for an approval goes on as
+approved unless a mock gives another decision.
 
 Every action run is logged (clicks, public pages, background runs, mailbox hooks,
 `app_run_action` and `app_run_tests`, which return the `runId` of their run).
