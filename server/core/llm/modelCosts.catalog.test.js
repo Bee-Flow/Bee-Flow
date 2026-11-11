@@ -228,6 +228,47 @@ test('Azure: a deployment name resolves to its model and falls back to the vendo
     }
 });
 
+// OpenAI list, per 1M tokens, verified 2026-11-04. Neither the community data
+// nor a catalogue card carries these, so the repo's own cards must price them.
+const GPT6_CARDS = {
+    'gpt-6-luna': { input: 0.10, output: 0.50, cacheRead: 0.01 },
+    'gpt-6.1-terra': { input: 1.00, output: 5.00, cacheRead: 0.05 },
+    'gpt-6.1-sol': { input: 2.00, output: 10.00, cacheRead: 0.10 },
+};
+
+test('gpt-6-luna, gpt-6.1-sol and gpt-6.1-terra are priced from their cards, on OpenAI and on Azure', () => {
+    const { setAzureDeployments } = require('../providers/azureDeployments');
+    setAzureDeployments([{ deployment: 'prod-mini', model: 'gpt-6-luna' }]);
+    try {
+        for (const [id, rates] of Object.entries(GPT6_CARDS)) {
+            assert.deepStrictEqual(costs.getModelCost(id), rates, `${id}: the card`);
+            for (const provider of ['openai', 'azure']) {
+                const r = costs.rateUsage({ model: id, provider, prompt_tokens: 1_000_000, completion_tokens: 1_000_000, prompt_includes_cache: true });
+                assert.notStrictEqual(r.cost_basis, 'unknown', `${id} on ${provider}: not the unknown-model estimate`);
+                near(r.cost, rates.input + rates.output, `${id} on ${provider}`);
+            }
+        }
+        // The alias, a dated snapshot pin, and a deployment not named after its model.
+        assert.deepStrictEqual(costs.getModelCost('gpt-6.1'), GPT6_CARDS['gpt-6.1-sol']);
+        assert.deepStrictEqual(costs.getModelCost('gpt-6.1-terra-2026-11-01'), GPT6_CARDS['gpt-6.1-terra']);
+        assert.notStrictEqual(costs.rateUsage({ model: 'gpt-6.1', prompt_tokens: 1_000_000 }).cost_basis, 'unknown');
+        near(costs.rateUsage({ model: 'prod-mini', prompt_tokens: 1_000_000, prompt_includes_cache: true }).cost, 0.10, 'deployment of Luna');
+    } finally {
+        setAzureDeployments([]);
+    }
+});
+
+test('an Azure Data Zone deployment of gpt-6.1-sol gets the regional uplift', () => {
+    const usage = { model: 'gpt-6.1-sol', provider: 'azure', prompt_tokens: 1_000_000, completion_tokens: 1_000_000, prompt_includes_cache: true };
+    near(costs.rateUsage(usage).cost, 12, 'global: the list price');
+    registerEuServedModel('gpt-6.1-sol');
+    const zone = costs.rateUsage(usage);
+    // No release date is published; the card's cutoff (2026-04-30) puts it
+    // after the 2026-03-05 uplift date.
+    near(zone.multiplier.regional, 1.1, 'the built-in regional factor');
+    near(zone.cost, 12 * 1.1, 'list price plus the uplift');
+});
+
 // ─── billing facts ───────────────────────────────────────────────────────────
 
 test('tier: a catalogue multiplier prices a batch call; the standard tier is untouched', () => {
