@@ -3,7 +3,9 @@
  * with `relation.onDelete` (core/dataEngine/dataModel/linkedFields.js). A relation without one
  * keeps today's behaviour: the database's foreign key decides, and this module is not involved.
  *
- *   restrict   the delete is refused (422 record_has_links) while any row points at the record
+ *   restrict   the delete is refused (422 record_has_links) while any row points at the record;
+ *              a relation without a rule whose foreign key refuses the delete answers the same
+ *              (refusingLinks), and neither answer names a table or a row
  *   setNull    the relation of every row pointing at it is emptied
  *   cascade    every row pointing at it is deleted too, and the rules of THAT table apply to it
  *
@@ -91,6 +93,26 @@ export function assertNoDeleteRules(model: unknown, table: Table): void {
     throw new HttpError(422, 'delete_rules', `Records of "${label(table)}" have linked records that follow a delete rule. Delete them one at a time.`);
 }
 
+/** The one answer of a delete that rows pointing at the record hold back: it names no table and no row. */
+const hasLinks = (): Error => new HttpError(422, 'record_has_links', 'This record cannot be deleted while other records point at it.');
+
+/** What the engines call a foreign key that refused a statement (SQLite, Postgres, the mapped engine error). */
+const FOREIGN_KEY_CODES: readonly unknown[] = ['SQLITE_CONSTRAINT_FOREIGNKEY', '23503', 'relation_violation'];
+const codeOf = (e: unknown): unknown => (e && typeof e === 'object' ? (e as Obj).code : undefined);
+
+/**
+ * Run a one-record delete. A relation without an onDelete rule leaves the refusal to the
+ * database's foreign key: that failure gets the answer a `restrict` rule gives, word for word.
+ */
+export async function refusingLinks<T>(run: () => Promise<T>): Promise<T> {
+    try {
+        return await run();
+    } catch (e) {
+        if (FOREIGN_KEY_CODES.includes(codeOf(e)) || FOREIGN_KEY_CODES.includes(codeOf(e && (e as Obj).cause))) throw hasLinks();
+        throw e;
+    }
+}
+
 const chunks = (ids: string[]): string[][] => Array.from({ length: Math.ceil(ids.length / CHUNK) }, (_, i) => ids.slice(i * CHUNK, (i + 1) * CHUNK));
 const holes = (ids: string[]): string => ids.map(() => '?').join(', ');
 
@@ -119,7 +141,7 @@ async function childrenOf(w: Walk, rule: Rule, ids: string[]): Promise<string[]>
     const kids = notSeen(w, rule.child, await idsWhere(w, rule.child, rule.fk, ids, null));
     if (!kids.length) return kids;
     if (rule.rule === 'restrict') {
-        throw new HttpError(422, 'record_has_links', `This record cannot be deleted while records in "${label(rule.child)}" point at it.`);
+        throw hasLinks();
     }
     w.total += kids.length;
     if (w.total > w.max) throw new HttpError(422, 'cascade_too_large', `Deleting this record would change more than ${w.max} linked records.`);

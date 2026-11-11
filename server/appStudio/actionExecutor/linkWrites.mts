@@ -45,7 +45,7 @@ const dbStore = (): {
     batch(owner: string, appId: string, statements: Array<Statement & { expectChanges?: boolean }>): Promise<unknown>;
 } => nodeRequire('../../stores/studioAppDbStore');
 
-export { hasDeleteRules, eraseWithRules } from './cascadeDelete.mts';
+export { hasDeleteRules, eraseWithRules, refusingLinks } from './cascadeDelete.mts';
 
 /**
  * Who writes where: the model the relations resolve in, the table, the writer; `recordId` and

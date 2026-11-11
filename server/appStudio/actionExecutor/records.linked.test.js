@@ -41,7 +41,8 @@ const COMMENTS = { id: 'tbl_com001', key: 'comments', name: 'Comments', fields: 
 const NOTES = { id: 'tbl_not001', key: 'notes', name: 'Notes', fields: [text('fld_nbod01', 'body'), rel('fld_nprj01', 'project', 'tbl_prj001', { onDelete: 'setNull' })], access: access() };
 const INVOICES = { id: 'tbl_inv001', key: 'invoices', name: 'Invoices', fields: [rel('fld_iprj01', 'project', 'tbl_prj001', { onDelete: 'restrict' })], access: access() };
 const LABELS = { id: 'tbl_lab001', key: 'labels', name: 'Labels', fields: [text('fld_llab01', 'label')], access: access({ member: 'record.label != "hidden"' }) };
-const MODEL = { modelVersion: 1, roles: [{ key: 'member', label: 'Member' }], tables: [PROJECTS, TASKS, COMMENTS, NOTES, INVOICES, LABELS] };
+const RECEIPTS = { id: 'tbl_rcp001', key: 'receipts', name: 'Receipts', fields: [rel('fld_rlab01', 'label', 'tbl_lab001')], access: { default: 'none', roles: {} } };
+const MODEL = { modelVersion: 1, roles: [{ key: 'member', label: 'Member' }], tables: [PROJECTS, TASKS, COMMENTS, NOTES, INVOICES, LABELS, RECEIPTS] };
 const JN = junctionName(PROJECTS.id, 'fld_plab01');
 
 const closers = [];
@@ -126,6 +127,25 @@ test('a child the role may not delete, a restrict rule or too many rows refuse t
             await assert.rejects(eraseRecord(app, MODEL, PROJECTS, big.p, { viewer }), { status: 422, code: 'cascade_too_large' }, engine.dialect);
         } finally { delete process.env.STUDIO_APP_CASCADE_MAX_ROWS; }
         assert.equal((await eraseRecord(app, MODEL, PROJECTS, big.p, { viewer })).deleted, true, `${engine.dialect}: within the limit it goes`);
+    });
+});
+
+test('a relation without a delete rule refuses the delete with the answer a restrict rule gives, naming no table', async () => {
+    await onBoth(async (engine) => {
+        const billed = await projectWithChildren(engine, { invoice: true });
+        const restricted = await eraseRecord(app, MODEL, PROJECTS, billed.p, { viewer }).catch((e) => e);
+        // A receipt (a table this role reads nothing of) points at a label through a plain relation.
+        await engine.run('INSERT INTO "labels" (id, label) VALUES (?, ?)', ['lab_kept', 'kept']);
+        await engine.run('INSERT INTO "receipts" (id, label) VALUES (?, ?)', ['rcp_1', 'lab_kept']);
+        const plain = await eraseRecord(app, MODEL, LABELS, 'lab_kept', { viewer }).catch((e) => e);
+        for (const refused of [restricted, plain]) {
+            assert.equal(refused.status, 422, engine.dialect);
+            assert.equal(refused.code, 'record_has_links', engine.dialect);
+            assert.equal(refused.message, 'This record cannot be deleted while other records point at it.', engine.dialect);
+        }
+        assert.equal(await count(engine, 'labels'), 4, `${engine.dialect}: the label stays`);
+        await engine.run('DELETE FROM "receipts" WHERE id = ?', ['rcp_1']);
+        assert.equal((await eraseRecord(app, MODEL, LABELS, 'lab_kept', { viewer })).deleted, true, `${engine.dialect}: nothing points at it, it goes`);
     });
 });
 

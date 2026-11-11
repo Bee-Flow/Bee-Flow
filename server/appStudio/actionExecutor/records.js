@@ -52,7 +52,7 @@ const {
 // Best-effort bookkeeping after a committed write (bookkeeping.mts).
 const { bumpVersion, bumpCount, bumpDatatable } = require('./bookkeeping.mts');
 const { applyFieldRules, applyFieldRulesToRows } = require('../../core/dataEngine/fieldRules.mts');
-const { writeRow, insertsWithLinks, hasDeleteRules, eraseWithRules } = require('./linkWrites.mts'); // many relations, onDelete rules
+const { writeRow, insertsWithLinks, hasDeleteRules, eraseWithRules, refusingLinks } = require('./linkWrites.mts'); // many relations, onDelete rules
 const { execWrite } = require('./recordWriteExec.mts');
 
 // ── Record writes ───────────────────────────────────────────────────
@@ -209,12 +209,13 @@ async function eraseRecord(app, model, table, recordId, { viewer, source } = {})
         return { id: recordId, deleted: changes > 0, changes };
     }
     const v = (viewer && typeof viewer === 'object') ? viewer : {};
-    if (hasDeleteRules(model, table)) return eraseWithRules(app, model, table, recordId, v); // onDelete rules: one transaction
+    if (hasDeleteRules(model, table)) return refusingLinks(() => eraseWithRules(app, model, table, recordId, v)); // onDelete rules: one transaction
     const role = v.role ?? null;
     rlsGateway.assertCanWrite(table, role, 'delete'); // 403 if this role may not
     const accessFilter = rlsGateway.compileAccessFilter(table, role, v, 'delete');
     const { sql, params } = queryCompiler.compileDelete(table, recordId, accessFilter);
-    const changes = await execWrite(studioAppDbStore, app, table, { event: 'delete', recordId, sql, params }, { source, viewer: v });
+    // A relation without a delete rule: its foreign key refuses, answered as a `restrict` rule answers.
+    const changes = await refusingLinks(() => execWrite(studioAppDbStore, app, table, { event: 'delete', recordId, sql, params }, { source, viewer: v }));
     if (changes > 0) {
         await bumpVersion(app, table.key);
         await bumpCount(app, table.key, 0 - changes);
