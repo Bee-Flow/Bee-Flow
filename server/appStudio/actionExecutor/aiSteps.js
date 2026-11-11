@@ -24,10 +24,10 @@ const AI_DATASET_TOOLS = './aiDatasetTools.mts';
  *   upsertKeyOf(writeTo: Record<string, any>, table: unknown, constants: Record<string, any>): unknown,
  *   prepareReplace(app: unknown, table: unknown, replaceWhere: unknown, run: unknown): Promise<Refusal | { filters: unknown[], matched: number }>,
  *   isRefusal(v: unknown): v is Refusal,
- *   replaceBefore(app: unknown, table: unknown, filters: unknown[], run: unknown): Promise<number>,
+ *   replaceBefore(app: unknown, table: unknown, filters: unknown[], run: unknown, source?: unknown): Promise<number>,
  *   upsertRows(app: unknown, model: unknown, table: unknown, rows: unknown[], o: Record<string, unknown>): Promise<{ written: number, unmatched: string[] }>,
  * }} WriteToRowsApi
- * @typedef {{ replaceRecordBatch(app: unknown, model: unknown, table: unknown, rows: unknown[], o: { viewer?: unknown, filters: unknown[], limit: number }): Promise<{ ids: string[], deleted: number }> }} ReplaceRecordsApi
+ * @typedef {{ replaceRecordBatch(app: unknown, model: unknown, table: unknown, rows: unknown[], o: { viewer?: unknown, filters: unknown[], limit: number, source?: unknown }): Promise<{ ids: string[], deleted: number }> }} ReplaceRecordsApi
  */
 /** @returns {WriteToRowsApi} */
 const writeToRowsModule = () => require(WRITE_TO_ROWS);
@@ -429,6 +429,11 @@ async function aiExtractStep(app, model, step, ctx) {
  * written, and a half-written order you can re-press beats a doubled one. A plain insert with
  * replaceWhere is one batch: the old set is replaced or nothing changed.
  *
+ * RECORD TRIGGERS. In a run that names the origin of its writes (`ctx.writeSource`,
+ * triggers/recordTriggerRule.mts rule 1) every row written here, and every row a replaceWhere
+ * deletes, is a change the table's record triggers see. A host that names none (the mailbox
+ * hook, a test, the builder tools) starts none.
+ *
  * With insertMissing:false a row whose key matches nothing is a MISMATCH that is reported, not a
  * new record (a bill of materials one suffix short once doubled an order: 78 ghost lines). With
  * fillOnly:true an empty answer never erases what is already there.
@@ -448,18 +453,18 @@ async function writeExtractedRows(app, model, table, rows, { writeTo, constants,
         if (replace) {
             // One batch: the old rows go and the new ones land together, or nothing changes.
             const { ids, deleted } = await replaceRecordsModule().replaceRecordBatch(app, model, table, rows, {
-                viewer: writeViewer(ctx), filters: replace.filters, limit: LIMITS.MAX_BULK_WRITE_ROWS,
+                viewer: writeViewer(ctx), filters: replace.filters, limit: LIMITS.MAX_BULK_WRITE_ROWS, source: ctx.writeSource,
             });
             return { ok: true, written: ids.length, unmatched: [], replaced: deleted };
         }
         // One transaction (RLS + quota enforced there): a quota/compile failure aborts the whole
         // extraction rather than leaving the rows written so far behind.
-        const ids = await writeRecordBatch(app, model, table, rows, { viewer: writeViewer(ctx) });
+        const ids = await writeRecordBatch(app, model, table, rows, { viewer: writeViewer(ctx), source: ctx.writeSource });
         return { ok: true, written: ids.length, unmatched: [] };
     }
-    const replaced = replace ? await writeToRows.replaceBefore(app, table, replace.filters, run) : undefined;
+    const replaced = replace ? await writeToRows.replaceBefore(app, table, replace.filters, run, ctx.writeSource) : undefined;
     const res = await writeToRows.upsertRows(app, model, table, rows, {
-        key, constants, run, writeRecord, writeViewer: writeViewer(ctx),
+        key, constants, run, writeRecord, writeViewer: writeViewer(ctx), source: ctx.writeSource,
         insertMissing: writeTo.insertMissing !== false,
         fillOnly: writeTo.fillOnly === true,
     });

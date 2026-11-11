@@ -5,6 +5,13 @@
  * INSERT `rows`, in ONE batch: either the old set is replaced or nothing changed. The caller has
  * already counted the matches and refused past the limit.
  *
+ * RECORD TRIGGERS (the app's own storage). A replace that names its origin (`source`,
+ * triggers/recordTriggerRule.mts rule 1) is recorded for the table's armed record triggers: each
+ * deleted row as a `delete`, each new row as a `create`. For a table with a trigger on deletes
+ * the rows to delete are picked first (the same rows, oldest first, at most `limit`) and deleted
+ * by id with the filter applied again, so they can be read before they go
+ * (triggers/recordCapture.mts). Every other replace runs the statements it always ran.
+ *
  * Returns `{ ids, deleted }`. A source mirror is refused (`safe`, 422): its rows live in the
  * source and cannot be replaced together with the inserts.
  */
@@ -13,6 +20,10 @@ import { createRequire } from 'node:module';
 import type { Filter } from './writeTarget.mts';
 import { applyFieldRulesToRows } from '../../core/dataEngine/fieldRules.mts';
 import { assertNoDeleteRules } from './cascadeDelete.mts';
+import { execSegments } from './recordWriteExec.mts';
+import type { Segment } from './recordWriteExec.mts';
+import { matchIds, resolveWriteTarget } from './writeTarget.mts';
+import { armedOn } from '../triggers/recordCapture.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 
@@ -26,7 +37,7 @@ type Bound = {
     datatable: Obj & { id: string; organizationId?: string | null };
 };
 type BatchResult = { changes?: number }[] | null | undefined;
-export type ReplaceOpts = { viewer?: unknown; filters: Filter[]; limit: number };
+export type ReplaceOpts = { viewer?: unknown; filters: Filter[]; limit: number; source?: unknown };
 
 const records = nodeRequire('./records') as {
     compileInserts(t: unknown, rows: Obj[], o: { createdBy: unknown; orgId: unknown; dialect?: string }): { statements: Statement[]; ids: string[] };
@@ -43,11 +54,24 @@ const rlsGateway = nodeRequire('../rlsGateway') as {
 const datatableSource = nodeRequire('../datatableSource') as { isDatatableBacked(t: unknown): boolean };
 const quota = (): { assertRowQuota(a: App, key: string): Promise<void>; assertDbByteQuota(a: App): Promise<void> } => nodeRequire('../studioAppQuota');
 const dbStore = (): { batch(o: string, a: string, s: Statement[]): Promise<BatchResult> } => nodeRequire('../../stores/studioAppDbStore');
-const bulk = (): { compileDeleteMatching(t: unknown, f: Filter[], a: unknown, o: Obj): Statement } => nodeRequire('../../core/dataEngine/queryCompilerBulk.mts');
+const bulk = (): {
+    compileDeleteMatching(t: unknown, f: Filter[], a: unknown, o: Obj): Statement;
+    compileDeleteIds(t: unknown, ids: string[], f: Filter[], a: unknown, o: Obj): Statement;
+} => nodeRequire('../../core/dataEngine/queryCompilerBulk.mts');
 
 const deletedOf = (results: BatchResult): number => Number(results && results[0] && results[0].changes) || 0;
 
-export async function replaceRecordBatch(app: App, model: unknown, table: Table, rows: Obj[], { viewer, filters, limit }: ReplaceOpts): Promise<{ ids: string[]; deleted: number }> {
+/**
+ * The delete half as segments. A table with an armed record trigger on deletes: the picked rows
+ * by id (nothing when none matches); otherwise the one filter statement it always was.
+ */
+async function deleteSegments(app: App, table: Table, viewer: Viewer, access: unknown, { filters, limit, source }: ReplaceOpts): Promise<Segment[]> {
+    if (!(await armedOn(app, table, source, 'delete'))) return [{ statements: [bulk().compileDeleteMatching(table, filters, access, { limit })] }];
+    const { ids } = await matchIds(await resolveWriteTarget(app, table, viewer, 'delete'), filters, limit);
+    return ids.length ? [{ statements: [bulk().compileDeleteIds(table, ids, filters, access, {})], rows: { table, event: 'delete', ids } }] : [];
+}
+
+export async function replaceRecordBatch(app: App, model: unknown, table: Table, rows: Obj[], { viewer, filters, limit, source }: ReplaceOpts): Promise<{ ids: string[]; deleted: number }> {
     const writer: Viewer = viewer && typeof viewer === 'object' ? viewer as Viewer : {};
     const list = applyFieldRulesToRows(table, Array.isArray(rows) ? rows : [], { op: 'create', viewerId: writer.id, role: writer.role ?? null });
     if (datatableSource.isDatatableBacked(table)) return replaceDatatableBatch(app, table, list, { viewer, filters, limit });
@@ -62,9 +86,11 @@ export async function replaceRecordBatch(app: App, model: unknown, table: Table,
         await quota().assertDbByteQuota(app);
     }
     const access = rlsGateway.compileAccessFilter(table, role, v, 'delete');
-    const del = bulk().compileDeleteMatching(table, filters, access, { limit });
+    const dels = await deleteSegments(app, table, v, access, { filters, limit, source });
     const { statements, ids } = records.compileInserts(table, list, { createdBy: v.id ?? null, orgId: app.organizationId || null });
-    const deleted = deletedOf(await dbStore().batch(app.userId, app.id, [del, ...statements]));
+    const segments: Segment[] = [...dels, ...(statements.length ? [{ statements, rows: { table, event: 'create' as const, ids } }] : [])];
+    const results = segments.length ? await execSegments(dbStore(), app, segments, { source, viewer: v }) : [];
+    const deleted = dels.length ? deletedOf(results) : 0;
     await bumpVersion(app, table.key);
     if (ids.length - deleted) await bumpCount(app, table.key, ids.length - deleted);
     return { ids, deleted };

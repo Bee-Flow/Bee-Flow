@@ -22,11 +22,21 @@
  * child created in the same batch; it carries no expectChanges (zero matches is
  * fine) and its result is `{ changed }`. A filter value that resolves to nothing
  * blocks that child: no statement, a note, the other children still commit.
+ *
+ * RECORD TRIGGERS. A transaction in a run that names the origin of its writes (`ctx.writeSource`,
+ * triggers/recordTriggerRule.mts rule 1) records the change of every create / update / delete BY
+ * ID on a table with an armed record trigger, in the order of the children, and only once the
+ * batch committed (triggers/recordCapture.mts reads each row before and after its statement, in
+ * the same batch). A filter-mode child records nothing: its rows are picked by the statement
+ * itself inside the transaction, so they cannot be read by id before and after it. Without an
+ * origin or an armed table the batch is the statements it always was.
  */
 
 import { createRequire } from 'node:module';
 import { applyFieldRules } from '../../core/dataEngine/fieldRules.mts';
 import { hasDeleteRules } from './cascadeDelete.mts';
+import { execSegments } from './recordWriteExec.mts';
+import type { Segment } from './recordWriteExec.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 
@@ -48,6 +58,7 @@ type Deps = {
     };
     rls: { assertCanWrite(t: Table, role: unknown, op: string): void; compileAccessFilter(t: Table, role: unknown, viewer: unknown, op: string): unknown };
     db: { batch(ownerId: string, appId: string, statements: Statement[]): Promise<unknown[]> };
+    execSegments(db: Deps['db'], app: App, segments: Segment[], by: { source?: unknown; viewer?: unknown }): Promise<unknown[]>;
     quota: { assertRowQuota(app: App, key: string, adding?: number, appAdding?: number): Promise<void>; assertDbByteQuota(app: App): Promise<void> };
     isDatatableBacked(t: Table): boolean;
     shared: {
@@ -92,6 +103,7 @@ function defaultDeps(): Deps {
         queryCompiler: nodeRequire('../queryCompiler'),
         rls: nodeRequire('../rlsGateway'),
         db: nodeRequire('../../stores/studioAppDbStore'),
+        execSegments,
         quota: nodeRequire('../studioAppQuota'),
         isDatatableBacked: (nodeRequire('../datatableSource') as { isDatatableBacked: (t: Table) => boolean }).isDatatableBacked,
         shared: nodeRequire('./shared'),
@@ -229,6 +241,17 @@ function rolledBack(d: Deps, e: unknown, plan: Planned[], step: Obj): Refusal | 
     return { ...described, error: `${described.error} Nothing was saved.` };
 }
 
+const EVENT_OF: Record<string, 'create' | 'update' | 'delete'> = { create_record: 'create', update_record: 'update', delete_record: 'delete' };
+
+/** The children that run a statement, as segments: a by-id child names its one row (recordCapture.mts), a filter-mode child none. */
+function segmentsOf(ran: Planned[]): Segment[] {
+    return ran.map((p) => {
+        const statements = [p.statement as Statement];
+        const id = p.bulk ? null : p.result.id;
+        return typeof id === 'string' && id ? { statements, rows: { table: p.table, event: EVENT_OF[p.kind], ids: [id] } } : { statements };
+    });
+}
+
 /** After the commit: one data-version bump per table, row counts by their net change. */
 async function bookkeeping(d: Deps, app: App, plan: Planned[]): Promise<void> {
     const delta = new Map<string, number>();
@@ -263,7 +286,7 @@ export async function transactionStep(app: App, model: unknown, step: Obj, ctx: 
     const ran = plan.filter((p) => p.statement);
     let outcomes: unknown[];
     try {
-        outcomes = ran.length ? await d.db.batch(app.userId, app.id, ran.map((p) => p.statement as Statement)) : [];
+        outcomes = ran.length ? await d.execSegments(d.db, app, segmentsOf(ran), { source: ctx.writeSource, viewer: d.shared.writeViewer(ctx) }) : [];
     } catch (e) {
         return rolledBack(d, e, plan, step);
     }

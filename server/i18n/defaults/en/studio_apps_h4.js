@@ -16,7 +16,7 @@ module.exports = {
     "studio_apps_h4.panel.events": "Start when a row is",
     "studio_apps_h4.panel.fields": "Only when one of these fields changed",
     "studio_apps_h4.panel.fields_any": "Any field",
-    "studio_apps_h4.panel.fires_on": "It starts on a change someone makes in the app (in a grid or a form, or through an add, update or delete step for one row) and on such a step of another trigger. It does not start on imports, connector sync, rows the AI builder writes, test runs, or steps that change many rows at once.",
+    "studio_apps_h4.panel.fires_on": "It starts on every row someone changes in the app: in a grid or a form, or through a step that adds, updates or deletes rows, whether one row or all rows that match a filter. Each row is one change. Rows that Read a document or Query a dataset writes count too, and so do related rows that a delete rule deletes or empties. The same steps of another trigger start it as well. It does not start on imports, connector sync, an action that incoming mail starts, File the attachments, rows the AI builder writes, test runs, or a step with a filter inside All or nothing. A step that changes very many rows at once starts nothing, and the trigger shows that it was skipped.",
     "studio_apps_h4.panel.loops": "A trigger never starts on a row its own run changed, and a chain of triggers that start each other stops after a few runs.",
     "studio_apps_h4.panel.no_tables": "Add a table to the app first: a record trigger watches one of its tables.",
     "studio_apps_h4.panel.runs_as": "It runs as the owner of this app, whoever changed the row: with the owner’s access to every row, the owner’s mailbox and the owner’s automations.",

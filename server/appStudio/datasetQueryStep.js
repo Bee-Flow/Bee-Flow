@@ -218,7 +218,7 @@ async function datasetQueryStep(app, model, step, ctx, helpers) {
         if (step.writeTo.replaceWhere !== undefined && step.writeTo.replaceWhere !== null) {
             const prepared = await writeToRows.prepareReplace(app, table, step.writeTo.replaceWhere, run);
             if (writeToRows.isRefusal(prepared)) return prepared;
-            await writeToRows.replaceBefore(app, table, prepared.filters, run);
+            await writeToRows.replaceBefore(app, table, prepared.filters, run, ctx.writeSource);
         }
 
         for (const row of result.rows) {
@@ -244,7 +244,8 @@ async function datasetQueryStep(app, model, step, ctx, helpers) {
                 }, { viewer: writeViewer(ctx), role: ctx.role ?? null, resolveValue: resolve });
                 existingId = existing && existing.id ? existing.id : undefined;
             }
-            await writeRecord(app, model, table, values, { viewer: writeViewer(ctx), recordId: existingId });
+            // `source`: in a run that names the origin of its writes, each row is a change the table's record triggers see.
+            await writeRecord(app, model, table, values, { viewer: writeViewer(ctx), recordId: existingId, source: ctx.writeSource });
             written += 1;
         }
     }

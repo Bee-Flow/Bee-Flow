@@ -14,6 +14,8 @@
  * WHAT AN ARMED TABLE PAYS. The write becomes one batch on the app's database (one transaction
  * on both engines): the row as it was (update, delete), the write itself, the row as it is
  * (create, update), read as the owner reads them. Then the deliveries are written to the outbox.
+ * A write of several rows (a batch create, a filter update or delete, a transaction step, a
+ * replace, a delete that follows delete rules) does the same for all its rows: recordCapture.mts.
  *
  * NOT ONE TRANSACTION WITH THE OUTBOX. The app's rows live in the app's own database (a file
  * per app, or a schema per app) and the outbox in the platform's. The outbox row is written
@@ -42,6 +44,7 @@ type Statement = { sql: string; params: unknown[]; expectChanges?: boolean };
 /** The app's database, as records.js holds it (stores/studioAppDbStore). */
 type AppDb = { batch: (ownerId: string, appId: string, statements: Statement[]) => Promise<Array<{ rows?: Obj[]; changes?: number }>> };
 
+export type { App as OutboxApp, Table as OutboxTable, Statement as OutboxStatement };
 export type ArmedHook = { triggerId: string; on: string[]; allowPublicWrites: boolean };
 
 export type OutboxDeps = {
@@ -51,7 +54,12 @@ export type OutboxDeps = {
     log: { warn: (...a: unknown[]) => void };
     /** `SELECT` of one row by id as the owner reads it. */
     compileRead: (table: Table, id: string) => Statement;
+    /** `SELECT` of the rows with these ids (at most READ_CHUNK of them) as the owner reads them, in any order. */
+    compileReadMany: (table: Table, ids: string[]) => Statement;
 };
+
+/** The most ids one `compileReadMany` takes. */
+export const READ_CHUNK = 200;
 
 function defaultDeps(): OutboxDeps {
     return {
@@ -65,11 +73,18 @@ function defaultDeps(): OutboxDeps {
             const { sql, params } = compiler.compileGetById(table, id, compiler.OWNER_ACCESS);
             return { sql, params };
         },
+        compileReadMany: (table, ids) => {
+            const compiler = nodeRequire('../queryCompiler') as { OWNER_ACCESS: unknown; compileRecordList: (t: unknown, o: Obj, f: unknown) => Statement };
+            const { sql, params } = compiler.compileRecordList(table, { filters: [{ field: 'id', op: 'in', value: ids }], limit: READ_CHUNK }, compiler.OWNER_ACCESS);
+            return { sql, params };
+        },
     };
 }
 
 let given: Partial<OutboxDeps> = {};
 const deps = (): OutboxDeps => ({ ...defaultDeps(), ...given });
+/** The dependencies the write side runs with (recordCapture.mts shares them). */
+export const outboxDeps = deps;
 
 // ── The armed set ───────────────────────────────────────────────────────────
 
@@ -111,7 +126,7 @@ export function invalidateArmed(): void {
 }
 
 /** The armed record triggers on `table` of `app` (by the table's id or its storage name). */
-async function hooksFor(appId: string, table: Table, d: OutboxDeps): Promise<ArmedHook[]> {
+export async function hooksFor(appId: string, table: Table, d: OutboxDeps): Promise<ArmedHook[]> {
     if (armed === null || d.now() - loadedAt >= d.limits().armedRefreshMs) {
         loading = loading ?? refresh(d).finally(() => { loading = null; });
         await loading;
@@ -144,7 +159,8 @@ export type WriteThrough = {
     exec: (event: RecordEvent, rowId: string, statement: Statement, links?: Statement[]) => Promise<number>;
 };
 
-async function recordChanges(app: App, table: Table, hooks: ArmedHook[], changes: Change[], source: WriteSource, viewer: unknown, d: OutboxDeps): Promise<void> {
+/** Write the deliveries of `changes` (rows of `table`, in the order given) for `hooks`. Never throws. */
+export async function recordChanges(app: App, table: Table, hooks: ArmedHook[], changes: Change[], source: WriteSource, viewer: unknown, d: OutboxDeps): Promise<void> {
     try {
         const limits = d.limits();
         const store = d.store();
@@ -175,6 +191,21 @@ async function recordChanges(app: App, table: Table, hooks: ArmedHook[], changes
     } catch (e) {
         d.log.warn(`[StudioRecordTriggers] app=${app.id} a change could not be recorded (${(e as Error)?.name || 'error'}); its triggers do not fire for it`);
     }
+}
+
+/** Say on each of `hooks` why a write started none of them. Never throws. */
+export async function noteHooks(app: App, hooks: ArmedHook[], reason: string, d: OutboxDeps): Promise<void> {
+    try {
+        const store = d.store();
+        for (const triggerId of new Set(hooks.map((h) => h.triggerId))) await store.noteSkip(app.id, triggerId, 'skipped', reason);
+    } catch (e) {
+        d.log.warn(`[StudioRecordTriggers] app=${app.id} a skipped write could not be noted (${(e as Error)?.name || 'error'})`);
+    }
+}
+
+/** `table` when it can carry a record trigger: one of the app's own, not linked to a Studio table. */
+export function ownTable(table: unknown): Table | null {
+    return isObject(table) && typeof table.key === 'string' && (table.source === undefined || table.source === null) ? table as Table : null;
 }
 
 const firstRow = (result: { rows?: Obj[] } | undefined): Obj | null => (result && Array.isArray(result.rows) && isObject(result.rows[0]) ? result.rows[0] : null);
