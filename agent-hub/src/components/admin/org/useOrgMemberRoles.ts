@@ -63,6 +63,24 @@ async function updateUserCostLimit(fetchData: UseOrgMemberRolesOptions['fetchDat
     }
 }
 
+/** Let a pending account in: it becomes an active member. True when the server accepted it. */
+export async function approvePendingUser(userId: string): Promise<boolean> {
+    try {
+        const res = await mutate(`${API_BASE}/auth/users/${userId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: 'active', orgRole: 'user' }),
+        }).catch((err: unknown) => {
+            if (err instanceof ApiError) return null;
+            throw err;
+        });
+        return !!res;
+    } catch (err) {
+        console.error('Failed to approve user:', err);
+        return false;
+    }
+}
+
 /**
  * Changing what a member may do, and letting someone in or turning them away.
  *
@@ -117,19 +135,7 @@ export default function useOrgMemberRoles({ fetchData, confirm }: UseOrgMemberRo
     const handleUpdateUserCostLimit = (userId: string, value: number | null) => updateUserCostLimit(fetchData, userId, value);
 
     const handleApproveUser = async (userId: string) => {
-        try {
-            const res = await mutate(`${API_BASE}/auth/users/${userId}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ status: 'active', orgRole: 'user' }),
-            }).catch((err: unknown) => {
-                if (err instanceof ApiError) return null;
-                throw err;
-            });
-            if (res) await fetchData();
-        } catch (err) {
-            console.error('Failed to approve user:', err);
-        }
+        if (await approvePendingUser(userId)) await fetchData();
     };
 
     const handleRejectUser = async (userId: string) => {

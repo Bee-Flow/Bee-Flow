@@ -5,6 +5,7 @@ import { API_BASE, authFetch } from '@/utils/helpers';
 import { toast } from '@/components/shared/Toast';
 import type { AdminMessage, AdminUser, AskConfirm, UserFormData } from './types';
 import { mutate, ApiError } from '@/api/mutate';
+import { approvePendingUser } from '../useOrgMemberRoles';
 import { costLimitToInput, parseCostLimitInput } from './costLimitInput';
 
 const EMPTY_USER: UserFormData = {
@@ -56,6 +57,10 @@ export interface UserActions {
     handleUpdateUser: (extra?: Record<string, unknown>) => Promise<void>;
     handleResetMfa: (user: AdminUser) => void;
     handleDeleteUser: (userId: string) => void;
+    /** Let a pending account in. */
+    handleApproveUser: (user: AdminUser) => Promise<void>;
+    /** Turn a pending account away (asks first, then removes it). */
+    handleRejectUser: (user: AdminUser) => void;
     handleAvatarUpload: (file: File) => Promise<void>;
     handleAvatarRemove: () => Promise<void>;
 }
@@ -233,6 +238,21 @@ export default function useUserActions({ loadData, setMessage, askConfirm, t, is
         }
     };
 
+    const handleApproveUser = async (user: AdminUser) => {
+        if (await approvePendingUser(user.id)) loadData();
+        else setMessage({ type: 'error', text: 'Failed to approve user' });
+    };
+
+    const handleRejectUser = (user: AdminUser) => {
+        askConfirm({
+            title: t('admin_org.users_reject_title', 'Reject user'),
+            description: t('admin.sec_delete_user_desc', 'The account is removed and cannot be restored.'),
+            confirmLabel: t('admin.org_reject', 'Reject'),
+            destructive: true,
+            onConfirm: () => doDeleteUser(user.id),
+        });
+    };
+
     // Avatar picker writes: an edited user with an id uploads/deletes through
     // the server right away; a not-yet-created user only has a local preview,
     // read into the form as a data URL and sent along with the eventual POST.
@@ -272,7 +292,7 @@ export default function useUserActions({ loadData, setMessage, askConfirm, t, is
         showAddUser, showEditUser,
         showEmojiPicker, setShowEmojiPicker,
         openAddUser, openEditUser, closeUserModal,
-        handleAddUser, handleUpdateUser, handleResetMfa, handleDeleteUser,
+        handleAddUser, handleUpdateUser, handleResetMfa, handleDeleteUser, handleApproveUser, handleRejectUser,
         handleAvatarUpload, handleAvatarRemove,
     };
 }

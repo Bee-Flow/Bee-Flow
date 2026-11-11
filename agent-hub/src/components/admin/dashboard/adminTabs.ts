@@ -92,6 +92,11 @@ const SECURITY_SCOPES: Readonly<Record<string, AdminScope>> = {
     'users/nextcloud': 'instance',
     'users/roles': 'instance',
     'users/permissions': 'instance',
+    // The organisation's own invitations, roles, model tiers and Nextcloud sync follow the chosen organisation.
+    'users/invitations': 'org',
+    'users/org-roles': 'org',
+    'users/custom-tiers': 'org',
+    'users/sync': 'org',
 };
 
 // Access: Grants and the organisation's access menu follow the dashboard's organisation;
