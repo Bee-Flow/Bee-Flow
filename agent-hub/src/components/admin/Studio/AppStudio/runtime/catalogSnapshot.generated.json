@@ -69,7 +69,9 @@
         "MAX_FORMAT_DECIMALS": 10,
         "MAX_FORMAT_PATTERN_LEN": 40,
         "MAX_FORMAT_LANGUAGE_LEN": 35,
-        "MAX_FORMAT_TIME_ZONE_LEN": 64
+        "MAX_FORMAT_TIME_ZONE_LEN": 64,
+        "MAX_STYLE_WHEN_RULES": 6,
+        "MAX_CELL_STYLE_RULES": 6
     },
     "colorRoles": [
         "primary",

@@ -9,6 +9,7 @@
 const { LIMITS } = require('./limits');
 const { COLOR_ROLES } = require('./styleKnobs');
 const { formatOptionsSpec } = require('./objectShapes');
+const { cellStyleSpec } = require('./styleRuleShape');
 
 const ANALYTICS_SPECS = {
     // ── v2 data & visualization ──────────────────────────────────────────
@@ -116,6 +117,8 @@ const ANALYTICS_SPECS = {
                         'How this column writes its numbers, amounts and dates.',
                         'It applies to the number, currency, percent, progress, date, datetime and relative formats of the column.',
                     ),
+                    // Schema 3: per-cell conditional style from the row's values (styleRuleShape.js).
+                    cellStyle: cellStyleSpec('Style of a cell while a formula over its row is true.'),
                 },
             },
             pageSize: { type: 'int', min: 5, max: 100, default: 25 },

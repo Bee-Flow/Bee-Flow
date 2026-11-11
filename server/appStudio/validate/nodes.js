@@ -29,6 +29,8 @@ const { nodeActionRefs } = require('../nodeActionRefs.mts');
 const { noteUiTarget } = require('./uiStepChecks.mts');
 const { screenTriggerRefs, watchersOf } = require('../../shared/appDefinition/clientTriggers.mjs');
 const { checkObjectValue } = require('./objectChecks.mts');
+const { checkStyleRules } = require('./styleRuleChecks.mts');
+const { isColorOrRoleValue } = require('../componentSpecs/colorValue');
 
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -289,6 +291,7 @@ function validateNodeLogic(node, path, ctx, spec) {
     if (node.cssClass !== undefined && !require('../appCss.mts').isCssClassName(node.cssClass)) {
         pushE({ code: 'node.css_class_invalid', severity: 'error', path: `${path}.cssClass`, message: 'cssClass must be a lower-case letter followed by lower-case letters, digits or dashes.', hint: `e.g. "hero" (at most ${LIMITS.MAX_CSS_CLASS_LEN} characters), styled as .u-hero in design.customCss.` });
     }
+    checkStyleRules(node, path, ctx); // styleWhen and columns[].cellStyle (validate/styleRuleChecks.mts)
 }
 
 // ---------------------------------------------------------------------------
@@ -504,7 +507,7 @@ function validateNode(node, path, depth, formId, ctx, parent = ROOT_PARENT) {
                 if (validateTypedKnob(k, v, knob, `${path}.style.${k}`, pushE)) continue;
                 const bad = (knob.type === 'int' && (typeof v !== 'number' || !Number.isInteger(v) || v < knob.min || v > knob.max))
                     || (knob.type === 'enum' && !knob.values.includes(v))
-                    || (knob.type === 'colorOrRole' && !(v === null || (typeof v === 'string' && (knob.roles.includes(v) || HEX_RE.test(v)))));
+                    || (knob.type === 'colorOrRole' && !(v === null || isColorOrRoleValue(v, knob.roles)));
                 if (bad) pushE({ code: 'style.invalid', severity: 'error', path: `${path}.style.${k}`, message: `Style knob \`${k}\` has invalid value ${JSON.stringify(v)}.`, hint: knob.type === 'int' ? `Use an integer ${knob.min}..${knob.max}.` : knob.type === 'enum' ? `Use one of: ${knob.values.map((x) => JSON.stringify(x)).join(', ')}.` : `Use null, a role (${knob.roles.join(', ')}), or #rrggbb.` });
             }
             validateAdvancedSizing(node.style, `${path}.style`, ctx, {

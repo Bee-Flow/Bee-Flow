@@ -10,9 +10,13 @@
 const ops = require('../../definitionOps');
 const { pickClosestId } = require('../../../automation/validate/helpers');
 const { checkComponentDataRefs, guardResult } = require('../bindingGuard');
-const { NODE_AUTHORABLE_FIELDS, normalizeNodeField, adoptCanonical } = require('../shared');
+const { NODE_AUTHORABLE_FIELDS, NODE_EXTENSION_FIELDS, normalizeNodeField, adoptCanonical } = require('../shared');
 const { resolveParent } = require('./componentPlacement');
 const { readBatchArg, runPatchBatch, finishPatchBatch } = require('./patchBatch');
+
+// The node fields a patch may carry beyond props, style and visible: the declared ones, then the
+// schema-3 keys the catalogue documents (shared.js NODE_EXTENSION_FIELDS).
+const NODE_PATCH_FIELDS = [...NODE_AUTHORABLE_FIELDS, ...NODE_EXTENSION_FIELDS];
 
 function applyUpdateComponent(draftWrap, args) {
     const id = args?.id;
@@ -24,7 +28,7 @@ function applyUpdateComponent(draftWrap, args) {
     const hasProps = args?.props && typeof args.props === 'object' && !Array.isArray(args.props) && Object.keys(args.props).length > 0;
     const hasStyle = args?.style && typeof args.style === 'object' && !Array.isArray(args.style) && Object.keys(args.style).length > 0;
     const hasVisible = typeof args?.visible === 'boolean';
-    const logicFields = NODE_AUTHORABLE_FIELDS.filter((f) => args?.[f] !== undefined);
+    const logicFields = NODE_PATCH_FIELDS.filter((f) => args?.[f] !== undefined);
     if (!hasProps && !hasStyle && !hasVisible && !logicFields.length) {
         return { error: `Nothing to change — pass props, style, visible and/or ${NODE_AUTHORABLE_FIELDS.join('/')}.` };
     }
@@ -77,7 +81,7 @@ function applyUpdateComponent(draftWrap, args) {
         result.component = { id: node.id, type: node.type, props: node.props, style: node.style, visible: node.visible };
         // Emit-when-present: a node without the v2 fields echoes exactly what
         // it always did, and a node WITH them shows the model they landed.
-        for (const field of NODE_AUTHORABLE_FIELDS) {
+        for (const field of NODE_PATCH_FIELDS) {
             if (node[field] !== undefined) result.component[field] = node[field];
         }
     }

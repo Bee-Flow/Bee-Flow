@@ -14,6 +14,7 @@ const { cleanStyle } = require('./style');
 const { cleanProps } = require('./props');
 const { canonActionSlot } = require('./clientTriggers');
 const { isCssClassName } = require('../appCss.mts');
+const { cleanStyleWhen } = require('./styleWhen.mts');
 
 // ---------------------------------------------------------------------------
 // v2 node logic — visibility/enablement flags (boolean | formula), computed
@@ -156,6 +157,11 @@ function canonNode(node, path, depth, ids, push) {
     if (node.cssClass !== undefined && node.cssClass !== null && node.cssClass !== '') {
         if (isCssClassName(node.cssClass)) out.cssClass = node.cssClass;
         else push('node.css_class_invalid', `${path}.cssClass`, `cssClass must be a lower-case letter followed by lower-case letters, digits or dashes (at most ${LIMITS.MAX_CSS_CLASS_LEN}) — dropped.`);
+    }
+    // Conditional style (schema 3): written only when a usable rule is left.
+    if (node.styleWhen !== undefined && node.styleWhen !== null) {
+        const rules = cleanStyleWhen(node.styleWhen, node.type, `${path}.styleWhen`, push);
+        if (rules) out.styleWhen = rules;
     }
 
     for (const ev of EVENT_NAMES) {

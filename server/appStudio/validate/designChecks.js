@@ -13,6 +13,7 @@ const { isObject } = require('./shared');
 const { isAssetRef, valueTypeOf, isCleanValue } = require('../componentSpecs/valueTypes');
 const { checkBoxContrast } = require('./boxContrast.mts');
 const { checkBackdropContrast } = require('./backdropContrast.mts');
+const { checkThemeScope } = require('./themeScopeChecks.mts');
 
 /**
  * A design key of a later value type (componentSpecs/valueTypes.js): null when `value` is what
@@ -37,6 +38,8 @@ function checkDesignAndNav(def, screens, pushE, pushW) {
     checkBoxContrast(def, screens, pushW);
     // A background image under text with no veil (style knob group "backdrop").
     checkBackdropContrast(screens, pushW);
+    // Screen and section theme overrides, token references, the dark canvas (package LK16).
+    checkThemeScope(def, screens, pushE, pushW);
     // ── design / nav (App Design v2 — OPTIONAL top-level keys) ────────────
     // Canonicalize already normalizes these; validation here is the defensive
     // gate for canonical bytes handed in directly, mirroring the theme checks.

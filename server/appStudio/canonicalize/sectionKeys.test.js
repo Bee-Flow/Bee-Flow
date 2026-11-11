@@ -24,7 +24,7 @@ const extraOf = (out) => out.def.screens[0].sections[1];
 const codes = (v) => [...v.errors, ...v.warnings].map((f) => `${f.code} @ ${f.path}`);
 
 test('the cleaners run in the stored key order', () => {
-    assert.deepEqual(Object.keys(SECTION_OPTIONAL_KEYS), ['name', 'title', 'collapsible', 'maxWidth', 'visibleWhen', 'visibleToRoles']);
+    assert.deepEqual(Object.keys(SECTION_OPTIONAL_KEYS), ['name', 'title', 'collapsible', 'maxWidth', 'visibleWhen', 'visibleToRoles', 'theme']);
 });
 
 test('a section without the keys keeps exactly id, style and children and the base version', () => {

@@ -129,6 +129,9 @@ const LIMITS = {
     MAX_FORMAT_PATTERN_LEN: 40,        // a date pattern ("dd-MM-yyyy")
     MAX_FORMAT_LANGUAGE_LEN: 35,       // a BCP 47 language tag
     MAX_FORMAT_TIME_ZONE_LEN: 64,      // an IANA time zone name
+    // Conditional style (schema 3): node.styleWhen and columns[].cellStyle (componentSpecs/styleRuleShape.js).
+    MAX_STYLE_WHEN_RULES: 6,           // rules in one node's styleWhen
+    MAX_CELL_STYLE_RULES: 6,           // rules in one column's cellStyle
 };
 
 module.exports = {
