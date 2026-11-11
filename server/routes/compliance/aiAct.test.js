@@ -20,19 +20,24 @@ const state = {
     evidence: [],
     events: [],
     nextId: 1,
+    listOpts: [],
 };
 
 const mockSignals = {
-    loadAutomation: async (orgId, id) => (state.automations[orgId] || {})[id] || null,
+    // like signals.loadAutomation: a trashed automation is not found
+    loadAutomation: async (orgId, id) => { const a = (state.automations[orgId] || {})[id]; return a && !a.deleted_at ? a : null; },
     loadAgent: async (orgId, id) => (state.agents[orgId] || {})[id] || null,
     signalsForAutomation: async (orgId, id) => ((state.automations[orgId] || {})[id] ? { ...state.signals } : null),
     signalsForAgent: async (orgId, id) => ((state.agents[orgId] || {})[id] ? { ...state.signals, customer_facing: true } : null),
-    titlesFor: async (orgId, targets) => {
+    // Mirrors signals.targetsFor: live | trashed (deleted_at set) | gone (not in the org).
+    targetsFor: async (orgId, targets) => {
         const out = { automation: {}, agent: {} };
         for (const t of targets) {
             const src = t.target_kind === 'agent' ? state.agents : state.automations;
             const row = (src[orgId] || {})[t.target_id];
-            if (row) out[t.target_kind][t.target_id] = row.title || row.name;
+            out[t.target_kind][t.target_id] = row
+                ? { title: row.title || row.name, state: row.deleted_at ? 'trashed' : 'live' }
+                : { title: null, state: 'gone' };
         }
         return out;
     },
@@ -50,7 +55,8 @@ const mockAssessmentStore = {
     },
     getLatest: async (orgId, kind, id) => [...state.rows].reverse().find(r => r.organization_id === orgId && r.target_kind === kind && r.target_id === id) || null,
     listHistory: async (orgId, kind, id) => [...state.rows].reverse().filter(r => r.organization_id === orgId && r.target_kind === kind && r.target_id === id),
-    listForOrg: async (orgId) => {
+    listForOrg: async (orgId, opts = {}) => {
+        state.listOpts.push(opts);
         const seen = new Set();
         return [...state.rows].reverse().filter(r => {
             if (r.organization_id !== orgId) return false;
@@ -224,7 +230,8 @@ test('a prohibited answer wins; the list shows the newest row per target with it
     assert.strictEqual(list.status, 200);
     assert.strictEqual(list.json.length, 2, 'DISTINCT ON target');
     const au = list.json.find(x => x.target_kind === 'automation');
-    assert.deepStrictEqual(Object.keys(au).sort(), ['attested_at', 'attested_by', 'current', 'expires_at', 'outcome', 'target_id', 'target_kind', 'title']);
+    assert.deepStrictEqual(Object.keys(au).sort(), ['attested_at', 'attested_by', 'current', 'expires_at', 'outcome', 'target_id', 'target_kind', 'target_state', 'title']);
+    assert.strictEqual(au.target_state, 'live');
     assert.strictEqual(au.outcome, 'high_risk');
     assert.strictEqual(au.title, 'Offerte-brieven');
     assert.strictEqual(list.json.find(x => x.target_kind === 'agent').title, 'Helpdesk');
@@ -237,4 +244,33 @@ test('a prohibited answer wins; the list shows the newest row per target with it
     // another org sees nothing of it
     const other = await call('GET', '/ai-act/assessments', null, { user: { id: 'u2', organizationId: 'org-2', canCompliance: true } });
     assert.deepStrictEqual(other.json, []);
+});
+
+test('the list marks removed targets: a trashed automation keeps its title, a gone one has none', async () => {
+    state.automations['org-1']['au-trash'] = { id: 'au-trash', title: 'Old letters' };
+    state.automations['org-1']['au-gone'] = { id: 'au-gone', title: 'Purged flow' };
+    for (const id of ['au-trash', 'au-gone']) {
+        assert.strictEqual((await call('PUT', `/ai-act/assessments/automation/${id}`, { answers: {} })).status, 200);
+    }
+    // the first goes to the trash; the second is removed for good (the trash
+    // purge). Their assessments stay.
+    state.automations['org-1']['au-trash'].deleted_at = new Date('2026-10-01T00:00:00Z');
+    delete state.automations['org-1']['au-gone'];
+
+    state.listOpts.length = 0;
+    const list = await call('GET', '/ai-act/assessments');
+    assert.strictEqual(list.status, 200);
+    assert.deepStrictEqual(state.listOpts, [{ includeRemoved: true }], 'the register asks for removed rows too and marks them');
+    const byId = Object.fromEntries(list.json.map(r => [r.target_id, r]));
+    assert.strictEqual(byId['au-1'].target_state, 'live');
+    assert.strictEqual(byId['ag-1'].target_state, 'live');
+    assert.strictEqual(byId['au-trash'].target_state, 'trashed');
+    assert.strictEqual(byId['au-trash'].title, 'Old letters');
+    assert.strictEqual(byId['au-gone'].target_state, 'gone');
+    assert.strictEqual(byId['au-gone'].title, null, 'no title, and never the raw id in its place');
+    for (const r of list.json) assert.notStrictEqual(r.title, r.target_id);
+
+    // a removed target cannot be opened or re-attested
+    assert.strictEqual((await call('GET', '/ai-act/assessments/automation/au-trash')).status, 404);
+    assert.strictEqual((await call('PUT', '/ai-act/assessments/automation/au-gone', { answers: {} })).status, 404);
 });

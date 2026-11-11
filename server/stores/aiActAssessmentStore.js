@@ -139,16 +139,45 @@ async function getLatest(orgId, kind, targetId) {
 }
 
 /**
- * Newest row per (target_kind, target_id) — the register view.
- * @param {string} orgId
+ * Whether an assessment's target still exists and can still run, as a WHERE
+ * term over compliance_ai_act_assessments with `$1` = the organisation:
+ *   automation — the row is there and not in the trash (DELETE is a soft
+ *                delete, stores/automationStore/lifecycle.js; the trash purge
+ *                removes it for good later). The org join is the one
+ *                compliance/aiAct/signals.js uses (rows from before
+ *                organization_id was stamped resolve through their owner).
+ *   agent      — the row is there (agents are deleted for good,
+ *                stores/agent/agentCrud.js).
+ * The assessments of a removed target stay: they are part of the record of
+ * what was checked. They only leave the counts and the lists that ask for
+ * live targets.
  */
-async function listForOrg(orgId) {
+const LIVE_TARGET_SQL = `(
+            (compliance_ai_act_assessments.target_kind = 'automation' AND EXISTS (
+                SELECT 1 FROM automations a JOIN users u ON u.id = a.user_id
+                 WHERE a.id = compliance_ai_act_assessments.target_id
+                   AND a.deleted_at IS NULL
+                   AND COALESCE(a.organization_id, u."organizationId") = $1))
+         OR (compliance_ai_act_assessments.target_kind = 'agent' AND EXISTS (
+                SELECT 1 FROM agents g
+                 WHERE g.id = compliance_ai_act_assessments.target_id
+                   AND g.organization_id = $1))
+        )`;
+
+/**
+ * Newest row per (target_kind, target_id) — the register view. Only targets
+ * that still exist (LIVE_TARGET_SQL) unless `includeRemoved`: the register's
+ * "Removed" filter asks for the rest, everything that counts does not.
+ * @param {string} orgId
+ * @param {{ includeRemoved?: boolean }} [opts]
+ */
+async function listForOrg(orgId, { includeRemoved = false } = {}) {
     await initDB();
     return getAll(`
         SELECT DISTINCT ON (target_kind, target_id)
             ${ROW_COLUMNS}
         FROM compliance_ai_act_assessments
-        WHERE organization_id = $1
+        WHERE organization_id = $1${includeRemoved ? '' : ` AND ${LIVE_TARGET_SQL}`}
         ORDER BY target_kind, target_id, created_at DESC, id DESC
     `, [orgId]);
 }
@@ -185,7 +214,8 @@ function isCurrent(row, now = Date.now()) {
 
 /**
  * {attested, expired} over the newest row per target — the counts the hub
- * rail and the AI-Act checks show. Both are over DISTINCT targets.
+ * rail and the AI-Act checks show. Both are over DISTINCT targets that still
+ * exist (LIVE_TARGET_SQL).
  * @param {string} orgId
  */
 async function stats(orgId) {
@@ -194,7 +224,7 @@ async function stats(orgId) {
         WITH latest AS (
             SELECT DISTINCT ON (target_kind, target_id) expires_at
             FROM compliance_ai_act_assessments
-            WHERE organization_id = $1
+            WHERE organization_id = $1 AND ${LIVE_TARGET_SQL}
             ORDER BY target_kind, target_id, created_at DESC, id DESC
         )
         SELECT
@@ -206,7 +236,8 @@ async function stats(orgId) {
 }
 
 /**
- * Newest-per-target rows whose attestation expires within `days` (or already did).
+ * Newest-per-target rows whose attestation expires within `days` (or already
+ * did), for targets that still exist (LIVE_TARGET_SQL).
  * @param {string} orgId
  * @param {number} [days]
  */
@@ -217,7 +248,7 @@ async function listExpiring(orgId, days = 30) {
         WITH latest AS (
             SELECT DISTINCT ON (target_kind, target_id) ${ROW_COLUMNS}
             FROM compliance_ai_act_assessments
-            WHERE organization_id = $1
+            WHERE organization_id = $1 AND ${LIVE_TARGET_SQL}
             ORDER BY target_kind, target_id, created_at DESC, id DESC
         )
         SELECT * FROM latest
