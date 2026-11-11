@@ -459,3 +459,18 @@ test('no binding to a template dataset: the definition is not saved again', asyn
     assert.deepStrictEqual(res, { ok: true, appId: 'app-1', dataModelVersion: 1 });
     assert.strictEqual(state.savedDefinitions.length, 0);
 });
+
+// ── Sample rows that name the template's files ─────────────────────────────
+
+test('with assetIds, a sample row is written with the id its file got in this app, or null when it did not arrive', async () => {
+    const template = crmTemplate();
+    template.seed.tbl_co = [{ $id: 'acme', name: 'Acme', logo: 'asset:tpl-logo' }, { name: 'Bolt', logo: 'asset:tpl-gone' }];
+    template.dataModel.tables[1].fields.push({ id: 'fld_logo', key: 'logo', type: 'text' });
+    await installTemplate({ appId: 'app-1', ownerId: 'owner-1', template, assetIds: new Map([['tpl-logo', 'app-asset-1']]) });
+    assert.deepStrictEqual(state.writes.filter((w) => w.tableKey === 'companies').map((w) => w.values.logo), ['asset:app-asset-1', null]);
+    assert.strictEqual(template.seed.tbl_co[0].logo, 'asset:tpl-logo', 'the template is not touched');
+
+    state.writes = [];
+    await installTemplate({ appId: 'app-1', ownerId: 'owner-1', template });
+    assert.deepStrictEqual(state.writes.filter((w) => w.tableKey === 'companies').map((w) => w.values.logo), ['asset:tpl-logo', 'asset:tpl-gone'], 'without assetIds the rows are written as authored');
+});

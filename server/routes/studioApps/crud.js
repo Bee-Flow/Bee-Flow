@@ -154,6 +154,17 @@ router.post('/', requireAuth, requireManageApps, validate({ body: CreateAppBody 
         } : {}),
     });
 
+    // The template's uploaded files go into the new app first, which then refers to their ids
+    // there; the sample rows written below name them by those ids too (seedAssets.mts).
+    const carried = template && template.assets
+        ? await applyCopiedAssets({ app, definition, assets: template.assets, seed: template.seed, templateVersion: templateVersion(template) })
+        : null;
+    if (carried && carried.report) {
+        definition = carried.definition;
+        Object.assign(app, { definition, templateInstallHash: hashDefinition(definition) });
+    }
+    const assets = carried && carried.report;
+
     // Data-backed templates additionally install a data model + seed rows +
     // datasets via the single instantiation path (templateInstall.js). This
     // stays BEST-EFFORT — the app exists with a usable definition and data
@@ -169,7 +180,7 @@ router.post('/', requireAuth, requireManageApps, validate({ body: CreateAppBody 
     let dataInstall = null;
     if (template && (template.dataModel || template.seed || template.datasets)) {
         try {
-            const install = await installTemplate({ appId: app.id, ownerId: userId, template });
+            const install = await installTemplate({ appId: app.id, ownerId: userId, template, assetIds: carried ? carried.ids : undefined });
             if (!install || !install.ok) {
                 const reason = (install && install.error) || 'unknown error';
                 log.warn(`[StudioApps] Template data install failed for ${app.id}: ${reason}`);
@@ -192,12 +203,6 @@ router.post('/', requireAuth, requireManageApps, validate({ body: CreateAppBody 
         }
     }
 
-    // The template's uploaded files go into the new app, which then refers to their ids there.
-    const carried = template && template.assets
-        ? await applyCopiedAssets({ app, definition, assets: template.assets, templateVersion: templateVersion(template) })
-        : null;
-    if (carried && carried.report) Object.assign(app, { definition: carried.definition, templateInstallHash: hashDefinition(carried.definition) });
-    const assets = carried && carried.report;
 
     res.json({ success: true, app: sanitizeAppRow(app), ...(dataInstall ? { dataInstall } : {}), ...(findings ? { findings } : {}), ...(assets ? { assets } : {}) });
 });

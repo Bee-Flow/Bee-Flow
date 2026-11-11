@@ -13,7 +13,8 @@ const { png, sha, entry, memoryAssetStore } = require('../testUtils/portableAsse
 const {
     readPortableAssets, remapAssetRefs, writePortableAssets, portableAssetBudget, DEFAULT_PORTABLE_ASSET_BYTES,
 } = require('./portableAssets.mts');
-const { collectPortableAssets, carryAssetsInto, applyCopiedAssets } = require('./portableAssetStore.mts');
+const { collectPortableAssets, carryAssetsInto, carryTemplateAssets, applyCopiedAssets } = require('./portableAssetStore.mts');
+const { seedAssetIds, remapSeedAssets } = require('./seedAssets.mts');
 
 const APP = { id: 'app-target', userId: 'owner-1' };
 const wanted = (...ids) => new Set(ids);
@@ -147,4 +148,34 @@ test('apply saves the rewritten definition and moves the template stamp onto it'
     const out = await applyCopiedAssets({ app: APP, definition: defWith('old-1'), assets: [entry('old-1')], templateVersion: 4, deps: store.deps, appStore });
     const { hashDefinition } = require('./templateUpgrade');
     assert.deepEqual(calls, [['save', 'app-target', 'owner-1', 'asset:new-1'], ['stamp', 'app-target', 4, hashDefinition(out.definition)]]);
+});
+
+// ── Files named by a template's sample rows (seedAssets.mts) ───────────────
+
+const SEED = {
+    tbl_prod: [
+        { $id: 'p1', name: 'Lamp', image_1: 'asset:pic-1', note: 'see asset:pic-1' },
+        { $id: 'p2', name: 'Chair', image_1: 'asset:pic-gone' },
+        { $id: 'p3', name: 'Mug' },
+    ],
+};
+
+test('sample rows: whole asset values are named and rewritten in a copy; one whose file did not arrive becomes null', () => {
+    assert.deepEqual([...seedAssetIds(SEED)].sort(), ['pic-1', 'pic-gone']);
+    const out = remapSeedAssets(SEED, new Map([['pic-1', 'new-9']]));
+    assert.deepEqual(out.seed.tbl_prod.map((r) => r.image_1), ['asset:new-9', null, undefined]);
+    assert.equal(out.seed.tbl_prod[0].note, 'see asset:pic-1', 'text that mentions an asset is the author\'s');
+    assert.deepEqual([out.remapped, out.cleared], [1, 1]);
+    assert.equal(SEED.tbl_prod[0].image_1, 'asset:pic-1', 'the template is not touched');
+    assert.equal(remapSeedAssets({ t: [{ a: 1 }] }, new Map()).seed.t[0].a, 1);
+});
+
+test('a template carries the files its sample rows name, with the ids they got in the app', async () => {
+    const store = memoryAssetStore();
+    const plain = { screens: [] };
+    const out = await carryTemplateAssets({ app: APP, definition: plain, seed: SEED, assets: [entry('pic-1', png(3)), entry('unused', png(4))], deps: store.deps });
+    assert.deepEqual(store.stored.map((f) => f.id), ['new-1'], 'only the file a row names');
+    assert.deepEqual([...out.ids], [['pic-1', 'new-1']]);
+    assert.deepEqual(out.report, { carried: 1, reused: 0, cleared: 0, skipped: [] });
+    assert.equal((await carryAssetsInto(APP, plain, [entry('pic-1', png(3))], store.deps)).report, null, 'the definition alone names nothing');
 });

@@ -25,13 +25,17 @@
  *             and a footer line.
  *
  * Nothing is armed on install: the webhook has no address until the app is
- * published. The sample products carry no pictures (a template carries no
- * uploaded files), so the carousel shows its placeholders until they are added.
+ * published. Three sample products carry a picture: small placeholder drawings
+ * shipped as the template's files (./templatePictures.js, drawn by
+ * server/scripts/gen-template-pictures.mjs) and named `asset:<id>` in the
+ * sample rows. The install stores them in the new app like uploads and writes
+ * the rows with the ids they got there, so the carousel shows them at once.
  */
 
 'use strict';
 
 const { THEME_DEFAULTS } = require('./themeDefaults');
+const { templatePictures } = require('./templatePictures');
 
 const STATUS_OPTIONS = [
     { value: 'received', label: 'Received' },
@@ -144,7 +148,8 @@ const countOrders = (filter) => ({ kind: 'aggregate', tableId: 'tbl_ioord', filt
 
 module.exports = {
     id: 'app-inbound-orders',
-    version: 1,
+    // 2: the sample products carry pictures (the template's own files).
+    version: 2,
     title: 'Inbound orders',
     description: 'Orders from your web shop or marketplace arrive through a signed webhook, are checked and tidied on the way in, and land on a pick list with the product, its pictures and the delivery log.',
     category: 'Data',
@@ -203,11 +208,16 @@ module.exports = {
         roles: [],
         roleMapping: { default: 'app', byGroup: {} },
     },
+    assets: templatePictures([
+        { id: 'iopic_lamp', file: 'inbound-orders-lamp.png' },
+        { id: 'iopic_chair', file: 'inbound-orders-chair.png' },
+        { id: 'iopic_mug', file: 'inbound-orders-mug.png' },
+    ]),
     seed: {
         tbl_ioprod: [
-            { $id: 'p1', sku: 'TL-2040', name: 'Desk lamp, brushed steel', price: 49.5, stock: 38, description: 'An adjustable desk lamp with a warm LED.' },
-            { $id: 'p2', sku: 'CH-1180', name: 'Oak side chair', price: 129, stock: 12, description: 'Solid oak, oiled, stackable by two.' },
-            { $id: 'p3', sku: 'MUG-310', name: 'Stoneware mug', price: 14.9, stock: 4, description: 'Glazed stoneware, 300 ml, dishwasher safe.' },
+            { $id: 'p1', sku: 'TL-2040', name: 'Desk lamp, brushed steel', price: 49.5, stock: 38, description: 'An adjustable desk lamp with a warm LED.', image_1: 'asset:iopic_lamp' },
+            { $id: 'p2', sku: 'CH-1180', name: 'Oak side chair', price: 129, stock: 12, description: 'Solid oak, oiled, stackable by two.', image_1: 'asset:iopic_chair' },
+            { $id: 'p3', sku: 'MUG-310', name: 'Stoneware mug', price: 14.9, stock: 4, description: 'Glazed stoneware, 300 ml, dishwasher safe.', image_1: 'asset:iopic_mug' },
             { $id: 'p4', sku: 'RUG-9020', name: 'Wool rug, 160 x 230', price: 245, stock: 0, description: 'Hand-woven wool in natural grey.' },
         ],
         tbl_ioord: [

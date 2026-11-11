@@ -206,8 +206,11 @@ async function applyApplyTemplate(draftWrap, args) {
     const fromTemplate = canonicalizeAppDefinition(copy);
     if (fromTemplate.refused) return { error: `Template "${templateId}" cannot be applied: ${schemaNewerMessage(copy)}` };
     // The template's uploaded files go into this app; the draft refers to their ids here.
-    const { carryAssetsInto } = require('../portableAssetStore.mts');
-    const carried = await carryAssetsInto({ id: draftWrap.appId, userId: draftWrap.userId }, fromTemplate.def, /** @type {{ assets?: unknown }} */ (template).assets);
+    const { carryTemplateAssets } = require('../portableAssetStore.mts');
+    const carried = await carryTemplateAssets({
+        app: { id: draftWrap.appId, userId: draftWrap.userId }, definition: fromTemplate.def,
+        seed: /** @type {{ seed?: unknown }} */ (template).seed, assets: /** @type {{ assets?: unknown }} */ (template).assets,
+    });
     draftWrap.def = carried.definition;
 
     // Persist before the data install: templateInstall's seed rows go through
@@ -220,7 +223,7 @@ async function applyApplyTemplate(draftWrap, args) {
 
     let out;
     try {
-        out = await templateInstall.installTemplate({ appId: draftWrap.appId, ownerId: draftWrap.userId, template });
+        out = await templateInstall.installTemplate({ appId: draftWrap.appId, ownerId: draftWrap.userId, template, assetIds: carried.ids });
     } catch (e) {
         return { error: `Could not install template "${templateId}": ${/** @type {Error} */ (e).message}` };
     }

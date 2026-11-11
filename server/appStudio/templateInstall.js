@@ -328,9 +328,14 @@ async function resolveStoredDatasetRefs(app, ownerId, datasetIds) {
 }
 
 /**
- * @param {{ appId?: string, ownerId?: string, template?: any, seedMode?: string }} [opts]
+ * `assetIds`: the template's file ids → the ids they got in this app (portableAssetStore
+ * carryTemplateAssets, which runs first). Given, a sample row's whole `asset:<id>` value is
+ * written with the id here, or null when its file did not arrive (seedAssets.mts). Not given,
+ * the rows are written as authored.
+ * @param {{ appId?: string, ownerId?: string, template?: any, seedMode?: string, assetIds?: Map<string, string> }} [opts]
+ * @returns {Promise<{ ok: boolean, appId?: string, dataModelVersion?: number, error?: string, definition?: any, definitionVersion?: number }>}
  */
-async function installTemplate({ appId, ownerId, template, seedMode = 'all' } = {}) {
+async function installTemplate({ appId, ownerId, template, seedMode = 'all', assetIds } = {}) {
     if (!appId || !ownerId) return { ok: false, error: 'appId and ownerId are required' };
     const missingOnly = seedMode === 'missing-tables-only';
     const tpl = isObject(template) ? template : {};
@@ -404,6 +409,7 @@ async function installTemplate({ appId, ownerId, template, seedMode = 'all' } = 
                 }
             }
 
+            if (assetIds) seedRows = require('./seedAssets.mts').remapSeedAssets(seedRows, assetIds).seed;
             await writeSeedRows(app, model, seedRows, skipTableIds, ownerId);
         }
 
