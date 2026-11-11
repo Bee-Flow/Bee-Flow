@@ -107,7 +107,13 @@ jobs:
         working-directory: e2e
         run: |
           npm ci
-          npx playwright install --with-deps chromium
+          # The runner image already carries the libraries a browser needs; the
+          # system packages are only fetched when the browser does not start.
+          npx playwright install chromium
+          if ! node -e "import('@playwright/test').then(async ({ chromium }) => { const b = await chromium.launch(); await b.close(); })"; then
+            echo "The browser did not start with the libraries on the runner; fetching the system packages."
+            npx playwright install-deps chromium
+          fi
 
       - name: Freshness gate
         working-directory: e2e

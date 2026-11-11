@@ -168,13 +168,33 @@ jobs:
             console.log("fixtures:", Object.fromEntries(Object.entries(out).map(([k, v]) => [k, typeof v === "string" ? (v ? "set" : "missing") : v])));
           '
 
+      # The browser download is kept between runs, keyed on the pinned version.
+      - name: Browser cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ env.PLAYWRIGHT_VERSION }}
+
+      # The runner image already carries the libraries a browser needs, so the
+      # system packages are only fetched when the browser does not start
+      # without them. A run then asks the package servers for nothing.
       - name: Install Playwright + axe
         working-directory: a11y-run
         run: |
           set -euo pipefail
           npm init -y >/dev/null
           npm install --no-audit --no-fund "playwright@${PLAYWRIGHT_VERSION}" "@axe-core/playwright@${AXE_PLAYWRIGHT_VERSION}"
-          npx playwright install --with-deps chromium
+          npx playwright install chromium
+          cat > browser-starts.mjs <<'EOF'
+          import { chromium } from 'playwright';
+          const browser = await chromium.launch();
+          await browser.close();
+          EOF
+          if ! node browser-starts.mjs; then
+            echo "The browser did not start with the libraries on the runner; fetching the system packages."
+            npx playwright install-deps chromium
+            node browser-starts.mjs
+          fi
 
       # The runner script is inlined so this workflow owns its whole contract
       # with the schema; it reads no page content into the report — only axe
