@@ -83,7 +83,9 @@ It is **off** by default. Clear it by choosing *Nothing* (or `actionId: null` ov
 The action runs without anybody pressing a button, so it may only hold steps that run on
 the server and do not reach a person: `create_record`, `update_record`, `ai_generate`,
 `ai_extract`, `kb_query`, `dataset_query`, `file_intake`, `generate_file`, `fill_document`,
-`generate_presentation` and `redact_pdf`, with `condition` and `switch` around them. Results
+`generate_presentation`, `redact_pdf` and `code`, with `condition`, `switch`, `try`, `return`
+and `raise_error` around them. A mailbox hook does not run `loop`,
+`while`, `parallel`, `wait`, `call_action` or `http_request`. Results
 pass from step to step through `resultVar`, as in a click.
 
 **`send_email` is never allowed**, so nothing mails automatically by accident. The same goes
