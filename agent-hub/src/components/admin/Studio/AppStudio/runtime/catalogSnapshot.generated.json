@@ -2554,6 +2554,38 @@
                 "dot"
             ]
         },
+        "gauge": {
+            "label": "Gauge",
+            "category": "Data",
+            "defaultProps": {
+                "value": {
+                    "kind": "static",
+                    "value": 0
+                },
+                "label": null,
+                "min": 0,
+                "max": 100,
+                "unit": null,
+                "thresholds": [],
+                "showRange": true
+            },
+            "defaultStyle": {
+                "span": 4
+            },
+            "since": 3,
+            "mobile": {
+                "reason": "The phone draws the base display types only; a gauge stays in the browser."
+            },
+            "parts": [
+                "root",
+                "meter",
+                "track",
+                "fill",
+                "value",
+                "label",
+                "range"
+            ]
+        },
         "radio": {
             "label": "Radio group",
             "category": "Input",
@@ -2675,6 +2707,80 @@
                 "control",
                 "thumb",
                 "error"
+            ]
+        },
+        "tree": {
+            "label": "Tree",
+            "category": "Data",
+            "defaultProps": {
+                "source": {
+                    "kind": "static",
+                    "value": []
+                },
+                "idKey": "id",
+                "parentKey": "parent",
+                "titleKey": "title",
+                "subtitleKey": null,
+                "icon": null,
+                "maxDepth": 6,
+                "maxNodes": 500,
+                "emptyText": "Nothing to show yet."
+            },
+            "defaultStyle": {
+                "span": 12
+            },
+            "since": 3,
+            "mobile": {
+                "reason": "The phone draws the base list types only; a tree stays in the browser."
+            },
+            "parts": [
+                "root",
+                "item",
+                "row",
+                "toggle",
+                "icon",
+                "title",
+                "subtitle",
+                "group",
+                "more"
+            ]
+        },
+        "wizard": {
+            "label": "Wizard",
+            "category": "Layout",
+            "container": true,
+            "defaultProps": {
+                "steps": [
+                    {
+                        "title": "Step 1"
+                    },
+                    {
+                        "title": "Step 2"
+                    }
+                ],
+                "backLabel": null,
+                "nextLabel": null,
+                "validateSteps": true
+            },
+            "defaultStyle": {
+                "span": 12,
+                "gap": 3,
+                "padding": 0
+            },
+            "since": 3,
+            "mobile": {
+                "reason": "The phone draws the base layout types only; a wizard stays in the browser."
+            },
+            "parts": [
+                "root",
+                "steps",
+                "step",
+                "marker",
+                "title",
+                "panel",
+                "actions",
+                "back",
+                "next"
             ]
         }
     },
@@ -2966,6 +3072,10 @@
             "gap",
             "padding"
         ],
+        "gauge": [
+            "span",
+            "size"
+        ],
         "radio": [
             "span"
         ],
@@ -2977,6 +3087,16 @@
         ],
         "switch": [
             "span"
+        ],
+        "tree": [
+            "span",
+            "size",
+            "height"
+        ],
+        "wizard": [
+            "span",
+            "gap",
+            "padding"
         ]
     },
     "typeEvents": {
@@ -3084,6 +3204,9 @@
         ],
         "switch": [
             "onChange"
+        ],
+        "tree": [
+            "onRowClick"
         ]
     }
 }

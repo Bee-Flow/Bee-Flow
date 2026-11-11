@@ -12,10 +12,11 @@ import type { NodeProps } from './appNode.types';
 import type { KanbanRow, KanbanColumn, KanbanLane, KanbanProps } from './AppKanban.types';
 import { NO_LANE, laneCollision, normalizeAxisRows, kanbanColumns, kanbanSwimlanes, LANE_SEP, accentFor, bucketCells, cardMovePayload, gridStyleFor, toggledInSet } from './AppKanban.helpers';
 import { KanbanCard } from './KanbanCard';
+import { RowTemplateContext, useItemTemplate } from '../itemTemplate';
 import { KanbanCell, KanbanColumnHeader, KanbanGrid, OverlayCard } from './KanbanBoardParts';
 export {  columnDroppableId, parseColumnDroppableId, normalizeAxisRows, kanbanColumns, kanbanSwimlanes, resolveCardDrop, rankForSlot } from './AppKanban.helpers';
 
-export default function AppKanban({ node }: NodeProps<KanbanProps>) {
+function KanbanBoard({ node }: NodeProps<KanbanProps>) {
     const { t } = useTranslation();
     const portalRoot = usePortalRoot();
     const { mode, runAction, actionState, dataState, scope } = useRuntime();
@@ -210,5 +211,15 @@ export default function AppKanban({ node }: NodeProps<KanbanProps>) {
                 portalRoot,
             ) : null}
         </DndContext>
+    );
+}
+
+/** The board, with the node's children as its card template (schema 3, ../itemTemplate.tsx) when it has any. */
+export default function AppKanban(props: NodeProps<KanbanProps>) {
+    const cardTemplate = useItemTemplate(props.node, 'template');
+    return (
+        <RowTemplateContext.Provider value={cardTemplate}>
+            <KanbanBoard {...props} />
+        </RowTemplateContext.Provider>
     );
 }

@@ -1,0 +1,27 @@
+{
+  "translations": {
+    "studio_apps_lk20.chart.more_types": "Meer grafieksoorten",
+    "studio_apps_lk20.chart.type_combo": "Combinatie",
+    "studio_apps_lk20.chart.type_funnel": "Trechter",
+    "studio_apps_lk20.chart.type_scatter": "Spreiding",
+    "studio_apps_lk20.gauge.label": "Meter",
+    "studio_apps_lk20.repeater.row_label": "Items, scroll opzij voor meer",
+    "studio_apps_lk20.template.card_label": "De kaart zelf ontwerpen",
+    "studio_apps_lk20.template.off_hint": "Teken elk item met je eigen componenten in plaats van de standaardindeling.",
+    "studio_apps_lk20.template.on_hint": "De componenten hierin worden per item getekend. Gebruik item.<veld> in hun formules. Uitzetten verwijdert ze.",
+    "studio_apps_lk20.template.row_label": "De rij zelf ontwerpen",
+    "studio_apps_lk20.tooltip.hint": "Getoond bij aanwijzen en toetsenbordfocus. Platte tekst, hooguit {max} tekens.",
+    "studio_apps_lk20.tooltip.placeholder": "Wat dit doet, in een paar woorden",
+    "studio_apps_lk20.tree.cut": "{count} meer niet getoond",
+    "studio_apps_lk20.tree.deeper": "+{count} dieper",
+    "studio_apps_lk20.tree.label": "Boom",
+    "studio_apps_lk20.wizard.back": "Terug",
+    "studio_apps_lk20.wizard.next": "Volgende",
+    "studio_apps_lk20.wizard.step": "Stap {n}",
+    "studio_apps_lk20.wizard.steps": "Stappen"
+  },
+  "sameAsEnglish": [
+    "studio_apps_lk20.chart.type_radar",
+    "studio_apps_lk20.tooltip.label"
+  ]
+}

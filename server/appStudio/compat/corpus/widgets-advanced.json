@@ -1,0 +1,574 @@
+{
+  "about": {
+    "source": "hand-made for package LK21b (advanced types): two gauges, the combo, scatter, funnel and radar charts, a tree with a depth bound, a three-step wizard in a form, tooltips on a heading, a button and an input",
+    "captured": "2026-11-11"
+  },
+  "definition": {
+    "schemaVersion": 3,
+    "meta": {
+      "name": "Advanced types",
+      "description": "Gauge, the chart kinds of schema 3, a wizard, a tree and tooltips.",
+      "icon": "Gauge"
+    },
+    "theme": {
+      "primary": "#7C3AED",
+      "radius": "md",
+      "density": "comfortable",
+      "fontScale": "md",
+      "appearance": "auto"
+    },
+    "roles": [],
+    "screens": [
+      {
+        "id": "scr_adv00001",
+        "name": "Overview",
+        "icon": "Gauge",
+        "showInNav": true,
+        "maxWidth": "wide",
+        "sections": [
+          {
+            "id": "sec_adv00001",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_head0001",
+                "type": "heading",
+                "props": {
+                  "text": "Pipeline",
+                  "level": 2,
+                  "accent": "none"
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true,
+                "tooltip": "Numbers of this quarter"
+              },
+              {
+                "id": "cmp_gauge001",
+                "type": "gauge",
+                "props": {
+                  "value": {
+                    "kind": "static",
+                    "value": 64
+                  },
+                  "label": "Conversion",
+                  "min": 0,
+                  "max": 100,
+                  "unit": "%",
+                  "thresholds": [
+                    {
+                      "from": 0,
+                      "tone": "danger",
+                      "label": "Low"
+                    },
+                    {
+                      "from": 40,
+                      "tone": "warning"
+                    },
+                    {
+                      "from": 60,
+                      "tone": "success",
+                      "label": "On target"
+                    }
+                  ],
+                  "showRange": true
+                },
+                "style": {
+                  "span": 4
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_gauge002",
+                "type": "gauge",
+                "props": {
+                  "value": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "label": "Backlog",
+                  "min": 0,
+                  "max": 100,
+                  "unit": null,
+                  "thresholds": [],
+                  "showRange": false
+                },
+                "style": {
+                  "span": 4,
+                  "size": "sm"
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_btn00001",
+                "type": "button",
+                "props": {
+                  "label": "Refresh",
+                  "variant": "primary",
+                  "iconLeft": null,
+                  "role": "button",
+                  "disabledWhen": null
+                },
+                "style": {
+                  "span": 4
+                },
+                "visible": true,
+                "tooltip": "Reads the numbers again",
+                "onClick": "act_toast001"
+              },
+              {
+                "id": "cmp_combo001",
+                "type": "chart",
+                "props": {
+                  "chartType": "combo",
+                  "orientation": "vertical",
+                  "source": {
+                    "kind": "static",
+                    "value": [
+                      {
+                        "stage": "Visits",
+                        "count": 1200,
+                        "rate": 0.62,
+                        "weight": 3
+                      },
+                      {
+                        "stage": "Leads",
+                        "count": 480,
+                        "rate": 0.41,
+                        "weight": 5
+                      },
+                      {
+                        "stage": "Offers",
+                        "count": 120,
+                        "rate": 0.33,
+                        "weight": 8
+                      },
+                      {
+                        "stage": "Deals",
+                        "count": 36,
+                        "rate": 0.3,
+                        "weight": 13
+                      }
+                    ]
+                  },
+                  "title": "combo",
+                  "xKey": "stage",
+                  "xType": "category",
+                  "series": [
+                    {
+                      "key": "count",
+                      "type": "bar"
+                    },
+                    {
+                      "key": "rate",
+                      "type": "line",
+                      "yAxis": "right"
+                    }
+                  ],
+                  "stacked": false,
+                  "showLegend": true,
+                  "showGrid": true,
+                  "valueFormat": "number",
+                  "yMin": null,
+                  "yMax": null,
+                  "referenceLines": [],
+                  "referenceBands": [],
+                  "unitLabel": null
+                },
+                "style": {
+                  "span": 6,
+                  "height": "md"
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_scat0001",
+                "type": "chart",
+                "props": {
+                  "chartType": "scatter",
+                  "orientation": "vertical",
+                  "source": {
+                    "kind": "static",
+                    "value": [
+                      {
+                        "stage": "Visits",
+                        "count": 1200,
+                        "rate": 0.62,
+                        "weight": 3
+                      },
+                      {
+                        "stage": "Leads",
+                        "count": 480,
+                        "rate": 0.41,
+                        "weight": 5
+                      },
+                      {
+                        "stage": "Offers",
+                        "count": 120,
+                        "rate": 0.33,
+                        "weight": 8
+                      },
+                      {
+                        "stage": "Deals",
+                        "count": 36,
+                        "rate": 0.3,
+                        "weight": 13
+                      }
+                    ]
+                  },
+                  "title": "scatter",
+                  "xKey": "weight",
+                  "xType": "category",
+                  "series": [
+                    {
+                      "key": "count"
+                    }
+                  ],
+                  "stacked": false,
+                  "showLegend": true,
+                  "showGrid": true,
+                  "valueFormat": "number",
+                  "yMin": null,
+                  "yMax": null,
+                  "referenceLines": [],
+                  "referenceBands": [],
+                  "unitLabel": null
+                },
+                "style": {
+                  "span": 6,
+                  "height": "md"
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_funl0001",
+                "type": "chart",
+                "props": {
+                  "chartType": "funnel",
+                  "orientation": "vertical",
+                  "source": {
+                    "kind": "static",
+                    "value": [
+                      {
+                        "stage": "Visits",
+                        "count": 1200,
+                        "rate": 0.62,
+                        "weight": 3
+                      },
+                      {
+                        "stage": "Leads",
+                        "count": 480,
+                        "rate": 0.41,
+                        "weight": 5
+                      },
+                      {
+                        "stage": "Offers",
+                        "count": 120,
+                        "rate": 0.33,
+                        "weight": 8
+                      },
+                      {
+                        "stage": "Deals",
+                        "count": 36,
+                        "rate": 0.3,
+                        "weight": 13
+                      }
+                    ]
+                  },
+                  "title": "funnel",
+                  "xKey": "stage",
+                  "xType": "category",
+                  "series": [
+                    {
+                      "key": "count"
+                    }
+                  ],
+                  "stacked": false,
+                  "showLegend": true,
+                  "showGrid": true,
+                  "valueFormat": "number",
+                  "yMin": null,
+                  "yMax": null,
+                  "referenceLines": [],
+                  "referenceBands": [],
+                  "unitLabel": null
+                },
+                "style": {
+                  "span": 6,
+                  "height": "md"
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_radr0001",
+                "type": "chart",
+                "props": {
+                  "chartType": "radar",
+                  "orientation": "vertical",
+                  "source": {
+                    "kind": "static",
+                    "value": [
+                      {
+                        "stage": "Visits",
+                        "count": 1200,
+                        "rate": 0.62,
+                        "weight": 3
+                      },
+                      {
+                        "stage": "Leads",
+                        "count": 480,
+                        "rate": 0.41,
+                        "weight": 5
+                      },
+                      {
+                        "stage": "Offers",
+                        "count": 120,
+                        "rate": 0.33,
+                        "weight": 8
+                      },
+                      {
+                        "stage": "Deals",
+                        "count": 36,
+                        "rate": 0.3,
+                        "weight": 13
+                      }
+                    ]
+                  },
+                  "title": "radar",
+                  "xKey": "stage",
+                  "xType": "category",
+                  "series": [
+                    {
+                      "key": "weight"
+                    },
+                    {
+                      "key": "rate"
+                    }
+                  ],
+                  "stacked": false,
+                  "showLegend": true,
+                  "showGrid": true,
+                  "valueFormat": "number",
+                  "yMin": null,
+                  "yMax": null,
+                  "referenceLines": [],
+                  "referenceBands": [],
+                  "unitLabel": null
+                },
+                "style": {
+                  "span": 6,
+                  "height": "md"
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_tree0001",
+                "type": "tree",
+                "props": {
+                  "source": {
+                    "kind": "static",
+                    "value": [
+                      {
+                        "id": "eu",
+                        "title": "Europe"
+                      },
+                      {
+                        "id": "nl",
+                        "title": "Netherlands",
+                        "parent": "eu"
+                      },
+                      {
+                        "id": "dlf",
+                        "title": "Delft",
+                        "parent": "nl"
+                      },
+                      {
+                        "id": "be",
+                        "title": "Belgium",
+                        "parent": "eu"
+                      },
+                      {
+                        "id": "as",
+                        "title": "Asia"
+                      }
+                    ]
+                  },
+                  "idKey": "id",
+                  "parentKey": "parent",
+                  "titleKey": "title",
+                  "subtitleKey": null,
+                  "icon": "Folder",
+                  "maxDepth": 2,
+                  "maxNodes": 500,
+                  "emptyText": "Nothing to show yet."
+                },
+                "style": {
+                  "span": 6
+                },
+                "visible": true,
+                "onRowClick": "act_toast001"
+              },
+              {
+                "id": "cmp_form0001",
+                "type": "form",
+                "props": {
+                  "name": "signup",
+                  "submitLabel": "Send",
+                  "showReset": false,
+                  "showSubmit": true,
+                  "resetKey": null
+                },
+                "style": {
+                  "span": 6,
+                  "gap": 3,
+                  "padding": 0
+                },
+                "visible": true,
+                "onSubmit": "act_toast001",
+                "children": [
+                  {
+                    "id": "cmp_wiz00001",
+                    "type": "wizard",
+                    "props": {
+                      "steps": [
+                        {
+                          "title": "You",
+                          "description": "Who are you?"
+                        },
+                        {
+                          "title": "Company"
+                        },
+                        {
+                          "title": "Done"
+                        }
+                      ],
+                      "backLabel": null,
+                      "nextLabel": "Continue",
+                      "validateSteps": true
+                    },
+                    "style": {
+                      "span": 12,
+                      "gap": 3,
+                      "padding": 0
+                    },
+                    "visible": true,
+                    "children": [
+                      {
+                        "id": "cmp_step0001",
+                        "type": "container",
+                        "props": {
+                          "look": "plain"
+                        },
+                        "style": {
+                          "span": 12,
+                          "gap": 3
+                        },
+                        "visible": true,
+                        "children": [
+                          {
+                            "id": "cmp_name0001",
+                            "type": "input_text",
+                            "props": {
+                              "name": "name",
+                              "label": "Name",
+                              "placeholder": null,
+                              "required": true,
+                              "defaultValue": null,
+                              "inputType": "text",
+                              "valueFrom": {
+                                "kind": "static",
+                                "value": null
+                              }
+                            },
+                            "style": {
+                              "span": 12
+                            },
+                            "visible": true,
+                            "tooltip": "As on your passport"
+                          }
+                        ]
+                      },
+                      {
+                        "id": "cmp_step0002",
+                        "type": "container",
+                        "props": {
+                          "look": "plain"
+                        },
+                        "style": {
+                          "span": 12,
+                          "gap": 3
+                        },
+                        "visible": true,
+                        "children": [
+                          {
+                            "id": "cmp_comp0001",
+                            "type": "input_text",
+                            "props": {
+                              "name": "company",
+                              "label": "Company",
+                              "placeholder": null,
+                              "required": false,
+                              "defaultValue": null,
+                              "inputType": "text",
+                              "valueFrom": {
+                                "kind": "static",
+                                "value": null
+                              }
+                            },
+                            "style": {
+                              "span": 12
+                            },
+                            "visible": true
+                          }
+                        ]
+                      },
+                      {
+                        "id": "cmp_step0003",
+                        "type": "container",
+                        "props": {
+                          "look": "plain"
+                        },
+                        "style": {
+                          "span": 12,
+                          "gap": 3
+                        },
+                        "visible": true,
+                        "children": [
+                          {
+                            "id": "cmp_done0001",
+                            "type": "text",
+                            "props": {
+                              "text": "Press Send to finish.",
+                              "muted": false
+                            },
+                            "style": {
+                              "span": 12
+                            },
+                            "visible": true
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "actions": {
+      "act_toast001": {
+        "kind": "toast",
+        "message": "Done",
+        "tone": "success"
+      }
+    },
+    "homeScreenId": "scr_adv00001"
+  }
+}

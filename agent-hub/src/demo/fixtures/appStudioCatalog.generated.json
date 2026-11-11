@@ -876,6 +876,10 @@
                 "onRowClick",
                 "onCardMove"
             ],
+            "container": true,
+            "slotContainer": true,
+            "childrenSince": 3,
+            "childrenDescription": "Child components drawn per card in place of the built-in card body. Inside them item is the card's record and index its position, as in a repeater: bind with computed or formulas such as item.title. The card keeps its click and drag behaviour, so keep buttons out of a clickable card. No children means the built-in body (titleKey and the other keys). The phone draws the built-in body.",
             "props": {
                 "source": {
                     "type": "binding",
@@ -1528,8 +1532,12 @@
                                 "user",
                                 "breakdown",
                                 "cad",
-                                "document"
+                                "document",
+                                "template"
                             ],
+                            "valuesSince": {
+                                "template": 3
+                            },
                             "default": "text"
                         },
                         "align": {
@@ -1602,6 +1610,12 @@
                             "objectShape": "cellStyle",
                             "since": 3,
                             "description": "Style of a cell while a formula over its row is true. A list [{ when: \"<formula>\", style: { <knob>: <value> } }] of at most 6 rules, checked per cell in order: every rule whose formula is true applies, a later one wins. In the formula `item` is the row and `value` this cell's value, e.g. { when: \"value > 1000\", style: { color: \"danger\", weight: \"bold\" } } or { when: \"item.status == 'late'\", style: { backgroundColor: \"warning\" } }. Knobs: color, backgroundColor, weight; a colour is a role (primary, neutral, success, warning, danger, info), #rrggbb or token:<name> of design.tokens. A role follows light, dark and high contrast, so prefer it. A formula that fails leaves the cell as it is. Set it through the column list of app_update_component { id, props: { columns: [...] } }."
+                        },
+                        "template": {
+                            "type": "string",
+                            "maxLen": 500,
+                            "since": 3,
+                            "description": "For format template: a formula whose result is the cell text. item is the row and value the cell's own value, e.g. item.first + \" \" + item.last or concat(item.city, \", \", item.country). The result is plain text, never markup. Sorting and filtering still use the value under key."
                         }
                     }
                 },
@@ -1705,8 +1719,12 @@
                                 "user",
                                 "breakdown",
                                 "cad",
-                                "document"
+                                "document",
+                                "template"
                             ],
+                            "valuesSince": {
+                                "template": 3
+                            },
                             "default": "text"
                         },
                         "width": {
@@ -1837,6 +1855,12 @@
                             "objectShape": "cellStyle",
                             "since": 3,
                             "description": "Style of a cell while a formula over its row is true. A list [{ when: \"<formula>\", style: { <knob>: <value> } }] of at most 6 rules, checked per cell in order: every rule whose formula is true applies, a later one wins. In the formula `item` is the row and `value` this cell's value, e.g. { when: \"value > 1000\", style: { color: \"danger\", weight: \"bold\" } } or { when: \"item.status == 'late'\", style: { backgroundColor: \"warning\" } }. Knobs: color, backgroundColor, weight; a colour is a role (primary, neutral, success, warning, danger, info), #rrggbb or token:<name> of design.tokens. A role follows light, dark and high contrast, so prefer it. A formula that fails leaves the cell as it is. Set it through the column list of app_update_component { id, props: { columns: [...] } }."
+                        },
+                        "template": {
+                            "type": "string",
+                            "maxLen": 500,
+                            "since": 3,
+                            "description": "For format template: a formula whose result is the cell text. item is the row and value the cell's own value, e.g. item.first + \" \" + item.last or concat(item.city, \", \", item.country). The result is plain text, never markup. Sorting and filtering still use the value under key."
                         }
                     }
                 },
@@ -2087,8 +2111,18 @@
                         "line",
                         "area",
                         "pie",
-                        "donut"
+                        "donut",
+                        "combo",
+                        "scatter",
+                        "funnel",
+                        "radar"
                     ],
+                    "valuesSince": {
+                        "combo": 3,
+                        "scatter": 3,
+                        "funnel": 3,
+                        "radar": 3
+                    },
                     "default": "bar"
                 },
                 "orientation": {
@@ -2142,6 +2176,25 @@
                         "color": {
                             "type": "string",
                             "maxLen": 40
+                        },
+                        "type": {
+                            "type": "enum",
+                            "values": [
+                                "bar",
+                                "line",
+                                "area"
+                            ],
+                            "since": 3,
+                            "description": "chartType combo only: how this series is drawn. bar when absent."
+                        },
+                        "yAxis": {
+                            "type": "enum",
+                            "values": [
+                                "left",
+                                "right"
+                            ],
+                            "since": 3,
+                            "description": "chartType combo only: the value axis of this series. right adds a second axis on the right. left when absent."
                         }
                     }
                 },
@@ -2253,6 +2306,10 @@
                 "meta",
                 "badge"
             ],
+            "container": true,
+            "slotContainer": true,
+            "childrenSince": 3,
+            "childrenDescription": "Child components drawn per row in place of the built-in row body. Inside them item is the row's record and index its position, as in a repeater: bind with computed or formulas such as item.title. The row keeps its click behaviour, so keep buttons out of a clickable row. No children means the built-in body (titleKey and the other keys). The phone draws the built-in body.",
             "description": "A card list over an array of objects — a friendlier alternative to a table, and the natural sidebar picker. badgeToneMap colours a status pill the way sideMap does for a message thread; timestampKey shows a short relative time; unreadKey bolds the row; tagsKey shows a tags field (e.g. mail categories) as chips.",
             "props": {
                 "source": {

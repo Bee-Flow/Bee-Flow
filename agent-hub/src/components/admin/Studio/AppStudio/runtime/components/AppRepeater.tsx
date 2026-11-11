@@ -7,6 +7,8 @@ import { EmptyText, SkeletonLines } from '../uiBits';
 import type { NodeStyle } from '../../inspector/appDefinition';
 import type { BindingInput } from '../resolveBinding.types';
 import type { NodeProps } from './appNode.types';
+import { repeaterRootProps } from './repeaterLayout';
+import '../css/repeaterLayout.css';
 
 /**
  * App Studio runtime — 'repeater' (container). Spec: server/appStudio/componentSpecs.js.
@@ -38,6 +40,10 @@ interface RepeaterProps {
     itemActions?: RepeaterItemAction[];
     emptyText?: string;
     source?: BindingInput;
+    layout?: 'stack' | 'grid' | 'row';
+    itemColumns?: number;
+    itemColumnsMd?: number;
+    itemColumnsSm?: number;
 }
 
 export default function AppRepeater({ node, children }: NodeProps<RepeaterProps>) {
@@ -70,8 +76,12 @@ export default function AppRepeater({ node, children }: NodeProps<RepeaterProps>
             : el));
     };
 
+    // Schema 3: the items side by side (grid) or on one sideways line (row). Absent or 'stack'
+    // is null here, and the root below is the stack every repeater had.
+    const rootProps = repeaterRootProps(node.props, spaceSteps(gap), () => t('studio_apps_lk20.repeater.row_label', 'Items, scroll sideways for more'));
+
     return (
-        <div className="flex flex-col bfa-repeater__root" style={{ gap: spaceSteps(gap) }} data-app-repeater="true">
+        <div {...rootProps} data-app-repeater="true">
             {items.map((item, i) => (
                 <div key={rowKey(item, i)} className="app-repeater-item bfa-repeater__item" data-app-repeater-item={i}>
                     <div

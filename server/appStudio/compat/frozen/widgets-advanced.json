@@ -1,0 +1,49 @@
+{
+  "corpus": "widgets-advanced",
+  "canonical": {
+    "sha256": "4d4eabd1286a71c686801b0c7e8d7fa3784961b5876f9405f9528054c6bfdc2c",
+    "bytes": 6054,
+    "inputIsCanonical": true,
+    "idempotent": true,
+    "keys": [
+      "schemaVersion",
+      "meta",
+      "theme",
+      "roles",
+      "screens",
+      "actions",
+      "homeScreenId"
+    ],
+    "parts": {
+      "schemaVersion": "4e07408562bedb8b",
+      "meta": "d23cf5d501be00aa",
+      "theme": "3a0de17bb8296081",
+      "roles": "4f53cda18c2baa0c",
+      "screens[0] scr_adv00001": "5b412ed9633bc653",
+      "actions.act_toast001": "f3a508761afa196b",
+      "homeScreenId": "d85b5ca1e7747219"
+    }
+  },
+  "schemaVersion": {
+    "stored": 3,
+    "canonical": 3
+  },
+  "validation": {
+    "strict": {
+      "errors": [],
+      "warnings": []
+    },
+    "save": {
+      "errors": [],
+      "warnings": []
+    }
+  },
+  "ordinals": {
+    "stored": {
+      "act_toast001": [
+        "0 toast"
+      ]
+    },
+    "canonical": "same as stored"
+  }
+}

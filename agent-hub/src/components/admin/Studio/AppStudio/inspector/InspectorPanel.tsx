@@ -12,6 +12,8 @@ import { TYPE_EVENT_LISTS } from './styleKnobMeta';
 import StyleSection, { findSectionById } from './StyleSection';
 import CssClassField from './CssClassField';
 import StyleWhenRules from './StyleWhenRules';
+import ItemTemplateField from './ItemTemplateField';
+import TooltipField from './TooltipField';
 import ThemePanel from './ThemePanel';
 import SectionInspector from './SectionInspector';
 import useTranslation from '@/hooks/useTranslation';
@@ -229,6 +231,8 @@ export default function InspectorPanel({ onCommit, onTestActionResult }: EditorI
                         <StyleSection definition={definition} node={node} onCommit={onCommit} disabled={disabled} />
                         <CssClassField definition={definition} node={node} onCommit={onCommit} disabled={disabled} />
                         <StyleWhenRules definition={definition} node={node} onCommit={onCommit} disabled={disabled} />
+                        <ItemTemplateField definition={definition} node={node} onCommit={onCommit} disabled={disabled} />
+                        <TooltipField definition={definition} node={node} onCommit={onCommit} disabled={disabled} />
                     </AccordionSection>
                 </>
             ) : (

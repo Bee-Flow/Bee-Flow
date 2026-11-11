@@ -367,7 +367,8 @@ test('v2.1 limits and event additions are present', () => {
 test('v2.1 types are classified and evented correctly', () => {
     for (const t of ['container', 'page_header']) assert.ok(CONTAINER_TYPES.includes(t), `${t} should be a container`);
     for (const t of ['markdown', 'badge_list', 'progress', 'timeline', 'record_detail', 'filter_bar', 'kanban', 'calendar']) {
-        assert.ok(!CONTAINER_TYPES.includes(t), `${t} should not be a container`);
+        // kanban holds children since schema 3 only (a card template, componentSpecs/itemTemplates.js).
+        assert.ok(!CONTAINER_TYPES.includes(t) || COMPONENT_SPECS[t].childrenSince === 3, `${t} should not be a container`);
         assert.ok(!INPUT_TYPES.includes(t), `${t} should not be an input`);
     }
     assert.deepEqual(COMPONENT_SPECS.kanban.events, ['onRowClick', 'onCardMove']);
@@ -689,7 +690,9 @@ test('containerPassesHeightDown — having a height and handing one down are dif
     // silently defaulting to "refuses everything" or "accepts everything".
     // Base types only: an extension container with a height knob gets no route (null: it
     // passes no height down, the safe answer) until its own package gives it one.
-    const heightBearing = CONTAINER_TYPES.filter((t) => BASE_TYPES.includes(t) && COMPONENT_SPECS[t].styleKnobs.includes('height'));
+    // A base type that became a slot container later (childrenSince: list, kanban) holds a row
+    // template, which takes no height from it: no route, the same safe answer.
+    const heightBearing = CONTAINER_TYPES.filter((t) => BASE_TYPES.includes(t) && !COMPONENT_SPECS[t].childrenSince && COMPONENT_SPECS[t].styleKnobs.includes('height'));
     assert.deepEqual(heightBearing.slice().sort(), Object.keys(CONTAINER_HEIGHT_ROUTES).sort());
 
     // styleIsFill mirrors the runtime's isFill(), which is what the 'fill'

@@ -174,8 +174,13 @@ const BLOCK_BUILDERS: Readonly<Record<string, BlockBuilder>> = {
  */
 const buildUnknown: BlockBuilder = (node, _props, ctx) => {
     ctx.noteUnsupported(node.type);
-    if (node.children?.length) ctx.walk(node.children);
+    // The children of a list or kanban (schema 3) are a row template, drawn per row in the
+    // browser: walked here they would be loose copies with no row behind them.
+    if (node.children?.length && !ITEM_TEMPLATE_HOSTS.has(node.type)) ctx.walk(node.children);
 };
+
+/** The types whose children are an item template (server/appStudio/componentSpecs/itemTemplates.js). */
+const ITEM_TEMPLATE_HOSTS: ReadonlySet<string> = new Set(['list', 'kanban']);
 
 function planNode(node: AppNode, ctx: PlanContext): void {
     if (!node || typeof node !== 'object' || node.visible === false) return;

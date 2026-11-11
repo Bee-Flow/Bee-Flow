@@ -10,6 +10,7 @@ import type { Finding } from '../definitionKeyRegistry.mts';
 import { checkAssetRefs } from './assetChecks.mts';
 import { checkScreenTriggers } from './clientTriggerChecks.mts';
 import { checkLayout } from './layoutChecks.mts';
+import { checkLookExtras } from './lookExtrasChecks.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 const { SCHEMA_VERSION_BASE, SCHEMA_VERSION_CURRENT, SCHEMA_VERSIONS_ACCEPTED } = nodeRequire('../componentSpecs/ids.js') as {
@@ -70,4 +71,5 @@ export function validateRegisteredKeys(def: Def, pushE: PushFinding, pushW: Push
     checkAssetRefs(def, opts.assetIds, pushW);
     checkScreenTriggers(def, { pushE, pushW });
     checkLayout(def, pushW);
+    checkLookExtras(def, { pushE, pushW });
 }

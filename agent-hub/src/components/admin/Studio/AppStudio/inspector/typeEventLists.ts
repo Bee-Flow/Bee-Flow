@@ -36,4 +36,5 @@ export const TYPE_EVENT_LISTS: Record<string, string[]> = {
     rating: ['onChange'],
     slider: ['onChange'],
     switch: ['onChange'],
+    tree: ['onRowClick'],
 };

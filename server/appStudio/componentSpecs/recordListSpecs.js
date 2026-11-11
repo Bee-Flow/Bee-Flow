@@ -10,6 +10,7 @@ const { LIMITS } = require('./limits');
 const { COLOR_ROLES } = require('./styleKnobs');
 const { formatOptionsSpec } = require('./objectShapes');
 const { cellStyleSpec } = require('./styleRuleShape');
+const { itemTemplateHost, columnTemplateSpec } = require('./itemTemplates');
 
 const RECORD_LIST_SPECS = {
     table: {
@@ -44,7 +45,10 @@ const RECORD_LIST_SPECS = {
                             // the PDF (or image) full screen. Same gesture as 'cad',
                             // different file.
                             'document',
+                            // Schema 3: the text of the column's `template` formula, per row.
+                            'template',
                         ],
+                        valuesSince: { template: 3 },
                         default: 'text',
                     },
                     align: { type: 'enum', values: ['auto', 'left', 'right', 'center'], default: 'auto' },
@@ -80,6 +84,8 @@ const RECORD_LIST_SPECS = {
                     ),
                     // Schema 3: per-cell conditional style from the row's values (styleRuleShape.js).
                     cellStyle: cellStyleSpec('Style of a cell while a formula over its row is true.'),
+                    // Schema 3: what a `format: 'template'` column writes (./itemTemplates.js).
+                    template: columnTemplateSpec(),
                 },
             },
             emptyText: { type: 'string', maxLen: 200, default: 'Nothing to show yet.' },
@@ -101,6 +107,8 @@ const RECORD_LIST_SPECS = {
     list: {
         label: 'List', category: 'Data',
         parts: ['root', 'group', 'item', 'icon', 'title', 'subtitle', 'meta', 'badge'],
+        // Schema 3: an optional row template (./itemTemplates.js).
+        ...itemTemplateHost('list'),
         description: 'A card list over an array of objects — a friendlier alternative to a table, and the natural sidebar picker. badgeToneMap colours a status pill the way sideMap does for a message thread; timestampKey shows a short relative time; unreadKey bolds the row; tagsKey shows a tags field (e.g. mail categories) as chips.',
         props: {
             source: { type: 'binding', default: { kind: 'static', value: [] } },

@@ -1,0 +1,49 @@
+{
+  "corpus": "widget-item-templates",
+  "canonical": {
+    "sha256": "610d48997f94cbf7fef384b65a53780b28244d76096318660c5fd529acfc08ee",
+    "bytes": 6268,
+    "inputIsCanonical": true,
+    "idempotent": true,
+    "keys": [
+      "schemaVersion",
+      "meta",
+      "theme",
+      "roles",
+      "screens",
+      "actions",
+      "homeScreenId"
+    ],
+    "parts": {
+      "schemaVersion": "4e07408562bedb8b",
+      "meta": "3b1807d89920c556",
+      "theme": "5d7eeb0111b89897",
+      "roles": "4f53cda18c2baa0c",
+      "screens[0] scr_items001": "42d49d8f581ff1e6",
+      "actions.act_pick0001": "0daa52d591bb326f",
+      "homeScreenId": "f7823b98f2dd39bf"
+    }
+  },
+  "schemaVersion": {
+    "stored": 3,
+    "canonical": 3
+  },
+  "validation": {
+    "strict": {
+      "errors": [],
+      "warnings": []
+    },
+    "save": {
+      "errors": [],
+      "warnings": []
+    }
+  },
+  "ordinals": {
+    "stored": {
+      "act_pick0001": [
+        "0 toast"
+      ]
+    },
+    "canonical": "same as stored"
+  }
+}
