@@ -10,8 +10,15 @@ const tab = (id: string) => ADMIN_TABS.find(t => t.id === id) as AdminTab;
 describe('canOpenAdminTab', () => {
     it('hides cloud-only tabs on self-hosted and enterprise tabs below enterprise', () => {
         expect(canOpenAdminTab(tab('subscriptions'), access({ isCloud: false, isSelfHosted: true }))).toBe(false);
-        expect(canOpenAdminTab(tab('monitoring'), access({ tier: 'community' }))).toBe(false);
+        expect(canOpenAdminTab(tab('appearance'), access({ tier: 'community' }))).toBe(false);
         expect(canOpenAdminTab(tab('ai-config'), access({ tier: 'community' }))).toBe(true);
+    });
+
+    it('opens Monitoring below enterprise for an organisation admin by role, and for a holder of admin_monitoring', () => {
+        const community = { tier: 'community', isSuperAdmin: false };
+        expect(canOpenAdminTab(tab('monitoring'), access({ ...community, hasPermission: p => p === 'org_admin' }))).toBe(true);
+        expect(canOpenAdminTab(tab('monitoring'), access({ ...community, hasPermission: p => p === 'admin_monitoring' }))).toBe(true);
+        expect(canOpenAdminTab(tab('monitoring'), access({ ...community, hasPermission: p => p === 'admin_security' }))).toBe(false);
     });
 
     it('hides subscriptions while a server-wide licence governs, and super-admin tabs from others', () => {

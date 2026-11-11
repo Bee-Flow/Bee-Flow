@@ -18,6 +18,8 @@ interface GateProps {
     enabled: boolean;
     rangeParams: RangeParams;
     rangePreset?: string;
+    /** The organisation the reads cover; none: the caller's own. */
+    orgId?: string | null;
 }
 
 function AllReads({ rangeParams, rangePreset, children }: Omit<GateProps, 'enabled'> & { children: (a: OverviewAdoption) => ReactNode }) {
@@ -34,8 +36,8 @@ export function AdoptionGate({ enabled, children, ...range }: GateProps & { chil
     return <AllReads {...range}>{children}</AllReads>;
 }
 
-function SummaryRead({ rangeParams, rangePreset, children }: Omit<GateProps, 'enabled'> & { children: (s: AdoptionSummary | null) => ReactNode }) {
-    const summary = useAdoptionSummary<AdoptionSummary>(adoptionQuery(rangeParams, rangePreset, '')).data ?? null;
+function SummaryRead({ rangeParams, rangePreset, orgId, children }: Omit<GateProps, 'enabled'> & { children: (s: AdoptionSummary | null) => ReactNode }) {
+    const summary = useAdoptionSummary<AdoptionSummary>(adoptionQuery(rangeParams, rangePreset, '', orgId)).data ?? null;
     return <>{children(summary)}</>;
 }
 

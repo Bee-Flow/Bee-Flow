@@ -152,9 +152,12 @@ export const ADMIN_TABS: readonly AdminTab[] = [
     // organisation chosen in the dashboard, and the Ceiling's licence and
     // global switches are server-wide (ACCESS_SCOPES).
     { id: 'access', labelKey: 'admin.tab_access', labelFallback: 'Access', icon: KeyRound, group: 'security', perm: ['admin_security', 'org_admin', 'manage_users'], scope: 'mixed', sections: ACCESS_SCOPES, superAdminOnly: false },
+    // No minTier: Overview is open to every admin of the tab, and the other pages need the
+    // `advanced_usage_monitoring` capability (monitoring/monitoring.constants.ts), as Settings' usage did.
+    // An organisation admin by role gets the tab through `org_admin`, like Access.
     // Feedback: a platform admin reads every organisation's, an organisation admin their home
     // organisation's (server routes/feedback.js `/org`, which refuses anyone else).
-    { id: 'monitoring', labelKey: 'admin.tab_monitoring', icon: Activity, group: 'operations', perm: ['admin_monitoring'], scope: 'mixed', orgAdminSections: ['feedback'], superAdminOnly: false, minTier: 'enterprise' },
+    { id: 'monitoring', labelKey: 'admin.tab_monitoring', icon: Activity, group: 'operations', perm: ['admin_monitoring', 'org_admin'], scope: 'mixed', orgAdminSections: ['feedback'], superAdminOnly: false },
     // Compliance Hub — available on cloud AND self-hosted (Enterprise):
     // self-hosted GDPR customers are exactly who the hub serves. Also
     // reachable from Settings → Organisation for org-admins/DPOs.

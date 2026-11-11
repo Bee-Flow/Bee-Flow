@@ -5,6 +5,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it } from 'vitest';
 import { setDemoTransport } from '@/utils/helpers';
 import { AdminOrgProvider, type AdminOrgChoice } from '@/components/admin/dashboard/useAdminOrg';
+import { withAdvanced } from '@/test/monitoringKit';
 import MonitoringPanel from './index';
 
 const json = (body: unknown) => new Response(JSON.stringify(body), { status: 200, headers: { 'Content-Type': 'application/json' } });
@@ -29,7 +30,7 @@ describe('MonitoringPanel range switch', () => {
             return json([]);
         });
 
-        render(<MonitoringPanel activeSection="overview" />);
+        render(withAdvanced(<MonitoringPanel activeSection="overview" />));
         await user.click(await screen.findByRole('radio', { name: 'All Time' }));
         expect(await screen.findByText('42')).toBeTruthy();
 
@@ -67,7 +68,7 @@ describe('MonitoringPanel scope', () => {
 
     it('names the organisation the figures cover and reads its own feedback', async () => {
         const asked = serve(ORG_A);
-        render(<MonitoringPanel activeSection="feedback" user={ORG_ADMIN} />);
+        render(withAdvanced(<MonitoringPanel activeSection="feedback" user={ORG_ADMIN} />));
         expect(screen.getByRole('heading', { level: 2, name: 'Feedback' })).toBeTruthy();
         expect(await screen.findByText('Usage of Org A')).toBeTruthy();
         await waitFor(() => expect(feedbackReads(asked).length).toBe(2));
@@ -76,7 +77,7 @@ describe('MonitoringPanel scope', () => {
 
     it('says when the figures cover every organisation and reads the instance-wide feedback', async () => {
         const asked = serve(ALL);
-        render(<MonitoringPanel activeSection="feedback" user={PLATFORM_ADMIN} />);
+        render(withAdvanced(<MonitoringPanel activeSection="feedback" user={PLATFORM_ADMIN} />));
         expect(screen.getByRole('heading', { level: 2, name: 'Feedback' })).toBeTruthy();
         expect(await screen.findByText('Usage of all organisations')).toBeTruthy();
         await waitFor(() => expect(feedbackReads(asked).length).toBe(2));
@@ -90,7 +91,7 @@ describe('MonitoringPanel scope', () => {
             organizationsLoaded: true, pending: false, homeOrganization: null, setOrgId: () => {},
         };
         const asked = serve(ORG_A);
-        const { unmount } = render(<AdminOrgProvider value={choice}><MonitoringPanel activeSection="feedback" user={PLATFORM_ADMIN} /></AdminOrgProvider>);
+        const { unmount } = render(withAdvanced(<AdminOrgProvider value={choice}><MonitoringPanel activeSection="feedback" user={PLATFORM_ADMIN} /></AdminOrgProvider>));
         await screen.findByText('Usage of Org A');
         await waitFor(() => expect(feedbackReads(asked).length).toBe(2));
         const usage = asked.filter((u) => u.includes('/api/usage/') && !u.includes('/model-costs'));
@@ -100,7 +101,7 @@ describe('MonitoringPanel scope', () => {
         unmount();
 
         const again = serve(ORG_A);
-        render(<AdminOrgProvider value={choice}><MonitoringPanel activeSection="terminations" user={PLATFORM_ADMIN} /></AdminOrgProvider>);
+        render(withAdvanced(<AdminOrgProvider value={choice}><MonitoringPanel activeSection="terminations" user={PLATFORM_ADMIN} /></AdminOrgProvider>));
         const terminationReads = () => again.filter((u) => u.includes('/api/terminations'));
         await waitFor(() => expect(terminationReads().length).toBe(4));
         expect(terminationReads().every((u) => u.includes('/api/terminations/org') && u.includes('orgId=org-a'))).toBe(true);
@@ -108,7 +109,7 @@ describe('MonitoringPanel scope', () => {
 
     it('sends no orgId when no organisation is chosen', async () => {
         const asked = serve(ALL);
-        render(<MonitoringPanel activeSection="overview" user={PLATFORM_ADMIN} />);
+        render(withAdvanced(<MonitoringPanel activeSection="overview" user={PLATFORM_ADMIN} />));
         await screen.findByText('Usage of all organisations');
         expect(asked.some((u) => u.includes('orgId='))).toBe(false);
     });
@@ -117,7 +118,7 @@ describe('MonitoringPanel scope', () => {
     // admin_monitoring, the tab's own permission (a DPO or auditor holds it).
     it('reads terminations from the generic route, also when the figures cover one organisation', async () => {
         const asked = serve(ORG_A);
-        render(<MonitoringPanel activeSection="terminations" />);
+        render(withAdvanced(<MonitoringPanel activeSection="terminations" />));
         await screen.findByText('Usage of Org A');
         const terminationReads = () => asked.filter((u) => u.includes('/api/terminations'));
         await waitFor(() => expect(terminationReads().length).toBe(4));

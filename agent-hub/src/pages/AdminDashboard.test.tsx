@@ -35,11 +35,11 @@ describe('AdminDashboard navigation', () => {
     it('lists only the tabs a community self-hosted super-admin may open, grouped', () => {
         renderDashboard({ seg1: 'licenses' });
         const nav = within(rail());
-        for (const name of ['Organisation', 'AI Config', 'Security', 'Integrations', 'Access', 'Server licence', 'Modules', 'Languages']) {
+        for (const name of ['Organisation', 'AI Config', 'Security', 'Integrations', 'Access', 'Monitoring', 'Server licence', 'Modules', 'Languages']) {
             expect(nav.getByRole('link', { name })).toBeInTheDocument();
         }
         // Enterprise-only and cloud-only tabs stay hidden, even from the operator.
-        for (const name of ['Agents', 'Monitoring', 'Compliance', 'Subscriptions', 'Product Website', 'Release Notes']) {
+        for (const name of ['Agents', 'Compliance', 'Subscriptions', 'Product Website', 'Release Notes']) {
             expect(nav.queryByRole('link', { name })).not.toBeInTheDocument();
         }
         expect(nav.getByText('Security & access')).toBeInTheDocument();
@@ -49,7 +49,7 @@ describe('AdminDashboard navigation', () => {
     it('shows the enterprise and cloud tabs on an enterprise cloud install', () => {
         renderDashboard({ seg1: 'licenses', license: { tier: 'enterprise', deploymentMode: 'cloud' } });
         const nav = within(rail());
-        for (const name of ['Agents', 'Monitoring', 'Compliance', 'Subscriptions', 'Product Website', 'Release Notes']) {
+        for (const name of ['Agents', 'Compliance', 'Subscriptions', 'Product Website', 'Release Notes']) {
             expect(nav.getByRole('link', { name })).toBeInTheDocument();
         }
         // The whole-server block is one flat list: no "Website" sub-heading.

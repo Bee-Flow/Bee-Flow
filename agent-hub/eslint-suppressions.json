@@ -8816,17 +8816,6 @@
       "count": 1
     }
   },
-  "src/pages/settings/UsageSection.tsx": {
-    "complexity": {
-      "count": 1
-    },
-    "max-lines-per-function": {
-      "count": 1
-    },
-    "max-statements": {
-      "count": 1
-    }
-  },
   "src/pages/settings/VoiceprintEnrollModal.tsx": {
     "complexity": {
       "count": 1

@@ -32,6 +32,10 @@ const SUB_TABS: SpendSubTab[] = ['models', 'people', 'agents', 'sources', 'servi
 export interface SpendTabProps extends OverviewTabProps {
     /** Sub-tab to open first. */
     initialSubTab?: string;
+    /** The organisation the adoption read behind the hero covers (a platform admin's choice). */
+    orgId?: string | null;
+    /** The figures cover every organisation: the adoption report belongs to one, so the hero shows no change. */
+    allOrganisations?: boolean;
 }
 
 function isSubTab(id: string | undefined): id is SpendSubTab {
@@ -105,7 +109,7 @@ export default function SpendTab(props: SpendTabProps) {
         return <CustomerSpend data={props.data} subscription={props.subscription} tierForModel={props.tierForModel} modelTiers={props.modelTiers} />;
     }
     return (
-        <SummaryGate enabled={hasFeature('advanced_usage_monitoring')} rangeParams={props.rangeParams} rangePreset={props.rangePreset}>
+        <SummaryGate enabled={hasFeature('advanced_usage_monitoring') && !props.allOrganisations} rangeParams={props.rangeParams} rangePreset={props.rangePreset} orgId={props.orgId}>
             {(summary) => (
                 <SpendBody {...props} deltaPct={summary ? pctChange(summary.spend.cost, summary.prev?.cost) : null} />
             )}
