@@ -294,4 +294,4 @@ function errorSummary(errors) {
     return errors.slice(0, 5).map((e) => `${e.path || 'answer'}: ${e.message}`).join('; ');
 }
 
-module.exports = { evaluateAnswer, valuesAtPath, errorSummary, scriptRatio, MODEL_VALUE_MAX };
+module.exports = { evaluateAnswer, schemaTypeErrors, valuesAtPath, errorSummary, scriptRatio, MODEL_VALUE_MAX };

@@ -14,7 +14,14 @@
  *     "Return JSON matching this schema" text stays in the prompt: it helps
  *     small models on both routes.
  *   - PROMPT: everything else (tools, no schema, a schema that cannot be a tool
- *     definition): chat + a tolerant parse of the reply, as before.
+ *     definition): chat + a tolerant parse of the reply, as before. A tool loop
+ *     that hits its cap ends on one call without tools (aiStepToolLoop), the
+ *     forced step_answer call when the schema is declared.
+ *
+ * An empty reply is never an answer. A DECLARED schema is checked on every
+ * route, with or without checks: an object with no fields, a missing required
+ * field, a top-level field of the wrong type, and an all-empty answer while a
+ * tool call failed (aiStepOutputParse.declaredContractErrors).
  *
  * With no `enumFrom`, `checks` or `fallback` on the step (`rel.active` false)
  * nothing below changes the answer. Otherwise the restored answer is checked
@@ -26,7 +33,8 @@
 
 const safety = require('./safety');
 const { createUsageAccumulator } = require('../providers/usageNormalizer');
-const { parseAiStepOutput } = require('./aiStepOutputParse');
+const { parseAiStepOutput, declaredContractErrors, contractError } = require('./aiStepOutputParse');
+const { _flattenToolRoundTrips: flattenToolRoundTrips } = require('../agentRuntime/toolRound/toolContent');
 const { runAiStepChat } = require('./aiStepToolLoop');
 const { logAiStepUsage } = require('./aiStepMessages');
 const {
@@ -51,6 +59,29 @@ function prepareAiAnswer({ step, runState, ctx, mode, messages }) {
     const listsMessage = allowedValuesMessage(lists);
     if (listsMessage) messages.push(listsMessage);
     return { rel, lists, listsMessage };
+}
+
+/**
+ * The step_answer tool for a schema (the structured route's request, and the
+ * final call of a tool loop that hit its cap), with the allowed values from
+ * the GUARDED message. Null when the schema cannot be a tool definition.
+ */
+function answerToolFor(schema, listsMessage, lists) {
+    const parameters = schema ? toToolParameters(schema) : null;
+    if (!parameters) return null;
+    if (listsMessage) {
+        injectEnums(parameters, guardedListsOf(listsMessage), (lists || []).filter((l) => l.allowEmpty).map((l) => l.field));
+    }
+    return { type: 'function', function: { name: TOOL_NAME, description: 'Return the answer of this automation step.', parameters } };
+}
+
+/**
+ * The declared output contract of a restored answer (aiStepOutputParse.declaredContractErrors):
+ * nothing for an inferred schema or no schema at all.
+ */
+function contractErrorsOf(restored, contract, toolInfo) {
+    if (!contract.outputContract || !contract.outputContract.declared || !contract.effectiveSchema) return [];
+    return declaredContractErrors(restored, toToolParameters(contract.effectiveSchema), toolInfo);
 }
 
 /** The reuse plan (aiStepCache), or null when this step does not ask for reuse. */
@@ -82,20 +113,19 @@ async function answerAiStep(call, deps = {}) {
     const signal = ctx.cancelSignal;
     const usageAcc = createUsageAccumulator();
     const accrueUsage = (resp) => usageAcc.add(resp && resp.usage ? resp.usage : null);
-    const run = { calls: 0, hitIterationCap: false };
+    const run = { calls: 0, hitIterationCap: false, /** @type {Array<{ name: string, error: string|null }>} */ tally: [] };
+    const toolInfo = () => ({ tally: run.tally, hitIterationCap: run.hitIterationCap });
     const categories = [];
     const cache = deps.cache || (step.askOnce ? require('./aiStepCache') : null);
 
     // The structured route: the schema as tool parameters, allowed values from the GUARDED message.
-    const parameters = !(tools && tools.length) && contract.effectiveSchema ? toToolParameters(contract.effectiveSchema) : null;
-    if (parameters && listsMessage) {
-        injectEnums(parameters, guardedListsOf(listsMessage), (lists || []).filter((l) => l.allowEmpty).map((l) => l.field));
-    }
+    // With tools, a DECLARED schema still gets that tool for the call after a capped tool loop.
+    const hasTools = !!(tools && tools.length);
+    const answerTool = answerToolFor(contract.effectiveSchema, listsMessage, lists);
+    const toolDef = hasTools ? null : answerTool;
+    const parameters = toolDef ? toolDef.function.parameters : null;
+    const finalTool = hasTools && contract.outputContract && contract.outputContract.declared ? answerTool : null;
     const route = parameters ? 'structured' : 'prompt';
-    const toolDef = parameters
-        ? { type: 'function', function: { name: TOOL_NAME, description: 'Return the answer of this automation step.', parameters } }
-        : null;
-    const base = messages.slice(); // before a tool loop appends its rounds
 
     /** One model call; the answer as { content, structured, stopReason }. */
     const ask = async (msgs, isRepair) => {
@@ -113,19 +143,25 @@ async function answerAiStep(call, deps = {}) {
                 stopReason: r?.stopReason || null,
             };
         }
-        const { response, hitIterationCap } = await runAiStepChat({
+        const { response, hitIterationCap, toolTally } = await runAiStepChat({
             adapter, cfg, modelId, messages: msgs, maxOutputTokens, stepReasoningEffort, temperature: rel.temperature,
             tools: isRepair ? null : tools, accrueUsage, step, ctx, mode, policy, auditBase, agentBinding: call.agentBinding,
+            answerTool: isRepair ? null : finalTool, llmClient: deps.llmClient,
         });
         if (hitIterationCap) run.hitIterationCap = true;
-        return { content: response?.content || '', structured: null, stopReason: response?.stop_reason ?? response?.stopReason ?? null };
+        run.tally.push(...toolTally);
+        return {
+            content: response?.content || '',
+            structured: isPlain(response?.structured) ? response.structured : null,
+            stopReason: response?.stop_reason ?? response?.stopReason ?? null,
+        };
     };
 
     /** Parse -> output guard -> restore -> checks. `errors` stays empty when the step has no checks. */
     const attempt = async (answer) => {
         let output;
         try {
-            output = answer.structured || parseAiStepOutput(answer.content || '', { step, ...contract });
+            output = answer.structured || parseAiStepOutput(answer.content || '', { step, ...contract, toolInfo: toolInfo() });
         } catch (e) {
             if (!rel.active || e.errorClass !== 'ValidationError') throw e;
             const errors = [{ code: 'no_answer', path: '', message: 'the answer was not in the requested format', modelValue: '' }];
@@ -137,11 +173,19 @@ async function answerAiStep(call, deps = {}) {
         const aiOut = await safety.guardAiOutput(output, policy, auditBase, mode, ctx);
         categories.push(...(aiOut.categories || []));
         const restoredRaw = safety.restoreForRunState(aiOut.content, ctx);
-        if (!rel.active) return { answer, output, restored: restoredRaw, errors: [] };
+        // A declared schema is a contract with or without checks: without them a
+        // broken one fails the step, with them it is one more error to repair.
+        const broken = contractErrorsOf(restoredRaw, contract, toolInfo());
+        if (!rel.active) {
+            if (broken.length) throw contractError(broken, step.id);
+            return { answer, output, restored: restoredRaw, errors: [] };
+        }
         const restored = restoredRaw && typeof restoredRaw === 'object' ? structuredClone(restoredRaw) : restoredRaw;
         const errors = evaluateAnswer({
             restored, modelOutput: aiOut.content, rel, lists, runState, mode, ctx, schema: toToolParameters(contract.effectiveSchema),
         });
+        // evaluateAnswer already ran the schema types; add what only the contract knows.
+        for (const e of broken) if (e.code !== 'schema_type') errors.push({ ...e, modelValue: '' });
         return { answer, output, restored, errors };
     };
 
@@ -165,8 +209,10 @@ async function answerAiStep(call, deps = {}) {
         let final = first;
         let repaired = false;
         if (first.errors.length && rel.active) {
+            // The repair round sees what the first round saw, tool results included
+            // (as plain text: the repair offers no tools).
             const repairMsgs = await buildRepairMessages({
-                base, prior: first.output, errors: first.errors, policy, auditBase, mode, ctx,
+                base: flattenToolRoundTrips(messages), prior: first.output, errors: first.errors, policy, auditBase, mode, ctx,
             });
             if (repairMsgs) {
                 repaired = true;

@@ -84,6 +84,31 @@ CITATION RULES:
 // ─── Tool Execution ────────────────────────────────────────────
 
 /**
+ * AGENT_SEARCH_TIMEOUT_MS: how long one request to the search service may take.
+ * Default 30 s, 0 = no timeout.
+ */
+function searchTimeoutMs() {
+    const raw = process.env.AGENT_SEARCH_TIMEOUT_MS;
+    if (raw == null || String(raw).trim() === '') return 30000;
+    const n = Number(raw);
+    return Number.isFinite(n) && n >= 0 ? Math.floor(n) : 30000;
+}
+
+/**
+ * A failed search as the `{ error }` object every tool caller already reads as
+ * a failure. A timeout says how long it waited, not the runtime's wording.
+ * @param {unknown} err
+ * @param {number} timeoutMs
+ */
+function searchFailure(err, timeoutMs) {
+    const e = /** @type {Error} */ (err);
+    const timedOut = !!e && (e.name === 'TimeoutError' || e.name === 'AbortError') && timeoutMs > 0;
+    const wait = timeoutMs < 1000 ? `${timeoutMs} ms` : `${Math.round(timeoutMs / 1000)} s`;
+    const why = timedOut ? `timeout after ${wait}` : (e && e.message) || String(err);
+    return { error: `Search failed: ${why}` };
+}
+
+/**
  * The agent_search arguments as the model sends them.
  * @typedef {{ query?: string, mode?: string, max_results?: string, fetch_top_n?: string, detail_level?: string }} WebSearchArgs
  */
@@ -154,6 +179,7 @@ async function executeAgentSearchTool(toolName, args) {
         response: { include_citations: includeCitations, max_tokens_markdown: maxTokens, detail_level: detailLevel },
     };
 
+    const timeoutMs = searchTimeoutMs();
     try {
         // Forward Serper API key if configured in admin dashboard (resilient to DB failures)
         let serperKey = null;
@@ -172,11 +198,12 @@ async function executeAgentSearchTool(toolName, args) {
         log.info(`[AgentSearch] POST ${fetchUrl}`);
 
         const startTime = Date.now();
+        // nosemgrep: semgrep.beeflow-bare-fetch -- the instance's own search sidecar (SEARCH_SERVICE_URL or the platform admin's agent_search_url), an internal host safeFetch would refuse; the query, not the target, comes from the model
         const response = await fetch(fetchUrl, {
             method: 'POST',
             headers,
             body: JSON.stringify(payload),
-            signal: AbortSignal.timeout(30000),
+            ...(timeoutMs > 0 ? { signal: AbortSignal.timeout(timeoutMs) } : {}),
         });
 
         log.info(`[AgentSearch] Response: status=${response.status} (${Date.now() - startTime}ms)`);
@@ -245,7 +272,7 @@ ${sourcesList}
     } catch (err) {
         log.error(`[AgentSearch] ERROR: ${/** @type {Error} */ (err).message}`);
         log.error(`[AgentSearch] Stack:`, /** @type {Error} */ (err).stack);
-        return `Search failed: ${/** @type {Error} */ (err).message}`;
+        return searchFailure(err, timeoutMs);
     }
 }
 
@@ -300,4 +327,5 @@ module.exports = {
     executeAgentSearchTool,
     executeWebSearch,
     isAgentSearchTool,
+    searchTimeoutMs,
 };
