@@ -87,6 +87,8 @@ const AdoptionQuery = queryOf({
     startDate: aDate.optional(),
     endDate: aDate.optional(),
     group: worded('group is the id of a group.').max(200, 'group is at most 200 characters.').optional(),
+    // A platform admin's choice of organisation (routes/usageScope.js getOrgFilter); anyone else may only name their own.
+    orgId: worded('orgId is the id of an organisation.').max(200, 'orgId is at most 200 characters.').optional(),
     kind: choice(KIND_KEYS, `kind is one of ${KIND_KEYS.join(', ')}.`).optional(),
     reveal: choice(['true', 'false'], 'reveal is true or false.').optional(),
     // Each route clamps its own page size.

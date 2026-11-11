@@ -151,6 +151,21 @@ test('a super admin reads the organisation on their record; without one they are
     assert.equal(none.body.code, 'no_organisation');
 });
 
+test('a platform admin names the organisation with orgId; an organisation admin only their own', async () => {
+    const root = { ...as('a-owner'), role: 'admin' };
+    const people = await get(`/people?days=30&reveal=true&orgId=${kit.ORG_B}`, root);
+    assert.equal(people.status, 200, people.text);
+    assert.ok(people.body.people.length > 0 && people.body.people.every((p) => p.id.startsWith('b-')), 'members of organisation B only');
+    const unknown = await get('/summary?days=30&orgId=no-such-org', root);
+    assert.equal(unknown.status, 404, unknown.text);
+
+    const own = await get(`/summary?days=30&orgId=${kit.ORG_A}`, as('a-owner'));
+    assert.equal(own.status, 200, own.text);
+    const other = await get(`/summary?days=30&orgId=${kit.ORG_B}`, as('a-owner'));
+    assert.equal(other.status, 403, other.text);
+    assert.equal(other.body.code, 'org_admin_required');
+});
+
 test('admin_monitoring from a group of another organisation opens nothing here', async () => {
     // a-seen is a plain member of A (home org) and sits in a group of B whose orgRole is dpo:
     // the union of permissions holds admin_monitoring, organisation A does not grant it.

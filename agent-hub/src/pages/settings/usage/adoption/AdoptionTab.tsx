@@ -25,6 +25,8 @@ export interface AdoptionTabProps {
     compare?: boolean;
     /** Sub-tab to open first (studio, people, groups or areas); Studio by default. */
     initialSubTab?: string;
+    /** The organisation the report reads (a platform admin's choice); none: the caller's own. */
+    orgId?: string | null;
 }
 
 /**
@@ -32,7 +34,7 @@ export interface AdoptionTabProps {
  * the server can read "signed in" and "dormant" from the last sign-in; only a
  * custom range is an absolute window (and then those two read "—").
  */
-export function adoptionQuery(range: RangeParams, preset: string | undefined, group: string): string {
+export function adoptionQuery(range: RangeParams, preset: string | undefined, group: string, orgId?: string | null): string {
     const p = new URLSearchParams();
     if (preset === 'custom' && range.startDate && range.endDate) {
         p.set('startDate', range.startDate);
@@ -41,6 +43,7 @@ export function adoptionQuery(range: RangeParams, preset: string | undefined, gr
         p.set('days', String(range.days ?? USAGE_ALL_DAYS));
     }
     if (group) p.set('group', group);
+    if (orgId) p.set('orgId', orgId);
     return p.toString();
 }
 
@@ -162,8 +165,8 @@ export default function AdoptionTab(props: AdoptionTabProps) {
     // The shell remounts this tab when a tile elsewhere opens a sub-tab, so the seed is read once. The state
     // lives here, not in the body: the body unmounts while a new group loads.
     const [sub, setSub] = useState<SubId>(() => seedSubTab(props.initialSubTab));
-    const baseQs = adoptionQuery(props.rangeParams, props.rangePreset, '');
-    const qs = adoptionQuery(props.rangeParams, props.rangePreset, group);
+    const baseQs = adoptionQuery(props.rangeParams, props.rangePreset, '', props.orgId);
+    const qs = adoptionQuery(props.rangeParams, props.rangePreset, group, props.orgId);
     const d = useAdoptionData(baseQs, qs, reveal);
     const summary = d.summary.data ?? null;
     const groupName = d.groupOptions.data?.groups.find(g => g.id === group)?.name;

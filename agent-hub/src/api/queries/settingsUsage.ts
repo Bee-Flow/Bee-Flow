@@ -7,29 +7,40 @@ import { API_BASE, authFetch } from '../../utils/helpers';
 import { logger } from '../../utils/logger';
 
 const usageKeys = {
-    subscription: ['settings', 'usage', 'subscription'] as const,
+    subscription: (orgId: string | null) => ['settings', 'usage', 'subscription', orgId] as const,
     tiers: ['settings', 'usage', 'tiers-for-user'] as const,
     report: (qs: string) => ['settings', 'usage', 'report', qs] as const,
 };
 
 const READ = { staleTime: 0, retry: false } as const;
 
-/** The first organisation's subscription (plan, billing, cost cap); null when it cannot be read. */
-export function useUsageSubscription() {
+/** The subscription of the organisation named, else of the caller's first organisation (plan, billing, cost cap); null when it cannot be read. */
+async function readSubscription(orgIdNamed: string | null): Promise<Record<string, unknown> | null> {
+    try {
+        let orgId = orgIdNamed;
+        if (!orgId) {
+            const permsRes = await authFetch(`${API_BASE}/auth/my-permissions`);
+            if (!permsRes.ok) return null;
+            const perms = await permsRes.json();
+            orgId = (perms?.organizations || [])[0];
+        }
+        if (!orgId) return null;
+        const subRes = await authFetch(`${API_BASE}/api/subscriptions/orgs/${orgId}`);
+        if (!subRes.ok) return null;
+        return await subRes.json();
+    } catch (err) { logger.debug('non-fatal', err); return null; }
+}
+
+/**
+ * The subscription header (customer view). `orgId` names the organisation a
+ * platform admin chose; without it the caller's first organisation. `enabled`
+ * false (all organisations: no single subscription) reads nothing.
+ */
+export function useUsageSubscription(orgId: string | null = null, enabled = true) {
     return useQuery<Record<string, unknown> | null, Error>({
-        queryKey: usageKeys.subscription,
-        queryFn: async () => {
-            try {
-                const permsRes = await authFetch(`${API_BASE}/auth/my-permissions`);
-                if (!permsRes.ok) return null;
-                const perms = await permsRes.json();
-                const orgId = (perms?.organizations || [])[0];
-                if (!orgId) return null;
-                const subRes = await authFetch(`${API_BASE}/api/subscriptions/orgs/${orgId}`);
-                if (!subRes.ok) return null;
-                return await subRes.json();
-            } catch (err) { logger.debug('non-fatal', err); return null; }
-        },
+        queryKey: usageKeys.subscription(orgId),
+        queryFn: () => readSubscription(orgId),
+        enabled,
         ...READ,
     });
 }
