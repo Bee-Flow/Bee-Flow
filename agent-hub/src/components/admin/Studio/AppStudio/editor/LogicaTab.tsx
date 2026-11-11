@@ -17,6 +17,7 @@ import { request, RefusedError } from '@/api/mutate';
 import { LogicTable } from './LogicTable';
 import NewActionMenu from './NewActionMenu';
 import WatchersPanel from './WatchersPanel';
+import ServerTriggersSlot from './ServerTriggersSlot';
 
 /**
  * The Logic tab — When · Happens · Status · ↗, across all screens.
@@ -265,6 +266,7 @@ export default function LogicaTab({
                     />
                 )}
                 {definition && typeof onCommit === 'function' ? <WatchersPanel definition={definition} onCommit={onCommit} disabled={disabled} /> : null}
+                <ServerTriggersSlot app={app} definition={definition} onCommit={onCommit} disabled={disabled} />
             </div>
 
             <AutomationPicker

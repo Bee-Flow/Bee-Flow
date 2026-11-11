@@ -203,6 +203,19 @@ const FIXTURES = [
         routes: ['GET /api/studio-apps/:id/runs', 'GET /api/studio-apps/:id/runs/:runId'],
     },
     {
+        // The server triggers of an App Studio app (routes/studioApps/triggers.js): owner only, so
+        // a member of org A gets 404 on the list and on the switch, and the owner the list.
+        kind: 'studioAppTriggers',
+        mount: '/api/studio-apps',
+        router: () => require('../routes/studioApps/triggers'),
+        create: async ({ orgId, userId, index }) => {
+            const studioAppStore = require('../stores/studioAppStore');
+            const app = await studioAppStore.createStudioApp({ userId, organizationId: orgId, name: `Trigger app ${index}` });
+            return app.id;
+        },
+        routes: ['GET /api/studio-apps/:id/triggers', 'PUT /api/studio-apps/:id/triggers/:triggerId'],
+    },
+    {
         // A knowledge base of org B (unpublished, owned by B) and the routes that look it up by id,
         // the query-log routes included (routes/knowledgeBases/queryLog.js). Both orgs hold a plan with
         // `kb_query_log`, so the answer a member of org A gets is the base's own gate, not the licence.

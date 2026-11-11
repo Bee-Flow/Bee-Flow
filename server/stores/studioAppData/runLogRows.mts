@@ -6,8 +6,8 @@
 
 export type Row = Record<string, unknown>;
 
-export type RunOrigin = 'click' | 'public' | 'mcp' | 'test' | 'background' | 'mailbox_hook';
-export const RUN_ORIGINS: readonly RunOrigin[] = Object.freeze(['click', 'public', 'mcp', 'test', 'background', 'mailbox_hook']);
+export type RunOrigin = 'click' | 'public' | 'mcp' | 'test' | 'background' | 'mailbox_hook' | 'trigger';
+export const RUN_ORIGINS: readonly RunOrigin[] = Object.freeze(['click', 'public', 'mcp', 'test', 'background', 'mailbox_hook', 'trigger']);
 export const BROWSER_ORIGINS: readonly string[] = Object.freeze(['click', 'public']);
 
 export type NewLoggedRun = {

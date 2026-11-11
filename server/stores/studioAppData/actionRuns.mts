@@ -49,12 +49,14 @@ export type ActionRunRow = {
     /** A run on hold: when it was paused, when the wake job continues it, what it waits for. Never the state itself. */
     pausedAt: string | null; wakeAt: string | null; waitKind: string | null; waitRef: string | null;
     resumeSeq: number; hasResumeToken: boolean; cancelRequested: boolean;
+    /** The trigger of the app's definition that started the run (origin `trigger`), else null. */
+    triggerId: string | null;
 };
 
 export type InsertRun = {
     id: string; appId: string; ownerUserId: string; viewerUserId: string | null; actionId: string; origin: string;
     draft: boolean; definitionVersion: number | null; dryRun: boolean; lockKey: string | null; instanceId: string | null;
-    staleMs: number;
+    staleMs: number; triggerId?: string | null;
 };
 
 export type FinishRun = {
@@ -89,7 +91,7 @@ function toRun(row: Record<string, unknown>): ActionRunRow {
         startedAt: iso(row.started_at), lastActivityAt: iso(row.last_activity_at), endedAt: iso(row.ended_at), durationMs: num(row.duration_ms),
         pausedAt: iso(row.paused_at), wakeAt: iso(row.wake_at), waitKind: text(row.wait_kind), waitRef: text(row.wait_ref),
         resumeSeq: Number(row.resume_seq ?? 0), hasResumeToken: typeof row.resume_token_hash === 'string' && row.resume_token_hash !== '',
-        cancelRequested: row.cancel_requested === true,
+        cancelRequested: row.cancel_requested === true, triggerId: text(row.trigger_id),
     };
 }
 
@@ -98,6 +100,9 @@ const STALE = (param: string): string => `last_activity_at < NOW() - make_interv
 const RECLAIMED = 'The run stopped answering (the server restarted or lost it) and was marked interrupted.';
 const PAUSE_OUTLIVED = 'The run waited longer than runs are kept and was ended.';
 const PAUSE_ORPHANED = 'The run was on hold for someone whose account no longer exists and was ended.';
+/** A server run: a job row a process of ours walks (a background action, or a run a trigger started). */
+export const SERVER_RUN_ORIGINS: readonly string[] = Object.freeze(['background', 'trigger']);
+const SERVER_RUN = `origin IN ('background', 'trigger')`;
 /** A row that holds its lockKey: running, or on hold. */
 const HOLDS_LOCK = `status IN ('running', 'paused')`;
 
@@ -117,10 +122,10 @@ export function makeActionRunStore(db: RunDb, { ready = async () => {} }: { read
             }
             const ins = await client.query(
                 `INSERT INTO studio_app_action_runs
-                    (id, app_id, owner_user_id, viewer_user_id, action_id, origin, draft, definition_version, dry_run, lock_key, instance_id, status)
-                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'running')
+                    (id, app_id, owner_user_id, viewer_user_id, action_id, origin, draft, definition_version, dry_run, lock_key, instance_id, trigger_id, status)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'running')
                  ON CONFLICT DO NOTHING RETURNING id`,
-                [r.id, r.appId, r.ownerUserId, r.viewerUserId, r.actionId, r.origin, r.draft, r.definitionVersion, r.dryRun, r.lockKey, r.instanceId],
+                [r.id, r.appId, r.ownerUserId, r.viewerUserId, r.actionId, r.origin, r.draft, r.definitionVersion, r.dryRun, r.lockKey, r.instanceId, r.triggerId ?? null],
             );
             if (ins.rows.length) return { ok: true as const };
             const { rows } = await client.query(
@@ -206,13 +211,13 @@ export function makeActionRunStore(db: RunDb, { ready = async () => {} }: { read
         return rows[0] ? toRun(rows[0]) : null;
     }
 
-    /** Background rows nobody beats any more (their replica died) → interrupted. */
+    /** Server-run rows nobody beats any more (their replica died) → interrupted. */
     async function markStaleInterrupted(staleMs: number, limit = 200): Promise<number> {
         await ready();
         return changed(await db.query(
             `UPDATE studio_app_action_runs SET status = 'interrupted', ended_at = NOW(), ended_by = 'stale', error = $3
               WHERE id IN (SELECT id FROM studio_app_action_runs
-                            WHERE status = 'running' AND origin = 'background' AND ${STALE('$1')}
+                            WHERE status = 'running' AND ${SERVER_RUN} AND ${STALE('$1')}
                             ORDER BY last_activity_at LIMIT $2)
                 AND status = 'running'`,
             [staleMs, Math.max(1, Math.floor(limit)), RECLAIMED],

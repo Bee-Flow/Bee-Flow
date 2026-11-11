@@ -2748,6 +2748,9 @@
     "GET /api/studio-apps/:id/schema": {
       "gate": "auth"
     },
+    "GET /api/studio-apps/:id/triggers": {
+      "gate": "auth"
+    },
     "GET /api/studio-apps/:id/versions": {
       "gate": "auth"
     },
@@ -7391,6 +7394,9 @@
       "gate": "auth"
     },
     "PUT /api/studio-apps/:id/schema": {
+      "gate": "auth"
+    },
+    "PUT /api/studio-apps/:id/triggers/:triggerId": {
       "gate": "auth"
     },
     "PUT /api/studio-documents/:id/sharing": {

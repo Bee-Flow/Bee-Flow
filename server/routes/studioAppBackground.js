@@ -150,6 +150,15 @@ function hasHeavyStep(action) {
 }
 
 /**
+ * A job row a server process walks: a background action, or a run a trigger started (that one's
+ * starter is the app owner).
+ * @param {{ origin: string }} row
+ */
+function isServerRun(row) {
+    return require('../stores/studioAppData/actionRuns.mts').SERVER_RUN_ORIGINS.includes(row.origin);
+}
+
+/**
  * The job `jobId` of `app` when the caller may act on it (they started it, or own the app). Any
  * other answer is the same 404: a malformed id, a job of another app, another viewer's job.
  * @param {import('express').Request<{ id: string, jobId: string }>} req
@@ -161,7 +170,7 @@ async function ownJob(req, app) {
     const jobId = req.params.jobId;
     const userId = sessionUser(req).id;
     const row = RUN_ID_RE.test(jobId) ? await actionRunStore().getRun(app.id, jobId) : null; // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- RUN_ID_RE is the fixed /^sar_[0-9a-f]{32}$/, linear on any input
-    if (!row || row.origin !== 'background' || (row.viewerUserId !== userId && app.userId !== userId)) {
+    if (!row || !isServerRun(row) || (row.viewerUserId !== userId && app.userId !== userId)) {
         throw new HttpError(404, 'not_found', 'Run not found');
     }
     return row;
@@ -228,7 +237,7 @@ function mountBackgroundRoutes(router, mw) {
         const { actionRunStore } = require('../stores/studioAppData/actionRuns.mts');
         const row = await actionRunStore().getRun(app.id, req.params.jobId);
         const userId = sessionUser(req).id;
-        if (!row || row.origin !== 'background' || (row.viewerUserId !== userId && app.userId !== userId)) {
+        if (!row || !isServerRun(row) || (row.viewerUserId !== userId && app.userId !== userId)) {
             return res.status(404).json({ error: 'Run not found' });
         }
         res.json(backgroundRun().toJobView(row));

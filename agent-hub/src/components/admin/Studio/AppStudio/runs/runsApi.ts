@@ -9,7 +9,7 @@ import { API_BASE, request } from '@/api/mutate';
 import type { WaitingFor } from '@/api/actionHttp';
 
 type RunStatus = 'running' | 'paused' | 'success' | 'error' | 'interrupted' | 'cancelled' | 'refused';
-type RunOrigin = 'click' | 'public' | 'mcp' | 'test' | 'background' | 'mailbox_hook';
+type RunOrigin = 'click' | 'public' | 'mcp' | 'test' | 'background' | 'mailbox_hook' | 'trigger';
 
 export interface RunActor {
     kind: 'owner' | 'user' | 'visitor' | 'system';

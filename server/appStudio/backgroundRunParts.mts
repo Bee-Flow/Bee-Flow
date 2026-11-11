@@ -23,6 +23,12 @@ export type RunScopeInput = { formValues?: Obj; vars?: Obj; item?: unknown; inde
 export type StartInput = {
     app: App; def: Obj; model: unknown; actionId: string; viewer: Viewer; role: string | null; isOwner: boolean;
     draft: boolean; definitionVersion: number | null; scope: RunScopeInput;
+    /**
+     * A run nobody started by hand (a trigger): the viewer is the app owner and there is no page.
+     * The host then refuses, step by step, every kind that may not run unattended
+     * (triggers/unattendedPolicy.mts); `refusedKinds` are the ones the trigger's kind adds.
+     */
+    unattended?: { refusedKinds: readonly string[] };
 };
 
 export type RunnerDeps = {
@@ -160,8 +166,11 @@ export function withDefaults(given: Partial<RunnerDeps>): RunnerDeps {
         now: given.now ?? (() => Date.now()),
         sleep: given.sleep ?? ((ms) => new Promise((resolve) => { const t = setTimeout(resolve, ms); t.unref?.(); })),
         limits: given.limits ?? (() => backgroundLimits()),
+        // A run a trigger started continues as the app owner (triggers/unattendedIdentity.mts); every other run as its starter.
         loadResumeContext: given.loadResumeContext
-            ?? ((row, meta) => (nodeRequire('./backgroundRunIdentity.mts') as { loadResumeContext: RunnerDeps['loadResumeContext'] }).loadResumeContext(row, meta)),
+            ?? ((row, meta) => (row.origin === 'trigger'
+                ? (nodeRequire('./triggers/unattendedIdentity.mts') as { loadUnattendedResumeContext: RunnerDeps['loadResumeContext'] }).loadUnattendedResumeContext(row, meta)
+                : (nodeRequire('./backgroundRunIdentity.mts') as { loadResumeContext: RunnerDeps['loadResumeContext'] }).loadResumeContext(row, meta))),
         instanceId: given.instanceId ?? `${process.pid}`,
         waits: given.waits !== undefined ? given.waits : (given.store ? null : defaultWaits()),
         setInterval: given.setInterval ?? ((fn, ms) => { const t = setInterval(fn, ms); t.unref?.(); return t; }),

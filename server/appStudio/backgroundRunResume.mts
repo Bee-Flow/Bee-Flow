@@ -22,6 +22,7 @@ import { isShuttingDown, launch, newJob, running } from './backgroundRunJob.mts'
 import type { Job } from './backgroundRunJob.mts';
 import { withDefaults } from './backgroundRunParts.mts';
 import type { RunnerDeps, StartInput } from './backgroundRunParts.mts';
+import { SERVER_RUN_ORIGINS } from '../stores/studioAppData/actionRuns.mts';
 import type { ActionRunRow } from '../stores/studioAppData/actionRuns.mts';
 
 export type ResumeResult =
@@ -79,7 +80,7 @@ export async function resumeBackgroundRun(runId: string, how: ResumeBy, given: P
     if (isShuttingDown()) return notResumed(503, 'shutting_down', 'The server is restarting. Try again in a minute.');
     const store = deps.store();
     const row = await store.getRunById(runId);
-    if (!row || row.origin !== 'background' || (how.by === 'token' && row.appId !== how.appId)) return NOT_FOUND;
+    if (!row || !SERVER_RUN_ORIGINS.includes(row.origin) || (how.by === 'token' && row.appId !== how.appId)) return NOT_FOUND;
     if (row.status !== 'paused') return row.status === 'running' ? ALREADY : notResumed(409, 'not_paused', 'This run is not on hold.');
     const gated = await resumeGate(row, how, deps);
     if (gated) return gated;

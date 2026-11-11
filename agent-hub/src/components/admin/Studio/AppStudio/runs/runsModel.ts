@@ -66,6 +66,7 @@ export function originText(origin: string, t: TranslateFn): string {
         case 'test': return t('studio_apps_runs.origin.test', 'Saved test');
         case 'background': return t('studio_apps_runs.origin.background', 'Background job');
         case 'mailbox_hook': return t('studio_apps_runs.origin.mailbox_hook', 'New mail');
+        case 'trigger': return t('studio_apps_schedule.runs.origin_trigger', 'Trigger');
         default: return origin;
     }
 }
@@ -97,4 +98,6 @@ export function stepLabel(step: Pick<RunStep, 'path' | 'kind' | 'iteration'>, t:
 }
 
 /** The origins shown by default: what people did. Tests and MCP runs come in with the toggle. */
-export const PEOPLE_ORIGINS = 'click,public,background,mailbox_hook';
+export const PEOPLE_ORIGINS = 'click,public,background,mailbox_hook,trigger';
+/** The runs a trigger started (the "Triggers only" filter). */
+export const TRIGGER_ORIGIN = 'trigger';

@@ -9,7 +9,7 @@ toc_max_heading_level: 2
 
 # `/api/studio-apps`
 
-88 routes, 52 with a request schema. Back to the [endpoint reference](../reference.md).
+90 routes, 53 with a request schema. Back to the [endpoint reference](../reference.md).
 
 ## `(root)`
 
@@ -824,7 +824,7 @@ No request schema.
 |-------|------|:--------:|-------|
 | `actionId` | string |  | max length 80; pattern `^[A-Za-z0-9_-]{1,80}$` |
 | `status` | one of `"running"`, `"success"`, `"error"`, `"interrupted"`, `"cancelled"`, `"refused"`, `"paused"` |  |  |
-| `origin` | string |  | max length 120; pattern `^(click\|public\|mcp\|test\|background\|mailbox_hook)(,(click\|...` |
+| `origin` | string |  | max length 120; pattern `^(click\|public\|mcp\|test\|background\|mailbox_hook\|trigger)(...` |
 | `user` | string |  | max length 200 |
 | `since` | string |  | max length 40 |
 | `cursor` | string |  | max length 200 |
@@ -887,6 +887,29 @@ No request schema.
 **Access:** Signed-in user · Permission `manage_apps` · Capability `app_studio` · middleware `trainingGate`
 
 No request schema.
+
+### `GET /api/studio-apps/:id/triggers`
+
+**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate`, `gateOwnedApp`
+
+No request schema.
+
+### `PUT /api/studio-apps/:id/triggers/:triggerId`
+
+**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate`, `gateOwnedApp`
+
+**Path parameters**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `id` | string | yes | min length 1; max length 200 |
+| `triggerId` | string | yes | min length 1; max length 40 |
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `enabled` | boolean | yes |  |
 
 ### `GET /api/studio-apps/:id/versions`
 

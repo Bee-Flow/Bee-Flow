@@ -164,9 +164,10 @@ async function _initDB() {
         // that is already throttling us.
         `ALTER TABLE studio_app_connector_sync ADD COLUMN IF NOT EXISTS consecutive_errors INTEGER NOT NULL DEFAULT 0`,
         ...PAUSED_RUN_DDL,
-        // The next addition to the run table or beside it (a trigger table and its columns on a
-        // run row) goes here, after the paused-run columns it builds on.
+        ...TRIGGER_RUN_DDL,
+        // The next addition to the run table or beside it goes here, after the columns it builds on.
     ]);
+    await initTriggers();
     log.info('[StudioAppDataStore] PostgreSQL initialized');
 }
 
@@ -195,6 +196,58 @@ const PAUSED_RUN_DDL = [
     `CREATE INDEX IF NOT EXISTS idx_studio_app_action_runs_wake ON studio_app_action_runs(wake_at) WHERE status = 'paused'`,
     `CREATE INDEX IF NOT EXISTS idx_studio_app_action_runs_wait ON studio_app_action_runs(wait_kind, wait_ref) WHERE status = 'paused'`,
 ];
+
+/**
+ * A run a trigger started (appStudio/triggers/triggerFire.mts): the trigger of the app's
+ * definition it belongs to, for a database that had the run table before the column.
+ */
+const TRIGGER_RUN_DDL = [
+    `ALTER TABLE studio_app_action_runs ADD COLUMN IF NOT EXISTS trigger_id TEXT`,
+];
+
+/**
+ * Armed triggers (queries in ./triggers.mts, the rules in appStudio/triggers/). One row per
+ * trigger of an app's PUBLISHED definition, written only when the app is published and removed
+ * when it is unpublished; a draft has no rows. The row goes with its app (ON DELETE CASCADE).
+ *   kind / config      the trigger's kind (`schedule`, later kinds beside it) and what that kind
+ *                      keeps of the trigger; no personal data
+ *   fingerprint        the trigger, its action and the actions that one calls, as published: a
+ *                      fire compares it with the published definition of that moment
+ *   state              `armed`, or `paused` with paused_code / paused_reason (by the owner, or
+ *                      after failed runs in a row)
+ *   next_fire_at       when a kind that fires by time is due; NULL for a kind that fires on an event
+ *   fire_seq           counts fires: a fire is a compare-and-set on it, so one of two instances wins
+ *   last_*             the last fire, its run row and how it ended; consecutive_failures drives
+ *                      the back-off and the pause
+ */
+async function initTriggers() {
+    await exec(`
+        CREATE TABLE IF NOT EXISTS studio_app_triggers (
+            app_id TEXT NOT NULL REFERENCES studio_apps(id) ON DELETE CASCADE,
+            trigger_id TEXT NOT NULL,
+            owner_user_id TEXT NOT NULL,
+            kind TEXT NOT NULL,
+            action_id TEXT NOT NULL,
+            config JSONB NOT NULL DEFAULT '{}'::jsonb,
+            fingerprint TEXT NOT NULL,
+            state TEXT NOT NULL DEFAULT 'armed',
+            paused_code TEXT,
+            paused_reason TEXT,
+            next_fire_at TIMESTAMPTZ,
+            last_fired_at TIMESTAMPTZ,
+            last_run_id TEXT,
+            last_status TEXT,
+            last_error TEXT,
+            consecutive_failures INTEGER NOT NULL DEFAULT 0,
+            fire_seq INTEGER NOT NULL DEFAULT 0,
+            armed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            PRIMARY KEY (app_id, trigger_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_studio_app_triggers_due ON studio_app_triggers(next_fire_at) WHERE state = 'armed' AND next_fire_at IS NOT NULL;
+        CREATE INDEX IF NOT EXISTS idx_studio_app_triggers_running ON studio_app_triggers(last_run_id) WHERE last_status = 'running';
+    `);
+}
 
 /**
  * Action runs (queries in ./actionRuns.mts). A background job IS a run row (its jobId is the
@@ -254,7 +307,8 @@ async function initActionRuns() {
             wait_ref TEXT,
             resume_seq INTEGER NOT NULL DEFAULT 0,
             resume_token_hash TEXT,
-            cancel_requested BOOLEAN NOT NULL DEFAULT FALSE
+            cancel_requested BOOLEAN NOT NULL DEFAULT FALSE,
+            trigger_id TEXT
         );
         CREATE UNIQUE INDEX IF NOT EXISTS uq_studio_app_action_runs_lock
             ON studio_app_action_runs(app_id, lock_key) WHERE status = 'running' AND lock_key IS NOT NULL;

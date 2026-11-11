@@ -52,9 +52,11 @@
     "app_move_section",
     "app_remove_dataset",
     "app_remove_section",
+    "app_remove_trigger",
     "app_reorder_screens",
     "app_run_action",
     "app_run_tests",
     "app_save_test",
+    "app_set_trigger",
     "app_update_step"
 ]
