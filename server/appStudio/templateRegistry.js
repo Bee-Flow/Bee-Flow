@@ -70,7 +70,7 @@ async function listAvailableTemplates(/** @type {{userId?: any, orgIds?: any[]}}
  * @typedef {{
  *   id: string, source?: string, version?: number, title?: string, description?: string, category?: string, icon?: string,
  *   tags?: string[], definition?: Record<string, unknown>, dataModel?: Record<string, unknown>, seed?: Record<string, unknown>,
- *   datasets?: unknown[],
+ *   datasets?: unknown[], assets?: Array<{ id: string, mime: string, sha256: string, size: number, data?: string }>,
  * }} ResolvedTemplate
  */
 

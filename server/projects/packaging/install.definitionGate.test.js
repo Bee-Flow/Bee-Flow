@@ -82,6 +82,23 @@ test('an app without a definition still installs with the store default, as befo
     assert.strictEqual(stamps[0].payload, undefined);
 });
 
+test('uploaded files and triggers: the app installs byte for byte, unpublished (nothing armed), and the report says what did not travel', async () => {
+    reset();
+    const definition = {
+        ...emptyDefinition('Desk'), schemaVersion: 3,
+        design: { logoUrl: 'asset:0b6f2c1e-4a8d-4e1f-9c3b-1d2e3f4a5b6c' },
+        actions: { act_in: { steps: [] } },
+        triggers: [{ id: 'hook', kind: 'webhook', actionId: 'act_in', auth: 'hmac' }],
+    };
+    const before = JSON.stringify(definition);
+    const { report } = await runInstallApps([{ ref: 'app_1', name: 'Desk', definition }]);
+    // The harness store has no publish: an install that published (and so armed) would land in skipped.
+    assert.deepStrictEqual(report.skipped, []);
+    assert.strictEqual(JSON.stringify(called('createStudioApp')[0].args.definition), before);
+    assert.match(report.warnings.join(' '), /"Desk" uses 1 uploaded file\(s\).*do not travel/);
+    assert.match(report.warnings.join(' '), /1 trigger\(s\); they start only once the app is published\. 1 webhook trigger\(s\) get a new address and secret/);
+});
+
 test('through installBlueprint: the report carries the findings of an app that has errors', async () => {
     reset();
     const result = await install({ apps: [{ ref: 'app_1', name: 'Desk', definition: { actions: {} } }] });

@@ -85,8 +85,13 @@ const EXPORT_SCHEMA_VERSION = 1;
  */
 const EXPORT_SUPPORTED_VERSIONS = supportedEnvelopeVersions([1], EXPORT_SCHEMA_VERSION);
 
-/** What a template is allowed to carry across the wire. Nothing else does. */
-const TEMPLATE_PAYLOAD_FIELDS = ['definition', 'dataModel', 'seed', 'seedPeople', 'datasets'];
+/**
+ * What a template is allowed to carry across the wire. Nothing else does.
+ * `assets` (the uploaded files the definition refers to, portableAssets.mts) is
+ * written only when the template has some, so a file without them is the same
+ * bytes as before (templatePortability.golden.test.js).
+ */
+const TEMPLATE_PAYLOAD_FIELDS = ['definition', 'dataModel', 'seed', 'seedPeople', 'datasets', 'assets'];
 const TEMPLATE_META_FIELDS = ['version', 'title', 'description', 'category', 'icon', 'tags'];
 
 /** How long a claim out of a file may be before it is cut. */
@@ -242,6 +247,8 @@ function sanitizeImport(envelope) {
         seed: isObject(incoming.seed) ? incoming.seed : null,
         seedPeople: isObject(incoming.seedPeople) ? incoming.seedPeople : null,
         datasets: Array.isArray(incoming.datasets) ? incoming.datasets : [],
+        // Every file decided again from its bytes (portableAssets.readPortableAssets).
+        ...(incoming.assets !== undefined ? { assets: Array.isArray(incoming.assets) ? incoming.assets : [] } : {}),
         meta: {
             // No `id`: see the header. Version restarts at 1 in its new home for
             // the same reason — version is a statement about a line of edits,

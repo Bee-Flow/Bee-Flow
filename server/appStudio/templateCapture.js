@@ -78,12 +78,11 @@
 const { canonicalizeAppDefinition } = require('./canonicalize');
 const { validateAppDefinition } = require('./validate');
 const { canonicalizeDataModel, SYSTEM_COLUMNS } = require('./dataModel');
-const log = require('../telemetry/log');
 const { cleanStr, cleanTags } = require('./templateCaptureText.mts');
 
 // Mirrors templateInstall.MAX_SEED_ROWS_PER_TABLE. Kept as a default rather
 // than a require so the pure half of this module loads without the store graph;
-// captureFromApp passes the installer's own constant in, and
+// captureFromApp (templateCaptureFromApp.mts, the I/O half) passes the installer's own constant in, and
 // templateCapture.test.js asserts the two still agree.
 const DEFAULT_MAX_SEED_ROWS = 100;
 
@@ -96,6 +95,9 @@ const MAX_TEMPLATE_BYTES = 4 * 1024 * 1024;
 const FIELD_TYPES_NEVER_SEEDED = new Set(['file', 'computed']);
 
 function isObject(v) { return v !== null && typeof v === 'object' && !Array.isArray(v); }
+
+/** The links of a many relation and the derived fields in a seed (seedLinks.mts). */
+const seedLinks = () => require('./seedLinks.mts');
 
 function deepClone(v) { return v === undefined ? undefined : JSON.parse(JSON.stringify(v)); }
 
@@ -178,6 +180,12 @@ function toSeedRow(row, table, capturedIds) {
         if (!field) continue;                                   // dropped column, stale read
         if (FIELD_TYPES_NEVER_SEEDED.has(field.type)) continue;  // files/computed never travel
         if (value === undefined) continue;
+        if (seedLinks().seedNeverHolds(field)) continue;  // lookup/rollup: read through other rows
+        if (seedLinks().isManyRelation(field)) {
+            const links = seedLinks().capturedLinks(value, capturedIds);
+            if (links.length) out[key] = links;
+            continue;
+        }
         if (field.type === 'relation') {
             const alias = (typeof value === 'string' && value) ? capturedIds.get(value) : null;
             out[key] = alias ? { $ref: alias } : null;
@@ -329,9 +337,15 @@ function normalizeSeedRow(row, table, aliases, dropped, fileRefs = null) {
             values[key] = null;
             continue;
         }
-        if (FIELD_TYPES_NEVER_SEEDED.has(field.type)) { dropped.fields.push(`${table.key}.${key}`); continue; }
+        if (FIELD_TYPES_NEVER_SEEDED.has(field.type) || seedLinks().seedNeverHolds(field)) { dropped.fields.push(`${table.key}.${key}`); continue; }
         if (value === undefined) continue;
-        const ref = (isObject(value) && typeof value.$ref === 'string') ? value.$ref : null;
+        if (seedLinks().isManyRelation(field)) {
+            const { links, dropped: lost } = seedLinks().fileLinks(value, aliases);
+            dropped.refs += lost;
+            if (links.length) values[key] = links;
+            continue;
+        }
+        const ref =(isObject(value) && typeof value.$ref === 'string') ? value.$ref : null;
         if (field.type === 'relation') {
             if (ref && aliases.has(ref)) { values[key] = { $ref: ref }; continue; }
             // A relation this file cannot resolve is an honest empty. A bare
@@ -424,7 +438,7 @@ function normalizeSeedPeople(spec, model) {
  *
  * @param {{ definition: unknown, dataModel?: Record<string, unknown> | null, rowsByTable?: SeedBlock,
  *   seed?: SeedBlock | null, seedPeople?: Record<string, unknown> | null, datasets?: CaptureDataset[],
- *   meta?: CaptureMeta, maxSeedRows?: number }} [opts]
+ *   meta?: CaptureMeta, maxSeedRows?: number, assets?: unknown }} [opts]
  * @returns {{ok:true, template, report}|{ok:false, errors:string[]}}
  */
 function captureTemplate({
@@ -436,6 +450,7 @@ function captureTemplate({
     datasets = [],
     meta = {},
     maxSeedRows = DEFAULT_MAX_SEED_ROWS,
+    assets = undefined,
 } = {}) {
     const title = cleanStr(meta.title, 80);
     if (!title) return { ok: false, errors: ['A title is required for the template.'] };
@@ -460,9 +475,10 @@ function captureTemplate({
         .filter(r => r.rule === RULES.APP_AUTOMATION_REFERENCE)
         .map(r => r.automationId);
     const approverSeatsRemoved = scrubbed.filter(r => r.rule === RULES.APP_APPROVER_IDENTITY).length;
-    // Uploaded files of this app (`asset:<id>`) do not travel yet: their bytes stay here, so
-    // the copy would point at nothing. Cut, and said in the report (appAssets.mts).
-    const assetRefsRemoved = require('./appAssets.mts').stripAssetRefs(def);
+    // Uploaded files (`asset:<id>`): the ones handed in as entries come along, every other
+    // reference is cut and said in the report (templateCaptureAssets.mts).
+    const parts = require('./templateCaptureAssets.mts');
+    const files = parts.captureAssets(def, assets);
 
     // The template's own meta drives the app card of anything installed from
     // it, so it carries the template's name rather than the source app's.
@@ -532,9 +548,11 @@ function captureTemplate({
         ...(Object.keys(seed).length ? { seed } : {}),
         ...(people ? { seedPeople: people } : {}),
         ...(datasetDescriptors.length ? { datasets: datasetDescriptors } : {}),
+        ...(files.carried.length ? { assets: files.carried } : {}),
     };
 
-    const bytes = Buffer.byteLength(JSON.stringify(template), 'utf8');
+    // The files have a budget of their own (portableAssets.mts); the ceiling is the rest.
+    const bytes = Buffer.byteLength(JSON.stringify({ ...template, assets: undefined }), 'utf8');
     if (bytes > MAX_TEMPLATE_BYTES) {
         return {
             ok: false,
@@ -584,9 +602,8 @@ function captureTemplate({
         if (seedDropped.refs) warnings.push(`${seedDropped.refs} relation value(s) emptied: they pointed at rows this file does not carry.`);
         if (seedDropped.duplicateAliases) warnings.push(`${seedDropped.duplicateAliases} seed row(s) reuse an alias another row already claimed; a reference to it resolves to the last one seeded.`);
     }
-    if (assetRefsRemoved.length) {
-        warnings.push(`${assetRefsRemoved.length} uploaded file reference(s) removed (${assetRefsRemoved.slice(0, 3).join(', ')}): uploaded images, logos and fonts do not travel with a template or an export yet. Upload them again in the new app.`);
-    }
+    const portable = parts.captureReport(files, canonicalDef, model);
+    warnings.push(...portable.warnings);
     for (const what of peopleDropped) {
         warnings.push(`The demo-people declaration was dropped (${what}) — seeded rows keep the names the file carries.`);
     }
@@ -619,85 +636,13 @@ function captureTemplate({
             bytes,
             requires,
             warnings,
+            ...(portable.summary ? { portable: portable.summary } : {}),
         },
     };
 }
 
-/**
- * captureFromApp — the I/O half. Reads the app, its model, the rows for the
- * named tables and its datasets, then hands them to captureTemplate.
- *
- * Rows are read through the SAME compiled-query + RLS path app_query_data uses
- * (queryCompiler.compileRecordList with an owner access filter), not raw SQL —
- * a capture must not be able to read rows the caller could not read in the app.
- *
- * `userId` is the caller (must own/be able to edit the app), `definition` the
- * canonical draft definition, `seedTables` the table IDS whose rows to capture
- * (default none).
- *
- * @param {{ appId: string, userId: string, definition: unknown, dataModel?: Record<string, unknown> | null,
- *   seedTables?: string[], meta?: CaptureMeta }} [opts]
- */
-async function captureFromApp({
-    appId, userId, definition, dataModel = null, seedTables = [], meta = {},
-} = {}) {
-    const wanted = new Set((Array.isArray(seedTables) ? seedTables : []).filter((t) => typeof t === 'string' && t));
-    const tables = (isObject(dataModel) && Array.isArray(dataModel.tables)) ? dataModel.tables : [];
-
-    const unknown = [...wanted].filter((id) => !tables.some((t) => t.id === id));
-    if (unknown.length) {
-        return {
-            ok: false,
-            errors: [`Unknown seedTables id(s): ${unknown.join(', ')}.`],
-            _fixHint: `Known table ids: ${tables.map((t) => `${t.id} (${t.key})`).join(', ') || '(none)'}.`,
-        };
-    }
-
-    const { MAX_SEED_ROWS_PER_TABLE } = require('./templateInstall');
-    const rowsByTable = {};
-
-    if (wanted.size) {
-        const queryCompiler = require('./queryCompiler');
-        const rlsGateway = require('./rlsGateway');
-        const studioAppDbStore = require('../stores/studioAppDbStore');
-        for (const table of tables) {
-            if (!wanted.has(table.id)) continue;
-            try {
-                const accessFilter = rlsGateway.compileAccessFilter(table, 'owner', { id: userId }, 'read');
-                const { sql, params } = queryCompiler.compileRecordList(
-                    table, { limit: MAX_SEED_ROWS_PER_TABLE }, accessFilter,
-                );
-                const out = await studioAppDbStore.query(userId, appId, sql, params);
-                rowsByTable[table.id] = (Array.isArray(out.rows) ? out.rows : []).slice(0, MAX_SEED_ROWS_PER_TABLE);
-            } catch (e) {
-                return { ok: false, errors: [`Could not read rows from ${table.key}: ${/** @type {Error} */ (e).message}`] };
-            }
-        }
-    }
-
-    let datasets = [];
-    try {
-        const studioAppDataStore = require('../stores/studioAppDataStore');
-        datasets = await studioAppDataStore.listDatasets(appId, userId) || [];
-    } catch (e) {
-        // A dataset listing that will not answer must not sink the capture —
-        // the definition and model are the substance.
-        log.warn(`[templateCapture] dataset listing failed for ${appId}: ${e && /** @type {Error} */ (e).message ? /** @type {Error} */ (e).message : e}`);
-    }
-
-    return captureTemplate({
-        definition,
-        dataModel,
-        rowsByTable,
-        datasets,
-        meta,
-        maxSeedRows: MAX_SEED_ROWS_PER_TABLE,
-    });
-}
-
 module.exports = {
     captureTemplate,
-    captureFromApp,
     MAX_TEMPLATE_BYTES,
     DEFAULT_MAX_SEED_ROWS,
     // The seed half of the gate, named so templatePortability.js can describe a

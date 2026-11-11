@@ -17,6 +17,7 @@ const { validateAppDefinition } = require('../../appStudio/validate');
 const { resolveTemplate } = require('../../appStudio/templateRegistry');
 const { installTemplate } = require('../../appStudio/templateInstall');
 const { hashDefinition, isPristine, upgradeCandidate } = require('../../appStudio/templateUpgrade');
+const { carryAssetsInto } = require('../../appStudio/portableAssetStore.mts');
 const { requireAuth } = require('../../auth/permissions');
 const { CheckBody, DraftQuery } = require('./schemas');
 const { requireManageApps, audienceFor, refuseRead } = require('./access');
@@ -151,8 +152,11 @@ router.post('/:id/template-upgrade', requireAuth, requireManageApps, /** @param 
     if (typeof currentName === 'string' && currentName) {
         copy.meta = { ...(copy.meta || {}), name: currentName };
     }
-    const { def: canonical, refused } = canonicalizeAppDefinition(copy);
+    const { def: canonicalCopy, refused } = canonicalizeAppDefinition(copy);
     if (refused) return res.status(422).json(schemaNewerBody(copy));
+    // The new version's uploaded files go into the app (a file it already holds is reused),
+    // and the definition saved and stamped below refers to their ids here.
+    const { definition: canonical, report: assets } = await carryAssetsInto(app, canonicalCopy, template.assets);
     // Report mode, as on create from a template: the upgrade is not refused over validator findings.
     const findings = gateFindings(gateDefinition(canonical));
 
@@ -198,6 +202,7 @@ router.post('/:id/template-upgrade', requireAuth, requireManageApps, /** @param 
         version: saved.version,
         ...(dataInstall ? { dataInstall } : {}),
         ...(findings ? { findings } : {}),
+        ...(assets ? { assets } : {}),
     });
 });
 

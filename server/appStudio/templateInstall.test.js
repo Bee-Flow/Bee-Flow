@@ -395,3 +395,25 @@ test('a template without seedPeople never touches the directory', async () => {
     await installTemplate({ appId: 'app-1', ownerId: 'owner-1', template: crmTemplate() });
     assert.equal(asked, false);
 });
+
+test('many-relation links of a seed are written once every row exists, as ids of this app', async () => {
+    const calls = [];
+    state.writeImpl = async (app, model, table, values, opts) => {
+        calls.push({ table: table.key, values, recordId: opts && opts.recordId });
+        return { id: (opts && opts.recordId) || `rec_${++state.idSeq}` };
+    };
+    const template = {
+        dataModel: { tables: [{
+            id: 'tbl_task', key: 'tasks', name: 'Tasks',
+            fields: [{ id: 'fld_t', key: 'title', type: 'text' }, { id: 'fld_b', key: 'blocked_by', type: 'relation', relation: { table: 'tbl_task', many: true } }],
+        }] },
+        seed: { tbl_task: [{ $id: 't1', title: 'Ship', blocked_by: [{ $ref: 't2' }] }, { $id: 't2', title: 'Test' }] },
+    };
+    const res = await installTemplate({ appId: 'app-1', ownerId: 'owner-1', template });
+    assert.equal(res.ok, true);
+    assert.deepStrictEqual(calls, [
+        { table: 'tasks', values: { title: 'Ship' }, recordId: undefined },
+        { table: 'tasks', values: { title: 'Test' }, recordId: undefined },
+        { table: 'tasks', values: { blocked_by: ['rec_2'] }, recordId: 'rec_1' },
+    ]);
+});

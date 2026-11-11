@@ -14,6 +14,7 @@ const { schemaNewerBody } = require('../../appStudio/schemaSince.mts');
 const { installTemplate } = require('../../appStudio/templateInstall');
 const { sanitizeAppImport } = require('../../appStudio/appPortability');
 const { installAppContent } = require('../../appStudio/appContentInstall');
+const { applyCopiedAssets } = require('../../appStudio/portableAssetStore.mts');
 const { perUserRateLimit } = require('../../utils/perUserRateLimit');
 const { requireAuth } = require('../../auth/permissions');
 const { requireManageApps, resolveOwnerOrgId } = require('./access');
@@ -101,6 +102,10 @@ router.post('/import', requireAuth, requireManageApps, appImportLimiter, async (
             return res.status(422).json({ error: `The app's data model could not be installed: ${why}`, code: 'model_install_failed' });
         }
 
+        // The archive's uploaded files (pictures, logo, fonts): stored like an upload, and the
+        // definition rewritten to their ids in this app.
+        const carried = await applyCopiedAssets({ app: created, definition, assets: template.assets });
+
         const model = template.dataModel || null;
         const app = await studioAppStore.getStudioApp(created.id);
         const filled = await installAppContent({ app, model, content });
@@ -116,12 +121,16 @@ router.post('/import', requireAuth, requireManageApps, appImportLimiter, async (
             app: sanitizeAppRow(app),
             report: {
                 ...report,
-                installed: { rows: filled.rows, files: filled.files, dataModelVersion: install.dataModelVersion },
+                installed: {
+                    rows: filled.rows, files: filled.files, dataModelVersion: install.dataModelVersion,
+                    ...(carried.report ? { assets: carried.report } : {}),
+                },
             },
             warnings: [
                 ...warnings,
                 ...(filled.error ? [filled.error] : []),
                 ...filled.skipped,
+                ...(carried.report ? carried.report.skipped : []),
             ],
         });
     } catch (err) {

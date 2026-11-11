@@ -46,7 +46,7 @@ const MAX_CLAIM_CHARS = { id: 64, name: 200, text: 400, ref: 64, key: 63 };
 const SHA256_RE = /^[0-9a-f]{64}$/;
 
 /** What the design half of an archive is allowed to carry. Nothing else does. */
-const TEMPLATE_FIELDS = ['definition', 'dataModel', 'datasets', 'seedPeople'];
+const TEMPLATE_FIELDS = ['definition', 'dataModel', 'datasets', 'seedPeople', 'assets'];
 
 /**
  * A file NAME, as a name and never as a path.

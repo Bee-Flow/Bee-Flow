@@ -269,6 +269,8 @@ function sanitizeAppImport(envelope) {
         seed: null,
         seedPeople: isObject(incoming.seedPeople) ? incoming.seedPeople : null,
         datasets: Array.isArray(incoming.datasets) ? incoming.datasets : [],
+        // The app's uploaded files (pictures, logo, fonts), decided again from their bytes.
+        ...(incoming.assets !== undefined ? { assets: Array.isArray(incoming.assets) ? incoming.assets : [] } : {}),
         meta: { title, description: appMeta.description, icon: appMeta.icon, version: 1 },
     });
     if (gate.ok === false) return refuse(...gate.errors);

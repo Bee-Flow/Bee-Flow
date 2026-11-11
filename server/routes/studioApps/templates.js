@@ -42,7 +42,9 @@ router.get('/templates/:templateId', requireAuth, async (/** @type {import('expr
     const { userId, orgIdArr } = await audienceFor(req);
     const template = await resolveTemplate(req.params.templateId, { userId, orgIds: orgIdArr });
     if (!template) return res.status(404).json({ error: 'Template not found' });
-    res.json({ template });
+    // The uploaded files are described, not sent: their bytes go only into an app or an export.
+    const assets = Array.isArray(template.assets) ? template.assets.map(({ data: _data, ...meta }) => meta) : undefined;
+    res.json({ template: assets ? { ...template, assets } : template });
 });
 
 // Deleting a CAPTURED template — the creator, or an admin of the org it was
@@ -160,7 +162,7 @@ router.post('/templates/import', requireAuth, requireManageApps, templateImportL
 
         // The template is the one captureTemplate builds (appStudio/templateCapture.js),
         // which sanitizeImport declares only as a loose record.
-        const { template, report, errors, warnings } = /** @type {{ template: { title: string, description: string, category: string, icon: string, tags: string[], definition: Record<string, any>, dataModel?: Record<string, unknown>, seed?: Record<string, unknown>, seedPeople?: Record<string, unknown>, datasets?: Array<Record<string, unknown>> } | null, report: Record<string, unknown> | null, errors: string[], warnings: string[] }} */ (sanitizeImport(envelope));
+        const { template, report, errors, warnings } = /** @type {{ template: { title: string, description: string, category: string, icon: string, tags: string[], definition: Record<string, any>, dataModel?: Record<string, unknown>, seed?: Record<string, unknown>, seedPeople?: Record<string, unknown>, datasets?: Array<Record<string, unknown>>, assets?: Array<Record<string, unknown>> } | null, report: Record<string, unknown> | null, errors: string[], warnings: string[] }} */ (sanitizeImport(envelope));
         if (!template) {
             return res.status(400).json({ error: 'That file could not be imported', code: 'invalid_template', details: errors });
         }
@@ -183,7 +185,7 @@ router.post('/templates/import', requireAuth, requireManageApps, templateImportL
         // own rule, not a special case here.
         const organizationId = await resolveOwnerOrgId(userId);
 
-        const { definition, dataModel, seed, seedPeople, datasets } = template;
+        const { definition, dataModel, seed, seedPeople, datasets, assets } = template;
         const saved = await studioAppTemplateStore.saveTemplate({
             organizationId,
             createdBy: userId,
@@ -202,6 +204,7 @@ router.post('/templates/import', requireAuth, requireManageApps, templateImportL
                 ...(seed ? { seed } : {}),
                 ...(seedPeople ? { seedPeople } : {}),
                 ...(datasets ? { datasets } : {}),
+                ...(assets ? { assets } : {}),
             },
         });
 
