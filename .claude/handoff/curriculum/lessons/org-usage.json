@@ -20,12 +20,12 @@
       "type": "tour",
       "id": "where",
       "target": "[data-tour=\"usage-summary\"]",
-      "navigateTo": "settings/organisation/usage",
+      "navigateTo": "admin/monitoring",
       "placement": "bottom",
       "optional": true,
       "timeoutMs": 7000,
       "icon": "📈",
-      "title": "Settings → Organisation → Usage & Monitoring",
+      "title": "Admin dashboard → Monitoring",
       "body": "This is the report: \"Track AI consumption across your organisation\". Top right sits RANGE — Today, 24h, 7d, 30d, 90d, All, Custom. It opens on 30d, so every number you see on arrival covers the last thirty days."
     },
     {
@@ -191,7 +191,7 @@
       "id": "limits",
       "icon": "🚧",
       "title": "What this report will not do",
-      "bodyMd": "Three things admins expect here and do not get.\n\n**There is no export button.** No panel offers a download — not the lists, not the **Model Usage by User** table. So whatever the screen declines to print, such as the cached, cache-creation and reasoning counts, cannot be dug out here either. If a figure has to reach a board pack, you copy or screenshot what is on show, and you promise finance no monthly file.\n\n**It changes nothing.** The page only reads. Every control that moves money — the plan, the cost cap, the pooled-budget toggle — sits on **License & Usage**, the first entry of the same Organisation group in the settings sidebar on Bee Flow Cloud. A self-hosted install has no such row: its tier comes from a server-wide licence.\n\n**Two tabs may not be there at all.** **Feedback** and **Terminations** sit beside Overview, but they need the advanced usage monitoring capability, which comes with Enterprise. Without it only Overview renders, and a deep link to either tab quietly lands you back on Overview. Those two tabs, and the cap, belong to the next lesson. This one stays on Overview — the part every plan and every deployment gets."
+      "bodyMd": "Three things admins expect here and do not get.\n\n**There is no export button.** No panel offers a download — not the lists, not the **Model Usage by User** table. So whatever the screen declines to print, such as the cached, cache-creation and reasoning counts, cannot be dug out here either. If a figure has to reach a board pack, you copy or screenshot what is on show, and you promise finance no monthly file.\n\n**It changes nothing.** The page only reads. Every control that moves money — the plan, the cost cap, the pooled-budget toggle — sits on **License & Usage**, the first section of the Organisation tab in the admin dashboard on Bee Flow Cloud. A self-hosted install has no such row: its tier comes from a server-wide licence.\n\n**Two tabs may not be there at all.** **Feedback** and **Terminations** sit beside Overview, but they need the advanced usage monitoring capability, which comes with Enterprise. Without it only Overview renders, and a deep link to either tab quietly lands you back on Overview. Those two tabs, and the cap, belong to the next lesson. This one stays on Overview — the part every plan and every deployment gets."
     },
     {
       "type": "quiz",
@@ -262,7 +262,7 @@
     "title": "Reading Usage & Monitoring",
     "summary": "What the organisation usage report counts, which panel answers which question, and what a cloud deployment deliberately hides from its own admins.",
     "facts": [
-      "The page is Settings → Organisation → Usage & Monitoring, subtitled 'Track AI consumption across your organisation'; it is read-only and opens on a 30d range.",
+      "The page is Admin dashboard → Monitoring, subtitled 'Track AI consumption across your organisation'; it is read-only and opens on a 30d range.",
       "RANGE presets are Today, 24h, 7d, 30d, 90d, All and Custom; the filter pills read All Users, All Agents, All Models and All Sources, with a Clear button once a filter is set. Range and pills are independent.",
       "On Bee Flow Cloud every caller except the platform operator gets token counts and call counts stripped from the response, and sees billed cost (estimated cost plus the plan's markup) rather than raw provider cost.",
       "The full-view hero reads 'Estimated cost' with tiles AI calls, Tokens, Active users and Cost / day avg; the customer-view hero reads 'AI usage this period' as a percentage, over three percentage-share lists: Top users by cost, By tier and By app area.",

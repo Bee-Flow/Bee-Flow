@@ -165,7 +165,7 @@
       "checkId": "training-obligation-planned",
       "title": "Put the annual re-confirmation on the clock",
       "instruction": "Open Training & competence and press Add obligation. Set Kind to Training, give it a title your successor would understand, pick a due date, set Repeat (months) to 12 and choose an owner — then press Create obligation. This is a planning act, not an attestation: you are scheduling the work, not declaring it done.",
-      "launch": { "navigateTo": "settings/organisation/compliance", "label": "Open Compliance" }
+      "launch": { "navigateTo": "admin/compliance", "label": "Open Compliance" }
     },
     {
       "type": "slide",

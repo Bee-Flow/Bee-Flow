@@ -14,7 +14,7 @@
       "id": "where",
       "icon": "🧭",
       "title": "Two switches that look like a pair",
-      "bodyMd": "Next quarter's bill needs defending, so you go looking for something to turn down. In **Settings → Organisation**, between **Encryption** and **Organisation Info**, sit two candidates:\n\n- **Conversation Memory** — how much of a long *chat* the assistant still sees.\n- **Answer Reuse** — whether the answers a *automation* gets back from a connected app are kept between runs.\n\nSide by side they look like a matched pair of cost dials. They are neither: one governs chats, the other automations, neither touches the other, and each charges in its own currency — detail the assistant loses, or data you now store.\n\nVan Dijk Groep, a Dutch SME of sixty people, turned both; we follow what it cost them. Only organisation admins see either entry, and neither is a paid extra — every plan has both, self-host included."
+      "bodyMd": "Next quarter's bill needs defending, so you go looking for something to turn down. In **Admin dashboard → Organisation**, between **Encryption** and **Organisation Info**, sit two candidates:\n\n- **Conversation Memory** — how much of a long *chat* the assistant still sees.\n- **Answer Reuse** — whether the answers a *automation* gets back from a connected app are kept between runs.\n\nSide by side they look like a matched pair of cost dials. They are neither: one governs chats, the other automations, neither touches the other, and each charges in its own currency — detail the assistant loses, or data you now store.\n\nVan Dijk Groep, a Dutch SME of sixty people, turned both; we follow what it cost them. Only organisation admins see either entry, and neither is a paid extra — every plan has both, self-host included."
     },
     {
       "type": "slide",
@@ -222,9 +222,9 @@
       "icon": "🎚️",
       "checkId": "org-context-configured",
       "title": "Set the Safety limit deliberately",
-      "instruction": "Open Settings → Organisation and click Conversation Memory, the entry just below Encryption. Leave the mode card on whichever of the two you can defend. Then move the Safety limit off its default of 75%: up towards 95% if you want the emergency fold to hold off as long as possible, down towards 25% if you would rather be summarised early than ever meet a refusal. Read the worked examples under the slider before you let go, then Save. We check that the slider is no longer at the default and that your organisation has a saved setting.",
+      "instruction": "Open Admin dashboard → Organisation and click Conversation Memory, the entry just below Encryption. Leave the mode card on whichever of the two you can defend. Then move the Safety limit off its default of 75%: up towards 95% if you want the emergency fold to hold off as long as possible, down towards 25% if you would rather be summarised early than ever meet a refusal. Read the worked examples under the slider before you let go, then Save. We check that the slider is no longer at the default and that your organisation has a saved setting.",
       "launch": {
-        "navigateTo": "settings/organisation/encryption",
+        "navigateTo": "admin/organisation/encryption",
         "label": "Open Organisation"
       }
     },
@@ -270,7 +270,7 @@
       "checkId": "org-context-configured",
       "existing": false,
       "label": "Choose a Safety limit and save it",
-      "hint": "Settings → Organisation → Conversation Memory: move the Safety limit slider off 75%, then Save.",
+      "hint": "Admin dashboard → Organisation → Conversation Memory: move the Safety limit slider off 75%, then Save.",
       "endpoints": [
         {
           "method": "GET",

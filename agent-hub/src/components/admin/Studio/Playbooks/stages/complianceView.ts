@@ -70,8 +70,8 @@ export interface RetentionPreview {
 }
 
 /** Where a finding sends you. `target` is the thing; `link` is the old category. */
-export const ROPA_PATH = 'settings/organisation/compliance/ropa';
-export const CENTER_PATH = 'settings/organisation/compliance';
+export const ROPA_PATH = 'admin/compliance/ropa';
+export const CENTER_PATH = 'admin/compliance';
 
 export function linkFor(finding: Finding, facts: ComplianceFacts | null | undefined) {
     const target = finding && finding.target;

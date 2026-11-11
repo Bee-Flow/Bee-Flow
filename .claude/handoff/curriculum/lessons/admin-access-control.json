@@ -79,7 +79,7 @@
       "id": "two-axes",
       "icon": "🧭",
       "title": "Two different roles, one dropdown",
-      "bodyMd": "A role takes ten seconds to set and then quietly decides what a colleague can reach for years. Nobody complains about having too much access, so nobody tells you.\n\nVan Dijk Groep, a sixty-person Dutch SME, has just moved in. Marieke, who runs the workspace there, opens **Settings → Organisation → Users & Groups** and sees a coloured role chip on every member row. The pencil beside a row (**Change role**) turns that chip into a dropdown. It sets one thing: the **organisation role** — what the person may do *inside* Van Dijk Groep.\n\nA second role lives elsewhere: the **platform role**, held by whoever operates the Bee Flow installation. This dropdown never offers it — the server refuses with *\"Cannot assign super admin role\"*, and refuses a move to another organisation the same way.\n\nEverything here shapes your own tenant. Nothing here reaches outside it."
+      "bodyMd": "A role takes ten seconds to set and then quietly decides what a colleague can reach for years. Nobody complains about having too much access, so nobody tells you.\n\nVan Dijk Groep, a sixty-person Dutch SME, has just moved in. Marieke, who runs the workspace there, opens **Admin dashboard → Security → Users** and sees a coloured role chip on every member row. The pencil beside a row (**Change role**) turns that chip into a dropdown. It sets one thing: the **organisation role** — what the person may do *inside* Van Dijk Groep.\n\nA second role lives elsewhere: the **platform role**, held by whoever operates the Bee Flow installation. This dropdown never offers it — the server refuses with *\"Cannot assign super admin role\"*, and refuses a move to another organisation the same way.\n\nEverything here shapes your own tenant. Nothing here reaches outside it."
     },
     {
       "type": "slide",
@@ -278,12 +278,12 @@
       "choices": [
         {
           "id": "a",
-          "label": "The role on Settings → Organisation → Users & Groups; the password in the Edit user modal and the 2FA reset on the same row — both on Admin → Security → Users.",
+          "label": "The role on Admin dashboard → Security → Users; the password in the Edit user modal and the 2FA reset on the same row — both on Admin → Security → Users.",
           "correct": true
         },
         {
           "id": "b",
-          "label": "All three on Settings → Organisation → Users & Groups — the pencil on the row opens everything about that person.",
+          "label": "All three on Admin dashboard → Security → Users — the pencil on the row opens everything about that person.",
           "correct": false,
           "feedback": "The pencil there is titled \"Change role\" and opens only the role dropdown. Users & Groups carries no account modals at all — no Add new user, no Edit user, no \"Delete this user?\" and no \"Reset two-factor authentication?\"."
         },
@@ -344,7 +344,7 @@
       "title": "Narrow one role for real",
       "instruction": "Open Users & Groups and read down the role column. Find one colleague holding a wider role than their work needs — often an Organisation Admin who only builds agents — and use the pencil on their row to set the narrowest role that still fits. If every role already fits, open the pencil on a colleague who is on Member and confirm that choice. Leave at least one active Organisation Admin standing — you count, so do not narrow your own row.",
       "launch": {
-        "navigateTo": "settings/organisation/users",
+        "navigateTo": "admin/security/users",
         "label": "Open Users & Groups"
       }
     },
@@ -389,7 +389,7 @@
       "checkId": "org-role-set",
       "existing": false,
       "label": "Set a colleague's organisation role",
-      "hint": "In Settings → Organisation → Users & Groups, on the Users tab, click the pencil on a member's row and choose a role narrower than Organisation Admin.",
+      "hint": "In Admin dashboard → Security → Users, on the Users tab, click the pencil on a member's row and choose a role narrower than Organisation Admin.",
       "endpoints": [
         {
           "method": "GET",

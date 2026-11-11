@@ -71,7 +71,7 @@ export default function InviteForm({
                         {/* BFSF-251: seat cap → direct upgrade path, no dead end */}
                         {inviteResult.upgradeLink && (
                             <a
-                                href="/app/settings/organisation/license"
+                                href="/app/admin/organisation/license"
                                 className="flex items-center gap-1 mt-1 font-semibold text-[var(--accent-primary)] hover:underline"
                             >
                                 {t('agent_wizard.view_plans', 'View plans & upgrade')}

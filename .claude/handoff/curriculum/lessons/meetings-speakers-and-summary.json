@@ -157,7 +157,7 @@
       "id": "insights",
       "icon": "📊",
       "title": "Insights: the meeting behind the words",
-      "bodyMd": "At the top of the **Summary** tab sit three chips — **\"Balance\"**, **\"Interactivity\"** and **\"Silence\"** — a one-glance read on how the conversation ran. The fuller view is its own tab: **Insights**, with sub-tabs **\"Overview\" / \"People\" / \"Flow\" / \"Topics\" / \"Follow-up\"**.\n\nTwo things to know before you quote a number from it:\n\n- **It rests on the speaker rows you just repaired.** One person the diarizer split into two rows reads as two half-present attendees until you merge them. Names first, insights after — the same order as the summary.\n- **A thin recording says so.** Too little material and the tab reads *\"Not enough data for insights on this meeting.\"* That is an honest empty state, not a failure.\n\nAnd the per-person part is a policy decision, not a personal one: an organisation admin has **\"Per-person meeting insights\"** under **Settings → Organisation → \"Talk Meeting Notes\"**, on by default. Switched off, the tab reads *\"Per-person statistics are disabled by your organization.\"* and everyone in the organisation sees meeting-level metrics only."
+      "bodyMd": "At the top of the **Summary** tab sit three chips — **\"Balance\"**, **\"Interactivity\"** and **\"Silence\"** — a one-glance read on how the conversation ran. The fuller view is its own tab: **Insights**, with sub-tabs **\"Overview\" / \"People\" / \"Flow\" / \"Topics\" / \"Follow-up\"**.\n\nTwo things to know before you quote a number from it:\n\n- **It rests on the speaker rows you just repaired.** One person the diarizer split into two rows reads as two half-present attendees until you merge them. Names first, insights after — the same order as the summary.\n- **A thin recording says so.** Too little material and the tab reads *\"Not enough data for insights on this meeting.\"* That is an honest empty state, not a failure.\n\nAnd the per-person part is a policy decision, not a personal one: an organisation admin has **\"Per-person meeting insights\"** under **Admin dashboard → Organisation → \"Talk Meeting Notes\"**, on by default. Switched off, the tab reads *\"Per-person statistics are disabled by your organization.\"* and everyone in the organisation sees meeting-level metrics only."
     },
     {
       "type": "quiz",
@@ -167,7 +167,7 @@
       "choices": [
         {
           "id": "a",
-          "label": "An organisation admin switched \"Per-person meeting insights\" off under Settings → Organisation → \"Talk Meeting Notes\" — it is on by default — so the note shows meeting-level metrics only.",
+          "label": "An organisation admin switched \"Per-person meeting insights\" off under Admin dashboard → Organisation → \"Talk Meeting Notes\" — it is on by default — so the note shows meeting-level metrics only.",
           "correct": true
         },
         {
@@ -342,7 +342,7 @@
       "A custom template has a Name, a Prompt and a \"Visible to\" scope — \"Just me\", \"Whole organization\" or \"Specific group\"; only an organisation admin can pick the last two, and the scope is fixed once created (\"Scope can't be changed after creation.\").",
       "Regenerating replaces only the action items the assistant produced and nobody touched; items you wrote, edited, ticked or gave a destination are kept, and one the new pass cannot find keeps a \"kept\" badge.",
       "The Summary tab carries three insight chips — \"Balance\", \"Interactivity\" and \"Silence\" — and the Insights tab has the sub-tabs \"Overview\", \"People\", \"Flow\", \"Topics\" and \"Follow-up\"; with too little material it reads \"Not enough data for insights on this meeting.\"",
-      "\"Per-person meeting insights\" is an org-admin setting under Settings → Organisation → \"Talk Meeting Notes\", on by default; switched off the Insights tab reads \"Per-person statistics are disabled by your organization.\" and members see meeting-level metrics only.",
+      "\"Per-person meeting insights\" is an org-admin setting under Admin dashboard → Organisation → \"Talk Meeting Notes\", on by default; switched off the Insights tab reads \"Per-person statistics are disabled by your organization.\" and members see meeting-level metrics only.",
       "On the Transcript tab, \"Search transcript…\" filters the turns and the per-line menu \"What is this line?\" offers Action, Decision, To a knowledge base, Row in a table and Copy quote; beside it \"Pulled from this transcript\" warns \"One speaker was not recognised…\" with \"Check the speakers\"."
     ]
   },

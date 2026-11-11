@@ -120,7 +120,7 @@ describe('FrameworksPage — all tab', () => {
         expect(nis2.querySelector('[data-testid="fw-enable"]')).toBeNull();
         await user.click(nis2.querySelector('[data-testid="fw-view-plan"]'));
         expect(props.onNavigate).toHaveBeenCalledWith(LICENSE_PATH);
-        expect(LICENSE_PATH).toBe('settings/organisation/license');
+        expect(LICENSE_PATH).toBe('admin/organisation/license');
 
         const mach = screen.getByTestId('fw-card-machinery');
         expect(mach.querySelector('[data-testid="fw-locked"]').textContent).toContain('ask an admin');

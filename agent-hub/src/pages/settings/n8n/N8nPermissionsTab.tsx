@@ -1,6 +1,5 @@
 import { Crown, ExternalLink, Info, Loader2, Plus, X } from 'lucide-react';
 import { useState } from 'react';
-import { settingsPathForTab } from '@/authedApp/settingsRoutes';
 import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
 import type { N8nGroup, PermissionSummary } from './n8nModel';
 
@@ -220,10 +219,10 @@ export default function N8nPermissionsTab({ loading, summary, onReload, onMutate
         );
     }
     // The server's editUrl used to be a bare /settings path, which the app
-    // does not route; only an /app address is followed, else the canonical one.
+    // does not route; only an /app address is followed, else Admin > Security > Users.
     const usersHref = typeof summary.editUrl === 'string' && summary.editUrl.startsWith('/app/')
         ? summary.editUrl
-        : settingsPathForTab('org_users');
+        : '/app/admin/security/users';
     // Only the modify bucket — use_n8n_tools is implicit (auto-on for every
     // member when the org has n8n configured).
     const buckets: Bucket[] = [{

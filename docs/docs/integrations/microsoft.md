@@ -126,7 +126,7 @@ Connections made before this feature have only the old `OnlineMeetings.Read` sco
 
 - Each Teams meeting you organise has a **record / skip** toggle, per occurrence, or for the whole series.
 - With **Also switch on Teams recording** enabled, turning a meeting on sets `recordAutomatically` on it (`OnlineMeetings.ReadWrite`). Teams shows everyone in the call that it is being recorded. Without it the row says **Record in Teams**.
-- Auto-import (off by default) and the default language live in **Settings → Preferences**; org admins set them for everyone under **Settings → Organisation → Meeting Templates**.
+- Auto-import (off by default) and the default language live in **Settings → Preferences**; org admins set them for everyone under **Admin → Organisation → Meeting Templates**.
 - Manual import: **New transcription → Microsoft Teams** lists the meetings you organised in the last week.
 - Invited colleagues in your own organisation get read access to the note. Bee Flow does not notify them.
 

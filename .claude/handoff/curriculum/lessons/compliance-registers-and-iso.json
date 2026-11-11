@@ -164,7 +164,7 @@
       "title": "Review your register and stamp it",
       "instruction": "Open Compliance and go to Processing register (ROPA). Read the Controller block, the activities and the processors, and press Attest SCC on any non-EU row whose agreement you can vouch for. Then press Mark as reviewed and Download ROPA (PDF) for your file.",
       "launch": {
-        "navigateTo": "settings/organisation/compliance",
+        "navigateTo": "admin/compliance",
         "label": "Open Compliance"
       }
     },

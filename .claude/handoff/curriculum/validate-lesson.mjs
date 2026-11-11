@@ -10,7 +10,7 @@ const KNOWN_TARGETS = new Set([
     '[data-tour="memory-manage"]', '[data-tour="automation-create"]', '[data-tour="usage-summary"]', '[data-tour="automation-start-tabs"]', '[data-tour="automation-building-blocks"]',
     '[data-tour="cowork-composer"]', '[data-tour="cowork-options"]',
 ]);
-const NAV_RX = /^(agents|agentWizard|cowork|apps|forms|studio\/(agents|skills|knowledge|automations|approvals|datatables|webpages|apps|forms|playbooks|solutions|runs|meetingNotes)|settings\/(memory|integrations|preferences|security|appearance)|settings\/organisation\/(privacy|encryption|info|usage|compliance|users|academy|integrations|nextcloud-sync|meeting-templates|azure|auth|license))$/;
+const NAV_RX = /^(agents|agentWizard|cowork|apps|forms|studio\/(agents|skills|knowledge|automations|approvals|datatables|webpages|apps|forms|playbooks|solutions|runs|meetingNotes)|settings\/(memory|integrations|preferences|security|appearance)|admin\/(security\/(users|guardrails)|monitoring|compliance|organisation\/(encryption|info|academy|integrations|nextcloud-sync|meeting-templates|azure|auth|license)))$/;
 const EXISTING_CHECKS = new Set(['automation-first', 'cowork-first', 'agent-created', 'kb-with-doc', 'hive-master']);
 const KINDS = new Set(['slide', 'quiz', 'exercise', 'sim', 'action', 'tour']);
 const INTERACTIVE = new Set(['quiz', 'exercise', 'sim', 'action']);

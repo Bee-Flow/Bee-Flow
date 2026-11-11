@@ -103,7 +103,7 @@ describe('BuilderSplit — saving', () => {
         await user.click(screen.getByTestId('agent-save-draft'));
         expect(await screen.findByText('Plan limit reached')).toBeInTheDocument();
         expect(screen.getByText('Your plan allows 3 agents.')).toBeInTheDocument();
-        expect(screen.getByRole('link', { name: 'View plans & upgrade' })).toHaveAttribute('href', '/app/settings/organisation/license');
+        expect(screen.getByRole('link', { name: 'View plans & upgrade' })).toHaveAttribute('href', '/app/admin/organisation/license');
         await user.click(screen.getByRole('button', { name: 'Dismiss' }));
         expect(screen.queryByText('Plan limit reached')).toBeNull();
     });

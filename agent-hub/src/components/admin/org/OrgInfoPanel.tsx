@@ -34,10 +34,10 @@ interface OrgInfoPanelProps {
  * BFSF-251: jump to the org Users panel where seats are added (inviting a user
  * is what adds a billed seat on per-seat plans). Mirrors the app's own
  * back/forward routing — pushState the canonical settings URL, then fire a
- * popstate so the AdvancedSettings shell switches to the Users sub-tab.
+ * popstate so the app shell opens Admin > Security > Users.
  */
 function goToUsersPanel() {
-    const url = '/app/settings/organisation/users';
+    const url = '/app/admin/security/users';
     try {
         if (window.location.pathname !== url) window.history.pushState({}, '', url);
         window.dispatchEvent(new PopStateEvent('popstate'));

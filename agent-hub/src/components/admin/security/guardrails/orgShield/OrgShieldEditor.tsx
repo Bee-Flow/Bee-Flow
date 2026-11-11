@@ -30,7 +30,7 @@ import { ShieldOrg, GuardStatus } from './useShieldEnvironment';
  *
  * ── Why the tab is a QUERY PARAM and not a path segment ───────────────────
  * This component is mounted twice, on two unrelated routes: the org settings
- * page (/app/settings/organisation/privacy) and the admin console
+ * page (/app/admin/security/guardrails) and the admin console
  * (/app/admin/security/guardrails/organisations). `useUrlTab` writes a PATH,
  * so a tab click in the admin console would navigate the console out of
  * itself. On the settings side it would also fight `AdvancedSettings`, which
@@ -179,7 +179,7 @@ const OrgShieldEditor = ({ orgId = null, allowOrgPicker = false, readOnly = fals
     );
 
     const goToCompliance = () => {
-        window.location.assign('/app/settings/organisation/compliance');
+        window.location.assign('/app/admin/compliance');
     };
     const diagnoseGuard = () => {
         // The installer lives in the platform-admin console, which an org

@@ -9,7 +9,7 @@ After purchase, you receive a JWT in your inbox. To apply it:
 ## In the UI
 
 1. Open Bee Flow as an organisation admin.
-2. Go to **Settings → Organisation → Licence & usage**.
+2. Go to **Admin → Organisation → License & Usage**.
 3. Paste the JWT into the **Licence key** field and click **Apply**.
 
 The server verifies the signature against the bundled public key (`license/bundled-public-key.pem`) and updates the active tier immediately. Premium features become available without a restart.
@@ -27,14 +27,14 @@ organisation** on the server instead of activating the same key per-org.
 
 An admin blob (`beeflow-admin-v1.…`) carries no signature, so only a
 super-admin can activate one. Pasted by anyone else, in
-**Settings → Organisation → Licence & usage** for example, it is refused
+**Admin → Organisation → License & Usage** for example, it is refused
 with a `403` (`admin_blob_super_admin_only`).
 
 While a server-wide licence is active:
 
 - Every organisation and consumer on the install resolves to the
   server-wide tier — **per-organisation licences are ignored**.
-- Per-organisation activation in **Settings → Organisation → Licence**
+- Per-organisation activation in **Admin → Organisation → License & Usage**
   is replaced with a read-only banner ("Tier is managed server-wide").
 - Deactivating the server-wide licence from the same admin panel
   restores per-organisation licences immediately (per-org rows are

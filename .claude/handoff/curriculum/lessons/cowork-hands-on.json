@@ -222,7 +222,7 @@
         },
         {
           "id": "b",
-          "label": "Settings → Organisation → Integrations → Integration access.",
+          "label": "Admin dashboard → Access → Integration access.",
           "correct": false,
           "feedback": "That is the admin screen, and it decides *who is allowed* to use an integration — it never holds Bart's own credential. Even after an admin grants access, Bart still has to connect his own account under Settings → Connections."
         },
@@ -239,7 +239,7 @@
           "feedback": "Security covers his own sign-in to Bee Flow, not the accounts Bee Flow connects out to. Those live one row further down the same menu, under Connections."
         }
       ],
-      "explanation": "Two different screens with similar-sounding names. **Settings → Connections** is personal: it is the row between Memory and Learning Center in your own Settings menu, and it holds your credentials. **Settings → Organisation → Integrations → Integration access** is the admin grant that decides who may connect at all. A \"Needs sign-in\" cowork is always the first one — and the reconnect un-pauses every schedule parked for that account."
+      "explanation": "Two different screens with similar-sounding names. **Settings → Connections** is personal: it is the row between Memory and Learning Center in your own Settings menu, and it holds your credentials. **Admin dashboard → Access → Integration access** is the admin grant that decides who may connect at all. A \"Needs sign-in\" cowork is always the first one — and the reconnect un-pauses every schedule parked for that account."
     },
     {
       "type": "slide",

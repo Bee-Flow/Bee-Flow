@@ -36,7 +36,7 @@ export function LimitWarningBanner({ t, limitWarning, setLimitWarning }: Loose) 
                     </p>
                     <p className="text-[12px] text-[var(--text-secondary)] mt-0.5">{limitWarning.message}</p>
                     <a
-                        href="/app/settings/organisation/license"
+                        href="/app/admin/organisation/license"
                         className="inline-flex items-center gap-1 mt-2 px-3 py-1.5 rounded-md text-[12px] font-semibold bg-amber-500 text-white hover:bg-amber-600"
                     >
                         {t('agent_wizard.view_plans', 'View plans & upgrade')}
