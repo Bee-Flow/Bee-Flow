@@ -164,6 +164,7 @@ function deps() {
         },
         setAppAudience: async (input) => { fx.calls.push(['appAudience', input.publishing]); return { ok: true, isPublished: input.publishing, sharedGroups: [] }; },
         appAudienceDeps: {},
+        syncAppTriggers: async (id) => { fx.calls.push(['triggers', id]); },
         validateSharedGroupsForOrg: async (_org, groups) => groups,
         webpageStore: { setWebpagePublished: async (...a) => { fx.calls.push(['webpage', ...a.slice(0, 2)]); return true; } },
         agentStore: { setAgentPublished: async (...a) => { fx.calls.push(['agent', ...a.slice(0, 2)]); return true; } },
@@ -417,6 +418,7 @@ test('parts on and off: automations, apps, pages and agents; a part with no live
 
     assert.strictEqual((await patch('app_1', { active: true })).status, 200);
     assert.deepStrictEqual(fx.calls.find(c => c[0] === 'appAudience'), ['appAudience', true]);
+    assert.deepStrictEqual(fx.calls.find(c => c[0] === 'triggers'), ['triggers', 'app1'], 'the triggers follow the switch');
     assert.strictEqual((await patch('app_2', { active: true })).body.code, 'managed_part_not_deployed');
     assert.strictEqual((await patch('pg_1', { audience: { published: true, sharedGroups: ['g1'] } })).status, 200);
     assert.deepStrictEqual(fx.calls.find(c => c[0] === 'webpage'), ['webpage', 'wp1', true]);

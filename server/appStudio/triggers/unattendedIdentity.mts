@@ -97,6 +97,9 @@ function defaultDeps(): UnattendedDeps {
     };
 }
 
+/** The real readers, for a module that checks the owner the same way (triggers/deploySync.mts). */
+export { defaultDeps as unattendedReaders };
+
 /** Rules 1 to 3: the published app, its owner, and the owner's App Studio. */
 async function publishedAppOf(appId: string, ownerUserId: string, deps: UnattendedDeps): Promise<{ app: AppRow; def: Obj; owner: UserRow } | UnattendedRefusal> {
     const app = await deps.getApp(appId);

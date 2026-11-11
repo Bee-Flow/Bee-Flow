@@ -2,13 +2,14 @@
  * Arming: the armed rows of an app (studio_app_triggers) are made equal to what its PUBLISHED
  * definition arms. This is the only writer of an armed row besides the fire itself.
  *
- * WHEN. After a publish and after an unpublish, from the publish route (routes/studioApps/publish.js).
+ * WHEN. After a publish and after an unpublish, from the publish route (routes/studioApps/publish.js);
+ * and after a Solution stage wrote the published copy or the publish state: a deploy's converge
+ * and a stage's on/off of the app (deploySync.mts, under the publish route's conditions).
  * Nothing else arms a trigger:
  *   - a save of the draft, an AI builder call, an import, a template or Blueprint install, a
- *     version restore: they change the draft, and a draft has no rows;
- *   - a deploy to a Solution stage or an upgrade that replaces the published copy: the copy
- *     changes without this sync, the next fire finds the armed row no longer matches it and
- *     disarms it (unattendedIdentity.mts rule 4). Someone publishes to arm it again.
+ *     version restore, a stage's prepare: they change the draft, and a draft has no rows;
+ *   - a published copy that changed some other way: the next fire finds the armed row no longer
+ *     matches it and disarms it (unattendedIdentity.mts rule 4).
  * Disarming needs no hook of its own either: an unpublish removes the rows here, a deleted app
  * takes its rows with it (ON DELETE CASCADE, stores/studioApp/deleteApp.js), and a deactivated
  * owner, a lapsed licence or a switched-off module is read at every fire and by the job's own

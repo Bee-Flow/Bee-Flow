@@ -112,6 +112,8 @@ function makeSettingsHandlers(d) {
             deps: d.appAudienceDeps,
         });
         if (!out.ok) throw new HttpError(out.status, (out.body && out.body.code) || 'audience_refused', (out.body && out.body.error) || 'The audience could not be changed.', out.body);
+        // The server triggers follow the publish state as on PATCH /:id/publish (it never throws; the switch stands).
+        await d.syncAppTriggers(shape.id);
         return { isPublished: out.isPublished, sharedGroups: out.sharedGroups };
     }
 
