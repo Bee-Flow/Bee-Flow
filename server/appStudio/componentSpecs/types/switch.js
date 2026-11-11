@@ -1,3 +1,4 @@
+// @typecheck strict
 'use strict';
 
 const { VALUE_FROM } = require('../styleKnobs');

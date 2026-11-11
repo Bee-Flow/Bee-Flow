@@ -1,3 +1,4 @@
+// @typecheck strict
 'use strict';
 
 // A round picture of a person or thing (schema 3), with the initials of `name` when there is

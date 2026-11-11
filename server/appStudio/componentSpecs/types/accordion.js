@@ -1,3 +1,4 @@
+// @typecheck strict
 'use strict';
 
 // Collapsible sections (schema 3). Child i is the body of items[i]; a child is an ordinary

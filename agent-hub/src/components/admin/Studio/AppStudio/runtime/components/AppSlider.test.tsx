@@ -1,7 +1,6 @@
-import { fireEvent } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { declaredParts, renderedParts } from '@/test/appPartsRendered';
-import { inputNode, renderInForm } from '@/test/appFormRender';
+import { inputNode, renderInForm, setRangeValue } from '@/test/appFormRender';
 import AppSlider from './AppSlider';
 
 const view = (props: Record<string, unknown> = {}, extra: Record<string, unknown> = {}, vars: Record<string, unknown> = {}) => {
@@ -26,7 +25,7 @@ describe('AppSlider', () => {
         getByRole('slider').focus();
         await submit();
         expect(lastValues()).toEqual({ level: 5 });
-        fireEvent.change(getByRole('slider'), { target: { value: '9' } });
+        setRangeValue(getByRole('slider') as HTMLInputElement, 9);
         await submit();
         expect(lastValues()).toEqual({ level: 9 });
     });
@@ -44,7 +43,7 @@ describe('AppSlider', () => {
 
     it('runs onChange with the whole form and the new value', () => {
         const { getByRole, lastValues } = view({}, { onChange: 'act_changed' });
-        fireEvent.change(getByRole('slider'), { target: { value: '4' } });
+        setRangeValue(getByRole('slider') as HTMLInputElement, 4);
         expect(lastValues('act_changed')).toEqual({ level: 4 });
     });
 

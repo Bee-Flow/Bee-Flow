@@ -1,5 +1,5 @@
 // Render one App Studio input inside the real AppForm, as a run-mode app does, and read what the form submits.
-import { render } from '@testing-library/react';
+import { act, render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactElement } from 'react';
 import { vi } from 'vitest';
@@ -36,4 +36,12 @@ export function renderInForm(node: InputNode, input: ReactElement, vars: Record<
         return calls.length ? (calls[calls.length - 1][1] as { formValues: Record<string, unknown> }).formValues : undefined;
     };
     return { ...view, user, submit, lastValues, runAction };
+}
+
+/** Move a range input to `value` the way the browser reports it: through the native setter, then an `input` event. */
+export function setRangeValue(input: HTMLInputElement, value: number) {
+    act(() => {
+        Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set?.call(input, String(value));
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+    });
 }

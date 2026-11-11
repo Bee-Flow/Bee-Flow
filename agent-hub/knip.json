@@ -15,6 +15,7 @@
     "src/components/admin/Studio/AppStudio/flow/steps/*.ts",
     "src/components/admin/Studio/AppStudio/runtime/actionRunner/browserSteps/*.ts",
     "src/components/admin/Studio/AppStudio/runtime/styleKnobs/*.ts",
+    "src/components/admin/Studio/AppStudio/runtime/components/registry/*.ts",
     "src/components/admin/Studio/AppStudio/inspector/themeSections/*.tsx"
   ],
   "project": [

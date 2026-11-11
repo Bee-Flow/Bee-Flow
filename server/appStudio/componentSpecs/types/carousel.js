@@ -1,3 +1,4 @@
+// @typecheck strict
 'use strict';
 
 // Slides shown one at a time (schema 3). Every child is one slide: an ordinary node

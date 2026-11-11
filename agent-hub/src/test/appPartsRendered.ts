@@ -16,6 +16,6 @@ export function renderedParts(type: string, ...containers: Element[]): string[] 
 
 /** The parts the catalogue declares for `type`, sorted. */
 export function declaredParts(type: string): string[] {
-    const spec = (snapshot.types as unknown as Record<string, { parts?: string[] } | undefined>)[type];
+    const spec = Reflect.get(snapshot.types, type) as { parts?: string[] } | undefined;
     return [...(spec?.parts ?? [])].sort();
 }

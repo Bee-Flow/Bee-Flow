@@ -5,7 +5,7 @@ export interface SlotChildDef {
 }
 
 /** Depth-first: is `id` this definition or one of the nodes below it? */
-export function holdsNode(def: SlotChildDef | undefined, id: string): boolean {
+function holdsNode(def: SlotChildDef | undefined, id: string): boolean {
     if (!def) return false;
     if (def.id === id) return true;
     return (def.children ?? []).some((child) => holdsNode(child, id));
