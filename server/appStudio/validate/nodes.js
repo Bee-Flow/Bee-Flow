@@ -29,6 +29,7 @@ const { nodeActionRefs } = require('../nodeActionRefs.mts');
 const { noteUiTarget } = require('./uiStepChecks.mts');
 const { screenTriggerRefs, watchersOf } = require('../../shared/appDefinition/clientTriggers.mjs');
 const { checkObjectValue } = require('./objectChecks.mts');
+const { checkCustomBlock } = require('./customBlockChecks.mts');
 const { checkStyleRules } = require('./styleRuleChecks.mts');
 const { isColorOrRoleValue } = require('../componentSpecs/colorValue');
 
@@ -537,6 +538,7 @@ function validateNode(node, path, depth, formId, ctx, parent = ROOT_PARENT) {
     // …and every node's type, and each form's name, for the steps that name a node (uiStepChecks.mts).
     noteUiTarget(node, props, ctx);
     if (node.type === 'input_document') checkDocumentPicker(props, path, ctx);
+    if (node.type === 'custom_block') checkCustomBlock(props, path, ctx);
 
     checkActionWiring(node, path, props, spec, ctx);
 

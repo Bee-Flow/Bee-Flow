@@ -23,6 +23,7 @@
  */
 
 import { childStepSlots } from '@shared/appDefinition/stepFlow.mjs';
+import { canonicalTemplate, inspectTemplate } from '@shared/blockTemplate/index.mjs';
 import type { AppDefinition, AppScreen } from '../../inspector/appDefinition';
 import { NODE_EVENTS } from '../../state/definitionOps';
 import { PUBLIC_ROLE_KEY, tableGrant } from '../publishAccessSummary';
@@ -137,7 +138,16 @@ export function setLookKnob(pa: PublicAccess, part: LookPart, key: string, value
 
 const ACTION_LIST_PROPS = ['itemActions', 'rowActions', 'bulkActions', 'toolbarActions'];
 
-/** The actions one node runs: its events, the four action lists, addRowActionId, columns[].actionId. */
+/** The actions a custom_block runs: an event that is wired AND that a control of its template raises (server customBlock/blockRefs.mts). */
+function blockActionIds(block: unknown): string[] {
+    if (!isObject(block) || !isObject(block.events) || typeof block.template !== 'string') return [];
+    const events = block.events;
+    return inspectTemplate(canonicalTemplate(block.template).nodes).events
+        .map((name) => events[name])
+        .filter((id): id is string => typeof id === 'string' && id !== '');
+}
+
+/** The actions one node runs: its events, the four action lists, addRowActionId, columns[].actionId, a custom_block's wired events. */
 function nodeActionIds(node: Obj): string[] {
     const out: string[] = [];
     for (const ev of NODE_EVENTS) if (typeof node[ev] === 'string' && node[ev]) out.push(node[ev] as string);
@@ -146,6 +156,7 @@ function nodeActionIds(node: Obj): string[] {
         ...(Array.isArray(props.columns) ? props.columns as unknown[] : [])];
     for (const e of entries) if (isObject(e) && typeof e.actionId === 'string' && e.actionId) out.push(e.actionId);
     if (typeof props.addRowActionId === 'string' && props.addRowActionId) out.push(props.addRowActionId);
+    if (node.type === 'custom_block') out.push(...blockActionIds(props.block));
     return out;
 }
 
