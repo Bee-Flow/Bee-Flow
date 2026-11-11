@@ -5,15 +5,22 @@
  * one is open (onViewChange).
  */
 import { Eye } from 'lucide-react';
+import { Suspense } from 'react';
 import type { Dispatch, ReactNode } from 'react';
 import type { HeaderApp, HeaderView } from './headerModel';
 import type { RolesDirty } from './useHeaderView';
 import useTranslation from '@/hooks/useTranslation';
 import ConfirmDialog from '@/components/shared/ConfirmDialog';
+import { lazy } from '@/utils/lazyWithReload';
 import type { AppDefinition } from '../../inspector/appDefinition';
 import type { AppEditorAction } from '../../state/appEditorState';
 import EditorToolRow from '../EditorToolRow';
-import { DataView, RolesView } from '../EditorViews';
+
+// The Data and Roles views open from a header segment, never with the editor
+// itself: their own chunk keeps the table designer, the connectors and the role
+// editors out of what the editor (and the public App Studio demo) loads first.
+const DataView = lazy(() => import('../EditorViews').then((m) => ({ default: m.DataView })));
+const RolesView = lazy(() => import('../EditorViews').then((m) => ({ default: m.RolesView })));
 
 interface PreviewRoleBannerProps {
     previewRole: string;
@@ -96,22 +103,28 @@ export function HeaderViewRows({
     }
     if (view === 'data') {
         return (
-            <DataView
-                key={dataOpen.n}
-                app={app}
-                definition={definition}
-                screenId={screenId}
-                onCommit={onCommit}
-                dispatch={dispatch}
-                disabled={streamLock}
-                initialTab={dataOpen.tab}
-                onLeave={onLeaveData}
-            />
+            <Suspense fallback={null}>
+                <DataView
+                    key={dataOpen.n}
+                    app={app}
+                    definition={definition}
+                    screenId={screenId}
+                    onCommit={onCommit}
+                    dispatch={dispatch}
+                    disabled={streamLock}
+                    initialTab={dataOpen.tab}
+                    onLeave={onLeaveData}
+                />
+            </Suspense>
         );
     }
     if (view === 'logic') return renderLogic();
     if (view === 'roles') {
-        return <RolesView app={app} definition={definition} onCommit={onCommit} onDirtyChange={onRolesDirtyChange} />;
+        return (
+            <Suspense fallback={null}>
+                <RolesView app={app} definition={definition} onCommit={onCommit} onDirtyChange={onRolesDirtyChange} />
+            </Suspense>
+        );
     }
     return null;
 }

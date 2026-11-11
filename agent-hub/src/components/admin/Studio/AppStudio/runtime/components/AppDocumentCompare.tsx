@@ -1,5 +1,5 @@
 import { FileDiff, Loader2 } from 'lucide-react';
-import { useCallback, useMemo, useRef, useState, type ReactNode } from 'react';
+import { Suspense, useCallback, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useAppDocumentCompare, useAppDocumentVersions, type AppDocumentCompare as CompareData, type AppDocumentVersion, type DocumentRef } from '@/api/queries/studioAppDocuments';
 import useTranslation from '@/hooks/useTranslation';
 import { resolveBinding } from '../resolveBinding';
@@ -12,8 +12,12 @@ import { parseDocumentRef, sameDocument } from './documentCompare/docRef';
 import { DocMessage, DocShell, documentErrorText, useDocumentScope } from './documentCompare/DocShell';
 import SheetDiffView from './documentCompare/SheetDiffView';
 import { hasChanges, summaryText, type TFn } from './documentCompare/summary';
-import TextDiffView from './documentCompare/TextDiffView';
+import { lazy } from '@/utils/lazyWithReload';
 import type { StepFn } from './documentCompare/useStepper';
+
+// The text diff brings the editor's diff engine (and yjs) along; it is drawn only once a
+// text comparison has come back, so it loads then instead of with every app runtime.
+const TextDiffView = lazy(() => import('./documentCompare/TextDiffView'));
 
 /**
  * App Studio runtime — 'document_compare'. Spec: server/appStudio/componentSpecs/documentSpecs.js.
@@ -108,7 +112,11 @@ function CompareBody({ data, choice, labels, mode0, onlyChanges0 }: {
             />
             {result.family === 'deck' ? <DeckDiffView key={key} result={result} leftHtml={data.leftHtml} rightHtml={data.rightHtml} leftLabel={labels.left} rightLabel={labels.right} {...view} /> : null}
             {result.family === 'sheet' ? <SheetDiffView key={key} result={result} {...view} /> : null}
-            {result.family === 'text' ? <TextDiffView key={key} result={result} leftLabel={labels.left} rightLabel={labels.right} {...view} /> : null}
+            {result.family === 'text' ? (
+                <Suspense fallback={null}>
+                    <TextDiffView key={key} result={result} leftLabel={labels.left} rightLabel={labels.right} {...view} />
+                </Suspense>
+            ) : null}
         </>
     );
 }
