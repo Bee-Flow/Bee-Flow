@@ -6,13 +6,17 @@
  *                        per row: it must be there and compile.
  *   gauge min / max      a gauge draws in min..max: max must be above min.
  *   wizard steps         child i is the body of step i: as many children as steps.
+ *   node.tooltip         plain text of at most 200 characters.
  *
  * One walk over every node of every screen. A definition without this vocabulary gets no
  * finding from here.
  */
 
 import { compile } from '../../shared/expr/engine.mjs';
+import { createRequire } from 'node:module';
 import type { Finding } from '../definitionKeyRegistry.mts';
+
+const { MAX_TOOLTIP_LEN } = createRequire(import.meta.url)('../componentSpecs/tooltipKey.js') as { MAX_TOOLTIP_LEN: number };
 
 type Bag = Record<string, unknown>;
 type PushFinding = (finding: Finding) => void;
@@ -65,8 +69,15 @@ function checkWizardSteps(node: Bag, props: Bag, path: string, { pushW }: LookPu
     pushW({ code: 'wizard.steps_mismatch', severity: 'warning', path: `${path}.props.steps`, message: `The wizard has ${steps} step(s) and ${bodies} child(ren); child number i is the body of step number i.`, hint: 'Give every step one child (usually a container), in the same order.' });
 }
 
+/** A tooltip is plain text of at most MAX_TOOLTIP_LEN characters (componentSpecs/tooltipKey.js). */
+function checkTooltip(node: Bag, _props: Bag, path: string, { pushE }: LookPush): void {
+    if (node.tooltip === undefined) return;
+    if (typeof node.tooltip === 'string' && node.tooltip.trim() && node.tooltip.length <= MAX_TOOLTIP_LEN) return;
+    pushE({ code: 'node.tooltip_invalid', severity: 'error', path: `${path}.tooltip`, message: `tooltip must be a non-empty text of at most ${MAX_TOOLTIP_LEN} characters.`, hint: 'Write a short plain sentence, or leave tooltip out.' });
+}
+
 /** The checks per node, in the order their findings appear. */
-const NODE_CHECKS: readonly NodeCheck[] = [checkColumnTemplates, checkGaugeRange, checkWizardSteps];
+const NODE_CHECKS: readonly NodeCheck[] = [checkColumnTemplates, checkGaugeRange, checkWizardSteps, checkTooltip];
 
 function walkNode(node: unknown, path: string, push: LookPush): void {
     if (!isObject(node)) return;

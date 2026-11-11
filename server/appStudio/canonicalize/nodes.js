@@ -8,6 +8,7 @@
 'use strict';
 
 const { LIMITS, EVENT_NAMES, COMPONENT_SPECS, expandStyleKnobs } = require('../componentSpecs');
+const { cleanTooltip, MAX_TOOLTIP_LEN } = require('../componentSpecs/tooltipKey');
 const { HARD_DEPTH_CAP, isObject, deepCopy, truncate, isFormulaObj } = require('./shared');
 const { cleanFormula } = require('./bindings');
 const { cleanStyle } = require('./style');
@@ -156,6 +157,13 @@ function canonNode(node, path, depth, ids, push) {
     if (node.cssClass !== undefined && node.cssClass !== null && node.cssClass !== '') {
         if (isCssClassName(node.cssClass)) out.cssClass = node.cssClass;
         else push('node.css_class_invalid', `${path}.cssClass`, `cssClass must be a lower-case letter followed by lower-case letters, digits or dashes (at most ${LIMITS.MAX_CSS_CLASS_LEN}) — dropped.`);
+    }
+
+    // Schema 3: a short hover and focus text (componentSpecs/tooltipKey.js), written only when given.
+    if (node.tooltip !== undefined && node.tooltip !== null && node.tooltip !== '') {
+        const tooltip = cleanTooltip(node.tooltip);
+        if (tooltip !== undefined) out.tooltip = tooltip;
+        if (tooltip === undefined || tooltip !== node.tooltip) push('node.tooltip_cleaned', `${path}.tooltip`, `tooltip must be plain text of at most ${MAX_TOOLTIP_LEN} characters — ${tooltip === undefined ? 'dropped' : 'trimmed'}.`);
     }
 
     for (const ev of EVENT_NAMES) {

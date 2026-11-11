@@ -150,3 +150,16 @@ test('a tree reads through an ordinary data binding and is bounded by its limits
         'prop.range @ screens[0].sections[0].children[0].props.maxNodes',
     ]);
 });
+
+test('a tooltip on any node is kept as trimmed text, stamps version 3 and is checked', () => {
+    const text = (extra) => ({ id: 'cmp_text0001', type: 'text', props: { text: 'VAT' }, ...extra });
+    const def = canon([text({ tooltip: '  Value added tax, 21%  ' })]);
+    assert.equal(firstNode(def).tooltip, 'Value added tax, 21%');
+    assert.equal(def.schemaVersion, 3);
+    assert.deepEqual(validateAppDefinition(def).errors, []);
+    for (const gone of [null, '', '   ', 42]) assert.equal('tooltip' in firstNode(canon([text({ tooltip: gone })])), false, String(gone));
+    assert.equal(canon([text({ tooltip: 'x'.repeat(300) })]).screens[0].sections[0].children[0].tooltip.length, 200);
+    const raw = specs.emptyDefinition('raw');
+    raw.screens[0].sections[0].children = [text({ tooltip: 7 })];
+    assert.ok(codes(validateAppDefinition(raw).errors).includes('node.tooltip_invalid @ screens[0].sections[0].children[0].tooltip'));
+});

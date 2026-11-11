@@ -19,6 +19,7 @@ import { withAuthorClass } from './appCss';
 import { themeVars } from './themeVars';
 import { tileClickProps } from './tileClick';
 import { ItemTemplateContext, type RenderNodes } from './itemTemplate';
+import NodeTooltip from './NodeTooltip';
 import { definitionReadsUi, useUiScope } from './uiState';
 import useTranslation from '@/hooks/useTranslation';
 import type React from 'react';
@@ -284,6 +285,8 @@ function RenderNode({ node, scope, NodeWrapper, mode }: RenderNodeProps) {
         });
         content = <Component node={effectiveNode}>{children}</Component>;
     }
+    // Schema 3: a hover and focus text on any node (./NodeTooltip.tsx); without one nothing wraps.
+    if (typeof node.tooltip === 'string' && node.tooltip) content = <NodeTooltip text={node.tooltip}>{content}</NodeTooltip>;
 
     // A modal renders no inline box in run mode — closed it is null, open its
     // dialog portals to the body. Emitting the usual grid cell for it painted
