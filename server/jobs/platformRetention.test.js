@@ -45,6 +45,7 @@ function harness({ locked = true, monitoringThrows = false, scanPruneThrows = fa
         },
         pruneSuggestionFeedback: async () => { calls.suggestionFeedback += 1; return 0; },
         pruneDocumentSuggestions: async () => { calls.documentSuggestions = (calls.documentSuggestions || 0) + 1; return 4; },
+        pruneAutomationWebhookDeliveries: async () => { calls.webhookDeliveries = (calls.webhookDeliveries || 0) + 1; return 6; },
         log: { debug: record('debug'), info: record('info'), warn: record('warn'), error: record('error') },
     });
     return { calls, logs };
@@ -93,6 +94,15 @@ test('one pass also prunes the suggestion scan cache and feedback', async () => 
     assert.strictEqual(calls.suggestionScans, 1, 'the suggestion scan cache was not pruned');
     assert.strictEqual(calls.suggestionFeedback, 1, 'the suggestion feedback was not pruned');
     assert.ok(logs.some(l => l.level === 'info' && /pruned 2 suggestion scan row/.test(l.msg)));
+});
+
+test('one pass also prunes the delivery log of automation webhooks, whatever the prunes before it did', async () => {
+    for (const options of [{}, { scanPruneThrows: true }, { locked: false }]) {
+        const { calls, logs } = harness(options);
+        await job.runOnce();
+        assert.strictEqual(calls.webhookDeliveries, 1);
+        assert.ok(logs.some(l => l.level === 'info' && /pruned 6 automation webhook delivery row/.test(l.msg)));
+    }
 });
 
 test('a failing scan-cache prune does not skip the feedback prune', async () => {

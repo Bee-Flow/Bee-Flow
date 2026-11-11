@@ -737,6 +737,15 @@ declare namespace DbRow {
         saved_by_user_id: string;
         version: number;
     }
+    /** Row of `automation_webhook_deliveries`. */
+    interface AutomationWebhookDeliveries {
+        body_bytes: number;
+        body_sha256: string | null;
+        id: string;
+        received_at: Date;
+        status: string;
+        webhook_id: string;
+    }
     /** Row of `automation_webhook_seen_nonces`. */
     interface AutomationWebhookSeenNonces {
         nonce: string;
@@ -749,6 +758,8 @@ declare namespace DbRow {
         created_at: Date;
         id: string;
         last_seen_at: Date | null;
+        prev_secret: string | null;
+        prev_valid_until: Date | null;
         secret: string;
         trigger_step_id: string | null;
     }

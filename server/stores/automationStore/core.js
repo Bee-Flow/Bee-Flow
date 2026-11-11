@@ -143,6 +143,15 @@ const MIGRATIONS = [
     // a new mail): automation_id nullable, cowork_schedule_id + exactly-one-owner
     // CHECK. Applies the cowork DDL first (the FK needs the table).
     'agent-mail-trigger-2026-11',
+    // automation_webhooks.secret holds the signing secret sealed. Seals, in
+    // place, every value that is not sealed yet; finds nothing after that.
+    'automation-webhook-secret-sealed-2026-11',
+    // prev_secret / prev_valid_until on automation_webhooks: the secret from
+    // before a rotation still verifies for the overlap. Additive, nullable.
+    'automation-webhook-rotation-2026-11',
+    // automation_webhook_deliveries: what arrived at a webhook address (status,
+    // size, a hash, time; never a body). Starts empty.
+    'automation-webhook-deliveries-2026-11',
 ];
 
 const initDB = makeStoreInit('AutomationStore', _initDB);

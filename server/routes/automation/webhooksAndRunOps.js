@@ -66,16 +66,17 @@ router.get('/:id/webhooks', async (req, res) => {
     if (!a) return res.status(404).json({ error: 'Not found' });
     if (!await automationAccess.guard(req, res, a, 'edit')) return;
     const list = await automationStore.getWebhooksForAutomation(a.id);
-    // Carry the absolute URL on every row so the trigger-node panel can
-    // show it without reconstructing the origin client-side.
-    res.json({ webhooks: list.map(w => ({ ...w, url: webhookUrlForSlug(w.id, req) })) });
+    // The absolute URL on every row (the panel never rebuilds the origin), and its
+    // newest deliveries: what became of each, a size and a short hash, never a body.
+    const log = await automationStore.recentWebhookDeliveries(list.map(w => w.id), 20);
+    res.json({ webhooks: list.map(w => ({ ...w, url: webhookUrlForSlug(w.id, req), deliveries: (log[w.id] || []).map(d => ({ ...d, bodyHash: d.bodyHash ? d.bodyHash.slice(0, 12) : null })) })) });
 });
 
 /**
- * Rotate a webhook's HMAC secret. The slug (URL) stays the same; any caller
- * still using the old secret immediately receives 401. The new secret is
- * returned ONCE so the user can copy it before navigating away — we don't
- * store it in plaintext anywhere the UI can re-read.
+ * Rotate a webhook's HMAC secret. The slug (URL) stays the same; the secret
+ * from before keeps verifying until `previousValidUntil` (the operator's
+ * overlap; null = it stopped at once). The new secret is returned ONCE so the
+ * user can copy it before navigating away: it is stored sealed.
  */
 router.post('/:id/webhook/:slug/rotate', async (req, res) => {
     const a = await automationStore.getAutomation(req.params.id);

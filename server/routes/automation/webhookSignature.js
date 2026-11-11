@@ -43,12 +43,14 @@ function sameSignature(given, expected) {
 }
 
 /**
- * @param {{ secret: string, sigHeader: string, nonce: string, timestamp?: string | null,
+ * A secret that is not a non-empty string verifies nothing.
+ * @param {{ secret: string | null, sigHeader: string, nonce: string, timestamp?: string | null,
  *   rawBody?: string | null, body?: unknown, now?: number }} input
  * @returns {{ ok: boolean, reason?: 'missing' | 'stale_timestamp' | 'bad_signature' }}
  */
 function checkWebhookSignature({ secret, sigHeader, nonce, timestamp = null, rawBody = null, body = undefined, now = Date.now() }) {
     if (!sigHeader || !sigHeader.startsWith('sha256=') || !nonce) return { ok: false, reason: 'missing' };
+    if (typeof secret !== 'string' || !secret) return { ok: false, reason: 'bad_signature' };
     const stamp = timestamp || null;
     if (stamp !== null && !timestampIsFresh(stamp, now)) return { ok: false, reason: 'stale_timestamp' };
     const prefix = stamp === null ? `${nonce}\n` : `${nonce}\n${stamp}\n`;
@@ -77,16 +79,6 @@ function timestampIsFresh(timestamp, now) {
 }
 
 /**
- * The 401 text for a refused delivery.
- * @param {'missing' | 'stale_timestamp' | 'bad_signature' | undefined} reason
- */
-function rejectionMessage(reason) {
-    if (reason === 'missing') return 'Missing signature or nonce';
-    if (reason === 'stale_timestamp') return 'Timestamp outside the accepted window';
-    return 'Bad signature';
-}
-
-/**
  * One to `max` ASCII digits and nothing else (a plain loop: the input is a request header).
  * @param {string} s
  * @param {number} max
@@ -97,4 +89,4 @@ function isDigits(s, max) {
     return true;
 }
 
-module.exports = { checkWebhookSignature, rejectionMessage, hmacHeader, sameSignature, TIMESTAMP_SKEW_SECONDS };
+module.exports = { checkWebhookSignature, hmacHeader, sameSignature, TIMESTAMP_SKEW_SECONDS };

@@ -24,6 +24,7 @@ module.exports = {
     // Durations of recent legs (the public form poll's typical-duration hint).
     ...require('./automationStore/runDurations'),
     ...require('./automationStore/webhooks'),
+    ...require('./automationStore/webhookDeliveries'),
     ...require('./automationStore/forms'),
     ...require('./automationStore/generatedFiles'),
     // Tables a run produced, and the form uploads a table step may read (own ledger, not generated files).
