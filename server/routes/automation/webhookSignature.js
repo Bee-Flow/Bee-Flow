@@ -43,12 +43,14 @@ function sameSignature(given, expected) {
 }
 
 /**
- * @param {{ secret: string, sigHeader: string, nonce: string, timestamp?: string | null,
+ * A secret that is not a non-empty string verifies nothing.
+ * @param {{ secret: string | null, sigHeader: string, nonce: string, timestamp?: string | null,
  *   rawBody?: string | null, body?: unknown, now?: number }} input
  * @returns {{ ok: boolean, reason?: 'missing' | 'stale_timestamp' | 'bad_signature' }}
  */
 function checkWebhookSignature({ secret, sigHeader, nonce, timestamp = null, rawBody = null, body = undefined, now = Date.now() }) {
     if (!sigHeader || !sigHeader.startsWith('sha256=') || !nonce) return { ok: false, reason: 'missing' };
+    if (typeof secret !== 'string' || !secret) return { ok: false, reason: 'bad_signature' };
     const stamp = timestamp || null;
     if (stamp !== null && !timestampIsFresh(stamp, now)) return { ok: false, reason: 'stale_timestamp' };
     const prefix = stamp === null ? `${nonce}\n` : `${nonce}\n${stamp}\n`;

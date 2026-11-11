@@ -7,8 +7,37 @@ const crypto = require('crypto');
 const { initDB, run, getOne, getAll } = require('./core');
 const { rowToAutomation } = require('./rowMappers');
 const { bestEffort } = require('../../utils/bestEffort');
+const { encryptValue, decryptValue } = require('../configEncryption');
 
 // ── Webhooks ──────────────────────────────────────────
+//
+// THE SECRET is stored sealed (stores/configEncryption.js), under the
+// organisation of the automation. It leaves this file in clear twice: to the
+// owner, once, when a webhook is created or its secret rotated, and to the
+// inbound route for the signature check (getWebhook). A value from before
+// sealing is read as it is until the boot pass seals it
+// (migrations/automation-webhook-secret-sealed-2026-11.js).
+
+/**
+ * A new secret, sealed for the automation's organisation.
+ * @param {string} automationId
+ */
+async function newSealedSecret(automationId) {
+    const secret = crypto.randomBytes(32).toString('hex');
+    const owner = await getOne('SELECT organization_id FROM automations WHERE id = $1', [automationId]);
+    return { secret, sealed: String(encryptValue(secret, owner?.organization_id || null)) };
+}
+
+/**
+ * A stored secret in clear; null when it cannot be read.
+ * @param {unknown} stored
+ * @returns {string | null}
+ */
+function openSecret(stored) {
+    if (typeof stored !== 'string' || !stored) return null;
+    const plain = decryptValue(stored);
+    return typeof plain === 'string' && plain ? plain : null;
+}
 
 /**
  * @param {string} automationId
@@ -20,20 +49,24 @@ async function createWebhook(automationId, triggerStepId = null) {
     // 192 bits of entropy (was 96). Both lengths stay valid: TEXT PK with
     // exact lookup, so pre-existing 24-hex slugs keep working.
     const id = crypto.randomBytes(24).toString('hex');
-    const secret = crypto.randomBytes(32).toString('hex');
+    const { secret, sealed } = await newSealedSecret(automationId);
     await run(
         `INSERT INTO automation_webhooks (id, automation_id, secret, trigger_step_id) VALUES ($1, $2, $3, $4)`,
-        [id, automationId, secret, triggerStepId],
+        [id, automationId, sealed, triggerStepId],
     );
     return { id, automationId, secret, triggerStepId };
 }
 
-/** @param {string} id */
+/**
+ * The webhook an inbound address names, with its secret in clear (null when
+ * the stored value cannot be read: nothing verifies against it).
+ * @param {string} id
+ */
 async function getWebhook(id) {
     await initDB();
     const r = await getOne('SELECT * FROM automation_webhooks WHERE id = $1', [id]);
     if (!r) return null;
-    return { id: r.id, automationId: r.automation_id, secret: r.secret, allowMethods: r.allow_methods, lastSeenAt: r.last_seen_at, triggerStepId: r.trigger_step_id ?? null };
+    return { id: r.id, automationId: r.automation_id, secret: openSecret(r.secret), allowMethods: r.allow_methods, lastSeenAt: r.last_seen_at, triggerStepId: r.trigger_step_id ?? null };
 }
 
 /** @param {string} automationId */
@@ -59,12 +92,12 @@ async function touchWebhook(id) {
  */
 async function rotateWebhookSecret(webhookId, automationId) {
     await initDB();
-    const newSecret = crypto.randomBytes(32).toString('hex');
+    const { secret: newSecret, sealed } = await newSealedSecret(automationId);
     const { rowCount } = await run(
         `UPDATE automation_webhooks
             SET secret = $1
           WHERE id = $2 AND automation_id = $3`,
-        [newSecret, webhookId, automationId],
+        [sealed, webhookId, automationId],
     );
     if (rowCount === 0) return null;
     return { id: webhookId, automationId, secret: newSecret };
