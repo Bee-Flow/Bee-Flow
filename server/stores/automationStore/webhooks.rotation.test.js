@@ -9,27 +9,19 @@
 
 'use strict';
 
-const { test, before, after } = require('node:test');
+const { test } = require('node:test');
 const assert = require('node:assert');
 
-process.env.MASTER_ENCRYPTION_KEY ??= 'ci-master-encryption-key-for-tests-only!!';
+const { useWebhookStore } = require('../../testUtils/automationWebhookStore.testkit');
 
-const { usePglitePool } = require('../../testUtils/pglitePool');
-
-const { pg, close } = usePglitePool();
-const { createWebhook, getWebhook, getWebhooksForAutomation, rotateWebhookSecret } = require('./webhooks');
+const { pg, webhooks } = useWebhookStore(`INSERT INTO automations (id, user_id, organization_id, title, definition_json) VALUES ('a1', 'u1', 'org-1', 'One', '{}')`);
+const { createWebhook, getWebhook, getWebhooksForAutomation, rotateWebhookSecret } = webhooks;
 const { up } = require('../../migrations/automation-webhook-rotation-2026-11');
 const { isSealed } = require('../../migrations/automation-webhook-secret-sealed-2026-11');
 
 const row = async (id) => (await pg.query('SELECT secret, prev_secret, prev_valid_until FROM automation_webhooks WHERE id = $1', [id])).rows[0];
 const listed = async (id) => (await getWebhooksForAutomation('a1')).find((w) => w.id === id);
 const endOverlap = (id) => pg.query(`UPDATE automation_webhooks SET prev_valid_until = NOW() - INTERVAL '1 second' WHERE id = $1`, [id]);
-
-before(async () => {
-    await require('./core').initDB();
-    await pg.exec(`INSERT INTO automations (id, user_id, organization_id, title, definition_json) VALUES ('a1', 'u1', 'org-1', 'One', '{}')`);
-});
-after(close);
 
 test('a webhook that was never rotated has no previous secret', async () => {
     const wh = await createWebhook('a1', null);

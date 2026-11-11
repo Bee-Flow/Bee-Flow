@@ -10,29 +10,20 @@
 
 'use strict';
 
-const { test, before, after } = require('node:test');
+const { test } = require('node:test');
 const assert = require('node:assert');
 
-process.env.MASTER_ENCRYPTION_KEY ??= 'ci-master-encryption-key-for-tests-only!!';
+const { useWebhookStore } = require('../../testUtils/automationWebhookStore.testkit');
 
-const { usePglitePool } = require('../../testUtils/pglitePool');
-
-// The real db.js pool, answered by PGlite: the store runs its own migrations.
-const { pg, close } = usePglitePool();
-const { createWebhook, getWebhook, rotateWebhookSecret } = require('./webhooks');
+const { pg, webhooks } = useWebhookStore(`
+    INSERT INTO automations (id, user_id, organization_id, title, definition_json) VALUES ('a-org', 'u1', 'org-1', 'With org', '{}');
+    INSERT INTO automations (id, user_id, title, definition_json) VALUES ('a-solo', 'u1', 'Without org', '{}');
+`);
+const { createWebhook, getWebhook, rotateWebhookSecret } = webhooks;
 const { up, isSealed } = require('../../migrations/automation-webhook-secret-sealed-2026-11');
 const { decryptValue } = require('../configEncryption');
 
 const stored = async (id) => (await pg.query('SELECT secret FROM automation_webhooks WHERE id = $1', [id])).rows[0].secret;
-
-before(async () => {
-    await require('./core').initDB();
-    await pg.exec(`
-        INSERT INTO automations (id, user_id, organization_id, title, definition_json) VALUES ('a-org', 'u1', 'org-1', 'With org', '{}');
-        INSERT INTO automations (id, user_id, title, definition_json) VALUES ('a-solo', 'u1', 'Without org', '{}');
-    `);
-});
-after(close);
 
 test('a new webhook stores its secret sealed for the organisation and hands it out in clear once', async () => {
     const wh = await createWebhook('a-org', null);

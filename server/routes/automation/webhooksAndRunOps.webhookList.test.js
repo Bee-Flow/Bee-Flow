@@ -11,22 +11,14 @@
 
 'use strict';
 
-process.env.NODE_ENV = 'test';
-
-const { test, before, after } = require('node:test');
+const { test } = require('node:test');
 const assert = require('node:assert');
 
-const automationStore = require('../../stores/automationStore');
-const userStore = require('../../stores/userStore');
-const permissions = require('../../auth/permissions');
-const { serve } = require('../../testUtils/routeHarness');
-const { makeSwaps } = require('../../testUtils/swaps');
+const { useAutomationRoutes } = require('../../testUtils/automationRouteSwaps.testkit');
 
-const { swap, restore } = makeSwaps();
 const asked = [];
-let api;
 
-before(() => {
+const api = useAutomationRoutes(() => [require('./webhooksAndRunOps')], ({ swap, automationStore, userStore, permissions }) => {
     swap(automationStore, 'getAutomation', async (id) => (id === 'a1' ? { id: 'a1', userId: 'owner', organizationId: 'org1', kind: 'automation', definition: {} } : null));
     swap(automationStore, 'listSharesForAutomation', async () => []);
     swap(userStore, 'getUser', async (id) => ({ id, organizationId: 'org1', groups: [] }));
@@ -40,12 +32,6 @@ before(() => {
         return { wh1: [{ id: 'awd_1', status: 'accepted', bodyBytes: 31, bodyHash: 'ab'.repeat(32), receivedAt: '2026-11-11T10:00:00.000Z' }, { id: 'awd_0', status: 'bad_signature', bodyBytes: 2, bodyHash: null, receivedAt: '2026-11-11T09:00:00.000Z' }], wh2: [] };
     });
     swap(automationStore, 'rotateWebhookSecret', async (slug, automationId) => (slug === 'wh1' ? { id: slug, automationId, secret: 'ef'.repeat(32), previousValidUntil: '2026-11-11T12:00:00.000Z' } : null));
-    api = serve('/', [require('./webhooksAndRunOps')]);
-});
-
-after(async () => {
-    restore();
-    await api.close();
 });
 
 test('the owner reads each webhook with its newest deliveries and a short hash', async () => {
