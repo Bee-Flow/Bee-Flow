@@ -1,0 +1,1669 @@
+{
+  "about": {
+    "source": "server/appStudio/templates.js template \"app-request-approval\" version 1",
+    "stored": "definition = canonicalizeAppDefinition(deep clone of template.definition).def (routes/studioApps/crud.js create-from-template, no name override); dataModel = canonicalizeDataModel(template.dataModel).model (templateInstall.js); datasets as the template declares them",
+    "captured": "2026-11-11",
+    "templateId": "app-request-approval"
+  },
+  "definition": {
+    "schemaVersion": 3,
+    "meta": {
+      "name": "Request and approval flow",
+      "description": "Collect requests and get them decided.",
+      "icon": "Inbox"
+    },
+    "theme": {
+      "primary": "#4338CA",
+      "radius": "md",
+      "density": "comfortable",
+      "fontScale": "md",
+      "appearance": "auto"
+    },
+    "roles": [
+      {
+        "id": "reviewer",
+        "name": "Reviewer"
+      }
+    ],
+    "variables": [
+      {
+        "name": "requestId",
+        "label": "Picked request",
+        "type": "text",
+        "default": "",
+        "description": "The request the review screen shows",
+        "scope": "screen"
+      },
+      {
+        "name": "request",
+        "label": "Request being decided",
+        "type": "record",
+        "default": {},
+        "description": "The request the approval run reads"
+      },
+      {
+        "name": "decision",
+        "label": "Decision",
+        "type": "any",
+        "default": null,
+        "description": "What the approver decided"
+      },
+      {
+        "name": "runStatus",
+        "label": "Approval run",
+        "type": "text",
+        "default": "",
+        "description": "What the approval run is doing"
+      }
+    ],
+    "screens": [
+      {
+        "id": "scr_raform",
+        "name": "Send a request",
+        "icon": "Send",
+        "showInNav": false,
+        "maxWidth": "narrow",
+        "sections": [
+          {
+            "id": "sec_raform",
+            "style": {
+              "padding": 6,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_raphero",
+                "type": "page_header",
+                "props": {
+                  "title": "Ask for what you need",
+                  "subtitle": "Tell us what it is, what it costs and when you need it. We get back to you within two working days.",
+                  "titleFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "subtitleFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "tagsFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "icon": "Inbox",
+                  "showDivider": false,
+                  "look": "banner"
+                },
+                "style": {
+                  "span": 12,
+                  "gap": 3,
+                  "padding": 0
+                },
+                "visible": true,
+                "children": []
+              },
+              {
+                "id": "cmp_rafrm",
+                "type": "form",
+                "props": {
+                  "name": "request",
+                  "submitLabel": "Send my request",
+                  "showReset": false,
+                  "showSubmit": true,
+                  "resetKey": null,
+                  "validateOn": "blur"
+                },
+                "style": {
+                  "span": 12,
+                  "gap": 3,
+                  "padding": 0
+                },
+                "visible": true,
+                "onSubmit": "act_rasubmit",
+                "children": [
+                  {
+                    "id": "cmp_rafttl",
+                    "type": "input_text",
+                    "props": {
+                      "name": "title",
+                      "label": "What do you need?",
+                      "placeholder": "A second monitor",
+                      "required": true,
+                      "defaultValue": null,
+                      "inputType": "text",
+                      "valueFrom": {
+                        "kind": "static",
+                        "value": null
+                      }
+                    },
+                    "style": {
+                      "span": 12
+                    },
+                    "visible": true
+                  },
+                  {
+                    "id": "cmp_rafcat",
+                    "type": "radio",
+                    "props": {
+                      "name": "category",
+                      "label": "What kind of request is it?",
+                      "options": [
+                        {
+                          "value": "equipment",
+                          "label": "Equipment"
+                        },
+                        {
+                          "value": "software",
+                          "label": "Software"
+                        },
+                        {
+                          "value": "training",
+                          "label": "Training"
+                        },
+                        {
+                          "value": "travel",
+                          "label": "Travel"
+                        },
+                        {
+                          "value": "other",
+                          "label": "Something else"
+                        }
+                      ],
+                      "required": true,
+                      "defaultValue": "equipment",
+                      "valueFrom": {
+                        "kind": "static",
+                        "value": null
+                      }
+                    },
+                    "style": {
+                      "span": 12
+                    },
+                    "visible": true
+                  },
+                  {
+                    "id": "cmp_rafamt",
+                    "type": "input_number",
+                    "props": {
+                      "name": "amount",
+                      "label": "Amount (EUR)",
+                      "min": 0,
+                      "max": 100000,
+                      "step": 10,
+                      "required": false,
+                      "defaultValue": 0,
+                      "valueFrom": {
+                        "kind": "static",
+                        "value": null
+                      }
+                    },
+                    "style": {
+                      "span": 6,
+                      "spanSm": 12
+                    },
+                    "visible": true
+                  },
+                  {
+                    "id": "cmp_rafneed",
+                    "type": "input_date",
+                    "props": {
+                      "name": "needed_by",
+                      "label": "Needed by",
+                      "required": false,
+                      "defaultValue": null,
+                      "valueFrom": {
+                        "kind": "static",
+                        "value": null
+                      }
+                    },
+                    "style": {
+                      "span": 6,
+                      "spanSm": 12
+                    },
+                    "visible": true
+                  },
+                  {
+                    "id": "cmp_rafdet",
+                    "type": "input_textarea",
+                    "props": {
+                      "name": "details",
+                      "label": "Anything we should know",
+                      "placeholder": null,
+                      "required": false,
+                      "rows": 4,
+                      "valueFrom": {
+                        "kind": "static",
+                        "value": null
+                      },
+                      "snippets": {
+                        "kind": "static",
+                        "value": null
+                      },
+                      "snippetKey": "shortcut",
+                      "snippetBody": "body",
+                      "snippetLabel": "title"
+                    },
+                    "style": {
+                      "span": 12
+                    },
+                    "visible": true
+                  },
+                  {
+                    "id": "cmp_rafnam",
+                    "type": "input_text",
+                    "props": {
+                      "name": "requester_name",
+                      "label": "Your name",
+                      "placeholder": null,
+                      "required": true,
+                      "defaultValue": null,
+                      "inputType": "text",
+                      "valueFrom": {
+                        "kind": "static",
+                        "value": null
+                      }
+                    },
+                    "style": {
+                      "span": 6,
+                      "spanSm": 12
+                    },
+                    "visible": true
+                  },
+                  {
+                    "id": "cmp_rafml",
+                    "type": "input_text",
+                    "props": {
+                      "name": "requester_email",
+                      "label": "Your e-mail address",
+                      "placeholder": null,
+                      "required": true,
+                      "defaultValue": null,
+                      "inputType": "email",
+                      "valueFrom": {
+                        "kind": "static",
+                        "value": null
+                      }
+                    },
+                    "style": {
+                      "span": 6,
+                      "spanSm": 12
+                    },
+                    "visible": true
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "scr_rathanks",
+        "name": "Thank you",
+        "icon": "CheckCircle2",
+        "showInNav": false,
+        "maxWidth": "narrow",
+        "sections": [
+          {
+            "id": "sec_rathx",
+            "style": {
+              "padding": 6,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_rathh",
+                "type": "heading",
+                "props": {
+                  "text": "Thank you, your request is in",
+                  "level": 1,
+                  "accent": "tinted"
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_rathtx",
+                "type": "callout",
+                "props": {
+                  "title": "What happens now",
+                  "text": "Your request has been sorted already. A reviewer looks at it within two working days and you hear from us by e-mail.",
+                  "textFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "tone": "success",
+                  "toneFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "meta": null,
+                  "metaFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "collapsible": false,
+                  "variant": "soft"
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_rafaqh",
+                "type": "heading",
+                "props": {
+                  "text": "Questions people ask",
+                  "level": 2,
+                  "accent": "none"
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_rafaq",
+                "type": "accordion",
+                "props": {
+                  "items": [
+                    {
+                      "title": "What happens to my request?"
+                    },
+                    {
+                      "title": "Will I hear back?"
+                    },
+                    {
+                      "title": "Can I change what I sent?"
+                    },
+                    {
+                      "title": "Who can see my request?"
+                    }
+                  ],
+                  "multiple": false
+                },
+                "style": {
+                  "span": 12,
+                  "gap": 3,
+                  "padding": 0
+                },
+                "visible": true,
+                "children": [
+                  {
+                    "id": "cmp_rafaqa1",
+                    "type": "text",
+                    "props": {
+                      "text": "It is checked and sorted straight away, and a reviewer looks at it within two working days.",
+                      "muted": false
+                    },
+                    "style": {
+                      "span": 12
+                    },
+                    "visible": true
+                  },
+                  {
+                    "id": "cmp_rafaqa2",
+                    "type": "text",
+                    "props": {
+                      "text": "Yes. You hear from the team at the e-mail address you gave, whatever the decision.",
+                      "muted": false
+                    },
+                    "style": {
+                      "span": 12
+                    },
+                    "visible": true
+                  },
+                  {
+                    "id": "cmp_rafaqa3",
+                    "type": "text",
+                    "props": {
+                      "text": "Send a new request that names the first one. The team keeps the two together.",
+                      "muted": false
+                    },
+                    "style": {
+                      "span": 12
+                    },
+                    "visible": true
+                  },
+                  {
+                    "id": "cmp_rafaqa4",
+                    "type": "text",
+                    "props": {
+                      "text": "Only the reviewers of this app. Nobody who opens this page sees anything that others have sent.",
+                      "muted": false
+                    },
+                    "style": {
+                      "span": 12
+                    },
+                    "visible": true
+                  }
+                ]
+              },
+              {
+                "id": "cmp_raagain",
+                "type": "button",
+                "props": {
+                  "label": "Send another request",
+                  "variant": "outline",
+                  "iconLeft": "Plus",
+                  "role": "button",
+                  "disabledWhen": null
+                },
+                "style": {
+                  "span": 4,
+                  "spanSm": 12
+                },
+                "visible": true,
+                "onClick": "act_raagain"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "scr_rareview",
+        "name": "Review",
+        "icon": "ClipboardCheck",
+        "showInNav": true,
+        "maxWidth": "full",
+        "sections": [
+          {
+            "id": "sec_rarvhd",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_rarvph",
+                "type": "page_header",
+                "props": {
+                  "title": "Requests",
+                  "subtitle": "Pick a request, read its triage and send it for a decision.",
+                  "titleFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "subtitleFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "tagsFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "icon": "ClipboardCheck",
+                  "showDivider": false,
+                  "look": "plain"
+                },
+                "style": {
+                  "span": 12,
+                  "gap": 3,
+                  "padding": 0
+                },
+                "visible": true,
+                "children": []
+              },
+              {
+                "id": "cmp_rarvbad",
+                "type": "badge_list",
+                "props": {
+                  "source": {
+                    "kind": "aggregate",
+                    "tableId": "tbl_rarq",
+                    "groupBy": [
+                      {
+                        "field": "status"
+                      }
+                    ],
+                    "aggregates": [
+                      {
+                        "fn": "count",
+                        "as": "count"
+                      }
+                    ]
+                  },
+                  "labelKey": "status",
+                  "colorKey": "status",
+                  "countKey": "count",
+                  "colorMap": [
+                    {
+                      "value": "new",
+                      "label": "New",
+                      "color": "info"
+                    },
+                    {
+                      "value": "in_review",
+                      "label": "In review",
+                      "color": "warning"
+                    },
+                    {
+                      "value": "approved",
+                      "label": "Approved",
+                      "color": "success"
+                    },
+                    {
+                      "value": "rejected",
+                      "label": "Rejected",
+                      "color": "danger"
+                    },
+                    {
+                      "value": "expired",
+                      "label": "Expired",
+                      "color": "neutral"
+                    }
+                  ],
+                  "emptyText": "Nothing to show yet.",
+                  "activeWhen": null,
+                  "look": "soft"
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              }
+            ]
+          },
+          {
+            "id": "sec_rarvbody",
+            "style": {
+              "padding": 4,
+              "gap": 4,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_rarvgrd",
+                "type": "data_grid",
+                "props": {
+                  "source": {
+                    "kind": "records",
+                    "tableId": "tbl_rarq",
+                    "sort": [
+                      {
+                        "field": "submitted_at",
+                        "dir": "desc"
+                      }
+                    ]
+                  },
+                  "columns": [
+                    {
+                      "key": "ref",
+                      "label": "#",
+                      "format": "number",
+                      "width": 56
+                    },
+                    {
+                      "key": "title",
+                      "label": "Request",
+                      "format": "text"
+                    },
+                    {
+                      "key": "requester_name",
+                      "label": "From",
+                      "format": "text"
+                    },
+                    {
+                      "key": "amount",
+                      "label": "Amount",
+                      "format": "currency",
+                      "align": "right",
+                      "cellStyle": [
+                        {
+                          "when": {
+                            "kind": "formula",
+                            "expr": "value >= 1000"
+                          },
+                          "style": {
+                            "weight": "bold"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "key": "status",
+                      "label": "Status",
+                      "format": "badge",
+                      "toneMap": [
+                        {
+                          "value": "new",
+                          "label": "New",
+                          "tone": "info"
+                        },
+                        {
+                          "value": "in_review",
+                          "label": "In review",
+                          "tone": "warning"
+                        },
+                        {
+                          "value": "approved",
+                          "label": "Approved",
+                          "tone": "success"
+                        },
+                        {
+                          "value": "rejected",
+                          "label": "Rejected",
+                          "tone": "danger"
+                        },
+                        {
+                          "value": "expired",
+                          "label": "Expired",
+                          "tone": "neutral"
+                        }
+                      ]
+                    },
+                    {
+                      "key": "follow_up",
+                      "label": "Follow up",
+                      "format": "check"
+                    }
+                  ],
+                  "pageSize": 25,
+                  "selectable": "none",
+                  "searchable": false,
+                  "rowActions": [],
+                  "toolbarActions": [],
+                  "addRowLabel": null,
+                  "addRowActionId": null,
+                  "bulkActions": [],
+                  "density": "comfortable",
+                  "clamp": "off",
+                  "rowTone": [],
+                  "groupBy": null,
+                  "groupOrder": [],
+                  "activeWhen": "item.id == vars.requestId",
+                  "zebra": false,
+                  "emptyText": "No requests yet. Share the public page to get some.",
+                  "look": "default"
+                },
+                "style": {
+                  "span": 7,
+                  "spanMd": 12
+                },
+                "visible": true,
+                "onRowClick": "act_rapick"
+              },
+              {
+                "id": "cmp_rarvpane",
+                "type": "container",
+                "props": {
+                  "look": "panel"
+                },
+                "style": {
+                  "span": 5,
+                  "gap": 3,
+                  "spanMd": 12,
+                  "padding": 4
+                },
+                "visible": true,
+                "visibleWhen": {
+                  "kind": "formula",
+                  "expr": "vars.requestId != ''"
+                },
+                "children": [
+                  {
+                    "id": "cmp_rarvdet",
+                    "type": "record_detail",
+                    "props": {
+                      "source": {
+                        "kind": "record",
+                        "tableId": "tbl_rarq",
+                        "filter": [
+                          {
+                            "field": "id",
+                            "op": "eq",
+                            "value": {
+                              "kind": "formula",
+                              "expr": "vars.requestId"
+                            }
+                          }
+                        ]
+                      },
+                      "fields": [
+                        {
+                          "key": "title",
+                          "label": "Request",
+                          "format": "text"
+                        },
+                        {
+                          "key": "status",
+                          "label": "Status",
+                          "format": "badge"
+                        },
+                        {
+                          "key": "category",
+                          "label": "Category",
+                          "format": "badge"
+                        },
+                        {
+                          "key": "amount",
+                          "label": "Amount",
+                          "format": "number"
+                        },
+                        {
+                          "key": "needed_by",
+                          "label": "Needed by",
+                          "format": "date"
+                        },
+                        {
+                          "key": "requester_name",
+                          "label": "From",
+                          "format": "text"
+                        },
+                        {
+                          "key": "requester_email",
+                          "label": "E-mail",
+                          "format": "link"
+                        },
+                        {
+                          "key": "details",
+                          "label": "Details",
+                          "format": "markdown"
+                        },
+                        {
+                          "key": "decision_note",
+                          "label": "Decision note",
+                          "format": "text"
+                        }
+                      ],
+                      "columns": 2,
+                      "emptyText": "No record selected.",
+                      "layout": "stacked"
+                    },
+                    "style": {
+                      "span": 12
+                    },
+                    "visible": true
+                  },
+                  {
+                    "id": "cmp_rarvtri",
+                    "type": "list",
+                    "props": {
+                      "source": {
+                        "kind": "records",
+                        "tableId": "tbl_ratri",
+                        "filter": [
+                          {
+                            "field": "request",
+                            "op": "eq",
+                            "value": {
+                              "kind": "formula",
+                              "expr": "vars.requestId"
+                            }
+                          }
+                        ]
+                      },
+                      "titleKey": "note",
+                      "subtitleKey": null,
+                      "metaKey": null,
+                      "timestampKey": "received_at",
+                      "badgeKey": "route",
+                      "tagsKey": null,
+                      "badgeToneMap": [
+                        {
+                          "value": "fast_track",
+                          "label": "Fast track",
+                          "tone": "success"
+                        },
+                        {
+                          "value": "standard",
+                          "label": "Standard",
+                          "tone": "info"
+                        },
+                        {
+                          "value": "finance",
+                          "label": "Finance check",
+                          "tone": "warning"
+                        }
+                      ],
+                      "unreadKey": null,
+                      "badgePlacement": "meta",
+                      "selectedWhen": null,
+                      "selectedDetailKey": null,
+                      "groupKey": null,
+                      "groupOrder": [],
+                      "groupLabelMap": [],
+                      "icon": "Filter",
+                      "emptyText": "No triage for this request yet.",
+                      "look": "rows",
+                      "peekSource": null,
+                      "peekMatchKey": null,
+                      "peekRowKey": null,
+                      "peekTitleKey": null,
+                      "peekTextKey": null,
+                      "peekGroupKey": null,
+                      "peekGroupLabelMap": [],
+                      "peekCountKey": null,
+                      "peekLimit": 6,
+                      "peekTitle": null,
+                      "peekMoreText": null,
+                      "peekBadge": false
+                    },
+                    "style": {
+                      "span": 12
+                    },
+                    "visible": true
+                  },
+                  {
+                    "id": "cmp_rarvsend",
+                    "type": "button",
+                    "props": {
+                      "label": "Send for approval",
+                      "variant": "primary",
+                      "iconLeft": "Send",
+                      "role": "button",
+                      "disabledWhen": "vars.runStatus == 'Waiting for the approver'"
+                    },
+                    "style": {
+                      "span": 6,
+                      "spanSm": 12
+                    },
+                    "visible": true,
+                    "onClick": "act_rasend"
+                  },
+                  {
+                    "id": "cmp_rarvrun",
+                    "type": "callout",
+                    "props": {
+                      "title": "Approval run",
+                      "text": "Not started.",
+                      "textFrom": {
+                        "kind": "formula",
+                        "expr": "vars.runStatus"
+                      },
+                      "tone": "info",
+                      "toneFrom": {
+                        "kind": "static",
+                        "value": null
+                      },
+                      "meta": null,
+                      "metaFrom": {
+                        "kind": "static",
+                        "value": null
+                      },
+                      "collapsible": false,
+                      "variant": "outline"
+                    },
+                    "style": {
+                      "span": 12
+                    },
+                    "visible": true,
+                    "visibleWhen": {
+                      "kind": "formula",
+                      "expr": "vars.runStatus != ''"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "sec_raapr",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_raaprl",
+                "type": "approval_list",
+                "props": {
+                  "scope": "app",
+                  "show": "all",
+                  "limit": 20,
+                  "emptyText": "Nothing has been sent for approval yet.",
+                  "showDetails": true
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              }
+            ],
+            "title": "Approvals of this app",
+            "collapsible": true
+          }
+        ]
+      },
+      {
+        "id": "scr_rahelp",
+        "name": "How it works",
+        "icon": "BookOpen",
+        "showInNav": true,
+        "maxWidth": "medium",
+        "sections": [
+          {
+            "id": "sec_rahelp",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_rahelpmd",
+                "type": "markdown",
+                "props": {
+                  "content": "## How a request travels\n\nAnyone with the link can send a request. It lands here, is **triaged by itself**, and a reviewer sends it on for a decision.\n\n| Step | Who | How long |\n| --- | --- | --- |\n| Request sent | Anyone with the link | A minute |\n| Triage | The app, on its own | Seconds |\n| Review | A reviewer of this app | Within two working days |\n| Decision | The approver | Reminded after a day, closed after five |\n\n> A request of 1,000 or more is routed to the finance check. Keep the amount honest: it decides the route.\n\n### Before you send one on\n\n- [ ] The request says what is needed and why\n- [ ] The amount is filled in, or zero\n- [x] The requester left an e-mail address\n\nAn approved request comes back a week later with a **follow-up** flag, so nothing that was promised is forgotten.",
+                  "contentFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "rich": true
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_rahelpfq",
+                "type": "accordion",
+                "props": {
+                  "items": [
+                    {
+                      "title": "Where is the public page?",
+                      "open": true
+                    },
+                    {
+                      "title": "Who decides?"
+                    },
+                    {
+                      "title": "What if nobody decides?"
+                    }
+                  ],
+                  "multiple": true
+                },
+                "style": {
+                  "span": 12,
+                  "gap": 3,
+                  "padding": 0
+                },
+                "visible": true,
+                "children": [
+                  {
+                    "id": "cmp_rahlpa1",
+                    "type": "text",
+                    "props": {
+                      "text": "Publish the app and share the link of its public page. The page is the request form and the thank-you page, nothing else.",
+                      "muted": false
+                    },
+                    "style": {
+                      "span": 12
+                    },
+                    "visible": true
+                  },
+                  {
+                    "id": "cmp_rahlpa2",
+                    "type": "text",
+                    "props": {
+                      "text": "Without an approver set on the approval step, the owner of the app decides. Set a person or a group on the step to change that.",
+                      "muted": false
+                    },
+                    "style": {
+                      "span": 12
+                    },
+                    "visible": true
+                  },
+                  {
+                    "id": "cmp_rahlpa3",
+                    "type": "text",
+                    "props": {
+                      "text": "The approver is reminded after a day. After five days the request closes as expired and the requester can send it again.",
+                      "muted": false
+                    },
+                    "style": {
+                      "span": 12
+                    },
+                    "visible": true
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "actions": {
+      "act_rasubmit": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "create_record",
+            "tableId": "tbl_rarq",
+            "values": {
+              "title": {
+                "kind": "formula",
+                "expr": "form.title"
+              },
+              "category": {
+                "kind": "formula",
+                "expr": "form.category"
+              },
+              "amount": {
+                "kind": "formula",
+                "expr": "form.amount"
+              },
+              "needed_by": {
+                "kind": "formula",
+                "expr": "form.needed_by"
+              },
+              "details": {
+                "kind": "formula",
+                "expr": "form.details"
+              },
+              "requester_name": {
+                "kind": "formula",
+                "expr": "form.requester_name"
+              },
+              "requester_email": {
+                "kind": "formula",
+                "expr": "form.requester_email"
+              },
+              "status": {
+                "kind": "static",
+                "value": "new"
+              }
+            }
+          },
+          {
+            "kind": "navigate",
+            "screenId": "scr_rathanks"
+          }
+        ]
+      },
+      "act_raagain": {
+        "kind": "navigate",
+        "screenId": "scr_raform"
+      },
+      "act_rapick": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "set_variable",
+            "name": "requestId",
+            "value": {
+              "kind": "formula",
+              "expr": "item.id"
+            }
+          },
+          {
+            "kind": "set_variable",
+            "name": "runStatus",
+            "value": {
+              "kind": "static",
+              "value": ""
+            }
+          }
+        ]
+      },
+      "act_ratriage": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "create_record",
+            "tableId": "tbl_ratri",
+            "values": {
+              "request": {
+                "kind": "formula",
+                "expr": "trigger.record.id"
+              },
+              "title": {
+                "kind": "formula",
+                "expr": "trigger.record.row.title"
+              },
+              "amount": {
+                "kind": "formula",
+                "expr": "trigger.record.row.amount"
+              },
+              "route": {
+                "kind": "formula",
+                "expr": "(trigger.record.row.amount ?? 0) >= 1000 ? 'finance' : (trigger.record.row.category == 'travel' || trigger.record.row.category == 'training' ? 'standard' : 'fast_track')"
+              },
+              "note": {
+                "kind": "formula",
+                "expr": "(trigger.record.row.amount ?? 0) >= 1000 ? '1,000 or more: finance check.' : (trigger.record.row.category == 'travel' || trigger.record.row.category == 'training' ? 'Travel and training: standard route.' : 'Under 1,000: fast track.')"
+              }
+            }
+          }
+        ]
+      },
+      "act_rasend": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "set_variable",
+            "name": "runStatus",
+            "value": {
+              "kind": "static",
+              "value": "Waiting for the approver"
+            }
+          },
+          {
+            "kind": "set_variable",
+            "name": "request",
+            "value": {
+              "kind": "record",
+              "tableId": "tbl_rarq",
+              "filter": [
+                {
+                  "field": "id",
+                  "op": "eq",
+                  "value": {
+                    "kind": "formula",
+                    "expr": "vars.requestId"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "kind": "update_record",
+            "tableId": "tbl_rarq",
+            "recordId": {
+              "kind": "formula",
+              "expr": "vars.requestId"
+            },
+            "values": {
+              "status": {
+                "kind": "static",
+                "value": "in_review"
+              }
+            }
+          },
+          {
+            "kind": "await_approval",
+            "prompt": {
+              "kind": "formula",
+              "expr": "'Approve: ' + (vars.request.title ?? 'a request')"
+            },
+            "details": {
+              "kind": "formula",
+              "expr": "'Amount: ' + (vars.request.amount ?? 0) + '. ' + (vars.request.details ?? '')"
+            },
+            "fields": [
+              {
+                "name": "note",
+                "type": "textarea",
+                "label": "A note for the requester"
+              }
+            ],
+            "assigneeUserId": null,
+            "assigneeGroupId": null,
+            "rule": "first",
+            "finalApproverUserId": null,
+            "finalApproverGroupId": null,
+            "timeoutHours": 120,
+            "remindAfterHours": 24,
+            "escalateToUserId": null,
+            "escalateToGroupId": null,
+            "resultVar": "decision"
+          },
+          {
+            "kind": "condition",
+            "expr": "vars.decision.decision == 'approved'",
+            "then": [
+              {
+                "kind": "update_record",
+                "tableId": "tbl_rarq",
+                "recordId": {
+                  "kind": "formula",
+                  "expr": "vars.requestId"
+                },
+                "values": {
+                  "status": {
+                    "kind": "static",
+                    "value": "approved"
+                  },
+                  "decision_note": {
+                    "kind": "formula",
+                    "expr": "vars.decision.answers.note ?? ''"
+                  },
+                  "decided_by": {
+                    "kind": "formula",
+                    "expr": "vars.decision.decidedByName"
+                  }
+                }
+              },
+              {
+                "kind": "set_variable",
+                "name": "runStatus",
+                "value": {
+                  "kind": "static",
+                  "value": "Approved. A follow-up is due in a week."
+                }
+              },
+              {
+                "kind": "wait",
+                "seconds": 604800
+              },
+              {
+                "kind": "update_record",
+                "tableId": "tbl_rarq",
+                "recordId": {
+                  "kind": "formula",
+                  "expr": "vars.requestId"
+                },
+                "values": {
+                  "follow_up": {
+                    "kind": "static",
+                    "value": true
+                  }
+                }
+              },
+              {
+                "kind": "set_variable",
+                "name": "runStatus",
+                "value": {
+                  "kind": "static",
+                  "value": "Approved, follow-up due"
+                }
+              }
+            ],
+            "else": [
+              {
+                "kind": "update_record",
+                "tableId": "tbl_rarq",
+                "recordId": {
+                  "kind": "formula",
+                  "expr": "vars.requestId"
+                },
+                "values": {
+                  "status": {
+                    "kind": "formula",
+                    "expr": "vars.decision.decision == 'rejected' ? 'rejected' : 'expired'"
+                  },
+                  "decision_note": {
+                    "kind": "formula",
+                    "expr": "vars.decision.answers.note ?? vars.decision.reason ?? ''"
+                  },
+                  "decided_by": {
+                    "kind": "formula",
+                    "expr": "vars.decision.decidedByName ?? ''"
+                  }
+                }
+              },
+              {
+                "kind": "set_variable",
+                "name": "runStatus",
+                "value": {
+                  "kind": "static",
+                  "value": "Not approved"
+                }
+              }
+            ]
+          }
+        ],
+        "lockKey": {
+          "kind": "formula",
+          "expr": "vars.requestId"
+        },
+        "progressVar": "runStatus",
+        "runOn": "server"
+      }
+    },
+    "design": {
+      "preset": "atlas",
+      "font": "general-sans",
+      "surface": "soft",
+      "motion": "subtle",
+      "chartPalette": "brand",
+      "accentEdge": "bar",
+      "logoUrl": null
+    },
+    "homeScreenId": "scr_rareview",
+    "publicAccess": {
+      "entryScreenId": "scr_raform",
+      "screenIds": [
+        "scr_raform",
+        "scr_rathanks"
+      ],
+      "roleKey": "public",
+      "title": "Send a request"
+    },
+    "format": {
+      "currency": "EUR",
+      "currencyDecimals": 0,
+      "dateFormat": "d MMM yyyy"
+    },
+    "triggers": [
+      {
+        "id": "triage_new_request",
+        "kind": "record",
+        "actionId": "act_ratriage",
+        "tableId": "tbl_rarq",
+        "on": [
+          "create"
+        ],
+        "allowPublicWrites": true
+      }
+    ]
+  },
+  "dataModel": {
+    "modelVersion": 1,
+    "tables": [
+      {
+        "id": "tbl_rarq",
+        "key": "requests",
+        "name": "Requests",
+        "icon": "Inbox",
+        "fields": [
+          {
+            "id": "fld_raref",
+            "key": "ref",
+            "name": "Number",
+            "type": "autonumber",
+            "unique": true,
+            "required": false
+          },
+          {
+            "id": "fld_rattl",
+            "key": "title",
+            "name": "Request",
+            "type": "text",
+            "required": true,
+            "validation": {
+              "minLength": 3,
+              "maxLength": 120,
+              "message": "Say in 3 to 120 characters what you need."
+            },
+            "unique": false
+          },
+          {
+            "id": "fld_ranam",
+            "key": "requester_name",
+            "name": "Name",
+            "type": "text",
+            "required": true,
+            "validation": {
+              "maxLength": 80
+            },
+            "unique": false
+          },
+          {
+            "id": "fld_ramail",
+            "key": "requester_email",
+            "name": "E-mail",
+            "type": "text",
+            "required": true,
+            "format": "email",
+            "unique": false
+          },
+          {
+            "id": "fld_racat",
+            "key": "category",
+            "name": "Category",
+            "type": "select",
+            "options": [
+              {
+                "value": "equipment",
+                "label": "Equipment"
+              },
+              {
+                "value": "software",
+                "label": "Software"
+              },
+              {
+                "value": "training",
+                "label": "Training"
+              },
+              {
+                "value": "travel",
+                "label": "Travel"
+              },
+              {
+                "value": "other",
+                "label": "Something else"
+              }
+            ],
+            "validation": {
+              "enforceOptions": true
+            },
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_raamt",
+            "key": "amount",
+            "name": "Amount",
+            "type": "number",
+            "display": {
+              "currency": "EUR",
+              "decimals": 2
+            },
+            "validation": {
+              "min": 0,
+              "max": 100000,
+              "message": "An amount between 0 and 100,000."
+            },
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_raneed",
+            "key": "needed_by",
+            "name": "Needed by",
+            "type": "date",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_radet",
+            "key": "details",
+            "name": "Details",
+            "type": "text",
+            "validation": {
+              "maxLength": 2000
+            },
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_rasts",
+            "key": "status",
+            "name": "Status",
+            "type": "select",
+            "options": [
+              {
+                "value": "new",
+                "label": "New"
+              },
+              {
+                "value": "in_review",
+                "label": "In review"
+              },
+              {
+                "value": "approved",
+                "label": "Approved"
+              },
+              {
+                "value": "rejected",
+                "label": "Rejected"
+              },
+              {
+                "value": "expired",
+                "label": "Expired"
+              }
+            ],
+            "validation": {
+              "enforceOptions": true
+            },
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_ranote",
+            "key": "decision_note",
+            "name": "Decision note",
+            "type": "text",
+            "validation": {
+              "maxLength": 2000
+            },
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_raby",
+            "key": "decided_by",
+            "name": "Decided by",
+            "type": "text",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_rafup",
+            "key": "follow_up",
+            "name": "Follow-up due",
+            "type": "bool",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_raat",
+            "key": "submitted_at",
+            "name": "Sent",
+            "type": "datetime",
+            "dynamicDefault": "now",
+            "required": false,
+            "unique": false
+          }
+        ],
+        "indexes": [
+          {
+            "fields": [
+              "status"
+            ]
+          }
+        ],
+        "access": {
+          "default": "role",
+          "roles": {
+            "public": {
+              "create": true
+            },
+            "reviewer": {
+              "read": "all",
+              "create": true,
+              "update": "all",
+              "delete": "none"
+            }
+          },
+          "rowFilters": {}
+        }
+      },
+      {
+        "id": "tbl_ratri",
+        "key": "triage",
+        "name": "Triage",
+        "icon": "Filter",
+        "fields": [
+          {
+            "id": "fld_ratreq",
+            "key": "request",
+            "name": "Request",
+            "type": "relation",
+            "relation": {
+              "table": "tbl_rarq",
+              "displayField": "title",
+              "onDelete": "cascade"
+            },
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_ratttl",
+            "key": "title",
+            "name": "Request",
+            "type": "text",
+            "validation": {
+              "maxLength": 120
+            },
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_ratrte",
+            "key": "route",
+            "name": "Route",
+            "type": "select",
+            "options": [
+              {
+                "value": "fast_track",
+                "label": "Fast track"
+              },
+              {
+                "value": "standard",
+                "label": "Standard"
+              },
+              {
+                "value": "finance",
+                "label": "Finance check"
+              }
+            ],
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_ratamt",
+            "key": "amount",
+            "name": "Amount",
+            "type": "number",
+            "display": {
+              "currency": "EUR",
+              "decimals": 2
+            },
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_ratnot",
+            "key": "note",
+            "name": "Why",
+            "type": "text",
+            "validation": {
+              "maxLength": 300
+            },
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_ratat",
+            "key": "received_at",
+            "name": "Received",
+            "type": "datetime",
+            "dynamicDefault": "now",
+            "required": false,
+            "unique": false
+          }
+        ],
+        "access": {
+          "default": "role",
+          "roles": {
+            "reviewer": {
+              "read": "all",
+              "create": false,
+              "update": "none",
+              "delete": "none"
+            }
+          },
+          "rowFilters": {}
+        }
+      }
+    ],
+    "roles": [
+      {
+        "key": "reviewer",
+        "label": "Reviewer"
+      }
+    ],
+    "roleMapping": {
+      "default": "reviewer",
+      "byGroup": {}
+    }
+  }
+}

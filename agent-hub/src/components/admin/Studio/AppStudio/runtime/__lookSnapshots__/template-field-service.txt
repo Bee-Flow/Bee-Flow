@@ -1,0 +1,289 @@
+# template-field-service
+## screen scr_fsboard (Board)
+<div class="app-design--surface-soft app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(15, 118, 110, 0.1); --app-accent: #0F766E; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(15, 118, 110, 0.1); --app-primary: #0F766E; --app-radius: 8px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-family: "Inter", system-ui, -apple-system, sans-serif; font-size: 15px; min-height: 100vh">
+  <main class="flex flex-1 flex-col min-h-0">
+    <div class="app-design--surface-soft app-runtime app-screen-enter w-full" data-app-appearance="auto" data-app-screen="scr_fsboard" data-app-screen-kind="page" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(15, 118, 110, 0.1); --app-accent: #0F766E; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(15, 118, 110, 0.1); --app-primary: #0F766E; --app-radius: 8px; --app-space: 1; color: var(--text-primary); font-family: "Inter", system-ui, -apple-system, sans-serif; font-size: 15px">
+      <div class="flex flex-col w-full" style="margin: 0px auto; max-width: none">
+        <section class="app-grid app-grid--keep-sm" data-section-id="sec_fshead" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="page_header" data-node-id="cmp_fsph" style="grid-column: span 12 / span 12">
+            <header class="min-w-0 w-full" data-app-pageheader="true">
+              <div class="flex flex-wrap items-start" style="gap: calc(12px * var(--app-space, 1))">
+                <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-9 inline-flex items-center justify-center rounded-md shrink-0 w-9" aria-hidden="true">
+                  <svg class="h-4.5 lucide lucide-wrench w-4.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                <div class="basis-64 flex-1 min-w-0">
+                  <h1 class="font-semibold text-[var(--text-primary)] text-xl truncate" title="Field service">
+                    "Field service"
+                  <p class="line-clamp-2 mt-0.5 text-sm" title="Every open job, by status. Drag a card to move it on." style="color: var(--text-secondary)">
+                    "Every open job, by status. Drag a card to move it on."
+                <div class="flex flex-wrap items-center justify-end ml-auto" data-app-pageheader-actions="true" style="gap: calc(8px * var(--app-space, 1))">
+                  <div class="app-node app-span-3 min-w-0" data-app-type="button" data-node-id="cmp_fsbook" style="grid-column: span 3 / span 3">
+                    <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm transition-opacity" type="button" style="background: var(--app-accent, var(--app-primary)); border-radius: var(--app-radius); color: var(--app-accent-contrast, var(--app-primary-contrast))">
+                      <svg class="h-3.5 lucide lucide-plus w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                      <span>
+                        "Book a job"
+          <div class="app-node app-span-3 app-span-md-6 app-span-sm-12 min-w-0" data-app-type="stat" data-node-id="cmp_fsopen" style="grid-column: span 3 / span 3">
+            <div class="app-stat app-stat--tile flex gap-2.5 items-start" style="background: var(--bg-card); border-radius: var(--app-radius, 8px); border: 1px solid var(--app-hairline, var(--border-default)); box-shadow: var(--app-shadow-1); padding: calc(16px * var(--app-space, 1))">
+              <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-8 inline-flex items-center justify-center mt-0.5 rounded-md shrink-0 w-8">
+                <svg class="h-4 lucide lucide-clipboard-list w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-[var(--text-secondary)] text-xs">
+                  "Open jobs"
+                <div class="flex gap-2 items-baseline min-w-0">
+                  <div class="font-semibold leading-tight text-2xl truncate" title="—">
+                    "—"
+          <div class="app-node app-span-3 app-span-md-6 app-span-sm-12 min-w-0" data-app-type="stat" data-node-id="cmp_fsurg" style="grid-column: span 3 / span 3">
+            <div class="app-stat app-stat--tile flex gap-2.5 items-start" style="background: var(--bg-card); border-radius: var(--app-radius, 8px); border: 1px solid var(--app-hairline, var(--border-default)); box-shadow: var(--app-shadow-1); padding: calc(16px * var(--app-space, 1))">
+              <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-8 inline-flex items-center justify-center mt-0.5 rounded-md shrink-0 w-8">
+                <svg class="h-4 lucide lucide-siren w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-[var(--text-secondary)] text-xs">
+                  "Urgent"
+                <div class="flex gap-2 items-baseline min-w-0">
+                  <div class="font-semibold leading-tight text-2xl truncate" title="—">
+                    "—"
+          <div class="app-node app-span-3 app-span-md-6 app-span-sm-12 min-w-0" data-app-type="stat" data-node-id="cmp_fslate" style="color: rgb(239, 68, 68); grid-column: span 3 / span 3">
+            <div class="app-stat app-stat--tile flex gap-2.5 items-start" style="background: var(--bg-card); border-radius: var(--app-radius, 8px); border: 1px solid var(--app-hairline, var(--border-default)); box-shadow: var(--app-shadow-1); padding: calc(16px * var(--app-space, 1))">
+              <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-8 inline-flex items-center justify-center mt-0.5 rounded-md shrink-0 w-8">
+                <svg class="h-4 lucide lucide-alarm-clock w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-[var(--text-secondary)] text-xs">
+                  "Overdue"
+                <div class="flex gap-2 items-baseline min-w-0">
+                  <div class="font-semibold leading-tight text-2xl truncate" title="—">
+                    "—"
+          <div class="app-node app-span-3 app-span-md-6 app-span-sm-12 min-w-0" data-app-type="stat" data-node-id="cmp_fsval" style="grid-column: span 3 / span 3">
+            <div class="app-stat app-stat--tile flex gap-2.5 items-start" style="background: var(--bg-card); border-radius: var(--app-radius, 8px); border: 1px solid var(--app-hairline, var(--border-default)); box-shadow: var(--app-shadow-1); padding: calc(16px * var(--app-space, 1))">
+              <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-8 inline-flex items-center justify-center mt-0.5 rounded-md shrink-0 w-8">
+                <svg class="h-4 lucide lucide-banknote w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-[var(--text-secondary)] text-xs">
+                  "Open work"
+                <div class="flex gap-2 items-baseline min-w-0">
+                  <div class="font-semibold leading-tight text-2xl truncate" title="—">
+                    "—"
+        <section class="app-grid" data-section-id="sec_fsboard" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="kanban" data-node-id="cmp_fskan" style="grid-column: span 12 / span 12">
+            <div class="overflow-x-auto" data-app-kanban="true">
+              <div style="min-width: 880px">
+                <div class="shrink-0" style="align-items: start; display: grid; gap: 0.75rem; grid-template-columns: repeat(4, minmax(220px, 1fr))">
+                  <div class="flex gap-1.5 items-center pb-1 px-1.5" data-app-kanban-header="new">
+                    <span class="h-2 rounded-full shrink-0 w-2" aria-hidden="true" style="background: rgb(14, 165, 233)">
+                    <span class="font-semibold text-[var(--text-primary)] text-xs truncate">
+                      "New"
+                    <span class="ml-auto tabular-nums text-[11px]" data-app-kanban-count="new" style="color: var(--text-muted)">
+                      "0"
+                  <div class="flex gap-1.5 items-center pb-1 px-1.5" data-app-kanban-header="scheduled">
+                    <span class="h-2 rounded-full shrink-0 w-2" aria-hidden="true" style="background: var(--app-primary)">
+                    <span class="font-semibold text-[var(--text-primary)] text-xs truncate">
+                      "Scheduled"
+                    <span class="ml-auto tabular-nums text-[11px]" data-app-kanban-count="scheduled" style="color: var(--text-muted)">
+                      "0"
+                  <div class="flex gap-1.5 items-center pb-1 px-1.5" data-app-kanban-header="in_progress">
+                    <span class="h-2 rounded-full shrink-0 w-2" aria-hidden="true" style="background: rgb(245, 158, 11)">
+                    <span class="font-semibold text-[var(--text-primary)] text-xs truncate">
+                      "In progress"
+                    <span class="ml-auto tabular-nums text-[11px]" data-app-kanban-count="in_progress" style="color: var(--text-muted)">
+                      "0"
+                  <div class="flex gap-1.5 items-center pb-1 px-1.5" data-app-kanban-header="done">
+                    <span class="h-2 rounded-full shrink-0 w-2" aria-hidden="true" style="background: rgb(16, 185, 129)">
+                    <span class="font-semibold text-[var(--text-primary)] text-xs truncate">
+                      "Done"
+                    <span class="ml-auto tabular-nums text-[11px]" data-app-kanban-count="done" style="color: var(--text-muted)">
+                      "0"
+                <div style="align-items: start; display: grid; gap: 0.75rem; grid-template-columns: repeat(4, minmax(220px, 1fr))">
+                  <div class="flex flex-col gap-1.5 min-h-[3rem] p-1.5" data-app-kanban-column="new" style="background: transparent; border-radius: var(--app-radius)">
+                  <div class="flex flex-col gap-1.5 min-h-[3rem] p-1.5" data-app-kanban-column="scheduled" style="background: transparent; border-radius: var(--app-radius)">
+                  <div class="flex flex-col gap-1.5 min-h-[3rem] p-1.5" data-app-kanban-column="in_progress" style="background: transparent; border-radius: var(--app-radius)">
+                  <div class="flex flex-col gap-1.5 min-h-[3rem] p-1.5" data-app-kanban-column="done" style="background: transparent; border-radius: var(--app-radius)">
+            <div id="DndDescribedBy-<1>" style="display: none">
+              "To pick up a draggable item, press the space bar. While dragging, use the arrow keys to move the item. Press space again to drop the item in its new position, or press escape to cancel."
+            <div aria-atomic="true" aria-live="assertive" id="DndLiveRegion-<1>" role="status" style="border: 0px; clip-path: inset(100%); clip: rect(0px); height: 1px; left: 0px; margin: -1px; overflow: hidden; padding: 0px; position: fixed; top: 0px; white-space: nowrap; width: 1px">
+## screen scr_fsjobs (Jobs)
+<div class="app-design--surface-soft app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(15, 118, 110, 0.1); --app-accent: #0F766E; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(15, 118, 110, 0.1); --app-primary: #0F766E; --app-radius: 8px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-family: "Inter", system-ui, -apple-system, sans-serif; font-size: 15px; min-height: 100vh">
+  <main class="flex flex-1 flex-col min-h-0">
+    <div class="app-design--surface-soft app-runtime app-screen-enter w-full" data-app-appearance="auto" data-app-screen="scr_fsjobs" data-app-screen-kind="page" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(15, 118, 110, 0.1); --app-accent: #0F766E; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(15, 118, 110, 0.1); --app-primary: #0F766E; --app-radius: 8px; --app-space: 1; color: var(--text-primary); font-family: "Inter", system-ui, -apple-system, sans-serif; font-size: 15px">
+      <div class="flex flex-col w-full" style="margin: 0px auto; max-width: 1280px">
+        <section class="app-grid" data-section-id="sec_fsjobs" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="heading" data-node-id="cmp_fsjh" style="grid-column: span 12 / span 12">
+            <h1 class="app-heading--bar break-words flex font-semibold gap-2 items-center text-2xl">
+              <span class="[background:var(--app-primary)] [border-radius:999px] [flex-shrink:0] h-[1.1em] w-[0.25rem]" aria-hidden="true">
+              "All jobs"
+          <div class="app-node app-span-12 min-w-0" data-app-type="filter_bar" data-node-id="cmp_fsjfil" style="grid-column: span 12 / span 12">
+            <div class="flex flex-wrap gap-3 items-end" data-app-filterbar="true">
+              <div class="flex flex-col gap-1 min-w-0" data-app-filter="q">
+                <label class="font-medium text-[var(--text-secondary)] text-xs" for="cmp_fsjfil-flt-q">
+                  "Search jobs"
+                <div class="relative">
+                  <svg class="-translate-y-1/2 absolute h-3.5 left-2.5 lucide lucide-search text-[var(--text-muted)] top-1/2 w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                  <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none pl-8 px-2.5 py-1.5 text-sm w-full" aria-label="Search jobs" id="cmp_fsjfil-flt-q" placeholder="Search jobs" type="text" value="" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+              <div class="flex flex-col gap-1 min-w-0" data-app-filter="status">
+                <label class="font-medium text-[var(--text-secondary)] text-xs" for="cmp_fsjfil-flt-status">
+                  "Status"
+                <select class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-label="Status" id="cmp_fsjfil-flt-status" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                  <option value="">
+                    "All"
+                  <option value="new">
+                    "New"
+                  <option value="scheduled">
+                    "Scheduled"
+                  <option value="in_progress">
+                    "In progress"
+                  <option value="done">
+                    "Done"
+          <div class="app-node app-span-12 min-w-0" data-app-type="data_grid" data-node-id="cmp_fsjgrd" style="grid-column: span 12 / span 12">
+            <div class="w-full" data-app-datagrid="true">
+              <div class="flex flex-col gap-1.5 h-full items-center justify-center min-h-0 py-6 text-center">
+                <span class="mb-1 text-[var(--text-tertiary)]">
+                  <svg class="block" aria-hidden="true" fill="none" role="presentation" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 96 72" style="height: auto; opacity: 0.9; width: 5.5rem">
+                <span class="font-medium text-[var(--text-primary)] text-sm">
+                  "Nothing here yet"
+                <span class="max-w-xs text-[var(--text-muted)] text-sm">
+                  "No jobs match."
+## screen scr_fsjob (Job)
+<div class="app-design--surface-soft app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(15, 118, 110, 0.1); --app-accent: #0F766E; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(15, 118, 110, 0.1); --app-primary: #0F766E; --app-radius: 8px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-family: "Inter", system-ui, -apple-system, sans-serif; font-size: 15px; min-height: 100vh">
+  <main class="flex flex-1 flex-col min-h-0">
+    <div class="app-design--surface-soft app-runtime app-screen-enter w-full" data-app-appearance="auto" data-app-screen="scr_fsjob" data-app-screen-kind="page" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(15, 118, 110, 0.1); --app-accent: #0F766E; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(15, 118, 110, 0.1); --app-primary: #0F766E; --app-radius: 8px; --app-space: 1; color: var(--text-primary); font-family: "Inter", system-ui, -apple-system, sans-serif; font-size: 15px">
+      <div class="flex flex-col w-full" style="margin: 0px auto; max-width: 960px">
+        <section class="app-grid" data-section-id="sec_fsjob" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-4 min-w-0" data-app-type="button" data-node-id="cmp_fsjback" style="grid-column: span 4 / span 4">
+            <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm transition-opacity" type="button" style="background: transparent; border-radius: var(--app-radius); color: var(--app-primary)">
+              <svg class="h-3.5 lucide lucide-arrow-left w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <span>
+                "Back to the board"
+          <div class="app-node app-span-3 min-w-0" data-app-type="button" data-node-id="cmp_fsjdone" style="grid-column: span 3 / span 3">
+            <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm transition-opacity" type="button" style="background: var(--app-primary-soft); border-radius: var(--app-radius); color: var(--app-primary)">
+              <svg class="h-3.5 lucide lucide-check-circle-2 lucide-circle-check w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <span>
+                "Mark as done"
+          <div class="app-node app-span-12 min-w-0" data-app-type="record_detail" data-node-id="cmp_fsjdet" style="grid-column: span 12 / span 12">
+            <div class="flex h-full items-center justify-center min-h-0 py-1 text-[var(--text-muted)] text-center text-sm">
+              "No record selected."
+        <section class="app-grid app-section--titled" data-section-id="sec_fsjmoney" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <header class="app-section-header">
+            <h2 class="app-section-title">
+              "Price and margin"
+          <div class="app-node app-span-12 min-w-0" data-app-type="record_detail" data-node-id="cmp_fsjkv" style="grid-column: span 12 / span 12">
+            <div class="flex h-full items-center justify-center min-h-0 py-1 text-[var(--text-muted)] text-center text-sm">
+              "No record selected."
+## screen scr_fsbook (Book a job)
+<div class="app-design--surface-soft app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(15, 118, 110, 0.1); --app-accent: #0F766E; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(15, 118, 110, 0.1); --app-primary: #0F766E; --app-radius: 8px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-family: "Inter", system-ui, -apple-system, sans-serif; font-size: 15px; min-height: 100vh">
+  <main class="flex flex-1 flex-col min-h-0">
+    <div class="app-design--surface-soft app-runtime app-screen-enter w-full" data-app-appearance="auto" data-app-screen="scr_fsbook" data-app-screen-kind="page" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(15, 118, 110, 0.1); --app-accent: #0F766E; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(15, 118, 110, 0.1); --app-primary: #0F766E; --app-radius: 8px; --app-space: 1; color: var(--text-primary); font-family: "Inter", system-ui, -apple-system, sans-serif; font-size: 15px">
+      <div class="flex flex-col w-full" style="margin: 0px auto; max-width: 640px">
+        <section class="app-grid" data-section-id="sec_fsbook" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="heading" data-node-id="cmp_fsbh" style="grid-column: span 12 / span 12">
+            <h1 class="app-heading--bar break-words flex font-semibold gap-2 items-center text-2xl">
+              <span class="[background:var(--app-primary)] [border-radius:999px] [flex-shrink:0] h-[1.1em] w-[0.25rem]" aria-hidden="true">
+              "Book a job"
+          <div class="app-node app-span-12 min-w-0" data-app-type="form" data-node-id="cmp_fsbfrm" style="grid-column: span 12 / span 12">
+            <form class="flex flex-col" novalidate="" style="gap: calc(12px * var(--app-space, 1))">
+              <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                <div class="app-node app-span-12 min-w-0" data-app-type="wizard" data-node-id="cmp_fsbwiz" style="grid-column: span 12 / span 12">
+                  <div class="flex flex-col" data-app-wizard="0" style="gap: calc(12px * var(--app-space, 1))">
+                    <ol class="flex flex-wrap gap-x-4 gap-y-2 items-center" aria-label="Steps">
+                      <li class="gap-2 inline-flex items-center" aria-current="step" data-app-wizard-step="current">
+                        <span class="[background:var(--app-primary)] [color:var(--app-primary-contrast)] font-semibold h-6 inline-flex items-center justify-center rounded-full shrink-0 text-xs w-6" aria-hidden="true">
+                          "1"
+                        <span class="font-semibold text-[var(--text-primary)] text-sm">
+                          "The job"
+                      <li class="gap-2 inline-flex items-center" data-app-wizard-step="todo">
+                        <span class="[background:var(--bg-tertiary)] [color:var(--text-muted)] font-semibold h-6 inline-flex items-center justify-center rounded-full shrink-0 text-xs w-6" aria-hidden="true">
+                          "2"
+                        <span class="text-[var(--text-secondary)] text-sm">
+                          "When"
+                      <li class="gap-2 inline-flex items-center" data-app-wizard-step="todo">
+                        <span class="[background:var(--bg-tertiary)] [color:var(--text-muted)] font-semibold h-6 inline-flex items-center justify-center rounded-full shrink-0 text-xs w-6" aria-hidden="true">
+                          "3"
+                        <span class="text-[var(--text-secondary)] text-sm">
+                          "Who"
+                    <p class="text-[var(--text-secondary)] text-sm">
+                      "What and for whom"
+                    <div class="app-grid outline-none" aria-label="The job" role="group" tabindex="-1" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                      <div class="app-node app-span-12 min-w-0" data-app-type="container" data-node-id="cmp_fsbst1" style="grid-column: span 12 / span 12">
+                        <div class="app-grid" data-app-container="true" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                          <div class="app-node app-span-12 min-w-0" data-app-type="input_text" data-node-id="cmp_fsbttl" style="grid-column: span 12 / span 12">
+                            <div class="flex flex-col gap-1 text-left">
+                              <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_fsbttl-input">
+                                "What needs doing"
+                                <span class="[color:var(--error)]" aria-hidden="true">
+                                  "*"
+                              <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-required="true" id="cmp_fsbttl-input" name="title" placeholder="Replace the fuse box" type="text" value="" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                          <div class="app-node app-span-12 min-w-0" data-app-type="input_relation" data-node-id="cmp_fsbcus" style="grid-column: span 12 / span 12">
+                            <div class="flex flex-col gap-1 text-left">
+                              <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_fsbcus-input">
+                                "Customer"
+                                <span class="[color:var(--error)]" aria-hidden="true">
+                                  "*"
+                              <div class="flex flex-col gap-2">
+                                <div class="relative">
+                                  <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none pr-7 px-2.5 py-1.5 text-sm w-full" aria-controls="cmp_fsbcus-input-listbox" aria-expanded="false" aria-label="Search Customer" aria-required="true" autocomplete="off" id="cmp_fsbcus-input" placeholder="Search records…" role="combobox" type="text" value="" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                                  <svg class="-translate-y-1/2 absolute h-4 lucide lucide-chevron-down pointer-events-none right-2 text-[var(--text-muted)] top-1/2 w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                          <div class="app-node app-span-12 min-w-0" data-app-type="radio" data-node-id="cmp_fsbpri" style="grid-column: span 12 / span 12">
+                            <div class="flex flex-col gap-1 text-left">
+                              <span class="font-medium text-[var(--text-primary)] text-sm" id="cmp_fsbpri-input-label">
+                                "Priority"
+                                <span class="[color:var(--error)]" aria-hidden="true">
+                                  "*"
+                              <div class="flex flex-col gap-1.5" aria-labelledby="cmp_fsbpri-input-label" aria-required="true" id="cmp_fsbpri-input" role="radiogroup">
+                                <label class="cursor-pointer gap-2 inline-flex items-center text-sm">
+                                  <input class="[accent-color:var(--app-primary)] h-4 w-4" name="cmp_fsbpri-priority" type="radio" value="low">
+                                  <span>
+                                    "Low"
+                                <label class="cursor-pointer gap-2 inline-flex items-center text-sm">
+                                  <input class="[accent-color:var(--app-primary)] h-4 w-4" checked="" name="cmp_fsbpri-priority" type="radio" value="normal">
+                                  <span>
+                                    "Normal"
+                                <label class="cursor-pointer gap-2 inline-flex items-center text-sm">
+                                  <input class="[accent-color:var(--app-primary)] h-4 w-4" name="cmp_fsbpri-priority" type="radio" value="urgent">
+                                  <span>
+                                    "Urgent"
+                    <div class="flex gap-2 items-center justify-between">
+                      <button class="[border-color:var(--border-default)] [border-radius:var(--app-radius)] [color:var(--text-secondary)]! border disabled:opacity-50 font-medium px-3 py-1.5 text-sm" disabled="" type="button">
+                        "Back"
+                      <button class="[background:var(--app-primary)] [border-radius:var(--app-radius)] [color:var(--app-primary-contrast)]! font-medium px-3.5 py-1.5 text-sm" type="button">
+                        "Continue"
+              <div class="flex gap-2 items-center">
+                <button class="[background:var(--app-accent,var(--app-primary))] [border-radius:var(--app-radius)] [color:var(--app-accent-contrast,var(--app-primary-contrast))]! disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm" type="submit">
+                  <span>
+                    "Book the job"
+## screen scr_fsteam (People and places)
+<div class="app-design--surface-soft app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(15, 118, 110, 0.1); --app-accent: #0F766E; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(15, 118, 110, 0.1); --app-primary: #0F766E; --app-radius: 8px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-family: "Inter", system-ui, -apple-system, sans-serif; font-size: 15px; min-height: 100vh">
+  <main class="flex flex-1 flex-col min-h-0">
+    <div class="app-design--surface-soft app-runtime app-screen-enter w-full" data-app-appearance="auto" data-app-screen="scr_fsteam" data-app-screen-kind="page" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(15, 118, 110, 0.1); --app-accent: #0F766E; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(15, 118, 110, 0.1); --app-primary: #0F766E; --app-radius: 8px; --app-space: 1; color: var(--text-primary); font-family: "Inter", system-ui, -apple-system, sans-serif; font-size: 15px">
+      <div class="flex flex-col w-full" style="margin: 0px auto; max-width: 1280px">
+        <section class="app-grid app-section--titled" data-section-id="sec_fsteam" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <header class="app-section-header">
+            <h2 class="app-section-title">
+              "Technicians"
+          <div class="app-node app-span-12 min-w-0" data-app-type="data_grid" data-node-id="cmp_fstgrd" style="grid-column: span 12 / span 12">
+            <div class="w-full" data-app-datagrid="true">
+              <div class="flex flex-col gap-1.5 h-full items-center justify-center min-h-0 py-6 text-center">
+                <span class="mb-1 text-[var(--text-tertiary)]">
+                  <svg class="block" aria-hidden="true" fill="none" role="presentation" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 96 72" style="height: auto; opacity: 0.9; width: 5.5rem">
+                <span class="font-medium text-[var(--text-primary)] text-sm">
+                  "Nothing here yet"
+                <span class="max-w-xs text-[var(--text-muted)] text-sm">
+                  "No technicians yet."
+        <section class="app-grid app-grid--keep-sm app-section--titled" data-section-id="sec_fsrates" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <header class="app-section-header">
+            <h2 class="app-section-title">
+              <button class="app-section-toggle" aria-expanded="true" type="button">
+                <svg class="app-section-chevron lucide lucide-chevron-down" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                <span>
+                  "Hourly cost"
+          <div class="app-node app-span-6 app-span-sm-12 min-w-0" data-app-type="table" data-node-id="cmp_fsrtbl" style="grid-column: span 6 / span 6">
+            <div class="flex h-full items-center justify-center min-h-0 py-1 text-[var(--text-muted)] text-center text-sm">
+              "Nothing to show yet."
+        <section class="app-grid app-section--titled" data-section-id="sec_fscust" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <header class="app-section-header">
+            <h2 class="app-section-title">
+              "Customers"
+          <div class="app-node app-span-12 min-w-0" data-app-type="data_grid" data-node-id="cmp_fscgrd" style="grid-column: span 12 / span 12">
+            <div class="w-full" data-app-datagrid="true">
+              <div class="flex flex-col gap-1.5 h-full items-center justify-center min-h-0 py-6 text-center">
+                <span class="mb-1 text-[var(--text-tertiary)]">
+                  <svg class="block" aria-hidden="true" fill="none" role="presentation" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 96 72" style="height: auto; opacity: 0.9; width: 5.5rem">
+                <span class="font-medium text-[var(--text-primary)] text-sm">
+                  "Nothing here yet"
+                <span class="max-w-xs text-[var(--text-muted)] text-sm">
+                  "No customers yet."

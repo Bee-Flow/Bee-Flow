@@ -1,0 +1,681 @@
+{
+  "corpus": "template-field-service",
+  "canonical": {
+    "sha256": "9a5a5ba24173bbf3453209167dd03895e68b57a6148b17b56926d6813c7d2820",
+    "bytes": 20255,
+    "inputIsCanonical": true,
+    "idempotent": true,
+    "keys": [
+      "schemaVersion",
+      "meta",
+      "theme",
+      "roles",
+      "variables",
+      "screens",
+      "actions",
+      "design",
+      "homeScreenId",
+      "format",
+      "triggers"
+    ],
+    "parts": {
+      "schemaVersion": "4e07408562bedb8b",
+      "meta": "fd03200c4c02e606",
+      "theme": "5d7eeb0111b89897",
+      "roles": "214c02b6e27f3fca",
+      "variables": "1cefb008ae8c6793",
+      "screens[0] scr_fsboard": "878dcc151bd83398",
+      "screens[1] scr_fsjobs": "e0a30046b0f66920",
+      "screens[2] scr_fsjob": "ac9c04cc8e4e2975",
+      "screens[3] scr_fsbook": "a70cd3f7ac3a1c72",
+      "screens[4] scr_fsteam": "c5253199a68d0ac4",
+      "actions.act_fsgobook": "30c1d24a7b02ac3e",
+      "actions.act_fsback": "63195bed30e6f6aa",
+      "actions.act_fsopen": "e43a2315e3caded9",
+      "actions.act_fsmove": "6bdab98dafdbe475",
+      "actions.act_fsdone": "73c2d3130792de7f",
+      "actions.act_fsbooksave": "260cf7c51b314af0",
+      "actions.act_fsmorning": "a9355e6e8fe0c07c",
+      "design": "101e6ed450d5f8f3",
+      "homeScreenId": "c07a5aed0f7c409f",
+      "format": "985872f7033e0721",
+      "triggers": "4b0e391962694a7d"
+    }
+  },
+  "schemaVersion": {
+    "stored": 3,
+    "canonical": 3
+  },
+  "validation": {
+    "strict": {
+      "errors": [],
+      "warnings": [
+        "action.automation_unset @ actions.act_fsmorning.steps[1].automationId"
+      ]
+    },
+    "save": {
+      "errors": [],
+      "warnings": [
+        "action.automation_unset @ actions.act_fsmorning.steps[1].automationId"
+      ]
+    }
+  },
+  "ordinals": {
+    "stored": {
+      "act_fsgobook": [
+        "0 navigate"
+      ],
+      "act_fsback": [
+        "0 navigate"
+      ],
+      "act_fsopen": [
+        "0 set_variable",
+        "1 navigate"
+      ],
+      "act_fsmove": [
+        "0 update_record",
+        "1 refresh"
+      ],
+      "act_fsdone": [
+        "0 update_record",
+        "1 toast",
+        "2 navigate"
+      ],
+      "act_fsbooksave": [
+        "0 create_record",
+        "1 toast",
+        "2 navigate"
+      ],
+      "act_fsmorning": [
+        "0 code",
+        "1 run_automation"
+      ]
+    },
+    "canonical": "same as stored"
+  },
+  "installHash": {
+    "stored": "39932bb516c634621d03bca68cf435187f31f75f8f84505a330b33be6875f5cd",
+    "afterResave": "39932bb516c634621d03bca68cf435187f31f75f8f84505a330b33be6875f5cd"
+  },
+  "reads": [
+    {
+      "at": "cmp_fsopen.value",
+      "kind": "aggregate",
+      "table": "tbl_fsjob",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"jobs\" WHERE (1=1) AND \"status\" != ? LIMIT ?",
+          "params": [
+            "done",
+            50
+          ]
+        },
+        "planner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"jobs\" WHERE (1=1) AND \"status\" != ? LIMIT ?",
+          "params": [
+            "done",
+            50
+          ]
+        },
+        "technician": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"jobs\" WHERE (1=1) AND \"status\" != ? LIMIT ?",
+          "params": [
+            "done",
+            50
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"jobs\" WHERE (1=1) AND \"status\" != ? LIMIT ?",
+          "params": [
+            "done",
+            50
+          ]
+        },
+        "planner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"jobs\" WHERE (1=1) AND \"status\" != ? LIMIT ?",
+          "params": [
+            "done",
+            50
+          ]
+        },
+        "technician": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"jobs\" WHERE (1=1) AND \"status\" != ? LIMIT ?",
+          "params": [
+            "done",
+            50
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_fsurg.value",
+      "kind": "aggregate",
+      "table": "tbl_fsjob",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"jobs\" WHERE (1=1) AND \"status\" != ? AND \"priority\" = ? LIMIT ?",
+          "params": [
+            "done",
+            "urgent",
+            50
+          ]
+        },
+        "planner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"jobs\" WHERE (1=1) AND \"status\" != ? AND \"priority\" = ? LIMIT ?",
+          "params": [
+            "done",
+            "urgent",
+            50
+          ]
+        },
+        "technician": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"jobs\" WHERE (1=1) AND \"status\" != ? AND \"priority\" = ? LIMIT ?",
+          "params": [
+            "done",
+            "urgent",
+            50
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"jobs\" WHERE (1=1) AND \"status\" != ? AND \"priority\" = ? LIMIT ?",
+          "params": [
+            "done",
+            "urgent",
+            50
+          ]
+        },
+        "planner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"jobs\" WHERE (1=1) AND \"status\" != ? AND \"priority\" = ? LIMIT ?",
+          "params": [
+            "done",
+            "urgent",
+            50
+          ]
+        },
+        "technician": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"jobs\" WHERE (1=1) AND \"status\" != ? AND \"priority\" = ? LIMIT ?",
+          "params": [
+            "done",
+            "urgent",
+            50
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_fslate.value",
+      "kind": "aggregate",
+      "table": "tbl_fsjob",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"jobs\" WHERE (1=1) AND \"status\" != ? AND \"due_on\" < ? LIMIT ?",
+          "params": [
+            "done",
+            "2026-01-15",
+            50
+          ]
+        },
+        "planner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"jobs\" WHERE (1=1) AND \"status\" != ? AND \"due_on\" < ? LIMIT ?",
+          "params": [
+            "done",
+            "2026-01-15",
+            50
+          ]
+        },
+        "technician": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"jobs\" WHERE (1=1) AND \"status\" != ? AND \"due_on\" < ? LIMIT ?",
+          "params": [
+            "done",
+            "2026-01-15",
+            50
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"jobs\" WHERE (1=1) AND \"status\" != ? AND \"due_on\" < ? LIMIT ?",
+          "params": [
+            "done",
+            "2026-01-15",
+            50
+          ]
+        },
+        "planner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"jobs\" WHERE (1=1) AND \"status\" != ? AND \"due_on\" < ? LIMIT ?",
+          "params": [
+            "done",
+            "2026-01-15",
+            50
+          ]
+        },
+        "technician": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"jobs\" WHERE (1=1) AND \"status\" != ? AND \"due_on\" < ? LIMIT ?",
+          "params": [
+            "done",
+            "2026-01-15",
+            50
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_fsval.value",
+      "kind": "aggregate",
+      "table": "tbl_fsjob",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT SUM(\"price\") AS \"total\" FROM \"jobs\" WHERE (1=1) AND \"status\" != ? LIMIT ?",
+          "params": [
+            "done",
+            50
+          ]
+        },
+        "planner": {
+          "sql": "SELECT SUM(\"price\") AS \"total\" FROM \"jobs\" WHERE (1=1) AND \"status\" != ? LIMIT ?",
+          "params": [
+            "done",
+            50
+          ]
+        },
+        "technician": {
+          "sql": "SELECT SUM(\"price\") AS \"total\" FROM \"jobs\" WHERE (1=1) AND \"status\" != ? LIMIT ?",
+          "params": [
+            "done",
+            50
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT SUM(\"price\") AS \"total\" FROM \"jobs\" WHERE (1=1) AND \"status\" != ? LIMIT ?",
+          "params": [
+            "done",
+            50
+          ]
+        },
+        "planner": {
+          "sql": "SELECT SUM(\"price\") AS \"total\" FROM \"jobs\" WHERE (1=1) AND \"status\" != ? LIMIT ?",
+          "params": [
+            "done",
+            50
+          ]
+        },
+        "technician": {
+          "sql": "SELECT SUM(\"price\") AS \"total\" FROM \"jobs\" WHERE (1=1) AND \"status\" != ? LIMIT ?",
+          "params": [
+            "done",
+            50
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_fskan.source",
+      "kind": "records",
+      "table": "tbl_fsjob",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT *, (\"price\" - \"cost_price\") AS \"margin\" FROM \"jobs\" WHERE (1=1) ORDER BY \"due_on\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "planner": {
+          "sql": "SELECT *, (\"price\" - \"cost_price\") AS \"margin\" FROM \"jobs\" WHERE (1=1) ORDER BY \"due_on\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "technician": {
+          "sql": "SELECT \"id\", \"created_at\", \"updated_at\", \"created_by\", \"org_id\", \"ref\", \"title\", \"customer\", \"lead\", \"status\", \"priority\", \"scheduled_on\", \"due_on\", \"hours\", \"price\", \"notes\" FROM \"jobs\" WHERE (1=1) ORDER BY \"due_on\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT *, (\"price\" - \"cost_price\") AS \"margin\" FROM \"jobs\" WHERE (1=1) ORDER BY \"due_on\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "planner": {
+          "sql": "SELECT *, (\"price\" - \"cost_price\") AS \"margin\" FROM \"jobs\" WHERE (1=1) ORDER BY \"due_on\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "technician": {
+          "sql": "SELECT \"id\", \"created_at\", \"updated_at\", \"created_by\", \"org_id\", \"ref\", \"title\", \"customer\", \"lead\", \"status\", \"priority\", \"scheduled_on\", \"due_on\", \"hours\", \"price\", \"notes\" FROM \"jobs\" WHERE (1=1) ORDER BY \"due_on\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_fsjgrd.source",
+      "kind": "records",
+      "table": "tbl_fsjob",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT *, (\"price\" - \"cost_price\") AS \"margin\" FROM \"jobs\" WHERE (1=1) ORDER BY \"due_on\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "planner": {
+          "sql": "SELECT *, (\"price\" - \"cost_price\") AS \"margin\" FROM \"jobs\" WHERE (1=1) ORDER BY \"due_on\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "technician": {
+          "sql": "SELECT \"id\", \"created_at\", \"updated_at\", \"created_by\", \"org_id\", \"ref\", \"title\", \"customer\", \"lead\", \"status\", \"priority\", \"scheduled_on\", \"due_on\", \"hours\", \"price\", \"notes\" FROM \"jobs\" WHERE (1=1) ORDER BY \"due_on\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT *, (\"price\" - \"cost_price\") AS \"margin\" FROM \"jobs\" WHERE (1=1) ORDER BY \"due_on\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "planner": {
+          "sql": "SELECT *, (\"price\" - \"cost_price\") AS \"margin\" FROM \"jobs\" WHERE (1=1) ORDER BY \"due_on\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "technician": {
+          "sql": "SELECT \"id\", \"created_at\", \"updated_at\", \"created_by\", \"org_id\", \"ref\", \"title\", \"customer\", \"lead\", \"status\", \"priority\", \"scheduled_on\", \"due_on\", \"hours\", \"price\", \"notes\" FROM \"jobs\" WHERE (1=1) ORDER BY \"due_on\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_fsjdet.source",
+      "kind": "record",
+      "table": "tbl_fsjob",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT *, (\"price\" - \"cost_price\") AS \"margin\" FROM \"jobs\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ],
+          "expand": [
+            {
+              "sql": "SELECT \"id\" AS \"id\", \"name\" AS \"name\" FROM \"technicians\" WHERE (1=1) AND \"id\" IN (?)",
+              "params": [
+                "<id>"
+              ]
+            }
+          ]
+        },
+        "planner": {
+          "sql": "SELECT *, (\"price\" - \"cost_price\") AS \"margin\" FROM \"jobs\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ],
+          "expand": [
+            {
+              "sql": "SELECT \"id\" AS \"id\", \"name\" AS \"name\" FROM \"technicians\" WHERE (1=1) AND \"id\" IN (?)",
+              "params": [
+                "<id>"
+              ]
+            }
+          ]
+        },
+        "technician": {
+          "sql": "SELECT \"id\", \"created_at\", \"updated_at\", \"created_by\", \"org_id\", \"ref\", \"title\", \"customer\", \"lead\", \"status\", \"priority\", \"scheduled_on\", \"due_on\", \"hours\", \"price\", \"notes\" FROM \"jobs\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ],
+          "expand": [
+            {
+              "sql": "SELECT \"id\" AS \"id\", \"name\" AS \"name\" FROM \"technicians\" WHERE (1=1) AND \"id\" IN (?)",
+              "params": [
+                "<id>"
+              ]
+            }
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT *, (\"price\" - \"cost_price\") AS \"margin\" FROM \"jobs\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ],
+          "expand": [
+            {
+              "sql": "SELECT \"id\" AS \"id\", \"name\" AS \"name\" FROM \"technicians\" WHERE (1=1) AND \"id\" IN (?)",
+              "params": [
+                "<id>"
+              ]
+            }
+          ]
+        },
+        "planner": {
+          "sql": "SELECT *, (\"price\" - \"cost_price\") AS \"margin\" FROM \"jobs\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ],
+          "expand": [
+            {
+              "sql": "SELECT \"id\" AS \"id\", \"name\" AS \"name\" FROM \"technicians\" WHERE (1=1) AND \"id\" IN (?)",
+              "params": [
+                "<id>"
+              ]
+            }
+          ]
+        },
+        "technician": {
+          "sql": "SELECT \"id\", \"created_at\", \"updated_at\", \"created_by\", \"org_id\", \"ref\", \"title\", \"customer\", \"lead\", \"status\", \"priority\", \"scheduled_on\", \"due_on\", \"hours\", \"price\", \"notes\" FROM \"jobs\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ],
+          "expand": [
+            {
+              "sql": "SELECT \"id\" AS \"id\", \"name\" AS \"name\" FROM \"technicians\" WHERE (1=1) AND \"id\" IN (?)",
+              "params": [
+                "<id>"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_fsjkv.source",
+      "kind": "record",
+      "table": "tbl_fsjob",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT *, (\"price\" - \"cost_price\") AS \"margin\" FROM \"jobs\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "planner": {
+          "sql": "SELECT *, (\"price\" - \"cost_price\") AS \"margin\" FROM \"jobs\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "technician": {
+          "sql": "SELECT \"id\", \"created_at\", \"updated_at\", \"created_by\", \"org_id\", \"ref\", \"title\", \"customer\", \"lead\", \"status\", \"priority\", \"scheduled_on\", \"due_on\", \"hours\", \"price\", \"notes\" FROM \"jobs\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT *, (\"price\" - \"cost_price\") AS \"margin\" FROM \"jobs\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "planner": {
+          "sql": "SELECT *, (\"price\" - \"cost_price\") AS \"margin\" FROM \"jobs\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "technician": {
+          "sql": "SELECT \"id\", \"created_at\", \"updated_at\", \"created_by\", \"org_id\", \"ref\", \"title\", \"customer\", \"lead\", \"status\", \"priority\", \"scheduled_on\", \"due_on\", \"hours\", \"price\", \"notes\" FROM \"jobs\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_fstgrd.source",
+      "kind": "records",
+      "table": "tbl_fstech",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"technicians\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "planner": {
+          "sql": "SELECT * FROM \"technicians\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "technician": {
+          "sql": "SELECT \"id\", \"created_at\", \"updated_at\", \"created_by\", \"org_id\", \"name\", \"skill\", \"phone\", \"email\" FROM \"technicians\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"technicians\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "planner": {
+          "sql": "SELECT * FROM \"technicians\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "technician": {
+          "sql": "SELECT \"id\", \"created_at\", \"updated_at\", \"created_by\", \"org_id\", \"name\", \"skill\", \"phone\", \"email\" FROM \"technicians\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_fsrtbl.source",
+      "kind": "records",
+      "table": "tbl_fstech",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"technicians\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "planner": {
+          "sql": "SELECT * FROM \"technicians\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "technician": {
+          "sql": "SELECT \"id\", \"created_at\", \"updated_at\", \"created_by\", \"org_id\", \"name\", \"skill\", \"phone\", \"email\" FROM \"technicians\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"technicians\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "planner": {
+          "sql": "SELECT * FROM \"technicians\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "technician": {
+          "sql": "SELECT \"id\", \"created_at\", \"updated_at\", \"created_by\", \"org_id\", \"name\", \"skill\", \"phone\", \"email\" FROM \"technicians\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_fscgrd.source",
+      "kind": "records",
+      "table": "tbl_fscust",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"customers\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "planner": {
+          "sql": "SELECT * FROM \"customers\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "technician": {
+          "sql": "SELECT * FROM \"customers\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"customers\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "planner": {
+          "sql": "SELECT * FROM \"customers\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "technician": {
+          "sql": "SELECT * FROM \"customers\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      }
+    }
+  ]
+}

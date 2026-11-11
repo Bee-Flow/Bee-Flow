@@ -43,7 +43,7 @@ test('template ids are unique and metadata is complete', () => {
             assert.ok(typeof t[key] === 'string' && t[key].length > 0, `${t.id}: missing ${key}`);
         }
         assert.ok(Array.isArray(t.tags) && t.tags.length > 0, `${t.id}: missing tags`);
-        assert.ok(t.definition && [1, 2].includes(t.definition.schemaVersion), `${t.id}: bad definition`);
+        assert.ok(t.definition && [1, 2, 3].includes(t.definition.schemaVersion), `${t.id}: bad definition`);
     }
 });
 
