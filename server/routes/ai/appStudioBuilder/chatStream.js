@@ -104,6 +104,7 @@ const { runBuildLoop } = require('./buildLoop');
 const { handleProposedPlan, runAutoFinalizeNet, persistTurnSnapshot, classifyTurnOutcome } = require('./turnClosing');
 const { bestEffort } = require('../../../utils/bestEffort');
 const { designNotesForTurn } = require('./designBrief.mts');
+const { turnStartState, writeTurnEndVersion } = require('./turnEndVersion');
 const { sessionUser } = require('../../../core/http/sessionUser');
 
 // Each builder turn is a multi-iteration LLM conversation chaining many tool
@@ -172,6 +173,8 @@ router.post('/stream', requireAuth, builderRateLimit, async (req, res) => {
     // The agent's own checklist, the brief and the screen constraint — the
     // state that survives between turns, back onto the draftWrap.
     attachCrossTurnState(draftWrap, { priorSnapshot, message });
+    // What the end-of-turn version row compares against (./turnEndVersion.js).
+    const turnStart = turnStartState(draftWrap.def);
 
     // ── Model resolution (pre-SSE, like webpageChat — clean JSON errors). ──
     const userOrgForTiers = req.session?.user?.organizationId || limitOrgId || null;
@@ -207,8 +210,10 @@ router.post('/stream', requireAuth, builderRateLimit, async (req, res) => {
     //    no monitoring tables). Codes: subscription_limit | rate_limited |
     //    model_unavailable | transient_upstream | budget_exhausted |
     //    validation_failed | save_conflict | internal. ──
+    let turnFailed = false; // an `error` went out: the turn leaves no end-of-turn version row
     /** @type {import('./buildRound').BuildCtx['sendError']} */
     const sendError = (code, userMessage) => {
+        turnFailed = true;
         send('error', { message: userMessage, code });
         log.error(`[AppStudioBuilder] code=${code} appId=${draftWrap.appId || '-'} session=${draftWrap.builderSessionId || '-'} model=${modelId || '-'}`);
     };
@@ -308,6 +313,7 @@ router.post('/stream', requireAuth, builderRateLimit, async (req, res) => {
         const { continuation, budgetExhausted } = await runAutoFinalizeNet(turn, {
             draftWrap, iterationBudget, approvedPlanForTurn, send, sendError, workMode: workModeState?.mode ?? null,
         });
+        await writeTurnEndVersion(turn, { draftWrap, userId, start: turnStart, failed: turnFailed, planRan: !!approvedPlanForTurn, send });
         await persistTurnSnapshot(turn, {
             draftWrap, userId, history, inboundImages, effectiveMessage, proseParts,
             resolvedTier, approvedPlanForTurn, isApproval, priorSnapshot, continuation,

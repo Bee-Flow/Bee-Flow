@@ -607,10 +607,13 @@ function captureTemplate({
     for (const what of peopleDropped) {
         warnings.push(`The demo-people declaration was dropped (${what}) — seeded rows keep the names the file carries.`);
     }
-    const danglingDatasets = collectDatasetBindingIds(canonicalDef);
+    // A binding to a dataset the template carries is pointed at the dataset the
+    // install creates (templateDatasetRefs.mts); one to any other id dangles.
+    const carriedDatasets = new Set(datasetDescriptors.map((d) => d.id));
+    const danglingDatasets = collectDatasetBindingIds(canonicalDef).filter((id) => !carriedDatasets.has(id));
     if (danglingDatasets.length) {
         warnings.push(
-            `${danglingDatasets.length} dataset binding(s) will not survive install: datasets are re-created with fresh ids, so the bindings point at ids that will not exist. Re-point them after installing.`,
+            `${danglingDatasets.length} dataset binding(s) will not survive install: they point at datasets this template does not carry. Re-point them after installing.`,
         );
     }
     // Every OTHER validation warning is worth repeating to the author: the

@@ -730,3 +730,19 @@ test('app-support-desk stays inside the definition budget', () => {
     assert.ok(maxDepth <= LIMITS.MAX_DEPTH, `depth ${maxDepth} <= ${LIMITS.MAX_DEPTH}`);
     assert.ok(JSON.stringify(def).length < 512 * 1024, 'definition size');
 });
+
+test('a built-in template\'s files are pictures an upload would take, each one named, all within the copy budget', () => {
+    const { readPortableAssets, referencedAssetIds, portableAssetBudget } = require('./portableAssets.mts');
+    const { seedAssetIds } = require('./seedAssets.mts');
+    const withFiles = TEMPLATES.filter((t) => Array.isArray(t.assets) && t.assets.length);
+    assert.ok(withFiles.some((t) => t.id === 'app-inbound-orders'), 'the inbound orders template ships its pictures');
+    for (const t of withFiles) {
+        const named = new Set([...referencedAssetIds(t.definition), ...seedAssetIds(t.seed)]);
+        const read = readPortableAssets(t.assets, named, {});
+        assert.deepEqual(read.dropped, [], t.id);
+        assert.deepEqual(read.assets.map((a) => a.id).sort(), t.assets.map((a) => a.id).sort(), `${t.id}: every file is used and carried`);
+        assert.deepEqual([...named].sort(), read.assets.map((a) => a.id).sort(), `${t.id}: every name has its file`);
+        assert.ok(read.bytes <= portableAssetBudget({}) / 100, `${t.id}: ${read.bytes} bytes, kept tiny`);
+    }
+    assert.ok(listTemplates().every((t) => !('assets' in t)), 'the gallery listing never carries the bytes');
+});

@@ -156,7 +156,10 @@ router.post('/:id/template-upgrade', requireAuth, requireManageApps, /** @param 
     if (refused) return res.status(422).json(schemaNewerBody(copy));
     // The new version's uploaded files go into the app (a file it already holds is reused),
     // and the definition saved and stamped below refers to their ids here.
-    const { definition: canonical, report: assets } = await carryAssetsInto(app, canonicalCopy, template.assets);
+    // Only the files the definition names: an upgrade seeds no table that holds rows, so a file
+    // only a sample row names would sit unused; a row it does seed (an empty table) gets null
+    // for such a file, through assetIds below.
+    const { definition: canonical, report: assets, ids: assetIds } = await carryAssetsInto(app, canonicalCopy, template.assets);
     // Report mode, as on create from a template: the upgrade is not refused over validator findings.
     const findings = gateFindings(gateDefinition(canonical));
 
@@ -172,14 +175,20 @@ router.post('/:id/template-upgrade', requireAuth, requireManageApps, /** @param 
     // like the create path — the definition upgrade already landed, so a
     // data hiccup is reported, not turned into a 500.
     let dataInstall = null;
+    let installed = canonical; // what the stamp measures: with its dataset bindings resolved below
+    let version = saved.version;
     if (template.dataModel || template.seed || template.datasets) {
         try {
             const install = await installTemplate({
-                appId: app.id, ownerId: userId, template, seedMode: 'missing-tables-only',
+                appId: app.id, ownerId: userId, template, seedMode: 'missing-tables-only', assetIds,
             });
             dataInstall = (install && install.ok)
                 ? { ok: true, dataModelVersion: install.dataModelVersion }
                 : { ok: false, error: (install && install.error) || 'unknown error' };
+            if (install && install.ok && install.definition) {
+                installed = install.definition;
+                version = install.definitionVersion ?? version;
+            }
             if (!dataInstall.ok) log.warn(`[StudioApps] Template upgrade data install failed for ${app.id}: ${dataInstall.error}`);
         } catch (e) {
             const reason = e && /** @type {Error} */ (e).message ? /** @type {Error} */ (e).message : String(e);
@@ -192,14 +201,14 @@ router.post('/:id/template-upgrade', requireAuth, requireManageApps, /** @param 
     // measured against the definition as just re-installed.
     await studioAppStore.setTemplateStamp(app.id, userId, {
         templateVersion: cand.toVersion,
-        templateInstallHash: hashDefinition(canonical),
+        templateInstallHash: hashDefinition(installed),
     });
 
     res.json({
         ok: true,
         fromVersion: cand.fromVersion,
         toVersion: cand.toVersion,
-        version: saved.version,
+        version,
         ...(dataInstall ? { dataInstall } : {}),
         ...(findings ? { findings } : {}),
         ...(assets ? { assets } : {}),

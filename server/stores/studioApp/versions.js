@@ -30,22 +30,37 @@ const MAX_VERSIONS_PER_APP = 20;
  * so the snapshot is atomic with the freeze); otherwise opens a short private
  * transaction. Returns the new version id.
  *
+ * `skipIfSameAsNewest`: when the app's newest row already holds this exact
+ * definition (jsonb equality, so key order does not matter), write nothing and
+ * return null. The AI builder's end-of-turn row uses it, so a turn never adds
+ * a row identical to the one before it.
+ *
  * @param {object|string} definition Definition object (JSON-stringified here)
  *   or an already-serialized JSON string (the publish path's frozen payload).
  * @param {string} [summary]
  */
-async function createVersionSnapshot(appId, ownerId, definition, summary = 'Checkpoint', { client = null } = {}) {
-    if (client) return writeVersionSnapshot(client, appId, ownerId, definition, summary);
+async function createVersionSnapshot(appId, ownerId, definition, summary = 'Checkpoint', { client = null, skipIfSameAsNewest = false } = {}) {
+    const row = { appId, ownerId, definition, summary, skipIfSameAsNewest };
+    if (client) return writeVersionSnapshot(client, row);
     await initDB();
-    return withTransaction((own) => writeVersionSnapshot(own, appId, ownerId, definition, summary));
+    return withTransaction((own) => writeVersionSnapshot(own, row));
 }
 
 /**
- * @param {string} summary
+ * @param {{ query: (sql: string, params: unknown[]) => Promise<{ rows: Array<Record<string, unknown>> }> }} client
+ * @param {{ appId: string, ownerId: string, definition: object|string, summary: string, skipIfSameAsNewest: boolean }} row
  */
-async function writeVersionSnapshot(client, appId, ownerId, definition, summary) {
+async function writeVersionSnapshot(client, { appId, ownerId, definition, summary, skipIfSameAsNewest }) {
     const versionId = crypto.randomUUID();
     const defPayload = typeof definition === 'string' ? definition : JSON.stringify(definition ?? {});
+    if (skipIfSameAsNewest) {
+        const newest = await client.query(
+            `SELECT definition = $2::jsonb AS same FROM studio_app_versions
+             WHERE app_id = $1 ORDER BY created_at DESC, id LIMIT 1`,
+            [appId, defPayload]
+        );
+        if (newest.rows.length > 0 && newest.rows[0].same === true) return null;
+    }
     await client.query(
         `INSERT INTO studio_app_versions (id, app_id, user_id, definition, summary)
          VALUES ($1, $2, $3, $4::jsonb, $5)`,

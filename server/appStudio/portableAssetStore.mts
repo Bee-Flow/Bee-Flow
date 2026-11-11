@@ -5,7 +5,11 @@
  *   collectPortableAssets(app, definition)        the files a copy of this app carries
  *   carryAssetsInto(app, definition, assets)      store a copy's files in `app`, and the definition
  *                                                 rewritten to the ids they got there
- *   applyCopiedAssets({ app, definition, ... })   the same for an app that is already stored:
+ *   carryTemplateAssets({ app, definition, seed, assets })
+ *                                                 the same for a template, whose sample rows may
+ *                                                 name files too (seedAssets.mts)
+ *   applyCopiedAssets({ app, definition, seed?, ... })
+ *                                                 the same for an app that is already stored:
  *                                                 save the rewritten definition (and move the
  *                                                 template stamp onto it)
  *
@@ -24,6 +28,7 @@ import { ASSET_LIMITS, collectAssetRefs, sniffAssetMime } from './appAssets.mts'
 import type { AssetApp, AssetRow, AssetView } from './appAssetStore.mts';
 import { PORTABLE_ASSET_ENV, portableAssetBudget, readPortableAssets, referencedAssetIds, remapAssetRefs, writePortableAssets } from './portableAssets.mts';
 import type { PortableAsset } from './portableAssets.mts';
+import { seedAssetIds } from './seedAssets.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 
@@ -122,19 +127,35 @@ async function storeEntries(app: AssetApp, assets: unknown, wanted: Set<string>,
     return { map, stored, reused, skipped };
 }
 
-/**
- * Store the files of a copy in `app` and return the definition rewritten to their ids there (a
- * new object; `definition` is not touched). `report` is null when the copy carries no file the
- * definition refers to: then the definition is returned as it is.
- */
-export async function carryAssetsInto(app: AssetApp, definition: unknown, assets: unknown, given: Partial<AssetStoreDeps> = {}, env: Env = process.env): Promise<{ definition: unknown; report: AssetCarryReport | null }> {
-    if (!Array.isArray(assets) || !assets.length) return { definition, report: null };
-    const wanted = referencedAssetIds(definition);
-    if (!wanted.size) return { definition, report: null };
+export interface CarryResult { definition: unknown; report: AssetCarryReport | null; ids: Map<string, string> }
+
+/** Store the entries of `wanted` and rewrite a copy of `definition` to their ids here. */
+async function carry(app: AssetApp, definition: unknown, assets: unknown, wanted: Set<string>, given: Partial<AssetStoreDeps>, env: Env): Promise<CarryResult> {
+    if (!Array.isArray(assets) || !assets.length || !wanted.size) return { definition, report: null, ids: new Map() };
     const { map, stored, reused, skipped } = await storeEntries(app, assets, wanted, storeDeps(given), env);
     const copy = structuredClone(definition);
     const remap = remapAssetRefs(copy, map);
-    return { definition: copy, report: { carried: stored, reused, cleared: remap.cleared.length, skipped } };
+    return { definition: copy, report: { carried: stored, reused, cleared: remap.cleared.length, skipped }, ids: map };
+}
+
+/**
+ * Store the files of a copy in `app` and return the definition rewritten to their ids there (a
+ * new object; `definition` is not touched), and `ids`: copy id → id in this app. `report` is null
+ * when the copy carries no file the definition refers to: then the definition is returned as it is.
+ */
+export async function carryAssetsInto(app: AssetApp, definition: unknown, assets: unknown, given: Partial<AssetStoreDeps> = {}, env: Env = process.env): Promise<CarryResult> {
+    return carry(app, definition, assets, referencedAssetIds(definition), given, env);
+}
+
+/**
+ * A template's files: the ones its definition AND its sample rows name (seedAssets.mts). The
+ * installer writes the rows after this, through `ids`; a file that did not arrive is not in it.
+ */
+export async function carryTemplateAssets(opts: {
+    app: AssetApp; definition: unknown; seed?: unknown; assets: unknown; deps?: Partial<AssetStoreDeps>; env?: Env;
+}): Promise<CarryResult> {
+    const wanted = new Set([...referencedAssetIds(opts.definition), ...seedAssetIds(opts.seed)]);
+    return carry(opts.app, opts.definition, opts.assets, wanted, opts.deps || {}, opts.env || process.env);
 }
 
 /**
@@ -143,16 +164,16 @@ export async function carryAssetsInto(app: AssetApp, definition: unknown, assets
  * given move the template stamp onto it, so the app stays "unchanged since install".
  */
 export async function applyCopiedAssets(opts: {
-    app: AssetApp; definition: unknown; assets: unknown; templateVersion?: number;
+    app: AssetApp; definition: unknown; assets: unknown; seed?: unknown; templateVersion?: number;
     deps?: Partial<AssetStoreDeps>; appStore?: AppStore; env?: Env;
-}): Promise<{ definition: unknown; report: AssetCarryReport | null }> {
-    const carried = await carryAssetsInto(opts.app, opts.definition, opts.assets, opts.deps, opts.env);
+}): Promise<CarryResult> {
+    const carried = await carryTemplateAssets(opts);
     if (!carried.report) return carried;
     const appStore = opts.appStore || (nodeRequire('../stores/studioAppStore') as AppStore);
     const saved = await appStore.saveDefinition(opts.app.id, opts.app.userId, carried.definition);
     if (!saved || saved.ok === false) {
         carried.report.skipped.push('The uploaded files were stored, but the app could not be saved with their new references.');
-        return { definition: opts.definition, report: carried.report };
+        return { definition: opts.definition, report: carried.report, ids: carried.ids };
     }
     if (opts.templateVersion !== undefined) {
         const { hashDefinition } = nodeRequire('./templateUpgrade') as { hashDefinition: (d: unknown) => string };
