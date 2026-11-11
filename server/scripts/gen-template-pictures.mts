@@ -4,7 +4,7 @@
  * template (server/appStudio/templates/appInboundOrders.js), drawn from flat-colour shapes and
  * written as small PNG files next to it, in server/appStudio/templates/pictures/.
  *
- *   cd server && node scripts/gen-template-pictures.mjs
+ *   cd server && node scripts/gen-template-pictures.mts
  *
  * Original art made here, nothing downloaded: a few rectangles, circles and ellipses per picture
  * on a soft background, no anti-aliasing, so each file stays a few kilobytes. The PNG encoder is
@@ -21,16 +21,20 @@ const OUT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../appSt
 const W = 320;
 const H = 240;
 
-const hex = (h) => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+type Rgb = [number, number, number];
+interface Shape { color: Rgb; hit: (px: number, py: number) => boolean }
+interface Picture { background: string; shapes: Shape[] }
+
+const hex = (h: string): Rgb => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
 
 // Shapes: each answers whether a pixel is inside it.
-const rect = (x, y, w, h, color) => ({ color: hex(color), hit: (px, py) => px >= x && px < x + w && py >= y && py < y + h });
-const circle = (cx, cy, r, color) => ({ color: hex(color), hit: (px, py) => (px - cx) ** 2 + (py - cy) ** 2 <= r * r });
-const ellipse = (cx, cy, rx, ry, color) => ({ color: hex(color), hit: (px, py) => ((px - cx) / rx) ** 2 + ((py - cy) / ry) ** 2 <= 1 });
-const ring = (cx, cy, r, inner, color) => ({ color: hex(color), hit: (px, py) => { const d = (px - cx) ** 2 + (py - cy) ** 2; return d <= r * r && d >= inner * inner; } });
+const rect = (x: number, y: number, w: number, h: number, color: string): Shape => ({ color: hex(color), hit: (px, py) => px >= x && px < x + w && py >= y && py < y + h });
+const circle = (cx: number, cy: number, r: number, color: string): Shape => ({ color: hex(color), hit: (px, py) => (px - cx) ** 2 + (py - cy) ** 2 <= r * r });
+const ellipse = (cx: number, cy: number, rx: number, ry: number, color: string): Shape => ({ color: hex(color), hit: (px, py) => ((px - cx) / rx) ** 2 + ((py - cy) / ry) ** 2 <= 1 });
+const ring = (cx: number, cy: number, r: number, inner: number, color: string): Shape => ({ color: hex(color), hit: (px, py) => { const d = (px - cx) ** 2 + (py - cy) ** 2; return d <= r * r && d >= inner * inner; } });
 
 /** A desk lamp: a round base, a stem, an arm and a shade with its light. */
-const LAMP = {
+const LAMP: Picture = {
     background: '#EEF2F7',
     shapes: [
         ellipse(160, 214, 110, 10, '#D9E0EA'),
@@ -46,7 +50,7 @@ const LAMP = {
 };
 
 /** An oak side chair: back, seat and legs. */
-const CHAIR = {
+const CHAIR: Picture = {
     background: '#F4EFE8',
     shapes: [
         ellipse(160, 216, 96, 9, '#E3DACD'),
@@ -61,7 +65,7 @@ const CHAIR = {
 };
 
 /** A stoneware mug: body, glaze band and handle. */
-const MUG = {
+const MUG: Picture = {
     background: '#EAF4F1',
     shapes: [
         ellipse(160, 206, 86, 9, '#D3E4DF'),
@@ -74,7 +78,7 @@ const MUG = {
     ],
 };
 
-function pixels({ background, shapes }) {
+function pixels({ background, shapes }: Picture): Buffer {
     const bg = hex(background);
     const rows = Buffer.alloc((W * 3 + 1) * H);
     let at = 0;
@@ -89,7 +93,7 @@ function pixels({ background, shapes }) {
     return rows;
 }
 
-function chunk(type, data) {
+function chunk(type: string, data: Buffer): Buffer {
     const head = Buffer.alloc(8);
     head.writeUInt32BE(data.length, 0);
     head.write(type, 4, 'ascii');
@@ -98,7 +102,7 @@ function chunk(type, data) {
     return Buffer.concat([head, data, crc]);
 }
 
-function png(picture) {
+function png(picture: Picture): Buffer {
     const ihdr = Buffer.alloc(13);
     ihdr.writeUInt32BE(W, 0);
     ihdr.writeUInt32BE(H, 4);

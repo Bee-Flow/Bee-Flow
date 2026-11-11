@@ -27,7 +27,7 @@
  * Nothing is armed on install: the webhook has no address until the app is
  * published. Three sample products carry a picture: small placeholder drawings
  * shipped as the template's files (./templatePictures.js, drawn by
- * server/scripts/gen-template-pictures.mjs) and named `asset:<id>` in the
+ * server/scripts/gen-template-pictures.mts) and named `asset:<id>` in the
  * sample rows. The install stores them in the new app like uploads and writes
  * the rows with the ids they got there, so the carousel shows them at once.
  */

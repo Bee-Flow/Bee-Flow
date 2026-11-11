@@ -112,7 +112,7 @@ async function applyListTemplates(draftWrap) {
  * (templateUpgrade.js). Best-effort: a missing stamp costs the upgrade offer,
  * never the install.
  * @param {{ appId?: string|null, userId: string }} draftWrap
- * @param {any} template
+ * @param {{ id?: string, version?: number }} template
  * @param {unknown} definition the definition as stored, which the hash measures
  */
 async function stampTemplateProvenance(draftWrap, template, definition) {

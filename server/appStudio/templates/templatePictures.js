@@ -3,7 +3,7 @@
  * The pictures a built-in template ships, as entries of its `assets` (portableAssets.mts:
  * { id, mime, sha256, size, data }), read from ./pictures/ when the template module loads.
  *
- * The files are original placeholder art drawn by server/scripts/gen-template-pictures.mjs. The
+ * The files are original placeholder art drawn by server/scripts/gen-template-pictures.mts. The
  * id is the name the template uses (`asset:<id>`, in its definition or in a sample row); on
  * install every file is decided again exactly like an upload and stored in the new app under an
  * id of its own (portableAssetStore.mts carryTemplateAssets).
