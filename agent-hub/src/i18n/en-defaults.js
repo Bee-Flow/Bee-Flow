@@ -39177,6 +39177,7 @@ const EN_DEFAULTS = {
     "studio_apps_layout.values.sticky_none": "Off",
     "studio_apps_layout.values.stretch": "Fill",
     "studio_apps_layout.values.top": "Top",
+    "studio_apps_lk20.repeater.row_label": "Items, scroll sideways for more",
     "studio_apps_more_options.colour_picker_aria": "Pick a colour for {name}",
     "studio_apps_more_options.hex_aria": "Hex colour for {name}",
     "studio_apps_more_options.hex_placeholder": "#rrggbb",

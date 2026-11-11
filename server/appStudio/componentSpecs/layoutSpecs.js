@@ -77,6 +77,27 @@ const LAYOUT_SPECS = {
                 itemShape: { label: { type: 'string', required: true, maxLen: 80 }, actionId: { type: 'string', maxLen: 20 } },
             },
             emptyText: { type: 'string', maxLen: 200, default: 'Nothing to show yet.' },
+            // Schema 3 (package LK20): how the ITEMS sit, beside the grid inside each item that
+            // the `columns` knob shapes. Absent is the stack every repeater had before.
+            layout: {
+                type: 'enum', values: ['stack', 'grid', 'row'], default: null, since: 3,
+                description: 'How the items sit: in a stack, side by side in a grid or in one row. '
+                    + 'stack (also when absent) puts each item under the previous one. grid puts itemColumns items side by side and wraps. '
+                    + 'row keeps every item on one line that scrolls sideways, itemColumns items in view, snapping to an item. '
+                    + 'The style knob columns still shapes the grid inside each item.',
+            },
+            itemColumns: {
+                type: 'int', min: 1, max: 6, default: null, since: 3,
+                description: 'Items per row on a wide screen (1024 px and up), for layout grid or row. 3 when absent.',
+            },
+            itemColumnsMd: {
+                type: 'int', min: 1, max: 6, default: null, since: 3,
+                description: 'Items per row from 640 to 1023 px, for layout grid or row. When absent: itemColumns, at most 2.',
+            },
+            itemColumnsSm: {
+                type: 'int', min: 1, max: 6, default: null, since: 3,
+                description: 'Items per row below 640 px, for layout grid or row. 1 when absent.',
+            },
         },
         styleKnobs: ['span', 'gap', 'padding'],
         defaultStyle: { span: 12, gap: 3, padding: 0 },
