@@ -230,3 +230,16 @@ test('splitFileValues separates the file refs and leaves everything else alone',
     assert.deepEqual(plain, { name: 'Ada', n: 3, nothing: null, shape: { a: 1 } });
     assert.deepEqual(fileRefs, { avatar: 'f1' });
 });
+
+test('many-relation links wait for the last pass, so a link to a row written later still lands', async () => {
+    const tasks = canonicalizeDataModel({ tables: [{
+        id: 'tbl_task', key: 'tasks', name: 'Tasks',
+        fields: [{ id: 'fld_t', key: 'title', type: 'text' }, { id: 'fld_b', key: 'blocked_by', type: 'relation', relation: { table: 'tbl_task', many: true } }],
+    }] }).model;
+    const s = spy();
+    const records = { tbl_task: [{ $id: 't1', title: 'Ship', blocked_by: [{ $ref: 't2' }, { $ref: 'gone' }] }, { $id: 't2', title: 'Test' }] };
+    const out = await installAppContent({ app: APP, model: tasks, content: { records, files: [] }, deps: s.deps });
+    assert.equal(out.rows, 2);
+    assert.deepEqual(s.calls.map((c) => `${c.op}:${Object.keys(c.values).join(',')}`), ['create:title', 'create:title', 'update:blocked_by']);
+    assert.deepEqual(s.calls[2], { op: 'update', table: 'tasks', values: { blocked_by: ['rec_2'] }, recordId: 'rec_1', viewer: s.calls[0].viewer });
+});

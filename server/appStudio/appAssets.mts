@@ -54,10 +54,15 @@ const MAX_PATHS_PER_ASSET = 20;
 
 /** The operator's per-app budget in bytes: the env value, the default when unset or not a whole number, Infinity for 0. */
 export function assetTotalBytesBudget(env: Record<string, string | undefined> = process.env): number {
-    const raw = String(env.STUDIO_APP_ASSET_TOTAL_BYTES ?? '').trim();
-    if (!raw) return DEFAULT_ASSET_TOTAL_BYTES;
+    return bytesBudget(env.STUDIO_APP_ASSET_TOTAL_BYTES, DEFAULT_ASSET_TOTAL_BYTES);
+}
+
+/** An operator budget in bytes from an env value: `fallback` when unset or not a whole number, Infinity for 0. */
+export function bytesBudget(value: string | undefined, fallback: number): number {
+    const raw = String(value ?? '').trim();
+    if (!raw) return fallback;
     const n = Number(raw);
-    if (!Number.isInteger(n) || n < 0) return DEFAULT_ASSET_TOTAL_BYTES;
+    if (!Number.isInteger(n) || n < 0) return fallback;
     return n === 0 ? Infinity : n;
 }
 
@@ -130,7 +135,7 @@ function walk(value: unknown, path: string, depth: number, out: Map<string, stri
 }
 
 /** Where a definition holds stylesheet text, which names an asset inside the text (appCss.mts). */
-const CSS_PATHS: readonly (readonly string[])[] = [['design', 'customCss'], ['publicAccess', 'design', 'customCss']];
+export const CSS_PATHS: readonly (readonly string[])[] = [['design', 'customCss'], ['publicAccess', 'design', 'customCss']];
 
 function valueAt(root: unknown, path: readonly string[]): unknown {
     let at: unknown = root;

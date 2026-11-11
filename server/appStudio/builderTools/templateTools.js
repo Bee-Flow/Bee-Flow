@@ -179,7 +179,10 @@ async function applyApplyTemplate(draftWrap, args) {
     copy.meta = { ...(copy.meta || {}), ...(keepName ? { name: keepName } : {}) };
     const fromTemplate = canonicalizeAppDefinition(copy);
     if (fromTemplate.refused) return { error: `Template "${templateId}" cannot be applied: ${schemaNewerMessage(copy)}` };
-    draftWrap.def = fromTemplate.def;
+    // The template's uploaded files go into this app; the draft refers to their ids here.
+    const { carryAssetsInto } = require('../portableAssetStore.mts');
+    const carried = await carryAssetsInto({ id: draftWrap.appId, userId: draftWrap.userId }, fromTemplate.def, /** @type {{ assets?: unknown }} */ (template).assets);
+    draftWrap.def = carried.definition;
 
     // Persist before the data install: templateInstall's seed rows go through
     // writeRecord against the STORED app, and a definition still sitting in
@@ -245,6 +248,7 @@ async function applyApplyTemplate(draftWrap, args) {
         screens: Array.isArray(draftWrap.def?.screens) ? draftWrap.def.screens.length : 0,
         actions: draftWrap.def?.actions ? Object.keys(draftWrap.def.actions).length : 0,
         ...(out.dataModelVersion !== undefined ? { dataModelVersion: out.dataModelVersion } : {}),
+        ...(carried.report ? { assets: carried.report } : {}),
         _hints: ['Template installed. Customise it with the normal tools — the new tables, rows and screens are in the draft state.'],
     };
 }
@@ -278,7 +282,7 @@ async function applySaveAsTemplate(draftWrap, args) {
     /** @type {{ ok?: boolean, errors?: string[], _fixHint?: string, template?: any, report?: any }} */
     let capture;
     try {
-        const { captureFromApp } = require('../templateCapture');
+        const { captureFromApp } = require('../templateCaptureFromApp.mts');
         capture = await captureFromApp({
             appId: draftWrap.appId,
             userId: draftWrap.userId,
@@ -325,6 +329,7 @@ async function applySaveAsTemplate(draftWrap, args) {
                 ...(template.dataModel ? { dataModel: template.dataModel } : {}),
                 ...(template.seed ? { seed: template.seed } : {}),
                 ...(template.datasets ? { datasets: template.datasets } : {}),
+                ...(template.assets ? { assets: template.assets } : {}),
             },
         });
     } catch (e) {

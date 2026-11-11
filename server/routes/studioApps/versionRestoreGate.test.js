@@ -68,6 +68,21 @@ test('a snapshot with validator errors is restored verbatim and the findings com
     assert.strictEqual(update.params[0], JSON.stringify(snapshot), 'the snapshot bytes, not a canonicalized copy');
 });
 
+test('a snapshot with uploaded files and triggers goes back verbatim: the files stay the app\'s own, and nothing is armed', async () => {
+    snapshot = {
+        ...emptyDefinition('Snapshot'), schemaVersion: 3,
+        design: { logoUrl: 'asset:0b6f2c1e-4a8d-4e1f-9c3b-1d2e3f4a5b6c' },
+        actions: { act_in: { steps: [] } },
+        triggers: [{ id: 'hook', kind: 'webhook', actionId: 'act_in', auth: 'hmac' }],
+    };
+    const res = await api.call('POST', URL, { body: {} });
+    assert.strictEqual(res.status, 200, JSON.stringify(res.body));
+    const all = writes();
+    assert.strictEqual(all.length, 1, all.map((w) => w.sql).join('\n'));
+    assert.strictEqual(all[0].params[0], JSON.stringify(snapshot));
+    assert.ok(!all.some((w) => /TRIGGER|WEBHOOK|ATTACHMENT/i.test(w.sql)), 'no trigger, webhook or file row is written by a restore');
+});
+
 test('a clean snapshot restores with empty findings', async () => {
     snapshot = emptyDefinition('Snapshot');
     const res = await api.call('POST', URL, { body: {} });

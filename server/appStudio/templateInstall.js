@@ -187,6 +187,53 @@ function orderMembersForSeed(members, ownerId) {
 }
 
 /**
+ * One seed row through writeRecord. Returns the id it got, or null when the
+ * engine refused it: one bad/duplicate/over-quota row must not abort the
+ * install, the definition and model are already usable.
+ */
+async function writeSeedRow(app, model, table, values, viewer) {
+    try {
+        const { id } = await actionExecutor.writeRecord(app, model, table, values, { viewer });
+        return id || null;
+    } catch (e) {
+        log.warn(`[templateInstall] seed row skipped for ${app.id} table ${table.key}: ${e && /** @type {Error} */ (e).message ? /** @type {Error} */ (e).message : e}`);
+        return null;
+    }
+}
+
+/**
+ * The seed rows, parents first, through the writeRecord choke point; then the
+ * links of many relations, once every row they may point at exists
+ * (seedLinks.mts).
+ */
+async function writeSeedRows(app, model, seedRows, skipTableIds, ownerId) {
+    const { splitSeedLinks, resolveLinks } = require('./seedLinks.mts');
+    const refMap = new Map(); // $id alias → real rec_ id
+    const viewer = { id: ownerId, role: 'owner' };
+    const pendingLinks = [];
+    for (const table of orderTablesByDependency(model)) {
+        if (skipTableIds && skipTableIds.has(table.id)) continue;
+        const rows = Array.isArray(seedRows[table.id]) ? seedRows[table.id] : [];
+        for (const row of rows.slice(0, MAX_SEED_ROWS_PER_TABLE)) {
+            const { alias, values: resolved } = resolveSeedRow(row, refMap);
+            const { values, links } = splitSeedLinks(table, resolved);
+            const id = await writeSeedRow(app, model, table, values, viewer);
+            if (alias && id) refMap.set(alias, id);
+            if (id && Object.keys(links).length) pendingLinks.push({ table, id, links });
+        }
+    }
+    for (const { table, id, links } of pendingLinks) {
+        const values = resolveLinks(links, refMap);
+        if (!values) continue;
+        try {
+            await actionExecutor.writeRecord(app, model, table, values, { viewer, recordId: id });
+        } catch (e) {
+            log.warn(`[templateInstall] seed links skipped for ${app.id} table ${table.key}: ${e && /** @type {Error} */ (e).message ? /** @type {Error} */ (e).message : e}`);
+        }
+    }
+}
+
+/**
  * @param {{ appId?: string, ownerId?: string, template?: any, seedMode?: string }} [opts]
  */
 async function installTemplate({ appId, ownerId, template, seedMode = 'all' } = {}) {
@@ -263,23 +310,7 @@ async function installTemplate({ appId, ownerId, template, seedMode = 'all' } = 
                 }
             }
 
-            const refMap = new Map(); // $id alias → real rec_ id
-            const viewer = { id: ownerId, role: 'owner' };
-            for (const table of orderTablesByDependency(model)) {
-                if (skipTableIds && skipTableIds.has(table.id)) continue;
-                const rows = Array.isArray(seedRows[table.id]) ? seedRows[table.id] : [];
-                for (const row of rows.slice(0, MAX_SEED_ROWS_PER_TABLE)) {
-                    const { alias, values } = resolveSeedRow(row, refMap);
-                    try {
-                        const { id } = await actionExecutor.writeRecord(app, model, table, values, { viewer });
-                        if (alias && id) refMap.set(alias, id);
-                    } catch (e) {
-                        // One bad/duplicate/over-quota row must not abort the
-                        // install — the definition + model are already usable.
-                        log.warn(`[templateInstall] seed row skipped for ${appId} table ${table.key}: ${e && /** @type {Error} */ (e).message ? /** @type {Error} */ (e).message : e}`);
-                    }
-                }
-            }
+            await writeSeedRows(app, model, seedRows, skipTableIds, ownerId);
         }
 
         // 3. Datasets (BI descriptors). createDataset always mints a new row,

@@ -646,7 +646,7 @@
   },
   "appStudio/templateCapture.js": {
     "complexity": {
-      "count": 4
+      "count": 3
     },
     "max-lines-per-function": {
       "count": 1
@@ -657,7 +657,7 @@
       "count": 1
     },
     "max-depth": {
-      "count": 3
+      "count": 1
     },
     "max-lines-per-function": {
       "count": 1
