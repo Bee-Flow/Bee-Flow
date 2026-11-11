@@ -49,7 +49,12 @@
     "app_list_assets",
     "app_get_run",
     "app_list_runs",
+    "app_move_section",
+    "app_remove_dataset",
+    "app_remove_section",
+    "app_reorder_screens",
     "app_run_action",
     "app_run_tests",
-    "app_save_test"
+    "app_save_test",
+    "app_update_step"
 ]

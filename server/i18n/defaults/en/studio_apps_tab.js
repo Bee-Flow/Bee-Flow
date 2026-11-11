@@ -7,7 +7,12 @@
 module.exports = {
     "studio_apps_tab.act_get_run": "Read a run",
     "studio_apps_tab.act_list_runs": "Read the run log",
+    "studio_apps_tab.act_move_section": "Moved a section",
+    "studio_apps_tab.act_remove_dataset": "Removed a dataset",
+    "studio_apps_tab.act_remove_section": "Removed a section",
+    "studio_apps_tab.act_reorder_screens": "Reordered the screens",
     "studio_apps_tab.act_run_action": "Test-ran an action",
     "studio_apps_tab.act_run_tests": "Ran the tests",
     "studio_apps_tab.act_save_test": "Saved a test",
+    "studio_apps_tab.act_update_step": "Changed a step",
 };
