@@ -27,7 +27,7 @@ export type RunLogDeps = {
 const isObject = (v: unknown): v is Obj => v !== null && typeof v === 'object' && !Array.isArray(v);
 const ID_RE = /^[A-Za-z0-9_-]{1,80}$/;
 const STATUSES = ['running', 'success', 'error', 'interrupted', 'cancelled', 'refused'];
-const ORIGINS = ['click', 'public', 'mcp', 'test', 'background', 'mailbox_hook'];
+const ORIGINS = ['click', 'public', 'mcp', 'test', 'background', 'mailbox_hook', 'trigger'];
 
 function defaultDeps(): RunLogDeps {
     const policy = nodeRequire('../stores/studioAppData/runPolicy.mts') as typeof import('../stores/studioAppData/runPolicy.mts');

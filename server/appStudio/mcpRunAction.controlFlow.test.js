@@ -156,3 +156,27 @@ test('a real run (dryRun: false) does not carry the dry run note', async () => {
     assert.equal(out.ok, true, JSON.stringify(out).slice(0, 600));
     assert.doesNotMatch(JSON.stringify(out), /ran one after another/);
 });
+
+test('a dry run never asks for an approval or waits: the decision is mocked (approved unless the mock says otherwise)', async () => {
+    const action = { kind: 'sequence', runOn: 'server', steps: [
+        { kind: 'await_approval', prompt: { kind: 'static', value: 'OK?' }, resultVar: 'ok' },
+        { kind: 'wait', seconds: 86_400 },
+        { kind: 'condition', expr: 'vars.ok.decision == "approved"', then: [setVar('path', '"yes"')], else: [setVar('path', '"no"')] },
+    ] };
+    const out = await run(action);
+    assert.equal(out.ok, true, JSON.stringify(out).slice(0, 600));
+    assert.deepEqual(executed, [], 'nothing reached the executor, so nobody was asked');
+    assert.equal(out.free, true);
+    const steps = byPath(out);
+    assert.equal(steps['steps[0]'].mocked, true);
+    assert.equal(steps['steps[1]'].status, 'skipped');
+    assert.match(steps['steps[1]'].error, /does not wait/);
+    assert.equal(out.vars.path, 'yes');
+    assert.match(out.notes.join(' '), /nobody was asked/);
+
+    const rejected = await run(action, { mock: { 'steps[0]': { decision: 'rejected', reason: 'Too much' } } });
+    assert.equal(rejected.vars.path, 'no');
+    assert.equal(rejected.vars.ok.reason, 'Too much');
+    assert.equal((await run(action, { mock: { 'steps[0]': 'maybe' } })).ok, false, 'a mock that is no decision fails the step');
+    assert.equal(byPath(await run(action, { dryRun: false }))['steps[0]'].status, 'refused', 'a real app_run_action never asks either');
+});

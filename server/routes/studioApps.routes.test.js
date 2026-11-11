@@ -59,6 +59,8 @@ const EXPECTED = [
     'get /:id/runs requireAuth validateRequest <anonymous>',
     'get /:id/runs/:runId requireAuth validateRequest <anonymous>',
     'get /:id/runtime requireAuth validateRequest <anonymous>',
+    'get /:id/triggers requireAuth gateOwnedApp <anonymous>',
+    'get /:id/triggers/:triggerId/webhook requireAuth gateOwnedApp validateRequest <anonymous>',
     'get /:id/versions requireAuth <anonymous>',
     'get /catalog requireAuth <anonymous>',
     'get /mine requireAuth <anonymous>',
@@ -72,11 +74,14 @@ const EXPECTED = [
     'post /:id/check requireAuth validateRequest <anonymous>',
     'post /:id/public-pages requireAuth <anonymous> <anonymous>',
     'post /:id/template-upgrade requireAuth <anonymous> <anonymous>',
+    'post /:id/triggers/:triggerId/webhook/rotate requireAuth gateOwnedApp validateRequest <anonymous>',
+    'post /:id/triggers/:triggerId/webhook/secret requireAuth gateOwnedApp validateRequest <anonymous>',
     'post /:id/versions/:versionId/restore requireAuth <anonymous> <anonymous>',
     'post /import requireAuth <anonymous> rateLimitMiddleware <anonymous>',
     'post /templates/import requireAuth <anonymous> rateLimitMiddleware <anonymous>',
     'put /:id requireAuth <anonymous> validateRequest <anonymous>',
     'put /:id/definition requireAuth <anonymous> validateRequest <anonymous>',
+    'put /:id/triggers/:triggerId requireAuth gateOwnedApp validateRequest <anonymous>',
 ];
 
 test('the router answers exactly the same routes with the same middleware chain', () => {

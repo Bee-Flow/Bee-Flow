@@ -1,0 +1,42 @@
+{
+  "translations": {
+    "studio_apps_schedule.act_remove_trigger": "Trigger verwijderd",
+    "studio_apps_schedule.act_set_trigger": "Trigger ingesteld",
+    "studio_apps_schedule.panel.action": "Uit te voeren actie",
+    "studio_apps_schedule.panel.add": "Schema toevoegen",
+    "studio_apps_schedule.panel.armed": "Actief",
+    "studio_apps_schedule.panel.cron": "Tijden als minuut, uur, dag van de maand, maand, dag van de week",
+    "studio_apps_schedule.panel.desc": "Een trigger voert op vaste tijden een actie uit op de server, zonder dat iemand de pagina open heeft. Hij loopt pas als de app is gepubliceerd.",
+    "studio_apps_schedule.panel.enabled": "Aan na publiceren",
+    "studio_apps_schedule.panel.every_minutes": "Om de hoeveel minuten",
+    "studio_apps_schedule.panel.last_cancelled": "Laatste run {time}: geannuleerd",
+    "studio_apps_schedule.panel.last_failed": "Laatste run {time}: mislukt",
+    "studio_apps_schedule.panel.last_refused": "Niet uitgevoerd {time}",
+    "studio_apps_schedule.panel.last_running": "Laatste run {time}: loopt nog",
+    "studio_apps_schedule.panel.last_skipped": "Overgeslagen {time}",
+    "studio_apps_schedule.panel.last_success": "Laatste run {time}: klaar",
+    "studio_apps_schedule.panel.mode": "Hoe de tijden zijn opgegeven",
+    "studio_apps_schedule.panel.mode_cron": "Op vaste tijden",
+    "studio_apps_schedule.panel.mode_interval": "Om de … minuten",
+    "studio_apps_schedule.panel.next": "Volgende run {time}",
+    "studio_apps_schedule.panel.no_actions": "Voeg eerst een actie aan de app toe: een trigger voert een van de acties uit.",
+    "studio_apps_schedule.panel.not_armed_draft": "Niet actief. Een trigger loopt pas als de app is gepubliceerd.",
+    "studio_apps_schedule.panel.not_armed_published": "Nog niet actief. Publiceer de app opnieuw om deze trigger aan te zetten.",
+    "studio_apps_schedule.panel.not_live": "Je hebt deze trigger gewijzigd. De gepubliceerde app voert de oude uit totdat je opnieuw publiceert.",
+    "studio_apps_schedule.panel.paused": "Gepauzeerd",
+    "studio_apps_schedule.panel.paused_failures": "Gepauzeerd na {count} mislukte runs op rij. Los het probleem in de actie op en zet de trigger daarna weer aan.",
+    "studio_apps_schedule.panel.remove": "Deze trigger verwijderen",
+    "studio_apps_schedule.panel.runs_as": "Hij loopt als de eigenaar van deze app: met de toegang van de eigenaar tot elke rij, de mailbox van de eigenaar en de automatiseringen van de eigenaar.",
+    "studio_apps_schedule.panel.state_failed": "Of de triggers actief zijn, kon niet worden gelezen.",
+    "studio_apps_schedule.panel.steps_hint": "De actie mag alleen stappen bevatten die zonder pagina werken: geen navigatie, dialogen, meldingen of verversingen. Bij het opslaan van de app zie je welke stap in de weg zit.",
+    "studio_apps_schedule.panel.switch_failed": "De trigger kon niet worden omgezet. Probeer het opnieuw.",
+    "studio_apps_schedule.panel.switch_off": "Uitzetten",
+    "studio_apps_schedule.panel.switch_on": "Weer aanzetten",
+    "studio_apps_schedule.panel.title": "Volgens een schema",
+    "studio_apps_schedule.panel.tz": "Tijdzone",
+    "studio_apps_schedule.runs.triggers_only": "Alleen runs die een trigger startte"
+  },
+  "sameAsEnglish": [
+    "studio_apps_schedule.runs.origin_trigger"
+  ]
+}

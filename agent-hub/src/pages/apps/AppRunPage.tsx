@@ -1,4 +1,5 @@
 import { CircleSlash, RefreshCw, Users } from 'lucide-react';
+import { persistKeyFor } from '@/components/admin/Studio/AppStudio/runtime/variables/persistedVariables';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import AppDataScope from '../../components/admin/Studio/AppStudio/runtime/AppDataScope';
 import AppRenderer from '../../components/admin/Studio/AppStudio/runtime/AppRenderer';
@@ -179,6 +180,8 @@ export function RunSurface({
         forms,
         screen: { id: screenId, params: screenParams },
         onBrowseEvent: browseStore.publish,
+        // Kept variables (schema 3 persist): only for a signed-in viewer, never on a public page.
+        persistKey: persistKeyFor(appId, viewer, !!draft),
     });
 
     // The live scope dynamic binding filters resolve against — buildScope's
@@ -234,7 +237,7 @@ export function RunSurface({
                     />
                 )}
             </AppDataScope>
-            <BackgroundRunTray actionState={actionState} />{dialog}
+            <BackgroundRunTray actionState={actionState} appId={appId} />{dialog}
         </BrowserRunProvider>
     );
 }

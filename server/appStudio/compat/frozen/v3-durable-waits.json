@@ -1,0 +1,66 @@
+{
+  "corpus": "v3-durable-waits",
+  "canonical": {
+    "sha256": "12673425bad3cdc6235e240f978c47244fb8071a999da6289bef29ece4c1c871",
+    "bytes": 2355,
+    "inputIsCanonical": true,
+    "idempotent": true,
+    "keys": [
+      "schemaVersion",
+      "meta",
+      "theme",
+      "roles",
+      "variables",
+      "screens",
+      "actions",
+      "homeScreenId"
+    ],
+    "parts": {
+      "schemaVersion": "4e07408562bedb8b",
+      "meta": "713aa2d47d901204",
+      "theme": "87df6a9096a03b63",
+      "roles": "4f53cda18c2baa0c",
+      "variables": "5b55d269378cb085",
+      "screens[0] scr_wait0001": "6392d89edca4a285",
+      "actions.act_waitapr1": "248ad1a9a477be89",
+      "actions.act_waitlong": "cdcad7180b028e3c",
+      "actions.act_waitshrt": "c63d36ba4ecd32f0",
+      "homeScreenId": "d7598c17d92d296a"
+    }
+  },
+  "schemaVersion": {
+    "stored": 3,
+    "canonical": 3
+  },
+  "validation": {
+    "strict": {
+      "errors": [],
+      "warnings": []
+    },
+    "save": {
+      "errors": [],
+      "warnings": []
+    }
+  },
+  "ordinals": {
+    "stored": {
+      "act_waitapr1": [
+        "0 await_approval",
+        "1 condition",
+        "2 toast",
+        "3 toast"
+      ],
+      "act_waitlong": [
+        "0 wait",
+        "1 wait",
+        "2 toast"
+      ],
+      "act_waitshrt": [
+        "0 toast",
+        "1 wait",
+        "2 navigate"
+      ]
+    },
+    "canonical": "same as stored"
+  }
+}

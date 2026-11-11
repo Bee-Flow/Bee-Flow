@@ -1,0 +1,338 @@
+{
+  "about": {
+    "source": "hand-made for package LK21a (switch, radio, slider, rating, avatar, accordion, carousel): every new type once, the inputs in a form, the two containers with two children each",
+    "captured": "2026-11-11"
+  },
+  "definition": {
+    "schemaVersion": 3,
+    "meta": {
+      "name": "New types basic",
+      "description": "Switch, radio group, slider, rating, avatar, accordion and carousel.",
+      "icon": "LayoutGrid"
+    },
+    "theme": {
+      "primary": "#1D4ED8",
+      "radius": "md",
+      "density": "comfortable",
+      "fontScale": "md",
+      "appearance": "auto"
+    },
+    "roles": [],
+    "screens": [
+      {
+        "id": "scr_newty01",
+        "name": "New types",
+        "icon": null,
+        "showInNav": true,
+        "maxWidth": "medium",
+        "sections": [
+          {
+            "id": "sec_newty01",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_newty01",
+                "type": "heading",
+                "props": {
+                  "text": "Inputs",
+                  "level": 2,
+                  "accent": "none"
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_newty02",
+                "type": "form",
+                "props": {
+                  "name": "prefs",
+                  "submitLabel": "Save",
+                  "showReset": false,
+                  "showSubmit": false,
+                  "resetKey": null
+                },
+                "style": {
+                  "span": 12,
+                  "gap": 3,
+                  "padding": 0
+                },
+                "visible": true,
+                "children": [
+                  {
+                    "id": "cmp_newty03",
+                    "type": "switch",
+                    "props": {
+                      "name": "notify",
+                      "label": "Send me updates",
+                      "defaultChecked": true,
+                      "required": false,
+                      "valueFrom": {
+                        "kind": "static",
+                        "value": null
+                      }
+                    },
+                    "style": {
+                      "span": 12
+                    },
+                    "visible": true
+                  },
+                  {
+                    "id": "cmp_newty04",
+                    "type": "radio",
+                    "props": {
+                      "name": "plan",
+                      "label": "Plan",
+                      "options": [
+                        {
+                          "value": "free",
+                          "label": "Free"
+                        },
+                        {
+                          "value": "pro",
+                          "label": "Pro"
+                        },
+                        {
+                          "value": "team",
+                          "label": "Team"
+                        }
+                      ],
+                      "required": false,
+                      "defaultValue": "pro",
+                      "valueFrom": {
+                        "kind": "static",
+                        "value": null
+                      }
+                    },
+                    "style": {
+                      "span": 6
+                    },
+                    "visible": true
+                  },
+                  {
+                    "id": "cmp_newty05",
+                    "type": "slider",
+                    "props": {
+                      "name": "volume",
+                      "label": "Volume",
+                      "min": 0,
+                      "max": 10,
+                      "step": 1,
+                      "required": false,
+                      "defaultValue": 4,
+                      "valueFrom": {
+                        "kind": "static",
+                        "value": null
+                      }
+                    },
+                    "style": {
+                      "span": 6
+                    },
+                    "visible": true
+                  },
+                  {
+                    "id": "cmp_newty06",
+                    "type": "rating",
+                    "props": {
+                      "name": "score",
+                      "label": "Score",
+                      "max": 5,
+                      "required": false,
+                      "defaultValue": 3,
+                      "valueFrom": {
+                        "kind": "static",
+                        "value": null
+                      }
+                    },
+                    "style": {
+                      "span": 6
+                    },
+                    "visible": true
+                  }
+                ]
+              },
+              {
+                "id": "cmp_newty07",
+                "type": "heading",
+                "props": {
+                  "text": "Display",
+                  "level": 2,
+                  "accent": "none"
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_newty08",
+                "type": "avatar",
+                "props": {
+                  "src": null,
+                  "srcFrom": null,
+                  "name": "Ada Lovelace",
+                  "nameFrom": null,
+                  "size": "lg"
+                },
+                "style": {
+                  "span": 2
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_newty09",
+                "type": "accordion",
+                "props": {
+                  "items": [
+                    {
+                      "title": "What is included"
+                    },
+                    {
+                      "title": "How it works"
+                    }
+                  ],
+                  "multiple": false
+                },
+                "style": {
+                  "span": 12,
+                  "gap": 3,
+                  "padding": 0
+                },
+                "visible": true,
+                "children": [
+                  {
+                    "id": "cmp_newty10",
+                    "type": "container",
+                    "props": {
+                      "look": "plain"
+                    },
+                    "style": {
+                      "span": 12,
+                      "gap": 3
+                    },
+                    "visible": true,
+                    "children": [
+                      {
+                        "id": "cmp_newty11",
+                        "type": "text",
+                        "props": {
+                          "text": "Every plan includes the basics.",
+                          "muted": false
+                        },
+                        "style": {
+                          "span": 12
+                        },
+                        "visible": true
+                      }
+                    ]
+                  },
+                  {
+                    "id": "cmp_newty12",
+                    "type": "container",
+                    "props": {
+                      "look": "plain"
+                    },
+                    "style": {
+                      "span": 12,
+                      "gap": 3
+                    },
+                    "visible": true,
+                    "children": [
+                      {
+                        "id": "cmp_newty13",
+                        "type": "text",
+                        "props": {
+                          "text": "Pick a plan and it starts at once.",
+                          "muted": false
+                        },
+                        "style": {
+                          "span": 12
+                        },
+                        "visible": true
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "cmp_newty14",
+                "type": "carousel",
+                "props": {
+                  "loop": false,
+                  "showDots": true
+                },
+                "style": {
+                  "span": 12,
+                  "gap": 3,
+                  "padding": 0
+                },
+                "visible": true,
+                "children": [
+                  {
+                    "id": "cmp_newty15",
+                    "type": "container",
+                    "props": {
+                      "look": "plain"
+                    },
+                    "style": {
+                      "span": 12,
+                      "gap": 3
+                    },
+                    "visible": true,
+                    "children": [
+                      {
+                        "id": "cmp_newty16",
+                        "type": "text",
+                        "props": {
+                          "text": "First slide",
+                          "muted": false
+                        },
+                        "style": {
+                          "span": 12
+                        },
+                        "visible": true
+                      }
+                    ]
+                  },
+                  {
+                    "id": "cmp_newty17",
+                    "type": "container",
+                    "props": {
+                      "look": "plain"
+                    },
+                    "style": {
+                      "span": 12,
+                      "gap": 3
+                    },
+                    "visible": true,
+                    "children": [
+                      {
+                        "id": "cmp_newty18",
+                        "type": "text",
+                        "props": {
+                          "text": "Second slide",
+                          "muted": false
+                        },
+                        "style": {
+                          "span": 12
+                        },
+                        "visible": true
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "actions": {},
+    "homeScreenId": "scr_newty01"
+  }
+}

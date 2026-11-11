@@ -19,9 +19,10 @@
  *   …props[name].itemShape[key].since / .valuesSince      a key of the items of a list prop
  *                                                  (and of a list nested in those items)
  *   COMPONENT_SPECS[type].eventsSince              { [event]: n }, an event an existing type newly fires
+ *   COMPONENT_SPECS[type].childrenSince            n, a type that became a slot container (its children)
  *   SCREEN_SPEC[key].since / .valuesSince          a screen key, an enum value of one
  *   THEME_SPEC[key] / DESIGN_SPEC[key] .since / .valuesSince   a theme or design key, a value
- *   componentSpecs/keys/<family>/<key>.js          a section, node, nav or nav-group key, a
+ *   componentSpecs/keys/<family>/<key>.js          a section, node, nav, nav-group or variable key, a
  *                                                  knob newly allowed on sections (keyMarks.js)
  *   core/dataEngine/dataModel/vocabularySince.js   a filter operator, an aggregate function,
  *                                                  a date bucket (query vocabulary in a binding)
@@ -32,7 +33,7 @@
  *
  * An input mapping kind added after the base (`formula`) is read by schemaSinceMappings.mts.
  *
- * One VALUE form has a version too: `asset:<id>`, an uploaded file of the app, accepted in
+ * Two VALUE forms have a version too. `token:<name>` in a colour knob (designTokens.mts). And `asset:<id>`, an uploaded file of the app, accepted in
  * props and design keys that took only an https URL before (appAssets.mts ASSET_REF_SINCE).
  * So does a list of action ids in a component event slot (shared/appDefinition/
  * clientTriggers.mjs ACTION_LIST_SINCE): a slot held one id before schema 3.
@@ -55,6 +56,7 @@ import { definitionKeys } from './definitionKeyRegistry.mts';
 import { ASSET_REF_SINCE, hasAssetRef } from './appAssets.mts';
 import { ACTION_LIST_SINCE, hasActionListSlot } from '../shared/appDefinition/clientTriggers.mjs';
 import { mappingKindSince } from './schemaSinceMappings.mts';
+import { hasStyleTokenRef } from './designTokens.mts';
 import type { DefinitionKeyEntry } from './definitionKeyRegistry.mts';
 
 type SinceMap = Record<string, number>;
@@ -62,7 +64,7 @@ type SinceIndex = ReturnType<typeof emptySinceIndex>;
 type ShapeTests = Record<string, Record<string, (value: unknown) => boolean>>;
 type QueryMark = { since: number; kinds?: readonly string[]; holds?: string; uses?: (value: unknown) => boolean };
 type ShapeMarks = SinceIndex['itemShapes'][string][string];
-type Spec = { since?: unknown; valuesSince?: unknown; eventsSince?: unknown; props?: Record<string, Spec>; fields?: Record<string, Spec>; itemShape?: Record<string, Spec> };
+type Spec = { since?: unknown; valuesSince?: unknown; eventsSince?: unknown; childrenSince?: unknown; props?: Record<string, Spec>; fields?: Record<string, Spec>; itemShape?: Record<string, Spec> };
 type SpecTable = Record<string, Spec>;
 type KeyFamily = typeof KEY_FAMILIES[number];
 
@@ -95,7 +97,7 @@ const specs = nodeRequire('./componentSpecs.js') as {
     THEME_SPEC: SpecTable;
     DESIGN_SPEC: SpecTable;
     EVENT_NAMES: readonly string[];
-    KEY_MARKS: Record<'section' | 'sectionStyle' | 'node' | 'nav' | 'navGroup', SpecTable> & Record<'binding' | 'queryShape', Record<string, QueryMark>>;
+    KEY_MARKS: Record<'section' | 'sectionStyle' | 'node' | 'nav' | 'navGroup' | 'variable', SpecTable> & Record<'binding' | 'queryShape', Record<string, QueryMark>>;
 };
 const queryMarks = nodeRequire('./componentSpecs/queryMarks.js') as {
     bindingKeysSince: (marks: Catalogue['bindingKeyMarks']) => Record<string, SinceMap>;
@@ -105,6 +107,9 @@ const { QUERY_VALUES_SINCE } = nodeRequire('../core/dataEngine/dataModel/vocabul
 const { HttpError } = nodeRequire('../core/http/errors.js') as {
     HttpError: new (status: number, code: string, message: string) => Error;
 };
+
+/** The schema version a `token:<name>` value in a colour knob needs (designTokens.mts). */
+const TOKEN_REF_SINCE = 3;
 
 /** The code a refusal carries, in canonicalize's `refused` and in a 422 body. */
 export const SCHEMA_NEWER = 'schema_newer';
@@ -175,7 +180,9 @@ function readComponents(table: SpecTable | undefined, index: SinceIndex): void {
         }
         if (Object.keys(shapes).length) index.itemShapes[type] = shapes;
         const events = valuesAbove(spec.eventsSince);
-        if (events) index.typeNodeKeys[type] = events;
+        // A type that became a slot container later: a node of it holding children (componentSpecs/itemTemplates.js).
+        const children = above(spec.childrenSince);
+        if (events || children) index.typeNodeKeys[type] = { ...events, ...(children ? { children } : null) };
     }
 }
 
@@ -255,6 +262,7 @@ export function liveCatalogue(): Catalogue {
             node: specs.KEY_MARKS.node,
             nav: specs.KEY_MARKS.nav,
             navGroup: specs.KEY_MARKS.navGroup,
+            variable: specs.KEY_MARKS.variable,
         },
         queryValuesSince: QUERY_VALUES_SINCE,
         bindingKeyMarks: specs.KEY_MARKS.binding,
@@ -272,6 +280,8 @@ export function requiredSchemaVersion(definition: unknown): number {
     // A mapping kind added after the base (schemaSinceMappings.mts) is a value form too, like an asset reference.
     let required = Math.max(requiredWithIndex(definition, index, tests), mappingKindSince(definition));
     if (required < ACTION_LIST_SINCE && hasActionListSlot(definition, specs.EVENT_NAMES)) required = ACTION_LIST_SINCE;
+    // A colour knob holding token:<name> of design.tokens (designTokens.mts) is read by schema 3 only.
+    if (required < TOKEN_REF_SINCE && hasStyleTokenRef(definition)) required = TOKEN_REF_SINCE;
     return required >= ASSET_REF_SINCE || !hasAssetRef(definition) ? required : ASSET_REF_SINCE;
 }
 

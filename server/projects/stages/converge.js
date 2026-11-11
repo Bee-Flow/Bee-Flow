@@ -17,7 +17,10 @@
  *   automation retired   its remote and local event subscriptions go
  *   page flipped      the `current/` slots are written from the pinned version
  *                     (which also reindexes the page's table usage)
- *   app flipped       the app's automation-usage index is rebuilt
+ *   app flipped       the app's automation-usage index is rebuilt, and its server triggers
+ *                     follow the deployed copy (appStudio/triggers/deploySync.mts: armed,
+ *                     updated or removed as a publish does)
+ *   app retired       its server triggers are removed (the commit unpublished it)
  *   tables            the scope's engine cache is dropped
  *   knowledge         the target base's version is bumped (search caches)
  *   always            a project feed event `deployment.succeeded`
@@ -59,6 +62,15 @@ async function previousLiveOf(s, steps, automationId) {
     }
 }
 
+/** The task that makes an app's armed triggers follow its published copy; it throws when the sync failed, so it is retried. */
+function appTriggersTask(deps, st) {
+    return { name: 'app_triggers', ref: st.ref, run: async () => {
+        const sync = dep(deps, 'syncAppTriggers', () => require('../../appStudio/triggers/deploySync.mts').syncAfterStageChange);
+        const out = await sync(st.entityId);
+        if (out && 'synced' in out && out.synced === null) throw Object.assign(new Error('trigger sync failed'), { code: 'trigger_sync_failed' });
+    } };
+}
+
 /** The converge tasks of one deployment, each `{ name, ref, run }`; `run` throws on failure. */
 async function tasksFor({ deployment, stage }, deps) {
     const s = storesOf(deps);
@@ -96,7 +108,11 @@ async function tasksFor({ deployment, stage }, deps) {
                 const sync = dep(deps, 'reconcileAppUsage', () => require('../../appStudio/automationUsageSync').reconcileAppAutomationUsageDetached);
                 await sync(st.entityId);
             } });
+            tasks.push(appTriggersTask(deps, st));
         }
+    }
+    for (const st of commitSteps.filter((/** @type {{ action: string; kind: string; }} */ x) => x.action === 'retire' && x.kind === 'app')) {
+        tasks.push(appTriggersTask(deps, st));
     }
     for (const st of commitSteps.filter((/** @type {{ action: string; kind: string; }} */ x) => x.action === 'retire' && x.kind === 'automation')) {
         tasks.push({ name: 'automation_off', ref: st.ref, run: async () => {
@@ -139,7 +155,7 @@ async function feedEvent({ deployment, stage }, report, deps) {
  *
  * @param {{ deployment: object, stage: object }} input  the row is `converging`
  * @param {Record<string, unknown> & { sleep?: (ms: number) => Promise<void>, maxAttempts?: number, tasks?: unknown[] }} [deps]
- *   stores (journal.storesOf), `goLive`, `goLiveDeps`, `reconcileAppUsage`,
+ *   stores (journal.storesOf), `goLive`, `goLiveDeps`, `reconcileAppUsage`, `syncAppTriggers`,
  *   `revokeRemoteSubscriptions`, `emitProjectEvent`, `sleep(ms)`, `maxAttempts`, `tasks` (a test's own list)
  * @returns {Promise<{ deployment: object|null, report: { warnings: object[], attempts: number } }>}
  */

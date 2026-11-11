@@ -26,6 +26,9 @@ export interface GridColumn {
     [extra: string]: unknown;
 }
 
+/** A non-empty rule list (columns[].cellStyle), or null. */
+const ruleListOf = (value: unknown): unknown[] | null => (Array.isArray(value) && value.length ? value : null);
+
 interface GridCellContext {
     getValue: () => unknown;
     row: { original: Record<string, any>; index: number };
@@ -87,6 +90,8 @@ export function useGridColumns({ colDefs, baseRows, isRun, onRowSelect, runActio
                 help: typeof col.help === 'string' && col.help ? col.help : null,
                 // Set when the whole column is a button (spec: columns[].actionId).
                 actionId: typeof col.actionId === 'string' && col.actionId ? col.actionId : null,
+                // Schema 3: the conditional cell style rules, read per cell by GridBody.
+                cellStyle: ruleListOf(col.cellStyle),
             },
             cell: (ctx: GridCellContext) => {
                 const value = ctx.getValue();

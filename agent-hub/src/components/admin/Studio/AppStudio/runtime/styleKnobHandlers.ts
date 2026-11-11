@@ -29,14 +29,23 @@ import type { InlineStyle, StyleKnobs } from './styleResolver.types';
 export interface StyleKnobHandler {
     /** What the inspector calls each knob of the group: knob → [i18n key, English]. */
     labels?: Readonly<Record<string, readonly [string, string]>>;
-    /** A component node's style. */
-    node?: (s: StyleKnobs, style: InlineStyle) => string;
+    /** A component node's style; `context` says what of the app around it the node may follow. */
+    node?: (s: StyleKnobs, style: InlineStyle, context?: StyleKnobContext) => string;
     /** A section's style (only for a group granted to the section's list). */
     section?: (s: StyleKnobs, style: InlineStyle) => string;
     /** The inspector's heading over the group's controls: [i18n key, English]. */
     title?: readonly [string, string];
     /** What the inspector calls an enum value: knob → value → [i18n key, English]. */
     valueLabels?: Readonly<Record<string, Readonly<Record<string, readonly [string, string]>>>>;
+}
+
+/**
+ * What of the app a node's handler may read beside its own style: the app's design as the
+ * renderer resolved it (RuntimeContext appDesign), for a knob that follows a design key (the
+ * text knob `font` and design.fonts). Absent where there is no app around the node.
+ */
+export interface StyleKnobContext {
+    design?: unknown;
 }
 
 interface KnobGroup {
@@ -96,12 +105,13 @@ export function applyStyleKnobHandlers(
     s: StyleKnobs,
     style: InlineStyle,
     where: 'node' | 'section',
+    context?: StyleKnobContext,
 ): string {
     let classes = '';
     for (const { knobs, handler } of handlers) {
         const resolve = handler[where];
         if (!resolve || !sets(s, knobs)) continue;
-        const extra = resolve(s, style).trim();
+        const extra = resolve(s, style, context).trim();
         if (extra) classes += ` ${extra}`;
     }
     return classes;

@@ -107,14 +107,16 @@ interface TableDetailProps extends GeneratorsProps {
     tables: ModelTable[];
     savedTable: ModelTable | null;
     onChange: (table: ModelTable) => void;
+    /** The app's role keys, for the column rights of a field. */
+    roles: string[];
 }
 
 /** The selected table: where its rows live, its fields, and the generators. */
-export default function TableDetail({ table, tables, savedTable, onChange, ...gen }: TableDetailProps) {
+export default function TableDetail({ table, tables, savedTable, onChange, roles, ...gen }: TableDetailProps) {
     return (
         <div className="flex flex-col gap-4">
             <SourceStrip source={gen.source} />
-            <TableDesigner table={table} tables={tables} savedTable={savedTable} onChange={onChange} disabled={gen.saving} />
+            <TableDesigner table={table} tables={tables} savedTable={savedTable} onChange={onChange} roles={roles} disabled={gen.saving} />
             <Generators {...gen} />
         </div>
     );

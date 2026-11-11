@@ -1,4 +1,6 @@
 import { useDraggable, useDroppable } from '@dnd-kit/core';
+import { useContext } from 'react';
+import { RowTemplateContext } from '../itemTemplate';
 import { walkPath } from '../resolveBinding';
 import { ROLE_COLORS } from '../styleResolver.constants';
 import { displayValue } from '../uiBits';
@@ -43,7 +45,10 @@ function CardField({ field, row }: CardFieldProps) {
     );
 }
 
-export function CardBody({ row, titleKey, subtitleKey, badgeKey, badgeToneMap, cardFields }: CardBodyProps) {
+export function CardBody({ row, index, titleKey, subtitleKey, badgeKey, badgeToneMap, cardFields }: CardBodyProps) {
+    // Schema 3: the board's card template (../itemTemplate.tsx) in place of the built-in body.
+    const template = useContext(RowTemplateContext);
+    if (template) return <>{template(row, index ?? 0)}</>;
     const subtitle = subtitleKey ? walkPath(row, subtitleKey) : null;
     const badge = badgeKey ? walkPath(row, badgeKey) : null;
     const toneHit = badge != null && badge !== ''
@@ -175,6 +180,7 @@ export function KanbanCard({
         >
             <CardBody
                 row={row}
+                index={index}
                 titleKey={titleKey}
                 subtitleKey={subtitleKey}
                 badgeKey={badgeKey}

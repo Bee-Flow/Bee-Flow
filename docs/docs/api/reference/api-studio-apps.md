@@ -9,7 +9,7 @@ toc_max_heading_level: 2
 
 # `/api/studio-apps`
 
-86 routes, 50 with a request schema. Back to the [endpoint reference](../reference.md).
+93 routes, 56 with a request schema. Back to the [endpoint reference](../reference.md).
 
 ## `(root)`
 
@@ -205,6 +205,35 @@ No request schema.
 |-------|------|:--------:|-------|
 | `id` | string | yes | min length 1; max length 200 |
 | `jobId` | string | yes | min length 1; max length 64 |
+
+### `POST /api/studio-apps/:id/actions/jobs/:jobId/cancel`
+
+**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate`
+
+**Path parameters**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `id` | string | yes | min length 1; max length 200 |
+| `jobId` | string | yes | min length 1; max length 64 |
+
+### `POST /api/studio-apps/:id/actions/jobs/:jobId/resume`
+
+**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate`, `gateOwnJob`
+
+**Path parameters**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `id` | string | yes | min length 1; max length 200 |
+| `jobId` | string | yes | min length 1; max length 64 |
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `token` | string | yes | min length 1; max length 200 |
+| `payload` | any |  |  |
 
 ### `GET /api/studio-apps/:id/actions/runs/:runId`
 
@@ -794,8 +823,8 @@ No request schema.
 | Field | Type | Required | Notes |
 |-------|------|:--------:|-------|
 | `actionId` | string |  | max length 80; pattern `^[A-Za-z0-9_-]{1,80}$` |
-| `status` | one of `"running"`, `"success"`, `"error"`, `"interrupted"`, `"cancelled"`, `"refused"` |  |  |
-| `origin` | string |  | max length 120; pattern `^(click\|public\|mcp\|test\|background\|mailbox_hook)(,(click\|...` |
+| `status` | one of `"running"`, `"success"`, `"error"`, `"interrupted"`, `"cancelled"`, `"refused"`, `"paused"` |  |  |
+| `origin` | string |  | max length 120; pattern `^(click\|public\|mcp\|test\|background\|mailbox_hook\|trigger)(...` |
 | `user` | string |  | max length 200 |
 | `since` | string |  | max length 40 |
 | `cursor` | string |  | max length 200 |
@@ -858,6 +887,62 @@ No request schema.
 **Access:** Signed-in user · Permission `manage_apps` · Capability `app_studio` · middleware `trainingGate`
 
 No request schema.
+
+### `GET /api/studio-apps/:id/triggers`
+
+**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate`, `gateOwnedApp`
+
+No request schema.
+
+### `PUT /api/studio-apps/:id/triggers/:triggerId`
+
+**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate`, `gateOwnedApp`
+
+**Path parameters**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `id` | string | yes | min length 1; max length 200 |
+| `triggerId` | string | yes | min length 1; max length 40 |
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `enabled` | boolean | yes |  |
+
+### `GET /api/studio-apps/:id/triggers/:triggerId/webhook`
+
+**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate`, `gateOwnedApp` · the handler also checks who the caller is
+
+**Path parameters**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `id` | string | yes | min length 1; max length 200 |
+| `triggerId` | string | yes | min length 1; max length 40 |
+
+### `POST /api/studio-apps/:id/triggers/:triggerId/webhook/rotate`
+
+**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate`, `gateOwnedApp`
+
+**Path parameters**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `id` | string | yes | min length 1; max length 200 |
+| `triggerId` | string | yes | min length 1; max length 40 |
+
+### `POST /api/studio-apps/:id/triggers/:triggerId/webhook/secret`
+
+**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate`, `gateOwnedApp`
+
+**Path parameters**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `id` | string | yes | min length 1; max length 200 |
+| `triggerId` | string | yes | min length 1; max length 40 |
 
 ### `GET /api/studio-apps/:id/versions`
 

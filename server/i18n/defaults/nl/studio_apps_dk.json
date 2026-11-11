@@ -1,0 +1,11 @@
+{
+  "translations": {
+    "studio_apps_dk.heading": "Wie dit veld mag zien en wijzigen",
+    "studio_apps_dk.limit_read": "Alleen bepaalde rollen mogen het zien",
+    "studio_apps_dk.limit_write": "Alleen bepaalde rollen mogen het wijzigen",
+    "studio_apps_dk.read_hint": "Jij ziet het altijd. Elke andere rol krijgt records zonder dit veld, en een lijst, filter, sortering of grafiek die het gebruikt, laadt voor die rol niet.",
+    "studio_apps_dk.role_public": "Bezoekers van openbare pagina's",
+    "studio_apps_dk.write_hint": "Jij kunt het altijd wijzigen. Zonder deze lijst mogen de rollen die het veld zien het ook wijzigen."
+  },
+  "sameAsEnglish": []
+}

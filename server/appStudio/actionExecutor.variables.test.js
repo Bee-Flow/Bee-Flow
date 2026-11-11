@@ -64,3 +64,15 @@ test('seeding vars leaves every other scope root alone', () => {
     assert.deepStrictEqual(scope.actions, {});
     assert.deepStrictEqual(scope.records, {});
 });
+
+test('a derived variable is worked out again on the server, never taken from the client', () => {
+    const variables = [...DECLARED, { name: 'double', label: 'Double', type: 'number', default: -1, description: '', derived: { expr: 'vars.limit * 2' } }];
+    assert.equal(buildServerScope({ variables, vars: { limit: 4, double: 999 } }).vars.double, 8);
+    // A formula that gives nothing falls back to the declared default.
+    const empty = [{ name: 'x', label: 'X', type: 'any', default: 'none', description: '', derived: { expr: 'vars.missing' } }];
+    assert.equal(buildServerScope({ variables: empty, vars: { x: 'sent' } }).vars.x, 'none');
+});
+
+test('without a derived variable the client vars pass as they are', () => {
+    assert.deepStrictEqual(buildServerScope({ variables: DECLARED, vars: { extra: 1 } }).vars, { status: 'new', limit: 10, mine: false, extra: 1 });
+});

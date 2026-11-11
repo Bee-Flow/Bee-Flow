@@ -90,7 +90,9 @@ describe('catalog lockstep — componentRegistry.ts against componentSpecs.js', 
             expect(entry.icon, `${type} needs a palette icon`).toBeTruthy();
             expect(entry.label).toBe(spec.label);
             expect(entry.category).toBe(spec.category);
-            expect(!!entry.container).toBe(!!spec.container);
+            // A type that became a slot container later (childrenSince: list, kanban) is a plain type
+            // for the palette: a new node of it starts without a template (scripts/gen-app-catalog.mjs).
+            expect(!!entry.container).toBe(!!spec.container && !spec.childrenSince);
             expect(!!entry.isInput).toBe(!!spec.isInput);
             expect(entry.defaultProps).toEqual(specDefaultProps(spec));
             expect(entry.defaultStyle).toEqual(spec.defaultStyle);

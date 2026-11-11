@@ -3,6 +3,7 @@ import { resolveBinding, walkPath } from '../resolveBinding';
 import type { BindingInput } from '../resolveBinding.types';
 import { useRuntime } from '../RuntimeContext';
 import { EmptyText, ErrorText, SkeletonLines, displayValue, useStickyBinding } from '../uiBits';
+import { textPartClasses } from '../styleKnobs/text';
 import type { NodeProps } from './appNode.types';
 import { logger } from '@/utils/logger';
 
@@ -82,7 +83,7 @@ export default function AppKeyValue({ node }: NodeProps<KeyValueProps>) {
         const cols = Math.min(4, Math.max(1, Number.isInteger(columns) ? columns : 2));
         return (
             <dl
-                className={`grid gap-y-2 ${size === 'sm' ? 'text-xs' : 'text-sm'} bfa-keyValue__root`}
+                className={`grid gap-y-2 ${size === 'sm' ? 'text-xs' : 'text-sm'}${textPartClasses(node.style)} bfa-keyValue__root`}
                 style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
                 data-app-keyvalue-layout="grid"
             >
@@ -107,7 +108,7 @@ export default function AppKeyValue({ node }: NodeProps<KeyValueProps>) {
     }
 
     return (
-        <dl className={`flex flex-col ${size === 'sm' ? 'text-xs gap-1' : 'text-sm gap-1.5'} bfa-keyValue__root`}>
+        <dl className={`flex flex-col ${size === 'sm' ? 'text-xs gap-1' : 'text-sm gap-1.5'}${textPartClasses(node.style)} bfa-keyValue__root`}>
             {rows.map((field) => (
                 <div key={field.key} className="flex items-baseline justify-between gap-3 bfa-keyValue__row">
                     <dt className="shrink-0 font-medium text-[var(--text-secondary)] bfa-keyValue__label">

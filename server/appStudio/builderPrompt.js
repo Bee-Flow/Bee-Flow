@@ -657,7 +657,9 @@ function renderDraftState(def, extras = {}, projection = null) {
     // builderPrompt.test.js asserts renderDraftState is byte-identical across
     // argument forms — so an unconditional line would change all of them.
     if (wants('meta') && Array.isArray(def.variables) && def.variables.length) {
-        lines.push(`variables: ${def.variables.map((v) => `${v.name}:${v.type}=${JSON.stringify(v.default)}`).join(', ')}`);
+        // Schema 3 keys only when set: "total:number=0 derived(vars.qty * 2)", "tab:text='' scope=screen".
+        const extra = (v) => `${v.derived ? ` derived(${v.derived.expr})` : ''}${v.scope ? ` scope=${v.scope}` : ''}${v.persist ? ` persist=${v.persist}` : ''}`;
+        lines.push(`variables: ${def.variables.map((v) => `${v.name}:${v.type}=${JSON.stringify(v.default)}${extra(v)}`).join(', ')}`);
     }
     if (wants('tables') && extras && extras.dataModel !== undefined) {
         lines.push(renderDataBlock(extras.dataModel, extras.datasets, extras.rowCounts, extras.linkedTables || null));

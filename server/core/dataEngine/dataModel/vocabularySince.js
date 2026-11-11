@@ -9,13 +9,15 @@
  *
  *   fieldTypes    a field type                       autonumber: { since: 3, description }
  *   fieldOptions  a key of a field declaration       validation: { since: 3, shape, description }
+ *                 (`access`, the column rights of a field, is one of them: columnRights.mts)
+ *   tableOptions  a key of a table declaration       indexes:    { since: 3, shape, description }
  *   filterOps     a filter operator                  search:     { since: 3, description }
  *   aggFns        an aggregate function              median:     { since: 3, description }
  *   dateBuckets   a date bucket of a group           fortnight:  { since: 3, description }
  *   rowRule       a word of a row rule               viewer.email: { since: 3, description }
  *
  * `description` is one sentence or more on what the word does; `shape` (field options only)
- * is the value's shape as catalogue text. A word without a mark is base vocabulary.
+ * is the value's shape as catalogue text (field and table options only). A word without a mark is base vocabulary.
  *
  * What a mark does:
  *   - The App Studio builder's pinned prompt and the wording of its tool schemas name the BASE
@@ -24,7 +26,7 @@
  *     full by app_inspect_catalog (appStudio/catalogTiers.mts); the schemas' enums accept them.
  *   - A filter operator, aggregate function or date bucket used in a binding or a step of an
  *     app definition stores that definition with at least the mark's schemaVersion
- *     (appStudio/schemaSince.mts). Field types, field options and row rules live in the data
+ *     (appStudio/schemaSince.mts). Field types, field and table options and row rules live in the data
  *     model, which has no schema version of its own.
  *
  * LAYER: core/, literals and vocabulary.js only (see the note there).
@@ -33,10 +35,11 @@
 'use strict';
 
 const vocabulary = require('./vocabulary');
+const linkedFields = require('./linkedFields');
 
 /**
  * @typedef {{ since: number, description: string, shape?: string }} VocabularyMark
- * @typedef {'fieldTypes' | 'fieldOptions' | 'filterOps' | 'aggFns' | 'dateBuckets' | 'rowRule'} VocabularyFamily
+ * @typedef {'fieldTypes' | 'fieldOptions' | 'tableOptions' | 'filterOps' | 'aggFns' | 'dateBuckets' | 'rowRule'} VocabularyFamily
  */
 
 /** @type {Readonly<Record<VocabularyFamily, Readonly<Record<string, VocabularyMark>>>>} */
@@ -56,6 +59,18 @@ const DATA_VOCABULARY_MARKS = Object.freeze({
             since: 3,
             description: 'The user id of a member of the organisation. '
                 + 'dynamicDefault "currentUser.id" fills it with the signed-in user on create. App tables only.',
+        }),
+        lookup: Object.freeze({
+            since: 3,
+            description: 'Shows one field of the record a relation field points at. '
+                + 'Read-only, no column: give it lookup { relation, field }. It reads null when the viewer may not read that record, '
+                + 'and it cannot be filtered or sorted on (filter on "<relation>.<field>" instead). App tables only.',
+        }),
+        rollup: Object.freeze({
+            since: 3,
+            description: 'A count, sum, min, max or average over the records pointing here. '
+                + 'Read-only, no column: give it rollup { table, relation, fn, field?, filter? }. Only the child records the viewer may read are counted, '
+                + 'an empty count reads 0 and an empty sum/min/max/avg reads null. It cannot be filtered, sorted or aggregated on. App tables only.',
         }),
     }),
     fieldOptions: Object.freeze({
@@ -87,6 +102,56 @@ const DATA_VOCABULARY_MARKS = Object.freeze({
             description: 'How the value is shown, never how it is stored. '
                 + `number/computed: currency (an ISO code like "EUR"), decimals (0-${vocabulary.FIELD_DISPLAY.MAX_DECIMALS}), unit (a short suffix like "kg", not with currency). `
                 + 'date/datetime: dateStyle. null removes it.',
+        }),
+        access: Object.freeze({
+            since: 3,
+            shape: '{ read?: [roleKey, …], write?: [roleKey, …] } | null',
+            description: 'Column rights: which roles may read the field and which may write it. '
+                + 'read: only these roles (and the owner) get the field. For every other role it is left out of each record and cannot be used in a filter, sort, search, group or aggregate (such a read is refused), '
+                + 'so do not bind a chart, a filter or a sort that other roles see to it. A computed field over a hidden field is hidden too. '
+                + 'write: only these roles may set the field. Left out, write follows read. An empty list means the owner only, and "public" has the field only when a list names it. '
+                + 'Not on a linked table. A unique field cannot be writable by a role that may not read it, and a relation with onDelete takes no read list. '
+                + 'A lookup through a hidden relation is hidden too; a lookup or rollup that reads a field the role may not read on the other table reads null. null removes the rights.',
+        }),
+        lookup: Object.freeze({
+            since: 3,
+            shape: '{ relation: <relation field key of this table>, field: <field key of the related table> }',
+            description: 'What a lookup field shows: a field of the record its relation points at. '
+                + 'relation is a single relation field of the same table, field a stored field (or created_at, updated_at) of the table it points at, '
+                + 'not another lookup or rollup.',
+        }),
+        rollup: Object.freeze({
+            since: 3,
+            shape: `{ table: <child table id or key>, relation: <relation field key of the child pointing here>, fn: ${linkedFields.ROLLUP_FNS.join('|')}, field?: <number field of the child>, filter?: [{ field, op, value }] }`,
+            description: 'What a rollup field computes over the child records pointing here. '
+                + 'field is required for every fn but count. filter (at most '
+                + `${linkedFields.LINKED_FIELD_LIMITS.MAX_ROLLUP_FILTERS} clauses) keeps only the child records whose own fields match, e.g. [{ "field": "status", "op": "eq", "value": "open" }].`,
+        }),
+        'relation.many': Object.freeze({
+            since: 3,
+            shape: 'true',
+            description: 'A relation that holds several records: its value is a list of record ids. '
+                + 'Write the whole list ([] clears it), read it as that list, expand it to the records, and filter with op "contains" / "notContains" and one id. '
+                + 'Ids of records the viewer may not read are left out of the list and are kept when the viewer writes it. Not with unique, required or onDelete. '
+                + 'App tables only, pointing at an app table.',
+        }),
+        'relation.onDelete': Object.freeze({
+            since: 3,
+            shape: `${linkedFields.ON_DELETE_RULES.map((v) => JSON.stringify(v)).join(' | ')} | null`,
+            description: 'What deleting a record does to the records whose relation points at it. '
+                + '"restrict": the delete is refused while any points at it. "setNull": their relation is emptied. "cascade": they are deleted too, and so on down. '
+                + 'The person deleting must be allowed to change (setNull) or delete (cascade) every one of them, or nothing is deleted. '
+                + `At most ${linkedFields.DEFAULT_CASCADE_MAX_ROWS} records per delete by default. Leave it out for the plain behaviour. Single relations between app tables only.`,
+        }),
+    }),
+    // Keys of a table declaration (`model.tables[]`) beside id, key, name, icon, fields, access and source.
+    tableOptions: Object.freeze({
+        indexes: Object.freeze({
+            since: 3,
+            shape: `[{ fields: [<field key>, …] }] (at most ${linkedFields.LINKED_FIELD_LIMITS.MAX_INDEXES}, each 1-${linkedFields.LINKED_FIELD_LIMITS.MAX_INDEX_FIELDS} fields)`,
+            description: 'Indexes that make filters and sorts on these columns fast on big tables. '
+                + 'Each lists stored columns in order (no lookup, rollup, many relation or read-time computed field). '
+                + 'Adding or removing one never rebuilds the table or changes a row. App tables only.',
         }),
     }),
     filterOps: Object.freeze({}),
@@ -123,7 +188,7 @@ const DATA_VOCABULARY_MARKS = Object.freeze({
     }),
 });
 
-/** The list each family marks words of (field options are keys, not a list). */
+/** The list each family marks words of (field and table options are keys, not a list). */
 const FAMILY_LISTS = Object.freeze({
     fieldTypes: vocabulary.FIELD_TYPES,
     filterOps: vocabulary.FILTER_OPS,

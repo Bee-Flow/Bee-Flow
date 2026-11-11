@@ -38,7 +38,11 @@ test('leadingConfirmCount counts the confirms that open the sequence', () => {
 
 test('backgroundLimits: defaults, an override, 0 = unlimited, a bad value keeps the default', () => {
     const d = P.backgroundLimits({});
-    assert.deepEqual(d, { maxRunMs: 1_800_000, maxSteps: 5000, perUser: 3, perApp: 20, staleMs: 90_000, resultMaxBytes: 262_144 });
+    assert.deepEqual(d, {
+        maxRunMs: 1_800_000, maxSteps: 5000, perUser: 3, perApp: 20, staleMs: 90_000, resultMaxBytes: 262_144,
+        maxPauseMs: 2_592_000_000, pausedPerApp: 1000, pauseStateMaxBytes: 262_144, wakeBatch: 100,
+    });
+    assert.equal(P.backgroundLimits({ STUDIO_APP_PAUSE_MAX_MS: '0', STUDIO_APP_PAUSED_PER_APP: '0' }).maxPauseMs, 0, '0 = no longest wait');
     const o = P.backgroundLimits({ STUDIO_APP_BACKGROUND_MAX_RUN_MS: '0', STUDIO_APP_BACKGROUND_PER_USER: '5', STUDIO_APP_BACKGROUND_PER_APP: 'x', STUDIO_APP_BACKGROUND_STALE_MS: '0' });
     assert.equal(o.maxRunMs, 0);
     assert.equal(o.perUser, 5);

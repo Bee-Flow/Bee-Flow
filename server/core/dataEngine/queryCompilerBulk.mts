@@ -44,6 +44,9 @@ const { resolveDialect } = nodeRequire('./engineFlag') as { resolveDialect(o: Ob
 const { compileSetClause } = nodeRequire('./queryCompilerWrite') as {
     compileSetClause(t: TableMeta, values: unknown, dialect: string): { sets: string[]; params: unknown[] };
 };
+const { scopeColumns } = nodeRequire('./columnRights.mts') as {
+    scopeColumns<T extends TableMeta>(t: T, access: unknown): { tableMeta: T };
+};
 
 /** The most rows one bulk statement may change. App Studio's LIMITS.MAX_BULK_WRITE_ROWS is the same number. */
 export const MAX_BULK_ROWS = 500;
@@ -62,8 +65,11 @@ function whereOf(tableMeta: TableMeta, filters: Filter[], access: AccessFilter, 
     base.assertTableMeta(tableMeta);
     base.assertAccessFilter(access);
     if (!Array.isArray(filters)) throw new base.CompileError('a bulk write needs a filter list');
-    const fm = base.fieldMap(tableMeta);
-    const { where, params } = base.buildWhere(tableMeta, fm, filters, access, dialect, 'all');
+    // Which rows a bulk write matches is a read: the filter sees the table as the viewer's role
+    // reads it (columnRights.mts), so a count of matches tells nothing about a hidden field.
+    const visible = scopeColumns(tableMeta, access).tableMeta;
+    const fm = base.fieldMap(visible);
+    const { where, params } = base.buildWhere(visible, fm, filters, access, dialect, 'all');
     return { dialect, where, params };
 }
 

@@ -41,7 +41,8 @@ function startRetentionAndComplianceJobs() {
         log.warn('[Server] App Studio run log not enabled:', err.message);
     }
     try {
-        require('../jobs/platformRetention').start();
+        // A run on hold the retention pass ends withdraws the approval request it asked.
+        require('../jobs/platformRetention').start({ releaseStudioWait: (appId, kind, ref, reason) => require('../appStudio/approvalWaits.mts').releaseWait(appId, kind, ref, reason) });
     } catch (err) {
         log.warn('[Server] Platform retention job load failed:', err.message);
     }
@@ -247,6 +248,11 @@ function startSupportAndSyncJobs() {
         require('../jobs/datasetIngest').start();
         // Background actions: rows whose process died stop beating → interrupted.
         require('../jobs/studioAppActionRuns').start();
+        // Server runs on hold: the ones whose wake time passed go on (or end).
+        require('../jobs/studioAppRunWake').start({ wake: () => require('../appStudio/backgroundRun.mts').wakeDueRuns() });
+        // Server triggers of published apps: the ones that are due fire, earlier fires are settled.
+        // The same pass delivers the changed records that wait for a record trigger (triggers/recordDrain.mts).
+        require('../jobs/studioAppTriggers').start({ pass: () => require('../appStudio/triggers/recordDrain.mts').triggerAndRecordPass() });
     } catch (err) {
         log.warn('[Server] Studio app connector sync load failed:', err.message);
     }

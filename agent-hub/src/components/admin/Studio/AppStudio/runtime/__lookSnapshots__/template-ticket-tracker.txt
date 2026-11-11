@@ -76,9 +76,9 @@
                   <div class="flex flex-col gap-1.5 min-h-[3rem] p-1.5" data-app-kanban-column="open" style="background: transparent; border-radius: var(--app-radius)">
                   <div class="flex flex-col gap-1.5 min-h-[3rem] p-1.5" data-app-kanban-column="in_progress" style="background: transparent; border-radius: var(--app-radius)">
                   <div class="flex flex-col gap-1.5 min-h-[3rem] p-1.5" data-app-kanban-column="done" style="background: transparent; border-radius: var(--app-radius)">
-            <div id="DndDescribedBy-1" style="display: none">
+            <div id="DndDescribedBy-<1>" style="display: none">
               "To pick up a draggable item, press the space bar. While dragging, use the arrow keys to move the item. Press space again to drop the item in its new position, or press escape to cancel."
-            <div aria-atomic="true" aria-live="assertive" id="DndLiveRegion-1" role="status" style="border: 0px; clip-path: inset(100%); clip: rect(0px); height: 1px; left: 0px; margin: -1px; overflow: hidden; padding: 0px; position: fixed; top: 0px; white-space: nowrap; width: 1px">
+            <div aria-atomic="true" aria-live="assertive" id="DndLiveRegion-<1>" role="status" style="border: 0px; clip-path: inset(100%); clip: rect(0px); height: 1px; left: 0px; margin: -1px; overflow: hidden; padding: 0px; position: fixed; top: 0px; white-space: nowrap; width: 1px">
 ## screen scr_tkmine (My tickets)
 <div class="app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(29, 78, 216, 0.1); --app-accent: #1D4ED8; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(29, 78, 216, 0.1); --app-primary: #1D4ED8; --app-radius: 8px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-size: 15px; min-height: 100vh">
   <main class="flex flex-1 flex-col min-h-0">

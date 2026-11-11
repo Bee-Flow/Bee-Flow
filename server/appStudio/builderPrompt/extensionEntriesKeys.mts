@@ -5,6 +5,7 @@
  *   a screen, theme or design key          from its spec entry
  *   a key of the items of a list prop      from the prop's itemShape
  *   an event an existing type newly fires  one fixed sentence
+ *   a type that became a slot container    its children line (componentSpecs/itemTemplates.js)
  *   a section, node, nav or nav-group key  from its key file (componentSpecs/keys/): `shape — description`
  *   a word of the data vocabulary          from its mark (core/dataEngine/dataModel/vocabularySince.js)
  *   a key of a data binding, a form of     from its key file (componentSpecs/keys/binding/, keys/queryShape/):
@@ -33,7 +34,7 @@ const text = (v: unknown): string => (typeof v === 'string' ? v.trim() : '');
 const withNote = (line: string, note: string): string => (note ? `${line} — ${note}` : line);
 
 /** How each key-mark family and data family words its entry. */
-const KEY_PREFIX: Readonly<Record<string, string>> = Object.freeze({ section: 'section.', node: 'node.', nav: 'nav.', navGroup: 'nav.groups[].', binding: 'binding.', queryShape: '' });
+const KEY_PREFIX: Readonly<Record<string, string>> = Object.freeze({ section: 'section.', node: 'node.', nav: 'nav.', navGroup: 'nav.groups[].', variable: 'variables[].', binding: 'binding.', queryShape: '' });
 const DATA_LABEL: Readonly<Record<string, string>> = Object.freeze({ fieldTypes: 'field type', filterOps: 'filter op', aggFns: 'aggregate fn', dateBuckets: 'date bucket', rowRule: 'row rule' });
 
 /** One theme or design key: its values, its default when it has one, its own description. */
@@ -84,6 +85,7 @@ function dataEntry(item: ExtensionItem): string | null {
     const mark = (catalogueMarks().dataMarks[item.owner || ''] as Record<string, Mark> | undefined)?.[item.key || ''];
     if (!mark) return null;
     if (item.owner === 'fieldOptions') return withNote(`field.${item.key}: ${text(mark.shape)}`, text(mark.description));
+    if (item.owner === 'tableOptions') return withNote(`table.${item.key}: ${text(mark.shape)}`, text(mark.description));
     return withNote(`${DATA_LABEL[item.owner || ''] || 'data'} "${item.key}"`, text(mark.description));
 }
 
@@ -93,6 +95,7 @@ export function renderKeyEntry(item: ExtensionItem): string | null {
         case 'screen': case 'theme': case 'design': return tableEntry(item);
         case 'item': return itemEntry(item);
         case 'event': return `${item.owner} also fires ${item.key}: bind an action to it with app_bind_action { event: "${item.key}" }`;
+        case 'slot': return `${item.owner}.children: component nodes drawn per ${item.owner === 'kanban' ? 'card' : 'row'} — ${item.description}`;
         case 'keys': return keyMarkEntry(item);
         case 'data': return dataEntry(item);
         default: return null;

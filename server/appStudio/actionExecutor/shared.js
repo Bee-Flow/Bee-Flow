@@ -10,6 +10,7 @@
 
 const { CURRENT_USER_KEYS, seedVariableDefaults } = require('../componentSpecs');
 const { tryEvaluate } = require('../../shared/expr/index.mjs');
+const { applyDerivedVariables } = require('../../shared/appDefinition/variableScopes.mjs');
 const { bestEffort } = require('../../utils/bestEffort');
 
 // Hygiene ceiling on how many column bindings one record write resolves. Far
@@ -59,6 +60,16 @@ function plainObjectOr(v, fallback) {
     return v && typeof v === 'object' && !Array.isArray(v) ? /** @type {Record<string, unknown>} */ (v) : fallback;
 }
 
+/**
+ * What started an unattended run ({ kind, <kind>: { … } }, appStudio/triggers/triggerScope.mts). Set by the
+ * server for a run a trigger started (and as a mock by a test run) and by nothing else, so every other scope
+ * has no such key.
+ * @param {{ trigger?: unknown }} ctx
+ */
+function triggerRoot(ctx) {
+    return plainObjectOr(ctx.trigger, null) ? { trigger: ctx.trigger } : {};
+}
+
 function buildServerScope(ctx) {
     const now = new Date().toISOString();
     const clientVars = (ctx.vars && typeof ctx.vars === 'object') ? ctx.vars : {};
@@ -81,7 +92,7 @@ function buildServerScope(ctx) {
     // other forms and the action results the browser sent with this step, bounded by wideScope.mts.
     // Viewer input like `vars`: formulas read it, identity and row rules never do. Every other app: {}.
     const wide = plainObjectOr(ctx.wideScope, null);
-    return {
+    const scope = {
         actions: wide ? plainObjectOr(wide.actions, {}) : {},           // action results are a client concern
         form: (ctx.formValues && typeof ctx.formValues === 'object') ? ctx.formValues : {},
         forms: wide ? plainObjectOr(wide.forms, {}) : {},
@@ -100,6 +111,7 @@ function buildServerScope(ctx) {
         // Inside a step's onError handler: { message, step, code, attempts, stepIndex? }
         // (null otherwise). Client-supplied on the /step routes, bounded by clampErrorScope.
         error: plainObjectOr(ctx.error, null),
+        ...triggerRoot(ctx),
         currentUser: {
             id: ctx.viewerId ?? null,
             // A person's display name is the whole point of an audit column.
@@ -116,6 +128,11 @@ function buildServerScope(ctx) {
         now,
         today: now.slice(0, 10),
     };
+    // A derived variable (schema 3) is never taken from the browser: the value the client sent
+    // under its name is replaced by the formula worked out again over this scope. An app
+    // without one gets the same `vars` object back.
+    scope.vars = applyDerivedVariables(ctx.variables, scope);
+    return scope;
 }
 
 // ── Binding resolution (SERVER-SIDE, never trusts client-computed values) ──

@@ -5,6 +5,7 @@ import AppIcon from '@/components/icons/AppIcon';
 import { resolveBinding } from '../resolveBinding';
 import { useRuntime } from '../RuntimeContext';
 import { spaceSteps } from '../styleResolver';
+import { textPartClasses } from '../styleKnobs/text';
 import type { NodeStyle } from '../../inspector/appDefinition';
 import type { BindingInput } from '../resolveBinding.types';
 import type { NodeProps } from './appNode.types';
@@ -103,6 +104,8 @@ interface HeaderParts {
     tags?: unknown;
     gap?: number;
     kids: ReactNode[];
+    /** The text-knob classes for the title (textPartClasses); '' without knobs. */
+    tk?: string;
 }
 
 function IconBadge({ icon, size = 'h-9 w-9' }: { icon: string | null; size?: string }) {
@@ -118,7 +121,7 @@ function IconBadge({ icon, size = 'h-9 w-9' }: { icon: string | null; size?: str
 }
 
 /** look 'hero' — a tall, centered, primary-gradient opening with breathing room. */
-function HeroHeader({ icon, title, subtitle, tags, gap, kids }: HeaderParts) {
+function HeroHeader({ icon, title, subtitle, tags, gap, kids, tk = '' }: HeaderParts) {
     return (
         <header
             className="w-full min-w-0 app-pageheader--hero bfa-page_header__root"
@@ -129,7 +132,7 @@ function HeroHeader({ icon, title, subtitle, tags, gap, kids }: HeaderParts) {
             <div className="flex flex-col items-center text-center" style={{ gap: spaceSteps(gap) }}>
                 <IconBadge icon={icon} size="h-11 w-11" />
                 <div className="min-w-0">
-                    <h1 className="text-3xl font-semibold break-words text-[var(--text-primary)] bfa-page_header__title">{title}</h1>
+                    <h1 className={`text-3xl font-semibold break-words text-[var(--text-primary)]${tk} bfa-page_header__title`}>{title}</h1>
                     <TagChips value={tags} className="mt-2 justify-center bfa-page_header__tags" />
                     {subtitle ? (
                         <p className="text-base mt-1.5 break-words text-[var(--text-secondary)] bfa-page_header__subtitle">{subtitle}</p>
@@ -150,7 +153,7 @@ function HeroHeader({ icon, title, subtitle, tags, gap, kids }: HeaderParts) {
 }
 
 /** look 'split' — title left, subtitle right-aligned and muted, hairline below. */
-function SplitHeader({ icon, title, subtitle, tags, gap, kids, showDivider }: HeaderParts & { showDivider: boolean }) {
+function SplitHeader({ icon, title, subtitle, tags, gap, kids, showDivider, tk = '' }: HeaderParts & { showDivider: boolean }) {
     return (
         <header
             className="w-full min-w-0 app-pageheader--split bfa-page_header__root"
@@ -159,7 +162,7 @@ function SplitHeader({ icon, title, subtitle, tags, gap, kids, showDivider }: He
         >
             <div className="flex flex-wrap items-start" style={{ gap: spaceSteps(gap) }}>
                 <IconBadge icon={icon} />
-                <h1 className="text-xl font-semibold truncate min-w-0 basis-48 grow text-[var(--text-primary)] bfa-page_header__title" title={title}>{title}</h1>
+                <h1 className={`text-xl font-semibold truncate min-w-0 basis-48 grow text-[var(--text-primary)]${tk} bfa-page_header__title`} title={title}>{title}</h1>
                 <TagChips value={tags} className="mt-1 bfa-page_header__tags" />
                 {subtitle ? (
                     <p className="text-sm mt-0.5 text-right line-clamp-2 min-w-0 [color:var(--text-muted)]! max-w-[45%] bfa-page_header__subtitle" title={subtitle}>{subtitle}</p>
@@ -199,14 +202,14 @@ export default function AppPageHeader({ node, children }: NodeProps<PageHeaderPr
     const look = node.props?.look;
 
     if (look === 'hero') {
-        return <HeroHeader icon={icon} title={shownTitle} subtitle={shownSubtitle} tags={shownTags} gap={gap} kids={kids} />;
+        return <HeroHeader icon={icon} title={shownTitle} subtitle={shownSubtitle} tags={shownTags} gap={gap} kids={kids} tk={textPartClasses(node.style)} />;
     }
     if (look === 'split') {
-        return <SplitHeader icon={icon} title={shownTitle} subtitle={shownSubtitle} tags={shownTags} gap={gap} kids={kids} showDivider={showDivider} />;
+        return <SplitHeader icon={icon} title={shownTitle} subtitle={shownSubtitle} tags={shownTags} gap={gap} kids={kids} showDivider={showDivider} tk={textPartClasses(node.style)} />;
     }
 
     const banner = look === 'banner';
-    const titleEl = <h1 className="text-xl font-semibold truncate text-[var(--text-primary)] bfa-page_header__title" title={shownTitle}>{shownTitle}</h1>;
+    const titleEl = <h1 className={`text-xl font-semibold truncate text-[var(--text-primary)]${textPartClasses(node.style)} bfa-page_header__title`} title={shownTitle}>{shownTitle}</h1>;
     return (
         <header
             className={`w-full min-w-0${banner ? ' app-pageheader--banner' : ''} bfa-page_header__root`}

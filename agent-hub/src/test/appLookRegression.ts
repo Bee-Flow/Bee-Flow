@@ -12,11 +12,15 @@
 //   - every data binding gets an EMPTY, successful answer (emptyDataState), keyed the
 //     way the fetch layer keys it, so no component waits on a loader,
 //   - any other request answers 401 without touching the network (noSession),
-//   - ids React generates (useId) are numbered in order of appearance,
+//   - ids React generates (useId) are numbered in order of appearance, and so are the
+//     ids dnd-kit counts per process (DndDescribedBy-<n>, DndLiveRegion-<n>), per screen,
 //   - class tokens starting with `bfa-` or `u-` are dropped: a later package adds those
 //     as part classes, and adding a class is not a change in how an app looks,
 //   - the inside of an <svg> is left out (an icon is named by its class; a lucide
 //     upgrade that redraws a path is not an app change).
+// A corpus app whose `about.lookChrome` is true is drawn inside the real AppShell (the
+// screenshot mode `chrome`, appRuntimeScreenshot.tsx), for vocabulary that lives in the shell
+// (nav.*). Every other app is drawn without it, as it always was.
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -24,7 +28,7 @@ import { act } from '@testing-library/react';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { mount } from '@/appRuntimeHeadless';
 import { collectDataBindings } from '@/components/admin/Studio/AppStudio/runtime/AppDataScope';
-import { seedVariableDefaults } from '@/components/admin/Studio/AppStudio/runtime/appVariables';
+import { initialVariableValues } from '@shared/appDefinition/variableScopes.mjs';
 import { dataCacheKey, resolveBindingFilters, resolveBindingParams, resolveBindingShape } from '@/components/admin/Studio/AppStudio/runtime/resolveBinding';
 import type { AppDefinition } from '@/components/admin/Studio/AppStudio/inspector/appDefinition';
 import type { DataEntry, DataState } from '@/components/admin/Studio/AppStudio/runtime/DataContext';
@@ -58,10 +62,15 @@ export function shardNames(names: readonly string[], index: number, count: numbe
     return names.filter((_, i) => i % count === index);
 }
 
+type CorpusFile = { about?: { lookChrome?: unknown }; definition: CorpusDefinition };
+
+function loadCorpusFile(name: string): CorpusFile {
+    return JSON.parse(fs.readFileSync(path.join(CORPUS_DIR, `${name}.json`), 'utf8')) as CorpusFile;
+}
+
 /** One corpus app's stored definition. */
 export function loadDefinition(name: string): CorpusDefinition {
-    const file = JSON.parse(fs.readFileSync(path.join(CORPUS_DIR, `${name}.json`), 'utf8')) as { definition: CorpusDefinition };
-    return file.definition;
+    return loadCorpusFile(name).definition;
 }
 
 /**
@@ -144,11 +153,13 @@ function emptyResult(kind: unknown): unknown {
  * layer (AppDataScope's BindingFetcher) would store it under for the same scope.
  */
 export function emptyDataState(definition: CorpusDefinition, screen: CorpusScreen): DataState {
+    const screenRoot = { params: {}, id: screen.id, name: screen.name };
     const scope = {
         currentUser: VIEWER,
-        vars: seedVariableDefaults(definition.variables as Parameters<typeof seedVariableDefaults>[0]),
+        // The headless entry's starting values: defaults, then the derived variables (schema 3).
+        vars: initialVariableValues(definition.variables, { currentUser: VIEWER, forms: {}, screen: screenRoot, today: FIXED_NOW.slice(0, 10) }),
         forms: {},
-        screen: { params: {}, id: screen.id, name: screen.name },
+        screen: screenRoot,
         now: FIXED_NOW,
         today: FIXED_NOW.slice(0, 10),
     };
@@ -172,7 +183,7 @@ export function emptyDataState(definition: CorpusDefinition, screen: CorpusScree
 }
 
 /** Mount one screen through the headless entry and let lazy parts and effects settle. */
-export async function renderScreen(definition: CorpusDefinition, screen: CorpusScreen) {
+export async function renderScreen(definition: CorpusDefinition, screen: CorpusScreen, { chrome = false }: { chrome?: boolean } = {}) {
     const container = document.createElement('div');
     document.body.appendChild(container);
     let handle: { unmount: () => void } | null = null;
@@ -183,6 +194,7 @@ export async function renderScreen(definition: CorpusDefinition, screen: CorpusS
             dataState: emptyDataState(definition, screen),
             currentUser: VIEWER,
             previewRole: null,
+            ...(chrome ? { screenshot: { chrome: true } } : {}),
         });
     });
     // Two more turns for React.lazy parts (icons outside the registry) to resolve.
@@ -201,6 +213,29 @@ export async function renderScreen(definition: CorpusDefinition, screen: CorpusS
 // ── The DOM as text ─────────────────────────────────────────────────────────
 
 const REACT_ID = /«r[0-9a-z]+»|:r[0-9a-z]+:|_r_[0-9a-z]+_/g;
+/**
+ * dnd-kit numbers its accessibility nodes (DndDescribedBy-<n>, DndLiveRegion-<n>) with a
+ * counter per process, so the number depends on how many boards rendered earlier in the same
+ * test file. They are renumbered per screen, per prefix, in order of appearance.
+ */
+const DND_KIT_ID = /\bDnd[A-Za-z]+-\d+\b/g;
+
+/** `value` with every per-process counter in it renumbered through `ids` (one map per screen). */
+function renumberIds(value: string, ids: Map<string, string>): string {
+    const react = value.replace(REACT_ID, (m) => {
+        if (!ids.has(m)) ids.set(m, `<id-${[...ids.keys()].filter((k) => !k.startsWith('dnd:')).length + 1}>`);
+        return ids.get(m) as string;
+    });
+    return react.replace(DND_KIT_ID, (m) => {
+        const key = `dnd:${m}`;
+        if (!ids.has(key)) {
+            const prefix = m.slice(0, m.lastIndexOf('-'));
+            const taken = [...ids.keys()].filter((k) => k.startsWith(`dnd:${prefix}-`)).length;
+            ids.set(key, `${prefix}-<${taken + 1}>`);
+        }
+        return ids.get(key) as string;
+    });
+}
 
 /**
  * Dates and times as the runtime prints them depend on the time zone and locale of the
@@ -238,10 +273,7 @@ function styleText(el: Element): string | null {
 }
 
 function attributeLines(el: Element, ids: Map<string, string>): string[] {
-    const mapIds = (v: string) => v.replace(REACT_ID, (m) => {
-        if (!ids.has(m)) ids.set(m, `<id-${ids.size + 1}>`);
-        return ids.get(m) as string;
-    });
+    const mapIds = (v: string) => renumberIds(v, ids);
     const out: string[] = [];
     const names = el.getAttributeNames().filter((n) => n !== 'class' && n !== 'style').sort();
     const classes = (el.getAttribute('class') || '').split(/\s+/).filter((t) => t && !isDroppedClass(t)).sort();
@@ -307,11 +339,13 @@ function strayBodyNodes(container: Element): Element[] {
 
 /** The snapshot text for one corpus app: every screen in definition order. */
 export async function describeApp(name: string): Promise<{ text: string; crashed: string[] }> {
-    const definition = loadDefinition(name);
+    const file = loadCorpusFile(name);
+    const definition = file.definition;
+    const chrome = file.about?.lookChrome === true;
     const parts: string[] = [`# ${name}`];
     const crashed: string[] = [];
     for (const screen of definition.screens || []) {
-        const { container, unmount } = await renderScreen(definition, screen);
+        const { container, unmount } = await renderScreen(definition, screen, { chrome });
         try {
             const broken = crashedNodes(container);
             for (const type of broken) crashed.push(`${screen.id}: ${type}`);

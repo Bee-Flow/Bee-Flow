@@ -8,6 +8,7 @@ import { useRuntime } from '../RuntimeContext';
 import { Field, INPUT_CLASS, inputStyle } from '../uiBits';
 import useInputChange from '../useInputChange';
 import useValueFrom from '../useValueFrom';
+import { textPartClasses } from '../styleKnobs/text';
 import type { NodeProps } from './appNode.types';
 
 /** App Studio runtime — 'input_select'. Spec: server/appStudio/componentSpecs.js. */
@@ -87,7 +88,7 @@ export default function AppInputSelect({ node }: NodeProps<InputSelectProps>) {
     // rewrite the record's own value.
     const unlisted = !hasOption(opts, value) && value != null && value !== '';
     return (
-        <Field part="input_select" id={id} label={label} required={required} error={error}>
+        <Field part="input_select" labelClass={textPartClasses(node.style)} id={id} label={label} required={required} error={error}>
             <select
                 id={id}
                 name={name}

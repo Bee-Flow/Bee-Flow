@@ -1150,14 +1150,6 @@
       "count": 1
     }
   },
-  "src/components/admin/Studio/AppStudio/runtime/markdownInline.tsx": {
-    "max-depth": {
-      "count": 1
-    },
-    "max-statements": {
-      "count": 1
-    }
-  },
   "src/components/admin/Studio/AppStudio/runtime/publicAppTransport.ts": {
     "no-restricted-syntax": {
       "count": 1

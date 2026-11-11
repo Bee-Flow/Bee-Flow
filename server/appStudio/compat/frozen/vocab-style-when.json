@@ -1,0 +1,50 @@
+{
+  "corpus": "vocab-style-when",
+  "canonical": {
+    "sha256": "6ddb28b27f243bb214eecc5931a975e519c401242a352fcb98e1cecaaac8f9e9",
+    "bytes": 3434,
+    "inputIsCanonical": true,
+    "idempotent": true,
+    "keys": [
+      "schemaVersion",
+      "meta",
+      "theme",
+      "roles",
+      "variables",
+      "screens",
+      "actions",
+      "homeScreenId"
+    ],
+    "parts": {
+      "schemaVersion": "4e07408562bedb8b",
+      "meta": "bdfdbc44e93a2c31",
+      "theme": "8717f796b3ef5b45",
+      "roles": "4f53cda18c2baa0c",
+      "variables": "2c2a8d7df4f1e7e3",
+      "screens[0] scr_stywhen1": "72fb5042bb78f4f6",
+      "homeScreenId": "562e13fef71dcbc8"
+    }
+  },
+  "schemaVersion": {
+    "stored": 3,
+    "canonical": 3
+  },
+  "validation": {
+    "strict": {
+      "errors": [],
+      "warnings": [
+        "formula.unknown_variable @ screens[0].sections[0].children[2].styleWhen[0].when.expr"
+      ]
+    },
+    "save": {
+      "errors": [],
+      "warnings": [
+        "formula.unknown_variable @ screens[0].sections[0].children[2].styleWhen[0].when.expr"
+      ]
+    }
+  },
+  "ordinals": {
+    "stored": {},
+    "canonical": "same as stored"
+  }
+}

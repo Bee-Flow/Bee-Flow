@@ -11,6 +11,11 @@
 
 /** @type {Readonly<Record<string, { childSlots: readonly { field: string, each?: string, walked?: boolean }[], retrySafe: boolean, server: boolean }>>} */
 export const EXTENSION_STEP_KINDS = Object.freeze({
+    "await_approval": {
+        "childSlots": [],
+        "retrySafe": false,
+        "server": true
+    },
     "back": {
         "childSlots": [],
         "retrySafe": true,

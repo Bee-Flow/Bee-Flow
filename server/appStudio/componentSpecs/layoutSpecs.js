@@ -77,6 +77,27 @@ const LAYOUT_SPECS = {
                 itemShape: { label: { type: 'string', required: true, maxLen: 80 }, actionId: { type: 'string', maxLen: 20 } },
             },
             emptyText: { type: 'string', maxLen: 200, default: 'Nothing to show yet.' },
+            // Schema 3 (package LK20): how the ITEMS sit, beside the grid inside each item that
+            // the `columns` knob shapes. Absent is the stack every repeater had before.
+            layout: {
+                type: 'enum', values: ['stack', 'grid', 'row'], default: null, since: 3,
+                description: 'How the items sit: in a stack, side by side in a grid or in one row. '
+                    + 'stack (also when absent) puts each item under the previous one. grid puts itemColumns items side by side and wraps. '
+                    + 'row keeps every item on one line that scrolls sideways, itemColumns items in view, snapping to an item. '
+                    + 'The style knob columns still shapes the grid inside each item.',
+            },
+            itemColumns: {
+                type: 'int', min: 1, max: 6, default: null, since: 3,
+                description: 'Items per row on a wide screen (1024 px and up), for layout grid or row. 3 when absent.',
+            },
+            itemColumnsMd: {
+                type: 'int', min: 1, max: 6, default: null, since: 3,
+                description: 'Items per row from 640 to 1023 px, for layout grid or row. When absent: itemColumns, at most 2.',
+            },
+            itemColumnsSm: {
+                type: 'int', min: 1, max: 6, default: null, since: 3,
+                description: 'Items per row below 640 px, for layout grid or row. 1 when absent.',
+            },
         },
         styleKnobs: ['span', 'gap', 'padding'],
         defaultStyle: { span: 12, gap: 3, padding: 0 },
@@ -146,7 +167,7 @@ const LAYOUT_SPECS = {
         defaultStyle: { span: 12, gap: 3, padding: 0 },
     },
     markdown: {
-        parts: ['root', 'heading', 'paragraph', 'list', 'item', 'code'],
+        parts: ['root', 'heading', 'paragraph', 'list', 'item', 'code', 'table', 'quote', 'task', 'image'],
         label: 'Markdown', category: 'Content',
         description: 'A block of markdown: headings, lists, code blocks, links, bold/italic. No images or raw HTML. Bind contentFrom to show generated text (e.g. an AI summary in a variable).',
         props: {
@@ -159,6 +180,11 @@ const LAYOUT_SPECS = {
             // to display anything an action produced — every text component took
             // a fixed string.
             contentFrom: { type: 'binding', default: { kind: 'static', value: null } },
+            // Opt-in, so every markdown block stored before it renders the same DOM.
+            rich: {
+                type: 'boolean', since: 3,
+                description: 'Rich markdown: tables, task lists, block quotes and images. Images are an uploaded file of the app, written ![alt](asset:<id>) (app_list_assets); links are http, https or mailto. Raw HTML never renders.',
+            },
         },
         styleKnobs: ['span', 'color'],
         defaultStyle: { span: 12 },

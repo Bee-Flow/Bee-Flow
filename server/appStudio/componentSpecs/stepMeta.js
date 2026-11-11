@@ -15,7 +15,9 @@
  *   background   a sequence with background: true: 'run', 'defer' (replayed by the browser when
  *                the job ends), 'lead' (only as the leading steps, asked before the job starts), 'refuse'
  *   mailboxHook  the mailbox "new record" hook: 'run', 'refuse'
- *   unattended   reserved for later triggers (schedule, record change, webhook); nothing reads it yet
+ *   unattended   a run nobody started by hand (a trigger: schedule now, record change and webhook
+ *                later), as the app owner, with no page: 'run', 'refuse'. Read by
+ *                triggers/unattendedPolicy.mts (the validator, the arming and the run itself)
  *   mcpRun       app_run_action with dryRun: false: 'run', 'draft' (send_email: a draft only), 'skip', 'refuse'
  *   mcpDryRun    app_run_action with dryRun: true: 'mock' (runs, a test may give it a fixed answer),
  *                'run' (runs, never mocked), 'skip'
@@ -75,15 +77,18 @@ const CHROME = row({ click: 'browser', background: 'refuse', mailboxHook: 'refus
 // Browser effects a background job records and the browser replays.
 const DEFERRED = row({ ...CHROME, background: 'defer' });
 // Flow the server walkers evaluate themselves.
-const WALKED = row({ click: 'browser', background: 'run', mailboxHook: 'refuse', unattended: 'refuse', mcpRun: 'run', mcpDryRun: 'run', public: 'browser' });
+const WALKED = row({ click: 'browser', background: 'run', mailboxHook: 'refuse', unattended: 'run', mcpRun: 'run', mcpDryRun: 'run', public: 'browser' });
 // The branches an arriving mail may take as well.
 const BRANCH = row({ ...WALKED, mailboxHook: 'run' });
 // Server work that stays inside Bee Flow: runs wherever a server step runs.
-const INTERNAL = row({ click: 'step', background: 'run', mailboxHook: 'run', unattended: 'refuse', mcpRun: 'run', mcpDryRun: 'skip', public: 'step' });
+const INTERNAL = row({ click: 'step', background: 'run', mailboxHook: 'run', unattended: 'run', mcpRun: 'run', mcpDryRun: 'skip', public: 'step' });
 // Reads and model calls: a dry run executes them (and a test may mock them).
 const READS = row({ ...INTERNAL, mcpDryRun: 'mock' });
 // Reaches people or needs a viewer's session: only a click (or a background job a click started).
-const PERSON = row({ ...INTERNAL, mailboxHook: 'refuse', mcpRun: 'refuse' });
+const PERSON = row({ ...INTERNAL, mailboxHook: 'refuse', unattended: 'refuse', mcpRun: 'refuse' });
+// Reaches people, and the owner may also let a trigger do it: the step then acts exactly as when
+// the owner clicks (their mailbox and its daily limit, their automations, their approvals).
+const OWNER_REACH = row({ ...PERSON, unattended: 'run' });
 
 /** @param {string} field */
 const recordSummary = (field) => (/** @type {Record<string, unknown>} */ s) => `${String(s.kind)}(${String(s[field] || '?')})`;
@@ -107,17 +112,17 @@ const BASE_STEP_META = /** @type {Readonly<Record<string, StepMeta>>} */ (Object
     confirm: { ...CLIENT, policy: row({ ...CHROME, background: 'lead' }) },
     set_variable: { ...CLIENT, policy: WALKED, writesVars: Object.freeze([{ field: 'name', as: 'set_variable', where: '' }]) },
     refresh: { ...CLIENT, policy: DEFERRED },
-    run_automation: { ...SERVER, retrySafe: false, policy: PERSON, budget: 'heavy', summary: (/** @type {Record<string, unknown>} */ s) => `run_automation(${String(s.automationId ?? 'null')})` },
+    run_automation: { ...SERVER, retrySafe: false, policy: OWNER_REACH, budget: 'heavy', summary: (/** @type {Record<string, unknown>} */ s) => `run_automation(${String(s.automationId ?? 'null')})` },
     create_record: { ...RECORD_WRITE, policy: INTERNAL },
     update_record: { ...RECORD_WRITE, policy: INTERNAL },
     // Nothing erases data on an arriving mail; an owner's app_run_action may.
     delete_record: { ...RECORD_WRITE, policy: row({ ...INTERNAL, mailboxHook: 'refuse' }) },
-    request_approval: { ...SERVER, retrySafe: false, policy: PERSON, budget: 'light' },
+    request_approval: { ...SERVER, retrySafe: false, policy: OWNER_REACH, budget: 'light' },
     ai_extract: { ...SERVER, policy: READS, budget: 'ai' },
     ai_generate: { ...SERVER, policy: READS, budget: 'ai' },
     kb_query: { ...SERVER, policy: READS, budget: 'ai' },
     // app_run_action only ever saves a draft, and never inside a loop (mcpRunActionPolicy.decideStep).
-    send_email: { ...SERVER, retrySafe: false, policy: row({ ...PERSON, mcpRun: 'draft' }), budget: 'heavy', noLoop: true },
+    send_email: { ...SERVER, retrySafe: false, policy: row({ ...OWNER_REACH, mcpRun: 'draft' }), budget: 'heavy', noLoop: true },
     generate_file: {
         ...SERVER, policy: INTERNAL, budget: 'heavy',
         // Legal (one file per order is a real shape) but easy to reach by accident: each iteration

@@ -1,0 +1,77 @@
+{
+  "corpus": "zz-record-triggers",
+  "canonical": {
+    "sha256": "a8354df1c275e2fa9684f7f53fc5f9f265bf03243c15dc5792d71183287a54fc",
+    "bytes": 2821,
+    "inputIsCanonical": true,
+    "idempotent": true,
+    "keys": [
+      "schemaVersion",
+      "meta",
+      "theme",
+      "roles",
+      "variables",
+      "screens",
+      "actions",
+      "homeScreenId",
+      "triggers"
+    ],
+    "parts": {
+      "schemaVersion": "4e07408562bedb8b",
+      "meta": "66e9b1becc290058",
+      "theme": "87df6a9096a03b63",
+      "roles": "4f53cda18c2baa0c",
+      "variables": "3f186edaf5d8531e",
+      "screens[0] scr_home0001": "576c485fe85cbb3c",
+      "actions.act_digest01": "828ea4c9562ef591",
+      "actions.act_shared01": "ee7cbc5ef5c24aea",
+      "actions.act_button01": "8b9d235f3d4990d1",
+      "actions.act_logrow01": "1702c5c0599f376d",
+      "actions.act_done0001": "0b5c2f432a32a130",
+      "homeScreenId": "6a2da6c22cefbb52",
+      "triggers": "4a95a712603227cc"
+    }
+  },
+  "schemaVersion": {
+    "stored": 3,
+    "canonical": 3
+  },
+  "validation": {
+    "strict": {
+      "errors": [],
+      "warnings": []
+    },
+    "save": {
+      "errors": [],
+      "warnings": []
+    }
+  },
+  "ordinals": {
+    "stored": {
+      "act_digest01": [
+        "0 ai_generate",
+        "1 create_record",
+        "2 condition",
+        "3 call_action"
+      ],
+      "act_shared01": [
+        "0 update_record"
+      ],
+      "act_button01": [
+        "0 call_action",
+        "1 toast",
+        "2 refresh"
+      ],
+      "act_logrow01": [
+        "0 create_record"
+      ],
+      "act_done0001": [
+        "0 condition",
+        "1 update_record",
+        "2 call_action"
+      ]
+    },
+    "canonical": "same as stored"
+  },
+  "reads": []
+}

@@ -60,7 +60,9 @@ router.get('/:id/runs/:runId', requireAuth, validate({ params: RunParams }), /**
     const run = await store.getLoggedRun(app.id, req.params.runId, { idleMs: idleCloseMs(), staleMs: staleStepMs() });
     if (!run) return res.status(404).json({ error: 'Run not found' });
     const steps = await store.getSteps(run.id);
-    res.json({ run: toRunSummary(run, app.userId, sessionUser(req).id), steps: steps.map(toStepView) });
+    // A run a record trigger started: which change started it (the event, the table, the row's id and the kind of writer; no row values).
+    const startedBy = run.origin === 'trigger' ? await require('../../appStudio/triggers/recordDrain.mts').runStartedBy(run.id) : null;
+    res.json({ run: toRunSummary(run, app.userId, sessionUser(req).id), steps: steps.map(toStepView), ...(startedBy ? { startedBy } : {}) });
 });
 
 module.exports = router;

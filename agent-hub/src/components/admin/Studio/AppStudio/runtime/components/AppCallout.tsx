@@ -1,4 +1,5 @@
 import { AlertCircle, AlertTriangle, CheckCircle2, Info } from 'lucide-react';
+import type { CSSProperties } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import renderInlineMarkdown from '../markdownInline';
 import { resolveBinding } from '../resolveBinding';
@@ -6,6 +7,7 @@ import { useRuntime } from '../RuntimeContext';
 import type { AppNode } from '../../inspector/appDefinition';
 import type { BindingInput } from '../resolveBinding.types';
 import { ROLE_COLORS } from '../styleResolver.constants';
+import { textPartClasses } from '../styleKnobs/text';
 
 /** App Studio runtime — 'callout'. Spec: server/appStudio/componentSpecs.js. */
 
@@ -27,6 +29,27 @@ interface CalloutProps {
     toneFrom?: BindingInput;
     metaFrom?: BindingInput;
     collapsible?: boolean;
+    variant?: string;
+}
+
+/**
+ * The box of the callout for `props.variant` (since 3). soft, absent and anything unknown are
+ * today's tinted block with a tone edge. outline is transparent with a tone border. solid is
+ * the tone colour, darkened toward black the way the danger button is so that white text clears
+ * 4.5:1 on every tone, and its text is white.
+ */
+function boxFor(variant: string | undefined, color: string): { box: CSSProperties; solid: boolean; iconColor: string } {
+    if (variant === 'outline') {
+        return { box: { background: 'transparent', border: `1px solid ${color}`, borderRadius: 'var(--app-radius)', color: 'var(--text-primary)' }, solid: false, iconColor: color };
+    }
+    if (variant === 'solid') {
+        return { box: { background: `color-mix(in srgb, ${color} 72%, #000)`, borderRadius: 'var(--app-radius)', color: '#ffffff' }, solid: true, iconColor: 'currentColor' };
+    }
+    return {
+        box: { background: `${color}1a`, borderLeft: `3px solid ${color}`, borderRadius: 'var(--app-radius)', color: 'var(--text-primary)' },
+        solid: false,
+        iconColor: color,
+    };
 }
 
 export default function AppCallout({ node }: { node: AppNode<CalloutProps> }) {
@@ -55,23 +78,19 @@ export default function AppCallout({ node }: { node: AppNode<CalloutProps> }) {
     // read at a glance; the full text arrives on hover or keyboard focus, in a
     // panel that overlays rather than pushes, so nothing below it moves.
     const collapsible = node.props?.collapsible === true;
+    const look = boxFor(node.props?.variant, color);
 
     return (
         <div
-            className={`flex gap-2.5 px-3 py-2.5 text-sm${collapsible ? ' app-callout--collapsed items-center' : ' items-start'} bfa-callout__root`}
-            style={{
-                background: `${color}1a`, // ~10% alpha tint
-                borderLeft: `3px solid ${color}`,
-                borderRadius: 'var(--app-radius)',
-                color: 'var(--text-primary)',
-            }}
+            className={`flex gap-2.5 px-3 py-2.5 text-sm${collapsible ? ' app-callout--collapsed items-center' : ' items-start'}${textPartClasses(node.style)} bfa-callout__root`}
+            style={look.box}
             data-app-callout={effectiveTone}
             tabIndex={collapsible ? 0 : undefined}
         >
-            <Icon className={`w-4 h-4 shrink-0${collapsible ? '' : ' mt-0.5'} bfa-callout__icon`} style={{ color }} aria-hidden="true" />
+            <Icon className={`w-4 h-4 shrink-0${collapsible ? '' : ' mt-0.5'} bfa-callout__icon`} style={{ color: look.iconColor }} aria-hidden="true" />
             <div className="min-w-0">
                 {title ? <div className="font-medium bfa-callout__title">{title}</div> : null}
-                <div className="app-callout__body text-[var(--text-secondary)] bfa-callout__body">
+                <div className={`app-callout__body${look.solid ? '' : ' text-[var(--text-secondary)]'} bfa-callout__body`}>
                     {renderInlineMarkdown(shownText)}
                 </div>
                 {/* The hover panel repeats what the line above already carries in
@@ -85,7 +104,7 @@ export default function AppCallout({ node }: { node: AppNode<CalloutProps> }) {
             </div>
             {shownMeta ? (
                 <div
-                    className="ml-auto shrink-0 whitespace-nowrap text-xs mt-0.5 text-[var(--text-muted)] bfa-callout__meta"
+                    className={`ml-auto shrink-0 whitespace-nowrap text-xs mt-0.5${look.solid ? ' opacity-80' : ' text-[var(--text-muted)]'} bfa-callout__meta`}
                     data-app-callout-meta="true"
                 >
                     {shownMeta}

@@ -80,6 +80,10 @@ const EXEMPT = new Map([
     ['stores/project/schema.js', 'gedekt via de projectStore-facade'],
     ['stores/studioApp/schema.js', 'gedekt via de studioAppStore-facade'],
     ['stores/studioAppData/schema.js', 'gedekt via de studioAppDataStore-facade'],
+    // Parts of that schema, split out of it: studioAppData/schema.js's initDB awaits each one,
+    // so the ladder runs their DDL through the studioAppDataStore facade.
+    ['stores/studioAppData/recordEventsSchema.js', 'DDL of stores/studioAppData/schema.js — run by its initDB (studioAppDataStore facade)'],
+    ['stores/studioAppData/webhookTriggersSchema.js', 'DDL of stores/studioAppData/schema.js — run by its initDB (studioAppDataStore facade)'],
     // Classifies dataModel migration statements: "CREATE TABLE" appears here in
     // a regex and in comments, not in a schema of its own.
     ['stores/studioAppData/dataModel.js', 'herkent CREATE TABLE alleen in een regex — het schema staat in studioAppData/schema.js'],

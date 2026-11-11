@@ -42,7 +42,7 @@ TOOL_SCHEMAS.push(...require('../../core/documents/documentDiscovery').schemas('
 // The app's uploaded files (builderTools/assetTools.mts), after every captured tool.
 TOOL_SCHEMAS.push(...require('./assetTools.mts').ASSET_TOOL_SCHEMAS);
 // The registry tools (builderTools/tools/<name>.js, toolRegistry.mts) after every base tool, so the
-// base menu keeps its bytes and its order. None ship yet.
+// base menu keeps its bytes and its order.
 TOOL_SCHEMAS.push(...require('./toolRegistry.mts').registryToolSchemas(TOOL_SCHEMAS.map((tool) => tool.function.name)));
 
 module.exports = {

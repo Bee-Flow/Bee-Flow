@@ -1,0 +1,44 @@
+/*
+ * App Studio runtime: the item layout of a repeater (schema 3, `repeater.layout`;
+ * components/repeaterLayout.ts writes the classes and custom properties).
+ *
+ * Only a repeater with layout grid or row carries these classes, so every other
+ * repeater is styled exactly as before. Imported by AppRepeater.
+ *
+ * grid: the wide-screen template is written inline (gridColumnStyle). The `.app-grid`
+ * phone rule in layout.css collapses every grid to one column with !important; the
+ * rules here are more specific, so the author's item counts win per breakpoint.
+ */
+@media (min-width: 640px) and (max-width: 1023.98px) {
+    .app-grid.app-repeater-items--grid {
+        grid-template-columns: repeat(var(--app-rep-cols-md), minmax(0, 1fr)) !important;
+    }
+}
+@media (max-width: 639.98px) {
+    .app-grid.app-repeater-items--grid {
+        grid-template-columns: repeat(var(--app-rep-cols-sm), minmax(0, 1fr)) !important;
+    }
+}
+
+/* row: one line that scrolls sideways, `--app-rep-cols` items in view, snapping to an item. */
+.app-repeater-items--row {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    overscroll-behavior-x: contain;
+    --app-rep-view: var(--app-rep-cols);
+}
+.app-repeater-items--row > .app-repeater-item {
+    flex: 0 0 calc((100% - (var(--app-rep-view) - 1) * var(--app-rep-gap)) / var(--app-rep-view));
+    min-width: 0;
+    scroll-snap-align: start;
+}
+@media (min-width: 640px) and (max-width: 1023.98px) {
+    .app-repeater-items--row { --app-rep-view: var(--app-rep-cols-md); }
+}
+@media (max-width: 639.98px) {
+    .app-repeater-items--row { --app-rep-view: var(--app-rep-cols-sm); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .app-repeater-items--row { scroll-behavior: auto; }
+}

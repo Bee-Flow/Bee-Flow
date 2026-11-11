@@ -8,6 +8,7 @@ import { ROLE_COLORS } from '../../styleResolver.constants';
 import { EM_DASH } from '../../uiBits';
 import { ALIGN_CLASS } from '../cellValue';
 import { CLAMP_STYLE, rowToneStyle } from './gridConstants';
+import { cellRuleStyle } from '../../conditionalStyle';
 import type { GridAction, GridColumnMeta, GridRecord, GridRow, RunAction } from './gridTypes';
 
 /**
@@ -17,6 +18,8 @@ import type { GridAction, GridColumnMeta, GridRecord, GridRow, RunAction } from 
  */
 
 const ROLES = ROLE_COLORS as Record<string, string>;
+/** The border colour every body cell carries; a cellStyle rule that holds lays its knobs over it. */
+const CELL_BORDER = Object.freeze({ borderColor: 'var(--border-default)' });
 type PeekHandler = (e: MouseEvent<HTMLElement> | FocusEvent<HTMLElement>) => void;
 
 export interface GridBodyRowProps {
@@ -125,7 +128,8 @@ export function GridBodyRow({
                         // baseline, which is most of why the grid read as
                         // ragged rather than as a table.
                         className={`${cellPad}${divider} align-middle ${ALIGN_CLASS[meta.align || 'left']}${meta.truncate ? ' truncate max-w-0' : ''} bfa-data_grid__cell`}
-                        style={{ borderColor: 'var(--border-default)' }}
+                        // columns[].cellStyle (schema 3): CELL_BORDER itself without rules.
+                        style={cellRuleStyle(meta.cellStyle, scope, row.original, cell.getValue(), CELL_BORDER)}
                         // The full value stays reachable when it is clamped —
                         // hiding text is only acceptable if nothing is lost.
                         // A native `title` was the first answer and the wrong

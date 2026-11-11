@@ -1,0 +1,156 @@
+{
+  "corpus": "column-rights",
+  "canonical": {
+    "sha256": "88a7d30635d685ed936af4492aa80372586e30bf20cabc7cf3fa39ef8f1e1c00",
+    "bytes": 1808,
+    "inputIsCanonical": true,
+    "idempotent": true,
+    "keys": [
+      "schemaVersion",
+      "meta",
+      "theme",
+      "roles",
+      "screens",
+      "actions",
+      "homeScreenId"
+    ],
+    "parts": {
+      "schemaVersion": "d4735e3a265e16ee",
+      "meta": "f2d8794b4bf584be",
+      "theme": "5d7eeb0111b89897",
+      "roles": "4f53cda18c2baa0c",
+      "screens[0] scr_tasks01": "35816f0f39ddd145",
+      "homeScreenId": "953ce17d1ee653a0"
+    }
+  },
+  "schemaVersion": {
+    "stored": 2,
+    "canonical": 2
+  },
+  "validation": {
+    "strict": {
+      "errors": [],
+      "warnings": [
+        "binding.field_restricted @ screens[0].sections[0].children[1].props.value.aggregates[0].field"
+      ]
+    },
+    "save": {
+      "errors": [],
+      "warnings": [
+        "binding.field_restricted @ screens[0].sections[0].children[1].props.value.aggregates[0].field"
+      ]
+    }
+  },
+  "ordinals": {
+    "stored": {},
+    "canonical": "same as stored"
+  },
+  "reads": [
+    {
+      "at": "cmp_tasks1.value",
+      "kind": "aggregate",
+      "table": "tbl_tasks01",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT SUM(\"budget\") AS \"n\" FROM \"tasks\" WHERE (1=1) AND \"status\" = ? LIMIT ?",
+          "params": [
+            "open",
+            50
+          ]
+        },
+        "member": {
+          "error": "unknown field: budget"
+        },
+        "lead": {
+          "sql": "SELECT SUM(\"budget\") AS \"n\" FROM \"tasks\" WHERE (1=1) AND \"status\" = ? LIMIT ?",
+          "params": [
+            "open",
+            50
+          ]
+        },
+        "auditor": {
+          "error": "unknown field: budget"
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT SUM(\"budget\") AS \"n\" FROM \"tasks\" WHERE (1=1) AND \"status\" = ? LIMIT ?",
+          "params": [
+            "open",
+            50
+          ]
+        },
+        "member": {
+          "error": "unknown field: budget"
+        },
+        "lead": {
+          "sql": "SELECT SUM(\"budget\") AS \"n\" FROM \"tasks\" WHERE (1=1) AND \"status\" = ? LIMIT ?",
+          "params": [
+            "open",
+            50
+          ]
+        },
+        "auditor": {
+          "error": "unknown field: budget"
+        }
+      }
+    },
+    {
+      "at": "cmp_taskl1.source",
+      "kind": "records",
+      "table": "tbl_tasks01",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT *, (\"budget\" * 2) AS \"budget_note\", (upper ( \"title\" )) AS \"shout\" FROM \"tasks\" WHERE (1=1) ORDER BY \"title\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "member": {
+          "sql": "SELECT \"id\", \"created_at\", \"updated_at\", \"created_by\", \"org_id\", \"title\", \"team\", \"status\", \"contact\", (upper ( \"title\" )) AS \"shout\" FROM \"tasks\" WHERE (1=1) ORDER BY \"title\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "lead": {
+          "sql": "SELECT *, (\"budget\" * 2) AS \"budget_note\", (upper ( \"title\" )) AS \"shout\" FROM \"tasks\" WHERE (1=1) ORDER BY \"title\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT \"id\", \"created_at\", \"updated_at\", \"created_by\", \"org_id\", \"title\", \"team\", \"status\", \"contact\", \"review\", (upper ( \"title\" )) AS \"shout\" FROM \"tasks\" WHERE (1=1) ORDER BY \"title\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT *, (\"budget\" * 2) AS \"budget_note\", (upper ( \"title\" )) AS \"shout\" FROM \"tasks\" WHERE (1=1) ORDER BY \"title\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "member": {
+          "sql": "SELECT \"id\", \"created_at\", \"updated_at\", \"created_by\", \"org_id\", \"title\", \"team\", \"status\", \"contact\", (upper ( \"title\" )) AS \"shout\" FROM \"tasks\" WHERE (1=1) ORDER BY \"title\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "lead": {
+          "sql": "SELECT *, (\"budget\" * 2) AS \"budget_note\", (upper ( \"title\" )) AS \"shout\" FROM \"tasks\" WHERE (1=1) ORDER BY \"title\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT \"id\", \"created_at\", \"updated_at\", \"created_by\", \"org_id\", \"title\", \"team\", \"status\", \"contact\", \"review\", (upper ( \"title\" )) AS \"shout\" FROM \"tasks\" WHERE (1=1) ORDER BY \"title\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      }
+    }
+  ]
+}

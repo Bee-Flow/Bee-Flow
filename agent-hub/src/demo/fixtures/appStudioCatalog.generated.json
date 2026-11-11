@@ -73,7 +73,9 @@
         "MAX_FORMAT_DECIMALS": 10,
         "MAX_FORMAT_PATTERN_LEN": 40,
         "MAX_FORMAT_LANGUAGE_LEN": 35,
-        "MAX_FORMAT_TIME_ZONE_LEN": 64
+        "MAX_FORMAT_TIME_ZONE_LEN": 64,
+        "MAX_STYLE_WHEN_RULES": 6,
+        "MAX_CELL_STYLE_RULES": 6
     },
     "theme": {
         "primary": {
@@ -701,6 +703,12 @@
                 }
             },
             "description": "Timers that run an action every few seconds while the screen is open. everySeconds is 5 to 3600, at most 3 timers per screen, id is a short name (letters, digits, _ or -). A timer pauses while the browser tab is hidden and skips a tick while its previous run is still busy. It never runs in the editor or a screenshot. Only to reload the data on screen, use the screen's refreshInterval instead: a timer is for running an action, such as a check that writes a variable or a step that advances a status. Write the complete list with app_update_screen { screenId, timers: [{ id: \"poll\", everySeconds: 30, actionId: \"act_…\" }] }, and timers: null removes them."
+        },
+        "theme": {
+            "type": "object",
+            "since": 3,
+            "default": null,
+            "description": "A theme of this screen that differs from the app theme. An object with any of the app theme keys (primary, accent, canvas as #rrggbb, radius, density, fontScale, appearance), only the ones that should differ. It applies to everything on the screen and to nothing else, e.g. a dark control-room screen { appearance: \"dark\", primary: \"#38bdf8\" } in a light app, or a calmer { density: \"spacious\", canvas: \"#f5f5f4\" } on a reading screen. The navigation bar keeps the app theme. A canvas whose text would be hard to read gets a validator warning. Set it with app_update_screen { screenId, theme: { … } } (the object replaces the one there), null removes it."
         }
     },
     "section": {
@@ -868,6 +876,10 @@
                 "onRowClick",
                 "onCardMove"
             ],
+            "container": true,
+            "slotContainer": true,
+            "childrenSince": 3,
+            "childrenDescription": "Child components drawn per card in place of the built-in card body. Inside them item is the card's record and index its position, as in a repeater: bind with computed or formulas such as item.title. The card keeps its click and drag behaviour, so keep buttons out of a clickable card. No children means the built-in body (titleKey and the other keys). The phone draws the built-in body.",
             "props": {
                 "source": {
                     "type": "binding",
@@ -1217,9 +1229,13 @@
                         "ghost",
                         "danger",
                         "outline",
-                        "soft"
+                        "soft",
+                        "link"
                     ],
                     "default": "primary",
+                    "valuesSince": {
+                        "link": 3
+                    },
                     "description": "outline = transparent with a primary border and primary text; soft = filled with the soft primary tint, primary text."
                 },
                 "iconLeft": {
@@ -1318,6 +1334,16 @@
                 "collapsible": {
                     "type": "boolean",
                     "default": false
+                },
+                "variant": {
+                    "type": "enum",
+                    "values": [
+                        "soft",
+                        "outline",
+                        "solid"
+                    ],
+                    "since": 3,
+                    "description": "How the note is drawn. soft (the default) is a tinted block with a tone edge, outline is transparent with a tone border, solid is filled with the tone colour and white text."
                 }
             },
             "styleKnobs": [
@@ -1506,8 +1532,12 @@
                                 "user",
                                 "breakdown",
                                 "cad",
-                                "document"
+                                "document",
+                                "template"
                             ],
+                            "valuesSince": {
+                                "template": 3
+                            },
                             "default": "text"
                         },
                         "align": {
@@ -1574,6 +1604,18 @@
                             "objectShape": "formatOptions",
                             "since": 3,
                             "description": "How this column writes its numbers, amounts and dates. An object { currency?: \"USD\", decimals?: 0..10, pattern?: \"dd-MM-yyyy\", compact?: true, percentScale?: \"whole\"|\"fraction\" }, every key optional, set only what should differ. It applies to the number, currency, percent, progress, date, datetime and relative formats of the column. currency (ISO 4217) and decimals win over the app-level `format`. compact writes 1.2K / 3.4M. percentScale \"fraction\" reads 0.25 as 25% (the default \"whole\" reads 25 as 25%). pattern is a date pattern from yyyy yy MMMM MMM MM M dd d EEEE EEE HH H hh h mm ss a, literal letters in single quotes. Absent keeps the default way of writing the value."
+                        },
+                        "cellStyle": {
+                            "type": "object",
+                            "objectShape": "cellStyle",
+                            "since": 3,
+                            "description": "Style of a cell while a formula over its row is true. A list [{ when: \"<formula>\", style: { <knob>: <value> } }] of at most 6 rules, checked per cell in order: every rule whose formula is true applies, a later one wins. In the formula `item` is the row and `value` this cell's value, e.g. { when: \"value > 1000\", style: { color: \"danger\", weight: \"bold\" } } or { when: \"item.status == 'late'\", style: { backgroundColor: \"warning\" } }. Knobs: color, backgroundColor, weight; a colour is a role (primary, neutral, success, warning, danger, info), #rrggbb or token:<name> of design.tokens. A role follows light, dark and high contrast, so prefer it. A formula that fails leaves the cell as it is. Set it through the column list of app_update_component { id, props: { columns: [...] } }."
+                        },
+                        "template": {
+                            "type": "string",
+                            "maxLen": 500,
+                            "since": 3,
+                            "description": "For format template: a formula whose result is the cell text. item is the row and value the cell's own value, e.g. item.first + \" \" + item.last or concat(item.city, \", \", item.country). The result is plain text, never markup. Sorting and filtering still use the value under key."
                         }
                     }
                 },
@@ -1677,8 +1719,12 @@
                                 "user",
                                 "breakdown",
                                 "cad",
-                                "document"
+                                "document",
+                                "template"
                             ],
+                            "valuesSince": {
+                                "template": 3
+                            },
                             "default": "text"
                         },
                         "width": {
@@ -1803,6 +1849,18 @@
                             "objectShape": "formatOptions",
                             "since": 3,
                             "description": "How this column writes its numbers, amounts and dates. An object { currency?: \"USD\", decimals?: 0..10, pattern?: \"dd-MM-yyyy\", compact?: true, percentScale?: \"whole\"|\"fraction\" }, every key optional, set only what should differ. It applies to the number, currency, percent, progress, date, datetime and relative formats of the column. currency (ISO 4217) and decimals win over the app-level `format`. compact writes 1.2K / 3.4M. percentScale \"fraction\" reads 0.25 as 25% (the default \"whole\" reads 25 as 25%). pattern is a date pattern from yyyy yy MMMM MMM MM M dd d EEEE EEE HH H hh h mm ss a, literal letters in single quotes. Absent keeps the default way of writing the value."
+                        },
+                        "cellStyle": {
+                            "type": "object",
+                            "objectShape": "cellStyle",
+                            "since": 3,
+                            "description": "Style of a cell while a formula over its row is true. A list [{ when: \"<formula>\", style: { <knob>: <value> } }] of at most 6 rules, checked per cell in order: every rule whose formula is true applies, a later one wins. In the formula `item` is the row and `value` this cell's value, e.g. { when: \"value > 1000\", style: { color: \"danger\", weight: \"bold\" } } or { when: \"item.status == 'late'\", style: { backgroundColor: \"warning\" } }. Knobs: color, backgroundColor, weight; a colour is a role (primary, neutral, success, warning, danger, info), #rrggbb or token:<name> of design.tokens. A role follows light, dark and high contrast, so prefer it. A formula that fails leaves the cell as it is. Set it through the column list of app_update_component { id, props: { columns: [...] } }."
+                        },
+                        "template": {
+                            "type": "string",
+                            "maxLen": 500,
+                            "since": 3,
+                            "description": "For format template: a formula whose result is the cell text. item is the row and value the cell's own value, e.g. item.first + \" \" + item.last or concat(item.city, \", \", item.country). The result is plain text, never markup. Sorting and filtering still use the value under key."
                         }
                     }
                 },
@@ -2053,8 +2111,18 @@
                         "line",
                         "area",
                         "pie",
-                        "donut"
+                        "donut",
+                        "combo",
+                        "scatter",
+                        "funnel",
+                        "radar"
                     ],
+                    "valuesSince": {
+                        "combo": 3,
+                        "scatter": 3,
+                        "funnel": 3,
+                        "radar": 3
+                    },
                     "default": "bar"
                 },
                 "orientation": {
@@ -2108,6 +2176,25 @@
                         "color": {
                             "type": "string",
                             "maxLen": 40
+                        },
+                        "type": {
+                            "type": "enum",
+                            "values": [
+                                "bar",
+                                "line",
+                                "area"
+                            ],
+                            "since": 3,
+                            "description": "chartType combo only: how this series is drawn. bar when absent."
+                        },
+                        "yAxis": {
+                            "type": "enum",
+                            "values": [
+                                "left",
+                                "right"
+                            ],
+                            "since": 3,
+                            "description": "chartType combo only: the value axis of this series. right adds a second axis on the right. left when absent."
                         }
                     }
                 },
@@ -2219,6 +2306,10 @@
                 "meta",
                 "badge"
             ],
+            "container": true,
+            "slotContainer": true,
+            "childrenSince": 3,
+            "childrenDescription": "Child components drawn per row in place of the built-in row body. Inside them item is the row's record and index its position, as in a repeater: bind with computed or formulas such as item.title. The row keeps its click behaviour, so keep buttons out of a clickable row. No children means the built-in body (titleKey and the other keys). The phone draws the built-in body.",
             "description": "A card list over an array of objects — a friendlier alternative to a table, and the natural sidebar picker. badgeToneMap colours a status pill the way sideMap does for a message thread; timestampKey shows a short relative time; unreadKey bolds the row; tagsKey shows a tags field (e.g. mail categories) as chips.",
             "props": {
                 "source": {
@@ -2502,6 +2593,16 @@
                     ],
                     "default": "default",
                     "description": "default = the current card surface; flat = flush and borderless; raised = shadow elevation; tinted = soft primary wash; accent = a primary edge bar; gradient = soft primary gradient surface; solid = filled with the primary colour, contents in its contrast colour (title colour: heading color knob)."
+                },
+                "variant": {
+                    "type": "enum",
+                    "values": [
+                        "plain",
+                        "outlined",
+                        "elevated"
+                    ],
+                    "since": 3,
+                    "description": "The card surface. plain is the current card, outlined is transparent with a firm border, elevated is lifted by a shadow with no border. Set either variant or look, not both."
                 }
             },
             "styleKnobs": [
@@ -3186,6 +3287,14 @@
                         "type": "effects",
                         "since": 3,
                         "description": "A toast and/or a screen to open after the sequence failed. The failure is toasted either way. Effects are applied once and never chain."
+                    },
+                    "runOn": {
+                        "type": "enum",
+                        "values": [
+                            "server"
+                        ],
+                        "since": 3,
+                        "description": "Runs the whole sequence on the server as one run. Without it the page walks the steps one by one. With it the page sends one request and waits. The result and the written variables come back when the run ends, and its toasts and refreshes show then. Use it for a sequence that must not depend on the page staying open between steps, or whose steps wait. Only steps that need no page may be in it: no navigate, open_url, open_modal, close_modal, reset_form or download, and a confirm only as the first step(s). lockKey and progressVar work as with background. With background: true as well, the page does not wait. A public page and the phone app walk the steps themselves, as without it."
                     }
                 }
             }
@@ -3231,6 +3340,7 @@
             "switch",
             "call_action",
             "transaction",
+            "await_approval",
             "back",
             "break",
             "code",
@@ -4631,6 +4741,116 @@
                     }
                 }
             },
+            "await_approval": {
+                "mutatesData": true,
+                "fields": {
+                    "prompt": {
+                        "type": "binding",
+                        "required": true
+                    },
+                    "details": {
+                        "type": "binding"
+                    },
+                    "fields": {
+                        "type": "approvalQuestions"
+                    },
+                    "assigneeUserId": {
+                        "type": "string",
+                        "maxLen": 80,
+                        "nullable": true
+                    },
+                    "assigneeGroupId": {
+                        "type": "string",
+                        "maxLen": 80,
+                        "nullable": true
+                    },
+                    "approverUserIds": {
+                        "type": "stringList"
+                    },
+                    "approverGroupIds": {
+                        "type": "stringList"
+                    },
+                    "rule": {
+                        "type": "enum",
+                        "values": [
+                            "all",
+                            "first",
+                            "quorum"
+                        ],
+                        "default": "all"
+                    },
+                    "quorumCount": {
+                        "type": "int",
+                        "min": 1,
+                        "max": 10
+                    },
+                    "finalApproverUserId": {
+                        "type": "string",
+                        "maxLen": 80,
+                        "nullable": true
+                    },
+                    "finalApproverGroupId": {
+                        "type": "string",
+                        "maxLen": 80,
+                        "nullable": true
+                    },
+                    "stages": {
+                        "type": "approvalStages"
+                    },
+                    "timeoutHours": {
+                        "type": "int",
+                        "min": 1,
+                        "max": 720,
+                        "description": "How long the request stays open, in hours (1 to 720). Then it expires and the step goes on with decision \"expired\". Left out: it waits until someone decides (at most the longest wait the server allows)."
+                    },
+                    "remindAfterHours": {
+                        "type": "int",
+                        "min": 1,
+                        "max": 720
+                    },
+                    "escalateToUserId": {
+                        "type": "string",
+                        "maxLen": 80,
+                        "nullable": true
+                    },
+                    "escalateToGroupId": {
+                        "type": "string",
+                        "maxLen": 80,
+                        "nullable": true
+                    },
+                    "escalateAfterHours": {
+                        "type": "int",
+                        "min": 1,
+                        "max": 720
+                    },
+                    "attachments": {
+                        "type": "binding"
+                    },
+                    "context": {
+                        "type": "recordValues"
+                    },
+                    "onDecided": {
+                        "type": "approvalOnDecided"
+                    },
+                    "resultVar": {
+                        "type": "string",
+                        "maxLen": 60,
+                        "description": "The variable that gets the decision: { decision, reason, answers, decidedBy, decidedByName, decidedAt, approvalId }."
+                    },
+                    "onError": {
+                        "type": "errorHandler",
+                        "envelope": true
+                    },
+                    "guard": {
+                        "type": "formula",
+                        "since": 3,
+                        "envelope": true,
+                        "description": "Skips the step on the server when this formula is false. The server works it out before it runs the step. When it gives false or nothing, or cannot be worked out, the step is skipped: nothing is written or sent, its result is null and the sequence goes on. Use it for a rule the browser must not be able to switch off, for example currentUser.roleKey == \"manager\" or form.amount <= 500. A condition step decides in the browser, a guard decides on the server. It reads the roots a server step has (form, vars, item, index, value, params, currentUser, now, today), and screen, forms and actions only when the app sets serverScope to \"wide\". Only currentUser comes from the server: every other root is sent by the browser, so decide who may do something with currentUser, never with vars, form or actions. A guard covers its own step only, so each step that needs the rule carries it. Every server step kind takes it, the kinds added later too. A step inside a transaction takes no guard of its own: put it on the transaction."
+                    }
+                },
+                "since": 3,
+                "retrySafe": false
+            },
             "back": {
                 "mutatesData": false,
                 "fields": {},
@@ -4931,10 +5151,13 @@
                 "fields": {
                     "seconds": {
                         "type": "int",
-                        "required": true,
                         "min": 1,
-                        "max": 30,
-                        "description": "How long to pause, in whole seconds (1 to 30)."
+                        "max": 2592000,
+                        "description": "How long to pause, in whole seconds. In the browser 1 to 30; in a run on the server up to 2592000 (30 days)."
+                    },
+                    "until": {
+                        "type": "binding",
+                        "description": "Wait until this moment instead: a date-time (ISO text such as \"2026-12-01T09:00:00Z\", or epoch milliseconds). A moment that has passed does not wait. Only in a run on the server."
                     }
                 },
                 "since": 3,
@@ -5015,6 +5238,7 @@
             "kb_log_query",
             "kb_log_review",
             "transaction",
+            "await_approval",
             "code",
             "http_request"
         ]

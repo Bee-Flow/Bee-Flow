@@ -29,7 +29,7 @@ import { createRequire } from 'node:module';
 
 const nodeRequire = createRequire(import.meta.url);
 
-type Field = { key?: string; type?: string; relation?: { table?: string } };
+type Field = { key?: string; type?: string; relation?: { table?: string; many?: boolean } };
 type Table = { id?: string; key?: string; fields?: Field[]; source?: unknown };
 type AccessFilter = { where: string; params: unknown[] };
 type Related = Record<string, { tableMeta: Table; accessFilter: AccessFilter }>;
@@ -72,6 +72,31 @@ export function relationFilterFields(filters: unknown): string[] {
 }
 
 /**
+ * The many relations of `tableMeta` a filter list names as a plain field (`{ field: <many
+ * relation>, op: 'contains', value }`, inside groups too), each once: their junction is read
+ * under the related table's access predicate (queryCompilerMany.mts).
+ */
+export function manyFilterFields(tableMeta: Table, filters: unknown): string[] {
+    const fields = Array.isArray(tableMeta && tableMeta.fields) ? tableMeta.fields as Field[] : [];
+    const out = new Set<string>();
+    const walk = (entry: unknown, depth: number): void => {
+        if (!entry || typeof entry !== 'object' || depth > 8) return;
+        if (Array.isArray(entry)) { for (const e of entry) walk(e, depth + 1); return; }
+        const e = entry as Record<string, unknown>;
+        if (typeof e.field === 'string') {
+            const f = fields.find((x) => x && x.key === e.field);
+            if (f && f.type === 'relation' && f.relation && f.relation.many === true) out.add(e.field);
+            return;
+        }
+        walk(e.any, depth + 1);
+        walk(e.all, depth + 1);
+        walk(e.not, depth + 1);
+    };
+    walk(filters, 0);
+    return [...out];
+}
+
+/**
  * @param model      the app's data model ({ tables })
  * @param tableMeta  the table the aggregate reads, as compiled
  * @param groupBy    the descriptor's groupBy
@@ -85,7 +110,7 @@ export function relatedForAggregate(
     who: { role: unknown; viewer: unknown; dialect?: string },
     filters?: unknown,
 ): Related | undefined {
-    const filterKeys = relationFilterFields(filters);
+    const filterKeys = [...relationFilterFields(filters), ...manyFilterFields(tableMeta, filters)];
     const keys = [...new Set([...relationFieldsOf(groupBy), ...filterKeys])];
     if (keys.length === 0) return undefined;
     const out = relatedTablesFor(model, tableMeta, keys, who);

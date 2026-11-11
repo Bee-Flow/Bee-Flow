@@ -120,6 +120,8 @@ export interface CardFieldProps {
 /** Card content, shared by the in-lane card and the drag overlay's copy. */
 export interface CardBodyProps {
     row: KanbanRow;
+    /** The card's position in the source rows (the `index` of a card template); absent on the drag copy. */
+    index?: number;
     titleKey: string;
     subtitleKey: string | null;
     badgeKey: string | null;

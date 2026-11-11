@@ -8,7 +8,8 @@
 
 const { LIMITS } = require('./limits');
 const { COLOR_ROLES } = require('./styleKnobs');
-const { formatOptionsSpec } = require('./objectShapes');
+const { itemTemplateHost } = require('./itemTemplates');
+const { sharedColumnItemShape } = require('./columnItemShape');
 
 const RECORD_LIST_SPECS = {
     table: {
@@ -43,7 +44,10 @@ const RECORD_LIST_SPECS = {
                             // the PDF (or image) full screen. Same gesture as 'cad',
                             // different file.
                             'document',
+                            // Schema 3: the text of the column's `template` formula, per row.
+                            'template',
                         ],
+                        valuesSince: { template: 3 },
                         default: 'text',
                     },
                     align: { type: 'enum', values: ['auto', 'left', 'right', 'center'], default: 'auto' },
@@ -51,32 +55,7 @@ const RECORD_LIST_SPECS = {
                     hidden: { type: 'boolean' },
                     toneFrom: { type: 'string', maxLen: 120 },
                     labelFrom: { type: 'string', maxLen: 120 },
-                    toneMap: {
-                        type: 'list', maxItems: 16,
-                        itemShape: {
-                            value: { type: 'string', required: true, maxLen: 200 },
-                            label: { type: 'string', maxLen: 80 },
-                            tone: { type: 'enum', values: COLOR_ROLES, default: 'neutral' },
-                        },
-                    },
-                    // One line explaining what lives in this column, shown on
-                    // hover over its header. Labels get abbreviated to fit
-                    // ("Snijkw.", "Afbr.", "Cert.") and then only the person who
-                    // built the table knows what the numbers under them mean;
-                    // everyone else guesses, or asks whoever built it.
-                    help: { type: 'string', maxLen: 200 },
-                    // Make THIS cell a button. A status column is the thing
-                    // people reach for when they want to change the status, and
-                    // sending them to a separate button at the end of the row to
-                    // do it is a detour they have to be taught. The action gets
-                    // the row as `item` and as form values, exactly like a row
-                    // action does.
-                    actionId: { type: 'string', maxLen: 20 },
-                    // Schema 3: how this column writes its numbers and dates.
-                    formatOptions: formatOptionsSpec(
-                        'How this column writes its numbers, amounts and dates.',
-                        'It applies to the number, currency, percent, progress, date, datetime and relative formats of the column.',
-                    ),
+                    ...sharedColumnItemShape(),
                 },
             },
             emptyText: { type: 'string', maxLen: 200, default: 'Nothing to show yet.' },
@@ -98,6 +77,8 @@ const RECORD_LIST_SPECS = {
     list: {
         label: 'List', category: 'Data',
         parts: ['root', 'group', 'item', 'icon', 'title', 'subtitle', 'meta', 'badge'],
+        // Schema 3: an optional row template (./itemTemplates.js).
+        ...itemTemplateHost('list'),
         description: 'A card list over an array of objects — a friendlier alternative to a table, and the natural sidebar picker. badgeToneMap colours a status pill the way sideMap does for a message thread; timestampKey shows a short relative time; unreadKey bolds the row; tagsKey shows a tags field (e.g. mail categories) as chips.',
         props: {
             source: { type: 'binding', default: { kind: 'static', value: [] } },

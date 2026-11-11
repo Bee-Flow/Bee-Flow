@@ -66,13 +66,17 @@ function locate(
  */
 export function sampleForInputType(type: string): string | number | boolean | unknown[] | null {
     switch (type) {
-        case 'input_number': return 0;
-        case 'input_checkbox': return false;
+        case 'input_number':
+        case 'slider':
+        case 'rating': return 0;
+        case 'input_checkbox':
+        case 'switch': return false;
         case 'input_date': return '2020-01-01';
         case 'input_datetime': return '2020-01-01T09:00';
         case 'input_multiselect': return [];
         case 'input_file': return null;
         case 'input_relation': return null;
+        // A radio group submits the chosen option's value as text, like input_select.
         default: return '';
     }
 }

@@ -53,6 +53,7 @@ function getFormatLabels(t: TranslateFn): Record<string, string> {
         breakdown: t('studio_apps_panels.data_grid.format_breakdown', 'Breakdown'),
         cad: t('studio_apps_panels.data_grid.format_cad', 'Cad'),
         document: t('studio_apps_panels.data_grid.format_document', 'Document'),
+        template: t('studio_apps_lk20.template.format_template', 'Template'),
     };
 }
 
@@ -66,6 +67,8 @@ const FORMATS = [
     'breakdown',
     'cad',
     'document',
+    // Schema 3: the cell is the column's `template` formula, which More options edits.
+    'template',
 ];
 
 // Mirror of the table `look` enum (componentSpecs.js, authoritative — first

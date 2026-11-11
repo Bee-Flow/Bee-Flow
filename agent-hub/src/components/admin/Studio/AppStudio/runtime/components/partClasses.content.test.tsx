@@ -92,7 +92,11 @@ const CASES: Record<string, Case> = {
     },
     markdown: {
         Comp: AppMarkdown,
-        variants: [{ props: { content: '# Head\n\npara\n\n- a\n- b\n\n```\ncode\n```' } }],
+        variants: [
+            { props: { content: '# Head\n\npara\n\n- a\n- b\n\n```\ncode\n```' } },
+            // rich (since 3) draws the parts that only it has: a table, a task, a quote, a picture.
+            { props: { rich: true, content: '| a |\n| - |\n| 1 |\n\n- [x] done\n\n> quote\n\n![p](asset:img_1)' } },
+        ],
     },
     badge_list: {
         Comp: AppBadgeList,

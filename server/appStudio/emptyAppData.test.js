@@ -174,6 +174,25 @@ test('a cycle through a required column is refused with 409 relation_cycle', () 
     assert.equal(plan.code, 'relation_cycle');
 });
 
+// A many relation is no column: its links sit in a junction table that goes with either end.
+const manyTo = (table) => ({ type: 'relation', relation: { table, many: true } });
+
+test('a cycle through a many relation is no cycle: the tables empty in column order, nothing nulled', () => {
+    const reqA = { ...A, fields: [{ ...A.fields[0], required: true }] };
+    const manyB = { ...B, fields: [{ ...B.fields[0], ...manyTo(A.id) }] };
+    const plan = planEmpty(modelOf([manyB, reqA]));
+    assert.equal(plan.status, undefined, JSON.stringify(plan));
+    assert.deepEqual(plan.ordered.map((t) => t.key), ['cyc_a', 'cyc_b']);
+    assert.deepEqual(plan.nullings, []);
+});
+
+test('a many relation from a table that is not chosen does not refuse the chosen one', () => {
+    const tags = { id: 'tbl_tags000', key: 'tags', name: 'Tags', fields: [{ id: 'fld_tg0001', key: 'parents', name: 'Parents', ...manyTo(PARENT.id) }] };
+    const plan = planEmpty(modelOf([PARENT, tags]), [PARENT.id]);
+    assert.equal(plan.status, undefined, JSON.stringify(plan));
+    assert.deepEqual(plan.ordered.map((t) => t.key), ['parents']);
+});
+
 test('only the connectors that fill an emptied table are reset', async () => {
     const db = openDb([PARENT, CHILD]);
     const connectors = [
@@ -191,4 +210,21 @@ test('only the connectors that fill an emptied table are reset', async () => {
     const res2 = await emptyAppData(app, modelOf([PARENT, CHILD], connectors), [CHILD.id], second.deps);
     assert.deepEqual(second.calls.resets, ['conn_kid']);
     assert.equal(res2.connectorsReset, 1);
+});
+
+test('a table whose fields carry column rights is emptied as the owner: the compiler gets the owner\'s access', async () => {
+    const { scopeColumns } = require('../core/dataEngine/columnRights.mts');
+    const GUARDED = { id: 'tbl_guard00', key: 'guarded', name: 'Guarded', fields: [
+        { id: 'fld_s00001', key: 'title', name: 'Title', type: 'text' },
+        { id: 'fld_s00002', key: 'salary', name: 'Salary', type: 'number', access: { read: [] } },
+    ] };
+    const db = openDb([GUARDED]);
+    ins(db, 'guarded', { id: 'g1', title: 'a', salary: 1 });
+    ins(db, 'guarded', { id: 'g2', title: 'b', salary: 2 });
+    const { deps } = depsOver(db);
+    // The read compilers start with scopeColumns; a delete that ever does the same must still run here.
+    deps.compileDeleteAll = (t, a) => { scopeColumns(t, a); return qc.compileDeleteAll(t, a); };
+    const out = await emptyAppData(app, modelOf([GUARDED]), undefined, deps);
+    assert.deepEqual(out.emptied, [{ tableId: GUARDED.id, key: 'guarded', rows: 2 }]);
+    assert.equal(count(db, 'guarded'), 0);
 });

@@ -8,8 +8,13 @@ import { safeTargetTypes } from './fieldConversions';
 import FieldDisplayEditor from './FieldDisplayEditor';
 import { withTypeShape } from './fieldDisplay';
 import FieldRulesEditor from './FieldRulesEditor';
+import FieldAccessEditor from './FieldAccessEditor';
+import { withAccessForType } from './fieldAccess';
 import { withoutRules } from './fieldRules';
+import LinkedFieldEditor from './LinkedFieldEditor';
+import { isLinkType, withLinkType } from './linkedFieldsModel';
 import RelationDisplayField from './RelationDisplayField';
+import TableIndexesEditor from './TableIndexesEditor';
 import type { ModelField, ModelTable } from './tablesManagerModel';
 import type { TranslateFn } from '@/hooks/useTranslation';
 
@@ -48,6 +53,8 @@ const fieldTypes = (t: TranslateFn) => [
     { value: 'autonumber', label: t('studio_apps_fieldtypes.type_autonumber', 'Auto number') },
     { value: 'json', label: t('studio_apps_fieldtypes.type_json', 'JSON') },
     { value: 'user', label: t('studio_apps_fieldtypes.type_user', 'Person') },
+    { value: 'lookup', label: t('studio_apps_di.type_lookup', 'Lookup') },
+    { value: 'rollup', label: t('studio_apps_di.type_rollup', 'Rollup') },
 ];
 
 const SYSTEM_COLUMNS = new Set(['id', 'created_at', 'updated_at', 'created_by', 'org_id']);
@@ -101,9 +108,13 @@ interface FieldEditorProps {
     update: (next: ModelField) => void;
     tables?: ModelTable[] | null;
     currentTableId?: string;
+    /** The table being edited (a lookup reads through its relations). */
+    table?: ModelTable | null;
     saved: boolean;
     /** The type the server has for a saved field: only safe conversions from it are offered. */
     savedType?: string;
+    /** The app's role keys; the column rights of the field are edited when they are given. */
+    roles?: string[] | null;
     disabled: boolean;
 }
 
@@ -115,7 +126,7 @@ function typeOptions(t: TranslateFn, field: ModelField, saved: boolean, savedTyp
     return all.filter((ft) => allowed.has(ft.value));
 }
 
-function FieldEditor({ field, update, tables, currentTableId, saved, savedType, disabled }: FieldEditorProps) {
+function FieldEditor({ field, update, tables, currentTableId, table, saved, savedType, roles, disabled }: FieldEditorProps) {
     const { t } = useTranslation();
     const set = (patch: Partial<ModelField>) => update({ ...field, ...patch });
     // While a key is still auto-derived (blank or matches the name's slug), keep
@@ -178,7 +189,7 @@ function FieldEditor({ field, update, tables, currentTableId, saved, savedType, 
                 <select
                     className={FIELD_CLS}
                     value={field.type || 'text'}
-                    onChange={(e) => update({ ...withTypeShape(withoutRules(field), e.target.value), ...typePatch(field, e.target.value) })}
+                    onChange={(e) => update(withAccessForType(withLinkType({ ...withTypeShape(withoutRules(field), e.target.value), ...typePatch(field, e.target.value) }, e.target.value)))}
                     disabled={disabled}
                     aria-label={t('studio_apps_tables.designer.field_type', 'Field type')}
                 >
@@ -213,8 +224,8 @@ function FieldEditor({ field, update, tables, currentTableId, saved, savedType, 
                 />
             ) : null}
 
-            {/* An autonumber is always unique and never required: the server fills it. */}
-            {field.type === 'autonumber' ? null : <div className="flex items-center gap-4 text-xs text-[var(--text-secondary)]">
+            {/* An autonumber is always unique and never required: the server fills it. A lookup or rollup is read-only. */}
+            {field.type === 'autonumber' || isLinkType(field.type) ? null : <div className="flex items-center gap-4 text-xs text-[var(--text-secondary)]">
                 <label className="inline-flex items-center gap-1.5 cursor-pointer">
                     <input type="checkbox" className={CHECK_CLS} checked={!!field.required} disabled={disabled}
                         onChange={(e) => set({ required: e.target.checked })} />
@@ -249,7 +260,10 @@ function FieldEditor({ field, update, tables, currentTableId, saved, savedType, 
                         </select>
                     </label>
                     <RelationDisplayField field={field} set={set} tables={tables} disabled={disabled} />
+                    <LinkedFieldEditor field={field} update={update} tables={tables} table={table} disabled={disabled} />
                 </div>
+            ) : isLinkType(field.type) ? (
+                <LinkedFieldEditor field={field} update={update} tables={tables} table={table} disabled={disabled} />
             ) : field.type === 'computed' ? (
                 <div className="flex flex-col gap-1">
                     <span className="text-xs font-medium text-[var(--text-secondary)]">{t('studio_apps_tables.designer.computed_expr', 'Computed expression')}</span>
@@ -290,6 +304,7 @@ function FieldEditor({ field, update, tables, currentTableId, saved, savedType, 
 
             <FieldDisplayEditor field={field} update={update} disabled={disabled} />
             <FieldRulesEditor field={field} update={update} disabled={disabled} />
+            {roles ? <FieldAccessEditor field={field} update={update} roles={roles} disabled={disabled} /> : null}
         </div>
     );
 }
@@ -299,10 +314,12 @@ interface TableDesignerProps {
     tables?: ModelTable[] | null;
     savedTable?: ModelTable | null;
     onChange: (table: ModelTable) => void;
+    /** The app's role keys, for the column rights of a field. Left out for a linked table (its rights live on the Studio table). */
+    roles?: string[] | null;
     disabled?: boolean;
 }
 
-export default function TableDesigner({ table, tables, savedTable = null, onChange, disabled = false }: TableDesignerProps) {
+export default function TableDesigner({ table, tables, savedTable = null, onChange, roles = null, disabled = false }: TableDesignerProps) {
     const { t } = useTranslation();
     if (!table) return null;
     const set = (patch: Partial<ModelTable>) => onChange({ ...table, ...patch });
@@ -335,12 +352,15 @@ export default function TableDesigner({ table, tables, savedTable = null, onChan
                         update={update}
                         tables={tables}
                         currentTableId={table.id}
+                        table={table}
                         saved={savedTypeById.has(field.id)}
                         savedType={savedTypeById.get(field.id)}
+                        roles={table.source ? null : roles}
                         disabled={disabled}
                     />
                 )}
             />
+            {table.source ? null : <TableIndexesEditor table={table} onChange={onChange} disabled={disabled} />}
         </div>
     );
 }

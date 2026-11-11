@@ -59,7 +59,8 @@ type Grain = { level?: unknown; rows?: unknown[] };
 /** How far apart the recorded reply and the provider's copy may be stamped. */
 export const REPLY_MATCH_MS = 15 * 60 * 1000;
 const LOCAL_PREFIX = 'local-';
-const OWNER_FILTER: AccessFilter = Object.freeze({ where: '1=1', params: [] }) as AccessFilter;
+// Every row and every column: the recorded replies are reconciled as the owner.
+const { OWNER_ACCESS: OWNER_FILTER } = nodeRequire('../core/dataEngine/accessFilter') as { OWNER_ACCESS: AccessFilter };
 // The compiler's own ceiling for an `in` list.
 const MAX_KEYS = 200;
 

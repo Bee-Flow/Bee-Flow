@@ -7,6 +7,9 @@ import { navModel, type NavDefinition } from './shell/navModel';
 import NavSidebar from './shell/NavSidebar';
 import NavTabs from './shell/NavTabs';
 import UserMenu from './shell/UserMenu';
+import NavLinks from './shell/NavLinks';
+import { ShellCorner, ShellFooter } from './shell/ShellParts';
+import { shellOptions } from './shell/shellOptions';
 import AppCustomCss from './AppCustomCss';
 import AppKbNotice from './shell/AppKbNotice';
 import { CANVAS_GROUND, themeVars } from './themeVars';
@@ -29,6 +32,10 @@ import type React from 'react';
  *   nav.style 'mega' — top bar where each nav GROUP opens a panel of screens
  *     with descriptions. With no groups declared it falls back to NavTabs, so
  *     the choice degrades into the default rather than into an empty bar.
+ *   nav.style 'none' (schema 3) — no navigation chrome; a corner keeps the
+ *     viewer's menu. nav.header 'hidden' drops the top bar (the phone bar of a
+ *     sidebar) for the same corner, with the screen menu. nav.items, nav.footerText
+ *     and nav.brand add links, a footer line and the brand (shell/shellOptions.ts).
  *
  * Without a definition.nav the tabs layout renders exactly like the pre-A2
  * shell (modulo the drawer replacing the old native <select> — an approved
@@ -91,6 +98,24 @@ export default function AppShell({
      */
     const main = <main className="flex flex-col flex-1 min-h-0 overflow-auto"><AppCustomCss definition={definition} appId={appId} /><AppKbNotice definition={definition} />{children}</main>;
 
+    // The shell options (schema 3, shell/shellOptions.ts); an app without them gets none of these parts.
+    const opts = shellOptions(definition);
+    const footer = <ShellFooter text={opts.footerText} />;
+    const corner = (withNav: boolean) => (
+        <ShellCorner model={withNav ? model : null} activeScreen={activeScreen} onNavigate={onNavigate} viewer={viewer} onExit={onExit} items={withNav ? opts.items : []} />
+    );
+
+    // nav.style 'none': no navigation chrome, only the corner with the viewer's menu.
+    if (opts.none) {
+        return (
+            <div className={rootClass('flex-col relative')} data-app-appearance={appearance} style={rootStyle} data-app-shell-none="true">
+                {corner(false)}
+                {main}
+                {footer}
+            </div>
+        );
+    }
+
     if (navStyle === 'sidebar' || navStyle === 'rail') {
         return (
             <div className={rootClass('flex-row')} data-app-appearance={appearance} style={rootStyle}>
@@ -103,17 +128,33 @@ export default function AppShell({
                     appId={appId}
                     onExit={onExit}
                     railed={navStyle === 'rail'}
+                    items={opts.items}
                 />
-                <div className="flex flex-col flex-1 min-w-0 min-h-0">
-                    <MobileNav
-                        variant="bar"
-                        model={model}
-                        activeScreen={activeScreen}
-                        onNavigate={onNavigate}
-                        brand={<Brand definition={definition} />}
-                    />
+                <div className={`flex flex-col flex-1 min-w-0 min-h-0${opts.headerHidden ? ' relative' : ''}`}>
+                    {opts.headerHidden ? <div className="sm:hidden">{corner(true)}</div> : (
+                        <MobileNav
+                            variant="bar"
+                            model={model}
+                            activeScreen={activeScreen}
+                            onNavigate={onNavigate}
+                            brand={<Brand definition={definition} />}
+                            items={opts.items}
+                        />
+                    )}
                     {main}
+                    {footer}
                 </div>
+            </div>
+        );
+    }
+
+    // nav.header 'hidden': no top bar; the corner carries the screen menu and the viewer's menu.
+    if (opts.headerHidden) {
+        return (
+            <div className={rootClass('flex-col relative')} data-app-appearance={appearance} style={rootStyle}>
+                {corner(true)}
+                {main}
+                {footer}
             </div>
         );
     }
@@ -133,19 +174,22 @@ export default function AppShell({
                         <NavTabs screens={model.flat} screenId={screenId} onNavigate={onNavigate} />
                     )
                 ) : null}
+                <NavLinks variant="bar" items={opts.items} screenId={screenId} onNavigate={onNavigate} />
                 <div className="ml-auto flex items-center gap-2 shrink-0">
-                    {showNav ? (
+                    {showNav || opts.items.length ? (
                         <MobileNav
                             variant="inline"
                             model={model}
                             activeScreen={activeScreen}
                             onNavigate={onNavigate}
+                            items={opts.items}
                         />
                     ) : null}
                     <UserMenu viewer={viewer} onExit={onExit} direction="down" />
                 </div>
             </header>
             {main}
+            {footer}
         </div>
     );
 }

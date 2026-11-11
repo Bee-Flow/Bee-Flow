@@ -254,6 +254,21 @@ test('scope: form, vars and item reach the executor; resultVar is passed on; loo
     assert.equal(out.vars.row, undefined);
 });
 
+test('scope.trigger mocks what started a trigger run: the steps read it, its writes name no origin, a malformed one is refused', async () => {
+    const trigger = { kind: 'record', record: { event: 'update', id: 'r1', row: { status: 'done' }, before: { status: 'new' }, changed: ['status'] } };
+    const out = await run({ kind: 'sequence', steps: [
+        { kind: 'set_variable', name: 'was', value: { kind: 'formula', expr: 'trigger.record.before.status' } },
+        { kind: 'create_record', tableId: 'tbl_a', values: {} },
+    ] }, { dryRun: false, scope: { trigger } }, OWNER, { buildScope: (ctx) => ({ vars: ctx.vars, ...(ctx.trigger ? { trigger: ctx.trigger } : {}) }) });
+    assert.equal(out.ok, true);
+    assert.equal(out.vars.was, 'new');
+    assert.deepEqual(executed[0].ctx.trigger, trigger);
+    assert.equal(executed[0].ctx.writeSource, undefined, 'a test run never starts a record trigger');
+    for (const bad of [{ kind: 'nope' }, { kind: 'record', webhook: {} }, { kind: 'record', record: 'x' }, 'record']) {
+        assert.match((await run({ kind: 'sequence', steps: [] }, { scope: { trigger: bad } })).error, /scope\.trigger is/, JSON.stringify(bad));
+    }
+});
+
 test('a loop whose source does not resolve to a list is skipped with a note', async () => {
     const out = await run({ kind: 'sequence', steps: [{ kind: 'loop', source: { kind: 'records', tableId: 'tbl_a' }, steps: [{ kind: 'ai_generate' }] }] });
     assert.equal(out.steps[0].status, 'skipped');

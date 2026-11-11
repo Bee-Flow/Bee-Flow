@@ -1,0 +1,540 @@
+{
+  "about": {
+    "source": "hand-made for package LK20 (repeater layout and item templates): a repeater on a grid and on a sideways row, a list row template, a kanban card template, template columns in a table and a data grid",
+    "captured": "2026-11-11"
+  },
+  "definition": {
+    "schemaVersion": 3,
+    "meta": {
+      "name": "Item templates",
+      "description": "Repeater grid and row layouts, list and kanban item templates, template columns.",
+      "icon": "LayoutGrid"
+    },
+    "theme": {
+      "primary": "#0F766E",
+      "radius": "md",
+      "density": "comfortable",
+      "fontScale": "md",
+      "appearance": "auto"
+    },
+    "roles": [],
+    "screens": [
+      {
+        "id": "scr_items001",
+        "name": "Projects",
+        "icon": "LayoutGrid",
+        "showInNav": true,
+        "maxWidth": "wide",
+        "sections": [
+          {
+            "id": "sec_items001",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_head0001",
+                "type": "heading",
+                "props": {
+                  "text": "Projects",
+                  "level": 2,
+                  "accent": "none"
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_repgrid1",
+                "type": "repeater",
+                "props": {
+                  "source": {
+                    "kind": "static",
+                    "value": [
+                      {
+                        "id": "p1",
+                        "title": "Roof repair",
+                        "owner": "Ann",
+                        "city": "Delft",
+                        "status": "todo",
+                        "price": 1200
+                      },
+                      {
+                        "id": "p2",
+                        "title": "New kitchen",
+                        "owner": "Bob",
+                        "city": "Gouda",
+                        "status": "doing",
+                        "price": 8400
+                      },
+                      {
+                        "id": "p3",
+                        "title": "Garden fence",
+                        "owner": "Cas",
+                        "city": "Breda",
+                        "status": "todo",
+                        "price": 640
+                      }
+                    ]
+                  },
+                  "itemActions": [],
+                  "emptyText": "Nothing to show yet.",
+                  "layout": "grid",
+                  "itemColumns": 3,
+                  "itemColumnsMd": 2,
+                  "itemColumnsSm": 1
+                },
+                "style": {
+                  "span": 12,
+                  "gap": 3,
+                  "padding": 0
+                },
+                "visible": true,
+                "children": [
+                  {
+                    "id": "cmp_card0001",
+                    "type": "card",
+                    "props": {
+                      "title": "Project",
+                      "description": null,
+                      "look": "default"
+                    },
+                    "style": {
+                      "span": 12,
+                      "padding": 3,
+                      "gap": 3,
+                      "background": "surface"
+                    },
+                    "visible": true,
+                    "computed": {
+                      "title": {
+                        "kind": "formula",
+                        "expr": "item.title"
+                      }
+                    },
+                    "children": [
+                      {
+                        "id": "cmp_cardtx01",
+                        "type": "text",
+                        "props": {
+                          "text": "Item",
+                          "muted": false
+                        },
+                        "style": {
+                          "span": 12
+                        },
+                        "visible": true,
+                        "computed": {
+                          "text": {
+                            "kind": "formula",
+                            "expr": "concat(item.owner, \" in \", item.city)"
+                          }
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "cmp_reprow01",
+                "type": "repeater",
+                "props": {
+                  "source": {
+                    "kind": "static",
+                    "value": [
+                      {
+                        "id": "p1",
+                        "title": "Roof repair",
+                        "owner": "Ann",
+                        "city": "Delft",
+                        "status": "todo",
+                        "price": 1200
+                      },
+                      {
+                        "id": "p2",
+                        "title": "New kitchen",
+                        "owner": "Bob",
+                        "city": "Gouda",
+                        "status": "doing",
+                        "price": 8400
+                      },
+                      {
+                        "id": "p3",
+                        "title": "Garden fence",
+                        "owner": "Cas",
+                        "city": "Breda",
+                        "status": "todo",
+                        "price": 640
+                      }
+                    ]
+                  },
+                  "itemActions": [],
+                  "emptyText": "Nothing to show yet.",
+                  "layout": "row",
+                  "itemColumns": 2
+                },
+                "style": {
+                  "span": 12,
+                  "gap": 2,
+                  "padding": 0
+                },
+                "visible": true,
+                "children": [
+                  {
+                    "id": "cmp_rowtx001",
+                    "type": "text",
+                    "props": {
+                      "text": "Item",
+                      "muted": false
+                    },
+                    "style": {
+                      "span": 12
+                    },
+                    "visible": true,
+                    "computed": {
+                      "text": {
+                        "kind": "formula",
+                        "expr": "item.title"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "cmp_list0001",
+                "type": "list",
+                "props": {
+                  "source": {
+                    "kind": "static",
+                    "value": [
+                      {
+                        "id": "p1",
+                        "title": "Roof repair",
+                        "owner": "Ann",
+                        "city": "Delft",
+                        "status": "todo",
+                        "price": 1200
+                      },
+                      {
+                        "id": "p2",
+                        "title": "New kitchen",
+                        "owner": "Bob",
+                        "city": "Gouda",
+                        "status": "doing",
+                        "price": 8400
+                      },
+                      {
+                        "id": "p3",
+                        "title": "Garden fence",
+                        "owner": "Cas",
+                        "city": "Breda",
+                        "status": "todo",
+                        "price": 640
+                      }
+                    ]
+                  },
+                  "titleKey": "title",
+                  "subtitleKey": null,
+                  "metaKey": null,
+                  "timestampKey": null,
+                  "badgeKey": null,
+                  "tagsKey": null,
+                  "badgeToneMap": [],
+                  "unreadKey": null,
+                  "badgePlacement": "meta",
+                  "selectedWhen": null,
+                  "selectedDetailKey": null,
+                  "groupKey": null,
+                  "groupOrder": [],
+                  "groupLabelMap": [],
+                  "icon": null,
+                  "emptyText": "Nothing to show yet.",
+                  "look": "rows",
+                  "peekSource": null,
+                  "peekMatchKey": null,
+                  "peekRowKey": null,
+                  "peekTitleKey": null,
+                  "peekTextKey": null,
+                  "peekGroupKey": null,
+                  "peekGroupLabelMap": [],
+                  "peekCountKey": null,
+                  "peekLimit": 6,
+                  "peekTitle": null,
+                  "peekMoreText": null,
+                  "peekBadge": false
+                },
+                "style": {
+                  "span": 6
+                },
+                "visible": true,
+                "onRowClick": "act_pick0001",
+                "children": [
+                  {
+                    "id": "cmp_listtx01",
+                    "type": "text",
+                    "props": {
+                      "text": "Item",
+                      "muted": false
+                    },
+                    "style": {
+                      "span": 8
+                    },
+                    "visible": true,
+                    "computed": {
+                      "text": {
+                        "kind": "formula",
+                        "expr": "concat(index + 1, \". \", item.title)"
+                      }
+                    }
+                  },
+                  {
+                    "id": "cmp_listtx02",
+                    "type": "text",
+                    "props": {
+                      "text": "Item",
+                      "muted": false
+                    },
+                    "style": {
+                      "span": 4
+                    },
+                    "visible": true,
+                    "computed": {
+                      "text": {
+                        "kind": "formula",
+                        "expr": "item.city"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "cmp_kan00001",
+                "type": "kanban",
+                "props": {
+                  "source": {
+                    "kind": "static",
+                    "value": [
+                      {
+                        "id": "p1",
+                        "title": "Roof repair",
+                        "owner": "Ann",
+                        "city": "Delft",
+                        "status": "todo",
+                        "price": 1200
+                      },
+                      {
+                        "id": "p2",
+                        "title": "New kitchen",
+                        "owner": "Bob",
+                        "city": "Gouda",
+                        "status": "doing",
+                        "price": 8400
+                      },
+                      {
+                        "id": "p3",
+                        "title": "Garden fence",
+                        "owner": "Cas",
+                        "city": "Breda",
+                        "status": "todo",
+                        "price": 640
+                      }
+                    ]
+                  },
+                  "groupByField": "status",
+                  "columns": [
+                    {
+                      "value": "todo",
+                      "label": "To do"
+                    },
+                    {
+                      "value": "doing",
+                      "label": "Doing"
+                    }
+                  ],
+                  "columnsSource": null,
+                  "swimlaneField": null,
+                  "swimlanes": [],
+                  "swimlanesSource": null,
+                  "titleKey": "title",
+                  "subtitleKey": null,
+                  "badgeKey": null,
+                  "cardFields": [],
+                  "rankKey": null,
+                  "colorKey": null,
+                  "cardColorMap": [],
+                  "collapsible": false,
+                  "emptyText": null,
+                  "badgeToneMap": [],
+                  "allowDrag": false,
+                  "cardLook": "default"
+                },
+                "style": {
+                  "span": 6
+                },
+                "visible": true,
+                "children": [
+                  {
+                    "id": "cmp_kantx001",
+                    "type": "text",
+                    "props": {
+                      "text": "Item",
+                      "muted": false
+                    },
+                    "style": {
+                      "span": 12
+                    },
+                    "visible": true,
+                    "computed": {
+                      "text": {
+                        "kind": "formula",
+                        "expr": "concat(item.title, \" · \", item.owner)"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "cmp_table001",
+                "type": "table",
+                "props": {
+                  "source": {
+                    "kind": "static",
+                    "value": [
+                      {
+                        "id": "p1",
+                        "title": "Roof repair",
+                        "owner": "Ann",
+                        "city": "Delft",
+                        "status": "todo",
+                        "price": 1200
+                      },
+                      {
+                        "id": "p2",
+                        "title": "New kitchen",
+                        "owner": "Bob",
+                        "city": "Gouda",
+                        "status": "doing",
+                        "price": 8400
+                      },
+                      {
+                        "id": "p3",
+                        "title": "Garden fence",
+                        "owner": "Cas",
+                        "city": "Breda",
+                        "status": "todo",
+                        "price": 640
+                      }
+                    ]
+                  },
+                  "columns": [
+                    {
+                      "key": "title",
+                      "label": "Project"
+                    },
+                    {
+                      "key": "owner",
+                      "label": "Who and where",
+                      "format": "template",
+                      "template": "item.owner + \" (\" + item.city + \")\""
+                    },
+                    {
+                      "key": "price",
+                      "label": "Price",
+                      "format": "number"
+                    }
+                  ],
+                  "emptyText": "Nothing to show yet.",
+                  "rowLimit": 25,
+                  "look": "default"
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_grid0001",
+                "type": "data_grid",
+                "props": {
+                  "source": {
+                    "kind": "static",
+                    "value": [
+                      {
+                        "id": "p1",
+                        "title": "Roof repair",
+                        "owner": "Ann",
+                        "city": "Delft",
+                        "status": "todo",
+                        "price": 1200
+                      },
+                      {
+                        "id": "p2",
+                        "title": "New kitchen",
+                        "owner": "Bob",
+                        "city": "Gouda",
+                        "status": "doing",
+                        "price": 8400
+                      },
+                      {
+                        "id": "p3",
+                        "title": "Garden fence",
+                        "owner": "Cas",
+                        "city": "Breda",
+                        "status": "todo",
+                        "price": 640
+                      }
+                    ]
+                  },
+                  "columns": [
+                    {
+                      "key": "title",
+                      "label": "Project",
+                      "format": "template",
+                      "template": "upper(item.title)"
+                    },
+                    {
+                      "key": "status",
+                      "label": "Status"
+                    }
+                  ],
+                  "pageSize": 25,
+                  "selectable": "none",
+                  "searchable": false,
+                  "rowActions": [],
+                  "toolbarActions": [],
+                  "addRowLabel": null,
+                  "addRowActionId": null,
+                  "bulkActions": [],
+                  "density": "comfortable",
+                  "clamp": "off",
+                  "rowTone": [],
+                  "groupBy": null,
+                  "groupOrder": [],
+                  "activeWhen": null,
+                  "zebra": false,
+                  "emptyText": "Nothing to show yet.",
+                  "look": "default"
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "actions": {
+      "act_pick0001": {
+        "kind": "toast",
+        "message": "Picked",
+        "tone": "info"
+      }
+    },
+    "homeScreenId": "scr_items001"
+  }
+}

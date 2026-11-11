@@ -97,6 +97,191 @@ exports[`compat corpus: what the phone plans for every stored app box-knobs 1`] 
 }
 `;
 
+exports[`compat corpus: what the phone plans for every stored app column-rights 1`] = `
+{
+  "defaultScreen": "scr_tasks01",
+  "navigable": [
+    "scr_tasks01",
+  ],
+  "screens": [
+    {
+      "id": "scr_tasks01",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "id": "cmp_taskh1",
+                "kind": "heading",
+                "level": 2,
+                "text": "Tasks and budgets",
+              },
+            ],
+            "screen": "scr_tasks01",
+            "unsupported": [
+              "stat",
+              "list",
+            ],
+          },
+          "roles": [
+            "(no role)",
+            "member",
+            "lead",
+            "auditor",
+          ],
+        },
+      ],
+    },
+  ],
+}
+`;
+
+exports[`compat corpus: what the phone plans for every stored app component-variants 1`] = `
+{
+  "defaultScreen": "scr_cvr0001",
+  "navigable": [
+    "scr_cvr0001",
+    "scr_cvr0002",
+  ],
+  "screens": [
+    {
+      "id": "scr_cvr0001",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "body": "A **note** with [a link](https://example.com).",
+                "id": "cmp_cvr0011",
+                "kind": "callout",
+                "title": "soft info",
+                "tone": "info",
+              },
+              {
+                "body": "A **note** with [a link](https://example.com).",
+                "id": "cmp_cvr0012",
+                "kind": "callout",
+                "title": "soft success",
+                "tone": "success",
+              },
+              {
+                "body": "A **note** with [a link](https://example.com).",
+                "id": "cmp_cvr0013",
+                "kind": "callout",
+                "title": "soft warning",
+                "tone": "warning",
+              },
+              {
+                "body": "A **note** with [a link](https://example.com).",
+                "id": "cmp_cvr0014",
+                "kind": "callout",
+                "title": "soft danger",
+                "tone": "danger",
+              },
+              {
+                "body": "A **note** with [a link](https://example.com).",
+                "id": "cmp_cvr0015",
+                "kind": "callout",
+                "title": "outline info",
+                "tone": "info",
+              },
+              {
+                "body": "A **note** with [a link](https://example.com).",
+                "id": "cmp_cvr0016",
+                "kind": "callout",
+                "title": "outline success",
+                "tone": "success",
+              },
+              {
+                "body": "A **note** with [a link](https://example.com).",
+                "id": "cmp_cvr0017",
+                "kind": "callout",
+                "title": "outline warning",
+                "tone": "warning",
+              },
+              {
+                "body": "A **note** with [a link](https://example.com).",
+                "id": "cmp_cvr0018",
+                "kind": "callout",
+                "title": "outline danger",
+                "tone": "danger",
+              },
+              {
+                "body": "A **note** with [a link](https://example.com).",
+                "id": "cmp_cvr0019",
+                "kind": "callout",
+                "title": "solid info",
+                "tone": "info",
+              },
+              {
+                "body": "A **note** with [a link](https://example.com).",
+                "id": "cmp_cvr0020",
+                "kind": "callout",
+                "title": "solid success",
+                "tone": "success",
+              },
+              {
+                "body": "A **note** with [a link](https://example.com).",
+                "id": "cmp_cvr0021",
+                "kind": "callout",
+                "title": "solid warning",
+                "tone": "warning",
+              },
+              {
+                "body": "A **note** with [a link](https://example.com).",
+                "id": "cmp_cvr0022",
+                "kind": "callout",
+                "title": "solid danger",
+                "tone": "danger",
+              },
+            ],
+            "screen": "scr_cvr0001",
+            "unsupported": [],
+          },
+          "roles": [
+            "(no role)",
+          ],
+        },
+      ],
+    },
+    {
+      "id": "scr_cvr0002",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "body": "Big relaxed text",
+                "id": "cmp_cvr0024",
+                "kind": "callout",
+                "title": "Callout text",
+                "tone": "info",
+              },
+              {
+                "divider": true,
+                "id": "cmp_cvr0025",
+                "kind": "page_header",
+                "subtitle": "The subtitle keeps its size",
+                "title": "Header title",
+              },
+            ],
+            "screen": "scr_cvr0002",
+            "unsupported": [
+              "keyValue",
+              "badge_list",
+              "input_text",
+            ],
+          },
+          "roles": [
+            "(no role)",
+          ],
+        },
+      ],
+    },
+  ],
+}
+`;
+
 exports[`compat corpus: what the phone plans for every stored app computed-read-time 1`] = `
 {
   "defaultScreen": "scr_lines01",
@@ -408,6 +593,41 @@ exports[`compat corpus: what the phone plans for every stored app data-model-fie
 }
 `;
 
+exports[`compat corpus: what the phone plans for every stored app data-model-linked-records 1`] = `
+{
+  "defaultScreen": "scr_acct01",
+  "navigable": [
+    "scr_acct01",
+  ],
+  "screens": [
+    {
+      "id": "scr_acct01",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "id": "cmp_achd01",
+                "kind": "heading",
+                "level": 2,
+                "text": "Customers",
+              },
+            ],
+            "screen": "scr_acct01",
+            "unsupported": [
+              "data_grid",
+            ],
+          },
+          "roles": [
+            "(no role)",
+          ],
+        },
+      ],
+    },
+  ],
+}
+`;
+
 exports[`compat corpus: what the phone plans for every stored app dataset-params 1`] = `
 {
   "defaultScreen": "scr_home01",
@@ -437,6 +657,66 @@ exports[`compat corpus: what the phone plans for every stored app dataset-params
           "roles": [
             "(no role)",
             "viewer",
+          ],
+        },
+      ],
+    },
+  ],
+}
+`;
+
+exports[`compat corpus: what the phone plans for every stored app design-font-roles 1`] = `
+{
+  "defaultScreen": "scr_fontrl01",
+  "navigable": [
+    "scr_fontrl01",
+  ],
+  "screens": [
+    {
+      "id": "scr_fontrl01",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "divider": true,
+                "id": "cmp_fontrl01",
+                "kind": "page_header",
+                "subtitle": "Headings in the heading font",
+                "title": "Annual report",
+              },
+              {
+                "id": "cmp_fontrl02",
+                "kind": "heading",
+                "level": 2,
+                "text": "Overview",
+              },
+              {
+                "id": "cmp_fontrl03",
+                "kind": "text",
+                "muted": false,
+                "text": "Body text in the body font.",
+              },
+              {
+                "id": "cmp_fontrl04",
+                "kind": "text",
+                "muted": false,
+                "text": "INV-2026-0042",
+              },
+              {
+                "id": "cmp_fontrl05",
+                "kind": "heading",
+                "level": 3,
+                "text": "A heading in the body font",
+              },
+            ],
+            "screen": "scr_fontrl01",
+            "unsupported": [
+              "markdown",
+            ],
+          },
+          "roles": [
+            "(no role)",
           ],
         },
       ],
@@ -1839,6 +2119,165 @@ exports[`compat corpus: what the phone plans for every stored app logic-parallel
 }
 `;
 
+exports[`compat corpus: what the phone plans for every stored app nav-shell-options 1`] = `
+{
+  "defaultScreen": "scr_shellk01",
+  "navigable": [
+    "scr_shellk01",
+    "scr_shellk02",
+  ],
+  "screens": [
+    {
+      "id": "scr_shellk01",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "divider": true,
+                "id": "cmp_shellk01",
+                "kind": "page_header",
+                "subtitle": "Everything that came in this week",
+                "title": "Requests",
+              },
+            ],
+            "screen": "scr_shellk01",
+            "unsupported": [],
+          },
+          "roles": [
+            "(no role)",
+          ],
+        },
+      ],
+    },
+    {
+      "id": "scr_shellk02",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "id": "cmp_shellk02",
+                "kind": "heading",
+                "level": 2,
+                "text": "Rooms",
+              },
+            ],
+            "screen": "scr_shellk02",
+            "unsupported": [],
+          },
+          "roles": [
+            "(no role)",
+          ],
+        },
+      ],
+    },
+    {
+      "id": "scr_shellk03",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "id": "cmp_shellk03",
+                "kind": "text",
+                "muted": false,
+                "text": "Send a request, we answer within a day.",
+              },
+            ],
+            "screen": "scr_shellk03",
+            "unsupported": [],
+          },
+          "roles": [
+            "(no role)",
+          ],
+        },
+      ],
+    },
+  ],
+}
+`;
+
+exports[`compat corpus: what the phone plans for every stored app new-types-basic 1`] = `
+{
+  "defaultScreen": "scr_newty01",
+  "navigable": [
+    "scr_newty01",
+  ],
+  "screens": [
+    {
+      "id": "scr_newty01",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "id": "cmp_newty01",
+                "kind": "heading",
+                "level": 2,
+                "text": "Inputs",
+              },
+              {
+                "action": null,
+                "description": null,
+                "id": "cmp_newty02",
+                "inputs": [],
+                "kind": "form",
+                "submitLabel": "Save",
+                "title": "prefs",
+              },
+              {
+                "id": "cmp_newty07",
+                "kind": "heading",
+                "level": 2,
+                "text": "Display",
+              },
+              {
+                "id": "cmp_newty11",
+                "kind": "text",
+                "muted": false,
+                "text": "Every plan includes the basics.",
+              },
+              {
+                "id": "cmp_newty13",
+                "kind": "text",
+                "muted": false,
+                "text": "Pick a plan and it starts at once.",
+              },
+              {
+                "id": "cmp_newty16",
+                "kind": "text",
+                "muted": false,
+                "text": "First slide",
+              },
+              {
+                "id": "cmp_newty18",
+                "kind": "text",
+                "muted": false,
+                "text": "Second slide",
+              },
+            ],
+            "screen": "scr_newty01",
+            "unsupported": [
+              "switch (browser-only)",
+              "radio (browser-only)",
+              "slider (browser-only)",
+              "rating (browser-only)",
+              "avatar (browser-only)",
+              "accordion (browser-only)",
+              "carousel (browser-only)",
+            ],
+          },
+          "roles": [
+            "(no role)",
+          ],
+        },
+      ],
+    },
+  ],
+}
+`;
+
 exports[`compat corpus: what the phone plans for every stored app paged-record-lists 1`] = `
 {
   "defaultScreen": "scr_queue01",
@@ -2002,6 +2441,53 @@ exports[`compat corpus: what the phone plans for every stored app public-intake 
           "roles": [
             "(no role)",
             "agent",
+          ],
+        },
+      ],
+    },
+  ],
+}
+`;
+
+exports[`compat corpus: what the phone plans for every stored app rich-markdown-motion 1`] = `
+{
+  "defaultScreen": "scr_rmm0001",
+  "navigable": [
+    "scr_rmm0001",
+    "scr_rmm0002",
+  ],
+  "screens": [
+    {
+      "id": "scr_rmm0001",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [],
+            "screen": "scr_rmm0001",
+            "unsupported": [
+              "markdown",
+            ],
+          },
+          "roles": [
+            "(no role)",
+          ],
+        },
+      ],
+    },
+    {
+      "id": "scr_rmm0002",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [],
+            "screen": "scr_rmm0002",
+            "unsupported": [
+              "list",
+              "modal",
+            ],
+          },
+          "roles": [
+            "(no role)",
           ],
         },
       ],
@@ -11753,6 +12239,133 @@ exports[`compat corpus: what the phone plans for every stored app v3-code-step-q
 }
 `;
 
+exports[`compat corpus: what the phone plans for every stored app v3-durable-waits 1`] = `
+{
+  "defaultScreen": "scr_wait0001",
+  "navigable": [
+    "scr_wait0001",
+  ],
+  "screens": [
+    {
+      "id": "scr_wait0001",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "id": "cmp_waithead",
+                "kind": "heading",
+                "level": 2,
+                "text": "Orders",
+              },
+              {
+                "action": {
+                  "actionId": "act_waitapr1",
+                  "kind": "sequence",
+                  "label": "Ask finance",
+                  "runnable": false,
+                },
+                "id": "cmp_waitbtn1",
+                "kind": "button",
+              },
+              {
+                "action": {
+                  "actionId": "act_waitlong",
+                  "kind": "sequence",
+                  "label": "Remind tomorrow",
+                  "runnable": false,
+                },
+                "id": "cmp_waitbtn2",
+                "kind": "button",
+              },
+              {
+                "action": {
+                  "actionId": "act_waitshrt",
+                  "kind": "sequence",
+                  "label": "Show and go",
+                  "runnable": false,
+                },
+                "id": "cmp_waitbtn3",
+                "kind": "button",
+              },
+            ],
+            "screen": "scr_wait0001",
+            "unsupported": [],
+          },
+          "roles": [
+            "(no role)",
+          ],
+        },
+      ],
+    },
+  ],
+}
+`;
+
+exports[`compat corpus: what the phone plans for every stored app v3-server-run 1`] = `
+{
+  "defaultScreen": "scr_run00001",
+  "navigable": [
+    "scr_run00001",
+  ],
+  "screens": [
+    {
+      "id": "scr_run00001",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "id": "cmp_runhead1",
+                "kind": "heading",
+                "level": 2,
+                "text": "Orders",
+              },
+              {
+                "action": {
+                  "actionId": "act_runseq01",
+                  "kind": "sequence",
+                  "label": "Process",
+                  "runnable": false,
+                },
+                "id": "cmp_runbtn01",
+                "kind": "button",
+              },
+              {
+                "action": {
+                  "actionId": "act_runseq02",
+                  "kind": "sequence",
+                  "label": "Process later",
+                  "runnable": false,
+                },
+                "id": "cmp_runbtn02",
+                "kind": "button",
+              },
+              {
+                "action": {
+                  "actionId": "act_runseq03",
+                  "kind": "sequence",
+                  "label": "Process all",
+                  "runnable": false,
+                },
+                "id": "cmp_runbtn03",
+                "kind": "button",
+              },
+            ],
+            "screen": "scr_run00001",
+            "unsupported": [],
+          },
+          "roles": [
+            "(no role)",
+            "public",
+          ],
+        },
+      ],
+    },
+  ],
+}
+`;
+
 exports[`compat corpus: what the phone plans for every stored app v3-ui-steps 1`] = `
 {
   "defaultScreen": "scr_orders1",
@@ -12159,6 +12772,123 @@ exports[`compat corpus: what the phone plans for every stored app vocab-section-
 }
 `;
 
+exports[`compat corpus: what the phone plans for every stored app vocab-style-when 1`] = `
+{
+  "defaultScreen": "scr_stywhen1",
+  "navigable": [
+    "scr_stywhen1",
+  ],
+  "screens": [
+    {
+      "id": "scr_stywhen1",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "id": "cmp_stywhen1",
+                "kind": "heading",
+                "level": 2,
+                "text": "Over budget",
+              },
+              {
+                "id": "cmp_stywhen3",
+                "kind": "text",
+                "muted": false,
+                "text": "Formula that fails keeps the base style.",
+              },
+            ],
+            "screen": "scr_stywhen1",
+            "unsupported": [
+              "stat",
+              "table",
+              "data_grid",
+            ],
+          },
+          "roles": [
+            "(no role)",
+          ],
+        },
+      ],
+    },
+  ],
+}
+`;
+
+exports[`compat corpus: what the phone plans for every stored app vocab-theme-scope 1`] = `
+{
+  "defaultScreen": "scr_thmscp01",
+  "navigable": [
+    "scr_thmscp01",
+    "scr_thmscp02",
+  ],
+  "screens": [
+    {
+      "id": "scr_thmscp01",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "id": "cmp_thmscp01",
+                "kind": "heading",
+                "level": 2,
+                "text": "Tokens and the app theme",
+              },
+              {
+                "id": "cmp_thmscp02",
+                "kind": "stat",
+                "label": "Open",
+                "value": "12",
+              },
+              {
+                "id": "cmp_thmscp04",
+                "kind": "text",
+                "muted": false,
+                "text": "A band in the second brand colour, compact.",
+              },
+              {
+                "id": "cmp_thmscp06",
+                "kind": "heading",
+                "level": 2,
+                "text": "A dark hero section",
+              },
+            ],
+            "screen": "scr_thmscp01",
+            "unsupported": [],
+          },
+          "roles": [
+            "(no role)",
+          ],
+        },
+      ],
+    },
+    {
+      "id": "scr_thmscp02",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "id": "cmp_thmscp07",
+                "kind": "heading",
+                "level": 2,
+                "text": "A screen with its own dark theme",
+              },
+            ],
+            "screen": "scr_thmscp02",
+            "unsupported": [],
+          },
+          "roles": [
+            "(no role)",
+          ],
+        },
+      ],
+    },
+  ],
+}
+`;
+
 exports[`compat corpus: what the phone plans for every stored app web-service-step 1`] = `
 {
   "defaultScreen": "scr_htp001",
@@ -12290,6 +13020,367 @@ exports[`compat corpus: what the phone plans for every stored app wide-server-sc
               },
             ],
             "screen": "scr_srv00001",
+            "unsupported": [],
+          },
+          "roles": [
+            "(no role)",
+          ],
+        },
+      ],
+    },
+  ],
+}
+`;
+
+exports[`compat corpus: what the phone plans for every stored app widget-item-templates 1`] = `
+{
+  "defaultScreen": "scr_items001",
+  "navigable": [
+    "scr_items001",
+  ],
+  "screens": [
+    {
+      "id": "scr_items001",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "id": "cmp_head0001",
+                "kind": "heading",
+                "level": 2,
+                "text": "Projects",
+              },
+              {
+                "id": "cmp_cardtx01",
+                "kind": "text",
+                "muted": false,
+                "text": "Item",
+              },
+              {
+                "id": "cmp_rowtx001",
+                "kind": "text",
+                "muted": false,
+                "text": "Item",
+              },
+            ],
+            "screen": "scr_items001",
+            "unsupported": [
+              "repeater",
+              "list",
+              "kanban (browser-only)",
+              "table",
+              "data_grid",
+            ],
+          },
+          "roles": [
+            "(no role)",
+          ],
+        },
+      ],
+    },
+  ],
+}
+`;
+
+exports[`compat corpus: what the phone plans for every stored app widgets-advanced 1`] = `
+{
+  "defaultScreen": "scr_adv00001",
+  "navigable": [
+    "scr_adv00001",
+  ],
+  "screens": [
+    {
+      "id": "scr_adv00001",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "id": "cmp_head0001",
+                "kind": "heading",
+                "level": 2,
+                "text": "Pipeline",
+              },
+              {
+                "action": {
+                  "actionId": "act_toast001",
+                  "kind": "toast",
+                  "label": "Refresh",
+                  "runnable": false,
+                },
+                "id": "cmp_btn00001",
+                "kind": "button",
+              },
+              {
+                "action": {
+                  "actionId": "act_toast001",
+                  "kind": "toast",
+                  "label": "Submit",
+                  "runnable": false,
+                },
+                "description": null,
+                "id": "cmp_form0001",
+                "inputs": [
+                  {
+                    "initial": null,
+                    "inputType": "text",
+                    "label": "Name",
+                    "max": null,
+                    "min": null,
+                    "name": "name",
+                    "nodeId": "cmp_name0001",
+                    "options": [],
+                    "placeholder": null,
+                    "required": true,
+                    "rows": 4,
+                    "type": "input_text",
+                  },
+                  {
+                    "initial": null,
+                    "inputType": "text",
+                    "label": "Company",
+                    "max": null,
+                    "min": null,
+                    "name": "company",
+                    "nodeId": "cmp_comp0001",
+                    "options": [],
+                    "placeholder": null,
+                    "required": false,
+                    "rows": 4,
+                    "type": "input_text",
+                  },
+                ],
+                "kind": "form",
+                "submitLabel": "Send",
+                "title": "signup",
+              },
+            ],
+            "screen": "scr_adv00001",
+            "unsupported": [
+              "gauge (browser-only)",
+              "chart",
+              "tree (browser-only)",
+              "text",
+            ],
+          },
+          "roles": [
+            "(no role)",
+          ],
+        },
+      ],
+    },
+  ],
+}
+`;
+
+exports[`compat corpus: what the phone plans for every stored app wishlist-variables 1`] = `
+{
+  "defaultScreen": "scr_list0001",
+  "navigable": [
+    "scr_list0001",
+    "scr_page0002",
+  ],
+  "screens": [
+    {
+      "id": "scr_list0001",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "id": "cmp_txtsum01",
+                "kind": "text",
+                "muted": false,
+                "text": "Summary",
+              },
+              {
+                "id": "cmp_txtsrc01",
+                "kind": "text",
+                "muted": false,
+                "text": "Search",
+              },
+              {
+                "action": {
+                  "actionId": "act_more0001",
+                  "kind": "sequence",
+                  "label": "One more",
+                  "runnable": false,
+                },
+                "id": "cmp_btnadd01",
+                "kind": "button",
+              },
+              {
+                "action": {
+                  "actionId": "act_next0001",
+                  "kind": "sequence",
+                  "label": "Page two",
+                  "runnable": false,
+                },
+                "id": "cmp_btnnav01",
+                "kind": "button",
+              },
+            ],
+            "screen": "scr_list0001",
+            "unsupported": [
+              "stat",
+            ],
+          },
+          "roles": [
+            "(no role)",
+          ],
+        },
+      ],
+    },
+    {
+      "id": "scr_page0002",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "id": "cmp_txtpg201",
+                "kind": "text",
+                "muted": false,
+                "text": "Page",
+              },
+              {
+                "id": "cmp_txtsrc02",
+                "kind": "text",
+                "muted": false,
+                "text": "Search",
+              },
+            ],
+            "screen": "scr_page0002",
+            "unsupported": [],
+          },
+          "roles": [
+            "(no role)",
+          ],
+        },
+      ],
+    },
+  ],
+}
+`;
+
+exports[`compat corpus: what the phone plans for every stored app zz-record-triggers 1`] = `
+{
+  "defaultScreen": "scr_home0001",
+  "navigable": [
+    "scr_home0001",
+  ],
+  "screens": [
+    {
+      "id": "scr_home0001",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "id": "cmp_head0001",
+                "kind": "heading",
+                "level": 2,
+                "text": "Orders",
+              },
+              {
+                "action": {
+                  "actionId": "act_button01",
+                  "kind": "sequence",
+                  "label": "Write the digest now",
+                  "runnable": false,
+                },
+                "id": "cmp_btn00001",
+                "kind": "button",
+              },
+            ],
+            "screen": "scr_home0001",
+            "unsupported": [],
+          },
+          "roles": [
+            "(no role)",
+          ],
+        },
+      ],
+    },
+  ],
+}
+`;
+
+exports[`compat corpus: what the phone plans for every stored app zz-schedule-triggers 1`] = `
+{
+  "defaultScreen": "scr_home0001",
+  "navigable": [
+    "scr_home0001",
+  ],
+  "screens": [
+    {
+      "id": "scr_home0001",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "id": "cmp_head0001",
+                "kind": "heading",
+                "level": 2,
+                "text": "Digest",
+              },
+              {
+                "action": {
+                  "actionId": "act_button01",
+                  "kind": "sequence",
+                  "label": "Write the digest now",
+                  "runnable": false,
+                },
+                "id": "cmp_btn00001",
+                "kind": "button",
+              },
+            ],
+            "screen": "scr_home0001",
+            "unsupported": [],
+          },
+          "roles": [
+            "(no role)",
+          ],
+        },
+      ],
+    },
+  ],
+}
+`;
+
+exports[`compat corpus: what the phone plans for every stored app zz-webhook-trigger 1`] = `
+{
+  "defaultScreen": "scr_home0001",
+  "navigable": [
+    "scr_home0001",
+  ],
+  "screens": [
+    {
+      "id": "scr_home0001",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "id": "cmp_head0001",
+                "kind": "heading",
+                "level": 2,
+                "text": "Orders",
+              },
+              {
+                "action": {
+                  "actionId": "act_button01",
+                  "kind": "sequence",
+                  "label": "File a test order",
+                  "runnable": false,
+                },
+                "id": "cmp_btn00001",
+                "kind": "button",
+              },
+            ],
+            "screen": "scr_home0001",
             "unsupported": [],
           },
           "roles": [

@@ -19,7 +19,7 @@
  */
 
 import type { InlineStyle, ResolvedNodeStyle, StyleKnobs, StyledNode } from './styleResolver.types';
-import { STYLE_KNOB_HANDLERS, applyStyleKnobHandlers } from './styleKnobHandlers';
+import { STYLE_KNOB_HANDLERS, applyStyleKnobHandlers, type StyleKnobContext } from './styleKnobHandlers';
 import { applyNodeBox, applySectionBox } from './styleResolver/box';
 import { applyNodeHeight, applySectionHeight, applyWidth, clampSpan, gridTemplate, hideClasses, keepSmClass, spaceSteps, spanGridColumn } from './styleResolver/layout';
 import { applyTextColor, applyTextShape } from './styleResolver/text';
@@ -36,8 +36,9 @@ export { resolveRadius, resolveBackground, resolveBorder } from './styleResolver
  * Only knobs actually present on node.style are emitted; components read
  * type-specific knobs (e.g. a stat's size) straight off node.style when they
  * need finer-grained treatment than these generic translations.
+ * `context` (the app's design) reaches the knob groups added later (styleKnobHandlers.ts).
  */
-export function resolveNodeStyle(node?: StyledNode | null): ResolvedNodeStyle {
+export function resolveNodeStyle(node?: StyledNode | null, context?: StyleKnobContext): ResolvedNodeStyle {
     const s: StyleKnobs = (node && node.style) || {};
     const style: InlineStyle = {};
 
@@ -61,7 +62,7 @@ export function resolveNodeStyle(node?: StyledNode | null): ResolvedNodeStyle {
     const className = `app-node min-w-0 app-span-${clampSpan(s.span)}`
         + hideClasses(s)
         + surface
-        + applyStyleKnobHandlers(STYLE_KNOB_HANDLERS, s, style, 'node');
+        + applyStyleKnobHandlers(STYLE_KNOB_HANDLERS, s, style, 'node', context);
     return { className, style };
 }
 

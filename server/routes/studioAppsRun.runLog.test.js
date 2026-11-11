@@ -206,3 +206,24 @@ test('a failing run log never changes the step\'s answer', async () => {
     await clickRuns._settledClickSteps();
     assert.ok(warnings.some((w) => /StudioRunLog/.test(w) && /db down/.test(w)), 'logged with the message only');
 });
+
+test('a run a record trigger started names the change in the run log, never a value of the row; a viewer reads nothing of it', async () => {
+    const appId = await makeApp();
+    const { newRunId } = require('../stores/studioAppData/runPolicy.mts');
+    const db = require('../db');
+    const runId = newRunId();
+    await runLogStore().insertRun({ id: runId, appId, ownerUserId: OWNER.id, viewerUserId: OWNER.id, actionId: 'seq', origin: 'trigger', draft: false, definitionVersion: 1, dryRun: false });
+    await require('../stores/studioAppData/recordEvents.mts').recordEventStore().add([{
+        appId, triggerId: 'on_x', tableId: 'tbl_x', event: 'update', rowId: 'rec_9',
+        before: { id: 'rec_9', salary: 'SECRET-BEFORE' }, after: { id: 'rec_9', salary: 'SECRET-AFTER' }, writerKind: 'member', writerKey: 'wk', depth: 0, causeTriggerId: null,
+    }], Date.now(), 0);
+    await db.run("UPDATE studio_app_record_events SET state = 'fired', run_id = $1 WHERE app_id = $2", [runId, appId]);
+
+    const detail = await api.call('GET', `/api/studio-apps/${appId}/runs/${runId}`, { user: OWNER });
+    assert.equal(detail.status, 200, detail.text);
+    assert.deepEqual(detail.body.startedBy, { kind: 'record', event: 'update', tableId: 'tbl_x', rowId: 'rec_9', by: 'member', depth: 0 });
+    const list = await runs(appId);
+    for (const body of [detail.text, list.text]) assert.ok(!body.includes('SECRET'), 'no value of the row, before or after');
+    assert.equal((await api.call('GET', `/api/studio-apps/${appId}/runs/${runId}`, { user: VIEWER })).status, 404);
+    assert.equal((await runs(appId, '', VIEWER)).status, 404);
+});

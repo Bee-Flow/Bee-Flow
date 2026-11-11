@@ -174,6 +174,10 @@ const ERASURE_COVERAGE = Object.freeze({
     // An action run: the owner's rows go with the owner (their apps cascade them too); another
     // person's run of the owner's app keeps its row with the viewer detached (payloads are nulled after 24 h).
     studio_app_action_runs: { mode: 'deleted', column: 'owner_user_id', detach: 'viewer_user_id' },
+    // An armed trigger of the owner's published app: it goes with the owner (and with the app).
+    studio_app_triggers: { mode: 'deleted', column: 'owner_user_id' },
+    // The outbox of record triggers: rows of the owner's app, gone with the app; it names no account.
+    studio_app_record_events: { mode: 'cascade', parent: 'studio_apps' },
     // A saved action test names who wrote it (an editor of someone else's app); the app keeps the test.
     studio_app_action_tests: { mode: 'detached', column: 'created_by,updated_by' },
     automation_form_scenarios: { mode: 'detached', column: 'created_by' },

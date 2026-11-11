@@ -16,6 +16,7 @@ const studioAppStore = require('../../stores/studioAppStore');
 const studioAppDataStore = require('../../stores/studioAppDataStore');
 const queryCompiler = require('../../appStudio/queryCompiler');
 const { queryWithComputed } = require('../../core/dataEngine/computedRead.mts');
+const { fillLinkedRecords } = require('../../core/dataEngine/relationRead.mts');
 const rlsGateway = require('../../appStudio/rlsGateway');
 const dataReadRunner = require('../../appStudio/dataReadRunner');
 const datatableSource = require('../../appStudio/datatableSource');
@@ -249,14 +250,20 @@ function buildViewer(user, role) {
 // organisation it lives in, not to this app. What the client does need to know
 // is in `linkedTableFlags` below — THAT a table is linked and whether it is
 // read-only, without saying to what.
-/** @param {DataTable} t */
-function publicTable(t) {
+//
+// `role` is the viewer's: a field that role may not read (column rights) is not
+// listed, so the table shows the same fields its records carry.
+/**
+ * @param {DataTable} t
+ * @param {string | null} role
+ */
+function publicTable(t, role) {
     return {
         id: t.id,
         key: t.key,
         name: t.name,
         icon: t.icon ?? null,
-        fields: (Array.isArray(t.fields) ? t.fields : []).map((f) => ({
+        fields: (Array.isArray(t.fields) ? t.fields : []).filter((f) => rlsGateway.canReadField(t, role, f.key)).map((f) => ({
             id: f.id,
             key: f.key,
             name: f.name,
@@ -380,6 +387,10 @@ async function readOne(ctx, recordId) {
     // Read-time computed fields are evaluated; one that fails reads empty.
     const { result } = await queryWithComputed(plan.query, compiled);
     const { rows } = /** @type {{ rows: Record<string, unknown>[] }} */ (result);
-    return rows && rows.length ? rows[0] : null;
+    if (!rows || !rows.length) return null;
+    // Lookups, rollups and many relations, each under its own table's row rules (own storage only).
+    const model = datatableSource.isDatatableBacked(ctx.table) ? null : ctx.model;
+    const [row] = await fillLinkedRecords(model, plan.tableMeta, plan, [rows[0]], plan.query);
+    return row;
 }
 module.exports = { readLimiter, writeLimiter, readDescriptorLimiter, MAX_BATCH_READS, jsonBody, requireJson, bodySizeGuard, audienceFor, loadVisibleApp, loadOwnedApp, handleErr, resolveDataContext, buildViewer, publicTable, parseListQuery, optionalListQuery, kickStaleSync, LINK_REFUSED, linkedTableFlags, readOne };

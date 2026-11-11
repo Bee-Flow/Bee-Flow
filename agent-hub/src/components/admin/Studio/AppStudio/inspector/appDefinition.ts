@@ -182,6 +182,8 @@ export interface AppAction {
     lockKey?: unknown;
     /** A background sequence: the variable shown as its progress text. */
     progressVar?: string;
+    /** A sequence (schema 3): 'server' runs the whole sequence on the server as one run; the page waits for it. */
+    runOn?: 'server';
     [key: string]: unknown;
 }
 

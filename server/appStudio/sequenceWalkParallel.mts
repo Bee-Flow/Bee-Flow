@@ -119,6 +119,8 @@ function join(w: WalkState, run: Branches): number[] {
 /** Walks one `parallel` step. */
 export async function walkParallel(api: FlowApi, fr: Frame, step: Step, ev: StepEvent, startedAt: number): Promise<void> {
     const { w, host } = fr;
+    // A branch cannot pause (the walker refuses it), so a resumed walk never comes back through here.
+    if (w.resume) return api.lost(fr, ev, startedAt);
     const branches = Array.isArray(step.branches) ? step.branches : [];
     if (branches.length > MAX_PARALLEL_BRANCHES) {
         return api.fail(fr, ev, { error: `A parallel step holds at most ${MAX_PARALLEL_BRANCHES} branches; this one has ${branches.length}`, code: 'parallel_too_many' }, startedAt);

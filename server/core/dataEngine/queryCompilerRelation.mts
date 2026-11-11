@@ -24,6 +24,13 @@
  *            columns for the expansion); relationRead.mts drops the extras
  *            before the rows leave.
  *
+ * COLUMN RIGHTS (columnRights.mts). The record compilers hand this module the
+ * tables as the viewer's role reads them, so a filter through a relation on a
+ * hidden field is refused like any unknown name. What only says what to return
+ * is left out instead: a hidden name in `fields` or in an expansion's `pick`,
+ * the label of a hidden display field, and the expansion of a relation field
+ * that is itself hidden.
+ *
  * The related table and the viewer's access predicate on it come ONLY from the
  * caller (relationRead.mts), never from the descriptor. A relation the caller
  * did not hand over is refused, never read unscoped.
@@ -40,7 +47,7 @@ type AccessFilter = { where: string; params: unknown[] };
 type Entry = Record<string, unknown>;
 
 /** The table a relation field points at, with the viewer's access predicate on it. */
-export type RelatedTable = { tableMeta: TableMeta; accessFilter: AccessFilter };
+export type RelatedTable = { tableMeta: TableMeta; accessFilter: AccessFilter; hidden?: ReadonlySet<string> };
 /** Keyed by the relation field's key on the table that is read. */
 export type RelatedTables = Record<string, RelatedTable>;
 
@@ -72,6 +79,11 @@ const { RELATION_READ_LIMITS, EXPAND_DEFAULT_SUFFIX, SYSTEM_COLUMNS } = nodeRequ
     RELATION_READ_LIMITS: { MAX_EXPAND: number; MAX_EXPAND_PICK: number; MAX_FIELDS: number; MAX_RELATION_FILTERS: number };
     EXPAND_DEFAULT_SUFFIX: string;
     SYSTEM_COLUMNS: readonly string[];
+};
+
+const { isColumnlessLinkField, isManyRelation } = nodeRequire('./dataModel/linkedFields') as {
+    isColumnlessLinkField(f: unknown): boolean;
+    isManyRelation(f: unknown): boolean;
 };
 
 const { CompileError, qi } = core;
@@ -140,7 +152,7 @@ export function assertRelationFilterCount(count: number): void {
 function isReadableColumn(tableMeta: TableMeta, fm: FieldMap, key: string): boolean {
     if (SYSTEM_COLUMNS.includes(key)) return true;
     const f = fm.get(key);
-    return !!f && !(f.type === 'computed' && !(f.computed && f.computed.stored === true));
+    return !!f && !(f.type === 'computed' && !(f.computed && f.computed.stored === true)) && !isColumnlessLinkField(f);
 }
 
 function pickOf(entry: Entry, target: RelatedTable, targetFm: FieldMap, label: string | null): string[] {
@@ -151,6 +163,7 @@ function pickOf(entry: Entry, target: RelatedTable, targetFm: FieldMap, label: s
     }
     const out: string[] = [];
     for (const key of entry.pick) {
+        if (typeof key === 'string' && target.hidden && target.hidden.has(key)) continue; // not this role's to read: left out
         core.resolveColumn(target.tableMeta, key, targetFm); // throws on a name that is not a real column
         if (!out.includes(key as string)) out.push(key as string);
     }
@@ -170,30 +183,32 @@ function aliasOf(entry: Entry, tableMeta: TableMeta, fm: FieldMap, taken: Set<st
 }
 
 /** `expand` → one plan per entry, every name resolved through the two models. */
-export function resolveExpand(tableMeta: TableMeta, fm: FieldMap, expand: unknown, related: RelatedTables | undefined, dialect: string): ExpandPlan[] {
+export function resolveExpand(tableMeta: TableMeta, fm: FieldMap, expand: unknown, related: RelatedTables | undefined, dialect: string, hidden?: ReadonlySet<string>): ExpandPlan[] {
     if (expand === undefined || expand === null) return [];
     const max = RELATION_READ_LIMITS.MAX_EXPAND;
     if (!Array.isArray(expand) || expand.length === 0 || expand.length > max) {
         throw new CompileError(`expand must be a list of 1 to ${max} { field, pick?, as? } entries`);
     }
     const taken = new Set<string>();
-    return expand.map((raw) => {
+    return expand.flatMap((raw) => {
         if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw new CompileError('expand entry must be an object');
         const entry = raw as Entry;
+        if (hidden && typeof entry.field === 'string' && hidden.has(entry.field)) return []; // a relation this role may not read
         if (entry.expand !== undefined && entry.expand !== null) throw new CompileError('expand goes one relation deep: an entry cannot expand further');
-        core.resolveColumn(tableMeta, entry.field, fm);
+        // A many relation has no column: its list of ids is read from its junction (linkedRead.mts).
+        if (!isManyRelation(fm.get(entry.field as string))) core.resolveColumn(tableMeta, entry.field, fm);
         const target = relatedTarget(fm, entry.field, related, 'expand');
         const targetFm = core.fieldMap(target.tableMeta);
         const display = (fm.get(entry.field as string) as Field).relation?.displayField;
         const label = typeof display === 'string' && isReadableColumn(target.tableMeta, targetFm, display) ? display : null;
-        return {
+        return [{
             field: entry.field as string,
             as: aliasOf(entry, tableMeta, fm, taken),
             target,
             pick: pickOf(entry, target, targetFm, label),
             label,
             dialect,
-        };
+        }];
     });
 }
 
@@ -215,8 +230,12 @@ export function compileExpandLookup(plan: ExpandPlan, ids: unknown[]): { sql: st
     };
 }
 
-/** What the server hands compileRecordList to read through relations and narrow the columns. */
-export type RelationRead = { related?: RelatedTables; expand?: unknown; fields?: unknown };
+/**
+ * What the server hands compileRecordList to read through relations and narrow the columns.
+ * `linked` (linkedRead.mts) is the lookup, rollup and many-relation fields of the table: they
+ * travel on the result, and their relation `columns` are selected when the read names its fields.
+ */
+export type RelationRead = { related?: RelatedTables; expand?: unknown; fields?: unknown; hidden?: ReadonlySet<string>; linked?: { columns: string[] } };
 
 /**
  * What `read` adds to a record list: `result` (the expansions to look up after
@@ -226,13 +245,15 @@ export type RelationRead = { related?: RelatedTables; expand?: unknown; fields?:
  * minted from and the relation columns the expansions look up.
  */
 export function recordShape(tableMeta: TableMeta, fm: FieldMap, read: RelationRead, dialect: string): {
-    result: { expand?: ExpandPlan[]; project?: string[] };
+    result: { expand?: ExpandPlan[]; project?: string[]; linked?: unknown };
     select(orderColumns: string[]): string[] | undefined;
 } {
-    const expand = resolveExpand(tableMeta, fm, read.expand, read.related, dialect);
-    const fields = resolveFields(tableMeta, fm, read.fields);
-    const result: { expand?: ExpandPlan[]; project?: string[] } = {};
+    const expand = resolveExpand(tableMeta, fm, read.expand, read.related, dialect, read.hidden);
+    const fields = resolveFields(tableMeta, fm, read.fields, read.hidden);
+    const result: { expand?: ExpandPlan[]; project?: string[]; linked?: unknown } = {};
     if (expand.length) result.expand = expand;
+    if (read.linked) result.linked = read.linked;
+    const through = [...expand.map((e) => e.field), ...(read.linked ? read.linked.columns : [])].filter((k) => !isManyRelation(fm.get(k)));
     // A listed read-time computed field has no column to select; when the read evaluates it
     // (readTimeComputed) its value is in the row, and the record keeps it.
     if (fields) result.project = [...fields, ...listedComputed(fm, read.fields, fields), ...expand.map((e) => e.as)];
@@ -240,7 +261,7 @@ export function recordShape(tableMeta: TableMeta, fm: FieldMap, read: RelationRe
     return {
         result,
         select: (orderColumns) => (fields
-            ? [qi('id'), ...fields.map(column), ...orderColumns, ...expand.map((e) => column(e.field))]
+            ? [qi('id'), ...fields.map(column), ...orderColumns, ...through.map(column)]
             : undefined),
     };
 }
@@ -260,7 +281,7 @@ function listedComputed(fm: FieldMap, fields: unknown, columns: string[]): strin
  * keeps its value in the record when the read evaluates it); any other unknown
  * name is refused.
  */
-export function resolveFields(tableMeta: TableMeta, fm: FieldMap, fields: unknown): string[] | null {
+export function resolveFields(tableMeta: TableMeta, fm: FieldMap, fields: unknown, hidden?: ReadonlySet<string>): string[] | null {
     if (fields === undefined || fields === null) return null;
     const max = RELATION_READ_LIMITS.MAX_FIELDS;
     if (!Array.isArray(fields) || fields.length === 0 || fields.length > max) {
@@ -269,6 +290,7 @@ export function resolveFields(tableMeta: TableMeta, fm: FieldMap, fields: unknow
     const out: string[] = [];
     for (const key of fields) {
         if (typeof key !== 'string' || !key) throw new CompileError('field must be a non-empty string');
+        if (hidden && hidden.has(key)) continue; // not this role's to read: left out, the read goes on
         if (!SYSTEM_COLUMNS.includes(key) && !fm.has(key)) throw new CompileError(`unknown field: ${key}`);
         if (isReadableColumn(tableMeta, fm, key) && !out.includes(key)) out.push(key);
     }

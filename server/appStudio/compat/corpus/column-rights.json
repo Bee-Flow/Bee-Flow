@@ -1,0 +1,294 @@
+{
+  "about": {
+    "source": "hand-made for column rights: a field only one role reads (field.access.read), one two roles read and one writes (read + write), a read-time computed field over the hidden one, an aggregate that folds the hidden field and a list of the same table; definition and data model stored as the canonicalizers write them",
+    "captured": "2026-11-11"
+  },
+  "definition": {
+    "schemaVersion": 2,
+    "meta": {
+      "name": "Team budgets",
+      "description": "Tasks with a budget only the lead reads",
+      "icon": "ListChecks"
+    },
+    "theme": {
+      "primary": "#0F766E",
+      "radius": "md",
+      "density": "comfortable",
+      "fontScale": "md",
+      "appearance": "auto"
+    },
+    "roles": [],
+    "screens": [
+      {
+        "id": "scr_tasks01",
+        "name": "Tasks",
+        "icon": "ListChecks",
+        "showInNav": true,
+        "maxWidth": "medium",
+        "sections": [
+          {
+            "id": "sec_tasks01",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_taskh1",
+                "type": "heading",
+                "props": {
+                  "text": "Tasks and budgets",
+                  "level": 2,
+                  "accent": "none"
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_tasks1",
+                "type": "stat",
+                "props": {
+                  "label": "Budget of open tasks",
+                  "value": {
+                    "kind": "aggregate",
+                    "tableId": "tbl_tasks01",
+                    "filter": [
+                      {
+                        "field": "status",
+                        "op": "eq",
+                        "value": "open"
+                      }
+                    ],
+                    "aggregates": [
+                      {
+                        "fn": "sum",
+                        "field": "budget",
+                        "as": "n"
+                      }
+                    ]
+                  },
+                  "caption": null,
+                  "captionSegments": [],
+                  "icon": null,
+                  "delta": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "deltaFormat": "number",
+                  "trend": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "positiveIsGood": true,
+                  "look": "plain"
+                },
+                "style": {
+                  "span": 3
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_taskl1",
+                "type": "list",
+                "props": {
+                  "source": {
+                    "kind": "records",
+                    "tableId": "tbl_tasks01",
+                    "sort": [
+                      {
+                        "field": "title",
+                        "dir": "asc"
+                      }
+                    ],
+                    "limit": 50
+                  },
+                  "titleKey": "title",
+                  "subtitleKey": "team",
+                  "metaKey": null,
+                  "timestampKey": null,
+                  "badgeKey": null,
+                  "tagsKey": null,
+                  "badgeToneMap": [],
+                  "unreadKey": null,
+                  "badgePlacement": "meta",
+                  "selectedWhen": null,
+                  "selectedDetailKey": null,
+                  "groupKey": null,
+                  "groupOrder": [],
+                  "groupLabelMap": [],
+                  "icon": null,
+                  "emptyText": "Nothing to show yet.",
+                  "look": "rows",
+                  "peekSource": null,
+                  "peekMatchKey": null,
+                  "peekRowKey": null,
+                  "peekTitleKey": null,
+                  "peekTextKey": null,
+                  "peekGroupKey": null,
+                  "peekGroupLabelMap": [],
+                  "peekCountKey": null,
+                  "peekLimit": 6,
+                  "peekTitle": null,
+                  "peekMoreText": null,
+                  "peekBadge": false
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "actions": {},
+    "homeScreenId": "scr_tasks01"
+  },
+  "dataModel": {
+    "modelVersion": 1,
+    "tables": [
+      {
+        "id": "tbl_tasks01",
+        "key": "tasks",
+        "name": "Tasks",
+        "fields": [
+          {
+            "id": "fld_tasks01",
+            "key": "title",
+            "name": "Title",
+            "type": "text",
+            "required": true,
+            "unique": false
+          },
+          {
+            "id": "fld_tasks02",
+            "key": "team",
+            "name": "Team",
+            "type": "text",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_tasks03",
+            "key": "status",
+            "name": "Status",
+            "type": "select",
+            "options": [
+              "open",
+              "done"
+            ],
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_tasks04",
+            "key": "contact",
+            "name": "Contact",
+            "type": "text",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_tasks05",
+            "key": "budget",
+            "name": "Budget",
+            "type": "number",
+            "required": false,
+            "unique": false,
+            "access": {
+              "read": [
+                "lead"
+              ]
+            }
+          },
+          {
+            "id": "fld_tasks06",
+            "key": "review",
+            "name": "Review",
+            "type": "text",
+            "required": false,
+            "unique": false,
+            "access": {
+              "read": [
+                "lead",
+                "auditor"
+              ],
+              "write": [
+                "lead"
+              ]
+            }
+          },
+          {
+            "id": "fld_tasks07",
+            "key": "budget_note",
+            "name": "Budget note",
+            "type": "computed",
+            "required": false,
+            "unique": false,
+            "computed": {
+              "expr": "budget * 2"
+            }
+          },
+          {
+            "id": "fld_tasks08",
+            "key": "shout",
+            "name": "Shout",
+            "type": "computed",
+            "required": false,
+            "unique": false,
+            "computed": {
+              "expr": "upper(title)"
+            }
+          }
+        ],
+        "access": {
+          "default": "none",
+          "roles": {
+            "member": {
+              "read": "all",
+              "create": true,
+              "update": "all",
+              "delete": "all"
+            },
+            "lead": {
+              "read": "all",
+              "create": true,
+              "update": "all",
+              "delete": "all"
+            },
+            "auditor": {
+              "read": "all",
+              "create": false,
+              "update": "none",
+              "delete": "none"
+            }
+          },
+          "rowFilters": {}
+        },
+        "icon": null
+      }
+    ],
+    "roles": [
+      {
+        "key": "member",
+        "label": "member"
+      },
+      {
+        "key": "lead",
+        "label": "lead"
+      },
+      {
+        "key": "auditor",
+        "label": "auditor"
+      }
+    ],
+    "roleMapping": {
+      "default": "member",
+      "byGroup": {}
+    }
+  }
+}

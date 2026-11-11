@@ -204,7 +204,8 @@ async function locateDescriptor(app, model, { attachmentId, tableId, recordId, v
 
     for (const table of candidates) {
         const accessFilter = rlsGateway.compileAccessFilter(table, role, viewer || {}, 'read');
-        const fileFields = (table.fields || []).filter((/** @type {{ type: string; }} */ f) => f && f.type === 'file');
+        // Only the file fields this role reads (column rights): a descriptor in a hidden field is not found.
+        const fileFields = (table.fields || []).filter((/** @type {{ type: string, key: string }} */ f) => f && f.type === 'file' && rlsGateway.canReadField(table, role, f.key));
 
         const probes = recordId
             ? [queryCompiler.compileGetById(table, recordId, accessFilter)]

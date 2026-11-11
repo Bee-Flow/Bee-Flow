@@ -74,7 +74,20 @@ async function executeDataStep(app, model, step, ctx = {}) {
     if (skipped) return skipped;
     // email / groups / orgId for the row rules, when the model reads them (viewerAttributes.mts).
     const stepCtx = await require(VIEWER_ATTRIBUTES).ctxWithViewerAttributes(model, ctx);
-    return withRetryFlag(await runStepKind(app, model, step, stepCtx));
+    return pauseOnlyWhereItCan(withRetryFlag(await runStepKind(app, model, step, stepCtx)), ctx);
+}
+
+/**
+ * A step may answer that it has to wait (`pause`, runPause.mts). Only a server run can put a run
+ * on hold, and its host says so with `ctx.canPause`. For every other caller (a step the page
+ * walks, a public page, a test run) the step fails instead of a pause leaving the server.
+ *
+ * @param {Record<string, unknown> | null | undefined} res
+ * @param {{ canPause?: unknown }} ctx
+ */
+function pauseOnlyWhereItCan(res, ctx) {
+    if (!res || typeof res !== 'object' || res.pause === undefined || ctx.canPause === true) return res;
+    return { ok: false, error: 'This step has to wait, which only an action that runs on the server can do', code: 'pause_unsupported', retryable: false };
 }
 
 /**
@@ -173,4 +186,4 @@ async function runStepKind(app, model, step, ctx) {
     }
 }
 
-module.exports = { executeDataStep, fileStepHandler };
+module.exports = { executeDataStep, fileStepHandler, _pauseOnlyWhereItCan: pauseOnlyWhereItCan };

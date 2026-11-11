@@ -110,6 +110,10 @@ function wiredRoleAccess(def, actionId, role) {
         referenced = true;
         allowed = true;
     }
+    // A server trigger (schema 3) names the action: it is the trigger's to start, as the owner. That
+    // alone lets no viewer run it; a button that also wires it does, for the roles that see the button.
+    const triggers = /** @type {{ triggers?: unknown }} */ (def || {}).triggers;
+    if (Array.isArray(triggers) && triggers.some((t) => t && typeof t === 'object' && t.actionId === actionId)) referenced = true;
     return { referenced, allowed };
 }
 

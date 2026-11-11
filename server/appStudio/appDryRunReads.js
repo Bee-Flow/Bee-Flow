@@ -12,7 +12,7 @@
 
 const queryCompiler = require('./queryCompiler');
 const rlsGateway = require('./rlsGateway');
-const { seedVariableDefaults } = require('./componentSpecs');
+const { initialVariableValues } = require('../shared/appDefinition/variableScopes.mjs');
 const { DRY_RUN_PLAN, planFilters, planParams } = require('../shared/appDefinition/bindingPlan.mjs');
 const { isDatatableBacked } = require('./datatableSource');
 const { recordListDescriptor, aggregateDescriptor } = require('../core/dataEngine/readDescriptor.mts');
@@ -37,13 +37,15 @@ function isPlainObject(v) { return v !== null && typeof v === 'object' && !Array
  */
 function syntheticScope(currentUser, variables) {
     const now = Date.now();
+    const today = new Date(now).toISOString().slice(0, 10);
+    // Derived variables (schema 3) start from the same screen-level roots as the screenshot render.
     return {
         currentUser,
-        vars: seedVariableDefaults(variables),
+        vars: initialVariableValues(variables, { currentUser, forms: {}, screen: { params: {} }, today }),
         forms: {},
         screen: { params: {} },
         now,
-        today: new Date(now).toISOString().slice(0, 10),
+        today,
     };
 }
 

@@ -83,21 +83,27 @@ export function setJSON(key: string, value: unknown): void {
     try { setItem(key, JSON.stringify(value)); } catch (err) { logger.debug('ignore', err); }
 }
 
+/** Remove every key of `store` that starts with `prefix`. */
+function removeWithPrefix(store: Storage, prefix: string): void {
+    const toRemove: string[] = [];
+    for (let i = 0; i < store.length; i++) {
+        const k = store.key(i);
+        if (k && k.startsWith(prefix)) toRemove.push(k);
+    }
+    for (const k of toRemove) store.removeItem(k);
+}
+
 /**
  * Remove ALL scoped keys for the given user. Call on logout.
- * Intentionally leaves device-level keys alone.
+ * Intentionally leaves device-level keys alone. The same prefix is swept in
+ * sessionStorage: a module that keeps a user's state for the tab only writes
+ * it there under scopedKey (App Studio's kept variables).
  */
 export function clearUser(userId: string | null | undefined): void {
     if (!userId) return;
-    try {
-        const prefix = `${PREFIX}:${userId}:`;
-        const toRemove: string[] = [];
-        for (let i = 0; i < localStorage.length; i++) {
-            const k = localStorage.key(i);
-            if (k && k.startsWith(prefix)) toRemove.push(k);
-        }
-        for (const k of toRemove) localStorage.removeItem(k);
-    } catch (err) { logger.debug('ignore', err); }
+    const prefix = `${PREFIX}:${userId}:`;
+    try { removeWithPrefix(localStorage, prefix); } catch (err) { logger.debug('ignore', err); }
+    try { removeWithPrefix(sessionStorage, prefix); } catch (err) { logger.debug('ignore', err); }
 }
 
 export default {

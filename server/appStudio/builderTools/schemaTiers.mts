@@ -23,11 +23,12 @@ const fragments = createRequire(import.meta.url)('./schemaFragments.js') as { SE
 
 /**
  * Entries one app_inspect_catalog call answers by name, and of one family. The family cap holds
- * the largest shipped family whole (stepFields, 33 items) with room for a few more; a whole
- * family answer stays under the builder's tool-result limit (extensionIndex.test.js).
+ * the largest shipped family whole (data, 34 items once several data packages landed; stepFields
+ * 33) with room for the packages still to come; a whole family answer stays under the builder's
+ * tool-result limit (extensionIndex.test.js).
  */
 export const INSPECT_MAX_EXTENSIONS = 12;
-export const INSPECT_MAX_FAMILY_ENTRIES = 36;
+export const INSPECT_MAX_FAMILY_ENTRIES = 48;
 
 /** The plain lists a schema enum is built from, and the tables whose entries carry an enum. */
 const TIERED_LISTS = ['NAV_STYLES', 'FIELD_TYPES', 'FILTER_OPS', 'AGG_FNS', 'DATE_BUCKETS'] as const;

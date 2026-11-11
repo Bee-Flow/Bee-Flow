@@ -12,6 +12,16 @@
  *   rowFilterToSql(astOrExpr, viewer, tableMeta, opts?) → { sql, params }
  *   validateRowFilter(ruleOrPerOperation, tableMeta) → { ok, errors }
  *   rowFilterWarnings(ruleOrPerOperation, tableMeta) → string[] (advice, never a refusal)
+ *   canReadField(tableMeta, role, fieldKey) / canWriteField(…) → boolean (column rights)
+ *
+ * ── COLUMN RIGHTS ───────────────────────────────────────────────────
+ * A field may list the roles that read it and the roles that write it
+ * (`field.access`, columnRights.mts, where the rules and the enforcement are
+ * described). For a table that declares any, the access filter also carries
+ * `columns`: what this role may not read or write. The query compilers scope
+ * the table with it, and refuse such a table under a filter without one. A
+ * table without column rights gets exactly `{ where, params }`, as before.
+ * Another read feature asks `canReadField(tableMeta, role, fieldKey)`.
  *
  * ── SCOPES ──────────────────────────────────────────────────────────
  * A (role, action) resolves to a scope:
@@ -91,6 +101,7 @@
 const { PUBLIC_ROLE_KEY } = require('./dataModel/vocabulary');
 const { AccessError, qi, rowFilterToSql } = require('./rowFilterSql.mts');
 const { validateRowFilter, rowFilterWarnings, rowFilterForAction } = require('./rowFilterCheck.mts');
+const { columnRightsFor, canReadField, canWriteField, OWNER_ACCESS } = require('./columnRights.mts');
 
 // ── Scope resolution ────────────────────────────────────────────────
 
@@ -188,7 +199,9 @@ function compileAccessFilter(tableMeta, role, viewer, action, opts = {}) {
             params = [...params, ...rf.params];
         }
     }
-    return { where, params };
+    // Column rights ride on the predicate, only for a table that declares them.
+    const columns = columnRightsFor(tableMeta, role);
+    return columns ? { where, params, columns } : { where, params };
 }
 
 /**
@@ -215,13 +228,17 @@ module.exports = {
     validateRowFilter,
     rowFilterWarnings,
     rowFilterForAction,
+    canReadField,
+    canWriteField,
+    columnRightsFor,
+    OWNER_ACCESS,
     AccessError,
 };
 
 /**
  * The parts of a table descriptor this module reads.
  * @typedef {{ default?: string, roles?: Record<string, Record<string, string | boolean>>, rowFilters?: Record<string, string | RowFilterNode | { read?: string | RowFilterNode, update?: string | RowFilterNode, delete?: string | RowFilterNode }> }} TableAccess
- * @typedef {{ access?: TableAccess, fields?: { key?: string, type?: string, computed?: { stored?: boolean } }[] }} AccessTableMeta
+ * @typedef {{ access?: TableAccess, fields?: { key?: string, type?: string, computed?: { stored?: boolean }, access?: { read?: string[], write?: string[] } }[] }} AccessTableMeta
  * A shared-expr AST node, as far as the row-filter subset reads it.
  * @typedef {{ kind: string, op?: string, v?: unknown, a?: RowFilterNode, b?: RowFilterNode, segments?: { kind: string, v?: string }[] }} RowFilterNode
  */

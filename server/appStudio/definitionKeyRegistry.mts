@@ -28,7 +28,8 @@ import { fileURLToPath } from 'node:url';
 export type Push = (code: string, path: string, message: string) => void;
 export interface CanonContext { renameMap: unknown; screenIds: Set<string>; actionIds?: Set<string> }
 export interface Finding { code: string; severity: string; path: string; message: string; hint?: string }
-export interface ValidateContext { def: Record<string, unknown>; pushE: (f: Finding) => void; pushW: (f: Finding) => void }
+/** `dataModel` is the app's data model when the validator was handed one (the publish gate); undefined when it was not. */
+export interface ValidateContext { def: Record<string, unknown>; pushE: (f: Finding) => void; pushW: (f: Finding) => void; dataModel?: unknown }
 export interface DefinitionKeyEntry {
     key: string;
     since: number;

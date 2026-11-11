@@ -13,6 +13,7 @@
 import { createRequire } from 'node:module';
 import { compileWhere } from './queryCompilerFilter.mts';
 import { resolveAggSort, resolveAggOrderBy } from './queryCompilerOrder.mts';
+import { scopeColumns, scopeRelated } from './columnRights.mts';
 import {
     aggregateIsNumeric, countDistinctSql, extendedGroupBy, groupFilterSql, isExtendedGroupBy, newExtState,
     type ExtState, type RelatedTables,
@@ -221,10 +222,16 @@ function percentileSql(tableKey: string, where: string, state: AggState): string
  * `related` (optional) carries, per relation field, the table it points at and
  * the viewer's access predicate on it, for groupBy entries with relatedField
  * (queryCompilerAggregateExt.mts). Without it such an entry is refused.
+ *
+ * The table descriptor may be wider than the local type: scoping keeps whatever it carries.
  */
-export function compileAggregate(tableMeta: TableMeta, opts: Entry = {}, accessFilter?: AccessFilter, related?: RelatedTables): { sql: string; params: unknown[] } {
+export function compileAggregate(table: TableMeta, opts: Entry = {}, accessFilter?: AccessFilter, relatedTables?: RelatedTables): { sql: string; params: unknown[] } {
     const dialect = resolveDialect(opts);
-    core.assertTableMeta(tableMeta);
+    core.assertTableMeta(table);
+    // The table and the related tables as the viewer's role reads them (columnRights.mts): a
+    // filter, a group, an aggregate or a groupFilter on a field hidden from that role is refused.
+    const { tableMeta } = scopeColumns(table, accessFilter);
+    const related = scopeRelated(relatedTables);
     const fm = core.fieldMap(tableMeta);
     const { where, params } = compileWhere({
         tableMeta, fm, filters: opts.filters, accessFilter: accessFilter as AccessFilter, dialect, match: opts.match, related,

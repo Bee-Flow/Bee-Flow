@@ -1,0 +1,11 @@
+/*
+ * The font roles of an app's design (fontRoles.ts). The root carries a class per role that is
+ * set, and the role's variable; nothing here matches an app without roles.
+ *
+ * A component whose own style sets the font knob keeps it for everything inside it: the cell
+ * then carries .app-tk-font (styleKnobs/text.ts, only in an app with roles), and the headings
+ * and code inside take the cell's font back. Two classes beat the single role class.
+ */
+.app-fonts--heading :is(h1, h2, h3, h4, h5, h6) { font-family: var(--app-font-heading); }
+.app-fonts--mono :is(code, pre, kbd, samp) { font-family: var(--app-font-mono); }
+.app-node.app-tk-font :is(h1, h2, h3, h4, h5, h6, code, pre, kbd, samp) { font-family: inherit; }

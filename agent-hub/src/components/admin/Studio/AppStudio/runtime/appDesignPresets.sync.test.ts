@@ -28,8 +28,10 @@ describe('appDesignPresets client/server sync', () => {
         const { DESIGN_SPEC, NAV_STYLES } = require('../../../../../../../server/appStudio/appDesignSpec');
         for (const p of APP_DESIGN_PRESETS) {
             expect(Object.keys(p.theme).sort()).toEqual(['appearance', 'density', 'fontScale', 'primary', 'radius']);
-            // An app's own stylesheet (design.customCss, type css) is never part of a preset.
-            const presetKeys = Object.entries(DESIGN_SPEC as Record<string, { type: string }>).filter(([, spec]) => spec.type !== 'css').map(([key]) => key);
+            // A preset carries the base design keys. A key added later (since 3: the app's own
+            // stylesheet design.customCss, tokens, radiusPx, dark, fonts) is optional and never
+            // default-filled into a preset, so a stored app's design stays byte-identical.
+            const presetKeys = Object.entries(DESIGN_SPEC as Record<string, { type: string; since?: number }>).filter(([, spec]) => spec.since === undefined).map(([key]) => key);
             expect(Object.keys(p.design).sort()).toEqual(presetKeys.sort());
             expect(NAV_STYLES).toContain(p.navStyle);
             for (const [key, spec] of Object.entries(DESIGN_SPEC as Record<string, { type: string; values?: string[] }>)) {
