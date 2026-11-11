@@ -134,8 +134,10 @@ test('a rarely used component type is one summary line, and its full entry is se
     for (let i = 0; i < ON_REQUEST_TYPES.length; i += 8) Object.assign(served, (await inspect({ components: ON_REQUEST_TYPES.slice(i, i + 8) })).components);
     assert.deepEqual(Object.keys(served), [...ON_REQUEST_TYPES]);
     for (const type of ON_REQUEST_TYPES) assert.strictEqual(served[type], renderComponentEntry(type));
-    // Every other type is in the base text whole.
-    for (const type of Object.keys(COMPONENT_SPECS).filter((t) => !ON_REQUEST_TYPES.includes(t))) {
+    // Every other base type is in the base text whole. A since-3 type is not base vocabulary: the
+    // extension index names it (catalogContract.test.js), as the since-3 step fields below.
+    const baseTypes = Object.keys(COMPONENT_SPECS).filter((t) => !ON_REQUEST_TYPES.includes(t) && !(COMPONENT_SPECS[t].since >= 3));
+    for (const type of baseTypes) {
         // Whole: its head line followed by its props or style line. The served entry may add since-3
         // props and events, so the base head is the served one's type and description.
         const head = renderComponentEntry(type).split('\n')[0];
