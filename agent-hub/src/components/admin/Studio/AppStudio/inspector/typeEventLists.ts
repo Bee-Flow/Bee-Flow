@@ -32,4 +32,8 @@ export const TYPE_EVENT_LISTS: Record<string, string[]> = {
     kanban: ['onRowClick', 'onCardMove'],
     calendar: ['onRowClick'],
     input_document: ['onChange'],
+    radio: ['onChange'],
+    rating: ['onChange'],
+    slider: ['onChange'],
+    switch: ['onChange'],
 };

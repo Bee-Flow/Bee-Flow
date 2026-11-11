@@ -731,7 +731,11 @@
         "input_relation",
         "input_person",
         "input_multiselect",
-        "input_document"
+        "input_document",
+        "radio",
+        "rating",
+        "slider",
+        "switch"
     ],
     "eventNames": [
         "onClick",
@@ -2448,6 +2452,212 @@
                 "option",
                 "error"
             ]
+        },
+        "accordion": {
+            "label": "Accordion",
+            "category": "Layout",
+            "container": true,
+            "defaultProps": {
+                "items": [
+                    {
+                        "title": "Section 1"
+                    },
+                    {
+                        "title": "Section 2"
+                    }
+                ],
+                "multiple": false
+            },
+            "defaultStyle": {
+                "span": 12,
+                "gap": 3,
+                "padding": 0
+            },
+            "since": 3,
+            "mobile": {
+                "reason": "The phone draws the base layout types only; an accordion stays in the browser."
+            },
+            "parts": [
+                "root",
+                "item",
+                "header",
+                "title",
+                "icon",
+                "panel"
+            ]
+        },
+        "avatar": {
+            "label": "Avatar",
+            "category": "Content",
+            "defaultProps": {
+                "src": null,
+                "srcFrom": null,
+                "name": null,
+                "nameFrom": null,
+                "size": "md"
+            },
+            "defaultStyle": {
+                "span": 2
+            },
+            "since": 3,
+            "mobile": {
+                "reason": "The phone draws the base display types only; an avatar stays in the browser."
+            },
+            "parts": [
+                "root",
+                "image",
+                "initials"
+            ]
+        },
+        "carousel": {
+            "label": "Carousel",
+            "category": "Layout",
+            "container": true,
+            "defaultProps": {
+                "loop": false,
+                "showDots": true
+            },
+            "defaultStyle": {
+                "span": 12,
+                "gap": 3,
+                "padding": 0
+            },
+            "since": 3,
+            "mobile": {
+                "reason": "The phone draws the base layout types only; a carousel stays in the browser."
+            },
+            "parts": [
+                "root",
+                "viewport",
+                "slide",
+                "previous",
+                "next",
+                "dots",
+                "dot"
+            ]
+        },
+        "radio": {
+            "label": "Radio group",
+            "category": "Input",
+            "isInput": true,
+            "defaultProps": {
+                "name": "choice",
+                "label": "Choice",
+                "options": [],
+                "required": false,
+                "defaultValue": null,
+                "valueFrom": {
+                    "kind": "static",
+                    "value": null
+                }
+            },
+            "defaultStyle": {
+                "span": 6
+            },
+            "since": 3,
+            "mobile": {
+                "reason": "The phone draws the base inputs only; a radio group stays in the browser."
+            },
+            "parts": [
+                "root",
+                "label",
+                "group",
+                "option",
+                "control",
+                "text",
+                "error"
+            ]
+        },
+        "rating": {
+            "label": "Rating",
+            "category": "Input",
+            "isInput": true,
+            "defaultProps": {
+                "name": "rating",
+                "label": "Rating",
+                "max": 5,
+                "required": false,
+                "defaultValue": null,
+                "valueFrom": {
+                    "kind": "static",
+                    "value": null
+                }
+            },
+            "defaultStyle": {
+                "span": 6
+            },
+            "since": 3,
+            "mobile": {
+                "reason": "The phone draws the base inputs only; a rating stays in the browser."
+            },
+            "parts": [
+                "root",
+                "label",
+                "control",
+                "star",
+                "error"
+            ]
+        },
+        "slider": {
+            "label": "Slider",
+            "category": "Input",
+            "isInput": true,
+            "defaultProps": {
+                "name": "level",
+                "label": "Level",
+                "min": 0,
+                "max": 100,
+                "step": 1,
+                "required": false,
+                "defaultValue": null,
+                "valueFrom": {
+                    "kind": "static",
+                    "value": null
+                }
+            },
+            "defaultStyle": {
+                "span": 6
+            },
+            "since": 3,
+            "mobile": {
+                "reason": "The phone draws the base inputs only; a slider stays in the browser."
+            },
+            "parts": [
+                "root",
+                "label",
+                "control",
+                "value",
+                "error"
+            ]
+        },
+        "switch": {
+            "label": "Switch",
+            "category": "Input",
+            "isInput": true,
+            "defaultProps": {
+                "name": "enabled",
+                "label": "Enabled",
+                "defaultChecked": false,
+                "required": false,
+                "valueFrom": {
+                    "kind": "static",
+                    "value": null
+                }
+            },
+            "defaultStyle": {
+                "span": 12
+            },
+            "since": 3,
+            "mobile": {
+                "reason": "The phone draws the base inputs only; a switch stays in the browser."
+            },
+            "parts": [
+                "root",
+                "label",
+                "control",
+                "thumb",
+                "error"
+            ]
         }
     },
     "typeStyleKnobs": {
@@ -2723,6 +2933,32 @@
         "input_document": [
             "span",
             "size"
+        ],
+        "accordion": [
+            "span",
+            "gap",
+            "padding"
+        ],
+        "avatar": [
+            "span",
+            "align"
+        ],
+        "carousel": [
+            "span",
+            "gap",
+            "padding"
+        ],
+        "radio": [
+            "span"
+        ],
+        "rating": [
+            "span"
+        ],
+        "slider": [
+            "span"
+        ],
+        "switch": [
+            "span"
         ]
     },
     "typeEvents": {
@@ -2817,6 +3053,18 @@
             "onRowClick"
         ],
         "input_document": [
+            "onChange"
+        ],
+        "radio": [
+            "onChange"
+        ],
+        "rating": [
+            "onChange"
+        ],
+        "slider": [
+            "onChange"
+        ],
+        "switch": [
             "onChange"
         ]
     }

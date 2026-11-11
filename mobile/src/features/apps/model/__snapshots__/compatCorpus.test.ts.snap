@@ -1913,6 +1913,86 @@ exports[`compat corpus: what the phone plans for every stored app logic-parallel
 }
 `;
 
+exports[`compat corpus: what the phone plans for every stored app new-types-basic 1`] = `
+{
+  "defaultScreen": "scr_newty01",
+  "navigable": [
+    "scr_newty01",
+  ],
+  "screens": [
+    {
+      "id": "scr_newty01",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "id": "cmp_newty01",
+                "kind": "heading",
+                "level": 2,
+                "text": "Inputs",
+              },
+              {
+                "action": null,
+                "description": null,
+                "id": "cmp_newty02",
+                "inputs": [],
+                "kind": "form",
+                "submitLabel": "Save",
+                "title": "prefs",
+              },
+              {
+                "id": "cmp_newty07",
+                "kind": "heading",
+                "level": 2,
+                "text": "Display",
+              },
+              {
+                "id": "cmp_newty11",
+                "kind": "text",
+                "muted": false,
+                "text": "Every plan includes the basics.",
+              },
+              {
+                "id": "cmp_newty13",
+                "kind": "text",
+                "muted": false,
+                "text": "Pick a plan and it starts at once.",
+              },
+              {
+                "id": "cmp_newty16",
+                "kind": "text",
+                "muted": false,
+                "text": "First slide",
+              },
+              {
+                "id": "cmp_newty18",
+                "kind": "text",
+                "muted": false,
+                "text": "Second slide",
+              },
+            ],
+            "screen": "scr_newty01",
+            "unsupported": [
+              "switch (browser-only)",
+              "radio (browser-only)",
+              "slider (browser-only)",
+              "rating (browser-only)",
+              "avatar (browser-only)",
+              "accordion (browser-only)",
+              "carousel (browser-only)",
+            ],
+          },
+          "roles": [
+            "(no role)",
+          ],
+        },
+      ],
+    },
+  ],
+}
+`;
+
 exports[`compat corpus: what the phone plans for every stored app paged-record-lists 1`] = `
 {
   "defaultScreen": "scr_queue01",
