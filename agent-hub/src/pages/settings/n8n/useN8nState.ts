@@ -8,6 +8,7 @@ import {
 import { errorMessage } from '@/utils/caughtError';
 import { request, RefusedError, mutate, errorBody } from '@/api/mutate';
 import { withOrgIdParam } from '@/api/adminOrgScope';
+import { useTranslation } from '@/hooks/useTranslation';
 
 /**
  * An /ai/n8n address for `orgId`: the organisation a platform admin chose in
@@ -181,6 +182,7 @@ function useN8nDiagnostics({ setMessage, clearAfter }: Flash, orgId: string | nu
 
 /** The connection form: load, save and test the instance URL and API key. */
 export function useN8nConnection(flash: Flash, wf: Pick<N8nWorkflows, 'setWorkflows' | 'setSaving'>, orgId: string | null = null) {
+    const { t } = useTranslation();
     const { setMessage, clearAfter } = flash;
     const [loading, setLoading] = useState(true);
     const [n8nUrl, setN8nUrl] = useState('');
@@ -215,10 +217,14 @@ export function useN8nConnection(flash: Flash, wf: Pick<N8nWorkflows, 'setWorkfl
         try {
             const res = await jsonPut(n8nPath('config', orgId), apiKey ? { n8nUrl, apiKey } : { n8nUrl });
             if (res.ok) {
-                setMessage({ type: 'success', text: 'Connection saved' });
-                // The server stores a key only when one was sent: saving the URL alone leaves it as it was.
-                setHasApiKey(!!apiKey || hasApiKey);
-                setConfigured(!!(n8nUrl && (apiKey || hasApiKey)));
+                // The server stores a key only when one was sent; another address without one drops the stored key.
+                const { apiKeyCleared } = await res.json().catch(() => ({})) as { apiKeyCleared?: boolean };
+                const keyKept = !!apiKey || (hasApiKey && !apiKeyCleared);
+                setMessage(apiKeyCleared
+                    ? { type: 'error', text: t('settings.n8n.key_cleared', 'Address saved. The stored API key belonged to the previous address and was removed: enter the API key again.') }
+                    : { type: 'success', text: 'Connection saved' });
+                setHasApiKey(keyKept);
+                setConfigured(!!(n8nUrl && keyKept));
                 setApiKey('');
                 setTestResult(null); // invalidate previous test
             } else {

@@ -2,7 +2,7 @@ import { AdminOrgScopeProvider } from '@/api/adminOrgScope';
 import ChooseOrgNotice from '@/components/admin/dashboard/ChooseOrgNotice';
 import { useAdminOrgChoice } from '@/components/admin/dashboard/useAdminOrg';
 import { useEffectiveAdminOrgId } from '@/components/admin/dashboard/useEffectiveAdminOrgId';
-import NextcloudSyncPanel from '../../../integrations/nextcloud/NextcloudSyncPanel';
+import NextcloudSyncPanel from '@/components/integrations/nextcloud/NextcloudSyncPanel';
 import OrgCustomTiersPanel from '../OrgCustomTiersPanel';
 import OrgInvitationsSection from './OrgInvitationsSection';
 import OrgRolesSection from './OrgRolesSection';

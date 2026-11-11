@@ -2,7 +2,8 @@ import { render, waitFor, act } from '@testing-library/react';
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { EntitlementsProvider } from './EntitlementsContext';
-import { LicenseProvider, useLicenseContext, TIER_HIERARCHY, TIER_RANK } from './LicenseContext';
+import { LicenseProvider, useLicenseContext } from './LicenseContext';
+import { TIER_HIERARCHY, TIER_RANK } from './licenseTiers';
 
 // Mock the translation hook — it's not part of what we're testing here.
 vi.mock('../../hooks/useTranslation', () => ({

@@ -11,7 +11,8 @@
  *     admin and followed live by organisations without a list of their own
  *     (core/integrations/enabledIntegrations.js).
  * Also the labels of the dashboard's Organisation tab (its section groups, the
- * "choose an organisation" notice and the own-organisation-only notice).
+ * "choose an organisation" notice and the own-organisation-only notice), and
+ * the n8n connection's notice that a new address needs its API key again.
  *
  * NL_TRANSLATIONS: keys this work added; written when a workspace does not
  * have them yet, so a workspace's own wording is kept.
@@ -41,13 +42,12 @@ const NL_TRANSLATIONS = Object.freeze({
     // The admin dashboard's Organisation tab (what Settings > Organisation held).
     'admin.scope_choose_org': 'Kies hierboven een organisatie om die te beheren',
     'admin.org_home_only': 'Dit onderdeel werkt alleen voor je eigen organisatie. Kies hierboven je eigen organisatie om het te wijzigen.',
-    'admin.org_hub_group_people': 'Mensen',
-    'admin.org_hub_group_privacy': 'Privacy & beveiliging',
-    'admin.org_hub_group_ai': 'AI & gegevens',
     'admin.org_hub_group_connections': 'Koppelingen',
     // The organisation's licence page for a member who cannot choose a plan.
     'admin.no_plan_title': 'Nog geen abonnement',
     'admin.no_plan_desc': 'Je organisatie heeft nog geen actief abonnement. Vraag een beheerder van je organisatie er een te kiezen.',
+    // The n8n connection: the stored key goes only to the address it was saved with.
+    'settings.n8n.key_cleared': 'Adres opgeslagen. De opgeslagen API-sleutel hoorde bij het vorige adres en is verwijderd: vul de API-sleutel opnieuw in.',
 });
 
 /** @type {Readonly<Record<string, { was: string[], now: string }>>} */

@@ -6,7 +6,7 @@ import type React from 'react';
 import LicenseContext from '@/components/licensing/LicenseContext';
 import { AdminOrgProvider, type AdminOrgChoice } from '@/components/admin/dashboard/useAdminOrg';
 import MonitoringPanel from '@/components/admin/monitoring';
-import { createDemoTransport, type DemoRoutes } from '@/demo/demoTransport';
+import { createDemoTransport } from '@/demo/demoTransport';
 import { createState, ROUTES } from '@/demo/fixtures/monitoring';
 import { renderWithClient } from '@/test/render';
 import { setDemoTransport } from '@/utils/helpers';
@@ -21,7 +21,7 @@ export const PLATFORM_ADMIN: MonitoringUser = { isAdmin: true, role: 'admin' };
 /** Serves the demo monitoring fixtures and returns the URLs asked for, in order. */
 export function serveMonitoring(): URL[] {
     const asked: URL[] = [];
-    const transport = createDemoTransport(ROUTES as unknown as DemoRoutes, createState());
+    const transport = createDemoTransport(ROUTES, createState());
     setDemoTransport(async (url: unknown, options?: RequestInit) => {
         asked.push(new URL(String(url), 'http://x'));
         return transport(url, options);
@@ -46,14 +46,20 @@ interface RenderOptions {
     choice?: AdminOrgChoice;
 }
 
+/** A self-hosted licence that holds exactly these capabilities. */
+function licenseWith(features: string[]): License {
+    const partial: Partial<License> = { hasFeature: (name: string) => features.includes(name), deploymentMode: 'self-hosted' };
+    return partial as License;
+}
+
 /** The element inside a licence that holds the advanced-monitoring capability (every page open). */
 export function withAdvanced(ui: React.ReactElement): React.ReactElement {
-    const license = { hasFeature: (name: string) => name === ADVANCED, deploymentMode: 'self-hosted' } as unknown as License;
+    const license = licenseWith([ADVANCED]);
     return <LicenseContext.Provider value={license}>{ui}</LicenseContext.Provider>;
 }
 
 export function renderMonitoring({ page, user, features = [], choice }: RenderOptions) {
-    const license = { hasFeature: (name: string) => features.includes(name), deploymentMode: 'self-hosted' } as unknown as License;
+    const license = licenseWith(features);
     const panel = (
         <LicenseContext.Provider value={license}>
             <MonitoringPanel activeSection={page} user={user} />

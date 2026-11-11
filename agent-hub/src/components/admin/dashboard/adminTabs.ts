@@ -7,7 +7,7 @@ import {
     Newspaper, Package, Palette, Plug, Scale, Shield, Sparkles,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { TIER_RANK } from '@/components/licensing/LicenseContext';
+import { TIER_RANK } from '@/components/licensing/licenseTiers';
 
 export type AdminTabGroupId = 'organisation' | 'ai' | 'security' | 'connections' | 'platform' | 'operations' | 'website';
 

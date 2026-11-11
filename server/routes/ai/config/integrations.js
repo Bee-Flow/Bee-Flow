@@ -89,6 +89,7 @@ const { listActiveWebhookWorkflows, fetchWorkflowById } = require('../../../inte
 // The organisation an n8n route works on (the caller's, or a platform admin's
 // `?orgId`) and the org-admin gate of the admin routes: ./n8nOrg.mts.
 const { getN8nOrgId: getOrgId, requireOrgAdminForN8n } = require('./n8nOrg.mts');
+const { n8nTestTarget, urlChangeDropsKey, N8N_KEY_NEEDED } = require('./n8nKeyPairing.mts');
 
 // GET /ai/n8n/config — get org's n8n connection config
 router.get('/n8n/config', requireAuth, async (req, res) => {
@@ -160,15 +161,20 @@ router.put('/agent-search/defaults', requireAuth, requireAdmin, validate({ body:
 router.put('/n8n/config', requireOrgAdminForN8n, validate({ body: N8nConfigBody }), /** @param {import('express').Request<{}, any, import('zod').infer<typeof N8nConfigBody>, import('qs').ParsedQs>} req */ async (req, res) => {
     const { n8nUrl, apiKey } = req.body;
     const orgId = req.orgId;
+    // Another address without a new key drops the stored key: it goes only to the address it was saved with.
+    const dropKey = n8nUrl !== undefined && urlChangeDropsKey(req.body, await configStore.getConfig(`n8n_url_org_${orgId}`))
+        && !!(await configStore.getSecret(`n8n_api_key_org_${orgId}`));
 
     if (n8nUrl !== undefined) {
         await configStore.setConfig(`n8n_url_org_${orgId}`, n8nUrl || null);
     }
     if (apiKey) {
         await configStore.setSecret(`n8n_api_key_org_${orgId}`, apiKey);
+    } else if (dropKey) {
+        await configStore.deleteConfig(`n8n_api_key_org_${orgId}`, { userId: req.session?.user?.id, integration: 'n8n' });
     }
 
-    res.json({ success: true });
+    res.json(dropKey ? { success: true, apiKeyCleared: true } : { success: true });
 });
 
 // GET /ai/n8n/workflows — live-fetch active webhook workflows from n8n
@@ -209,18 +215,20 @@ router.get('/n8n/workflow/:workflowId', requireOrgAdminForN8n, async (req, res) 
 });
 
 // POST /ai/n8n/test — verify that the stored creds can reach n8n and count workflows.
-// Accepts optional { n8nUrl, apiKey } to test unsaved values from the config form.
+// Accepts optional { n8nUrl, apiKey } to test unsaved values from the config form;
+// the stored key is only sent to the stored address (./n8nKeyPairing.mts).
 router.post('/n8n/test', requireOrgAdminForN8n, validate({ body: N8nConfigBody }), /** @param {import('express').Request<{}, any, import('zod').infer<typeof N8nConfigBody>, import('qs').ParsedQs>} req */ async (req, res) => {
     const { n8nFetch } = require('../../../integrations/n8nHttp');
     try {
         const orgId = req.orgId;
-        const n8nUrl = (req.body?.n8nUrl) || (await configStore.getConfig(`n8n_url_org_${orgId}`));
-        const apiKey = (req.body?.apiKey) || (await configStore.getSecret(`n8n_api_key_org_${orgId}`));
+        const target = n8nTestTarget(req.body || {}, await configStore.getConfig(`n8n_url_org_${orgId}`));
+        if (target.keyNeeded) return res.status(400).json({ ok: false, error: N8N_KEY_NEEDED });
+        const apiKey = target.typedKey || (target.url ? await configStore.getSecret(`n8n_api_key_org_${orgId}`) : null);
 
-        if (!n8nUrl || !apiKey) {
+        if (!target.url || !apiKey) {
             return res.status(400).json({ ok: false, error: 'URL and API key required' });
         }
-        const base = n8nUrl.replace(/\/+$/, '');
+        const base = target.url;
         const apiBase = base.includes('/api/v1') ? base : `${base}/api/v1`;
         // Certificate policy lives in integrations/n8nHttp.js. Disabling verification
         // unconditionally here would make the "Test connection"

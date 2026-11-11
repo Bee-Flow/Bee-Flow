@@ -182,3 +182,49 @@ export function useFreeEmailDomains() {
         loadFailed: query.isError || query.data === null,
     };
 }
+
+const NO_ROWS: never[] = [];
+
+/**
+ * GET /ai/config/custom-tiers-list: the custom tiers' pills. A refusal, an answer without a list
+ * or a network failure reads as no tiers. `enabled` false reads nothing.
+ */
+export function useCustomTiersList<T extends { id: string }>(enabled = true): T[] {
+    const query = useQuery<T[], Error>({
+        queryKey: ['orgAdmin', 'customTiersList'] as const,
+        enabled,
+        retry: false,
+        staleTime: 0,
+        queryFn: async ({ signal }) => {
+            try {
+                const data = await readOrNull<{ tiers?: T[] }>(`${API_BASE}/ai/config/custom-tiers-list`, signal);
+                return Array.isArray(data?.tiers) ? data.tiers : [];
+            } catch (err) {
+                logger.debug('non-critical', err);
+                return [];
+            }
+        },
+    });
+    return query.data ?? NO_ROWS;
+}
+
+/** One organisation role's grant, as GET /auth/org-roles returns it. */
+export interface OrgRoleGrant { id: string; permissions: string[] }
+export interface OrgRoleMapping { roles: OrgRoleGrant[]; editablePermissions: string[] }
+
+/** The cache key of `orgId`'s role mapping (null: the caller's own organisation), for a save that splices one role in. */
+export const orgRolesKey = (orgId: string | null) => ['orgAdmin', 'orgRoles', orgId] as const;
+
+/** GET /auth/org-roles (of `orgId`, else the caller's own organisation); a refusal reads as no roles. */
+export function useOrgRoles(orgId: string | null) {
+    const query = useQuery<OrgRoleMapping, Error>({
+        queryKey: orgRolesKey(orgId),
+        retry: false,
+        staleTime: 0,
+        queryFn: async ({ signal }) => {
+            const body = await readOrNull<{ roles?: OrgRoleGrant[]; editablePermissions?: string[] }>(withOrgIdParam(`${API_BASE}/auth/org-roles`, orgId), signal);
+            return { roles: body?.roles || [], editablePermissions: body?.editablePermissions || [] };
+        },
+    });
+    return { mapping: query.data?.roles ?? NO_ROWS, editablePermissions: query.data?.editablePermissions ?? NO_ROWS, loading: query.isPending };
+}

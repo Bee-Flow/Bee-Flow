@@ -56,6 +56,10 @@ async function claimNotification(targetType, targetId, kind, recipient = null, p
  * @param {string} action
  * @param {string} targetType
  * @param {string} targetId
+ * @param {string | null | undefined} changedBy
+ * @param {unknown} oldValues
+ * @param {unknown} newValues
+ * @param {string | null} [organizationId]
  */
 async function logAccessAudit(action, targetType, targetId, changedBy, oldValues, newValues, organizationId = null) {
     try {

@@ -16,6 +16,7 @@ const { requirePermission, resolveUserOrgIds } = require('../../auth');
 const githubSyncStore = require('../../stores/githubSyncStore');
 const githubSyncService = require('../../services/githubSyncService');
 const configStore = require('../../stores/configStore');
+const userStore = require('../../stores/userStore');
 const { getEffectiveUserId } = require('../../utils/routeHelpers');
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
@@ -57,12 +58,33 @@ const ConfigureBody = z.object({
 // GitHub token): the caller's first org, or the org a platform admin names with
 // `?orgId` in the admin dashboard (resolveChosenOrgId: 404 unknown; anyone
 // else may name only their own org, 403).
-/** @param {import('express').Request} req */
-async function getOrgId(req) {
+/**
+ * @param {import('express').Request} req
+ * @returns {Promise<{ orgId: string | null, ownOrgId: string | null }>}
+ */
+async function resolveOrgs(req) {
     const orgIds = await resolveUserOrgIds(req);
     const own = orgIds && orgIds.size > 0 ? Array.from(orgIds)[0] : null;
-    if (req.query?.orgId === undefined) return own;
-    return require('../../auth/permissions').resolveChosenOrgId(req, own);
+    if (req.query?.orgId === undefined) return { orgId: own, ownOrgId: own };
+    return { orgId: await require('../../auth/permissions').resolveChosenOrgId(req, own), ownOrgId: own };
+}
+
+/** @param {import('express').Request} req */
+async function getOrgId(req) {
+    return (await resolveOrgs(req)).orgId;
+}
+
+/**
+ * A write by a platform admin on an organisation other than their own
+ * (`?orgId`) leaves an access-audit row under that organisation: the action,
+ * the organisation and the admin, as ids only.
+ * @param {import('express').Request} req
+ * @param {{ orgId: string | null, ownOrgId: string | null }} orgs
+ * @param {string} action
+ */
+async function auditChosenOrg(req, { orgId, ownOrgId }, action) {
+    if (!orgId || orgId === ownOrgId) return;
+    await userStore.logAccessAudit(action, 'github_sync', orgId, getEffectiveUserId(req), null, { homeOrgId: ownOrgId }, orgId);
 }
 
 // ─── Status ──────────────────────────────────────────────────────
@@ -89,7 +111,8 @@ router.get('/status', requirePermission('manage_agents'), async (/** @type {impo
 // ─── Configure ───────────────────────────────────────────────────
 // Set the target GitHub repository and branch for sync
 router.post('/configure', requirePermission('manage_agents'), validate({ body: ConfigureBody }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
-    const orgId = await getOrgId(req);
+    const orgs = await resolveOrgs(req);
+    const { orgId } = orgs;
     if (!orgId) return res.status(400).json({ error: 'No organisation found' });
 
     const userId = getEffectiveUserId(req);
@@ -119,6 +142,7 @@ router.post('/configure', requirePermission('manage_agents'), validate({ body: C
         autoSync: autoSync ?? false,
         configuredBy: userId,
     });
+    await auditChosenOrg(req, orgs, 'github_sync.configure');
 
     log.info(`[GitHubSync] Configured for org ${orgId}: ${repoOwner}/${repoName} (${branch || 'main'})`);
     res.json({ success: true });
@@ -126,10 +150,12 @@ router.post('/configure', requirePermission('manage_agents'), validate({ body: C
 
 // ─── Disconnect ──────────────────────────────────────────────────
 router.delete('/configure', requirePermission('manage_agents'), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
-    const orgId = await getOrgId(req);
+    const orgs = await resolveOrgs(req);
+    const { orgId } = orgs;
     if (!orgId) return res.status(400).json({ error: 'No organisation found' });
 
     await githubSyncStore.deleteOrgSyncConfig(orgId);
+    await auditChosenOrg(req, orgs, 'github_sync.disconnect');
     log.info(`[GitHubSync] Disconnected for org ${orgId}`);
     res.json({ success: true });
 });
@@ -137,10 +163,12 @@ router.delete('/configure', requirePermission('manage_agents'), async (/** @type
 // ─── Push All ────────────────────────────────────────────────────
 // Trigger a full sync of all agents and skills to GitHub
 router.post('/push', requirePermission('manage_agents'), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
-    const orgId = await getOrgId(req);
+    const orgs = await resolveOrgs(req);
+    const { orgId } = orgs;
     if (!orgId) return res.status(400).json({ error: 'No organisation found' });
 
     const userId = getEffectiveUserId(req);
+    await auditChosenOrg(req, orgs, 'github_sync.push');
     const results = await githubSyncService.syncAll(orgId, userId);
 
     res.json({ success: true, results });
@@ -149,10 +177,12 @@ router.post('/push', requirePermission('manage_agents'), async (/** @type {impor
 // ─── Push Pending ────────────────────────────────────────────────
 // Push only resources that changed since last sync
 router.post('/push-pending', requirePermission('manage_agents'), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
-    const orgId = await getOrgId(req);
+    const orgs = await resolveOrgs(req);
+    const { orgId } = orgs;
     if (!orgId) return res.status(400).json({ error: 'No organisation found' });
 
     const userId = getEffectiveUserId(req);
+    await auditChosenOrg(req, orgs, 'github_sync.push_pending');
     const results = await githubSyncService.syncPending(orgId, userId);
 
     res.json({ success: true, results });
