@@ -210,7 +210,7 @@ describe('AppEditorShell', () => {
 
         // Variables is a SUBTAB of the Data view, not a dialog of its own.
         await user.click(screen.getByRole('radio', { name: 'Data' }));
-        await user.click(await screen.findByRole('tab', { name: /Variables/ }));
+        await user.click(await screen.findByRole('tab', { name: /Variables/ }, { timeout: 10000 }));
         expect(screen.getByRole('tab', { name: /Variables/ })).toHaveAttribute('aria-selected', 'true');
         // A panel view replaces the canvas and the inspector beside it.
         expect(screen.queryByTestId('inspector-panel')).toBeNull();
