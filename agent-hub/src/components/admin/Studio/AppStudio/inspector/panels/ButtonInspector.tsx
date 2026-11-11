@@ -27,6 +27,7 @@ export default function ButtonInspector({ node, definition, onCommit, disabled =
         { value: 'danger', label: t('studio_apps_panels.button.variant_danger', 'Danger') },
         { value: 'outline', label: t('studio_apps_panels.button.variant_outline', 'Outline') },
         { value: 'soft', label: t('studio_apps_panels.button.variant_soft', 'Soft') },
+        { value: 'link', label: t('studio_apps_lk22.button.variant_link', 'Link') },
     ];
     const ROLES = [
         { value: 'button', label: t('studio_apps_panels.button.role_button', 'Button') },

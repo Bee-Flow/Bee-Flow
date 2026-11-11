@@ -3,6 +3,7 @@ import useTranslation from '@/hooks/useTranslation';
 import { useFormField } from '../formContext';
 import useInputChange from '../useInputChange';
 import { Field, INPUT_CLASS, inputStyle } from '../uiBits';
+import { textPartClasses } from '../styleKnobs/text';
 import type { NodeProps } from './appNode.types';
 
 /** App Studio runtime — 'input_datetime'. Spec: server/appStudio/componentSpecs.js. */
@@ -35,7 +36,7 @@ export default function AppInputDatetime({ node }: NodeProps<InputDatetimeProps>
     const id = `${node.id}-input`;
 
     return (
-        <Field part="input_datetime" id={id} label={label} required={required} error={error}>
+        <Field part="input_datetime" labelClass={textPartClasses(node.style)} id={id} label={label} required={required} error={error}>
             <input
                 id={id}
                 name={name}

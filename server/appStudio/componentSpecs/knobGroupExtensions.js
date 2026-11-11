@@ -12,6 +12,7 @@
  *                                   // (every component type AND the section)
  *       knobs: { myKnob: { type: 'enum', values: ['none', 'a'], default: 'none', since: 3 } },
  *       withheldFrom: ['button'],   // optional: component types the rule skips, by name
+ *       grantedTo: ['button'],      // optional: component types that earn the group besides the rule
  *   };
  *
  * The knobs join STYLE_KNOBS after the base knobs, so canonicalize, validate and the catalogue
@@ -28,23 +29,25 @@ const { VALUE_TYPES, valueTypeOf } = require('./valueTypes');
 
 /**
  * @typedef {import('./styleKnobs').StyleKnob & { since?: number }} ExtensionKnob  A knob as a group file declares it.
- * @typedef {{ since?: number, grantedBy?: string, knobs?: Record<string, ExtensionKnob>, withheldFrom?: unknown }} KnobGroupFile  A group file's export.
+ * @typedef {{ since?: number, grantedBy?: string, knobs?: Record<string, ExtensionKnob>, withheldFrom?: unknown, grantedTo?: unknown }} KnobGroupFile  A group file's export.
  */
 
 /**
- * A group's optional `withheldFrom`: the component types its rule skips (a type whose
- * component draws the same thing itself). Whether each name is a type is checked by the
- * group's test, since the types load after the knobs.
+ * A group's optional list of component type names: `withheldFrom` (the types its rule skips,
+ * a type whose component draws the same thing itself) or `grantedTo` (types that earn the
+ * group although they lack the `grantedBy` knob). Whether each name is a type is checked by
+ * the group's test, since the types load after the knobs.
  * @param {unknown} list
  * @param {string} file
+ * @param {string} key
  * @returns {readonly string[] | null}
  */
-function readWithheldFrom(list, file) {
+function readTypeList(list, file, key) {
     if (list === undefined) return null;
     const ok = Array.isArray(list) && list.length > 0
         && list.every((t) => typeof t === 'string' && t.length > 0)
         && new Set(list).size === list.length;
-    if (!ok) throw new Error(`${file}: withheldFrom lists distinct component type names, or is left out`);
+    if (!ok) throw new Error(`${file}: ${key} lists distinct component type names, or is left out`);
     return Object.freeze([...list]);
 }
 
@@ -81,7 +84,7 @@ function checkKnob(name, knob, taken, where) {
  * The extension knob groups in `dir`, in file-name order.
  * @param {string} dir
  * @param {{ styleKnobs: Record<string, unknown>, baseGroupNames: readonly string[] }} ctx
- * @returns {Array<{ name: string, since: number, grantedBy: string, knobs: string[], specs: Record<string, ExtensionKnob>, withheldFrom?: readonly string[] }>}
+ * @returns {Array<{ name: string, since: number, grantedBy: string, knobs: string[], specs: Record<string, ExtensionKnob>, withheldFrom?: readonly string[], grantedTo?: readonly string[] }>}
  */
 function loadKnobGroupExtensions(dir, ctx) {
     /** @type {Record<string, unknown>} */
@@ -103,8 +106,9 @@ function loadKnobGroupExtensions(dir, ctx) {
             checkKnob(knob, spec, taken, file);
             taken[knob] = spec;
         }
-        const withheldFrom = readWithheldFrom(group.withheldFrom, file);
-        out.push({ name, since, grantedBy, knobs: Object.keys(specs), specs, ...(withheldFrom ? { withheldFrom } : {}) });
+        const withheldFrom = readTypeList(group.withheldFrom, file, 'withheldFrom');
+        const grantedTo = readTypeList(group.grantedTo, file, 'grantedTo');
+        out.push({ name, since, grantedBy, knobs: Object.keys(specs), specs, ...(withheldFrom ? { withheldFrom } : {}), ...(grantedTo ? { grantedTo } : {}) });
     }
     return out;
 }
@@ -116,4 +120,19 @@ function loadKnobGroupExtensions(dir, ctx) {
  */
 const isWithheld = (group, type) => type !== undefined && Array.isArray(group.withheldFrom) && group.withheldFrom.includes(type);
 
-module.exports = { loadKnobGroupExtensions, isWithheld, EXTENSION_KNOB_TYPES };
+/**
+ * Does `group` name the component type `type` as an extra taker (`grantedTo`)?
+ * @param {{ grantedTo?: readonly string[] }} group
+ * @param {string | undefined} type
+ */
+const isGrantedTo = (group, type) => type !== undefined && Array.isArray(group.grantedTo) && group.grantedTo.includes(type);
+
+/**
+ * Does a style list of component type `type` earn `group`: it holds the `grantedBy` knob ('*': every list), or `grantedTo` names the type.
+ * @param {{ grantedBy: string, grantedTo?: readonly string[] }} group
+ * @param {readonly string[]} knobs
+ * @param {string | undefined} type
+ */
+const earnsGroup = (group, knobs, type) => group.grantedBy === '*' || knobs.includes(group.grantedBy) || isGrantedTo(group, type);
+
+module.exports = { loadKnobGroupExtensions, isWithheld, isGrantedTo, earnsGroup, EXTENSION_KNOB_TYPES };

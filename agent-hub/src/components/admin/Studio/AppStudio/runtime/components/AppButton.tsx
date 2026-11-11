@@ -4,6 +4,7 @@ import type { CSSProperties } from 'react';
 import AppIcon from '@/components/icons/AppIcon';
 import { useFormContext } from '../formContext';
 import { useRuntime } from '../RuntimeContext';
+import { textPartClasses } from '../styleKnobs/text';
 import type { NodeProps } from './appNode.types';
 
 /** App Studio runtime — 'button'. Spec: server/appStudio/componentSpecs.js. */
@@ -41,6 +42,14 @@ const VARIANT_STYLES: Record<string, CSSProperties> = {
         border: '1px solid var(--app-primary)',
     },
     soft: { background: 'var(--app-primary-soft)', color: 'var(--app-primary)' },
+    // Since 3. No box at all: the label reads as a link, so the button's padding goes too.
+    link: {
+        background: 'transparent',
+        color: 'var(--app-primary)',
+        textDecoration: 'underline',
+        textUnderlineOffset: '3px',
+        padding: 0,
+    },
 };
 
 const SIZE_CLASSES: Record<string, string> = {
@@ -96,7 +105,7 @@ export default function AppButton({ node }: NodeProps<ButtonProps>) {
             aria-disabled={ruleDisabled || undefined}
             title={orphanSubmit ? 'This button is not inside a form, so it has nothing to submit.' : undefined}
             data-app-orphan-submit={orphanSubmit ? 'true' : undefined}
-            className={`inline-flex items-center gap-1.5 font-medium transition-opacity disabled:opacity-60 ${SIZE_CLASSES[size] || SIZE_CLASSES.md} bfa-button__root`}
+            className={`inline-flex items-center gap-1.5 font-medium transition-opacity disabled:opacity-60 ${SIZE_CLASSES[size] || SIZE_CLASSES.md}${textPartClasses(node.style)} bfa-button__root`}
             style={{ ...(VARIANT_STYLES[variant] || VARIANT_STYLES.primary), borderRadius: 'var(--app-radius)' }}
         >
             {pending

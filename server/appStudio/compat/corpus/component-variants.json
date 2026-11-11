@@ -1,0 +1,745 @@
+{
+  "about": {
+    "source": "hand-made for package LK19 (component variants and text knobs inside components): the seven button variants, three card variants, callout variants on every tone, and text knobs on a button, callout, page header, key-value, badge list and input",
+    "captured": "2026-11-11"
+  },
+  "definition": {
+    "schemaVersion": 3,
+    "meta": {
+      "name": "Component variants",
+      "description": "Variants of buttons, cards and callouts, and text knobs inside components.",
+      "icon": "Sparkles"
+    },
+    "theme": {
+      "primary": "#1D4ED8",
+      "radius": "md",
+      "density": "comfortable",
+      "fontScale": "md",
+      "appearance": "auto"
+    },
+    "roles": [],
+    "screens": [
+      {
+        "id": "scr_cvr0001",
+        "name": "Variants",
+        "icon": null,
+        "showInNav": true,
+        "maxWidth": "medium",
+        "sections": [
+          {
+            "id": "sec_cvr0001",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_cvr0001",
+                "type": "button",
+                "props": {
+                  "label": "primary",
+                  "variant": "primary",
+                  "iconLeft": null,
+                  "role": "button",
+                  "disabledWhen": null
+                },
+                "style": {
+                  "span": 3
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_cvr0002",
+                "type": "button",
+                "props": {
+                  "label": "secondary",
+                  "variant": "secondary",
+                  "iconLeft": null,
+                  "role": "button",
+                  "disabledWhen": null
+                },
+                "style": {
+                  "span": 3
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_cvr0003",
+                "type": "button",
+                "props": {
+                  "label": "ghost",
+                  "variant": "ghost",
+                  "iconLeft": null,
+                  "role": "button",
+                  "disabledWhen": null
+                },
+                "style": {
+                  "span": 3
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_cvr0004",
+                "type": "button",
+                "props": {
+                  "label": "danger",
+                  "variant": "danger",
+                  "iconLeft": null,
+                  "role": "button",
+                  "disabledWhen": null
+                },
+                "style": {
+                  "span": 3
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_cvr0005",
+                "type": "button",
+                "props": {
+                  "label": "outline",
+                  "variant": "outline",
+                  "iconLeft": null,
+                  "role": "button",
+                  "disabledWhen": null
+                },
+                "style": {
+                  "span": 3
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_cvr0006",
+                "type": "button",
+                "props": {
+                  "label": "soft",
+                  "variant": "soft",
+                  "iconLeft": null,
+                  "role": "button",
+                  "disabledWhen": null
+                },
+                "style": {
+                  "span": 3
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_cvr0007",
+                "type": "button",
+                "props": {
+                  "label": "link",
+                  "variant": "link",
+                  "iconLeft": null,
+                  "role": "button",
+                  "disabledWhen": null
+                },
+                "style": {
+                  "span": 3
+                },
+                "visible": true
+              }
+            ]
+          },
+          {
+            "id": "sec_cvr0002",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_cvr0008",
+                "type": "card",
+                "props": {
+                  "title": "Card plain",
+                  "description": "Variant of the surface.",
+                  "look": "default",
+                  "variant": "plain"
+                },
+                "style": {
+                  "span": 4,
+                  "padding": 3,
+                  "gap": 3,
+                  "background": "surface"
+                },
+                "visible": true,
+                "children": []
+              },
+              {
+                "id": "cmp_cvr0009",
+                "type": "card",
+                "props": {
+                  "title": "Card outlined",
+                  "description": "Variant of the surface.",
+                  "look": "default",
+                  "variant": "outlined"
+                },
+                "style": {
+                  "span": 4,
+                  "padding": 3,
+                  "gap": 3,
+                  "background": "surface"
+                },
+                "visible": true,
+                "children": []
+              },
+              {
+                "id": "cmp_cvr0010",
+                "type": "card",
+                "props": {
+                  "title": "Card elevated",
+                  "description": "Variant of the surface.",
+                  "look": "default",
+                  "variant": "elevated"
+                },
+                "style": {
+                  "span": 4,
+                  "padding": 3,
+                  "gap": 3,
+                  "background": "surface"
+                },
+                "visible": true,
+                "children": []
+              }
+            ]
+          },
+          {
+            "id": "sec_cvr0003",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_cvr0011",
+                "type": "callout",
+                "props": {
+                  "title": "soft info",
+                  "text": "A **note** with [a link](https://example.com).",
+                  "textFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "tone": "info",
+                  "toneFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "meta": null,
+                  "metaFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "collapsible": false,
+                  "variant": "soft"
+                },
+                "style": {
+                  "span": 6
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_cvr0012",
+                "type": "callout",
+                "props": {
+                  "title": "soft success",
+                  "text": "A **note** with [a link](https://example.com).",
+                  "textFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "tone": "success",
+                  "toneFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "meta": null,
+                  "metaFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "collapsible": false,
+                  "variant": "soft"
+                },
+                "style": {
+                  "span": 6
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_cvr0013",
+                "type": "callout",
+                "props": {
+                  "title": "soft warning",
+                  "text": "A **note** with [a link](https://example.com).",
+                  "textFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "tone": "warning",
+                  "toneFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "meta": null,
+                  "metaFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "collapsible": false,
+                  "variant": "soft"
+                },
+                "style": {
+                  "span": 6
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_cvr0014",
+                "type": "callout",
+                "props": {
+                  "title": "soft danger",
+                  "text": "A **note** with [a link](https://example.com).",
+                  "textFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "tone": "danger",
+                  "toneFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "meta": null,
+                  "metaFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "collapsible": false,
+                  "variant": "soft"
+                },
+                "style": {
+                  "span": 6
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_cvr0015",
+                "type": "callout",
+                "props": {
+                  "title": "outline info",
+                  "text": "A **note** with [a link](https://example.com).",
+                  "textFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "tone": "info",
+                  "toneFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "meta": null,
+                  "metaFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "collapsible": false,
+                  "variant": "outline"
+                },
+                "style": {
+                  "span": 6
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_cvr0016",
+                "type": "callout",
+                "props": {
+                  "title": "outline success",
+                  "text": "A **note** with [a link](https://example.com).",
+                  "textFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "tone": "success",
+                  "toneFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "meta": null,
+                  "metaFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "collapsible": false,
+                  "variant": "outline"
+                },
+                "style": {
+                  "span": 6
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_cvr0017",
+                "type": "callout",
+                "props": {
+                  "title": "outline warning",
+                  "text": "A **note** with [a link](https://example.com).",
+                  "textFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "tone": "warning",
+                  "toneFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "meta": null,
+                  "metaFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "collapsible": false,
+                  "variant": "outline"
+                },
+                "style": {
+                  "span": 6
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_cvr0018",
+                "type": "callout",
+                "props": {
+                  "title": "outline danger",
+                  "text": "A **note** with [a link](https://example.com).",
+                  "textFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "tone": "danger",
+                  "toneFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "meta": null,
+                  "metaFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "collapsible": false,
+                  "variant": "outline"
+                },
+                "style": {
+                  "span": 6
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_cvr0019",
+                "type": "callout",
+                "props": {
+                  "title": "solid info",
+                  "text": "A **note** with [a link](https://example.com).",
+                  "textFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "tone": "info",
+                  "toneFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "meta": null,
+                  "metaFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "collapsible": false,
+                  "variant": "solid"
+                },
+                "style": {
+                  "span": 6
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_cvr0020",
+                "type": "callout",
+                "props": {
+                  "title": "solid success",
+                  "text": "A **note** with [a link](https://example.com).",
+                  "textFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "tone": "success",
+                  "toneFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "meta": null,
+                  "metaFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "collapsible": false,
+                  "variant": "solid"
+                },
+                "style": {
+                  "span": 6
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_cvr0021",
+                "type": "callout",
+                "props": {
+                  "title": "solid warning",
+                  "text": "A **note** with [a link](https://example.com).",
+                  "textFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "tone": "warning",
+                  "toneFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "meta": null,
+                  "metaFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "collapsible": false,
+                  "variant": "solid"
+                },
+                "style": {
+                  "span": 6
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_cvr0022",
+                "type": "callout",
+                "props": {
+                  "title": "solid danger",
+                  "text": "A **note** with [a link](https://example.com).",
+                  "textFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "tone": "danger",
+                  "toneFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "meta": null,
+                  "metaFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "collapsible": false,
+                  "variant": "solid"
+                },
+                "style": {
+                  "span": 6
+                },
+                "visible": true
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "scr_cvr0002",
+        "name": "Text knobs",
+        "icon": null,
+        "showInNav": true,
+        "maxWidth": "medium",
+        "sections": [
+          {
+            "id": "sec_cvr0004",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_cvr0023",
+                "type": "button",
+                "props": {
+                  "label": "Wide caps",
+                  "variant": "primary",
+                  "iconLeft": null,
+                  "role": "button",
+                  "disabledWhen": null
+                },
+                "style": {
+                  "span": 3,
+                  "textSize": "lg",
+                  "tracking": "wide",
+                  "transform": "uppercase",
+                  "font": "mono"
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_cvr0024",
+                "type": "callout",
+                "props": {
+                  "title": "Callout text",
+                  "text": "Big relaxed text",
+                  "textFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "tone": "info",
+                  "toneFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "meta": null,
+                  "metaFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "collapsible": false
+                },
+                "style": {
+                  "span": 6,
+                  "textSize": "xl",
+                  "lineHeight": "relaxed",
+                  "tracking": "tight"
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_cvr0025",
+                "type": "page_header",
+                "props": {
+                  "title": "Header title",
+                  "subtitle": "The subtitle keeps its size",
+                  "titleFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "subtitleFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "tagsFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "icon": null,
+                  "showDivider": true,
+                  "look": "plain"
+                },
+                "style": {
+                  "span": 12,
+                  "gap": 3,
+                  "padding": 0,
+                  "textSize": "3xl",
+                  "transform": "uppercase"
+                },
+                "visible": true,
+                "children": []
+              },
+              {
+                "id": "cmp_cvr0026",
+                "type": "keyValue",
+                "props": {
+                  "source": {
+                    "kind": "static",
+                    "value": {
+                      "owner": "Ada",
+                      "status": "Open"
+                    }
+                  },
+                  "fields": [
+                    {
+                      "key": "owner",
+                      "label": "Owner"
+                    },
+                    {
+                      "key": "status",
+                      "label": "Status"
+                    }
+                  ],
+                  "layout": "rows",
+                  "columns": 2,
+                  "emptyText": "No data yet."
+                },
+                "style": {
+                  "span": 6,
+                  "textSize": "lg",
+                  "font": "mono"
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_cvr0027",
+                "type": "badge_list",
+                "props": {
+                  "source": {
+                    "kind": "static",
+                    "value": [
+                      {
+                        "label": "New"
+                      },
+                      {
+                        "label": "Urgent"
+                      }
+                    ]
+                  },
+                  "labelKey": "label",
+                  "colorKey": null,
+                  "countKey": null,
+                  "colorMap": [],
+                  "emptyText": "Nothing to show yet.",
+                  "activeWhen": null,
+                  "look": "soft"
+                },
+                "style": {
+                  "span": 6,
+                  "textSize": "md",
+                  "tracking": "wide"
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_cvr0028",
+                "type": "input_text",
+                "props": {
+                  "name": "title",
+                  "label": "Labelled field",
+                  "placeholder": null,
+                  "required": false,
+                  "defaultValue": null,
+                  "inputType": "text",
+                  "valueFrom": {
+                    "kind": "static",
+                    "value": null
+                  }
+                },
+                "style": {
+                  "span": 6,
+                  "textSize": "lg",
+                  "transform": "uppercase",
+                  "tracking": "wide"
+                },
+                "visible": true
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "actions": {},
+    "homeScreenId": "scr_cvr0001"
+  }
+}

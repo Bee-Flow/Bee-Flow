@@ -55,6 +55,24 @@ function resolveText(s: StyleKnobs, style: InlineStyle): string {
     return [...new Set(classes)].join(' ');
 }
 
+/**
+ * The classes a component puts on the inner part whose own size, line height, letter spacing or
+ * case would otherwise beat the value the knob wrote on the cell (a button, a header title, a
+ * badge, an input label), for the knobs this style sets. Nothing for a style that sets none,
+ * so a component without text knobs keeps its class string. text.css hands the value back to
+ * the part. The part is chosen by the component, with a class of its own, because no product
+ * stylesheet may name the stable bfa-<type>__<part> classes.
+ */
+export function textPartClasses(style: StyleKnobs | null | undefined): string {
+    const k = (style ?? {}) as TextKnobs;
+    const classes: string[] = [];
+    if (has(TEXT_SIZE, k.textSize)) classes.push('app-tkp-size');
+    else if (has(LEADING, k.lineHeight)) classes.push('app-tkp-lh');
+    if (has(TRACKING, k.tracking)) classes.push('app-tkp-tracking');
+    if (k.transform === 'uppercase') classes.push('app-tkp-case');
+    return classes.length ? ` ${classes.join(' ')}` : '';
+}
+
 const text: StyleKnobHandler = {
     labels: {
         font: ['studio_apps_text.knobs.font', 'Font'],

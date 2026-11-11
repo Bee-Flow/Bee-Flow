@@ -224,7 +224,7 @@ test('app_inspect_catalog serves the full entry of every extension item by name'
         assert.deepEqual(out.extensions, {
             zz_gauge: 'zz_gauge [Content] — A radial meter for one number. It fills clockwise from min to max and shows the value in the middle.\n  props: value: binding; label: string ≤80 (default "Gauge"); max: int 1..1000 (default 100)\n  style: span, zz_glow (defaults {"span":4})',
             'heading.zz_kicker': 'heading.zz_kicker: string ≤60 — A small line above the heading text.',
-            'button.variant=zz_ghost': 'button.variant: "primary"|"secondary"|"ghost"|"danger"|"outline"|"soft"|"zz_ghost" (default "primary") — outline = transparent with a primary border and primary text; soft = filled with the soft primary tint, primary text.',
+            'button.variant=zz_ghost': 'button.variant: "primary"|"secondary"|"ghost"|"danger"|"outline"|"soft"|"link"|"zz_ghost" (default "primary") — outline = transparent with a primary border and primary text; soft = filled with the soft primary tint, primary text.',
             zz_glow: 'style.zz_glow(none|soft|strong) — A coloured halo around the box.',
             'style.background=zz_mesh': 'style.background(none|surface|tint|panel|gradient|zz_mesh)',
             zz_wait: 'zz_wait [client]: { ms: int 0..5000 REQUIRED } — Pause the sequence for a moment.',
@@ -289,7 +289,7 @@ test('app_inspect_catalog serves the keys outside the component and kind tables,
         // An enum value is answered with the entry of the key that holds it.
         const values = applyInspectCatalog({ extensions: KEY_FIXTURE_NAMES.enumValues }).extensions;
         assert.deepEqual(values, {
-            'design.motion=zz_expressive': 'design.motion: none|subtle|full|zz_expressive (default subtle)',
+            'design.motion=zz_expressive': 'design.motion: none|subtle|full|expressive|zz_expressive (default subtle)',
             'nav.style=zz_dock': 'nav.style: tabs|sidebar|mega|rail|zz_dock — zz_dock pins the screens to the bottom edge.',
             'screen.maxWidth=zz_ultra': 'screen.maxWidth: "narrow"|"medium"|"wide"|"full"|"zz_ultra" (default "medium")',
             'step.generate_file.format=zz_tsv': 'generate_file step field format: "csv"|"xlsx"|"ods"|"zz_tsv" (default "csv")',
