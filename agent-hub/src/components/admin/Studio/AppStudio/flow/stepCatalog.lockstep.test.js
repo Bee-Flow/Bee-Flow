@@ -3,7 +3,11 @@ import { describe, it, expect } from 'vitest';
 import { STEP_CATALOG, STEP_GROUPS, newStep, paletteGroups, stepMeta } from './stepCatalog';
 
 const require = createRequire(import.meta.url);
-const specs = require('../../../../../../../server/appStudio/componentSpecs.js');
+const baseKinds = require('../../../../../../../server/appStudio/componentSpecs/actionSpecsActionKinds.js');
+const allSpecs = require('../../../../../../../server/appStudio/componentSpecs.js');
+// stepCatalog.ts dresses the BASE kinds; a kind of the step registry brings its own file
+// (flow/steps/<kind>.ts), which stepKinds.lockstep.test.ts holds to the server's registry.
+const specs = { ...allSpecs, STEP_KINDS: baseKinds.BASE_STEP_KINDS, DATA_MUTATING_STEP_KINDS: baseKinds.BASE_DATA_MUTATING_STEP_KINDS };
 
 /**
  * A step kind the server ships and the catalog has never heard of shows up in

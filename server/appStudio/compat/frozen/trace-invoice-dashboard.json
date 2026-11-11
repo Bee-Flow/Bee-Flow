@@ -1,0 +1,270 @@
+{
+  "corpus": "trace-invoice-dashboard",
+  "canonical": {
+    "sha256": "012b0e95a05b13ddd42d1da916d523ca970cb24a0d9b6ffd255d34074e7fbcb6",
+    "bytes": 5075,
+    "inputIsCanonical": true,
+    "idempotent": true,
+    "keys": [
+      "schemaVersion",
+      "meta",
+      "theme",
+      "roles",
+      "screens",
+      "actions",
+      "homeScreenId"
+    ],
+    "parts": {
+      "schemaVersion": "d4735e3a265e16ee",
+      "meta": "091dac468e802459",
+      "theme": "5d7eeb0111b89897",
+      "roles": "4f53cda18c2baa0c",
+      "screens[0] scr_e5cb0m": "4837a0e8d681db05",
+      "homeScreenId": "b763a6cd9759ecab"
+    }
+  },
+  "schemaVersion": {
+    "stored": 2,
+    "canonical": 2
+  },
+  "validation": {
+    "strict": {
+      "errors": [],
+      "warnings": [
+        "binding.datatable_unverified @ screens[0].sections[0].children[1].children[0].children[0].props.value.tableId",
+        "binding.datatable_unverified @ screens[0].sections[0].children[1].children[0].children[1].props.value.tableId",
+        "binding.datatable_unverified @ screens[0].sections[0].children[1].children[0].children[2].props.value.tableId",
+        "binding.datatable_unverified @ screens[0].sections[0].children[2].children[0].children[0].props.source.tableId",
+        "binding.datatable_unverified @ screens[0].sections[0].children[2].children[0].children[1].props.source.tableId",
+        "binding.datatable_unverified @ screens[0].sections[0].children[3].children[0].children[1].props.source.tableId"
+      ]
+    },
+    "save": {
+      "errors": [],
+      "warnings": [
+        "binding.datatable_unverified @ screens[0].sections[0].children[1].children[0].children[0].props.value.tableId",
+        "binding.datatable_unverified @ screens[0].sections[0].children[1].children[0].children[1].props.value.tableId",
+        "binding.datatable_unverified @ screens[0].sections[0].children[1].children[0].children[2].props.value.tableId",
+        "binding.datatable_unverified @ screens[0].sections[0].children[2].children[0].children[0].props.source.tableId",
+        "binding.datatable_unverified @ screens[0].sections[0].children[2].children[0].children[1].props.source.tableId",
+        "binding.datatable_unverified @ screens[0].sections[0].children[3].children[0].children[1].props.source.tableId"
+      ]
+    }
+  },
+  "ordinals": {
+    "stored": {},
+    "canonical": "same as stored"
+  },
+  "reads": [
+    {
+      "at": "cmp_t31adc.value",
+      "kind": "aggregate",
+      "table": "tbl_ab859b",
+      "sqlite": {
+        "owner": {
+          "linked": {
+            "aggregates": [
+              {
+                "fn": "sum",
+                "field": "totaal_bedrag",
+                "as": "sum_totaal"
+              }
+            ]
+          }
+        }
+      },
+      "pg": {
+        "owner": {
+          "linked": {
+            "aggregates": [
+              {
+                "fn": "sum",
+                "field": "totaal_bedrag",
+                "as": "sum_totaal"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "at": "cmp_0c1dwi.value",
+      "kind": "aggregate",
+      "table": "tbl_ab859b",
+      "sqlite": {
+        "owner": {
+          "linked": {
+            "aggregates": [
+              {
+                "fn": "sum",
+                "field": "btw_bedrag",
+                "as": "sum_btw"
+              }
+            ]
+          }
+        }
+      },
+      "pg": {
+        "owner": {
+          "linked": {
+            "aggregates": [
+              {
+                "fn": "sum",
+                "field": "btw_bedrag",
+                "as": "sum_btw"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "at": "cmp_ryek3j.value",
+      "kind": "aggregate",
+      "table": "tbl_ab859b",
+      "sqlite": {
+        "owner": {
+          "linked": {
+            "aggregates": [
+              {
+                "fn": "count",
+                "as": "cnt"
+              }
+            ]
+          }
+        }
+      },
+      "pg": {
+        "owner": {
+          "linked": {
+            "aggregates": [
+              {
+                "fn": "count",
+                "as": "cnt"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "at": "cmp_y7ka6o.source",
+      "kind": "aggregate",
+      "table": "tbl_ab859b",
+      "sqlite": {
+        "owner": {
+          "linked": {
+            "groupBy": [
+              {
+                "field": "leverancier",
+                "as": "leverancier"
+              }
+            ],
+            "aggregates": [
+              {
+                "fn": "sum",
+                "field": "totaal_bedrag",
+                "as": "totaal"
+              }
+            ]
+          }
+        }
+      },
+      "pg": {
+        "owner": {
+          "linked": {
+            "groupBy": [
+              {
+                "field": "leverancier",
+                "as": "leverancier"
+              }
+            ],
+            "aggregates": [
+              {
+                "fn": "sum",
+                "field": "totaal_bedrag",
+                "as": "totaal"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "at": "cmp_okc7lh.source",
+      "kind": "aggregate",
+      "table": "tbl_ab859b",
+      "sqlite": {
+        "owner": {
+          "linked": {
+            "groupBy": [
+              {
+                "field": "factuur_datum",
+                "bucket": "month",
+                "as": "maand"
+              }
+            ],
+            "aggregates": [
+              {
+                "fn": "sum",
+                "field": "totaal_bedrag",
+                "as": "totaal"
+              }
+            ]
+          }
+        }
+      },
+      "pg": {
+        "owner": {
+          "linked": {
+            "groupBy": [
+              {
+                "field": "factuur_datum",
+                "bucket": "month",
+                "as": "maand"
+              }
+            ],
+            "aggregates": [
+              {
+                "fn": "sum",
+                "field": "totaal_bedrag",
+                "as": "totaal"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "at": "cmp_pj6s5b.source",
+      "kind": "records",
+      "table": "tbl_ab859b",
+      "sqlite": {
+        "owner": {
+          "linked": {
+            "filters": [],
+            "sort": [
+              {
+                "dir": "desc",
+                "field": "factuur_datum"
+              }
+            ]
+          }
+        }
+      },
+      "pg": {
+        "owner": {
+          "linked": {
+            "filters": [],
+            "sort": [
+              {
+                "dir": "desc",
+                "field": "factuur_datum"
+              }
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

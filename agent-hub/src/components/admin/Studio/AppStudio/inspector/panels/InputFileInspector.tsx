@@ -36,4 +36,4 @@ export default function InputFileInspector({ node, definition, onCommit, disable
     );
 }
 
-registerInspector('input_file', InputFileInspector);
+registerInspector('input_file', InputFileInspector, { props: ['name', 'label', 'accept', 'multiple', 'required'] });

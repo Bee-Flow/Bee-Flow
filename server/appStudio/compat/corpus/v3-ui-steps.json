@@ -1,0 +1,465 @@
+{
+  "about": {
+    "source": "hand-written for the browser steps and the ui scope root (schema 3)",
+    "captured": "2026-11-10"
+  },
+  "definition": {
+    "schemaVersion": 3,
+    "meta": {
+      "name": "Screen helpers",
+      "description": "Browser steps and the ui root: tabs, a dialog and a grid selection read in formulas.",
+      "icon": "PanelsTopLeft"
+    },
+    "theme": {
+      "primary": "#0F766E",
+      "radius": "md",
+      "density": "comfortable",
+      "fontScale": "md",
+      "appearance": "auto"
+    },
+    "roles": [],
+    "screens": [
+      {
+        "id": "scr_orders1",
+        "name": "Orders",
+        "icon": null,
+        "showInNav": true,
+        "maxWidth": "medium",
+        "sections": [
+          {
+            "id": "sec_orders1",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_grid001",
+                "type": "data_grid",
+                "props": {
+                  "source": {
+                    "kind": "static",
+                    "value": [
+                      {
+                        "id": "r1",
+                        "reference": "ORD-1001",
+                        "title": "Desk lamps",
+                        "quantity": 4
+                      },
+                      {
+                        "id": "r2",
+                        "reference": "ORD-1002",
+                        "title": "Office chairs",
+                        "quantity": 2
+                      }
+                    ]
+                  },
+                  "columns": [
+                    {
+                      "key": "reference",
+                      "label": "Reference",
+                      "format": "text"
+                    },
+                    {
+                      "key": "title",
+                      "label": "Title",
+                      "format": "text"
+                    }
+                  ],
+                  "pageSize": 25,
+                  "selectable": "multi",
+                  "searchable": false,
+                  "rowActions": [],
+                  "toolbarActions": [],
+                  "addRowLabel": null,
+                  "addRowActionId": null,
+                  "bulkActions": [],
+                  "density": "comfortable",
+                  "clamp": "off",
+                  "rowTone": [],
+                  "groupBy": null,
+                  "groupOrder": [],
+                  "activeWhen": null,
+                  "zebra": false,
+                  "emptyText": "Nothing to show yet.",
+                  "look": "default"
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_picked1",
+                "type": "text",
+                "props": {
+                  "text": "Nothing selected",
+                  "muted": false
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true,
+                "computed": {
+                  "text": {
+                    "kind": "formula",
+                    "expr": "count(ui.selection.cmp_grid001) + ' selected, tab ' + ui.tabs.cmp_tabs001.active"
+                  }
+                }
+              },
+              {
+                "id": "cmp_copybtn",
+                "type": "button",
+                "props": {
+                  "label": "Copy reference",
+                  "variant": "primary",
+                  "iconLeft": null,
+                  "role": "button",
+                  "disabledWhen": null
+                },
+                "style": {
+                  "span": 3
+                },
+                "visible": true,
+                "enabledWhen": {
+                  "kind": "formula",
+                  "expr": "count(ui.selection.cmp_grid001) == 1"
+                },
+                "onClick": "act_copyref"
+              },
+              {
+                "id": "cmp_fillbtn",
+                "type": "button",
+                "props": {
+                  "label": "Use in form",
+                  "variant": "primary",
+                  "iconLeft": null,
+                  "role": "button",
+                  "disabledWhen": null
+                },
+                "style": {
+                  "span": 3
+                },
+                "visible": true,
+                "onClick": "act_fillfrm"
+              },
+              {
+                "id": "cmp_tabs001",
+                "type": "tabs",
+                "props": {
+                  "look": "underline"
+                },
+                "style": {
+                  "span": 12,
+                  "gap": 3,
+                  "padding": 0
+                },
+                "visible": true,
+                "children": [
+                  {
+                    "id": "cmp_tabform",
+                    "type": "tab",
+                    "props": {
+                      "label": "Order",
+                      "icon": null,
+                      "badge": null,
+                      "badgeTone": "neutral"
+                    },
+                    "style": {
+                      "gap": 3,
+                      "padding": 0
+                    },
+                    "visible": true,
+                    "children": [
+                      {
+                        "id": "cmp_form001",
+                        "type": "form",
+                        "props": {
+                          "name": "order",
+                          "submitLabel": "Submit",
+                          "showReset": false,
+                          "showSubmit": false,
+                          "resetKey": null
+                        },
+                        "style": {
+                          "span": 6,
+                          "gap": 3,
+                          "padding": 0
+                        },
+                        "visible": true,
+                        "children": [
+                          {
+                            "id": "cmp_qty0001",
+                            "type": "input_number",
+                            "props": {
+                              "name": "quantity",
+                              "label": "Quantity",
+                              "min": null,
+                              "max": null,
+                              "step": 1,
+                              "required": false,
+                              "defaultValue": null,
+                              "valueFrom": {
+                                "kind": "static",
+                                "value": null
+                              }
+                            },
+                            "style": {
+                              "span": 6
+                            },
+                            "visible": true
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "id": "cmp_tabnote",
+                    "type": "tab",
+                    "props": {
+                      "label": "Notes",
+                      "icon": null,
+                      "badge": null,
+                      "badgeTone": "neutral"
+                    },
+                    "style": {
+                      "gap": 3,
+                      "padding": 0
+                    },
+                    "visible": true,
+                    "children": [
+                      {
+                        "id": "cmp_note001",
+                        "type": "text",
+                        "props": {
+                          "text": "Notes go here.",
+                          "muted": false
+                        },
+                        "style": {
+                          "span": 12
+                        },
+                        "visible": true
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "cmp_dlgopen",
+                "type": "text",
+                "props": {
+                  "text": "The details dialog is open.",
+                  "muted": false
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true,
+                "visibleWhen": {
+                  "kind": "formula",
+                  "expr": "ui.modals.cmp_dialog1.open"
+                }
+              },
+              {
+                "id": "cmp_dialog1",
+                "type": "modal",
+                "props": {
+                  "title": "Details",
+                  "size": "md",
+                  "placement": "center",
+                  "triggerLabel": null
+                },
+                "style": {
+                  "gap": 3,
+                  "padding": 4
+                },
+                "visible": true,
+                "children": [
+                  {
+                    "id": "cmp_dlgtext",
+                    "type": "text",
+                    "props": {
+                      "text": "Opened by a step.",
+                      "muted": false
+                    },
+                    "style": {
+                      "span": 12
+                    },
+                    "visible": true
+                  }
+                ]
+              },
+              {
+                "id": "cmp_openbtn",
+                "type": "button",
+                "props": {
+                  "label": "Details",
+                  "variant": "primary",
+                  "iconLeft": null,
+                  "role": "button",
+                  "disabledWhen": null
+                },
+                "style": {
+                  "span": 3
+                },
+                "visible": true,
+                "onClick": "act_details"
+              },
+              {
+                "id": "cmp_gonext1",
+                "type": "button",
+                "props": {
+                  "label": "Next screen",
+                  "variant": "primary",
+                  "iconLeft": null,
+                  "role": "button",
+                  "disabledWhen": null
+                },
+                "style": {
+                  "span": 3
+                },
+                "visible": true,
+                "onClick": "act_gonext1"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "scr_second1",
+        "name": "Second",
+        "icon": null,
+        "showInNav": true,
+        "maxWidth": "medium",
+        "sections": [
+          {
+            "id": "sec_second1",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_backbtn",
+                "type": "button",
+                "props": {
+                  "label": "Back",
+                  "variant": "primary",
+                  "iconLeft": null,
+                  "role": "button",
+                  "disabledWhen": null
+                },
+                "style": {
+                  "span": 3
+                },
+                "visible": true,
+                "onClick": "act_goback1"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "actions": {
+      "act_copyref": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "copy_to_clipboard",
+            "text": {
+              "kind": "formula",
+              "expr": "ui.selection.cmp_grid001[0].reference"
+            }
+          },
+          {
+            "kind": "toast",
+            "message": "Copied",
+            "tone": "success"
+          }
+        ]
+      },
+      "act_fillfrm": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "set_ui",
+            "nodeId": "cmp_tabs001",
+            "state": "activeTab",
+            "value": {
+              "kind": "static",
+              "value": "cmp_tabform"
+            }
+          },
+          {
+            "kind": "set_form_field",
+            "form": "order",
+            "field": "quantity",
+            "value": {
+              "kind": "formula",
+              "expr": "ui.selection.cmp_grid001[0].quantity"
+            }
+          },
+          {
+            "kind": "scroll_to",
+            "nodeId": "cmp_tabs001"
+          },
+          {
+            "kind": "focus",
+            "nodeId": "cmp_qty0001"
+          }
+        ]
+      },
+      "act_details": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "set_ui",
+            "nodeId": "cmp_dialog1",
+            "state": "open",
+            "value": {
+              "kind": "static",
+              "value": true
+            }
+          },
+          {
+            "kind": "wait",
+            "seconds": 2
+          },
+          {
+            "kind": "set_ui",
+            "nodeId": "cmp_grid001",
+            "state": "selection",
+            "value": {
+              "kind": "static",
+              "value": []
+            }
+          },
+          {
+            "kind": "scroll_to",
+            "nodeId": "top"
+          }
+        ]
+      },
+      "act_gonext1": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "navigate",
+            "screenId": "scr_second1"
+          }
+        ]
+      },
+      "act_goback1": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "back"
+          }
+        ]
+      }
+    },
+    "homeScreenId": "scr_orders1"
+  }
+}

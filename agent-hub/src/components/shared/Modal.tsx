@@ -4,6 +4,7 @@ import {
     DEFAULT_Z_INDEX, ParentDialog, closeDialog, openDialog, setDialogEscape, setDialogFloor, stackLevel, useDialogStack,
     type DialogEntry,
 } from './dialogStack';
+import { usePortalRoot } from './portalRoot';
 
 /**
  * Modal — accessible dialog with backdrop, focus trap, ESC-to-close, and
@@ -149,7 +150,7 @@ const FOCUSABLE_SELECTOR =
  * for Escape on the document, so the dialog closes whichever inner element
  * has focus, and only while it is the top one.
  */
-function useStackEntry(open: boolean, zIndex: number | undefined, onEscape: (() => void) | null): DialogEntry {
+function useStackEntry(open: boolean, zIndex: number | undefined, onEscape: (() => void) | null, doc: Document | undefined): DialogEntry {
     const parent = useContext(ParentDialog);
     const floor = zIndex ?? DEFAULT_Z_INDEX;
     const [entry] = useState<DialogEntry>(() => ({ parent, floor, onEscape: null }));
@@ -158,14 +159,14 @@ function useStackEntry(open: boolean, zIndex: number | undefined, onEscape: (() 
     useLayoutEffect(() => { setDialogEscape(entry, onEscape); }, [entry, onEscape]);
     useLayoutEffect(() => {
         if (!open) return undefined;
-        openDialog(entry);
+        openDialog(entry, doc);
         return () => closeDialog(entry);
-    }, [open, entry]);
+    }, [open, entry, doc]);
     return entry;
 }
 
-function focusedElement(): HTMLElement | null {
-    return typeof document === 'undefined' ? null : (document.activeElement as HTMLElement | null);
+function focusedElement(doc: Document | undefined): HTMLElement | null {
+    return doc ? (doc.activeElement as HTMLElement | null) : null;
 }
 
 /**
@@ -175,12 +176,12 @@ function focusedElement(): HTMLElement | null {
  * effect would record that child (gone once the dialog closes) and the focus
  * would land on <body> instead of back on the opener.
  */
-function useOpener(open: boolean): HTMLElement | null {
-    const [opener, setOpener] = useState(() => (open ? focusedElement() : null));
+function useOpener(open: boolean, doc: Document | undefined): HTMLElement | null {
+    const [opener, setOpener] = useState(() => (open ? focusedElement(doc) : null));
     const [wasOpen, setWasOpen] = useState(open);
     if (open !== wasOpen) {
         setWasOpen(open);
-        setOpener(open ? focusedElement() : null);
+        setOpener(open ? focusedElement(doc) : null);
     }
     return opener;
 }
@@ -197,7 +198,7 @@ function focusInitial(panel: HTMLElement, initialFocus: React.RefObject<HTMLElem
         named.focus();
         return;
     }
-    if (panel.contains(document.activeElement)) return;
+    if (panel.contains(panel.ownerDocument.activeElement)) return;
     (panel.querySelector<HTMLElement>(FOCUSABLE_SELECTOR) ?? panel).focus();
 }
 
@@ -206,8 +207,9 @@ function useDialogFocus(
     open: boolean,
     panelRef: React.RefObject<HTMLDivElement | null>,
     initialFocus: React.RefObject<HTMLElement | null> | undefined,
+    doc: Document | undefined,
 ): void {
-    const opener = useOpener(open);
+    const opener = useOpener(open, doc);
     useEffect(() => {
         if (!open) return undefined;
         if (panelRef.current) focusInitial(panelRef.current, initialFocus);
@@ -241,8 +243,12 @@ export default function Modal({
     const panelRef = useRef<HTMLDivElement | null>(null);
     const internalLabelId = useId();
     const titleId = labelledBy ?? (title != null ? internalLabelId : undefined);
-    const entry = useStackEntry(open, zIndex, disableEscapeClose ? null : onClose);
-    useDialogFocus(open, panelRef, initialFocus);
+    // The device preview renders the app in an iframe and hands its body in
+    // here; everywhere else this is document.body, as it always was.
+    const portalRoot = usePortalRoot();
+    const hostDoc = portalRoot?.ownerDocument;
+    const entry = useStackEntry(open, zIndex, disableEscapeClose ? null : onClose, hostDoc);
+    useDialogFocus(open, panelRef, initialFocus, hostDoc);
 
     // Minimal focus trap: keep Tab/Shift+Tab inside the panel.
     const onPanelKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
@@ -256,7 +262,7 @@ export default function Modal({
         }
         const first = items[0];
         const last = items[items.length - 1];
-        const active = document.activeElement as HTMLElement | null;
+        const active = panel.ownerDocument.activeElement as HTMLElement | null;
         if (e.shiftKey && active === first) {
             e.preventDefault();
             last.focus();
@@ -267,7 +273,7 @@ export default function Modal({
     }, []);
 
     if (!open) return null;
-    if (typeof document === 'undefined') return null;
+    if (typeof document === 'undefined' || !portalRoot) return null;
 
     const onBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
         if (disableBackdropClose) return;
@@ -329,6 +335,6 @@ export default function Modal({
                 </div>
             </div>
         </ParentDialog.Provider>,
-        document.body,
+        portalRoot,
     );
 }

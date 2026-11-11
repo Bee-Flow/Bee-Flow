@@ -1,0 +1,493 @@
+# sample-v21-batch
+## screen scr_v21a01 (Batch)
+<div class="app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(15, 118, 110, 0.1); --app-accent: #0F766E; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(15, 118, 110, 0.1); --app-primary: #0F766E; --app-radius: 8px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-size: 15px; min-height: 100vh">
+  <main class="flex flex-1 flex-col min-h-0">
+    <div class="app-runtime app-screen-enter w-full" data-app-appearance="auto" data-app-screen="scr_v21a01" data-app-screen-kind="page" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(15, 118, 110, 0.1); --app-accent: #0F766E; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(15, 118, 110, 0.1); --app-primary: #0F766E; --app-radius: 8px; --app-space: 1; color: var(--text-primary); font-size: 15px">
+      <div class="flex flex-col w-full" style="margin: 0px auto; max-width: 1280px">
+        <section class="app-grid" data-section-id="sec_v21a01" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="page_header" data-node-id="cmp_v21ph" style="grid-column: span 12 / span 12">
+            <header class="min-w-0 w-full" data-app-pageheader="true">
+              <div class="flex flex-wrap items-start" style="gap: calc(12px * var(--app-space, 1))">
+                <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-9 inline-flex items-center justify-center rounded-md shrink-0 w-9" aria-hidden="true">
+                  <svg class="h-4.5 lucide lucide-layout-grid w-4.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                <div class="basis-64 flex-1 min-w-0">
+                  <h1 class="font-semibold text-[var(--text-primary)] text-xl truncate" title="Hive tasks">
+                    "Hive tasks"
+                  <p class="line-clamp-2 mt-0.5 text-sm" title="Everything in flight" style="color: var(--text-secondary)">
+                    "Everything in flight"
+                <div class="flex flex-wrap items-center justify-end ml-auto" data-app-pageheader-actions="true" style="gap: calc(8px * var(--app-space, 1))">
+                  <div class="app-node app-span-3 min-w-0" data-app-type="button" data-node-id="cmp_v21pb" style="grid-column: span 3 / span 3">
+                    <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm transition-opacity" type="button" style="background: var(--app-accent, var(--app-primary)); border-radius: var(--app-radius); color: var(--app-accent-contrast, var(--app-primary-contrast))">
+                      <span>
+                        "New task"
+              <hr class="[background:var(--border-default)] border-0 h-px mt-3 w-full" aria-hidden="true">
+          <div class="app-node app-span-6 min-w-0" data-app-type="container" data-node-id="cmp_v21ct" style="grid-column: span 6 / span 6">
+            <div class="app-grid" data-app-container="true" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+              <div class="app-node app-span-12 min-w-0" data-app-type="markdown" data-node-id="cmp_v21md" style="grid-column: span 12 / span 12">
+                <div class="flex flex-col gap-2 text-sm" data-app-markdown="true">
+                  <h2 class="font-semibold text-xl">
+                    "Notes"
+                  <p>
+                    "Keep the"
+                    <strong>
+                      "smoker"
+                    "ready."
+                  <ul class="flex flex-col gap-1 list-disc pl-5">
+                    <li>
+                      "check queen"
+                    <li>
+                      "refill feeder"
+                  <div class="app-code-block group relative">
+                    <pre class="[background:var(--bg-tertiary)] [border-color:var(--border-default)] [border-radius:var(--app-radius)] [color:var(--text-primary)]! border overflow-x-auto p-3 text-xs">
+                      <code>
+                        "brood ok"
+              <div class="app-node app-span-12 min-w-0" data-app-type="progress" data-node-id="cmp_v21pr" style="grid-column: span 12 / span 12">
+                <div class="flex flex-col gap-1 min-w-0 w-full" data-app-progress="true">
+                  <div class="flex gap-2 items-baseline justify-between text-[var(--text-secondary)] text-xs">
+                    <span class="font-medium text-[var(--text-primary)] truncate">
+                      "Season prep"
+                    <span data-app-progress-caption="true">
+                      "40%"
+                  <div class="h-2 overflow-hidden rounded-full w-full" aria-label="Season prep" aria-valuemax="100" aria-valuemin="0" aria-valuenow="40" role="progressbar" style="background: var(--bg-tertiary)">
+                    <div class="h-full rounded-full" style="background: rgb(16, 185, 129); width: 40%">
+          <div class="app-node app-span-6 min-w-0" data-app-type="badge_list" data-node-id="cmp_v21bl" style="grid-column: span 6 / span 6; text-align: left">
+            <div class="flex flex-wrap gap-1.5 items-center justify-start" data-app-badgelist="true">
+              <span class="border font-medium inline-flex items-center px-2 py-0.5 rounded-full text-xs" data-badge-role="info" style="background: color-mix(in srgb, currentcolor 12%, transparent); border-color: color-mix(in srgb, currentcolor 35%, transparent); color: rgb(14, 165, 233)">
+                "urgent"
+              <span class="border font-medium inline-flex items-center px-2 py-0.5 rounded-full text-xs" data-badge-role="info" style="background: color-mix(in srgb, currentcolor 12%, transparent); border-color: color-mix(in srgb, currentcolor 35%, transparent); color: rgb(14, 165, 233)">
+                "supply"
+              <span class="border font-medium inline-flex items-center px-2 py-0.5 rounded-full text-xs" data-badge-role="success" style="background: color-mix(in srgb, currentcolor 12%, transparent); border-color: color-mix(in srgb, currentcolor 35%, transparent); color: rgb(16, 185, 129)">
+                "yard"
+          <div class="app-node app-span-6 min-w-0" data-app-type="timeline" data-node-id="cmp_v21tl" style="grid-column: span 6 / span 6">
+            <ol class="flex flex-col" data-app-timeline="true">
+              <li class="flex gap-3 last:pb-0 pb-4 relative" data-app-timeline-row="0">
+                <div class="flex flex-col items-center shrink-0" aria-hidden="true">
+                  <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-6 inline-flex items-center justify-center rounded-full w-6">
+                    <span class="[background:currentColor] h-1.5 rounded-full w-1.5">
+                  <span class="[background:var(--border-default)] flex-1 mt-1 w-px">
+                <button class="cursor-pointer flex-1 min-w-0 text-left" type="button">
+                  <div class="font-medium text-[var(--text-primary)] text-sm truncate" title="Fix hive">
+                    "Fix hive"
+                  <div class="text-[var(--text-muted)] text-xs">
+                    "<date>"
+                  <div class="mt-0.5 text-[var(--text-secondary)] text-xs">
+                    "Ann"
+              <li class="flex gap-3 last:pb-0 pb-4 relative" data-app-timeline-row="1">
+                <div class="flex flex-col items-center shrink-0" aria-hidden="true">
+                  <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-6 inline-flex items-center justify-center rounded-full w-6">
+                    <span class="[background:currentColor] h-1.5 rounded-full w-1.5">
+                  <span class="[background:var(--border-default)] flex-1 mt-1 w-px">
+                <button class="cursor-pointer flex-1 min-w-0 text-left" type="button">
+                  <div class="font-medium text-[var(--text-primary)] text-sm truncate" title="Order frames">
+                    "Order frames"
+                  <div class="text-[var(--text-muted)] text-xs">
+                    "<date>"
+                  <div class="mt-0.5 text-[var(--text-secondary)] text-xs">
+                    "Bo"
+              <li class="flex gap-3 last:pb-0 pb-4 relative" data-app-timeline-row="2">
+                <div class="flex flex-col items-center shrink-0" aria-hidden="true">
+                  <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-6 inline-flex items-center justify-center rounded-full w-6">
+                    <span class="[background:currentColor] h-1.5 rounded-full w-1.5">
+                <button class="cursor-pointer flex-1 min-w-0 text-left" type="button">
+                  <div class="font-medium text-[var(--text-primary)] text-sm truncate" title="Paint boxes">
+                    "Paint boxes"
+                  <div class="text-[var(--text-muted)] text-xs">
+                    "<date>"
+                  <div class="mt-0.5 text-[var(--text-secondary)] text-xs">
+                    "Cy"
+          <div class="app-node app-span-12 min-w-0" data-app-type="record_detail" data-node-id="cmp_v21rd" style="grid-column: span 12 / span 12">
+            <dl class="gap-x-6 gap-y-3 grid" data-app-recorddetail="true" style="grid-template-columns: repeat(2, minmax(0, 1fr))">
+              <div class="min-w-0">
+                <dt class="font-medium text-[var(--text-muted)] text-xs tracking-wide uppercase">
+                  "Title"
+                <dd class="break-words mt-0.5 text-[var(--text-primary)] text-sm">
+                  "Fix hive"
+              <div class="min-w-0">
+                <dt class="font-medium text-[var(--text-muted)] text-xs tracking-wide uppercase">
+                  "Due"
+                <dd class="break-words mt-0.5 text-[var(--text-primary)] text-sm">
+                  "<date>"
+              <div class="min-w-0">
+                <dt class="font-medium text-[var(--text-muted)] text-xs tracking-wide uppercase">
+                  "Status"
+                <dd class="break-words mt-0.5 text-[var(--text-primary)] text-sm">
+                  <span class="[background:var(--bg-tertiary)] [color:var(--text-secondary)]! font-medium inline-flex items-center px-2 py-0.5 rounded-full text-xs">
+                    "open"
+          <div class="app-node app-span-12 min-w-0" data-app-type="filter_bar" data-node-id="cmp_v21fb" style="grid-column: span 12 / span 12">
+            <div class="flex flex-wrap gap-3 items-end" data-app-filterbar="true">
+              <div class="flex flex-col gap-1 min-w-0" data-app-filter="q">
+                <label class="font-medium text-[var(--text-secondary)] text-xs" for="cmp_v21fb-flt-q">
+                  "Search"
+                <div class="relative">
+                  <svg class="-translate-y-1/2 absolute h-3.5 left-2.5 lucide lucide-search text-[var(--text-muted)] top-1/2 w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                  <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none pl-8 px-2.5 py-1.5 text-sm w-full" aria-label="Search" id="cmp_v21fb-flt-q" placeholder="Search" type="text" value="" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+              <div class="flex flex-col gap-1 min-w-0" data-app-filter="status">
+                <label class="font-medium text-[var(--text-secondary)] text-xs" for="cmp_v21fb-flt-status">
+                  "Status"
+                <select class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-label="Status" id="cmp_v21fb-flt-status" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                  <option value="">
+                    "All"
+                  <option value="open">
+                    "Open"
+                  <option value="done">
+                    "Done"
+          <div class="app-node app-span-12 min-w-0" data-app-type="kanban" data-node-id="cmp_v21kb" style="grid-column: span 12 / span 12">
+            <div class="overflow-x-auto" data-app-kanban="true">
+              <div style="min-width: 440px">
+                <div class="shrink-0" style="align-items: start; display: grid; gap: 0.75rem; grid-template-columns: repeat(2, minmax(220px, 1fr))">
+                  <div class="flex gap-1.5 items-center pb-1 px-1.5" data-app-kanban-header="open">
+                    <span class="h-2 rounded-full shrink-0 w-2" aria-hidden="true" style="background: rgb(14, 165, 233)">
+                    <span class="font-semibold text-[var(--text-primary)] text-xs truncate">
+                      "Open"
+                    <span class="ml-auto tabular-nums text-[11px]" data-app-kanban-count="open" style="color: var(--text-muted)">
+                      "2"
+                  <div class="flex gap-1.5 items-center pb-1 px-1.5" data-app-kanban-header="done">
+                    <span class="h-2 rounded-full shrink-0 w-2" aria-hidden="true" style="background: rgb(16, 185, 129)">
+                    <span class="font-semibold text-[var(--text-primary)] text-xs truncate">
+                      "Done"
+                    <span class="ml-auto tabular-nums text-[11px]" data-app-kanban-count="done" style="color: var(--text-muted)">
+                      "1"
+                <div style="align-items: start; display: grid; gap: 0.75rem; grid-template-columns: repeat(2, minmax(220px, 1fr))">
+                  <div class="flex flex-col gap-1.5 min-h-[3rem] p-1.5" data-app-kanban-column="open" style="background: transparent; border-radius: var(--app-radius)">
+                    <div class="app-focusable border cursor-pointer px-2.5 py-2 select-none" aria-describedby="DndDescribedBy-0" aria-disabled="false" aria-roledescription="draggable" data-app-kanban-card="0" role="button" tabindex="0" style="background: var(--bg-card); border-radius: var(--app-radius); opacity: 1; touch-action: none">
+                      <div class="flex gap-1.5 items-start">
+                        <div class="break-words flex-1 font-medium min-w-0 text-[var(--text-primary)] text-sm">
+                          "Fix hive"
+                      <div class="break-words mt-0.5 text-[var(--text-secondary)] text-xs">
+                        "Ann"
+                      <span class="[background:var(--bg-tertiary)] [color:var(--text-secondary)]! font-medium inline-flex items-center mt-1.5 px-1.5 py-0.5 rounded-full text-[11px]">
+                        "urgent"
+                    <div class="app-focusable border cursor-pointer px-2.5 py-2 select-none" aria-describedby="DndDescribedBy-0" aria-disabled="false" aria-roledescription="draggable" data-app-kanban-card="1" role="button" tabindex="0" style="background: var(--bg-card); border-radius: var(--app-radius); opacity: 1; touch-action: none">
+                      <div class="flex gap-1.5 items-start">
+                        <div class="break-words flex-1 font-medium min-w-0 text-[var(--text-primary)] text-sm">
+                          "Order frames"
+                      <div class="break-words mt-0.5 text-[var(--text-secondary)] text-xs">
+                        "Bo"
+                      <span class="[background:var(--bg-tertiary)] [color:var(--text-secondary)]! font-medium inline-flex items-center mt-1.5 px-1.5 py-0.5 rounded-full text-[11px]">
+                        "supply"
+                  <div class="flex flex-col gap-1.5 min-h-[3rem] p-1.5" data-app-kanban-column="done" style="background: transparent; border-radius: var(--app-radius)">
+                    <div class="app-focusable border cursor-pointer px-2.5 py-2 select-none" aria-describedby="DndDescribedBy-0" aria-disabled="false" aria-roledescription="draggable" data-app-kanban-card="2" role="button" tabindex="0" style="background: var(--bg-card); border-radius: var(--app-radius); opacity: 1; touch-action: none">
+                      <div class="flex gap-1.5 items-start">
+                        <div class="break-words flex-1 font-medium min-w-0 text-[var(--text-primary)] text-sm">
+                          "Paint boxes"
+                      <div class="break-words mt-0.5 text-[var(--text-secondary)] text-xs">
+                        "Cy"
+                      <span class="[background:var(--bg-tertiary)] [color:var(--text-secondary)]! font-medium inline-flex items-center mt-1.5 px-1.5 py-0.5 rounded-full text-[11px]">
+                        "yard"
+            <div id="DndDescribedBy-0" style="display: none">
+              "To pick up a draggable item, press the space bar. While dragging, use the arrow keys to move the item. Press space again to drop the item in its new position, or press escape to cancel."
+            <div aria-atomic="true" aria-live="assertive" id="DndLiveRegion-0" role="status" style="border: 0px; clip-path: inset(100%); clip: rect(0px); height: 1px; left: 0px; margin: -1px; overflow: hidden; padding: 0px; position: fixed; top: 0px; white-space: nowrap; width: 1px">
+          <div class="app-node app-span-12 min-w-0" data-app-type="calendar" data-node-id="cmp_v21cl" style="grid-column: span 12 / span 12">
+            <div class="flex flex-col gap-2 min-w-0 w-full" data-app-calendar="month">
+              <div class="flex gap-2 items-center justify-between">
+                <span class="font-semibold text-[var(--text-primary)] text-sm" data-app-calendar-heading="true">
+                  "March 2026"
+                <div class="flex gap-1 items-center">
+                  <button class="[border-color:var(--border-default)] [border-radius:var(--app-radius)] [color:var(--text-secondary)] border inline-flex items-center px-1.5 py-1" aria-label="Previous month" type="button">
+                    <svg class="h-3.5 lucide lucide-chevron-left w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                  <button class="[border-color:var(--border-default)] [border-radius:var(--app-radius)] [color:var(--text-secondary)] border inline-flex items-center px-1.5 py-1" aria-label="Next month" type="button">
+                    <svg class="h-3.5 lucide lucide-chevron-right w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <div class="gap-px grid grid-cols-7 text-center">
+                <span class="font-medium py-1 text-[11px] text-[var(--text-muted)]">
+                  "Mon"
+                <span class="font-medium py-1 text-[11px] text-[var(--text-muted)]">
+                  "Tue"
+                <span class="font-medium py-1 text-[11px] text-[var(--text-muted)]">
+                  "Wed"
+                <span class="font-medium py-1 text-[11px] text-[var(--text-muted)]">
+                  "Thu"
+                <span class="font-medium py-1 text-[11px] text-[var(--text-muted)]">
+                  "Fri"
+                <span class="font-medium py-1 text-[11px] text-[var(--text-muted)]">
+                  "Sat"
+                <span class="font-medium py-1 text-[11px] text-[var(--text-muted)]">
+                  "Sun"
+              <div class="[background:var(--border-subtle,var(--border-default))] [border-color:var(--border-default)] [border-radius:var(--app-radius)] border gap-px grid grid-cols-7 overflow-hidden">
+                <div class="[background:var(--bg-secondary)] flex flex-col gap-0.5 min-h-[72px] p-1" data-app-calendar-day="<date>">
+                  <span class="self-end tabular-nums text-[11px]" style="color: var(--text-muted)">
+                    "23"
+                <div class="[background:var(--bg-secondary)] flex flex-col gap-0.5 min-h-[72px] p-1" data-app-calendar-day="<date>">
+                  <span class="self-end tabular-nums text-[11px]" style="color: var(--text-muted)">
+                    "24"
+                <div class="[background:var(--bg-secondary)] flex flex-col gap-0.5 min-h-[72px] p-1" data-app-calendar-day="<date>">
+                  <span class="self-end tabular-nums text-[11px]" style="color: var(--text-muted)">
+                    "25"
+                <div class="[background:var(--bg-secondary)] flex flex-col gap-0.5 min-h-[72px] p-1" data-app-calendar-day="<date>">
+                  <span class="self-end tabular-nums text-[11px]" style="color: var(--text-muted)">
+                    "26"
+                <div class="[background:var(--bg-secondary)] flex flex-col gap-0.5 min-h-[72px] p-1" data-app-calendar-day="<date>">
+                  <span class="self-end tabular-nums text-[11px]" style="color: var(--text-muted)">
+                    "27"
+                <div class="[background:var(--bg-secondary)] flex flex-col gap-0.5 min-h-[72px] p-1" data-app-calendar-day="<date>">
+                  <span class="self-end tabular-nums text-[11px]" style="color: var(--text-muted)">
+                    "28"
+                <div class="[background:var(--bg-card)] flex flex-col gap-0.5 min-h-[72px] p-1" data-app-calendar-day="<date>">
+                  <span class="self-end tabular-nums text-[11px]" style="color: var(--text-secondary)">
+                    "1"
+                <div class="[background:var(--bg-card)] flex flex-col gap-0.5 min-h-[72px] p-1" data-app-calendar-day="<date>">
+                  <span class="self-end tabular-nums text-[11px]" style="color: var(--text-secondary)">
+                    "2"
+                <div class="[background:var(--bg-card)] flex flex-col gap-0.5 min-h-[72px] p-1" data-app-calendar-day="<date>">
+                  <span class="self-end tabular-nums text-[11px]" style="color: var(--text-secondary)">
+                    "3"
+                  <button class="disabled:cursor-default font-medium px-1 py-0.5 rounded text-[11px] text-left truncate w-full" data-app-calendar-event="true" title="Fix hive" type="button" style="background: color-mix(in srgb, currentcolor 12%, transparent); color: var(--app-primary)">
+                    "Fix hive"
+                <div class="[background:var(--bg-card)] flex flex-col gap-0.5 min-h-[72px] p-1" data-app-calendar-day="<date>">
+                  <span class="self-end tabular-nums text-[11px]" style="color: var(--text-secondary)">
+                    "4"
+                <div class="[background:var(--bg-card)] flex flex-col gap-0.5 min-h-[72px] p-1" data-app-calendar-day="<date>">
+                  <span class="self-end tabular-nums text-[11px]" style="color: var(--text-secondary)">
+                    "5"
+                <div class="[background:var(--bg-card)] flex flex-col gap-0.5 min-h-[72px] p-1" data-app-calendar-day="<date>">
+                  <span class="self-end tabular-nums text-[11px]" style="color: var(--text-secondary)">
+                    "6"
+                <div class="[background:var(--bg-card)] flex flex-col gap-0.5 min-h-[72px] p-1" data-app-calendar-day="<date>">
+                  <span class="self-end tabular-nums text-[11px]" style="color: var(--text-secondary)">
+                    "7"
+                <div class="[background:var(--bg-card)] flex flex-col gap-0.5 min-h-[72px] p-1" data-app-calendar-day="<date>">
+                  <span class="self-end tabular-nums text-[11px]" style="color: var(--text-secondary)">
+                    "8"
+                <div class="[background:var(--bg-card)] flex flex-col gap-0.5 min-h-[72px] p-1" data-app-calendar-day="<date>">
+                  <span class="self-end tabular-nums text-[11px]" style="color: var(--text-secondary)">
+                    "9"
+                <div class="[background:var(--bg-card)] flex flex-col gap-0.5 min-h-[72px] p-1" data-app-calendar-day="<date>">
+                  <span class="self-end tabular-nums text-[11px]" style="color: var(--text-secondary)">
+                    "10"
+                  <button class="disabled:cursor-default font-medium px-1 py-0.5 rounded text-[11px] text-left truncate w-full" data-app-calendar-event="true" title="Order frames" type="button" style="background: color-mix(in srgb, currentcolor 12%, transparent); color: var(--app-primary)">
+                    "Order frames"
+                <div class="[background:var(--bg-card)] flex flex-col gap-0.5 min-h-[72px] p-1" data-app-calendar-day="<date>">
+                  <span class="self-end tabular-nums text-[11px]" style="color: var(--text-secondary)">
+                    "11"
+                <div class="[background:var(--bg-card)] flex flex-col gap-0.5 min-h-[72px] p-1" data-app-calendar-day="<date>">
+                  <span class="self-end tabular-nums text-[11px]" style="color: var(--text-secondary)">
+                    "12"
+                <div class="[background:var(--bg-card)] flex flex-col gap-0.5 min-h-[72px] p-1" data-app-calendar-day="<date>">
+                  <span class="self-end tabular-nums text-[11px]" style="color: var(--text-secondary)">
+                    "13"
+                <div class="[background:var(--bg-card)] flex flex-col gap-0.5 min-h-[72px] p-1" data-app-calendar-day="<date>">
+                  <span class="self-end tabular-nums text-[11px]" style="color: var(--text-secondary)">
+                    "14"
+                <div class="[background:var(--bg-card)] flex flex-col gap-0.5 min-h-[72px] p-1" data-app-calendar-day="<date>">
+                  <span class="self-end tabular-nums text-[11px]" style="color: var(--text-secondary)">
+                    "15"
+                <div class="[background:var(--bg-card)] flex flex-col gap-0.5 min-h-[72px] p-1" data-app-calendar-day="<date>">
+                  <span class="self-end tabular-nums text-[11px]" style="color: var(--text-secondary)">
+                    "16"
+                <div class="[background:var(--bg-card)] flex flex-col gap-0.5 min-h-[72px] p-1" data-app-calendar-day="<date>">
+                  <span class="self-end tabular-nums text-[11px]" style="color: var(--text-secondary)">
+                    "17"
+                <div class="[background:var(--bg-card)] flex flex-col gap-0.5 min-h-[72px] p-1" data-app-calendar-day="<date>">
+                  <span class="self-end tabular-nums text-[11px]" style="color: var(--text-secondary)">
+                    "18"
+                <div class="[background:var(--bg-card)] flex flex-col gap-0.5 min-h-[72px] p-1" data-app-calendar-day="<date>">
+                  <span class="self-end tabular-nums text-[11px]" style="color: var(--text-secondary)">
+                    "19"
+                <div class="[background:var(--bg-card)] flex flex-col gap-0.5 min-h-[72px] p-1" data-app-calendar-day="<date>">
+                  <span class="self-end tabular-nums text-[11px]" style="color: var(--text-secondary)">
+                    "20"
+                <div class="[background:var(--bg-card)] flex flex-col gap-0.5 min-h-[72px] p-1" data-app-calendar-day="<date>">
+                  <span class="self-end tabular-nums text-[11px]" style="color: var(--text-secondary)">
+                    "21"
+                <div class="[background:var(--bg-card)] flex flex-col gap-0.5 min-h-[72px] p-1" data-app-calendar-day="<date>">
+                  <span class="self-end tabular-nums text-[11px]" style="color: var(--text-secondary)">
+                    "22"
+                <div class="[background:var(--bg-card)] flex flex-col gap-0.5 min-h-[72px] p-1" data-app-calendar-day="<date>">
+                  <span class="self-end tabular-nums text-[11px]" style="color: var(--text-secondary)">
+                    "23"
+                <div class="[background:var(--bg-card)] flex flex-col gap-0.5 min-h-[72px] p-1" data-app-calendar-day="<date>">
+                  <span class="self-end tabular-nums text-[11px]" style="color: var(--text-secondary)">
+                    "24"
+                <div class="[background:var(--bg-card)] flex flex-col gap-0.5 min-h-[72px] p-1" data-app-calendar-day="<date>">
+                  <span class="self-end tabular-nums text-[11px]" style="color: var(--text-secondary)">
+                    "25"
+                <div class="[background:var(--bg-card)] flex flex-col gap-0.5 min-h-[72px] p-1" data-app-calendar-day="<date>">
+                  <span class="self-end tabular-nums text-[11px]" style="color: var(--text-secondary)">
+                    "26"
+                <div class="[background:var(--bg-card)] flex flex-col gap-0.5 min-h-[72px] p-1" data-app-calendar-day="<date>">
+                  <span class="self-end tabular-nums text-[11px]" style="color: var(--text-secondary)">
+                    "27"
+                  <button class="disabled:cursor-default font-medium px-1 py-0.5 rounded text-[11px] text-left truncate w-full" data-app-calendar-event="true" title="Paint boxes" type="button" style="background: color-mix(in srgb, currentcolor 12%, transparent); color: var(--app-primary)">
+                    "Paint boxes"
+                <div class="[background:var(--bg-card)] flex flex-col gap-0.5 min-h-[72px] p-1" data-app-calendar-day="<date>">
+                  <span class="self-end tabular-nums text-[11px]" style="color: var(--text-secondary)">
+                    "28"
+                <div class="[background:var(--bg-card)] flex flex-col gap-0.5 min-h-[72px] p-1" data-app-calendar-day="<date>">
+                  <span class="self-end tabular-nums text-[11px]" style="color: var(--text-secondary)">
+                    "29"
+                <div class="[background:var(--bg-card)] flex flex-col gap-0.5 min-h-[72px] p-1" data-app-calendar-day="<date>">
+                  <span class="self-end tabular-nums text-[11px]" style="color: var(--text-secondary)">
+                    "30"
+                <div class="[background:var(--bg-card)] flex flex-col gap-0.5 min-h-[72px] p-1" data-app-calendar-day="<date>">
+                  <span class="self-end tabular-nums text-[11px]" style="color: var(--text-secondary)">
+                    "31"
+                <div class="[background:var(--bg-secondary)] flex flex-col gap-0.5 min-h-[72px] p-1" data-app-calendar-day="<date>">
+                  <span class="self-end tabular-nums text-[11px]" style="color: var(--text-muted)">
+                    "1"
+                <div class="[background:var(--bg-secondary)] flex flex-col gap-0.5 min-h-[72px] p-1" data-app-calendar-day="<date>">
+                  <span class="self-end tabular-nums text-[11px]" style="color: var(--text-muted)">
+                    "2"
+                <div class="[background:var(--bg-secondary)] flex flex-col gap-0.5 min-h-[72px] p-1" data-app-calendar-day="<date>">
+                  <span class="self-end tabular-nums text-[11px]" style="color: var(--text-muted)">
+                    "3"
+                <div class="[background:var(--bg-secondary)] flex flex-col gap-0.5 min-h-[72px] p-1" data-app-calendar-day="<date>">
+                  <span class="self-end tabular-nums text-[11px]" style="color: var(--text-muted)">
+                    "4"
+                <div class="[background:var(--bg-secondary)] flex flex-col gap-0.5 min-h-[72px] p-1" data-app-calendar-day="<date>">
+                  <span class="self-end tabular-nums text-[11px]" style="color: var(--text-muted)">
+                    "5"
+          <div class="app-node app-span-12 min-w-0" data-app-type="approval_list" data-node-id="cmp_v21ap" style="grid-column: span 12 / span 12">
+            <div class="[background:var(--bg-primary,transparent)] [border-color:var(--border-default,rgba(0,0,0,0.08))] border px-3 py-2 rounded-lg" data-component="approval_list">
+              <div class="flex gap-1.5 items-center mb-1 text-[11px] text-[var(--text-tertiary)] tracking-wide uppercase">
+                <svg class="lucide lucide-shield-check" aria-hidden="true" fill="none" height="12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="12" xmlns="http://www.w3.org/2000/svg">
+                "Approvals"
+              <div class="[color:var(--error)]! py-2 text-sm">
+                "Not authenticated"
+          <div class="app-node app-span-12 min-w-0" data-app-type="ai_chat" data-node-id="cmp_v21ai" style="grid-column: span 12 / span 12">
+            <div class="[background:var(--bg-card)] [border-color:var(--border-default)] [border-radius:var(--app-radius)] border flex flex-col h-full min-h-[18rem] overflow-hidden" data-app-ai-chat="true">
+              <div class="flex flex-1 flex-col gap-3 overflow-y-auto p-3">
+                <div class="m-auto px-4 text-center">
+                  <svg class="h-5 lucide lucide-sparkles lucide-stars mb-2 mx-auto text-[var(--accent-primary)] w-5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                  <p class="text-[var(--text-secondary)] text-sm">
+                    "Ask me about this board."
+              <div class="flex flex-wrap gap-1.5 pb-2 px-3">
+                <button class="[border-color:var(--border-default)] [border-radius:var(--app-radius)] [color:var(--text-secondary)]! border disabled:opacity-50 px-2.5 py-1 text-xs transition-colors" disabled="" type="button">
+                  "What is overdue?"
+              <form class="[border-color:var(--border-default)]! border-t flex gap-2 items-center p-2">
+                <input class="[background:var(--bg-secondary)] [border-color:var(--border-default)] [border-radius:var(--app-radius)] [color:var(--text-primary)]! border disabled:opacity-60 flex-1 outline-none px-3 py-2 text-sm" aria-label="Message" disabled="" placeholder="Ask a question…" type="text" value="">
+                <button class="[background:var(--app-primary)] [border-radius:var(--app-radius)] [color:var(--app-primary-contrast)] disabled:opacity-50 p-2" aria-label="Send" disabled="" type="submit">
+                  <svg class="h-4 lucide lucide-send w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+          <div class="app-node app-span-12 min-w-0" data-app-type="pane" data-node-id="cmp_v21pn" style="flex: 1 1 0px; grid-column: span 12 / span 12; min-height: 0px; min-width: 0px">
+            <div class="flex flex-row h-full min-h-0 min-w-0 overflow-hidden" data-app-pane="horizontal" style="gap: calc(12px * var(--app-space, 1))">
+              <div class="app-node app-span-4 min-w-0" data-app-type="list" data-node-id="cmp_v21pl" style="flex: 1 1 0px; grid-column: span 4 / span 4; min-height: 0px; min-width: 0px">
+                <ul class="app-fill flex flex-col gap-2 h-full min-h-0 overflow-y-auto" data-app-list="true">
+                  <li data-app-list-row="0">
+                    <button class="border cursor-pointer flex gap-2.5 hover:brightness-[1.06] items-center px-3 py-2 text-left transition-colors w-full" type="button" style="background: var(--bg-card); border-color: var(--border-default); border-radius: var(--app-radius)">
+                      <div class="flex-1 min-w-0">
+                        <div class="flex gap-2 items-baseline">
+                          <span class="font-medium text-sm truncate">
+                            "Fix hive"
+                        <div class="text-[var(--text-secondary)] text-xs truncate">
+                          "Ann"
+                  <li data-app-list-row="1">
+                    <button class="border cursor-pointer flex gap-2.5 hover:brightness-[1.06] items-center px-3 py-2 text-left transition-colors w-full" type="button" style="background: var(--bg-card); border-color: var(--border-default); border-radius: var(--app-radius)">
+                      <div class="flex-1 min-w-0">
+                        <div class="flex gap-2 items-baseline">
+                          <span class="font-medium text-sm truncate">
+                            "Order frames"
+                        <div class="text-[var(--text-secondary)] text-xs truncate">
+                          "Bo"
+                  <li data-app-list-row="2">
+                    <button class="border cursor-pointer flex gap-2.5 hover:brightness-[1.06] items-center px-3 py-2 text-left transition-colors w-full" type="button" style="background: var(--bg-card); border-color: var(--border-default); border-radius: var(--app-radius)">
+                      <div class="flex-1 min-w-0">
+                        <div class="flex gap-2 items-baseline">
+                          <span class="font-medium text-sm truncate">
+                            "Paint boxes"
+                        <div class="text-[var(--text-secondary)] text-xs truncate">
+                          "Cy"
+              <div class="app-node app-span-8 min-w-0" data-app-type="text" data-node-id="cmp_v21pd" style="flex: 1 1 0px; grid-column: span 8 / span 8; min-height: 0px; min-width: 0px">
+                <p class="break-words leading-relaxed text-sm">
+          <div class="app-node app-span-12 min-w-0" data-app-type="message_thread" data-node-id="cmp_v21mt" style="flex: 1 1 0px; grid-column: span 12 / span 12; min-height: 0px; min-width: 0px">
+            <div class="flex flex-col gap-3 h-full min-h-0 overflow-y-auto" data-app-message-thread="true">
+              <div class="flex flex-col items-start" data-app-thread-row="0">
+                <div class="flex gap-2 items-baseline mb-1 px-1" data-app-thread-meta="left">
+                  <span class="font-medium text-[var(--text-secondary)] text-xs">
+                    "Jan Klant"
+                  <span class="text-[11px] text-[var(--text-muted)]">
+                    "<date>, <time>"
+                <button class="cursor-pointer max-w-full text-left" type="button">
+                  <div class="px-3 py-2 rounded-lg text-sm" data-app-thread-side="left" data-app-thread-tone="neutral" style="background: var(--bg-tertiary); border-radius: var(--app-radius); color: var(--text-primary); max-width: 85%">
+                    <div class="break-words whitespace-pre-wrap">
+                      "Waar blijft mijn pakket?"
+                    <div>
+                      <div class="flex flex-wrap gap-1 mt-1.5" data-app-thread-chips="attachments" data-app-thread-chips-total="1">
+                        <span class="[background:var(--bg-secondary)] [color:var(--text-secondary)]! gap-1 inline-flex items-center px-1.5 py-0.5 rounded text-[11px]">
+                          "bon.pdf"
+              <div class="flex flex-col items-end" data-app-thread-row="1">
+                <div class="flex flex-row-reverse gap-2 items-baseline mb-1 px-1" data-app-thread-meta="right">
+                  <span class="font-medium text-[var(--text-secondary)] text-xs">
+                    "Ann"
+                  <span class="text-[11px] text-[var(--text-muted)]">
+                    "<date>, <time>"
+                <button class="cursor-pointer max-w-full text-left" type="button">
+                  <div class="px-3 py-2 rounded-lg text-sm" data-app-thread-side="right" data-app-thread-tone="primary" style="background: var(--app-primary); border-radius: var(--app-radius); color: rgb(255, 255, 255); max-width: 85%">
+                    <div class="break-words whitespace-pre-wrap">
+                      "Het is onderweg, morgen bezorgd."
+                    <div>
+              <div class="flex flex-col items-center" data-app-thread-row="2">
+                <button class="cursor-pointer max-w-full text-left" type="button">
+                  <div class="italic px-3 py-2 rounded-lg text-xs" data-app-thread-side="center" data-app-thread-tone="neutral" style="background: transparent; border-radius: var(--app-radius); border: medium; color: var(--text-muted); max-width: 100%">
+                    <div class="break-words whitespace-pre-wrap">
+                      "Ticket gesloten"
+                    <div>
+          <div class="app-node app-span-12 min-w-0" data-app-type="file_preview" data-node-id="cmp_v21fp" style="grid-column: span 12 / span 12; height: 320px; overflow: auto">
+            <div class="flex flex-col h-full min-h-0 min-w-0 overflow-hidden w-full" data-app-filepreview="idle" style="border-radius: inherit">
+              <div class="flex h-full items-center justify-center min-h-0 py-1 text-[var(--text-muted)] text-center text-sm">
+                "No document selected."
+          <div class="app-node app-span-12 min-w-0" data-app-type="pdf_compare" data-node-id="cmp_v21pc" style="grid-column: span 12 / span 12; height: 620px; overflow: auto">
+            <div class="bg-[var(--bg-primary)] border border-[var(--border-default)] flex flex-col h-full min-h-0 min-w-0 overflow-hidden w-full" data-app-pdfcompare="empty" style="border-radius: var(--app-radius, inherit)">
+              <div class="flex h-full items-center justify-center min-h-0 py-1 text-[var(--text-muted)] text-center text-sm">
+                "No documents to compare."
+          <div class="app-node app-span-12 min-w-0" data-app-type="stepper" data-node-id="cmp_v21st" style="grid-column: span 12 / span 12">
+            <div class="app-stepper flex gap-1 items-start min-w-0 w-full" aria-label="Progress" data-app-stepper="true" data-orientation="horizontal" role="list">
+              <div class="app-stepper-item flex flex-1 gap-1 items-center min-w-0" data-state="done" role="listitem">
+                <button class="app-stepper-step min-w-0 px-1 py-0.5 rounded-md" type="button">
+                  <span class="flex flex-col gap-1 items-center min-w-0">
+                    <span class="app-stepper-marker inline-flex items-center justify-center rounded-full shrink-0" aria-hidden="true" data-state="done" style="background: var(--app-primary); border-color: var(--app-primary); color: rgb(255, 255, 255)">
+                      <svg class="h-3 lucide lucide-check w-3" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                    <span class="app-stepper-label font-medium text-xs truncate" title="New" style="color: var(--text-secondary)">
+                      "New"
+                <span class="app-stepper-line flex-1" aria-hidden="true" style="background: var(--app-primary)">
+              <div class="app-stepper-item flex flex-1 gap-1 items-center min-w-0" data-state="current" role="listitem">
+                <button class="app-stepper-step min-w-0 px-1 py-0.5 rounded-md" aria-current="step" type="button">
+                  <span class="flex flex-col gap-1 items-center min-w-0">
+                    <span class="app-stepper-marker inline-flex items-center justify-center rounded-full shrink-0" aria-hidden="true" data-state="current" style="background: var(--app-primary); border-color: var(--app-primary); color: rgb(255, 255, 255)">
+                      <span class="font-semibold text-[10px]">
+                        "2"
+                    <span class="app-stepper-label font-medium text-xs truncate" title="Open" style="color: var(--app-primary)">
+                      "Open"
+                <span class="app-stepper-line flex-1" aria-hidden="true" style="background: var(--border-default)">
+              <div class="app-stepper-item flex gap-1 items-center min-w-0 shrink-0" data-state="upcoming" role="listitem">
+                <button class="app-stepper-step min-w-0 px-1 py-0.5 rounded-md" type="button">
+                  <span class="flex flex-col gap-1 items-center min-w-0">
+                    <span class="app-stepper-marker inline-flex items-center justify-center rounded-full shrink-0" aria-hidden="true" data-state="upcoming" style="border-color: var(--border-default); color: var(--text-muted)">
+                      <span class="font-semibold text-[10px]">
+                        "3"
+                    <span class="app-stepper-label font-medium text-xs truncate" title="Done" style="color: var(--text-muted)">
+                      "Done"
+          <div class="app-node app-span-12 min-w-0" data-app-type="file_gallery" data-node-id="cmp_v21fg" style="grid-column: span 12 / span 12">
+            <div class="min-w-0 w-full" data-app-file-gallery="true">
+              <div class="gap-2 grid" style="grid-template-columns: repeat(3, minmax(0, 1fr))">
+                <button class="app-file-card border flex gap-2.5 items-center min-w-0 p-2.5 rounded-lg text-left" title="drawing.pdf" type="button">
+                  <span class="app-file-card-icon shrink-0" aria-hidden="true">
+                    <svg class="h-5 lucide lucide-file-text w-5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                  <span class="min-w-0 text-left">
+                    <span class="block font-medium text-[var(--text-primary)] text-sm truncate">
+                      "drawing.pdf"
+                    <span class="block text-[var(--text-tertiary)] text-xs truncate">
+                      "application/pdf · 278 kB"
+                <button class="app-file-card border flex gap-2.5 items-center min-w-0 p-2.5 rounded-lg text-left" title="photo.jpg" type="button">
+                  <span class="app-file-card-icon shrink-0" aria-hidden="true">
+                    <svg class="h-5 lucide lucide-file-image w-5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                  <span class="min-w-0 text-left">
+                    <span class="block font-medium text-[var(--text-primary)] text-sm truncate">
+                      "photo.jpg"
+                    <span class="block text-[var(--text-tertiary)] text-xs truncate">
+                      "image/jpeg · 89 kB"
+                <button class="app-file-card border flex gap-2.5 items-center min-w-0 p-2.5 rounded-lg text-left" title="parts.xlsx" type="button">
+                  <span class="app-file-card-icon shrink-0" aria-hidden="true">
+                    <svg class="h-5 lucide lucide-file-spreadsheet w-5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                  <span class="min-w-0 text-left">
+                    <span class="block font-medium text-[var(--text-primary)] text-sm truncate">
+                      "parts.xlsx"
+                    <span class="block text-[var(--text-tertiary)] text-xs truncate">
+                      "application/vnd.ms-excel · 15 kB"
+          <div class="app-node app-span-12 min-w-0" data-app-type="connector_status" data-node-id="cmp_v21cs" style="grid-column: span 12 / span 12">
+            <div class="app-connector-card border flex gap-3 items-center justify-between p-3 rounded-lg" data-app-connector-status="conn_v21m" data-connected="true">
+              <div class="flex gap-2.5 items-start min-w-0">
+                <span class="mt-0.5 shrink-0" aria-hidden="true" style="color: rgb(16, 185, 129)">
+                  <svg class="h-4 lucide lucide-check-circle-2 lucide-circle-check w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                <span class="min-w-0">
+                  <span class="block font-medium text-[var(--text-primary)] text-sm truncate">
+                    "Mailbox"
+                  <span class="block mt-0.5 text-[var(--text-tertiary)] text-xs">
+                    "Preview: the real account and the last check show here once the app runs."

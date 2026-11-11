@@ -9,7 +9,7 @@ toc_max_heading_level: 2
 
 # `/api/studio-apps`
 
-82 routes, 46 with a request schema. Back to the [endpoint reference](../reference.md).
+86 routes, 50 with a request schema. Back to the [endpoint reference](../reference.md).
 
 ## `(root)`
 
@@ -130,6 +130,7 @@ No request schema.
 | Field | Type | Required | Notes |
 |-------|------|:--------:|-------|
 | `stepIndex` | integer | yes | min 0; max 9007199254740991 |
+| `kind` | string |  | min length 1; max length 40 |
 | `formValues` | object or null |  |  |
 | `vars` | object or null |  |  |
 | `item` | any |  |  |
@@ -144,6 +145,9 @@ No request schema.
 | `error.attempts` | integer | yes | min 1; max 4 |
 | `error.stepIndex` | integer |  | min 0; max 9007199254740991 |
 | `runKey` | string |  | pattern `^rk_[A-Za-z0-9_-]{16,64}$` |
+| `screenParams` | object or null |  |  |
+| `forms` | object or null |  |  |
+| `actionResults` | object or null |  |  |
 
 ### `POST /api/studio-apps/:id/actions/:actionId/step/stream`
 
@@ -160,6 +164,7 @@ No request schema.
 | Field | Type | Required | Notes |
 |-------|------|:--------:|-------|
 | `stepIndex` | integer or string | yes |  |
+| `kind` | string |  | min length 1; max length 40 |
 | `formValues` | object or null |  |  |
 | `vars` | object or null |  |  |
 | `item` | any |  |  |
@@ -174,6 +179,9 @@ No request schema.
 | `error.attempts` | integer | yes | min 1; max 4 |
 | `error.stepIndex` | integer |  | min 0; max 9007199254740991 |
 | `runKey` | string |  | pattern `^rk_[A-Za-z0-9_-]{16,64}$` |
+| `screenParams` | object or null |  |  |
+| `forms` | object or null |  |  |
+| `actionResults` | object or null |  |  |
 
 ### `GET /api/studio-apps/:id/actions/jobs`
 
@@ -222,6 +230,58 @@ No request schema.
 | `messages` | array of object | yes |  |
 | `messages[].role` | string |  | max length 20 |
 | `messages[].content` | any |  |  |
+
+### `GET /api/studio-apps/:id/assets`
+
+**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate`
+
+**Path parameters**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `id` | string | yes | min length 1; max length 200 |
+
+**Query:** object (no other keys)
+
+### `POST /api/studio-apps/:id/assets`
+
+**Access:** Signed-in user · Permission `manage_apps` · Capability `app_studio` · middleware `trainingGate`, `requireOwnedApp`, `uploadGuardMiddleware`
+
+**Path parameters**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `id` | string | yes | min length 1; max length 200 |
+
+**Query:** object (no other keys)
+
+**Body:** object (no other keys)
+
+### `GET /api/studio-apps/:id/assets/:assetId`
+
+**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate`
+
+**Path parameters**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `id` | string | yes | min length 1; max length 200 |
+| `assetId` | string | yes |  |
+
+**Query:** object (no other keys)
+
+### `DELETE /api/studio-apps/:id/assets/:assetId`
+
+**Access:** Signed-in user · Permission `manage_apps` · Capability `app_studio` · middleware `trainingGate`
+
+**Path parameters**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `id` | string | yes | min length 1; max length 200 |
+| `assetId` | string | yes |  |
+
+**Query:** object (no other keys)
 
 ### `POST /api/studio-apps/:id/check`
 
@@ -409,9 +469,15 @@ No request schema.
 |-------|------|:--------:|-------|
 | `filter` | string |  | max length 20000 |
 | `sort` | string |  | max length 20000 |
+| `match` | one of `"all"`, `"any"` |  |  |
+| `search` | string |  | max length 20000 |
+| `orderBy` | string |  | max length 20000 |
+| `expand` | string |  | max length 20000 |
+| `fields` | string |  | max length 20000 |
 | `cursor` | string |  | max length 500 |
 | `limit` | integer |  | min 1; max 9007199254740991 |
 | `sample` | one of `"0"`, `"1"` |  |  |
+| `total` | one of `"0"`, `"1"` |  |  |
 
 ### `POST /api/studio-apps/:id/data/tables/:tableId/records`
 

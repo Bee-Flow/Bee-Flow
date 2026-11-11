@@ -31,6 +31,8 @@ import {
 } from '@shared/appDefinition/definitionOps.mjs';
 import { ID_RE } from '@shared/appDefinition/ids.mjs';
 import { mapStepBranches } from './stepBranches';
+import { withoutTriggerAction } from './triggerOps';
+import { slotActionIds, slotFromIds } from '@shared/appDefinition/clientTriggers.mjs';
 import type { ActionResultBinding } from '../runtime/resolveBinding.types';
 import type { AppDefinition, FormulaValue, AppNode, CommonNodeProps, AppAction, AppSection, DefinitionVariable } from '../inspector/appDefinition';
 import type { LogicPatch } from '../inspector/logic/VisibilityControls';
@@ -622,15 +624,20 @@ export function removeAction(def: AppDefinition, actionId: string | null) {
     if (!def.actions || actionId === null || !(actionId in def.actions)) return def;
     const actions = { ...def.actions };
     delete actions[actionId];
-    return mapAllNodes({ ...def, actions }, (node: AppNode) => {
-        const events = NODE_EVENTS.filter((ev) => node[ev] === actionId);
+    const out = mapAllNodes({ ...def, actions }, (node: AppNode) => {
+        // A slot holds one id or (schema 3) a list: drop the id, keep the rest of a list.
+        const events = NODE_EVENTS.filter((ev) => slotActionIds(node[ev]).includes(actionId));
         const props = propsWithoutAction(node.props, actionId);
         if (!events.length && !props) return node;
         const copy = { ...node };
-        for (const ev of events) delete copy[ev];
+        for (const ev of events) {
+            const rest = slotFromIds(slotActionIds(node[ev]).filter((id) => id !== actionId));
+            if (rest === undefined) delete copy[ev]; else copy[ev] = rest;
+        }
         if (props) copy.props = props;
         return copy;
     });
+    return withoutTriggerAction(out, actionId) as typeof out;
 }
 
 // ---------------------------------------------------------------------------

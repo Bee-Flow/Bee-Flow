@@ -5,8 +5,10 @@ import useTranslation from '@/hooks/useTranslation';
 import QueryBuilder from '@/components/admin/Studio/AppStudio/bi/QueryBuilder';
 import useDatasets from '@/components/admin/Studio/AppStudio/bi/useDatasets';
 import type { Dataset } from '@/components/admin/Studio/AppStudio/bi/useDatasets';
+import { groupByColumnName } from '@/components/admin/Studio/AppStudio/bi/aggregateExtras';
 import type { BindingDraft, DatasetBindingProps } from '../BindingField.types';
 import { PickValueField } from './AggregateBinding';
+import { ConnectorParamField } from './ConnectorBinding';
 
 /**
  * The column names a saved view produces — its numbers first, then its
@@ -23,12 +25,52 @@ export function datasetColumns(dataset: Dataset | null) {
         if (a && typeof a === 'object') add(a.as || (a.fn ? `${a.fn}_${a.field || 'all'}` : null));
     }
     for (const g of Array.isArray(d.groupBy) ? d.groupBy : []) {
-        if (g && typeof g === 'object') add(g.as || (g.bucket ? `${g.field}_${g.bucket}` : g.field));
+        if (g && typeof g === 'object') add(groupByColumnName(g));
     }
     return out;
 }
 
-export function DatasetBinding({ binding, onChange, onBuild, appId, componentType, singleValue, disabled }: DatasetBindingProps) {
+/** The parameters a saved view declares: `{ name, type? }` from its descriptor. */
+function datasetParamDecls(dataset: Dataset | null): Array<{ name: string; type?: string }> {
+    const list = dataset && dataset.descriptor && Array.isArray(dataset.descriptor.params) ? dataset.descriptor.params : [];
+    return list.filter((p): p is { name: string; type?: string } => !!p && typeof p === 'object' && typeof (p as { name?: unknown }).name === 'string');
+}
+
+/** One value field per declared parameter: a literal or a formula, empty to use the default. */
+function DatasetParamValues({ dataset, binding, onChange, definition, node, disabled }: Pick<DatasetBindingProps, 'binding' | 'onChange' | 'definition' | 'node' | 'disabled'> & { dataset: Dataset | null }) {
+    const { t } = useTranslation();
+    const decls = datasetParamDecls(dataset);
+    if (!decls.length) return null;
+    const params = binding.params && typeof binding.params === 'object' && !Array.isArray(binding.params) ? binding.params : {};
+    const setParam = (name: string, value: unknown) => {
+        const next = { ...params };
+        if (value === undefined) delete next[name]; else next[name] = value;
+        if (Object.keys(next).length) onChange({ ...binding, params: next });
+        else {
+            const { params: _gone, ...rest } = binding;
+            onChange(rest);
+        }
+    };
+    return (
+        <div className="flex flex-col gap-2 rounded-md border border-[var(--border-subtle)] p-2">
+            <span className="text-xs font-medium text-[var(--text-secondary)]">{t('studio_apps_dataset_params.binding.title', 'Parameters of this view')}</span>
+            {decls.map((p) => (
+                <ConnectorParamField
+                    key={p.name}
+                    param={{ key: p.name, type: p.type || 'text' }}
+                    value={params[p.name]}
+                    onChange={(v) => setParam(p.name, v)}
+                    definition={definition || {}}
+                    node={node || null}
+                    disabled={disabled}
+                />
+            ))}
+            <p className="text-[11px] text-[var(--text-muted)]">{t('studio_apps_dataset_params.binding.hint', 'Leave one empty to use its default, or to drop its filter when it has none.')}</p>
+        </div>
+    );
+}
+
+export function DatasetBinding({ binding, onChange, onBuild, appId, componentType, singleValue, disabled, definition, node }: DatasetBindingProps) {
     const { t } = useTranslation();
     const { datasets, isLoading } = useDatasets(appId);
     const [building, setBuilding] = useState(false);
@@ -74,6 +116,9 @@ export function DatasetBinding({ binding, onChange, onBuild, appId, componentTyp
                 <option value="">{isLoading ? t('studio_apps_panels.binding.loading_views', 'Loading saved views…') : t('studio_apps_panels.binding.pick_view', 'Pick a saved view…')}</option>
                 {datasets.map((d) => <option key={d.id} value={d.id}>{d.name || d.id}</option>)}
             </select>
+            {binding.datasetId ? (
+                <DatasetParamValues dataset={selected} binding={binding} onChange={onChange} definition={definition} node={node} disabled={disabled} />
+            ) : null}
             {singleValue && binding.datasetId ? (
                 <PickValueField
                     pick={binding.pick}

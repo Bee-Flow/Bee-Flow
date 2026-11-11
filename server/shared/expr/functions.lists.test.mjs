@@ -11,6 +11,7 @@ import assert from 'node:assert/strict';
 import { evaluate, parseExpr, compile, collectEachCalls, readsItem, collectHostCalls } from './engine.mjs';
 import { getMaxEachSteps, setMaxEachSteps, DEFAULT_MAX_EACH_STEPS } from './limits.mjs';
 import { CASES, SCOPE } from './corpus.mjs';
+import { COLLECTION_CASES } from './corpusCollections.mjs';
 
 const ROWS = [
     { id: 1, name: 'Ada', status: 'open', amount: 10, tags: ['x'] },
@@ -41,8 +42,10 @@ test('a call without a segment parses to the tree it always had', () => {
 test('every corpus formula parses the same without the new forms: no base/local/each node appears', () => {
     const NEW = /"kind":"(base|local|each)"/;
     const NEW_SYNTAX = /\)\s*[.[]|\b(map|filter|some|every)\(/;
+    // The literals and reduce() came later still: their cases have their own file.
+    const later = new Set(COLLECTION_CASES.map((c) => c.expr));
     for (const { expr } of CASES) {
-        if (NEW_SYNTAX.test(expr)) continue;
+        if (NEW_SYNTAX.test(expr) || later.has(expr)) continue;
         assert.doesNotMatch(JSON.stringify(parseExpr(expr)), NEW, expr);
     }
 });

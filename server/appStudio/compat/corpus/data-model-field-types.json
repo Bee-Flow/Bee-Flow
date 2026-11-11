@@ -1,0 +1,344 @@
+{
+  "about": {
+    "source": "hand-made: a grid and a form over a table with the schema-3 field types (autonumber, json, user) and text formats (email, url, phone) and display (currency, decimals, unit, dateStyle); definition = canonicalizeAppDefinition(input).def, dataModel = canonicalizeDataModel(input).model",
+    "captured": "2026-11-10"
+  },
+  "definition": {
+    "schemaVersion": 2,
+    "meta": {
+      "name": "Ticket log",
+      "description": "A table with an auto number, JSON, a person and text formats",
+      "icon": "Ticket"
+    },
+    "theme": {
+      "primary": "#0F766E",
+      "radius": "md",
+      "density": "comfortable",
+      "fontScale": "md",
+      "appearance": "auto"
+    },
+    "roles": [],
+    "screens": [
+      {
+        "id": "scr_tick01",
+        "name": "Tickets",
+        "icon": "Ticket",
+        "showInNav": true,
+        "maxWidth": "medium",
+        "sections": [
+          {
+            "id": "sec_tick01",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_tkhd01",
+                "type": "heading",
+                "props": {
+                  "text": "Tickets",
+                  "level": 2,
+                  "accent": "none"
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_tkgr01",
+                "type": "data_grid",
+                "props": {
+                  "source": {
+                    "kind": "records",
+                    "tableId": "tbl_tick01"
+                  },
+                  "columns": [
+                    {
+                      "key": "no",
+                      "label": "Number",
+                      "format": "number"
+                    },
+                    {
+                      "key": "title",
+                      "label": "Title",
+                      "format": "text"
+                    },
+                    {
+                      "key": "amount",
+                      "label": "Amount",
+                      "format": "currency"
+                    },
+                    {
+                      "key": "owner",
+                      "label": "Owner",
+                      "format": "user"
+                    }
+                  ],
+                  "pageSize": 25,
+                  "selectable": "none",
+                  "searchable": false,
+                  "rowActions": [],
+                  "toolbarActions": [],
+                  "addRowLabel": null,
+                  "addRowActionId": null,
+                  "bulkActions": [],
+                  "density": "comfortable",
+                  "clamp": "off",
+                  "rowTone": [],
+                  "groupBy": null,
+                  "groupOrder": [],
+                  "activeWhen": null,
+                  "zebra": false,
+                  "emptyText": "Nothing to show yet.",
+                  "look": "default"
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_tkfm01",
+                "type": "form",
+                "props": {
+                  "name": "ticket",
+                  "submitLabel": "Add ticket",
+                  "showReset": false,
+                  "showSubmit": true,
+                  "resetKey": null
+                },
+                "style": {
+                  "span": 6,
+                  "gap": 3,
+                  "padding": 0
+                },
+                "visible": true,
+                "onSubmit": "act_tick01",
+                "children": [
+                  {
+                    "id": "cmp_tkfi01",
+                    "type": "input_text",
+                    "props": {
+                      "name": "title",
+                      "label": "Title",
+                      "placeholder": null,
+                      "required": true,
+                      "defaultValue": null,
+                      "inputType": "text",
+                      "valueFrom": {
+                        "kind": "static",
+                        "value": null
+                      }
+                    },
+                    "style": {
+                      "span": 12
+                    },
+                    "visible": true
+                  },
+                  {
+                    "id": "cmp_tkfi02",
+                    "type": "input_text",
+                    "props": {
+                      "name": "contact",
+                      "label": "Contact e-mail",
+                      "placeholder": null,
+                      "required": false,
+                      "defaultValue": null,
+                      "inputType": "email",
+                      "valueFrom": {
+                        "kind": "static",
+                        "value": null
+                      }
+                    },
+                    "style": {
+                      "span": 12
+                    },
+                    "visible": true
+                  },
+                  {
+                    "id": "cmp_tkfi03",
+                    "type": "input_textarea",
+                    "props": {
+                      "name": "meta",
+                      "label": "Details (JSON)",
+                      "placeholder": null,
+                      "required": false,
+                      "rows": 4,
+                      "valueFrom": {
+                        "kind": "static",
+                        "value": null
+                      },
+                      "snippets": {
+                        "kind": "static",
+                        "value": null
+                      },
+                      "snippetKey": "shortcut",
+                      "snippetBody": "body",
+                      "snippetLabel": "title"
+                    },
+                    "style": {
+                      "span": 12
+                    },
+                    "visible": true
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "actions": {
+      "act_tick01": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "create_record",
+            "tableId": "tbl_tick01",
+            "values": {
+              "title": {
+                "kind": "formula",
+                "expr": "form.title"
+              },
+              "contact": {
+                "kind": "formula",
+                "expr": "form.contact"
+              },
+              "meta": {
+                "kind": "formula",
+                "expr": "form.meta"
+              }
+            }
+          },
+          {
+            "kind": "toast",
+            "message": "Ticket added",
+            "tone": "success"
+          }
+        ]
+      }
+    },
+    "homeScreenId": "scr_tick01"
+  },
+  "dataModel": {
+    "modelVersion": 1,
+    "tables": [
+      {
+        "id": "tbl_tick01",
+        "key": "tickets",
+        "name": "Tickets",
+        "fields": [
+          {
+            "id": "fld_tkno01",
+            "key": "no",
+            "name": "Number",
+            "type": "autonumber",
+            "required": false,
+            "unique": true
+          },
+          {
+            "id": "fld_tkti01",
+            "key": "title",
+            "name": "Title",
+            "type": "text",
+            "required": true,
+            "unique": false
+          },
+          {
+            "id": "fld_tkml01",
+            "key": "contact",
+            "name": "Contact e-mail",
+            "type": "text",
+            "format": "email",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_tkwb01",
+            "key": "site",
+            "name": "Website",
+            "type": "text",
+            "format": "url",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_tkph01",
+            "key": "phone",
+            "name": "Phone",
+            "type": "text",
+            "format": "phone",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_tkam01",
+            "key": "amount",
+            "name": "Amount",
+            "type": "number",
+            "display": {
+              "currency": "EUR",
+              "decimals": 2
+            },
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_tkwt01",
+            "key": "weight",
+            "name": "Weight",
+            "type": "number",
+            "display": {
+              "unit": "kg",
+              "decimals": 1
+            },
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_tkdu01",
+            "key": "due",
+            "name": "Due",
+            "type": "date",
+            "display": {
+              "dateStyle": "long"
+            },
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_tkmt01",
+            "key": "meta",
+            "name": "Details",
+            "type": "json",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_tkow01",
+            "key": "owner",
+            "name": "Owner",
+            "type": "user",
+            "dynamicDefault": "currentUser.id",
+            "required": false,
+            "unique": false
+          }
+        ],
+        "icon": null,
+        "access": {
+          "default": "app",
+          "roles": {},
+          "rowFilters": {}
+        }
+      }
+    ],
+    "roles": [],
+    "roleMapping": {
+      "default": "app",
+      "byGroup": {}
+    }
+  }
+}

@@ -6,6 +6,7 @@
 
 import { createRequire } from 'node:module';
 import type { Decision } from './sequenceWalk.mts';
+import { FLOW_KINDS } from './sequenceWalkFlow.mts';
 
 export type { Decision };
 
@@ -19,18 +20,24 @@ export type RunLimits = {
 };
 
 
-const policy = nodeRequire('./mailboxHookPolicy.mts') as { HOOK_STEP_KINDS: readonly string[] };
+const { STEP_POLICY_LISTS: lists } = nodeRequire('./componentSpecs/stepRegistry.js') as {
+    STEP_POLICY_LISTS: { mcpLiveKinds: readonly string[]; mcpDryRunKinds: readonly string[]; mcpMockableKinds: readonly string[]; recordWriteKinds: readonly string[] };
+};
 const specs = nodeRequire('./componentSpecs/actionSpecsActionKinds.js') as { DATA_MUTATING_STEP_KINDS: string[] };
 const SERVER_KINDS: readonly string[] = specs.DATA_MUTATING_STEP_KINDS;
-export const CONTROL_KINDS = ['condition', 'switch', 'loop'];
+/** The kinds the walker evaluates itself (the base three and the registry's control kinds): never a host decision. */
+export const CONTROL_KINDS: readonly string[] = ['condition', 'switch', 'loop', ...FLOW_KINDS];
 
-/** Steps that run for real when dryRun is false (plus delete_record: the owner asked for this run). */
-const LIVE_KINDS: readonly string[] = [...policy.HOOK_STEP_KINDS, 'delete_record'];
-/** Steps that run even in dryRun (they read, or call the model); writeTo is stripped there. */
-const DRY_RUN_KINDS: readonly string[] = ['ai_extract', 'ai_generate', 'kb_query', 'dataset_query', 'kb_log_query'];
-/** Steps a test may give a fixed answer (`mock`): exactly the ones a dry run sends to the executor. */
-export const MOCKABLE_KINDS: readonly string[] = DRY_RUN_KINDS.filter((k) => k !== 'kb_log_query');
-export const RECORD_WRITES: readonly string[] = ['create_record', 'update_record', 'delete_record'];
+// Every list below is derived from the policy rows of the step catalogue (componentSpecs/stepMeta.js,
+// or a kind's own registry file); a kind without an answer is in none of them.
+/** Steps that run for real when dryRun is false: `mcpRun: 'run'` (what an arriving mail may run, plus delete_record: the owner asked for this run). */
+const LIVE_KINDS: readonly string[] = lists.mcpLiveKinds;
+/** Steps that run even in dryRun (they read, or call the model): `mcpDryRun: 'mock' | 'run'`; writeTo is stripped there. */
+const DRY_RUN_KINDS: readonly string[] = lists.mcpDryRunKinds;
+/** Steps a test may give a fixed answer (`mock`): `mcpDryRun: 'mock'`. */
+export const MOCKABLE_KINDS: readonly string[] = lists.mcpMockableKinds;
+/** Steps that write rows of an app table (`writesRecords`). */
+export const RECORD_WRITES: readonly string[] = lists.recordWriteKinds;
 
 export const MAX_LOOP_ITERATIONS = 200;
 export const MAX_REPORT_STEPS = 300;

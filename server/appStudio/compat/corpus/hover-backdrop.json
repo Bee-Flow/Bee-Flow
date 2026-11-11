@@ -1,0 +1,165 @@
+{
+  "about": {
+    "source": "hand-made for package LK23 (hover and backdrop knob groups): the four hover presets and a none, a background image with each fit and veil on heading nodes",
+    "captured": "2026-11-10"
+  },
+  "definition": {
+    "schemaVersion": 3,
+    "meta": {
+      "name": "Hover and backdrop",
+      "description": "Hover presets and a background image behind a component.",
+      "icon": "Image"
+    },
+    "theme": {
+      "primary": "#1D4ED8",
+      "radius": "md",
+      "density": "comfortable",
+      "fontScale": "md",
+      "appearance": "auto"
+    },
+    "roles": [],
+    "screens": [
+      {
+        "id": "scr_hvbg001",
+        "name": "Hover",
+        "icon": null,
+        "showInNav": true,
+        "maxWidth": "medium",
+        "sections": [
+          {
+            "id": "sec_hvbg001",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_hvbg01",
+                "type": "heading",
+                "props": {
+                  "text": "Lift on hover",
+                  "level": 2,
+                  "accent": "none"
+                },
+                "style": {
+                  "span": 4,
+                  "hover": "lift",
+                  "backgroundColor": "primary"
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_hvbg02",
+                "type": "heading",
+                "props": {
+                  "text": "Tint on hover",
+                  "level": 2,
+                  "accent": "none"
+                },
+                "style": {
+                  "span": 4,
+                  "hover": "tint"
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_hvbg03",
+                "type": "heading",
+                "props": {
+                  "text": "Outline on hover",
+                  "level": 2,
+                  "accent": "none"
+                },
+                "style": {
+                  "span": 4,
+                  "hover": "outline"
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_hvbg04",
+                "type": "heading",
+                "props": {
+                  "text": "Grow on hover",
+                  "level": 2,
+                  "accent": "none"
+                },
+                "style": {
+                  "span": 4,
+                  "hover": "grow"
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_hvbg05",
+                "type": "heading",
+                "props": {
+                  "text": "Hover none is the identity",
+                  "level": 2,
+                  "accent": "none"
+                },
+                "style": {
+                  "span": 4,
+                  "hover": "none"
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_hvbg06",
+                "type": "heading",
+                "props": {
+                  "text": "Picture with a dim veil",
+                  "level": 2,
+                  "accent": "none"
+                },
+                "style": {
+                  "span": 12,
+                  "backgroundImage": "asset:hvbgimg01",
+                  "backgroundFit": "cover",
+                  "backgroundOverlay": "dim",
+                  "color": "#ffffff"
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_hvbg07",
+                "type": "heading",
+                "props": {
+                  "text": "Tiled pattern",
+                  "level": 2,
+                  "accent": "none"
+                },
+                "style": {
+                  "span": 6,
+                  "backgroundImage": "asset:hvbgimg02",
+                  "backgroundFit": "tile",
+                  "backgroundOverlay": "light"
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_hvbg08",
+                "type": "heading",
+                "props": {
+                  "text": "Contained with a hover",
+                  "level": 2,
+                  "accent": "none"
+                },
+                "style": {
+                  "span": 6,
+                  "backgroundImage": "asset:hvbgimg01",
+                  "backgroundFit": "contain",
+                  "hover": "lift"
+                },
+                "visible": true
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "actions": {},
+    "homeScreenId": "scr_hvbg001"
+  }
+}

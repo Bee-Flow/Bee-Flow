@@ -1,0 +1,46 @@
+{
+  "corpus": "value-format",
+  "canonical": {
+    "sha256": "0aca8b22a1c17424f0d230e4dc34db5db535796c0cb6d58511acacd1aedaf442",
+    "bytes": 4275,
+    "inputIsCanonical": true,
+    "idempotent": true,
+    "keys": [
+      "schemaVersion",
+      "meta",
+      "theme",
+      "roles",
+      "screens",
+      "actions",
+      "homeScreenId",
+      "format"
+    ],
+    "parts": {
+      "schemaVersion": "4e07408562bedb8b",
+      "meta": "d70f3ea5544d8e80",
+      "theme": "5d7eeb0111b89897",
+      "roles": "4f53cda18c2baa0c",
+      "screens[0] scr_w7pbkb": "cc55f636bf4db8d1",
+      "homeScreenId": "9dea91a67c0f8465",
+      "format": "606e1e899a6704d9"
+    }
+  },
+  "schemaVersion": {
+    "stored": 3,
+    "canonical": 3
+  },
+  "validation": {
+    "strict": {
+      "errors": [],
+      "warnings": []
+    },
+    "save": {
+      "errors": [],
+      "warnings": []
+    }
+  },
+  "ordinals": {
+    "stored": {},
+    "canonical": "same as stored"
+  }
+}

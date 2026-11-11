@@ -1,5 +1,5 @@
 import { AlertTriangle, Workflow } from 'lucide-react';
-import { useState } from 'react';
+import { createElement, useState } from 'react';
 import { columnOptions, isDanglingRef, labelForRef, REFERENCE_EMPTY_HINTS, REFERENCE_FIELDS, REFERENCE_PLACEHOLDERS, referenceText } from '../stepReferences';
 import useTranslation from '@/hooks/useTranslation';
 import FormField from '@/components/shared/FormField';
@@ -11,10 +11,13 @@ import AutomationPicker from '../../inspector/AutomationPicker';
 import type { TranslateParams } from '@/hooks/useTranslation';
 import type { RowBinding, SwitchCase, Placeholder, StepFieldProps, ReferenceFieldProps, AutomationRefFieldProps, SwitchCasesFieldProps } from '../StepSettings.types';
 import { FIELD_LABELS, HINTS } from './StepSettings.constants';
+import { fieldControlFor } from './fieldTypes';
+import { nodeRefOptions } from '../nodeRefOptions';
 import { KeyedBindingsField } from './KeyedBindingsField';
 import TierChoiceField from './TierChoiceField';
 import RetryField from './RetryField';
 import ErrorHandlerField from './ErrorHandlerField';
+import LongTextField, { isLongText } from './LongTextField';
 
 /** 'screenId' → 'Screen', 'maxIterations' → 'Max iterations'. */
 function humanize(key: string) {
@@ -27,12 +30,12 @@ function humanize(key: string) {
 }
 
 export function StepField({
-    fieldKey, fs, value, step, onChange, definition, node, options, references, formFields, disabled,
+    fieldKey, fs, value, step, onChange, definition, node, options, references, formFields, disabled, fieldControls, onStepChange, text,
 }: StepFieldProps) {
     const { t } = useTranslation();
-    const labelEntry = FIELD_LABELS[fieldKey];
+    const labelEntry = text?.label ?? FIELD_LABELS[fieldKey];
     const label = labelEntry ? t(labelEntry[0], labelEntry[1]) : humanize(fieldKey);
-    const hintEntry = HINTS[fieldKey];
+    const hintEntry = text?.hint ?? HINTS[fieldKey];
     const hint = hintEntry ? t(hintEntry[0], hintEntry[1]) : undefined;
     const required = !!fs.required;
 
@@ -61,10 +64,18 @@ export function StepField({
                 kind={refKind}
                 value={value as string}
                 onChange={onChange}
-                options={options[refKind] || []}
+                options={refKind === 'node' ? nodeRefOptions(step, options.node, t) : (options[refKind] || [])}
                 disabled={disabled}
             />
         );
+    }
+
+    // A field type that registered its own control (fieldTypes/<type>.tsx).
+    const registered = fieldControlFor(fs.type, fieldControls);
+    if (registered) {
+        return createElement(registered, {
+            fieldKey, fs, value, step, onChange, definition, node, options, references, formFields, disabled, label, hint, required, onStepChange,
+        });
     }
 
     switch (fs.type) {
@@ -77,7 +88,7 @@ export function StepField({
                         definition={definition}
                         node={node}
                         ariaLabel={label}
-                        expectsBoolean={fieldKey === 'expr'}
+                        expectsBoolean={fieldKey === 'expr' || fieldKey === 'guard'}
                         placeholder={t('studio_apps_edit.step_settings.formula_example', "e.g. vars.status == 'open'")}
                         disabled={disabled}
                     />
@@ -130,7 +141,8 @@ export function StepField({
                         value={(value ?? '') as number | string}
                         min={fs.min}
                         max={fs.max}
-                        onChange={(e) => onChange(e.target.value === '' ? null : Number(e.target.value))}
+                        // A v3 field (repairRounds) left blank is no field at all, never a stored null.
+                        onChange={(e) => onChange(e.target.value === '' ? (fs.since ? undefined : null) : Number(e.target.value))}
                         disabled={disabled}
                         aria-label={label}
                     />
@@ -145,7 +157,7 @@ export function StepField({
         case 'errorHandler':
             return <ErrorHandlerField label={label} value={value} onChange={onChange} disabled={disabled} />;
         case 'switchCases':
-            return <SwitchCasesField label={t('studio_apps_edit.step_settings.cases', 'Cases')} value={value as SwitchCase[] | undefined} onChange={onChange} disabled={disabled} />;
+            return <SwitchCasesField label={t('studio_apps_edit.step_settings.cases', 'Cases')} value={value as SwitchCase[] | undefined} onChange={onChange} disabled={disabled} definition={definition} node={node} />;
         case 'navParams':
         case 'callParams':
         case 'recordValues':
@@ -180,6 +192,9 @@ export function StepField({
         case 'url':
         case 'string':
         default:
+            if (isLongText(fs)) {
+                return <LongTextField label={label} hint={hint} value={value} onChange={onChange} maxLen={fs.maxLen} required={required} nullable={!!fs.nullable} disabled={disabled} />;
+            }
             return (
                 <FormField label={label} hint={hint}>
                     <input
@@ -288,19 +303,30 @@ function AutomationRefField({ label, hint, value, onChange, options, formFields,
     );
 }
 
-function SwitchCasesField({ label, value, onChange, disabled }: SwitchCasesFieldProps) {
+function SwitchCasesField({ label, value, onChange, disabled, definition, node }: SwitchCasesFieldProps) {
     const { t } = useTranslation();
     const cases: SwitchCase[] = Array.isArray(value) ? value : [];
     const commit = (next: SwitchCase[]) => onChange(next);
+    // A formula (`whenExpr`, since 3) picks a case instead of a value: setting one drops the value, and an empty
+    // formula is removed so a case without one stays exactly as it was.
+    const setWhen = (i: number, whenExpr: string) => commit(cases.map((x, j) => {
+        if (j !== i) return x;
+        const { whenExpr: _old, ...rest } = x;
+        if (!whenExpr) return rest;
+        const { value: _value, ...noValue } = rest;
+        return { ...noValue, whenExpr };
+    }));
 
     return (
         <div className="flex flex-col gap-2">
             <span className="text-[11px] font-medium text-[var(--text-secondary)]">{label}</span>
             <p className="text-[11px] text-[var(--text-secondary)]">
                 {t('studio_apps_edit.step_settings.cases_help', 'Each case runs when the value above equals what you type here. Anything that matches nothing runs “Otherwise”.')}
+                {' '}{t('studio_apps_dynamic_text.cases_when_help', 'A case with a formula runs when the formula is true instead; use it for ranges.')}
             </p>
             {cases.map((c, i) => (
-                <div key={i} className="flex items-center gap-1.5">
+                <div key={i} className="flex flex-col gap-1.5" data-switch-case={i}>
+                <div className="flex items-center gap-1.5">
                     <input
                         type="text"
                         className={INPUT_CLS}
@@ -320,6 +346,17 @@ function SwitchCasesField({ label, value, onChange, disabled }: SwitchCasesField
                     >
                         {t('studio_apps_edit.step_settings.remove', 'Remove')}
                     </button>
+                </div>
+                <ExpressionInput
+                    variant="inline"
+                    value={c?.whenExpr ?? ''}
+                    onChange={(expr: string) => setWhen(i, expr)}
+                    definition={definition}
+                    node={node}
+                    placeholder={t('studio_apps_dynamic_text.case_when_placeholder', 'Or a formula, e.g. vars.total >= 100')}
+                    ariaLabel={t('studio_apps_dynamic_text.case_when_aria', 'Case {n} formula', { n: i + 1 })}
+                    disabled={disabled}
+                />
                 </div>
             ))}
             <button

@@ -1,16 +1,18 @@
 import { tryEvaluate } from '@shared/expr/engine.mjs';
 import { Loader2, RotateCcw } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { FormEvent } from 'react';
+import type { FocusEvent, FormEvent } from 'react';
 import useTranslation from '@/hooks/useTranslation';
 import type { TranslateFn } from '@/hooks/useTranslation';
 import type { AppNode, NodeStyle, ValidationRule } from '../../inspector/appDefinition';
-import { FormContext, registerFormReset } from '../formContext';
+import { FormContext, registerFormReset, useFormFieldSetter } from '../formContext';
 import type { FormFieldMeta } from '../formContext';
 import { resolveBinding } from '../resolveBinding';
 import { useRuntime } from '../RuntimeContext';
-import { spaceSteps } from '../styleResolver';
+import { initialFormValues } from '../initialUi';
+import { gridClasses, gridColumnStyle, spaceSteps } from '../styleResolver';
 import type { NodeProps } from './appNode.types';
+import { collectValidations } from './formValidations';
 
 /**
  * App Studio runtime — 'form' (container). Spec: server/appStudio/componentSpecs.js.
@@ -39,19 +41,13 @@ import type { NodeProps } from './appNode.types';
 // and the server validator's typed spelling of the same checks (format with
 // format:'email'|'url', formula with expr).
 
-/** The props of an input the form's validation reads. */
-interface RuleProps {
-    name?: string;
-    min?: number;
-    max?: number;
-}
-
 interface FormProps {
     name?: string;
     resetKey?: unknown;
     submitLabel?: string;
     showReset?: boolean;
     showSubmit?: boolean;
+    validateOn?: 'submit' | 'blur' | 'change';
 }
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -126,45 +122,30 @@ function ruleMessage(rule: ValidationRule, t: TranslateFn) {
 }
 
 /**
- * The rules a component's own PROPS imply.
- *
- * `input_number` advertises min/max in the spec and passed them to the DOM only
- * — and the form renders with `noValidate`, so the browser never enforced them
- * either. A field documented as "1 to 10" happily submitted 500. These are
- * spelled as ordinary rules so they run through exactly the same machinery (and
- * message copy) as an authored one.
+ * One field's error message, or undefined when it passes. Shared by the submit
+ * pass and by live validation (validateOn), so both read the same rules.
  */
-function propRules(node: AppNode<RuleProps> | null | undefined) {
-    if (node?.type !== 'input_number') return null;
-    const out: ValidationRule[] = [];
-    const { min, max } = node.props || {};
-    if (Number.isFinite(min)) out.push({ type: 'min', value: min });
-    if (Number.isFinite(max)) out.push({ type: 'max', value: max });
-    return out.length ? out : null;
-}
-
-/**
- * Deep-walk the form's child DEFINITIONS → Map(fieldName → rules). Deep,
- * because inputs may sit inside a container inside the form; only registered
- * (i.e. mounted) names are validated, so a hidden field's rules stay inert.
- *
- * Prop-implied rules come first so an authored rule with the same bound (and a
- * hand-written message) is the one the user sees.
- */
-function collectValidations(node: Pick<AppNode, 'children'>) {
-    const out = new Map<string, ValidationRule[]>();
-    const visit = (n: AppNode<RuleProps> | null | undefined) => {
-        if (!n || typeof n !== 'object') return;
-        const fieldName = n.props?.name;
-        if (fieldName) {
-            const authored = Array.isArray(n.validations) ? n.validations : [];
-            const implied = propRules(n) || [];
-            if (authored.length || implied.length) out.set(fieldName, [...implied, ...authored]);
-        }
-        for (const child of (Array.isArray(n.children) ? n.children : [])) visit(child);
-    };
-    for (const child of (Array.isArray(node.children) ? node.children : [])) visit(child);
-    return out;
+function fieldError(
+    meta: FormFieldMeta | undefined,
+    rules: ValidationRule[] | undefined,
+    v: unknown,
+    fieldScope: Record<string, unknown>,
+    t: TranslateFn,
+): string | undefined {
+    // A field the author switched off (enabledWhen:false) is inert on
+    // screen — validating it puts an error the user cannot clear under
+    // a control they cannot focus, and the form can never be sent.
+    if (!meta || meta.disabled) return undefined;
+    // The browser refused what was typed (a number box holding "12e"
+    // reports '' while still showing the text). The input says so on
+    // screen; without this the form did not, so an optional field
+    // submitted EMPTY under a visible "Enter a number".
+    if (meta.invalid) return meta.invalidMessage || t('studio_apps_runtime.form.invalid', 'This value is not valid.');
+    if (meta.required && isEmptyValue(v)) return t('studio_apps_runtime.form.required', 'This field is required.');
+    for (const rule of rules || []) {
+        if (ruleFails(rule, v, fieldScope)) return ruleMessage(rule, t);
+    }
+    return undefined;
 }
 
 /**
@@ -186,12 +167,46 @@ export default function AppForm({ node, children }: NodeProps<FormProps>) {
     return <FormBody key={token} node={node}>{children}</FormBody>;
 }
 
+type FieldErrors = Record<string, string | undefined>;
+type SetFieldErrors = (update: (prev: FieldErrors) => FieldErrors) => void;
+
+/**
+ * A field rule the server checks (data model validation) answers per field:
+ * each sentence goes under its input, like a rule checked here, and clears
+ * when that field changes. Adjusted during render when a new answer arrives.
+ */
+function useServerFieldErrors(serverFieldErrors: FieldErrors | null, setErrors: SetFieldErrors) {
+    const [seenServerErrors, setSeenServerErrors] = useState(serverFieldErrors);
+    if (serverFieldErrors !== seenServerErrors) {
+        setSeenServerErrors(serverFieldErrors);
+        if (serverFieldErrors) setErrors((prev) => ({ ...prev, ...serverFieldErrors }));
+    }
+}
+
+type LiveInputs = { values: Record<string, unknown>; scope: Record<string, unknown>; validations: ReturnType<typeof collectValidations>; t: TranslateFn };
+
+/**
+ * Live validation (validateOn): the latest values/scope sit in a ref, read from
+ * callbacks that must stay stable, and one field is checked at a time.
+ */
+function useLiveValidation(inputs: LiveInputs, fieldsRef: { current: Map<string, FormFieldMeta> }, setErrors: SetFieldErrors) {
+    const liveRef = useRef(inputs);
+    useEffect(() => { liveRef.current = inputs; });
+    const validateLive = useCallback((name: string, value: unknown) => {
+        const live = liveRef.current;
+        const fieldScope = { ...live.scope, form: { ...live.values, [name]: value }, value };
+        const message = fieldError(fieldsRef.current.get(name), live.validations.get(name), value, fieldScope, live.t);
+        setErrors((prev) => (prev[name] === message ? prev : { ...prev, [name]: message }));
+    }, [fieldsRef, setErrors]);
+    return { liveRef, validateLive };
+}
+
 function FormBody({ node, children }: NodeProps<FormProps>) {
     const { t } = useTranslation();
-    const { mode, runAction, actionState, registerFormValue, scope } = useRuntime();
+    const { mode, runAction, actionState, registerFormValue, scope, initialUi } = useRuntime();
     const { submitLabel = t('studio_apps_runtime.form.submit', 'Submit'), showReset = false, showSubmit = true } = node.props || {};
     const formName = node.props?.name || node.id;
-    const [values, setValues] = useState<Record<string, unknown>>({});
+    const [values, setValues] = useState<Record<string, unknown>>(() => initialFormValues(initialUi, node.id));
     const [errors, setErrors] = useState<Record<string, string | undefined>>({});
     const fieldsRef = useRef(new Map<string, FormFieldMeta>()); // name → { required, label, defaultValue }
 
@@ -199,6 +214,7 @@ function FormBody({ node, children }: NodeProps<FormProps>) {
     // The spinner was the only thing read off the action's state, so a
     // failed submit just stopped spinning and said nothing.
     const submitError = node.onSubmit ? actionState?.[node.onSubmit]?.error : null;
+    useServerFieldErrors(node.onSubmit ? actionState?.[node.onSubmit]?.fieldErrors ?? null : null, setErrors);
     const validations = useMemo(() => collectValidations(node), [node]);
 
     useEffect(() => {
@@ -217,10 +233,23 @@ function FormBody({ node, children }: NodeProps<FormProps>) {
         fieldsRef.current.delete(name);
     }, []);
 
+    const validateOn = node.props?.validateOn;
+    const { liveRef, validateLive } = useLiveValidation({ values, scope, validations, t }, fieldsRef, setErrors);
+
     const setValue = useCallback((name: string, value: unknown) => {
         setValues((prev) => ({ ...prev, [name]: value }));
+        if (validateOn === 'change') {
+            validateLive(name, value);
+            return;
+        }
         setErrors((prev) => (prev[name] ? { ...prev, [name]: undefined } : prev));
-    }, []);
+    }, [validateOn, validateLive]);
+
+    // React's onBlur bubbles (focusout): the field is found by the input's name.
+    const handleBlur = validateOn === 'blur' ? (e: FocusEvent<HTMLFormElement>) => {
+        const name = (e.target as Element).getAttribute('name');
+        if (name && fieldsRef.current.has(name)) validateLive(name, liveRef.current.values[name]);
+    } : undefined;
 
     const handleReset = useCallback(() => {
         const next: Record<string, unknown> = {};
@@ -232,39 +261,19 @@ function FormBody({ node, children }: NodeProps<FormProps>) {
     // The `reset_form` action step reaches this form by NAME through the
     // module-level bus — the same key the runtime files form values under.
     useEffect(() => registerFormReset(formName, handleReset), [formName, handleReset]);
+    // …and the `set_form_field` step reaches one field the same way (formContext useFormFieldSetter).
+    useFormFieldSetter(formName, fieldsRef, setValue);
 
     const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         if (mode !== 'run' || pending) return;
         const nextErrors: Record<string, string> = {};
         for (const [name, meta] of fieldsRef.current) {
-            // A field the author switched off (enabledWhen:false) is inert on
-            // screen — validating it puts an error the user cannot clear under
-            // a control they cannot focus, and the form can never be sent.
-            if (meta.disabled) continue;
-            // The browser refused what was typed (a number box holding "12e"
-            // reports '' while still showing the text). The input says so on
-            // screen; without this the form did not, so an optional field
-            // submitted EMPTY under a visible "Enter a number".
-            if (meta.invalid) {
-                nextErrors[name] = meta.invalidMessage || t('studio_apps_runtime.form.invalid', 'This value is not valid.');
-                continue;
-            }
             const v = values[name];
-            if (meta.required && isEmptyValue(v)) {
-                nextErrors[name] = t('studio_apps_runtime.form.required', 'This field is required.');
-                continue;
-            }
-            const rules = validations.get(name);
-            if (!rules) continue;
             // `form` is this form's LIVE values (the published forms.<name> copy
             // lags by an effect) and `value` is the field under test.
-            const fieldScope = { ...scope, form: values, value: v };
-            for (const rule of rules) {
-                if (!ruleFails(rule, v, fieldScope)) continue;
-                nextErrors[name] = ruleMessage(rule, t);
-                break;
-            }
+            const message = fieldError(meta, validations.get(name), v, { ...scope, form: values, value: v }, t);
+            if (message) nextErrors[name] = message;
         }
         setErrors(nextErrors);
         if (Object.keys(nextErrors).some((k) => nextErrors[k])) return;
@@ -287,10 +296,10 @@ function FormBody({ node, children }: NodeProps<FormProps>) {
     const gap = Number.isFinite(node.style?.gap) ? (node.style as NodeStyle).gap : 3;
     return (
         <FormContext.Provider value={ctx}>
-            <form onSubmit={handleSubmit} noValidate className="flex flex-col" style={{ gap: spaceSteps(gap) }}>
+            <form onSubmit={handleSubmit} onBlur={handleBlur} noValidate className="flex flex-col bfa-form__root" style={{ gap: spaceSteps(gap) }}>
                 <div
-                    className="app-grid"
-                    style={{ gridTemplateColumns: 'repeat(12, minmax(0, 1fr))', gap: spaceSteps(gap) }}
+                    className={`app-grid${gridClasses(node)} bfa-form__body`}
+                    style={{ ...gridColumnStyle(node.style), gap: spaceSteps(gap) }}
                 >
                     {children}
                 </div>
@@ -300,7 +309,7 @@ function FormBody({ node, children }: NodeProps<FormProps>) {
                     clicks it, and nothing happens. */}
                 {submitError ? (
                     <p
-                        className="text-sm [color:var(--error)]!"
+                        className="text-sm [color:var(--error)]! bfa-form__error"
                         role="alert"
                         data-app-submit-error="true"
                     >
@@ -309,7 +318,7 @@ function FormBody({ node, children }: NodeProps<FormProps>) {
                 ) : null}
 
                 {showSubmit || showReset ? (
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 bfa-form__actions">
                         {showSubmit ? (
                             <button
                                 type="submit"
@@ -320,7 +329,7 @@ function FormBody({ node, children }: NodeProps<FormProps>) {
                                 disabled={pending || !node.onSubmit}
                                 title={node.onSubmit ? undefined : t('studio_apps_runtime.form.no_submit', 'This form has no submit action yet.')}
                                 data-app-submit-inert={node.onSubmit ? undefined : 'true'}
-                                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-sm font-medium disabled:opacity-60 [background:var(--app-accent,var(--app-primary))] [color:var(--app-accent-contrast,var(--app-primary-contrast))]! [border-radius:var(--app-radius)]"
+                                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-sm font-medium disabled:opacity-60 [background:var(--app-accent,var(--app-primary))] [color:var(--app-accent-contrast,var(--app-primary-contrast))]! [border-radius:var(--app-radius)] bfa-form__submit"
                             >
                                 {pending ? <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" /> : null}
                                 <span>{submitLabel}</span>
@@ -330,7 +339,7 @@ function FormBody({ node, children }: NodeProps<FormProps>) {
                             <button
                                 type="button"
                                 onClick={handleReset}
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm [color:var(--text-secondary)]! [border-radius:var(--app-radius)]"
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm [color:var(--text-secondary)]! [border-radius:var(--app-radius)] bfa-form__reset"
                             >
                                 <RotateCcw className="w-3.5 h-3.5" aria-hidden="true" />
                                 <span>{t('studio_apps_runtime.form.reset', 'Reset')}</span>

@@ -1,0 +1,896 @@
+# template-quote-intake
+## screen scr_qiinbox (Inbox)
+<div class="app-design--surface-soft app-motion--full app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(3, 105, 161, 0.1); --app-accent: #0369A1; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(3, 105, 161, 0.1); --app-primary: #0369A1; --app-radius: 12px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-family: "Satoshi", system-ui, -apple-system, sans-serif; font-size: 15px; min-height: 100vh">
+  <main class="flex flex-1 flex-col min-h-0">
+    <div class="app-design--surface-soft app-motion--full app-runtime app-screen-enter flex flex-1 flex-col h-full min-h-0 w-full" data-app-appearance="auto" data-app-screen="scr_qiinbox" data-app-screen-kind="page" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(3, 105, 161, 0.1); --app-accent: #0369A1; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(3, 105, 161, 0.1); --app-primary: #0369A1; --app-radius: 12px; --app-space: 1; color: var(--text-primary); font-family: "Satoshi", system-ui, -apple-system, sans-serif; font-size: 15px">
+      <div class="flex flex-1 flex-col min-h-0 w-full" style="margin: 0px auto; max-width: none">
+        <section class="app-grid app-section-fill" data-section-id="sec_qisplit" style="flex: 1 1 0px; gap: 0px; grid-template-columns: repeat(12, minmax(0, 1fr)); grid-template-rows: minmax(0, 1fr); min-height: 0px; padding: 0px">
+          <div class="app-node app-span-4 app-surface min-w-0" data-app-type="pane" data-node-id="cmp_qiside" style="background: var(--bg-card); flex: 1 1 0px; grid-column: span 4 / span 4; min-height: 0px; min-width: 0px; padding: calc(12px * var(--app-space, 1))">
+            <div class="flex flex-col h-full min-h-0 min-w-0 overflow-auto" data-app-pane="vertical" style="gap: calc(12px * var(--app-space, 1))">
+              <div class="app-node app-span-12 min-w-0" data-app-type="filter_bar" data-node-id="cmp_qifilter" style="font-size: 0.875em; grid-column: span 12 / span 12">
+                <div class="flex flex-wrap gap-3 items-end" data-app-filterbar="true">
+                  <div class="flex flex-col gap-1 min-w-0" data-app-filter="q">
+                    <label class="font-medium text-[var(--text-secondary)] text-xs" for="cmp_qifilter-flt-q">
+                      "Search"
+                    <div class="relative">
+                      <svg class="-translate-y-1/2 absolute h-3.5 left-2.5 lucide lucide-search text-[var(--text-muted)] top-1/2 w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                      <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none pl-8 px-2 px-2.5 py-1 py-1.5 text-sm text-xs w-full" aria-label="Search" id="cmp_qifilter-flt-q" placeholder="Search" type="text" value="" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                  <div class="flex flex-col gap-1 min-w-0" data-app-filter="mine">
+                    <label class="cursor-pointer gap-2 inline-flex items-center py-1.5 text-sm" for="cmp_qifilter-flt-mine">
+                      <input class="accent-[var(--app-primary)]" id="cmp_qifilter-flt-mine" type="checkbox">
+                      <span class="text-[var(--text-primary)]">
+                        "Only mine"
+              <div class="app-node app-span-12 min-w-0" data-app-type="badge_list" data-node-id="cmp_qipills" style="font-size: 0.875em; grid-column: span 12 / span 12; text-align: left">
+                <div class="flex h-full items-center justify-center min-h-0 py-1 text-[var(--text-muted)] text-center text-sm">
+                  "No requests yet."
+              <div class="app-node app-span-12 min-w-0" data-app-type="list" data-node-id="cmp_qilist" style="flex: 1 1 0px; font-size: 0.875em; grid-column: span 12 / span 12; min-height: 0px; min-width: 0px">
+                <div class="flex flex-col gap-1.5 h-full items-center justify-center min-h-0 py-6 text-center">
+                  <span class="mb-1 text-[var(--text-tertiary)]">
+                    <svg class="block" aria-hidden="true" fill="none" role="presentation" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 96 72" style="height: auto; opacity: 0.9; width: 5.5rem">
+                  <span class="font-medium text-[var(--text-primary)] text-sm">
+                    "Nothing here yet"
+                  <span class="max-w-xs text-[var(--text-muted)] text-sm">
+                    "Nothing yet. Give a message in your mailbox the label "intake" and it shows up here within two minutes."
+          <div class="app-node app-span-8 min-w-0" data-app-type="pane" data-node-id="cmp_qimain" style="flex: 1 1 0px; grid-column: span 8 / span 8; min-height: 0px; min-width: 0px; padding: calc(12px * var(--app-space, 1))">
+            <div class="flex flex-col h-full min-h-0 min-w-0 overflow-auto" data-app-pane="vertical" style="gap: calc(12px * var(--app-space, 1))">
+              <div class="app-node app-span-12 min-w-0" data-app-type="page_header" data-node-id="cmp_qiprevh" style="grid-column: span 12 / span 12">
+                <header class="min-w-0 w-full" data-app-pageheader="true">
+                  <div class="flex flex-wrap items-start" style="gap: calc(8px * var(--app-space, 1))">
+                    <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-9 inline-flex items-center justify-center rounded-md shrink-0 w-9" aria-hidden="true">
+                      <svg class="h-4.5 lucide lucide-mail w-4.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                    <div class="basis-64 flex-1 min-w-0">
+                      <h1 class="font-semibold text-[var(--text-primary)] text-xl truncate" title="Select a request">
+                        "Select a request"
+                      <p class="line-clamp-2 mt-0.5 text-sm" title="Pick one on the left to read it here." style="color: var(--text-secondary)">
+                        "Pick one on the left to read it here."
+                    <div class="flex flex-wrap items-center justify-end ml-auto" data-app-pageheader-actions="true" style="gap: calc(8px * var(--app-space, 1))">
+                      <div class="app-node app-span-3 min-w-0" data-app-type="button" data-node-id="cmp_qiopenb" style="font-size: 0.875em; grid-column: span 3 / span 3">
+                        <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-2.5 py-1 text-xs transition-opacity" type="button" style="background: var(--app-accent, var(--app-primary)); border-radius: var(--app-radius); color: var(--app-accent-contrast, var(--app-primary-contrast))">
+                          <svg class="h-3.5 lucide lucide-arrow-right w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                          <span>
+                            "Open workspace"
+                      <div class="app-node app-span-3 min-w-0" data-app-type="button" data-node-id="cmp_qiassignb" style="font-size: 0.875em; grid-column: span 3 / span 3">
+                        <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-2.5 py-1 text-xs transition-opacity" type="button" style="background: var(--bg-card); border-radius: var(--app-radius); border: 1px solid var(--border-default); color: var(--text-primary)">
+                          <svg class="h-3.5 lucide lucide-user-check w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                          <span>
+                            "Assign to me"
+                      <div class="app-node app-span-3 min-w-0" data-app-type="button" data-node-id="cmp_qiclassb" style="font-size: 0.875em; grid-column: span 3 / span 3">
+                        <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-2.5 py-1 text-xs transition-opacity" type="button" style="background: var(--bg-card); border-radius: var(--app-radius); border: 1px solid var(--border-default); color: var(--text-primary)">
+                          <svg class="h-3.5 lucide lucide-sparkles lucide-stars w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                          <span>
+                            "Classify with AI"
+                  <hr class="[background:var(--border-default)] border-0 h-px mt-3 w-full" aria-hidden="true">
+              <div class="app-node app-span-12 min-w-0" data-app-type="stepper" data-node-id="cmp_qiprevstep" style="font-size: 0.875em; grid-column: span 12 / span 12">
+                <div class="app-stepper flex gap-1 items-start min-w-0 w-full" aria-label="Progress" data-app-stepper="true" data-orientation="horizontal" role="list">
+                  <div class="app-stepper-item flex flex-1 gap-1 items-center min-w-0" data-state="upcoming" role="listitem">
+                    <span class="app-stepper-step min-w-0 px-1 py-0.5">
+                      <span class="flex flex-col gap-1 items-center min-w-0">
+                        <span class="app-stepper-marker inline-flex items-center justify-center rounded-full shrink-0" aria-hidden="true" data-state="upcoming" style="border-color: var(--border-default); color: var(--text-muted)">
+                          <span class="font-semibold text-[10px]">
+                            "1"
+                        <span class="app-stepper-label font-medium text-xs truncate" title="New" style="color: var(--text-muted)">
+                          "New"
+                    <span class="app-stepper-line flex-1" aria-hidden="true" style="background: var(--border-default)">
+                  <div class="app-stepper-item flex flex-1 gap-1 items-center min-w-0" data-state="upcoming" role="listitem">
+                    <span class="app-stepper-step min-w-0 px-1 py-0.5">
+                      <span class="flex flex-col gap-1 items-center min-w-0">
+                        <span class="app-stepper-marker inline-flex items-center justify-center rounded-full shrink-0" aria-hidden="true" data-state="upcoming" style="border-color: var(--border-default); color: var(--text-muted)">
+                          <span class="font-semibold text-[10px]">
+                            "2"
+                        <span class="app-stepper-label font-medium text-xs truncate" title="Classified" style="color: var(--text-muted)">
+                          "Classified"
+                    <span class="app-stepper-line flex-1" aria-hidden="true" style="background: var(--border-default)">
+                  <div class="app-stepper-item flex flex-1 gap-1 items-center min-w-0" data-state="upcoming" role="listitem">
+                    <span class="app-stepper-step min-w-0 px-1 py-0.5">
+                      <span class="flex flex-col gap-1 items-center min-w-0">
+                        <span class="app-stepper-marker inline-flex items-center justify-center rounded-full shrink-0" aria-hidden="true" data-state="upcoming" style="border-color: var(--border-default); color: var(--text-muted)">
+                          <span class="font-semibold text-[10px]">
+                            "3"
+                        <span class="app-stepper-label font-medium text-xs truncate" title="In progress" style="color: var(--text-muted)">
+                          "In progress"
+                    <span class="app-stepper-line flex-1" aria-hidden="true" style="background: var(--border-default)">
+                  <div class="app-stepper-item flex flex-1 gap-1 items-center min-w-0" data-state="upcoming" role="listitem">
+                    <span class="app-stepper-step min-w-0 px-1 py-0.5">
+                      <span class="flex flex-col gap-1 items-center min-w-0">
+                        <span class="app-stepper-marker inline-flex items-center justify-center rounded-full shrink-0" aria-hidden="true" data-state="upcoming" style="border-color: var(--border-default); color: var(--text-muted)">
+                          <span class="font-semibold text-[10px]">
+                            "4"
+                        <span class="app-stepper-label font-medium text-xs truncate" title="Answered" style="color: var(--text-muted)">
+                          "Answered"
+                    <span class="app-stepper-line flex-1" aria-hidden="true" style="background: var(--border-default)">
+                  <div class="app-stepper-item flex gap-1 items-center min-w-0 shrink-0" data-state="upcoming" role="listitem">
+                    <span class="app-stepper-step min-w-0 px-1 py-0.5">
+                      <span class="flex flex-col gap-1 items-center min-w-0">
+                        <span class="app-stepper-marker inline-flex items-center justify-center rounded-full shrink-0" aria-hidden="true" data-state="upcoming" style="border-color: var(--border-default); color: var(--text-muted)">
+                          <span class="font-semibold text-[10px]">
+                            "5"
+                        <span class="app-stepper-label font-medium text-xs truncate" title="Closed" style="color: var(--text-muted)">
+                          "Closed"
+              <div class="app-node app-span-12 min-w-0" data-app-type="markdown" data-node-id="cmp_qisamen" style="grid-column: span 12 / span 12">
+                <div class="flex flex-col gap-2 text-sm" data-app-markdown="true">
+              <div class="app-node app-span-12 min-w-0" data-app-type="message_thread" data-node-id="cmp_qiprevthread" style="flex: 1 1 0px; grid-column: span 12 / span 12; min-height: 0px; min-width: 0px">
+                <div class="flex h-full items-center justify-center min-h-0 py-1 text-[var(--text-muted)] text-center text-sm">
+                  "Pick a request on the left to read the conversation."
+## screen scr_qidetail (Request)
+<div class="app-design--surface-soft app-motion--full app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(3, 105, 161, 0.1); --app-accent: #0369A1; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(3, 105, 161, 0.1); --app-primary: #0369A1; --app-radius: 12px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-family: "Satoshi", system-ui, -apple-system, sans-serif; font-size: 15px; min-height: 100vh">
+  <main class="flex flex-1 flex-col min-h-0">
+    <div class="app-design--surface-soft app-motion--full app-runtime app-screen-enter flex flex-1 flex-col h-full min-h-0 w-full" data-app-appearance="auto" data-app-screen="scr_qidetail" data-app-screen-kind="page" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(3, 105, 161, 0.1); --app-accent: #0369A1; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(3, 105, 161, 0.1); --app-primary: #0369A1; --app-radius: 12px; --app-space: 1; color: var(--text-primary); font-family: "Satoshi", system-ui, -apple-system, sans-serif; font-size: 15px">
+      <div class="flex flex-1 flex-col min-h-0 w-full" style="margin: 0px auto; max-width: none">
+        <section class="app-grid app-section-fill" data-section-id="sec_qidet" style="flex: 1 1 0px; gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); grid-template-rows: minmax(0, 1fr); min-height: 0px; padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="page_header" data-node-id="cmp_qihead" style="grid-column: span 12 / span 12">
+            <header class="min-w-0 w-full" data-app-pageheader="true">
+              <div class="flex flex-wrap items-start" style="gap: calc(8px * var(--app-space, 1))">
+                <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-9 inline-flex items-center justify-center rounded-md shrink-0 w-9" aria-hidden="true">
+                  <svg class="h-4.5 lucide lucide-file-text w-4.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                <div class="basis-64 flex-1 min-w-0">
+                  <h1 class="font-semibold text-[var(--text-primary)] text-xl truncate" title="Request">
+                    "Request"
+                <div class="flex flex-wrap items-center justify-end ml-auto" data-app-pageheader-actions="true" style="gap: calc(8px * var(--app-space, 1))">
+                  <div class="app-node app-span-3 min-w-0" data-app-type="button" data-node-id="cmp_qibackb" style="font-size: 0.875em; grid-column: span 3 / span 3">
+                    <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-2.5 py-1 text-xs transition-opacity" type="button" style="background: transparent; border-radius: var(--app-radius); color: var(--app-primary)">
+                      <svg class="h-3.5 lucide lucide-arrow-left w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                      <span>
+                        "Inbox"
+                  <div class="app-node app-span-3 min-w-0" data-app-type="button" data-node-id="cmp_qiassign2" style="font-size: 0.875em; grid-column: span 3 / span 3">
+                    <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-2.5 py-1 text-xs transition-opacity" type="button" style="background: var(--bg-card); border-radius: var(--app-radius); border: 1px solid var(--border-default); color: var(--text-primary)">
+                      <svg class="h-3.5 lucide lucide-user-check w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                      <span>
+                        "Assign to me"
+                  <div class="app-node app-span-3 min-w-0" data-app-type="button" data-node-id="cmp_qiunassignb" style="font-size: 0.875em; grid-column: span 3 / span 3">
+                    <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-2.5 py-1 text-xs transition-opacity" type="button" style="background: transparent; border-radius: var(--app-radius); color: var(--app-primary)">
+                      <svg class="h-3.5 lucide lucide-user-minus w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                      <span>
+                        "Release"
+                  <div class="app-node app-span-3 min-w-0" data-app-type="button" data-node-id="cmp_qiclass2" style="font-size: 0.875em; grid-column: span 3 / span 3">
+                    <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-2.5 py-1 text-xs transition-opacity" type="button" style="background: var(--bg-card); border-radius: var(--app-radius); border: 1px solid var(--border-default); color: var(--text-primary)">
+                      <svg class="h-3.5 lucide lucide-sparkles lucide-stars w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                      <span>
+                        "Classify with AI"
+                  <div class="app-node app-span-3 min-w-0" data-app-type="button" data-node-id="cmp_qioutb" style="font-size: 0.875em; grid-column: span 3 / span 3">
+                    <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-2.5 py-1 text-xs transition-opacity" type="button" style="background: var(--app-accent, var(--app-primary)); border-radius: var(--app-radius); color: var(--app-accent-contrast, var(--app-primary-contrast))">
+                      <svg class="h-3.5 lucide lucide-trophy w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                      <span>
+                        "Record outcome"
+              <hr class="[background:var(--border-default)] border-0 h-px mt-3 w-full" aria-hidden="true">
+          <div class="app-node app-span-12 min-w-0" data-app-type="stepper" data-node-id="cmp_qistep" style="grid-column: span 12 / span 12">
+            <div class="app-stepper flex gap-1 items-start min-w-0 w-full" aria-label="Progress" data-app-stepper="true" data-orientation="horizontal" role="list">
+              <div class="app-stepper-item flex flex-1 gap-1 items-center min-w-0" data-state="upcoming" role="listitem">
+                <span class="app-stepper-step min-w-0 px-1 py-0.5">
+                  <span class="flex flex-col gap-1 items-center min-w-0">
+                    <span class="app-stepper-marker inline-flex items-center justify-center rounded-full shrink-0" aria-hidden="true" data-state="upcoming" style="border-color: var(--border-default); color: var(--text-muted)">
+                      <span class="font-semibold text-[10px]">
+                        "1"
+                    <span class="app-stepper-label font-medium text-xs truncate" title="New" style="color: var(--text-muted)">
+                      "New"
+                <span class="app-stepper-line flex-1" aria-hidden="true" style="background: var(--border-default)">
+              <div class="app-stepper-item flex flex-1 gap-1 items-center min-w-0" data-state="upcoming" role="listitem">
+                <span class="app-stepper-step min-w-0 px-1 py-0.5">
+                  <span class="flex flex-col gap-1 items-center min-w-0">
+                    <span class="app-stepper-marker inline-flex items-center justify-center rounded-full shrink-0" aria-hidden="true" data-state="upcoming" style="border-color: var(--border-default); color: var(--text-muted)">
+                      <span class="font-semibold text-[10px]">
+                        "2"
+                    <span class="app-stepper-label font-medium text-xs truncate" title="Classified" style="color: var(--text-muted)">
+                      "Classified"
+                <span class="app-stepper-line flex-1" aria-hidden="true" style="background: var(--border-default)">
+              <div class="app-stepper-item flex flex-1 gap-1 items-center min-w-0" data-state="upcoming" role="listitem">
+                <span class="app-stepper-step min-w-0 px-1 py-0.5">
+                  <span class="flex flex-col gap-1 items-center min-w-0">
+                    <span class="app-stepper-marker inline-flex items-center justify-center rounded-full shrink-0" aria-hidden="true" data-state="upcoming" style="border-color: var(--border-default); color: var(--text-muted)">
+                      <span class="font-semibold text-[10px]">
+                        "3"
+                    <span class="app-stepper-label font-medium text-xs truncate" title="In progress" style="color: var(--text-muted)">
+                      "In progress"
+                <span class="app-stepper-line flex-1" aria-hidden="true" style="background: var(--border-default)">
+              <div class="app-stepper-item flex flex-1 gap-1 items-center min-w-0" data-state="upcoming" role="listitem">
+                <span class="app-stepper-step min-w-0 px-1 py-0.5">
+                  <span class="flex flex-col gap-1 items-center min-w-0">
+                    <span class="app-stepper-marker inline-flex items-center justify-center rounded-full shrink-0" aria-hidden="true" data-state="upcoming" style="border-color: var(--border-default); color: var(--text-muted)">
+                      <span class="font-semibold text-[10px]">
+                        "4"
+                    <span class="app-stepper-label font-medium text-xs truncate" title="Answered" style="color: var(--text-muted)">
+                      "Answered"
+                <span class="app-stepper-line flex-1" aria-hidden="true" style="background: var(--border-default)">
+              <div class="app-stepper-item flex gap-1 items-center min-w-0 shrink-0" data-state="upcoming" role="listitem">
+                <span class="app-stepper-step min-w-0 px-1 py-0.5">
+                  <span class="flex flex-col gap-1 items-center min-w-0">
+                    <span class="app-stepper-marker inline-flex items-center justify-center rounded-full shrink-0" aria-hidden="true" data-state="upcoming" style="border-color: var(--border-default); color: var(--text-muted)">
+                      <span class="font-semibold text-[10px]">
+                        "5"
+                    <span class="app-stepper-label font-medium text-xs truncate" title="Closed" style="color: var(--text-muted)">
+                      "Closed"
+          <div class="app-node app-span-3 min-w-0" data-app-type="pane" data-node-id="cmp_qirail" style="flex: 1 1 0px; grid-column: span 3 / span 3; min-height: 0px; min-width: 0px">
+            <div class="flex flex-col h-full min-h-0 min-w-0 overflow-auto" data-app-pane="vertical" style="gap: calc(12px * var(--app-space, 1))">
+              <div class="app-node app-span-12 app-surface min-w-0" data-app-type="record_detail" data-node-id="cmp_qifacts" style="background: var(--bg-card); border-radius: 8px; border: 1px solid var(--border-color, var(--border-default)); grid-column: span 12 / span 12; padding: calc(12px * var(--app-space, 1))">
+                <div class="flex h-full items-center justify-center min-h-0 py-1 text-[var(--text-muted)] text-center text-sm">
+                  "Pick a request in the Inbox first."
+              <div class="app-node app-span-12 app-surface min-w-0" data-app-type="pane" data-node-id="cmp_qitribox" style="background: var(--bg-card); border-radius: 8px; border: 1px solid var(--border-color, var(--border-default)); flex: 1 1 0px; grid-column: span 12 / span 12; min-height: 0px; min-width: 0px; padding: calc(12px * var(--app-space, 1))">
+                <div class="flex flex-col h-full min-h-0 min-w-0 overflow-auto" data-app-pane="vertical" style="gap: calc(8px * var(--app-space, 1))">
+                  <div class="app-node app-span-12 min-w-0" data-app-type="heading" data-node-id="cmp_qitrih" style="grid-column: span 12 / span 12">
+                    <h3 class="break-words font-medium text-lg">
+                      "Classification"
+                  <div class="app-node app-span-12 min-w-0" data-app-type="text" data-node-id="cmp_qitrihs" style="font-size: 0.875em; grid-column: span 12 / span 12">
+                    <p class="break-words leading-relaxed text-sm" style="color: var(--text-secondary)">
+                      "AI fills these on classify — override any of them here."
+                  <div class="app-node app-span-12 min-w-0" data-app-type="form" data-node-id="cmp_qitriage" style="grid-column: span 12 / span 12">
+                    <form class="flex flex-col" novalidate="" style="gap: calc(8px * var(--app-space, 1))">
+                      <div class="app-grid" style="gap: calc(8px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                        <div class="app-node app-span-12 min-w-0" data-app-type="input_select" data-node-id="cmp_qistat" style="font-size: 0.875em; grid-column: span 12 / span 12">
+                          <div class="flex flex-col gap-1 text-left">
+                            <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_qistat-input">
+                              "Status"
+                            <select class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" id="cmp_qistat-input" name="status" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                              <option value="">
+                                "Pick a status"
+                              <option value="nieuw">
+                                "New"
+                              <option value="geclassificeerd">
+                                "Classified"
+                              <option value="in_behandeling">
+                                "In progress"
+                              <option value="beantwoord">
+                                "Answered"
+                              <option value="afgehandeld">
+                                "Closed"
+                        <div class="app-node app-span-12 min-w-0" data-app-type="input_select" data-node-id="cmp_qitype" style="font-size: 0.875em; grid-column: span 12 / span 12">
+                          <div class="flex flex-col gap-1 text-left">
+                            <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_qitype-input">
+                              "Request type"
+                            <select class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" id="cmp_qitype-input" name="type" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                              <option value="">
+                                "Pick a type"
+                              <option value="offerte_aanvraag">
+                                "Quote request"
+                              <option value="inkoopopdracht">
+                                "Purchase order"
+                              <option value="overig">
+                                "Other"
+                        <div class="app-node app-span-12 min-w-0" data-app-type="input_select" data-node-id="cmp_qisl" style="font-size: 0.875em; grid-column: span 12 / span 12">
+                          <div class="flex flex-col gap-1 text-left">
+                            <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_qisl-input">
+                              "Traffic light"
+                            <select class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" id="cmp_qisl-input" name="stoplicht" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                              <option value="">
+                                "Pick a light"
+                              <option value="groen">
+                                "Green"
+                              <option value="oranje">
+                                "Amber"
+                              <option value="rood">
+                                "Red"
+              <div class="app-node app-span-12 min-w-0" data-app-type="form" data-node-id="cmp_qinoteform" style="grid-column: span 12 / span 12">
+                <form class="flex flex-col" novalidate="" style="gap: calc(8px * var(--app-space, 1))">
+                  <div class="app-grid" style="gap: calc(8px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                    <div class="app-node app-span-12 min-w-0" data-app-type="input_text" data-node-id="cmp_qinote" style="font-size: 0.875em; grid-column: span 12 / span 12">
+                      <div class="flex flex-col gap-1 text-left">
+                        <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_qinote-input">
+                          "Internal note"
+                          <span class="[color:var(--error)]" aria-hidden="true">
+                            "*"
+                        <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-required="true" id="cmp_qinote-input" name="note" placeholder="Only the team sees this" type="text" value="" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                  <div class="flex gap-2 items-center">
+                    <button class="[background:var(--app-accent,var(--app-primary))] [border-radius:var(--app-radius)] [color:var(--app-accent-contrast,var(--app-primary-contrast))]! disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm" type="submit">
+                      <span>
+                        "Add note"
+              <div class="app-node app-span-12 min-w-0" data-app-type="timeline" data-node-id="cmp_qitl" style="flex: 1 1 0px; font-size: 0.875em; grid-column: span 12 / span 12; min-height: 0px; min-width: 0px">
+                <div class="flex flex-col gap-1.5 h-full items-center justify-center min-h-0 py-6 text-center">
+                  <span class="mb-1 text-[var(--text-tertiary)]">
+                    <svg class="block" aria-hidden="true" fill="none" role="presentation" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 96 72" style="height: auto; opacity: 0.9; width: 5.5rem">
+                  <span class="font-medium text-[var(--text-primary)] text-sm">
+                    "Nothing logged yet"
+                  <span class="max-w-xs text-[var(--text-muted)] text-sm">
+                    "Nothing has happened on this request yet."
+          <div class="app-node app-span-9 min-w-0" data-app-type="pane" data-node-id="cmp_qiwork" style="flex: 1 1 0px; grid-column: span 9 / span 9; min-height: 0px; min-width: 0px">
+            <div class="flex flex-col h-full min-h-0 min-w-0 overflow-auto" data-app-pane="vertical" style="gap: calc(12px * var(--app-space, 1))">
+              <div class="app-node app-span-12 min-w-0" data-app-type="tabs" data-node-id="cmp_qiwtabs" style="grid-column: span 12 / span 12">
+                <div class="min-w-0 w-full" data-app-tabs="true">
+                  <div class="app-scroll-x border-b flex gap-1 items-center overflow-x-auto" aria-label="Tabs" role="tablist" style="border-color: var(--border-default)">
+                    <button class="-mb-px font-medium gap-1.5 inline-flex items-center px-3 py-2 shrink-0 text-sm whitespace-nowrap" aria-selected="true" role="tab" type="button" style="border-bottom: 2px solid var(--app-primary); color: var(--app-primary)">
+                      <svg class="h-3.5 lucide lucide-messages-square w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                      <span>
+                        "Conversation"
+                    <button class="-mb-px font-medium gap-1.5 inline-flex items-center px-3 py-2 shrink-0 text-sm whitespace-nowrap" aria-selected="false" role="tab" type="button" style="border-bottom: 2px solid transparent; color: var(--text-secondary)">
+                      <svg class="h-3.5 lucide lucide-table w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                      <span>
+                        "Project lines"
+                    <button class="-mb-px font-medium gap-1.5 inline-flex items-center px-3 py-2 shrink-0 text-sm whitespace-nowrap" aria-selected="false" role="tab" type="button" style="border-bottom: 2px solid transparent; color: var(--text-secondary)">
+                      <svg class="h-3.5 lucide lucide-paperclip w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                      <span>
+                        "Files"
+                    <button class="-mb-px font-medium gap-1.5 inline-flex items-center px-3 py-2 shrink-0 text-sm whitespace-nowrap" aria-selected="false" role="tab" type="button" style="border-bottom: 2px solid transparent; color: var(--text-secondary)">
+                      <svg class="h-3.5 lucide lucide-shield-check w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                      <span>
+                        "Final check"
+                  <div class="pt-3" data-app-tabpanel="active" role="tabpanel">
+                    <div class="app-node app-span-12 min-w-0" data-app-type="tab" data-node-id="cmp_qitabconv" style="grid-column: span 12 / span 12">
+                      <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                        <div class="app-node app-span-12 min-w-0" data-app-type="message_thread" data-node-id="cmp_qithread" style="grid-column: span 12 / span 12; height: 200px; overflow: auto">
+                          <div class="flex h-full items-center justify-center min-h-0 py-1 text-[var(--text-muted)] text-center text-sm">
+                            "Pick a request in the Inbox to read the conversation."
+                        <div class="app-node app-span-12 min-w-0" data-app-type="form" data-node-id="cmp_qiform" style="grid-column: span 12 / span 12">
+                          <form class="flex flex-col" novalidate="" style="gap: calc(8px * var(--app-space, 1))">
+                            <div class="app-grid" style="gap: calc(8px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                              <div class="app-node app-span-12 min-w-0" data-app-type="input_textarea" data-node-id="cmp_qibody" style="grid-column: span 12 / span 12">
+                                <div class="flex flex-col gap-1 text-left">
+                                  <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_qibody-input">
+                                    "Your reply"
+                                    <span class="[color:var(--error)]" aria-hidden="true">
+                                      "*"
+                                  <div class="relative">
+                                    <textarea class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 resize-y text-sm w-full" aria-required="true" id="cmp_qibody-input" name="body" placeholder="Write a reply… or let AI draft one" rows="4" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                              <div class="app-node app-span-3 min-w-0" data-app-type="button" data-node-id="cmp_qidraftb" style="font-size: 0.875em; grid-column: span 3 / span 3">
+                                <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-2.5 py-1 text-xs transition-opacity" type="button" style="background: var(--bg-card); border-radius: var(--app-radius); border: 1px solid var(--border-default); color: var(--text-primary)">
+                                  <svg class="h-3.5 lucide lucide-sparkles lucide-stars w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                                  <span>
+                                    "AI draft"
+                            <div class="flex gap-2 items-center">
+                              <button class="[background:var(--app-accent,var(--app-primary))] [border-radius:var(--app-radius)] [color:var(--app-accent-contrast,var(--app-primary-contrast))]! disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm" type="submit">
+                                <span>
+                                  "Send reply"
+                  <div class="pt-3" data-app-tabpanel="inactive" hidden="" role="tabpanel" style="display: none">
+                    <div class="app-node app-span-12 min-w-0" data-app-type="tab" data-node-id="cmp_qitabline" style="grid-column: span 12 / span 12">
+                      <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                        <div class="app-node app-span-12 min-w-0" data-app-type="page_header" data-node-id="cmp_qilineh" style="grid-column: span 12 / span 12">
+                          <header class="min-w-0 w-full" data-app-pageheader="true">
+                            <div class="flex flex-wrap items-start" style="gap: calc(8px * var(--app-space, 1))">
+                              <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-9 inline-flex items-center justify-center rounded-md shrink-0 w-9" aria-hidden="true">
+                                <svg class="h-4.5 lucide lucide-table w-4.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                              <div class="basis-64 flex-1 min-w-0">
+                                <h1 class="font-semibold text-[var(--text-primary)] text-xl truncate" title="Project lines">
+                                  "Project lines"
+                                <p class="line-clamp-2 mt-0.5 text-sm" title="Run the three buttons left to right; edit cells straight in the table — a change saves immediately." style="color: var(--text-secondary)">
+                                  "Run the three buttons left to right; edit cells straight in the table — a change saves immediately."
+                              <div class="flex flex-wrap items-center justify-end ml-auto" data-app-pageheader-actions="true" style="gap: calc(8px * var(--app-space, 1))">
+                                <div class="app-node app-span-3 min-w-0" data-app-type="button" data-node-id="cmp_qiintakeb" style="font-size: 0.875em; grid-column: span 3 / span 3">
+                                  <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-2.5 py-1 text-xs transition-opacity" type="button" style="background: var(--bg-card); border-radius: var(--app-radius); border: 1px solid var(--border-default); color: var(--text-primary)">
+                                    <svg class="h-3.5 lucide lucide-folder-input w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                                    <span>
+                                      "1 · Prepare files"
+                                <div class="app-node app-span-3 min-w-0" data-app-type="button" data-node-id="cmp_qireadb" style="font-size: 0.875em; grid-column: span 3 / span 3">
+                                  <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-2.5 py-1 text-xs transition-opacity" type="button" style="background: var(--bg-card); border-radius: var(--app-radius); border: 1px solid var(--border-default); color: var(--text-primary)">
+                                    <svg class="h-3.5 lucide lucide-sparkles lucide-stars w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                                    <span>
+                                      "2 · Read documents"
+                                <div class="app-node app-span-3 min-w-0" data-app-type="button" data-node-id="cmp_qiaddb" style="font-size: 0.875em; grid-column: span 3 / span 3">
+                                  <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-2.5 py-1 text-xs transition-opacity" type="button" style="background: transparent; border-radius: var(--app-radius); color: var(--app-primary)">
+                                    <svg class="h-3.5 lucide lucide-plus w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                                    <span>
+                                      "Add line"
+                                <div class="app-node app-span-3 min-w-0" data-app-type="button" data-node-id="cmp_qimkcsvb" style="font-size: 0.875em; grid-column: span 3 / span 3">
+                                  <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-2.5 py-1 text-xs transition-opacity" type="button" style="background: var(--app-accent, var(--app-primary)); border-radius: var(--app-radius); color: var(--app-accent-contrast, var(--app-primary-contrast))">
+                                    <svg class="h-3.5 lucide lucide-file-spreadsheet w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                                    <span>
+                                      "3 · Make portal CSV"
+                            <hr class="[background:var(--border-default)] border-0 h-px mt-3 w-full" aria-hidden="true">
+                        <div class="app-node app-span-6 min-w-0" data-app-type="stat" data-node-id="cmp_qilstat1" style="font-size: 0.875em; grid-column: span 6 / span 6">
+                          <div class="app-stat flex gap-2.5 items-start">
+                            <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-8 inline-flex items-center justify-center mt-0.5 rounded-md shrink-0 w-8">
+                              <svg class="h-4 lucide lucide-table w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                            <div class="flex-1 min-w-0">
+                              <div class="font-medium text-[var(--text-secondary)] text-xs">
+                                "Lines"
+                              <div class="flex gap-2 items-baseline min-w-0">
+                                <div class="font-semibold leading-tight text-xl truncate" title="—">
+                                  "—"
+                              <div class="text-[var(--text-muted)] text-xs">
+                                "On this request."
+                        <div class="app-node app-span-6 min-w-0" data-app-type="stat" data-node-id="cmp_qilstat3" style="font-size: 0.875em; grid-column: span 6 / span 6">
+                          <div class="app-stat flex gap-2.5 items-start">
+                            <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-8 inline-flex items-center justify-center mt-0.5 rounded-md shrink-0 w-8">
+                              <svg class="h-4 lucide lucide-alert-triangle lucide-triangle-alert w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                            <div class="flex-1 min-w-0">
+                              <div class="font-medium text-[var(--text-secondary)] text-xs">
+                                "Incomplete"
+                              <div class="flex gap-2 items-baseline min-w-0">
+                                <div class="font-semibold leading-tight text-xl truncate" title="—">
+                                  "—"
+                              <div class="text-[var(--text-muted)] text-xs">
+                                "Missing CAD file, material, thickness or quantity."
+                        <div class="app-node app-span-12 min-w-0" data-app-type="data_grid" data-node-id="cmp_qigrid" style="font-size: 0.875em; grid-column: span 12 / span 12; height: 320px; overflow: auto">
+                          <div class="w-full" data-app-datagrid="true">
+                            <div class="flex flex-col gap-1.5 h-full items-center justify-center min-h-0 py-6 text-center">
+                              <span class="mb-1 text-[var(--text-tertiary)]">
+                                <svg class="block" aria-hidden="true" fill="none" role="presentation" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 96 72" style="height: auto; opacity: 0.9; width: 5.5rem">
+                              <span class="font-medium text-[var(--text-primary)] text-sm">
+                                "Nothing here yet"
+                              <span class="max-w-xs text-[var(--text-muted)] text-sm">
+                                "No project lines yet. Press 1 · Prepare files, or add a line by hand."
+                        <div class="app-node app-span-12 min-w-0" data-app-type="callout" data-node-id="cmp_qicsvhow" style="grid-column: span 12 / span 12">
+                          <div class="flex gap-2.5 items-start px-3 py-2.5 text-sm" data-app-callout="info" style="background: rgba(14, 165, 233, 0.1); border-left: 3px solid rgb(14, 165, 233); border-radius: var(--app-radius); color: var(--text-primary)">
+                            <svg class="h-4 lucide lucide-info mt-0.5 shrink-0 w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg" style="color: rgb(14, 165, 233)">
+                            <div class="min-w-0">
+                              <div class="font-medium">
+                                "To the portal"
+                              <div class="app-callout__body text-[var(--text-secondary)]">
+                                "Generate the CSV with button 3, download it here, upload it with the CAD files into the portal."
+                        <div class="app-node app-span-12 min-w-0" data-app-type="file_preview" data-node-id="cmp_qicsvprev" style="grid-column: span 12 / span 12; height: 200px; overflow: auto">
+                          <div class="flex flex-col h-full min-h-0 min-w-0 overflow-hidden w-full" data-app-filepreview="idle" style="border-radius: inherit">
+                            <div class="flex h-full items-center justify-center min-h-0 py-1 text-[var(--text-muted)] text-center text-sm">
+                              "No portal CSV yet — press 3 · Make portal CSV."
+                  <div class="pt-3" data-app-tabpanel="inactive" hidden="" role="tabpanel" style="display: none">
+                    <div class="app-node app-span-12 min-w-0" data-app-type="tab" data-node-id="cmp_qitabfile" style="grid-column: span 12 / span 12">
+                      <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                        <div class="app-node app-span-12 min-w-0" data-app-type="page_header" data-node-id="cmp_qifileh" style="grid-column: span 12 / span 12">
+                          <header class="min-w-0 w-full" data-app-pageheader="true">
+                            <div class="flex flex-wrap items-start" style="gap: calc(8px * var(--app-space, 1))">
+                              <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-9 inline-flex items-center justify-center rounded-md shrink-0 w-9" aria-hidden="true">
+                                <svg class="h-4.5 lucide lucide-paperclip w-4.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                              <div class="basis-64 flex-1 min-w-0">
+                                <h1 class="font-semibold text-[var(--text-primary)] text-xl truncate" title="Files on this request">
+                                  "Files on this request"
+                                <p class="line-clamp-2 mt-0.5 text-sm" title="Pick a file to preview or summarise it. Read as project lines works on the picked file — or on ALL documents at once when nothing is picked." style="color: var(--text-secondary)">
+                                  "Pick a file to preview or summarise it. Read as project lines works on the picked file — or on ALL documents at once when nothing is picked."
+                              <div class="flex flex-wrap items-center justify-end ml-auto" data-app-pageheader-actions="true" style="gap: calc(8px * var(--app-space, 1))">
+                                <div class="app-node app-span-3 min-w-0" data-app-type="button" data-node-id="cmp_qisumb" style="font-size: 0.875em; grid-column: span 3 / span 3">
+                                  <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-2.5 py-1 text-xs transition-opacity" type="button" style="background: var(--bg-card); border-radius: var(--app-radius); border: 1px solid var(--border-default); color: var(--text-primary)">
+                                    <svg class="h-3.5 lucide lucide-sparkles lucide-stars w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                                    <span>
+                                      "Summarise"
+                                <div class="app-node app-span-3 min-w-0" data-app-type="button" data-node-id="cmp_qiextb" style="font-size: 0.875em; grid-column: span 3 / span 3">
+                                  <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-2.5 py-1 text-xs transition-opacity" type="button" style="background: var(--app-accent, var(--app-primary)); border-radius: var(--app-radius); color: var(--app-accent-contrast, var(--app-primary-contrast))">
+                                    <svg class="h-3.5 lucide lucide-table w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                                    <span>
+                                      "Read as project lines"
+                            <hr class="[background:var(--border-default)] border-0 h-px mt-3 w-full" aria-hidden="true">
+                        <div class="app-node app-span-4 min-w-0" data-app-type="file_gallery" data-node-id="cmp_qiattg" style="font-size: 0.875em; grid-column: span 4 / span 4; height: 620px; overflow: auto">
+                          <div class="flex flex-col gap-1.5 h-full items-center justify-center min-h-0 py-6 text-center">
+                            <span class="mb-1 text-[var(--text-tertiary)]">
+                              <svg class="block" aria-hidden="true" fill="none" role="presentation" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 96 72" style="height: auto; opacity: 0.9; width: 5.5rem">
+                            <span class="font-medium text-[var(--text-primary)] text-sm">
+                              "No files here"
+                            <span class="max-w-xs text-[var(--text-muted)] text-sm">
+                              "No attachments on this request."
+                        <div class="app-node app-span-8 min-w-0" data-app-type="file_preview" data-node-id="cmp_qiattv" style="grid-column: span 8 / span 8; height: 620px; overflow: auto">
+                          <div class="flex flex-col h-full min-h-0 min-w-0 overflow-hidden w-full" data-app-filepreview="idle" style="border-radius: inherit">
+                            <div class="flex h-full items-center justify-center min-h-0 py-1 text-[var(--text-muted)] text-center text-sm">
+                              "Pick a file above to view it here."
+                        <div class="app-node app-span-12 min-w-0" data-app-type="markdown" data-node-id="cmp_qisummary" style="grid-column: span 12 / span 12">
+                          <div class="flex flex-col gap-2 text-sm" data-app-markdown="true">
+                        <div class="app-node app-span-12 min-w-0" data-app-type="callout" data-node-id="cmp_qicadnote" style="grid-column: span 12 / span 12">
+                          <div class="flex gap-2.5 items-start px-3 py-2.5 text-sm" data-app-callout="info" style="background: rgba(14, 165, 233, 0.1); border-left: 3px solid rgb(14, 165, 233); border-radius: var(--app-radius); color: var(--text-primary)">
+                            <svg class="h-4 lucide lucide-info mt-0.5 shrink-0 w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg" style="color: rgb(14, 165, 233)">
+                            <div class="min-w-0">
+                              <div class="font-medium">
+                                "CAD files"
+                              <div class="app-callout__body text-[var(--text-secondary)]">
+                                "CAD files (DXF, DWG, STEP) are stored and paired with their drawings by 1 · Prepare files. They cannot be previewed inline, but they download fine — the portal reads the geometry from them."
+                  <div class="pt-3" data-app-tabpanel="inactive" hidden="" role="tabpanel" style="display: none">
+                    <div class="app-node app-span-12 min-w-0" data-app-type="tab" data-node-id="cmp_qitabcheck" style="grid-column: span 12 / span 12">
+                      <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                        <div class="app-node app-span-12 min-w-0" data-app-type="page_header" data-node-id="cmp_qickh" style="grid-column: span 12 / span 12">
+                          <header class="min-w-0 w-full" data-app-pageheader="true">
+                            <div class="flex flex-wrap items-start" style="gap: calc(8px * var(--app-space, 1))">
+                              <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-9 inline-flex items-center justify-center rounded-md shrink-0 w-9" aria-hidden="true">
+                                <svg class="h-4.5 lucide lucide-shield-check w-4.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                              <div class="basis-64 flex-1 min-w-0">
+                                <h1 class="font-semibold text-[var(--text-primary)] text-xl truncate" title="Final check">
+                                  "Final check"
+                                <p class="line-clamp-2 mt-0.5 text-sm" title="Save the outgoing quote, then let AI compare it against the project lines." style="color: var(--text-secondary)">
+                                  "Save the outgoing quote, then let AI compare it against the project lines."
+                              <div class="flex flex-wrap items-center justify-end ml-auto" data-app-pageheader-actions="true" style="gap: calc(8px * var(--app-space, 1))">
+                                <div class="app-node app-span-3 min-w-0" data-app-type="button" data-node-id="cmp_qickrunb" style="font-size: 0.875em; grid-column: span 3 / span 3">
+                                  <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-2.5 py-1 text-xs transition-opacity" type="button" style="background: var(--app-accent, var(--app-primary)); border-radius: var(--app-radius); color: var(--app-accent-contrast, var(--app-primary-contrast))">
+                                    <svg class="h-3.5 lucide lucide-sparkles lucide-stars w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                                    <span>
+                                      "Run final check"
+                            <hr class="[background:var(--border-default)] border-0 h-px mt-3 w-full" aria-hidden="true">
+                        <div class="app-node app-span-12 min-w-0" data-app-type="form" data-node-id="cmp_qickform" style="grid-column: span 12 / span 12">
+                          <form class="flex flex-col" novalidate="" style="gap: calc(8px * var(--app-space, 1))">
+                            <div class="app-grid" style="gap: calc(8px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                              <div class="app-node app-span-6 min-w-0" data-app-type="input_file" data-node-id="cmp_qickfile" style="font-size: 0.875em; grid-column: span 6 / span 6">
+                                <div class="flex flex-col gap-1 text-left">
+                                  <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_qickfile-input">
+                                    "Quote (PDF)"
+                                    <span class="[color:var(--error)]" aria-hidden="true">
+                                      "*"
+                                  <div class="flex flex-col gap-2">
+                                    <label class="border cursor-pointer focus-within:outline focus-within:outline-2 focus-within:outline-[var(--text-secondary)] focus-within:outline-offset-1 gap-2 inline-flex items-center px-3 py-1.5 relative text-sm w-fit" style="background: var(--bg-card); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary); opacity: 0.6">
+                                      <svg class="h-3.5 lucide lucide-paperclip w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                                      <span>
+                                        "Choose a file"
+                                      <input class="absolute h-px opacity-0 w-px" accept=".pdf" aria-required="true" disabled="" id="cmp_qickfile-input" name="offerte" type="file">
+                            <div class="flex gap-2 items-center">
+                              <button class="[background:var(--app-accent,var(--app-primary))] [border-radius:var(--app-radius)] [color:var(--app-accent-contrast,var(--app-primary-contrast))]! disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm" type="submit">
+                                <span>
+                                  "Save quote"
+                        <div class="app-node app-span-12 min-w-0" data-app-type="data_grid" data-node-id="cmp_qickg" style="font-size: 0.875em; grid-column: span 12 / span 12; height: 200px; overflow: auto">
+                          <div class="w-full" data-app-datagrid="true">
+                            <div class="flex flex-col gap-1.5 h-full items-center justify-center min-h-0 py-6 text-center">
+                              <span class="mb-1 text-[var(--text-tertiary)]">
+                                <svg class="block" aria-hidden="true" fill="none" role="presentation" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 96 72" style="height: auto; opacity: 0.9; width: 5.5rem">
+                              <span class="font-medium text-[var(--text-primary)] text-sm">
+                                "Nothing here yet"
+                              <span class="max-w-xs text-[var(--text-muted)] text-sm">
+                                "No discrepancies recorded yet."
+## screen scr_qiboard (Board)
+<div class="app-design--surface-soft app-motion--full app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(3, 105, 161, 0.1); --app-accent: #0369A1; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(3, 105, 161, 0.1); --app-primary: #0369A1; --app-radius: 12px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-family: "Satoshi", system-ui, -apple-system, sans-serif; font-size: 15px; min-height: 100vh">
+  <main class="flex flex-1 flex-col min-h-0">
+    <div class="app-design--surface-soft app-motion--full app-runtime app-screen-enter flex flex-1 flex-col h-full min-h-0 w-full" data-app-appearance="auto" data-app-screen="scr_qiboard" data-app-screen-kind="page" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(3, 105, 161, 0.1); --app-accent: #0369A1; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(3, 105, 161, 0.1); --app-primary: #0369A1; --app-radius: 12px; --app-space: 1; color: var(--text-primary); font-family: "Satoshi", system-ui, -apple-system, sans-serif; font-size: 15px">
+      <div class="flex flex-1 flex-col min-h-0 w-full" style="margin: 0px auto; max-width: none">
+        <section class="app-grid app-section-fill" data-section-id="sec_qiboard" style="flex: 1 1 0px; gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); grid-template-rows: minmax(0, 1fr); min-height: 0px; padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="page_header" data-node-id="cmp_qiboardh" style="grid-column: span 12 / span 12">
+            <header class="min-w-0 w-full" data-app-pageheader="true">
+              <div class="flex flex-wrap items-start" style="gap: calc(8px * var(--app-space, 1))">
+                <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-9 inline-flex items-center justify-center rounded-md shrink-0 w-9" aria-hidden="true">
+                  <svg class="h-4.5 lucide lucide-kanban-square lucide-square-kanban w-4.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                <div class="basis-64 flex-1 min-w-0">
+                  <h1 class="font-semibold text-[var(--text-primary)] text-xl truncate" title="Board">
+                    "Board"
+                  <p class="line-clamp-2 mt-0.5 text-sm" title="Drag a card to change its status. Click one to open the workspace." style="color: var(--text-secondary)">
+                    "Drag a card to change its status. Click one to open the workspace."
+              <hr class="[background:var(--border-default)] border-0 h-px mt-3 w-full" aria-hidden="true">
+          <div class="app-node app-span-12 min-w-0" data-app-type="kanban" data-node-id="cmp_qikan" style="flex: 1 1 0px; grid-column: span 12 / span 12; min-height: 0px; min-width: 0px">
+            <div class="app-fill flex flex-col h-full min-h-0 overflow-x-auto" data-app-kanban="true">
+              <div class="flex flex-1 flex-col min-h-0" style="min-width: 1100px">
+                <div class="shrink-0" style="align-items: start; display: grid; gap: 0.75rem; grid-template-columns: repeat(5, minmax(220px, 1fr))">
+                  <div class="flex gap-1.5 items-center pb-1 px-1.5" data-app-kanban-header="nieuw">
+                    <span class="h-2 rounded-full shrink-0 w-2" aria-hidden="true" style="background: rgb(14, 165, 233)">
+                    <span class="font-semibold text-[var(--text-primary)] text-xs truncate">
+                      "New"
+                    <span class="ml-auto tabular-nums text-[11px]" data-app-kanban-count="nieuw" style="color: var(--text-muted)">
+                      "0"
+                  <div class="flex gap-1.5 items-center pb-1 px-1.5" data-app-kanban-header="geclassificeerd">
+                    <span class="h-2 rounded-full shrink-0 w-2" aria-hidden="true" style="background: var(--app-primary)">
+                    <span class="font-semibold text-[var(--text-primary)] text-xs truncate">
+                      "Classified"
+                    <span class="ml-auto tabular-nums text-[11px]" data-app-kanban-count="geclassificeerd" style="color: var(--text-muted)">
+                      "0"
+                  <div class="flex gap-1.5 items-center pb-1 px-1.5" data-app-kanban-header="in_behandeling">
+                    <span class="h-2 rounded-full shrink-0 w-2" aria-hidden="true" style="background: rgb(245, 158, 11)">
+                    <span class="font-semibold text-[var(--text-primary)] text-xs truncate">
+                      "In progress"
+                    <span class="ml-auto tabular-nums text-[11px]" data-app-kanban-count="in_behandeling" style="color: var(--text-muted)">
+                      "0"
+                  <div class="flex gap-1.5 items-center pb-1 px-1.5" data-app-kanban-header="beantwoord">
+                    <span class="h-2 rounded-full shrink-0 w-2" aria-hidden="true" style="background: var(--text-secondary)">
+                    <span class="font-semibold text-[var(--text-primary)] text-xs truncate">
+                      "Answered"
+                    <span class="ml-auto tabular-nums text-[11px]" data-app-kanban-count="beantwoord" style="color: var(--text-muted)">
+                      "0"
+                  <div class="flex gap-1.5 items-center pb-1 px-1.5" data-app-kanban-header="afgehandeld">
+                    <span class="h-2 rounded-full shrink-0 w-2" aria-hidden="true" style="background: rgb(16, 185, 129)">
+                    <span class="font-semibold text-[var(--text-primary)] text-xs truncate">
+                      "Closed"
+                    <span class="ml-auto tabular-nums text-[11px]" data-app-kanban-count="afgehandeld" style="color: var(--text-muted)">
+                      "0"
+                <div class="flex-1 min-h-0" style="align-items: start; display: grid; gap: 0.75rem; grid-template-columns: repeat(5, minmax(220px, 1fr))">
+                  <div class="flex flex-1 flex-col gap-1.5 min-h-0 min-h-[3rem] overflow-y-auto p-1.5" data-app-kanban-column="nieuw" style="background: transparent; border-radius: var(--app-radius)">
+                  <div class="flex flex-1 flex-col gap-1.5 min-h-0 min-h-[3rem] overflow-y-auto p-1.5" data-app-kanban-column="geclassificeerd" style="background: transparent; border-radius: var(--app-radius)">
+                  <div class="flex flex-1 flex-col gap-1.5 min-h-0 min-h-[3rem] overflow-y-auto p-1.5" data-app-kanban-column="in_behandeling" style="background: transparent; border-radius: var(--app-radius)">
+                  <div class="flex flex-1 flex-col gap-1.5 min-h-0 min-h-[3rem] overflow-y-auto p-1.5" data-app-kanban-column="beantwoord" style="background: transparent; border-radius: var(--app-radius)">
+                  <div class="flex flex-1 flex-col gap-1.5 min-h-0 min-h-[3rem] overflow-y-auto p-1.5" data-app-kanban-column="afgehandeld" style="background: transparent; border-radius: var(--app-radius)">
+            <div id="DndDescribedBy-0" style="display: none">
+              "To pick up a draggable item, press the space bar. While dragging, use the arrow keys to move the item. Press space again to drop the item in its new position, or press escape to cancel."
+            <div aria-atomic="true" aria-live="assertive" id="DndLiveRegion-0" role="status" style="border: 0px; clip-path: inset(100%); clip: rect(0px); height: 1px; left: 0px; margin: -1px; overflow: hidden; padding: 0px; position: fixed; top: 0px; white-space: nowrap; width: 1px">
+## screen scr_qistats (Dashboard)
+<div class="app-design--surface-soft app-motion--full app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(3, 105, 161, 0.1); --app-accent: #0369A1; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(3, 105, 161, 0.1); --app-primary: #0369A1; --app-radius: 12px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-family: "Satoshi", system-ui, -apple-system, sans-serif; font-size: 15px; min-height: 100vh">
+  <main class="flex flex-1 flex-col min-h-0">
+    <div class="app-design--surface-soft app-motion--full app-runtime app-screen-enter w-full" data-app-appearance="auto" data-app-screen="scr_qistats" data-app-screen-kind="dashboard" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(3, 105, 161, 0.1); --app-accent: #0369A1; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(3, 105, 161, 0.1); --app-primary: #0369A1; --app-radius: 12px; --app-space: 1; color: var(--text-primary); font-family: "Satoshi", system-ui, -apple-system, sans-serif; font-size: 15px">
+      <div class="flex flex-col w-full" style="margin: 0px auto; max-width: 1280px">
+        <section class="app-grid" data-section-id="sec_qitiles" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-3 min-w-0" data-app-type="stat" data-node-id="cmp_qit1" style="grid-column: span 3 / span 3">
+            <div class="app-stat flex gap-2.5 items-start">
+              <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-8 inline-flex items-center justify-center mt-0.5 rounded-md shrink-0 w-8">
+                <svg class="h-4 lucide lucide-sparkles lucide-stars w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-[var(--text-secondary)] text-xs">
+                  "To classify"
+                <div class="flex gap-2 items-baseline min-w-0">
+                  <div class="font-semibold leading-tight text-2xl truncate" title="—">
+                    "—"
+                <div class="text-[var(--text-muted)] text-xs">
+                  "Requests without an AI classification."
+          <div class="app-node app-span-3 min-w-0" data-app-type="stat" data-node-id="cmp_qit2" style="grid-column: span 3 / span 3">
+            <div class="app-stat flex gap-2.5 items-start">
+              <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-8 inline-flex items-center justify-center mt-0.5 rounded-md shrink-0 w-8">
+                <svg class="h-4 lucide lucide-inbox w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-[var(--text-secondary)] text-xs">
+                  "Open requests"
+                <div class="flex gap-2 items-baseline min-w-0">
+                  <div class="font-semibold leading-tight text-2xl truncate" title="—">
+                    "—"
+                <div class="text-[var(--text-muted)] text-xs">
+                  "New, classified or in progress."
+          <div class="app-node app-span-3 min-w-0" data-app-type="stat" data-node-id="cmp_qit3" style="grid-column: span 3 / span 3">
+            <div class="app-stat flex gap-2.5 items-start">
+              <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-8 inline-flex items-center justify-center mt-0.5 rounded-md shrink-0 w-8">
+                <svg class="h-4 lucide lucide-trophy w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-[var(--text-secondary)] text-xs">
+                  "Won"
+                <div class="flex gap-2 items-baseline min-w-0">
+                  <div class="font-semibold leading-tight text-2xl truncate" title="—">
+                    "—"
+                <div class="text-[var(--text-muted)] text-xs">
+                  "Quotes that turned into orders."
+          <div class="app-node app-span-3 min-w-0" data-app-type="stat" data-node-id="cmp_qit4" style="grid-column: span 3 / span 3">
+            <div class="app-stat flex gap-2.5 items-start">
+              <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-8 inline-flex items-center justify-center mt-0.5 rounded-md shrink-0 w-8">
+                <svg class="h-4 lucide lucide-euro w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-[var(--text-secondary)] text-xs">
+                  "Value won"
+                <div class="flex gap-2 items-baseline min-w-0">
+                  <div class="font-semibold leading-tight text-2xl truncate" title="—">
+                    "—"
+                <div class="text-[var(--text-muted)] text-xs">
+                  "Sum of the quotes recorded as won."
+          <div class="app-node app-span-6 min-w-0" data-app-type="chart" data-node-id="cmp_qivol" style="grid-column: span 6 / span 6; height: 200px; overflow: auto">
+            <div class="flex h-full items-center justify-center min-h-0 py-1 text-[var(--text-muted)] text-center text-sm">
+              "No chart data yet."
+          <div class="app-node app-span-6 min-w-0" data-app-type="chart" data-node-id="cmp_qioutch" style="grid-column: span 6 / span 6; height: 200px; overflow: auto">
+            <div class="flex h-full items-center justify-center min-h-0 py-1 text-[var(--text-muted)] text-center text-sm">
+              "No chart data yet."
+          <div class="app-node app-span-4 min-w-0" data-app-type="chart" data-node-id="cmp_qibytype" style="grid-column: span 4 / span 4; height: 200px; overflow: auto">
+            <div class="flex h-full items-center justify-center min-h-0 py-1 text-[var(--text-muted)] text-center text-sm">
+              "No chart data yet."
+          <div class="app-node app-span-4 min-w-0" data-app-type="chart" data-node-id="cmp_qibysl" style="grid-column: span 4 / span 4; height: 200px; overflow: auto">
+            <div class="flex h-full items-center justify-center min-h-0 py-1 text-[var(--text-muted)] text-center text-sm">
+              "No chart data yet."
+          <div class="app-node app-span-4 min-w-0" data-app-type="chart" data-node-id="cmp_qibymat" style="grid-column: span 4 / span 4; height: 200px; overflow: auto">
+            <div class="flex h-full items-center justify-center min-h-0 py-1 text-[var(--text-muted)] text-center text-sm">
+              "No chart data yet."
+          <div class="app-node app-span-6 min-w-0" data-app-type="data_grid" data-node-id="cmp_qilead" style="font-size: 0.875em; grid-column: span 6 / span 6; height: 200px; overflow: auto">
+            <div class="w-full" data-app-datagrid="true">
+              <div class="flex flex-col gap-1.5 h-full items-center justify-center min-h-0 py-6 text-center">
+                <span class="mb-1 text-[var(--text-tertiary)]">
+                  <svg class="block" aria-hidden="true" fill="none" role="presentation" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 96 72" style="height: auto; opacity: 0.9; width: 5.5rem">
+                <span class="font-medium text-[var(--text-primary)] text-sm">
+                  "Nothing here yet"
+                <span class="max-w-xs text-[var(--text-muted)] text-sm">
+                  "Nobody has taken a request yet."
+          <div class="app-node app-span-6 min-w-0" data-app-type="data_grid" data-node-id="cmp_qibyco" style="font-size: 0.875em; grid-column: span 6 / span 6; height: 200px; overflow: auto">
+            <div class="w-full" data-app-datagrid="true">
+              <div class="flex flex-col gap-1.5 h-full items-center justify-center min-h-0 py-6 text-center">
+                <span class="mb-1 text-[var(--text-tertiary)]">
+                  <svg class="block" aria-hidden="true" fill="none" role="presentation" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 96 72" style="height: auto; opacity: 0.9; width: 5.5rem">
+                <span class="font-medium text-[var(--text-primary)] text-sm">
+                  "Nothing here yet"
+                <span class="max-w-xs text-[var(--text-muted)] text-sm">
+                  "No companies classified yet."
+## screen scr_qimat (Materials)
+<div class="app-design--surface-soft app-motion--full app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(3, 105, 161, 0.1); --app-accent: #0369A1; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(3, 105, 161, 0.1); --app-primary: #0369A1; --app-radius: 12px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-family: "Satoshi", system-ui, -apple-system, sans-serif; font-size: 15px; min-height: 100vh">
+  <main class="flex flex-1 flex-col min-h-0">
+    <div class="app-design--surface-soft app-motion--full app-runtime app-screen-enter w-full" data-app-appearance="auto" data-app-screen="scr_qimat" data-app-screen-kind="page" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(3, 105, 161, 0.1); --app-accent: #0369A1; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(3, 105, 161, 0.1); --app-primary: #0369A1; --app-radius: 12px; --app-space: 1; color: var(--text-primary); font-family: "Satoshi", system-ui, -apple-system, sans-serif; font-size: 15px">
+      <div class="flex flex-col w-full" style="margin: 0px auto; max-width: 1280px">
+        <section class="app-grid" data-section-id="sec_qimat" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="page_header" data-node-id="cmp_qimath" style="grid-column: span 12 / span 12">
+            <header class="min-w-0 w-full" data-app-pageheader="true">
+              <div class="flex flex-wrap items-start" style="gap: calc(8px * var(--app-space, 1))">
+                <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-9 inline-flex items-center justify-center rounded-md shrink-0 w-9" aria-hidden="true">
+                  <svg class="h-4.5 lucide lucide-layers lucide-layers-3 w-4.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                <div class="basis-64 flex-1 min-w-0">
+                  <h1 class="font-semibold text-[var(--text-primary)] text-xl truncate" title="Materials">
+                    "Materials"
+                  <p class="line-clamp-2 mt-0.5 text-sm" title="Administrators maintain this list. The classify prompt carries a copy of it, so keep the two in step." style="color: var(--text-secondary)">
+                    "Administrators maintain this list. The classify prompt carries a copy of it, so keep the two in step."
+              <hr class="[background:var(--border-default)] border-0 h-px mt-3 w-full" aria-hidden="true">
+          <div class="app-node app-span-12 min-w-0" data-app-type="data_grid" data-node-id="cmp_qimatg" style="grid-column: span 12 / span 12; height: 200px; overflow: auto">
+            <div class="w-full" data-app-datagrid="true">
+              <div class="flex flex-col gap-1.5 h-full items-center justify-center min-h-0 py-6 text-center">
+                <span class="mb-1 text-[var(--text-tertiary)]">
+                  <svg class="block" aria-hidden="true" fill="none" role="presentation" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 96 72" style="height: auto; opacity: 0.9; width: 5.5rem">
+                <span class="font-medium text-[var(--text-primary)] text-sm">
+                  "Nothing here yet"
+                <span class="max-w-xs text-[var(--text-muted)] text-sm">
+                  "No materials yet."
+          <div class="app-node app-span-12 min-w-0" data-app-type="form" data-node-id="cmp_qimatform" style="grid-column: span 12 / span 12">
+            <form class="flex flex-col" novalidate="" style="gap: calc(8px * var(--app-space, 1))">
+              <div class="app-grid" style="gap: calc(8px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                <div class="app-node app-span-4 min-w-0" data-app-type="input_text" data-node-id="cmp_qimatnm" style="grid-column: span 4 / span 4">
+                  <div class="flex flex-col gap-1 text-left">
+                    <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_qimatnm-input">
+                      "Name"
+                      <span class="[color:var(--error)]" aria-hidden="true">
+                        "*"
+                    <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-required="true" id="cmp_qimatnm-input" name="naam" placeholder="e.g. RVS 304" type="text" value="" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                <div class="app-node app-span-4 min-w-0" data-app-type="input_text" data-node-id="cmp_qimatgr" style="grid-column: span 4 / span 4">
+                  <div class="flex flex-col gap-1 text-left">
+                    <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_qimatgr-input">
+                      "Group"
+                    <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" id="cmp_qimatgr-input" name="groep" placeholder="e.g. Stainless" type="text" value="" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                <div class="app-node app-span-4 min-w-0" data-app-type="input_text" data-node-id="cmp_qimatop" style="grid-column: span 4 / span 4">
+                  <div class="flex flex-col gap-1 text-left">
+                    <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_qimatop-input">
+                      "Note"
+                    <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" id="cmp_qimatop-input" name="opmerking" type="text" value="" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+              <div class="flex gap-2 items-center">
+                <button class="[background:var(--app-accent,var(--app-primary))] [border-radius:var(--app-radius)] [color:var(--app-accent-contrast,var(--app-primary-contrast))]! disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm" type="submit">
+                  <span>
+                    "Add material"
+## screen scr_qicol (Portal format)
+<div class="app-design--surface-soft app-motion--full app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(3, 105, 161, 0.1); --app-accent: #0369A1; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(3, 105, 161, 0.1); --app-primary: #0369A1; --app-radius: 12px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-family: "Satoshi", system-ui, -apple-system, sans-serif; font-size: 15px; min-height: 100vh">
+  <main class="flex flex-1 flex-col min-h-0">
+    <div class="app-design--surface-soft app-motion--full app-runtime app-screen-enter w-full" data-app-appearance="auto" data-app-screen="scr_qicol" data-app-screen-kind="page" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(3, 105, 161, 0.1); --app-accent: #0369A1; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(3, 105, 161, 0.1); --app-primary: #0369A1; --app-radius: 12px; --app-space: 1; color: var(--text-primary); font-family: "Satoshi", system-ui, -apple-system, sans-serif; font-size: 15px">
+      <div class="flex flex-col w-full" style="margin: 0px auto; max-width: 1280px">
+        <section class="app-grid" data-section-id="sec_qicol" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="page_header" data-node-id="cmp_qicolh" style="grid-column: span 12 / span 12">
+            <header class="min-w-0 w-full" data-app-pageheader="true">
+              <div class="flex flex-wrap items-start" style="gap: calc(8px * var(--app-space, 1))">
+                <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-9 inline-flex items-center justify-center rounded-md shrink-0 w-9" aria-hidden="true">
+                  <svg class="h-4.5 lucide lucide-columns-3 lucide-panels-left-right w-4.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                <div class="basis-64 flex-1 min-w-0">
+                  <h1 class="font-semibold text-[var(--text-primary)] text-xl truncate" title="Portal format">
+                    "Portal format"
+                  <p class="line-clamp-2 mt-0.5 text-sm" title="Administrators maintain this list. Button 3 on a request renders exactly these columns, in this order." style="color: var(--text-secondary)">
+                    "Administrators maintain this list. Button 3 on a request renders exactly these columns, in this order."
+              <hr class="[background:var(--border-default)] border-0 h-px mt-3 w-full" aria-hidden="true">
+          <div class="app-node app-span-12 min-w-0" data-app-type="callout" data-node-id="cmp_qicolnote" style="grid-column: span 12 / span 12">
+            <div class="flex gap-2.5 items-start px-3 py-2.5 text-sm" data-app-callout="info" style="background: rgba(14, 165, 233, 0.1); border-left: 3px solid rgb(14, 165, 233); border-radius: var(--app-radius); color: var(--text-primary)">
+              <svg class="h-4 lucide lucide-info mt-0.5 shrink-0 w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg" style="color: rgb(14, 165, 233)">
+              <div class="min-w-0">
+                <div class="font-medium">
+                  "from vs value"
+                <div class="app-callout__body text-[var(--text-secondary)]">
+                  "Each row is one CSV column: "From field" copies that project-line field onto every line, "Fixed value" prints the same text on every line — fill exactly one of the two."
+          <div class="app-node app-span-12 min-w-0" data-app-type="data_grid" data-node-id="cmp_qicolg" style="grid-column: span 12 / span 12; height: 320px; overflow: auto">
+            <div class="w-full" data-app-datagrid="true">
+              <div class="flex flex-col gap-1.5 h-full items-center justify-center min-h-0 py-6 text-center">
+                <span class="mb-1 text-[var(--text-tertiary)]">
+                  <svg class="block" aria-hidden="true" fill="none" role="presentation" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 96 72" style="height: auto; opacity: 0.9; width: 5.5rem">
+                <span class="font-medium text-[var(--text-primary)] text-sm">
+                  "Nothing here yet"
+                <span class="max-w-xs text-[var(--text-muted)] text-sm">
+                  "No columns yet — the portal CSV would be empty."
+          <div class="app-node app-span-12 min-w-0" data-app-type="form" data-node-id="cmp_qicolform" style="grid-column: span 12 / span 12">
+            <form class="flex flex-col" novalidate="" style="gap: calc(8px * var(--app-space, 1))">
+              <div class="app-grid" style="gap: calc(8px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                <div class="app-node app-span-2 min-w-0" data-app-type="input_number" data-node-id="cmp_qicolor" style="grid-column: span 2 / span 2">
+                  <div class="flex flex-col gap-1 text-left">
+                    <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_qicolor-input">
+                      "Order"
+                    <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" id="cmp_qicolor-input" name="order" step="1" type="number" value="" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                <div class="app-node app-span-3 min-w-0" data-app-type="input_text" data-node-id="cmp_qicolnm" style="grid-column: span 3 / span 3">
+                  <div class="flex flex-col gap-1 text-left">
+                    <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_qicolnm-input">
+                      "Header"
+                      <span class="[color:var(--error)]" aria-hidden="true">
+                        "*"
+                    <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-required="true" id="cmp_qicolnm-input" name="name" placeholder="e.g. Material" type="text" value="" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                <div class="app-node app-span-4 min-w-0" data-app-type="input_text" data-node-id="cmp_qicolfr" style="grid-column: span 4 / span 4">
+                  <div class="flex flex-col gap-1 text-left">
+                    <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_qicolfr-input">
+                      "From field"
+                    <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" id="cmp_qicolfr-input" name="from" placeholder="project-line field, e.g. materiaal" type="text" value="" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                <div class="app-node app-span-3 min-w-0" data-app-type="input_text" data-node-id="cmp_qicolvl" style="grid-column: span 3 / span 3">
+                  <div class="flex flex-col gap-1 text-left">
+                    <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_qicolvl-input">
+                      "Fixed value"
+                    <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" id="cmp_qicolvl-input" name="value" placeholder="e.g. 0" type="text" value="" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+              <div class="flex gap-2 items-center">
+                <button class="[background:var(--app-accent,var(--app-primary))] [border-radius:var(--app-radius)] [color:var(--app-accent-contrast,var(--app-primary-contrast))]! disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm" type="submit">
+                  <span>
+                    "Add column"
+## screen scr_qiop (Operations)
+<div class="app-design--surface-soft app-motion--full app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(3, 105, 161, 0.1); --app-accent: #0369A1; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(3, 105, 161, 0.1); --app-primary: #0369A1; --app-radius: 12px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-family: "Satoshi", system-ui, -apple-system, sans-serif; font-size: 15px; min-height: 100vh">
+  <main class="flex flex-1 flex-col min-h-0">
+    <div class="app-design--surface-soft app-motion--full app-runtime app-screen-enter w-full" data-app-appearance="auto" data-app-screen="scr_qiop" data-app-screen-kind="page" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(3, 105, 161, 0.1); --app-accent: #0369A1; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(3, 105, 161, 0.1); --app-primary: #0369A1; --app-radius: 12px; --app-space: 1; color: var(--text-primary); font-family: "Satoshi", system-ui, -apple-system, sans-serif; font-size: 15px">
+      <div class="flex flex-col w-full" style="margin: 0px auto; max-width: 1280px">
+        <section class="app-grid" data-section-id="sec_qiop" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="page_header" data-node-id="cmp_qioph" style="grid-column: span 12 / span 12">
+            <header class="min-w-0 w-full" data-app-pageheader="true">
+              <div class="flex flex-wrap items-start" style="gap: calc(8px * var(--app-space, 1))">
+                <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-9 inline-flex items-center justify-center rounded-md shrink-0 w-9" aria-hidden="true">
+                  <svg class="h-4.5 lucide lucide-wrench w-4.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                <div class="basis-64 flex-1 min-w-0">
+                  <h1 class="font-semibold text-[var(--text-primary)] text-xl truncate" title="Operations">
+                    "Operations"
+                  <p class="line-clamp-2 mt-0.5 text-sm" title="The finishing vocabulary the drawing reader looks for. Assign each operation to the CountCustom column your portal expects — this replaces the operations overview spreadsheet." style="color: var(--text-secondary)">
+                    "The finishing vocabulary the drawing reader looks for. Assign each operation to the CountCustom column your portal expects — this replaces the operations overview spreadsheet."
+              <hr class="[background:var(--border-default)] border-0 h-px mt-3 w-full" aria-hidden="true">
+          <div class="app-node app-span-12 min-w-0" data-app-type="data_grid" data-node-id="cmp_qiopg" style="grid-column: span 12 / span 12; height: 200px; overflow: auto">
+            <div class="w-full" data-app-datagrid="true">
+              <div class="flex flex-col gap-1.5 h-full items-center justify-center min-h-0 py-6 text-center">
+                <span class="mb-1 text-[var(--text-tertiary)]">
+                  <svg class="block" aria-hidden="true" fill="none" role="presentation" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 96 72" style="height: auto; opacity: 0.9; width: 5.5rem">
+                <span class="font-medium text-[var(--text-primary)] text-sm">
+                  "Nothing here yet"
+                <span class="max-w-xs text-[var(--text-muted)] text-sm">
+                  "No operations yet."
+          <div class="app-node app-span-12 min-w-0" data-app-type="form" data-node-id="cmp_qiopform" style="grid-column: span 12 / span 12">
+            <form class="flex flex-col" novalidate="" style="gap: calc(8px * var(--app-space, 1))">
+              <div class="app-grid" style="gap: calc(8px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                <div class="app-node app-span-3 min-w-0" data-app-type="input_text" data-node-id="cmp_qiopnm" style="grid-column: span 3 / span 3">
+                  <div class="flex flex-col gap-1 text-left">
+                    <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_qiopnm-input">
+                      "Operation"
+                      <span class="[color:var(--error)]" aria-hidden="true">
+                        "*"
+                    <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-required="true" id="cmp_qiopnm-input" name="naam" placeholder="e.g. tappen" type="text" value="" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                <div class="app-node app-span-5 min-w-0" data-app-type="input_text" data-node-id="cmp_qiopsy" style="grid-column: span 5 / span 5">
+                  <div class="flex flex-col gap-1 text-left">
+                    <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_qiopsy-input">
+                      "Synonyms"
+                    <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" id="cmp_qiopsy-input" name="synoniemen" placeholder="e.g. tapping, draadtappen" type="text" value="" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                <div class="app-node app-span-4 min-w-0" data-app-type="input_select" data-node-id="cmp_qiopdk" style="font-size: 0.875em; grid-column: span 4 / span 4">
+                  <div class="flex flex-col gap-1 text-left">
+                    <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_qiopdk-input">
+                      "Counts into"
+                      <span class="[color:var(--error)]" aria-hidden="true">
+                        "*"
+                    <select class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-required="true" id="cmp_qiopdk-input" name="doel_kolom" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                      <option disabled="" value="">
+                        "Pick a column"
+                      <option value="op_count_1">
+                        "CountCustom1"
+                      <option value="op_count_2">
+                        "CountCustom2"
+                      <option value="op_count_3">
+                        "CountCustom3"
+                      <option value="op_count_4">
+                        "CountCustom4"
+                      <option value="op_count_5">
+                        "CountCustom5"
+              <div class="flex gap-2 items-center">
+                <button class="[background:var(--app-accent,var(--app-primary))] [border-radius:var(--app-radius)] [color:var(--app-accent-contrast,var(--app-primary-contrast))]! disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm" type="submit">
+                  <span>
+                    "Add operation"
+## screen scr_qimail (Mailbox)
+<div class="app-design--surface-soft app-motion--full app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(3, 105, 161, 0.1); --app-accent: #0369A1; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(3, 105, 161, 0.1); --app-primary: #0369A1; --app-radius: 12px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-family: "Satoshi", system-ui, -apple-system, sans-serif; font-size: 15px; min-height: 100vh">
+  <main class="flex flex-1 flex-col min-h-0">
+    <div class="app-design--surface-soft app-motion--full app-runtime app-screen-enter w-full" data-app-appearance="auto" data-app-screen="scr_qimail" data-app-screen-kind="page" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(3, 105, 161, 0.1); --app-accent: #0369A1; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(3, 105, 161, 0.1); --app-primary: #0369A1; --app-radius: 12px; --app-space: 1; color: var(--text-primary); font-family: "Satoshi", system-ui, -apple-system, sans-serif; font-size: 15px">
+      <div class="flex flex-col w-full" style="margin: 0px auto; max-width: 1280px">
+        <section class="app-grid" data-section-id="sec_qimail" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="page_header" data-node-id="cmp_qimailh" style="grid-column: span 12 / span 12">
+            <header class="min-w-0 w-full" data-app-pageheader="true">
+              <div class="flex flex-wrap items-start" style="gap: calc(8px * var(--app-space, 1))">
+                <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-9 inline-flex items-center justify-center rounded-md shrink-0 w-9" aria-hidden="true">
+                  <svg class="h-4.5 lucide lucide-mail w-4.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                <div class="basis-64 flex-1 min-w-0">
+                  <h1 class="font-semibold text-[var(--text-primary)] text-xl truncate" title="Where the requests come from">
+                    "Where the requests come from"
+                  <p class="line-clamp-2 mt-0.5 text-sm" title="The intake mailbox reads mail labelled "intake" through the Google or Microsoft account you signed in with." style="color: var(--text-secondary)">
+                    "The intake mailbox reads mail labelled "intake" through the Google or Microsoft account you signed in with."
+              <hr class="[background:var(--border-default)] border-0 h-px mt-3 w-full" aria-hidden="true">
+          <div class="app-node app-span-12 min-w-0" data-app-type="connector_status" data-node-id="cmp_qiconn" style="grid-column: span 12 / span 12">
+            <div class="app-connector-card border flex gap-3 items-center justify-between p-3 rounded-lg" data-app-connector-status="conn_qimail" data-connected="true">
+              <div class="flex gap-2.5 items-start min-w-0">
+                <span class="mt-0.5 shrink-0" aria-hidden="true" style="color: rgb(16, 185, 129)">
+                  <svg class="h-4 lucide lucide-check-circle-2 lucide-circle-check w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                <span class="min-w-0">
+                  <span class="block font-medium text-[var(--text-primary)] text-sm truncate">
+                    "Intake mailbox"
+                  <span class="block mt-0.5 text-[var(--text-tertiary)] text-xs">
+                    "Preview: the real account and the last check show here once the app runs."
+          <div class="app-node app-span-12 min-w-0" data-app-type="callout" data-node-id="cmp_qisetnote" style="grid-column: span 12 / span 12">
+            <div class="flex gap-2.5 items-start px-3 py-2.5 text-sm" data-app-callout="info" style="background: rgba(14, 165, 233, 0.1); border-left: 3px solid rgb(14, 165, 233); border-radius: var(--app-radius); color: var(--text-primary)">
+              <svg class="h-4 lucide lucide-info mt-0.5 shrink-0 w-4" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg" style="color: rgb(14, 165, 233)">
+              <div class="min-w-0">
+                <div class="font-medium">
+                  "Nothing arriving?"
+                <div class="app-callout__body text-[var(--text-secondary)]">
+                  "Requests only appear for mail carrying the label "intake" — give one message that label and it shows up within two minutes. Switching to Outlook at a customer: set the connector's provider to outlook and replace the Gmail search (label:intake) with a folder or category filter. If intake mail lands on a genuinely shared mailbox, set the connector's mode to shared and fill in that mailbox address."
+          <div class="app-node app-span-12 min-w-0" data-app-type="list" data-node-id="cmp_qirecent" style="font-size: 0.875em; grid-column: span 12 / span 12; height: 200px; overflow: auto">
+            <div class="flex flex-col gap-1.5 h-full items-center justify-center min-h-0 py-6 text-center">
+              <span class="mb-1 text-[var(--text-tertiary)]">
+                <svg class="block" aria-hidden="true" fill="none" role="presentation" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 96 72" style="height: auto; opacity: 0.9; width: 5.5rem">
+              <span class="font-medium text-[var(--text-primary)] text-sm">
+                "Nothing here yet"
+              <span class="max-w-xs text-[var(--text-muted)] text-sm">
+                "No mail has arrived yet. Label a message "intake" and check again."
+## screen scr_qiact (Activity)
+<div class="app-design--surface-soft app-motion--full app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(3, 105, 161, 0.1); --app-accent: #0369A1; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(3, 105, 161, 0.1); --app-primary: #0369A1; --app-radius: 12px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-family: "Satoshi", system-ui, -apple-system, sans-serif; font-size: 15px; min-height: 100vh">
+  <main class="flex flex-1 flex-col min-h-0">
+    <div class="app-design--surface-soft app-motion--full app-runtime app-screen-enter w-full" data-app-appearance="auto" data-app-screen="scr_qiact" data-app-screen-kind="page" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(3, 105, 161, 0.1); --app-accent: #0369A1; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(3, 105, 161, 0.1); --app-primary: #0369A1; --app-radius: 12px; --app-space: 1; color: var(--text-primary); font-family: "Satoshi", system-ui, -apple-system, sans-serif; font-size: 15px">
+      <div class="flex flex-col w-full" style="margin: 0px auto; max-width: 1280px">
+        <section class="app-grid" data-section-id="sec_qiact" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="page_header" data-node-id="cmp_qiacth" style="grid-column: span 12 / span 12">
+            <header class="min-w-0 w-full" data-app-pageheader="true">
+              <div class="flex flex-wrap items-start" style="gap: calc(8px * var(--app-space, 1))">
+                <span class="[background:var(--app-primary-soft)] [color:var(--app-primary)] h-9 inline-flex items-center justify-center rounded-md shrink-0 w-9" aria-hidden="true">
+                  <svg class="h-4.5 lucide lucide-history lucide-rotate-ccw-clock w-4.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                <div class="basis-64 flex-1 min-w-0">
+                  <h1 class="font-semibold text-[var(--text-primary)] text-xl truncate" title="Activity">
+                    "Activity"
+                  <p class="line-clamp-2 mt-0.5 text-sm" title="Append-only: nobody, not even an administrator, can edit this trail." style="color: var(--text-secondary)">
+                    "Append-only: nobody, not even an administrator, can edit this trail."
+              <hr class="[background:var(--border-default)] border-0 h-px mt-3 w-full" aria-hidden="true">
+          <div class="app-node app-span-12 min-w-0" data-app-type="data_grid" data-node-id="cmp_qiactg" style="grid-column: span 12 / span 12; height: 320px; overflow: auto">
+            <div class="w-full" data-app-datagrid="true">
+              <div class="flex flex-col gap-1.5 h-full items-center justify-center min-h-0 py-6 text-center">
+                <span class="mb-1 text-[var(--text-tertiary)]">
+                  <svg class="block" aria-hidden="true" fill="none" role="presentation" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 96 72" style="height: auto; opacity: 0.9; width: 5.5rem">
+                <span class="font-medium text-[var(--text-primary)] text-sm">
+                  "Nothing here yet"
+                <span class="max-w-xs text-[var(--text-muted)] text-sm">
+                  "No activity yet."

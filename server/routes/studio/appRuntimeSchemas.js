@@ -31,6 +31,7 @@ const DraftQuery = queryOf({
     draft: choice(['0', '1', 'true', 'false'], 'draft is 1 to run the saved draft.').optional(),
 }, 'An app request');
 
+const KIND_TEXT = 'kind is the kind of the step at stepIndex.';
 const CALL_PATH_TEXT = `callPath is the list of call_action step positions, root first (at most ${LIMITS.MAX_CALL_DEPTH}).`;
 
 const ERROR_TEXT = 'error is the failure an onError handler handles: { message, step, code, attempts, stepIndex }.';
@@ -52,6 +53,9 @@ const RunKey = worded(RUN_KEY_TEXT).regex(/^rk_[A-Za-z0-9_-]{16,64}$/, RUN_KEY_T
 /** One server step of an action (…/actions/:actionId/step). */
 const StepBody = bodyOf({
     stepIndex: wholeNumber('stepIndex is the position of the step in the action.'),
+    // The kind the client believes that step has: checked against the definition, and required
+    // once the action holds a step kind of the registry (actionSequence.resolveRequestedStep).
+    kind: z.string({ error: KIND_TEXT }).min(1, KIND_TEXT).max(40, KIND_TEXT).optional(),
     formValues: bag('formValues').nullish(),
     vars: bag('vars').nullish(),
     // The loop's current row and the trigger's value: client-supplied, bounded
@@ -67,6 +71,12 @@ const StepBody = bodyOf({
     error: ErrorScope.optional(),
     // The run log: the key that ties the server steps of one click together (appStudio/runLog/clickRuns.mts).
     runKey: RunKey.optional(),
+    // Sent only by an app whose definition sets serverScope: 'wide', and read only for such an app
+    // (appStudio/actionExecutor/wideScope.mts bounds them): the screen params, the other forms and the
+    // action results this step's formulas name. Viewer input, like formValues and vars.
+    screenParams: bag('screenParams').nullish(),
+    forms: bag('forms').nullish(),
+    actionResults: bag('actionResults').nullish(),
 }, 'An action step');
 
 const RUN_END_TEXT = 'status is success, error or cancelled.';
@@ -138,10 +148,55 @@ const jsonText = (name) => worded(JSON_TEXT(name)).max(20_000, JSON_TEXT(name)).
 const RecordsQuery = queryOf({
     filter: jsonText('filter').optional(),
     sort: jsonText('sort').optional(),
+    // How the filters join (all of them, or any one) and a free search over some columns.
+    match: choice(['all', 'any'], 'match is all or any.').optional(),
+    search: jsonText('search').optional(),
+    // Up to three { field, dir } entries; when present it replaces sort.
+    orderBy: jsonText('orderBy').optional(),
+    // Up to five { field, pick?, as? }: the related row of a relation field, read under its own table's row rules.
+    expand: jsonText('expand').optional(),
+    // The columns to return (next to id).
+    fields: jsonText('fields').optional(),
     cursor: worded('cursor is the value the previous page handed back.').max(500, 'cursor is the value the previous page handed back.').optional(),
     limit: wholeNumber('limit is a whole number, 1 or more.', { min: 1 }).optional(),
     // The editor's preview asks for a sample; the page size already covers it.
     sample: choice(['0', '1'], 'sample is 1 for an editor preview.').optional(),
+    // 1 adds `total`: how many records the whole read matches (a paged list shows it).
+    total: choice(['0', '1'], 'total is 1 to count the matching records.').optional(),
 }, 'A table page');
 
-module.exports = { DraftQuery, StepBody, RunBody, RunEndBody, BackgroundBody, JobParams, JobsQuery, ChatBody, RecordsQuery, ErrorScope };
+/**
+ * filter / sort / orderBy / expand / fields of a table page, from the JSON text RecordsQuery let
+ * through. The compiler validates the shapes; `orderBy`, `expand` and `fields` are present only
+ * when the request sent one.
+ * @param {Record<string, unknown>} query
+ * @returns {{ filters: unknown, sort: unknown, orderBy?: unknown, expand?: unknown, fields?: unknown }}
+ */
+function listQueryOf(query) {
+    /** @param {string} name */
+    const parsed = (name) => (typeof query[name] === 'string' && query[name] ? JSON.parse(/** @type {string} */ (query[name])) : undefined);
+    const filter = parsed('filter');
+    const orderBy = parsed('orderBy');
+    /** @type {{ filters: unknown, sort: unknown, orderBy?: unknown, expand?: unknown, fields?: unknown }} */
+    const out = { filters: filter !== undefined && !Array.isArray(filter) ? [filter] : filter, sort: parsed('sort') };
+    if (orderBy !== undefined) out.orderBy = orderBy;
+    return { ...out, ...relationQueryOf(query) };
+}
+
+/**
+ * `expand` and `fields` of a table page, each only when the request sent one. RecordsQuery
+ * already refused text that is not JSON; the compiler validates the shapes.
+ * @param {Record<string, unknown>} query
+ * @returns {{ expand?: unknown, fields?: unknown }}
+ */
+function relationQueryOf(query) {
+    /** @type {{ expand?: unknown, fields?: unknown }} */
+    const out = {};
+    for (const name of /** @type {const} */ (['expand', 'fields'])) {
+        const text = query[name];
+        if (typeof text === 'string' && text) out[name] = JSON.parse(text);
+    }
+    return out;
+}
+
+module.exports = { listQueryOf, relationQueryOf, DraftQuery, StepBody, RunBody, RunEndBody, BackgroundBody, JobParams, JobsQuery, ChatBody, RecordsQuery, ErrorScope };

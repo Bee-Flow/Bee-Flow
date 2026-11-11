@@ -1,0 +1,85 @@
+/*
+ * App Studio runtime: the optional section keys (runtime/sectionModel.ts), imported by
+ * AppSection. Every rule keys off a class that only a section using one of those keys carries,
+ * so a section without them is styled by layout.css alone, as before.
+ */
+
+/* section.maxWidth: a capped section is centred in the screen's column. */
+.app-grid.app-section-max-narrow,
+.app-grid.app-section-max-medium,
+.app-grid.app-section-max-wide {
+    width: 100%;
+    margin-inline: auto;
+}
+.app-grid.app-section-max-narrow { max-width: 640px; }
+.app-grid.app-section-max-medium { max-width: 960px; }
+.app-grid.app-section-max-wide { max-width: 1280px; }
+
+/* section.title: the first row of the section's own grid, across every column, inside its
+   padding and on its background, so it lines up with the components below it. */
+.app-section-header {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+}
+.app-section-title {
+    margin: 0;
+    font-size: 1.0625rem;
+    line-height: 1.4;
+    font-weight: 600;
+    color: var(--text-primary);
+    overflow-wrap: anywhere;
+}
+.app-section-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    border-radius: var(--app-radius, 6px);
+}
+.app-section-toggle:focus-visible {
+    outline: 2px solid var(--app-primary, currentColor);
+    outline-offset: 2px;
+}
+.app-section-chevron {
+    width: 1rem;
+    height: 1rem;
+    flex-shrink: 0;
+    color: var(--text-muted);
+    transition: transform var(--app-motion-fast, 120ms) var(--app-ease, ease);
+}
+.app-section--collapsed .app-section-chevron {
+    transform: rotate(-90deg);
+}
+
+/* A full-height section with a title: the title takes its natural height and the components
+   keep the stretching row below it (layout.css gives a fill section one 1fr row). The phone
+   fallback in layout.css drops the fixed rows below 640px, so this applies above it only. */
+@media (min-width: 640px) {
+    .app-section--titled.app-section-fill {
+        grid-template-rows: auto minmax(0, 1fr) !important;
+    }
+}
+
+/* A folded section is only its title: whatever height it had is released. */
+.app-grid.app-section--collapsed {
+    height: auto !important;
+    min-height: 0 !important;
+    flex: none !important;
+    overflow: visible !important;
+    grid-template-rows: none !important;
+}
+
+/* The editor draws a section its condition hides, dimmed, so it stays selectable. */
+.app-grid.app-section--hidden-edit {
+    opacity: 0.45;
+}

@@ -1,0 +1,180 @@
+{
+  "corpus": "viewer-row-rules",
+  "canonical": {
+    "sha256": "0609d87a4cde0b1a76384ca78d8dcb22fbe896343fce20f89d25420ff653357b",
+    "bytes": 1782,
+    "inputIsCanonical": true,
+    "idempotent": true,
+    "keys": [
+      "schemaVersion",
+      "meta",
+      "theme",
+      "roles",
+      "screens",
+      "actions",
+      "homeScreenId"
+    ],
+    "parts": {
+      "schemaVersion": "d4735e3a265e16ee",
+      "meta": "becc47ea7353b4f0",
+      "theme": "5d7eeb0111b89897",
+      "roles": "4f53cda18c2baa0c",
+      "screens[0] scr_tasks01": "538daba8578fcd77",
+      "homeScreenId": "953ce17d1ee653a0"
+    }
+  },
+  "schemaVersion": {
+    "stored": 2,
+    "canonical": 2
+  },
+  "validation": {
+    "strict": {
+      "errors": [],
+      "warnings": []
+    },
+    "save": {
+      "errors": [],
+      "warnings": []
+    }
+  },
+  "ordinals": {
+    "stored": {},
+    "canonical": "same as stored"
+  },
+  "reads": [
+    {
+      "at": "cmp_tasks1.value",
+      "kind": "aggregate",
+      "table": "tbl_tasks01",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"tasks\" WHERE (1=1) AND \"status\" = ? LIMIT ?",
+          "params": [
+            "open",
+            50
+          ]
+        },
+        "member": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"tasks\" WHERE ((1=1) AND (((\"team\" IN (NULL)) OR (\"contact\" = ?)))) AND \"status\" = ? LIMIT ?",
+          "params": [
+            null,
+            "open",
+            50
+          ]
+        },
+        "lead": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"tasks\" WHERE ((1=1) AND (((\"org_id\" = ?) AND (NOT (\"status\" IN (NULL)))))) AND \"status\" = ? LIMIT ?",
+          "params": [
+            null,
+            "open",
+            50
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"tasks\" WHERE ((1=1) AND ((\"org_id\" = ?))) AND \"status\" = ? LIMIT ?",
+          "params": [
+            null,
+            "open",
+            50
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"tasks\" WHERE (1=1) AND \"status\" = ? LIMIT ?",
+          "params": [
+            "open",
+            50
+          ]
+        },
+        "member": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"tasks\" WHERE ((1=1) AND (((\"team\" IN (NULL)) OR (\"contact\" = ?)))) AND \"status\" = ? LIMIT ?",
+          "params": [
+            null,
+            "open",
+            50
+          ]
+        },
+        "lead": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"tasks\" WHERE ((1=1) AND (((\"org_id\" = ?) AND (NOT (\"status\" IN (NULL)))))) AND \"status\" = ? LIMIT ?",
+          "params": [
+            null,
+            "open",
+            50
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"tasks\" WHERE ((1=1) AND ((\"org_id\" = ?))) AND \"status\" = ? LIMIT ?",
+          "params": [
+            null,
+            "open",
+            50
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_taskl1.source",
+      "kind": "records",
+      "table": "tbl_tasks01",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"tasks\" WHERE (1=1) ORDER BY \"title\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "member": {
+          "sql": "SELECT * FROM \"tasks\" WHERE ((1=1) AND (((\"team\" IN (NULL)) OR (\"contact\" = ?)))) ORDER BY \"title\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            null,
+            51
+          ]
+        },
+        "lead": {
+          "sql": "SELECT * FROM \"tasks\" WHERE ((1=1) AND (((\"org_id\" = ?) AND (NOT (\"status\" IN (NULL)))))) ORDER BY \"title\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            null,
+            51
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"tasks\" WHERE ((1=1) AND ((\"org_id\" = ?))) ORDER BY \"title\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            null,
+            51
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"tasks\" WHERE (1=1) ORDER BY \"title\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "member": {
+          "sql": "SELECT * FROM \"tasks\" WHERE ((1=1) AND (((\"team\" IN (NULL)) OR (\"contact\" = ?)))) ORDER BY \"title\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            null,
+            51
+          ]
+        },
+        "lead": {
+          "sql": "SELECT * FROM \"tasks\" WHERE ((1=1) AND (((\"org_id\" = ?) AND (NOT (\"status\" IN (NULL)))))) ORDER BY \"title\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            null,
+            51
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"tasks\" WHERE ((1=1) AND ((\"org_id\" = ?))) ORDER BY \"title\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            null,
+            51
+          ]
+        }
+      }
+    }
+  ]
+}

@@ -81,14 +81,22 @@ export function roleWords(roleKey: string | null | undefined, { roles = [], plan
     if (proposed && proposed.scope) {
         return t('playbooks.access.role_scope', 'sees only rows where {column} is {value}', proposed.scope);
     }
-    // A rule already on the model, for a role that exists.
+    const rule = oneRuleOf(roleKey, planRules, tables);
+    if (rule) return ruleWords(rule, t);
+    const known = roles.find((r) => r.key === roleKey);
+    return (known && known.label) || roleKey;
+}
+
+/**
+ * The one rule of a role: the plan's, else the one already on the model. A rule per action
+ * ({ read, update, delete }) has no one sentence, so the role then keeps its name.
+ */
+function oneRuleOf(roleKey: string, planRules: AccessTableRule[], tables: AccessTable[]): string | null {
     const rule = planRules.find((r) => r.roleKey === roleKey)
         || tables.flatMap((tb) => Object.entries(((tb.access && tb.access.rowFilters) || {}))
             .map(([key, expr]) => ({ roleKey: key, expr })))
             .find((r) => r.roleKey === roleKey);
-    if (rule && rule.expr) return ruleWords(rule.expr, t);
-    const known = roles.find((r) => r.key === roleKey);
-    return (known && known.label) || roleKey;
+    return rule && typeof rule.expr === 'string' && rule.expr ? rule.expr : null;
 }
 
 /** `record.supplier == "ACME"` as a sentence. Anything else stays as it is. */

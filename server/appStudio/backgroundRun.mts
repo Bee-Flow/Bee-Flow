@@ -28,6 +28,7 @@ import { createRequire } from 'node:module';
 import { newWalkState, outcomeView, walkAction } from './sequenceWalk.mts';
 import type { Obj, Step, StepEvent, StepResult, WalkHost, WalkState } from './sequenceWalk.mts';
 import { resolveRunBinding } from './runBindings.mts';
+import { withViewerAttributes } from './viewerAttributes.mts';
 import { NOOP_RECORDER, startRun, withRunLog } from './runLog/recorder.mts';
 import { ownAction } from './actionCalls.mts';
 import {
@@ -84,12 +85,14 @@ function baseCtx(input: StartInput, w: WalkState, ownerActionId: string): Obj {
     };
 }
 
-function resolveWith(input: StartInput, deps: RunnerDeps, binding: unknown, ctx: Obj, scope: unknown, where = ''): Promise<unknown> {
+async function resolveWith(input: StartInput, deps: RunnerDeps, binding: unknown, ctx: Obj, scope: unknown, where = ''): Promise<unknown> {
     const { app, model, viewer, role } = input;
+    // email / groups / orgId for the row rules, read again for every binding: a job can run long.
+    const reader = await withViewerAttributes({ id: viewer.id, role: role || null, organizationId: viewer.organizationId || null }, model);
     return resolveRunBinding(binding, {
         app, model, ctx, scope, maxRows: LOOP_ROWS, where,
         readData: deps.readData, resolveBinding: deps.resolveBinding,
-        reader: { viewer: { id: viewer.id, role: role || null, organizationId: viewer.organizationId || null }, role },
+        reader: { viewer: reader, role },
     });
 }
 
@@ -175,9 +178,23 @@ async function writeProgress(job: Job, force: boolean): Promise<void> {
     try { await job.deps.store().updateProgress(job.jobId, { ...job.progress }); } catch { /* progress is best effort */ }
 }
 
-function deferEffect(job: Job, step: Step): void {
+/** A toast's text: its `messageExpr` worked out in the run's scope (since 3), else the literal `message`. */
+function toastMessage(job: Job, step: Step, ownerActionId: string): string {
+    const literal = typeof step.message === 'string' ? step.message : '';
+    if (typeof step.messageExpr !== 'string' || !step.messageExpr) return literal.slice(0, 500);
+    try {
+        const ctx = baseCtx(job.input, job.w, ownerActionId);
+        const got = job.deps.evaluate(step.messageExpr, job.deps.buildScope(ctx));
+        const text = typeof got === 'string' || typeof got === 'number' || typeof got === 'boolean' ? String(got).trim() : '';
+        return (text || literal).slice(0, 500);
+    } catch {
+        return literal.slice(0, 500);
+    }
+}
+
+function deferEffect(job: Job, step: Step, ownerActionId: string): void {
     const effect: Obj = step.kind === 'toast'
-        ? { kind: 'toast', message: typeof step.message === 'string' ? step.message.slice(0, 500) : '', tone: typeof step.tone === 'string' ? step.tone : 'info' }
+        ? { kind: 'toast', message: toastMessage(job, step, ownerActionId), tone: typeof step.tone === 'string' ? step.tone : 'info' }
         : { kind: 'refresh', ...(typeof step.tableId === 'string' ? { tableId: step.tableId } : {}), ...(typeof step.datasetId === 'string' ? { datasetId: step.datasetId } : {}) };
     const key = JSON.stringify(effect);
     if (job.seenEffects.has(key) || job.w.deferred.length >= MAX_DEFERRED_EFFECTS) return;
@@ -254,7 +271,7 @@ function hostFor(job: Job): WalkHost {
         async decide(step, f) {
             const kind = String(step.kind);
             if (BACKGROUND_DEFERRED_KINDS.includes(kind)) {
-                deferEffect(job, step);
+                deferEffect(job, step, f.ownerActionId);
                 return { run: false, status: 'deferred', reason: 'shown when the run ends' };
             }
             const top = /^steps\[(\d+)\]$/.exec(f.path);

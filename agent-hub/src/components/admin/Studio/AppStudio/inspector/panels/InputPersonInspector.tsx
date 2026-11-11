@@ -68,4 +68,4 @@ function InputPersonInspector({ node, definition, onCommit, disabled = false }: 
     );
 }
 
-registerInspector('input_person', InputPersonInspector);
+registerInspector('input_person', InputPersonInspector, { props: ['name', 'label', 'multiple', 'required', 'allowMe'] });

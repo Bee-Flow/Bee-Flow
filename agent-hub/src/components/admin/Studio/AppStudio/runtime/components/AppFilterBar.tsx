@@ -75,7 +75,7 @@ export default function AppFilterBar({ node }: NodeProps<{ fields?: FilterField[
     const ctlCls = `${INPUT_CLASS} ${size === 'sm' ? 'text-xs px-2 py-1' : ''}`;
 
     return (
-        <div className="flex flex-wrap items-end gap-3" data-app-filterbar="true">
+        <div className="flex flex-wrap items-end gap-3 bfa-filter_bar__root" data-app-filterbar="true">
             {fields.map((field) => {
                 const { name, label = null, type = 'search', options = [] } = field;
                 const value = values[name] as string;
@@ -86,7 +86,7 @@ export default function AppFilterBar({ node }: NodeProps<{ fields?: FilterField[
                             return (
                                 <select
                                     id={id}
-                                    className={ctlCls}
+                                    className={`${ctlCls} bfa-filter_bar__control`}
                                     style={inputStyle()}
                                     value={value ?? ''}
                                     onChange={(e) => commit(name, e.target.value, true)}
@@ -108,7 +108,7 @@ export default function AppFilterBar({ node }: NodeProps<{ fields?: FilterField[
                                         checked={!!value}
                                         onChange={(e) => commit(name, e.target.checked ? true : '', true)}
                                         disabled={disabled}
-                                        className="accent-[var(--app-primary)]"
+                                        className="accent-[var(--app-primary)] bfa-filter_bar__control"
                                     />
                                     <span className="text-[var(--text-primary)]">{label || name}</span>
                                 </label>
@@ -118,7 +118,7 @@ export default function AppFilterBar({ node }: NodeProps<{ fields?: FilterField[
                                 <input
                                     id={id}
                                     type="date"
-                                    className={ctlCls}
+                                    className={`${ctlCls} bfa-filter_bar__control`}
                                     style={inputStyle()}
                                     value={value ?? ''}
                                     onChange={(e) => commit(name, e.target.value, true)}
@@ -137,7 +137,7 @@ export default function AppFilterBar({ node }: NodeProps<{ fields?: FilterField[
                                     <input
                                         id={id}
                                         type="text"
-                                        className={`${ctlCls} pl-8`}
+                                        className={`${ctlCls} pl-8 bfa-filter_bar__control`}
                                         style={inputStyle()}
                                         value={value ?? ''}
                                         onChange={(e) => commit(name, e.target.value)}
@@ -151,9 +151,9 @@ export default function AppFilterBar({ node }: NodeProps<{ fields?: FilterField[
                 })();
 
                 return (
-                    <div key={name} className="flex flex-col gap-1 min-w-0" data-app-filter={name}>
+                    <div key={name} className="flex flex-col gap-1 min-w-0 bfa-filter_bar__field" data-app-filter={name}>
                         {label && type !== 'toggle' ? (
-                            <label htmlFor={id} className="text-xs font-medium text-[var(--text-secondary)]">
+                            <label htmlFor={id} className="text-xs font-medium text-[var(--text-secondary)] bfa-filter_bar__label">
                                 {label}
                             </label>
                         ) : null}

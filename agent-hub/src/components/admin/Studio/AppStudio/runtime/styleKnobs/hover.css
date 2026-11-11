@@ -1,0 +1,40 @@
+/*
+ * App Studio runtime: the "hover" knob group (server: componentSpecs/styleKnobGroups/hover.js).
+ *
+ * One class per preset on the node's grid cell. Inert in the editor canvas (data-app-edit),
+ * on devices that cannot hover, and when the viewer asks for reduced motion. The transition
+ * rides the app motion tokens, so design.motion 'none' removes the animation too.
+ */
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+    .app-hover-lift:not([data-app-edit] *),
+    .app-hover-grow:not([data-app-edit] *) {
+        transition: transform var(--app-motion-med, 150ms) ease, box-shadow var(--app-motion-med, 150ms) ease;
+    }
+    .app-hover-lift:not([data-app-edit] *):hover {
+        transform: translateY(-3px);
+        box-shadow: var(--app-shadow-2, 0 6px 16px rgba(0, 0, 0, 0.12)) !important;
+    }
+    .app-hover-grow:not([data-app-edit] *):hover {
+        transform: scale(1.02);
+    }
+    .app-hover-outline:not([data-app-edit] *):hover {
+        outline: 2px solid var(--app-primary);
+        outline-offset: -2px;
+    }
+    .app-hover-tint:not([data-app-edit] *) {
+        position: relative;
+    }
+    .app-hover-tint:not([data-app-edit] *)::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        background: var(--app-primary-soft);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity var(--app-motion-med, 150ms) ease;
+    }
+    .app-hover-tint:not([data-app-edit] *):hover::after {
+        opacity: 1;
+    }
+}

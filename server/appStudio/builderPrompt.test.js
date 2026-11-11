@@ -72,11 +72,16 @@ test('buildSystemPrompt is byte-stable for a given (toolset, catalog, automation
     assert.strictEqual(buildSystemPrompt({ toolset: 'core' }), buildSystemPrompt({ toolset: 'core' }));
 });
 
-test('system prompt teaches all six binding kinds and the data-first workflow', () => {
+test('system prompt teaches all eight binding kinds and the data-first workflow', () => {
     const sys = buildSystemPrompt();
-    for (const kind of ['static', 'actionResult', 'formula', 'record', 'records', 'dataset']) {
-        assert.ok(sys.includes(`kind:"${kind}"`), `binding kind ${kind} named in the bindings bullet`);
+    const bullet = sys.split('\n').find((l) => l.startsWith('- Data flows through BINDINGS only.'));
+    for (const kind of ['static', 'actionResult', 'formula', 'record', 'records', 'aggregate', 'dataset', 'connector']) {
+        assert.ok(bullet.includes(`{kind:"${kind}"`), `binding kind ${kind} named in the bindings bullet`);
     }
+    // The count it states is the count of shapes the catalog teaches.
+    const shapes = require('./builderPrompt/catalogRender').buildCatalogSections()._bindingLines.filter((l) => l.startsWith('  { "kind": ') && !l.startsWith('  { "kind": "field"'));
+    assert.strictEqual(new Set(shapes.map((l) => l.split('"')[3])).size, 8);
+    assert.match(bullet, /Eight kinds exist/);
     // The data-backed step names the (incrementally shipping) data tools.
     for (const tool of ['app_upsert_table', 'app_seed_records', 'app_upsert_dataset', 'app_query_data', 'app_get_data_model', 'app_dry_run']) {
         assert.ok(sys.includes(tool), `data tool ${tool} referenced`);
@@ -589,7 +594,14 @@ test('the layout constraints teach the derived availability and the inert-value 
     // Availability follows the BASE knob — the same rule expandStyleKnobs
     // implements and the catalog states once.
     assert.match(constraints, /The exact-sizing pairs follow their BASE knob/);
-    assert.match(constraints, /a `tab` takes neither, `tabs` takes the width pair only/);
+    assert.match(constraints, /a `modal` takes neither, a `tab` takes the height pair only/);
+    // Said from the spec: a sentence about which type takes which knob is wrong the day the spec moves.
+    const { COMPONENT_SPECS } = require('./componentSpecs');
+    assert.deepEqual(COMPONENT_SPECS.modal.styleKnobs, ['gap', 'padding']);
+    assert.deepEqual(COMPONENT_SPECS.tab.styleKnobs, ['gap', 'padding', 'height']);
+    assert.ok(COMPONENT_SPECS.tabs.styleKnobs.includes('height'), 'tabs has a height, so the prompt may not say it has none');
+    assert.ok(!constraints.includes('no height. Check') || constraints.includes('NO span, no height. `tab`'));
+    assert.ok(!/`tabs` accepts[^.]*no height/.test(constraints));
     // A value whose mode is still the default is stored and does nothing.
     assert.match(constraints, /is INERT/);
     assert.match(constraints, /clearing the mode alone strands the number/);
@@ -773,8 +785,11 @@ test('the form-save shot is byte-true: theme, table (key derived from name), com
  * (~55 chars) to 36_840. The diet of the core prose is owed.
  * Raised to 37_000 on 2026-11-06 (KB query log): the two kb_log_* step names appear three times in the
  * compact catalog (36_914 measured). Product, not prose.
+ * Lowered to 35_600 on 2026-11-10 (the prompt diet, 34_506 measured): the compact catalog lost
+ * 2_500 chars (catalogRender.test.js); the core prose kept every rule and gained two clauses that
+ * make it agree with its own catalog (depth, step onError).
  */
-const CORE_PROMPT_CHAR_CEILING = 37_000;
+const CORE_PROMPT_CHAR_CEILING = 35_600;
 
 test(`the core system prompt with the compact catalog stays under ${CORE_PROMPT_CHAR_CEILING} chars`, () => {
     const core = buildSystemPrompt({ toolset: 'core', catalogMode: 'filtered' });
@@ -898,12 +913,17 @@ test('the data block shows field ids only when asked, so the in-product prompt i
     assert.match(renderDataBlock(model, [], {}, null, { fieldIds: true }), /^ {4}x text id=fld_x$/m);
 });
 
-test('the full guide teaches mail apps: the hook tool, send_email refused, the content_id column; the core prompt stays off it', () => {
+test('the full guide names mail apps and serves the detail as a topic: the hook tool, send_email refused, the content_id column; the core prompt stays off it', () => {
     const full = buildSystemPrompt();
-    assert.match(full, /app_set_mailbox_hook/);
-    assert.match(full, /NEVER send_email/);
-    assert.match(full, /content_id/);
-    assert.match(full, /onAttachmentClick/);
+    const line = full.split('\n').find((l) => l.startsWith('11. MAIL APPS'));
+    assert.match(line, /app_set_mailbox_hook/);
+    assert.match(line, /NEVER send_email/);
+    assert.match(line, /content_id/);
+    assert.ok(line.includes('app_inspect_catalog {components:["topic:mail_apps"]}'));
+    const topic = require('./builderPrompt/catalogTopics.mts').renderTopic('mail_apps');
+    assert.match(topic, /onAttachmentClick \(it fires with \{ item: <the attachment row> \}\)/);
+    assert.match(topic, /target "thread"\) or every new incoming message \(target "inbound_message"\)/);
+    assert.match(topic, /NEVER send_email/);
     assert.ok(!buildSystemPrompt({ toolset: 'core' }).includes('app_set_mailbox_hook'));
 });
 
@@ -911,5 +931,9 @@ test('the pitfalls teach the component depth limit from LIMITS', () => {
     const text = buildSystemPrompt();
     assert.ok(text.includes(`Maximum depth is ${LIMITS.MAX_DEPTH},`));
     assert.ok(text.includes('Maximum depth is 8,'));
+    // Stated one way: the model bullet gives the same number, never a second, shorter limit.
+    assert.ok(text.includes(`the hard limit is ${LIMITS.MAX_DEPTH} levels counting the section as 1`));
+    assert.ok(!text.includes('Maximum depth: section → container → container → leaf'));
+    assert.ok(text.includes(`nesting depth ${LIMITS.MAX_DEPTH} (section=1, each container +1)`), 'and the catalog limits line agrees');
     assert.ok(text.includes('≤32000'));
 });

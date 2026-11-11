@@ -1,4 +1,4 @@
-import { Copy, Rows3, Trash2 } from 'lucide-react';
+import { Copy, Trash2 } from 'lucide-react';
 import React, { useState } from 'react';
 import type { ReactNode } from 'react';
 import ActionsSection from './ActionsSection';
@@ -6,10 +6,13 @@ import LogicSection from './logic/LogicSection';
 import StudioScopeProvider from './logic/StudioScopeProvider';
 import MultiInspector from './MultiInspector';
 import { nodeLabel, nodeTypeLabel } from './nodeLabel';
-import { getInspectorForType } from './registry';
+import { getInspectorForType, getPanelCoverage } from './registry';
+import MoreOptions from './panels/MoreOptions';
 import { TYPE_EVENT_LISTS } from './styleKnobMeta';
 import StyleSection, { findSectionById } from './StyleSection';
+import CssClassField from './CssClassField';
 import ThemePanel from './ThemePanel';
+import SectionInspector from './SectionInspector';
 import useTranslation from '@/hooks/useTranslation';
 import ConfirmDialog from '@/components/shared/ConfirmDialog';
 import IconButton from '@/components/shared/IconButton';
@@ -44,7 +47,7 @@ export interface EditorInspectorPanelProps {
  * InspectorPanel — the fixed right-hand property inspector.
  *
  *   nothing selected      → ThemePanel (whole-app theme + meta + this screen)
- *   a section (sec_*)     → the section style knobs (padding/gap/background)
+ *   a section (sec_*)     → SectionInspector (order, settings, style)
  *   a component node      → header (icon/label + Duplicate/Delete) and
  *                           Content / Style / Actions accordions
  *
@@ -165,26 +168,11 @@ export default function InspectorPanel({ onCommit, onTestActionResult }: EditorI
         return shell(<ThemePanel definition={definition} onCommit={onCommit} disabled={disabled} screenId={screenId} />);
     }
 
-    // ── Section selected → section style knobs ─────────────────────────────
+    // ── Section selected → its settings, order and style (SectionInspector) ──
     if (selectedNodeId.startsWith('sec_')) {
         const found = findSectionById(definition, selectedNodeId);
         if (!found) return shell(<ThemePanel definition={definition} onCommit={onCommit} disabled={disabled} screenId={screenId} />);
-        return shell(
-            <div className="p-4 flex flex-col gap-3">
-                <header className="flex items-center gap-2">
-                    <Rows3 className="w-4 h-4 shrink-0 text-[var(--text-tertiary)]" />
-                    <h2 className="text-sm font-semibold text-[var(--text-primary)]">{t('app_studio.inspector.section', 'Section')}</h2>
-                </header>
-                <AccordionSection stepType="appstudio.section" sectionKey="style" title={t('app_studio.inspector.style', 'Style')} defaultOpen>
-                    <StyleSection
-                        definition={definition}
-                        sectionId={selectedNodeId}
-                        onCommit={onCommit}
-                        disabled={disabled}
-                    />
-                </AccordionSection>
-            </div>,
-        );
+        return shell(<SectionInspector definition={definition} section={found.section} onCommit={onCommit} disabled={disabled} />);
     }
 
     // ── Component node selected ────────────────────────────────────────────
@@ -195,6 +183,7 @@ export default function InspectorPanel({ onCommit, onTestActionResult }: EditorI
     const { node } = found;
     const entry = getComponentEntry(node.type);
     const ContentPanel = getInspectorForType(node.type);
+    const coverage = getPanelCoverage(node.type);
     const hasChildren = Array.isArray(node.children) && node.children.length > 0;
 
     const onDuplicate = () => {
@@ -230,12 +219,14 @@ export default function InspectorPanel({ onCommit, onTestActionResult }: EditorI
                                 Studio variable scope, or their picker has nothing in it. */}
                             <StudioScopeProvider definition={definition} node={node}>
                                 <ContentPanel node={node} definition={definition} onCommit={onCommit} disabled={disabled} />
+                                {coverage ? <MoreOptions key={node.id} node={node} definition={definition} onCommit={onCommit} coverage={coverage} disabled={disabled} /> : null}
                             </StudioScopeProvider>
                         </AccordionSection>
                     ) : null}
 
                     <AccordionSection stepType={`appstudio.${node.type}`} sectionKey="style" title={t('app_studio.inspector.style', 'Style')} defaultOpen>
                         <StyleSection definition={definition} node={node} onCommit={onCommit} disabled={disabled} />
+                        <CssClassField definition={definition} node={node} onCommit={onCommit} disabled={disabled} />
                     </AccordionSection>
                 </>
             ) : (

@@ -1,0 +1,103 @@
+# v3-ui-steps
+## screen scr_orders1 (Orders)
+<div class="app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(15, 118, 110, 0.1); --app-accent: #0F766E; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(15, 118, 110, 0.1); --app-primary: #0F766E; --app-radius: 8px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-size: 15px; min-height: 100vh">
+  <main class="flex flex-1 flex-col min-h-0">
+    <div class="app-runtime app-screen-enter w-full" data-app-appearance="auto" data-app-screen="scr_orders1" data-app-screen-kind="page" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(15, 118, 110, 0.1); --app-accent: #0F766E; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(15, 118, 110, 0.1); --app-primary: #0F766E; --app-radius: 8px; --app-space: 1; color: var(--text-primary); font-size: 15px">
+      <div class="flex flex-col w-full" style="margin: 0px auto; max-width: 960px">
+        <section class="app-grid" data-section-id="sec_orders1" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="data_grid" data-node-id="cmp_grid001" style="grid-column: span 12 / span 12">
+            <div class="flex flex-col gap-2 min-w-0 w-full" data-app-datagrid="true">
+              <div class="flex flex-wrap gap-x-3 gap-y-2 items-center">
+                <div class="flex gap-2 items-center ml-auto">
+                  <div class="relative shrink-0" data-app-grid-viewmenu="true">
+                    <button class="border font-medium gap-1.5 inline-flex items-center px-2 py-1.5 text-xs" aria-expanded="false" aria-haspopup="dialog" title="How this table is shown" type="button" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-secondary)">
+                      <svg class="h-3.5 lucide lucide-settings-2 w-3.5" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                      <span>
+                        "View"
+              <div class="app-scroll-edges overflow-x-auto w-full">
+                <table class="app-grid-base text-sm w-full" style="table-layout: auto">
+                  <thead class="[background:var(--bg-card)] sticky top-0 z-[1]">
+                    <tr>
+                      <th class="border-b px-2.5 py-1.5 w-9" style="border-color: var(--border-default)">
+                        <input class="accent-[var(--app-primary)]" aria-label="Select all rows" type="checkbox">
+                      <th class="border-b font-medium px-2.5 py-1.5 select-none text-left" scope="col" style="border-color: var(--border-default); color: var(--text-secondary)">
+                        <button class="cursor-pointer gap-1 hover:text-[var(--text-primary)] inline-flex items-center" type="button">
+                          <span>
+                            "Reference"
+                          <svg class="h-3 lucide lucide-chevrons-up-down opacity-40 w-3" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                      <th class="border-b font-medium px-2.5 py-1.5 select-none text-left" scope="col" style="border-color: var(--border-default); color: var(--text-secondary)">
+                        <button class="cursor-pointer gap-1 hover:text-[var(--text-primary)] inline-flex items-center" type="button">
+                          <span>
+                            "Title"
+                          <svg class="h-3 lucide lucide-chevrons-up-down opacity-40 w-3" aria-hidden="true" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                  <tbody>
+                    <tr>
+                      <td class="align-middle border-b px-2.5 py-1.5" style="border-color: var(--border-default)">
+                        <input class="accent-[var(--app-primary)]" aria-label="Select row" type="checkbox">
+                      <td class="align-middle border-b px-2.5 py-1.5 text-left" style="border-color: var(--border-default)">
+                        "ORD-1001"
+                      <td class="align-middle border-b px-2.5 py-1.5 text-left" style="border-color: var(--border-default)">
+                        "Desk lamps"
+                    <tr>
+                      <td class="align-middle border-b px-2.5 py-1.5" style="border-color: var(--border-default)">
+                        <input class="accent-[var(--app-primary)]" aria-label="Select row" type="checkbox">
+                      <td class="align-middle border-b px-2.5 py-1.5 text-left" style="border-color: var(--border-default)">
+                        "ORD-1002"
+                      <td class="align-middle border-b px-2.5 py-1.5 text-left" style="border-color: var(--border-default)">
+                        "Office chairs"
+          <div class="app-node app-span-12 min-w-0" data-app-type="text" data-node-id="cmp_picked1" style="grid-column: span 12 / span 12">
+            <p class="break-words leading-relaxed text-sm">
+              "0 selected, tab cmp_tabform"
+          <div class="app-node app-span-3 min-w-0" data-app-type="button" data-node-id="cmp_copybtn" style="grid-column: span 3 / span 3">
+            <div class="[opacity:0.6] [pointer-events:none]" aria-disabled="true" data-app-disabled="true" inert="">
+              <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm transition-opacity" type="button" style="background: var(--app-accent, var(--app-primary)); border-radius: var(--app-radius); color: var(--app-accent-contrast, var(--app-primary-contrast))">
+                <span>
+                  "Copy reference"
+          <div class="app-node app-span-3 min-w-0" data-app-type="button" data-node-id="cmp_fillbtn" style="grid-column: span 3 / span 3">
+            <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm transition-opacity" type="button" style="background: var(--app-accent, var(--app-primary)); border-radius: var(--app-radius); color: var(--app-accent-contrast, var(--app-primary-contrast))">
+              <span>
+                "Use in form"
+          <div class="app-node app-span-12 min-w-0" data-app-type="tabs" data-node-id="cmp_tabs001" style="grid-column: span 12 / span 12">
+            <div class="min-w-0 w-full" data-app-tabs="true">
+              <div class="app-scroll-x border-b flex gap-1 items-center overflow-x-auto" aria-label="Tabs" role="tablist" style="border-color: var(--border-default)">
+                <button class="-mb-px font-medium gap-1.5 inline-flex items-center px-3 py-2 shrink-0 text-sm whitespace-nowrap" aria-selected="true" role="tab" type="button" style="border-bottom: 2px solid var(--app-primary); color: var(--app-primary)">
+                  <span>
+                    "Order"
+                <button class="-mb-px font-medium gap-1.5 inline-flex items-center px-3 py-2 shrink-0 text-sm whitespace-nowrap" aria-selected="false" role="tab" type="button" style="border-bottom: 2px solid transparent; color: var(--text-secondary)">
+                  <span>
+                    "Notes"
+              <div class="pt-3" data-app-tabpanel="active" role="tabpanel">
+                <div class="app-node app-span-12 min-w-0" data-app-type="tab" data-node-id="cmp_tabform" style="grid-column: span 12 / span 12">
+                  <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                    <div class="app-node app-span-6 min-w-0" data-app-type="form" data-node-id="cmp_form001" style="grid-column: span 6 / span 6">
+                      <form class="flex flex-col" novalidate="" style="gap: calc(12px * var(--app-space, 1))">
+                        <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                          <div class="app-node app-span-6 min-w-0" data-app-type="input_number" data-node-id="cmp_qty0001" style="grid-column: span 6 / span 6">
+                            <div class="flex flex-col gap-1 text-left">
+                              <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_qty0001-input">
+                                "Quantity"
+                              <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" id="cmp_qty0001-input" name="quantity" step="1" type="number" value="" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+              <div class="pt-3" data-app-tabpanel="inactive" hidden="" role="tabpanel" style="display: none">
+                <div class="app-node app-span-12 min-w-0" data-app-type="tab" data-node-id="cmp_tabnote" style="grid-column: span 12 / span 12">
+                  <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                    <div class="app-node app-span-12 min-w-0" data-app-type="text" data-node-id="cmp_note001" style="grid-column: span 12 / span 12">
+                      <p class="break-words leading-relaxed text-sm">
+                        "Notes go here."
+          <div class="app-node app-span-3 min-w-0" data-app-type="button" data-node-id="cmp_openbtn" style="grid-column: span 3 / span 3">
+            <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm transition-opacity" type="button" style="background: var(--app-accent, var(--app-primary)); border-radius: var(--app-radius); color: var(--app-accent-contrast, var(--app-primary-contrast))">
+              <span>
+                "Details"
+          <div class="app-node app-span-3 min-w-0" data-app-type="button" data-node-id="cmp_gonext1" style="grid-column: span 3 / span 3">
+            <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm transition-opacity" type="button" style="background: var(--app-accent, var(--app-primary)); border-radius: var(--app-radius); color: var(--app-accent-contrast, var(--app-primary-contrast))">
+              <span>
+                "Next screen"
+## screen scr_second1 (Second)
+<div class="app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(15, 118, 110, 0.1); --app-accent: #0F766E; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(15, 118, 110, 0.1); --app-primary: #0F766E; --app-radius: 8px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-size: 15px; min-height: 100vh">
+  <main class="flex flex-1 flex-col min-h-0">
+    <div class="app-runtime app-screen-enter w-full" data-app-appearance="auto" data-app-screen="scr_second1" data-app-screen-kind="page" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(15, 118, 110, 0.1); --app-accent: #0F766E; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(15, 118, 110, 0.1); --app-primary: #0F766E; --app-radius: 8px; --app-space: 1; color: var(--text-primary); font-size: 15px">
+      <div class="flex flex-col w-full" style="margin: 0px auto; max-width: 960px">
+        <section class="app-grid" data-section-id="sec_second1" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-3 min-w-0" data-app-type="button" data-node-id="cmp_backbtn" style="grid-column: span 3 / span 3">
+            <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm transition-opacity" type="button" style="background: var(--app-accent, var(--app-primary)); border-radius: var(--app-radius); color: var(--app-accent-contrast, var(--app-primary-contrast))">
+              <span>
+                "Back"

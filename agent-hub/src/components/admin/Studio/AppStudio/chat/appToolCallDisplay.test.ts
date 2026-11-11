@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { VERBS, describeAppToolCall, appDetailPayload, landedTypeLabel } from './appToolCallDisplay';
-import { TOOL_SCHEMAS_NAMES } from './appToolNames.fixture';
+import { VERBS, describeAppToolCall, appDetailPayload, landedTypeLabel, verbFor } from './appToolCallDisplay';
+import TOOL_SCHEMAS_NAMES from './appToolNames.generated.json';
+
+// Tools the server ships that have no verb yet: their row shows the humanised
+// tool name. A verb is a user-facing string, so it needs an i18n key first.
+// Remove a name here when it gets its verb (the test below fails until then).
+// A registry tool (server builderTools/tools/) carries its own verb: appToolVerbs.generated.json.
+const NO_VERB_YET = new Set<string>([]);
 
 describe('describeAppToolCall', () => {
     it('names a batch by count and lists what landed, typed, in order', () => {
@@ -30,8 +36,22 @@ describe('describeAppToolCall', () => {
         expect(landedTypeLabel('table', null)).toBe('Table');
     });
 
-    it('every app_* tool the server ships has a verb', () => {
-        for (const name of TOOL_SCHEMAS_NAMES) expect(VERBS[name], `verb for ${name}`).toBeTruthy();
+    it('every app_* tool the server ships has a verb, bar the listed ones', () => {
+        for (const name of TOOL_SCHEMAS_NAMES) {
+            if (NO_VERB_YET.has(name)) expect(VERBS[name], `${name} has a verb now: drop it from NO_VERB_YET`).toBeUndefined();
+            else expect(verbFor(name), `verb for ${name}`).toBeTruthy();
+        }
+        for (const name of NO_VERB_YET) expect(TOOL_SCHEMAS_NAMES, `${name} is no longer a server tool`).toContain(name);
+    });
+
+    it('a registry tool reads its verb from the generated list; the table wins for a base tool', () => {
+        const registry = { app_zz_note: { key: 'zz_fixture.act_note', en: 'Wrote a note' } };
+        expect(verbFor('app_zz_note', registry)).toEqual(registry.app_zz_note);
+        expect(verbFor('app_zz_note')).toBeNull();
+        expect(verbFor('app_set_meta', { app_set_meta: { key: 'x.y', en: 'Other' } })).toBe(VERBS.app_set_meta);
+        expect(verbFor('app_zz_bad', { app_zz_bad: { key: 7, en: 'x' } as never })).toBeNull();
+        expect(verbFor('constructor', {})).toBeNull();
+        expect(describeAppToolCall({ name: 'app_inspect_catalog', ok: true }).title).toBe('Looked up the building blocks');
     });
 
     it('appDetailPayload parses the bounded JSON strings the server sends', () => {

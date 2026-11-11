@@ -1,0 +1,179 @@
+{
+ "about": {
+  "source": "hand-made for package L7 (server scope and guards): serverScope \"wide\", guard on server steps, a run_automation input mapping of kind formula, server formulas that read screen, forms and actions",
+  "captured": "2026-11-10"
+ },
+ "definition": {
+  "schemaVersion": 3,
+  "meta": {
+   "name": "Server scope and guards",
+   "description": "Server steps that read the screen, a guard checked on the server and an automation input worked out by a formula.",
+   "icon": "Shield"
+  },
+  "theme": {
+   "primary": "#0F766E",
+   "radius": "md",
+   "density": "comfortable",
+   "fontScale": "md",
+   "appearance": "auto"
+  },
+  "roles": [],
+  "variables": [
+   {
+    "name": "limit",
+    "label": "limit",
+    "type": "number",
+    "default": 500,
+    "description": ""
+   },
+   {
+    "name": "customer",
+    "label": "customer",
+    "type": "text",
+    "default": "",
+    "description": ""
+   }
+  ],
+  "screens": [
+   {
+    "id": "scr_srv00001",
+    "name": "Order",
+    "icon": null,
+    "showInNav": true,
+    "maxWidth": "medium",
+    "sections": [
+     {
+      "id": "sec_srv00001",
+      "style": {
+       "padding": 4,
+       "gap": 3,
+       "background": "none"
+      },
+      "children": [
+       {
+        "id": "cmp_srvhead1",
+        "type": "heading",
+        "props": {
+         "text": "Order",
+         "level": 2,
+         "accent": "none"
+        },
+        "style": {
+         "span": 12
+        },
+        "visible": true
+       },
+       {
+        "id": "cmp_srvbtn01",
+        "type": "button",
+        "props": {
+         "label": "Approve",
+         "variant": "primary",
+         "iconLeft": null,
+         "role": "button",
+         "disabledWhen": null
+        },
+        "style": {
+         "span": 4
+        },
+        "visible": true,
+        "onClick": "act_srvseq01"
+       },
+       {
+        "id": "cmp_srvbtn02",
+        "type": "button",
+        "props": {
+         "label": "Start follow-up",
+         "variant": "primary",
+         "iconLeft": null,
+         "role": "button",
+         "disabledWhen": null
+        },
+        "style": {
+         "span": 4
+        },
+        "visible": true,
+        "onClick": "act_srvseq02"
+       }
+      ]
+     }
+    ]
+   }
+  ],
+  "actions": {
+   "act_srvseq01": {
+    "kind": "sequence",
+    "steps": [
+     {
+      "kind": "update_record",
+      "tableId": "tbl_orders01",
+      "recordId": {
+       "kind": "formula",
+       "expr": "screen.params.recordId"
+      },
+      "values": {
+       "status": {
+        "kind": "static",
+        "value": "approved"
+       },
+       "approved_by": {
+        "kind": "formula",
+        "expr": "currentUser.name"
+       }
+      },
+      "guard": "currentUser.roleKey == \"manager\" && form.amount <= vars.limit"
+     },
+     {
+      "kind": "create_record",
+      "tableId": "tbl_log00001",
+      "values": {
+       "note": {
+        "kind": "formula",
+        "expr": "concat(\"Approved \", screen.params.recordId, \" after \", actions.act_srvseq02.status)"
+       }
+      },
+      "guard": "forms.cmp_srvform1.confirm == true"
+     },
+     {
+      "kind": "refresh"
+     },
+     {
+      "kind": "toast",
+      "message": "Done",
+      "tone": "success"
+     }
+    ]
+   },
+   "act_srvseq02": {
+    "kind": "sequence",
+    "steps": [
+     {
+      "kind": "run_automation",
+      "automationId": null,
+      "inputMapping": {
+       "order": {
+        "kind": "formula",
+        "expr": "screen.params.recordId"
+       },
+       "customer": {
+        "kind": "formula",
+        "expr": "vars.customer"
+       },
+       "source": {
+        "kind": "static",
+        "value": "app"
+       },
+       "note": {
+        "kind": "field",
+        "name": "note"
+       }
+      },
+      "guard": "vars.customer != \"\""
+     }
+    ]
+   }
+  },
+  "homeScreenId": "scr_srv00001",
+  "serverScope": "wide"
+ }
+}

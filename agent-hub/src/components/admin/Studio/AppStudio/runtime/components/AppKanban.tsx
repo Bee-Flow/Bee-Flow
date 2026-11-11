@@ -2,6 +2,7 @@ import { DndContext, DragOverlay, KeyboardSensor, PointerSensor, useSensor, useS
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import useTranslation from '@/hooks/useTranslation';
+import { usePortalRoot } from '@/components/shared/portalRoot';
 import { resolveBinding, walkPath } from '../resolveBinding';
 import { useRuntime } from '../RuntimeContext';
 import { isFill } from '../styleResolver.helpers';
@@ -16,6 +17,7 @@ export {  columnDroppableId, parseColumnDroppableId, normalizeAxisRows, kanbanCo
 
 export default function AppKanban({ node }: NodeProps<KanbanProps>) {
     const { t } = useTranslation();
+    const portalRoot = usePortalRoot();
     const { mode, runAction, actionState, dataState, scope } = useRuntime();
     const {
         groupByField = 'status', columns = [], titleKey = 'title',
@@ -201,12 +203,12 @@ export default function AppKanban({ node }: NodeProps<KanbanProps>) {
                 <body> is outside the AppRenderer root that stamps the app's
                 theme variables, so the overlay pins the two tokens it needs
                 rather than inheriting nothing and rendering unstyled. */}
-            {createPortal(
+            {portalRoot ? createPortal(
                 <DragOverlay dropAnimation={null}>
                     {activeRow ? <OverlayCard row={activeRow} titleKey={titleKey} subtitleKey={subtitleKey} badgeKey={badgeKey} badgeToneMap={badgeToneMap} cardFields={cardFields} /> : null}
                 </DragOverlay>,
-                document.body,
-            )}
+                portalRoot,
+            ) : null}
         </DndContext>
     );
 }

@@ -12,7 +12,10 @@ import AppVersionBanner from '../../components/admin/Studio/AppStudio/runtime/Ap
 import { subscribeAppVersion } from '../../components/admin/Studio/AppStudio/runtime/appVersionSignal';
 import { mergeFormValues } from '../../components/admin/Studio/AppStudio/runtime/formValues';
 import useActionRunner from '../../components/admin/Studio/AppStudio/runtime/useActionRunner';
+import ClientTriggers from '@/components/admin/Studio/AppStudio/runtime/triggers/ClientTriggers';
 import useConfirmDialog from '../../components/admin/Studio/AppStudio/runtime/useConfirmDialog';
+import useRunNavigation from '@/components/admin/Studio/AppStudio/runtime/useRunNavigation';
+import { openingRoute, previewRoleFor, type ScreenParams } from '@/components/admin/Studio/AppStudio/runtime/screenRoute';
 import { BrowserRunProvider, useBrowserRunStore } from '../../components/admin/Studio/AppStudio/runtime/BrowserRunContext';
 import { studioAppsApi } from '../../components/admin/Studio/AppStudio/studioAppsApi';
 import EmptyState from '../../components/shared/EmptyState';
@@ -30,11 +33,11 @@ import { useDataConnectors } from '../../api/queries/apps';
 import useAdjustOnChange from '@/hooks/useAdjustOnChange';
 export type { ShellDefinition } from './AppRunPage.types';
 
-// Stands in for "this viewer has no role in this app" so role gating stays
-// closed instead of falling back to the ungated full view.
-const NO_ROLE = '__no_role__';
-
 const EMPTY_PROVIDERS: string[] = [];
+
+function homeScreenOf(definition: ShellDefinition | null | undefined): string | null {
+    return definition?.homeScreenId || definition?.screens?.[0]?.id || null;
+}
 
 function ConnectionsPreflight({ appId }: ConnectionsPreflightProps) {
     const providersQuery = useDataConnectors(appId);
@@ -59,7 +62,7 @@ function ConnectionsPreflight({ appId }: ConnectionsPreflightProps) {
 function RunBody({
     appId, definition, screenId, onNavigate, onExit, viewer, previewRole,
     actionState, runAction, vars, setVar, forms, screenParams, registerFormValue,
-    dataState, refresh, onDataState, refreshRef, versionBanner = null, chrome = 'app',
+    dataState, refresh, onDataState, refreshRef, versionBanner = null, chrome = 'app', publicHeader = null,
 }: RunBodyProps) {
     useEffect(() => { onDataState(dataState); }, [onDataState, dataState]);
     useEffect(() => { refreshRef.current = refresh; }, [refreshRef, refresh]);
@@ -81,6 +84,11 @@ function RunBody({
             registerFormValue={registerFormValue}
         />
     );
+    // onOpen, timers and watchers (schema 3): only this live surface fires them, never the editor or a screenshot.
+    const triggers = (
+        <ClientTriggers definition={definition} screenId={screenId} screenParams={screenParams} runAction={runAction}
+            actionState={actionState} dataState={dataState} vars={vars} forms={forms} currentUser={viewer} />
+    );
 
     // 'bare' is the PUBLIC page (pages/apps/PublicAppPage.jsx): no AppShell, so
     // no nav bar, no user menu and no "Alle apps" exit — an anonymous visitor
@@ -92,6 +100,8 @@ function RunBody({
         return (
             <div className="h-full min-h-0 flex flex-col" style={{ background: CANVAS_GROUND, color: 'var(--text-primary)' }}>
                 {versionBanner}
+                {publicHeader}
+                {triggers}
                 <div className="flex-1 min-h-0 overflow-auto">{renderer}</div>
             </div>
         );
@@ -108,15 +118,18 @@ function RunBody({
         >
             {versionBanner}
             <ConnectionsPreflight appId={appId} />
+            {triggers}
             {renderer}
         </AppShell>
     );
 }
 
-export function RunSurface({ appId, draft, definition, screenId, viewer, onNavigate, versionBanner = null, hideExit = false, chrome = 'app' }: RunSurfaceProps) {
+export function RunSurface({
+    appId, draft, definition, screenId, viewer, onNavigate, versionBanner = null, hideExit = false, chrome = 'app', publicHeader = null,
+    urlRoute = false, homeScreenId = null, initialScreenParams = null,
+}: RunSurfaceProps) {
     const { confirm, dialog } = useConfirmDialog();
     const [forms, setForms] = useState<Record<string, Record<string, unknown>>>({});
-    const [screenParams, setScreenParams] = useState<{ recordId?: string }>({});
 
     // "Alle apps" in the shell's user menu → the published-apps directory.
     // Plain full navigation, the same mechanism as AppsHomePage's card links.
@@ -135,10 +148,13 @@ export function RunSurface({ appId, draft, definition, screenId, viewer, onNavig
         setForms((prev) => mergeFormValues(prev, formName, values));
     }, []);
 
-    const handleNavigate = useCallback((sid: string, params?: unknown) => {
-        setScreenParams(params && typeof params === 'object' ? params as { recordId?: string } : {});
-        onNavigate(sid);
-    }, [onNavigate]);
+    // Role gating mirrors the editor's view-as-role; fails closed for a viewer
+    // without a role (see previewRoleFor).
+    const previewRole = previewRoleFor(viewer);
+
+    // The ONE navigation callback (shell nav, navigate actions and effects),
+    // plus the URL per screen for the hosts that ask for it (urlRoute).
+    const { screenParams, handleNavigate } = useRunNavigation({ urlRoute, definition, homeScreenId, previewRole, onNavigate, initialScreenParams });
 
     // Mirrored up from RunBody (see its docblock).
     const [runnerDataState, setRunnerDataState] = useState<DataState>({});
@@ -164,13 +180,6 @@ export function RunSurface({ appId, draft, definition, screenId, viewer, onNavig
         screen: { id: screenId, params: screenParams },
         onBrowseEvent: browseStore.publish,
     });
-
-    // Role gating mirrors the editor's view-as-role: the owner sees everything.
-    // A viewer the server resolved NO role for gets the sentinel, never null —
-    // null disables gating entirely in roleAllows(), which would show a viewer
-    // without a role every role-gated screen. No role key can equal it (keys
-    // start with a lowercase letter), so gated content stays hidden.
-    const previewRole = viewer?.isOwner ? 'owner' : (viewer?.roleKey || NO_ROLE);
 
     // The live scope dynamic binding filters resolve against — buildScope's
     // shape, never a fork. dataState is deliberately absent: the fetch layer
@@ -198,7 +207,7 @@ export function RunSurface({ appId, draft, definition, screenId, viewer, onNavig
                 sample={false}
                 draft={draft}
                 scope={scope}
-                refreshMs={refreshMs}
+                refreshMs={refreshMs} sectionRole={previewRole}
             >
                 {(dataState, { refresh }) => (
                     <RunBody
@@ -221,7 +230,7 @@ export function RunSurface({ appId, draft, definition, screenId, viewer, onNavig
                         onDataState={setRunnerDataState}
                         refreshRef={refreshRef}
                         versionBanner={versionBanner}
-                        chrome={chrome}
+                        chrome={chrome} publicHeader={publicHeader}
                     />
                 )}
             </AppDataScope>
@@ -237,6 +246,7 @@ export default function AppRunPage({ appId, draft = false }: AppRunPageProps) {
     const { t } = useTranslation();
     const [state, setState] = useState<RunState>({ status: 'loading', payload: null, error: null });
     const [screenId, setScreenId] = useState<string | null>(null);
+    const [entryParams, setEntryParams] = useState<ScreenParams | null>(null);
 
     // Opened from the app's own entry in Nextcloud's app menu (the connector
     // mounts the iframe with ?ncStudioApp=<id>). Computed once — the param is
@@ -251,11 +261,11 @@ export default function AppRunPage({ appId, draft = false }: AppRunPageProps) {
         setState({ status: 'loading', payload: null, error: null });
         try {
             const payload = await studioAppsApi.getRuntime(appId, { draft });
-            setScreenId(
-                payload?.definition?.homeScreenId
-                || payload?.definition?.screens?.[0]?.id
-                || null,
-            );
+            // A link to a screen (#/s/<id>) opens that screen when this viewer
+            // may see it; anything else opens the home screen, as before.
+            const entry = openingRoute(payload?.definition, homeScreenOf(payload?.definition), previewRoleFor(payload?.viewer));
+            setScreenId(entry.screenId);
+            setEntryParams(entry.params);
             setState({ status: 'ready', payload, error: null });
         } catch (err) {
             setState({ status: 'error', payload: null, error: err as RuntimeLoadError });
@@ -376,6 +386,9 @@ export default function AppRunPage({ appId, draft = false }: AppRunPageProps) {
                 onNavigate={setScreenId}
                 versionBanner={staleVersion ? <AppVersionBanner onReload={load} /> : null}
                 hideExit={ncAppMenuEmbed}
+                urlRoute
+                homeScreenId={homeScreenOf(definition)}
+                initialScreenParams={entryParams}
             />
         </div>
     );

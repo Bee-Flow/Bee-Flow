@@ -90,7 +90,8 @@ describe('AppDocumentCompare — text and sheets', () => {
         } })]]);
         const { container } = mountInApp(<AppDocumentCompare node={node('p1', 'p2', { onlyChanges: false }) as never} />);
         expect(await screen.findByText('1 paragraph changed')).toBeTruthy();
-        expect(screen.getByTestId('compare-side')).toBeTruthy();
+        // The text diff is its own chunk (it carries the diff engine), so it lands a moment after the summary.
+        expect(await screen.findByTestId('compare-side')).toBeTruthy();
         expect(screen.getAllByText('Intro stays.')).toHaveLength(2);
         await userEvent.click(screen.getByRole('button', { name: 'Inline' }));
         expect(screen.getByTestId('compare-inline')).toBeTruthy();

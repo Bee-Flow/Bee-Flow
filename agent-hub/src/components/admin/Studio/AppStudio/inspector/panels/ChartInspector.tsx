@@ -9,9 +9,11 @@ import FormField from '@/components/shared/FormField';
 import SegmentedControl from '@/components/shared/SegmentedControl';
 import Toggle from '@/components/shared/Toggle';
 import { RepeatableList, inputCls } from '@/components/admin/product-website/fields';
-import { CHART_COLORS } from '../../runtime/chartPalette';
+import { CHART_COLORS, chartColorAt } from '../../runtime/chartPalette';
+import HexColourField from './HexColourField';
 import { registerInspector } from '../registry';
 import type { PanelProps } from '../appDefinition';
+import FormatOptionsFields from './FormatOptionsFields';
 
 const VALUE_FORMATS = [
     { value: 'number', label: '#' },
@@ -83,6 +85,7 @@ interface ChartInspectorProps {
     showLegend?: boolean;
     showGrid?: boolean;
     valueFormat?: string;
+    formatOptions?: Record<string, unknown>;
     unitLabel?: string | null;
     yMin?: number | null;
     yMax?: number | null;
@@ -138,7 +141,7 @@ export default function ChartInspector({ node, definition, onCommit, disabled = 
                     makeNew={() => ({ key: '', label: '' })}
                     addLabel={t('studio_apps_panels.chart.add_series', 'Add series')}
                     itemLabel={(s) => s.label || s.key}
-                    renderItem={(s, update) => (
+                    renderItem={(s, update, idx) => (
                         <div className="flex flex-col gap-2">
                             <FieldKeyField value={s.key} onChange={(v) => update({ ...s, key: v })} source={props.source} placeholder={t('studio_apps_panels.chart.value_key_placeholder', 'Value key (e.g. amount)')} ariaLabel={t('studio_apps_panels.chart.value_field', 'Value field')} />
                             <input type="text" className={inputCls} value={s.label || ''} onChange={(e) => update({ ...s, label: e.target.value })} placeholder={t('studio_apps_panels.chart.legend_label_placeholder', 'Legend label (optional)')} />
@@ -155,6 +158,7 @@ export default function ChartInspector({ node, definition, onCommit, disabled = 
                                 ))}
                                 <button type="button" onClick={() => update({ ...s, color: undefined })} className="text-[11px] text-[var(--text-muted)] ml-1">{t('studio_apps_panels.common.auto', 'Auto')}</button>
                             </div>
+                            <HexColourField value={s.color} fallback={chartColorAt(idx)} onPick={(c) => update({ ...s, color: c })} label={s.label || s.key || t('studio_apps_panels.chart.series', 'Series')} />
                         </div>
                     )}
                 />
@@ -169,6 +173,7 @@ export default function ChartInspector({ node, definition, onCommit, disabled = 
             <FormField label={t('studio_apps_panels.chart.value_format', 'Value format')}>
                 <SegmentedControl value={props.valueFormat ?? 'number'} onChange={(v) => patch({ valueFormat: v })} options={VALUE_FORMATS} size="sm" fullWidth disabled={disabled} ariaLabel={t('studio_apps_panels.chart.value_format', 'Value format')} />
             </FormField>
+            <FormatOptionsFields kind={props.valueFormat ?? 'number'} value={props.formatOptions} onChange={(next) => patch({ formatOptions: next })} disabled={disabled} />
             <TextField
                 label={t('studio_apps_panels.chart.unit', 'Unit')}
                 value={props.unitLabel}
@@ -246,4 +251,4 @@ function ColourRow({ value, onPick }: { value?: string; onPick: (colour: string 
     );
 }
 
-registerInspector('chart', ChartInspector);
+registerInspector('chart', ChartInspector, { props: ['chartType', 'source', 'title', 'xKey', 'xType', 'series', 'stacked', 'showLegend', 'showGrid', 'valueFormat', 'unitLabel', 'yMin', 'yMax', 'referenceBands', 'referenceLines', 'formatOptions'], items: { series: ['key', 'label', 'color'], referenceBands: ['from', 'to', 'label', 'color'], referenceLines: ['value', 'label', 'color'] } });

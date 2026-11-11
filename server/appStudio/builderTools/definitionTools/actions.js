@@ -25,6 +25,7 @@ const { adoptCanonical, limitRepairsUnder } = require('../shared');
 const { limitReasons } = require('../limitRefusal.mts');
 const { stepCountsByTopLevel } = require('../../actionStepCounts');
 const { readBatchArg, runPatchBatch, finishPatchBatch } = require('./patchBatch');
+const { bindActionList } = require('./bindActionList');
 
 /**
  * The canonicalizer cuts text and lists that pass a limit. For a stored app that stays a repair; a save
@@ -190,6 +191,8 @@ function applyBindAction(draftWrap, args) {
         const carriers = COMPONENT_TYPES.filter((t) => (COMPONENT_SPECS[t].events || []).includes(event));
         return { error: `${found.node.type} does not support ${event}. Components that do: ${carriers.join(', ')}.` };
     }
+    // Schema 3: a list of up to MAX_ACTIONS_PER_EVENT ids runs them in order (bindActionList.js).
+    if (Array.isArray(actionId)) return bindActionList(draftWrap, found.node, { nodeId, event, actionIds: actionId });
     if (actionId !== null) {
         if (typeof actionId !== 'string' || !ops.findAction(draftWrap.def, actionId)) {
             const suggestion = pickClosestId(actionId, Object.keys(draftWrap.def.actions || {}));

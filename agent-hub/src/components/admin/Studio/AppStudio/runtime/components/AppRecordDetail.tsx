@@ -138,7 +138,7 @@ export default function AppRecordDetail({ node }: NodeProps<RecordDetailProps>) 
     const heading = (name: string) => (
         <div
             key={`grp-${name}`}
-            className="text-[11px] font-semibold uppercase tracking-wide pt-2 first:pt-0 [color:var(--text-muted)]! [grid-column:1_/_-1]"
+            className="text-[11px] font-semibold uppercase tracking-wide pt-2 first:pt-0 [color:var(--text-muted)]! [grid-column:1_/_-1] bfa-record_detail__group"
             data-app-recorddetail-group={name}
         >
             {name}
@@ -152,7 +152,7 @@ export default function AppRecordDetail({ node }: NodeProps<RecordDetailProps>) 
     if (layout === 'rows') {
         return (
             <dl
-                className={`grid gap-x-5 gap-y-0${fillCls}`}
+                className={`grid gap-x-5 gap-y-0${fillCls} bfa-record_detail__root`}
                 data-app-recorddetail="true"
                 data-app-recorddetail-layout="rows"
                 style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
@@ -166,13 +166,13 @@ export default function AppRecordDetail({ node }: NodeProps<RecordDetailProps>) 
                         return (
                             <div
                                 key={`${g.name}-${field.key}-${i}`}
-                                className={`flex ${isFile ? 'items-center' : 'items-baseline'} justify-between gap-3 py-1.5 min-w-0 [border-bottom:1px_solid_var(--app-hairline,var(--border-default))]`}
+                                className={`flex ${isFile ? 'items-center' : 'items-baseline'} justify-between gap-3 py-1.5 min-w-0 [border-bottom:1px_solid_var(--app-hairline,var(--border-default))] bfa-record_detail__field`}
                             >
-                                <dt className="shrink-0 text-xs text-[var(--text-secondary)]">
+                                <dt className="shrink-0 text-xs text-[var(--text-secondary)] bfa-record_detail__label">
                                     {field.label || field.key}
                                 </dt>
                                 <dd
-                                    className={`text-sm text-right min-w-0${isFile ? '' : ' truncate'} text-[var(--text-primary)]`}
+                                    className={`text-sm text-right min-w-0${isFile ? '' : ' truncate'} text-[var(--text-primary)] bfa-record_detail__value`}
                                     title={plain}
                                 >
                                     <FieldValue value={value} format={field.format || 'text'} />
@@ -187,18 +187,18 @@ export default function AppRecordDetail({ node }: NodeProps<RecordDetailProps>) 
 
     return (
         <dl
-            className={`grid gap-x-6 gap-y-3${fillCls}`}
+            className={`grid gap-x-6 gap-y-3${fillCls} bfa-record_detail__root`}
             data-app-recorddetail="true"
             style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
         >
             {groups.map((g) => [
                 g.name ? heading(g.name) : null,
                 ...g.fields.map((field, i) => (
-                    <div key={`${g.name}-${field.key}-${i}`} className="min-w-0">
-                        <dt className="text-xs font-medium uppercase tracking-wide text-[var(--text-muted)]">
+                    <div key={`${g.name}-${field.key}-${i}`} className="min-w-0 bfa-record_detail__field">
+                        <dt className="text-xs font-medium uppercase tracking-wide text-[var(--text-muted)] bfa-record_detail__label">
                             {field.label || field.key}
                         </dt>
-                        <dd className="text-sm mt-0.5 break-words text-[var(--text-primary)]">
+                        <dd className="text-sm mt-0.5 break-words text-[var(--text-primary)] bfa-record_detail__value">
                             <FieldValue value={walkPath(record, field.key)} format={field.format || 'text'} />
                         </dd>
                     </div>

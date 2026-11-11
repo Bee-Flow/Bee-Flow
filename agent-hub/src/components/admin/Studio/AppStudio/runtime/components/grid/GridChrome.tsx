@@ -108,7 +108,7 @@ export function GridChromeRow({
 }: GridChromeRowProps) {
     const { t } = useTranslation();
     return (
-            <div className={`flex flex-wrap items-center gap-x-3 gap-y-2${boxed ? ' shrink-0' : ''}`}>
+            <div className={`flex flex-wrap items-center gap-x-3 gap-y-2${boxed ? ' shrink-0' : ''} bfa-data_grid__toolbar`}>
                 {searchable ? (
                     <div className="relative min-w-[9rem] max-w-xs flex-1">
                         <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" aria-hidden="true" />
@@ -231,7 +231,7 @@ export interface GridFooterProps {
 export function GridFooter({ boxed, rangeFrom, rangeTo, filteredCount, pageSize, setPageSize, setPageIndex, pageSizeChoices, table }: GridFooterProps) {
     const { t } = useTranslation();
     return (
-            <div className={`flex flex-wrap items-center justify-between gap-x-3 gap-y-2 text-xs${boxed ? ' shrink-0' : ''} text-[var(--text-secondary)]`}>
+            <div className={`flex flex-wrap items-center justify-between gap-x-3 gap-y-2 text-xs${boxed ? ' shrink-0' : ''} text-[var(--text-secondary)] bfa-data_grid__footer`}>
                 {/*
                   * "Page 3 of 12" tells you where you are but not how much
                   * there IS — the number people actually want from a table.

@@ -1,0 +1,180 @@
+{
+  "about": {
+    "source": "hand-made for package LK2 (box knob group): marginTop, marginBottom, shadow, opacity, borderWidth, borderSides, borderColor and backgroundColor on heading, stat, text and card, next to a button the group is withheld from",
+    "captured": "2026-11-10"
+  },
+  "definition": {
+    "schemaVersion": 3,
+    "meta": {
+      "name": "Box knobs",
+      "description": "Margins, shadow, opacity, a border per side and a fill on the grid cell.",
+      "icon": "Square"
+    },
+    "theme": {
+      "primary": "#1D4ED8",
+      "radius": "md",
+      "density": "comfortable",
+      "fontScale": "md",
+      "appearance": "auto"
+    },
+    "roles": [],
+    "screens": [
+      {
+        "id": "scr_boxkn01",
+        "name": "Box",
+        "icon": null,
+        "showInNav": true,
+        "maxWidth": "medium",
+        "sections": [
+          {
+            "id": "sec_boxkn01",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_boxkn01",
+                "type": "heading",
+                "props": {
+                  "text": "Accent bar and a role fill",
+                  "level": 2,
+                  "accent": "none"
+                },
+                "style": {
+                  "span": 12,
+                  "borderSides": "left",
+                  "borderWidth": 3,
+                  "borderColor": "primary",
+                  "backgroundColor": "primary",
+                  "marginBottom": 2
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_boxkn02",
+                "type": "stat",
+                "props": {
+                  "label": "Open items",
+                  "value": {
+                    "kind": "static",
+                    "value": 12
+                  },
+                  "caption": null,
+                  "captionSegments": [],
+                  "icon": null,
+                  "delta": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "deltaFormat": "number",
+                  "trend": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "positiveIsGood": true,
+                  "look": "plain"
+                },
+                "style": {
+                  "span": 4,
+                  "shadow": "md",
+                  "backgroundColor": "#1e3a8a",
+                  "color": "#ffffff"
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_boxkn03",
+                "type": "stat",
+                "props": {
+                  "label": "Quiet tile",
+                  "value": {
+                    "kind": "static",
+                    "value": 3
+                  },
+                  "caption": null,
+                  "captionSegments": [],
+                  "icon": null,
+                  "delta": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "deltaFormat": "number",
+                  "trend": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "positiveIsGood": true,
+                  "look": "plain"
+                },
+                "style": {
+                  "span": 4,
+                  "opacity": 60,
+                  "borderWidth": 1,
+                  "borderSides": "all"
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_boxkn04",
+                "type": "text",
+                "props": {
+                  "text": "Space above and below, a bottom rule.",
+                  "muted": false
+                },
+                "style": {
+                  "span": 4,
+                  "marginTop": 4,
+                  "marginBottom": 1,
+                  "borderSides": "bottom",
+                  "borderColor": "#94a3b8"
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_boxkn05",
+                "type": "card",
+                "props": {
+                  "title": "Raised card",
+                  "description": "Fill colour wins over background.",
+                  "look": "default"
+                },
+                "style": {
+                  "span": 6,
+                  "padding": 3,
+                  "gap": 3,
+                  "background": "surface",
+                  "shadow": "lg",
+                  "backgroundColor": "success",
+                  "borderColor": "success",
+                  "borderSides": "x",
+                  "borderWidth": 2
+                },
+                "visible": true,
+                "children": []
+              },
+              {
+                "id": "cmp_boxkn06",
+                "type": "button",
+                "props": {
+                  "label": "Untouched button",
+                  "variant": "primary",
+                  "iconLeft": null,
+                  "role": "button",
+                  "disabledWhen": null
+                },
+                "style": {
+                  "span": 3
+                },
+                "visible": true
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "actions": {},
+    "homeScreenId": "scr_boxkn01"
+  }
+}

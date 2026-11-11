@@ -1,0 +1,62 @@
+{
+  "corpus": "template-request-form",
+  "canonical": {
+    "sha256": "c630017c2faa632907dcdb6a149f30e47e33f92c4b81452a5657844c27136a68",
+    "bytes": 3615,
+    "inputIsCanonical": true,
+    "idempotent": true,
+    "keys": [
+      "schemaVersion",
+      "meta",
+      "theme",
+      "roles",
+      "screens",
+      "actions",
+      "homeScreenId"
+    ],
+    "parts": {
+      "schemaVersion": "d4735e3a265e16ee",
+      "meta": "42cfc58f0fd9d82e",
+      "theme": "5d7eeb0111b89897",
+      "roles": "4f53cda18c2baa0c",
+      "screens[0] scr_reqhome": "6cefc5704c7a6d78",
+      "screens[1] scr_reqdone": "b176f6fb6bbea31f",
+      "actions.act_reqsubmit": "d5d377296ad782f7",
+      "actions.act_reqagain": "e739ec9203a732d6",
+      "homeScreenId": "9e2dfb426dce3770"
+    }
+  },
+  "schemaVersion": {
+    "stored": 2,
+    "canonical": 2
+  },
+  "validation": {
+    "strict": {
+      "errors": [],
+      "warnings": [
+        "action.automation_unset @ actions.act_reqsubmit.automationId"
+      ]
+    },
+    "save": {
+      "errors": [],
+      "warnings": [
+        "action.automation_unset @ actions.act_reqsubmit.automationId"
+      ]
+    }
+  },
+  "ordinals": {
+    "stored": {
+      "act_reqsubmit": [
+        "0 run_automation"
+      ],
+      "act_reqagain": [
+        "0 navigate"
+      ]
+    },
+    "canonical": "same as stored"
+  },
+  "installHash": {
+    "stored": "9bb17bf1920112497099cd888d94c0c62e6f55afb20df50bd4b8dce2ab61f0d2",
+    "afterResave": "9bb17bf1920112497099cd888d94c0c62e6f55afb20df50bd4b8dce2ab61f0d2"
+  }
+}

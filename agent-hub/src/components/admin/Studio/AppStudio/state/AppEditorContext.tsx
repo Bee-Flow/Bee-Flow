@@ -1,6 +1,6 @@
 import { createContext, useContext, useMemo, useReducer } from 'react';
 import type { ReactNode } from 'react';
-import type { AppEditorAction, AppEditorValue } from './appEditorState';
+import type { AppEditorAction, AppEditorValue, PreviewDevice } from './appEditorState';
 import { collectIds, findScreen } from './definitionOps';
 import type { HeaderApp } from '../editor/header/headerModel';
 import type { AppDefinition } from '../inspector/appDefinition';
@@ -33,7 +33,12 @@ import type { AppDefinition } from '../inspector/appDefinition';
  *                      enforced, so this is a UX preview, never a control.
  *   previewUser      — the mock currentUser fed to formulas while previewRole is
  *                      active (null when not previewing).
+ *   previewDevice    — the width Preview renders at: 'fit' (the canvas column,
+ *                      the default) or a device frame ('desktop' | 'tablet' |
+ *                      'phone'). Editor-only; never part of the definition.
  */
+
+const PREVIEW_DEVICES: readonly PreviewDevice[] = ['fit', 'desktop', 'tablet', 'phone'];
 
 // findScreen(def, undefined) matches a screen without an id, so a definition
 // whose homeScreenId is missing can leave the current screen undefined.
@@ -87,6 +92,7 @@ function initialState(app: AppEditorSeed | undefined): AppEditorState {
         revealDelays: new Map(),     // id → ms before its reveal animation starts (AI build cadence)
         previewRole: null,
         previewUser: null,
+        previewDevice: 'fit',
     };
 }
 
@@ -245,6 +251,10 @@ function reducer(state: AppEditorState, action: AppEditorAction): AppEditorState
             }
             const user = action.user !== undefined ? action.user : mockUserForRole(role);
             return { ...state, previewRole: role, previewUser: user };
+        }
+        case 'set_preview_device': {
+            if (!PREVIEW_DEVICES.includes(action.device)) return state;
+            return action.device === state.previewDevice ? state : { ...state, previewDevice: action.device };
         }
         default:
             return state;

@@ -11,8 +11,11 @@ const { VALUE_FROM } = require('./styleKnobs');
 
 const FORM_SPECS = {
     card: {
+        parts: ['root', 'header', 'title', 'description', 'body'],
         label: 'Card', category: 'Layout',
         description: 'A surface that groups other components. Children lay out on the card’s own 12-column grid.',
+        // Schema 3: a click on the whole tile runs an action (clientTriggerSpecs.js).
+        events: ['onClick'], eventsSince: { onClick: 3 },
         container: true,
         props: {
             title: { type: 'string', maxLen: 120, default: null },
@@ -28,6 +31,7 @@ const FORM_SPECS = {
         defaultStyle: { span: 6, padding: 3, gap: 3, background: 'surface' },
     },
     form: {
+        parts: ['root', 'body', 'error', 'actions', 'submit', 'reset'],
         label: 'Form', category: 'Input',
         description: 'Groups inputs and submits them to an action. Renders one built-in submit button; set showSubmit false for a form whose fields save on change.',
         container: true,
@@ -48,6 +52,15 @@ const FORM_SPECS = {
             // new row's was empty — valueFrom never pushes null on purpose —
             // and Save then wrote one record's thickness onto another.
             resetKey: { type: 'formula', default: null },
+            // When field errors show. Absent = on submit only (today's behaviour);
+            // 'blur' validates a field when it loses focus, 'change' on every edit.
+            // Never written out as a default, so no stored form gains the prop.
+            validateOn: {
+                type: 'enum',
+                values: ['submit', 'blur', 'change'],
+                since: 3,
+                description: 'When field errors show. Default is on submit; blur checks a field when it loses focus, change on every edit.',
+            },
         },
         // A form is a region like any other container, but it was the one that
         // could not be given an edge or a ground — so a composer or a filled-in
@@ -59,6 +72,7 @@ const FORM_SPECS = {
         defaultStyle: { span: 6, gap: 3, padding: 0 },
     },
     input_text: {
+        parts: ['root', 'label', 'control', 'error'],
         label: 'Text input', category: 'Input', isInput: true,
         description: 'A single-line text field.',
         props: {
@@ -74,6 +88,7 @@ const FORM_SPECS = {
         defaultStyle: { span: 12 },
     },
     input_textarea: {
+        parts: ['root', 'label', 'control', 'snippets', 'error'],
         label: 'Text area', category: 'Input', isInput: true,
         description: 'A multi-line text field. Bind snippets to a table of saved texts and typing "/" offers them inline (snippetKey = the shortcut column, snippetBody = the text to insert).',
         props: {
@@ -95,6 +110,7 @@ const FORM_SPECS = {
         defaultStyle: { span: 12 },
     },
     input_number: {
+        parts: ['root', 'label', 'control', 'error'],
         label: 'Number input', category: 'Input', isInput: true,
         description: 'A numeric field with optional min/max.',
         props: {
@@ -114,6 +130,7 @@ const FORM_SPECS = {
         defaultStyle: { span: 6 },
     },
     input_select: {
+        parts: ['root', 'label', 'control', 'error'],
         label: 'Select', category: 'Input', isInput: true,
         description: 'A dropdown with fixed options.',
         events: ['onChange'],
@@ -145,6 +162,7 @@ const FORM_SPECS = {
         defaultStyle: { span: 6 },
     },
     input_checkbox: {
+        parts: ['root', 'label', 'control', 'error'],
         label: 'Checkbox', category: 'Input', isInput: true,
         description: 'A single yes/no checkbox.',
         events: ['onChange'],
@@ -157,6 +175,7 @@ const FORM_SPECS = {
         defaultStyle: { span: 12 },
     },
     input_date: {
+        parts: ['root', 'label', 'control', 'error'],
         label: 'Date picker', category: 'Input', isInput: true,
         description: 'A date field. Submits ISO YYYY-MM-DD.',
         events: ['onChange'],

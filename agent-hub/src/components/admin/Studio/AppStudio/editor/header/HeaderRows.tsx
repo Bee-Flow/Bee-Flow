@@ -5,15 +5,26 @@
  * one is open (onViewChange).
  */
 import { Eye } from 'lucide-react';
+import { Suspense, useEffect } from 'react';
 import type { Dispatch, ReactNode } from 'react';
 import type { HeaderApp, HeaderView } from './headerModel';
 import type { RolesDirty } from './useHeaderView';
 import useTranslation from '@/hooks/useTranslation';
 import ConfirmDialog from '@/components/shared/ConfirmDialog';
+import { lazy } from '@/utils/lazyWithReload';
+import { logger } from '@/utils/logger';
 import type { AppDefinition } from '../../inspector/appDefinition';
 import type { AppEditorAction } from '../../state/appEditorState';
 import EditorToolRow from '../EditorToolRow';
-import { DataView, RolesView } from '../EditorViews';
+
+// The Data and Roles views open from a header segment, never with the editor
+// itself: their own chunk keeps the table designer, the connectors and the role
+// editors out of what the editor (and the public App Studio demo) loads first.
+// The header starts fetching that chunk as soon as it mounts, so a click on a
+// segment finds it loaded.
+const loadViews = () => import('../EditorViews');
+const DataView = lazy(() => loadViews().then((m) => ({ default: m.DataView })));
+const RolesView = lazy(() => loadViews().then((m) => ({ default: m.RolesView })));
 
 interface PreviewRoleBannerProps {
     previewRole: string;
@@ -91,27 +102,35 @@ export function HeaderViewRows({
     view, app, definition, screenId, streamLock, dispatch, dataOpen, renderLogic,
     onCommit, canUndo, canRedo, onUndo, onRedo, onLeaveData, onRolesDirtyChange,
 }: HeaderViewRowsProps) {
+    // A failed prefetch is not an error yet: the lazy view retries (and reloads after a redeploy) when it is opened.
+    useEffect(() => { loadViews().catch((err: unknown) => logger.debug('[HeaderRows] views prefetch failed', err)); }, []);
     if (view === 'edit') {
         return <EditorToolRow onCommit={onCommit} canUndo={canUndo} canRedo={canRedo} onUndo={onUndo} onRedo={onRedo} />;
     }
     if (view === 'data') {
         return (
-            <DataView
-                key={dataOpen.n}
-                app={app}
-                definition={definition}
-                screenId={screenId}
-                onCommit={onCommit}
-                dispatch={dispatch}
-                disabled={streamLock}
-                initialTab={dataOpen.tab}
-                onLeave={onLeaveData}
-            />
+            <Suspense fallback={null}>
+                <DataView
+                    key={dataOpen.n}
+                    app={app}
+                    definition={definition}
+                    screenId={screenId}
+                    onCommit={onCommit}
+                    dispatch={dispatch}
+                    disabled={streamLock}
+                    initialTab={dataOpen.tab}
+                    onLeave={onLeaveData}
+                />
+            </Suspense>
         );
     }
     if (view === 'logic') return renderLogic();
     if (view === 'roles') {
-        return <RolesView app={app} definition={definition} onCommit={onCommit} onDirtyChange={onRolesDirtyChange} />;
+        return (
+            <Suspense fallback={null}>
+                <RolesView app={app} definition={definition} onCommit={onCommit} onDirtyChange={onRolesDirtyChange} />
+            </Suspense>
+        );
     }
     return null;
 }

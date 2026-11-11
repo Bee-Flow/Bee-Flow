@@ -9,6 +9,10 @@
 // The step error-handling bounds live with the step-tree helpers (mirrored to
 // the editor), so the browser coordinator and the server read one number.
 const { STEP_RETRY, MAX_TRANSACTION_STEPS } = require('../../shared/appDefinition/stepFlow.mjs');
+// The parallel rules are shared with the browser coordinator the same way.
+const { MAX_PARALLEL_BRANCHES } = require('../../shared/appDefinition/parallelRules.mjs');
+// The client trigger bounds (schema 3) live with their shapes, for the same reason.
+const { CLIENT_TRIGGER_LIMITS } = require('../../shared/appDefinition/clientTriggers.mjs');
 
 // ---------------------------------------------------------------------------
 // Hard ceilings (abuse guards; far above any real app)
@@ -66,6 +70,7 @@ const LIMITS = {
     MAX_LOCK_KEY_LEN: 200,             // a resolved lockKey; longer keys are hashed
     MAX_PROGRESS_TEXT_LEN: 200,        // the progressVar text a job shows
     MAX_DEFERRED_EFFECTS: 10,          // toast/refresh steps a job replays at the end
+    MAX_CLIENT_WAIT_SECONDS: 30,       // wait (schema 3): the longest pause the browser holds a sequence
     // Bulk writes (2026-11): update/delete_record with a filter, writeTo upsertKey/replaceWhere.
     MAX_BULK_WRITE_ROWS: 500,          // rows one filter-mode update/delete (or replaceWhere) may change
     MAX_WRITE_FILTER_CLAUSES: 20,      // clauses in a write filter / replaceWhere
@@ -78,6 +83,7 @@ const LIMITS = {
     MAX_AI_SCHEMA_FIELD_DESC: 2000,    // one schema field description (was 500); for ai_extract it IS the instruction
     MAX_CONTEXT_SOURCES: 12,           // contextSources entries per AI step (was 4)
     MAX_CONTEXT_SOURCE_LABEL: 120,     // one contextSource label (was 60)
+    MAX_AI_REPAIR_ROUNDS: 3,           // ai_generate / ai_extract repairRounds: extra model calls after failed checks
     MAX_CHART_SERIES: 12,              // chart series entries
     MAX_CHART_REFERENCES: 8,           // chart referenceLines / referenceBands entries —
                                        // a clinical range is one or two bands; past
@@ -99,6 +105,30 @@ const LIMITS = {
     MAX_VARIABLE_DEFAULT_BYTES: 2048,  // one seeded record/list. Exists so the
                                        // error can name the variable instead of
                                        // "your app is too big" at 512KB.
+    MAX_PARALLEL_BRANCHES,             // branches of one parallel step
+    // The code step (schema 3): its source and its named inputs.
+    MAX_CODE_STEP_CHARS: 20000,        // code: the JavaScript source
+    MAX_CODE_STEP_INPUTS: 20,          // inputs: named bindings
+    MAX_HTTP_STEP_ENTRIES: 30,         // http_request: entries in `query`, and in `headers`
+    // Client triggers (schema 3): several actions per event, screen timers, watchers.
+    MAX_ACTIONS_PER_EVENT: CLIENT_TRIGGER_LIMITS.MAX_ACTIONS_PER_EVENT,
+    MIN_TIMER_SECONDS: CLIENT_TRIGGER_LIMITS.MIN_TIMER_SECONDS,
+    MAX_TIMER_SECONDS: CLIENT_TRIGGER_LIMITS.MAX_TIMER_SECONDS,
+    MAX_SCREEN_TIMERS: CLIENT_TRIGGER_LIMITS.MAX_SCREEN_TIMERS,
+    MAX_WATCHERS: CLIENT_TRIGGER_LIMITS.MAX_WATCHERS,
+    MAX_WATCHER_DEBOUNCE_MS: CLIENT_TRIGGER_LIMITS.MAX_WATCHER_DEBOUNCE_MS,
+    MAX_ALLOWED_LINK_HOSTS: 50,        // definition.allowedLinkHosts entries (hosts an open_url formula may open)
+    MAX_SECTION_TITLE_LEN: 80,         // section.title, the heading drawn above a section
+    MAX_SECTION_NAME_LEN: 60,          // section.name, the builder-only label (as a screen name)
+    // The app's own stylesheet (2026-11): design.customCss and a node's cssClass.
+    MAX_CUSTOM_CSS_LEN: 20000,         // characters of design.customCss
+    MAX_CSS_CLASS_LEN: 40,             // characters of node.cssClass
+    // Value formatting (schema 3): definition.format and formatOptions. The cleaner is
+    // server/shared/format/formatClean.mjs (FORMAT_LIMITS); formatLimits.test.js holds both equal.
+    MAX_FORMAT_DECIMALS: 10,           // decimals / currencyDecimals
+    MAX_FORMAT_PATTERN_LEN: 40,        // a date pattern ("dd-MM-yyyy")
+    MAX_FORMAT_LANGUAGE_LEN: 35,       // a BCP 47 language tag
+    MAX_FORMAT_TIME_ZONE_LEN: 64,      // an IANA time zone name
 };
 
 module.exports = {

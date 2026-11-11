@@ -74,7 +74,7 @@ export function GridBodyRow({
             // affordance, which reads as a static report rather than a list
             // you can open. The tint lives in app-tokens.css so it follows
             // the app's primary colour.
-            className={clickable && isRun ? 'cursor-pointer app-grid-row-clickable app-focusable' : ''}
+            className={`${clickable && isRun ? 'cursor-pointer app-grid-row-clickable app-focusable' : ''} bfa-data_grid__row`}
             // Under 'cards' the tds paint their own card surface, so the
             // selection wash moves to the tds too (app-tokens.css keys it
             // off data-selected) — an inline tr background would be hidden.
@@ -124,7 +124,7 @@ export function GridBodyRow({
                         // date and a number had each sitting on a different
                         // baseline, which is most of why the grid read as
                         // ragged rather than as a table.
-                        className={`${cellPad}${divider} align-middle ${ALIGN_CLASS[meta.align || 'left']}${meta.truncate ? ' truncate max-w-0' : ''}`}
+                        className={`${cellPad}${divider} align-middle ${ALIGN_CLASS[meta.align || 'left']}${meta.truncate ? ' truncate max-w-0' : ''} bfa-data_grid__cell`}
                         style={{ borderColor: 'var(--border-default)' }}
                         // The full value stays reachable when it is clamped —
                         // hiding text is only acceptable if nothing is lost.

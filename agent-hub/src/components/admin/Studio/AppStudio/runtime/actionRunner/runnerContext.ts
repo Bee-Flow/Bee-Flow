@@ -7,6 +7,7 @@ import type { EffectContext } from './applyEffects';
 import type { DataState } from '../DataContext';
 import type { BrowseEvent } from '../BrowserRunContext';
 import type { ActionEntry, ActionState, EffectObject, RunnableAction, RunStep, Translate, Vars } from './core';
+import type { ScreenTrail } from './screenTrail';
 
 export type NavigateFn = (screenId: string, params?: unknown) => void;
 export type RefreshFn = (target?: { tableId: string | null; datasetId: string | null }) => unknown;
@@ -35,6 +36,10 @@ export interface LiveInputs {
     forms?: Record<string, unknown> | null;
     screen?: Record<string, unknown> | null;
     beforeServerStep?: BeforeServerStep | null;
+    /** The `ui` scope root as it is now (../uiState.ts); absent, step formulas have no `ui`. */
+    readUi?: (() => unknown) | null;
+    /** The screens this visit came through, for the `back` step (./screenTrail.ts). */
+    screenTrail?: ScreenTrail | null;
 }
 
 export interface RunnerContext {

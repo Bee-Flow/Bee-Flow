@@ -1,0 +1,305 @@
+{
+  "about": {
+    "source": "server/appStudio/templates.js template \"app-team-hub\" version 1",
+    "stored": "definition = canonicalizeAppDefinition(deep clone of template.definition).def (routes/studioApps/crud.js create-from-template, no name override); dataModel = canonicalizeDataModel(template.dataModel).model (templateInstall.js); datasets as the template declares them",
+    "captured": "2026-11-10",
+    "templateId": "app-team-hub"
+  },
+  "definition": {
+    "schemaVersion": 2,
+    "meta": {
+      "name": "Team hub",
+      "description": "Everything the team needs in one place.",
+      "icon": "Users"
+    },
+    "theme": {
+      "primary": "#B45309",
+      "radius": "sm",
+      "density": "comfortable",
+      "fontScale": "md",
+      "appearance": "auto"
+    },
+    "roles": [],
+    "screens": [
+      {
+        "id": "scr_hubhome",
+        "name": "Welcome",
+        "icon": "Home",
+        "showInNav": true,
+        "maxWidth": "medium",
+        "sections": [
+          {
+            "id": "sec_hubhero",
+            "style": {
+              "padding": 5,
+              "gap": 2,
+              "background": "gradient"
+            },
+            "children": [
+              {
+                "id": "cmp_hubtitle",
+                "type": "heading",
+                "props": {
+                  "text": "Welcome to the team hub",
+                  "level": 1,
+                  "accent": "none"
+                },
+                "style": {
+                  "span": 12,
+                  "align": "center"
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_hublead",
+                "type": "text",
+                "props": {
+                  "text": "Quick links, announcements and a direct line to the team.",
+                  "muted": true
+                },
+                "style": {
+                  "span": 12,
+                  "align": "center"
+                },
+                "visible": true
+              }
+            ]
+          },
+          {
+            "id": "sec_hubcards",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_hubcard1",
+                "type": "card",
+                "props": {
+                  "title": "Getting started",
+                  "description": "New here? Start with these.",
+                  "look": "default"
+                },
+                "style": {
+                  "span": 6,
+                  "padding": 3,
+                  "gap": 2,
+                  "background": "surface"
+                },
+                "visible": true,
+                "children": [
+                  {
+                    "id": "cmp_hubc1txt",
+                    "type": "text",
+                    "props": {
+                      "text": "Read the onboarding guide, join the team channel, and book your intro call.",
+                      "muted": false
+                    },
+                    "style": {
+                      "span": 12
+                    },
+                    "visible": true
+                  },
+                  {
+                    "id": "cmp_hubc1btn",
+                    "type": "button",
+                    "props": {
+                      "label": "Open the guide",
+                      "variant": "secondary",
+                      "iconLeft": "BookOpen",
+                      "role": "button",
+                      "disabledWhen": null
+                    },
+                    "style": {
+                      "span": 6
+                    },
+                    "visible": true,
+                    "onClick": "act_hubguide"
+                  }
+                ]
+              },
+              {
+                "id": "cmp_hubcard2",
+                "type": "card",
+                "props": {
+                  "title": "This week",
+                  "description": "What is happening.",
+                  "look": "default"
+                },
+                "style": {
+                  "span": 6,
+                  "padding": 3,
+                  "gap": 2,
+                  "background": "surface"
+                },
+                "visible": true,
+                "children": [
+                  {
+                    "id": "cmp_hubc2note",
+                    "type": "callout",
+                    "props": {
+                      "title": null,
+                      "text": "Sprint review Friday 15:00 — demo your work!",
+                      "textFrom": {
+                        "kind": "static",
+                        "value": null
+                      },
+                      "tone": "info",
+                      "toneFrom": {
+                        "kind": "static",
+                        "value": null
+                      },
+                      "meta": null,
+                      "metaFrom": {
+                        "kind": "static",
+                        "value": null
+                      },
+                      "collapsible": false
+                    },
+                    "style": {
+                      "span": 12
+                    },
+                    "visible": true
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "scr_hubcontact",
+        "name": "Contact",
+        "icon": "Mail",
+        "showInNav": true,
+        "maxWidth": "narrow",
+        "sections": [
+          {
+            "id": "sec_hubform",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_hubchead",
+                "type": "heading",
+                "props": {
+                  "text": "Contact the team",
+                  "level": 2,
+                  "accent": "bar"
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_hubcfrm",
+                "type": "form",
+                "props": {
+                  "name": "contact",
+                  "submitLabel": "Send message",
+                  "showReset": false,
+                  "showSubmit": true,
+                  "resetKey": null
+                },
+                "style": {
+                  "span": 12,
+                  "gap": 3,
+                  "padding": 0
+                },
+                "visible": true,
+                "onSubmit": "act_hubcontact",
+                "children": [
+                  {
+                    "id": "cmp_hubcname",
+                    "type": "input_text",
+                    "props": {
+                      "name": "name",
+                      "label": "Your name",
+                      "placeholder": null,
+                      "required": true,
+                      "defaultValue": null,
+                      "inputType": "text",
+                      "valueFrom": {
+                        "kind": "static",
+                        "value": null
+                      }
+                    },
+                    "style": {
+                      "span": 12
+                    },
+                    "visible": true
+                  },
+                  {
+                    "id": "cmp_hubcmsg",
+                    "type": "input_textarea",
+                    "props": {
+                      "name": "message",
+                      "label": "Message",
+                      "placeholder": null,
+                      "required": true,
+                      "rows": 4,
+                      "valueFrom": {
+                        "kind": "static",
+                        "value": null
+                      },
+                      "snippets": {
+                        "kind": "static",
+                        "value": null
+                      },
+                      "snippetKey": "shortcut",
+                      "snippetBody": "body",
+                      "snippetLabel": "title"
+                    },
+                    "style": {
+                      "span": 12
+                    },
+                    "visible": true
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "actions": {
+      "act_hubguide": {
+        "kind": "open_url",
+        "url": "https://example.com/onboarding",
+        "newTab": true
+      },
+      "act_hubcontact": {
+        "kind": "run_automation",
+        "automationId": null,
+        "inputMapping": {},
+        "onSuccess": {
+          "toast": {
+            "message": "Message sent — thanks!",
+            "tone": "success"
+          }
+        },
+        "onError": {
+          "toast": {
+            "message": "Could not send your message.",
+            "tone": "danger"
+          }
+        }
+      }
+    },
+    "design": {
+      "preset": "paper",
+      "font": "cabinet",
+      "surface": "hairline",
+      "motion": "subtle",
+      "chartPalette": "classic",
+      "accentEdge": "bar",
+      "logoUrl": null
+    },
+    "homeScreenId": "scr_hubhome"
+  }
+}

@@ -1,6 +1,7 @@
 import { render } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
 import AppCard from './AppCard';
+import { withoutPartClasses } from '@/test/appPartClasses';
 
 /**
  * AppCard — the look pass (props.look, spec componentSpecs.js).
@@ -26,19 +27,19 @@ describe('AppCard looks', () => {
             <AppCard node={cardNode({ look: 'default' })}><div>kid</div></AppCard>,
         );
         const root = container.querySelector('.app-card');
-        expect(root!.className).toBe(IDENTITY_CLASS);
+        expect(withoutPartClasses(root!.className)).toBe(IDENTITY_CLASS);
     });
 
     it('an absent look renders the identity too (stored definitions)', () => {
         const { container } = render(<AppCard node={cardNode()}><div>kid</div></AppCard>);
-        expect(container.querySelector('.app-card')!.className).toBe(IDENTITY_CLASS);
+        expect(withoutPartClasses(container.querySelector('.app-card')!.className)).toBe(IDENTITY_CLASS);
     });
 
     it('an unknown look value falls back to the identity render', () => {
         const { container } = render(
             <AppCard node={cardNode({ look: 'constructor' })}><div>kid</div></AppCard>,
         );
-        expect(container.querySelector('.app-card')!.className).toBe(IDENTITY_CLASS);
+        expect(withoutPartClasses(container.querySelector('.app-card')!.className)).toBe(IDENTITY_CLASS);
     });
 
     for (const look of LOOKS) {

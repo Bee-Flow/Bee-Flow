@@ -10,6 +10,7 @@
     "components/admin/Studio/AppStudio/editor/nodeLogicSummary.ts",
     "components/admin/Studio/AppStudio/flow/stepCatalog.ts",
     "components/admin/Studio/AppStudio/flow/stepGraph.ts",
+    "components/admin/Studio/AppStudio/flow/stepGraphSlots.ts",
     "components/admin/Studio/AppStudio/flow/stepReferences.ts",
     "components/admin/Studio/AppStudio/inspector/actionKindCatalog.ts",
     "components/admin/Studio/AppStudio/inspector/actionLabels.ts",

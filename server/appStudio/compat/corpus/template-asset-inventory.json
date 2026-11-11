@@ -1,0 +1,366 @@
+{
+  "about": {
+    "source": "server/appStudio/templates.js template \"app-asset-inventory\" version 1",
+    "stored": "definition = canonicalizeAppDefinition(deep clone of template.definition).def (routes/studioApps/crud.js create-from-template, no name override); dataModel = canonicalizeDataModel(template.dataModel).model (templateInstall.js); datasets as the template declares them",
+    "captured": "2026-11-10",
+    "templateId": "app-asset-inventory"
+  },
+  "definition": {
+    "schemaVersion": 2,
+    "meta": {
+      "name": "Asset inventory",
+      "description": "Track equipment and licenses.",
+      "icon": "Boxes"
+    },
+    "theme": {
+      "primary": "#047857",
+      "radius": "md",
+      "density": "comfortable",
+      "fontScale": "md",
+      "appearance": "auto"
+    },
+    "roles": [],
+    "screens": [
+      {
+        "id": "scr_asinv",
+        "name": "Inventory",
+        "icon": "Boxes",
+        "showInNav": true,
+        "maxWidth": "wide",
+        "sections": [
+          {
+            "id": "sec_asinv",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_ash1",
+                "type": "heading",
+                "props": {
+                  "text": "Asset inventory",
+                  "level": 1,
+                  "accent": "none"
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_asgrid",
+                "type": "data_grid",
+                "props": {
+                  "source": {
+                    "kind": "records",
+                    "tableId": "tbl_asast",
+                    "sort": [
+                      {
+                        "field": "name",
+                        "dir": "asc"
+                      }
+                    ]
+                  },
+                  "columns": [
+                    {
+                      "key": "name",
+                      "label": "Name",
+                      "format": "text"
+                    },
+                    {
+                      "key": "category",
+                      "label": "Category",
+                      "format": "badge"
+                    },
+                    {
+                      "key": "status",
+                      "label": "Status",
+                      "format": "badge"
+                    },
+                    {
+                      "key": "assigned_to",
+                      "label": "Assigned to",
+                      "format": "text"
+                    }
+                  ],
+                  "pageSize": 25,
+                  "selectable": "none",
+                  "searchable": true,
+                  "rowActions": [],
+                  "toolbarActions": [],
+                  "addRowLabel": null,
+                  "addRowActionId": null,
+                  "bulkActions": [],
+                  "density": "comfortable",
+                  "clamp": "off",
+                  "rowTone": [],
+                  "groupBy": null,
+                  "groupOrder": [],
+                  "activeWhen": null,
+                  "zebra": false,
+                  "emptyText": "Nothing to show yet.",
+                  "look": "default"
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true,
+                "onRowClick": "act_asopen"
+              },
+              {
+                "id": "cmp_asbadge",
+                "type": "badge_list",
+                "props": {
+                  "source": {
+                    "kind": "records",
+                    "tableId": "tbl_asast"
+                  },
+                  "labelKey": "name",
+                  "colorKey": "status",
+                  "countKey": null,
+                  "colorMap": [
+                    {
+                      "value": "in_use",
+                      "color": "info"
+                    },
+                    {
+                      "value": "available",
+                      "color": "success"
+                    },
+                    {
+                      "value": "retired",
+                      "color": "neutral"
+                    }
+                  ],
+                  "emptyText": "Nothing to show yet.",
+                  "activeWhen": null,
+                  "look": "soft"
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "scr_asdet",
+        "name": "Asset",
+        "icon": "Box",
+        "showInNav": false,
+        "maxWidth": "medium",
+        "sections": [
+          {
+            "id": "sec_asdet",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_asback",
+                "type": "button",
+                "props": {
+                  "label": "Back to inventory",
+                  "variant": "ghost",
+                  "iconLeft": "ArrowLeft",
+                  "role": "button",
+                  "disabledWhen": null
+                },
+                "style": {
+                  "span": 4
+                },
+                "visible": true,
+                "onClick": "act_asback"
+              },
+              {
+                "id": "cmp_asrd",
+                "type": "record_detail",
+                "props": {
+                  "source": {
+                    "kind": "record",
+                    "tableId": "tbl_asast",
+                    "filter": [
+                      {
+                        "field": "id",
+                        "op": "eq",
+                        "value": {
+                          "kind": "formula",
+                          "expr": "screen.params.id"
+                        }
+                      }
+                    ]
+                  },
+                  "fields": [
+                    {
+                      "key": "name",
+                      "label": "Name",
+                      "format": "text"
+                    },
+                    {
+                      "key": "category",
+                      "label": "Category",
+                      "format": "badge"
+                    },
+                    {
+                      "key": "status",
+                      "label": "Status",
+                      "format": "badge"
+                    },
+                    {
+                      "key": "assigned_to",
+                      "label": "Assigned to",
+                      "format": "text"
+                    }
+                  ],
+                  "columns": 2,
+                  "emptyText": "No record selected.",
+                  "layout": "stacked"
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "actions": {
+      "act_asopen": {
+        "kind": "navigate",
+        "screenId": "scr_asdet",
+        "params": {
+          "id": {
+            "kind": "formula",
+            "expr": "item.id"
+          }
+        }
+      },
+      "act_asback": {
+        "kind": "navigate",
+        "screenId": "scr_asinv"
+      }
+    },
+    "homeScreenId": "scr_asinv"
+  },
+  "dataModel": {
+    "modelVersion": 1,
+    "tables": [
+      {
+        "id": "tbl_asast",
+        "key": "assets",
+        "name": "Assets",
+        "icon": "Box",
+        "fields": [
+          {
+            "id": "fld_asname",
+            "key": "name",
+            "name": "Name",
+            "type": "text",
+            "required": true,
+            "unique": false
+          },
+          {
+            "id": "fld_ascat",
+            "key": "category",
+            "name": "Category",
+            "type": "select",
+            "options": [
+              {
+                "value": "hardware",
+                "label": "Hardware"
+              },
+              {
+                "value": "software",
+                "label": "Software"
+              },
+              {
+                "value": "furniture",
+                "label": "Furniture"
+              }
+            ],
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_asstat",
+            "key": "status",
+            "name": "Status",
+            "type": "select",
+            "options": [
+              {
+                "value": "in_use",
+                "label": "In use"
+              },
+              {
+                "value": "available",
+                "label": "Available"
+              },
+              {
+                "value": "retired",
+                "label": "Retired"
+              }
+            ],
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_astags",
+            "key": "tags",
+            "name": "Tags",
+            "type": "multiselect",
+            "options": [
+              {
+                "value": "laptop",
+                "label": "Laptop"
+              },
+              {
+                "value": "monitor",
+                "label": "Monitor"
+              },
+              {
+                "value": "phone",
+                "label": "Phone"
+              },
+              {
+                "value": "desk",
+                "label": "Desk"
+              },
+              {
+                "value": "license",
+                "label": "License"
+              }
+            ],
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_asassign",
+            "key": "assigned_to",
+            "name": "Assigned to",
+            "type": "text",
+            "required": false,
+            "unique": false
+          }
+        ],
+        "access": {
+          "default": "app",
+          "roles": {},
+          "rowFilters": {}
+        }
+      }
+    ],
+    "roles": [],
+    "roleMapping": {
+      "default": "app",
+      "byGroup": {}
+    }
+  }
+}

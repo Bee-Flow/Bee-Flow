@@ -96,4 +96,4 @@ function KeyValueInspector({ node, definition, onCommit, disabled = false }: Pan
     );
 }
 
-registerInspector('keyValue', KeyValueInspector);
+registerInspector('keyValue', KeyValueInspector, { props: ['source', 'layout', 'columns', 'fields', 'emptyText'], items: { fields: ['key', 'label'] } });

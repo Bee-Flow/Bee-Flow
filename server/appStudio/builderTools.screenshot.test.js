@@ -108,10 +108,11 @@ test.beforeEach(() => {
 
 // ── Schema surface ──────────────────────────────────────────────────
 
-test('app_screenshot is declared in TOOL_SCHEMAS with screenId/asRole/viewport, all optional', () => {
+test('app_screenshot is declared in TOOL_SCHEMAS with screenId/asRole/viewport and the view arguments, all optional', () => {
     const schema = TOOL_SCHEMAS.find((t) => t.function.name === 'app_screenshot');
     assert.ok(schema, 'schema present');
-    assert.deepStrictEqual(Object.keys(schema.function.parameters.properties).sort(), ['asRole', 'screenId', 'viewport']);
+    assert.deepStrictEqual(Object.keys(schema.function.parameters.properties).sort(), ['appearance', 'asRole', 'chrome', 'hostTheme', 'nodeId', 'screenId', 'state', 'viewport']);
+    assert.deepStrictEqual(Object.keys(schema.function.parameters.properties.state.properties).sort(), ['activeTab', 'forms', 'openModal', 'screenParams', 'vars']);
     // The renderer's three presets, and only those: a free-form {width,height}
     // would let a builder shoot a 1×20000 strip and call it a screen.
     assert.deepStrictEqual(schema.function.parameters.properties.viewport.enum, ['desktop', 'tablet', 'mobile']);
@@ -294,4 +295,33 @@ test('a failed render still consumes the cap (retry storms stay bounded)', async
     const capped = await applyToolCall('app_screenshot', {}, wrap);
     assert.match(capped.content, new RegExp(`all ${CAP} screenshots`));
     assert.strictEqual(renderState.calls.length, CAP);
+});
+
+// ── View arguments (chrome, state, appearance, hostTheme, nodeId) ───
+
+test('a call without view arguments hands the renderer no view at all', async () => {
+    await applyToolCall('app_screenshot', { viewport: 'tablet' }, savedWrap());
+    assert.ok(!('view' in renderState.calls.at(-1)), 'the plain screen, exactly as before');
+});
+
+test('view arguments reach the renderer and are named in content and caption', async () => {
+    const wrap = savedWrap();
+    const args = { chrome: true, state: { openModal: 'cmp_modal1', activeTab: ['cmp_tab002'] }, hostTheme: 'dark', nodeId: 'cmp_x', ignored: 1 };
+    const r = await applyToolCall('app_screenshot', args, wrap);
+    assert.deepStrictEqual(renderState.calls.at(-1).view, { chrome: true, state: args.state, hostTheme: 'dark', nodeId: 'cmp_x' });
+    assert.match(r.content, /in the app chrome, modal cmp_modal1 open, tab cmp_tab002, host theme dark, cropped to cmp_x\./);
+    assert.match(r._screenshotCaption, /· in the app chrome/);
+});
+
+test('a crop that could not be made is reported back', async () => {
+    renderState.result = okShot({ cropNote: 'component cmp_x is not visible on the rendered screen' });
+    const r = await applyToolCall('app_screenshot', { nodeId: 'cmp_x' }, savedWrap());
+    assert.match(r.content, /Note: component cmp_x is not visible/);
+});
+
+test('a refused view reads as a plain sentence, like any other unavailable render', async () => {
+    renderState.result = { ok: false, unavailable: true, code: 'bad_view', reason: 'state.openModal "cmp_q" is not a modal on this screen (modals here: none)' };
+    const r = await applyToolCall('app_screenshot', { state: { openModal: 'cmp_q' } }, savedWrap());
+    assert.match(r.content, /^No screenshot: state.openModal "cmp_q" is not a modal on this screen/);
+    assert.ok(!r._screenshotDataUrl);
 });

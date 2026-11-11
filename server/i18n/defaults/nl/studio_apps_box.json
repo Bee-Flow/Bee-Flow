@@ -1,0 +1,26 @@
+{
+  "translations": {
+    "studio_apps_box.knobs.background_color": "Vulkleur",
+    "studio_apps_box.knobs.border_color": "Randkleur",
+    "studio_apps_box.knobs.border_sides": "Randzijden",
+    "studio_apps_box.knobs.border_width": "Randdikte",
+    "studio_apps_box.knobs.margin_bottom": "Ruimte onder",
+    "studio_apps_box.knobs.margin_top": "Ruimte boven",
+    "studio_apps_box.knobs.opacity": "Dekking",
+    "studio_apps_box.knobs.shadow": "Schaduw",
+    "studio_apps_box.reset": "Herstellen",
+    "studio_apps_box.title": "Vlak",
+    "studio_apps_box.values.all": "Alle zijden",
+    "studio_apps_box.values.bottom": "Onder",
+    "studio_apps_box.values.large": "Groot",
+    "studio_apps_box.values.left": "Links",
+    "studio_apps_box.values.medium": "Middel",
+    "studio_apps_box.values.none": "Geen",
+    "studio_apps_box.values.right": "Rechts",
+    "studio_apps_box.values.small": "Klein",
+    "studio_apps_box.values.top": "Boven",
+    "studio_apps_box.values.x": "Links en rechts",
+    "studio_apps_box.values.y": "Boven en onder"
+  },
+  "sameAsEnglish": []
+}

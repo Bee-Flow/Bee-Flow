@@ -32,6 +32,10 @@ export interface Connector {
     rowsPath?: string;
     nextPagePath?: string;
     maxRows?: number;
+    /** Rest only: absent means GET. */
+    method?: string;
+    /** Rest POST only: JSON template, {param} placeholders in string leaves. */
+    body?: Record<string, unknown>;
     fixedArgs?: Record<string, unknown>;
     params?: ConnectorParam[];
     chain?: Array<{ argsFrom?: Record<string, unknown> } | null>;

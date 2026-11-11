@@ -1,0 +1,31 @@
+{
+  "translations": {
+    "studio_apps_fieldtypes.type_autonumber": "Automatisch nummer",
+    "studio_apps_fieldtypes.type_user": "Persoon",
+    "studio_apps_fieldtypes.autonumber_hint": "De app nummert: 1, 2, 3 … in de volgorde waarin records worden aangemaakt. Rijen die er al zijn krijgen een nummer als je opslaat.",
+    "studio_apps_fieldtypes.json_hint": "Bevat een JSON-waarde. Tekst die in dit veld wordt opgeslagen moet geldige JSON zijn.",
+    "studio_apps_fieldtypes.user_hint": "Bevat de gebruikers-id van een lid van de organisatie.",
+    "studio_apps_fieldtypes.format": "Soort tekst",
+    "studio_apps_fieldtypes.format_none": "Elke tekst",
+    "studio_apps_fieldtypes.format_email": "E-mailadres",
+    "studio_apps_fieldtypes.format_url": "Webadres",
+    "studio_apps_fieldtypes.format_phone": "Telefoonnummer",
+    "studio_apps_fieldtypes.format_hint": "Elke waarde die in dit veld wordt opgeslagen wordt gecontroleerd.",
+    "studio_apps_fieldtypes.display_heading": "Weergave",
+    "studio_apps_fieldtypes.display_hint": "Wordt bij het veld opgeslagen om aan te geven hoe de waarde getoond moet worden. Rasters en tabellen passen dit nog niet toe, en de opgeslagen waarde verandert nooit.",
+    "studio_apps_fieldtypes.currency": "Valuta",
+    "studio_apps_fieldtypes.currency_none": "Geen",
+    "studio_apps_fieldtypes.decimals": "Decimalen",
+    "studio_apps_fieldtypes.unit": "Eenheid",
+    "studio_apps_fieldtypes.date_style": "Datumstijl",
+    "studio_apps_fieldtypes.date_default": "Standaard",
+    "studio_apps_fieldtypes.date_short": "Kort",
+    "studio_apps_fieldtypes.date_medium": "Middel",
+    "studio_apps_fieldtypes.date_long": "Lang",
+    "studio_apps_fieldtypes.date_full": "Volledig, met de weekdag"
+  },
+  "sameAsEnglish": [
+    "studio_apps_fieldtypes.type_json",
+    "studio_apps_fieldtypes.unit_placeholder"
+  ]
+}

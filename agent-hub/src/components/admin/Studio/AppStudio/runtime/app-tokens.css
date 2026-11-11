@@ -89,7 +89,7 @@ html:not([data-theme="high-contrast"]) .app-runtime[data-app-appearance="light"]
 /*
  * SURFACE VARIANTS — stamped by appDesign.js only for non-default values.
  * 'hairline' (default) has no class: .app-surface keeps its 1px hairline from
- * runtime.css, untouched.
+ * css/look.css, untouched.
  */
 .app-design--surface-soft .app-surface {
     background: var(--bg-card);
@@ -116,7 +116,8 @@ html[data-theme="high-contrast"] .app-runtime {
     --app-shadow-3: 0 0 0 2px var(--border-default);
 }
 
-/* MOTION — kill switches. Reduced motion always wins, whatever the design says. */
+/* MOTION — kill switches. Reduced motion always wins, whatever the design says.
+   design.motion 'full' has no rule here on purpose: it equals the base ('subtle'). */
 .app-motion--none,
 .app-motion--none .app-shell,
 .app-motion--none .app-runtime {

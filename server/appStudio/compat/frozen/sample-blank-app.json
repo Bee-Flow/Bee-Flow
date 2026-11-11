@@ -1,0 +1,44 @@
+{
+  "corpus": "sample-blank-app",
+  "canonical": {
+    "sha256": "328cb7ee04be935e32f050bfef27721d46a271f7c6ae75e0c32843e159aed0a6",
+    "bytes": 438,
+    "inputIsCanonical": false,
+    "idempotent": true,
+    "keys": [
+      "schemaVersion",
+      "meta",
+      "theme",
+      "roles",
+      "screens",
+      "actions",
+      "homeScreenId"
+    ],
+    "parts": {
+      "schemaVersion": "d4735e3a265e16ee",
+      "meta": "a57da82ade53745e",
+      "theme": "5d7eeb0111b89897",
+      "roles": "4f53cda18c2baa0c",
+      "screens[0] scr_home01": "eba38e5c9bcbc365",
+      "homeScreenId": "1b32229958ec3c41"
+    }
+  },
+  "schemaVersion": {
+    "stored": 1,
+    "canonical": 2
+  },
+  "validation": {
+    "strict": {
+      "errors": [],
+      "warnings": []
+    },
+    "save": {
+      "errors": [],
+      "warnings": []
+    }
+  },
+  "ordinals": {
+    "stored": {},
+    "canonical": "same as stored"
+  }
+}

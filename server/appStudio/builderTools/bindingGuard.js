@@ -24,6 +24,8 @@ const { isDatatableBacked } = require('../datatableSource');
 const { getSpec } = require('../componentSpecs');
 const { suggestTableId } = require('./tableHints');
 const { forEachFilterClause } = require('../../shared/expr/filterGroups.mjs');
+const { groupByAlias } = require('../validate/aggregateChecks.mts');
+const { relationChecks } = require('./bindingGuardRelations.mts');
 
 // What the model reads when a table is not there: both ways to get one. The
 // 2026-09-13 trace saw "create the table first" from a menu that had no
@@ -84,6 +86,9 @@ function checkComponentDataRefs(entries, model) {
         });
     };
 
+    // Reads through a relation: checked against the table each name belongs to.
+    const { throughRelation, checkRelationRead, expandedColumn } = relationChecks({ byRef, errors, fieldCheck });
+
     /**
      * @param {string} path
      * @param {number} index
@@ -119,15 +124,21 @@ function checkComponentDataRefs(entries, model) {
         }
         const filters = Array.isArray(b.filter) ? b.filter : (Array.isArray(b.filters) ? b.filters : []);
         // Every clause, the ones inside { any: [...] } groups too.
-        forEachFilterClause(filters, (f, at) => { if (isObject(f)) fieldCheck(index, `${path}.filter${at}.field`, table, f.field, `${b.kind} filter`); });
+        forEachFilterClause(filters, (f, at) => {
+            if (!isObject(f)) return;
+            if (throughRelation(index, `${path}.filter${at}.field`, table, f.field, `${b.kind} filter`)) return;
+            fieldCheck(index, `${path}.filter${at}.field`, table, f.field, `${b.kind} filter`);
+            if (typeof f.otherField === 'string') fieldCheck(index, `${path}.filter${at}.otherField`, table, f.otherField, `${b.kind} filter`);
+        });
+        checkRelationRead(index, path, table, b);
         const sorts = Array.isArray(b.sort) ? b.sort : (isObject(b.sort) ? [b.sort] : []);
         const aliases = new Set();
         if (b.kind === 'aggregate') {
             (Array.isArray(b.groupBy) ? b.groupBy : []).forEach((g, i) => {
                 if (!isObject(g)) return;
                 fieldCheck(index, `${path}.groupBy[${i}].field`, table, g.field, 'aggregate groupBy');
-                if (typeof g.as === 'string') aliases.add(g.as);
-                else if (typeof g.field === 'string') aliases.add(g.bucket ? `${g.field}_${g.bucket}` : g.field);
+                const alias = typeof g.as === 'string' ? g.as : groupByAlias(g);
+                if (alias !== null) aliases.add(alias);
             });
             (Array.isArray(b.aggregates) ? b.aggregates : []).forEach((a, i) => {
                 if (!isObject(a)) return;
@@ -136,6 +147,7 @@ function checkComponentDataRefs(entries, model) {
             });
         }
         sorts.forEach((s, i) => { if (isObject(s) && !aliases.has(s.field)) fieldCheck(index, `${path}.sort[${i}].field`, table, s.field, `${b.kind} sort`); });
+        (Array.isArray(b.orderBy) ? b.orderBy : []).forEach((s, i) => { if (isObject(s) && !aliases.has(s.field)) fieldCheck(index, `${path}.orderBy[${i}].field`, table, s.field, `${b.kind} orderBy`); });
     };
 
     /**
@@ -191,7 +203,7 @@ function checkComponentDataRefs(entries, model) {
         if (table && Array.isArray(props.columns)) {
             props.columns.forEach((c, i) => {
                 const key = isObject(c) ? (c.key || c.field) : c;
-                if (typeof key === 'string') fieldCheck(index, `${path}.props.columns[${i}].key`, table, key, 'grid column');
+                if (typeof key === 'string' && !expandedColumn(index, `${path}.props.columns[${i}].key`, table, data, key)) fieldCheck(index, `${path}.props.columns[${i}].key`, table, key, 'grid column');
             });
         }
         (Array.isArray(entry.children) ? entry.children : []).forEach((ch, i) => walk(ch, index, `${path}.children[${i}]`));

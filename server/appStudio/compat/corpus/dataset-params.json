@@ -1,0 +1,344 @@
+{
+  "about": {
+    "source": "hand-written: saved datasets with parameters; a dataset that declares params, bound with a formula value, literal values and none, and one without params whose binding sends a value it ignores",
+    "stored": "definition = canonicalizeAppDefinition(definition).def; dataModel = canonicalizeDataModel(model).model; datasets as the dataset routes store them",
+    "captured": "2026-11-10"
+  },
+  "definition": {
+    "schemaVersion": 2,
+    "meta": {
+      "name": "Region totals",
+      "description": "",
+      "icon": "LayoutGrid"
+    },
+    "theme": {
+      "primary": "#0F766E",
+      "radius": "md",
+      "density": "comfortable",
+      "fontScale": "md",
+      "appearance": "auto"
+    },
+    "roles": [],
+    "variables": [
+      {
+        "name": "region",
+        "label": "region",
+        "type": "text",
+        "default": "north",
+        "description": ""
+      }
+    ],
+    "screens": [
+      {
+        "id": "scr_home01",
+        "name": "Home",
+        "icon": null,
+        "showInNav": true,
+        "maxWidth": "medium",
+        "sections": [
+          {
+            "id": "sec_main01",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_head01",
+                "type": "heading",
+                "props": {
+                  "text": "Orders by region",
+                  "level": 2,
+                  "accent": "none"
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_stat01",
+                "type": "stat",
+                "props": {
+                  "label": "Open orders, chosen region",
+                  "value": {
+                    "kind": "dataset",
+                    "datasetId": "ds_region1",
+                    "params": {
+                      "region": {
+                        "kind": "formula",
+                        "expr": "vars.region"
+                      }
+                    },
+                    "pick": {
+                      "row": "first",
+                      "column": "total"
+                    }
+                  },
+                  "caption": null,
+                  "captionSegments": [],
+                  "icon": null,
+                  "delta": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "deltaFormat": "number",
+                  "trend": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "positiveIsGood": true,
+                  "look": "plain"
+                },
+                "style": {
+                  "span": 3
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_stat02",
+                "type": "stat",
+                "props": {
+                  "label": "Open orders, south, 100 or more",
+                  "value": {
+                    "kind": "dataset",
+                    "datasetId": "ds_region1",
+                    "params": {
+                      "region": "south",
+                      "min": 100
+                    },
+                    "pick": {
+                      "row": "first",
+                      "column": "total"
+                    }
+                  },
+                  "caption": null,
+                  "captionSegments": [],
+                  "icon": null,
+                  "delta": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "deltaFormat": "number",
+                  "trend": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "positiveIsGood": true,
+                  "look": "plain"
+                },
+                "style": {
+                  "span": 3
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_stat03",
+                "type": "stat",
+                "props": {
+                  "label": "Open orders, default region",
+                  "value": {
+                    "kind": "dataset",
+                    "datasetId": "ds_region1",
+                    "pick": {
+                      "row": "first",
+                      "column": "total"
+                    }
+                  },
+                  "caption": null,
+                  "captionSegments": [],
+                  "icon": null,
+                  "delta": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "deltaFormat": "number",
+                  "trend": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "positiveIsGood": true,
+                  "look": "plain"
+                },
+                "style": {
+                  "span": 3
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_chart1",
+                "type": "chart",
+                "props": {
+                  "chartType": "bar",
+                  "orientation": "vertical",
+                  "source": {
+                    "kind": "dataset",
+                    "datasetId": "ds_plain01",
+                    "params": {
+                      "region": "ignored"
+                    }
+                  },
+                  "title": null,
+                  "xKey": "region",
+                  "xType": "category",
+                  "series": [
+                    {
+                      "key": "total",
+                      "label": "Total"
+                    }
+                  ],
+                  "stacked": false,
+                  "showLegend": true,
+                  "showGrid": true,
+                  "valueFormat": "number",
+                  "yMin": null,
+                  "yMax": null,
+                  "referenceLines": [],
+                  "referenceBands": [],
+                  "unitLabel": null
+                },
+                "style": {
+                  "span": 6,
+                  "height": "md"
+                },
+                "visible": true
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "actions": {},
+    "homeScreenId": "scr_home01"
+  },
+  "dataModel": {
+    "modelVersion": 1,
+    "tables": [
+      {
+        "id": "tbl_order1",
+        "key": "orders",
+        "name": "Orders",
+        "fields": [
+          {
+            "id": "fld_regio1",
+            "key": "region",
+            "name": "Region",
+            "type": "text",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_amoun1",
+            "key": "amount",
+            "name": "Amount",
+            "type": "number",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_statu1",
+            "key": "status",
+            "name": "Status",
+            "type": "text",
+            "required": false,
+            "unique": false
+          }
+        ],
+        "access": {
+          "default": "app",
+          "roles": {
+            "viewer": {
+              "read": "own"
+            }
+          },
+          "rowFilters": {}
+        },
+        "icon": null
+      }
+    ],
+    "roles": [
+      {
+        "key": "viewer",
+        "label": "viewer"
+      }
+    ],
+    "roleMapping": {
+      "default": "app",
+      "byGroup": {}
+    }
+  },
+  "datasets": [
+    {
+      "id": "ds_region1",
+      "name": "Open orders by region",
+      "tableId": "tbl_order1",
+      "source": {
+        "kind": "aggregate"
+      },
+      "descriptor": {
+        "params": [
+          {
+            "name": "region",
+            "type": "text",
+            "default": "north"
+          },
+          {
+            "name": "min",
+            "type": "number"
+          }
+        ],
+        "aggregates": [
+          {
+            "fn": "sum",
+            "field": "amount",
+            "as": "total"
+          }
+        ],
+        "filters": [
+          {
+            "field": "status",
+            "op": "eq",
+            "value": "open"
+          },
+          {
+            "field": "region",
+            "op": "eq",
+            "value": {
+              "param": "region"
+            }
+          },
+          {
+            "field": "amount",
+            "op": "gte",
+            "value": {
+              "param": "min"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "ds_plain01",
+      "name": "Totals per region",
+      "tableId": "tbl_order1",
+      "source": {
+        "kind": "aggregate"
+      },
+      "descriptor": {
+        "groupBy": [
+          {
+            "field": "region"
+          }
+        ],
+        "aggregates": [
+          {
+            "fn": "sum",
+            "field": "amount",
+            "as": "total"
+          }
+        ]
+      }
+    }
+  ]
+}

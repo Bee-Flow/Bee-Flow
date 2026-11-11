@@ -100,4 +100,4 @@ export default function AiChatInspector({ node, definition, onCommit, disabled =
     );
 }
 
-registerInspector('ai_chat', AiChatInspector);
+registerInspector('ai_chat', AiChatInspector, { props: ['systemPrompt', 'modelTier', 'knowledgeBaseIds', 'greeting', 'placeholder', 'starters', 'mode'] });

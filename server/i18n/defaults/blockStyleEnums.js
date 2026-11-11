@@ -63,9 +63,67 @@ function backgroundSizePx(clean) {
     return m ? Number(m[1]) : null;
 }
 
+// Colour overrides (`style.colorOverrides`): the forms a value may have. The
+// renderer writes the value into a style rule, so a value is one of these
+// forms or it is not written: "#" plus 3, 4, 6 or 8 hex digits, a functional
+// notation from COLOR_FUNCTIONS with plain arguments, "var(--name)", or a
+// colour keyword (letters only).
+const COLOR_FUNCTIONS = ['rgb', 'rgba', 'hsl', 'hsla', 'hwb', 'lab', 'lch', 'oklab', 'oklch'];
+const COLOR_MAX_LENGTH = 64;
+const HEX_DIGITS = '0123456789abcdef';
+const LETTERS = 'abcdefghijklmnopqrstuvwxyz';
+const NAME_CHARS = `${LETTERS}0123456789-_`;
+const ARGUMENT_CHARS = `${LETTERS}0123456789 ,.%/+-`;
+
+/**
+ * @param {string} s
+ * @param {string} allowed
+ */
+function onlyChars(s, allowed) {
+    if (!s) return false;
+    for (const ch of s) if (!allowed.includes(ch)) return false;
+    return true;
+}
+
+/**
+ * Is `v` a colour in one of the forms above? Case and outer spaces do not matter.
+ * @param {unknown} v
+ * @returns {v is string}
+ */
+function isCssColor(v) {
+    if (typeof v !== 'string' || v.length > COLOR_MAX_LENGTH) return false;
+    const s = v.trim().toLowerCase();
+    if (s.startsWith('#')) return [3, 4, 6, 8].includes(s.length - 1) && onlyChars(s.slice(1), HEX_DIGITS);
+    const open = s.indexOf('(');
+    if (open === -1) return onlyChars(s, LETTERS);
+    if (!s.endsWith(')')) return false;
+    const name = s.slice(0, open);
+    const inner = s.slice(open + 1, -1);
+    if (name === 'var') return inner.startsWith('--') && onlyChars(inner.slice(2), NAME_CHARS);
+    return COLOR_FUNCTIONS.includes(name) && onlyChars(inner, ARGUMENT_CHARS);
+}
+
+/**
+ * Copy of a colour override map with only the values that are a colour (or
+ * the empty string, which means "no override"). Anything that is not a map
+ * gives an empty one.
+ * @param {unknown} overrides
+ * @returns {Record<string, string>}
+ */
+function cleanColorOverrides(overrides) {
+    /** @type {Record<string, string>} */
+    const out = {};
+    if (overrides === null || typeof overrides !== 'object' || Array.isArray(overrides)) return out;
+    for (const [key, value] of Object.entries(overrides)) {
+        if (value === '' || isCssColor(value)) out[key] = value;
+    }
+    return out;
+}
+
 /**
  * Copy of `style` in which every design key of this file is either legal or
- * gone. Other keys pass through untouched (they have their own validators).
+ * gone, and `colorOverrides` (when present) holds colours only. Other keys
+ * pass through untouched (they have their own validators).
  * @param {Record<string, unknown>} style
  * @returns {Record<string, unknown>}
  */
@@ -88,6 +146,7 @@ function sanitizeBlockDesignStyle(style) {
     for (const key of ['backgroundHideMobile', 'motifTiles']) {
         if (key in out && typeof out[key] !== 'boolean') delete out[key];
     }
+    if ('colorOverrides' in out) out.colorOverrides = cleanColorOverrides(out.colorOverrides);
     return out;
 }
 
@@ -101,4 +160,5 @@ module.exports = {
     DECORS, CARD_FILLS, LABEL_STYLES,
     MEDIA_HEIGHTS, MEDIA_FITS,
     BLOCK_DESIGN_STYLE_KEYS, cleanBackgroundSize, backgroundSizePx, sanitizeBlockDesignStyle,
+    COLOR_FUNCTIONS, isCssColor, cleanColorOverrides,
 };

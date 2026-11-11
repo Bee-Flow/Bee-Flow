@@ -474,3 +474,18 @@ test('stepFlow: handler and transaction slots; the helpers', () => {
         { message: 'x'.repeat(500), step: 'ai_generate', code: null, attempts: 4, stepIndex: 2 });
     assert.equal(clampErrorScope('nope'), null);
 });
+
+test('a switch case with whenExpr and no value is picked when its formula is true; a case with a value still compares', async () => {
+    const action = { kind: 'sequence', steps: [{ kind: 'switch', expr: 'vars.mode', cases: [
+        { value: 'x', steps: [{ kind: 'ai_generate', tag: 'x' }] },
+        { whenExpr: 'vars.big', steps: [{ kind: 'ai_generate', tag: 'big' }] },
+    ], default: [{ kind: 'ai_generate', tag: 'none' }] }] };
+    const run = async (vars) => {
+        const h = host();
+        await walkAction(newWalkState({ vars }), action, h, { actionId: 'act_1' });
+        return h.ends.map((e) => e.path);
+    };
+    assert.deepEqual(await run({ mode: 'q', big: true }), ['steps[0]', 'steps[0].cases[1].steps[0]']);
+    assert.deepEqual(await run({ mode: 'x', big: true }), ['steps[0]', 'steps[0].cases[0].steps[0]'], 'the first case that matches wins');
+    assert.deepEqual(await run({ mode: 'q', big: false }), ['steps[0]', 'steps[0].default[0]']);
+});

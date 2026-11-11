@@ -20,6 +20,8 @@
  */
 
 const { VARIABLE_NAME_RE, RESERVED_VARIABLE_NAMES } = require('./componentSpecs');
+const { stepMetaOf } = require('./componentSpecs/stepRegistry');
+const { extraChildLists } = require('../shared/appDefinition/stepFlow.mjs');
 
 function isObject(v) { return v !== null && typeof v === 'object' && !Array.isArray(v); }
 
@@ -45,6 +47,8 @@ function walkSteps(steps, visit, depth = 0) {
             }
         }
         walkSteps(step.default, visit, depth + 1);
+        // The places a registry container adds (a try's catch and finally).
+        for (const list of extraChildLists(step)) walkSteps(list, visit, depth + 1);
     }
 }
 
@@ -115,17 +119,15 @@ function collectVariableWrites(def) {
 
         const steps = action.kind === 'sequence' ? action.steps : [action];
         walkSteps(steps, (/** @type {{ kind: string; name: string; resultVar: string; itemVar: string; indexVar: string; }} */ step) => {
-            if (step.kind === 'set_variable') {
-                record(step.name, `${base}.set_variable`, 'set_variable');
-            }
             // Every kind that declares resultVar writes it; the spec decides
             // which kinds those are, so no second list is kept here.
             if (typeof step.resultVar === 'string') {
                 record(step.resultVar, `${base}.${step.kind}.resultVar`, 'resultVar');
             }
-            if (step.kind === 'loop') {
-                record(step.itemVar, `${base}.loop.itemVar`, 'itemVar', { loop: true });
-                record(step.indexVar, `${base}.loop.indexVar`, 'indexVar', { loop: true });
+            // The fields of a kind that name a variable it writes (`writesVars` in the step catalogue):
+            // set_variable.name, a loop's itemVar and indexVar, and whatever a registry kind declares.
+            for (const w of stepMetaOf(step.kind)?.writesVars ?? []) {
+                record(/** @type {Record<string, string>} */ (/** @type {unknown} */ (step))[w.field], `${base}.${step.kind}${w.where ?? `.${w.field}`}`, w.as ?? w.field, { loop: w.loop === true });
             }
         });
     }

@@ -21,13 +21,8 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const Database = require('better-sqlite3');
-
-function stub(path, exports) {
-    const filename = require.resolve(path);
-    require.cache[filename] = { id: filename, filename, loaded: true, exports };
-}
-
-// ── State ───────────────────────────────────────────────────────────
+const { insertTaskRow, norm, canReadStudioApp, canWriteStudioApp, baseModel } = require('../testUtils/studioAppDataHarness');
+const stub = (path, exports) => { const filename = require.resolve(path); require.cache[filename] = { id: filename, filename, loaded: true, exports }; };
 const apps = new Map();
 const models = new Map();      // appId → { model, modelVersion }
 const membership = new Map();  // `${appId}:${userId}` → roleKey
@@ -35,34 +30,19 @@ const dbCalls = [];            // every studioAppDbStore call (IDOR audit)
 const saveModelCalls = [];
 const previewCalls = [];
 let nextSaveResult = null;
+let nextPreviewUnsupported = null;
 const memberMutations = [];
 const rowCountsByApp = new Map(); // appId → row_counts map (quota reads)
 const rowBumps = [];              // bumpRowCount calls
 let dbSize = 0;                   // sizeBytes (byte-quota reads)
 const directoryCalls = [];        // getOrgMembersForDirectory calls (org-scope audit)
 let directoryRows = [];           // what the directory returns
+const userRows = new Map();       // userId → { email, groups, organizationId } of the user row
+const memdb = new Database(':memory:'); // one shared engine, per-app-namespaced by `tasks`
+memdb.exec(`CREATE TABLE tasks (id TEXT PRIMARY KEY, created_at TEXT, updated_at TEXT, created_by TEXT,
+    org_id TEXT, title TEXT, region TEXT, amount INTEGER)`);
 
-// One shared in-memory engine, per-app-namespaced by a `tasks` table.
-const memdb = new Database(':memory:');
-memdb.exec(`CREATE TABLE tasks (
-    id TEXT PRIMARY KEY, created_at TEXT, updated_at TEXT, created_by TEXT, org_id TEXT,
-    title TEXT, region TEXT, amount INTEGER
-)`);
-function norm(params) { return (params || []).map((v) => (typeof v === 'boolean' ? (v ? 1 : 0) : v)); }
 
-// Faithful copies of the store's pure predicates (real module needs live PG).
-function canReadStudioApp(app, userId, userGroupIds = [], userOrgIds = []) {
-    if (!app) return false;
-    if (app.userId === userId) return true;
-    if (!app.isPublished) return false;
-    if (!app.organizationId) return false;
-    const orgIds = Array.isArray(userOrgIds) ? userOrgIds : [...(userOrgIds || [])];
-    if (!orgIds.includes(app.organizationId)) return false;
-    const groups = Array.isArray(app.sharedGroups) ? app.sharedGroups : [];
-    if (groups.length === 0) return true;
-    return groups.some((g) => userGroupIds.includes(g));
-}
-function canWriteStudioApp(app, userId) { return !!app && app.userId === userId; }
 
 stub('../stores/studioAppStore', {
     getStudioApp: async (id) => apps.get(id) || null,
@@ -95,7 +75,9 @@ stub('../stores/studioAppDataStore', {
     },
     previewDataModelChange: async (appId, ownerId, model, opts) => {
         previewCalls.push({ appId, ownerId, opts });
-        return { ok: true, dryRun: true, currentVersion: 3, report: { statements: 0, summary: 'no schema change', recomputed: [], converted: [{ table: 't', field: 'f', from: 'text', to: 'select', rows: 4, unconvertible: 2, samples: ['x'], action: 'refuse' }], unsupported: [] } };
+        const unsupported = nextPreviewUnsupported || [];
+        nextPreviewUnsupported = null;
+        return { ok: true, dryRun: true, currentVersion: 3, report: { statements: 0, summary: 'no schema change', recomputed: [], converted: [{ table: 't', field: 'f', from: 'text', to: 'select', rows: 4, unconvertible: 2, samples: ['x'], action: 'refuse' }], unsupported } };
     },
     getDataset: async () => null,
     listMembers: async (appId, ownerId) => { memberMutations.push({ op: 'list', appId, ownerId }); return []; },
@@ -133,7 +115,7 @@ stub('../stores/studioAppDbStore', {
 stub('../stores/userStore', {
     // requireAuth confirms the session's user still exists; without this the
     // suite only passed because that check used to fail open on an error.
-    getUser: async (id) => ({ id }),
+    getUser: async (id) => ({ id, ...(userRows.get(id) || {}) }),
     getOrgMembersForDirectory: async (orgId, limit) => {
         directoryCalls.push({ orgId, limit });
         return directoryRows;
@@ -196,29 +178,6 @@ function dispatch({ method = 'GET', url, user = 'viewer-1', orgIds = [], groups 
 const OWNER = 'owner-1';
 const ORG = 'org1';
 
-function baseModel() {
-    return {
-        modelVersion: 1,
-        roles: [{ key: 'manager' }, { key: 'member' }],
-        roleMapping: { default: 'member', byGroup: {} },
-        tables: [{
-            id: 'tbl_tasks0', key: 'tasks', name: 'Tasks',
-            fields: [
-                { id: 'fld_title', key: 'title', type: 'text' },
-                { id: 'fld_region', key: 'region', type: 'text' },
-                { id: 'fld_amount', key: 'amount', type: 'number', subtype: 'integer' },
-            ],
-            access: {
-                default: 'none',
-                roles: {
-                    manager: { read: 'all', create: true, update: 'all', delete: 'all' },
-                    member: { read: 'own', create: true, update: 'own', delete: 'none' },
-                },
-                rowFilters: {},
-            },
-        }],
-    };
-}
 
 let seq = 0;
 function makeApp({ published = true, owner = OWNER, org = ORG, sharedGroups = [], model = baseModel() } = {}) {
@@ -230,10 +189,7 @@ function makeApp({ published = true, owner = OWNER, org = ORG, sharedGroups = []
     models.set(id, { model, modelVersion: 1 });
     return apps.get(id);
 }
-function seedRow({ id, by, region = 'EU', amount = 10, title = 'T' }) {
-    memdb.prepare(`INSERT INTO tasks (id, created_at, updated_at, created_by, org_id, title, region, amount)
-        VALUES (?,?,?,?,?,?,?,?)`).run(id, '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z', by, ORG, title, region, amount);
-}
+function seedRow(row) { insertTaskRow(memdb, ORG, row); }
 
 test.beforeEach(() => {
     dbCalls.length = 0; saveModelCalls.length = 0; memberMutations.length = 0;
@@ -330,6 +286,41 @@ test('member list is scoped to own rows; foreign rows are invisible', async () =
     const r = await dispatch({ url: `/${app.id}/data/tables/tbl_tasks0/records`, user: 'alice', orgIds: [ORG] });
     assert.strictEqual(r.statusCode, 200);
     assert.deepStrictEqual(r.body.records.map((x) => x.id), ['rec_alice']);
+});
+
+test('fields narrows the columns of a page; expand is checked against the model', async () => {
+    const app = makeApp();
+    membership.set(`${app.id}:alice`, 'member');
+    seedRow({ id: 'rec_a', by: 'alice', title: 'mine', region: 'EU', amount: 2 });
+    const url = `/${app.id}/data/tables/tbl_tasks0/records`;
+    const r = await dispatch({ url, query: { fields: '["title"]', sort: '{"field":"amount","dir":"asc"}' }, user: 'alice', orgIds: [ORG] });
+    assert.deepStrictEqual(r.body.records, [{ id: 'rec_a', title: 'mine' }]);
+    const bad = await dispatch({ url, query: { expand: '[{"field":"title"}]' }, user: 'alice', orgIds: [ORG] });
+    assert.strictEqual(bad.statusCode, 422);
+});
+
+test('orderBy pages on several columns and a filter tree stays inside the row rules', async () => {
+    const app = makeApp();
+    membership.set(`${app.id}:alice`, 'member');
+    [['a', 'EU', 2], ['b', 'US', 2], ['c', 'EU', 1], ['d', null, 3], ['e', 'US', 1]].forEach(([k, region, amount]) => seedRow({ id: `rec_${k}`, by: 'alice', region, amount }));
+    seedRow({ id: 'rec_bob', by: 'bob', region: 'EU', amount: 9 });
+    const url = `/${app.id}/data/tables/tbl_tasks0/records`;
+    const base = { orderBy: JSON.stringify([{ field: 'region', dir: 'asc' }, { field: 'amount', dir: 'desc' }]), limit: '2' };
+    const seen = [];
+    let cursor;
+    for (let page = 0; page < 5; page += 1) {
+        const r = await dispatch({ url, query: cursor ? { ...base, cursor } : base, user: 'alice', orgIds: [ORG] });
+        assert.strictEqual(r.statusCode, 200);
+        seen.push(...r.body.records.map((x) => x.id));
+        cursor = r.body.nextCursor;
+        if (!cursor) break;
+    }
+    assert.deepStrictEqual(seen, ['rec_a', 'rec_c', 'rec_b', 'rec_e', 'rec_d'], 'region asc (empty last), amount desc, every own row once');
+
+    const filter = [{ any: [{ not: { field: 'region', op: 'eq', value: 'US' } }, { field: 'id', op: 'isNotNull' }] }];
+    const r = await dispatch({ url, query: { filter: JSON.stringify(filter) }, user: 'alice', orgIds: [ORG] });
+    assert.strictEqual(r.body.records.length, 5, 'a tree that is true for every row returns the own rows only');
+    assert.ok(r.body.records.every((x) => x.created_by === 'alice'));
 });
 
 test('member updating a FOREIGN record → 404 (0 rows changed)', async () => {
@@ -601,6 +592,18 @@ test('owner PUT schema: refused conversion and failed migration are 422 with the
     assert.strictEqual(failed.statusCode, 422);
     assert.strictEqual(failed.body.code, 'migration_failed');
     assert.strictEqual(failed.body.error, 'The expression divides by zero for at least one row.');
+});
+
+test('owner PUT schema: a type change outside the safe pairs is 422 conversion_unsupported, on a save and on a dry run', async () => {
+    const app = makeApp();
+    const entry = { tableId: 'tbl_x', table: 't', fieldId: 'fld_x', field: 'f', from: 'date', to: 'number' };
+    nextSaveResult = { ok: false, conversionUnsupported: true, conversions: [entry] };
+    const saved = await dispatch({ method: 'PUT', url: `/${app.id}/schema`, user: OWNER, body: { model: baseModel() } });
+    assert.deepStrictEqual([saved.statusCode, saved.body.code, saved.body.conversions], [422, 'conversion_unsupported', [entry]]);
+    assert.match(saved.body.error, /cannot change to this type in place/);
+    nextPreviewUnsupported = [entry];
+    const dry = await dispatch({ method: 'PUT', url: `/${app.id}/schema`, user: OWNER, body: { model: baseModel(), dryRun: true } });
+    assert.deepStrictEqual([dry.statusCode, dry.body.code], [422, 'conversion_unsupported']);
 });
 
 test('owner can add + remove members', async () => {
@@ -960,4 +963,38 @@ test('a platform dataset is refused loudly in a batch, never degraded to empty',
     assert.strictEqual(r.statusCode, 200);
     assert.strictEqual(r.body.results[0].status, 400);
     assert.strictEqual(directoryCalls.length, 0, 'and the directory is never read through this door');
+});
+
+// ── Row rules on the viewer's groups, and a rule per operation ──────
+
+test('a rule on viewer.groups reads the groups of the user row, never the session; a rule per operation narrows each on its own', async () => {
+    const model = baseModel();
+    model.tables[0].access.roles.member = { read: 'all', create: true, update: 'all', delete: 'all' };
+    model.tables[0].access.rowFilters = { member: { read: 'record.region in viewer.groups', update: 'record.title == viewer.email', delete: 'record.region in viewer.groups && record.amount >= 50' } };
+    const app = makeApp({ model });
+    userRows.set('alice', { email: 'alice@example.org', groups: ['g_eu'], organizationId: ORG });
+    seedRow({ id: 'r_eu', by: 'bob', region: 'g_eu', title: 'alice@example.org', amount: 10 });
+    seedRow({ id: 'r_us', by: 'bob', region: 'g_us', title: 'alice@example.org', amount: 90 });
+    seedRow({ id: 'r_eu2', by: 'bob', region: 'g_eu', title: 'bob@example.org', amount: 90 });
+    const as = (user, extra = {}) => ({ user, orgIds: [ORG], ...extra });
+    const records = `/${app.id}/data/tables/tbl_tasks0/records`;
+
+    const list = await dispatch({ url: records, ...as('alice', { groups: ['g_us', 'g_forged'] }) });
+    assert.deepStrictEqual(list.body.records.map((x) => x.id).sort(), ['r_eu', 'r_eu2'], 'the session groups play no part');
+    // Update follows its own rule: r_us is hers by e-mail though she cannot read it; r_eu2 is not.
+    const patch = (id) => dispatch({ method: 'PATCH', url: `${records}/${id}`, ...as('alice'), body: { values: { amount: 1 } } });
+    assert.strictEqual((await patch('r_us')).statusCode, 200);
+    assert.strictEqual((await patch('r_eu2')).statusCode, 404);
+    const del = (id) => dispatch({ method: 'DELETE', url: `${records}/${id}`, ...as('alice') });
+    assert.strictEqual((await del('r_eu')).statusCode, 404, 'in her group, but under the amount');
+    assert.strictEqual((await del('r_eu2')).statusCode, 200);
+    // Someone in no group reads nothing through the same rule.
+    assert.deepStrictEqual((await dispatch({ url: records, ...as('carol') })).body.records, []);
+
+    const saved = await dispatch({ method: 'PUT', url: `/${app.id}/schema`, user: OWNER, body: { model } });
+    assert.strictEqual(saved.statusCode, 200);
+    assert.strictEqual(saved.body.warnings, undefined);
+    model.tables[0].access.rowFilters.member = 'record.org_id == viewer.organizationId';
+    const advised = await dispatch({ method: 'PUT', url: `/${app.id}/schema`, user: OWNER, body: { model } });
+    assert.match(advised.body.warnings[0], /table "tasks" role "member": viewer\.organizationId .* use viewer\.orgId/);
 });

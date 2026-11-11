@@ -3,7 +3,7 @@ import type AppShell from '../../components/admin/Studio/AppStudio/runtime/AppSh
 import type { AppDefinition } from '../../components/admin/Studio/AppStudio/inspector/appDefinition';
 import type { UserMenuViewer } from '../../components/admin/Studio/AppStudio/runtime/shell/UserMenu';
 import type { NavigateFn } from '../../components/admin/Studio/AppStudio/runtime/actionRunner/runnerContext';
-import type { ActionState, RunOpts, Vars } from '../../components/admin/Studio/AppStudio/runtime/actionRunner/core';
+import type { ActionSlot, ActionState, RunOpts, Vars } from '../../components/admin/Studio/AppStudio/runtime/actionRunner/core';
 import type { DataState } from '../../components/admin/Studio/AppStudio/runtime/DataContext';
 
 export type ShellDefinition = NonNullable<React.ComponentProps<typeof AppShell>['definition']> & AppDefinition;
@@ -64,7 +64,7 @@ export interface RunBodyProps {
     viewer: UserMenuViewer | null;
     previewRole: string;
     actionState: ActionState;
-    runAction: (actionId: string, opts?: RunOpts) => Promise<void>;
+    runAction: (actionId: ActionSlot, opts?: RunOpts) => Promise<void>;
     vars: Vars;
     setVar: (name: string, value: unknown) => void;
     forms: Record<string, Record<string, unknown>>;
@@ -76,6 +76,8 @@ export interface RunBodyProps {
     onDataState: React.Dispatch<React.SetStateAction<DataState>>;
     refreshRef: React.RefObject<RunBodyProps['refresh'] | null>;
     chrome?: string;
+    /** The public page's own header (its logo), above the app; only the 'bare' chrome draws it. */
+    publicHeader?: React.ReactNode;
 }
 
 /**
@@ -106,6 +108,13 @@ export interface RunSurfaceProps {
     versionBanner?: React.JSX.Element | null;
     hideExit?: boolean;
     chrome?: string;
+    /** Mirror the screen into the URL (#/s/<id>?p.<key>=…) so Back/Forward and links work. */
+    urlRoute?: boolean;
+    /** Where an empty or refused screen link lands. */
+    homeScreenId?: string | null;
+    /** The params of the screen the host opened first (from a screen link). */
+    initialScreenParams?: Record<string, unknown> | null;
+    publicHeader?: React.ReactNode;
 }
 
 /**
@@ -120,7 +129,7 @@ export interface RunSurfaceProps {
  * live action engine. Toasts fired by actions surface through the shared
  * <Toaster /> that main.jsx mounts once at the app root — standalone pages
  * never mount their own copy (a second Toaster would render every toast
- * twice). Responsive by default: runtime.css stacks the grid below 640px.
+ * twice). Responsive by default: css/layout.css stacks the grid below 640px.
  */
 export interface AppRunPageProps {
     appId: string | null;

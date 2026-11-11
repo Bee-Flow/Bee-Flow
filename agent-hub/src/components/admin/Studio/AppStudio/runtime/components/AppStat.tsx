@@ -10,7 +10,9 @@ import type { BindingInput } from '../resolveBinding.types';
 import { useRuntime } from '../RuntimeContext';
 import { roleTextColor, spaceSteps } from '../styleResolver';
 import { ROLE_COLORS } from '../styleResolver.constants';
-import { ErrorText, Skeleton, displayValue, useStickyBinding } from '../uiBits';
+import { ErrorText, Skeleton, useStickyBinding } from '../uiBits';
+import { useFormatContext, type FormatContext } from '../appFormat';
+import { statDeltaText, statValueText } from './statFormat';
 import type { NodeProps } from './appNode.types';
 
 /**
@@ -75,19 +77,20 @@ interface DeltaChipProps {
     delta: unknown;
     deltaFormat: string;
     positiveIsGood: boolean;
+    fmt: FormatContext | null;
 }
 
-function DeltaChip({ delta, deltaFormat, positiveIsGood }: DeltaChipProps) {
+function DeltaChip({ delta, deltaFormat, positiveIsGood, fmt }: DeltaChipProps) {
     const n = Number(delta);
     const numeric = Number.isFinite(n);
     const dir = numeric ? Math.sign(n) : 0;
     const good = (dir > 0 && positiveIsGood) || (dir < 0 && !positiveIsGood);
     const color = dir === 0 ? 'var(--text-muted)' : (good ? ROLE_COLORS.success : ROLE_COLORS.danger);
     const Icon = dir > 0 ? ArrowUpRight : dir < 0 ? ArrowDownRight : Minus;
-    const magnitude = numeric ? Math.abs(n).toLocaleString() : displayValue(delta);
+    const magnitude = numeric ? statDeltaText(Math.abs(n), fmt) : statValueText(delta, null);
     const text = deltaFormat === 'percent' && numeric ? `${magnitude}%` : magnitude;
     return (
-        <span className="inline-flex items-center gap-0.5 text-xs font-medium" style={{ color }} data-app-stat-delta="true">
+        <span className="inline-flex items-center gap-0.5 text-xs font-medium bfa-stat__delta" style={{ color }} data-app-stat-delta="true">
             <Icon className="w-3.5 h-3.5" aria-hidden="true" />
             {text}
         </span>
@@ -105,6 +108,7 @@ interface StatProps {
     delta?: BindingInput;
     trend?: BindingInput;
     look?: string;
+    formatOptions?: unknown;
 }
 
 export default function AppStat({ node }: NodeProps<StatProps>) {
@@ -125,6 +129,7 @@ export default function AppStat({ node }: NodeProps<StatProps>) {
     const size = node.style?.size || 'md';
     const look = node.props?.look;
     const lookStyle = STAT_LOOKS[look as string] || null; // 'plain' / unknown → identity
+    const fmt = useFormatContext(node.props?.formatOptions); // null = the legacy text (statFormat.ts)
 
     const hasDelta = deltaVal != null && deltaVal !== '';
     const sparkData = toSparkData(trendVal);
@@ -136,18 +141,18 @@ export default function AppStat({ node }: NodeProps<StatProps>) {
 
     return (
         <div
-            className={`app-stat flex items-start gap-2.5${lookStyle ? ` app-stat--${look}` : ''}`}
+            className={`app-stat flex items-start gap-2.5${lookStyle ? ` app-stat--${look}` : ''} bfa-stat__root`}
             style={lookStyle || undefined}
         >
             {icon ? (
                 <span
-                    className="inline-flex h-8 w-8 items-center justify-center rounded-md shrink-0 mt-0.5 [background:var(--app-primary-soft)] [color:var(--app-primary)]"
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-md shrink-0 mt-0.5 [background:var(--app-primary-soft)] [color:var(--app-primary)] bfa-stat__icon"
                 >
                     <AppIcon name={icon} className="w-4 h-4" />
                 </span>
             ) : null}
             <div className="min-w-0 flex-1">
-                <div className="text-xs font-medium text-[var(--text-secondary)]">{label}</div>
+                <div className="text-xs font-medium text-[var(--text-secondary)] bfa-stat__label">{label}</div>
                 {error
                     ? <ErrorText error={error} errorCode={errorCode} />
                     : isLoading
@@ -155,14 +160,14 @@ export default function AppStat({ node }: NodeProps<StatProps>) {
                     : (
                         <div className="flex items-baseline gap-2 min-w-0">
                             <div
-                                className={`${VALUE_SIZES[size] || VALUE_SIZES.md} font-semibold leading-tight truncate`}
-                                {...hoverable(displayValue(value))}
+                                className={`${VALUE_SIZES[size] || VALUE_SIZES.md} font-semibold leading-tight truncate bfa-stat__value`}
+                                {...hoverable(statValueText(value, fmt))}
                                 // gradient: the value carries the primary — over a
                                 // soft (≤16%) wash it stays readable in both themes.
                                 style={look === 'gradient' ? { color: 'var(--app-primary)' } : undefined}
-                            >{displayValue(value)}</div>
+                            >{statValueText(value, fmt)}</div>
                             {hasDelta ? (
-                                <DeltaChip delta={deltaVal} deltaFormat={deltaFormat} positiveIsGood={positiveIsGood} />
+                                <DeltaChip delta={deltaVal} deltaFormat={deltaFormat} positiveIsGood={positiveIsGood} fmt={fmt} />
                             ) : null}
                         </div>
                     )}
@@ -170,7 +175,7 @@ export default function AppStat({ node }: NodeProps<StatProps>) {
                     // Replaces `caption` (spec: captionSegments). The texts are
                     // rendered VERBATIM, back to back — the author owns spaces
                     // and separators — each span in its own tone color.
-                    <div className="text-xs" data-app-stat-caption-segments="true">
+                    <div className="text-xs bfa-stat__caption" data-app-stat-caption-segments="true">
                         {captionSegments.map((s, i) => (
                             <span
                                 key={i}
@@ -185,9 +190,9 @@ export default function AppStat({ node }: NodeProps<StatProps>) {
                             </span>
                         ))}
                     </div>
-                ) : caption ? <div className="text-xs text-[var(--text-muted)]">{caption}</div> : null}
+                ) : caption ? <div className="text-xs text-[var(--text-muted)] bfa-stat__caption">{caption}</div> : null}
                 {sparkData.length >= 2 ? (
-                    <div className="mt-1.5" data-app-stat-trend="true">
+                    <div className="mt-1.5 bfa-stat__trend" data-app-stat-trend="true">
                         <LineChart width={96} height={28} data={sparkData}>
                             <Line
                                 type="monotone"

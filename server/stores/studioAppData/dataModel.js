@@ -133,6 +133,8 @@ async function reconcileDataModel(appId, ownerId) {
  *   { ok:true, version, report }                           on success (report:
  *                                                          migrationPreview.buildMigrationReport)
  *   { ok:false, conversionRefused:true, conversions }      values cannot convert (refuse mode)
+ *   { ok:false, conversionUnsupported:true, conversions }  convertTypes: a type change outside the
+ *                                                          safe pairs (nothing saved)
  *   { ok:false, migrationFailed:true, failure }            a recompute/convert statement failed
  *                                                          (fixed reason, never the DB's text)
  *   { ok:false, invalid:true, errors }                     model failed validation
@@ -224,7 +226,7 @@ async function saveDataModelIn(io, appId, ownerId, model, { expectedVersion = nu
         // and repair it — simply does not exist.
         const nextVersion = currentVersion + 1;
         const planned = planMigration(currentModel, model, stage ? {} : { convertTypes, onUnconvertible });
-        const applied = await applyPlanned(io, { ownerId, appId, client, planned, nextVersion });
+        const applied = await applyPlanned(io, { ownerId, appId, client, planned, nextVersion, refuseUnsupported: convertTypes && !stage });
         // A refusal leaves through the catch below, which owns the ROLLBACK.
         if ('result' in applied) throw Object.assign(new Error('data model change refused'), { saveResult: applied.result });
         const payload = JSON.stringify(model ?? {});
@@ -376,7 +378,8 @@ module.exports = {
  * What saveDataModel answers (see saveDataModelIn).
  * @typedef {{ ok: boolean, version?: number, report?: import('./migrationPreview.mts').MigrationReport,
  *   invalid?: boolean, errors?: string[], conflict?: boolean, currentVersion?: number, model?: DataModel,
- *   notFound?: boolean, conversionRefused?: boolean, conversions?: import('./migrationPreview.mts').ConvertEntry[],
+ *   notFound?: boolean, conversionRefused?: boolean, conversionUnsupported?: boolean,
+ *   conversions?: Array<import('./migrationPreview.mts').ConvertEntry | import('./migrationPreview.mts').UnsupportedEntry>,
  *   migrationFailed?: boolean, failure?: import('./migrationPreview.mts').MigrationFailure }} SaveDataModelResult
  */
 

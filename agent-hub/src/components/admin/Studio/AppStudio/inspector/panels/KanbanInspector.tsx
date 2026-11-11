@@ -155,4 +155,4 @@ export default function KanbanInspector({ node, definition, onCommit, disabled =
     );
 }
 
-registerInspector('kanban', KanbanInspector);
+registerInspector('kanban', KanbanInspector, { props: ['source', 'groupByField', 'columns', 'titleKey', 'subtitleKey', 'badgeKey', 'cardLook', 'allowDrag'], items: { columns: ['value', 'label', 'color'] } });

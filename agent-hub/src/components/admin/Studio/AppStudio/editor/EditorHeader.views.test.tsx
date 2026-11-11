@@ -97,18 +97,19 @@ describe('EditorHeader — the five segments are one control', () => {
         // Variables is a SUBTAB of Data (a deviation from the artboard, which
         // dropped it) — not a segment of its own.
         expect(screen.queryByRole('radio', { name: 'Variables' })).not.toBeInTheDocument();
-        expect(screen.getByRole('tab', { name: /Variables/ })).toBeInTheDocument();
+        // The views load as their own chunk (HeaderRows), so they appear a moment after the click.
+        expect(await screen.findByRole('tab', { name: /Variables/ })).toBeInTheDocument();
 
         await user.click(screen.getByRole('radio', { name: 'Roles' }));
         expect(onViewChange).toHaveBeenLastCalledWith('roles');
-        expect(screen.getByText('roles-manager')).toBeInTheDocument();
+        expect(await screen.findByText('roles-manager')).toBeInTheDocument();
     });
 
     it('keeps the Roles panels MOUNTED across its subtabs (they hold unsaved drafts)', async () => {
         const user = userEvent.setup();
         renderHeader();
         await user.click(screen.getByRole('radio', { name: 'Roles' }));
-        await user.click(screen.getByRole('tab', { name: 'Row rules' }));
+        await user.click(await screen.findByRole('tab', { name: 'Row rules' }));
         // Still in the tree, merely hidden — unmounting would discard the draft.
         expect(screen.getByText('roles-manager')).toBeInTheDocument();
         expect(screen.getByText('row-rules')).toBeInTheDocument();
@@ -119,7 +120,7 @@ describe('EditorHeader — the five segments are one control', () => {
         const onViewChange = vi.fn();
         renderHeader(stub<Parameters<typeof renderHeader>[0]>({ onViewChange }));
         await user.click(screen.getByRole('radio', { name: 'Roles' }));
-        await user.click(screen.getByRole('button', { name: 'make-dirty' }));
+        await user.click(await screen.findByRole('button', { name: 'make-dirty' }));
 
         await user.click(screen.getByRole('radio', { name: 'Edit' }));
         expect(screen.getByText('Leave without saving?')).toBeInTheDocument();

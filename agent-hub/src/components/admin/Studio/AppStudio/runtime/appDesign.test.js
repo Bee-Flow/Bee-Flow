@@ -93,3 +93,14 @@ describe('accentEdge', () => {
         expect(appDesignProps({ design: { accentEdge: 'stripe' } }).className).toBe('');
     });
 });
+
+describe('appDesignProps — motion full', () => {
+    it('has no effect beyond its marker class: the style and every other class equal the base motion', () => {
+        const full = appDesignProps({ design: { motion: 'full' } });
+        const subtle = appDesignProps({ design: { motion: 'subtle' } });
+        expect(full.style).toEqual(subtle.style);
+        expect(full.className.replace('app-motion--full', '').trim()).toBe(subtle.className);
+        // And it never stamps the kill switch.
+        expect(full.className).not.toContain('app-motion--none');
+    });
+});

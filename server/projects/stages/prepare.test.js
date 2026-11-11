@@ -216,3 +216,45 @@ test('releaseEntities names blocks for the installer; stageGrants never carries 
     assert.deepStrictEqual(g.tables, [{ datatableId: 't1', mode: 'readwrite', columns: [], publicColumns: [] }]);
     assert.ok(!('ai' in g));
 });
+
+// ── The definition gate on the apps of a release ─────────────────────────────
+
+function appWorld(definition) {
+    const entities = { apps: [{ ref: 'app_1', name: 'Desk', definition }] };
+    const plan = { parts: [{ ref: 'app_1', action: 'replace', goesLive: false }] };
+    const saved = [];
+    const w = world({
+        entities, stamps: [{ ref: 'app_1', kind: 'app', entityId: 'u-app-1' }],
+        overrides: {
+            studioAppStore: {
+                getStudioApp: async (id) => ({ id, name: 'Desk', description: '', icon: null, accentColor: null, definitionVersion: 2, definition: saved.at(-1) || {} }),
+                saveDefinition: async (id, actor, def) => { saved.push(def); return { ok: true }; },
+            },
+        },
+    });
+    return { w, plan, saved };
+}
+
+test('an app written by a newer installation blocks the deployment before anything is written', async () => {
+    const { SCHEMA_VERSION_CURRENT } = require('../../appStudio/componentSpecs');
+    const { w, plan, saved } = appWorld({ schemaVersion: SCHEMA_VERSION_CURRENT + 1, screens: [], actions: {} });
+    await assert.rejects(prepare({ deployment: DEPLOYMENT, stage: STAGE, plan }, w.deps), (err) => {
+        assert.strictEqual(err.status, 409);
+        assert.strictEqual(err.code, 'prepare_blocked');
+        assert.deepStrictEqual(err.details.findings, [{ code: 'app.schema_newer', severity: 'blocking', ref: 'app_1' }]);
+        return true;
+    });
+    assert.deepStrictEqual(w.steps, [], 'nothing journaled: nothing to compensate');
+    assert.deepStrictEqual(w.calls, []);
+    assert.deepStrictEqual(saved, []);
+});
+
+test('an app with validator errors is written as the release carries it; the errors are warning findings', async () => {
+    const { w, plan, saved } = appWorld({ actions: {} });
+    const prepared = await prepare({ deployment: DEPLOYMENT, stage: STAGE, plan }, w.deps);
+    assert.deepStrictEqual(saved, [{ actions: {} }]);
+    assert.ok(prepared.findings.length > 0);
+    assert.ok(prepared.findings.every(f => f.severity === 'warning' && f.ref === 'app_1'));
+    assert.ok(prepared.findings.some(f => f.code === 'app.screens.missing'));
+    assert.deepStrictEqual(prepared.apps.get('u-app-1').definition, { actions: {} }, 'the commit publishes exactly what prepare wrote');
+});

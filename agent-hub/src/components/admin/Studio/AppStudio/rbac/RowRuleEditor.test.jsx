@@ -203,7 +203,8 @@ describe('RowRuleEditor — a role set up in more detail than the presets', () =
     it('says so instead of highlighting a preset it is not, and describes what it really is', () => {
         mockRoles([lookOnly()]);
         const { getByText, getByTestId, container } = render(<RowRuleEditor appId="a1" />);
-        const checked = [...container.querySelectorAll('[role="radio"]')].filter((b) => b.getAttribute('aria-checked') === 'true');
+        const presets = container.querySelector('[role="radiogroup"][aria-label="Start with"]');
+        const checked = [...presets.querySelectorAll('[role="radio"]')].filter((b) => b.getAttribute('aria-checked') === 'true');
         expect(checked).toHaveLength(0);
         expect(getByText(/more detailed mix of what it may do/)).toBeTruthy();
         expect(getByTestId('row-rule-outcome').textContent)
@@ -267,5 +268,98 @@ describe('RowRuleEditor — unsaved work', () => {
         expect(onDirtyChange).not.toHaveBeenCalledWith(true);
         await user.selectOptions(getByLabelText('Table'), 't2');
         expect(queryByText('Discard your unsaved changes?')).toBeNull();
+    });
+});
+
+describe('RowRuleEditor — a rule per action, and the person\'s groups', () => {
+    it('saves one rule as text, exactly as before, when nothing about actions is touched', async () => {
+        const user = userEvent.setup();
+        const { getByText, getByLabelText } = render(<RowRuleEditor appId="a1" />);
+        await user.click(getByText('Add a condition'));
+        await user.selectOptions(getByLabelText('Compare with, condition 1'), 'viewer.groups');
+        await user.click(getByText('Save row access'));
+        await waitFor(() => expect(saveTableAccess).toHaveBeenCalled());
+        const patch = saveTableAccess.mock.calls[0][1];
+        expect(patch.rowFilters).toEqual({ member: 'record.owner_id in viewer.groups' });
+        expect(gateway.validateRowFilter(patch.rowFilters.member, tasks())).toEqual({ ok: true, errors: [] });
+    });
+
+    it('opens a stored rule per action on its own action and keeps the others when one is edited', async () => {
+        const user = userEvent.setup();
+        mockRoles([tasks({ member: { read: 'record.status == "open"', delete: 'record.owner_id == viewer.id' } })]);
+        const { getByText, getByRole, getByTestId, getByLabelText } = render(<RowRuleEditor appId="a1" />);
+        expect(getByRole('radio', { name: 'A rule per action' }).getAttribute('aria-checked')).toBe('true');
+        expect(getByRole('radio', { name: 'Seeing (rule set)' }).getAttribute('aria-checked')).toBe('true');
+        expect(getByTestId('row-rule-outcome').textContent).toMatch(/They can change only the rows the rule for seeing lets through\./);
+        expect(getByTestId('row-rule-outcome').textContent).toMatch(/They can delete only the rows where Owner is the person opening the app\./);
+
+        await user.click(getByRole('radio', { name: 'Changing' }));
+        expect(getByTestId('row-rule-follows-read').textContent).toMatch(/follows the rule for seeing/);
+        await user.click(getByText('Add a condition'));
+        await user.selectOptions(getByLabelText('Compare with, condition 1'), 'viewer.email');
+        await user.click(getByText('Save row access'));
+        await waitFor(() => expect(saveTableAccess).toHaveBeenCalled());
+        const patch = saveTableAccess.mock.calls[0][1];
+        expect(patch.rowFilters).toEqual({ member: {
+            read: 'record.status == "open"', update: 'record.owner_id == viewer.email', delete: 'record.owner_id == viewer.id',
+        } });
+        expect(gateway.validateRowFilter(patch.rowFilters.member, tasks())).toEqual({ ok: true, errors: [] });
+    });
+
+    it('leaves an action without a rule out, so it follows seeing, and writes every row as true', async () => {
+        const user = userEvent.setup();
+        mockRoles([tasks({ member: { read: 'record.status == "open"' } })]);
+        const { getByText, getByRole, getByTestId, queryByTestId, queryByText } = render(<RowRuleEditor appId="a1" />);
+        // Seeing is the rule the others follow: it gets no "every row" shortcut and no note.
+        expect(queryByTestId('row-rule-follows-read')).toBeNull();
+        expect(queryByText('Every row, whatever the rule for seeing says')).toBeNull();
+        expect(getByTestId('row-rule-outcome').textContent).toMatch(/They can delete only the rows the rule for seeing lets through\./);
+
+        await user.click(getByRole('radio', { name: 'Deleting' }));
+        await user.click(getByText('Every row, whatever the rule for seeing says'));
+        expect(getByTestId('row-rule-every-row')).toBeTruthy();
+        expect(getByTestId('row-rule-outcome').textContent).toMatch(/No row rule narrows which rows they can delete\./);
+        await user.click(getByText('Save row access'));
+        await waitFor(() => expect(saveTableAccess).toHaveBeenCalled());
+        const patch = saveTableAccess.mock.calls[0][1];
+        // Changing stays left out: the server reads that as the rule for seeing.
+        expect(patch.rowFilters).toEqual({ member: { read: 'record.status == "open"', delete: 'true' } });
+        expect(gateway.validateRowFilter(patch.rowFilters.member, tasks())).toEqual({ ok: true, errors: [] });
+    });
+
+    it('splits one rule into the same rule per action, so the switch alone changes nothing that is enforced', async () => {
+        const user = userEvent.setup();
+        mockRoles([tasks({ member: 'record.owner_id == viewer.id' })]);
+        const { getByText, getByRole } = render(<RowRuleEditor appId="a1" />);
+        await user.click(getByRole('radio', { name: 'A rule per action' }));
+        await user.click(getByText('Save row access'));
+        await waitFor(() => expect(saveTableAccess).toHaveBeenCalled());
+        expect(saveTableAccess.mock.calls[0][1].rowFilters).toEqual({ member: {
+            read: 'record.owner_id == viewer.id', update: 'record.owner_id == viewer.id', delete: 'record.owner_id == viewer.id',
+        } });
+    });
+
+    it('never rewrites a stored rule it cannot show', async () => {
+        const user = userEvent.setup();
+        mockRoles([tasks({ member: { kind: 'binop', op: '==', a: { kind: 'bool', v: true }, b: { kind: 'bool', v: true } } })]);
+        const { getByText, getByTestId, getByRole } = render(<RowRuleEditor appId="a1" />);
+        expect(getByTestId('row-rule-kept')).toBeTruthy();
+        await user.click(getByRole('radio', { name: 'Only the rows they added' }));
+        await user.click(getByText('Save row access'));
+        await waitFor(() => expect(saveTableAccess).toHaveBeenCalled());
+        const patch = saveTableAccess.mock.calls[0][1];
+        expect('rowFilters' in patch).toBe(false);
+        expect(patch.roles.member.read).toBe('own');
+    });
+
+    it('recommends viewer.orgId on a rule that reads viewer.organizationId, and still saves it', async () => {
+        const user = userEvent.setup();
+        mockRoles([tasks({ member: 'record.org_id == viewer.organizationId' })]);
+        const { getByText, getByTestId, getByRole } = render(<RowRuleEditor appId="a1" />);
+        expect(getByTestId('row-rule-advice').textContent).toMatch(/Use viewer\.orgId in a new rule/);
+        await user.click(getByRole('radio', { name: 'Only the rows they added' }));
+        await user.click(getByText('Save row access'));
+        await waitFor(() => expect(saveTableAccess).toHaveBeenCalled());
+        expect(saveTableAccess.mock.calls[0][1].rowFilters).toEqual({ member: 'record.org_id == viewer.organizationId' });
     });
 });

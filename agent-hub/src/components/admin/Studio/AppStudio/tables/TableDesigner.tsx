@@ -5,6 +5,11 @@ import { RepeatableList } from '@/components/admin/product-website/fields';
 import FormulaField from '../inspector/logic/FormulaField';
 import { NumberField, TextField } from '../inspector/panels/kit';
 import { safeTargetTypes } from './fieldConversions';
+import FieldDisplayEditor from './FieldDisplayEditor';
+import { withTypeShape } from './fieldDisplay';
+import FieldRulesEditor from './FieldRulesEditor';
+import { withoutRules } from './fieldRules';
+import RelationDisplayField from './RelationDisplayField';
 import type { ModelField, ModelTable } from './tablesManagerModel';
 import type { TranslateFn } from '@/hooks/useTranslation';
 
@@ -13,8 +18,9 @@ import type { TranslateFn } from '@/hooks/useTranslation';
  *
  * Edits the table's display name and its fields (key/name/type + per-type
  * options: required, unique, default, a relation target, or a computed
- * expression). Pure controlled component: every change bubbles the next table
- * object through onChange; the parent (TablesManager) owns the model + Save.
+ * expression, and the optional field rules in FieldRulesEditor). Pure
+ * controlled component: every change bubbles the next table object through
+ * onChange; the parent (TablesManager) owns the model + Save.
  *
  * Field keys follow the server grammar (KEY_RE: a lowercase letter then
  * letters/digits/underscore) — a key is a real SQLite column name, so it is
@@ -39,6 +45,9 @@ const fieldTypes = (t: TranslateFn) => [
     { value: 'relation', label: t('studio_apps_tables.designer.type_relation', 'Relation') },
     { value: 'file', label: t('studio_apps_tables.designer.type_file', 'File') },
     { value: 'computed', label: t('studio_apps_tables.designer.type_computed', 'Computed') },
+    { value: 'autonumber', label: t('studio_apps_fieldtypes.type_autonumber', 'Auto number') },
+    { value: 'json', label: t('studio_apps_fieldtypes.type_json', 'JSON') },
+    { value: 'user', label: t('studio_apps_fieldtypes.type_user', 'Person') },
 ];
 
 const SYSTEM_COLUMNS = new Set(['id', 'created_at', 'updated_at', 'created_by', 'org_id']);
@@ -169,7 +178,7 @@ function FieldEditor({ field, update, tables, currentTableId, saved, savedType, 
                 <select
                     className={FIELD_CLS}
                     value={field.type || 'text'}
-                    onChange={(e) => set(typePatch(field, e.target.value))}
+                    onChange={(e) => update({ ...withTypeShape(withoutRules(field), e.target.value), ...typePatch(field, e.target.value) })}
                     disabled={disabled}
                     aria-label={t('studio_apps_tables.designer.field_type', 'Field type')}
                 >
@@ -204,7 +213,8 @@ function FieldEditor({ field, update, tables, currentTableId, saved, savedType, 
                 />
             ) : null}
 
-            <div className="flex items-center gap-4 text-xs text-[var(--text-secondary)]">
+            {/* An autonumber is always unique and never required: the server fills it. */}
+            {field.type === 'autonumber' ? null : <div className="flex items-center gap-4 text-xs text-[var(--text-secondary)]">
                 <label className="inline-flex items-center gap-1.5 cursor-pointer">
                     <input type="checkbox" className={CHECK_CLS} checked={!!field.required} disabled={disabled}
                         onChange={(e) => set({ required: e.target.checked })} />
@@ -215,24 +225,31 @@ function FieldEditor({ field, update, tables, currentTableId, saved, savedType, 
                         onChange={(e) => set({ unique: e.target.checked })} />
                     {t('studio_apps_tables.designer.unique', 'Unique')}
                 </label>
-            </div>
+            </div>}
 
             {field.type === 'relation' ? (
-                <label className="flex flex-col gap-1 text-xs font-medium text-[var(--text-secondary)]">
-                    {t('studio_apps_tables.designer.related_table', 'Related table')}
-                    <select
-                        className={FIELD_CLS}
-                        value={field.relation?.table || ''}
-                        onChange={(e) => set({ relation: { table: e.target.value } })}
-                        disabled={disabled}
-                        aria-label={t('studio_apps_tables.designer.related_table', 'Related table')}
-                    >
-                        <option value="">{t('studio_apps_tables.designer.choose_table', 'Choose a table…')}</option>
-                        {(tables || []).filter((tb) => tb.id !== currentTableId).map((tb) => (
-                            <option key={tb.id} value={tb.id}>{tb.name || tb.key}</option>
-                        ))}
-                    </select>
-                </label>
+                <div className="flex flex-col gap-2">
+                    <label className="flex flex-col gap-1 text-xs font-medium text-[var(--text-secondary)]">
+                        {t('studio_apps_tables.designer.related_table', 'Related table')}
+                        <select
+                            className={FIELD_CLS}
+                            value={field.relation?.table || ''}
+                            // Another table has other columns, so the old display column goes with the old table.
+                            onChange={(e) => {
+                                const { displayField: _drop, ...rest } = field.relation || {};
+                                set({ relation: { ...rest, table: e.target.value } });
+                            }}
+                            disabled={disabled}
+                            aria-label={t('studio_apps_tables.designer.related_table', 'Related table')}
+                        >
+                            <option value="">{t('studio_apps_tables.designer.choose_table', 'Choose a table…')}</option>
+                            {(tables || []).filter((tb) => tb.id !== currentTableId).map((tb) => (
+                                <option key={tb.id} value={tb.id}>{tb.name || tb.key}</option>
+                            ))}
+                        </select>
+                    </label>
+                    <RelationDisplayField field={field} set={set} tables={tables} disabled={disabled} />
+                </div>
             ) : field.type === 'computed' ? (
                 <div className="flex flex-col gap-1">
                     <span className="text-xs font-medium text-[var(--text-secondary)]">{t('studio_apps_tables.designer.computed_expr', 'Computed expression')}</span>
@@ -247,8 +264,13 @@ function FieldEditor({ field, update, tables, currentTableId, saved, savedType, 
                             onChange={(e) => set({ computed: { ...(field.computed || {}), stored: e.target.checked } })} />
                         {t('studio_apps_tables.designer.computed_stored', 'Save as a column (filter and sort on it)')}
                     </label>
+                    {field.computed?.stored !== true && (
+                        <p className="text-xs text-[var(--text-tertiary)]">
+                            {t('studio_apps_computed.read_time_hint', 'Worked out every time a record is read, from this table’s own columns. You can show it, but not filter or sort on it.')}
+                        </p>
+                    )}
                 </div>
-            ) : field.type !== 'bool' && field.type !== 'file' ? (
+            ) : field.type !== 'bool' && field.type !== 'file' && field.type !== 'autonumber' && !field.dynamicDefault ? (
                 field.type === 'number' ? (
                     <NumberField
                         label={t('studio_apps_tables.designer.default', 'Default')}
@@ -265,6 +287,9 @@ function FieldEditor({ field, update, tables, currentTableId, saved, savedType, 
                     />
                 )
             ) : null}
+
+            <FieldDisplayEditor field={field} update={update} disabled={disabled} />
+            <FieldRulesEditor field={field} update={update} disabled={disabled} />
         </div>
     );
 }

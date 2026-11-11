@@ -1,9 +1,8 @@
-import { parseExpr } from '@shared/expr/engine.mjs';
-import { validateRowFilterExpr } from './rowFilterSubset';
+import { parseRowFilter, validateRowFilterExpr } from './rowFilterSubset';
 import type { ExprNode } from './rowFilterSubset';
 import type { AccessEntry, AccessOutcomeArgs, ParsedRowRule, RowRule, RuleCondition, RuleField, RuleTable } from './rowRuleModel.types';
 import type { TranslateFn } from '@/hooks/useTranslation';
-import { SYSTEM_FIELDS, COMPARE_SOURCES, SOURCE_LABEL, BASE_SCOPES, ACCESS_MODES, ACTIONS, OPS_BY_KIND, OP_LABELS, DATE_OP_LABELS, CMP, CANON, MIRROR, NOT_PICKABLE } from './rowRuleModel.constants';
+import { SYSTEM_FIELDS, COMPARE_SOURCES, SOURCE_LABEL, BASE_SCOPES, ACCESS_MODES, ACTIONS, OPS_BY_KIND, OP_LABELS, DATE_OP_LABELS, CMP, CANON, MIRROR, NOT_PICKABLE, LIST_SOURCES, MEMBERSHIP_OP, MEMBERSHIP_TYPES } from './rowRuleModel.constants';
 import { tr, normalizePerm, defaultPerm, serializeValue, flattenLogic, readPath, readLiteral, describeWrites, describeNoRows } from './rowRuleModel.helpers';
 ;
 
@@ -131,6 +130,8 @@ function operatorLabel(op: string, kind: string, t: TranslateFn | null = null) {
  */
 export function operatorsForField(field: RuleField | null | undefined, keepOp: string | null = null, t: TranslateFn | null = null) {
     const kind = valueKindOf(field);
+    // A condition on a list of the person has one test, and no other condition has it.
+    if (keepOp === MEMBERSHIP_OP) return [{ op: MEMBERSHIP_OP, label: operatorLabel(MEMBERSHIP_OP, kind, t) }];
     const ops = [...(OPS_BY_KIND[kind] || OPS_BY_KIND.text)];
     if (keepOp && !ops.includes(keepOp)) ops.push(keepOp);
     return ops.map((op) => ({ op, label: operatorLabel(op, kind, t) }));
@@ -159,8 +160,27 @@ export function ownRowsCondition(): RuleCondition {
     return { id: nextId(), field: 'created_by', op: '==', source: 'viewer.id', value: '', valueType: 'string' };
 }
 
+/**
+ * The sources a condition's "compare with" offers: every current one, plus a
+ * legacy one only when this condition already uses it.
+ */
+export function sourcesForCondition(condition: RuleCondition) {
+    return COMPARE_SOURCES.filter((s) => !s.legacy || s.id === condition.source);
+}
+
+/**
+ * Pick what a condition compares with. A list of the person switches the test
+ * to membership; leaving one switches it back to "is".
+ */
+export function withSource(condition: RuleCondition, source: string): RuleCondition {
+    if (LIST_SOURCES.has(source)) return { ...condition, source, op: MEMBERSHIP_OP };
+    return { ...condition, source, op: condition.op === MEMBERSHIP_OP ? '==' : condition.op };
+}
+
 /** Re-type the value side after the field changed, keeping what still fits. */
 export function retypeCondition(condition: RuleCondition, field: RuleField): RuleCondition {
+    // Membership has no value side to re-type; whether the column fits is conditionProblem's to say.
+    if (condition.op === MEMBERSHIP_OP) return { ...condition, field: field.key };
     const kind = valueKindOf(field);
     const ops = (OPS_BY_KIND[kind] || OPS_BY_KIND.text);
     const op = ops.includes(condition.op) ? condition.op : '==';
@@ -177,23 +197,36 @@ export function retypeCondition(condition: RuleCondition, field: RuleField): Rul
  */
 export function conditionProblem(condition: RuleCondition, table: RuleTable | null | undefined, t: TranslateFn | null = null) {
     if (!condition.field) return tr(t, 'studio_apps_edit.row_rule.problem_pick_column', 'Pick a column.');
-    if (!findRuleField(table, condition.field)) return tr(t, 'studio_apps_edit.row_rule.problem_column_gone', 'This column is no longer in the table — pick another one.');
+    const field = findRuleField(table, condition.field);
+    if (!field) return tr(t, 'studio_apps_edit.row_rule.problem_column_gone', 'This column is no longer in the table — pick another one.');
+    if (condition.op === MEMBERSHIP_OP) return membershipProblem(field, t);
     if (condition.op === 'empty' || condition.op === 'notEmpty') return null;
     if (condition.source !== 'value') return null;
     if (condition.valueType === 'bool') return null;
-    if (condition.valueType === 'number') {
-        const n = Number(condition.value);
-        if (condition.value === '' || !Number.isFinite(n)) return tr(t, 'studio_apps_edit.row_rule.problem_number', 'Type a number.');
-        // A leading minus parses as arithmetic, which a row rule may not contain.
-        if (n < 0) return tr(t, 'studio_apps_edit.row_rule.problem_negative', 'A row rule cannot use a negative number.');
-        return null;
-    }
+    if (condition.valueType === 'number') return numberProblem(condition.value, t);
     return String(condition.value ?? '') === '' ? tr(t, 'studio_apps_edit.row_rule.problem_value', 'Fill in the value.') : null;
+}
+
+/** A list of the person holds text, so only a column that holds text can be tested against it. */
+function membershipProblem(field: RuleField, t: TranslateFn | null) {
+    return MEMBERSHIP_TYPES.has(String(field.type))
+        ? null
+        : tr(t, 'studio_apps_rowrules.problem_groups_column', 'Only a text or choice column can be compared with their groups.');
+}
+
+function numberProblem(value: RuleCondition['value'], t: TranslateFn | null) {
+    const n = Number(value);
+    if (value === '' || !Number.isFinite(n)) return tr(t, 'studio_apps_edit.row_rule.problem_number', 'Type a number.');
+    // A leading minus parses as arithmetic, which a row rule may not contain.
+    if (n < 0) return tr(t, 'studio_apps_edit.row_rule.problem_negative', 'A row rule cannot use a negative number.');
+    return null;
 }
 
 export function serializeCondition(condition: RuleCondition | null | undefined) {
     if (!condition || !condition.field) return null;
     const left = `record.${condition.field}`;
+    if (condition.op === MEMBERSHIP_OP) return LIST_SOURCES.has(condition.source) ? `${left} in ${condition.source}` : null;
+    if (LIST_SOURCES.has(condition.source)) return null; // a list is only ever tested with `in`
     if (condition.op === 'empty') return `${left} == ""`;
     if (condition.op === 'notEmpty') return `${left} != ""`;
     const right = serializeValue(condition);
@@ -208,8 +241,19 @@ export function buildRowRule({ join = 'and', conditions = [] }: RowRule = {}) {
 
 // ── Reading an existing rule back into pickers ──────────────────────
 
+/** `record.<column> in viewer.<list>` as a condition, or null. */
+function membershipToCondition(node: ExprNode, table: RuleTable | null | undefined): RuleCondition | null {
+    const left = readPath(node.a);
+    const right = readPath(node.b);
+    if (!left || left.root !== 'record' || !right || right.root !== 'viewer') return null;
+    const source = `viewer.${right.leaf}`;
+    if (!LIST_SOURCES.has(source) || !findRuleField(table, left.leaf)) return null;
+    return { id: nextId(), field: left.leaf, op: MEMBERSHIP_OP, source, value: '', valueType: 'string' };
+}
+
 function leafToCondition(node: ExprNode | undefined, table: RuleTable | null | undefined): RuleCondition | null {
     if (!node || node.kind !== 'binop') return null;
+    if (node.op === MEMBERSHIP_OP) return membershipToCondition(node, table);
     const op = CANON[node.op] || node.op;
     if (!CMP.has(op)) return null;
 
@@ -250,7 +294,7 @@ export function parseRowRule(expr: unknown, table: RuleTable | null | undefined)
     if (!validateRowFilterExpr(src, table).ok) return NOT_PICKABLE;
 
     let ast;
-    try { ast = parseExpr(src); } catch { return NOT_PICKABLE; }
+    try { ast = parseRowFilter(src); } catch { return NOT_PICKABLE; }
 
     const ops = new Set<string>();
     const leaves: Array<ExprNode | undefined> = [];

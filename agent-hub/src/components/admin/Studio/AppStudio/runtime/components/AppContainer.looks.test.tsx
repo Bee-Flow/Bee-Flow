@@ -1,6 +1,7 @@
 import { render } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
 import AppContainer from './AppContainer';
+import { withoutPartClasses } from '@/test/appPartClasses';
 
 /**
  * AppContainer — the look pass (props.look, spec componentSpecs.js).
@@ -26,7 +27,7 @@ describe('AppContainer looks', () => {
             <AppContainer node={containerNode({ look: 'plain' })}><div>kid</div></AppContainer>,
         );
         const grid = container.querySelector('[data-app-container]');
-        expect(grid!.className).toBe('app-grid');
+        expect(withoutPartClasses(grid!.className)).toBe('app-grid');
         expect((grid! as HTMLElement).style.gridTemplateColumns).toBe('repeat(12, minmax(0, 1fr))');
     });
 
@@ -34,14 +35,14 @@ describe('AppContainer looks', () => {
         const { container } = render(
             <AppContainer node={containerNode()}><div>kid</div></AppContainer>,
         );
-        expect(container.querySelector('[data-app-container]')!.className).toBe('app-grid');
+        expect(withoutPartClasses(container.querySelector('[data-app-container]')!.className)).toBe('app-grid');
     });
 
     it('an unknown look value falls back to the identity render', () => {
         const { container } = render(
             <AppContainer node={containerNode({ look: 'nope' })}><div>kid</div></AppContainer>,
         );
-        expect(container.querySelector('[data-app-container]')!.className).toBe('app-grid');
+        expect(withoutPartClasses(container.querySelector('[data-app-container]')!.className)).toBe('app-grid');
     });
 
     for (const look of LOOKS) {

@@ -166,7 +166,7 @@ export default function AppFileGallery({ node }: NodeProps<FileGalleryProps>) {
     const fill = isFill(node);
     // min-h-0 is what lets a flex child actually scroll rather than growing
     // past its pane; app-fill is the class the fill contract is checked on.
-    const wrapper = `w-full min-w-0${fill ? ' app-fill h-full min-h-0 overflow-auto' : ''}`;
+    const wrapper = `w-full min-w-0${fill ? ' app-fill h-full min-h-0 overflow-auto' : ''} bfa-file_gallery__root`;
 
     if (error) return <ErrorText error={error} errorCode={errorCode} />;
     if (isLoading) {
@@ -222,19 +222,19 @@ export default function AppFileGallery({ node }: NodeProps<FileGalleryProps>) {
                         alt=""
                         aria-hidden="true"
                         loading="lazy"
-                        className="shrink-0 rounded object-cover w-[56px] h-[56px] [background:var(--bg-secondary)]"
+                        className="shrink-0 rounded object-cover w-[56px] h-[56px] [background:var(--bg-secondary)] bfa-file_gallery__thumb"
                     />
                 ) : (
-                    <span className="app-file-card-icon shrink-0" aria-hidden="true">
+                    <span className="app-file-card-icon shrink-0 bfa-file_gallery__icon" aria-hidden="true">
                         <Icon className="w-5 h-5" />
                     </span>
                 )}
                 <span className="min-w-0 text-left">
-                    <span className="block text-sm font-medium truncate text-[var(--text-primary)]">
+                    <span className="block text-sm font-medium truncate text-[var(--text-primary)] bfa-file_gallery__name">
                         {name}
                     </span>
                     {meta ? (
-                        <span className="block text-xs truncate text-[var(--text-tertiary)]">
+                        <span className="block text-xs truncate text-[var(--text-tertiary)] bfa-file_gallery__meta">
                             {meta}
                         </span>
                     ) : null}
@@ -247,7 +247,7 @@ export default function AppFileGallery({ node }: NodeProps<FileGalleryProps>) {
                 key={String(row?.id || i)}
                 type="button"
                 onClick={() => node.onRowClick && runAction(node.onRowClick, { formValues: row ?? undefined, item: row })}
-                className="app-file-card flex items-center gap-2.5 rounded-lg border p-2.5 text-left min-w-0"
+                className="app-file-card flex items-center gap-2.5 rounded-lg border p-2.5 text-left min-w-0 bfa-file_gallery__card"
                 title={name}
             >
                 {card}
@@ -255,7 +255,7 @@ export default function AppFileGallery({ node }: NodeProps<FileGalleryProps>) {
         ) : (
             <div
                 key={String(row?.id || i)}
-                className="app-file-card flex items-center gap-2.5 rounded-lg border p-2.5 min-w-0"
+                className="app-file-card flex items-center gap-2.5 rounded-lg border p-2.5 min-w-0 bfa-file_gallery__card"
                 title={name}
             >
                 {card}
@@ -293,9 +293,9 @@ export default function AppFileGallery({ node }: NodeProps<FileGalleryProps>) {
                 <div className="grid gap-2" style={gridStyle}>{loose.map(([row, i]) => renderCard(row, i))}</div>
             ) : null}
             {[...groups].map(([name, entries]) => (
-                <section key={name} className="mt-3 first:mt-0" data-app-file-group={name}>
+                <section key={name} className="mt-3 first:mt-0 bfa-file_gallery__group" data-app-file-group={name}>
                     <h4
-                        className="mb-1.5 flex items-baseline gap-1.5 text-xs font-semibold text-[var(--text-secondary)]"
+                        className="mb-1.5 flex items-baseline gap-1.5 text-xs font-semibold text-[var(--text-secondary)] bfa-file_gallery__group-title"
                     >
                         <span className="truncate" title={name}>{name}</span>
                         <span className="tabular-nums font-normal text-[var(--text-tertiary)]">

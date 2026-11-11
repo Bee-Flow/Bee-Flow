@@ -12,12 +12,14 @@
 export const CANVAS_TYPES = new Set(['steps']);
 
 /**
- * Structured object types with no generic input — the default text field
+ * Structured object types with no input here at all — the default text field
  * would render "[object Object]" and write a string back over the config.
- * Authored by the AI builder (like ai_extract's schema); a dedicated editor
- * can land later without touching this filter.
+ * Empty today: request_approval's questions and `onDecided` hook used to be
+ * listed, and now have their controls under fieldTypes/ (approvalQuestions,
+ * approvalOnDecided). A new structured type with no control yet goes here,
+ * never into the text field.
  */
-export const AI_AUTHORED_TYPES = new Set(['approvalQuestions', 'approvalOnDecided']);
+export const AI_AUTHORED_TYPES = new Set<string>();
 
 /**
  * `<kind>.<field>` pairs the server still ACCEPTS but nothing reads. Rendering
@@ -46,9 +48,26 @@ export const FIELD_LABELS: Record<string, string[]> = {
     documentMode: ['studio_apps_edit.step_settings.field_document_mode', 'Read documents as'],
     retry: ['studio_apps_edit.step_settings.field_retry', 'If it fails, try again'],
     onError: ['studio_apps_edit.step_settings.field_on_error', 'If it still fails'],
+    failFast: ['studio_apps_flow_parallel.settings.fail_fast', 'Stop the other branches when one fails'],
+    timeoutMs: ['studio_apps_step_code.field.timeout_label', 'Time limit (ms)'],
+    nodeId: ['studio_apps_ui_steps.fields.node', 'Component'],
+    messageExpr: ['studio_apps_dynamic_text.field_message_expr', 'Message (formula)'],
+    titleExpr: ['studio_apps_dynamic_text.field_title_expr', 'Title (formula)'],
+    confirmLabelExpr: ['studio_apps_dynamic_text.field_confirm_label_expr', 'Confirm button (formula)'],
+    cancelLabelExpr: ['studio_apps_dynamic_text.field_cancel_label_expr', 'Cancel button (formula)'],
+    screenExpr: ['studio_apps_dynamic_text.field_screen_expr', 'Screen (formula)'],
+    urlExpr: ['studio_apps_dynamic_text.field_url_expr', 'Address (formula)'],
+    guard: ['studio_apps_server_scope.field_guard', 'Only run when (checked on the server)'],
 };
 
 export const HINTS: Record<string, string[]> = {
+    guard: ['studio_apps_server_scope.hint_guard', 'A formula the server works out before this step. When it is not true the step is skipped and the rest goes on. Leave it empty to always run the step.'],
+    messageExpr: ['studio_apps_dynamic_text.hint_text_expr', 'Used instead of the text above when it gives a result.'],
+    titleExpr: ['studio_apps_dynamic_text.hint_text_expr', 'Used instead of the text above when it gives a result.'],
+    confirmLabelExpr: ['studio_apps_dynamic_text.hint_text_expr', 'Used instead of the text above when it gives a result.'],
+    cancelLabelExpr: ['studio_apps_dynamic_text.hint_text_expr', 'Used instead of the text above when it gives a result.'],
+    screenExpr: ['studio_apps_dynamic_text.hint_screen_expr', 'Gives the id of one of this app’s screens. Used instead of the screen above.'],
+    urlExpr: ['studio_apps_dynamic_text.hint_url_expr', 'Opens only https addresses on the hosts listed in the app settings under “Links from formulas”.'],
     resultVar: ['studio_apps_edit.step_settings.hint_result_var', 'The variable this step’s result lands in — formulas read it as vars.<name>.'],
     itemVar: ['studio_apps_edit.step_settings.hint_item_var', 'What each row is called inside the loop.'],
     indexVar: ['studio_apps_edit.step_settings.hint_index_var', 'What the position in the list is called (0, 1, 2…).'],
@@ -66,4 +85,10 @@ export const HINTS: Record<string, string[]> = {
     poPattern: ['studio_apps_edit.step_settings.hint_po_pattern', 'Filenames matching this (regex) count as the purchase order.'],
     documentMode: ['studio_apps_edit.step_settings.hint_document_mode', '“Images” forces page pictures — use it for technical drawings, whose text layer alone misleads.'],
     promptContext: ['studio_apps_edit.step_settings.hint_prompt_context', 'Live rows added to the prompt — the purchase-order lines, the open record, the vocabulary table.'],
+    // AI step answer reliability (schema v3).
+    temperature: ['studio_apps_aichecks.hint_temperature', 'From 0 to 2. Lower answers vary less between runs. Leave it empty to use the model tier’s setting.'],
+    repairRounds: ['studio_apps_aichecks.hint_repair_rounds', 'How often an answer that fails its checks goes back to the AI before the step fails (0 to 3, empty = 1). Each round is one more AI call.'],
+    failFast: ['studio_apps_flow_parallel.settings.fail_fast_hint', 'Off: every branch runs to its end before the failure is reported. On: the other branches stop before their next step.'],
+    inputs: ['studio_apps_step_code.field.inputs_hint', 'Each input is read before the code runs, with the row access of whoever runs the action, and reaches the code as inputs.<name>.'],
+    timeoutMs: ['studio_apps_step_code.field.timeout_hint', 'Leave empty for the default (1 s of computing within 5 s). At most 30000.'],
 };

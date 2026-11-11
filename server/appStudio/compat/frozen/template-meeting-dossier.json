@@ -1,0 +1,1155 @@
+{
+  "corpus": "template-meeting-dossier",
+  "canonical": {
+    "sha256": "d1e33038cb653681ec205c323aa64647d902104039d9040f4fb4e03bd1890584",
+    "bytes": 77568,
+    "inputIsCanonical": true,
+    "idempotent": true,
+    "keys": [
+      "schemaVersion",
+      "meta",
+      "theme",
+      "roles",
+      "variables",
+      "screens",
+      "actions",
+      "design",
+      "homeScreenId"
+    ],
+    "parts": {
+      "schemaVersion": "d4735e3a265e16ee",
+      "meta": "c4e90ee816cd7274",
+      "theme": "1ac58c7830f3573e",
+      "roles": "fa6da4d1db2f4888",
+      "variables": "19599b9c39b55a88",
+      "screens[0] scr_meetings": "6abcfdc99dbd4807",
+      "screens[1] scr_dossier": "23d111430a303e77",
+      "screens[2] scr_review": "7af334616de26395",
+      "screens[3] scr_actions": "ef5463b8e8317684",
+      "screens[4] scr_decisions": "6f59abeb3cb1321b",
+      "screens[5] scr_setup": "e37d7034b23ca8f2",
+      "actions.act_mmpick": "500588c18b10bc8e",
+      "actions.act_mmclear": "8fcdb136ce63b9a6",
+      "actions.act_mmgo": "597626fd479e5221",
+      "actions.act_mmopen": "68fd0c766b9da83e",
+      "actions.act_mmcreate": "e90b2588c4208b83",
+      "actions.act_mdback": "70a67776ba8d90d1",
+      "actions.act_mdrecpick": "030250e7237a0e44",
+      "actions.act_mdrecopen": "2e9a5efc63be78f6",
+      "actions.act_mdrecadd": "bb2e5a38b1127262",
+      "actions.act_mdtrans": "f5b3cc50ebafa180",
+      "actions.act_mdextract": "36813983fb822ffd",
+      "actions.act_mdpurge": "50e9d3ba8b3e1d3f",
+      "actions.act_mdspksave": "afb3d8b51125827a",
+      "actions.act_mdspkopen": "0d423671bbfe093e",
+      "actions.act_mdspkadd": "78a849a106b95480",
+      "actions.act_mdspkdel": "88fda0e83ae848fb",
+      "actions.act_mddecopen": "c60e897b31fd9448",
+      "actions.act_mddecadd": "fb797d77f85a49cc",
+      "actions.act_mdactopen": "9ce03bfb3131b769",
+      "actions.act_mdactadd": "b8b101cbf822cd81",
+      "actions.act_rvdecopen": "7fb6a30ce573e512",
+      "actions.act_rvdecok": "51a344cd5adf621b",
+      "actions.act_rvdecno": "67b2b3fcf47b6b65",
+      "actions.act_rvactopen": "9a2861ec0aed96ad",
+      "actions.act_rvactok": "d3a118b8e712167d",
+      "actions.act_rvactno": "eb2435c2cb9f99e0",
+      "actions.act_acmove": "096e3ed614e82035",
+      "actions.act_acopen": "f0aaad361cdf371b",
+      "actions.act_acsave": "84d9fd5b4576d471",
+      "actions.act_dcpick": "893dfadfc7135438",
+      "actions.act_dcsupopen": "ba8fce3827df06e7",
+      "actions.act_dcsupsave": "417c3e5592ac9d64",
+      "actions.act_ststopen": "a2717f5ce9b924b7",
+      "actions.act_ststadd": "db49476555137daf",
+      "actions.act_ststsave": "fcaf152e1cd5861e",
+      "actions.act_ststdel": "fe1a278a5e33f24a",
+      "actions.act_stkiopen": "2cb721134a441d68",
+      "actions.act_stkiadd": "921b3b9956c8bd3f",
+      "actions.act_stkisave": "86bcea5a5e592fda",
+      "actions.act_stkidel": "525858e8549ea1bb",
+      "actions.act_stppopen": "e2b9060d80dad36f",
+      "actions.act_stppadd": "d3497454e2fcb461",
+      "actions.act_stppsave": "d98c7f1e958f8553",
+      "actions.act_stppdel": "ed51931980e0000a",
+      "design": "b7e2d802cbae492d",
+      "homeScreenId": "df145aaea1f5bd24"
+    }
+  },
+  "schemaVersion": {
+    "stored": 2,
+    "canonical": 2
+  },
+  "validation": {
+    "strict": {
+      "errors": [],
+      "warnings": [
+        "action.automation_unset @ actions.act_mdtrans.steps[0].then[2].automationId"
+      ]
+    },
+    "save": {
+      "errors": [],
+      "warnings": [
+        "action.automation_unset @ actions.act_mdtrans.steps[0].then[2].automationId"
+      ]
+    }
+  },
+  "ordinals": {
+    "stored": {
+      "act_mmpick": [
+        "0 set_variable",
+        "1 set_variable"
+      ],
+      "act_mmclear": [
+        "0 set_variable",
+        "1 set_variable"
+      ],
+      "act_mmgo": [
+        "0 navigate"
+      ],
+      "act_mmopen": [
+        "0 open_modal"
+      ],
+      "act_mmcreate": [
+        "0 create_record",
+        "1 close_modal",
+        "2 reset_form",
+        "3 refresh",
+        "4 toast"
+      ],
+      "act_mdback": [
+        "0 navigate"
+      ],
+      "act_mdrecpick": [
+        "0 set_variable"
+      ],
+      "act_mdrecopen": [
+        "0 open_modal"
+      ],
+      "act_mdrecadd": [
+        "0 condition",
+        "1 create_record",
+        "2 close_modal",
+        "3 reset_form",
+        "4 refresh",
+        "5 toast",
+        "6 toast"
+      ],
+      "act_mdtrans": [
+        "0 condition",
+        "1 update_record",
+        "2 refresh",
+        "3 run_automation",
+        "4 toast",
+        "5 toast"
+      ],
+      "act_mdextract": [
+        "0 condition",
+        "1 ai_extract",
+        "2 refresh",
+        "3 ai_extract",
+        "4 refresh",
+        "5 navigate",
+        "6 toast",
+        "7 toast"
+      ],
+      "act_mdpurge": [
+        "0 condition",
+        "1 confirm",
+        "2 update_record",
+        "3 refresh",
+        "4 set_variable",
+        "5 toast",
+        "6 toast"
+      ],
+      "act_mdspksave": [
+        "0 update_record",
+        "1 refresh"
+      ],
+      "act_mdspkopen": [
+        "0 open_modal"
+      ],
+      "act_mdspkadd": [
+        "0 condition",
+        "1 create_record",
+        "2 close_modal",
+        "3 reset_form",
+        "4 refresh",
+        "5 toast"
+      ],
+      "act_mdspkdel": [
+        "0 confirm",
+        "1 delete_record",
+        "2 refresh"
+      ],
+      "act_mddecopen": [
+        "0 open_modal"
+      ],
+      "act_mddecadd": [
+        "0 condition",
+        "1 create_record",
+        "2 close_modal",
+        "3 reset_form",
+        "4 refresh",
+        "5 toast",
+        "6 toast"
+      ],
+      "act_mdactopen": [
+        "0 open_modal"
+      ],
+      "act_mdactadd": [
+        "0 condition",
+        "1 create_record",
+        "2 close_modal",
+        "3 reset_form",
+        "4 refresh",
+        "5 toast",
+        "6 toast"
+      ],
+      "act_rvdecopen": [
+        "0 set_variable",
+        "1 open_modal"
+      ],
+      "act_rvdecok": [
+        "0 update_record",
+        "1 close_modal",
+        "2 reset_form",
+        "3 refresh",
+        "4 toast"
+      ],
+      "act_rvdecno": [
+        "0 confirm",
+        "1 update_record",
+        "2 refresh"
+      ],
+      "act_rvactopen": [
+        "0 set_variable",
+        "1 open_modal"
+      ],
+      "act_rvactok": [
+        "0 update_record",
+        "1 close_modal",
+        "2 reset_form",
+        "3 refresh",
+        "4 toast"
+      ],
+      "act_rvactno": [
+        "0 confirm",
+        "1 update_record",
+        "2 refresh"
+      ],
+      "act_acmove": [
+        "0 condition",
+        "1 update_record",
+        "2 refresh",
+        "3 update_record",
+        "4 refresh"
+      ],
+      "act_acopen": [
+        "0 set_variable",
+        "1 open_modal"
+      ],
+      "act_acsave": [
+        "0 update_record",
+        "1 close_modal",
+        "2 reset_form",
+        "3 refresh"
+      ],
+      "act_dcpick": [
+        "0 set_variable"
+      ],
+      "act_dcsupopen": [
+        "0 set_variable",
+        "1 open_modal"
+      ],
+      "act_dcsupsave": [
+        "0 create_record",
+        "1 update_record",
+        "2 close_modal",
+        "3 reset_form",
+        "4 refresh",
+        "5 toast"
+      ],
+      "act_ststopen": [
+        "0 open_modal"
+      ],
+      "act_ststadd": [
+        "0 create_record",
+        "1 close_modal",
+        "2 reset_form",
+        "3 refresh",
+        "4 toast"
+      ],
+      "act_ststsave": [
+        "0 update_record",
+        "1 refresh"
+      ],
+      "act_ststdel": [
+        "0 confirm",
+        "1 delete_record",
+        "2 refresh"
+      ],
+      "act_stkiopen": [
+        "0 open_modal"
+      ],
+      "act_stkiadd": [
+        "0 create_record",
+        "1 close_modal",
+        "2 reset_form",
+        "3 refresh"
+      ],
+      "act_stkisave": [
+        "0 update_record",
+        "1 refresh"
+      ],
+      "act_stkidel": [
+        "0 confirm",
+        "1 delete_record",
+        "2 refresh"
+      ],
+      "act_stppopen": [
+        "0 open_modal"
+      ],
+      "act_stppadd": [
+        "0 create_record",
+        "1 close_modal",
+        "2 reset_form",
+        "3 refresh"
+      ],
+      "act_stppsave": [
+        "0 update_record",
+        "1 refresh"
+      ],
+      "act_stppdel": [
+        "0 confirm",
+        "1 delete_record",
+        "2 refresh"
+      ]
+    },
+    "canonical": "same as stored"
+  },
+  "installHash": {
+    "stored": "6bb77069c982d017665ff9ab0e307c04c068dba2f832e4e61f98562666a0da73",
+    "afterResave": "6bb77069c982d017665ff9ab0e307c04c068dba2f832e4e61f98562666a0da73"
+  },
+  "reads": [
+    {
+      "at": "cmp_mmst1.value",
+      "kind": "aggregate",
+      "table": "tbl_mdmeet",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"meetings\" WHERE (1=1) LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "secretary": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"meetings\" WHERE (1=1) LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "member": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"meetings\" WHERE (1=1) LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"meetings\" WHERE (1=1) LIMIT ?",
+          "params": [
+            1
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"meetings\" WHERE (1=1) LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "secretary": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"meetings\" WHERE (1=1) LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "member": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"meetings\" WHERE (1=1) LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"meetings\" WHERE (1=1) LIMIT ?",
+          "params": [
+            1
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_mmst2.value",
+      "kind": "aggregate",
+      "table": "tbl_mdact",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"action_items\" WHERE (1=1) AND \"confirmation\" = ? LIMIT ?",
+          "params": [
+            "suggested",
+            1
+          ]
+        },
+        "secretary": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"action_items\" WHERE (1=1) AND \"confirmation\" = ? LIMIT ?",
+          "params": [
+            "suggested",
+            1
+          ]
+        },
+        "member": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"action_items\" WHERE (1=1) AND \"confirmation\" = ? LIMIT ?",
+          "params": [
+            "suggested",
+            1
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"action_items\" WHERE (1=1) AND \"confirmation\" = ? LIMIT ?",
+          "params": [
+            "suggested",
+            1
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"action_items\" WHERE (1=1) AND \"confirmation\" = ? LIMIT ?",
+          "params": [
+            "suggested",
+            1
+          ]
+        },
+        "secretary": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"action_items\" WHERE (1=1) AND \"confirmation\" = ? LIMIT ?",
+          "params": [
+            "suggested",
+            1
+          ]
+        },
+        "member": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"action_items\" WHERE (1=1) AND \"confirmation\" = ? LIMIT ?",
+          "params": [
+            "suggested",
+            1
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"action_items\" WHERE (1=1) AND \"confirmation\" = ? LIMIT ?",
+          "params": [
+            "suggested",
+            1
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_mmst3.value",
+      "kind": "aggregate",
+      "table": "tbl_mdrec",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"recordings\" WHERE (1=1) AND \"retention_until\" < ? AND \"purged\" = ? LIMIT ?",
+          "params": [
+            "2026-01-15",
+            0,
+            1
+          ]
+        },
+        "secretary": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"recordings\" WHERE (1=1) AND \"retention_until\" < ? AND \"purged\" = ? LIMIT ?",
+          "params": [
+            "2026-01-15",
+            0,
+            1
+          ]
+        },
+        "member": {
+          "note": "no read access for this role"
+        },
+        "auditor": {
+          "note": "no read access for this role"
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"recordings\" WHERE (1=1) AND \"retention_until\" < ? AND \"purged\" = ? LIMIT ?",
+          "params": [
+            "2026-01-15",
+            false,
+            1
+          ]
+        },
+        "secretary": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"recordings\" WHERE (1=1) AND \"retention_until\" < ? AND \"purged\" = ? LIMIT ?",
+          "params": [
+            "2026-01-15",
+            false,
+            1
+          ]
+        },
+        "member": {
+          "note": "no read access for this role"
+        },
+        "auditor": {
+          "note": "no read access for this role"
+        }
+      }
+    },
+    {
+      "at": "cmp_mmlist.source",
+      "kind": "records",
+      "table": "tbl_mdmeet",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"meetings\" WHERE (1=1) ORDER BY \"meeting_date\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            201
+          ]
+        },
+        "secretary": {
+          "sql": "SELECT * FROM \"meetings\" WHERE (1=1) ORDER BY \"meeting_date\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            201
+          ]
+        },
+        "member": {
+          "sql": "SELECT * FROM \"meetings\" WHERE (1=1) ORDER BY \"meeting_date\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            201
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"meetings\" WHERE (1=1) ORDER BY \"meeting_date\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            201
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"meetings\" WHERE (1=1) ORDER BY \"meeting_date\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            201
+          ]
+        },
+        "secretary": {
+          "sql": "SELECT * FROM \"meetings\" WHERE (1=1) ORDER BY \"meeting_date\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            201
+          ]
+        },
+        "member": {
+          "sql": "SELECT * FROM \"meetings\" WHERE (1=1) ORDER BY \"meeting_date\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            201
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"meetings\" WHERE (1=1) ORDER BY \"meeting_date\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            201
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_mdrecs.source",
+      "kind": "records",
+      "table": "tbl_mdrec",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"recordings\" WHERE (1=1) ORDER BY \"created_at\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "secretary": {
+          "sql": "SELECT * FROM \"recordings\" WHERE (1=1) ORDER BY \"created_at\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "member": {
+          "note": "no read access for this role"
+        },
+        "auditor": {
+          "note": "no read access for this role"
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"recordings\" WHERE (1=1) ORDER BY \"created_at\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "secretary": {
+          "sql": "SELECT * FROM \"recordings\" WHERE (1=1) ORDER BY \"created_at\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "member": {
+          "note": "no read access for this role"
+        },
+        "auditor": {
+          "note": "no read access for this role"
+        }
+      }
+    },
+    {
+      "at": "cmp_mdspkg.source",
+      "kind": "records",
+      "table": "tbl_mdspk",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"speaker_map\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            41
+          ]
+        },
+        "secretary": {
+          "sql": "SELECT * FROM \"speaker_map\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            41
+          ]
+        },
+        "member": {
+          "note": "no read access for this role"
+        },
+        "auditor": {
+          "note": "no read access for this role"
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"speaker_map\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            41
+          ]
+        },
+        "secretary": {
+          "sql": "SELECT * FROM \"speaker_map\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            41
+          ]
+        },
+        "member": {
+          "note": "no read access for this role"
+        },
+        "auditor": {
+          "note": "no read access for this role"
+        }
+      }
+    },
+    {
+      "at": "cmp_rvdecs.source",
+      "kind": "records",
+      "table": "tbl_mddec",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"decisions\" WHERE (1=1) AND \"confirmation\" = ? ORDER BY \"meeting_date\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "suggested",
+            201
+          ]
+        },
+        "secretary": {
+          "sql": "SELECT * FROM \"decisions\" WHERE (1=1) AND \"confirmation\" = ? ORDER BY \"meeting_date\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "suggested",
+            201
+          ]
+        },
+        "member": {
+          "sql": "SELECT * FROM \"decisions\" WHERE (1=1) AND \"confirmation\" = ? ORDER BY \"meeting_date\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "suggested",
+            201
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"decisions\" WHERE (1=1) AND \"confirmation\" = ? ORDER BY \"meeting_date\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "suggested",
+            201
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"decisions\" WHERE (1=1) AND \"confirmation\" = ? ORDER BY \"meeting_date\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "suggested",
+            201
+          ]
+        },
+        "secretary": {
+          "sql": "SELECT * FROM \"decisions\" WHERE (1=1) AND \"confirmation\" = ? ORDER BY \"meeting_date\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "suggested",
+            201
+          ]
+        },
+        "member": {
+          "sql": "SELECT * FROM \"decisions\" WHERE (1=1) AND \"confirmation\" = ? ORDER BY \"meeting_date\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "suggested",
+            201
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"decisions\" WHERE (1=1) AND \"confirmation\" = ? ORDER BY \"meeting_date\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "suggested",
+            201
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_rvacts.source",
+      "kind": "records",
+      "table": "tbl_mdact",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"action_items\" WHERE (1=1) AND \"confirmation\" = ? ORDER BY \"meeting_date\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "suggested",
+            201
+          ]
+        },
+        "secretary": {
+          "sql": "SELECT * FROM \"action_items\" WHERE (1=1) AND \"confirmation\" = ? ORDER BY \"meeting_date\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "suggested",
+            201
+          ]
+        },
+        "member": {
+          "sql": "SELECT * FROM \"action_items\" WHERE (1=1) AND \"confirmation\" = ? ORDER BY \"meeting_date\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "suggested",
+            201
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"action_items\" WHERE (1=1) AND \"confirmation\" = ? ORDER BY \"meeting_date\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "suggested",
+            201
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"action_items\" WHERE (1=1) AND \"confirmation\" = ? ORDER BY \"meeting_date\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "suggested",
+            201
+          ]
+        },
+        "secretary": {
+          "sql": "SELECT * FROM \"action_items\" WHERE (1=1) AND \"confirmation\" = ? ORDER BY \"meeting_date\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "suggested",
+            201
+          ]
+        },
+        "member": {
+          "sql": "SELECT * FROM \"action_items\" WHERE (1=1) AND \"confirmation\" = ? ORDER BY \"meeting_date\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "suggested",
+            201
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"action_items\" WHERE (1=1) AND \"confirmation\" = ? ORDER BY \"meeting_date\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "suggested",
+            201
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_ackb.source",
+      "kind": "records",
+      "table": "tbl_mdact",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"action_items\" WHERE (1=1) AND \"confirmation\" = ? ORDER BY \"due_date\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "confirmed",
+            301
+          ]
+        },
+        "secretary": {
+          "sql": "SELECT * FROM \"action_items\" WHERE (1=1) AND \"confirmation\" = ? ORDER BY \"due_date\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "confirmed",
+            301
+          ]
+        },
+        "member": {
+          "sql": "SELECT * FROM \"action_items\" WHERE (1=1) AND \"confirmation\" = ? ORDER BY \"due_date\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "confirmed",
+            301
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"action_items\" WHERE (1=1) AND \"confirmation\" = ? ORDER BY \"due_date\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "confirmed",
+            301
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"action_items\" WHERE (1=1) AND \"confirmation\" = ? ORDER BY \"due_date\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "confirmed",
+            301
+          ]
+        },
+        "secretary": {
+          "sql": "SELECT * FROM \"action_items\" WHERE (1=1) AND \"confirmation\" = ? ORDER BY \"due_date\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "confirmed",
+            301
+          ]
+        },
+        "member": {
+          "sql": "SELECT * FROM \"action_items\" WHERE (1=1) AND \"confirmation\" = ? ORDER BY \"due_date\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "confirmed",
+            301
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"action_items\" WHERE (1=1) AND \"confirmation\" = ? ORDER BY \"due_date\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "confirmed",
+            301
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_ackb.columnsSource",
+      "kind": "records",
+      "table": "tbl_mdstat",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"action_statuses\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            13
+          ]
+        },
+        "secretary": {
+          "sql": "SELECT * FROM \"action_statuses\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            13
+          ]
+        },
+        "member": {
+          "sql": "SELECT * FROM \"action_statuses\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            13
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"action_statuses\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            13
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"action_statuses\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            13
+          ]
+        },
+        "secretary": {
+          "sql": "SELECT * FROM \"action_statuses\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            13
+          ]
+        },
+        "member": {
+          "sql": "SELECT * FROM \"action_statuses\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            13
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"action_statuses\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            13
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_dcgrid.source",
+      "kind": "records",
+      "table": "tbl_mddec",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"decisions\" WHERE (1=1) AND \"confirmation\" = ? AND \"state\" = ? ORDER BY \"meeting_date\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "confirmed",
+            "active",
+            301
+          ]
+        },
+        "secretary": {
+          "sql": "SELECT * FROM \"decisions\" WHERE (1=1) AND \"confirmation\" = ? AND \"state\" = ? ORDER BY \"meeting_date\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "confirmed",
+            "active",
+            301
+          ]
+        },
+        "member": {
+          "sql": "SELECT * FROM \"decisions\" WHERE (1=1) AND \"confirmation\" = ? AND \"state\" = ? ORDER BY \"meeting_date\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "confirmed",
+            "active",
+            301
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"decisions\" WHERE (1=1) AND \"confirmation\" = ? AND \"state\" = ? ORDER BY \"meeting_date\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "confirmed",
+            "active",
+            301
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"decisions\" WHERE (1=1) AND \"confirmation\" = ? AND \"state\" = ? ORDER BY \"meeting_date\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "confirmed",
+            "active",
+            301
+          ]
+        },
+        "secretary": {
+          "sql": "SELECT * FROM \"decisions\" WHERE (1=1) AND \"confirmation\" = ? AND \"state\" = ? ORDER BY \"meeting_date\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "confirmed",
+            "active",
+            301
+          ]
+        },
+        "member": {
+          "sql": "SELECT * FROM \"decisions\" WHERE (1=1) AND \"confirmation\" = ? AND \"state\" = ? ORDER BY \"meeting_date\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "confirmed",
+            "active",
+            301
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"decisions\" WHERE (1=1) AND \"confirmation\" = ? AND \"state\" = ? ORDER BY \"meeting_date\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "confirmed",
+            "active",
+            301
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_ststg.source",
+      "kind": "records",
+      "table": "tbl_mdstat",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"action_statuses\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "secretary": {
+          "sql": "SELECT * FROM \"action_statuses\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "member": {
+          "sql": "SELECT * FROM \"action_statuses\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"action_statuses\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"action_statuses\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "secretary": {
+          "sql": "SELECT * FROM \"action_statuses\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "member": {
+          "sql": "SELECT * FROM \"action_statuses\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"action_statuses\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_stkig.source",
+      "kind": "records",
+      "table": "tbl_mdkind",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"meeting_kinds\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "secretary": {
+          "sql": "SELECT * FROM \"meeting_kinds\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "member": {
+          "sql": "SELECT * FROM \"meeting_kinds\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"meeting_kinds\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"meeting_kinds\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "secretary": {
+          "sql": "SELECT * FROM \"meeting_kinds\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "member": {
+          "sql": "SELECT * FROM \"meeting_kinds\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"meeting_kinds\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_stppg.source",
+      "kind": "records",
+      "table": "tbl_mdppl",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"people\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "secretary": {
+          "sql": "SELECT * FROM \"people\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "member": {
+          "sql": "SELECT * FROM \"people\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"people\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            101
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"people\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "secretary": {
+          "sql": "SELECT * FROM \"people\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "member": {
+          "sql": "SELECT * FROM \"people\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "auditor": {
+          "sql": "SELECT * FROM \"people\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            101
+          ]
+        }
+      }
+    }
+  ]
+}

@@ -67,9 +67,39 @@ describe('RowRuleBuilder — the three picker columns', () => {
         expect(labels).toEqual([
             'a value I type',
             'the person opening the app',
-            'their organisation',
+            'their e-mail address',
+            'one of their groups',
+            'the organisation of their account',
             'their role',
         ]);
+    });
+
+    it('still shows viewer.organizationId on a rule that uses it, and only there', () => {
+        const { getByLabelText } = setup({ conditions: [cond({ source: 'viewer.organizationId' }), cond({ id: 'c2' })] });
+        const labelsOf = (n: number) => [...(getByLabelText(`Compare with, condition ${n}`) as HTMLSelectElement).options].map((o) => o.textContent);
+        expect(labelsOf(1)).toContain('their organisation');
+        expect(labelsOf(2)).not.toContain('their organisation');
+    });
+
+    it('picking their groups turns the test into membership, and picking something else turns it back', async () => {
+        const user = userEvent.setup();
+        const first = setup({ conditions: [cond({})] });
+        await user.selectOptions(first.getByLabelText('Compare with, condition 1'), 'viewer.groups');
+        const picked = first.onChange.mock.calls.at(-1)![0].conditions[0];
+        expect(picked).toMatchObject({ op: 'in', source: 'viewer.groups' });
+        expect(buildRowRule({ conditions: [picked] })).toBe('record.owner_id in viewer.groups');
+        first.unmount();
+
+        const { getByLabelText, onChange } = setup({ conditions: [picked] });
+        const tests = [...(getByLabelText('Test, condition 1') as HTMLSelectElement).options].map((o) => o.value);
+        expect(tests).toEqual(['in']);
+        await user.selectOptions(getByLabelText('Compare with, condition 1'), 'viewer.id');
+        expect(onChange.mock.calls.at(-1)![0].conditions[0]).toMatchObject({ op: '==', source: 'viewer.id' });
+    });
+
+    it('says so when the column cannot be compared with their groups', () => {
+        const { getByText } = setup({ conditions: [cond({ field: 'amount', op: 'in', source: 'viewer.groups' })] });
+        expect(getByText('Only a text or choice column can be compared with their groups.')).toBeTruthy();
     });
 
     it('types the value control off the picked column', () => {

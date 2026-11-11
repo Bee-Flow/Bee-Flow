@@ -102,6 +102,42 @@ export function resetAppForm(name: string) {
     (resetters.get(name) || []).forEach((fn) => fn());
 }
 
+// ── set_form_field bus ──────────────────────────────────────────────────────
+// The same shape for the `set_form_field` step: formName → the mounted forms'
+// own setValue, so a value set by a step behaves exactly like one typed.
+type FieldSetter = (field: string, value: unknown) => void;
+const fieldSetters = new Map<string, Set<FieldSetter>>();
+
+/** AppForm calls this on mount with its setValue; returns the unregister cleanup. */
+export function registerFormFieldSetter(name: string, fn: FieldSetter) {
+    if (!name || typeof fn !== 'function') return () => {};
+    let set = fieldSetters.get(name);
+    if (!set) { set = new Set(); fieldSetters.set(name, set); }
+    set.add(fn);
+    return () => {
+        set.delete(fn);
+        if (set.size === 0) fieldSetters.delete(name);
+    };
+}
+
+/**
+ * AppForm's side of the bus: the `set_form_field` step reaches one field of the form `name` through
+ * `setValue`, and only a field the form has (`fields`): a step never adds a value the form would not submit.
+ */
+export function useFormFieldSetter(name: string, fields: { current: Map<string, unknown> }, setValue: (field: string, value: unknown) => void) {
+    useEffect(() => registerFormFieldSetter(name, (field, value) => {
+        if (fields.current.has(field)) setValue(field, value);
+    }), [name, fields, setValue]);
+}
+
+/** Put a value into one field of every mounted form registered under this name. False when none is mounted. */
+export function setAppFormField(name: string, field: string, value: unknown): boolean {
+    const set = fieldSetters.get(name);
+    if (!set || set.size === 0 || !field) return false;
+    set.forEach((fn) => fn(field, value));
+    return true;
+}
+
 /**
  * "The node around me is switched off."
  *

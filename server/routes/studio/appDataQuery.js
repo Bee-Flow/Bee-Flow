@@ -182,7 +182,7 @@ async function queryData(req, res) {
 
         if (typeof body.datasetId === 'string' && body.datasetId) {
             const refresh = req.query.refresh === '1' || req.query.refresh === 'true';
-            const out = await dataReadRunner.runSavedDataset(ctx, body.datasetId, { refresh });
+            const out = await dataReadRunner.runSavedDataset(ctx, body.datasetId, { refresh, params: body.params });
             // `result` mirrors the runtime dataset-binding contract (useAppDataSource
             // reads body.result); `rows`/`columns`/`cached` power the query builder.
             return res.json({ ...out, result: out.rows });

@@ -44,3 +44,16 @@ test('an HttpError, a safe refusal and the frozen 4xx contracts keep their answe
     handleErr(quota, Object.assign(new Error('Quota'), { status: 409, code: 'quota_exceeded', limit: 5, used: 5 }), 'x');
     assert.deepEqual([quota.statusCode, quota.body], [409, { error: 'Quota', code: 'quota_exceeded', limit: 5, used: 5 }]);
 });
+
+test('a field rule refusal keeps its status and names each field in details.fieldErrors', () => {
+    const { FieldValidationError } = require('../../core/dataEngine/fieldRules.mts');
+    const err = new FieldValidationError({ qty: '"Quantity" must be at least 1.' });
+    assert.throws(() => handleErr(mockRes(), err, 'x'), (thrown) => {
+        assert.ok(thrown instanceof HttpError);
+        assert.deepEqual([thrown.status, thrown.code, thrown.message], [422, 'field_invalid', '"Quantity" must be at least 1.']);
+        assert.deepEqual(thrown.details, { fieldErrors: { qty: '"Quantity" must be at least 1.' } });
+        return true;
+    });
+    // Any other 422 carries no details, as before.
+    assert.throws(() => handleErr(mockRes(), Object.assign(new Error('unknown field: x'), { status: 422 }), 'x'), (thrown) => thrown.details === undefined);
+});

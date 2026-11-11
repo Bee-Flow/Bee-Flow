@@ -1,0 +1,64 @@
+{
+  "corpus": "sample-v2-showcase",
+  "canonical": {
+    "sha256": "40743357ef76744a3c03d2706890b4233aa13ed68a9d4dbc31bd478e178ed161",
+    "bytes": 2392,
+    "generatedIds": 1,
+    "inputIsCanonical": false,
+    "idempotent": true,
+    "keys": [
+      "schemaVersion",
+      "meta",
+      "theme",
+      "roles",
+      "screens",
+      "actions",
+      "homeScreenId"
+    ],
+    "parts": {
+      "schemaVersion": "d4735e3a265e16ee",
+      "meta": "83a266cff6289982",
+      "theme": "5d7eeb0111b89897",
+      "roles": "4f53cda18c2baa0c",
+      "screens[0] scr_v2main": "1fc5d29e574204c8",
+      "actions.act_v2submit": "cfbbaf8612c8e6ad",
+      "actions.act_v2toast": "6b43048cd93e14be",
+      "homeScreenId": "f33f1eac400f03d3"
+    }
+  },
+  "schemaVersion": {
+    "stored": 1,
+    "canonical": 2
+  },
+  "validation": {
+    "strict": {
+      "errors": [
+        "validation.type_invalid @ screens[0].sections[0].children[3].children[0].validations[0].type",
+        "validation.type_invalid @ screens[0].sections[0].children[3].children[0].validations[1].type"
+      ],
+      "warnings": [
+        "action.automation_unset @ actions.act_v2submit.automationId"
+      ]
+    },
+    "save": {
+      "errors": [
+        "validation.type_invalid @ screens[0].sections[0].children[3].children[0].validations[0].type",
+        "validation.type_invalid @ screens[0].sections[0].children[3].children[0].validations[1].type"
+      ],
+      "warnings": [
+        "action.automation_unset @ actions.act_v2submit.automationId"
+      ]
+    }
+  },
+  "ordinals": {
+    "stored": {
+      "act_v2submit": [
+        "0 run_automation"
+      ],
+      "act_v2toast": [
+        "0 toast"
+      ]
+    },
+    "canonical": "same as stored"
+  }
+}

@@ -1147,3 +1147,8 @@ test('step: executor notes ride along as a top-level notes array only when prese
     const r = await dispatch({ url: `/${app.id}/actions/seq/step`, orgIds: [ORG], body: { stepIndex: 1 } });
     assert.deepStrictEqual(r.body, { ok: true, result: { text: 'x' }, notes: ['The model tier formula did not give a tier name, so the default tier was used.'] });
 });
+
+test('step: an action with a registry kind needs the matching `kind` (409 step_mismatch); a base action answers as before', async () => {
+    const app = makeApp({ actionsPub: { seq: SEQ_ACTION, v3: { kind: 'sequence', steps: [{ kind: 'while', expr: 'true', steps: [SEQ_ACTION.steps[1]] }] } } }); const post = (action, body) => dispatch({ url: `/${app.id}/actions/${action}/step`, orgIds: [ORG], body: { stepIndex: 1, ...body } }).then((r) => (r.statusCode === 409 ? r.body.code : r.statusCode));
+    assert.deepStrictEqual([await post('v3'), await post('v3', { kind: 'toast' }), await post('v3', { kind: 'create_record' }), await post('seq'), await post('seq', { kind: 'toast' })], ['step_mismatch', 'step_mismatch', 200, 200, 'step_mismatch']);
+});

@@ -73,7 +73,7 @@ function isEnabled() {
  * whose other half lives in a route this endpoint never runs would teach the
  * client a protocol nothing implements.
  */
-const ROUTE_ONLY_TOOLS = new Set(['app_propose_plan', 'app_mark_phase']);
+const ROUTE_ONLY_TOOLS = new Set(['app_propose_plan', 'app_mark_phase', ...require('./builderTools/toolRegistry.mts').mcpExcludedToolNames()]); // + registry tools with mcp: false
 
 /** Tools that need no app to act on — the entry points. */
 const APPLESS_TOOLS = new Set(['studio_get_guide', 'studio_list_apps', 'studio_create_app']);
@@ -193,9 +193,10 @@ async function loadDraft(appId, userId) {
         return { error: `App "${appId}" not found, or this token's user cannot edit it. Call studio_list_apps for the ids you own.` };
     }
 
-    const { def } = canonicalizeAppDefinition(
+    const { def, refused } = canonicalizeAppDefinition(
         app.definition && Object.keys(app.definition).length ? app.definition : emptyDefinition(app.name),
     );
+    if (refused) return { error: require('./schemaSince.mts').schemaNewerMessage(app.definition) };
 
     const draftWrap = {
         userId,
@@ -221,7 +222,7 @@ async function loadDraft(appId, userId) {
         draftWrap.dataModelVersion = dataMeta?.modelVersion ?? 0;
         draftWrap.rowCounts = normalizeRowCounts(draftWrap.dataModel, dataMeta?.rowCounts);
         const datasets = await studioAppDataStore.listDatasets(appId, userId);
-        draftWrap.datasetIds = (datasets || []).map((d) => ({ id: d.id, name: d.name }));
+        draftWrap.datasetIds = (datasets || []).map((d) => require('./datasetParams.mts').datasetEntry(d));
         // Linked tables keep their rows outside the app: without their live
         // counts the data model printed rows=0 for them.
         await require('./linkedTables').attachLinkedTables(draftWrap, userId);
@@ -237,9 +238,9 @@ async function loadDraft(appId, userId) {
 async function runGetGuide() {
     const { buildSystemPrompt } = require('./builderPrompt');
     const { MCP_GUIDE_SECTIONS } = require('./mcpGuide/appendix.mts');
-    // toolset 'full' is the same menu this endpoint advertises, so the guide never names a tool
-    // the caller does not have. MCP-only sections come after it: the in-product prompt is unchanged.
-    return { guide: [buildSystemPrompt({ toolset: 'full' }), ...MCP_GUIDE_SECTIONS].join('\n\n') };
+    // The preamble says where this surface differs; toolset 'full' is the menu this endpoint
+    // advertises; MCP-only sections come last. The in-product prompt itself is unchanged.
+    return { guide: [require('./mcpGuide/preamble.mts').MCP_GUIDE_PREAMBLE, buildSystemPrompt({ toolset: 'full' }), ...MCP_GUIDE_SECTIONS].join('\n\n') };
 }
 
 const { runListApps } = require('./mcpListApps.mts');

@@ -5,6 +5,7 @@
  * (mobile …/runtime/stepIndex.lockstep.test.ts) loads this module as is.
  */
 import { tryEvaluate } from '@shared/expr/engine.mjs';
+import { extensionServerKinds, handlerStepsOf, isExtensionStepKind, numberedChildLists } from '@shared/appDefinition/stepFlow.mjs';
 import type { BindingInput } from '../resolveBinding.types';
 
 /**
@@ -56,8 +57,9 @@ export const MAX_LOOP_ITERATIONS = 200;
 // MUST equal DATA_MUTATING_STEP_KINDS (componentSpecs.js). ai_browse is in the
 // set for that invariant, but execStep intercepts it FIRST (it streams over a
 // dedicated SSE endpoint, not the plain JSON /step dispatch) — the generic
-// branch below never sees it.
-export const SERVER_STEP_KINDS: ReadonlySet<unknown> = new Set(['run_automation', 'create_record', 'update_record', 'delete_record', 'request_approval', 'ai_extract', 'ai_generate', 'kb_query', 'send_email', 'generate_file', 'fill_document', 'generate_presentation', 'redact_pdf', 'file_intake', 'dataset_query', 'ai_browse', 'copy_document', 'kb_log_query', 'kb_log_review', 'transaction']);
+// branch below never sees it. The server kinds of the step registry follow
+// the base kinds (stepKinds.generated.mjs, generated from the server's registry).
+export const SERVER_STEP_KINDS: ReadonlySet<unknown> = new Set(['run_automation', 'create_record', 'update_record', 'delete_record', 'request_approval', 'ai_extract', 'ai_generate', 'kb_query', 'send_email', 'generate_file', 'fill_document', 'generate_presentation', 'redact_pdf', 'file_intake', 'dataset_query', 'ai_browse', 'copy_document', 'kb_log_query', 'kb_log_review', 'transaction', ...extensionServerKinds()]);
 
 // A bare v1 action is an implicit 1-step sequence; a v2 action carries its steps.
 export function normalizeSequence(action: RunStep | null | undefined): unknown[] {
@@ -68,11 +70,12 @@ export function normalizeSequence(action: RunStep | null | undefined): unknown[]
 
 const listOf = (value: unknown): unknown[] => (Array.isArray(value) ? value : []);
 
-// Pre-order flatten — BYTE-IDENTICAL to the server's flattenSteps
-// (routes/studioAppsRun.js) so a step's ordinal here is the same one the server
-// resolves from the definition. Returns a Map(step → index). Error handlers
-// (onError.steps, or the legacy array) are numbered after the whole tree, owner
-// order; a transaction's children are not numbered (it is one server step).
+// Pre-order flatten — the same walk as the server's flattenSteps
+// (appStudio/actionSequence.js), over the same child-slot table (stepFlow.mjs),
+// so a step's ordinal here is the same one the server resolves from the
+// definition. Returns a Map(step → index). Error handlers (onError.steps, or the
+// legacy array) are numbered after the whole tree, owner order; a transaction's
+// children are not numbered (it is one server step).
 export function buildStepIndexMap(steps: unknown): Map<RunStep, number> {
     const map = new Map<RunStep, number>();
     let i = 0;
@@ -81,27 +84,27 @@ export function buildStepIndexMap(steps: unknown): Map<RunStep, number> {
             if (!raw || typeof raw !== 'object') continue;
             const step = raw as RunStep;
             map.set(step, i++);
-            if (step.kind === 'condition') { walk(step.then); walk(step.else); }
-            else if (step.kind === 'loop') { walk(step.steps); }
-            else if (step.kind === 'switch') {
-                for (const c of listOf(step.cases)) {
-                    if (c && typeof c === 'object') walk((c as { steps?: unknown }).steps);
-                }
-                walk(step.default);
-            }
+            for (const children of numberedChildLists(step)) walk(children);
         }
     };
     walk(steps);
     // Map iteration visits keys added while it runs, so a handler inside a handler follows its owner's.
-    for (const step of map.keys()) handlerOf(step, walk);
+    for (const step of map.keys()) {
+        const handler = handlerStepsOf(step);
+        if (handler) walk(handler);
+    }
     return map;
 }
 
-/** Walks a step's handler list with `walk`; handlers found then are visited by the caller's loop. */
-function handlerOf(step: RunStep, walk: (list: unknown) => void): void {
-    const h = step.onError;
-    if (Array.isArray(h)) walk(h);
-    else if (h && typeof h === 'object' && Array.isArray((h as { steps?: unknown }).steps)) walk((h as { steps: unknown }).steps);
+/**
+ * Does the sequence hold a step kind of the step registry? Then every server
+ * step of it is posted with its `kind` next to the ordinal: the server refuses
+ * a client that numbers or walks such an action differently (its
+ * actionSequence.resolveRequestedStep asks the same question).
+ */
+export function usesRegistryKind(steps: unknown): boolean {
+    for (const step of buildStepIndexMap(steps).keys()) if (isExtensionStepKind(step.kind)) return true;
+    return false;
 }
 
 // call_action: at most this many calls below the clicked action (LIMITS.MAX_CALL_DEPTH,

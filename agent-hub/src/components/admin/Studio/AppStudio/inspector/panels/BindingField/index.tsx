@@ -218,6 +218,8 @@ export default function BindingField({
                         componentType={componentType}
                         singleValue={singleValue}
                         disabled={disabled}
+                        definition={definition}
+                        node={node}
                     />
                 ) : null}
 

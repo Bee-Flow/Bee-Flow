@@ -122,4 +122,4 @@ function TablePicker({ appId, value, onChange, disabled }: TablePickerProps) {
     );
 }
 
-registerInspector('input_relation', InputRelationInspector);
+registerInspector('input_relation', InputRelationInspector, { props: ['name', 'label', 'tableId', 'displayField', 'multiple', 'required', 'filter'] });

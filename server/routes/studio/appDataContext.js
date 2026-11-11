@@ -15,13 +15,15 @@ const { HttpError } = require('../../core/http/errors');
 const studioAppStore = require('../../stores/studioAppStore');
 const studioAppDataStore = require('../../stores/studioAppDataStore');
 const queryCompiler = require('../../appStudio/queryCompiler');
+const { queryWithComputed } = require('../../core/dataEngine/computedRead.mts');
 const rlsGateway = require('../../appStudio/rlsGateway');
 const dataReadRunner = require('../../appStudio/dataReadRunner');
 const datatableSource = require('../../appStudio/datatableSource');
 const { resolveAudienceContext } = require('../../auth/audience');
 const { perUserRateLimit } = require('../../utils/perUserRateLimit');
-const { fallback } = require('../../utils/bestEffort');
 const { sessionUser } = require('../../core/http/sessionUser');
+const { withViewerAttributes } = require('../../appStudio/viewerAttributes.mts');
+const { parseListQuery, optionalListQuery } = require('./appListQuery');
 
 /**
  * @typedef {import('../../appStudio/builderTools/dataTools').DataTable} DataTable
@@ -149,11 +151,19 @@ async function loadOwnedApp(req, res) {
 }
 
 // ── Error handling ──────────────────────────────────────────────────
+
+/**
+ * A field rule's refusal (core/dataEngine/fieldRules.mts) names each field: `details.fieldErrors`.
+ * @param {{ code?: string, fieldErrors?: unknown }} err
+ */
+function fieldErrorDetails(err) {
+    return err.code === 'field_invalid' && err.fieldErrors ? { fieldErrors: err.fieldErrors } : undefined;
+}
 // Compile/AccessError carry safe, client-facing validation text with a status;
 // everything else is an internal error → generic 500 (no err.message leak).
 /**
  * @param {import('express').Response} res
- * @param {Error & { status?: number, safe?: boolean, code?: string, limit?: number, used?: number }} err
+ * @param {Error & { status?: number, safe?: boolean, code?: string, limit?: number, used?: number, fieldErrors?: unknown }} err
  * @param {string} _where
  */
 function handleErr(res, err, _where) {
@@ -175,7 +185,7 @@ function handleErr(res, err, _where) {
         });
     }
     if (status === 422 || status === 400 || status === 403) {
-        throw new HttpError(status, err.code || 'data_request_refused', err.message);
+        throw new HttpError(status, err.code || 'data_request_refused', err.message, fieldErrorDetails(err));
     }
     // Only an HttpError may carry its own message and status; anything else is
     // a generic 500 (the terminal handler logs the cause), as before the move.
@@ -205,7 +215,8 @@ async function resolveDataContext(req, res, { tableId } = {}) {
 
     const { userGroups } = await audienceFor(req);
     const role = await rlsGateway.resolveViewerRole(app, viewerId, model, { userGroups });
-    const viewer = buildViewer(req.session.user, role);
+    // email / groups / orgId, from the user's own row, and only for a model whose row rules read them.
+    const viewer = await withViewerAttributes(buildViewer(req.session.user, role), model);
 
     /** @type {DataContext} */
     const ctx = { app, ownerScope: app.userId, viewerId, model, role, viewer };
@@ -254,22 +265,11 @@ function publicTable(t) {
             required: !!f.required,
             unique: !!f.unique,
             ...(Array.isArray(f.options) ? { options: f.options } : {}),
-            ...(f.relation && typeof f.relation === 'object' ? { relation: { table: f.relation.table } } : {}),
+            // The relation's display field rides along when the model names one: the editor offers it,
+            // and an expansion of the relation carries its value as the label.
+            ...(f.relation && typeof f.relation === 'object' ? { relation: { table: f.relation.table, ...(typeof f.relation.displayField === 'string' && f.relation.displayField ? { displayField: f.relation.displayField } : {}) } } : {}),
         })),
     };
-}
-
-// Parse list filters/sort from the query string (JSON-encoded). Bad JSON is
-// ignored rather than 400 — the compiler validates the resulting shapes.
-/** @param {import('express').Request} req */
-function parseListQuery(req) {
-    const q = req.query || {};
-    let filters;
-    let sort;
-    if (typeof q.filter === 'string' && q.filter) { try { filters = JSON.parse(q.filter); } catch (err) { fallback('routes/studio/appDataContext:parseListQuery', err); /* ignore */ } }
-    if (typeof q.sort === 'string' && q.sort) { try { sort = JSON.parse(q.sort); } catch (err) { fallback('routes/studio/appDataContext:parseListQuery#2', err); /* ignore */ } }
-    if (filters !== undefined && !Array.isArray(filters)) filters = [filters];
-    return { filters, sort };
 }
 
 // The cache invalidation + row count after a write used to live here as
@@ -375,9 +375,11 @@ async function readOne(ctx, recordId) {
     const plan = await dataReadRunner.readPlan(ctx, ctx.table);
     const accessFilter = rlsGateway.compileAccessFilter(
         plan.tableMeta, plan.role, plan.viewer, 'read', { dialect: plan.dialect });
-    const { sql, params } = queryCompiler.compileGetById(
-        plan.tableMeta, recordId, accessFilter, { dialect: plan.dialect });
-    const { rows } = await plan.query(sql, params);
+    const compiled = queryCompiler.compileGetById(
+        plan.tableMeta, recordId, accessFilter, { dialect: plan.dialect, readTimeComputed: true });
+    // Read-time computed fields are evaluated; one that fails reads empty.
+    const { result } = await queryWithComputed(plan.query, compiled);
+    const { rows } = /** @type {{ rows: Record<string, unknown>[] }} */ (result);
     return rows && rows.length ? rows[0] : null;
 }
-module.exports = { readLimiter, writeLimiter, readDescriptorLimiter, MAX_BATCH_READS, jsonBody, requireJson, bodySizeGuard, audienceFor, loadVisibleApp, loadOwnedApp, handleErr, resolveDataContext, buildViewer, publicTable, parseListQuery, kickStaleSync, LINK_REFUSED, linkedTableFlags, readOne };
+module.exports = { readLimiter, writeLimiter, readDescriptorLimiter, MAX_BATCH_READS, jsonBody, requireJson, bodySizeGuard, audienceFor, loadVisibleApp, loadOwnedApp, handleErr, resolveDataContext, buildViewer, publicTable, parseListQuery, optionalListQuery, kickStaleSync, LINK_REFUSED, linkedTableFlags, readOne };

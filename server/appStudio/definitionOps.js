@@ -172,6 +172,11 @@ module.exports = {
     removeScreen,
     addSection: shared.addSection,
     updateSectionStyle,
+    updateSection: shared.updateSection,
+    moveSection: shared.moveSection,
+    duplicateSection: shared.duplicateSection,
+    moveScreen: shared.moveScreen,
+    duplicateScreen: shared.duplicateScreen,
     // Actions
     setAction: shared.setAction,
     removeAction,

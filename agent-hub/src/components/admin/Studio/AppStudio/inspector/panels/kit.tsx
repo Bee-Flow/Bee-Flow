@@ -5,6 +5,7 @@ import AppIcon from '@/components/icons/AppIcon';
 import FormField from '@/components/shared/FormField';
 import IconPicker from '@/components/admin/product-website/controls/IconPicker';
 import useAppTables, { fieldsForTable } from '../../bi/useAppTables';
+import { expandedColumnKeys } from '../../bi/relationRead';
 import { useEditorChrome } from '../../editor/EditorChromeContext';
 import { updateNodeProps } from '../../state/definitionOps';
 import type { AppDefinition, AppNode } from '../appDefinition';
@@ -67,6 +68,7 @@ interface FieldKeyInputProps extends FieldBaseProps {
 interface TableFieldKeyInputProps extends Omit<FieldKeyInputProps, 'keys'> {
     appId: string;
     tableId: string;
+    expand?: unknown;
     fallbackKeys: string[];
 }
 
@@ -75,6 +77,8 @@ interface FieldKeySource {
     kind?: string;
     value?: unknown;
     tableId?: string | null;
+    /** A table binding's expansions: their picked fields are offered as `<relation>_record.<field>`. */
+    expand?: unknown;
 }
 
 export interface FieldKeyFieldProps extends FieldBaseProps {
@@ -306,9 +310,11 @@ function FieldKeyInput({ label, value, onChange, keys, placeholder, hint, ariaLa
     );
 }
 
-function TableFieldKeyInput({ appId, tableId, fallbackKeys, ...rest }: TableFieldKeyInputProps) {
+function TableFieldKeyInput({ appId, tableId, expand, fallbackKeys, ...rest }: TableFieldKeyInputProps) {
     const { tables } = useAppTables(appId);
-    const keys = fieldsForTable(tables, tableId).map((f: { key: string }) => f.key).filter(Boolean);
+    const own = fieldsForTable(tables, tableId).map((f: { key: string }) => f.key).filter(Boolean);
+    // The fields the binding brings along from linked records come after the table's own.
+    const keys = own.length ? [...own, ...expandedColumnKeys(tables, tableId, expand)] : own;
     return <FieldKeyInput {...rest} keys={keys.length ? keys : fallbackKeys} />;
 }
 
@@ -333,7 +339,7 @@ export function FieldKeyField({
     // useAppTables is a network hook: only mount it inside the editor shell,
     // which is exactly where an app id exists.
     if (appId && tableId) {
-        return <TableFieldKeyInput appId={appId} tableId={tableId} fallbackKeys={localKeys} {...shared} />;
+        return <TableFieldKeyInput appId={appId} tableId={tableId} expand={(source as FieldKeySource).expand} fallbackKeys={localKeys} {...shared} />;
     }
     return <FieldKeyInput keys={localKeys} {...shared} />;
 }

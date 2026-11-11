@@ -47,7 +47,6 @@ const {
     sectionHeightIsDefinite,
     SCREEN_SPEC,
     SECTION_STYLE_KNOBS,
-    SCHEMA_VERSION_CURRENT,
     LIMITS,
     VARIABLE_TYPES,
     VARIABLE_NAME_RE,
@@ -55,6 +54,7 @@ const {
     coerceVariableDefault,
 } = require('./componentSpecs');
 const { collectVariableWrites } = require('./collectVariableRefs');
+const { schemaNewerVerdict, checkSchemaVersion, validateRegisteredKeys } = require('./validate/versionAndKeys.mts');
 const { isObject } = require('./validate/shared');
 const {
     validateRoleRefs,
@@ -67,6 +67,8 @@ const { checkMailboxHooks } = require('./validate/mailboxHookCheck');
 const { validateAction, DATASET_QUERY_OUTPUTS } = require('./validate/actions');
 const { checkCallGraph } = require('./validate/callChecks.mts');
 const { buildFieldTypes } = require('./validate/writeToKeyChecks.mts');
+const { validateRolesAndCollect } = require('./validate/roles.mts');
+const { checkSectionKeys } = require('./validate/sectionChecks.mts');
 
 const ID_HINT = 'Ids must match <prefix>_<4-12 lowercase alphanumerics> with prefix scr/sec/cmp/act. Use newId() from componentSpecs.';
 
@@ -203,45 +205,10 @@ function buildConnectorIds(dataModel) {
     return set;
 }
 
-// The subset that can actually send mail. A send_email step pointed at a REST connector would validate
-// against dataConnectors and then fail at runtime with nothing an author could act on.
-function buildMailboxConnectorIds(dataModel) {
-    if (dataModel === undefined) return null;
-    const set = new Set();
-    const connectors = isObject(dataModel) && Array.isArray(dataModel.connectors) ? dataModel.connectors : [];
-    for (const c of connectors) {
-        if (isObject(c) && c.kind === 'mailbox' && typeof c.id === 'string' && c.id) set.add(c.id);
-    }
-    return set;
-}
-
-// def.roles → a Set of role ids, validating the { id, name } shape.
-/**
- * @param {(value: { code: string; severity: string; path: string; message: string; hint: string; }) => void} pushE
- */
-function validateRolesAndCollect(def, pushE) {
-    const ids = new Set();
-    if (def.roles === undefined) return ids;
-    if (!Array.isArray(def.roles)) {
-        pushE({ code: 'roles.invalid', severity: 'error', path: 'roles', message: 'roles must be an array of { id, name }.', hint: 'Use [] when the app has no roles.' });
-        return ids;
-    }
-    if (def.roles.length > LIMITS.MAX_ROLES) {
-        pushE({ code: 'roles.too_many', severity: 'error', path: 'roles', message: `App declares ${def.roles.length} roles — the maximum is ${LIMITS.MAX_ROLES}.`, hint: 'Remove unused roles.' });
-    }
-    def.roles.forEach((role, i) => {
-        if (!isObject(role) || typeof role.id !== 'string' || !role.id) {
-            pushE({ code: 'role.invalid', severity: 'error', path: `roles[${i}]`, message: 'Each role needs a non-empty string id.', hint: 'Use { id, name }.' });
-            return;
-        }
-        if (ids.has(role.id)) {
-            pushE({ code: 'role.duplicate', severity: 'error', path: `roles[${i}].id`, message: `Duplicate role id ${JSON.stringify(role.id)}.`, hint: 'Role ids must be unique.' });
-            return;
-        }
-        ids.add(role.id);
-    });
-    return ids;
-}
+// The subset of one kind (httpRequestChecks.mts). A send_email step pointed at a REST connector would validate
+// against dataConnectors and then fail at runtime with nothing an author could act on; an http_request step
+// pointed at anything but a REST connector likewise.
+const { connectorIdsOfKind } = require('./validate/httpRequestChecks.mts');
 
 /**
  * definition.variables — structure only. Runs BEFORE the deep walk, because
@@ -323,6 +290,7 @@ function walkScreens(screens, ctx) {
                 pushE({ code: 'section.children_invalid', severity: 'error', path: `${secPath}.children`, message: 'Section `children` must be an array.', hint: 'Use [] for an empty section.' });
                 return;
             }
+            checkSectionKeys(section, secPath, ctx); // title, visibleWhen, visibleToRoles … (validate/sectionChecks.mts)
             // A section's own sizing, then what it hands its children. The
             // section knob list has no `span`, so only the height pair applies.
             const sectionKnobs = expandStyleKnobs(SECTION_STYLE_KNOBS);
@@ -360,7 +328,7 @@ function checkActionsAndVariables(actionsObj, screens, declaredVars, varWrites, 
         // its "My queue" screen was permanently empty and there was no way to
         // put anything in it.
         // checkCallGraph also checks call_action across actions; what a reachable action calls is reachable.
-        const reached = checkCallGraph(actionsObj, ctx, collectReferencedActions(screens));
+        const reached = checkCallGraph(actionsObj, ctx, collectReferencedActions(screens, ctx.watchers));
         for (const id of Object.keys(actionsObj)) {
             if (reached.has(id)) continue;
             pushW({
@@ -405,7 +373,7 @@ function buildValidationContext(def, opts, { pushE, pushW, actionIds, screenIds,
         actionIds,
         screenIds,
         roleIds,
-        knownVars,
+        knownVars, watchers: def.watchers, // watchers: schema 3, their actions are reachable
         knownVarList: knownVars ? [...knownVars].filter((n) => n !== 'true' && n !== 'false' && n !== 'null').sort() : null,
         varReads: new Set(),
         modalIds: new Set(),
@@ -419,11 +387,11 @@ function buildValidationContext(def, opts, { pushE, pushW, actionIds, screenIds,
         ownedDocuments: normalizeOwnedDocuments(opts.ownedDocuments),
         knownTables: normalizeIdSet(opts.knownTables),
         knownDatasets: normalizeIdSet(opts.knownDatasets),
-        // Data-model mode (opts.dataModel !== undefined): tableId → Set of
-        // field keys, plus the known dataset ids. null model = "no model yet"
-        // (every table/dataset reference is unknown). See the module header.
+        // Data-model mode (opts.dataModel !== undefined): tableId → Set of field keys, plus the known
+        // dataset ids. null model = "no model yet" (every table/dataset reference is unknown); see the header.
         dataTables: buildDataTables(opts.dataModel),
         dataFieldTypes: buildFieldTypes(opts.dataModel),
+        dataRelationTargets: require('./validate/aggregateChecks.mts').buildRelationTargets(opts.dataModel),
         // The second table kind: tableId → model.tables[].source. Empty for an app whose
         // tables all have their own storage, so nothing changes for that kind.
         dataTableSources: buildTableSources(opts.dataModel),
@@ -437,12 +405,13 @@ function buildValidationContext(def, opts, { pushE, pushW, actionIds, screenIds,
         // the publish gate — which already passes opts.dataModel — verifies them
         // with no extra plumbing. binding.unknown_connector mirrors dataset.
         dataConnectors: buildConnectorIds(opts.dataModel),
-        dataMailboxConnectors: buildMailboxConnectorIds(opts.dataModel),
+        dataMailboxConnectors: connectorIdsOfKind(opts.dataModel, 'mailbox'),
+        dataRestConnectors: connectorIdsOfKind(opts.dataModel, 'rest'),
         dataRefsAsWarnings: !!opts.dataRefsAsWarnings,
-        // The per-app AI-browsing opt-in (HUMAN-set — see canonicalize).
-        // Consulted per ai_browse step: a step in an app whose flag is off is
-        // an authoring error the builder must surface, not a runtime surprise.
+        // The per-app AI-browsing opt-in (HUMAN-set — see canonicalize), consulted per ai_browse step: a step
+        // in an app whose flag is off is an authoring error the builder must surface, not a runtime surprise.
         aiBrowsingEnabled: def.aiBrowsing?.enabled === true,
+        ...require('./validate/serverScopeChecks.mts').since3Ctx(def), // allowedLinkHosts (HUMAN-set hosts an open_url formula may open), serverScopeWide
         actions: isObject(def.actions) ? def.actions : null,
     };
 }
@@ -465,10 +434,9 @@ function validateAppDefinition(def, opts = {}) {
     }
 
     // ── Basic shape ──────────────────────────────────────────────────────
-    // Validation assumes canonical (post-migrate) input: the current schema.
-    if (def.schemaVersion !== SCHEMA_VERSION_CURRENT) {
-        pushE({ code: 'shape.schema_version', severity: 'error', path: 'schemaVersion', message: `schemaVersion must be ${SCHEMA_VERSION_CURRENT} (got ${JSON.stringify(def.schemaVersion)}).`, hint: 'Run the definition through canonicalize (it migrates v1 → v2).' });
-    }
+    const newer = schemaNewerVerdict(def);
+    if (newer) return newer;
+    checkSchemaVersion(def, pushE);
     const metaName = isObject(def.meta) ? def.meta.name : undefined;
     if (typeof metaName !== 'string' || !metaName.trim()) {
         pushE({ code: 'meta.name_missing', severity: 'error', path: 'meta.name', message: 'meta.name must be a non-empty string.', hint: 'Give the app a name.' });
@@ -589,6 +557,7 @@ function validateAppDefinition(def, opts = {}) {
     checkMailboxHooks(opts.dataModel, actionsObj, pushE);
 
     if (isObject(def.publicAccess)) checkPublicAccess(def, pushE, pushW);
+    validateRegisteredKeys(def, pushE, pushW, opts);
 
     return { ok: errors.length === 0, errors, warnings };
 }
@@ -608,5 +577,5 @@ module.exports = {
  * @typedef {import('./validate/shared').Finding} Finding
  * @typedef {import('./validate/shared').ValidationCtx} ValidationCtx
  * @typedef {(finding: Finding) => void} PushFinding
- * @typedef {{ ownedAutomations?: unknown, ownedDocuments?: unknown, knownTables?: unknown, knownDatasets?: unknown, dataModel?: unknown, datasets?: unknown, datatables?: unknown, dataRefsAsWarnings?: boolean }} ValidateOpts
+ * @typedef {{ ownedAutomations?: unknown, ownedDocuments?: unknown, knownTables?: unknown, knownDatasets?: unknown, dataModel?: unknown, datasets?: unknown, datatables?: unknown, dataRefsAsWarnings?: boolean, assetIds?: unknown }} ValidateOpts
  */

@@ -2,9 +2,13 @@ import { CircleSlash } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { RunSurface, type ShellDefinition } from './AppRunPage';
 import { appDesignProps } from '../../components/admin/Studio/AppStudio/runtime/appDesign';
+import AppCustomCss from '../../components/admin/Studio/AppStudio/runtime/AppCustomCss';
 import AppFontLoader from '../../components/admin/Studio/AppStudio/runtime/AppFontLoader';
+import { AssetTransportProvider } from '../../components/admin/Studio/AppStudio/runtime/assets/assetTransport';
+import PublicPageLogo from '../../components/admin/Studio/AppStudio/runtime/assets/PublicPageLogo';
 import { createPublicAppTransport } from '../../components/admin/Studio/AppStudio/runtime/publicAppTransport';
 import { CANVAS_GROUND, themeVars } from '../../components/admin/Studio/AppStudio/runtime/themeVars';
+import { openingRoute, previewRoleFor, type ScreenParams } from '@/components/admin/Studio/AppStudio/runtime/screenRoute';
 import EmptyState from '../../components/shared/EmptyState';
 import { useTranslation } from '../../hooks/useTranslation';
 import { API_BASE, setPublicAppTransport } from '../../utils/helpers';
@@ -20,6 +24,8 @@ interface PublicAppPayload {
     entryScreenId?: string;
     definition?: ShellDefinition | null;
     app?: { id?: string; name?: string };
+    /** The page's own look, beside the definition: `logoUrl` is publicAccess.design.logoUrl only. */
+    page?: { logoUrl?: string | null };
 }
 
 interface PageState {
@@ -105,9 +111,38 @@ function NotAvailable({ error, onRetry }: { error: unknown; onRetry: () => void 
     );
 }
 
+/** The document around a public app: the app's name as the title, and the light ground. */
+function usePublicDocument(appName: string | null) {
+    useEffect(() => {
+        if (!appName) return undefined;
+        const previous = document.title;
+        document.title = appName;
+        return () => { document.title = previous; };
+    }, [appName]);
+
+    // applyThemeToDocument never runs on this page (it is outside the authed
+    // shell), so the light/dark ground is stamped here — same as the public
+    // form page does.
+    useEffect(() => {
+        const root = document.documentElement;
+        const previous = root.getAttribute('data-theme');
+        root.setAttribute('data-theme', 'light');
+        return () => {
+            if (previous) root.setAttribute('data-theme', previous);
+            else root.removeAttribute('data-theme');
+        };
+    }, []);
+}
+
+/** Where the visitor starts, and where an empty or refused screen link lands. */
+function entryScreenOf(payload: PublicAppPayload | null | undefined): string | null {
+    return payload?.entryScreenId || payload?.definition?.homeScreenId || null;
+}
+
 export default function PublicAppPage({ token }: { token: string }) {
     const [state, setState] = useState<PageState>({ status: 'loading', payload: null, error: null });
     const [screenId, setScreenId] = useState<string | null>(null);
+    const [entryParams, setEntryParams] = useState<ScreenParams | null>(null);
 
     // The live visitor token, read through a ref so the transport installed
     // once below always sees the CURRENT one.
@@ -145,7 +180,11 @@ export default function PublicAppPage({ token }: { token: string }) {
                 visitorRef.current = payload.visitorToken;
                 storeVisitor(token, payload.visitorToken);
             }
-            setScreenId(payload?.entryScreenId || payload?.definition?.homeScreenId || null);
+            // A screen link (#/s/<id>) can only name a screen this page was
+            // served: the definition holds the public screens and nothing else.
+            const entry = openingRoute(payload?.definition, entryScreenOf(payload), previewRoleFor(null));
+            setScreenId(entry.screenId);
+            setEntryParams(entry.params);
             setState({ status: 'ready', payload, error: null });
         } catch (err) {
             setState({ status: 'error', payload: null, error: err });
@@ -155,25 +194,7 @@ export default function PublicAppPage({ token }: { token: string }) {
     useEffect(() => { load(); }, [load]);
 
     const appName = state.payload?.app?.name || null;
-    useEffect(() => {
-        if (!appName) return undefined;
-        const previous = document.title;
-        document.title = appName;
-        return () => { document.title = previous; };
-    }, [appName]);
-
-    // applyThemeToDocument never runs on this page (it is outside the authed
-    // shell), so the light/dark ground is stamped here — same as the public
-    // form page does.
-    useEffect(() => {
-        const root = document.documentElement;
-        const previous = root.getAttribute('data-theme');
-        root.setAttribute('data-theme', 'light');
-        return () => {
-            if (previous) root.setAttribute('data-theme', previous);
-            else root.removeAttribute('data-theme');
-        };
-    }, []);
+    usePublicDocument(appName);
 
     const definition = state.payload?.definition || null;
 
@@ -187,17 +208,25 @@ export default function PublicAppPage({ token }: { token: string }) {
             style={{ ...themeVars(definition?.theme), ...design.style, background: CANVAS_GROUND }}
         >
             <AppFontLoader definition={definition} />
-            <RunSurface
-                appId={state.payload?.app?.id || null}
-                draft={false}
-                definition={definition}
-                screenId={screenId}
-                // No account, no name, no role to preview as. `currentUser`
-                // resolves to null in every formula, which is the truth.
-                viewer={null}
-                onNavigate={setScreenId}
-                chrome="bare"
-            />
+            <AppCustomCss definition={definition} publicToken={token} />
+            {/* An uploaded image or logo (`asset:<id>`) resolves under the page token here. */}
+            <AssetTransportProvider publicToken={token}>
+                <RunSurface
+                    appId={state.payload?.app?.id || null}
+                    draft={false}
+                    definition={definition}
+                    screenId={screenId}
+                    // No account, no name, no role to preview as. `currentUser`
+                    // resolves to null in every formula, which is the truth.
+                    viewer={null}
+                    onNavigate={setScreenId}
+                    chrome="bare"
+                    urlRoute
+                    homeScreenId={entryScreenOf(state.payload)}
+                    initialScreenParams={entryParams}
+                    publicHeader={<PublicPageLogo page={state.payload?.page} alt={appName} />}
+                />
+            </AssetTransportProvider>
         </div>
     );
 }

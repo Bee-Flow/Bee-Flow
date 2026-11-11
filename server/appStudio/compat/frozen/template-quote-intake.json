@@ -1,0 +1,1817 @@
+{
+  "corpus": "template-quote-intake",
+  "canonical": {
+    "sha256": "0ed7ef064a2b350076c2070273900bd052f1179d99157eb5b351c0258dc5aaaa",
+    "bytes": 100359,
+    "inputIsCanonical": true,
+    "idempotent": true,
+    "keys": [
+      "schemaVersion",
+      "meta",
+      "theme",
+      "roles",
+      "screens",
+      "actions",
+      "design",
+      "nav",
+      "homeScreenId"
+    ],
+    "parts": {
+      "schemaVersion": "d4735e3a265e16ee",
+      "meta": "74b426d79f8097d3",
+      "theme": "2d5255ce187b3473",
+      "roles": "f025a00dbcdd0144",
+      "screens[0] scr_qiinbox": "006889cf9b4d731f",
+      "screens[1] scr_qidetail": "8bf21313bff70dc6",
+      "screens[2] scr_qiboard": "1394c332b25a78b0",
+      "screens[3] scr_qistats": "d36f8c1c6b260724",
+      "screens[4] scr_qimat": "915552a8454404af",
+      "screens[5] scr_qicol": "4574d1c98d356249",
+      "screens[6] scr_qiop": "e6cd34bc3f94597d",
+      "screens[7] scr_qimail": "1a311b39edcddb14",
+      "screens[8] scr_qiact": "8a128dbd7edc26a3",
+      "actions.act_qipick": "e076254fd5a1e231",
+      "actions.act_qiopen": "7f2129f91d4a19bb",
+      "actions.act_qiback": "6fcb330286a1eb4f",
+      "actions.act_qigo": "db3f7405565347e1",
+      "actions.act_qifilter": "627e21d0d911bf7d",
+      "actions.act_qiclassify": "a72a2b1e3c1d418f",
+      "actions.act_qistatus": "c7be6791ff2a7736",
+      "actions.act_qitype": "8f5fea494038ebe1",
+      "actions.act_qistoplicht": "ae8165e8539fbcce",
+      "actions.act_qicardmove": "d595e7883754819d",
+      "actions.act_qiassign": "5297fd69235827d4",
+      "actions.act_qiunassign": "573ab986873cfc77",
+      "actions.act_qiintake": "ef6469f6528e25fe",
+      "actions.act_qireaddocs": "712126b442c727de",
+      "actions.act_qimakecsv": "d25ef43df1ad0c46",
+      "actions.act_qisaveoff": "d2a770c328544baa",
+      "actions.act_qicheckorder": "04769dc1c454b125",
+      "actions.act_qiopenadd": "fa6dc83d03a3cd3d",
+      "actions.act_qioutcome": "e86a516c1ba2d326",
+      "actions.act_qisaveoc": "cf13ff4fc89540a3",
+      "actions.act_qinote": "4bdb03724a91f87c",
+      "actions.act_qipickatt": "45b9430d10977f35",
+      "actions.act_qiusepo": "489121700ae2cba0",
+      "actions.act_qiusetek": "4c5ab8d5d25abfb3",
+      "actions.act_qiusecad": "712b4d26856e6b16",
+      "actions.act_qisummarise": "8f9247cd7187a6cd",
+      "actions.act_qiextract": "1a204b4acf7488b4",
+      "actions.act_qigridcommit": "c892dc83e4485b1b",
+      "actions.act_qiaddline": "625245f495d21442",
+      "actions.act_qidelline": "a8594ae308ce332d",
+      "actions.act_qidraft": "7e19d26b02d2a228",
+      "actions.act_qisend": "59308eb40c79117e",
+      "actions.act_qimatcommit": "6836a1fdcb4638e1",
+      "actions.act_qiaddmat": "6172b52131fa750f",
+      "actions.act_qidelmat": "a8d3743d9468c2a7",
+      "actions.act_qicolcommit": "ab36be51c0df1ab4",
+      "actions.act_qiaddcol": "b7b8169db50176a9",
+      "actions.act_qidelcol": "d9864248b1e8581d",
+      "actions.act_qiopcommit": "4e03235061a58ace",
+      "actions.act_qiaddop": "e1df22cd4c5c6305",
+      "actions.act_qidelop": "c16b0b518575a402",
+      "design": "4718ed6baa633261",
+      "nav": "4b1a31cb1141f5f5",
+      "homeScreenId": "d50c34162c7c8fc6"
+    }
+  },
+  "schemaVersion": {
+    "stored": 2,
+    "canonical": 2
+  },
+  "validation": {
+    "strict": {
+      "errors": [],
+      "warnings": []
+    },
+    "save": {
+      "errors": [],
+      "warnings": []
+    }
+  },
+  "ordinals": {
+    "stored": {
+      "act_qipick": [
+        "0 set_variable",
+        "1 set_variable",
+        "2 set_variable",
+        "3 set_variable",
+        "4 set_variable",
+        "5 set_variable",
+        "6 set_variable",
+        "7 set_variable",
+        "8 set_variable",
+        "9 set_variable",
+        "10 set_variable",
+        "11 set_variable",
+        "12 set_variable",
+        "13 set_variable",
+        "14 set_variable",
+        "15 set_variable",
+        "16 set_variable",
+        "17 set_variable",
+        "18 set_variable",
+        "19 set_variable",
+        "20 set_variable"
+      ],
+      "act_qiopen": [
+        "0 set_variable",
+        "1 set_variable",
+        "2 set_variable",
+        "3 set_variable",
+        "4 set_variable",
+        "5 set_variable",
+        "6 set_variable",
+        "7 set_variable",
+        "8 set_variable",
+        "9 set_variable",
+        "10 set_variable",
+        "11 set_variable",
+        "12 set_variable",
+        "13 set_variable",
+        "14 set_variable",
+        "15 set_variable",
+        "16 set_variable",
+        "17 set_variable",
+        "18 set_variable",
+        "19 set_variable",
+        "20 set_variable",
+        "21 navigate"
+      ],
+      "act_qiback": [
+        "0 navigate"
+      ],
+      "act_qigo": [
+        "0 condition",
+        "1 toast",
+        "2 navigate"
+      ],
+      "act_qifilter": [
+        "0 set_variable"
+      ],
+      "act_qiclassify": [
+        "0 ai_generate",
+        "1 update_record",
+        "2 set_variable",
+        "3 set_variable",
+        "4 set_variable",
+        "5 set_variable",
+        "6 set_variable",
+        "7 set_variable",
+        "8 create_record",
+        "9 refresh",
+        "10 toast"
+      ],
+      "act_qistatus": [
+        "0 update_record",
+        "1 set_variable",
+        "2 create_record",
+        "3 refresh"
+      ],
+      "act_qitype": [
+        "0 update_record",
+        "1 set_variable",
+        "2 refresh"
+      ],
+      "act_qistoplicht": [
+        "0 update_record",
+        "1 set_variable",
+        "2 refresh"
+      ],
+      "act_qicardmove": [
+        "0 update_record",
+        "1 create_record",
+        "2 refresh"
+      ],
+      "act_qiassign": [
+        "0 update_record",
+        "1 create_record",
+        "2 toast",
+        "3 refresh"
+      ],
+      "act_qiunassign": [
+        "0 update_record",
+        "1 create_record",
+        "2 toast",
+        "3 refresh"
+      ],
+      "act_qiintake": [
+        "0 condition",
+        "1 toast",
+        "2 file_intake",
+        "3 condition",
+        "4 update_record",
+        "5 set_variable",
+        "6 create_record",
+        "7 refresh",
+        "8 refresh",
+        "9 toast"
+      ],
+      "act_qireaddocs": [
+        "0 condition",
+        "1 toast",
+        "2 ai_generate",
+        "3 loop",
+        "4 condition",
+        "5 ai_extract",
+        "6 update_record",
+        "7 refresh",
+        "8 create_record",
+        "9 toast"
+      ],
+      "act_qimakecsv": [
+        "0 condition",
+        "1 toast",
+        "2 generate_file",
+        "3 update_record",
+        "4 refresh",
+        "5 create_record",
+        "6 toast"
+      ],
+      "act_qisaveoff": [
+        "0 condition",
+        "1 toast",
+        "2 update_record",
+        "3 set_variable",
+        "4 refresh",
+        "5 toast"
+      ],
+      "act_qicheckorder": [
+        "0 condition",
+        "1 toast",
+        "2 condition",
+        "3 toast",
+        "4 ai_generate",
+        "5 loop",
+        "6 create_record",
+        "7 refresh",
+        "8 create_record",
+        "9 toast"
+      ],
+      "act_qiopenadd": [
+        "0 open_modal"
+      ],
+      "act_qioutcome": [
+        "0 open_modal"
+      ],
+      "act_qisaveoc": [
+        "0 update_record",
+        "1 set_variable",
+        "2 set_variable",
+        "3 set_variable",
+        "4 create_record",
+        "5 refresh",
+        "6 toast"
+      ],
+      "act_qinote": [
+        "0 create_record",
+        "1 set_variable",
+        "2 refresh"
+      ],
+      "act_qipickatt": [
+        "0 set_variable",
+        "1 set_variable",
+        "2 set_variable"
+      ],
+      "act_qiusepo": [
+        "0 condition",
+        "1 toast",
+        "2 update_record",
+        "3 set_variable",
+        "4 create_record",
+        "5 refresh",
+        "6 toast"
+      ],
+      "act_qiusetek": [
+        "0 condition",
+        "1 toast",
+        "2 set_variable",
+        "3 update_record",
+        "4 create_record",
+        "5 refresh",
+        "6 toast"
+      ],
+      "act_qiusecad": [
+        "0 condition",
+        "1 toast",
+        "2 set_variable",
+        "3 update_record",
+        "4 create_record",
+        "5 refresh",
+        "6 toast"
+      ],
+      "act_qisummarise": [
+        "0 condition",
+        "1 toast",
+        "2 ai_generate",
+        "3 set_variable"
+      ],
+      "act_qiextract": [
+        "0 condition",
+        "1 ai_extract",
+        "2 refresh",
+        "3 create_record",
+        "4 toast",
+        "5 ai_extract",
+        "6 refresh",
+        "7 create_record",
+        "8 toast"
+      ],
+      "act_qigridcommit": [
+        "0 switch",
+        "1 update_record",
+        "2 update_record",
+        "3 update_record",
+        "4 update_record",
+        "5 update_record",
+        "6 update_record",
+        "7 update_record",
+        "8 update_record",
+        "9 update_record",
+        "10 update_record",
+        "11 update_record",
+        "12 update_record",
+        "13 refresh"
+      ],
+      "act_qiaddline": [
+        "0 condition",
+        "1 toast",
+        "2 create_record",
+        "3 refresh",
+        "4 toast"
+      ],
+      "act_qidelline": [
+        "0 confirm",
+        "1 delete_record",
+        "2 refresh"
+      ],
+      "act_qidraft": [
+        "0 ai_generate",
+        "1 set_variable"
+      ],
+      "act_qisend": [
+        "0 send_email",
+        "1 update_record",
+        "2 set_variable",
+        "3 create_record",
+        "4 set_variable",
+        "5 refresh",
+        "6 toast"
+      ],
+      "act_qimatcommit": [
+        "0 switch",
+        "1 update_record",
+        "2 update_record",
+        "3 update_record",
+        "4 refresh"
+      ],
+      "act_qiaddmat": [
+        "0 create_record",
+        "1 refresh",
+        "2 toast"
+      ],
+      "act_qidelmat": [
+        "0 confirm",
+        "1 delete_record",
+        "2 refresh"
+      ],
+      "act_qicolcommit": [
+        "0 switch",
+        "1 update_record",
+        "2 update_record",
+        "3 update_record",
+        "4 update_record",
+        "5 update_record",
+        "6 refresh"
+      ],
+      "act_qiaddcol": [
+        "0 create_record",
+        "1 refresh",
+        "2 toast"
+      ],
+      "act_qidelcol": [
+        "0 confirm",
+        "1 delete_record",
+        "2 refresh"
+      ],
+      "act_qiopcommit": [
+        "0 switch",
+        "1 update_record",
+        "2 update_record",
+        "3 update_record",
+        "4 update_record",
+        "5 refresh"
+      ],
+      "act_qiaddop": [
+        "0 create_record",
+        "1 refresh",
+        "2 toast"
+      ],
+      "act_qidelop": [
+        "0 confirm",
+        "1 delete_record",
+        "2 refresh"
+      ]
+    },
+    "canonical": "same as stored"
+  },
+  "installHash": {
+    "stored": "1af1aa099cd51bfe04db49ee393263308a1bb2f0424fcf2674f51b58e1aaaf84",
+    "afterResave": "1af1aa099cd51bfe04db49ee393263308a1bb2f0424fcf2674f51b58e1aaaf84"
+  },
+  "reads": [
+    {
+      "at": "cmp_qipills.source",
+      "kind": "aggregate",
+      "table": "tbl_qithr",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT \"status\" AS \"status\", COUNT(*) AS \"count\" FROM \"aanvragen\" WHERE (1=1) GROUP BY \"status\" LIMIT ?",
+          "params": [
+            20
+          ]
+        },
+        "admin": {
+          "sql": "SELECT \"status\" AS \"status\", COUNT(*) AS \"count\" FROM \"aanvragen\" WHERE (1=1) GROUP BY \"status\" LIMIT ?",
+          "params": [
+            20
+          ]
+        },
+        "verkoper": {
+          "sql": "SELECT \"status\" AS \"status\", COUNT(*) AS \"count\" FROM \"aanvragen\" WHERE (1=1) GROUP BY \"status\" LIMIT ?",
+          "params": [
+            20
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT \"status\" AS \"status\", COUNT(*) AS \"count\" FROM \"aanvragen\" WHERE (1=1) GROUP BY \"status\" LIMIT ?",
+          "params": [
+            20
+          ]
+        },
+        "admin": {
+          "sql": "SELECT \"status\" AS \"status\", COUNT(*) AS \"count\" FROM \"aanvragen\" WHERE (1=1) GROUP BY \"status\" LIMIT ?",
+          "params": [
+            20
+          ]
+        },
+        "verkoper": {
+          "sql": "SELECT \"status\" AS \"status\", COUNT(*) AS \"count\" FROM \"aanvragen\" WHERE (1=1) GROUP BY \"status\" LIMIT ?",
+          "params": [
+            20
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_qilist.source",
+      "kind": "records",
+      "table": "tbl_qithr",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"aanvragen\" WHERE (1=1) ORDER BY \"last_message_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "admin": {
+          "sql": "SELECT * FROM \"aanvragen\" WHERE (1=1) ORDER BY \"last_message_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "verkoper": {
+          "sql": "SELECT * FROM \"aanvragen\" WHERE (1=1) ORDER BY \"last_message_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            101
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"aanvragen\" WHERE (1=1) ORDER BY \"last_message_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "admin": {
+          "sql": "SELECT * FROM \"aanvragen\" WHERE (1=1) ORDER BY \"last_message_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "verkoper": {
+          "sql": "SELECT * FROM \"aanvragen\" WHERE (1=1) ORDER BY \"last_message_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            101
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_qiprevthread.source",
+      "kind": "records",
+      "table": "tbl_qimsg",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"berichten\" WHERE (1=1) ORDER BY \"received_at\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "admin": {
+          "sql": "SELECT * FROM \"berichten\" WHERE (1=1) ORDER BY \"received_at\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "verkoper": {
+          "sql": "SELECT * FROM \"berichten\" WHERE (1=1) ORDER BY \"received_at\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"berichten\" WHERE (1=1) ORDER BY \"received_at\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "admin": {
+          "sql": "SELECT * FROM \"berichten\" WHERE (1=1) ORDER BY \"received_at\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "verkoper": {
+          "sql": "SELECT * FROM \"berichten\" WHERE (1=1) ORDER BY \"received_at\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_qiprevthread.attachmentsSource",
+      "kind": "records",
+      "table": "tbl_qiatt",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"bijlagen\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            201
+          ]
+        },
+        "admin": {
+          "sql": "SELECT * FROM \"bijlagen\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            201
+          ]
+        },
+        "verkoper": {
+          "sql": "SELECT * FROM \"bijlagen\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            201
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"bijlagen\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            201
+          ]
+        },
+        "admin": {
+          "sql": "SELECT * FROM \"bijlagen\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            201
+          ]
+        },
+        "verkoper": {
+          "sql": "SELECT * FROM \"bijlagen\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            201
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_qifacts.source",
+      "kind": "record",
+      "table": "tbl_qithr",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"aanvragen\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "admin": {
+          "sql": "SELECT * FROM \"aanvragen\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "verkoper": {
+          "sql": "SELECT * FROM \"aanvragen\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"aanvragen\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "admin": {
+          "sql": "SELECT * FROM \"aanvragen\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "verkoper": {
+          "sql": "SELECT * FROM \"aanvragen\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_qitl.source",
+      "kind": "records",
+      "table": "tbl_qiact",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"activiteit\" WHERE (1=1) ORDER BY \"at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            26
+          ]
+        },
+        "admin": {
+          "sql": "SELECT * FROM \"activiteit\" WHERE (1=1) ORDER BY \"at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            26
+          ]
+        },
+        "verkoper": {
+          "sql": "SELECT * FROM \"activiteit\" WHERE (1=1) ORDER BY \"at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            26
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"activiteit\" WHERE (1=1) ORDER BY \"at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            26
+          ]
+        },
+        "admin": {
+          "sql": "SELECT * FROM \"activiteit\" WHERE (1=1) ORDER BY \"at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            26
+          ]
+        },
+        "verkoper": {
+          "sql": "SELECT * FROM \"activiteit\" WHERE (1=1) ORDER BY \"at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            26
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_qithread.source",
+      "kind": "records",
+      "table": "tbl_qimsg",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"berichten\" WHERE (1=1) ORDER BY \"received_at\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "admin": {
+          "sql": "SELECT * FROM \"berichten\" WHERE (1=1) ORDER BY \"received_at\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "verkoper": {
+          "sql": "SELECT * FROM \"berichten\" WHERE (1=1) ORDER BY \"received_at\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            101
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"berichten\" WHERE (1=1) ORDER BY \"received_at\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "admin": {
+          "sql": "SELECT * FROM \"berichten\" WHERE (1=1) ORDER BY \"received_at\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "verkoper": {
+          "sql": "SELECT * FROM \"berichten\" WHERE (1=1) ORDER BY \"received_at\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            101
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_qithread.attachmentsSource",
+      "kind": "records",
+      "table": "tbl_qiatt",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"bijlagen\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            201
+          ]
+        },
+        "admin": {
+          "sql": "SELECT * FROM \"bijlagen\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            201
+          ]
+        },
+        "verkoper": {
+          "sql": "SELECT * FROM \"bijlagen\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            201
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"bijlagen\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            201
+          ]
+        },
+        "admin": {
+          "sql": "SELECT * FROM \"bijlagen\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            201
+          ]
+        },
+        "verkoper": {
+          "sql": "SELECT * FROM \"bijlagen\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            201
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_qilstat1.value",
+      "kind": "aggregate",
+      "table": "tbl_qiline",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"count\" FROM \"projectregels\" WHERE (1=1) LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "admin": {
+          "sql": "SELECT COUNT(*) AS \"count\" FROM \"projectregels\" WHERE (1=1) LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "verkoper": {
+          "sql": "SELECT COUNT(*) AS \"count\" FROM \"projectregels\" WHERE (1=1) LIMIT ?",
+          "params": [
+            1
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"count\" FROM \"projectregels\" WHERE (1=1) LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "admin": {
+          "sql": "SELECT COUNT(*) AS \"count\" FROM \"projectregels\" WHERE (1=1) LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "verkoper": {
+          "sql": "SELECT COUNT(*) AS \"count\" FROM \"projectregels\" WHERE (1=1) LIMIT ?",
+          "params": [
+            1
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_qilstat3.value",
+      "kind": "aggregate",
+      "table": "tbl_qiline",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"count\" FROM \"projectregels\" WHERE (1=1) AND \"regel_check\" = ? LIMIT ?",
+          "params": [
+            "incomplete",
+            1
+          ]
+        },
+        "admin": {
+          "sql": "SELECT COUNT(*) AS \"count\" FROM \"projectregels\" WHERE (1=1) AND \"regel_check\" = ? LIMIT ?",
+          "params": [
+            "incomplete",
+            1
+          ]
+        },
+        "verkoper": {
+          "sql": "SELECT COUNT(*) AS \"count\" FROM \"projectregels\" WHERE (1=1) AND \"regel_check\" = ? LIMIT ?",
+          "params": [
+            "incomplete",
+            1
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"count\" FROM \"projectregels\" WHERE (1=1) AND \"regel_check\" = ? LIMIT ?",
+          "params": [
+            "incomplete",
+            1
+          ]
+        },
+        "admin": {
+          "sql": "SELECT COUNT(*) AS \"count\" FROM \"projectregels\" WHERE (1=1) AND \"regel_check\" = ? LIMIT ?",
+          "params": [
+            "incomplete",
+            1
+          ]
+        },
+        "verkoper": {
+          "sql": "SELECT COUNT(*) AS \"count\" FROM \"projectregels\" WHERE (1=1) AND \"regel_check\" = ? LIMIT ?",
+          "params": [
+            "incomplete",
+            1
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_qigrid.source",
+      "kind": "records",
+      "table": "tbl_qiline",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"projectregels\" WHERE (1=1) ORDER BY \"pos\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            201
+          ]
+        },
+        "admin": {
+          "sql": "SELECT * FROM \"projectregels\" WHERE (1=1) ORDER BY \"pos\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            201
+          ]
+        },
+        "verkoper": {
+          "sql": "SELECT * FROM \"projectregels\" WHERE (1=1) ORDER BY \"pos\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            201
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"projectregels\" WHERE (1=1) ORDER BY \"pos\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            201
+          ]
+        },
+        "admin": {
+          "sql": "SELECT * FROM \"projectregels\" WHERE (1=1) ORDER BY \"pos\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            201
+          ]
+        },
+        "verkoper": {
+          "sql": "SELECT * FROM \"projectregels\" WHERE (1=1) ORDER BY \"pos\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            201
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_qiattg.source",
+      "kind": "records",
+      "table": "tbl_qiatt",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"bijlagen\" WHERE (1=1) AND \"is_inline\" = ? ORDER BY \"filename\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            0,
+            25
+          ]
+        },
+        "admin": {
+          "sql": "SELECT * FROM \"bijlagen\" WHERE (1=1) AND \"is_inline\" = ? ORDER BY \"filename\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            0,
+            25
+          ]
+        },
+        "verkoper": {
+          "sql": "SELECT * FROM \"bijlagen\" WHERE (1=1) AND \"is_inline\" = ? ORDER BY \"filename\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            0,
+            25
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"bijlagen\" WHERE (1=1) AND \"is_inline\" = ? ORDER BY \"filename\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            false,
+            25
+          ]
+        },
+        "admin": {
+          "sql": "SELECT * FROM \"bijlagen\" WHERE (1=1) AND \"is_inline\" = ? ORDER BY \"filename\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            false,
+            25
+          ]
+        },
+        "verkoper": {
+          "sql": "SELECT * FROM \"bijlagen\" WHERE (1=1) AND \"is_inline\" = ? ORDER BY \"filename\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            false,
+            25
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_qickg.source",
+      "kind": "records",
+      "table": "tbl_qicheck",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"eindcontrole\" WHERE (1=1) ORDER BY \"at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "admin": {
+          "sql": "SELECT * FROM \"eindcontrole\" WHERE (1=1) ORDER BY \"at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "verkoper": {
+          "sql": "SELECT * FROM \"eindcontrole\" WHERE (1=1) ORDER BY \"at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            101
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"eindcontrole\" WHERE (1=1) ORDER BY \"at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "admin": {
+          "sql": "SELECT * FROM \"eindcontrole\" WHERE (1=1) ORDER BY \"at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "verkoper": {
+          "sql": "SELECT * FROM \"eindcontrole\" WHERE (1=1) ORDER BY \"at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            101
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_qikan.source",
+      "kind": "records",
+      "table": "tbl_qithr",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"aanvragen\" WHERE (1=1) ORDER BY \"last_message_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            201
+          ]
+        },
+        "admin": {
+          "sql": "SELECT * FROM \"aanvragen\" WHERE (1=1) ORDER BY \"last_message_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            201
+          ]
+        },
+        "verkoper": {
+          "sql": "SELECT * FROM \"aanvragen\" WHERE (1=1) ORDER BY \"last_message_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            201
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"aanvragen\" WHERE (1=1) ORDER BY \"last_message_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            201
+          ]
+        },
+        "admin": {
+          "sql": "SELECT * FROM \"aanvragen\" WHERE (1=1) ORDER BY \"last_message_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            201
+          ]
+        },
+        "verkoper": {
+          "sql": "SELECT * FROM \"aanvragen\" WHERE (1=1) ORDER BY \"last_message_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            201
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_qit1.value",
+      "kind": "aggregate",
+      "table": "tbl_qithr",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"count\" FROM \"aanvragen\" WHERE (1=1) AND \"type\" IS NULL LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "admin": {
+          "sql": "SELECT COUNT(*) AS \"count\" FROM \"aanvragen\" WHERE (1=1) AND \"type\" IS NULL LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "verkoper": {
+          "sql": "SELECT COUNT(*) AS \"count\" FROM \"aanvragen\" WHERE (1=1) AND \"type\" IS NULL LIMIT ?",
+          "params": [
+            1
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"count\" FROM \"aanvragen\" WHERE (1=1) AND \"type\" IS NULL LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "admin": {
+          "sql": "SELECT COUNT(*) AS \"count\" FROM \"aanvragen\" WHERE (1=1) AND \"type\" IS NULL LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "verkoper": {
+          "sql": "SELECT COUNT(*) AS \"count\" FROM \"aanvragen\" WHERE (1=1) AND \"type\" IS NULL LIMIT ?",
+          "params": [
+            1
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_qit2.value",
+      "kind": "aggregate",
+      "table": "tbl_qithr",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"count\" FROM \"aanvragen\" WHERE (1=1) AND \"status\" IN (?, ?, ?) LIMIT ?",
+          "params": [
+            "nieuw",
+            "geclassificeerd",
+            "in_behandeling",
+            1
+          ]
+        },
+        "admin": {
+          "sql": "SELECT COUNT(*) AS \"count\" FROM \"aanvragen\" WHERE (1=1) AND \"status\" IN (?, ?, ?) LIMIT ?",
+          "params": [
+            "nieuw",
+            "geclassificeerd",
+            "in_behandeling",
+            1
+          ]
+        },
+        "verkoper": {
+          "sql": "SELECT COUNT(*) AS \"count\" FROM \"aanvragen\" WHERE (1=1) AND \"status\" IN (?, ?, ?) LIMIT ?",
+          "params": [
+            "nieuw",
+            "geclassificeerd",
+            "in_behandeling",
+            1
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"count\" FROM \"aanvragen\" WHERE (1=1) AND \"status\" IN (?, ?, ?) LIMIT ?",
+          "params": [
+            "nieuw",
+            "geclassificeerd",
+            "in_behandeling",
+            1
+          ]
+        },
+        "admin": {
+          "sql": "SELECT COUNT(*) AS \"count\" FROM \"aanvragen\" WHERE (1=1) AND \"status\" IN (?, ?, ?) LIMIT ?",
+          "params": [
+            "nieuw",
+            "geclassificeerd",
+            "in_behandeling",
+            1
+          ]
+        },
+        "verkoper": {
+          "sql": "SELECT COUNT(*) AS \"count\" FROM \"aanvragen\" WHERE (1=1) AND \"status\" IN (?, ?, ?) LIMIT ?",
+          "params": [
+            "nieuw",
+            "geclassificeerd",
+            "in_behandeling",
+            1
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_qit3.value",
+      "kind": "aggregate",
+      "table": "tbl_qithr",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"count\" FROM \"aanvragen\" WHERE (1=1) AND \"outcome\" = ? LIMIT ?",
+          "params": [
+            "won",
+            1
+          ]
+        },
+        "admin": {
+          "sql": "SELECT COUNT(*) AS \"count\" FROM \"aanvragen\" WHERE (1=1) AND \"outcome\" = ? LIMIT ?",
+          "params": [
+            "won",
+            1
+          ]
+        },
+        "verkoper": {
+          "sql": "SELECT COUNT(*) AS \"count\" FROM \"aanvragen\" WHERE (1=1) AND \"outcome\" = ? LIMIT ?",
+          "params": [
+            "won",
+            1
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"count\" FROM \"aanvragen\" WHERE (1=1) AND \"outcome\" = ? LIMIT ?",
+          "params": [
+            "won",
+            1
+          ]
+        },
+        "admin": {
+          "sql": "SELECT COUNT(*) AS \"count\" FROM \"aanvragen\" WHERE (1=1) AND \"outcome\" = ? LIMIT ?",
+          "params": [
+            "won",
+            1
+          ]
+        },
+        "verkoper": {
+          "sql": "SELECT COUNT(*) AS \"count\" FROM \"aanvragen\" WHERE (1=1) AND \"outcome\" = ? LIMIT ?",
+          "params": [
+            "won",
+            1
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_qit4.value",
+      "kind": "aggregate",
+      "table": "tbl_qithr",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT SUM(\"quote_value\") AS \"value\" FROM \"aanvragen\" WHERE (1=1) AND \"outcome\" = ? LIMIT ?",
+          "params": [
+            "won",
+            1
+          ]
+        },
+        "admin": {
+          "sql": "SELECT SUM(\"quote_value\") AS \"value\" FROM \"aanvragen\" WHERE (1=1) AND \"outcome\" = ? LIMIT ?",
+          "params": [
+            "won",
+            1
+          ]
+        },
+        "verkoper": {
+          "sql": "SELECT SUM(\"quote_value\") AS \"value\" FROM \"aanvragen\" WHERE (1=1) AND \"outcome\" = ? LIMIT ?",
+          "params": [
+            "won",
+            1
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT SUM(\"quote_value\") AS \"value\" FROM \"aanvragen\" WHERE (1=1) AND \"outcome\" = ? LIMIT ?",
+          "params": [
+            "won",
+            1
+          ]
+        },
+        "admin": {
+          "sql": "SELECT SUM(\"quote_value\") AS \"value\" FROM \"aanvragen\" WHERE (1=1) AND \"outcome\" = ? LIMIT ?",
+          "params": [
+            "won",
+            1
+          ]
+        },
+        "verkoper": {
+          "sql": "SELECT SUM(\"quote_value\") AS \"value\" FROM \"aanvragen\" WHERE (1=1) AND \"outcome\" = ? LIMIT ?",
+          "params": [
+            "won",
+            1
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_qivol.source",
+      "kind": "aggregate",
+      "table": "tbl_qithr",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT strftime('%Y-%m-%d', \"last_message_at\") AS \"day\", COUNT(*) AS \"count\" FROM \"aanvragen\" WHERE (1=1) GROUP BY strftime('%Y-%m-%d', \"last_message_at\") ORDER BY \"day\" ASC LIMIT ?",
+          "params": [
+            90
+          ]
+        },
+        "admin": {
+          "sql": "SELECT strftime('%Y-%m-%d', \"last_message_at\") AS \"day\", COUNT(*) AS \"count\" FROM \"aanvragen\" WHERE (1=1) GROUP BY strftime('%Y-%m-%d', \"last_message_at\") ORDER BY \"day\" ASC LIMIT ?",
+          "params": [
+            90
+          ]
+        },
+        "verkoper": {
+          "sql": "SELECT strftime('%Y-%m-%d', \"last_message_at\") AS \"day\", COUNT(*) AS \"count\" FROM \"aanvragen\" WHERE (1=1) GROUP BY strftime('%Y-%m-%d', \"last_message_at\") ORDER BY \"day\" ASC LIMIT ?",
+          "params": [
+            90
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT to_char(\"last_message_at\"::timestamptz, 'YYYY-MM-DD') AS \"day\", COUNT(*) AS \"count\" FROM \"aanvragen\" WHERE (1=1) GROUP BY to_char(\"last_message_at\"::timestamptz, 'YYYY-MM-DD') ORDER BY \"day\" ASC LIMIT ?",
+          "params": [
+            90
+          ]
+        },
+        "admin": {
+          "sql": "SELECT to_char(\"last_message_at\"::timestamptz, 'YYYY-MM-DD') AS \"day\", COUNT(*) AS \"count\" FROM \"aanvragen\" WHERE (1=1) GROUP BY to_char(\"last_message_at\"::timestamptz, 'YYYY-MM-DD') ORDER BY \"day\" ASC LIMIT ?",
+          "params": [
+            90
+          ]
+        },
+        "verkoper": {
+          "sql": "SELECT to_char(\"last_message_at\"::timestamptz, 'YYYY-MM-DD') AS \"day\", COUNT(*) AS \"count\" FROM \"aanvragen\" WHERE (1=1) GROUP BY to_char(\"last_message_at\"::timestamptz, 'YYYY-MM-DD') ORDER BY \"day\" ASC LIMIT ?",
+          "params": [
+            90
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_qioutch.source",
+      "kind": "aggregate",
+      "table": "tbl_qithr",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT \"outcome\" AS \"outcome\", COUNT(*) AS \"count\" FROM \"aanvragen\" WHERE (1=1) GROUP BY \"outcome\" LIMIT ?",
+          "params": [
+            20
+          ]
+        },
+        "admin": {
+          "sql": "SELECT \"outcome\" AS \"outcome\", COUNT(*) AS \"count\" FROM \"aanvragen\" WHERE (1=1) GROUP BY \"outcome\" LIMIT ?",
+          "params": [
+            20
+          ]
+        },
+        "verkoper": {
+          "sql": "SELECT \"outcome\" AS \"outcome\", COUNT(*) AS \"count\" FROM \"aanvragen\" WHERE (1=1) GROUP BY \"outcome\" LIMIT ?",
+          "params": [
+            20
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT \"outcome\" AS \"outcome\", COUNT(*) AS \"count\" FROM \"aanvragen\" WHERE (1=1) GROUP BY \"outcome\" LIMIT ?",
+          "params": [
+            20
+          ]
+        },
+        "admin": {
+          "sql": "SELECT \"outcome\" AS \"outcome\", COUNT(*) AS \"count\" FROM \"aanvragen\" WHERE (1=1) GROUP BY \"outcome\" LIMIT ?",
+          "params": [
+            20
+          ]
+        },
+        "verkoper": {
+          "sql": "SELECT \"outcome\" AS \"outcome\", COUNT(*) AS \"count\" FROM \"aanvragen\" WHERE (1=1) GROUP BY \"outcome\" LIMIT ?",
+          "params": [
+            20
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_qibytype.source",
+      "kind": "aggregate",
+      "table": "tbl_qithr",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT \"type\" AS \"type\", COUNT(*) AS \"count\" FROM \"aanvragen\" WHERE (1=1) GROUP BY \"type\" LIMIT ?",
+          "params": [
+            20
+          ]
+        },
+        "admin": {
+          "sql": "SELECT \"type\" AS \"type\", COUNT(*) AS \"count\" FROM \"aanvragen\" WHERE (1=1) GROUP BY \"type\" LIMIT ?",
+          "params": [
+            20
+          ]
+        },
+        "verkoper": {
+          "sql": "SELECT \"type\" AS \"type\", COUNT(*) AS \"count\" FROM \"aanvragen\" WHERE (1=1) GROUP BY \"type\" LIMIT ?",
+          "params": [
+            20
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT \"type\" AS \"type\", COUNT(*) AS \"count\" FROM \"aanvragen\" WHERE (1=1) GROUP BY \"type\" LIMIT ?",
+          "params": [
+            20
+          ]
+        },
+        "admin": {
+          "sql": "SELECT \"type\" AS \"type\", COUNT(*) AS \"count\" FROM \"aanvragen\" WHERE (1=1) GROUP BY \"type\" LIMIT ?",
+          "params": [
+            20
+          ]
+        },
+        "verkoper": {
+          "sql": "SELECT \"type\" AS \"type\", COUNT(*) AS \"count\" FROM \"aanvragen\" WHERE (1=1) GROUP BY \"type\" LIMIT ?",
+          "params": [
+            20
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_qibysl.source",
+      "kind": "aggregate",
+      "table": "tbl_qithr",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT \"stoplicht\" AS \"stoplicht\", COUNT(*) AS \"count\" FROM \"aanvragen\" WHERE (1=1) GROUP BY \"stoplicht\" LIMIT ?",
+          "params": [
+            20
+          ]
+        },
+        "admin": {
+          "sql": "SELECT \"stoplicht\" AS \"stoplicht\", COUNT(*) AS \"count\" FROM \"aanvragen\" WHERE (1=1) GROUP BY \"stoplicht\" LIMIT ?",
+          "params": [
+            20
+          ]
+        },
+        "verkoper": {
+          "sql": "SELECT \"stoplicht\" AS \"stoplicht\", COUNT(*) AS \"count\" FROM \"aanvragen\" WHERE (1=1) GROUP BY \"stoplicht\" LIMIT ?",
+          "params": [
+            20
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT \"stoplicht\" AS \"stoplicht\", COUNT(*) AS \"count\" FROM \"aanvragen\" WHERE (1=1) GROUP BY \"stoplicht\" LIMIT ?",
+          "params": [
+            20
+          ]
+        },
+        "admin": {
+          "sql": "SELECT \"stoplicht\" AS \"stoplicht\", COUNT(*) AS \"count\" FROM \"aanvragen\" WHERE (1=1) GROUP BY \"stoplicht\" LIMIT ?",
+          "params": [
+            20
+          ]
+        },
+        "verkoper": {
+          "sql": "SELECT \"stoplicht\" AS \"stoplicht\", COUNT(*) AS \"count\" FROM \"aanvragen\" WHERE (1=1) GROUP BY \"stoplicht\" LIMIT ?",
+          "params": [
+            20
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_qibymat.source",
+      "kind": "aggregate",
+      "table": "tbl_qithr",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT \"materiaal\" AS \"materiaal\", COUNT(*) AS \"count\" FROM \"aanvragen\" WHERE (1=1) GROUP BY \"materiaal\" ORDER BY \"count\" DESC LIMIT ?",
+          "params": [
+            10
+          ]
+        },
+        "admin": {
+          "sql": "SELECT \"materiaal\" AS \"materiaal\", COUNT(*) AS \"count\" FROM \"aanvragen\" WHERE (1=1) GROUP BY \"materiaal\" ORDER BY \"count\" DESC LIMIT ?",
+          "params": [
+            10
+          ]
+        },
+        "verkoper": {
+          "sql": "SELECT \"materiaal\" AS \"materiaal\", COUNT(*) AS \"count\" FROM \"aanvragen\" WHERE (1=1) GROUP BY \"materiaal\" ORDER BY \"count\" DESC LIMIT ?",
+          "params": [
+            10
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT \"materiaal\" AS \"materiaal\", COUNT(*) AS \"count\" FROM \"aanvragen\" WHERE (1=1) GROUP BY \"materiaal\" ORDER BY \"count\" DESC LIMIT ?",
+          "params": [
+            10
+          ]
+        },
+        "admin": {
+          "sql": "SELECT \"materiaal\" AS \"materiaal\", COUNT(*) AS \"count\" FROM \"aanvragen\" WHERE (1=1) GROUP BY \"materiaal\" ORDER BY \"count\" DESC LIMIT ?",
+          "params": [
+            10
+          ]
+        },
+        "verkoper": {
+          "sql": "SELECT \"materiaal\" AS \"materiaal\", COUNT(*) AS \"count\" FROM \"aanvragen\" WHERE (1=1) GROUP BY \"materiaal\" ORDER BY \"count\" DESC LIMIT ?",
+          "params": [
+            10
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_qilead.source",
+      "kind": "aggregate",
+      "table": "tbl_qithr",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT \"assignee_name\" AS \"assignee_name\", COUNT(*) AS \"aanvragen\" FROM \"aanvragen\" WHERE (1=1) GROUP BY \"assignee_name\" ORDER BY \"aanvragen\" DESC LIMIT ?",
+          "params": [
+            50
+          ]
+        },
+        "admin": {
+          "sql": "SELECT \"assignee_name\" AS \"assignee_name\", COUNT(*) AS \"aanvragen\" FROM \"aanvragen\" WHERE (1=1) GROUP BY \"assignee_name\" ORDER BY \"aanvragen\" DESC LIMIT ?",
+          "params": [
+            50
+          ]
+        },
+        "verkoper": {
+          "sql": "SELECT \"assignee_name\" AS \"assignee_name\", COUNT(*) AS \"aanvragen\" FROM \"aanvragen\" WHERE (1=1) GROUP BY \"assignee_name\" ORDER BY \"aanvragen\" DESC LIMIT ?",
+          "params": [
+            50
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT \"assignee_name\" AS \"assignee_name\", COUNT(*) AS \"aanvragen\" FROM \"aanvragen\" WHERE (1=1) GROUP BY \"assignee_name\" ORDER BY \"aanvragen\" DESC LIMIT ?",
+          "params": [
+            50
+          ]
+        },
+        "admin": {
+          "sql": "SELECT \"assignee_name\" AS \"assignee_name\", COUNT(*) AS \"aanvragen\" FROM \"aanvragen\" WHERE (1=1) GROUP BY \"assignee_name\" ORDER BY \"aanvragen\" DESC LIMIT ?",
+          "params": [
+            50
+          ]
+        },
+        "verkoper": {
+          "sql": "SELECT \"assignee_name\" AS \"assignee_name\", COUNT(*) AS \"aanvragen\" FROM \"aanvragen\" WHERE (1=1) GROUP BY \"assignee_name\" ORDER BY \"aanvragen\" DESC LIMIT ?",
+          "params": [
+            50
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_qibyco.source",
+      "kind": "aggregate",
+      "table": "tbl_qithr",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT \"company\" AS \"company\", COUNT(*) AS \"aanvragen\", SUM(\"quote_value\") AS \"waarde\" FROM \"aanvragen\" WHERE (1=1) GROUP BY \"company\" ORDER BY \"aanvragen\" DESC LIMIT ?",
+          "params": [
+            50
+          ]
+        },
+        "admin": {
+          "sql": "SELECT \"company\" AS \"company\", COUNT(*) AS \"aanvragen\", SUM(\"quote_value\") AS \"waarde\" FROM \"aanvragen\" WHERE (1=1) GROUP BY \"company\" ORDER BY \"aanvragen\" DESC LIMIT ?",
+          "params": [
+            50
+          ]
+        },
+        "verkoper": {
+          "sql": "SELECT \"company\" AS \"company\", COUNT(*) AS \"aanvragen\", SUM(\"quote_value\") AS \"waarde\" FROM \"aanvragen\" WHERE (1=1) GROUP BY \"company\" ORDER BY \"aanvragen\" DESC LIMIT ?",
+          "params": [
+            50
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT \"company\" AS \"company\", COUNT(*) AS \"aanvragen\", SUM(\"quote_value\") AS \"waarde\" FROM \"aanvragen\" WHERE (1=1) GROUP BY \"company\" ORDER BY \"aanvragen\" DESC LIMIT ?",
+          "params": [
+            50
+          ]
+        },
+        "admin": {
+          "sql": "SELECT \"company\" AS \"company\", COUNT(*) AS \"aanvragen\", SUM(\"quote_value\") AS \"waarde\" FROM \"aanvragen\" WHERE (1=1) GROUP BY \"company\" ORDER BY \"aanvragen\" DESC LIMIT ?",
+          "params": [
+            50
+          ]
+        },
+        "verkoper": {
+          "sql": "SELECT \"company\" AS \"company\", COUNT(*) AS \"aanvragen\", SUM(\"quote_value\") AS \"waarde\" FROM \"aanvragen\" WHERE (1=1) GROUP BY \"company\" ORDER BY \"aanvragen\" DESC LIMIT ?",
+          "params": [
+            50
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_qimatg.source",
+      "kind": "records",
+      "table": "tbl_qimat",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"materialen\" WHERE (1=1) ORDER BY \"naam\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "admin": {
+          "sql": "SELECT * FROM \"materialen\" WHERE (1=1) ORDER BY \"naam\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "verkoper": {
+          "sql": "SELECT * FROM \"materialen\" WHERE (1=1) ORDER BY \"naam\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            101
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"materialen\" WHERE (1=1) ORDER BY \"naam\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "admin": {
+          "sql": "SELECT * FROM \"materialen\" WHERE (1=1) ORDER BY \"naam\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "verkoper": {
+          "sql": "SELECT * FROM \"materialen\" WHERE (1=1) ORDER BY \"naam\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            101
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_qicolg.source",
+      "kind": "records",
+      "table": "tbl_qicol",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"portaalformaat\" WHERE (1=1) ORDER BY \"order\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "admin": {
+          "sql": "SELECT * FROM \"portaalformaat\" WHERE (1=1) ORDER BY \"order\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "verkoper": {
+          "sql": "SELECT * FROM \"portaalformaat\" WHERE (1=1) ORDER BY \"order\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            101
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"portaalformaat\" WHERE (1=1) ORDER BY \"order\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "admin": {
+          "sql": "SELECT * FROM \"portaalformaat\" WHERE (1=1) ORDER BY \"order\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "verkoper": {
+          "sql": "SELECT * FROM \"portaalformaat\" WHERE (1=1) ORDER BY \"order\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            101
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_qiopg.source",
+      "kind": "records",
+      "table": "tbl_qiop",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"operaties\" WHERE (1=1) ORDER BY \"naam\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "admin": {
+          "sql": "SELECT * FROM \"operaties\" WHERE (1=1) ORDER BY \"naam\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "verkoper": {
+          "sql": "SELECT * FROM \"operaties\" WHERE (1=1) ORDER BY \"naam\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            101
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"operaties\" WHERE (1=1) ORDER BY \"naam\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "admin": {
+          "sql": "SELECT * FROM \"operaties\" WHERE (1=1) ORDER BY \"naam\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            101
+          ]
+        },
+        "verkoper": {
+          "sql": "SELECT * FROM \"operaties\" WHERE (1=1) ORDER BY \"naam\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            101
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_qirecent.source",
+      "kind": "records",
+      "table": "tbl_qithr",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"aanvragen\" WHERE (1=1) ORDER BY \"last_message_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            11
+          ]
+        },
+        "admin": {
+          "sql": "SELECT * FROM \"aanvragen\" WHERE (1=1) ORDER BY \"last_message_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            11
+          ]
+        },
+        "verkoper": {
+          "sql": "SELECT * FROM \"aanvragen\" WHERE (1=1) ORDER BY \"last_message_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            11
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"aanvragen\" WHERE (1=1) ORDER BY \"last_message_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            11
+          ]
+        },
+        "admin": {
+          "sql": "SELECT * FROM \"aanvragen\" WHERE (1=1) ORDER BY \"last_message_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            11
+          ]
+        },
+        "verkoper": {
+          "sql": "SELECT * FROM \"aanvragen\" WHERE (1=1) ORDER BY \"last_message_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            11
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_qiactg.source",
+      "kind": "records",
+      "table": "tbl_qiact",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"activiteit\" WHERE (1=1) ORDER BY \"at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            201
+          ]
+        },
+        "admin": {
+          "sql": "SELECT * FROM \"activiteit\" WHERE (1=1) ORDER BY \"at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            201
+          ]
+        },
+        "verkoper": {
+          "sql": "SELECT * FROM \"activiteit\" WHERE (1=1) ORDER BY \"at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            201
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"activiteit\" WHERE (1=1) ORDER BY \"at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            201
+          ]
+        },
+        "admin": {
+          "sql": "SELECT * FROM \"activiteit\" WHERE (1=1) ORDER BY \"at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            201
+          ]
+        },
+        "verkoper": {
+          "sql": "SELECT * FROM \"activiteit\" WHERE (1=1) ORDER BY \"at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            201
+          ]
+        }
+      }
+    }
+  ]
+}

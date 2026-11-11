@@ -18,6 +18,7 @@ const {
     FORMULA_SCOPE_ROOTS,
     COMPONENT_SPECS, COMPONENT_TYPES,
 } = require('../componentSpecs');
+const { valueTypeOf, isCleanValue, isAssetRef } = require('../componentSpecs/valueTypes');
 const { isObject, pickClosestId } = require('./shared');
 const { validateFormula } = require('./formulas');
 const { checkTableRef, checkTableSource } = require('./refs');
@@ -25,6 +26,9 @@ const { validateBinding } = require('./bindings');
 const { checkDocumentPicker } = require('./documentPicker');
 const { checkActionWiring, checkNodeAdvisories } = require('./nodeWiring');
 const { nodeActionRefs } = require('../nodeActionRefs.mts');
+const { noteUiTarget } = require('./uiStepChecks.mts');
+const { screenTriggerRefs, watchersOf } = require('../../shared/appDefinition/clientTriggers.mjs');
+const { checkObjectValue } = require('./objectChecks.mts');
 
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -43,6 +47,7 @@ function validatePropValue(key, fs, value, path, ctx) {
         if (fs.required) pushE({ code: 'prop.required', severity: 'error', path, message: `Missing required prop \`${key}\`.`, hint: `Provide a ${fs.type} value${fs.default !== undefined && fs.default !== null ? ` (spec default: ${JSON.stringify(fs.default)})` : ''}.` });
         return;
     }
+    if (checkObjectValue(fs, value, path, pushE)) return;
 
     switch (fs.type) {
         case 'string':
@@ -55,6 +60,8 @@ function validatePropValue(key, fs, value, path, ctx) {
             return;
         }
         case 'url': {
+            // An uploaded file of the app; whether it still exists is checked once per definition (validate/assetChecks.mts).
+            if (isAssetRef(value)) return;
             if (typeof value !== 'string') { pushE({ code: 'prop.type', severity: 'error', path, message: `\`${key}\` must be a URL string.`, hint: 'Pass an https:// URL.' }); return; }
             let ok = false;
             try { ok = new URL(value).protocol === 'https:'; } catch { ok = false; }
@@ -114,6 +121,7 @@ function validatePropValue(key, fs, value, path, ctx) {
                         if (ifs.required) pushE({ code: 'prop.item_required', severity: 'error', path: `${ip}.${ik}`, message: `\`${key}\` item ${i} is missing required \`${ik}\`.`, hint: 'Fill the field.' });
                         continue;
                     }
+                    if (checkObjectValue(ifs, iv, `${ip}.${ik}`, pushE)) continue;
                     if (ifs.type === 'string') {
                         if (typeof iv !== 'string') pushE({ code: 'prop.item_invalid', severity: 'error', path: `${ip}.${ik}`, message: `\`${ik}\` must be a string.`, hint: 'Pass a plain string.' });
                         else if (iv.length > (ifs.maxLen || LIMITS.MAX_STRING)) pushE({ code: 'prop.item_invalid', severity: 'error', path: `${ip}.${ik}`, message: `\`${ik}\` is ${iv.length} chars — the maximum is ${ifs.maxLen || LIMITS.MAX_STRING}.`, hint: 'Shorten it.' });
@@ -278,6 +286,9 @@ function validateNodeLogic(node, path, ctx, spec) {
     }
     if (node.validations !== undefined) validateFieldValidations(node, path, ctx, spec);
     if (node.visibleToRoles !== undefined) validateRoleRefs(node.visibleToRoles, `${path}.visibleToRoles`, ctx);
+    if (node.cssClass !== undefined && !require('../appCss.mts').isCssClassName(node.cssClass)) {
+        pushE({ code: 'node.css_class_invalid', severity: 'error', path: `${path}.cssClass`, message: 'cssClass must be a lower-case letter followed by lower-case letters, digits or dashes.', hint: `e.g. "hero" (at most ${LIMITS.MAX_CSS_CLASS_LEN} characters), styled as .u-hero in design.customCss.` });
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -410,6 +421,23 @@ function validateAdvancedSizing(style, path, ctx, {
     }
 }
 
+/**
+ * A knob whose value type was added after the base four (componentSpecs/valueTypes.js): the
+ * stored value must be what the canonicalizer would store. Returns false for a base knob,
+ * which the caller checks itself.
+ * @param {string} name
+ * @param {unknown} v
+ * @param {{ type: string, [k: string]: unknown }} knob
+ * @param {string} path
+ * @param {(e: { code: string, severity: string, path: string, message: string, hint: string }) => void} pushE
+ */
+function validateTypedKnob(name, v, knob, path, pushE) {
+    const valueType = valueTypeOf(knob);
+    if (!valueType) return false;
+    if (!isCleanValue(valueType, v, knob)) pushE({ code: 'style.invalid', severity: 'error', path, message: `Style knob \`${name}\` has an invalid value.`, hint: valueType.hint(knob) });
+    return true;
+}
+
 // ---------------------------------------------------------------------------
 // Node walk — structure, props, style, events, form rules, depth. Also
 // collects form ids and input names for the action-mapping checks.
@@ -465,7 +493,7 @@ function validateNode(node, path, depth, formId, ctx, parent = ROOT_PARENT) {
         if (!isObject(node.style)) {
             pushE({ code: 'style.invalid', severity: 'error', path: `${path}.style`, message: 'style must be an object.', hint: 'Use the style knobs from the catalog.' });
         } else {
-            const allowedKnobs = expandStyleKnobs(spec.styleKnobs);
+            const allowedKnobs = expandStyleKnobs(spec.styleKnobs, undefined, node.type);
             for (const [k, v] of Object.entries(node.style)) {
                 if (!allowedKnobs.includes(k)) {
                     pushE({ code: 'style.unknown_key', severity: 'error', path: `${path}.style.${k}`, message: `Style knob \`${k}\` does not apply to ${node.type}.`, hint: `Legal knobs: ${allowedKnobs.join(', ')}.` });
@@ -473,6 +501,7 @@ function validateNode(node, path, depth, formId, ctx, parent = ROOT_PARENT) {
                 }
                 const knob = STYLE_KNOBS[k];
                 if (knob.type === 'unitInt') { validateUnitKnob(k, knob, node.style, `${path}.style.${k}`, ctx); continue; }
+                if (validateTypedKnob(k, v, knob, `${path}.style.${k}`, pushE)) continue;
                 const bad = (knob.type === 'int' && (typeof v !== 'number' || !Number.isInteger(v) || v < knob.min || v > knob.max))
                     || (knob.type === 'enum' && !knob.values.includes(v))
                     || (knob.type === 'colorOrRole' && !(v === null || (typeof v === 'string' && (knob.roles.includes(v) || HEX_RE.test(v)))));
@@ -502,6 +531,8 @@ function validateNode(node, path, depth, formId, ctx, parent = ROOT_PARENT) {
     }
     // Collect modal ids so open_modal actions can resolve them.
     if (node.type === 'modal' && typeof node.id === 'string') ctx.modalIds.add(node.id);
+    // …and every node's type, and each form's name, for the steps that name a node (uiStepChecks.mts).
+    noteUiTarget(node, props, ctx);
     if (node.type === 'input_document') checkDocumentPicker(props, path, ctx);
 
     checkActionWiring(node, path, props, spec, ctx);
@@ -570,15 +601,24 @@ function validateNode(node, path, depth, formId, ctx, parent = ROOT_PARENT) {
  * Not "referenced anywhere in the JSON": an actionResult BINDING reads a
  * result, it does not produce one, so an action only ever read from would still
  * be unreachable.
+ *
+ * Schema 3 adds three routes that need no gesture: a screen's onOpen and timers (from the
+ * screens passed, so a public surface counts only its own screens) and `watchers` when the
+ * caller passes them (the app-wide check does; the public surface does not).
+ * @param {unknown} screens
+ * @param {unknown} [watchers]
  */
-function collectReferencedActions(screens) {
+function collectReferencedActions(screens, watchers) {
     const out = new Set();
     const visit = (node) => {
         if (!isObject(node)) return;
         for (const ref of nodeActionRefs(node)) out.add(ref.actionId);
         for (const child of (Array.isArray(node.children) ? node.children : [])) visit(child);
     };
+    // Schema 3: a watcher runs its action, and so do a screen's onOpen and timers.
+    for (const w of watchersOf({ watchers })) out.add(w.actionId);
     for (const screen of (Array.isArray(screens) ? screens : [])) {
+        for (const ref of screenTriggerRefs(screen)) out.add(ref.actionId);
         for (const section of (isObject(screen) && Array.isArray(screen.sections) ? screen.sections : [])) {
             for (const child of (isObject(section) && Array.isArray(section.children) ? section.children : [])) visit(child);
         }

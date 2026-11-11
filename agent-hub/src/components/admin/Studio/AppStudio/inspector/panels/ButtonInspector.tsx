@@ -71,4 +71,4 @@ export default function ButtonInspector({ node, definition, onCommit, disabled =
     );
 }
 
-registerInspector('button', ButtonInspector);
+registerInspector('button', ButtonInspector, { props: ['label', 'variant', 'iconLeft', 'role'] });

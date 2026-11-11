@@ -105,6 +105,7 @@ test('rulePaths tags how each path is read: strict, tolerant or fallback', () =>
     assert.deepEqual(uses('isEmpty(item.cc)'), { 'item.cc': 'tolerant' });
     assert.deepEqual(uses('!item.flagged && item.n > 1'), { 'item.flagged': 'tolerant', 'item.n': 'strict' });
     assert.deepEqual(uses('contains(item.replyTo || item.from, "x")'), { 'item.replyTo': 'fallback', 'item.from': 'tolerant' });
+    assert.deepEqual(uses('contains(item.replyTo ?? item.from, "x")'), { 'item.replyTo': 'fallback', 'item.from': 'strict' });
     assert.deepEqual(uses('item.a ? 1 : 2'), { 'item.a': 'tolerant' });
     // the strictest occurrence wins
     assert.deepEqual(uses('isEmpty(item.cc) || contains(item.cc, "x")'), { 'item.cc': 'strict' });

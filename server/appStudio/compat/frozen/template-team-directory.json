@@ -1,0 +1,92 @@
+{
+  "corpus": "template-team-directory",
+  "canonical": {
+    "sha256": "9ef6fd35d9c79d023cd116f27c4e08af333c3ebf4f18dd07c7d563ba24b4a7d9",
+    "bytes": 2361,
+    "inputIsCanonical": true,
+    "idempotent": true,
+    "keys": [
+      "schemaVersion",
+      "meta",
+      "theme",
+      "roles",
+      "screens",
+      "actions",
+      "homeScreenId"
+    ],
+    "parts": {
+      "schemaVersion": "d4735e3a265e16ee",
+      "meta": "3151c67fc3fec18b",
+      "theme": "bc31c8c233f11faf",
+      "roles": "4f53cda18c2baa0c",
+      "screens[0] scr_tmdir": "e10ffdcb1c6b9ae2",
+      "homeScreenId": "855dfab226fb2402"
+    }
+  },
+  "schemaVersion": {
+    "stored": 2,
+    "canonical": 2
+  },
+  "validation": {
+    "strict": {
+      "errors": [],
+      "warnings": []
+    },
+    "save": {
+      "errors": [],
+      "warnings": []
+    }
+  },
+  "ordinals": {
+    "stored": {},
+    "canonical": "same as stored"
+  },
+  "installHash": {
+    "stored": "12dbd1b43b6ea149226318351d2d8c46dc994200183957d433226a7e036ed945",
+    "afterResave": "12dbd1b43b6ea149226318351d2d8c46dc994200183957d433226a7e036ed945"
+  },
+  "reads": [
+    {
+      "at": "cmp_tmlist.source",
+      "kind": "records",
+      "table": "tbl_tmppl",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"people\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"people\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_tmrd.source",
+      "kind": "record",
+      "table": "tbl_tmppl",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"people\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"people\" WHERE (1=1) ORDER BY \"name\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      }
+    }
+  ]
+}

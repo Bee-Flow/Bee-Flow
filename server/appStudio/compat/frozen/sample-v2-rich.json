@@ -1,0 +1,53 @@
+{
+  "corpus": "sample-v2-rich",
+  "canonical": {
+    "sha256": "7ac5328ed4358c78aed8681269afceea2da99e9938a743f6a5af275d40301540",
+    "bytes": 6534,
+    "inputIsCanonical": false,
+    "idempotent": true,
+    "keys": [
+      "schemaVersion",
+      "meta",
+      "theme",
+      "roles",
+      "screens",
+      "actions",
+      "homeScreenId"
+    ],
+    "parts": {
+      "schemaVersion": "d4735e3a265e16ee",
+      "meta": "2b8ed050309613ae",
+      "theme": "5d7eeb0111b89897",
+      "roles": "4f53cda18c2baa0c",
+      "screens[0] scr_rich01": "0f45cb8b7b074b1b",
+      "actions.act_rtoast": "a0270f44d025b632",
+      "homeScreenId": "176aa5e3fb72dd6f"
+    }
+  },
+  "schemaVersion": {
+    "stored": 2,
+    "canonical": 2
+  },
+  "validation": {
+    "strict": {
+      "errors": [],
+      "warnings": [
+        "binding.table_unverified @ screens[0].sections[0].children[7].children[6].props.tableId"
+      ]
+    },
+    "save": {
+      "errors": [],
+      "warnings": [
+        "binding.table_unverified @ screens[0].sections[0].children[7].children[6].props.tableId"
+      ]
+    }
+  },
+  "ordinals": {
+    "stored": {
+      "act_rtoast": [
+        "0 toast"
+      ]
+    },
+    "canonical": "same as stored"
+  }
+}

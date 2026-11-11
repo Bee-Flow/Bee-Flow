@@ -12,6 +12,7 @@ import useModelTierSelection from '@/hooks/useModelTierSelection';
 import { useStudioKnowledgeBases } from '@/api/queries/studioApps';
 import { bindingForField, fieldNameFromBinding, sanitizeVarName, type SchemaField } from './aiFieldMatching';
 import type { TranslateParams } from '@/hooks/useTranslation';
+import { AiReliabilityFields } from './AiChecksField';
 import type { AiAction, KnowledgeBase, SchemaMeta, ModelTierRowProps, FieldSourcePickerProps, SchemaFieldsEditorProps, KbMultiSelectProps, ResultVarFieldProps, AiGenerateEditorProps } from './AiActionEditors.types';
 
 const schemaTypeOptions = (t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string) => [
@@ -272,6 +273,7 @@ export function AiGenerateEditor({ action, commit, formFields, disabled }: AiGen
             )}
             <ModelTierRow value={action.modelTier} onChange={(tier) => set({ modelTier: tier })} disabled={disabled} />
             <KbMultiSelect value={action.knowledgeBaseIds} onChange={(ids) => set({ knowledgeBaseIds: ids })} disabled={disabled} />
+            <AiReliabilityFields action={action} set={set} disabled={disabled} />
             <ResultVarField value={action.resultVar} onChange={(v) => set({ resultVar: v })} disabled={disabled} required />
         </>
     );

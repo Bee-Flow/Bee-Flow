@@ -68,14 +68,18 @@ function segmentsToTokens(segments) {
 
 const EMPTINESS_FNS = new Set(['isEmpty', 'len', 'count']);
 
+/** The left of `||` or `??`: the right side supplies the value. */
+const isFallbackLeft = (parent, key) => key === 'a' && parent.kind === 'binop' && (parent.op === '||' || parent.op === '??');
+
 /**
  * How a path node in this position reads its field: 'fallback' (the left of
- * `||`: the right side supplies the value), 'tolerant' (a check written for
+ * `||` or `??`: the right side supplies the value), 'tolerant' (a check written for
  * an absent field) or 'strict'. Mirrors shared/expr/wholeRun.mjs isEmptinessUse.
  */
 function useOf(parent, key) {
     if (!parent) return 'tolerant';
-    if (parent.kind === 'binop' && parent.op === '||') return key === 'a' ? 'fallback' : 'tolerant';
+    if (isFallbackLeft(parent, key)) return 'fallback';
+    if (parent.kind === 'binop' && parent.op === '||') return 'tolerant';
     if (parent.kind === 'binop' && parent.op === '&&') return 'tolerant';
     if (parent.kind === 'unop' && parent.op === '!') return 'tolerant';
     if (parent.kind === 'ternary' && key === 'cond') return 'tolerant';

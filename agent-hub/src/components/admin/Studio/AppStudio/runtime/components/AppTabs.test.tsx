@@ -1,9 +1,9 @@
-import { render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect } from 'vitest';
 import AppTabs, { tabBadgeContent } from './AppTabs';
-import { RuntimeProvider, buildScope, DEFAULT_RUNTIME } from '../RuntimeContext';
-import type { ReactElement } from 'react';
+import { buildScope } from '../RuntimeContext';
+import { renderInRuntime as withRuntime } from '@/test/appRuntimeRender';
+import { withoutPartClasses } from '@/test/appPartClasses';
 
 /**
  * tabs.look (spec: server/appStudio/componentSpecs.js).
@@ -18,11 +18,6 @@ import type { ReactElement } from 'react';
  * containers.test.jsx through AppRenderer; this file is about the strip's
  * visual registers only.
  */
-
-function withRuntime(ui: ReactElement, overrides = {}) {
-    const value = { ...DEFAULT_RUNTIME, scope: buildScope({ now: '2026-01-01T00:00:00.000Z' }), ...overrides };
-    return render(<RuntimeProvider value={value}>{ui}</RuntimeProvider>);
-}
 
 function tabsNode(props = {}) {
     return {
@@ -59,16 +54,16 @@ describe('AppTabs — look: underline is the identity', () => {
         expect(container.querySelector('[data-app-tabs]')!.getAttribute('data-app-tabs-look')).toBeNull();
 
         const strip = getByRole('tablist');
-        expect(strip.className).toBe(IDENTITY_STRIP_CLS);
+        expect(withoutPartClasses(strip.className)).toBe(IDENTITY_STRIP_CLS);
         expect(strip.style.borderColor).toBe('var(--border-default)');
 
         const active = getByRole('tab', { name: 'First' });
-        expect(active.className).toBe(IDENTITY_TAB_CLS);
+        expect(withoutPartClasses(active.className)).toBe(IDENTITY_TAB_CLS);
         expect(active.style.borderBottom).toBe('2px solid var(--app-primary)');
         expect(active.style.color).toBe('var(--app-primary)');
 
         const inactive = getByRole('tab', { name: 'Second' });
-        expect(inactive.className).toBe(IDENTITY_TAB_CLS);
+        expect(withoutPartClasses(inactive.className)).toBe(IDENTITY_TAB_CLS);
         expect(inactive.style.borderBottom).toBe('2px solid transparent');
         expect(inactive.style.color).toBe('var(--text-secondary)');
     });
@@ -77,8 +72,8 @@ describe('AppTabs — look: underline is the identity', () => {
         for (const look of ['underline', 'holographic']) {
             const utils = renderTabs({ look });
             expect(utils.container.querySelector('[data-app-tabs]')!.getAttribute('data-app-tabs-look')).toBeNull();
-            expect(utils.container.querySelector('[role="tablist"]')!.className).toBe(IDENTITY_STRIP_CLS);
-            expect(utils.container.querySelector('[role="tab"]')!.className).toBe(IDENTITY_TAB_CLS);
+            expect(withoutPartClasses(utils.container.querySelector('[role="tablist"]')!.className)).toBe(IDENTITY_STRIP_CLS);
+            expect(withoutPartClasses(utils.container.querySelector('[role="tab"]')!.className)).toBe(IDENTITY_TAB_CLS);
             utils.unmount(); // two renders in one test — do not let queries see both
         }
     });

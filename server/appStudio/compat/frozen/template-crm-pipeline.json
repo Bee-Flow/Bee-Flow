@@ -1,0 +1,129 @@
+{
+  "corpus": "template-crm-pipeline",
+  "canonical": {
+    "sha256": "9f7d09f065a13e807b0cf36501ccca3770b7e81dc366efa23cfe5bf3a90c0862",
+    "bytes": 3112,
+    "inputIsCanonical": true,
+    "idempotent": true,
+    "keys": [
+      "schemaVersion",
+      "meta",
+      "theme",
+      "roles",
+      "screens",
+      "actions",
+      "design",
+      "homeScreenId"
+    ],
+    "parts": {
+      "schemaVersion": "d4735e3a265e16ee",
+      "meta": "f59a608058168ef1",
+      "theme": "9808c055ba383bd8",
+      "roles": "4f53cda18c2baa0c",
+      "screens[0] scr_crmpipe": "2a88beabc5764ff8",
+      "screens[1] scr_crmdeal": "4033af7f852c134d",
+      "actions.act_crmopen": "14fb3724db81c1c1",
+      "actions.act_crmback": "5725995feafff0c8",
+      "actions.act_crmmove": "f14f1b60ebcacb34",
+      "design": "8540bd44835d7d8d",
+      "homeScreenId": "cf62c000397c83c7"
+    }
+  },
+  "schemaVersion": {
+    "stored": 2,
+    "canonical": 2
+  },
+  "validation": {
+    "strict": {
+      "errors": [],
+      "warnings": []
+    },
+    "save": {
+      "errors": [],
+      "warnings": []
+    }
+  },
+  "ordinals": {
+    "stored": {
+      "act_crmopen": [
+        "0 navigate"
+      ],
+      "act_crmback": [
+        "0 navigate"
+      ],
+      "act_crmmove": [
+        "0 update_record",
+        "1 toast"
+      ]
+    },
+    "canonical": "same as stored"
+  },
+  "installHash": {
+    "stored": "0dc0447afe5619ca30ff18f0663e9ad14f81932700b00a9f9f9edb828edf3888",
+    "afterResave": "0dc0447afe5619ca30ff18f0663e9ad14f81932700b00a9f9f9edb828edf3888"
+  },
+  "reads": [
+    {
+      "at": "cmp_crmkan.source",
+      "kind": "records",
+      "table": "tbl_crmdl",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"deals\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"deals\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_crmrd.source",
+      "kind": "record",
+      "table": "tbl_crmdl",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"deals\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"deals\" WHERE (1=1) ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      }
+    },
+    {
+      "at": "dataset ds_crmstage",
+      "kind": "dataset",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT \"stage\" AS \"stage\", COUNT(*) AS \"count_all\" FROM \"deals\" WHERE (1=1) GROUP BY \"stage\" LIMIT ?",
+          "params": [
+            50
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT \"stage\" AS \"stage\", COUNT(*) AS \"count_all\" FROM \"deals\" WHERE (1=1) GROUP BY \"stage\" LIMIT ?",
+          "params": [
+            50
+          ]
+        }
+      }
+    }
+  ]
+}

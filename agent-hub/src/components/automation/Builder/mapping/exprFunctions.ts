@@ -18,6 +18,11 @@ export const EXPR_OPERATOR_GROUPS = [
     // IS pow()). It is a real operator in the shared engine, so the cheatsheet
     // has to list it or the panel understates the grammar it documents.
     { label: 'Maths', ops: '+  -  *  /  %  ^' },
-    { label: 'Choose', ops: 'condition ? a : b' },
+    // `a ?? b` is b only when a is null or missing (0, "" and false stay).
+    // `[…]` writes a list. This panel serves automations, where the server
+    // refuses an object literal (an object is built with a set step), so `{…}`
+    // is not listed here.
+    { label: 'Choose', ops: 'condition ? a : b   a ?? fallback' },
+    { label: 'Lists', ops: '[1, 2, 3]   sort(list)[0]' },
     { label: 'Paths', ops: 'steps.step1.output.field   item.name   list[0]' },
 ];

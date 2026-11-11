@@ -1,0 +1,5421 @@
+{
+  "about": {
+    "source": "server/appStudio/templates.js template \"app-breach-register\" version 1",
+    "stored": "definition = canonicalizeAppDefinition(deep clone of template.definition).def (routes/studioApps/crud.js create-from-template, no name override); dataModel = canonicalizeDataModel(template.dataModel).model (templateInstall.js); datasets as the template declares them",
+    "captured": "2026-11-10",
+    "templateId": "app-breach-register"
+  },
+  "definition": {
+    "schemaVersion": 2,
+    "meta": {
+      "name": "Data breach register",
+      "description": "Articles 33 and 34, with the 72-hour clock running.",
+      "icon": "ShieldCheck"
+    },
+    "theme": {
+      "primary": "#B91C1C",
+      "radius": "md",
+      "density": "compact",
+      "fontScale": "md",
+      "appearance": "dark"
+    },
+    "roles": [
+      {
+        "id": "dpo",
+        "name": "Data protection officer"
+      },
+      {
+        "id": "responder",
+        "name": "Incident responder"
+      },
+      {
+        "id": "reporter",
+        "name": "Anyone who spots a breach"
+      }
+    ],
+    "variables": [
+      {
+        "name": "breach",
+        "label": "Open breach",
+        "type": "record",
+        "default": {},
+        "description": "The breach whose file is on screen. Only its id and reference are read after it is set — everything that can change is re-read live."
+      },
+      {
+        "name": "newbreach",
+        "label": "Last recorded breach",
+        "type": "record",
+        "default": {},
+        "description": "The row the intake just created, so its first action-log entry can point at it."
+      }
+    ],
+    "screens": [
+      {
+        "id": "scr_clock",
+        "name": "Open breaches",
+        "icon": "AlertTriangle",
+        "showInNav": true,
+        "maxWidth": "full",
+        "description": "The 72-hour clock, running.",
+        "sections": [
+          {
+            "id": "sec_cktop",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_ckhdr",
+                "type": "page_header",
+                "props": {
+                  "title": "Open breaches",
+                  "subtitle": "Ordered by the Article 33 deadline — 72 hours from the moment we became aware, not from when it happened.",
+                  "titleFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "subtitleFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "tagsFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "icon": "AlertTriangle",
+                  "showDivider": false,
+                  "look": "banner"
+                },
+                "style": {
+                  "span": 12,
+                  "gap": 3,
+                  "padding": 0
+                },
+                "visible": true,
+                "children": [
+                  {
+                    "id": "cmp_cknew",
+                    "type": "button",
+                    "props": {
+                      "label": "Report a breach",
+                      "variant": "primary",
+                      "iconLeft": "Plus",
+                      "role": "button",
+                      "disabledWhen": null
+                    },
+                    "style": {
+                      "span": 3
+                    },
+                    "visible": true,
+                    "onClick": "act_goreport"
+                  }
+                ]
+              },
+              {
+                "id": "cmp_ckst1",
+                "type": "stat",
+                "props": {
+                  "label": "Open",
+                  "value": {
+                    "kind": "aggregate",
+                    "tableId": "tbl_brchs01",
+                    "filter": [
+                      {
+                        "field": "stage",
+                        "op": "neq",
+                        "value": "closed"
+                      }
+                    ],
+                    "limit": 1,
+                    "aggregates": [
+                      {
+                        "fn": "count",
+                        "field": "*",
+                        "as": "n"
+                      }
+                    ],
+                    "pick": {
+                      "row": "first",
+                      "column": "n"
+                    }
+                  },
+                  "caption": "breaches still being handled",
+                  "captionSegments": [],
+                  "icon": "Inbox",
+                  "delta": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "deltaFormat": "number",
+                  "trend": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "positiveIsGood": false,
+                  "look": "accent"
+                },
+                "style": {
+                  "span": 3
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_ckst2",
+                "type": "stat",
+                "props": {
+                  "label": "Due now",
+                  "value": {
+                    "kind": "aggregate",
+                    "tableId": "tbl_brchs01",
+                    "filter": [
+                      {
+                        "field": "authority_required",
+                        "op": "eq",
+                        "value": true
+                      },
+                      {
+                        "field": "authority_notified_at",
+                        "op": "isNull"
+                      },
+                      {
+                        "field": "notify_due_date",
+                        "op": "lte",
+                        "value": {
+                          "kind": "formula",
+                          "expr": "today"
+                        }
+                      }
+                    ],
+                    "limit": 1,
+                    "aggregates": [
+                      {
+                        "fn": "count",
+                        "field": "*",
+                        "as": "n"
+                      }
+                    ],
+                    "pick": {
+                      "row": "first",
+                      "column": "n"
+                    }
+                  },
+                  "caption": "authority not notified, 72 hours up today or already past",
+                  "captionSegments": [],
+                  "icon": "Timer",
+                  "delta": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "deltaFormat": "number",
+                  "trend": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "positiveIsGood": false,
+                  "look": "accent"
+                },
+                "style": {
+                  "span": 3
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_ckst3",
+                "type": "stat",
+                "props": {
+                  "label": "Notified late",
+                  "value": {
+                    "kind": "aggregate",
+                    "tableId": "tbl_brchs01",
+                    "filter": [
+                      {
+                        "field": "authority_hours",
+                        "op": "gt",
+                        "value": 72
+                      }
+                    ],
+                    "limit": 1,
+                    "aggregates": [
+                      {
+                        "fn": "count",
+                        "field": "*",
+                        "as": "n"
+                      }
+                    ],
+                    "pick": {
+                      "row": "first",
+                      "column": "n"
+                    }
+                  },
+                  "caption": "ever — each needs a reason for the delay on file",
+                  "captionSegments": [],
+                  "icon": "History",
+                  "delta": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "deltaFormat": "number",
+                  "trend": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "positiveIsGood": false,
+                  "look": "accent"
+                },
+                "style": {
+                  "span": 3
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_ckst4",
+                "type": "stat",
+                "props": {
+                  "label": "Recorded, not notifiable",
+                  "value": {
+                    "kind": "aggregate",
+                    "tableId": "tbl_brchs01",
+                    "filter": [
+                      {
+                        "field": "outcome",
+                        "op": "eq",
+                        "value": "recorded_only"
+                      }
+                    ],
+                    "limit": 1,
+                    "aggregates": [
+                      {
+                        "fn": "count",
+                        "field": "*",
+                        "as": "n"
+                      }
+                    ],
+                    "pick": {
+                      "row": "first",
+                      "column": "n"
+                    }
+                  },
+                  "caption": "assessed as no risk and documented (Art. 33(5))",
+                  "captionSegments": [],
+                  "icon": "FileCheck",
+                  "delta": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "deltaFormat": "number",
+                  "trend": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "positiveIsGood": true,
+                  "look": "accent"
+                },
+                "style": {
+                  "span": 3
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_ckfilt",
+                "type": "filter_bar",
+                "props": {
+                  "fields": [
+                    {
+                      "name": "q",
+                      "label": "Search",
+                      "type": "search",
+                      "options": []
+                    },
+                    {
+                      "name": "severity",
+                      "label": "Severity",
+                      "type": "select",
+                      "options": [
+                        {
+                          "value": "unassessed",
+                          "label": "Not assessed"
+                        },
+                        {
+                          "value": "none",
+                          "label": "No risk"
+                        },
+                        {
+                          "value": "low",
+                          "label": "Low risk"
+                        },
+                        {
+                          "value": "medium",
+                          "label": "Risk"
+                        },
+                        {
+                          "value": "high",
+                          "label": "High risk"
+                        }
+                      ]
+                    },
+                    {
+                      "name": "stage",
+                      "label": "Stage",
+                      "type": "select",
+                      "options": [
+                        {
+                          "value": "reported",
+                          "label": "Reported"
+                        },
+                        {
+                          "value": "assessed",
+                          "label": "Assessed"
+                        },
+                        {
+                          "value": "notified",
+                          "label": "Notified"
+                        },
+                        {
+                          "value": "closed",
+                          "label": "Closed"
+                        }
+                      ]
+                    },
+                    {
+                      "name": "due",
+                      "label": "Deadline reached",
+                      "type": "toggle",
+                      "options": []
+                    }
+                  ]
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              }
+            ]
+          },
+          {
+            "id": "sec_ckmain",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none",
+              "height": "fill"
+            },
+            "children": [
+              {
+                "id": "cmp_ckgrid",
+                "type": "data_grid",
+                "props": {
+                  "source": {
+                    "kind": "records",
+                    "tableId": "tbl_brchs01",
+                    "filter": [
+                      {
+                        "field": "stage",
+                        "op": "neq",
+                        "value": "closed"
+                      },
+                      {
+                        "field": "title",
+                        "op": "contains",
+                        "value": {
+                          "kind": "formula",
+                          "expr": "vars.filters.q"
+                        },
+                        "required": false
+                      },
+                      {
+                        "field": "severity",
+                        "op": "eq",
+                        "value": {
+                          "kind": "formula",
+                          "expr": "vars.filters.severity"
+                        },
+                        "required": false
+                      },
+                      {
+                        "field": "stage",
+                        "op": "eq",
+                        "value": {
+                          "kind": "formula",
+                          "expr": "vars.filters.stage"
+                        },
+                        "required": false
+                      },
+                      {
+                        "field": "notify_due_date",
+                        "op": "lte",
+                        "value": {
+                          "kind": "formula",
+                          "expr": "vars.filters.due ? today : null"
+                        },
+                        "required": false
+                      }
+                    ],
+                    "sort": [
+                      {
+                        "field": "notify_due_at",
+                        "dir": "asc"
+                      }
+                    ],
+                    "limit": 200
+                  },
+                  "columns": [
+                    {
+                      "key": "reference",
+                      "label": "Reference",
+                      "format": "text",
+                      "width": 130,
+                      "sortable": true,
+                      "filterable": true,
+                      "editable": false
+                    },
+                    {
+                      "key": "title",
+                      "label": "What happened",
+                      "format": "text",
+                      "width": 320,
+                      "sortable": true,
+                      "filterable": true,
+                      "editable": false
+                    },
+                    {
+                      "key": "breach_type",
+                      "label": "Type",
+                      "format": "badge",
+                      "width": 140,
+                      "sortable": true,
+                      "filterable": true,
+                      "editable": false
+                    },
+                    {
+                      "key": "severity",
+                      "label": "Severity",
+                      "format": "badge",
+                      "width": 120,
+                      "sortable": true,
+                      "filterable": true,
+                      "editable": false
+                    },
+                    {
+                      "key": "notify_due_date",
+                      "label": "Notify by",
+                      "format": "date",
+                      "width": 120,
+                      "sortable": true,
+                      "filterable": false,
+                      "editable": false
+                    },
+                    {
+                      "key": "people_affected",
+                      "label": "People",
+                      "format": "number",
+                      "width": 90,
+                      "sortable": true,
+                      "filterable": false,
+                      "editable": false
+                    },
+                    {
+                      "key": "stage",
+                      "label": "Stage",
+                      "format": "badge",
+                      "width": 120,
+                      "sortable": true,
+                      "filterable": true,
+                      "editable": false
+                    },
+                    {
+                      "key": "outcome",
+                      "label": "Outcome",
+                      "format": "badge",
+                      "width": 180,
+                      "sortable": true,
+                      "filterable": true,
+                      "editable": false
+                    }
+                  ],
+                  "pageSize": 25,
+                  "selectable": "none",
+                  "searchable": true,
+                  "rowActions": [
+                    {
+                      "label": "Open",
+                      "actionId": "act_bopen"
+                    }
+                  ],
+                  "toolbarActions": [],
+                  "addRowLabel": null,
+                  "addRowActionId": null,
+                  "bulkActions": [],
+                  "density": "compact",
+                  "clamp": "off",
+                  "rowTone": [],
+                  "groupBy": null,
+                  "groupOrder": [],
+                  "activeWhen": null,
+                  "zebra": true,
+                  "emptyText": "Nothing open. When something happens, report it here — the clock starts the moment anyone in the organisation knows.",
+                  "look": "default"
+                },
+                "style": {
+                  "span": 12,
+                  "height": "fill"
+                },
+                "visible": true,
+                "onRowClick": "act_bopen"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "scr_report",
+        "name": "Report a breach",
+        "icon": "Plus",
+        "showInNav": true,
+        "maxWidth": "wide",
+        "description": "Log it now; assess it after.",
+        "sections": [
+          {
+            "id": "sec_rptop",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_rphdr",
+                "type": "page_header",
+                "props": {
+                  "title": "Report a breach",
+                  "subtitle": "Report first, investigate second. A record you can correct beats a deadline you missed while gathering detail.",
+                  "titleFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "subtitleFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "tagsFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "icon": "Plus",
+                  "showDivider": false,
+                  "look": "plain"
+                },
+                "style": {
+                  "span": 12,
+                  "gap": 3,
+                  "padding": 0
+                },
+                "visible": true,
+                "children": [
+                  {
+                    "id": "cmp_rpback",
+                    "type": "button",
+                    "props": {
+                      "label": "Back to the register",
+                      "variant": "ghost",
+                      "iconLeft": "ArrowLeft",
+                      "role": "button",
+                      "disabledWhen": null
+                    },
+                    "style": {
+                      "span": 3
+                    },
+                    "visible": true,
+                    "onClick": "act_goclock"
+                  }
+                ]
+              },
+              {
+                "id": "cmp_rpnote",
+                "type": "callout",
+                "props": {
+                  "title": "The clock starts at awareness, not at the incident",
+                  "text": "The 72 hours of Article 33 run from the moment the organisation became **aware** — which can be days or months after the thing itself happened. A backup found missing this morning, lost last spring, is due within 72 hours of this morning. If a processor told you, awareness is the moment **they told you**; record that on the Systems tab afterwards.",
+                  "textFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "tone": "warning",
+                  "toneFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "meta": null,
+                  "metaFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "collapsible": false
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              }
+            ]
+          },
+          {
+            "id": "sec_rpmain",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none",
+              "height": "fill"
+            },
+            "children": [
+              {
+                "id": "cmp_rpform",
+                "type": "form",
+                "props": {
+                  "name": "newbreach",
+                  "submitLabel": "Record it and start the clock",
+                  "showReset": false,
+                  "showSubmit": true,
+                  "resetKey": null
+                },
+                "style": {
+                  "span": 8,
+                  "gap": 3,
+                  "padding": 0
+                },
+                "visible": true,
+                "onSubmit": "act_report",
+                "children": [
+                  {
+                    "id": "cmp_rpf1",
+                    "type": "input_text",
+                    "props": {
+                      "name": "reference",
+                      "label": "Reference",
+                      "placeholder": "BR-2026-018",
+                      "required": true,
+                      "defaultValue": null,
+                      "inputType": "text",
+                      "valueFrom": {
+                        "kind": "static",
+                        "value": null
+                      }
+                    },
+                    "style": {
+                      "span": 4
+                    },
+                    "visible": true
+                  },
+                  {
+                    "id": "cmp_rpf2",
+                    "type": "input_text",
+                    "props": {
+                      "name": "title",
+                      "label": "What happened, in one line",
+                      "placeholder": "Mailing sent with every recipient in the To field",
+                      "required": true,
+                      "defaultValue": null,
+                      "inputType": "text",
+                      "valueFrom": {
+                        "kind": "static",
+                        "value": null
+                      }
+                    },
+                    "style": {
+                      "span": 8
+                    },
+                    "visible": true
+                  },
+                  {
+                    "id": "cmp_rpf3",
+                    "type": "input_datetime",
+                    "props": {
+                      "name": "became_aware_at",
+                      "label": "We became aware (date and time)",
+                      "required": true,
+                      "withTime": true,
+                      "defaultValue": "now"
+                    },
+                    "style": {
+                      "span": 4
+                    },
+                    "visible": true
+                  },
+                  {
+                    "id": "cmp_rpf4",
+                    "type": "input_datetime",
+                    "props": {
+                      "name": "occurred_at",
+                      "label": "It happened (if known)",
+                      "required": false,
+                      "withTime": true,
+                      "defaultValue": null
+                    },
+                    "style": {
+                      "span": 4
+                    },
+                    "visible": true
+                  },
+                  {
+                    "id": "cmp_rpf5",
+                    "type": "input_select",
+                    "props": {
+                      "name": "breach_type",
+                      "label": "Kind of breach",
+                      "options": [
+                        {
+                          "value": "confidentiality",
+                          "label": "Confidentiality — data seen by the wrong people"
+                        },
+                        {
+                          "value": "integrity",
+                          "label": "Integrity — data altered without authorisation"
+                        },
+                        {
+                          "value": "availability",
+                          "label": "Availability — data lost or unreachable"
+                        }
+                      ],
+                      "required": true,
+                      "defaultValue": "confidentiality",
+                      "placeholder": null,
+                      "valueFrom": {
+                        "kind": "static",
+                        "value": null
+                      },
+                      "optionsFrom": null,
+                      "optionValueKey": null,
+                      "optionLabelKey": null
+                    },
+                    "style": {
+                      "span": 4
+                    },
+                    "visible": true
+                  },
+                  {
+                    "id": "cmp_rpf6",
+                    "type": "input_textarea",
+                    "props": {
+                      "name": "description",
+                      "label": "What we know so far",
+                      "placeholder": "What was exposed, how it came to light, who is involved.",
+                      "required": true,
+                      "rows": 4,
+                      "valueFrom": {
+                        "kind": "static",
+                        "value": null
+                      },
+                      "snippets": {
+                        "kind": "static",
+                        "value": null
+                      },
+                      "snippetKey": "shortcut",
+                      "snippetBody": "body",
+                      "snippetLabel": "title"
+                    },
+                    "style": {
+                      "span": 12
+                    },
+                    "visible": true
+                  },
+                  {
+                    "id": "cmp_rpf7",
+                    "type": "input_text",
+                    "props": {
+                      "name": "data_categories",
+                      "label": "Categories of personal data affected (Art. 33(3)(a))",
+                      "placeholder": "Name, e-mail address, order history",
+                      "required": false,
+                      "defaultValue": null,
+                      "inputType": "text",
+                      "valueFrom": {
+                        "kind": "static",
+                        "value": null
+                      }
+                    },
+                    "style": {
+                      "span": 8
+                    },
+                    "visible": true
+                  },
+                  {
+                    "id": "cmp_rpf8",
+                    "type": "input_number",
+                    "props": {
+                      "name": "people_affected",
+                      "label": "People affected (estimate)",
+                      "min": 0,
+                      "max": 100000000,
+                      "step": 1,
+                      "required": false,
+                      "defaultValue": null,
+                      "valueFrom": {
+                        "kind": "static",
+                        "value": null
+                      }
+                    },
+                    "style": {
+                      "span": 4
+                    },
+                    "visible": true
+                  },
+                  {
+                    "id": "cmp_rpf9",
+                    "type": "input_textarea",
+                    "props": {
+                      "name": "containment",
+                      "label": "What has already been done to contain it",
+                      "placeholder": "Mailing recalled, account locked, server disconnected.",
+                      "required": false,
+                      "rows": 3,
+                      "valueFrom": {
+                        "kind": "static",
+                        "value": null
+                      },
+                      "snippets": {
+                        "kind": "static",
+                        "value": null
+                      },
+                      "snippetKey": "shortcut",
+                      "snippetBody": "body",
+                      "snippetLabel": "title"
+                    },
+                    "style": {
+                      "span": 12
+                    },
+                    "visible": true
+                  }
+                ]
+              },
+              {
+                "id": "cmp_rprec",
+                "type": "list",
+                "props": {
+                  "source": {
+                    "kind": "records",
+                    "tableId": "tbl_brchs01",
+                    "sort": [
+                      {
+                        "field": "created_at",
+                        "dir": "desc"
+                      }
+                    ],
+                    "limit": 8
+                  },
+                  "titleKey": "title",
+                  "subtitleKey": "reference",
+                  "metaKey": "severity",
+                  "timestampKey": "became_aware_at",
+                  "badgeKey": "stage",
+                  "tagsKey": null,
+                  "badgeToneMap": [
+                    {
+                      "value": "reported",
+                      "label": "Reported",
+                      "tone": "warning"
+                    },
+                    {
+                      "value": "assessed",
+                      "label": "Assessed",
+                      "tone": "info"
+                    },
+                    {
+                      "value": "notified",
+                      "label": "Notified",
+                      "tone": "primary"
+                    },
+                    {
+                      "value": "closed",
+                      "label": "Closed",
+                      "tone": "neutral"
+                    }
+                  ],
+                  "unreadKey": null,
+                  "badgePlacement": "meta",
+                  "selectedWhen": null,
+                  "selectedDetailKey": null,
+                  "groupKey": null,
+                  "groupOrder": [],
+                  "groupLabelMap": [],
+                  "icon": "ShieldCheck",
+                  "emptyText": "Nothing reported yet.",
+                  "look": "rows",
+                  "peekSource": null,
+                  "peekMatchKey": null,
+                  "peekRowKey": null,
+                  "peekTitleKey": null,
+                  "peekTextKey": null,
+                  "peekGroupKey": null,
+                  "peekGroupLabelMap": [],
+                  "peekCountKey": null,
+                  "peekLimit": 6,
+                  "peekTitle": null,
+                  "peekMoreText": null,
+                  "peekBadge": false
+                },
+                "style": {
+                  "span": 4,
+                  "height": "fill"
+                },
+                "visible": true,
+                "onRowClick": "act_bopen"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "scr_breach",
+        "name": "Breach file",
+        "icon": "FileText",
+        "showInNav": false,
+        "maxWidth": "full",
+        "description": "One breach in full, with its action log.",
+        "sections": [
+          {
+            "id": "sec_brtop",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_brhdr",
+                "type": "page_header",
+                "props": {
+                  "title": "Breach file",
+                  "subtitle": null,
+                  "titleFrom": {
+                    "kind": "formula",
+                    "expr": "vars.breach.title"
+                  },
+                  "subtitleFrom": {
+                    "kind": "formula",
+                    "expr": "vars.breach.reference"
+                  },
+                  "tagsFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "icon": "FileText",
+                  "showDivider": true,
+                  "look": "plain"
+                },
+                "style": {
+                  "span": 12,
+                  "gap": 3,
+                  "padding": 0
+                },
+                "visible": true,
+                "children": [
+                  {
+                    "id": "cmp_brback",
+                    "type": "button",
+                    "props": {
+                      "label": "Back to the register",
+                      "variant": "ghost",
+                      "iconLeft": "ArrowLeft",
+                      "role": "button",
+                      "disabledWhen": null
+                    },
+                    "style": {
+                      "span": 3
+                    },
+                    "visible": true,
+                    "onClick": "act_goclock"
+                  }
+                ]
+              },
+              {
+                "id": "cmp_brnone",
+                "type": "callout",
+                "props": {
+                  "title": "No breach open",
+                  "text": "Pick one from the register — Open breaches, or the closed register — and its file, its clock and its action log appear here.",
+                  "textFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "tone": "info",
+                  "toneFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "meta": null,
+                  "metaFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "collapsible": false
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": {
+                  "kind": "formula",
+                  "expr": "!vars.breach.id"
+                }
+              },
+              {
+                "id": "cmp_brclock",
+                "type": "markdown",
+                "props": {
+                  "content": "The Article 33 deadline appears here once a breach is open.",
+                  "contentFrom": {
+                    "kind": "formula",
+                    "expr": "dateDiff(vars.breach.notify_due_at, now, 'second') >= 0 ? concat('**', toStr(dateDiff(vars.breach.notify_due_at, now, 'hour')),   ' hours left.** The Article 33 notification is due ',   formatDate(vars.breach.notify_due_at, 'DD-MM-YYYY HH:mm'), ' UTC — 72 hours after ',   formatDate(vars.breach.became_aware_at, 'DD-MM-YYYY HH:mm'), ' UTC, when we became aware.') : concat('**The 72 hours ran out ', toStr(abs(dateDiff(vars.breach.notify_due_at, now, 'hour'))),   ' hours ago** (deadline ', formatDate(vars.breach.notify_due_at, 'DD-MM-YYYY HH:mm'),   ' UTC). If the authority has not been notified yet, the notification must give the reasons for the delay (Art. 33(1)).')"
+                  }
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": {
+                  "kind": "formula",
+                  "expr": "vars.breach.id"
+                }
+              },
+              {
+                "id": "cmp_brstep",
+                "type": "stepper",
+                "props": {
+                  "value": {
+                    "kind": "record",
+                    "tableId": "tbl_brchs01",
+                    "filter": [
+                      {
+                        "field": "id",
+                        "op": "eq",
+                        "value": {
+                          "kind": "formula",
+                          "expr": "vars.breach.id"
+                        },
+                        "required": true
+                      }
+                    ],
+                    "limit": 1,
+                    "pick": {
+                      "row": "first",
+                      "column": "stage"
+                    }
+                  },
+                  "steps": [
+                    {
+                      "value": "reported",
+                      "label": "Reported",
+                      "icon": "Inbox"
+                    },
+                    {
+                      "value": "assessed",
+                      "label": "Assessed",
+                      "icon": "Gauge"
+                    },
+                    {
+                      "value": "notified",
+                      "label": "Notified",
+                      "icon": "Mail"
+                    },
+                    {
+                      "value": "closed",
+                      "label": "Closed",
+                      "icon": "CheckCircle2"
+                    }
+                  ],
+                  "orientation": "horizontal",
+                  "tone": "primary",
+                  "showLabels": true
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": {
+                  "kind": "formula",
+                  "expr": "vars.breach.id"
+                }
+              },
+              {
+                "id": "cmp_brdet",
+                "type": "record_detail",
+                "props": {
+                  "source": {
+                    "kind": "record",
+                    "tableId": "tbl_brchs01",
+                    "filter": [
+                      {
+                        "field": "id",
+                        "op": "eq",
+                        "value": {
+                          "kind": "formula",
+                          "expr": "vars.breach.id"
+                        },
+                        "required": true
+                      }
+                    ],
+                    "limit": 1
+                  },
+                  "fields": [
+                    {
+                      "key": "reference",
+                      "label": "Reference",
+                      "format": "text"
+                    },
+                    {
+                      "key": "breach_type",
+                      "label": "Kind",
+                      "format": "badge"
+                    },
+                    {
+                      "key": "severity",
+                      "label": "Severity",
+                      "format": "badge"
+                    },
+                    {
+                      "key": "became_aware_at",
+                      "label": "We became aware",
+                      "format": "datetime"
+                    },
+                    {
+                      "key": "notify_due_at",
+                      "label": "Article 33 deadline",
+                      "format": "datetime"
+                    },
+                    {
+                      "key": "occurred_at",
+                      "label": "It happened",
+                      "format": "datetime"
+                    },
+                    {
+                      "key": "people_affected",
+                      "label": "People affected",
+                      "format": "number"
+                    },
+                    {
+                      "key": "records_affected",
+                      "label": "Records affected",
+                      "format": "number"
+                    },
+                    {
+                      "key": "special_categories",
+                      "label": "Special-category data (Art. 9)",
+                      "format": "text"
+                    },
+                    {
+                      "key": "data_categories",
+                      "label": "Categories of data",
+                      "format": "text"
+                    },
+                    {
+                      "key": "outcome",
+                      "label": "Outcome",
+                      "format": "badge"
+                    },
+                    {
+                      "key": "reported_by",
+                      "label": "Reported by",
+                      "format": "text"
+                    },
+                    {
+                      "key": "description",
+                      "label": "What happened",
+                      "format": "markdown"
+                    },
+                    {
+                      "key": "containment",
+                      "label": "Containment",
+                      "format": "markdown"
+                    },
+                    {
+                      "key": "risk_summary",
+                      "label": "Risk assessment",
+                      "format": "markdown"
+                    },
+                    {
+                      "key": "authority_notified_at",
+                      "label": "Authority notified",
+                      "format": "datetime"
+                    },
+                    {
+                      "key": "authority_hours",
+                      "label": "Hours from awareness",
+                      "format": "number"
+                    },
+                    {
+                      "key": "authority_reference",
+                      "label": "Authority reference",
+                      "format": "text"
+                    },
+                    {
+                      "key": "authority_late_reason",
+                      "label": "Reason for the delay",
+                      "format": "markdown"
+                    },
+                    {
+                      "key": "subjects_notified_at",
+                      "label": "People told",
+                      "format": "datetime"
+                    },
+                    {
+                      "key": "subjects_exempt_ground",
+                      "label": "Exemption used",
+                      "format": "badge"
+                    },
+                    {
+                      "key": "remediation",
+                      "label": "Remediation",
+                      "format": "markdown"
+                    }
+                  ],
+                  "columns": 3,
+                  "emptyText": "Open a breach from the register to see its file.",
+                  "layout": "stacked"
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              }
+            ]
+          },
+          {
+            "id": "sec_brmain",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none",
+              "height": "fill"
+            },
+            "children": [
+              {
+                "id": "cmp_brtabs",
+                "type": "tabs",
+                "props": {
+                  "look": "underline"
+                },
+                "style": {
+                  "span": 12,
+                  "gap": 3,
+                  "padding": 0
+                },
+                "visible": true,
+                "children": [
+                  {
+                    "id": "cmp_brt1",
+                    "type": "tab",
+                    "props": {
+                      "label": "Assessment",
+                      "icon": "Gauge",
+                      "badge": null,
+                      "badgeTone": "neutral"
+                    },
+                    "style": {
+                      "gap": 3,
+                      "padding": 0
+                    },
+                    "visible": true,
+                    "children": [
+                      {
+                        "id": "cmp_asguide",
+                        "type": "list",
+                        "props": {
+                          "source": {
+                            "kind": "records",
+                            "tableId": "tbl_sevs001",
+                            "sort": [
+                              {
+                                "field": "position",
+                                "dir": "asc"
+                              }
+                            ],
+                            "limit": 30
+                          },
+                          "titleKey": "name",
+                          "subtitleKey": "guidance",
+                          "metaKey": "key",
+                          "timestampKey": null,
+                          "badgeKey": "key",
+                          "tagsKey": null,
+                          "badgeToneMap": [
+                            {
+                              "value": "unassessed",
+                              "label": "Not assessed",
+                              "tone": "neutral"
+                            },
+                            {
+                              "value": "none",
+                              "label": "No risk",
+                              "tone": "success"
+                            },
+                            {
+                              "value": "low",
+                              "label": "Low risk",
+                              "tone": "info"
+                            },
+                            {
+                              "value": "medium",
+                              "label": "Risk",
+                              "tone": "warning"
+                            },
+                            {
+                              "value": "high",
+                              "label": "High risk",
+                              "tone": "danger"
+                            }
+                          ],
+                          "unreadKey": null,
+                          "badgePlacement": "meta",
+                          "selectedWhen": null,
+                          "selectedDetailKey": null,
+                          "groupKey": null,
+                          "groupOrder": [],
+                          "groupLabelMap": [],
+                          "icon": "Gauge",
+                          "emptyText": "No severity levels configured — add them on Setup.",
+                          "look": "rows",
+                          "peekSource": null,
+                          "peekMatchKey": null,
+                          "peekRowKey": null,
+                          "peekTitleKey": null,
+                          "peekTextKey": null,
+                          "peekGroupKey": null,
+                          "peekGroupLabelMap": [],
+                          "peekCountKey": null,
+                          "peekLimit": 6,
+                          "peekTitle": null,
+                          "peekMoreText": null,
+                          "peekBadge": false
+                        },
+                        "style": {
+                          "span": 5,
+                          "height": "lg"
+                        },
+                        "visible": true
+                      },
+                      {
+                        "id": "cmp_asform",
+                        "type": "form",
+                        "props": {
+                          "name": "assess",
+                          "submitLabel": "Record the assessment",
+                          "showReset": false,
+                          "showSubmit": true,
+                          "resetKey": null
+                        },
+                        "style": {
+                          "span": 7,
+                          "gap": 3,
+                          "padding": 0
+                        },
+                        "visible": true,
+                        "onSubmit": "act_assess",
+                        "children": [
+                          {
+                            "id": "cmp_asf1",
+                            "type": "input_select",
+                            "props": {
+                              "name": "severity",
+                              "label": "Severity",
+                              "options": [
+                                {
+                                  "value": "unassessed",
+                                  "label": "Not assessed"
+                                },
+                                {
+                                  "value": "none",
+                                  "label": "No risk"
+                                },
+                                {
+                                  "value": "low",
+                                  "label": "Low risk"
+                                },
+                                {
+                                  "value": "medium",
+                                  "label": "Risk"
+                                },
+                                {
+                                  "value": "high",
+                                  "label": "High risk"
+                                }
+                              ],
+                              "required": true,
+                              "defaultValue": "medium",
+                              "placeholder": null,
+                              "valueFrom": {
+                                "kind": "static",
+                                "value": null
+                              },
+                              "optionsFrom": null,
+                              "optionValueKey": null,
+                              "optionLabelKey": null
+                            },
+                            "style": {
+                              "span": 6
+                            },
+                            "visible": true
+                          },
+                          {
+                            "id": "cmp_asf2",
+                            "type": "input_select",
+                            "props": {
+                              "name": "notify_decision",
+                              "label": "Who must be told?",
+                              "options": [
+                                {
+                                  "value": "nobody",
+                                  "label": "Nobody — unlikely to result in a risk (Art. 33(1))"
+                                },
+                                {
+                                  "value": "authority_only",
+                                  "label": "The supervisory authority (Art. 33)"
+                                },
+                                {
+                                  "value": "authority_and_subjects",
+                                  "label": "The authority AND the people affected (Art. 34)"
+                                }
+                              ],
+                              "required": true,
+                              "defaultValue": "authority_only",
+                              "placeholder": null,
+                              "valueFrom": {
+                                "kind": "static",
+                                "value": null
+                              },
+                              "optionsFrom": null,
+                              "optionValueKey": null,
+                              "optionLabelKey": null
+                            },
+                            "style": {
+                              "span": 6
+                            },
+                            "visible": true
+                          },
+                          {
+                            "id": "cmp_asf3",
+                            "type": "input_textarea",
+                            "props": {
+                              "name": "risk_summary",
+                              "label": "Risk to the rights and freedoms of the people affected — and, if you are not notifying, why not (Art. 33(5))",
+                              "placeholder": "What could happen to them, how likely, and what makes it more or less severe.",
+                              "required": true,
+                              "rows": 4,
+                              "valueFrom": {
+                                "kind": "static",
+                                "value": null
+                              },
+                              "snippets": {
+                                "kind": "static",
+                                "value": null
+                              },
+                              "snippetKey": "shortcut",
+                              "snippetBody": "body",
+                              "snippetLabel": "title"
+                            },
+                            "style": {
+                              "span": 12
+                            },
+                            "visible": true
+                          },
+                          {
+                            "id": "cmp_asf4",
+                            "type": "input_number",
+                            "props": {
+                              "name": "people_affected",
+                              "label": "People affected",
+                              "min": 0,
+                              "max": 100000000,
+                              "step": 1,
+                              "required": false,
+                              "defaultValue": null,
+                              "valueFrom": {
+                                "kind": "static",
+                                "value": null
+                              }
+                            },
+                            "style": {
+                              "span": 4
+                            },
+                            "visible": true
+                          },
+                          {
+                            "id": "cmp_asf5",
+                            "type": "input_number",
+                            "props": {
+                              "name": "records_affected",
+                              "label": "Records affected",
+                              "min": 0,
+                              "max": 100000000,
+                              "step": 1,
+                              "required": false,
+                              "defaultValue": null,
+                              "valueFrom": {
+                                "kind": "static",
+                                "value": null
+                              }
+                            },
+                            "style": {
+                              "span": 4
+                            },
+                            "visible": true
+                          },
+                          {
+                            "id": "cmp_asf6",
+                            "type": "input_checkbox",
+                            "props": {
+                              "name": "special_categories",
+                              "label": "Special-category data is involved (Art. 9)",
+                              "defaultChecked": false
+                            },
+                            "style": {
+                              "span": 4
+                            },
+                            "visible": true
+                          },
+                          {
+                            "id": "cmp_asf7",
+                            "type": "input_text",
+                            "props": {
+                              "name": "data_categories",
+                              "label": "Categories of personal data affected",
+                              "placeholder": "Name, e-mail address, order history",
+                              "required": false,
+                              "defaultValue": null,
+                              "inputType": "text",
+                              "valueFrom": {
+                                "kind": "static",
+                                "value": null
+                              }
+                            },
+                            "style": {
+                              "span": 12
+                            },
+                            "visible": true
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "id": "cmp_brt2",
+                    "type": "tab",
+                    "props": {
+                      "label": "Authority (Art. 33)",
+                      "icon": "Building2",
+                      "badge": null,
+                      "badgeTone": "neutral"
+                    },
+                    "style": {
+                      "gap": 3,
+                      "padding": 0
+                    },
+                    "visible": true,
+                    "children": [
+                      {
+                        "id": "cmp_aunote",
+                        "type": "callout",
+                        "props": {
+                          "title": "Notify within 72 hours, or say why not",
+                          "text": "Record the notification the moment it is sent — the register works out the hours from awareness for you and keeps them as the evidence. Later than 72 hours is allowed, but the notification itself must carry the **reasons for the delay**, so write them here too.",
+                          "textFrom": {
+                            "kind": "static",
+                            "value": null
+                          },
+                          "tone": "info",
+                          "toneFrom": {
+                            "kind": "static",
+                            "value": null
+                          },
+                          "meta": null,
+                          "metaFrom": {
+                            "kind": "static",
+                            "value": null
+                          },
+                          "collapsible": false
+                        },
+                        "style": {
+                          "span": 12
+                        },
+                        "visible": true
+                      },
+                      {
+                        "id": "cmp_auform",
+                        "type": "form",
+                        "props": {
+                          "name": "authnotice",
+                          "submitLabel": "Record the notification",
+                          "showReset": false,
+                          "showSubmit": true,
+                          "resetKey": null
+                        },
+                        "style": {
+                          "span": 6,
+                          "gap": 3,
+                          "padding": 0
+                        },
+                        "visible": true,
+                        "onSubmit": "act_authnote",
+                        "children": [
+                          {
+                            "id": "cmp_auf1",
+                            "type": "input_datetime",
+                            "props": {
+                              "name": "notified_at",
+                              "label": "Notified the authority at",
+                              "required": true,
+                              "withTime": true,
+                              "defaultValue": "now"
+                            },
+                            "style": {
+                              "span": 12
+                            },
+                            "visible": true
+                          },
+                          {
+                            "id": "cmp_auf2",
+                            "type": "input_text",
+                            "props": {
+                              "name": "authority_reference",
+                              "label": "Their reference number",
+                              "placeholder": "AP-2026-000000",
+                              "required": false,
+                              "defaultValue": null,
+                              "inputType": "text",
+                              "valueFrom": {
+                                "kind": "static",
+                                "value": null
+                              }
+                            },
+                            "style": {
+                              "span": 12
+                            },
+                            "visible": true
+                          },
+                          {
+                            "id": "cmp_auf3",
+                            "type": "input_textarea",
+                            "props": {
+                              "name": "late_reason",
+                              "label": "Reasons for the delay (only if later than 72 hours)",
+                              "placeholder": "Why the notification could not be made within 72 hours of becoming aware.",
+                              "required": false,
+                              "rows": 3,
+                              "valueFrom": {
+                                "kind": "static",
+                                "value": null
+                              },
+                              "snippets": {
+                                "kind": "static",
+                                "value": null
+                              },
+                              "snippetKey": "shortcut",
+                              "snippetBody": "body",
+                              "snippetLabel": "title"
+                            },
+                            "style": {
+                              "span": 12
+                            },
+                            "visible": true
+                          }
+                        ]
+                      },
+                      {
+                        "id": "cmp_nnform",
+                        "type": "form",
+                        "props": {
+                          "name": "notnotifiable",
+                          "submitLabel": "Record as not notifiable",
+                          "showReset": false,
+                          "showSubmit": true,
+                          "resetKey": null
+                        },
+                        "style": {
+                          "span": 6,
+                          "gap": 3,
+                          "padding": 0
+                        },
+                        "visible": true,
+                        "onSubmit": "act_notnotify",
+                        "children": [
+                          {
+                            "id": "cmp_nnf1",
+                            "type": "input_textarea",
+                            "props": {
+                              "name": "justification",
+                              "label": "Why a risk to people is unlikely (Art. 33(1))",
+                              "placeholder": "What was affected, why it cannot harm anyone, and what makes you confident of that.",
+                              "required": true,
+                              "rows": 4,
+                              "valueFrom": {
+                                "kind": "static",
+                                "value": null
+                              },
+                              "snippets": {
+                                "kind": "static",
+                                "value": null
+                              },
+                              "snippetKey": "shortcut",
+                              "snippetBody": "body",
+                              "snippetLabel": "title"
+                            },
+                            "style": {
+                              "span": 12
+                            },
+                            "visible": true
+                          },
+                          {
+                            "id": "cmp_nnf2",
+                            "type": "input_date",
+                            "props": {
+                              "name": "decided_on",
+                              "label": "Decided on",
+                              "required": true,
+                              "defaultValue": "today",
+                              "valueFrom": {
+                                "kind": "static",
+                                "value": null
+                              }
+                            },
+                            "style": {
+                              "span": 12
+                            },
+                            "visible": true
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "id": "cmp_brt3",
+                    "type": "tab",
+                    "props": {
+                      "label": "People affected (Art. 34)",
+                      "icon": "Users",
+                      "badge": null,
+                      "badgeTone": "neutral"
+                    },
+                    "style": {
+                      "gap": 3,
+                      "padding": 0
+                    },
+                    "visible": true,
+                    "children": [
+                      {
+                        "id": "cmp_sunote",
+                        "type": "callout",
+                        "props": {
+                          "title": "High risk means telling the people themselves",
+                          "text": "Article 34 has no 72-hour clock — it says **without undue delay**. Tell them in clear, plain language what happened, what it means for them and what they can do. You may skip it only on one of the three grounds in Article 34(3), and the ground has to be recorded.",
+                          "textFrom": {
+                            "kind": "static",
+                            "value": null
+                          },
+                          "tone": "info",
+                          "toneFrom": {
+                            "kind": "static",
+                            "value": null
+                          },
+                          "meta": null,
+                          "metaFrom": {
+                            "kind": "static",
+                            "value": null
+                          },
+                          "collapsible": false
+                        },
+                        "style": {
+                          "span": 12
+                        },
+                        "visible": true
+                      },
+                      {
+                        "id": "cmp_suform",
+                        "type": "form",
+                        "props": {
+                          "name": "subjnotice",
+                          "submitLabel": "Record that we told them",
+                          "showReset": false,
+                          "showSubmit": true,
+                          "resetKey": null
+                        },
+                        "style": {
+                          "span": 6,
+                          "gap": 3,
+                          "padding": 0
+                        },
+                        "visible": true,
+                        "onSubmit": "act_subjnote",
+                        "children": [
+                          {
+                            "id": "cmp_suf1",
+                            "type": "input_datetime",
+                            "props": {
+                              "name": "notified_at",
+                              "label": "People told at",
+                              "required": true,
+                              "withTime": true,
+                              "defaultValue": "now"
+                            },
+                            "style": {
+                              "span": 12
+                            },
+                            "visible": true
+                          },
+                          {
+                            "id": "cmp_suf2",
+                            "type": "input_select",
+                            "props": {
+                              "name": "method",
+                              "label": "How",
+                              "options": [
+                                {
+                                  "value": "individual",
+                                  "label": "Individually (e-mail, letter, in person)"
+                                },
+                                {
+                                  "value": "public",
+                                  "label": "Public communication (Art. 34(3)(c))"
+                                }
+                              ],
+                              "required": true,
+                              "defaultValue": "individual",
+                              "placeholder": null,
+                              "valueFrom": {
+                                "kind": "static",
+                                "value": null
+                              },
+                              "optionsFrom": null,
+                              "optionValueKey": null,
+                              "optionLabelKey": null
+                            },
+                            "style": {
+                              "span": 12
+                            },
+                            "visible": true
+                          },
+                          {
+                            "id": "cmp_suf3",
+                            "type": "input_textarea",
+                            "props": {
+                              "name": "summary",
+                              "label": "What we told them",
+                              "placeholder": "The message sent, and where it went.",
+                              "required": true,
+                              "rows": 3,
+                              "valueFrom": {
+                                "kind": "static",
+                                "value": null
+                              },
+                              "snippets": {
+                                "kind": "static",
+                                "value": null
+                              },
+                              "snippetKey": "shortcut",
+                              "snippetBody": "body",
+                              "snippetLabel": "title"
+                            },
+                            "style": {
+                              "span": 12
+                            },
+                            "visible": true
+                          }
+                        ]
+                      },
+                      {
+                        "id": "cmp_seform",
+                        "type": "form",
+                        "props": {
+                          "name": "subjexempt",
+                          "submitLabel": "Record the exemption",
+                          "showReset": false,
+                          "showSubmit": true,
+                          "resetKey": null
+                        },
+                        "style": {
+                          "span": 6,
+                          "gap": 3,
+                          "padding": 0
+                        },
+                        "visible": true,
+                        "onSubmit": "act_subjexmpt",
+                        "children": [
+                          {
+                            "id": "cmp_sef1",
+                            "type": "input_select",
+                            "props": {
+                              "name": "ground",
+                              "label": "Ground for not telling them",
+                              "options": [
+                                {
+                                  "value": "encryption",
+                                  "label": "Art. 34(3)(a) — data was unintelligible (encrypted)"
+                                },
+                                {
+                                  "value": "measures",
+                                  "label": "Art. 34(3)(b) — later measures removed the high risk"
+                                },
+                                {
+                                  "value": "disproportionate",
+                                  "label": "Art. 34(3)(c) — disproportionate effort; public communication instead"
+                                }
+                              ],
+                              "required": true,
+                              "defaultValue": "encryption",
+                              "placeholder": null,
+                              "valueFrom": {
+                                "kind": "static",
+                                "value": null
+                              },
+                              "optionsFrom": null,
+                              "optionValueKey": null,
+                              "optionLabelKey": null
+                            },
+                            "style": {
+                              "span": 12
+                            },
+                            "visible": true
+                          },
+                          {
+                            "id": "cmp_sef2",
+                            "type": "input_textarea",
+                            "props": {
+                              "name": "reason",
+                              "label": "Why that ground applies here",
+                              "placeholder": "For encryption: which algorithm, where the keys were, and why they are safe.",
+                              "required": true,
+                              "rows": 4,
+                              "valueFrom": {
+                                "kind": "static",
+                                "value": null
+                              },
+                              "snippets": {
+                                "kind": "static",
+                                "value": null
+                              },
+                              "snippetKey": "shortcut",
+                              "snippetBody": "body",
+                              "snippetLabel": "title"
+                            },
+                            "style": {
+                              "span": 12
+                            },
+                            "visible": true
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "id": "cmp_brt4",
+                    "type": "tab",
+                    "props": {
+                      "label": "Systems and processors",
+                      "icon": "Boxes",
+                      "badge": null,
+                      "badgeTone": "neutral"
+                    },
+                    "style": {
+                      "gap": 3,
+                      "padding": 0
+                    },
+                    "visible": true,
+                    "children": [
+                      {
+                        "id": "cmp_sygrid",
+                        "type": "data_grid",
+                        "props": {
+                          "source": {
+                            "kind": "records",
+                            "tableId": "tbl_bsys001",
+                            "filter": [
+                              {
+                                "field": "breach_id",
+                                "op": "eq",
+                                "value": {
+                                  "kind": "formula",
+                                  "expr": "vars.breach.id"
+                                },
+                                "required": true
+                              }
+                            ],
+                            "sort": [
+                              {
+                                "field": "name",
+                                "dir": "asc"
+                              }
+                            ],
+                            "limit": 100
+                          },
+                          "columns": [
+                            {
+                              "key": "name",
+                              "label": "System or organisation",
+                              "format": "text",
+                              "width": 240,
+                              "sortable": true,
+                              "filterable": true,
+                              "editable": false
+                            },
+                            {
+                              "key": "party_role",
+                              "label": "Role",
+                              "format": "badge",
+                              "width": 150,
+                              "sortable": true,
+                              "filterable": true,
+                              "editable": false
+                            },
+                            {
+                              "key": "data_held",
+                              "label": "What it held",
+                              "format": "text",
+                              "width": 260,
+                              "sortable": false,
+                              "filterable": false,
+                              "editable": false
+                            },
+                            {
+                              "key": "told_us_at",
+                              "label": "They told us",
+                              "format": "date",
+                              "width": 130,
+                              "sortable": true,
+                              "filterable": false,
+                              "editable": false
+                            },
+                            {
+                              "key": "contained",
+                              "label": "Contained",
+                              "format": "boolean",
+                              "width": 100,
+                              "sortable": false,
+                              "filterable": false,
+                              "editable": false
+                            }
+                          ],
+                          "pageSize": 10,
+                          "selectable": "none",
+                          "searchable": false,
+                          "rowActions": [
+                            {
+                              "label": "Remove",
+                              "actionId": "act_sysdel"
+                            }
+                          ],
+                          "toolbarActions": [],
+                          "addRowLabel": null,
+                          "addRowActionId": null,
+                          "bulkActions": [],
+                          "density": "compact",
+                          "clamp": "off",
+                          "rowTone": [],
+                          "groupBy": null,
+                          "groupOrder": [],
+                          "activeWhen": null,
+                          "zebra": true,
+                          "emptyText": "Nothing listed yet — add the systems, processors and recipients the data passed through.",
+                          "look": "default"
+                        },
+                        "style": {
+                          "span": 12
+                        },
+                        "visible": true
+                      },
+                      {
+                        "id": "cmp_syform",
+                        "type": "form",
+                        "props": {
+                          "name": "newsystem",
+                          "submitLabel": "Add",
+                          "showReset": false,
+                          "showSubmit": true,
+                          "resetKey": null
+                        },
+                        "style": {
+                          "span": 12,
+                          "gap": 3,
+                          "padding": 0
+                        },
+                        "visible": true,
+                        "onSubmit": "act_sysadd",
+                        "children": [
+                          {
+                            "id": "cmp_syf1",
+                            "type": "input_text",
+                            "props": {
+                              "name": "name",
+                              "label": "System or organisation",
+                              "placeholder": "Nimbusveld Mailing BV",
+                              "required": true,
+                              "defaultValue": null,
+                              "inputType": "text",
+                              "valueFrom": {
+                                "kind": "static",
+                                "value": null
+                              }
+                            },
+                            "style": {
+                              "span": 4
+                            },
+                            "visible": true
+                          },
+                          {
+                            "id": "cmp_syf2",
+                            "type": "input_select",
+                            "props": {
+                              "name": "party_role",
+                              "label": "Role",
+                              "options": [
+                                {
+                                  "value": "own_system",
+                                  "label": "Our own system"
+                                },
+                                {
+                                  "value": "processor",
+                                  "label": "Processor"
+                                },
+                                {
+                                  "value": "sub_processor",
+                                  "label": "Sub-processor"
+                                },
+                                {
+                                  "value": "recipient",
+                                  "label": "Third-party recipient"
+                                }
+                              ],
+                              "required": true,
+                              "defaultValue": "own_system",
+                              "placeholder": null,
+                              "valueFrom": {
+                                "kind": "static",
+                                "value": null
+                              },
+                              "optionsFrom": null,
+                              "optionValueKey": null,
+                              "optionLabelKey": null
+                            },
+                            "style": {
+                              "span": 3
+                            },
+                            "visible": true
+                          },
+                          {
+                            "id": "cmp_syf3",
+                            "type": "input_datetime",
+                            "props": {
+                              "name": "told_us_at",
+                              "label": "They told us at (processors)",
+                              "required": false,
+                              "withTime": true,
+                              "defaultValue": null
+                            },
+                            "style": {
+                              "span": 5
+                            },
+                            "visible": true
+                          },
+                          {
+                            "id": "cmp_syf4",
+                            "type": "input_text",
+                            "props": {
+                              "name": "data_held",
+                              "label": "What it held",
+                              "placeholder": "Newsletter recipients and their names",
+                              "required": false,
+                              "defaultValue": null,
+                              "inputType": "text",
+                              "valueFrom": {
+                                "kind": "static",
+                                "value": null
+                              }
+                            },
+                            "style": {
+                              "span": 5
+                            },
+                            "visible": true
+                          },
+                          {
+                            "id": "cmp_syf5",
+                            "type": "input_text",
+                            "props": {
+                              "name": "contact",
+                              "label": "Contact",
+                              "placeholder": "privacy@example.com",
+                              "required": false,
+                              "defaultValue": null,
+                              "inputType": "email",
+                              "valueFrom": {
+                                "kind": "static",
+                                "value": null
+                              }
+                            },
+                            "style": {
+                              "span": 4
+                            },
+                            "visible": true
+                          },
+                          {
+                            "id": "cmp_syf6",
+                            "type": "input_checkbox",
+                            "props": {
+                              "name": "contained",
+                              "label": "Contained",
+                              "defaultChecked": false
+                            },
+                            "style": {
+                              "span": 3
+                            },
+                            "visible": true
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "id": "cmp_brt5",
+                    "type": "tab",
+                    "props": {
+                      "label": "Action log",
+                      "icon": "History",
+                      "badge": null,
+                      "badgeTone": "neutral"
+                    },
+                    "style": {
+                      "gap": 3,
+                      "padding": 0
+                    },
+                    "visible": true,
+                    "children": [
+                      {
+                        "id": "cmp_lgline",
+                        "type": "timeline",
+                        "props": {
+                          "source": {
+                            "kind": "records",
+                            "tableId": "tbl_bacts01",
+                            "filter": [
+                              {
+                                "field": "breach_id",
+                                "op": "eq",
+                                "value": {
+                                  "kind": "formula",
+                                  "expr": "vars.breach.id"
+                                },
+                                "required": true
+                              }
+                            ],
+                            "sort": [
+                              {
+                                "field": "happened_at",
+                                "dir": "desc"
+                              }
+                            ],
+                            "limit": 100
+                          },
+                          "titleKey": "summary",
+                          "dateKey": "happened_at",
+                          "descriptionKey": "actor_name",
+                          "metaKey": null,
+                          "icon": "History",
+                          "rowLimit": 100,
+                          "emptyText": "No entries yet — open a breach, or add the first step taken."
+                        },
+                        "style": {
+                          "span": 7,
+                          "height": "lg"
+                        },
+                        "visible": true
+                      },
+                      {
+                        "id": "cmp_lgform",
+                        "type": "form",
+                        "props": {
+                          "name": "newaction",
+                          "submitLabel": "Add to the log",
+                          "showReset": false,
+                          "showSubmit": true,
+                          "resetKey": null
+                        },
+                        "style": {
+                          "span": 5,
+                          "gap": 3,
+                          "padding": 0
+                        },
+                        "visible": true,
+                        "onSubmit": "act_logadd",
+                        "children": [
+                          {
+                            "id": "cmp_lgf1",
+                            "type": "input_datetime",
+                            "props": {
+                              "name": "happened_at",
+                              "label": "When",
+                              "required": true,
+                              "withTime": true,
+                              "defaultValue": "now"
+                            },
+                            "style": {
+                              "span": 12
+                            },
+                            "visible": true
+                          },
+                          {
+                            "id": "cmp_lgf2",
+                            "type": "input_select",
+                            "props": {
+                              "name": "action_type",
+                              "label": "What kind of step",
+                              "options": [
+                                {
+                                  "value": "detected",
+                                  "label": "Detected / became aware"
+                                },
+                                {
+                                  "value": "contained",
+                                  "label": "Containment measure"
+                                },
+                                {
+                                  "value": "assessed",
+                                  "label": "Risk assessed"
+                                },
+                                {
+                                  "value": "notified_authority",
+                                  "label": "Authority notified"
+                                },
+                                {
+                                  "value": "notified_subjects",
+                                  "label": "Data subjects notified"
+                                },
+                                {
+                                  "value": "communication",
+                                  "label": "Communication with a processor or third party"
+                                },
+                                {
+                                  "value": "remediation",
+                                  "label": "Remediation"
+                                },
+                                {
+                                  "value": "note",
+                                  "label": "Note"
+                                },
+                                {
+                                  "value": "closed",
+                                  "label": "Case closed"
+                                }
+                              ],
+                              "required": true,
+                              "defaultValue": "note",
+                              "placeholder": null,
+                              "valueFrom": {
+                                "kind": "static",
+                                "value": null
+                              },
+                              "optionsFrom": null,
+                              "optionValueKey": null,
+                              "optionLabelKey": null
+                            },
+                            "style": {
+                              "span": 12
+                            },
+                            "visible": true
+                          },
+                          {
+                            "id": "cmp_lgf3",
+                            "type": "input_textarea",
+                            "props": {
+                              "name": "summary",
+                              "label": "What was done",
+                              "placeholder": "Who did what, and what it changed.",
+                              "required": true,
+                              "rows": 4,
+                              "valueFrom": {
+                                "kind": "static",
+                                "value": null
+                              },
+                              "snippets": {
+                                "kind": "static",
+                                "value": null
+                              },
+                              "snippetKey": "shortcut",
+                              "snippetBody": "body",
+                              "snippetLabel": "title"
+                            },
+                            "style": {
+                              "span": 12
+                            },
+                            "visible": true
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "id": "cmp_brt6",
+                    "type": "tab",
+                    "props": {
+                      "label": "Close",
+                      "icon": "CheckCircle2",
+                      "badge": null,
+                      "badgeTone": "neutral"
+                    },
+                    "style": {
+                      "gap": 3,
+                      "padding": 0
+                    },
+                    "visible": true,
+                    "children": [
+                      {
+                        "id": "cmp_clnote",
+                        "type": "callout",
+                        "props": {
+                          "title": "Closing does not remove anything",
+                          "text": "A closed breach moves to the closed register and stays there — that register IS the Article 33(5) documentation. Write down what was changed so it cannot happen again; that is the part an authority reads first.",
+                          "textFrom": {
+                            "kind": "static",
+                            "value": null
+                          },
+                          "tone": "info",
+                          "toneFrom": {
+                            "kind": "static",
+                            "value": null
+                          },
+                          "meta": null,
+                          "metaFrom": {
+                            "kind": "static",
+                            "value": null
+                          },
+                          "collapsible": false
+                        },
+                        "style": {
+                          "span": 12
+                        },
+                        "visible": true
+                      },
+                      {
+                        "id": "cmp_clform",
+                        "type": "form",
+                        "props": {
+                          "name": "closebreach",
+                          "submitLabel": "Close this breach",
+                          "showReset": false,
+                          "showSubmit": true,
+                          "resetKey": null
+                        },
+                        "style": {
+                          "span": 12,
+                          "gap": 3,
+                          "padding": 0
+                        },
+                        "visible": true,
+                        "onSubmit": "act_close",
+                        "children": [
+                          {
+                            "id": "cmp_clf1",
+                            "type": "input_textarea",
+                            "props": {
+                              "name": "remediation",
+                              "label": "What was changed so it cannot happen again",
+                              "placeholder": "Process, system or training change — and who owns it.",
+                              "required": true,
+                              "rows": 4,
+                              "valueFrom": {
+                                "kind": "static",
+                                "value": null
+                              },
+                              "snippets": {
+                                "kind": "static",
+                                "value": null
+                              },
+                              "snippetKey": "shortcut",
+                              "snippetBody": "body",
+                              "snippetLabel": "title"
+                            },
+                            "style": {
+                              "span": 8
+                            },
+                            "visible": true
+                          },
+                          {
+                            "id": "cmp_clf2",
+                            "type": "input_date",
+                            "props": {
+                              "name": "closed_on",
+                              "label": "Closed on",
+                              "required": true,
+                              "defaultValue": "today",
+                              "valueFrom": {
+                                "kind": "static",
+                                "value": null
+                              }
+                            },
+                            "style": {
+                              "span": 4
+                            },
+                            "visible": true
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "scr_closed",
+        "name": "Closed register",
+        "icon": "BookOpen",
+        "showInNav": true,
+        "maxWidth": "full",
+        "description": "Everything handled, including what was correctly not notified.",
+        "sections": [
+          {
+            "id": "sec_cltop",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_cldhdr",
+                "type": "page_header",
+                "props": {
+                  "title": "Closed register (datalekregister)",
+                  "subtitle": "Article 33(5): every breach documented, whether or not it was notified — this is what an authority asks to see.",
+                  "titleFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "subtitleFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "tagsFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "icon": "BookOpen",
+                  "showDivider": false,
+                  "look": "plain"
+                },
+                "style": {
+                  "span": 12,
+                  "gap": 3,
+                  "padding": 0
+                },
+                "visible": true,
+                "children": []
+              },
+              {
+                "id": "cmp_cldst1",
+                "type": "stat",
+                "props": {
+                  "label": "Closed",
+                  "value": {
+                    "kind": "aggregate",
+                    "tableId": "tbl_brchs01",
+                    "filter": [
+                      {
+                        "field": "stage",
+                        "op": "eq",
+                        "value": "closed"
+                      }
+                    ],
+                    "limit": 1,
+                    "aggregates": [
+                      {
+                        "fn": "count",
+                        "field": "*",
+                        "as": "n"
+                      }
+                    ],
+                    "pick": {
+                      "row": "first",
+                      "column": "n"
+                    }
+                  },
+                  "caption": "cases documented",
+                  "captionSegments": [],
+                  "icon": "BookOpen",
+                  "delta": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "deltaFormat": "number",
+                  "trend": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "positiveIsGood": true,
+                  "look": "accent"
+                },
+                "style": {
+                  "span": 4
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_cldst2",
+                "type": "stat",
+                "props": {
+                  "label": "Median hours to notify",
+                  "value": {
+                    "kind": "aggregate",
+                    "tableId": "tbl_brchs01",
+                    "filter": [
+                      {
+                        "field": "authority_hours",
+                        "op": "isNotNull"
+                      }
+                    ],
+                    "limit": 1,
+                    "aggregates": [
+                      {
+                        "fn": "p50",
+                        "field": "authority_hours",
+                        "as": "p50h"
+                      }
+                    ],
+                    "pick": {
+                      "row": "first",
+                      "column": "p50h"
+                    }
+                  },
+                  "caption": "from awareness to the authority — the ceiling is 72",
+                  "captionSegments": [],
+                  "icon": "Timer",
+                  "delta": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "deltaFormat": "number",
+                  "trend": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "positiveIsGood": false,
+                  "look": "accent"
+                },
+                "style": {
+                  "span": 4
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_cldst3",
+                "type": "stat",
+                "props": {
+                  "label": "Slowest notification",
+                  "value": {
+                    "kind": "aggregate",
+                    "tableId": "tbl_brchs01",
+                    "filter": [
+                      {
+                        "field": "authority_hours",
+                        "op": "isNotNull"
+                      }
+                    ],
+                    "limit": 1,
+                    "aggregates": [
+                      {
+                        "fn": "max",
+                        "field": "authority_hours",
+                        "as": "worst"
+                      }
+                    ],
+                    "pick": {
+                      "row": "first",
+                      "column": "worst"
+                    }
+                  },
+                  "caption": "hours — anything over 72 needs its reason on file",
+                  "captionSegments": [],
+                  "icon": "AlertTriangle",
+                  "delta": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "deltaFormat": "number",
+                  "trend": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "positiveIsGood": false,
+                  "look": "accent"
+                },
+                "style": {
+                  "span": 4
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_cldfilt",
+                "type": "filter_bar",
+                "props": {
+                  "fields": [
+                    {
+                      "name": "q",
+                      "label": "Search",
+                      "type": "search",
+                      "options": []
+                    },
+                    {
+                      "name": "outcome",
+                      "label": "Outcome",
+                      "type": "select",
+                      "options": [
+                        {
+                          "value": "pending",
+                          "label": "Not decided yet"
+                        },
+                        {
+                          "value": "recorded_only",
+                          "label": "Recorded, not notifiable (Art. 33(5))"
+                        },
+                        {
+                          "value": "notified_authority",
+                          "label": "Authority notified"
+                        },
+                        {
+                          "value": "notified_all",
+                          "label": "Authority and data subjects notified"
+                        },
+                        {
+                          "value": "not_a_breach",
+                          "label": "Assessed as not a personal data breach"
+                        }
+                      ]
+                    },
+                    {
+                      "name": "severity",
+                      "label": "Severity",
+                      "type": "select",
+                      "options": [
+                        {
+                          "value": "unassessed",
+                          "label": "Not assessed"
+                        },
+                        {
+                          "value": "none",
+                          "label": "No risk"
+                        },
+                        {
+                          "value": "low",
+                          "label": "Low risk"
+                        },
+                        {
+                          "value": "medium",
+                          "label": "Risk"
+                        },
+                        {
+                          "value": "high",
+                          "label": "High risk"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              }
+            ]
+          },
+          {
+            "id": "sec_clmain",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none",
+              "height": "fill"
+            },
+            "children": [
+              {
+                "id": "cmp_cldgrid",
+                "type": "data_grid",
+                "props": {
+                  "source": {
+                    "kind": "records",
+                    "tableId": "tbl_brchs01",
+                    "filter": [
+                      {
+                        "field": "stage",
+                        "op": "eq",
+                        "value": "closed"
+                      },
+                      {
+                        "field": "title",
+                        "op": "contains",
+                        "value": {
+                          "kind": "formula",
+                          "expr": "vars.filters.q"
+                        },
+                        "required": false
+                      },
+                      {
+                        "field": "outcome",
+                        "op": "eq",
+                        "value": {
+                          "kind": "formula",
+                          "expr": "vars.filters.outcome"
+                        },
+                        "required": false
+                      },
+                      {
+                        "field": "severity",
+                        "op": "eq",
+                        "value": {
+                          "kind": "formula",
+                          "expr": "vars.filters.severity"
+                        },
+                        "required": false
+                      }
+                    ],
+                    "sort": [
+                      {
+                        "field": "became_aware_at",
+                        "dir": "desc"
+                      }
+                    ],
+                    "limit": 200
+                  },
+                  "columns": [
+                    {
+                      "key": "reference",
+                      "label": "Reference",
+                      "format": "text",
+                      "width": 130,
+                      "sortable": true,
+                      "filterable": true,
+                      "editable": false
+                    },
+                    {
+                      "key": "title",
+                      "label": "What happened",
+                      "format": "text",
+                      "width": 280,
+                      "sortable": true,
+                      "filterable": true,
+                      "editable": false
+                    },
+                    {
+                      "key": "severity",
+                      "label": "Severity",
+                      "format": "badge",
+                      "width": 110,
+                      "sortable": true,
+                      "filterable": true,
+                      "editable": false
+                    },
+                    {
+                      "key": "outcome",
+                      "label": "Outcome",
+                      "format": "badge",
+                      "width": 200,
+                      "sortable": true,
+                      "filterable": true,
+                      "editable": false
+                    },
+                    {
+                      "key": "became_aware_at",
+                      "label": "Aware",
+                      "format": "date",
+                      "width": 110,
+                      "sortable": true,
+                      "filterable": false,
+                      "editable": false
+                    },
+                    {
+                      "key": "authority_hours",
+                      "label": "Hours to notify",
+                      "format": "number",
+                      "width": 130,
+                      "sortable": true,
+                      "filterable": false,
+                      "editable": false
+                    },
+                    {
+                      "key": "closed_on",
+                      "label": "Closed",
+                      "format": "date",
+                      "width": 110,
+                      "sortable": true,
+                      "filterable": false,
+                      "editable": false
+                    }
+                  ],
+                  "pageSize": 25,
+                  "selectable": "none",
+                  "searchable": true,
+                  "rowActions": [
+                    {
+                      "label": "Open",
+                      "actionId": "act_bopen"
+                    }
+                  ],
+                  "toolbarActions": [],
+                  "addRowLabel": null,
+                  "addRowActionId": null,
+                  "bulkActions": [],
+                  "density": "compact",
+                  "clamp": "off",
+                  "rowTone": [],
+                  "groupBy": null,
+                  "groupOrder": [],
+                  "activeWhen": null,
+                  "zebra": true,
+                  "emptyText": "Nothing closed yet.",
+                  "look": "default"
+                },
+                "style": {
+                  "span": 8,
+                  "height": "fill"
+                },
+                "visible": true,
+                "onRowClick": "act_bopen"
+              },
+              {
+                "id": "cmp_cldpie",
+                "type": "chart",
+                "props": {
+                  "chartType": "donut",
+                  "orientation": "vertical",
+                  "source": {
+                    "kind": "aggregate",
+                    "tableId": "tbl_brchs01",
+                    "filter": [
+                      {
+                        "field": "stage",
+                        "op": "eq",
+                        "value": "closed"
+                      }
+                    ],
+                    "limit": 20,
+                    "groupBy": [
+                      {
+                        "field": "outcome",
+                        "as": "outcome"
+                      }
+                    ],
+                    "aggregates": [
+                      {
+                        "fn": "count",
+                        "field": "*",
+                        "as": "n"
+                      }
+                    ]
+                  },
+                  "title": "How cases ended",
+                  "xKey": "outcome",
+                  "xType": "category",
+                  "series": [
+                    {
+                      "key": "n",
+                      "label": "Breaches",
+                      "color": "primary"
+                    }
+                  ],
+                  "stacked": false,
+                  "showLegend": true,
+                  "showGrid": false,
+                  "valueFormat": "number",
+                  "yMin": null,
+                  "yMax": null,
+                  "referenceLines": [],
+                  "referenceBands": [],
+                  "unitLabel": null
+                },
+                "style": {
+                  "span": 4,
+                  "height": "fill"
+                },
+                "visible": true
+              }
+            ]
+          },
+          {
+            "id": "sec_clchart",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_cldbar",
+                "type": "chart",
+                "props": {
+                  "chartType": "bar",
+                  "orientation": "vertical",
+                  "source": {
+                    "kind": "aggregate",
+                    "tableId": "tbl_brchs01",
+                    "limit": 24,
+                    "groupBy": [
+                      {
+                        "field": "became_aware_at",
+                        "bucket": "month",
+                        "as": "month"
+                      }
+                    ],
+                    "aggregates": [
+                      {
+                        "fn": "count",
+                        "field": "*",
+                        "as": "n"
+                      }
+                    ]
+                  },
+                  "title": "Breaches by the month we became aware",
+                  "xKey": "month",
+                  "xType": "category",
+                  "series": [
+                    {
+                      "key": "n",
+                      "label": "Breaches",
+                      "color": "primary"
+                    }
+                  ],
+                  "stacked": false,
+                  "showLegend": false,
+                  "showGrid": true,
+                  "valueFormat": "number",
+                  "yMin": null,
+                  "yMax": null,
+                  "referenceLines": [],
+                  "referenceBands": [],
+                  "unitLabel": null
+                },
+                "style": {
+                  "span": 6,
+                  "height": "md"
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_cldsev",
+                "type": "chart",
+                "props": {
+                  "chartType": "bar",
+                  "orientation": "vertical",
+                  "source": {
+                    "kind": "aggregate",
+                    "tableId": "tbl_brchs01",
+                    "limit": 20,
+                    "groupBy": [
+                      {
+                        "field": "severity",
+                        "as": "severity"
+                      }
+                    ],
+                    "aggregates": [
+                      {
+                        "fn": "count",
+                        "field": "*",
+                        "as": "n"
+                      }
+                    ]
+                  },
+                  "title": "Breaches by severity",
+                  "xKey": "severity",
+                  "xType": "category",
+                  "series": [
+                    {
+                      "key": "n",
+                      "label": "Breaches",
+                      "color": "info"
+                    }
+                  ],
+                  "stacked": false,
+                  "showLegend": false,
+                  "showGrid": true,
+                  "valueFormat": "number",
+                  "yMin": null,
+                  "yMax": null,
+                  "referenceLines": [],
+                  "referenceBands": [],
+                  "unitLabel": null
+                },
+                "style": {
+                  "span": 6,
+                  "height": "md"
+                },
+                "visible": true
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "scr_setup",
+        "name": "Setup",
+        "icon": "Settings",
+        "showInNav": true,
+        "maxWidth": "wide",
+        "description": "The severity vocabulary the assessment is made in.",
+        "sections": [
+          {
+            "id": "sec_sttop",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_sthdr",
+                "type": "page_header",
+                "props": {
+                  "title": "Setup",
+                  "subtitle": "Severity tiers are data, not code — what you write here is what the person assessing a breach reads.",
+                  "titleFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "subtitleFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "tagsFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "icon": "Settings",
+                  "showDivider": false,
+                  "look": "plain"
+                },
+                "style": {
+                  "span": 12,
+                  "gap": 3,
+                  "padding": 0
+                },
+                "visible": true,
+                "children": [
+                  {
+                    "id": "cmp_stadd",
+                    "type": "button",
+                    "props": {
+                      "label": "Add a severity level",
+                      "variant": "primary",
+                      "iconLeft": "Plus",
+                      "role": "button",
+                      "disabledWhen": null
+                    },
+                    "style": {
+                      "span": 3
+                    },
+                    "visible": true,
+                    "onClick": "act_sevopen"
+                  }
+                ]
+              },
+              {
+                "id": "cmp_stnote",
+                "type": "callout",
+                "props": {
+                  "title": "One thing to know",
+                  "text": "A tier you add here is stored, filtered and shown correctly everywhere, and the Assessment tab reads its guidance live. The one exception is the Severity **dropdown** on that tab and in the filter bars: those lists are fixed in the app design, so a new tier will not appear in them until an editor adds it there.",
+                  "textFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "tone": "info",
+                  "toneFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "meta": null,
+                  "metaFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "collapsible": false
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_stlaw",
+                "type": "markdown",
+                "props": {
+                  "content": "**What the register has to contain.** Article 33(5) asks you to document the facts of the breach, its effects, and the remedial action taken — for **every** breach, notified or not.\n\n**Notify the authority** within 72 hours of becoming aware, unless a risk to people is unlikely (Art. 33(1)). Later is allowed with reasons for the delay.\n\n**Tell the people affected** without undue delay where the risk to them is high (Art. 34(1)), unless one of the three grounds in Article 34(3) applies.\n\n**A processor** must tell you without undue delay (Art. 33(2)); your own 72 hours start when they do.",
+                  "contentFrom": {
+                    "kind": "static",
+                    "value": null
+                  }
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              }
+            ]
+          },
+          {
+            "id": "sec_stmain",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none",
+              "height": "fill"
+            },
+            "children": [
+              {
+                "id": "cmp_stgrid",
+                "type": "data_grid",
+                "props": {
+                  "source": {
+                    "kind": "records",
+                    "tableId": "tbl_sevs001",
+                    "sort": [
+                      {
+                        "field": "position",
+                        "dir": "asc"
+                      }
+                    ],
+                    "limit": 50
+                  },
+                  "columns": [
+                    {
+                      "key": "position",
+                      "label": "Order",
+                      "format": "number",
+                      "width": 80,
+                      "sortable": true,
+                      "filterable": false,
+                      "editable": true
+                    },
+                    {
+                      "key": "key",
+                      "label": "Stored as",
+                      "format": "text",
+                      "width": 140,
+                      "sortable": true,
+                      "filterable": true,
+                      "editable": false
+                    },
+                    {
+                      "key": "name",
+                      "label": "Name",
+                      "format": "text",
+                      "width": 180,
+                      "sortable": false,
+                      "filterable": false,
+                      "editable": true
+                    },
+                    {
+                      "key": "guidance",
+                      "label": "What it means",
+                      "format": "text",
+                      "width": 420,
+                      "sortable": false,
+                      "filterable": false,
+                      "editable": true
+                    },
+                    {
+                      "key": "notify_authority",
+                      "label": "Notify authority",
+                      "format": "boolean",
+                      "width": 140,
+                      "sortable": false,
+                      "filterable": false,
+                      "editable": true
+                    },
+                    {
+                      "key": "notify_subjects",
+                      "label": "Tell people",
+                      "format": "boolean",
+                      "width": 120,
+                      "sortable": false,
+                      "filterable": false,
+                      "editable": true
+                    },
+                    {
+                      "key": "color",
+                      "label": "Colour",
+                      "format": "badge",
+                      "width": 110,
+                      "sortable": false,
+                      "filterable": false,
+                      "editable": true
+                    }
+                  ],
+                  "pageSize": 25,
+                  "selectable": "none",
+                  "searchable": false,
+                  "rowActions": [
+                    {
+                      "label": "Delete",
+                      "actionId": "act_sevdel"
+                    }
+                  ],
+                  "toolbarActions": [],
+                  "addRowLabel": null,
+                  "addRowActionId": null,
+                  "bulkActions": [],
+                  "density": "compact",
+                  "clamp": "off",
+                  "rowTone": [],
+                  "groupBy": null,
+                  "groupOrder": [],
+                  "activeWhen": null,
+                  "zebra": true,
+                  "emptyText": "No severity levels yet — add the tiers your DPO assesses in.",
+                  "look": "default"
+                },
+                "style": {
+                  "span": 12,
+                  "height": "fill"
+                },
+                "visible": true,
+                "onRowSelect": "act_sevsave"
+              }
+            ]
+          },
+          {
+            "id": "sec_stdlg",
+            "style": {
+              "padding": 0,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_stmod",
+                "type": "modal",
+                "props": {
+                  "title": "Add a severity level",
+                  "size": "md",
+                  "placement": "center",
+                  "triggerLabel": null
+                },
+                "style": {
+                  "gap": 3,
+                  "padding": 0
+                },
+                "visible": true,
+                "children": [
+                  {
+                    "id": "cmp_stfrm",
+                    "type": "form",
+                    "props": {
+                      "name": "newlevel",
+                      "submitLabel": "Add",
+                      "showReset": false,
+                      "showSubmit": true,
+                      "resetKey": null
+                    },
+                    "style": {
+                      "span": 12,
+                      "gap": 3,
+                      "padding": 0
+                    },
+                    "visible": true,
+                    "onSubmit": "act_sevadd",
+                    "children": [
+                      {
+                        "id": "cmp_stf1",
+                        "type": "input_text",
+                        "props": {
+                          "name": "key",
+                          "label": "Stored as (what a breach records, e.g. very_high)",
+                          "placeholder": "very_high",
+                          "required": true,
+                          "defaultValue": null,
+                          "inputType": "text",
+                          "valueFrom": {
+                            "kind": "static",
+                            "value": null
+                          }
+                        },
+                        "style": {
+                          "span": 8
+                        },
+                        "visible": true
+                      },
+                      {
+                        "id": "cmp_stf2",
+                        "type": "input_number",
+                        "props": {
+                          "name": "position",
+                          "label": "Order",
+                          "min": 1,
+                          "max": 99,
+                          "step": 1,
+                          "required": false,
+                          "defaultValue": 1,
+                          "valueFrom": {
+                            "kind": "static",
+                            "value": null
+                          }
+                        },
+                        "style": {
+                          "span": 4
+                        },
+                        "visible": true
+                      },
+                      {
+                        "id": "cmp_stf3",
+                        "type": "input_text",
+                        "props": {
+                          "name": "name",
+                          "label": "Name",
+                          "placeholder": "Very high risk",
+                          "required": true,
+                          "defaultValue": null,
+                          "inputType": "text",
+                          "valueFrom": {
+                            "kind": "static",
+                            "value": null
+                          }
+                        },
+                        "style": {
+                          "span": 6
+                        },
+                        "visible": true
+                      },
+                      {
+                        "id": "cmp_stf4",
+                        "type": "input_select",
+                        "props": {
+                          "name": "color",
+                          "label": "Colour",
+                          "options": [
+                            {
+                              "value": "primary",
+                              "label": "Primary"
+                            },
+                            {
+                              "value": "neutral",
+                              "label": "Neutral"
+                            },
+                            {
+                              "value": "success",
+                              "label": "Green"
+                            },
+                            {
+                              "value": "warning",
+                              "label": "Amber"
+                            },
+                            {
+                              "value": "danger",
+                              "label": "Red"
+                            },
+                            {
+                              "value": "info",
+                              "label": "Blue"
+                            }
+                          ],
+                          "required": false,
+                          "defaultValue": "neutral",
+                          "placeholder": null,
+                          "valueFrom": {
+                            "kind": "static",
+                            "value": null
+                          },
+                          "optionsFrom": null,
+                          "optionValueKey": null,
+                          "optionLabelKey": null
+                        },
+                        "style": {
+                          "span": 6
+                        },
+                        "visible": true
+                      },
+                      {
+                        "id": "cmp_stf5",
+                        "type": "input_textarea",
+                        "props": {
+                          "name": "guidance",
+                          "label": "What it means, and what it implies",
+                          "placeholder": "When to use this tier, and who has to be told.",
+                          "required": false,
+                          "rows": 3,
+                          "valueFrom": {
+                            "kind": "static",
+                            "value": null
+                          },
+                          "snippets": {
+                            "kind": "static",
+                            "value": null
+                          },
+                          "snippetKey": "shortcut",
+                          "snippetBody": "body",
+                          "snippetLabel": "title"
+                        },
+                        "style": {
+                          "span": 12
+                        },
+                        "visible": true
+                      },
+                      {
+                        "id": "cmp_stf6",
+                        "type": "input_checkbox",
+                        "props": {
+                          "name": "notify_authority",
+                          "label": "At this tier the authority is notified",
+                          "defaultChecked": true
+                        },
+                        "style": {
+                          "span": 6
+                        },
+                        "visible": true
+                      },
+                      {
+                        "id": "cmp_stf7",
+                        "type": "input_checkbox",
+                        "props": {
+                          "name": "notify_subjects",
+                          "label": "At this tier the people affected are told",
+                          "defaultChecked": false
+                        },
+                        "style": {
+                          "span": 6
+                        },
+                        "visible": true
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "actions": {
+      "act_goclock": {
+        "kind": "navigate",
+        "screenId": "scr_clock"
+      },
+      "act_goreport": {
+        "kind": "navigate",
+        "screenId": "scr_report"
+      },
+      "act_bopen": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "set_variable",
+            "name": "breach",
+            "value": {
+              "kind": "formula",
+              "expr": "item"
+            }
+          },
+          {
+            "kind": "navigate",
+            "screenId": "scr_breach"
+          }
+        ]
+      },
+      "act_report": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "create_record",
+            "tableId": "tbl_brchs01",
+            "values": {
+              "reference": {
+                "kind": "formula",
+                "expr": "form.reference"
+              },
+              "title": {
+                "kind": "formula",
+                "expr": "form.title"
+              },
+              "description": {
+                "kind": "formula",
+                "expr": "form.description"
+              },
+              "breach_type": {
+                "kind": "formula",
+                "expr": "form.breach_type"
+              },
+              "occurred_at": {
+                "kind": "formula",
+                "expr": "form.occurred_at"
+              },
+              "became_aware_at": {
+                "kind": "formula",
+                "expr": "form.became_aware_at"
+              },
+              "notify_due_at": {
+                "kind": "formula",
+                "expr": "dateAdd(form.became_aware_at, 72, 'hour')"
+              },
+              "notify_due_date": {
+                "kind": "formula",
+                "expr": "formatDate(dateAdd(form.became_aware_at, 72, 'hour'), 'YYYY-MM-DD')"
+              },
+              "data_categories": {
+                "kind": "formula",
+                "expr": "form.data_categories"
+              },
+              "people_affected": {
+                "kind": "formula",
+                "expr": "form.people_affected"
+              },
+              "containment": {
+                "kind": "formula",
+                "expr": "form.containment"
+              },
+              "severity": {
+                "kind": "static",
+                "value": "unassessed"
+              },
+              "authority_required": {
+                "kind": "static",
+                "value": true
+              },
+              "stage": {
+                "kind": "static",
+                "value": "reported"
+              },
+              "outcome": {
+                "kind": "static",
+                "value": "pending"
+              },
+              "reported_by": {
+                "kind": "formula",
+                "expr": "currentUser.name"
+              }
+            },
+            "resultVar": "newbreach"
+          },
+          {
+            "kind": "create_record",
+            "tableId": "tbl_bacts01",
+            "values": {
+              "breach_id": {
+                "kind": "formula",
+                "expr": "vars.newbreach.id"
+              },
+              "breach_reference": {
+                "kind": "formula",
+                "expr": "form.reference"
+              },
+              "happened_at": {
+                "kind": "formula",
+                "expr": "form.became_aware_at"
+              },
+              "action_type": {
+                "kind": "static",
+                "value": "detected"
+              },
+              "summary": {
+                "kind": "formula",
+                "expr": "concat('Breach reported: ', form.title)"
+              },
+              "actor_name": {
+                "kind": "formula",
+                "expr": "currentUser.name"
+              }
+            }
+          },
+          {
+            "kind": "refresh",
+            "tableId": "tbl_brchs01"
+          },
+          {
+            "kind": "refresh",
+            "tableId": "tbl_bacts01"
+          },
+          {
+            "kind": "reset_form",
+            "form": "newbreach"
+          },
+          {
+            "kind": "toast",
+            "message": "Recorded. The 72 hours run from the moment you entered — assess the risk next.",
+            "tone": "success"
+          },
+          {
+            "kind": "navigate",
+            "screenId": "scr_clock"
+          }
+        ]
+      },
+      "act_assess": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "condition",
+            "expr": "vars.breach.id",
+            "then": [
+              {
+                "kind": "update_record",
+                "tableId": "tbl_brchs01",
+                "recordId": {
+                  "kind": "formula",
+                  "expr": "vars.breach.id"
+                },
+                "values": {
+                  "severity": {
+                    "kind": "formula",
+                    "expr": "form.severity"
+                  },
+                  "risk_summary": {
+                    "kind": "formula",
+                    "expr": "form.risk_summary"
+                  },
+                  "people_affected": {
+                    "kind": "formula",
+                    "expr": "form.people_affected"
+                  },
+                  "records_affected": {
+                    "kind": "formula",
+                    "expr": "form.records_affected"
+                  },
+                  "data_categories": {
+                    "kind": "formula",
+                    "expr": "form.data_categories"
+                  },
+                  "special_categories": {
+                    "kind": "formula",
+                    "expr": "form.special_categories"
+                  },
+                  "authority_required": {
+                    "kind": "formula",
+                    "expr": "form.notify_decision != 'nobody'"
+                  },
+                  "subjects_required": {
+                    "kind": "formula",
+                    "expr": "form.notify_decision == 'authority_and_subjects'"
+                  },
+                  "outcome": {
+                    "kind": "formula",
+                    "expr": "form.notify_decision == 'nobody' ? 'recorded_only' : 'pending'"
+                  },
+                  "stage": {
+                    "kind": "static",
+                    "value": "assessed"
+                  },
+                  "assessed_by": {
+                    "kind": "formula",
+                    "expr": "currentUser.name"
+                  },
+                  "assessed_at": {
+                    "kind": "formula",
+                    "expr": "now"
+                  }
+                }
+              },
+              {
+                "kind": "create_record",
+                "tableId": "tbl_bacts01",
+                "values": {
+                  "breach_id": {
+                    "kind": "formula",
+                    "expr": "vars.breach.id"
+                  },
+                  "breach_reference": {
+                    "kind": "formula",
+                    "expr": "vars.breach.reference"
+                  },
+                  "happened_at": {
+                    "kind": "formula",
+                    "expr": "now"
+                  },
+                  "action_type": {
+                    "kind": "static",
+                    "value": "assessed"
+                  },
+                  "summary": {
+                    "kind": "formula",
+                    "expr": "concat('Assessed as ', form.severity, ' risk. To be told: ', form.notify_decision, '. ', form.risk_summary)"
+                  },
+                  "actor_name": {
+                    "kind": "formula",
+                    "expr": "currentUser.name"
+                  }
+                }
+              },
+              {
+                "kind": "refresh",
+                "tableId": "tbl_brchs01"
+              },
+              {
+                "kind": "refresh",
+                "tableId": "tbl_bacts01"
+              },
+              {
+                "kind": "reset_form",
+                "form": "assess"
+              },
+              {
+                "kind": "toast",
+                "message": "Assessment recorded, with its reasoning.",
+                "tone": "success"
+              }
+            ],
+            "else": [
+              {
+                "kind": "toast",
+                "message": "Open a breach from the register first.",
+                "tone": "info"
+              }
+            ]
+          }
+        ]
+      },
+      "act_authnote": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "condition",
+            "expr": "vars.breach.id",
+            "then": [
+              {
+                "kind": "update_record",
+                "tableId": "tbl_brchs01",
+                "recordId": {
+                  "kind": "formula",
+                  "expr": "vars.breach.id"
+                },
+                "values": {
+                  "authority_notified_at": {
+                    "kind": "formula",
+                    "expr": "form.notified_at"
+                  },
+                  "authority_hours": {
+                    "kind": "formula",
+                    "expr": "dateDiff(form.notified_at, vars.breach.became_aware_at, 'hour')"
+                  },
+                  "authority_reference": {
+                    "kind": "formula",
+                    "expr": "form.authority_reference"
+                  },
+                  "authority_late_reason": {
+                    "kind": "formula",
+                    "expr": "form.late_reason"
+                  },
+                  "authority_required": {
+                    "kind": "static",
+                    "value": true
+                  },
+                  "stage": {
+                    "kind": "static",
+                    "value": "notified"
+                  },
+                  "outcome": {
+                    "kind": "static",
+                    "value": "notified_authority"
+                  }
+                }
+              },
+              {
+                "kind": "create_record",
+                "tableId": "tbl_bacts01",
+                "values": {
+                  "breach_id": {
+                    "kind": "formula",
+                    "expr": "vars.breach.id"
+                  },
+                  "breach_reference": {
+                    "kind": "formula",
+                    "expr": "vars.breach.reference"
+                  },
+                  "happened_at": {
+                    "kind": "formula",
+                    "expr": "form.notified_at"
+                  },
+                  "action_type": {
+                    "kind": "static",
+                    "value": "notified_authority"
+                  },
+                  "summary": {
+                    "kind": "formula",
+                    "expr": "concat('Supervisory authority notified, ', toStr(dateDiff(form.notified_at, vars.breach.became_aware_at, 'hour')), ' hours after we became aware. Reference: ', default(form.authority_reference, 'not given yet'), '.')"
+                  },
+                  "actor_name": {
+                    "kind": "formula",
+                    "expr": "currentUser.name"
+                  }
+                }
+              },
+              {
+                "kind": "refresh",
+                "tableId": "tbl_brchs01"
+              },
+              {
+                "kind": "refresh",
+                "tableId": "tbl_bacts01"
+              },
+              {
+                "kind": "reset_form",
+                "form": "authnotice"
+              },
+              {
+                "kind": "toast",
+                "message": "Notification recorded, with the hours from awareness.",
+                "tone": "success"
+              }
+            ],
+            "else": [
+              {
+                "kind": "toast",
+                "message": "Open a breach from the register first.",
+                "tone": "info"
+              }
+            ]
+          }
+        ]
+      },
+      "act_notnotify": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "condition",
+            "expr": "vars.breach.id",
+            "then": [
+              {
+                "kind": "update_record",
+                "tableId": "tbl_brchs01",
+                "recordId": {
+                  "kind": "formula",
+                  "expr": "vars.breach.id"
+                },
+                "values": {
+                  "authority_required": {
+                    "kind": "static",
+                    "value": false
+                  },
+                  "subjects_required": {
+                    "kind": "static",
+                    "value": false
+                  },
+                  "risk_summary": {
+                    "kind": "formula",
+                    "expr": "form.justification"
+                  },
+                  "outcome": {
+                    "kind": "static",
+                    "value": "recorded_only"
+                  },
+                  "stage": {
+                    "kind": "static",
+                    "value": "assessed"
+                  },
+                  "assessed_by": {
+                    "kind": "formula",
+                    "expr": "currentUser.name"
+                  },
+                  "assessed_at": {
+                    "kind": "formula",
+                    "expr": "now"
+                  }
+                }
+              },
+              {
+                "kind": "create_record",
+                "tableId": "tbl_bacts01",
+                "values": {
+                  "breach_id": {
+                    "kind": "formula",
+                    "expr": "vars.breach.id"
+                  },
+                  "breach_reference": {
+                    "kind": "formula",
+                    "expr": "vars.breach.reference"
+                  },
+                  "happened_at": {
+                    "kind": "formula",
+                    "expr": "form.decided_on"
+                  },
+                  "action_type": {
+                    "kind": "static",
+                    "value": "assessed"
+                  },
+                  "summary": {
+                    "kind": "formula",
+                    "expr": "concat('Recorded, not notified — a risk to people is unlikely (Art. 33(1)). ', form.justification)"
+                  },
+                  "actor_name": {
+                    "kind": "formula",
+                    "expr": "currentUser.name"
+                  }
+                }
+              },
+              {
+                "kind": "refresh",
+                "tableId": "tbl_brchs01"
+              },
+              {
+                "kind": "refresh",
+                "tableId": "tbl_bacts01"
+              },
+              {
+                "kind": "reset_form",
+                "form": "notnotifiable"
+              },
+              {
+                "kind": "toast",
+                "message": "Recorded as not notifiable. It stays in the register — that is the compliance step.",
+                "tone": "success"
+              }
+            ],
+            "else": [
+              {
+                "kind": "toast",
+                "message": "Open a breach from the register first.",
+                "tone": "info"
+              }
+            ]
+          }
+        ]
+      },
+      "act_subjnote": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "condition",
+            "expr": "vars.breach.id",
+            "then": [
+              {
+                "kind": "update_record",
+                "tableId": "tbl_brchs01",
+                "recordId": {
+                  "kind": "formula",
+                  "expr": "vars.breach.id"
+                },
+                "values": {
+                  "subjects_notified_at": {
+                    "kind": "formula",
+                    "expr": "form.notified_at"
+                  },
+                  "subjects_method": {
+                    "kind": "formula",
+                    "expr": "form.method"
+                  },
+                  "subjects_required": {
+                    "kind": "static",
+                    "value": true
+                  },
+                  "stage": {
+                    "kind": "static",
+                    "value": "notified"
+                  },
+                  "outcome": {
+                    "kind": "static",
+                    "value": "notified_all"
+                  }
+                }
+              },
+              {
+                "kind": "create_record",
+                "tableId": "tbl_bacts01",
+                "values": {
+                  "breach_id": {
+                    "kind": "formula",
+                    "expr": "vars.breach.id"
+                  },
+                  "breach_reference": {
+                    "kind": "formula",
+                    "expr": "vars.breach.reference"
+                  },
+                  "happened_at": {
+                    "kind": "formula",
+                    "expr": "form.notified_at"
+                  },
+                  "action_type": {
+                    "kind": "static",
+                    "value": "notified_subjects"
+                  },
+                  "summary": {
+                    "kind": "formula",
+                    "expr": "concat('People affected told (', form.method, '). ', form.summary)"
+                  },
+                  "actor_name": {
+                    "kind": "formula",
+                    "expr": "currentUser.name"
+                  }
+                }
+              },
+              {
+                "kind": "refresh",
+                "tableId": "tbl_brchs01"
+              },
+              {
+                "kind": "refresh",
+                "tableId": "tbl_bacts01"
+              },
+              {
+                "kind": "reset_form",
+                "form": "subjnotice"
+              },
+              {
+                "kind": "toast",
+                "message": "Recorded that the people affected were told.",
+                "tone": "success"
+              }
+            ],
+            "else": [
+              {
+                "kind": "toast",
+                "message": "Open a breach from the register first.",
+                "tone": "info"
+              }
+            ]
+          }
+        ]
+      },
+      "act_subjexmpt": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "condition",
+            "expr": "vars.breach.id",
+            "then": [
+              {
+                "kind": "update_record",
+                "tableId": "tbl_brchs01",
+                "recordId": {
+                  "kind": "formula",
+                  "expr": "vars.breach.id"
+                },
+                "values": {
+                  "subjects_required": {
+                    "kind": "static",
+                    "value": false
+                  },
+                  "subjects_exempt_ground": {
+                    "kind": "formula",
+                    "expr": "form.ground"
+                  },
+                  "subjects_exempt_reason": {
+                    "kind": "formula",
+                    "expr": "form.reason"
+                  }
+                }
+              },
+              {
+                "kind": "create_record",
+                "tableId": "tbl_bacts01",
+                "values": {
+                  "breach_id": {
+                    "kind": "formula",
+                    "expr": "vars.breach.id"
+                  },
+                  "breach_reference": {
+                    "kind": "formula",
+                    "expr": "vars.breach.reference"
+                  },
+                  "happened_at": {
+                    "kind": "formula",
+                    "expr": "now"
+                  },
+                  "action_type": {
+                    "kind": "static",
+                    "value": "assessed"
+                  },
+                  "summary": {
+                    "kind": "formula",
+                    "expr": "concat('People affected not told — exemption ', form.ground, ' (Art. 34(3)). ', form.reason)"
+                  },
+                  "actor_name": {
+                    "kind": "formula",
+                    "expr": "currentUser.name"
+                  }
+                }
+              },
+              {
+                "kind": "refresh",
+                "tableId": "tbl_brchs01"
+              },
+              {
+                "kind": "refresh",
+                "tableId": "tbl_bacts01"
+              },
+              {
+                "kind": "reset_form",
+                "form": "subjexempt"
+              },
+              {
+                "kind": "toast",
+                "message": "Exemption recorded. The ground is on file with its reasoning.",
+                "tone": "success"
+              }
+            ],
+            "else": [
+              {
+                "kind": "toast",
+                "message": "Open a breach from the register first.",
+                "tone": "info"
+              }
+            ]
+          }
+        ]
+      },
+      "act_logadd": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "condition",
+            "expr": "vars.breach.id",
+            "then": [
+              {
+                "kind": "create_record",
+                "tableId": "tbl_bacts01",
+                "values": {
+                  "breach_id": {
+                    "kind": "formula",
+                    "expr": "vars.breach.id"
+                  },
+                  "breach_reference": {
+                    "kind": "formula",
+                    "expr": "vars.breach.reference"
+                  },
+                  "happened_at": {
+                    "kind": "formula",
+                    "expr": "form.happened_at"
+                  },
+                  "action_type": {
+                    "kind": "formula",
+                    "expr": "form.action_type"
+                  },
+                  "summary": {
+                    "kind": "formula",
+                    "expr": "form.summary"
+                  },
+                  "actor_name": {
+                    "kind": "formula",
+                    "expr": "currentUser.name"
+                  }
+                }
+              },
+              {
+                "kind": "refresh",
+                "tableId": "tbl_bacts01"
+              },
+              {
+                "kind": "reset_form",
+                "form": "newaction"
+              }
+            ],
+            "else": [
+              {
+                "kind": "toast",
+                "message": "Open a breach from the register first.",
+                "tone": "info"
+              }
+            ]
+          }
+        ]
+      },
+      "act_sysadd": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "condition",
+            "expr": "vars.breach.id",
+            "then": [
+              {
+                "kind": "create_record",
+                "tableId": "tbl_bsys001",
+                "values": {
+                  "breach_id": {
+                    "kind": "formula",
+                    "expr": "vars.breach.id"
+                  },
+                  "breach_reference": {
+                    "kind": "formula",
+                    "expr": "vars.breach.reference"
+                  },
+                  "name": {
+                    "kind": "formula",
+                    "expr": "form.name"
+                  },
+                  "party_role": {
+                    "kind": "formula",
+                    "expr": "form.party_role"
+                  },
+                  "data_held": {
+                    "kind": "formula",
+                    "expr": "form.data_held"
+                  },
+                  "told_us_at": {
+                    "kind": "formula",
+                    "expr": "form.told_us_at"
+                  },
+                  "contact": {
+                    "kind": "formula",
+                    "expr": "form.contact"
+                  },
+                  "contained": {
+                    "kind": "formula",
+                    "expr": "form.contained"
+                  }
+                }
+              },
+              {
+                "kind": "refresh",
+                "tableId": "tbl_bsys001"
+              },
+              {
+                "kind": "reset_form",
+                "form": "newsystem"
+              }
+            ],
+            "else": [
+              {
+                "kind": "toast",
+                "message": "Open a breach from the register first.",
+                "tone": "info"
+              }
+            ]
+          }
+        ]
+      },
+      "act_sysdel": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "confirm",
+            "message": "Remove this system from the breach? The action log keeps whatever was written about it.",
+            "title": "Remove system"
+          },
+          {
+            "kind": "delete_record",
+            "tableId": "tbl_bsys001",
+            "recordId": {
+              "kind": "formula",
+              "expr": "item.id"
+            }
+          },
+          {
+            "kind": "refresh",
+            "tableId": "tbl_bsys001"
+          }
+        ]
+      },
+      "act_close": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "condition",
+            "expr": "vars.breach.id",
+            "then": [
+              {
+                "kind": "update_record",
+                "tableId": "tbl_brchs01",
+                "recordId": {
+                  "kind": "formula",
+                  "expr": "vars.breach.id"
+                },
+                "values": {
+                  "remediation": {
+                    "kind": "formula",
+                    "expr": "form.remediation"
+                  },
+                  "closed_on": {
+                    "kind": "formula",
+                    "expr": "form.closed_on"
+                  },
+                  "stage": {
+                    "kind": "static",
+                    "value": "closed"
+                  }
+                }
+              },
+              {
+                "kind": "create_record",
+                "tableId": "tbl_bacts01",
+                "values": {
+                  "breach_id": {
+                    "kind": "formula",
+                    "expr": "vars.breach.id"
+                  },
+                  "breach_reference": {
+                    "kind": "formula",
+                    "expr": "vars.breach.reference"
+                  },
+                  "happened_at": {
+                    "kind": "formula",
+                    "expr": "now"
+                  },
+                  "action_type": {
+                    "kind": "static",
+                    "value": "closed"
+                  },
+                  "summary": {
+                    "kind": "formula",
+                    "expr": "concat('Case closed. Remediation: ', form.remediation)"
+                  },
+                  "actor_name": {
+                    "kind": "formula",
+                    "expr": "currentUser.name"
+                  }
+                }
+              },
+              {
+                "kind": "refresh",
+                "tableId": "tbl_brchs01"
+              },
+              {
+                "kind": "refresh",
+                "tableId": "tbl_bacts01"
+              },
+              {
+                "kind": "reset_form",
+                "form": "closebreach"
+              },
+              {
+                "kind": "toast",
+                "message": "Closed and filed in the register.",
+                "tone": "success"
+              },
+              {
+                "kind": "navigate",
+                "screenId": "scr_closed"
+              }
+            ],
+            "else": [
+              {
+                "kind": "toast",
+                "message": "Open a breach from the register first.",
+                "tone": "info"
+              }
+            ]
+          }
+        ]
+      },
+      "act_sevopen": {
+        "kind": "open_modal",
+        "modalId": "cmp_stmod"
+      },
+      "act_sevadd": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "create_record",
+            "tableId": "tbl_sevs001",
+            "values": {
+              "key": {
+                "kind": "formula",
+                "expr": "form.key"
+              },
+              "name": {
+                "kind": "formula",
+                "expr": "form.name"
+              },
+              "guidance": {
+                "kind": "formula",
+                "expr": "form.guidance"
+              },
+              "notify_authority": {
+                "kind": "formula",
+                "expr": "form.notify_authority"
+              },
+              "notify_subjects": {
+                "kind": "formula",
+                "expr": "form.notify_subjects"
+              },
+              "color": {
+                "kind": "formula",
+                "expr": "form.color"
+              },
+              "position": {
+                "kind": "formula",
+                "expr": "form.position"
+              }
+            }
+          },
+          {
+            "kind": "close_modal",
+            "modalId": "cmp_stmod"
+          },
+          {
+            "kind": "reset_form",
+            "form": "newlevel"
+          },
+          {
+            "kind": "refresh",
+            "tableId": "tbl_sevs001"
+          },
+          {
+            "kind": "toast",
+            "message": "Added. The Assessment tab reads it straight away — the dropdown there is fixed in the app design.",
+            "tone": "success"
+          }
+        ]
+      },
+      "act_sevsave": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "update_record",
+            "tableId": "tbl_sevs001",
+            "recordId": {
+              "kind": "formula",
+              "expr": "form.id"
+            },
+            "values": {
+              "position": {
+                "kind": "formula",
+                "expr": "form.position"
+              },
+              "name": {
+                "kind": "formula",
+                "expr": "form.name"
+              },
+              "guidance": {
+                "kind": "formula",
+                "expr": "form.guidance"
+              },
+              "notify_authority": {
+                "kind": "formula",
+                "expr": "form.notify_authority"
+              },
+              "notify_subjects": {
+                "kind": "formula",
+                "expr": "form.notify_subjects"
+              },
+              "color": {
+                "kind": "formula",
+                "expr": "form.color"
+              }
+            }
+          },
+          {
+            "kind": "refresh",
+            "tableId": "tbl_sevs001"
+          }
+        ]
+      },
+      "act_sevdel": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "confirm",
+            "message": "Delete this severity level? Breaches already assessed at it keep the key, so they will show a tier that is no longer defined.",
+            "title": "Delete severity level"
+          },
+          {
+            "kind": "delete_record",
+            "tableId": "tbl_sevs001",
+            "recordId": {
+              "kind": "formula",
+              "expr": "item.id"
+            }
+          },
+          {
+            "kind": "refresh",
+            "tableId": "tbl_sevs001"
+          }
+        ]
+      }
+    },
+    "design": {
+      "preset": "midnight",
+      "font": "geist",
+      "surface": "soft",
+      "motion": "subtle",
+      "chartPalette": "brand",
+      "accentEdge": "bar",
+      "logoUrl": null
+    },
+    "nav": {
+      "style": "tabs",
+      "groups": [
+        {
+          "id": "nvg_response",
+          "label": "Response",
+          "icon": "AlertTriangle",
+          "screens": [
+            "scr_clock",
+            "scr_report"
+          ]
+        },
+        {
+          "id": "nvg_register",
+          "label": "Register",
+          "icon": "BookOpen",
+          "screens": [
+            "scr_closed"
+          ]
+        },
+        {
+          "id": "nvg_setup",
+          "label": "Setup",
+          "icon": "Settings",
+          "screens": [
+            "scr_setup"
+          ]
+        }
+      ]
+    },
+    "homeScreenId": "scr_clock"
+  },
+  "dataModel": {
+    "modelVersion": 1,
+    "tables": [
+      {
+        "id": "tbl_brchs01",
+        "key": "breaches",
+        "name": "Breach register",
+        "icon": "ShieldCheck",
+        "access": {
+          "default": "role",
+          "roles": {
+            "dpo": {
+              "read": "all",
+              "create": true,
+              "update": "all",
+              "delete": false
+            },
+            "responder": {
+              "read": "all",
+              "create": true,
+              "update": "all",
+              "delete": false
+            },
+            "reporter": {
+              "read": "own",
+              "create": true,
+              "update": "own",
+              "delete": false
+            }
+          },
+          "rowFilters": {}
+        },
+        "fields": [
+          {
+            "id": "fld_brref01",
+            "key": "reference",
+            "type": "text",
+            "required": true,
+            "unique": true,
+            "name": "reference"
+          },
+          {
+            "id": "fld_brtit01",
+            "key": "title",
+            "type": "text",
+            "required": true,
+            "unique": false,
+            "name": "title"
+          },
+          {
+            "id": "fld_brdes01",
+            "key": "description",
+            "type": "text",
+            "required": true,
+            "unique": false,
+            "name": "description"
+          },
+          {
+            "id": "fld_brtyp01",
+            "key": "breach_type",
+            "type": "select",
+            "required": true,
+            "unique": false,
+            "options": [
+              {
+                "value": "confidentiality",
+                "label": "Confidentiality — data seen by the wrong people"
+              },
+              {
+                "value": "integrity",
+                "label": "Integrity — data altered without authorisation"
+              },
+              {
+                "value": "availability",
+                "label": "Availability — data lost or unreachable"
+              }
+            ],
+            "default": "confidentiality",
+            "name": "breach_type"
+          },
+          {
+            "id": "fld_brocc01",
+            "key": "occurred_at",
+            "type": "datetime",
+            "required": false,
+            "unique": false,
+            "name": "occurred_at"
+          },
+          {
+            "id": "fld_brawr01",
+            "key": "became_aware_at",
+            "type": "datetime",
+            "required": true,
+            "unique": false,
+            "name": "became_aware_at"
+          },
+          {
+            "id": "fld_brdue01",
+            "key": "notify_due_at",
+            "type": "datetime",
+            "required": false,
+            "unique": false,
+            "name": "notify_due_at"
+          },
+          {
+            "id": "fld_brdud01",
+            "key": "notify_due_date",
+            "type": "date",
+            "required": false,
+            "unique": false,
+            "name": "notify_due_date"
+          },
+          {
+            "id": "fld_brsev01",
+            "key": "severity",
+            "type": "text",
+            "required": true,
+            "unique": false,
+            "default": "unassessed",
+            "name": "severity"
+          },
+          {
+            "id": "fld_brrsk01",
+            "key": "risk_summary",
+            "type": "text",
+            "required": false,
+            "unique": false,
+            "name": "risk_summary"
+          },
+          {
+            "id": "fld_brppl01",
+            "key": "people_affected",
+            "type": "number",
+            "subtype": "integer",
+            "required": false,
+            "unique": false,
+            "name": "people_affected"
+          },
+          {
+            "id": "fld_brrec01",
+            "key": "records_affected",
+            "type": "number",
+            "subtype": "integer",
+            "required": false,
+            "unique": false,
+            "name": "records_affected"
+          },
+          {
+            "id": "fld_brcat01",
+            "key": "data_categories",
+            "type": "text",
+            "required": false,
+            "unique": false,
+            "name": "data_categories"
+          },
+          {
+            "id": "fld_brspc01",
+            "key": "special_categories",
+            "type": "bool",
+            "required": false,
+            "unique": false,
+            "default": false,
+            "name": "special_categories"
+          },
+          {
+            "id": "fld_brasb01",
+            "key": "assessed_by",
+            "type": "text",
+            "required": false,
+            "unique": false,
+            "name": "assessed_by"
+          },
+          {
+            "id": "fld_brasa01",
+            "key": "assessed_at",
+            "type": "datetime",
+            "required": false,
+            "unique": false,
+            "name": "assessed_at"
+          },
+          {
+            "id": "fld_braur01",
+            "key": "authority_required",
+            "type": "bool",
+            "required": false,
+            "unique": false,
+            "default": true,
+            "name": "authority_required"
+          },
+          {
+            "id": "fld_braua01",
+            "key": "authority_notified_at",
+            "type": "datetime",
+            "required": false,
+            "unique": false,
+            "name": "authority_notified_at"
+          },
+          {
+            "id": "fld_brauh01",
+            "key": "authority_hours",
+            "type": "number",
+            "subtype": "integer",
+            "required": false,
+            "unique": false,
+            "name": "authority_hours"
+          },
+          {
+            "id": "fld_braun01",
+            "key": "authority_reference",
+            "type": "text",
+            "required": false,
+            "unique": false,
+            "name": "authority_reference"
+          },
+          {
+            "id": "fld_braul01",
+            "key": "authority_late_reason",
+            "type": "text",
+            "required": false,
+            "unique": false,
+            "name": "authority_late_reason"
+          },
+          {
+            "id": "fld_brsur01",
+            "key": "subjects_required",
+            "type": "bool",
+            "required": false,
+            "unique": false,
+            "default": false,
+            "name": "subjects_required"
+          },
+          {
+            "id": "fld_brsua01",
+            "key": "subjects_notified_at",
+            "type": "datetime",
+            "required": false,
+            "unique": false,
+            "name": "subjects_notified_at"
+          },
+          {
+            "id": "fld_brsum01",
+            "key": "subjects_method",
+            "type": "select",
+            "required": false,
+            "unique": false,
+            "options": [
+              {
+                "value": "individual",
+                "label": "Individually (e-mail, letter, in person)"
+              },
+              {
+                "value": "public",
+                "label": "Public communication (Art. 34(3)(c))"
+              }
+            ],
+            "default": "individual",
+            "name": "subjects_method"
+          },
+          {
+            "id": "fld_brsug01",
+            "key": "subjects_exempt_ground",
+            "type": "select",
+            "required": false,
+            "unique": false,
+            "options": [
+              {
+                "value": "encryption",
+                "label": "Art. 34(3)(a) — data was unintelligible (encrypted)"
+              },
+              {
+                "value": "measures",
+                "label": "Art. 34(3)(b) — later measures removed the high risk"
+              },
+              {
+                "value": "disproportionate",
+                "label": "Art. 34(3)(c) — disproportionate effort; public communication instead"
+              }
+            ],
+            "name": "subjects_exempt_ground"
+          },
+          {
+            "id": "fld_brsue01",
+            "key": "subjects_exempt_reason",
+            "type": "text",
+            "required": false,
+            "unique": false,
+            "name": "subjects_exempt_reason"
+          },
+          {
+            "id": "fld_brcon01",
+            "key": "containment",
+            "type": "text",
+            "required": false,
+            "unique": false,
+            "name": "containment"
+          },
+          {
+            "id": "fld_brrem01",
+            "key": "remediation",
+            "type": "text",
+            "required": false,
+            "unique": false,
+            "name": "remediation"
+          },
+          {
+            "id": "fld_brstg01",
+            "key": "stage",
+            "type": "select",
+            "required": true,
+            "unique": false,
+            "options": [
+              {
+                "value": "reported",
+                "label": "Reported"
+              },
+              {
+                "value": "assessed",
+                "label": "Assessed"
+              },
+              {
+                "value": "notified",
+                "label": "Notified"
+              },
+              {
+                "value": "closed",
+                "label": "Closed"
+              }
+            ],
+            "default": "reported",
+            "name": "stage"
+          },
+          {
+            "id": "fld_brout01",
+            "key": "outcome",
+            "type": "select",
+            "required": true,
+            "unique": false,
+            "options": [
+              {
+                "value": "pending",
+                "label": "Not decided yet"
+              },
+              {
+                "value": "recorded_only",
+                "label": "Recorded, not notifiable (Art. 33(5))"
+              },
+              {
+                "value": "notified_authority",
+                "label": "Authority notified"
+              },
+              {
+                "value": "notified_all",
+                "label": "Authority and data subjects notified"
+              },
+              {
+                "value": "not_a_breach",
+                "label": "Assessed as not a personal data breach"
+              }
+            ],
+            "default": "pending",
+            "name": "outcome"
+          },
+          {
+            "id": "fld_brrpb01",
+            "key": "reported_by",
+            "type": "text",
+            "required": false,
+            "unique": false,
+            "name": "reported_by"
+          },
+          {
+            "id": "fld_brcls01",
+            "key": "closed_on",
+            "type": "date",
+            "required": false,
+            "unique": false,
+            "name": "closed_on"
+          },
+          {
+            "id": "fld_bratt01",
+            "key": "attachments",
+            "type": "file",
+            "required": false,
+            "unique": false,
+            "name": "attachments"
+          }
+        ]
+      },
+      {
+        "id": "tbl_bacts01",
+        "key": "breach_actions",
+        "name": "Action log",
+        "icon": "History",
+        "access": {
+          "default": "role",
+          "roles": {
+            "dpo": {
+              "read": "all",
+              "create": true,
+              "update": "own",
+              "delete": false
+            },
+            "responder": {
+              "read": "all",
+              "create": true,
+              "update": "own",
+              "delete": false
+            },
+            "reporter": {
+              "read": "own",
+              "create": true,
+              "update": "own",
+              "delete": false
+            }
+          },
+          "rowFilters": {}
+        },
+        "fields": [
+          {
+            "id": "fld_babrc01",
+            "key": "breach_id",
+            "type": "relation",
+            "required": false,
+            "unique": false,
+            "relation": {
+              "table": "tbl_brchs01"
+            },
+            "name": "breach_id"
+          },
+          {
+            "id": "fld_baref01",
+            "key": "breach_reference",
+            "type": "text",
+            "required": false,
+            "unique": false,
+            "name": "breach_reference"
+          },
+          {
+            "id": "fld_bawhn01",
+            "key": "happened_at",
+            "type": "datetime",
+            "required": true,
+            "unique": false,
+            "name": "happened_at"
+          },
+          {
+            "id": "fld_batyp01",
+            "key": "action_type",
+            "type": "select",
+            "required": true,
+            "unique": false,
+            "options": [
+              {
+                "value": "detected",
+                "label": "Detected / became aware"
+              },
+              {
+                "value": "contained",
+                "label": "Containment measure"
+              },
+              {
+                "value": "assessed",
+                "label": "Risk assessed"
+              },
+              {
+                "value": "notified_authority",
+                "label": "Authority notified"
+              },
+              {
+                "value": "notified_subjects",
+                "label": "Data subjects notified"
+              },
+              {
+                "value": "communication",
+                "label": "Communication with a processor or third party"
+              },
+              {
+                "value": "remediation",
+                "label": "Remediation"
+              },
+              {
+                "value": "note",
+                "label": "Note"
+              },
+              {
+                "value": "closed",
+                "label": "Case closed"
+              }
+            ],
+            "default": "note",
+            "name": "action_type"
+          },
+          {
+            "id": "fld_basum01",
+            "key": "summary",
+            "type": "text",
+            "required": true,
+            "unique": false,
+            "name": "summary"
+          },
+          {
+            "id": "fld_bawho01",
+            "key": "actor_name",
+            "type": "text",
+            "required": false,
+            "unique": false,
+            "name": "actor_name"
+          }
+        ]
+      },
+      {
+        "id": "tbl_bsys001",
+        "key": "breach_systems",
+        "name": "Systems and processors",
+        "icon": "Boxes",
+        "access": {
+          "default": "role",
+          "roles": {
+            "dpo": {
+              "read": "all",
+              "create": true,
+              "update": "all",
+              "delete": "all"
+            },
+            "responder": {
+              "read": "all",
+              "create": true,
+              "update": "all",
+              "delete": "own"
+            },
+            "reporter": {
+              "read": "none",
+              "create": false,
+              "update": "none",
+              "delete": "none"
+            }
+          },
+          "rowFilters": {}
+        },
+        "fields": [
+          {
+            "id": "fld_bsbrc01",
+            "key": "breach_id",
+            "type": "relation",
+            "required": false,
+            "unique": false,
+            "relation": {
+              "table": "tbl_brchs01"
+            },
+            "name": "breach_id"
+          },
+          {
+            "id": "fld_bsref01",
+            "key": "breach_reference",
+            "type": "text",
+            "required": false,
+            "unique": false,
+            "name": "breach_reference"
+          },
+          {
+            "id": "fld_bsnam01",
+            "key": "name",
+            "type": "text",
+            "required": true,
+            "unique": false,
+            "name": "name"
+          },
+          {
+            "id": "fld_bsrol01",
+            "key": "party_role",
+            "type": "select",
+            "required": true,
+            "unique": false,
+            "options": [
+              {
+                "value": "own_system",
+                "label": "Our own system"
+              },
+              {
+                "value": "processor",
+                "label": "Processor"
+              },
+              {
+                "value": "sub_processor",
+                "label": "Sub-processor"
+              },
+              {
+                "value": "recipient",
+                "label": "Third-party recipient"
+              }
+            ],
+            "default": "own_system",
+            "name": "party_role"
+          },
+          {
+            "id": "fld_bsdat01",
+            "key": "data_held",
+            "type": "text",
+            "required": false,
+            "unique": false,
+            "name": "data_held"
+          },
+          {
+            "id": "fld_bsnot01",
+            "key": "told_us_at",
+            "type": "datetime",
+            "required": false,
+            "unique": false,
+            "name": "told_us_at"
+          },
+          {
+            "id": "fld_bscnt01",
+            "key": "contact",
+            "type": "text",
+            "required": false,
+            "unique": false,
+            "name": "contact"
+          },
+          {
+            "id": "fld_bscon01",
+            "key": "contained",
+            "type": "bool",
+            "required": false,
+            "unique": false,
+            "default": false,
+            "name": "contained"
+          }
+        ]
+      },
+      {
+        "id": "tbl_sevs001",
+        "key": "severity_levels",
+        "name": "Severity levels",
+        "icon": "Gauge",
+        "access": {
+          "default": "role",
+          "roles": {
+            "dpo": {
+              "read": "all",
+              "create": true,
+              "update": "all",
+              "delete": "all"
+            },
+            "responder": {
+              "read": "all",
+              "create": false,
+              "update": "none",
+              "delete": "none"
+            },
+            "reporter": {
+              "read": "all",
+              "create": false,
+              "update": "none",
+              "delete": "none"
+            }
+          },
+          "rowFilters": {}
+        },
+        "fields": [
+          {
+            "id": "fld_svkey01",
+            "key": "key",
+            "type": "text",
+            "required": true,
+            "unique": true,
+            "name": "key"
+          },
+          {
+            "id": "fld_svnam01",
+            "key": "name",
+            "type": "text",
+            "required": true,
+            "unique": false,
+            "name": "name"
+          },
+          {
+            "id": "fld_svgui01",
+            "key": "guidance",
+            "type": "text",
+            "required": false,
+            "unique": false,
+            "name": "guidance"
+          },
+          {
+            "id": "fld_svaut01",
+            "key": "notify_authority",
+            "type": "bool",
+            "required": false,
+            "unique": false,
+            "default": true,
+            "name": "notify_authority"
+          },
+          {
+            "id": "fld_svsub01",
+            "key": "notify_subjects",
+            "type": "bool",
+            "required": false,
+            "unique": false,
+            "default": false,
+            "name": "notify_subjects"
+          },
+          {
+            "id": "fld_svcol01",
+            "key": "color",
+            "type": "select",
+            "required": false,
+            "unique": false,
+            "options": [
+              {
+                "value": "primary",
+                "label": "Primary"
+              },
+              {
+                "value": "neutral",
+                "label": "Neutral"
+              },
+              {
+                "value": "success",
+                "label": "Green"
+              },
+              {
+                "value": "warning",
+                "label": "Amber"
+              },
+              {
+                "value": "danger",
+                "label": "Red"
+              },
+              {
+                "value": "info",
+                "label": "Blue"
+              }
+            ],
+            "default": "neutral",
+            "name": "color"
+          },
+          {
+            "id": "fld_svpos01",
+            "key": "position",
+            "type": "number",
+            "subtype": "integer",
+            "required": false,
+            "unique": false,
+            "default": 1,
+            "name": "position"
+          }
+        ]
+      }
+    ],
+    "roles": [
+      {
+        "key": "dpo",
+        "label": "Data protection officer"
+      },
+      {
+        "key": "responder",
+        "label": "Incident responder"
+      },
+      {
+        "key": "reporter",
+        "label": "Anyone who spots a breach"
+      }
+    ],
+    "roleMapping": {
+      "default": "reporter",
+      "byGroup": {}
+    }
+  }
+}

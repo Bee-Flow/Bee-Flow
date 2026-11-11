@@ -1,0 +1,49 @@
+{
+  "corpus": "sample-v21-batch",
+  "canonical": {
+    "sha256": "b32a4132f79eaf1d03a5d5fcaf09c79917fee4e2664911b54ab239b7d2eec09e",
+    "bytes": 10141,
+    "inputIsCanonical": false,
+    "idempotent": true,
+    "keys": [
+      "schemaVersion",
+      "meta",
+      "theme",
+      "roles",
+      "screens",
+      "actions",
+      "homeScreenId"
+    ],
+    "parts": {
+      "schemaVersion": "d4735e3a265e16ee",
+      "meta": "627601f8499bd701",
+      "theme": "5d7eeb0111b89897",
+      "roles": "4f53cda18c2baa0c",
+      "screens[0] scr_v21a01": "e7e7742b0fe9817c",
+      "actions.act_v21t": "af38c2d2126ce57e",
+      "homeScreenId": "5eb8f74be4ef0d71"
+    }
+  },
+  "schemaVersion": {
+    "stored": 2,
+    "canonical": 2
+  },
+  "validation": {
+    "strict": {
+      "errors": [],
+      "warnings": []
+    },
+    "save": {
+      "errors": [],
+      "warnings": []
+    }
+  },
+  "ordinals": {
+    "stored": {
+      "act_v21t": [
+        "0 toast"
+      ]
+    },
+    "canonical": "same as stored"
+  }
+}

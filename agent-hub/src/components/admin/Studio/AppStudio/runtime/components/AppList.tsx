@@ -3,11 +3,12 @@ import { useCallback, useMemo, useState } from 'react';
 import type React from 'react';
 import useTranslation from '@/hooks/useTranslation';
 import { buildPeekIndex, peekBadgeLabel, peekBadgeTone, peekKey, type PeekGroupLabel, type PeekRow } from '../listPeek';
+import { usePagedSource, withPager } from '../pagedSource';
 import { resolveBinding, walkPath } from '../resolveBinding';
 import { useRuntime } from '../RuntimeContext';
 import { isFill } from '../styleResolver.helpers';
 import { EmptyText, ErrorText, SkeletonLines, useStickyBinding } from '../uiBits';
-import type { BindingInput } from '../resolveBinding.types';
+import type { BindingInput, ResolveResult } from '../resolveBinding.types';
 import type { NodeProps } from './appNode.types';
 import type { ListProps } from './AppList.types';
 import { relativeTime, renderPeekPanel } from './AppList.helpers';
@@ -27,7 +28,13 @@ import { ListBadge, ListRowBody, groupRows, listLook, peekPosition, rowLook } fr
  * records themselves float in a panel on hover or keyboard focus.
  */
 
+/** A list over `source`; with `pagination` it reads its pages itself (../pagedSource). */
 export default function AppList({ node }: NodeProps<ListProps>) {
+    const paged = usePagedSource('list', node.props?.source, node.props?.pagination);
+    return withPager(paged, <ListBody node={node} source={paged.result} />);
+}
+
+function ListBody({ node, source: resolved }: NodeProps<ListProps> & { source: ResolveResult }) {
     const { t } = useTranslation();
     const { mode, runAction, actionState, dataState, scope } = useRuntime();
     const {
@@ -37,9 +44,7 @@ export default function AppList({ node }: NodeProps<ListProps>) {
         groupKey = null, groupOrder = [], groupLabelMap = [],
         icon = null, emptyText = t('studio_apps_runtime.ui.nothing_to_show', 'Nothing to show yet.'),
     } = node.props || {};
-    const { value: source, isLoading, error, errorCode } = useStickyBinding(
-        resolveBinding(node.props?.source, { actionState, dataState, scope }),
-    );
+    const { value: source, isLoading, error, errorCode } = useStickyBinding(resolved);
 
     // ── Peek ────────────────────────────────────────────────────────────────
     // Read before the early returns below, because hooks must be. A list with
@@ -67,7 +72,9 @@ export default function AppList({ node }: NodeProps<ListProps>) {
     const [openPeek, setOpenPeek] = useState<{ index: number; top: number; left: number; maxHeight: number } | null>(null);
     const showPeek = useCallback((index: number, anchor: (EventTarget & HTMLSpanElement) | (EventTarget & HTMLButtonElement)) => {
         if (!anchor || typeof anchor.getBoundingClientRect !== 'function') return;
-        setOpenPeek({ index, ...peekPosition(anchor.getBoundingClientRect(), window.innerWidth || 0, window.innerHeight || 0) });
+        // The window the anchor is in: the device preview renders in an iframe.
+        const view = anchor.ownerDocument.defaultView ?? window;
+        setOpenPeek({ index, ...peekPosition(anchor.getBoundingClientRect(), view.innerWidth || 0, view.innerHeight || 0) });
     }, []);
     const hidePeek = useCallback(() => setOpenPeek(null), []);
     if (error) return <ErrorText error={error} errorCode={errorCode} />;
@@ -154,7 +161,7 @@ export default function AppList({ node }: NodeProps<ListProps>) {
                         type="button"
                         // Hover was missing entirely, so a clickable row looked
                         // exactly like a static one.
-                        className={`${cls} cursor-pointer transition-colors hover:brightness-[1.06]`}
+                        className={`${cls} cursor-pointer transition-colors hover:brightness-[1.06] bfa-list__item`}
                         style={style}
                         aria-current={selected ? 'true' : undefined}
                         onClick={() => runAction(node.onRowClick as string, { formValues: item, item })}
@@ -164,7 +171,7 @@ export default function AppList({ node }: NodeProps<ListProps>) {
                         {body}
                     </button>
                 ) : (
-                    <div className={cls} style={style}>{body}</div>
+                    <div className={`${cls} bfa-list__item`} style={style}>{body}</div>
                 )}
                 {peekPanel}
             </li>
@@ -187,7 +194,7 @@ export default function AppList({ node }: NodeProps<ListProps>) {
             children.push(
                 <li
                     key={`grp-${name}`}
-                    className="flex items-baseline gap-1 uppercase font-semibold px-1 pt-1 first:pt-0 [font-size:11px] [letter-spacing:0.03em] [color:var(--text-muted)] [grid-column:1_/_-1]"
+                    className="flex items-baseline gap-1 uppercase font-semibold px-1 pt-1 first:pt-0 [font-size:11px] [letter-spacing:0.03em] [color:var(--text-muted)] [grid-column:1_/_-1] bfa-list__group"
                     data-app-list-group={name}
                     aria-hidden="true"
                 >
@@ -205,7 +212,7 @@ export default function AppList({ node }: NodeProps<ListProps>) {
     // support desk shipped with an unscrollable ticket list.
     return (
         <ul
-            className={listCls}
+            className={`${listCls} bfa-list__root`}
             style={listStyle}
             data-app-list="true"
             data-app-list-look={look === 'rows' ? undefined : look}

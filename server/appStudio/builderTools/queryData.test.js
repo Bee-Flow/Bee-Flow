@@ -163,3 +163,87 @@ test('a linked table goes through the shared runner and keeps linked:true', asyn
         assert.strictEqual(seen[0].o.limit, 1);
     });
 });
+
+test('total:true adds totalRows from a count with the read\'s WHERE; without it there is no count and no key', async () => {
+    const calls = [];
+    const patches = [
+        [studioAppStore, 'getStudioApp', async () => APP],
+        [studioAppDbStore, 'query', async (owner, appId, sql, params) => {
+            calls.push({ sql, params });
+            return { rows: sql.includes('COUNT(') ? [{ total: '7' }] : [row(1), row(2), row(3)] };
+        }],
+    ];
+    await withPatches(patches, async () => {
+        const plain = await applyQueryData(wrap(), { tableId: 'tbl_task01', limit: 2 });
+        assert.ok(!('totalRows' in plain));
+        assert.ok(!calls.some((c) => c.sql.includes('COUNT(')));
+        const filter = [{ field: 'status', op: 'eq', value: 'todo' }];
+        const counted = await applyQueryData(wrap(), { tableId: 'tbl_task01', limit: 2, total: true, filter });
+        assert.strictEqual(counted.totalRows, 7, 'a Postgres bigint string reads as a number');
+        assert.strictEqual(counted.rowCount, 2);
+        const count = calls.find((c) => c.sql.includes('COUNT('));
+        assert.match(count.sql, /"status" = \?/);
+        assert.ok(!/LIMIT/.test(count.sql), 'the count is not paged');
+        const bad = await applyQueryData(wrap(), { tableId: 'tbl_task01', total: 'yes' });
+        assert.match(bad.error, /total/);
+    });
+});
+
+test('orderBy sorts on several columns, a filter tree compiles, and the next page follows the orderBy cursor', async () => {
+    const calls = [];
+    await withPatches(dbReturning([row(1), row(2), row(3)], calls), async () => {
+        const out = await applyQueryData(wrap(), {
+            tableId: 'tbl_task01', limit: 2,
+            orderBy: [{ field: 'status', dir: 'asc' }, { field: 'title', dir: 'desc' }],
+            filter: [{ any: [{ all: [{ field: 'status', op: 'eq', value: 'todo' }, { not: { field: 'title', op: 'eq', value: 'x' } }] }] }],
+        });
+        assert.equal(out.error, undefined);
+        assert.match(calls[0].sql, /AND \("status" = \? AND NOT COALESCE\(\("title" = \?\), 0\)\) ORDER BY \("status" IS NULL\), "status" ASC, \("title" IS NULL\), "title" DESC, "id" DESC LIMIT \?$/);
+        assert.equal(out.more, true);
+        const next = await applyQueryData(wrap(), { tableId: 'tbl_task01', limit: 2, orderBy: [{ field: 'status', dir: 'asc' }, { field: 'title', dir: 'desc' }], cursor: out.nextCursor });
+        assert.equal(next.error, undefined);
+        assert.match(calls[1].sql, /\("status" = \? AND "title" = \? AND "id" < \?\)\) ORDER BY/);
+        assert.deepEqual(calls[1].params.slice(-4, -1), ['todo', 't2', 'rec_2']);
+    });
+});
+
+test('orderBy next to sort, or on a dataset, is refused with a hint', async () => {
+    await withPatches(dbReturning([]), async () => {
+        const both = await applyQueryData(wrap(), { tableId: 'tbl_task01', sort: { field: 'title', dir: 'asc' }, orderBy: [{ field: 'status' }] });
+        assert.match(both.error, /orderBy must be a list/);
+        const ds = await applyQueryData(wrap(), { datasetId: 'ds_1', orderBy: [{ field: 'status' }] });
+        assert.match(ds.error, /apply to raw table rows/);
+        const many = await applyQueryData(wrap(), { tableId: 'tbl_task01', orderBy: [{ field: 'status' }, { field: 'title' }, { field: 'id' }, { field: 'created_at' }] });
+        assert.match(many.error, /orderBy takes at most 3 columns/);
+    });
+});
+
+test('expand and fields read through a relation: the related row lands on the page, the column list narrows it', async () => {
+    const related = canonicalizeDataModel({
+        tables: [
+            { id: 'tbl_task01', key: 'tasks', name: 'Tasks', access: { default: 'owner' }, fields: [{ id: 'fld_ti01', key: 'title', type: 'text' }, { id: 'fld_pr01', key: 'project', type: 'relation', relation: { table: 'tbl_proj01', displayField: 'name' } }] },
+            { id: 'tbl_proj01', key: 'projects', name: 'Projects', access: { default: 'owner' }, fields: [{ id: 'fld_na01', key: 'name', type: 'text' }] },
+        ],
+    }).model;
+    const calls = [];
+    const patches = [
+        [studioAppStore, 'getStudioApp', async () => APP],
+        [studioAppDbStore, 'query', async (owner, appId, sql, params) => {
+            calls.push({ sql, params });
+            return { rows: sql.startsWith('SELECT "id" AS "id"') ? [{ id: 'rec_p1', name: 'Apollo' }] : [{ id: 'rec_1', title: 't1', project: 'rec_p1', created_at: '2026-01-01T00:00:00Z' }, { id: 'rec_2', title: 't2', project: 'rec_gone', created_at: '2026-01-02T00:00:00Z' }] };
+        }],
+    ];
+    await withPatches(patches, async () => {
+        const r = await applyQueryData({ ...wrap(), dataModel: related }, { tableId: 'tbl_task01', expand: [{ field: 'project' }], fields: ['title'], filter: [{ field: 'project.name', op: 'contains', value: 'Apo' }] });
+        assert.deepStrictEqual(r.rows, [
+            { id: 'rec_1', title: 't1', project_record: { id: 'rec_p1', name: 'Apollo', _label: 'Apollo' } },
+            { id: 'rec_2', title: 't2', project_record: null },
+        ]);
+        assert.match(calls[0].sql, /^SELECT "id", "title", "created_at", "project" FROM "tasks" WHERE .* AND "project" IN \(SELECT "id" FROM "projects" WHERE /);
+        assert.deepStrictEqual(calls[1].params.slice(-2), ['rec_p1', 'rec_gone']);
+        const bad = await applyQueryData({ ...wrap(), dataModel: related }, { tableId: 'tbl_task01', expand: [{ field: 'title' }] });
+        assert.match(bad.error, /expand needs a relation field/);
+        assert.match((await applyQueryData({ ...wrap(), dataModel: related }, { tableId: 'tbl_task01', expand: [] })).error, /expand must be a non-empty list/);
+        assert.match((await applyQueryData({ ...wrap(), dataModel: related }, { datasetId: 'ds_1', fields: ['title'] })).error, /apply to raw table rows/);
+    });
+});

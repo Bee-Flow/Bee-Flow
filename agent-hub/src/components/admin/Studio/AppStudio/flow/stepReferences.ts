@@ -23,7 +23,7 @@
 import type { TranslateFn } from '../../../../../hooks/useTranslation';
 import type { AppDefinition, AppNode } from '../inspector/appDefinition';
 
-export type ReferenceKind = 'screen' | 'modal' | 'table' | 'dataset' | 'automation' | 'connector' | 'document' | 'action';
+export type ReferenceKind = 'screen' | 'modal' | 'table' | 'dataset' | 'automation' | 'connector' | 'document' | 'action' | 'node';
 
 /** A { key, en } entry: the translation key and its English default. */
 export interface ReferenceText {
@@ -63,6 +63,8 @@ export const REFERENCE_FIELDS: Record<string, ReferenceKind> = {
     documentId: 'document',
     // call_action: another action of this app.
     actionId: 'action',
+    // focus, scroll_to, set_ui: a component on a screen (./nodeRefOptions.ts narrows it per step).
+    nodeId: 'node',
 };
 
 /** The label a picker shows when the field is not set yet: { key, en } per reference kind. */
@@ -75,6 +77,7 @@ export const REFERENCE_PLACEHOLDERS: Record<ReferenceKind, ReferenceText> = {
     connector: { key: 'studio_apps_edit.step_refs.pick_connector', en: 'Pick a connection…' },
     document: { key: 'studio_apps_edit.step_refs.pick_document', en: 'Pick a document…' },
     action: { key: 'studio_apps_edit.step_refs.pick_action', en: 'Pick an action…' },
+    node: { key: 'studio_apps_ui_steps.refs.pick_node', en: 'Pick a component…' },
 };
 
 /**
@@ -90,6 +93,7 @@ export const REFERENCE_EMPTY_HINTS: Record<ReferenceKind, ReferenceText> = {
     connector: { key: 'studio_apps_edit.step_refs.empty_connector', en: 'No connections yet — add one under Data · Connections first.' },
     document: { key: 'studio_apps_edit.step_refs.empty_document', en: 'No designed documents yet — make the invoice, quote or letter in Studio → Documents first.' },
     action: { key: 'studio_apps_edit.step_refs.empty_action', en: 'This app has no other actions yet.' },
+    node: { key: 'studio_apps_ui_steps.refs.empty_node', en: 'No component fits this step yet: add one to a screen first.' },
 };
 
 /** A { key, en } entry from the tables above, translated (English without `t`). */

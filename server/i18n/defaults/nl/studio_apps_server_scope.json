@@ -1,0 +1,10 @@
+{
+  "translations": {
+    "studio_apps_server_scope.explainer": "Een stap die opslaat, verstuurt of de AI iets vraagt, draait op de server. Zonder deze instelling leest een formule in zo'n stap screen, forms en actions als leeg. Met deze instelling stuurt de browser ze mee met de stap. Het is wat de persoon op het scherm heeft ingevuld: gebruik dus currentUser en rollen, niet deze waarden, om te bepalen wie iets mag. Een openbare pagina, een actie op de achtergrond en de telefoon-app sturen ze niet mee.",
+    "studio_apps_server_scope.field_guard": "Alleen uitvoeren als (gecontroleerd op de server)",
+    "studio_apps_server_scope.hint_guard": "Een formule die de server uitrekent vóór deze stap. Als de uitkomst niet waar is, wordt de stap overgeslagen en gaat de rest door. Laat leeg om de stap altijd uit te voeren.",
+    "studio_apps_server_scope.title": "Serverstappen",
+    "studio_apps_server_scope.toggle": "Laat serverstappen het scherm, andere formulieren en actieresultaten lezen"
+  },
+  "sameAsEnglish": []
+}

@@ -32,12 +32,15 @@ export interface PeekState {
     bottom: number;
     left: number;
     above: boolean;
+    /** The window the cell is in (the device preview's frame); absent = this window. */
+    view?: Window;
 }
 
 export function CellPeek({ peek }: { peek: PeekState | null }) {
     if (!peek) return null;
     const WIDTH = 420;
-    const left = Math.max(8, Math.min(peek.left, window.innerWidth - WIDTH - 8));
+    const view = peek.view ?? window;
+    const left = Math.max(8, Math.min(peek.left, view.innerWidth - WIDTH - 8));
     return (
         <div
             aria-hidden="true"
@@ -45,7 +48,7 @@ export function CellPeek({ peek }: { peek: PeekState | null }) {
             className="fixed z-50 border p-2.5 text-xs shadow-lg"
             style={{
                 left,
-                ...(peek.above ? { bottom: window.innerHeight - peek.bottom + 6 } : { top: peek.top + 6 }),
+                ...(peek.above ? { bottom: view.innerHeight - peek.bottom + 6 } : { top: peek.top + 6 }),
                 width: WIDTH,
                 maxHeight: '40vh',
                 overflowY: 'auto',

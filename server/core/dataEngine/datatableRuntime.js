@@ -431,7 +431,7 @@ async function insertRow(resolved, { allowColumns, values } = {}) {
         const r = await mirrorWrites(resolved).insertRow(mirrorCtx(resolved), clean);
         return { id: r.id };
     }
-    /** @type {{ sql: string; params: (string | null)[]; id: string; createdAt: string; }} */
+    /** @type {{ sql: string; params: unknown[]; id: string; createdAt: string; }} */
     let compiled;
     try {
         compiled = queryCompiler.compileInsert(resolved.meta, clean, {

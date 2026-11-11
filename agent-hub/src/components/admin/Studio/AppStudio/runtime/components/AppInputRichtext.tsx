@@ -2,6 +2,7 @@ import { Bold, Italic, Link2, List, ListOrdered, X, type LucideIcon } from 'luci
 import { useEffect, useRef, useState } from 'react';
 import useTranslation from '@/hooks/useTranslation';
 import { useFormField } from '../formContext';
+import { useBlurChange } from '../useInputChange';
 import { Field } from '../uiBits';
 import useValueFrom from '../useValueFrom';
 import type { BindingInput } from '../resolveBinding.types';
@@ -147,7 +148,7 @@ function ToolbarButton({ icon: Icon, onPress, title }: { icon: LucideIcon; onPre
             title={title}
             aria-label={title}
             onMouseDown={(e) => { e.preventDefault(); onPress(); }}
-            className="inline-flex items-center justify-center w-7 h-7 [color:var(--text-secondary)] [border-radius:var(--app-radius)]"
+            className="inline-flex items-center justify-center w-7 h-7 [color:var(--text-secondary)] [border-radius:var(--app-radius)] bfa-input_richtext__tool"
         >
             <Icon className="w-3.5 h-3.5" aria-hidden="true" />
         </button>
@@ -183,7 +184,10 @@ export default function AppInputRichtext({ node }: NodeProps<InputRichtextProps>
         const md = htmlToMarkdown(el);
         lastRef.current = md;
         setValue(md);
+        return md;
     };
+    // onChange (schema 3): once per edit, when the editor loses focus with a new value.
+    const blurChange = useBlurChange(node, name);
 
     // execCommand is deprecated and still the only thing every browser
     // implements for this. styleWithCSS off keeps bold as <b> rather than a
@@ -200,13 +204,13 @@ export default function AppInputRichtext({ node }: NodeProps<InputRichtextProps>
     };
 
     return (
-        <Field id={id} label={label} required={required} error={error}>
+        <Field part="input_richtext" id={id} label={label} required={required} error={error}>
             <div
-                className="flex flex-col border overflow-hidden"
+                className="flex flex-col border overflow-hidden bfa-input_richtext__frame"
                 style={{ borderColor: error ? 'var(--error)' : 'var(--border-default)', borderRadius: 'var(--app-radius)', background: 'var(--bg-primary)' }}
             >
                 <div
-                    className="flex items-center gap-0.5 px-1.5 py-1 border-b [border-color:var(--border-default)]! [background:var(--bg-tertiary)]"
+                    className="flex items-center gap-0.5 px-1.5 py-1 border-b [border-color:var(--border-default)]! [background:var(--bg-tertiary)] bfa-input_richtext__toolbar"
                     role="toolbar"
                     aria-label={t('studio_apps_runtime.rich_text.formatting', 'Formatting')}
                 >
@@ -263,8 +267,9 @@ export default function AppInputRichtext({ node }: NodeProps<InputRichtextProps>
                     data-app-richtext="true"
                     data-placeholder={placeholder || t('studio_apps_runtime.rich_text.richtext_placeholder', 'Write here…')}
                     onInput={commit}
-                    onBlur={commit}
-                    className="app-richtext w-full px-2.5 py-2 text-sm outline-none min-h-[6rem] overflow-auto text-[var(--text-primary)]"
+                    onFocus={() => blurChange.focus(lastRef.current ?? text)}
+                    onBlur={() => blurChange.blur(commit())}
+                    className="app-richtext w-full px-2.5 py-2 text-sm outline-none min-h-[6rem] overflow-auto text-[var(--text-primary)] bfa-input_richtext__editor"
                 />
                 {/* The markdown is what the form submits; the box above is only
                     how it is typed. Hidden rather than absent so a plain form

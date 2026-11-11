@@ -1,0 +1,423 @@
+{
+  "about": {
+    "source": "written for the filter tree, column comparison and orderBy vocabulary (schema since 3): a records binding with a three-level filter and three sort columns, one with a column comparison, an aggregate that sorts on three output columns, and a saved dataset with an OR group and orderBy",
+    "stored": "definition = canonicalizeAppDefinition(the authored definition).def; dataModel = canonicalizeDataModel(the authored model).model; datasets as stored",
+    "captured": "2026-11-10"
+  },
+  "definition": {
+    "schemaVersion": 2,
+    "meta": {
+      "name": "Filter trees and orderBy",
+      "description": "A list with a nested filter, a column comparison and a three-column sort.",
+      "icon": "ListFilter"
+    },
+    "theme": {
+      "primary": "#0F766E",
+      "radius": "md",
+      "density": "comfortable",
+      "fontScale": "md",
+      "appearance": "auto"
+    },
+    "roles": [],
+    "screens": [
+      {
+        "id": "scr_flexdf",
+        "name": "Projects",
+        "icon": null,
+        "showInNav": true,
+        "maxWidth": "medium",
+        "sections": [
+          {
+            "id": "sec_flexdf",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_flexdflist",
+                "type": "table",
+                "props": {
+                  "source": {
+                    "kind": "records",
+                    "tableId": "tbl_flexdf",
+                    "filter": [
+                      {
+                        "field": "archived",
+                        "op": "neq",
+                        "value": true
+                      },
+                      {
+                        "any": [
+                          {
+                            "all": [
+                              {
+                                "field": "status",
+                                "op": "eq",
+                                "value": "open"
+                              },
+                              {
+                                "field": "spent",
+                                "op": "gt",
+                                "otherField": "budget"
+                              }
+                            ]
+                          },
+                          {
+                            "all": [
+                              {
+                                "field": "owner",
+                                "op": "eq",
+                                "value": {
+                                  "kind": "formula",
+                                  "expr": "currentUser.id"
+                                }
+                              },
+                              {
+                                "not": {
+                                  "field": "status",
+                                  "op": "eq",
+                                  "value": "done"
+                                }
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "not": {
+                          "any": [
+                            {
+                              "field": "name",
+                              "op": "startsWith",
+                              "value": "Test"
+                            },
+                            {
+                              "field": "name",
+                              "op": "isNull"
+                            }
+                          ]
+                        }
+                      }
+                    ],
+                    "orderBy": [
+                      {
+                        "field": "status",
+                        "dir": "asc"
+                      },
+                      {
+                        "field": "due",
+                        "dir": "desc"
+                      },
+                      {
+                        "field": "name",
+                        "dir": "asc"
+                      }
+                    ],
+                    "limit": 50
+                  },
+                  "columns": [
+                    {
+                      "key": "name",
+                      "label": "Name"
+                    },
+                    {
+                      "key": "status",
+                      "label": "Status"
+                    },
+                    {
+                      "key": "spent",
+                      "label": "Spent"
+                    },
+                    {
+                      "key": "budget",
+                      "label": "Budget"
+                    }
+                  ],
+                  "emptyText": "Nothing to show yet.",
+                  "rowLimit": 25,
+                  "look": "default"
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_flexdfone",
+                "type": "table",
+                "props": {
+                  "source": {
+                    "kind": "records",
+                    "tableId": "tbl_flexdf",
+                    "filter": [
+                      {
+                        "field": "spent",
+                        "op": "gt",
+                        "otherField": "budget"
+                      }
+                    ],
+                    "orderBy": [
+                      {
+                        "field": "spent",
+                        "dir": "desc"
+                      }
+                    ]
+                  },
+                  "columns": [
+                    {
+                      "key": "name",
+                      "label": "Name"
+                    }
+                  ],
+                  "emptyText": "Nothing to show yet.",
+                  "rowLimit": 25,
+                  "look": "default"
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_flexdfagg",
+                "type": "table",
+                "props": {
+                  "source": {
+                    "kind": "aggregate",
+                    "tableId": "tbl_flexdf",
+                    "filter": [
+                      {
+                        "not": {
+                          "all": [
+                            {
+                              "field": "status",
+                              "op": "eq",
+                              "value": "done"
+                            },
+                            {
+                              "field": "spent",
+                              "op": "lte",
+                              "otherField": "budget"
+                            }
+                          ]
+                        }
+                      }
+                    ],
+                    "orderBy": [
+                      {
+                        "field": "n",
+                        "dir": "desc"
+                      },
+                      {
+                        "field": "total",
+                        "dir": "desc"
+                      },
+                      {
+                        "field": "status",
+                        "dir": "asc"
+                      }
+                    ],
+                    "groupBy": [
+                      {
+                        "field": "status"
+                      }
+                    ],
+                    "aggregates": [
+                      {
+                        "fn": "count",
+                        "as": "n"
+                      },
+                      {
+                        "fn": "sum",
+                        "field": "spent",
+                        "as": "total"
+                      }
+                    ]
+                  },
+                  "columns": [
+                    {
+                      "key": "status",
+                      "label": "Status"
+                    },
+                    {
+                      "key": "n",
+                      "label": "Projects"
+                    },
+                    {
+                      "key": "total",
+                      "label": "Spent"
+                    }
+                  ],
+                  "emptyText": "Nothing to show yet.",
+                  "rowLimit": 25,
+                  "look": "default"
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "actions": {},
+    "homeScreenId": "scr_flexdf"
+  },
+  "dataModel": {
+    "modelVersion": 1,
+    "tables": [
+      {
+        "id": "tbl_flexdf",
+        "name": "Projects",
+        "icon": "Folder",
+        "fields": [
+          {
+            "id": "fld_flexdfname",
+            "name": "Name",
+            "type": "text",
+            "required": true,
+            "key": "name",
+            "unique": false
+          },
+          {
+            "id": "fld_flexdfstat",
+            "name": "Status",
+            "type": "select",
+            "options": [
+              "open",
+              "paused",
+              "done"
+            ],
+            "key": "status",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_flexdfown",
+            "name": "Owner",
+            "type": "text",
+            "key": "owner",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_flexdfspent",
+            "name": "Spent",
+            "type": "number",
+            "key": "spent",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_flexdfbudg",
+            "name": "Budget",
+            "type": "number",
+            "key": "budget",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_flexdfdue",
+            "name": "Due",
+            "type": "date",
+            "key": "due",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_flexdfarch",
+            "name": "Archived",
+            "type": "bool",
+            "key": "archived",
+            "required": false,
+            "unique": false
+          }
+        ],
+        "access": {
+          "default": "role",
+          "roles": {
+            "member": {
+              "read": "all",
+              "create": true,
+              "update": "own",
+              "delete": "none"
+            }
+          },
+          "rowFilters": {
+            "member": "record.archived != true"
+          }
+        },
+        "key": "projects"
+      }
+    ],
+    "roles": [
+      {
+        "key": "member",
+        "label": "member"
+      }
+    ],
+    "roleMapping": {
+      "default": "member",
+      "byGroup": {}
+    }
+  },
+  "datasets": [
+    {
+      "id": "ds_flexdfown",
+      "name": "Open or over budget, per owner",
+      "tableId": "tbl_flexdf",
+      "source": {
+        "kind": "table",
+        "tableId": "tbl_flexdf"
+      },
+      "descriptor": {
+        "filters": [
+          {
+            "any": [
+              {
+                "field": "status",
+                "op": "eq",
+                "value": "open"
+              },
+              {
+                "field": "spent",
+                "op": "gt",
+                "otherField": "budget"
+              }
+            ]
+          }
+        ],
+        "groupBy": [
+          {
+            "field": "owner"
+          }
+        ],
+        "aggregates": [
+          {
+            "fn": "count",
+            "as": "n"
+          },
+          {
+            "fn": "max",
+            "field": "due",
+            "as": "latest_due"
+          }
+        ],
+        "orderBy": [
+          {
+            "field": "n",
+            "dir": "desc"
+          },
+          {
+            "field": "owner",
+            "dir": "asc"
+          }
+        ]
+      }
+    }
+  ]
+}

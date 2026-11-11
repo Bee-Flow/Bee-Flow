@@ -4,6 +4,8 @@
   "src/components/admin/Studio/AppStudio/chat/PlanCard.test.tsx",
   "src/components/admin/Studio/AppStudio/rbac/RowRuleEditor.test.jsx",
   "src/components/admin/Studio/AppStudio/rbac/rowRuleModel.test.ts",
+  "src/components/admin/Studio/AppStudio/rbac/rowRuleSet.test.ts",
+  "src/components/admin/Studio/AppStudio/tables/fieldRules.test.ts",
   "src/components/automation/Builder/mapping/autoMapInputs.deep.test.ts",
   "src/components/automation/Builder/mapping/deepenForEach.test.ts",
   "src/utils/adminAccess.lockstep.test.ts"

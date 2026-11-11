@@ -68,6 +68,8 @@ const { uploadGuard, scanBuffer } = require('../middleware/uploadGuard');
 const { DATA_LIMITS } = require('../appStudio/dataModel');
 const { resolveAudienceContext } = require('../auth/audience');
 const { perUserRateLimit } = require('../utils/perUserRateLimit');
+const { attachmentResponseHeaders } = require('./studioAppAttachmentHeaders.mts');
+const { withViewerAttributes } = require('../appStudio/viewerAttributes.mts');
 
 // ── Auth ────────────────────────────────────────────────────────────
 // requireAuth is the canonical gate from auth/permissions (verifies the
@@ -110,7 +112,7 @@ const FIELD_TEXT = 'fieldKey is the key of the file field: text of at most 100 c
 // The text fields beside the file; the one client (AppInputFile) sends neither, both are optional.
 const UploadFields = partOf({
     recordId: worded(RECORD_TEXT).max(200, RECORD_TEXT).optional(),
-    fieldKey: worded(FIELD_TEXT).max(100, FIELD_TEXT).optional(),
+    fieldKey: worded(FIELD_TEXT).max(100, FIELD_TEXT).refine(require('../appStudio/appAssets.mts').isRecordFieldKey, FIELD_TEXT).optional(),
 });
 
 const ATTACHMENT_TEXT = 'attachmentId is the id of the mail attachment to open.';
@@ -286,10 +288,8 @@ async function viewerMayReadAttachment(req, app, attachment) {
     if (app.userId === viewerId) return true;
     const { model, role } = await viewerRoleFor(req, app);
     return attachmentAccess.viewerMayReadAttachment(app, attachment, {
-        id: viewerId,
-        role,
+        ...await withViewerAttributes({ id: viewerId, role, organizationId: req.session.user.organizationId || null }, model),
         model,
-        organizationId: req.session.user.organizationId || null,
     });
 }
 
@@ -321,10 +321,8 @@ router.get('/:id/data/attachments/:fileId', requireAuth, readLimiter, validate({
     const mime = attachment.mimeType || obj.contentType || 'application/octet-stream';
     res.setHeader('Content-Type', mime);
     res.setHeader('X-Content-Type-Options', 'nosniff');
-    // Inline only for types that are safe to render (SVG was sanitized at
-    // upload); everything else is forced to download.
-    const inline = /^image\//.test(mime) || mime === 'application/pdf';
-    res.setHeader('Content-Disposition', inline ? 'inline' : 'attachment');
+    // Disposition and policy as on the public page's route (studioAppAttachmentHeaders.mts).
+    for (const [name, value] of Object.entries(attachmentResponseHeaders(mime))) res.setHeader(name, value);
     if (obj.contentLength) res.setHeader('Content-Length', obj.contentLength);
 
     sendStream(obj.stream, res, next);
@@ -472,7 +470,8 @@ router.delete('/:id/data/attachments/:fileId', requireAuth, uploadLimiter, valid
     }
 
     const attachment = await studioAppDataStore.getAttachment(req.params.fileId, app.id, app.userId);
-    if (!attachment) return res.status(404).json({ error: 'Attachment not found' });
+    // An app asset is not an upload of a form: it is deleted through the asset router, by an editor.
+    if (!attachment || require('../appStudio/appAssets.mts').isAppAssetRow(attachment)) return res.status(404).json({ error: 'Attachment not found' });
     if (attachment.recordId) {
         return res.status(409).json({
             error: 'This file is attached to a record — remove it from the record instead.',
@@ -518,13 +517,13 @@ router.post('/:id/data/attachments/materialize', requireAuth, uploadLimiter,
             attachmentId,
             tableId: tableId ?? undefined,
             recordId: recordId ?? undefined, inline: inline === true,
-            viewer: {
+            viewer: await withViewerAttributes({
                 id: req.session.user.id,
                 // The owner writes as the owner; anyone else keeps their role so
                 // the RLS read is real.
                 role: app.userId === req.session.user.id ? 'owner' : role,
                 organizationId: req.session.user.organizationId || null,
-            },
+            }, model),
         });
 
         res.json({ success: true, attachment: descriptor });

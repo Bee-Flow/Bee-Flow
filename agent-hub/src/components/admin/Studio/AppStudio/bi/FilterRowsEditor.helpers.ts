@@ -9,15 +9,18 @@ const filterOps = (t: (key: string | undefined, fallbackOrParams?: string | Tran
     { value: 'lt', label: '<' },
     { value: 'lte', label: '≤' },
     { value: 'contains', label: t('studio_apps_bi.filter.op_contains', 'contains') },
+    { value: 'notContains', label: t('studio_apps_dataread.op_not_contains', 'does not contain') },
     { value: 'startsWith', label: t('studio_apps_bi.filter.op_starts_with', 'starts with') },
+    { value: 'endsWith', label: t('studio_apps_dataread.op_ends_with', 'ends with') },
     { value: 'in', label: t('studio_apps_bi.filter.op_in', 'is one of') },
+    { value: 'notIn', label: t('studio_apps_dataread.op_not_in', 'is not one of') },
     { value: 'between', label: t('studio_apps_bi.filter.op_between', 'is between') },
     { value: 'isNull', label: t('studio_apps_bi.filter.op_is_null', 'is empty') },
     { value: 'isNotNull', label: t('studio_apps_bi.filter.op_is_not_null', 'is not empty') },
 ];
 
 // Ops that match on text no matter what the column holds.
-const TEXT_OPS = new Set(['contains', 'startsWith']);
+const TEXT_OPS = new Set(['contains', 'notContains', 'startsWith', 'endsWith']);
 
 /**
  * Which ops each column type can carry. A saved op outside its list is always
@@ -28,14 +31,33 @@ const TEXT_OPS = new Set(['contains', 'startsWith']);
  */
 const OPS_BY_TYPE: Record<string, string[]> = {
     bool: ['eq', 'neq', 'isNull', 'isNotNull'],
-    number: ['eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'between', 'in', 'isNull', 'isNotNull'],
+    number: ['eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'between', 'in', 'notIn', 'isNull', 'isNotNull'],
     date: ['eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'between', 'isNull', 'isNotNull'],
     datetime: ['eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'between', 'isNull', 'isNotNull'],
-    select: ['eq', 'neq', 'in', 'contains', 'isNull', 'isNotNull'],
-    multiselect: ['eq', 'neq', 'in', 'contains', 'isNull', 'isNotNull'],
+    select: ['eq', 'neq', 'in', 'notIn', 'contains', 'isNull', 'isNotNull'],
+    multiselect: ['eq', 'neq', 'in', 'notIn', 'contains', 'isNull', 'isNotNull'],
 };
 
-const DEFAULT_OPS = ['eq', 'neq', 'contains', 'startsWith', 'in', 'isNull', 'isNotNull'];
+const DEFAULT_OPS = ['eq', 'neq', 'contains', 'notContains', 'startsWith', 'endsWith', 'in', 'notIn', 'isNull', 'isNotNull'];
+
+/** Columns whose `eq` is a text comparison, where upper/lower case can be ignored (`ci`). */
+const CASE_TYPES = new Set(['text', 'long_text', 'email', 'url', 'phone']);
+
+function canIgnoreCase(field: FilterField | null) {
+    return !field?.type || CASE_TYPES.has(field.type);
+}
+
+/** Is "ignore upper and lower case" offered for this row? Only for an `is` over a text column, where the caller allows it. */
+export function offersIgnoreCase(allowed: boolean, op: string, field: FilterField | null) {
+    return allowed && op === 'eq' && canIgnoreCase(field);
+}
+
+/** The row with another operator: the case switch only means something on `is`, so it goes with any other. */
+export function withOperator<R extends { ci?: boolean }>(row: R, op: string): R {
+    if (op === 'eq') return row;
+    const { ci: _ci, ...rest } = row;
+    return rest as R;
+}
 
 export function allowedOps(field: FilterField | null) {
     return OPS_BY_TYPE[field?.type ?? ''] || DEFAULT_OPS;
@@ -63,7 +85,7 @@ export function choicesOf(field: FilterField | null) {
 
 /** Which value control a row deserves. */
 export function valueControlFor(field: FilterField | null, op: string) {
-    if (op === 'in') return 'list';
+    if (op === 'in' || op === 'notIn') return 'list';
     if (op === 'between') return 'range';
     if (TEXT_OPS.has(op)) return 'text';
     const type = field?.type;
@@ -78,7 +100,7 @@ export function isNumeric(v: unknown) {
     return Number.isFinite(Number(String(v).replace(',', '.')));
 }
 
-export function boolSegment(value: FilterValue) {
+export function boolSegment(value: FilterValue | undefined) {
     if (value === true || value === 'true') return 'true';
     if (value === false || value === 'false') return 'false';
     return '';

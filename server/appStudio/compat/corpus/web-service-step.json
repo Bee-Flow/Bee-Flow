@@ -1,0 +1,297 @@
+{
+  "about": {
+    "source": "hand-made for package L4 (the http_request step): GET with query, retry and onError, POST with a static body template, headers and an idempotencyKey, DELETE read as text, PUT with a form body; one rest connector in the data model; stored canonical",
+    "captured": "2026-11-10"
+  },
+  "definition": {
+    "schemaVersion": 3,
+    "meta": {
+      "name": "Order notes",
+      "description": "Looks an order up in a web service and adds a note to it.",
+      "icon": "Cable"
+    },
+    "theme": {
+      "primary": "#0F766E",
+      "radius": "md",
+      "density": "comfortable",
+      "fontScale": "md",
+      "appearance": "auto"
+    },
+    "roles": [],
+    "variables": [
+      {
+        "name": "region",
+        "label": "region",
+        "type": "text",
+        "default": "eu",
+        "description": ""
+      }
+    ],
+    "screens": [
+      {
+        "id": "scr_htp001",
+        "name": "Orders",
+        "icon": "Home",
+        "showInNav": true,
+        "maxWidth": "medium",
+        "sections": [
+          {
+            "id": "sec_htp001",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_htpfrm",
+                "type": "form",
+                "props": {
+                  "name": "note",
+                  "submitLabel": "Add note",
+                  "showReset": false,
+                  "showSubmit": true,
+                  "resetKey": null
+                },
+                "style": {
+                  "span": 12,
+                  "gap": 3,
+                  "padding": 0
+                },
+                "visible": true,
+                "onSubmit": "act_htpnot",
+                "children": [
+                  {
+                    "id": "cmp_htpord",
+                    "type": "input_text",
+                    "props": {
+                      "name": "orderId",
+                      "label": "Order number",
+                      "placeholder": null,
+                      "required": true,
+                      "defaultValue": null,
+                      "inputType": "text",
+                      "valueFrom": {
+                        "kind": "static",
+                        "value": null
+                      }
+                    },
+                    "style": {
+                      "span": 12
+                    },
+                    "visible": true
+                  },
+                  {
+                    "id": "cmp_htptxt",
+                    "type": "input_text",
+                    "props": {
+                      "name": "note",
+                      "label": "Note",
+                      "placeholder": null,
+                      "required": true,
+                      "defaultValue": null,
+                      "inputType": "text",
+                      "valueFrom": {
+                        "kind": "static",
+                        "value": null
+                      }
+                    },
+                    "style": {
+                      "span": 12
+                    },
+                    "visible": true
+                  }
+                ]
+              },
+              {
+                "id": "cmp_htplok",
+                "type": "button",
+                "props": {
+                  "label": "Look up",
+                  "variant": "secondary",
+                  "iconLeft": null,
+                  "role": "button",
+                  "disabledWhen": null
+                },
+                "style": {
+                  "span": 4
+                },
+                "visible": true,
+                "onClick": "act_htplok"
+              },
+              {
+                "id": "cmp_htpcan",
+                "type": "button",
+                "props": {
+                  "label": "Cancel order",
+                  "variant": "ghost",
+                  "iconLeft": null,
+                  "role": "button",
+                  "disabledWhen": null
+                },
+                "style": {
+                  "span": 4
+                },
+                "visible": true,
+                "onClick": "act_htpcan"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "actions": {
+      "act_htplok": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "http_request",
+            "connectorId": "conn_htpapi",
+            "method": "GET",
+            "path": "/v1/orders/{{form.orderId}}",
+            "query": {
+              "expand": {
+                "kind": "static",
+                "value": "lines"
+              },
+              "region": {
+                "kind": "formula",
+                "expr": "vars.region"
+              }
+            },
+            "bodyFormat": "json",
+            "expect": "json",
+            "resultVar": "order",
+            "retry": {
+              "times": 2,
+              "delayMs": 500
+            },
+            "onError": {
+              "steps": [
+                {
+                  "kind": "toast",
+                  "message": "The order service did not answer.",
+                  "tone": "danger"
+                }
+              ],
+              "stop": true
+            }
+          },
+          {
+            "kind": "toast",
+            "message": "Order found.",
+            "tone": "success"
+          }
+        ]
+      },
+      "act_htpnot": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "http_request",
+            "connectorId": "conn_htpapi",
+            "method": "POST",
+            "path": "/v1/orders/{{form.orderId}}/notes",
+            "headers": {
+              "X-Source": {
+                "kind": "static",
+                "value": "order-notes"
+              }
+            },
+            "body": {
+              "kind": "static",
+              "value": {
+                "text": "{{form.note}}",
+                "order": "{{form.orderId}}"
+              }
+            },
+            "bodyFormat": "json",
+            "expect": "json",
+            "idempotencyKey": {
+              "kind": "formula",
+              "expr": "form.orderId"
+            },
+            "resultVar": "note",
+            "retry": {
+              "times": 1
+            }
+          },
+          {
+            "kind": "reset_form",
+            "form": "note"
+          },
+          {
+            "kind": "toast",
+            "message": "Note added.",
+            "tone": "success"
+          }
+        ]
+      },
+      "act_htpcan": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "confirm",
+            "message": "The order service is told to cancel it.",
+            "title": "Cancel this order?"
+          },
+          {
+            "kind": "http_request",
+            "connectorId": "conn_htpapi",
+            "method": "DELETE",
+            "path": "/v1/orders/{{form.orderId}}",
+            "bodyFormat": "json",
+            "expect": "text"
+          },
+          {
+            "kind": "http_request",
+            "connectorId": "conn_htpapi",
+            "method": "PUT",
+            "path": "/v1/orders/{{form.orderId}}/state",
+            "body": {
+              "kind": "static",
+              "value": {
+                "state": "cancelled"
+              }
+            },
+            "bodyFormat": "form",
+            "expect": "json"
+          }
+        ]
+      }
+    },
+    "homeScreenId": "scr_htp001"
+  },
+  "dataModel": {
+    "modelVersion": 1,
+    "tables": [],
+    "roles": [],
+    "roleMapping": {
+      "default": "app",
+      "byGroup": {}
+    },
+    "connectors": [
+      {
+        "id": "conn_htpapi",
+        "kind": "rest",
+        "name": "Order service",
+        "url": "https://orders.example.test/v1/orders?status={status}",
+        "params": [
+          {
+            "key": "status",
+            "type": "text"
+          }
+        ],
+        "headers": {
+          "X-Api-Version": "2"
+        },
+        "auth": {
+          "credentialProvider": "order_service",
+          "type": "header",
+          "header": "X-Api-Key"
+        },
+        "rowsPath": "orders"
+      }
+    ]
+  }
+}

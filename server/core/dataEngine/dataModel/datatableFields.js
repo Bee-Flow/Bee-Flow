@@ -47,12 +47,15 @@
 
 const { newFieldId } = require('./ids');
 const {
-    FIELD_TYPES, SYSTEM_COLUMNS, KEY_RE, RESERVED_KEY_PREFIX_RE, DATA_LIMITS,
+    FIELD_TYPES, APP_ONLY_FIELD_TYPES, SYSTEM_COLUMNS, KEY_RE, RESERVED_KEY_PREFIX_RE, DATA_LIMITS,
 } = require('./vocabulary');
 
-/** The types a datatable column may take — FIELD_TYPES minus two. */
+/**
+ * The types a datatable column may take — FIELD_TYPES minus the app-only ones (relation, computed,
+ * and the schema-3 types autonumber, json and user, which only the App Studio write path fills).
+ */
 const DATATABLE_FIELD_TYPES = Object.freeze(
-    FIELD_TYPES.filter(t => t !== 'relation' && t !== 'computed'),
+    FIELD_TYPES.filter(t => !APP_ONLY_FIELD_TYPES.includes(t)),
 );
 
 const FIELD_ID_RE = /^fld_[a-z0-9]{4,}$/;

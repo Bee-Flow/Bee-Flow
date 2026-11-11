@@ -12,9 +12,11 @@ ties them together. Then you refine it visually.
 URL: `/app/studio/apps` · end-users open a published app at `/app/apps/:id`.
 
 **Tier:** Enterprise (GA). App Studio is on by default for Enterprise organisations;
-an org admin can disable it under beta/feature settings. Everyone who opens a
-published app needs the same Enterprise `app_studio` entitlement (apps are only
-shareable inside your organisation).
+an org admin can disable it under beta/feature settings. Everyone who signs in to open
+a published app needs the same Enterprise `app_studio` entitlement. An app is shared
+inside your organisation; an app can also open a limited set of its screens to
+anonymous visitors behind a link (a *public page*), and only those screens and the
+actions wired to them are reachable without signing in.
 
 ## Build with AI
 
@@ -180,6 +182,16 @@ relations, and set **access**:
 - **Row-level rules** per role — a bounded expression over `record.*` and `viewer.*`
   (e.g. `record.created_by == viewer.id`). These compile to parameterised SQL on the
   server; there is no way for an app to run raw SQL.
+  - About the person opening the app a rule knows `viewer.id`, `viewer.role`,
+    `viewer.email`, `viewer.orgId` (the organisation of their own account) and the list
+    `viewer.groups` (the ids of the groups they are a member of). A list is tested with
+    `in`: `record.team in viewer.groups`. All of these are read from the person's
+    account on the server at the moment of the query.
+  - A rule narrows seeing, changing and deleting alike. To give each its own rule, pick
+    **A rule per action** in the rule editor (stored as `{ read, update, delete }`).
+    Changing or deleting without a rule of its own follows the rule for seeing, so it is
+    never wider than seeing because a rule is missing; the rule `true` gives one action
+    every row.
 
 Every app gets its own private database. Records are created with the acting user
 stamped in `created_by`, and all reads/writes are filtered by the role rules — so a
@@ -328,8 +340,8 @@ database passes 80% of the size cap.
 | Database size per app | 256 MB |
 | Attachment size | 25 MB |
 | Attachments per app | 5,000 |
-| External connectors per app | 20 |
-| Screens · components · actions | 20 · 500 · 60 |
+| External connectors per app | 50 |
+| Screens · components and sections · actions | 40 · 500 · 200 |
 | App definition size | 512 KB |
 
 **Rate limits** (per user, per app; env-tunable on self-hosted): AI builder 12/min,

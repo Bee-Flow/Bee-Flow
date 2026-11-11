@@ -1,6 +1,7 @@
 import { ChevronDown } from 'lucide-react';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import useTranslation from '@/hooks/useTranslation';
+import { usePortalDocument } from '@/components/shared/portalRoot';
 import AppIcon from '@/components/icons/AppIcon';
 import type { NavScreen } from './navModel';
 import type { NavigateFn } from '../actionRunner/runnerContext';
@@ -48,6 +49,7 @@ export default function NavTabs({ screens, screenId, onNavigate }: NavTabsProps)
     const menuRef = useRef<HTMLDivElement | null>(null);
     const [visibleCount, setVisibleCount] = useState(screens.length);
     const [menuOpen, setMenuOpen] = useState(false);
+    const doc = usePortalDocument();
 
     const measure = useCallback(() => {
         const nav = navRef.current;
@@ -88,13 +90,13 @@ export default function NavTabs({ screens, screenId, onNavigate }: NavTabsProps)
         const onKey = (e: KeyboardEvent) => {
             if (e.key === 'Escape') setMenuOpen(false);
         };
-        document.addEventListener('pointerdown', onDown);
-        document.addEventListener('keydown', onKey);
+        doc.addEventListener('pointerdown', onDown);
+        doc.addEventListener('keydown', onKey);
         return () => {
-            document.removeEventListener('pointerdown', onDown);
-            document.removeEventListener('keydown', onKey);
+            doc.removeEventListener('pointerdown', onDown);
+            doc.removeEventListener('keydown', onKey);
         };
-    }, [menuOpen]);
+    }, [menuOpen, doc]);
 
     const shown = screens.slice(0, visibleCount);
     const overflow = screens.slice(visibleCount);

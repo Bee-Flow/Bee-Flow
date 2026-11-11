@@ -9,17 +9,23 @@
 import { createRequire } from 'node:module';
 
 import { isBulkWriteStep } from '../appStudio/bulkWritePolicy.mts';
+import { CODE_RPM_ENV, codeStepLimiter } from './studioAppCodeStepLimit.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 
+const { STEP_POLICY_LISTS } = nodeRequire('../appStudio/componentSpecs/stepRegistry.js') as {
+    STEP_POLICY_LISTS: { heavyStepKinds: readonly string[]; aiStepKinds: readonly string[] };
+};
+
 // Step kinds that cost what a /run costs: a full automation, a model call, or a write into the
 // owner's storage envelope. fill_document renders a page in Chromium; dataset_query is NOT
-// here (a bounded ranged read, its own bucket below).
-export const HEAVY_STEP_KINDS: readonly string[] = Object.freeze(['run_automation', 'ai_extract', 'ai_generate', 'kb_query', 'send_email', 'generate_file', 'fill_document', 'generate_presentation', 'redact_pdf', 'file_intake', 'copy_document']);
+// here (a bounded ranged read, its own bucket below). Derived: the server kinds whose `budget`
+// is 'heavy' or 'ai' (componentSpecs/stepMeta.js, or the kind's own registry file).
+export const HEAVY_STEP_KINDS: readonly string[] = STEP_POLICY_LISTS.heavyStepKinds;
 
-// The model calls among them: still heavy (role gate), budgeted on their own bucket, because an
-// action legitimately repeats them once per document.
-export const AI_STEP_KINDS: readonly string[] = Object.freeze(['ai_extract', 'ai_generate', 'kb_query', 'redact_pdf']);
+// The model calls among them (`budget: 'ai'`): still heavy (role gate), budgeted on their own
+// bucket, because an action legitimately repeats them once per document.
+export const AI_STEP_KINDS: readonly string[] = STEP_POLICY_LISTS.aiStepKinds;
 
 export type Limiter = {
     check: (req: unknown, res: unknown) => Promise<boolean>;
@@ -37,6 +43,8 @@ export type StepBudget = { limiter: Limiter; name: string; daily: boolean };
 export function limitersForStep(kind: string, limiters: Record<string, Limiter> = nodeRequire('./studioAppRateLimits'), bulk = false): StepBudget[] {
     const out: StepBudget[] = [];
     if (AI_STEP_KINDS.includes(kind)) out.push({ limiter: limiters.aiStepLimiter, name: 'STUDIO_APP_AI_STEP_RPM', daily: false });
+    // A sandbox run: its own bucket (studioAppCodeStepLimit.mts), not the /run one.
+    else if (kind === 'code') out.push({ limiter: limiters.codeStepLimiter ?? codeStepLimiter(), name: CODE_RPM_ENV, daily: false });
     else if (HEAVY_STEP_KINDS.includes(kind) || bulk) out.push({ limiter: limiters.actionRunLimiter, name: 'STUDIO_APP_ACTION_RUN_RPM', daily: false });
     if (kind === 'send_email') {
         out.push({ limiter: limiters.sendEmailLimiter, name: 'STUDIO_APP_SEND_EMAIL_RPM', daily: false });

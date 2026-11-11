@@ -1,0 +1,61 @@
+# template-event-planner
+## screen scr_evcal (Calendar)
+<div class="app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(180, 83, 9, 0.1); --app-accent: #B45309; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(180, 83, 9, 0.1); --app-primary: #B45309; --app-radius: 8px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-size: 15px; min-height: 100vh">
+  <main class="flex flex-1 flex-col min-h-0">
+    <div class="app-runtime app-screen-enter w-full" data-app-appearance="auto" data-app-screen="scr_evcal" data-app-screen-kind="page" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(180, 83, 9, 0.1); --app-accent: #B45309; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(180, 83, 9, 0.1); --app-primary: #B45309; --app-radius: 8px; --app-space: 1; color: var(--text-primary); font-size: 15px">
+      <div class="flex flex-col w-full" style="margin: 0px auto; max-width: 1280px">
+        <section class="app-grid" data-section-id="sec_evcal" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="heading" data-node-id="cmp_evh1" style="grid-column: span 12 / span 12">
+            <h1 class="break-words font-semibold text-2xl">
+              "Event calendar"
+          <div class="app-node app-span-12 min-w-0" data-app-type="calendar" data-node-id="cmp_evcal" style="grid-column: span 12 / span 12">
+            <div class="flex h-full items-center justify-center min-h-0 py-1 text-[var(--text-muted)] text-center text-sm">
+              "No events yet."
+## screen scr_evnew (Add event)
+<div class="app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(180, 83, 9, 0.1); --app-accent: #B45309; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(180, 83, 9, 0.1); --app-primary: #B45309; --app-radius: 8px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-size: 15px; min-height: 100vh">
+  <main class="flex flex-1 flex-col min-h-0">
+    <div class="app-runtime app-screen-enter w-full" data-app-appearance="auto" data-app-screen="scr_evnew" data-app-screen-kind="page" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(180, 83, 9, 0.1); --app-accent: #B45309; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(180, 83, 9, 0.1); --app-primary: #B45309; --app-radius: 8px; --app-space: 1; color: var(--text-primary); font-size: 15px">
+      <div class="flex flex-col w-full" style="margin: 0px auto; max-width: 640px">
+        <section class="app-grid" data-section-id="sec_evnew" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="heading" data-node-id="cmp_evh2" style="grid-column: span 12 / span 12">
+            <h1 class="break-words font-semibold text-2xl">
+              "Add an event"
+          <div class="app-node app-span-12 min-w-0" data-app-type="form" data-node-id="cmp_evform" style="grid-column: span 12 / span 12">
+            <form class="flex flex-col" novalidate="" style="gap: calc(12px * var(--app-space, 1))">
+              <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                <div class="app-node app-span-12 min-w-0" data-app-type="input_text" data-node-id="cmp_evtitle" style="grid-column: span 12 / span 12">
+                  <div class="flex flex-col gap-1 text-left">
+                    <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_evtitle-input">
+                      "Title"
+                      <span class="[color:var(--error)]" aria-hidden="true">
+                        "*"
+                    <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-required="true" id="cmp_evtitle-input" name="title" type="text" value="" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                <div class="app-node app-span-6 min-w-0" data-app-type="input_date" data-node-id="cmp_evdate" style="grid-column: span 6 / span 6">
+                  <div class="flex flex-col gap-1 text-left">
+                    <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_evdate-input">
+                      "Date"
+                      <span class="[color:var(--error)]" aria-hidden="true">
+                        "*"
+                    <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" aria-required="true" id="cmp_evdate-input" name="date" type="date" value="" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                <div class="app-node app-span-6 min-w-0" data-app-type="input_text" data-node-id="cmp_evloc" style="grid-column: span 6 / span 6">
+                  <div class="flex flex-col gap-1 text-left">
+                    <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_evloc-input">
+                      "Location"
+                    <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" id="cmp_evloc-input" name="location" type="text" value="" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                <div class="app-node app-span-6 min-w-0" data-app-type="input_select" data-node-id="cmp_evcat" style="grid-column: span 6 / span 6">
+                  <div class="flex flex-col gap-1 text-left">
+                    <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_evcat-input">
+                      "Category"
+                    <select class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" id="cmp_evcat-input" name="category" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                      <option value="">
+                        "Choose…"
+                      <option value="meeting">
+                        "Meeting"
+                      <option value="deadline">
+                        "Deadline"
+                      <option value="social">
+                        "Social"
+              <div class="flex gap-2 items-center">
+                <button class="[background:var(--app-accent,var(--app-primary))] [border-radius:var(--app-radius)] [color:var(--app-accent-contrast,var(--app-primary-contrast))]! disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm" type="submit">
+                  <span>
+                    "Add event"

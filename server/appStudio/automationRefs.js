@@ -48,6 +48,7 @@
 
 const { nodeActionRefs, ACTION_LIST_PROPS } = require('./nodeActionRefs.mts');
 const { nodeOwnText } = require('./appRefLookup');
+const { extraChildLists } = require('../shared/appDefinition/stepFlow.mjs');
 
 /** Het voorvoegsel van `ref_id`. Zie de kop: de ACTIE is de sleutel. */
 const REF_PREFIX = 'act:';
@@ -123,6 +124,8 @@ function automationsInAction(action) {
             walkSteps(step.default, depth + 1);
             // A step's onError handler (stepFlow.errorHandlerOf) runs as well.
             walkSteps(step.onError && /** @type {{ steps?: unknown }} */ (step.onError).steps, depth + 1);
+            // The places a registry container adds (a try's catch and finally).
+            for (const list of extraChildLists(step)) walkSteps(list, depth + 1);
         }
     };
 

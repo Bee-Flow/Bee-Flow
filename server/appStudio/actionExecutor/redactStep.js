@@ -108,7 +108,8 @@ async function redactPdfStep(app, model, step, ctx) {
     if (descriptors.length > 1) return { ok: false, error: 'redact_pdf cleans one PDF at a time; use a loop for several' };
 
     const aiRuntime = require('../aiRuntime');
-    const viewer = { id: ctx.viewerId ?? null, role: ctx.role ?? null, organizationId: app.organizationId || null };
+    const { viewerAttributesOf } = require('../viewerAttributes.mts');
+    const viewer = { ...viewerAttributesOf(ctx.viewer), id: ctx.viewerId ?? null, role: ctx.role ?? null, organizationId: app.organizationId || null };
     const file = await aiRuntime.loadAttachment(app, descriptors[0], { viewer, model });
     const buffer = Buffer.from(file.content, 'base64');
     if (!/pdf/i.test(String(file.type || '')) && !/\.pdf$/i.test(file.name || '')) {

@@ -1,0 +1,60 @@
+{
+  "corpus": "dynamic-text-effects",
+  "canonical": {
+    "sha256": "997f552e9582444dc2b985f0ddae37c86087468f4ec7eb538368c76596401b1d",
+    "bytes": 2200,
+    "inputIsCanonical": true,
+    "idempotent": true,
+    "keys": [
+      "schemaVersion",
+      "meta",
+      "theme",
+      "roles",
+      "variables",
+      "screens",
+      "actions",
+      "homeScreenId",
+      "allowedLinkHosts"
+    ],
+    "parts": {
+      "schemaVersion": "4e07408562bedb8b",
+      "meta": "4489025c141bf531",
+      "theme": "5d7eeb0111b89897",
+      "roles": "4f53cda18c2baa0c",
+      "variables": "e1cc53102772e71e",
+      "screens[0] scr_dyn00001": "96d642101bec3d71",
+      "screens[1] scr_done001": "948de721d0014f31",
+      "actions.act_dynseq01": "18717f0c2bbbd9c8",
+      "homeScreenId": "127518506dd2d13f",
+      "allowedLinkHosts": "c3c82cd0cb9eeace"
+    }
+  },
+  "schemaVersion": {
+    "stored": 3,
+    "canonical": 3
+  },
+  "validation": {
+    "strict": {
+      "errors": [],
+      "warnings": []
+    },
+    "save": {
+      "errors": [],
+      "warnings": []
+    }
+  },
+  "ordinals": {
+    "stored": {
+      "act_dynseq01": [
+        "0 confirm",
+        "1 switch",
+        "2 toast",
+        "3 toast",
+        "4 toast",
+        "5 open_url",
+        "6 navigate"
+      ]
+    },
+    "canonical": "same as stored"
+  }
+}

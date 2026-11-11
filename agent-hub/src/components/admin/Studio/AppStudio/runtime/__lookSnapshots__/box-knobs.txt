@@ -1,0 +1,41 @@
+# box-knobs
+## screen scr_boxkn01 (Box)
+<div class="app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(29, 78, 216, 0.1); --app-accent: #1D4ED8; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(29, 78, 216, 0.1); --app-primary: #1D4ED8; --app-radius: 8px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-size: 15px; min-height: 100vh">
+  <main class="flex flex-1 flex-col min-h-0">
+    <div class="app-runtime app-screen-enter w-full" data-app-appearance="auto" data-app-screen="scr_boxkn01" data-app-screen-kind="page" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(29, 78, 216, 0.1); --app-accent: #1D4ED8; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(29, 78, 216, 0.1); --app-primary: #1D4ED8; --app-radius: 8px; --app-space: 1; color: var(--text-primary); font-size: 15px">
+      <div class="flex flex-col w-full" style="margin: 0px auto; max-width: 960px">
+        <section class="app-grid" data-section-id="sec_boxkn01" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="heading" data-node-id="cmp_boxkn01" style="background: color-mix(in srgb, var(--app-primary) 14%, var(--bg-card)); border-color: var(--app-primary); border-style: solid; border-width: 0px 0px 0px 3px; grid-column: span 12 / span 12; margin-bottom: calc(8px * var(--app-space, 1))">
+            <h2 class="break-words font-semibold text-xl">
+              "Accent bar and a role fill"
+          <div class="app-node app-span-4 min-w-0" data-app-type="stat" data-node-id="cmp_boxkn02" style="background: rgb(30, 58, 138); box-shadow: var(--app-shadow-2); color: rgb(255, 255, 255); grid-column: span 4 / span 4">
+            <div class="app-stat flex gap-2.5 items-start">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-[var(--text-secondary)] text-xs">
+                  "Open items"
+                <div class="flex gap-2 items-baseline min-w-0">
+                  <div class="font-semibold leading-tight text-2xl truncate" title="12">
+                    "12"
+          <div class="app-node app-span-4 min-w-0" data-app-type="stat" data-node-id="cmp_boxkn03" style="border-color: var(--border-color, var(--border-default)); border-style: solid; border-width: 1px; grid-column: span 4 / span 4; opacity: 0.6">
+            <div class="app-stat flex gap-2.5 items-start">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-[var(--text-secondary)] text-xs">
+                  "Quiet tile"
+                <div class="flex gap-2 items-baseline min-w-0">
+                  <div class="font-semibold leading-tight text-2xl truncate" title="3">
+                    "3"
+          <div class="app-node app-span-4 min-w-0" data-app-type="text" data-node-id="cmp_boxkn04" style="border-color: rgb(148, 163, 184); border-style: solid; border-width: 0px 0px 1px; grid-column: span 4 / span 4; margin-bottom: calc(4px * var(--app-space, 1)); margin-top: calc(16px * var(--app-space, 1))">
+            <p class="break-words leading-relaxed text-sm">
+              "Space above and below, a bottom rule."
+          <div class="app-node app-span-6 app-surface min-w-0" data-app-type="card" data-node-id="cmp_boxkn05" style="background: color-mix(in srgb, #10b981 14%, var(--bg-card)); border-color: rgb(16, 185, 129); border-style: solid; border-width: 0px 2px; box-shadow: var(--app-shadow-3); grid-column: span 6 / span 6; padding: calc(12px * var(--app-space, 1))">
+            <div class="app-card flex flex-col" style="gap: calc(8px * var(--app-space, 1))">
+              <div>
+                <div class="font-medium">
+                  "Raised card"
+                <div class="text-[var(--text-secondary)] text-sm">
+                  "Fill colour wins over background."
+              <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+          <div class="app-node app-span-3 min-w-0" data-app-type="button" data-node-id="cmp_boxkn06" style="grid-column: span 3 / span 3">
+            <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-3.5 py-1.5 text-sm transition-opacity" type="button" style="background: var(--app-accent, var(--app-primary)); border-radius: var(--app-radius); color: var(--app-accent-contrast, var(--app-primary-contrast))">
+              <span>
+                "Untouched button"

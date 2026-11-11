@@ -1,0 +1,266 @@
+{
+  "corpus": "dataset-params",
+  "canonical": {
+    "sha256": "4d06c3b059ec1fdccc8ce1073c26b9c00a4e73e221b72976591a8a3d52654287",
+    "bytes": 2415,
+    "inputIsCanonical": true,
+    "idempotent": true,
+    "keys": [
+      "schemaVersion",
+      "meta",
+      "theme",
+      "roles",
+      "variables",
+      "screens",
+      "actions",
+      "homeScreenId"
+    ],
+    "parts": {
+      "schemaVersion": "d4735e3a265e16ee",
+      "meta": "eac9002d9545ee88",
+      "theme": "5d7eeb0111b89897",
+      "roles": "4f53cda18c2baa0c",
+      "variables": "784abd1744a11657",
+      "screens[0] scr_home01": "b5f150c2ef1dc3d6",
+      "homeScreenId": "1b32229958ec3c41"
+    }
+  },
+  "schemaVersion": {
+    "stored": 2,
+    "canonical": 2
+  },
+  "validation": {
+    "strict": {
+      "errors": [],
+      "warnings": []
+    },
+    "save": {
+      "errors": [],
+      "warnings": []
+    }
+  },
+  "ordinals": {
+    "stored": {},
+    "canonical": "same as stored"
+  },
+  "reads": [
+    {
+      "at": "cmp_stat01.value",
+      "kind": "dataset",
+      "sqlite": {
+        "owner": {
+          "skipped": "dynamic"
+        },
+        "viewer": {
+          "skipped": "dynamic"
+        }
+      },
+      "pg": {
+        "owner": {
+          "skipped": "dynamic"
+        },
+        "viewer": {
+          "skipped": "dynamic"
+        }
+      }
+    },
+    {
+      "at": "cmp_stat02.value",
+      "kind": "dataset",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT SUM(\"amount\") AS \"total\" FROM \"orders\" WHERE (1=1) AND \"status\" = ? AND \"region\" = ? AND \"amount\" >= ? LIMIT ?",
+          "params": [
+            "open",
+            "south",
+            100,
+            50
+          ]
+        },
+        "viewer": {
+          "sql": "SELECT SUM(\"amount\") AS \"total\" FROM \"orders\" WHERE (\"created_by\" = ?) AND \"status\" = ? AND \"region\" = ? AND \"amount\" >= ? LIMIT ?",
+          "params": [
+            "usr_compat_viewer",
+            "open",
+            "south",
+            100,
+            50
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT SUM(\"amount\") AS \"total\" FROM \"orders\" WHERE (1=1) AND \"status\" = ? AND \"region\" = ? AND \"amount\" >= ? LIMIT ?",
+          "params": [
+            "open",
+            "south",
+            100,
+            50
+          ]
+        },
+        "viewer": {
+          "sql": "SELECT SUM(\"amount\") AS \"total\" FROM \"orders\" WHERE (\"created_by\" = ?) AND \"status\" = ? AND \"region\" = ? AND \"amount\" >= ? LIMIT ?",
+          "params": [
+            "usr_compat_viewer",
+            "open",
+            "south",
+            100,
+            50
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_stat03.value",
+      "kind": "dataset",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT SUM(\"amount\") AS \"total\" FROM \"orders\" WHERE (1=1) AND \"status\" = ? AND \"region\" = ? LIMIT ?",
+          "params": [
+            "open",
+            "north",
+            50
+          ]
+        },
+        "viewer": {
+          "sql": "SELECT SUM(\"amount\") AS \"total\" FROM \"orders\" WHERE (\"created_by\" = ?) AND \"status\" = ? AND \"region\" = ? LIMIT ?",
+          "params": [
+            "usr_compat_viewer",
+            "open",
+            "north",
+            50
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT SUM(\"amount\") AS \"total\" FROM \"orders\" WHERE (1=1) AND \"status\" = ? AND \"region\" = ? LIMIT ?",
+          "params": [
+            "open",
+            "north",
+            50
+          ]
+        },
+        "viewer": {
+          "sql": "SELECT SUM(\"amount\") AS \"total\" FROM \"orders\" WHERE (\"created_by\" = ?) AND \"status\" = ? AND \"region\" = ? LIMIT ?",
+          "params": [
+            "usr_compat_viewer",
+            "open",
+            "north",
+            50
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_chart1.source",
+      "kind": "dataset",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT \"region\" AS \"region\", SUM(\"amount\") AS \"total\" FROM \"orders\" WHERE (1=1) GROUP BY \"region\" LIMIT ?",
+          "params": [
+            50
+          ]
+        },
+        "viewer": {
+          "sql": "SELECT \"region\" AS \"region\", SUM(\"amount\") AS \"total\" FROM \"orders\" WHERE (\"created_by\" = ?) GROUP BY \"region\" LIMIT ?",
+          "params": [
+            "usr_compat_viewer",
+            50
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT \"region\" AS \"region\", SUM(\"amount\") AS \"total\" FROM \"orders\" WHERE (1=1) GROUP BY \"region\" LIMIT ?",
+          "params": [
+            50
+          ]
+        },
+        "viewer": {
+          "sql": "SELECT \"region\" AS \"region\", SUM(\"amount\") AS \"total\" FROM \"orders\" WHERE (\"created_by\" = ?) GROUP BY \"region\" LIMIT ?",
+          "params": [
+            "usr_compat_viewer",
+            50
+          ]
+        }
+      }
+    },
+    {
+      "at": "dataset ds_region1",
+      "kind": "dataset",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT SUM(\"amount\") AS \"total\" FROM \"orders\" WHERE (1=1) AND \"status\" = ? AND \"region\" = ? LIMIT ?",
+          "params": [
+            "open",
+            "north",
+            50
+          ]
+        },
+        "viewer": {
+          "sql": "SELECT SUM(\"amount\") AS \"total\" FROM \"orders\" WHERE (\"created_by\" = ?) AND \"status\" = ? AND \"region\" = ? LIMIT ?",
+          "params": [
+            "usr_compat_viewer",
+            "open",
+            "north",
+            50
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT SUM(\"amount\") AS \"total\" FROM \"orders\" WHERE (1=1) AND \"status\" = ? AND \"region\" = ? LIMIT ?",
+          "params": [
+            "open",
+            "north",
+            50
+          ]
+        },
+        "viewer": {
+          "sql": "SELECT SUM(\"amount\") AS \"total\" FROM \"orders\" WHERE (\"created_by\" = ?) AND \"status\" = ? AND \"region\" = ? LIMIT ?",
+          "params": [
+            "usr_compat_viewer",
+            "open",
+            "north",
+            50
+          ]
+        }
+      }
+    },
+    {
+      "at": "dataset ds_plain01",
+      "kind": "dataset",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT \"region\" AS \"region\", SUM(\"amount\") AS \"total\" FROM \"orders\" WHERE (1=1) GROUP BY \"region\" LIMIT ?",
+          "params": [
+            50
+          ]
+        },
+        "viewer": {
+          "sql": "SELECT \"region\" AS \"region\", SUM(\"amount\") AS \"total\" FROM \"orders\" WHERE (\"created_by\" = ?) GROUP BY \"region\" LIMIT ?",
+          "params": [
+            "usr_compat_viewer",
+            50
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT \"region\" AS \"region\", SUM(\"amount\") AS \"total\" FROM \"orders\" WHERE (1=1) GROUP BY \"region\" LIMIT ?",
+          "params": [
+            50
+          ]
+        },
+        "viewer": {
+          "sql": "SELECT \"region\" AS \"region\", SUM(\"amount\") AS \"total\" FROM \"orders\" WHERE (\"created_by\" = ?) GROUP BY \"region\" LIMIT ?",
+          "params": [
+            "usr_compat_viewer",
+            50
+          ]
+        }
+      }
+    }
+  ]
+}

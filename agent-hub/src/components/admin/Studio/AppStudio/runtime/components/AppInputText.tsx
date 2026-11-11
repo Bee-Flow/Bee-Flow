@@ -27,7 +27,7 @@ export default function AppInputText({ node }: NodeProps<InputTextProps>) {
     useValueFrom(node, setValue);
     const id = `${node.id}-input`;
     return (
-        <Field id={id} label={label} required={required} error={error}>
+        <Field part="input_text" id={id} label={label} required={required} error={error}>
             <input
                 id={id}
                 name={name}
@@ -38,7 +38,7 @@ export default function AppInputText({ node }: NodeProps<InputTextProps>) {
                 aria-invalid={error ? true : undefined}
                 aria-describedby={error ? `${id}-error` : undefined}
                 onChange={(e) => setValue(e.target.value)}
-                className={INPUT_CLASS}
+                className={`${INPUT_CLASS} bfa-input_text__control`}
                 style={inputStyle(error)}
             />
         </Field>

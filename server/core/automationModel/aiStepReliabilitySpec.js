@@ -75,11 +75,14 @@ function parseFieldPath(path) {
 
 /**
  * Why a run path is unusable, or null when it is fine. 'secrets' is named
- * apart because it is a refusal on principle, not a typo.
+ * apart because it is a refusal on principle, not a typo. `roots`: the roots a
+ * path may start with (an App Studio step reads its own scope, see
+ * appStudio/actionExecutor/aiChecks.mts); the automation run roots by default.
  * @param {unknown} value
+ * @param {readonly string[]} [roots]
  * @returns {null | 'type' | 'empty' | 'long' | 'braces' | 'syntax' | 'secrets' | 'root'}
  */
-function runPathFault(value) {
+function runPathFault(value, roots = RUN_PATH_ROOTS) {
     if (typeof value !== 'string') return 'type';
     const p = value.trim();
     if (!p) return 'empty';
@@ -89,7 +92,7 @@ function runPathFault(value) {
     if (!tokens || !tokens.length || tokens[0].type !== 'prop') return 'syntax';
     const root = String(tokens[0].key);
     if (root === 'secrets') return 'secrets';
-    return RUN_PATH_ROOTS.includes(root) ? null : 'root';
+    return roots.includes(root) ? null : 'root';
 }
 
 /**

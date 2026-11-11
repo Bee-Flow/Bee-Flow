@@ -1,0 +1,475 @@
+{
+  "about": {
+    "source": "written for the aggregate vocabulary after schema version 2 (since 3): countDistinct, groupBy binWidth, groupBy relatedField (with a row rule on the related table), and groupFilter, on inline aggregate bindings and on a saved dataset",
+    "stored": "definition = canonicalizeAppDefinition(the authored definition).def; dataModel = canonicalizeDataModel(the authored model).model; datasets as stored",
+    "captured": "2026-11-10"
+  },
+  "definition": {
+    "schemaVersion": 3,
+    "meta": {
+      "name": "More aggregation",
+      "description": "Totals per region of the customer, amount bands, distinct buyers and a group filter.",
+      "icon": "ChartBar"
+    },
+    "theme": {
+      "primary": "#0F766E",
+      "radius": "md",
+      "density": "comfortable",
+      "fontScale": "md",
+      "appearance": "auto"
+    },
+    "roles": [],
+    "screens": [
+      {
+        "id": "scr_flexdg",
+        "name": "Sales",
+        "icon": null,
+        "showInNav": true,
+        "maxWidth": "medium",
+        "sections": [
+          {
+            "id": "sec_flexdg",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_flexdgreg",
+                "type": "table",
+                "props": {
+                  "source": {
+                    "kind": "aggregate",
+                    "tableId": "tbl_flexdgord",
+                    "orderBy": [
+                      {
+                        "field": "total",
+                        "dir": "desc"
+                      }
+                    ],
+                    "groupBy": [
+                      {
+                        "field": "customer",
+                        "relatedField": "region",
+                        "as": "region"
+                      }
+                    ],
+                    "aggregates": [
+                      {
+                        "fn": "sum",
+                        "field": "amount",
+                        "as": "total"
+                      },
+                      {
+                        "fn": "countDistinct",
+                        "field": "customer",
+                        "as": "buyers"
+                      }
+                    ],
+                    "groupFilter": [
+                      {
+                        "field": "total",
+                        "op": "gt",
+                        "value": 100
+                      }
+                    ]
+                  },
+                  "columns": [
+                    {
+                      "key": "region",
+                      "label": "Region"
+                    },
+                    {
+                      "key": "total",
+                      "label": "Total"
+                    },
+                    {
+                      "key": "buyers",
+                      "label": "Buyers"
+                    }
+                  ],
+                  "emptyText": "Nothing to show yet.",
+                  "rowLimit": 25,
+                  "look": "default"
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_flexdgband",
+                "type": "chart",
+                "props": {
+                  "chartType": "bar",
+                  "orientation": "vertical",
+                  "source": {
+                    "kind": "aggregate",
+                    "tableId": "tbl_flexdgord",
+                    "sort": [
+                      {
+                        "field": "band",
+                        "dir": "asc"
+                      }
+                    ],
+                    "groupBy": [
+                      {
+                        "field": "amount",
+                        "binWidth": 50,
+                        "as": "band"
+                      }
+                    ],
+                    "aggregates": [
+                      {
+                        "fn": "count",
+                        "as": "n"
+                      }
+                    ]
+                  },
+                  "title": null,
+                  "xKey": "band",
+                  "xType": "category",
+                  "series": [
+                    {
+                      "key": "n",
+                      "label": "Orders"
+                    }
+                  ],
+                  "stacked": false,
+                  "showLegend": true,
+                  "showGrid": true,
+                  "valueFormat": "number",
+                  "yMin": null,
+                  "yMax": null,
+                  "referenceLines": [],
+                  "referenceBands": [],
+                  "unitLabel": null
+                },
+                "style": {
+                  "span": 6,
+                  "height": "md"
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_flexdgbuy",
+                "type": "stat",
+                "props": {
+                  "label": "Distinct buyers",
+                  "value": {
+                    "kind": "aggregate",
+                    "tableId": "tbl_flexdgord",
+                    "aggregates": [
+                      {
+                        "fn": "countDistinct",
+                        "field": "customer",
+                        "as": "buyers"
+                      }
+                    ],
+                    "pick": {
+                      "row": "first",
+                      "column": "buyers"
+                    }
+                  },
+                  "caption": null,
+                  "captionSegments": [],
+                  "icon": null,
+                  "delta": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "deltaFormat": "number",
+                  "trend": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "positiveIsGood": true,
+                  "look": "plain"
+                },
+                "style": {
+                  "span": 3
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_flexdgsize",
+                "type": "table",
+                "props": {
+                  "source": {
+                    "kind": "aggregate",
+                    "tableId": "tbl_flexdgord",
+                    "groupBy": [
+                      {
+                        "field": "customer",
+                        "relatedField": "staff",
+                        "binWidth": 100
+                      },
+                      {
+                        "field": "channel"
+                      }
+                    ],
+                    "aggregates": [
+                      {
+                        "fn": "p50",
+                        "field": "amount",
+                        "as": "median"
+                      },
+                      {
+                        "fn": "count",
+                        "as": "n"
+                      }
+                    ],
+                    "groupFilter": [
+                      {
+                        "field": "n",
+                        "op": "gte",
+                        "value": 2
+                      }
+                    ]
+                  },
+                  "columns": [
+                    {
+                      "key": "customer_staff_bin",
+                      "label": "Staff"
+                    },
+                    {
+                      "key": "channel",
+                      "label": "Channel"
+                    },
+                    {
+                      "key": "median",
+                      "label": "Median"
+                    }
+                  ],
+                  "emptyText": "Nothing to show yet.",
+                  "rowLimit": 25,
+                  "look": "default"
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_flexdgds",
+                "type": "chart",
+                "props": {
+                  "chartType": "line",
+                  "orientation": "vertical",
+                  "source": {
+                    "kind": "dataset",
+                    "datasetId": "ds_flexdgyear"
+                  },
+                  "title": null,
+                  "xKey": "customer_since_year",
+                  "xType": "category",
+                  "series": [
+                    {
+                      "key": "buyers",
+                      "label": "Buyers"
+                    }
+                  ],
+                  "stacked": false,
+                  "showLegend": true,
+                  "showGrid": true,
+                  "valueFormat": "number",
+                  "yMin": null,
+                  "yMax": null,
+                  "referenceLines": [],
+                  "referenceBands": [],
+                  "unitLabel": null
+                },
+                "style": {
+                  "span": 6,
+                  "height": "md"
+                },
+                "visible": true
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "actions": {},
+    "homeScreenId": "scr_flexdg"
+  },
+  "dataModel": {
+    "modelVersion": 1,
+    "tables": [
+      {
+        "id": "tbl_flexdgcus",
+        "name": "Customers",
+        "icon": "Users",
+        "key": "customers",
+        "fields": [
+          {
+            "id": "fld_flexdgname",
+            "name": "Name",
+            "type": "text",
+            "key": "name",
+            "required": true,
+            "unique": false
+          },
+          {
+            "id": "fld_flexdgregn",
+            "name": "Region",
+            "type": "select",
+            "key": "region",
+            "options": [
+              "north",
+              "south",
+              "internal"
+            ],
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_flexdgsinc",
+            "name": "Customer since",
+            "type": "date",
+            "key": "since",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_flexdgstaf",
+            "name": "Staff",
+            "type": "number",
+            "key": "staff",
+            "required": false,
+            "unique": false
+          }
+        ],
+        "access": {
+          "default": "role",
+          "roles": {
+            "member": {
+              "read": "all",
+              "create": false,
+              "update": "none",
+              "delete": "none"
+            }
+          },
+          "rowFilters": {
+            "member": "record.region != \"internal\""
+          }
+        }
+      },
+      {
+        "id": "tbl_flexdgord",
+        "name": "Orders",
+        "icon": "Receipt",
+        "key": "orders",
+        "fields": [
+          {
+            "id": "fld_flexdgamnt",
+            "name": "Amount",
+            "type": "number",
+            "key": "amount",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_flexdgcust",
+            "name": "Customer",
+            "type": "relation",
+            "key": "customer",
+            "relation": {
+              "table": "tbl_flexdgcus"
+            },
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_flexdgchan",
+            "name": "Channel",
+            "type": "text",
+            "key": "channel",
+            "required": false,
+            "unique": false
+          }
+        ],
+        "access": {
+          "default": "role",
+          "roles": {
+            "member": {
+              "read": "own",
+              "create": true,
+              "update": "own",
+              "delete": "none"
+            }
+          },
+          "rowFilters": {}
+        }
+      }
+    ],
+    "roles": [
+      {
+        "key": "member",
+        "label": "member"
+      }
+    ],
+    "roleMapping": {
+      "default": "member",
+      "byGroup": {}
+    }
+  },
+  "datasets": [
+    {
+      "id": "ds_flexdgyear",
+      "name": "Buyers per customer year",
+      "tableId": "tbl_flexdgord",
+      "source": {
+        "kind": "table",
+        "tableId": "tbl_flexdgord"
+      },
+      "descriptor": {
+        "filters": [
+          {
+            "field": "channel",
+            "op": "neq",
+            "value": "test"
+          }
+        ],
+        "groupBy": [
+          {
+            "field": "customer",
+            "relatedField": "since",
+            "bucket": "year"
+          }
+        ],
+        "aggregates": [
+          {
+            "fn": "countDistinct",
+            "field": "customer",
+            "as": "buyers"
+          },
+          {
+            "fn": "avg",
+            "field": "amount",
+            "as": "mean"
+          }
+        ],
+        "groupFilter": [
+          {
+            "field": "buyers",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "field": "mean",
+            "op": "lt",
+            "value": 10000
+          }
+        ],
+        "orderBy": [
+          {
+            "field": "customer_since_year",
+            "dir": "asc"
+          }
+        ]
+      }
+    }
+  ]
+}

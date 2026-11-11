@@ -80,6 +80,7 @@ async function runBody(run) {
 }
 const { resolveAudienceContext } = require('../auth/audience');
 const { DATA_MUTATING_STEP_KINDS } = require('../appStudio/componentSpecs');
+const { stepPolicy } = require('../appStudio/componentSpecs/stepRegistry');
 const { actionRunLimiter, stepLimiter, jobStatusLimiter } = require('./studioAppRateLimits');
 const runEventBus = require('../core/runEventBus');
 
@@ -119,7 +120,7 @@ const ACTION_WAIT_MS = parseInt(process.env.STUDIO_APP_ACTION_WAIT_MS, 10) || 60
 // ── App visibility + role gates ─────────────────────────────────────
 // Extracted to routes/studioAppRunGate.js so the streaming browse bridge shares
 // the SAME copy — a second walk is how one surface drifts wider than the other.
-const { loadVisibleApp, assertActionRoleAccess, stepDocumentContext } = require('./studioAppRunGate');
+const { loadVisibleApp, assertActionRoleAccess, visibleFormValues, wideScopeFor, stepDocumentContext } = require('./studioAppRunGate');
 
 // ── Input resolution + final output ─────────────────────────────────
 // resolveInputs (action.inputMapping → automation inputs; the ONLY bridge
@@ -132,7 +133,7 @@ const { loadVisibleApp, assertActionRoleAccess, stepDocumentContext } = require(
 // actionSequence.js: the public route (routes/studioAppPublic.js) resolves
 // steps by the same pre-order index, and two copies of that walk is two ways
 // for one index to mean two different steps. See that module's header.
-const { resolveRequestedStep, sanitizeBag, sanitizeErrorScope, stepNotes, stepFailureExtras } = require('../appStudio/actionSequence');
+const { resolveRequestedStep, STEP_MISMATCH, sanitizeBag, sanitizeErrorScope, stepNotes, stepFailureExtras } = require('../appStudio/actionSequence');
 const { validate } = require('../core/http/validate');
 const { openSse } = require('../core/http/sseHelpers');
 // The request shapes an app's runtime sends — shared with the public app
@@ -192,8 +193,9 @@ router.post('/:id/actions/:actionId/step', requireAuth, stepLimiter, jsonBody, b
     // Resolve the step FROM THE DEFINITION by its pre-order index — inside a
     // called action when the body carries a callPath (the URL keeps the ROOT
     // action, so the role gate below stays on the action that was clicked).
-    const found = resolveRequestedStep(def, actionId, req.body?.stepIndex, req.body?.callPath);
+    const found = resolveRequestedStep(def, actionId, req.body?.stepIndex, req.body?.callPath, req.body?.kind);
     if ('error' in found) {
+        if (found.error === 'mismatch') return res.status(409).json(STEP_MISMATCH);
         return res.status(404).json({ error: found.error === 'action' ? 'Action not found' : 'Step not found' });
     }
     const { step, ownerActionId } = found;
@@ -207,6 +209,8 @@ router.post('/:id/actions/:actionId/step', requireAuth, stepLimiter, jsonBody, b
     if (step.kind === 'ai_browse') {
         return res.status(400).json({ error: 'This step streams — call the /step/stream endpoint' });
     }
+    // A kind whose catalogue row does not say a click may post it (or says nothing) is refused.
+    if (stepPolicy(step.kind, 'click') !== 'step') return res.status(403).json({ error: 'This step cannot be run from a click' });
     // Role FIRST, before any budget is charged. Resolving the viewer's role
     // needs the data model anyway (the executor context below reuses both),
     // and a 403 that has already spent someone's daily mail allowance is a
@@ -243,7 +247,7 @@ router.post('/:id/actions/:actionId/step', requireAuth, stepLimiter, jsonBody, b
         if (!(await limiter.check(req, res))) return;
     }
 
-    const formValues = sanitizeBag(req.body?.formValues);
+    const formValues = visibleFormValues(def, actionId, role, sanitizeBag(req.body?.formValues)); // without the fields this role does not see
     const vars = sanitizeBag(req.body?.vars);
     const item = req.body?.item; // bounded by the 64KB body guard
     // The loop position beside the loop's row. `index` is a declared scope
@@ -283,6 +287,7 @@ router.post('/:id/actions/:actionId/step', requireAuth, stepLimiter, jsonBody, b
         value,
         // A called action's params (call_action), read as `params.<name>`.
         params: sanitizeBag(req.body?.params),
+        ...wideScopeFor(def, role, req.body), // serverScope: 'wide' only; forms without the fields this role does not see
         // Inside an onError handler: the failure it handles, read as error.message / error.step.
         error: sanitizeErrorScope(req.body?.error),
         // The FULL viewer the row filters see (viewer.<attr> params) —
@@ -364,11 +369,13 @@ router.post('/:id/actions/:actionId/run', requireAuth, actionRunLimiter, jsonBod
     // Role gate. The renderer hides a gated button, but hiding is not
     // enforcement — without this any viewer of the app could POST the
     // actionId of a button their role must never reach.
+    let formValues = req.body?.formValues;
     if (!isOwner) {
         const { userGroups } = await resolveAudienceContext(req);
         const meta = await studioAppDataStore.getDataModel(app.id, app.userId);
         const role = await rlsGateway.resolveViewerRole(app, userId, (meta && meta.model) ? meta.model : null, { userGroups });
         if (!assertActionRoleAccess(res, def, actionId, role, { isOwner })) return;
+        formValues = visibleFormValues(def, actionId, role, formValues); // without the fields this role does not see
     }
 
     // The automation is named by the DEFINITION only — never the request.
@@ -392,8 +399,8 @@ router.post('/:id/actions/:actionId/run', requireAuth, actionRunLimiter, jsonBod
     const audit = { _viewerUserId: userId, _studioAppId: app.id, _actionId: actionId };
     // A refusal of the declared inputs carries status 400 and a message for the caller.
     const triggerPayload = actionExecutor.isAppTriggerAutomation(automation)
-        ? { ...(await actionExecutor.resolveAppTriggerInputs(automation, action.inputMapping, req.body?.formValues, { app })), ...audit }
-        : { inputs: resolveInputs(action.inputMapping, req.body?.formValues), ...audit };
+        ? { ...(await actionExecutor.resolveAppTriggerInputs(automation, action.inputMapping, formValues, { app })), ...audit }
+        : { inputs: resolveInputs(action.inputMapping, formValues), ...audit };
 
     const runner = require('../core/automationRunner');
     const t0 = Date.now();

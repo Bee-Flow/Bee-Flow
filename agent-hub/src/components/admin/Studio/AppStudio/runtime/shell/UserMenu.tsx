@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import useTranslation from '@/hooks/useTranslation';
+import { usePortalDocument } from '@/components/shared/portalRoot';
 
 /**
  * UserMenu — who is looking at this app. A small initials button that opens
@@ -41,6 +42,7 @@ export default function UserMenu({ viewer, onExit = null, collapsed = false, dir
     const { t } = useTranslation();
     const [open, setOpen] = useState(false);
     const rootRef = useRef<HTMLDivElement>(null);
+    const doc = usePortalDocument();
 
     // Close on outside pointerdown / Escape — same pattern as the editor's
     // screen-tab kebab menu.
@@ -52,13 +54,13 @@ export default function UserMenu({ viewer, onExit = null, collapsed = false, dir
         const onKey = (e: KeyboardEvent) => {
             if (e.key === 'Escape') setOpen(false);
         };
-        document.addEventListener('pointerdown', onDown);
-        document.addEventListener('keydown', onKey);
+        doc.addEventListener('pointerdown', onDown);
+        doc.addEventListener('keydown', onKey);
         return () => {
-            document.removeEventListener('pointerdown', onDown);
-            document.removeEventListener('keydown', onKey);
+            doc.removeEventListener('pointerdown', onDown);
+            doc.removeEventListener('keydown', onKey);
         };
-    }, [open]);
+    }, [open, doc]);
 
     if (!viewer) return null;
 

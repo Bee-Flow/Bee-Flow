@@ -67,7 +67,7 @@ export default function AppTimeline({ node }: NodeProps<TimelineProps>) {
 
     return (
         <ol
-            className={`flex flex-col${fill ? ' app-fill h-full min-h-0 overflow-y-auto' : ''}`}
+            className={`flex flex-col${fill ? ' app-fill h-full min-h-0 overflow-y-auto' : ''} bfa-timeline__root`}
             data-app-timeline="true"
         >
             {rows.map((row, i) => {
@@ -82,44 +82,44 @@ export default function AppTimeline({ node }: NodeProps<TimelineProps>) {
                 const meta = rawMeta == null || rawMeta === '' ? null : displayValue(rawMeta);
                 const body = (
                     <>
-                        <div className={`${size === 'sm' ? 'text-xs' : 'text-sm'} font-medium truncate text-[var(--text-primary)]`} {...hoverable(title)}>
+                        <div className={`${size === 'sm' ? 'text-xs' : 'text-sm'} font-medium truncate text-[var(--text-primary)] bfa-timeline__title`} {...hoverable(title)}>
                             {title}
                         </div>
                         {date != null || meta ? (
-                            <div className="text-xs text-[var(--text-muted)]">
+                            <div className="text-xs text-[var(--text-muted)] bfa-timeline__meta">
                                 {date}
                                 {date != null && meta ? ' · ' : null}
                                 {meta ? <span className="text-[var(--text-secondary)]">{meta}</span> : null}
                             </div>
                         ) : null}
                         {description != null && description !== '' ? (
-                            <div className="text-xs mt-0.5 text-[var(--text-secondary)]">{displayValue(description)}</div>
+                            <div className="text-xs mt-0.5 text-[var(--text-secondary)] bfa-timeline__description">{displayValue(description)}</div>
                         ) : null}
                     </>
                 );
                 return (
-                    <li key={i} className="relative flex gap-3 pb-4 last:pb-0" data-app-timeline-row={i}>
+                    <li key={i} className="relative flex gap-3 pb-4 last:pb-0 bfa-timeline__row" data-app-timeline-row={i}>
                         {/* rail + dot */}
                         <div className="flex flex-col items-center shrink-0" aria-hidden="true">
                             <span
-                                className="inline-flex h-6 w-6 items-center justify-center rounded-full [background:var(--app-primary-soft)] [color:var(--app-primary)]"
+                                className="inline-flex h-6 w-6 items-center justify-center rounded-full [background:var(--app-primary-soft)] [color:var(--app-primary)] bfa-timeline__marker"
                             >
                                 {icon ? <AppIcon name={icon} className="w-3 h-3" /> : <span className="h-1.5 w-1.5 rounded-full [background:currentColor]" />}
                             </span>
                             {i < rows.length - 1 ? (
-                                <span className="w-px flex-1 mt-1 [background:var(--border-default)]" />
+                                <span className="w-px flex-1 mt-1 [background:var(--border-default)] bfa-timeline__line" />
                             ) : null}
                         </div>
                         {clickable ? (
                             <button
                                 type="button"
-                                className="min-w-0 flex-1 text-left cursor-pointer"
+                                className="min-w-0 flex-1 text-left cursor-pointer bfa-timeline__content"
                                 onClick={() => runAction(node.onRowClick as string, { formValues: row, item: row })}
                             >
                                 {body}
                             </button>
                         ) : (
-                            <div className="min-w-0 flex-1">{body}</div>
+                            <div className="min-w-0 flex-1 bfa-timeline__content">{body}</div>
                         )}
                     </li>
                 );

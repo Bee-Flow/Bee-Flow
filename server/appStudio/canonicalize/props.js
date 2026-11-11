@@ -6,8 +6,9 @@
 'use strict';
 
 const { LIMITS } = require('../componentSpecs');
-const { isObject, deepCopy, truncate } = require('./shared');
+const { isObject, deepCopy, truncate, isLateEntry } = require('./shared');
 const { cleanBinding } = require('./bindings');
+const { objectShapeOf } = require('../componentSpecs/objectShapes');
 
 // ---------------------------------------------------------------------------
 // Props — spec-driven: unknown keys dropped, missing filled from defaults,
@@ -21,6 +22,9 @@ const STRINGISH_TYPES = new Set(['string', 'markdown', 'icon', 'url', 'color']);
  * @param {(arg0: string, arg1: string, arg2: string) => void} push
  */
 function cleanPropValue(fs, raw, path, push) {
+    // A small fixed object (componentSpecs/objectShapes.js): undefined = nothing usable, key left out.
+    const objectShape = objectShapeOf(fs);
+    if (objectShape) return objectShape.clean(raw, push, path);
     if (STRINGISH_TYPES.has(fs.type)) {
         if (typeof raw === 'string') return truncate(raw, fs.maxLen || LIMITS.MAX_STRING, path, push);
         return deepCopy(raw); // wrong types left for validate.js
@@ -67,6 +71,13 @@ function cleanPropValue(fs, raw, path, push) {
             const out = {};
             for (const [k, v] of Object.entries(item)) {
                 const shape = fs.itemShape && fs.itemShape[k];
+                const objectShape = objectShapeOf(shape);
+                if (objectShape) {
+                    // null means not set: the key is left out, like a value with nothing usable in it.
+                    const cleaned = v === null ? undefined : objectShape.clean(v, push, `${path}[${i}].${k}`);
+                    if (cleaned !== undefined) out[k] = cleaned;
+                    continue;
+                }
                 out[k] = (shape && typeof v === 'string')
                     ? truncate(v, shape.maxLen || LIMITS.MAX_STRING, `${path}[${i}].${k}`, push)
                     : deepCopy(v);
@@ -76,6 +87,30 @@ function cleanPropValue(fs, raw, path, push) {
     }
     // boolean / enum — validate.js flags wrong values.
     return deepCopy(raw);
+}
+
+/**
+ * The props of a type that a node's canonical form holds: every base prop (filled from its
+ * default when the node lacks it), and a prop added after the base only when the node carries
+ * a value for it (null means not set).
+ * @param {Record<string, any>} specProps
+ * @param {Record<string, unknown>} provided
+ * @returns {Array<[string, any]>}
+ */
+function propsToWrite(specProps, provided) {
+    return Object.entries(specProps).filter(([key, fs]) => !isLateEntry(fs) || (provided[key] !== undefined && provided[key] !== null));
+}
+
+/**
+ * Store a cleaned prop. An object prop with nothing usable in it (undefined) is left out.
+ * @param {Record<string, unknown>} props
+ * @param {string} key
+ * @param {{ type?: string }} fs
+ * @param {unknown} value
+ */
+function putProp(props, key, fs, value) {
+    if (value === undefined && objectShapeOf(fs)) return;
+    props[key] = value;
 }
 
 /**
@@ -92,9 +127,9 @@ function cleanProps(node, spec, id, path, push) {
     const props = {};
     /** @type {string[]} */
     const filled = [];
-    for (const [key, fs] of Object.entries(spec.props)) {
+    for (const [key, fs] of propsToWrite(spec.props, provided)) {
         if (key in provided) {
-            props[key] = cleanPropValue(fs, provided[key], `${path}.props.${key}`, push);
+            putProp(props, key, fs, cleanPropValue(fs, provided[key], `${path}.props.${key}`, push));
         } else {
             props[key] = deepCopy(fs.default === undefined ? null : fs.default);
             filled.push(key);

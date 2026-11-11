@@ -41,25 +41,34 @@ const shown = (v) => {
 };
 
 /**
+ * The roots a run path may start with, and the hint that explains them: the
+ * automation run roots unless a caller with its own scope (an App Studio step)
+ * names others.
+ * @typedef {{ roots?: readonly string[], hint?: string }} PathOptions
+ */
+
+/**
  * A required or optional run path at `path`. @returns {Problem|null}
  * @param {string} code
  * @param {string} path
+ * @param {{ required: boolean } & PathOptions} opts
  */
-function runPathProblem(code, path, value, { required }) {
+function runPathProblem(code, path, value, opts) {
+    const { required, roots = RUN_PATH_ROOTS, hint = RUN_PATH_HINT } = opts;
     if (!present(value) || value === '') {
-        return required ? issue(code, path, `${path} is required: the list or data to check against.`, RUN_PATH_HINT) : null;
+        return required ? issue(code, path, `${path} is required: the list or data to check against.`, hint) : null;
     }
-    const fault = runPathFault(value);
+    const fault = runPathFault(value, roots);
     if (!fault) return null;
     if (fault === 'root' || fault === 'secrets') {
         return issue('ai_step.ref_root_invalid', path,
             fault === 'secrets'
                 ? `${path} may not read secrets: an answer check is not a place for them.`
-                : `${path} starts with "${shown(String(value).trim().split(/[.[]/)[0])}", but a run path must start with ${RUN_PATH_ROOTS.join(', ')}.`,
-            RUN_PATH_HINT);
+                : `${path} starts with "${shown(String(value).trim().split(/[.[]/)[0])}", but a run path must start with ${roots.join(', ')}.`,
+            hint);
     }
     const why = { type: 'must be text', empty: 'is empty', long: `is longer than ${MAX_RUN_PATH_CHARS} characters`, braces: 'must not contain {{ }}', syntax: 'is not a path the run can read' }[fault];
-    return issue(code, path, `${path} ${why}.`, RUN_PATH_HINT);
+    return issue(code, path, `${path} ${why}.`, hint);
 }
 
 /**
@@ -151,8 +160,9 @@ function enumEntryProblems(entry, base) {
 /**
  * @returns {Problem[]}
  * @param {string} base
+ * @param {PathOptions} [paths]  the roots of `ref` / `sameCountAs` (default: the run roots)
  */
-function checkEntryProblems(entry, base) {
+function checkEntryProblems(entry, base, paths = {}) {
     const code = 'ai_step.check_invalid';
     if (!isObject(entry)) {
         return [issue(code, base, `${base} must be an object with a "kind" of ${CHECK_KINDS.join(', ')}.`, 'Each check names the kind, the field of the answer it looks at, and what to compare with.')];
@@ -166,7 +176,7 @@ function checkEntryProblems(entry, base) {
     const f = fieldPathProblem(code, `${base}.field`, entry.field);
     if (f) out.push(f);
     if (kind === 'allowedFrom' || kind === 'numbersFrom') {
-        const r = runPathProblem(code, `${base}.ref`, entry.ref, { required: true });
+        const r = runPathProblem(code, `${base}.ref`, entry.ref, { required: true, ...paths });
         if (r) out.push(r);
     }
     if (kind === 'allowedFrom') {
@@ -190,7 +200,7 @@ function checkEntryProblems(entry, base) {
             const n = numberProblem(code, `${base}.${k}`, entry[k], { min: 0, max: MAX_ITEMS_BOUND, integer: true, what: 'It is a count of list items.' });
             if (n) out.push(n);
         }
-        const s = runPathProblem(code, `${base}.sameCountAs`, entry.sameCountAs, { required: false });
+        const s = runPathProblem(code, `${base}.sameCountAs`, entry.sameCountAs, { required: false, ...paths });
         if (s) out.push(s);
         if (!present(entry.minItems) && !present(entry.maxItems) && !present(entry.sameCountAs)) {
             out.push(issue(code, base, `${base} (items) needs at least one of minItems, maxItems or sameCountAs.`, 'Say how many items the list must have.'));

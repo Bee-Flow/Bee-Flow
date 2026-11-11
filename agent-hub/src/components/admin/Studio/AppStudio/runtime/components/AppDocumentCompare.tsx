@@ -1,5 +1,5 @@
 import { FileDiff, Loader2 } from 'lucide-react';
-import { useCallback, useMemo, useRef, useState, type ReactNode } from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useAppDocumentCompare, useAppDocumentVersions, type AppDocumentCompare as CompareData, type AppDocumentVersion, type DocumentRef } from '@/api/queries/studioAppDocuments';
 import useTranslation from '@/hooks/useTranslation';
 import { resolveBinding } from '../resolveBinding';
@@ -12,8 +12,15 @@ import { parseDocumentRef, sameDocument } from './documentCompare/docRef';
 import { DocMessage, DocShell, documentErrorText, useDocumentScope } from './documentCompare/DocShell';
 import SheetDiffView from './documentCompare/SheetDiffView';
 import { hasChanges, summaryText, type TFn } from './documentCompare/summary';
-import TextDiffView from './documentCompare/TextDiffView';
+import { lazy } from '@/utils/lazyWithReload';
+import { logger } from '@/utils/logger';
 import type { StepFn } from './documentCompare/useStepper';
+
+// The text diff brings the editor's diff engine (and yjs) along; it is drawn only once a
+// text comparison has come back, so it is its own chunk instead of part of every app
+// runtime. The component starts fetching it on mount, beside the comparison itself.
+const loadTextDiff = () => import('./documentCompare/TextDiffView');
+const TextDiffView = lazy(loadTextDiff);
 
 /**
  * App Studio runtime — 'document_compare'. Spec: server/appStudio/componentSpecs/documentSpecs.js.
@@ -70,18 +77,18 @@ function statusScreen(t: TFn, s: {
     sides: ReturnType<typeof useSides>; compare: ReturnType<typeof useAppDocumentCompare>;
 }): [string, ReactNode] | null {
     const icon = <FileDiff className="h-6 w-6 text-[var(--text-muted)]" aria-hidden="true" />;
-    const loading: [string, ReactNode] = ['loading', <DocMessage key="l" icon={<Loader2 className="h-5 w-5 animate-spin text-[var(--text-muted)]" aria-hidden="true" />}>{t('studio_app_documents.comparing', 'Comparing…')}</DocMessage>];
+    const loading: [string, ReactNode] = ['loading', <DocMessage key="l" partClass="bfa-document_compare__message" icon={<Loader2 className="h-5 w-5 animate-spin text-[var(--text-muted)]" aria-hidden="true" />}>{t('studio_app_documents.comparing', 'Comparing…')}</DocMessage>];
     if (!s.leftRef && !s.rightRef) return ['empty', <EmptyText key="e" text={s.labels.empty} />];
-    if (!s.live) return ['design', <DocMessage key="d" icon={icon}>{s.labels.left} / {s.labels.right}</DocMessage>];
+    if (!s.live) return ['design', <DocMessage key="d" partClass="bfa-document_compare__message" icon={icon}>{s.labels.left} / {s.labels.right}</DocMessage>];
     if (!s.leftRef) return ['empty', <EmptyText key="e" text={s.labels.empty} />];
     const { versionMode, versions, choice } = s.sides;
     if (versionMode) {
-        if (versions.isError) return ['error', <DocMessage key="x" retry={() => { void versions.refetch(); }}>{documentErrorText(t, versions.error)}</DocMessage>];
+        if (versions.isError) return ['error', <DocMessage key="x" partClass="bfa-document_compare__message" retry={() => { void versions.refetch(); }}>{documentErrorText(t, versions.error)}</DocMessage>];
         if (!versions.data) return loading;
-        if (!versions.data.supported) return ['no-versions', <DocMessage key="n" icon={icon}>{t('studio_app_documents.error.sheet_versions', 'A spreadsheet keeps no earlier versions to show.')}</DocMessage>];
-        if (!choice) return ['no-versions', <DocMessage key="n" icon={icon}>{t('studio_app_documents.no_versions', 'This document has no earlier version yet.')}</DocMessage>];
+        if (!versions.data.supported) return ['no-versions', <DocMessage key="n" partClass="bfa-document_compare__message" icon={icon}>{t('studio_app_documents.error.sheet_versions', 'A spreadsheet keeps no earlier versions to show.')}</DocMessage>];
+        if (!choice) return ['no-versions', <DocMessage key="n" partClass="bfa-document_compare__message" icon={icon}>{t('studio_app_documents.no_versions', 'This document has no earlier version yet.')}</DocMessage>];
     }
-    if (s.compare.isError) return ['error', <DocMessage key="x" retry={() => { void s.compare.refetch(); }}>{documentErrorText(t, s.compare.error)}</DocMessage>];
+    if (s.compare.isError) return ['error', <DocMessage key="x" partClass="bfa-document_compare__message" retry={() => { void s.compare.refetch(); }}>{documentErrorText(t, s.compare.error)}</DocMessage>];
     if (!s.compare.data) return loading;
     return null;
 }
@@ -108,7 +115,11 @@ function CompareBody({ data, choice, labels, mode0, onlyChanges0 }: {
             />
             {result.family === 'deck' ? <DeckDiffView key={key} result={result} leftHtml={data.leftHtml} rightHtml={data.rightHtml} leftLabel={labels.left} rightLabel={labels.right} {...view} /> : null}
             {result.family === 'sheet' ? <SheetDiffView key={key} result={result} {...view} /> : null}
-            {result.family === 'text' ? <TextDiffView key={key} result={result} leftLabel={labels.left} rightLabel={labels.right} {...view} /> : null}
+            {result.family === 'text' ? (
+                <Suspense fallback={null}>
+                    <TextDiffView key={key} result={result} leftLabel={labels.left} rightLabel={labels.right} {...view} />
+                </Suspense>
+            ) : null}
         </>
     );
 }
@@ -123,15 +134,17 @@ export default function AppDocumentCompare({ node }: NodeProps<Props>) {
     const docScope = useDocumentScope(node);
     const sides = useSides(leftRef, rightRef, docScope);
     const compare = useAppDocumentCompare(docScope, sides.sides[0], sides.sides[1]);
+    // A failed prefetch is not an error yet: the lazy view retries (and reloads after a redeploy) when it is drawn.
+    useEffect(() => { loadTextDiff().catch((err: unknown) => logger.debug('[AppDocumentCompare] text diff prefetch failed', err)); }, []);
     const labels = {
         left: props.leftLabel || t('studio_app_documents.before', 'Before'),
         right: props.rightLabel || t('studio_app_documents.after', 'After'),
         empty: props.emptyText || t('studio_app_documents.compare_empty', 'No documents to compare.'),
     };
     const status = statusScreen(t, { leftRef, rightRef, live: docScope.live, labels, sides, compare });
-    if (status || !compare.data) return <DocShell node={node} status={status ? status[0] : 'loading'}>{status ? status[1] : null}</DocShell>;
+    if (status || !compare.data) return <DocShell node={node} status={status ? status[0] : 'loading'} partClass="bfa-document_compare__root">{status ? status[1] : null}</DocShell>;
     return (
-        <DocShell node={node} status="ready">
+        <DocShell node={node} status="ready" partClass="bfa-document_compare__root">
             <CompareBody
                 data={compare.data} choice={sides.choice} labels={labels}
                 mode0={MODES.includes(props.mode as CompareMode) ? (props.mode as CompareMode) : 'side'} onlyChanges0={props.onlyChanges !== false}

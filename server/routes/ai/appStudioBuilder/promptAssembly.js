@@ -49,11 +49,12 @@ const { fallback } = require('../../../utils/bestEffort');
  *   inboundImages: Array<{ dataUrl: string, mimeType: string, bytes: number }>,
  *   modelSupportsVision?: boolean,
  *   effectiveMessage: string,
+ *   designNotes?: (ctx: { profile: ReturnType<typeof getProfileForModel>, approvedPlan: unknown }) => Promise<string[]>,
  * }} opts
  */
 async function assembleTurnPrompt({
     send, userId, modelId, resolvedTier, draftWrap, priorSnapshot, isApproval, planApproval, planMode, workMode,
-    editorContext, inboundImages, modelSupportsVision, effectiveMessage,
+    editorContext, inboundImages, modelSupportsVision, effectiveMessage, designNotes,
 }) {
     // Capability profile for this model — with the admin override map
     // `builder_model_profiles` ({ "<modelId>": {band, temperature, …} })
@@ -185,10 +186,14 @@ async function assembleTurnPrompt({
         ]
         : String(effectiveMessage);
 
+    // The look of a new app (./designBrief.mts): a per-app seed and, once per build, a design
+    // brief from its own model call. Per-turn text, so it rides here and never in `sys`.
+    const designTurnNotes = designNotes ? await designNotes({ profile, approvedPlan: approvedPlanForTurn }) : [];
+
     const composed = composeAppTurnMessages({
         profile, modelId, sys,
         history: priorSnapshot?.messages,
-        notes: [renderDraftStateNote(draftWrap.def, draftWrap), renderOwnerContextNote(automationRows, documentRows), approvedPlanNote, contextNote, planPolicyNote, workModeNote, imageNote],
+        notes: [renderDraftStateNote(draftWrap.def, draftWrap), ...designTurnNotes, renderOwnerContextNote(automationRows, documentRows), approvedPlanNote, contextNote, planPolicyNote, workModeNote, imageNote],
         userTurnContent,
     });
     const { messages } = composed;

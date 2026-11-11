@@ -334,12 +334,18 @@ function coerceRowToFields(row, fields) {
 
 // ── Message building ─────────────────────────────────────────────────────────
 
-function buildMessages(system, user) {
+/**
+ * The messages of one call: system, user, and a repair round's assistant + user messages
+ * (`followUp`, actionExecutor/aiChecks.mts) when there is one.
+ * @param {Array<{ role: string, content: unknown }> | null} [followUp]
+ */
+function buildMessages(system, user, followUp) {
     const messages = [];
     if (system && String(system).trim()) {
         messages.push({ role: 'system', content: String(system).slice(0, MAX_SYSTEM_CHARS) });
     }
     messages.push({ role: 'user', content: user });
+    if (Array.isArray(followUp)) messages.push(...followUp);
     return messages;
 }
 
@@ -374,10 +380,10 @@ const guarded = (kind, model, run) => guardedAiCall((signal) => run(signal ? { s
  * the model declined or emitted unparseable arguments. `structured` is
  * UNTRUSTED — callers coerce it against their declared shape.
  */
-async function runStructured(app, model, { system, user, parameters, toolName = 'record_output', toolDescription = 'Return the requested structured data.' }) {
+async function runStructured(app, model, { system, user, parameters, toolName = 'record_output', toolDescription = 'Return the requested structured data.', followUp = null }) {
     const toolDef = { type: 'function', function: { name: toolName, description: toolDescription, parameters } };
     const t0 = Date.now();
-    const res = await guarded('structured', model, (x) => llmClient.chatForcedTool(model.modelId, buildMessages(system, user), toolDef, withTimeout(model.options, x)));
+    const res = await guarded('structured', model, (x) => llmClient.chatForcedTool(model.modelId, buildMessages(system, user, followUp), toolDef, withTimeout(model.options, x)));
     logUsage(app, model, res?.usage, t0, 'studio_app_ai');
     if (!res || res.structured == null || typeof res.structured !== 'object') {
         const e = new Error('The AI did not return usable structured data. Try a more capable model tier or a simpler schema.');
@@ -389,9 +395,9 @@ async function runStructured(app, model, { system, user, parameters, toolName = 
 }
 
 /** Free-form text generation. */
-async function runText(app, model, { system, user }) {
+async function runText(app, model, { system, user, followUp = null }) {
     const t0 = Date.now();
-    const res = await guarded('text', model, (x) => llmClient.chat(model.modelId, buildMessages(system, user), withTimeout(model.options, x)));
+    const res = await guarded('text', model, (x) => llmClient.chat(model.modelId, buildMessages(system, user, followUp), withTimeout(model.options, x)));
     logUsage(app, model, res?.usage, t0, 'studio_app_ai');
     return { text: typeof res?.content === 'string' ? res.content : '', usage: res?.usage };
 }
@@ -427,8 +433,8 @@ function toolTables(tools) {
 }
 
 /** runText + closed-over tools. Falls back to runText when tools is empty. */
-async function runTextWithTools(app, model, { system, user, tools }) {
-    if (!Array.isArray(tools) || tools.length === 0) return runText(app, model, { system, user });
+async function runTextWithTools(app, model, { system, user, tools, followUp = null }) {
+    if (!Array.isArray(tools) || tools.length === 0) return runText(app, model, { system, user, ...(followUp ? { followUp } : {}) });
     const { defs, executeTool } = toolTables(tools);
     const t0 = Date.now();
     const res = await guarded('text+tools', model, (x) => llmClient.runToolLoop(
@@ -443,8 +449,8 @@ async function runTextWithTools(app, model, { system, user, tools }) {
  * synthesis call is FORCED onto the structured tool (llmClient.runToolLoop's
  * finalTool path — same provider-aware forcing chatForcedTool uses).
  */
-async function runStructuredWithTools(app, model, { system, user, parameters, tools, toolName = 'record_output', toolDescription = 'Return the requested structured data.' }) {
-    if (!Array.isArray(tools) || tools.length === 0) return runStructured(app, model, { system, user, parameters, toolName, toolDescription });
+async function runStructuredWithTools(app, model, { system, user, parameters, tools, toolName = 'record_output', toolDescription = 'Return the requested structured data.', followUp = null }) {
+    if (!Array.isArray(tools) || tools.length === 0) return runStructured(app, model, { system, user, parameters, toolName, toolDescription, ...(followUp ? { followUp } : {}) });
     const finalTool = { type: 'function', function: { name: toolName, description: toolDescription, parameters } };
     const { defs, executeTool } = toolTables(tools);
     const t0 = Date.now();

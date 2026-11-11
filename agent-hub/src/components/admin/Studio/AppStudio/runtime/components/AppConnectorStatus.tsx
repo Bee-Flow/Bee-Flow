@@ -50,11 +50,11 @@ interface RowProps {
 function Row({ icon, tone, title, detail }: RowProps) {
     return (
         <div className="flex items-start gap-2.5 min-w-0">
-            <span className="shrink-0 mt-0.5" style={{ color: tone }} aria-hidden="true">{icon}</span>
+            <span className="shrink-0 mt-0.5 bfa-connector_status__icon" style={{ color: tone }} aria-hidden="true">{icon}</span>
             <span className="min-w-0">
-                <span className="block text-sm font-medium truncate text-[var(--text-primary)]">{title}</span>
+                <span className="block text-sm font-medium truncate text-[var(--text-primary)] bfa-connector_status__title">{title}</span>
                 {detail ? (
-                    <span className="block text-xs mt-0.5 text-[var(--text-tertiary)]">{detail}</span>
+                    <span className="block text-xs mt-0.5 text-[var(--text-tertiary)] bfa-connector_status__detail">{detail}</span>
                 ) : null}
             </span>
         </div>
@@ -162,7 +162,7 @@ export default function AppConnectorStatus({ node }: AppConnectorStatusProps) {
 
     if (loading && !preview) {
         return (
-            <div className="app-connector-card flex items-center gap-2 rounded-lg border p-3 text-sm text-[var(--text-tertiary)]">
+            <div className="app-connector-card flex items-center gap-2 rounded-lg border p-3 text-sm text-[var(--text-tertiary)] bfa-connector_status__root">
                 <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
                 {t('studio_apps_runtime.connector.checking', 'Checking the connection…')}
             </div>
@@ -171,7 +171,7 @@ export default function AppConnectorStatus({ node }: AppConnectorStatusProps) {
 
     if (!data) {
         return (
-            <div className="app-connector-card rounded-lg border p-3">
+            <div className="app-connector-card rounded-lg border p-3 bfa-connector_status__root">
                 <Row
                     icon={<AlertTriangle className="w-4 h-4" />}
                     tone={ROLE_COLORS.warning}
@@ -217,19 +217,19 @@ export default function AppConnectorStatus({ node }: AppConnectorStatusProps) {
 
     return (
         <div
-            className="app-connector-card flex items-center justify-between gap-3 rounded-lg border p-3"
+            className="app-connector-card flex items-center justify-between gap-3 rounded-lg border p-3 bfa-connector_status__root"
             data-app-connector-status={connectorId}
             data-connected={connected || undefined}
         >
             <Row icon={icon} tone={tone} title={heading} detail={detail} />
             {showSync && data.syncable && !preview ? (
                 <div className="flex items-center gap-2 shrink-0">
-                    {note ? <span className="text-xs text-[var(--text-tertiary)]">{note}</span> : null}
+                    {note ? <span className="text-xs text-[var(--text-tertiary)] bfa-connector_status__note">{note}</span> : null}
                     <button
                         type="button"
                         onClick={refresh}
                         disabled={syncing}
-                        className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-sm disabled:opacity-60 [border-color:var(--border-default)] [color:var(--text-primary)]!"
+                        className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-sm disabled:opacity-60 [border-color:var(--border-default)] [color:var(--text-primary)]! bfa-connector_status__action"
                     >
                         <RefreshCw className={`w-3.5 h-3.5${syncing ? ' animate-spin' : ''}`} aria-hidden="true" />
                         {t('studio_apps_runtime.connector.check_now', 'Check now')}

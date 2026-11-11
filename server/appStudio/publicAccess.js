@@ -65,11 +65,13 @@
 'use strict';
 
 const { collectReferencedActions } = require('./validate');
-const { DATA_MUTATING_STEP_KINDS } = require('./componentSpecs');
+const { redactStep } = require('./publicStepRedaction.mts');
 const { closeOverCalls } = require('./actionCalls.mts');
+const { definitionKeys } = require('./definitionKeyRegistry.mts');
 const { LIMITS } = require('./componentSpecs/limits');
 const { THEME_SPEC, HEX_RE, canonicalizeTheme } = require('../core/cms/themeSpec');
 const { DESIGN_SPEC } = require('./appDesignSpec');
+const { isAssetRef, valueTypeOf, isCleanValue } = require('./componentSpecs/valueTypes');
 // The reserved anonymous role. It lives in dataModel because the RLS gateway —
 // which must recognise it by name to deny by default — already reads that
 // module, and a constant defined here would make the gateway depend on the
@@ -101,8 +103,10 @@ function isThemeValue(spec, v) {
  */
 function isDesignValue(spec, v) {
     if (spec.type === 'enum') return spec.values.includes(v);
-    if (spec.type === 'url') return typeof v === 'string' && /^https:\/\//.test(v) && v.length <= spec.maxLen;
-    return false;
+    if (spec.type === 'url') return (typeof v === 'string' && /^https:\/\//.test(v) && v.length <= spec.maxLen) || isAssetRef(v);
+    // A design key of a later value type (componentSpecs/valueTypes.js): the value its own clean() keeps.
+    const valueType = valueTypeOf(spec);
+    return !!valueType && isCleanValue(valueType, v, spec);
 }
 
 /**
@@ -274,42 +278,6 @@ function resolvePublicSurface(definition) {
     };
 }
 
-/** A server step, reduced to what the browser coordinator actually reads. */
-function redactStep(step) {
-    if (!isObject(step)) return step;
-    if (DATA_MUTATING_STEP_KINDS.includes(step.kind)) {
-        // The browser retries and handles a failure itself, so `retry` and the
-        // handler travel (the handler's steps redacted, so their ordinals stay);
-        // a transaction's children stay on the server.
-        return {
-            kind: step.kind,
-            ...(step.resultVar ? { resultVar: step.resultVar } : {}),
-            ...(isObject(step.retry) ? { retry: { ...step.retry } } : {}),
-            ...redactedHandler(step),
-        };
-    }
-    // Client steps run in the browser, so they travel whole — but their nested
-    // branches carry server steps of their own.
-    const out = { ...step };
-    if (Array.isArray(step.then)) out.then = step.then.map(redactStep);
-    if (Array.isArray(step.else)) out.else = step.else.map(redactStep);
-    if (Array.isArray(step.steps)) out.steps = step.steps.map(redactStep);
-    if (Array.isArray(step.cases)) {
-        out.cases = step.cases.map((c) => (isObject(c) && Array.isArray(c.steps) ? { ...c, steps: c.steps.map(redactStep) } : c));
-    }
-    if (Array.isArray(step.default)) out.default = step.default.map(redactStep);
-    Object.assign(out, redactedHandler(step));
-    return out;
-}
-
-/** A step's onError handler with its steps redacted ({} when it has none). */
-function redactedHandler(step) {
-    const h = step.onError;
-    if (Array.isArray(h)) return { onError: h.map(redactStep) };
-    if (isObject(h) && Array.isArray(h.steps)) return { onError: { steps: h.steps.map(redactStep), ...(h.stop === true ? { stop: true } : {}) } };
-    return {};
-}
-
 /** Redact one action for anonymous delivery, preserving step indices exactly. */
 function redactAction(action) {
     if (!isObject(action)) return action;
@@ -368,6 +336,15 @@ function buildPublicDefinition(definition, surface) {
     }
     // Deliberately absent: `nav`. Its groups name back-office screens, so
     // shipping it would leak the app's internal structure to the open internet.
+    //
+    // A registered top-level key (definitionKeyRegistry.mts) ships only when
+    // its entry says `public: true`; every other one stays in the process.
+    // An entry with `publicValue` ships only what that function keeps for this surface.
+    for (const entry of definitionKeys()) {
+        if (entry.public !== true || definition[entry.key] === undefined) continue;
+        const value = typeof entry.publicValue === 'function' ? entry.publicValue(definition[entry.key], surface) : definition[entry.key];
+        if (value !== undefined) out[entry.key] = value;
+    }
     return out;
 }
 

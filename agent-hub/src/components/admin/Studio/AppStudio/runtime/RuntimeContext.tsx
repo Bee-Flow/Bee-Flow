@@ -62,6 +62,8 @@ export type ExpressionScope = {
     connectors: Record<string, unknown>;
     now: string;
     today: string;
+    /** What components keep on screen (./uiState.ts); only present when the caller passed it. */
+    ui?: unknown;
 };
 
 /** What buildScope reads; every part is optional. */
@@ -80,7 +82,12 @@ export interface BuildScopeInput {
     error?: Record<string, unknown> | null;
     now?: unknown;
     today?: unknown;
+    /** The `ui` root (./uiState.ts). Left out, the scope has no `ui` key at all: today's shape. */
+    ui?: unknown;
 }
+
+/** Per node id, the UI state that node starts in. The node's component decides what it reads. */
+export type InitialUi = Readonly<Record<string, unknown>>;
 
 /** What every rendered component reads through useRuntime(). */
 export interface RuntimeValue {
@@ -95,6 +102,13 @@ export interface RuntimeValue {
     registerFormValue: ((formName: string, values: Record<string, unknown>) => void) | null;
     currentUser: unknown;
     appDesign: AppDesign | null;
+    /**
+     * UI state a host wants in place on the first paint (for example which modal is open or
+     * which tab is active), keyed by node id. null = none, which is every host today.
+     */
+    initialUi: InitialUi | null;
+    /** definition.format (schema 3) as AppRenderer found it; absent or null = values written as before (appFormat.ts). */
+    appFormat?: unknown;
     scope: Partial<ExpressionScope>;
     /** Editor-only members (selection, preview role, …) that the canvas adds. */
     [key: string]: unknown;
@@ -206,6 +220,7 @@ export function buildScope(input: BuildScopeInput = {}): ExpressionScope {
         connectors,
         now: stampNow,
         today: stampToday,
+        ...(input.ui !== undefined ? { ui: input.ui } : {}),
     };
 }
 
@@ -224,6 +239,7 @@ export const DEFAULT_RUNTIME: RuntimeValue = Object.freeze({
     // primary } or null. Components read it for looks only — never for data.
     // null means "no design authored", which is identity rendering.
     appDesign: null,
+    initialUi: null,
     scope: Object.freeze(buildScope({ now: '1970-01-01T00:00:00.000Z' })),
 });
 

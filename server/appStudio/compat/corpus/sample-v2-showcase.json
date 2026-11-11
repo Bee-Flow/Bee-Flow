@@ -1,0 +1,201 @@
+{
+  "about": {
+    "source": "agent-hub/src/components/admin/Studio/AppStudio/state/sampleDefinitions.ts V2_SHOWCASE, verbatim",
+    "captured": "2026-11-10"
+  },
+  "definition": {
+    "schemaVersion": 1,
+    "meta": {
+      "name": "Logic showcase",
+      "description": "Formula bindings, visibility, validation and per-row scope.",
+      "icon": "LayoutGrid"
+    },
+    "theme": {
+      "primary": "#0F766E",
+      "radius": "md",
+      "density": "comfortable",
+      "fontScale": "md",
+      "appearance": "auto"
+    },
+    "homeScreenId": "scr_v2main",
+    "screens": [
+      {
+        "id": "scr_v2main",
+        "name": "Main",
+        "icon": "LayoutDashboard",
+        "showInNav": true,
+        "maxWidth": "medium",
+        "sections": [
+          {
+            "id": "sec_v2a",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_v2stat",
+                "type": "stat",
+                "visible": true,
+                "props": {
+                  "label": "Computed total",
+                  "value": {
+                    "kind": "formula",
+                    "expr": "2 + 2"
+                  },
+                  "caption": "a formula binding",
+                  "icon": "Activity"
+                },
+                "style": {
+                  "span": 3,
+                  "size": "md",
+                  "align": "start",
+                  "color": "primary"
+                }
+              },
+              {
+                "id": "cmp_v2hd",
+                "type": "heading",
+                "visible": true,
+                "visibleWhen": "currentUser != null",
+                "props": {
+                  "text": "Welcome back",
+                  "level": 3
+                },
+                "style": {
+                  "span": 12,
+                  "align": "start",
+                  "color": null
+                }
+              },
+              {
+                "id": "cmp_v2btn",
+                "type": "button",
+                "visible": true,
+                "onClick": "act_v2toast",
+                "enabledWhen": "form.quantity > 0",
+                "props": {
+                  "label": "Notify me",
+                  "variant": "secondary",
+                  "iconLeft": null,
+                  "role": "button"
+                },
+                "style": {
+                  "span": 3,
+                  "size": "md",
+                  "align": "start"
+                }
+              },
+              {
+                "id": "cmp_v2form",
+                "type": "form",
+                "visible": true,
+                "onSubmit": "act_v2submit",
+                "props": {
+                  "name": "req",
+                  "submitLabel": "Save",
+                  "showReset": false
+                },
+                "style": {
+                  "span": 12,
+                  "gap": 3,
+                  "padding": 0
+                },
+                "children": [
+                  {
+                    "id": "cmp_v2qty",
+                    "type": "input_number",
+                    "visible": true,
+                    "props": {
+                      "name": "quantity",
+                      "label": "Quantity",
+                      "min": 1,
+                      "max": 99,
+                      "step": 1,
+                      "required": true,
+                      "defaultValue": 1
+                    },
+                    "validations": [
+                      {
+                        "type": "min",
+                        "value": 1,
+                        "message": "Enter at least one."
+                      },
+                      {
+                        "type": "expr",
+                        "expr": "form.quantity <= 99",
+                        "message": "That is too many."
+                      }
+                    ],
+                    "style": {
+                      "span": 6,
+                      "size": "md"
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "cmp_v2rep",
+                "type": "card",
+                "visible": true,
+                "repeat": {
+                  "kind": "static",
+                  "value": [
+                    {
+                      "name": "Alpha"
+                    },
+                    {
+                      "name": "Beta"
+                    }
+                  ]
+                },
+                "props": {
+                  "title": "Team",
+                  "description": null
+                },
+                "style": {
+                  "span": 12,
+                  "padding": 3,
+                  "gap": 3,
+                  "background": "surface"
+                },
+                "children": [
+                  {
+                    "id": "cmp_v2item",
+                    "type": "text",
+                    "visible": true,
+                    "props": {
+                      "text": "—",
+                      "muted": false
+                    },
+                    "computed": {
+                      "text": "item.name"
+                    },
+                    "style": {
+                      "span": 12,
+                      "align": "start",
+                      "color": null,
+                      "weight": "regular"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "actions": {
+      "act_v2submit": {
+        "kind": "run_automation",
+        "automationId": null
+      },
+      "act_v2toast": {
+        "kind": "toast",
+        "message": "You will be notified.",
+        "tone": "info"
+      }
+    }
+  }
+}

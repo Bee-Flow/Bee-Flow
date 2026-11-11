@@ -1,0 +1,471 @@
+{
+  "about": {
+    "source": "hand-written for the client triggers: list event slots, screen onOpen and timers, watchers, onClick on tiles, onChange on the rich inputs (schema 3)",
+    "captured": "2026-11-10"
+  },
+  "definition": {
+    "schemaVersion": 3,
+    "meta": {
+      "name": "Front desk",
+      "description": "Client triggers: a screen that prepares itself, a timer, watchers and clickable tiles.",
+      "icon": "BellRing"
+    },
+    "theme": {
+      "primary": "#1D4ED8",
+      "radius": "md",
+      "density": "comfortable",
+      "fontScale": "md",
+      "appearance": "auto"
+    },
+    "roles": [],
+    "variables": [
+      {
+        "name": "status",
+        "label": "status",
+        "type": "text",
+        "default": "open",
+        "description": ""
+      },
+      {
+        "name": "ticks",
+        "label": "ticks",
+        "type": "number",
+        "default": 0,
+        "description": ""
+      },
+      {
+        "name": "note",
+        "label": "note",
+        "type": "text",
+        "default": "",
+        "description": ""
+      }
+    ],
+    "screens": [
+      {
+        "id": "scr_desk0001",
+        "name": "Desk",
+        "icon": "LayoutDashboard",
+        "showInNav": true,
+        "maxWidth": "medium",
+        "sections": [
+          {
+            "id": "sec_tiles001",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_stat0001",
+                "type": "stat",
+                "props": {
+                  "label": "Ticks",
+                  "value": {
+                    "kind": "formula",
+                    "expr": "vars.ticks"
+                  },
+                  "caption": null,
+                  "captionSegments": [],
+                  "icon": null,
+                  "delta": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "deltaFormat": "number",
+                  "trend": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "positiveIsGood": true,
+                  "look": "plain"
+                },
+                "style": {
+                  "span": 3
+                },
+                "visible": true,
+                "onClick": "act_detail01"
+              },
+              {
+                "id": "cmp_call0001",
+                "type": "callout",
+                "props": {
+                  "title": "Open the details",
+                  "text": "Click this note.",
+                  "textFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "tone": "info",
+                  "toneFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "meta": null,
+                  "metaFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "collapsible": false
+                },
+                "style": {
+                  "span": 3
+                },
+                "visible": true,
+                "onClick": [
+                  "act_hello001",
+                  "act_detail01"
+                ]
+              },
+              {
+                "id": "cmp_img00001",
+                "type": "image",
+                "props": {
+                  "src": "https://example.com/desk.png",
+                  "alt": "Desk",
+                  "fit": "cover"
+                },
+                "style": {
+                  "span": 3,
+                  "height": "md"
+                },
+                "visible": true,
+                "onClick": "act_hello001"
+              },
+              {
+                "id": "cmp_card0001",
+                "type": "card",
+                "props": {
+                  "title": "Status card",
+                  "description": null,
+                  "look": "default"
+                },
+                "style": {
+                  "span": 3,
+                  "padding": 3,
+                  "gap": 3,
+                  "background": "surface"
+                },
+                "visible": true,
+                "onClick": "act_detail01",
+                "children": [
+                  {
+                    "id": "cmp_txt00001",
+                    "type": "text",
+                    "props": {
+                      "text": "Status",
+                      "muted": false
+                    },
+                    "style": {
+                      "span": 12
+                    },
+                    "visible": true,
+                    "computed": {
+                      "text": {
+                        "kind": "formula",
+                        "expr": "'Status: ' + vars.status"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "cmp_cont0001",
+                "type": "container",
+                "props": {
+                  "look": "plain"
+                },
+                "style": {
+                  "span": 6,
+                  "gap": 3
+                },
+                "visible": true,
+                "onClick": "act_hello001",
+                "children": [
+                  {
+                    "id": "cmp_txt00002",
+                    "type": "text",
+                    "props": {
+                      "text": "A clickable group",
+                      "muted": false
+                    },
+                    "style": {
+                      "span": 12
+                    },
+                    "visible": true
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "sec_form0001",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_form0001",
+                "type": "form",
+                "props": {
+                  "name": "visit",
+                  "submitLabel": "Submit",
+                  "showReset": false,
+                  "showSubmit": true,
+                  "resetKey": null
+                },
+                "style": {
+                  "span": 6,
+                  "gap": 3,
+                  "padding": 0
+                },
+                "visible": true,
+                "onSubmit": [
+                  "act_save0001",
+                  "act_hello001"
+                ],
+                "children": [
+                  {
+                    "id": "cmp_when0001",
+                    "type": "input_datetime",
+                    "props": {
+                      "name": "when",
+                      "label": "When",
+                      "required": false,
+                      "withTime": true,
+                      "defaultValue": null
+                    },
+                    "style": {
+                      "span": 6
+                    },
+                    "visible": true,
+                    "onChange": "act_note0001"
+                  },
+                  {
+                    "id": "cmp_who00001",
+                    "type": "input_person",
+                    "props": {
+                      "name": "who",
+                      "label": "Who",
+                      "multiple": false,
+                      "required": false,
+                      "allowMe": true
+                    },
+                    "style": {
+                      "span": 6
+                    },
+                    "visible": true,
+                    "onChange": "act_note0001"
+                  },
+                  {
+                    "id": "cmp_rel00001",
+                    "type": "input_relation",
+                    "props": {
+                      "name": "room",
+                      "label": "Room",
+                      "tableId": null,
+                      "displayField": null,
+                      "multiple": false,
+                      "required": false,
+                      "filter": null
+                    },
+                    "style": {
+                      "span": 6
+                    },
+                    "visible": true,
+                    "onChange": "act_note0001"
+                  },
+                  {
+                    "id": "cmp_rich0001",
+                    "type": "input_richtext",
+                    "props": {
+                      "name": "body",
+                      "label": "Notes",
+                      "required": false,
+                      "defaultValue": null,
+                      "valueFrom": {
+                        "kind": "static",
+                        "value": null
+                      }
+                    },
+                    "style": {
+                      "span": 12
+                    },
+                    "visible": true,
+                    "onChange": "act_note0001"
+                  },
+                  {
+                    "id": "cmp_html0001",
+                    "type": "input_html",
+                    "props": {
+                      "name": "mail",
+                      "label": "Mail text",
+                      "required": false,
+                      "placeholder": null,
+                      "defaultValue": null,
+                      "valueFrom": {
+                        "kind": "static",
+                        "value": null
+                      },
+                      "minRows": 8,
+                      "allowImages": false
+                    },
+                    "style": {
+                      "span": 12
+                    },
+                    "visible": true,
+                    "onChange": "act_note0001"
+                  }
+                ]
+              },
+              {
+                "id": "cmp_btn00001",
+                "type": "button",
+                "props": {
+                  "label": "Both",
+                  "variant": "primary",
+                  "iconLeft": null,
+                  "role": "button",
+                  "disabledWhen": null
+                },
+                "style": {
+                  "span": 3
+                },
+                "visible": true,
+                "onClick": [
+                  "act_hello001",
+                  "act_tick0001"
+                ]
+              }
+            ]
+          }
+        ],
+        "events": {
+          "onOpen": [
+            "act_reset001",
+            "act_hello001"
+          ]
+        },
+        "timers": [
+          {
+            "id": "tick",
+            "everySeconds": 30,
+            "actionId": "act_tick0001"
+          }
+        ]
+      },
+      {
+        "id": "scr_detail01",
+        "name": "Detail",
+        "icon": "FileText",
+        "showInNav": false,
+        "maxWidth": "medium",
+        "sections": [
+          {
+            "id": "sec_det00001",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_head0001",
+                "type": "heading",
+                "props": {
+                  "text": "Detail",
+                  "level": 2,
+                  "accent": "none"
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              }
+            ]
+          }
+        ],
+        "events": {
+          "onOpen": "act_hello001"
+        }
+      }
+    ],
+    "actions": {
+      "act_reset001": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "set_variable",
+            "name": "status",
+            "value": {
+              "kind": "static",
+              "value": "open"
+            }
+          }
+        ]
+      },
+      "act_hello001": {
+        "kind": "toast",
+        "message": "Welcome back",
+        "tone": "info"
+      },
+      "act_tick0001": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "set_variable",
+            "name": "ticks",
+            "value": {
+              "kind": "formula",
+              "expr": "vars.ticks + 1"
+            }
+          }
+        ]
+      },
+      "act_detail01": {
+        "kind": "navigate",
+        "screenId": "scr_detail01"
+      },
+      "act_note0001": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "set_variable",
+            "name": "note",
+            "value": {
+              "kind": "static",
+              "value": "changed"
+            }
+          }
+        ]
+      },
+      "act_save0001": {
+        "kind": "toast",
+        "message": "Saved",
+        "tone": "success"
+      },
+      "act_status01": {
+        "kind": "toast",
+        "message": "The status changed",
+        "tone": "info"
+      }
+    },
+    "homeScreenId": "scr_desk0001",
+    "watchers": [
+      {
+        "id": "status",
+        "expr": "vars.status",
+        "actionId": "act_status01",
+        "debounceMs": 300
+      },
+      {
+        "id": "note",
+        "expr": "vars.note",
+        "actionId": "act_hello001"
+      }
+    ]
+  }
+}

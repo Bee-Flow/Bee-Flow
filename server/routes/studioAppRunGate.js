@@ -13,7 +13,8 @@
 
 const studioAppStore = require('../stores/studioAppStore');
 const { resolveAudienceContext } = require('../auth/audience');
-const { EVENT_NAMES } = require('../appStudio/componentSpecs');
+const { nodeActionRefs } = require('../appStudio/nodeActionRefs.mts');
+const { screenTriggerRefs, watchersOf } = require('../shared/appDefinition/clientTriggers.mjs');
 const { sessionUser } = require('../core/http/sessionUser');
 
 // ── App visibility ──────────────────────────────────────────────────
@@ -61,10 +62,11 @@ function roleAllows(nodeOrScreen, role) {
 }
 
 // Can `role` reach `actionId` through the UI? Walks screens → sections → node
-// trees for an event wiring (EVENT_NAMES) OR a per-row action
-// (props.rowActions on data_grid, props.itemActions on repeater) naming the
-// action; a wiring counts only when its screen AND every ancestor container
-// clear the gate too. referenced:false means NO node wires the action and no
+// trees for an event wiring (EVENT_NAMES, one id or a list of them), a screen's
+// onOpen or timer, a watcher (every viewer runs those), OR an action a node lists in
+// its props (rowActions, itemActions, bulkActions, toolbarActions, addRowActionId, a
+// column's actionId) naming the action; a wiring counts only when its screen, its section (section.visibleToRoles)
+// AND every ancestor container clear the gate too. referenced:false means NO node wires the action and no
 // other action calls it — it is programmatic (an onSuccess chain), which role
 // gating never described, so the caller keeps running it.
 /**
@@ -83,15 +85,8 @@ function wiredRoleAccess(def, actionId, role) {
         for (const node of (Array.isArray(nodes) ? nodes : [])) {
             if (!node || typeof node !== 'object') continue;
             const nodeVisible = visible && roleAllows(node, role);
-            let wired = EVENT_NAMES.some((ev) => node[ev] === actionId);
-            if (!wired) {
-                const props = (node.props && typeof node.props === 'object') ? node.props : {};
-                for (const listKey of ['rowActions', 'itemActions']) {
-                    const entries = props[listKey];
-                    if (!Array.isArray(entries)) continue;
-                    if (entries.some((e) => e && typeof e === 'object' && e.actionId === actionId)) { wired = true; break; }
-                }
-            }
+            // Every way a node runs an action, from the one shared reader (appStudio/nodeActionRefs.mts).
+            const wired = nodeActionRefs(node).some((/** @type {{ actionId: string }} */ ref) => ref.actionId === actionId);
             if (wired) {
                 referenced = true;
                 if (nodeVisible) allowed = true;
@@ -101,9 +96,19 @@ function wiredRoleAccess(def, actionId, role) {
     };
     for (const screen of (Array.isArray(def?.screens) ? def.screens : [])) {
         const screenVisible = roleAllows(screen, role);
-        for (const section of (Array.isArray(screen?.sections) ? screen.sections : [])) {
-            walk(section?.children, screenVisible);
+        // Schema 3: a screen's onOpen and timers run its actions for whoever can open the screen.
+        if (screenTriggerRefs(screen).some((ref) => ref.actionId === actionId)) {
+            referenced = true;
+            if (screenVisible) allowed = true;
         }
+        for (const section of (Array.isArray(screen?.sections) ? screen.sections : [])) {
+            walk(section?.children, screenVisible && roleAllows(section, role));
+        }
+    }
+    // A watcher (schema 3) runs in every viewer's browser, whatever screen is open.
+    if (watchersOf(def).some((w) => w.actionId === actionId)) {
+        referenced = true;
+        allowed = true;
     }
     return { referenced, allowed };
 }
@@ -171,6 +176,41 @@ function assertActionRoleAccess(res, def, actionId, role, { isOwner }) {
 }
 
 /**
+ * The form values of a request without the fields this viewer's role does not see in the
+ * form that runs `actionId` (appStudio/formFieldGate.mts): the same role rule as the gates
+ * above, applied to the submitted bag. The owner submits everything; a bag with nothing to
+ * leave out comes back as the same object.
+ * @template V
+ * @param {unknown} def  the definition the request runs
+ * @param {string} actionId
+ * @param {string | null | undefined} role
+ * @param {V} formValues
+ * @returns {V}
+ */
+function visibleFormValues(def, actionId, role, formValues) {
+    if (role === 'owner') return formValues;
+    return require('../appStudio/formFieldGate.mts').withoutGatedFormFields(formValues, def, actionId, (/** @type {unknown} */ node) => roleAllows(/** @type {{ visibleToRoles?: unknown } | null} */ (node), role));
+}
+
+/**
+ * What a step route adds to the executor's ctx for an app with the wide server scope
+ * (appStudio/actionExecutor/wideScope.mts): the screen params, the other forms and the action
+ * results the request carries. The forms follow the fields this viewer's role sees, as
+ * `formValues` does (visibleFormValues); the owner sends everything. Nothing at all for an app
+ * without the wide scope.
+ * @param {unknown} def  the definition the request runs
+ * @param {string | null | undefined} role
+ * @param {unknown} body  the request body
+ * @returns {{ wideScope?: import('../appStudio/actionExecutor/wideScope.mts').WideScope }}
+ */
+function wideScopeFor(def, role, body) {
+    const input = require('../appStudio/actionExecutor/wideScope.mts').wideScopeInput(def, body);
+    if (!input.wideScope || role === 'owner') return input;
+    const forms = require('../appStudio/formFieldGate.mts').withoutGatedFormsFields(input.wideScope.forms, def, (/** @type {unknown} */ node) => roleAllows(/** @type {{ visibleToRoles?: unknown } | null} */ (node), role));
+    return forms === input.wideScope.forms ? input : { wideScope: { ...input.wideScope, forms } };
+}
+
+/**
  * The role checks the app document pool (appDocuments/pool.mts) walks with:
  * which screens and nodes this viewer sees, which actions they can reach.
  * The same rules as the two gates above, so a document behind an admin-only
@@ -234,4 +274,4 @@ async function resolveViewerRole(req, app, userId) {
     return { role: role || null, model };
 }
 
-module.exports = { loadVisibleApp, roleAllows, actionRoleAccess, assertActionRoleAccess, documentChecks, stepDocumentContext, pickDefinition, resolveViewerRole };
+module.exports = { loadVisibleApp, roleAllows, actionRoleAccess, assertActionRoleAccess, visibleFormValues, wideScopeFor, documentChecks, stepDocumentContext, pickDefinition, resolveViewerRole };

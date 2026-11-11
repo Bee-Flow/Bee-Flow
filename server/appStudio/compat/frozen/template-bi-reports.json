@@ -1,0 +1,949 @@
+{
+  "corpus": "template-bi-reports",
+  "canonical": {
+    "sha256": "ede95eb1c8f700f85ae0303f4da7f019f82cd7821e4047e1b3db89fa182ef21a",
+    "bytes": 56172,
+    "inputIsCanonical": true,
+    "idempotent": true,
+    "keys": [
+      "schemaVersion",
+      "meta",
+      "theme",
+      "roles",
+      "variables",
+      "screens",
+      "actions",
+      "design",
+      "nav",
+      "homeScreenId"
+    ],
+    "parts": {
+      "schemaVersion": "d4735e3a265e16ee",
+      "meta": "e2133c7059da3429",
+      "theme": "bc31c8c233f11faf",
+      "roles": "b7c1dd6b1b805013",
+      "variables": "39f70a01a17eda99",
+      "screens[0] scr_bidash": "50ad11363bc2771f",
+      "screens[1] scr_bidsg": "b34188ff26c00d7f",
+      "screens[2] scr_biload": "a34bc55aa9e03ebf",
+      "screens[3] scr_biwh": "62417b854aea9de0",
+      "screens[4] scr_bisetup": "8f3fb02018f79c43",
+      "actions.act_bidsync": "9d2e3aea5cf39b70",
+      "actions.act_bidapply": "775ff7eda46b12b3",
+      "actions.act_bigodsg": "32db1f8d65b0c626",
+      "actions.act_birepsave": "c826d09c8bd03289",
+      "actions.act_birepdel": "4b9bad12341eda80",
+      "actions.act_biload": "a1e875c4c434437b",
+      "actions.act_bistgadd": "3bf0a1338059e77c",
+      "actions.act_bistgdel": "9d2da442df82d923",
+      "actions.act_bifactsave": "0f0310061c5851a0",
+      "actions.act_bifactdel": "a58a3da97e00d32e",
+      "actions.act_bidim1open": "683fa0e71c76fc8e",
+      "actions.act_bidim1add": "d571b90ea47d501e",
+      "actions.act_bidim1save": "b5f93ef3f8fd2c17",
+      "actions.act_bidim1del": "f0ef05aa20df4b1c",
+      "actions.act_bidim2open": "a9be9a9e4d682865",
+      "actions.act_bidim2add": "ac172a778389675c",
+      "actions.act_bidim2save": "71c4d6c579cae234",
+      "actions.act_bidim2del": "f8812a1a10c7e6ab",
+      "design": "c12f82995588e46b",
+      "nav": "c1503681bc1a6d4a",
+      "homeScreenId": "ffe45ccc79298774"
+    }
+  },
+  "schemaVersion": {
+    "stored": 2,
+    "canonical": 2
+  },
+  "validation": {
+    "strict": {
+      "errors": [],
+      "warnings": []
+    },
+    "save": {
+      "errors": [],
+      "warnings": []
+    }
+  },
+  "ordinals": {
+    "stored": {
+      "act_bidsync": [
+        "0 loop",
+        "1 condition",
+        "2 set_variable",
+        "3 condition",
+        "4 set_variable",
+        "5 condition",
+        "6 set_variable",
+        "7 condition",
+        "8 set_variable",
+        "9 condition",
+        "10 set_variable",
+        "11 condition",
+        "12 set_variable",
+        "13 toast"
+      ],
+      "act_bidapply": [
+        "0 condition",
+        "1 set_variable",
+        "2 condition",
+        "3 set_variable",
+        "4 condition",
+        "5 set_variable",
+        "6 condition",
+        "7 set_variable",
+        "8 condition",
+        "9 set_variable",
+        "10 condition",
+        "11 set_variable",
+        "12 condition",
+        "13 toast"
+      ],
+      "act_bigodsg": [
+        "0 navigate"
+      ],
+      "act_birepsave": [
+        "0 create_record",
+        "1 condition",
+        "2 set_variable",
+        "3 condition",
+        "4 set_variable",
+        "5 condition",
+        "6 set_variable",
+        "7 condition",
+        "8 set_variable",
+        "9 condition",
+        "10 set_variable",
+        "11 condition",
+        "12 set_variable",
+        "13 refresh",
+        "14 toast"
+      ],
+      "act_birepdel": [
+        "0 confirm",
+        "1 delete_record",
+        "2 refresh"
+      ],
+      "act_biload": [
+        "0 set_variable",
+        "1 condition",
+        "2 create_record",
+        "3 loop",
+        "4 create_record",
+        "5 update_record",
+        "6 update_record",
+        "7 refresh",
+        "8 refresh",
+        "9 refresh",
+        "10 toast",
+        "11 toast"
+      ],
+      "act_bistgadd": [
+        "0 create_record",
+        "1 reset_form",
+        "2 refresh",
+        "3 toast"
+      ],
+      "act_bistgdel": [
+        "0 confirm",
+        "1 delete_record",
+        "2 refresh"
+      ],
+      "act_bifactsave": [
+        "0 update_record",
+        "1 refresh"
+      ],
+      "act_bifactdel": [
+        "0 confirm",
+        "1 delete_record",
+        "2 refresh"
+      ],
+      "act_bidim1open": [
+        "0 open_modal"
+      ],
+      "act_bidim1add": [
+        "0 create_record",
+        "1 close_modal",
+        "2 reset_form",
+        "3 refresh",
+        "4 toast"
+      ],
+      "act_bidim1save": [
+        "0 update_record",
+        "1 refresh"
+      ],
+      "act_bidim1del": [
+        "0 confirm",
+        "1 delete_record",
+        "2 refresh"
+      ],
+      "act_bidim2open": [
+        "0 open_modal"
+      ],
+      "act_bidim2add": [
+        "0 create_record",
+        "1 close_modal",
+        "2 reset_form",
+        "3 refresh",
+        "4 toast"
+      ],
+      "act_bidim2save": [
+        "0 update_record",
+        "1 refresh"
+      ],
+      "act_bidim2del": [
+        "0 confirm",
+        "1 delete_record",
+        "2 refresh"
+      ]
+    },
+    "canonical": "same as stored"
+  },
+  "installHash": {
+    "stored": "cc21ca60904a57e87014266ddf1320a99bbc699cdf93012d091faa8e6fe6129d",
+    "afterResave": "cc21ca60904a57e87014266ddf1320a99bbc699cdf93012d091faa8e6fe6129d"
+  },
+  "reads": [
+    {
+      "at": "cmp_bidkpi1.value",
+      "kind": "aggregate",
+      "table": "tbl_bifact1",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"fact_records\" WHERE (1=1) LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "analyst": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"fact_records\" WHERE (1=1) LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "viewer": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"fact_records\" WHERE (1=1) LIMIT ?",
+          "params": [
+            1
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"fact_records\" WHERE (1=1) LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "analyst": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"fact_records\" WHERE (1=1) LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "viewer": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"fact_records\" WHERE (1=1) LIMIT ?",
+          "params": [
+            1
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_bidkpi2.value",
+      "kind": "aggregate",
+      "table": "tbl_bifact1",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT SUM(\"amount\") AS \"total\" FROM \"fact_records\" WHERE (1=1) LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "analyst": {
+          "sql": "SELECT SUM(\"amount\") AS \"total\" FROM \"fact_records\" WHERE (1=1) LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "viewer": {
+          "sql": "SELECT SUM(\"amount\") AS \"total\" FROM \"fact_records\" WHERE (1=1) LIMIT ?",
+          "params": [
+            1
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT SUM(\"amount\") AS \"total\" FROM \"fact_records\" WHERE (1=1) LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "analyst": {
+          "sql": "SELECT SUM(\"amount\") AS \"total\" FROM \"fact_records\" WHERE (1=1) LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "viewer": {
+          "sql": "SELECT SUM(\"amount\") AS \"total\" FROM \"fact_records\" WHERE (1=1) LIMIT ?",
+          "params": [
+            1
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_bidkpi3.value",
+      "kind": "aggregate",
+      "table": "tbl_bistg01",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"staging_rows\" WHERE (1=1) AND \"status\" = ? LIMIT ?",
+          "params": [
+            "pending",
+            1
+          ]
+        },
+        "analyst": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"staging_rows\" WHERE (1=1) AND \"status\" = ? LIMIT ?",
+          "params": [
+            "pending",
+            1
+          ]
+        },
+        "viewer": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"staging_rows\" WHERE (1=1) AND \"status\" = ? LIMIT ?",
+          "params": [
+            "pending",
+            1
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"staging_rows\" WHERE (1=1) AND \"status\" = ? LIMIT ?",
+          "params": [
+            "pending",
+            1
+          ]
+        },
+        "analyst": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"staging_rows\" WHERE (1=1) AND \"status\" = ? LIMIT ?",
+          "params": [
+            "pending",
+            1
+          ]
+        },
+        "viewer": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"staging_rows\" WHERE (1=1) AND \"status\" = ? LIMIT ?",
+          "params": [
+            "pending",
+            1
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_bidkpi4.value",
+      "kind": "aggregate",
+      "table": "tbl_biload1",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"load_runs\" WHERE (1=1) LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "analyst": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"load_runs\" WHERE (1=1) LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "viewer": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"load_runs\" WHERE (1=1) LIMIT ?",
+          "params": [
+            1
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"load_runs\" WHERE (1=1) LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "analyst": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"load_runs\" WHERE (1=1) LIMIT ?",
+          "params": [
+            1
+          ]
+        },
+        "viewer": {
+          "sql": "SELECT COUNT(*) AS \"n\" FROM \"load_runs\" WHERE (1=1) LIMIT ?",
+          "params": [
+            1
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_bisch1.source",
+      "kind": "aggregate",
+      "table": "tbl_bifact1",
+      "sqlite": {
+        "owner": {
+          "skipped": "dynamic"
+        },
+        "analyst": {
+          "skipped": "dynamic"
+        },
+        "viewer": {
+          "skipped": "dynamic"
+        }
+      },
+      "pg": {
+        "owner": {
+          "skipped": "dynamic"
+        },
+        "analyst": {
+          "skipped": "dynamic"
+        },
+        "viewer": {
+          "skipped": "dynamic"
+        }
+      }
+    },
+    {
+      "at": "cmp_bisch2.source",
+      "kind": "aggregate",
+      "table": "tbl_bifact1",
+      "sqlite": {
+        "owner": {
+          "skipped": "dynamic"
+        },
+        "analyst": {
+          "skipped": "dynamic"
+        },
+        "viewer": {
+          "skipped": "dynamic"
+        }
+      },
+      "pg": {
+        "owner": {
+          "skipped": "dynamic"
+        },
+        "analyst": {
+          "skipped": "dynamic"
+        },
+        "viewer": {
+          "skipped": "dynamic"
+        }
+      }
+    },
+    {
+      "at": "cmp_bisch3.source",
+      "kind": "aggregate",
+      "table": "tbl_bifact1",
+      "sqlite": {
+        "owner": {
+          "skipped": "dynamic"
+        },
+        "analyst": {
+          "skipped": "dynamic"
+        },
+        "viewer": {
+          "skipped": "dynamic"
+        }
+      },
+      "pg": {
+        "owner": {
+          "skipped": "dynamic"
+        },
+        "analyst": {
+          "skipped": "dynamic"
+        },
+        "viewer": {
+          "skipped": "dynamic"
+        }
+      }
+    },
+    {
+      "at": "cmp_bisch4.source",
+      "kind": "aggregate",
+      "table": "tbl_bifact1",
+      "sqlite": {
+        "owner": {
+          "skipped": "dynamic"
+        },
+        "analyst": {
+          "skipped": "dynamic"
+        },
+        "viewer": {
+          "skipped": "dynamic"
+        }
+      },
+      "pg": {
+        "owner": {
+          "skipped": "dynamic"
+        },
+        "analyst": {
+          "skipped": "dynamic"
+        },
+        "viewer": {
+          "skipped": "dynamic"
+        }
+      }
+    },
+    {
+      "at": "cmp_bisch5.source",
+      "kind": "aggregate",
+      "table": "tbl_bifact1",
+      "sqlite": {
+        "owner": {
+          "skipped": "dynamic"
+        },
+        "analyst": {
+          "skipped": "dynamic"
+        },
+        "viewer": {
+          "skipped": "dynamic"
+        }
+      },
+      "pg": {
+        "owner": {
+          "skipped": "dynamic"
+        },
+        "analyst": {
+          "skipped": "dynamic"
+        },
+        "viewer": {
+          "skipped": "dynamic"
+        }
+      }
+    },
+    {
+      "at": "cmp_bisch6.source",
+      "kind": "aggregate",
+      "table": "tbl_bifact1",
+      "sqlite": {
+        "owner": {
+          "skipped": "dynamic"
+        },
+        "analyst": {
+          "skipped": "dynamic"
+        },
+        "viewer": {
+          "skipped": "dynamic"
+        }
+      },
+      "pg": {
+        "owner": {
+          "skipped": "dynamic"
+        },
+        "analyst": {
+          "skipped": "dynamic"
+        },
+        "viewer": {
+          "skipped": "dynamic"
+        }
+      }
+    },
+    {
+      "at": "cmp_bidlib.source",
+      "kind": "records",
+      "table": "tbl_birep01",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"reports\" WHERE (1=1) ORDER BY \"slot\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "analyst": {
+          "sql": "SELECT * FROM \"reports\" WHERE (1=1) ORDER BY \"slot\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "viewer": {
+          "sql": "SELECT * FROM \"reports\" WHERE (1=1) ORDER BY \"slot\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"reports\" WHERE (1=1) ORDER BY \"slot\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "analyst": {
+          "sql": "SELECT * FROM \"reports\" WHERE (1=1) ORDER BY \"slot\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "viewer": {
+          "sql": "SELECT * FROM \"reports\" WHERE (1=1) ORDER BY \"slot\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_bigchart.source",
+      "kind": "aggregate",
+      "table": "tbl_bifact1",
+      "sqlite": {
+        "owner": {
+          "skipped": "dynamic"
+        },
+        "analyst": {
+          "skipped": "dynamic"
+        },
+        "viewer": {
+          "skipped": "dynamic"
+        }
+      },
+      "pg": {
+        "owner": {
+          "skipped": "dynamic"
+        },
+        "analyst": {
+          "skipped": "dynamic"
+        },
+        "viewer": {
+          "skipped": "dynamic"
+        }
+      }
+    },
+    {
+      "at": "cmp_biggrid.source",
+      "kind": "records",
+      "table": "tbl_birep01",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"reports\" WHERE (1=1) ORDER BY \"slot\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "analyst": {
+          "sql": "SELECT * FROM \"reports\" WHERE (1=1) ORDER BY \"slot\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "viewer": {
+          "sql": "SELECT * FROM \"reports\" WHERE (1=1) ORDER BY \"slot\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"reports\" WHERE (1=1) ORDER BY \"slot\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "analyst": {
+          "sql": "SELECT * FROM \"reports\" WHERE (1=1) ORDER BY \"slot\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "viewer": {
+          "sql": "SELECT * FROM \"reports\" WHERE (1=1) ORDER BY \"slot\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_bilstg.source",
+      "kind": "records",
+      "table": "tbl_bistg01",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"staging_rows\" WHERE (1=1) AND \"status\" = ? ORDER BY \"record_date\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "pending",
+            101
+          ]
+        },
+        "analyst": {
+          "sql": "SELECT * FROM \"staging_rows\" WHERE (1=1) AND \"status\" = ? ORDER BY \"record_date\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "pending",
+            101
+          ]
+        },
+        "viewer": {
+          "sql": "SELECT * FROM \"staging_rows\" WHERE (1=1) AND \"status\" = ? ORDER BY \"record_date\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "pending",
+            101
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"staging_rows\" WHERE (1=1) AND \"status\" = ? ORDER BY \"record_date\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "pending",
+            101
+          ]
+        },
+        "analyst": {
+          "sql": "SELECT * FROM \"staging_rows\" WHERE (1=1) AND \"status\" = ? ORDER BY \"record_date\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "pending",
+            101
+          ]
+        },
+        "viewer": {
+          "sql": "SELECT * FROM \"staging_rows\" WHERE (1=1) AND \"status\" = ? ORDER BY \"record_date\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            "pending",
+            101
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_bilruns.source",
+      "kind": "records",
+      "table": "tbl_biload1",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"load_runs\" WHERE (1=1) ORDER BY \"ran_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "analyst": {
+          "sql": "SELECT * FROM \"load_runs\" WHERE (1=1) ORDER BY \"ran_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "viewer": {
+          "sql": "SELECT * FROM \"load_runs\" WHERE (1=1) ORDER BY \"ran_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"load_runs\" WHERE (1=1) ORDER BY \"ran_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "analyst": {
+          "sql": "SELECT * FROM \"load_runs\" WHERE (1=1) ORDER BY \"ran_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "viewer": {
+          "sql": "SELECT * FROM \"load_runs\" WHERE (1=1) ORDER BY \"ran_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_biwfacts.source",
+      "kind": "records",
+      "table": "tbl_bifact1",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"fact_records\" WHERE (1=1) ORDER BY \"record_date\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            401
+          ]
+        },
+        "analyst": {
+          "sql": "SELECT * FROM \"fact_records\" WHERE (1=1) ORDER BY \"record_date\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            401
+          ]
+        },
+        "viewer": {
+          "sql": "SELECT * FROM \"fact_records\" WHERE (1=1) ORDER BY \"record_date\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            401
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"fact_records\" WHERE (1=1) ORDER BY \"record_date\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            401
+          ]
+        },
+        "analyst": {
+          "sql": "SELECT * FROM \"fact_records\" WHERE (1=1) ORDER BY \"record_date\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            401
+          ]
+        },
+        "viewer": {
+          "sql": "SELECT * FROM \"fact_records\" WHERE (1=1) ORDER BY \"record_date\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            401
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_biwloads.source",
+      "kind": "records",
+      "table": "tbl_biload1",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"load_runs\" WHERE (1=1) ORDER BY \"ran_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "analyst": {
+          "sql": "SELECT * FROM \"load_runs\" WHERE (1=1) ORDER BY \"ran_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "viewer": {
+          "sql": "SELECT * FROM \"load_runs\" WHERE (1=1) ORDER BY \"ran_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"load_runs\" WHERE (1=1) ORDER BY \"ran_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "analyst": {
+          "sql": "SELECT * FROM \"load_runs\" WHERE (1=1) ORDER BY \"ran_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "viewer": {
+          "sql": "SELECT * FROM \"load_runs\" WHERE (1=1) ORDER BY \"ran_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_bisdim1.source",
+      "kind": "records",
+      "table": "tbl_bidimc1",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"dim_categories\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "analyst": {
+          "sql": "SELECT * FROM \"dim_categories\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "viewer": {
+          "sql": "SELECT * FROM \"dim_categories\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"dim_categories\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "analyst": {
+          "sql": "SELECT * FROM \"dim_categories\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "viewer": {
+          "sql": "SELECT * FROM \"dim_categories\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      }
+    },
+    {
+      "at": "cmp_bisdim2.source",
+      "kind": "records",
+      "table": "tbl_bidime1",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"dim_entities\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "analyst": {
+          "sql": "SELECT * FROM \"dim_entities\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "viewer": {
+          "sql": "SELECT * FROM \"dim_entities\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"dim_entities\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "analyst": {
+          "sql": "SELECT * FROM \"dim_entities\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "viewer": {
+          "sql": "SELECT * FROM \"dim_entities\" WHERE (1=1) ORDER BY \"position\" ASC, \"id\" ASC LIMIT ?",
+          "params": [
+            51
+          ]
+        }
+      }
+    }
+  ]
+}

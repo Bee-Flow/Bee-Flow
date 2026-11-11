@@ -1,16 +1,24 @@
 import { tryEvaluate } from '@shared/expr/engine.mjs';
 import { EyeOff, FileQuestion, TriangleAlert } from 'lucide-react';
 import { useMemo, type JSX } from 'react';
-import './runtime.css';
+import './css/layout.css';
+import './css/look.css';
+import './css/motion.css';
 import './app-tokens.css';
 import { appDesignProps } from './appDesign';
+import AppSection from './AppSection';
 import { APP_COMPONENT_TYPES } from './componentRegistry';
 import { FieldDisabledContext } from './formContext';
 import NodeErrorBoundary from './nodeError';
+import { evalBoolFlag, evalVisibility } from './nodeVisibility';
 import { resolveBinding } from './resolveBinding';
 import { RuntimeProvider, ScopeProvider, DEFAULT_RUNTIME, buildScope, rowKey, useRuntime, type ExpressionScope, type RuntimeValue } from './RuntimeContext';
-import { resolveNodeStyle, resolveSectionStyle } from './styleResolver';
+import { resolveNodeStyle } from './styleResolver';
+import BackgroundImageLayer from './assets/BackgroundImageLayer';
+import { withAuthorClass } from './appCss';
 import { themeVars } from './themeVars';
+import { tileClickProps } from './tileClick';
+import { definitionReadsUi, useUiScope } from './uiState';
 import useTranslation from '@/hooks/useTranslation';
 import type React from 'react';
 import type { ActionState } from './actionRunner/core';
@@ -66,9 +74,10 @@ function roleAllows(nodeOrScreen: { visibleToRoles?: string[] } | null | undefin
     if (!Array.isArray(gate) || gate.length === 0) return true;
     return gate.includes(previewRole);
 }
-function DefaultNodeWrapper({ node, className, style, children }: NodeWrapperProps) {
+function DefaultNodeWrapper({ node, className, style, children, interactive = null }: NodeWrapperProps) {
+    // `interactive`: a clickable tile (./tileClick.ts), run mode only; absent, the cell is what it was.
     return (
-        <div data-node-id={node.id} data-app-type={node.type} className={className} style={style}>
+        <div data-node-id={node.id} data-app-type={node.type} className={interactive ? `${className || ''} cursor-pointer` : className} style={style} {...interactive}>
             {children}
         </div>
     );
@@ -102,46 +111,6 @@ function nodeSignature(node: AppNode) {
 }
 
 // ── Formula evaluation (never throws — tryEvaluate degrades) ────────────────
-
-/**
- * Resolve a boolean-or-formula flag against the live scope.
- * → { set:false } when the flag is absent, else { set:true, value, error }.
- *
- * ── WHY THIS TAKES THREE SHAPES ─────────────────────────────────────
- * These flags reach the renderer as `{kind:'formula', expr}`. That is the ONLY
- * expression shape that survives a save: canonicalize.cleanBoolOrFormula keeps
- * a boolean or a formula OBJECT and drops a bare string, and builderTools
- * .normalizeLogicValue wraps the AI's string into the same object before it is
- * ever stored. So both authoring paths — the Logic inspector and the AI builder
- * — persist the object.
- *
- * This function used to accept only the bare STRING, which meant every "Only
- * show when" and "Enabled when" rule in every saved app did nothing at all: the
- * component stayed visible and enabled for everybody, including the rules
- * written to hide things from people who should not see them. Every test
- * covering these used the string form, so the gap was invisible from both
- * sides. The string is still accepted — a definition held in memory before its
- * first save can carry one — but the object is the shape that matters.
- */
-function evalBoolFlag(raw: FlagInput, scope: ExpressionScope) {
-    if (raw === undefined || raw === null) return { set: false };
-    if (typeof raw === 'boolean') return { set: true, value: raw, error: null };
-    const expr = (raw && typeof raw === 'object') ? (raw.expr ?? raw.value) : raw;
-    if (typeof expr === 'string' && expr.trim()) {
-        const r = tryEvaluate(expr, scope);
-        return { set: true, value: !!r.value, error: r.error };
-    }
-    return { set: false };
-}
-
-/** { hidden, error }. visibleWhen wins; else boolean/formula `visible`. */
-function evalVisibility(node: AppNode, scope: ExpressionScope) {
-    const when = evalBoolFlag(node.visibleWhen, scope);
-    if (when.set) return { hidden: !when.value, error: when.error };
-    const v = evalBoolFlag(node.visible, scope);
-    if (v.set) return { hidden: !v.value, error: v.error };
-    return { hidden: false, error: null };
-}
 
 /** { disabled, error }. enabledWhen falsy / readOnly / disabled → disabled. */
 function evalEnabled(node: AppNode, scope: ExpressionScope) {
@@ -333,8 +302,10 @@ function RenderNode({ node, scope, NodeWrapper, mode }: RenderNodeProps) {
     const { className, style } = resolveNodeStyle(node);
     const cellStyle = hidden ? { ...style, opacity: 0.4 } : style;
 
+    const interactive = tileClickProps(node, mode, runtime.runAction, enabled.disabled);
     const cell = (
-        <NodeWrapper node={node} className={className} style={cellStyle}>
+        <NodeWrapper node={node} className={withAuthorClass(className, node)} style={cellStyle} {...(interactive ? { interactive } : null)}>
+            {node.style?.backgroundImage ? <BackgroundImageLayer image={node.style.backgroundImage} fit={node.style.backgroundFit} overlay={node.style.backgroundOverlay} /> : null}
             <NodeErrorBoundary type={node.type} signature={nodeSignature(node)} scope={nodeScope} mode={mode}>
                 {hidden ? <HiddenBadge /> : null}
                 {mode === 'edit' && formulaError ? <FormulaErrorBadge message={formulaError} /> : null}
@@ -369,6 +340,7 @@ export default function AppRenderer({
     setVar = null,
     forms,
     screenParams,
+    initialUi = null,
 }: AppRendererProps) {
     const screen = useMemo(() => {
         const screens = definition?.screens || [];
@@ -393,6 +365,9 @@ export default function AppRenderer({
         return { ...d, primary: themePrimary || '' };
     }, [definition?.design, themePrimary]);
 
+    // The `ui` root (uiState.ts): only for a definition that reads it, so no other app re-renders for a tab switch.
+    const ui = useUiScope(definitionReadsUi(definition));
+
     const baseScope = useMemo(() => buildScope({
         actionState: actionState || {},
         dataState: dataState || {},
@@ -402,8 +377,11 @@ export default function AppRenderer({
         screen: { id: screen?.id, name: screen?.name, params: screenParams || {} },
         now: nowStamp,
         today: todayStamp,
-    }), [actionState, dataState, currentUser, vars, forms, screen?.id, screen?.name, screenParams, nowStamp, todayStamp]);
+        ui,
+    }), [actionState, dataState, currentUser, vars, forms, screen?.id, screen?.name, screenParams, nowStamp, todayStamp, ui]);
 
+    // definition.format (schema 3, appFormat.ts); absent = every value written as before.
+    const appFormat = definition?.format ?? null;
     const runtimeValue = useMemo<RuntimeValue>(() => ({
         mode: mode === 'edit' ? 'edit' : 'run',
         selectedNodeId,
@@ -429,8 +407,10 @@ export default function AppRenderer({
         // Resolved ONCE here; null when the app has no design, so every
         // consumer's fallback is today's behaviour.
         appDesign: appDesignContext,
+        initialUi: initialUi && typeof initialUi === 'object' ? initialUi : null,
+        appFormat,
         scope: baseScope,
-    }), [mode, selectedNodeId, selectedNodeIds, onSelectNode, recentlyAddedIds, actionState, dataState, runAction, registerFormValue, currentUser, previewRole, setVar, appDesignContext, baseScope]);
+    }), [mode, selectedNodeId, selectedNodeIds, onSelectNode, recentlyAddedIds, actionState, dataState, runAction, registerFormValue, currentUser, previewRole, setVar, appDesignContext, initialUi, appFormat, baseScope]);
 
     if (!definition) return null;
     if (!screen) return null;
@@ -500,15 +480,8 @@ export default function AppRenderer({
                             </span>
                         </div>
                     ) : null}
-                    {!screenHidden && (screen.sections || []).map((section) => {
-                        const sectionStyle = resolveSectionStyle(section);
-                        return (
-                        <section
-                            key={section.id}
-                            data-section-id={section.id}
-                            className={sectionStyle.className}
-                            style={sectionStyle.style}
-                        >
+                    {!screenHidden && (screen.sections || []).map((section) => (
+                        <AppSection key={section.id} section={section}>
                             {(section.children || []).map((node) => (
                                 <RenderNode
                                     key={node.id}
@@ -518,9 +491,8 @@ export default function AppRenderer({
                                     mode={mode}
                                 />
                             ))}
-                        </section>
-                        );
-                    })}
+                        </AppSection>
+                    ))}
                 </div>
             </div>
         </RuntimeProvider>

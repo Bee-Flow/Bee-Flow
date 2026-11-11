@@ -5,11 +5,10 @@ import type { AppDefinition, AppNode, FormFieldRef } from './appDefinition';
  * What an action can BE, in one table.
  *
  * The vocabulary used to live in three places that disagreed: ActionsSection's
- * KIND_OPTIONS (11 kinds), styleKnobMeta's ACTION_KINDS (7 — and neither the
- * comment nor the list matched the server), and the server's own ACTION_KINDS
- * (11, now 12). Three lists, no test between them, so a kind could exist on one
- * side only and the failure surfaced at a user: a button that saves and then
- * does nothing.
+ * KIND_OPTIONS, styleKnobMeta's ACTION_KINDS (neither the comment nor the list
+ * matched the server), and the server's own ACTION_KINDS. Three lists, no test
+ * between them, so a kind could exist on one side only and the failure surfaced
+ * at a user: a button that saves and then does nothing.
  *
  * This module is the client's single answer to "which kinds are there, what is
  * each one called, which editor renders it, and what does a fresh one look

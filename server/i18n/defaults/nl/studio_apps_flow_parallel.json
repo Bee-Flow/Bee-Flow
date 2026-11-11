@@ -1,0 +1,19 @@
+{
+  "translations": {
+    "studio_apps_flow_parallel.catalog.parallel_blurb": "Voer meerdere groepen stappen tegelijk uit en ga verder als ze allemaal klaar zijn.",
+    "studio_apps_flow_parallel.catalog.parallel_label": "Tegelijk uitvoeren",
+    "studio_apps_flow_parallel.runtime.not_in_parallel": "Een stap {kind} kan niet draaien binnen een tak van een parallelle stap.",
+    "studio_apps_flow_parallel.runtime.too_many": "Een parallelle stap heeft hooguit {max} takken.",
+    "studio_apps_flow_parallel.scope.branch": "Tak",
+    "studio_apps_flow_parallel.settings.add_branch": "Tak toevoegen",
+    "studio_apps_flow_parallel.settings.branch_row": "Tak {n} ({count} stappen)",
+    "studio_apps_flow_parallel.settings.branches": "Takken",
+    "studio_apps_flow_parallel.settings.fail_fast": "De andere takken stoppen als er een mislukt",
+    "studio_apps_flow_parallel.settings.fail_fast_hint": "Uit: elke tak loopt tot het einde voordat de fout wordt gemeld. Aan: de andere takken stoppen voor hun volgende stap.",
+    "studio_apps_flow_parallel.settings.help": "De takken draaien tegelijk. Elke tak begint met de variabelen zoals ze voor deze stap zijn en ziet niet wat een andere tak schrijft. Geef daarom elke tak een eigen variabele voor het resultaat.",
+    "studio_apps_flow_parallel.settings.limit": "Een stap heeft hooguit {max} takken.",
+    "studio_apps_flow_parallel.settings.remove": "Verwijderen",
+    "studio_apps_flow_parallel.settings.remove_branch": "Tak {n} verwijderen"
+  },
+  "sameAsEnglish": []
+}

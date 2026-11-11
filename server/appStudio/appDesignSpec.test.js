@@ -205,8 +205,15 @@ test('validate: design/nav errors on bad values; hidden-screen membership is a w
 });
 
 test('DESIGN_SPEC shape is frozen and enum-complete (mirror contract anchor)', () => {
-    assert.deepEqual(Object.keys(DESIGN_SPEC), ['preset', 'font', 'surface', 'motion', 'chartPalette', 'accentEdge', 'logoUrl']);
-    for (const spec of Object.values(DESIGN_SPEC)) {
+    // The base seven, in order; a key added later carries `since` and `optional` and comes after them.
+    const base = Object.entries(DESIGN_SPEC).filter(([, spec]) => spec.since === undefined);
+    assert.deepEqual(base.map(([key]) => key), ['preset', 'font', 'surface', 'motion', 'chartPalette', 'accentEdge', 'logoUrl']);
+    assert.deepEqual(Object.keys(DESIGN_SPEC).slice(0, base.length), base.map(([key]) => key));
+    for (const [, spec] of base) {
         assert.ok(spec.type === 'enum' ? Array.isArray(spec.values) && spec.values.includes(spec.default) : spec.type === 'url');
+    }
+    for (const [key, spec] of Object.entries(DESIGN_SPEC).slice(base.length)) {
+        assert.equal(spec.optional, true, `design.${key} is optional`);
+        assert.ok(Number.isInteger(spec.since) && spec.since >= 3, `design.${key} carries since`);
     }
 });

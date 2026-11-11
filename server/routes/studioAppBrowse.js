@@ -48,9 +48,9 @@ const { z, typeError } = require('../utils/zod');
 const studioAppDataStore = require('../stores/studioAppDataStore');
 const rlsGateway = require('../appStudio/rlsGateway');
 const actionExecutor = require('../appStudio/actionExecutor');
-const { resolveRequestedStep, sanitizeBag, sanitizeErrorScope } = require('../appStudio/actionSequence');
+const { resolveRequestedStep, STEP_MISMATCH, sanitizeBag, sanitizeErrorScope } = require('../appStudio/actionSequence');
 const { LIMITS } = require('../appStudio/componentSpecs/limits');
-const { loadVisibleApp, assertActionRoleAccess } = require('./studioAppRunGate');
+const { loadVisibleApp, assertActionRoleAccess, visibleFormValues, wideScopeFor } = require('./studioAppRunGate');
 const { resolveAudienceContext } = require('../auth/audience');
 const { requireAuth } = require('../auth/permissions');
 const { browseStepLimiter, aiStepLimiter } = require('./studioAppRateLimits');
@@ -104,6 +104,8 @@ const BrowseBody = partOf({
         z.number().int(STEP_TEXT).min(0, STEP_TEXT),
         z.string().regex(/^\d+$/, STEP_TEXT).transform(Number),
     ], { error: () => STEP_TEXT }),
+    // The kind the client believes that step has (actionSequence.resolveRequestedStep checks it).
+    kind: z.string({ error: 'kind is the kind of the step at stepIndex.' }).min(1, 'kind is the kind of the step at stepIndex.').max(40, 'kind is the kind of the step at stepIndex.').optional(),
     // Their contents are sanitizeBag's to bound; the schema only asks for a map.
     formValues: z.record(z.string(), z.unknown(), { error: typeError({ invalid: BAG_TEXT('formValues') }) }).nullish(),
     vars: z.record(z.string(), z.unknown(), { error: typeError({ invalid: BAG_TEXT('vars') }) }).nullish(),
@@ -122,6 +124,10 @@ const BrowseBody = partOf({
     error: require('./studio/appRuntimeSchemas').ErrorScope.optional(),
     // The run log's key of this click (appStudio/runLog/clickRuns.mts).
     runKey: z.string({ error: 'runKey is the run key the app made for this click.' }).regex(/^rk_[A-Za-z0-9_-]{16,64}$/, 'runKey is the run key the app made for this click.').optional(),
+    // Read only for an app with serverScope: 'wide' (appStudio/actionExecutor/wideScope.mts), as on /step.
+    screenParams: z.record(z.string(), z.unknown(), { error: typeError({ invalid: BAG_TEXT('screenParams') }) }).nullish(),
+    forms: z.record(z.string(), z.unknown(), { error: typeError({ invalid: BAG_TEXT('forms') }) }).nullish(),
+    actionResults: z.record(z.string(), z.unknown(), { error: typeError({ invalid: BAG_TEXT('actionResults') }) }).nullish(),
 });
 
 router.post('/:id/actions/:actionId/step/stream', requireAuth, jsonBody, validate({ query: BrowseQuery, body: BrowseBody }), async (/** @type {import('express').Request<{ id: string, actionId: string }>} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) => {
@@ -148,7 +154,8 @@ router.post('/:id/actions/:actionId/step/stream', requireAuth, jsonBody, validat
         const def = (isOwner && wantDraft) ? app.definition : app.publishedDefinition;
 
         // Inside a called action when the body carries a callPath; the role gate stays on the root.
-        const resolved = resolveRequestedStep(def, actionId, req.body.stepIndex, req.body.callPath);
+        const resolved = resolveRequestedStep(def, actionId, req.body.stepIndex, req.body.callPath, req.body.kind);
+        if ('error' in resolved && resolved.error === 'mismatch') return res.status(409).json(STEP_MISMATCH);
         if ('error' in resolved) return res.status(404).json({ error: resolved.error === 'action' ? 'Action not found' : 'Step not found' });
         const { step, ownerActionId } = resolved;
         // This endpoint runs ONLY ai_browse. Anything else belongs on /step.
@@ -181,7 +188,7 @@ router.post('/:id/actions/:actionId/step/stream', requireAuth, jsonBody, validat
         const heartbeat = setInterval(() => send({ type: 'ping' }), HEARTBEAT_MS);
 
         try {
-            const formValues = sanitizeBag(req.body.formValues);
+            const formValues = visibleFormValues(def, actionId, role, sanitizeBag(req.body.formValues));
             const vars = sanitizeBag(req.body.vars);
             const result = /** @type {{ ok: boolean, result?: unknown, error?: string, code?: string, limit?: number, used?: number }} */ (await loggedSignedInStep({ app, actionId, userId, draft: isOwner && wantDraft, def, step, body: req.body, ownerActionId }, () => actionExecutor.executeDataStep(app, dataModel, step, {
                 viewerId: userId,
@@ -201,6 +208,7 @@ router.post('/:id/actions/:actionId/step/stream', requireAuth, jsonBody, validat
                 index: req.body.index,
                 value: req.body.value,
                 params: sanitizeBag(req.body.params),
+                ...wideScopeFor(def, role, req.body), // serverScope: 'wide' only; forms without the fields this role does not see
                 error: sanitizeErrorScope(req.body.error),
                 browse: { send: bridge, isCancelled: () => cancelled },
             })));

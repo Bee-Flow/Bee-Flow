@@ -558,6 +558,19 @@ test('conversions: a successful conversion reports the probe counts and bumps th
     assert.ok(meta.dataVersions.people >= 1, 'readers of the table see new data');
 });
 
+test('conversions: a pair outside the safe ones is conversionUnsupported with convertTypes, model-only without', async () => {
+    const before = await store.getDataModel('app3', 'owner3');
+    migrationCalls.length = 0;
+    const res = await store.saveDataModel('app3', 'owner3', withType('date'), { convertTypes: true });
+    assert.deepStrictEqual({ ok: res.ok, unsupported: res.conversionUnsupported }, { ok: false, unsupported: true });
+    assert.deepStrictEqual(res.conversions.map((c) => [c.field, c.to]), [['status', 'date']]);
+    assert.strictEqual(migrationCalls.length, 0, 'nothing ran');
+    assert.strictEqual((await store.getDataModel('app3', 'owner3')).modelVersion, before.modelVersion, 'nothing saved');
+    const off = await store.saveDataModel('app3', 'owner3', withType('date'));
+    assert.strictEqual(off.ok, true, 'a save that does not convert keeps the old behaviour');
+    await store.saveDataModel('app3', 'owner3', before.model);
+});
+
 test('conversions: an additive (stage) save never converts', async () => {
     migrationCalls.length = 0;
     const res = await store.saveDataModel('app3', 'owner3', withType('text'), { convertTypes: true, additiveOnly: true });

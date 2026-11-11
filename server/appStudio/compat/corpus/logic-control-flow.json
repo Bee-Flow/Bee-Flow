@@ -1,0 +1,673 @@
+{
+  "about": {
+    "source": "hand-made for the control-flow step kinds (since 3): return, break, continue, while, raise_error and try with catch and finally, on a public form submit, in a called action and in a back-office action; the public-intake app with new actions, stored as canonicalizeAppDefinition produced it at capture (publish stores canonical bytes)",
+    "captured": "2026-11-10"
+  },
+  "definition": {
+    "schemaVersion": 3,
+    "meta": {
+      "name": "Control flow intake",
+      "description": "Public request form with a back office.",
+      "icon": "Inbox"
+    },
+    "theme": {
+      "primary": "#1D4ED8",
+      "radius": "md",
+      "density": "comfortable",
+      "fontScale": "md",
+      "appearance": "light"
+    },
+    "roles": [
+      {
+        "id": "agent",
+        "name": "Agent"
+      }
+    ],
+    "variables": [
+      {
+        "name": "tries",
+        "label": "tries",
+        "type": "number",
+        "default": 0,
+        "description": ""
+      },
+      {
+        "name": "problem",
+        "label": "problem",
+        "type": "text",
+        "default": "",
+        "description": ""
+      },
+      {
+        "name": "closed",
+        "label": "closed",
+        "type": "number",
+        "default": 0,
+        "description": ""
+      }
+    ],
+    "screens": [
+      {
+        "id": "scr_pubfrm",
+        "name": "Request",
+        "icon": "FilePlus2",
+        "showInNav": false,
+        "maxWidth": "narrow",
+        "sections": [
+          {
+            "id": "sec_pubfrm",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_pubhdr",
+                "type": "heading",
+                "props": {
+                  "text": "How can we help?",
+                  "level": 1,
+                  "accent": "none"
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_pubfrm",
+                "type": "form",
+                "props": {
+                  "name": "request",
+                  "submitLabel": "Send",
+                  "showReset": false,
+                  "showSubmit": true,
+                  "resetKey": null
+                },
+                "style": {
+                  "span": 6,
+                  "gap": 3,
+                  "padding": 0
+                },
+                "visible": true,
+                "onSubmit": "act_pubsub",
+                "children": [
+                  {
+                    "id": "cmp_pubnam",
+                    "type": "input_text",
+                    "props": {
+                      "name": "name",
+                      "label": "Your name",
+                      "placeholder": null,
+                      "required": true,
+                      "defaultValue": null,
+                      "inputType": "text",
+                      "valueFrom": {
+                        "kind": "static",
+                        "value": null
+                      }
+                    },
+                    "style": {
+                      "span": 12
+                    },
+                    "visible": true
+                  },
+                  {
+                    "id": "cmp_pubdet",
+                    "type": "input_textarea",
+                    "props": {
+                      "name": "details",
+                      "label": "What do you need?",
+                      "placeholder": null,
+                      "required": true,
+                      "rows": 4,
+                      "valueFrom": {
+                        "kind": "static",
+                        "value": null
+                      },
+                      "snippets": {
+                        "kind": "static",
+                        "value": null
+                      },
+                      "snippetKey": "shortcut",
+                      "snippetBody": "body",
+                      "snippetLabel": "title"
+                    },
+                    "style": {
+                      "span": 12
+                    },
+                    "visible": true
+                  },
+                  {
+                    "id": "cmp_pubchk",
+                    "type": "input_checkbox",
+                    "props": {
+                      "name": "urgent",
+                      "label": "This is urgent",
+                      "defaultChecked": false
+                    },
+                    "style": {
+                      "span": 12
+                    },
+                    "visible": true
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "scr_pubthx",
+        "name": "Thanks",
+        "icon": null,
+        "showInNav": false,
+        "maxWidth": "narrow",
+        "sections": [
+          {
+            "id": "sec_pubthx",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_pubthx",
+                "type": "callout",
+                "props": {
+                  "title": "Thank you",
+                  "text": "We will get back to you.",
+                  "textFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "tone": "success",
+                  "toneFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "meta": null,
+                  "metaFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "collapsible": false
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "scr_pubbck",
+        "name": "Back office",
+        "icon": "Inbox",
+        "showInNav": true,
+        "maxWidth": "wide",
+        "sections": [
+          {
+            "id": "sec_pubbck",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_pubgrd",
+                "type": "data_grid",
+                "props": {
+                  "source": {
+                    "kind": "records",
+                    "tableId": "tbl_pubreq",
+                    "filter": [
+                      {
+                        "field": "status",
+                        "op": "eq",
+                        "value": "new"
+                      }
+                    ],
+                    "sort": [
+                      {
+                        "field": "created_at",
+                        "dir": "desc"
+                      }
+                    ]
+                  },
+                  "columns": [
+                    {
+                      "key": "name",
+                      "label": "Name",
+                      "format": "text"
+                    },
+                    {
+                      "key": "details",
+                      "label": "Details",
+                      "format": "text"
+                    },
+                    {
+                      "key": "urgent",
+                      "label": "Urgent",
+                      "format": "badge"
+                    }
+                  ],
+                  "pageSize": 25,
+                  "selectable": "none",
+                  "searchable": false,
+                  "rowActions": [],
+                  "toolbarActions": [],
+                  "addRowLabel": null,
+                  "addRowActionId": null,
+                  "bulkActions": [],
+                  "density": "comfortable",
+                  "clamp": "off",
+                  "rowTone": [],
+                  "groupBy": null,
+                  "groupOrder": [],
+                  "activeWhen": null,
+                  "zebra": false,
+                  "emptyText": "Nothing to show yet.",
+                  "look": "default"
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true,
+                "onRowClick": "act_pubcls"
+              },
+              {
+                "id": "cmp_pubcnt",
+                "type": "stat",
+                "props": {
+                  "label": "Urgent requests",
+                  "value": {
+                    "kind": "aggregate",
+                    "tableId": "tbl_pubreq",
+                    "filter": [
+                      {
+                        "field": "urgent",
+                        "op": "eq",
+                        "value": true
+                      }
+                    ],
+                    "aggregates": [
+                      {
+                        "fn": "count",
+                        "as": "n"
+                      }
+                    ]
+                  },
+                  "caption": null,
+                  "captionSegments": [],
+                  "icon": null,
+                  "delta": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "deltaFormat": "number",
+                  "trend": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "positiveIsGood": true,
+                  "look": "plain"
+                },
+                "style": {
+                  "span": 3
+                },
+                "visible": true
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "actions": {
+      "act_pubsub": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "condition",
+            "expr": "form.name == \"\"",
+            "then": [
+              {
+                "kind": "raise_error",
+                "message": {
+                  "kind": "static",
+                  "value": "Please fill in your name."
+                },
+                "code": "no_name"
+              }
+            ],
+            "else": []
+          },
+          {
+            "kind": "try",
+            "steps": [
+              {
+                "kind": "create_record",
+                "tableId": "tbl_pubreq",
+                "values": {
+                  "name": {
+                    "kind": "formula",
+                    "expr": "form.name"
+                  },
+                  "details": {
+                    "kind": "formula",
+                    "expr": "form.details"
+                  },
+                  "urgent": {
+                    "kind": "formula",
+                    "expr": "form.urgent"
+                  },
+                  "status": {
+                    "kind": "static",
+                    "value": "new"
+                  }
+                },
+                "resultVar": "created",
+                "retry": {
+                  "times": 1,
+                  "delayMs": 200
+                }
+              },
+              {
+                "kind": "condition",
+                "expr": "form.urgent == true",
+                "then": [
+                  {
+                    "kind": "call_action",
+                    "actionId": "act_publog"
+                  }
+                ],
+                "else": []
+              }
+            ],
+            "catch": [
+              {
+                "kind": "set_variable",
+                "name": "problem",
+                "value": {
+                  "kind": "formula",
+                  "expr": "error.message"
+                }
+              },
+              {
+                "kind": "toast",
+                "message": "Sending failed, please try again.",
+                "tone": "danger"
+              },
+              {
+                "kind": "return"
+              }
+            ],
+            "finally": [
+              {
+                "kind": "set_variable",
+                "name": "tries",
+                "value": {
+                  "kind": "formula",
+                  "expr": "vars.tries + 1"
+                }
+              }
+            ]
+          },
+          {
+            "kind": "navigate",
+            "screenId": "scr_pubthx"
+          }
+        ]
+      },
+      "act_publog": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "set_variable",
+            "name": "tries",
+            "value": {
+              "kind": "static",
+              "value": 0
+            }
+          },
+          {
+            "kind": "while",
+            "expr": "vars.tries < 3",
+            "steps": [
+              {
+                "kind": "set_variable",
+                "name": "tries",
+                "value": {
+                  "kind": "formula",
+                  "expr": "vars.tries + 1"
+                }
+              },
+              {
+                "kind": "condition",
+                "expr": "vars.tries == 1",
+                "then": [
+                  {
+                    "kind": "continue"
+                  }
+                ],
+                "else": []
+              },
+              {
+                "kind": "create_record",
+                "tableId": "tbl_publog",
+                "values": {
+                  "note": {
+                    "kind": "static",
+                    "value": "urgent request"
+                  }
+                },
+                "onError": {
+                  "steps": [
+                    {
+                      "kind": "break"
+                    }
+                  ]
+                }
+              }
+            ],
+            "maxIterations": 5
+          },
+          {
+            "kind": "return",
+            "value": {
+              "kind": "formula",
+              "expr": "vars.tries"
+            }
+          }
+        ]
+      },
+      "act_pubcls": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "try",
+            "steps": [
+              {
+                "kind": "loop",
+                "source": {
+                  "kind": "static",
+                  "value": [
+                    1,
+                    2,
+                    3
+                  ]
+                },
+                "itemVar": "n",
+                "steps": [
+                  {
+                    "kind": "condition",
+                    "expr": "vars.n > 2",
+                    "then": [
+                      {
+                        "kind": "break"
+                      }
+                    ],
+                    "else": []
+                  },
+                  {
+                    "kind": "update_record",
+                    "tableId": "tbl_pubreq",
+                    "recordId": {
+                      "kind": "formula",
+                      "expr": "item.id"
+                    },
+                    "values": {
+                      "status": {
+                        "kind": "static",
+                        "value": "closed"
+                      }
+                    }
+                  },
+                  {
+                    "kind": "set_variable",
+                    "name": "closed",
+                    "value": {
+                      "kind": "formula",
+                      "expr": "vars.closed + 1"
+                    }
+                  }
+                ]
+              }
+            ],
+            "finally": [
+              {
+                "kind": "refresh",
+                "tableId": "tbl_pubreq"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "homeScreenId": "scr_pubbck",
+    "publicAccess": {
+      "entryScreenId": "scr_pubfrm",
+      "screenIds": [
+        "scr_pubfrm",
+        "scr_pubthx"
+      ],
+      "roleKey": "public",
+      "title": "Send us a request",
+      "theme": {
+        "primary": "#B45309"
+      },
+      "design": {
+        "font": "poppins"
+      }
+    }
+  },
+  "dataModel": {
+    "modelVersion": 1,
+    "tables": [
+      {
+        "id": "tbl_pubreq",
+        "key": "requests",
+        "name": "Requests",
+        "icon": "Inbox",
+        "fields": [
+          {
+            "id": "fld_pubnam",
+            "key": "name",
+            "name": "Name",
+            "type": "text",
+            "required": true,
+            "unique": false
+          },
+          {
+            "id": "fld_pubdet",
+            "key": "details",
+            "name": "Details",
+            "type": "text",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_pubchk",
+            "key": "urgent",
+            "name": "Urgent",
+            "type": "bool",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_pubsts",
+            "key": "status",
+            "name": "Status",
+            "type": "select",
+            "options": [
+              {
+                "value": "new",
+                "label": "New"
+              },
+              {
+                "value": "closed",
+                "label": "Closed"
+              }
+            ],
+            "required": false,
+            "unique": false
+          }
+        ],
+        "access": {
+          "default": "role",
+          "roles": {
+            "public": {
+              "create": true
+            },
+            "agent": {
+              "read": "all",
+              "update": "all",
+              "create": false
+            }
+          },
+          "rowFilters": {}
+        }
+      },
+      {
+        "id": "tbl_publog",
+        "key": "request_log",
+        "name": "Request log",
+        "fields": [
+          {
+            "id": "fld_pubnot",
+            "key": "note",
+            "name": "Note",
+            "type": "text",
+            "required": false,
+            "unique": false
+          }
+        ],
+        "access": {
+          "default": "role",
+          "roles": {
+            "public": {
+              "create": true
+            }
+          },
+          "rowFilters": {}
+        },
+        "icon": null
+      }
+    ],
+    "roles": [
+      {
+        "key": "agent",
+        "label": "Agent"
+      }
+    ],
+    "roleMapping": {
+      "default": "app",
+      "byGroup": {}
+    }
+  }
+}

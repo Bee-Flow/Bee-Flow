@@ -1,0 +1,64 @@
+{
+  "corpus": "template-ops-dashboard",
+  "canonical": {
+    "sha256": "44d8fce35d3f0ca7224306cb0a9ccdf6c5547289221d9f4c6e6f6ab0983a6792",
+    "bytes": 4235,
+    "inputIsCanonical": true,
+    "idempotent": true,
+    "keys": [
+      "schemaVersion",
+      "meta",
+      "theme",
+      "roles",
+      "screens",
+      "actions",
+      "homeScreenId"
+    ],
+    "parts": {
+      "schemaVersion": "d4735e3a265e16ee",
+      "meta": "6f572b2b29cb73f5",
+      "theme": "7afba09c49ee47f7",
+      "roles": "4f53cda18c2baa0c",
+      "screens[0] scr_opshome": "a4049c14eb63967c",
+      "screens[1] scr_opsmaint": "72970e2a4c309c94",
+      "actions.act_opsrefresh": "846d1671c5e3abf1",
+      "actions.act_opsmaint": "f3c04179a84a7b46",
+      "homeScreenId": "795669e5561f52b1"
+    }
+  },
+  "schemaVersion": {
+    "stored": 2,
+    "canonical": 2
+  },
+  "validation": {
+    "strict": {
+      "errors": [],
+      "warnings": [
+        "action.automation_unset @ actions.act_opsmaint.automationId",
+        "action.automation_unset @ actions.act_opsrefresh.automationId"
+      ]
+    },
+    "save": {
+      "errors": [],
+      "warnings": [
+        "action.automation_unset @ actions.act_opsmaint.automationId",
+        "action.automation_unset @ actions.act_opsrefresh.automationId"
+      ]
+    }
+  },
+  "ordinals": {
+    "stored": {
+      "act_opsrefresh": [
+        "0 run_automation"
+      ],
+      "act_opsmaint": [
+        "0 run_automation"
+      ]
+    },
+    "canonical": "same as stored"
+  },
+  "installHash": {
+    "stored": "a2e596e2b9aade71f38f610839db2904df9ebf785906111b79113179847ccfa5",
+    "afterResave": "a2e596e2b9aade71f38f610839db2904df9ebf785906111b79113179847ccfa5"
+  }
+}

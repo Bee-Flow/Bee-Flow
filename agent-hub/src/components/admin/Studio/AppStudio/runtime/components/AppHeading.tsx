@@ -26,10 +26,10 @@ export default function AppHeading({ node }: NodeProps<{ text?: string; level?: 
         // A short primary bar to the left of the text. The bar scales with the
         // heading's own font size (em) so h1..h3 all read balanced.
         return (
-            <Tag className={`${LEVEL_CLASSES[lvl]} break-words app-heading--bar flex items-center gap-2`}>
+            <Tag className={`${LEVEL_CLASSES[lvl]} break-words app-heading--bar flex items-center gap-2 bfa-heading__root`}>
                 <span
                     aria-hidden="true"
-                    className="w-[0.25rem] h-[1.1em] [border-radius:999px] [background:var(--app-primary)] [flex-shrink:0]"
+                    className="w-[0.25rem] h-[1.1em] [border-radius:999px] [background:var(--app-primary)] [flex-shrink:0] bfa-heading__mark"
                 />
                 {text}
             </Tag>
@@ -41,7 +41,7 @@ export default function AppHeading({ node }: NodeProps<{ text?: string; level?: 
         // fit-content keeps the pill hugging the text instead of banding the row.
         return (
             <Tag
-                className={`${LEVEL_CLASSES[lvl]} break-words app-heading--tinted`}
+                className={`${LEVEL_CLASSES[lvl]} break-words app-heading--tinted bfa-heading__root`}
                 style={{
                     background: 'var(--app-primary-soft)',
                     color: 'var(--app-primary)',
@@ -56,5 +56,5 @@ export default function AppHeading({ node }: NodeProps<{ text?: string; level?: 
     }
 
     // Color comes from the grid cell (color knob → inherit).
-    return <Tag className={`${LEVEL_CLASSES[lvl]} break-words`}>{text}</Tag>;
+    return <Tag className={`${LEVEL_CLASSES[lvl]} break-words bfa-heading__root`}>{text}</Tag>;
 }

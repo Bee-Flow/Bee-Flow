@@ -22,6 +22,8 @@
  * Pure: no I/O.
  */
 
+import { extraChildLists } from '../../shared/appDefinition/stepFlow.mjs';
+
 export const DOCUMENT_COMPONENT_TYPES: readonly string[] = Object.freeze(['document_viewer', 'document_compare', 'input_document']);
 /** The props of each document component that hold a document reference. */
 const REF_PROPS: Readonly<Record<string, readonly string[]>> = Object.freeze({
@@ -74,6 +76,8 @@ function stepsOfKind(action: unknown, kind: string, out: Array<Record<string, un
     // A step's onError handler (`{ steps }`; the legacy array form too) runs as well.
     const handler = step.onError;
     if (handler && typeof handler === 'object') stepsOfKind(Array.isArray(handler) ? { steps: handler } : handler, kind, out, depth + 1);
+    // The places a registry container adds (a try's catch and finally).
+    for (const list of extraChildLists(step)) for (const child of list) stepsOfKind(child, kind, out, depth + 1);
     return out;
 }
 
@@ -86,7 +90,7 @@ function staticId(binding: unknown): string | null {
 }
 
 export interface PoolChecks {
-    /** May this viewer see the screen or node (visibleToRoles)? */
+    /** May this viewer see the screen, section or node (visibleToRoles)? */
     visible: (nodeOrScreen: unknown) => boolean;
     /** May this viewer reach the action through the UI? */
     actionAllowed: (actionId: string) => boolean;
@@ -109,6 +113,7 @@ function* visibleNodes(def: AnyDef, checks: PoolChecks): Generator<AnyNode> {
     for (const screen of Array.isArray(def?.screens) ? def.screens : []) {
         if (!screen || typeof screen !== 'object' || !checks.visible(screen)) continue;
         for (const section of Array.isArray((screen as { sections?: unknown }).sections) ? (screen as { sections: unknown[] }).sections : []) {
+            if (!section || typeof section !== 'object' || !checks.visible(section)) continue;
             yield* walk((section as { children?: unknown })?.children);
         }
     }

@@ -3,7 +3,7 @@
  *
  * The server's flattenSteps (server/appStudio/actionSequence.js) cannot be
  * required here (its module pulls in the action executor), so it is lifted out
- * of the file's text and run. The web runner's buildStepIndexMap,
+ * of the file's text and run, with the two pure child-slot helpers it calls. The web runner's buildStepIndexMap,
  * sequenceHasServerStep, caseMatches and resolveNavParams come from its pure
  * step-walk module (runtime/actionRunner/stepWalk.ts). All run on the same
  * action trees as the port.
@@ -15,13 +15,24 @@ import { evalSource, functionSource } from '../testing/source';
 import type { ActionStep } from '../types';
 import * as port from './stepIndex';
 
+// The port is pinned on the BASE kinds (the catalogue before the step registry,
+// server/appStudio/componentSpecs/steps/): a kind added there is not ported, and must not turn this red.
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const actionSpecs = require('../../../../../../server/appStudio/componentSpecs/actionSpecs.js') as Record<string, string[]>;
+const baseKinds = require('../../../../../../server/appStudio/componentSpecs/actionSpecsActionKinds.js') as {
+    BASE_STEP_KINDS: string[];
+    BASE_DATA_MUTATING_STEP_KINDS: string[];
+};
+
+// flattenSteps reads which fields of a kind hold numbered steps from the shared child-slot table
+// (server/shared/appDefinition/stepFlow.mjs, pure), so those two helpers are passed in.
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const stepFlow = require('../../../../../../server/shared/appDefinition/stepFlow.mjs') as Record<string, unknown>;
 
 const serverSrc = readRepo('server/appStudio/actionSequence.js');
 const server = evalSource<{ flattenSteps: (s: unknown) => unknown[]; normalizeSequence: (a: unknown) => unknown[] }>(
     [functionSource(serverSrc, 'flattenSteps'), functionSource(serverSrc, 'normalizeSequence')],
     ['flattenSteps', 'normalizeSequence'],
+    { numberedChildLists: stepFlow.numberedChildLists, handlerStepsOf: stepFlow.handlerStepsOf },
 );
 
 // The web runner's pure step walk lives in its own React-free module, so it is
@@ -80,10 +91,12 @@ describe('step indices agree with the server and the web runner', () => {
     });
 
     it('classifies step kinds as the server and the runner do', () => {
-        expect([...port.STEP_KINDS]).toEqual(actionSpecs.STEP_KINDS);
-        expect([...port.SERVER_STEP_KINDS].sort()).toEqual([...(actionSpecs.DATA_MUTATING_STEP_KINDS as string[])].sort());
-        expect([...port.SERVER_STEP_KINDS]).toEqual([...runner.SERVER_STEP_KINDS]);
-        expect(port.CLIENT_STEP_KINDS).toEqual(actionSpecs.CLIENT_STEP_KINDS);
+        const { BASE_STEP_KINDS, BASE_DATA_MUTATING_STEP_KINDS } = baseKinds;
+        expect([...port.STEP_KINDS]).toEqual(BASE_STEP_KINDS);
+        expect([...port.SERVER_STEP_KINDS].sort()).toEqual([...BASE_DATA_MUTATING_STEP_KINDS].sort());
+        // The web runner appends the server kinds of the registry after its own base list.
+        expect([...port.SERVER_STEP_KINDS]).toEqual([...runner.SERVER_STEP_KINDS].filter((kind) => BASE_STEP_KINDS.includes(kind)));
+        expect(port.CLIENT_STEP_KINDS).toEqual(BASE_STEP_KINDS.filter((kind) => !BASE_DATA_MUTATING_STEP_KINDS.includes(kind)));
         expect(port.MAX_LOOP_ITERATIONS).toBe(runner.MAX_LOOP_ITERATIONS);
     });
 

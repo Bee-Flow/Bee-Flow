@@ -88,6 +88,13 @@ const DATA_MODEL_TOOLS = new Set([
     'app_seed_records', 'app_update_records', 'app_upsert_dataset', 'app_set_mailbox_hook',
 ]);
 
+// A registry tool (builderTools/tools/<name>.js) joins the two sets by its own flags.
+const { registryTools, registryTool } = require('./builderTools/toolRegistry.mts');
+for (const tool of registryTools()) {
+    if (tool.mutating) MUTATING_TOOLS.add(tool.name);
+    if (tool.dataModel) DATA_MODEL_TOOLS.add(tool.name);
+}
+
 // ── Dispatcher ───────────────────────────────────────────────────────
 
 /**
@@ -136,6 +143,8 @@ async function applyToolCall(name, args, draftWrap) {
         && ID_LOOKUP_ERROR_RE.test(String(result.error))) {
         result._fixHint = 'Fix the arguments and call the tool again. Ids must come from the draft state / earlier tool results — never invent them.';
     }
+    // A rejected call that used an extension item (since 3) carries that item's full catalogue entry.
+    require('./builderTools/extensionHints.mts').addExtensionEntries(name, callArgs, result, draftWrap?.def);
     // The same call rejected twice → say so; three times → stop and ask.
     noteRepeatedRejection(name, args, result, draftWrap, { mutating: MUTATING_TOOLS });
     return result;
@@ -171,6 +180,7 @@ async function _applyToolCallRaw(name, args, draftWrap) {
         case 'app_get_data_model':    return applyGetDataModel(draftWrap);
         case 'app_list_connectors':   return applyListConnectors(draftWrap);
         case 'app_list_documents':    return applyListDocuments(draftWrap);
+        case 'app_list_assets':       return require('./builderTools/assetTools.mts').applyListAssets(draftWrap);
         case 'app_query_data':        return applyQueryData(draftWrap, args);
         case 'app_dry_run':           return applyDryRun(draftWrap, args);
         case 'app_screenshot':        return applyAppScreenshot(draftWrap, args);
@@ -190,8 +200,11 @@ async function _applyToolCallRaw(name, args, draftWrap) {
         // Route-handled (the builder route keeps the list and emits the plan
         // event); a direct caller gets a plain answer rather than "unknown tool".
         case 'app_set_plan':          return { error: 'app_set_plan is handled by the builder chat — it records your checklist there and does not change the app.' };
-        default:
-            return { error: `Unknown app builder tool: ${name}` };
+        default: {
+            // A name the switch does not know may be a registry tool; a base name never reaches here.
+            const tool = registryTool(name);
+            return tool ? tool.apply(draftWrap, args) : { error: `Unknown app builder tool: ${name}` };
+        }
     }
 }
 
@@ -229,7 +242,7 @@ module.exports = {
  *   userId: string, orgId?: string|null, appId?: string|null, version?: number|null, builderSessionId?: string|null,
  *   def: AppDef, finalized?: boolean, dataModel?: import('./builderTools/dataTools').DataModel|null,
  *   dataModelVersion?: number, rowCounts?: Record<string, number|string>,
- *   datasetIds?: Array<{ id: string, name?: string }>,
+ *   datasetIds?: Array<{ id: string, name?: string, params?: string[] }>,
  *   linkedTables?: Awaited<ReturnType<typeof import('./linkedTables').describeLinkedTables>>,
  *   modelSupportsVision?: boolean, _screenshotsThisTurn?: number, _turnMessage?: string,
  *   _screenConstraint?: ReturnType<typeof import('../core/llm/screenConstraints').deriveScreenConstraints>,

@@ -1,7 +1,8 @@
 import CellValue, { ALIGN_CLASS, alignFor } from './cellValue';
 import useTranslation from '@/hooks/useTranslation';
-import { resolveBinding, walkPath } from '../resolveBinding';
-import type { BindingInput } from '../resolveBinding.types';
+import { usePagedSource, withPager } from '../pagedSource';
+import { walkPath } from '../resolveBinding';
+import type { BindingInput, ResolveResult } from '../resolveBinding.types';
 import { useRuntime } from '../RuntimeContext';
 import { EmptyText, ErrorText, SkeletonLines, useStickyBinding } from '../uiBits';
 import type { NodeProps } from './appNode.types';
@@ -22,15 +23,22 @@ interface TableProps {
     rowLimit?: number;
     source?: BindingInput;
     look?: string;
+    pagination?: string;
 }
 
+/** A table over `source`; with `pagination` it reads its pages itself (../pagedSource). */
 export default function AppTable({ node }: NodeProps<TableProps>) {
+    const paged = usePagedSource('table', node.props?.source, node.props?.pagination);
+    return withPager(paged, <TableBody node={node} source={paged.result} paged={!!paged.loaders} />);
+}
+
+function TableBody({ node, source: resolved, paged }: NodeProps<TableProps> & { source: ResolveResult; paged: boolean }) {
     const { t } = useTranslation();
-    const { actionState, dataState, scope } = useRuntime();
-    const { columns = [], emptyText = t('studio_apps_runtime.ui.nothing_to_show', 'Nothing to show yet.'), rowLimit = 25 } = node.props || {};
-    const { value: source, isLoading, error, errorCode } = useStickyBinding(
-        resolveBinding(node.props?.source, { actionState, dataState, scope }),
-    );
+    const { scope } = useRuntime();
+    const { columns = [], emptyText = t('studio_apps_runtime.ui.nothing_to_show', 'Nothing to show yet.'), rowLimit: rowLimitProp = 25 } = node.props || {};
+    // A paged table shows the pages it read; rowLimit cuts only the one page a plain source reads.
+    const rowLimit = paged ? Infinity : rowLimitProp;
+    const { value: source, isLoading, error, errorCode } = useStickyBinding(resolved);
 
     if (error) return <ErrorText error={error} errorCode={errorCode} />;
 
@@ -65,12 +73,12 @@ export default function AppTable({ node }: NodeProps<TableProps>) {
     const divider = minimal ? '' : ' border-b';
     const now = Date.parse(scope?.now as string) || null;
     return (
-        <div className="w-full overflow-x-auto app-scroll-edges">
+        <div className="w-full overflow-x-auto app-scroll-edges bfa-table__root">
             {/* app-grid-base carries the shared table rhythm (header weight,
                 row hover, middle-aligned cells, tabular figures) so the two
                 table components look like one product. */}
-            <table className={`w-full app-grid-base ${size === 'sm' ? 'text-xs' : 'text-sm'}${look === 'striped' ? ' app-grid-zebra' : ''}`}>
-                <thead>
+            <table className={`w-full app-grid-base ${size === 'sm' ? 'text-xs' : 'text-sm'}${look === 'striped' ? ' app-grid-zebra' : ''} bfa-table__table`}>
+                <thead className="bfa-table__header">
                     <tr>
                         {cols.map((col: GridColumn) => {
                             const align = alignFor(col);
@@ -78,7 +86,7 @@ export default function AppTable({ node }: NodeProps<TableProps>) {
                                 <th
                                     key={col.key}
                                     scope="col"
-                                    className={`${ALIGN_CLASS[align as keyof typeof ALIGN_CLASS]} font-medium ${cellPad}${divider}${minimal ? ' text-xs uppercase tracking-wider' : ''}`}
+                                    className={`${ALIGN_CLASS[align as keyof typeof ALIGN_CLASS]} font-medium ${cellPad}${divider}${minimal ? ' text-xs uppercase tracking-wider' : ''} bfa-table__headcell`}
                                     style={{ color: 'var(--text-secondary)', borderColor: 'var(--border-default)' }}
                                 >
                                     {col.label || col.key}
@@ -87,13 +95,13 @@ export default function AppTable({ node }: NodeProps<TableProps>) {
                         })}
                     </tr>
                 </thead>
-                <tbody>
+                <tbody className="bfa-table__body">
                     {rows.map((row, i) => (
-                        <tr key={i}>
+                        <tr key={i} className="bfa-table__row">
                             {cols.map((col: GridColumn) => (
                                 <td
                                     key={col.key}
-                                    className={`${cellPad}${divider} align-middle ${ALIGN_CLASS[alignFor(col) as keyof typeof ALIGN_CLASS]}${col.truncate ? ' truncate max-w-0' : ''}`}
+                                    className={`${cellPad}${divider} align-middle ${ALIGN_CLASS[alignFor(col) as keyof typeof ALIGN_CLASS]}${col.truncate ? ' truncate max-w-0' : ''} bfa-table__cell`}
                                     style={{ borderColor: 'var(--border-default)' }}
                                 >
                                     {/* walkPath, like every sibling: a dotted key
@@ -114,7 +122,7 @@ export default function AppTable({ node }: NodeProps<TableProps>) {
             </table>
             {hidden > 0 ? (
                 <p
-                    className="px-1 pt-1.5 text-xs text-[var(--text-secondary)]"
+                    className="px-1 pt-1.5 text-xs text-[var(--text-secondary)] bfa-table__footer"
                     data-app-table-truncated={hidden}
                 >
                     {t('studio_apps_runtime.table.showing', 'Showing {shown} of {total}.', { shown: rows.length, total: allRows.length.toLocaleString() })}

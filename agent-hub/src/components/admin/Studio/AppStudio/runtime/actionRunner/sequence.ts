@@ -11,22 +11,29 @@
  * the sequence CONTINUES (`stop: true`, and the legacy array form, end it
  * quietly); no toast, the run settles as a success. Without a handler the
  * failure aborts the sequence as before.
+ *
+ * The control kinds of the step registry (return, break, continue, while,
+ * raise_error, try, parallel) live in ./controlFlow and ./parallelStep; a return, break or continue travels
+ * through execSteps as a signal, never as a failure.
  */
 import { tryEvaluate } from '@shared/expr/engine.mjs';
 import { clampErrorScope, errorHandlerOf, retryPlanOf } from '@shared/appDefinition/stepFlow.mjs';
-import { resolveBinding } from '../resolveBinding';
 import { buildScope } from '../RuntimeContext';
 import { runClientStep } from './clientSteps';
 import type { ClientStepEnv, LiveBag } from './clientSteps';
 import {
-    CANCELLED, MAX_LOOP_ITERATIONS, SEQ_ABORT, SERVER_STEP_KINDS, buildStepIndexMap, caseMatches, failureMessage,
+    CANCELLED, SEQ_ABORT, SERVER_STEP_KINDS, buildStepIndexMap, caseMatches, failureMessage,
     mergeAppEffects, normalizeSequence, sequenceHasServerStep, showToast, sleep,
 } from './core';
-import type { RunOpts, RunStep, RunnableAction } from './core';
+import type { ActionEntry, RunOpts, RunStep, RunnableAction } from './core';
 import type { RunnerContext } from './runnerContext';
 import { StepFailure, dispatchBrowseStep, dispatchServerStep } from './serverSteps';
+import { wideScopeBody } from './wideScope';
 import type { ErrorScope, SeqState } from './serverSteps';
 import { runCallStep } from './callStep';
+import { isFlowSignal, noteFailure, runActionSteps, runFlowStep, runLoop } from './controlFlow';
+import { refuseInBranch } from './parallelStep';
+import { usesRegistryKind } from './stepWalk';
 import { newRunTrack, reportRunEnd } from './runEnd';
 
 interface SeqEnv extends ClientStepEnv {
@@ -35,7 +42,16 @@ interface SeqEnv extends ClientStepEnv {
     hasServer: boolean;
     /** call_action: the actions on the chain, root first. */
     callChain: string[];
+    /** An action on the chain holds a step kind of the registry: server steps are posted with their kind. */
+    echoKind?: boolean;
+    /** Inside the steps of a loop or while of the same action (./controlFlow). */
+    breakable?: boolean;
+    /** Under a branch of a parallel step (./parallelStep). */
+    parallel?: 'branch' | 'called';
 }
+
+/** The `kind` a server step is posted with: only where the server asks for it (stepWalk.usesRegistryKind). */
+const echoedKind = (env: SeqEnv, step: RunStep): string | undefined => (env.echoKind ? String(step.kind) : undefined);
 
 // The FULL bag resolveBinding takes ({ actionState, dataState, scope }) —
 // identical to the one the renderer builds. A scope-only bag makes every
@@ -70,6 +86,8 @@ function makeLiveBag(ctx: RunnerContext, actionId: string): LiveBag {
                 params: st.params || {},
                 error: (st.errorScope as Record<string, unknown> | null | undefined) || null,
                 currentUser: live.currentUser || null,
+                // What components show right now (ui.tabs / ui.modals / ui.selection), read fresh per step.
+                ui: live.readUi ? live.readUi() : undefined,
             }),
         };
     };
@@ -104,7 +122,7 @@ async function dispatchWithRetry(env: SeqEnv, step: RunStep, st: SeqState): Prom
     const plan = retryPlanOf(step);
     for (let attempt = 1; ; attempt++) {
         try {
-            return await dispatchServerStep(env.ctx, env.indexMap.get(step), st);
+            return await dispatchServerStep(env.ctx, env.indexMap.get(step), st, echoedKind(env, step), wideScopeBody(env.ctx, step, st));
         } catch (e) {
             const again = e instanceof StepFailure && e.retryable && attempt <= plan.times;
             if (e instanceof StepFailure) {
@@ -135,41 +153,13 @@ async function runServerStep(env: SeqEnv, step: RunStep, st: SeqState): Promise<
     recordServerResult(env, step, st, result);
 }
 
-async function runLoop(env: SeqEnv, step: RunStep, st: SeqState): Promise<void> {
-    const { value: src } = resolveBinding(step.source, env.liveBag(st));
-    const arr: unknown[] = Array.isArray(src) ? src : [];
-    const cap = Number.isInteger(step.maxIterations)
-        ? Math.min(step.maxIterations as number, MAX_LOOP_ITERATIONS) : MAX_LOOP_ITERATIONS;
-    for (let i = 0; i < arr.length && i < cap; i++) {
-        const outerVars = st.vars || {};
-        const iter: SeqState = {
-            ...st,
-            item: arr[i],
-            index: i,
-            vars: {
-                ...outerVars,
-                ...(step.itemVar ? { [step.itemVar as string]: arr[i] } : {}),
-                ...(step.indexVar ? { [step.indexVar as string]: i } : {}),
-            },
-        };
-        await execSteps(env, step.steps, iter);
-        // itemVar/indexVar are ITERATION-scoped: whatever the name
-        // held outside the loop is restored, so later steps never
-        // see it pinned to the last row. Other writes carry on.
-        const carried = { ...iter.vars };
-        for (const name of [step.itemVar, step.indexVar]) {
-            if (typeof name !== 'string' || !name) continue;
-            if (Object.prototype.hasOwnProperty.call(outerVars, name)) carried[name] = outerVars[name];
-            else delete carried[name];
-        }
-        st.vars = carried;
-        st.lastResult = iter.lastResult;
-        // Same reason lastResult is carried back: an iteration
-        // is a copy of the state, so an automation's return picked
-        // up inside the body would otherwise be dropped.
-        if (iter.appEffects) st.appEffects = mergeAppEffects(st.appEffects, iter.appEffects);
-        if (iter.effectsUnknown) st.effectsUnknown = true;
-    }
+type SwitchCase = { value?: unknown; whenExpr?: unknown };
+
+// A case with a `value` matches what the switch formula gave; a case with only a `whenExpr` formula (since 3)
+// matches when that formula is true. `value` wins when a case has both.
+function caseHits(c: SwitchCase, switched: unknown, scope: unknown): boolean {
+    if (c.value !== undefined || typeof c.whenExpr !== 'string' || !c.whenExpr) return caseMatches(c.value, switched);
+    return !!tryEvaluate(c.whenExpr, scope).value;
 }
 
 async function runControlStep(env: SeqEnv, step: RunStep, st: SeqState): Promise<void> {
@@ -182,12 +172,13 @@ async function runControlStep(env: SeqEnv, step: RunStep, st: SeqState): Promise
         case 'switch': {
             const { value } = tryEvaluate(step.expr, env.liveBag(st).scope);
             const cases: unknown[] = Array.isArray(step.cases) ? step.cases : [];
-            const hit = cases.find((c) => c && caseMatches((c as { value?: unknown }).value, value)) as { steps?: unknown } | undefined;
+            const scope = env.liveBag(st).scope;
+            const hit = cases.find((c) => c && caseHits(c as SwitchCase, value, scope)) as { steps?: unknown } | undefined;
             await execSteps(env, hit ? hit.steps : step.default, st);
             return;
         }
         case 'loop':
-            await runLoop(env, step, st);
+            await runLoop(env, step, st, execSteps);
             return;
         default:
             return;
@@ -196,10 +187,11 @@ async function runControlStep(env: SeqEnv, step: RunStep, st: SeqState): Promise
 
 async function execStep(env: SeqEnv, step: RunStep | null | undefined, st: SeqState): Promise<void> {
     if (!step || typeof step.kind !== 'string') return;
+    refuseInBranch(env, step);
     // ai_browse is a SERVER kind but streams — it takes the dedicated
     // SSE path, not the plain JSON /step dispatch below.
     if (step.kind === 'ai_browse') {
-        recordServerResult(env, step, st, await dispatchBrowseStep(env.ctx, env.indexMap.get(step), st));
+        recordServerResult(env, step, st, await dispatchBrowseStep(env.ctx, env.indexMap.get(step), st, echoedKind(env, step), wideScopeBody(env.ctx, step, st)));
         return;
     }
     // Server kinds are dispatched from the SET, not from a hand-written
@@ -213,9 +205,10 @@ async function execStep(env: SeqEnv, step: RunStep | null | undefined, st: SeqSt
     }
     // Another action as a subroutine (./callStep): its steps run through this coordinator.
     if (step.kind === 'call_action') {
-        await runCallStep(env, step, st, execSteps, recordServerResult);
+        await runCallStep(env, step, st, execAction, recordServerResult);
         return;
     }
+    if (await runFlowStep(env, step, st, execSteps)) return;
     if (await runClientStep(env, step, st)) return;
     await runControlStep(env, step, st);
 }
@@ -241,6 +234,7 @@ async function handleStepFailure(env: SeqEnv, step: RunStep | null | undefined, 
     const handler = errorHandlerOf(step);
     if (!step || !handler) {
         st.error = failureMessage(e, env.ctx.tr);
+        if (step) noteFailure(e, step, env.indexMap);
         throw e;
     }
     const saved = st.errorScope;
@@ -262,10 +256,15 @@ async function execSteps(env: SeqEnv, list: unknown, st: SeqState): Promise<void
         try {
             await execStep(env, step, st);
         } catch (e) {
-            if (e === SEQ_ABORT || e === CANCELLED) throw e;
+            if (e === SEQ_ABORT || e === CANCELLED || isFlowSignal(e)) throw e;
             await handleStepFailure(env, step, e, st);
         }
     }
+}
+
+/** The steps of a called action: a return inside ends that action, and the caller goes on. */
+async function execAction(env: SeqEnv, list: unknown, st: SeqState): Promise<void> {
+    await runActionSteps(execSteps, env, list, st);
 }
 
 function initialState(ctx: RunnerContext, actionId: string, opts: RunOpts): SeqState {
@@ -317,6 +316,12 @@ async function prepareServerRun(ctx: RunnerContext, actionId: string): Promise<b
 
 type RunOutcome = 'success' | 'error' | 'cancelled' | 'aborted';
 
+/** The failed action's state; a field rule's per-field sentences ride along only when there are any. */
+function errorEntry(message: string, e: unknown): ActionEntry {
+    const fieldErrors = e instanceof StepFailure ? e.fieldErrors : null;
+    return { status: 'error', result: undefined, error: message, ...(fieldErrors ? { fieldErrors } : {}) };
+}
+
 /**
  * The run log of this click (./runEnd): one run key for every server step, and the one end report
  * when it settles. `aborted` (a declined confirm or onError stop) ends as success when a handler
@@ -330,40 +335,56 @@ function runEnder(ctx: RunnerContext, actionId: string, state: SeqState, hasServ
     };
 }
 
-export async function runSequence(ctx: RunnerContext, actionId: string, action: RunnableAction, opts: RunOpts): Promise<void> {
+/** How a sequence that threw settles: the run log, the control's state, the toast. False: it did not run to the end. */
+interface ThrownRun {
+    env: SeqEnv;
+    action: RunnableAction;
+    opts: RunOpts;
+    state: SeqState;
+    end: (outcome: RunOutcome, error?: string | null) => void;
+}
+async function settleThrown({ env, action, opts, state, end }: ThrownRun, e: unknown): Promise<boolean> {
+    const { ctx, actionId, hasServer } = env;
+    if (e === SEQ_ABORT) {
+        end('aborted');
+        // Declined confirm / handled onError — settle without an error.
+        if (hasServer) {
+            ctx.setEntry(actionId, state.lastResult !== undefined
+                ? { status: 'success', result: state.lastResult, error: null }
+                : { status: 'idle', result: undefined, error: null });
+        }
+        return !!state.run?.handled;
+    }
+    if (e === CANCELLED || !ctx.alive.current) { end('cancelled'); return false; }
+    const message = state.error || failureMessage(e, ctx.tr);
+    end('error', message);
+    // A server-touching sequence surfaces the error on the triggering
+    // control (status:'error'); every failed sequence also toasts so the
+    // abort is never silent. onError effects (if any) apply afterwards.
+    if (hasServer) ctx.setEntry(actionId, errorEntry(message, e));
+    showToast('danger', message);
+    await ctx.applyEffects(action.onError, { formId: opts.formId, formName: opts.formName });
+    return false;
+}
+
+/** Resolves true when the sequence settled as a success (an event slot with several actions goes on to the next one), false otherwise. */
+export async function runSequence(ctx: RunnerContext, actionId: string, action: RunnableAction, opts: RunOpts): Promise<boolean> {
     const steps = normalizeSequence(action);
     // Follows call_action, so a server step inside a called action shows the spinner too.
     const hasServer = sequenceHasServerStep(steps, ctx.live.current.definition?.actions);
-    if (hasServer && !(await prepareServerRun(ctx, actionId))) return;
+    if (hasServer && !(await prepareServerRun(ctx, actionId))) return false;
 
-    const env: SeqEnv = { ctx, actionId, hasServer, indexMap: buildStepIndexMap(steps), liveBag: makeLiveBag(ctx, actionId), callChain: [actionId] };
+    const env: SeqEnv = { ctx, actionId, hasServer, indexMap: buildStepIndexMap(steps), liveBag: makeLiveBag(ctx, actionId), callChain: [actionId], echoKind: usesRegistryKind(steps) };
     const state = initialState(ctx, actionId, opts);
     const end = runEnder(ctx, actionId, state, hasServer);
-    const { setEntry, applyEffects } = ctx;
     try {
-        await execSteps(env, steps, state);
+        const returned = await runActionSteps(execSteps, env, steps, state);
         end('success');
-        if (hasServer) setEntry(actionId, { status: 'success', result: state.lastResult, error: null });
-        await applyEffects(mergeAppEffects(action.onSuccess, state.appEffects), { formId: opts.formId, formName: opts.formName, effectsUnknown: !!state.effectsUnknown });
+        // A return with a value leaves it as the action's result, also when no step reached the server.
+        if (hasServer || (returned && state.lastResult !== undefined)) ctx.setEntry(actionId, { status: 'success', result: state.lastResult, error: null });
+        await ctx.applyEffects(mergeAppEffects(action.onSuccess, state.appEffects), { formId: opts.formId, formName: opts.formName, effectsUnknown: !!state.effectsUnknown });
+        return true;
     } catch (e) {
-        if (e === SEQ_ABORT) {
-            end('aborted');
-            // Declined confirm / handled onError — settle without an error.
-            if (hasServer) {
-                setEntry(actionId, state.lastResult !== undefined
-                    ? { status: 'success', result: state.lastResult, error: null }
-                    : { status: 'idle', result: undefined, error: null });
-            }
-            return;
-        }
-        if (e === CANCELLED || !ctx.alive.current) { end('cancelled'); return; }
-        const message = state.error || failureMessage(e, ctx.tr);
-        end('error', message);
-        // A server-touching sequence surfaces the error on the triggering
-        // control (status:'error'); every failed sequence also toasts so the
-        // abort is never silent. onError effects (if any) apply afterwards.
-        if (hasServer) setEntry(actionId, { status: 'error', result: undefined, error: message });
-        showToast('danger', message);
-        await applyEffects(action.onError, { formId: opts.formId, formName: opts.formName });
+        return settleThrown({ env, action, opts, state, end }, e);
     }
 }

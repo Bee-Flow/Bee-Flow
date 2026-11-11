@@ -8,10 +8,12 @@
 
 const { LIMITS } = require('./limits');
 const { COLOR_ROLES } = require('./styleKnobs');
+const { formatOptionsSpec } = require('./objectShapes');
 
 const RECORD_LIST_SPECS = {
     table: {
         label: 'Table', category: 'Data',
+        parts: ['root', 'table', 'header', 'headcell', 'body', 'row', 'cell', 'footer'],
         description: 'A table over an array of objects — usually an automation result. Missing keys render as “—”.',
         props: {
             source: { type: 'binding', default: { kind: 'static', value: [] } },
@@ -70,6 +72,11 @@ const RECORD_LIST_SPECS = {
                     // the row as `item` and as form values, exactly like a row
                     // action does.
                     actionId: { type: 'string', maxLen: 20 },
+                    // Schema 3: how this column writes its numbers and dates.
+                    formatOptions: formatOptionsSpec(
+                        'How this column writes its numbers, amounts and dates.',
+                        'It applies to the number, currency, percent, progress, date, datetime and relative formats of the column.',
+                    ),
                 },
             },
             emptyText: { type: 'string', maxLen: 200, default: 'Nothing to show yet.' },
@@ -79,12 +86,18 @@ const RECORD_LIST_SPECS = {
                 type: 'enum', values: ['default', 'striped', 'minimal'], default: 'default',
                 description: 'default = the current ruled table; striped = zebra rows; minimal = borderless, whitespace-separated rows.',
             },
+            // Added after the base: written only when set (canonicalize/shared.js isLateEntry).
+            pagination: {
+                type: 'enum', values: ['loadMore', 'prevNext'], default: null, since: 3,
+                description: 'Pages through a records source: loadMore appends, prevNext steps pages. A page is the source\'s limit rows and rowLimit does not cut it. Left out, the table shows the one page the source reads.',
+            },
         },
         styleKnobs: ['span', 'size'],
         defaultStyle: { span: 12 },
     },
     list: {
         label: 'List', category: 'Data',
+        parts: ['root', 'group', 'item', 'icon', 'title', 'subtitle', 'meta', 'badge'],
         description: 'A card list over an array of objects — a friendlier alternative to a table, and the natural sidebar picker. badgeToneMap colours a status pill the way sideMap does for a message thread; timestampKey shows a short relative time; unreadKey bolds the row; tagsKey shows a tags field (e.g. mail categories) as chips.',
         props: {
             source: { type: 'binding', default: { kind: 'static', value: [] } },
@@ -186,6 +199,11 @@ const RECORD_LIST_SPECS = {
             // OFF by default: with a peek configured but this false, the badge
             // keeps reading badgeKey exactly as it always has.
             peekBadge: { type: 'boolean', default: false },
+            // Added after the base: written only when set (canonicalize/shared.js isLateEntry).
+            pagination: {
+                type: 'enum', values: ['loadMore', 'prevNext'], default: null, since: 3,
+                description: 'Pages through a records source: loadMore appends, prevNext steps pages. A page is the source\'s limit rows. Left out, the list shows the one page the source reads.',
+            },
         },
         // A list is the natural sidebar picker, so it needs to be clickable —
         // without an event it could only ever display.
@@ -210,6 +228,7 @@ const RECORD_LIST_SPECS = {
      */
     approval_list: {
         label: 'Approvals', category: 'Data',
+        parts: ['root', 'header', 'item', 'title', 'subtitle', 'status', 'detail'],
         description: 'The signed-in viewer’s approval requests, decided in place. scope "mine" shows everything waiting on them; "app" shows this app’s own requests. Public visitors see a sign-in wall.',
         props: {
             scope: { type: 'enum', values: ['mine', 'app'], default: 'mine' },

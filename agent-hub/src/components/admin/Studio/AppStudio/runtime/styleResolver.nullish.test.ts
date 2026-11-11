@@ -67,7 +67,8 @@ describe('styleResolver: missing and odd knob values', () => {
         expect(css({ align: 'end' }).textAlign).toBe('right');
         expect(css({ align: 'nope' }).textAlign).toBeUndefined();
         expect(css({ weight: 'semibold' }).fontWeight).toBe(600);
-        expect(css({ weight: 'bold' }).fontWeight).toBeUndefined();
+        expect(css({ weight: 'bold' }).fontWeight).toBe(700);
+        expect(css({ weight: 'black' }).fontWeight).toBeUndefined();
         expect(css({ size: 'sm' }).fontSize).toBe('0.875em');
         expect(css({ size: 'lg' }).fontSize).toBe('1.125em');
         expect(css({ size: 'md' }).fontSize).toBeUndefined();

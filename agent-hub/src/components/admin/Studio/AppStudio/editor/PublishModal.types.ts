@@ -33,6 +33,10 @@ export interface PublishModalProps {
     definition?: AppDefinition | null;
     onRevealNode?: (target: { nodeId?: string | null; screenId?: string }) => void;
     managed?: boolean;
+    /** The editor's commit, for the public page tab's settings (absent = read-only). */
+    onCommit?: (next: AppDefinition) => void;
+    /** Saves pending edits before Apply publishes; resolves `{ ok: false }` when that failed. */
+    onFlush?: () => Promise<{ ok?: boolean; error?: string } | null | undefined | void> | { ok?: boolean; error?: string } | null | undefined | void;
 }
 
 export interface BlockerListProps {

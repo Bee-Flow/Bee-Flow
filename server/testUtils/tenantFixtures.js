@@ -164,6 +164,31 @@ const FIXTURES = [
         ],
     },
     {
+        // The asset store (routes/studioAppAssets.mts) and the stored files (routes/studioAppFiles.js)
+        // of an App Studio app, mounted together as in index.js. The app of org B is unpublished: a
+        // member of org A gets 404 from the app gate on every route, the upload before its file is
+        // read. The owner lists the (empty) asset store; the file routes answer the owner 404 for an
+        // id that names no file, so they are not first. The two file POSTs read their body first.
+        kind: 'studioAppFiles',
+        mount: '/api/studio-apps',
+        router: () => {
+            const router = require('express').Router();
+            router.use(require('../routes/studioAppFiles'), require('../routes/studioAppAssets.mts').studioAppAssetsRouter);
+            return router;
+        },
+        create: async ({ orgId, userId, index }) => {
+            const studioAppStore = require('../stores/studioAppStore');
+            const app = await studioAppStore.createStudioApp({ userId, organizationId: orgId, name: `Files app ${index}` });
+            return app.id;
+        },
+        routes: [
+            'GET /api/studio-apps/:id/assets', 'POST /api/studio-apps/:id/assets',
+            'GET /api/studio-apps/:id/assets/:assetId', 'DELETE /api/studio-apps/:id/assets/:assetId',
+            'GET /api/studio-apps/:id/data/attachments/:fileId', 'GET /api/studio-apps/:id/data/attachments/:fileId/preview',
+            'DELETE /api/studio-apps/:id/data/attachments/:fileId',
+        ],
+    },
+    {
         // The run log of an App Studio app (routes/studioApps/runLog.js): owner only, so a member
         // of org A gets 404 on the list and on a run, and the owner the list.
         kind: 'studioAppRunLog',

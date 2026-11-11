@@ -1,0 +1,193 @@
+# fixture-calculator
+## screen scr_0001 (Calculator)
+<div class="app-design--surface-soft app-shell flex flex-col w-full" data-app-appearance="dark" style="--app-accent-contrast: #000000; --app-accent-soft: rgba(8, 145, 178, 0.1); --app-accent: #0891B2; --app-primary-contrast: #000000; --app-primary-soft: rgba(8, 145, 178, 0.1); --app-primary: #0891B2; --app-radius: 8px; --app-space: 0.75; background: var(--app-canvas, var(--bg-primary)); color-scheme: dark; color: var(--text-primary); font-family: "Geist", system-ui, -apple-system, sans-serif; font-size: 15px; min-height: 100vh">
+  <main class="flex flex-1 flex-col min-h-0">
+    <div class="app-design--surface-soft app-runtime app-screen-enter w-full" data-app-appearance="dark" data-app-screen="scr_0001" data-app-screen-kind="page" style="--app-accent-contrast: #000000; --app-accent-soft: rgba(8, 145, 178, 0.1); --app-accent: #0891B2; --app-primary-contrast: #000000; --app-primary-soft: rgba(8, 145, 178, 0.1); --app-primary: #0891B2; --app-radius: 8px; --app-space: 0.75; color-scheme: dark; color: var(--text-primary); font-family: "Geist", system-ui, -apple-system, sans-serif; font-size: 15px">
+      <div class="flex flex-col w-full" style="margin: 0px auto; max-width: 960px">
+        <section class="app-grid" data-section-id="sec_0002" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="stat" data-node-id="cmp_0003" style="font-size: 1.125em; grid-column: span 12 / span 12; text-align: right">
+            <div class="app-stat app-stat--accent flex gap-2.5 items-start" style="background: var(--bg-card); border-left: 3px solid var(--app-primary); border-radius: var(--app-radius, 8px); box-shadow: var(--app-shadow-1); padding: calc(16px * var(--app-space, 1))">
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-[var(--text-secondary)] text-xs">
+                  "Display"
+                <div class="flex gap-2 items-baseline min-w-0">
+                  <div class="font-semibold leading-tight text-4xl truncate" title="0">
+                    "0"
+          <div class="app-node app-span-3 min-w-0" data-app-type="button" data-node-id="cmp_0004" style="font-size: 1.125em; grid-column: span 3 / span 3">
+            <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-5 py-2.5 text-base transition-opacity" type="button" style="background: var(--app-primary-soft); border-radius: var(--app-radius); color: var(--app-primary)">
+              <span>
+                "√"
+          <div class="app-node app-span-3 min-w-0" data-app-type="button" data-node-id="cmp_0005" style="font-size: 1.125em; grid-column: span 3 / span 3">
+            <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-5 py-2.5 text-base transition-opacity" type="button" style="background: var(--app-primary-soft); border-radius: var(--app-radius); color: var(--app-primary)">
+              <span>
+                "x²"
+          <div class="app-node app-span-3 min-w-0" data-app-type="button" data-node-id="cmp_0006" style="font-size: 1.125em; grid-column: span 3 / span 3">
+            <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-5 py-2.5 text-base transition-opacity" type="button" style="background: var(--app-primary-soft); border-radius: var(--app-radius); color: var(--app-primary)">
+              <span>
+                "ln"
+          <div class="app-node app-span-3 min-w-0" data-app-type="button" data-node-id="cmp_0007" style="font-size: 1.125em; grid-column: span 3 / span 3">
+            <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-5 py-2.5 text-base transition-opacity" type="button" style="background: var(--app-primary-soft); border-radius: var(--app-radius); color: var(--app-primary)">
+              <span>
+                "sin"
+          <div class="app-node app-span-3 min-w-0" data-app-type="button" data-node-id="cmp_0008" style="font-size: 1.125em; grid-column: span 3 / span 3">
+            <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-5 py-2.5 text-base transition-opacity" type="button" style="background: transparent; border-radius: var(--app-radius); border: 1px solid var(--app-primary); color: var(--app-primary)">
+              <span>
+                "C"
+          <div class="app-node app-span-3 min-w-0" data-app-type="button" data-node-id="cmp_0009" style="font-size: 1.125em; grid-column: span 3 / span 3">
+            <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-5 py-2.5 text-base transition-opacity" type="button" style="background: transparent; border-radius: var(--app-radius); border: 1px solid var(--app-primary); color: var(--app-primary)">
+              <span>
+                "⌫"
+          <div class="app-node app-span-3 min-w-0" data-app-type="button" data-node-id="cmp_0010" style="font-size: 1.125em; grid-column: span 3 / span 3">
+            <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-5 py-2.5 text-base transition-opacity" type="button" style="background: transparent; border-radius: var(--app-radius); border: 1px solid var(--app-primary); color: var(--app-primary)">
+              <span>
+                "÷"
+          <div class="app-node app-span-3 min-w-0" data-app-type="button" data-node-id="cmp_0011" style="font-size: 1.125em; grid-column: span 3 / span 3">
+            <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-5 py-2.5 text-base transition-opacity" type="button" style="background: transparent; border-radius: var(--app-radius); border: 1px solid var(--app-primary); color: var(--app-primary)">
+              <span>
+                "×"
+          <div class="app-node app-span-3 min-w-0" data-app-type="button" data-node-id="cmp_0012" style="font-size: 1.125em; grid-column: span 3 / span 3">
+            <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-5 py-2.5 text-base transition-opacity" type="button" style="background: var(--bg-card); border-radius: var(--app-radius); border: 1px solid var(--border-default); color: var(--text-primary)">
+              <span>
+                "7"
+          <div class="app-node app-span-3 min-w-0" data-app-type="button" data-node-id="cmp_0013" style="font-size: 1.125em; grid-column: span 3 / span 3">
+            <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-5 py-2.5 text-base transition-opacity" type="button" style="background: var(--bg-card); border-radius: var(--app-radius); border: 1px solid var(--border-default); color: var(--text-primary)">
+              <span>
+                "8"
+          <div class="app-node app-span-3 min-w-0" data-app-type="button" data-node-id="cmp_0014" style="font-size: 1.125em; grid-column: span 3 / span 3">
+            <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-5 py-2.5 text-base transition-opacity" type="button" style="background: var(--bg-card); border-radius: var(--app-radius); border: 1px solid var(--border-default); color: var(--text-primary)">
+              <span>
+                "9"
+          <div class="app-node app-span-3 min-w-0" data-app-type="button" data-node-id="cmp_0015" style="font-size: 1.125em; grid-column: span 3 / span 3">
+            <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-5 py-2.5 text-base transition-opacity" type="button" style="background: transparent; border-radius: var(--app-radius); border: 1px solid var(--app-primary); color: var(--app-primary)">
+              <span>
+                "−"
+          <div class="app-node app-span-3 min-w-0" data-app-type="button" data-node-id="cmp_0016" style="font-size: 1.125em; grid-column: span 3 / span 3">
+            <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-5 py-2.5 text-base transition-opacity" type="button" style="background: var(--bg-card); border-radius: var(--app-radius); border: 1px solid var(--border-default); color: var(--text-primary)">
+              <span>
+                "4"
+          <div class="app-node app-span-3 min-w-0" data-app-type="button" data-node-id="cmp_0017" style="font-size: 1.125em; grid-column: span 3 / span 3">
+            <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-5 py-2.5 text-base transition-opacity" type="button" style="background: var(--bg-card); border-radius: var(--app-radius); border: 1px solid var(--border-default); color: var(--text-primary)">
+              <span>
+                "5"
+          <div class="app-node app-span-3 min-w-0" data-app-type="button" data-node-id="cmp_0018" style="font-size: 1.125em; grid-column: span 3 / span 3">
+            <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-5 py-2.5 text-base transition-opacity" type="button" style="background: var(--bg-card); border-radius: var(--app-radius); border: 1px solid var(--border-default); color: var(--text-primary)">
+              <span>
+                "6"
+          <div class="app-node app-span-3 min-w-0" data-app-type="button" data-node-id="cmp_0019" style="font-size: 1.125em; grid-column: span 3 / span 3">
+            <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-5 py-2.5 text-base transition-opacity" type="button" style="background: transparent; border-radius: var(--app-radius); border: 1px solid var(--app-primary); color: var(--app-primary)">
+              <span>
+                "+"
+          <div class="app-node app-span-3 min-w-0" data-app-type="button" data-node-id="cmp_0020" style="font-size: 1.125em; grid-column: span 3 / span 3">
+            <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-5 py-2.5 text-base transition-opacity" type="button" style="background: var(--bg-card); border-radius: var(--app-radius); border: 1px solid var(--border-default); color: var(--text-primary)">
+              <span>
+                "1"
+          <div class="app-node app-span-3 min-w-0" data-app-type="button" data-node-id="cmp_0021" style="font-size: 1.125em; grid-column: span 3 / span 3">
+            <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-5 py-2.5 text-base transition-opacity" type="button" style="background: var(--bg-card); border-radius: var(--app-radius); border: 1px solid var(--border-default); color: var(--text-primary)">
+              <span>
+                "2"
+          <div class="app-node app-span-3 min-w-0" data-app-type="button" data-node-id="cmp_0022" style="font-size: 1.125em; grid-column: span 3 / span 3">
+            <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-5 py-2.5 text-base transition-opacity" type="button" style="background: var(--bg-card); border-radius: var(--app-radius); border: 1px solid var(--border-default); color: var(--text-primary)">
+              <span>
+                "3"
+          <div class="app-node app-span-3 min-w-0" data-app-type="button" data-node-id="cmp_0023" style="font-size: 1.125em; grid-column: span 3 / span 3">
+            <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-5 py-2.5 text-base transition-opacity" type="button" style="background: var(--app-accent, var(--app-primary)); border-radius: var(--app-radius); color: var(--app-accent-contrast, var(--app-primary-contrast))">
+              <span>
+                "="
+          <div class="app-node app-span-6 min-w-0" data-app-type="button" data-node-id="cmp_0024" style="font-size: 1.125em; grid-column: span 6 / span 6">
+            <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-5 py-2.5 text-base transition-opacity" type="button" style="background: var(--bg-card); border-radius: var(--app-radius); border: 1px solid var(--border-default); color: var(--text-primary)">
+              <span>
+                "0"
+          <div class="app-node app-span-6 min-w-0" data-app-type="button" data-node-id="cmp_0025" style="font-size: 1.125em; grid-column: span 6 / span 6">
+            <button class="disabled:opacity-60 font-medium gap-1.5 inline-flex items-center px-5 py-2.5 text-base transition-opacity" type="button" style="background: var(--bg-card); border-radius: var(--app-radius); border: 1px solid var(--border-default); color: var(--text-primary)">
+              <span>
+                "."
+## screen scr_0026 (Finance)
+<div class="app-design--surface-soft app-shell flex flex-col w-full" data-app-appearance="dark" style="--app-accent-contrast: #000000; --app-accent-soft: rgba(8, 145, 178, 0.1); --app-accent: #0891B2; --app-primary-contrast: #000000; --app-primary-soft: rgba(8, 145, 178, 0.1); --app-primary: #0891B2; --app-radius: 8px; --app-space: 0.75; background: var(--app-canvas, var(--bg-primary)); color-scheme: dark; color: var(--text-primary); font-family: "Geist", system-ui, -apple-system, sans-serif; font-size: 15px; min-height: 100vh">
+  <main class="flex flex-1 flex-col min-h-0">
+    <div class="app-design--surface-soft app-runtime app-screen-enter w-full" data-app-appearance="dark" data-app-screen="scr_0026" data-app-screen-kind="page" style="--app-accent-contrast: #000000; --app-accent-soft: rgba(8, 145, 178, 0.1); --app-accent: #0891B2; --app-primary-contrast: #000000; --app-primary-soft: rgba(8, 145, 178, 0.1); --app-primary: #0891B2; --app-radius: 8px; --app-space: 0.75; color-scheme: dark; color: var(--text-primary); font-family: "Geist", system-ui, -apple-system, sans-serif; font-size: 15px">
+      <div class="flex flex-col w-full" style="margin: 0px auto; max-width: 960px">
+        <section class="app-grid" data-section-id="sec_0027" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 app-surface min-w-0" data-app-type="card" data-node-id="cmp_0028" style="background: var(--bg-card); grid-column: span 12 / span 12; padding: calc(16px * var(--app-space, 1))">
+            <div class="app-card flex flex-col" style="gap: calc(8px * var(--app-space, 1))">
+              <div>
+                <div class="font-medium">
+                  "Loan repayment"
+                <div class="text-[var(--text-secondary)] text-sm">
+                  "Amortised monthly payment."
+              <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                <div class="app-node app-span-12 min-w-0" data-app-type="form" data-node-id="cmp_0029" style="grid-column: span 12 / span 12">
+                  <form class="flex flex-col" novalidate="" style="gap: calc(12px * var(--app-space, 1))">
+                    <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                      <div class="app-node app-span-4 min-w-0" data-app-type="input_number" data-node-id="cmp_0030" style="grid-column: span 4 / span 4">
+                        <div class="flex flex-col gap-1 text-left">
+                          <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_0030-input">
+                            "Loan amount"
+                          <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" id="cmp_0030-input" min="0" name="amount" step="1000" type="number" value="250000" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                      <div class="app-node app-span-4 min-w-0" data-app-type="input_number" data-node-id="cmp_0031" style="grid-column: span 4 / span 4">
+                        <div class="flex flex-col gap-1 text-left">
+                          <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_0031-input">
+                            "Annual interest %"
+                          <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" id="cmp_0031-input" min="0" name="rate" step="0.1" type="number" value="4.5" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                      <div class="app-node app-span-4 min-w-0" data-app-type="input_number" data-node-id="cmp_0032" style="grid-column: span 4 / span 4">
+                        <div class="flex flex-col gap-1 text-left">
+                          <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_0032-input">
+                            "Term (years)"
+                          <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" id="cmp_0032-input" min="1" name="years" step="1" type="number" value="30" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                <div class="app-node app-span-4 min-w-0" data-app-type="stat" data-node-id="cmp_0033" style="grid-column: span 4 / span 4">
+                  <div class="app-stat app-stat--tile flex gap-2.5 items-start" style="background: var(--bg-card); border-radius: var(--app-radius, 8px); border: 1px solid var(--app-hairline, var(--border-default)); box-shadow: var(--app-shadow-1); padding: calc(16px * var(--app-space, 1))">
+                    <div class="flex-1 min-w-0">
+                      <div class="font-medium text-[var(--text-secondary)] text-xs">
+                        "Monthly payment"
+                      <div class="flex gap-2 items-baseline min-w-0">
+                        <div class="font-semibold leading-tight text-2xl truncate" title="—">
+                          "—"
+                <div class="app-node app-span-4 min-w-0" data-app-type="stat" data-node-id="cmp_0034" style="grid-column: span 4 / span 4">
+                  <div class="app-stat app-stat--tile flex gap-2.5 items-start" style="background: var(--bg-card); border-radius: var(--app-radius, 8px); border: 1px solid var(--app-hairline, var(--border-default)); box-shadow: var(--app-shadow-1); padding: calc(16px * var(--app-space, 1))">
+                    <div class="flex-1 min-w-0">
+                      <div class="font-medium text-[var(--text-secondary)] text-xs">
+                        "Total repaid"
+                      <div class="flex gap-2 items-baseline min-w-0">
+                        <div class="font-semibold leading-tight text-2xl truncate" title="—">
+                          "—"
+                <div class="app-node app-span-4 min-w-0" data-app-type="stat" data-node-id="cmp_0035" style="grid-column: span 4 / span 4">
+                  <div class="app-stat app-stat--tile flex gap-2.5 items-start" style="background: var(--bg-card); border-radius: var(--app-radius, 8px); border: 1px solid var(--app-hairline, var(--border-default)); box-shadow: var(--app-shadow-1); padding: calc(16px * var(--app-space, 1))">
+                    <div class="flex-1 min-w-0">
+                      <div class="font-medium text-[var(--text-secondary)] text-xs">
+                        "Total interest"
+                      <div class="flex gap-2 items-baseline min-w-0">
+                        <div class="font-semibold leading-tight text-2xl truncate" title="—">
+                          "—"
+          <div class="app-node app-span-12 app-surface min-w-0" data-app-type="card" data-node-id="cmp_0036" style="background: var(--bg-card); grid-column: span 12 / span 12; padding: calc(16px * var(--app-space, 1))">
+            <div class="app-card flex flex-col" style="gap: calc(8px * var(--app-space, 1))">
+              <div>
+                <div class="font-medium">
+                  "Compound growth"
+                <div class="text-[var(--text-secondary)] text-sm">
+                  "Monthly compounding, using the ^ operator."
+              <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                <div class="app-node app-span-12 min-w-0" data-app-type="form" data-node-id="cmp_0037" style="grid-column: span 12 / span 12">
+                  <form class="flex flex-col" novalidate="" style="gap: calc(12px * var(--app-space, 1))">
+                    <div class="app-grid" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr))">
+                      <div class="app-node app-span-4 min-w-0" data-app-type="input_number" data-node-id="cmp_0038" style="grid-column: span 4 / span 4">
+                        <div class="flex flex-col gap-1 text-left">
+                          <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_0038-input">
+                            "Deposit"
+                          <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" id="cmp_0038-input" min="0" name="deposit" step="500" type="number" value="10000" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                      <div class="app-node app-span-4 min-w-0" data-app-type="input_number" data-node-id="cmp_0039" style="grid-column: span 4 / span 4">
+                        <div class="flex flex-col gap-1 text-left">
+                          <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_0039-input">
+                            "Annual interest %"
+                          <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" id="cmp_0039-input" min="0" name="rate" step="0.1" type="number" value="5" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                      <div class="app-node app-span-4 min-w-0" data-app-type="input_number" data-node-id="cmp_0040" style="grid-column: span 4 / span 4">
+                        <div class="flex flex-col gap-1 text-left">
+                          <label class="font-medium text-[var(--text-primary)] text-sm" for="cmp_0040-input">
+                            "Years"
+                          <input class="border focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--text-secondary)] focus-visible:outline-offset-1 focus:outline-none px-2.5 py-1.5 text-sm w-full" id="cmp_0040-input" min="1" name="years" step="1" type="number" value="10" style="background: var(--bg-primary); border-color: var(--border-default); border-radius: var(--app-radius); color: var(--text-primary)">
+                <div class="app-node app-span-6 min-w-0" data-app-type="stat" data-node-id="cmp_0041" style="grid-column: span 6 / span 6">
+                  <div class="app-stat app-stat--tile flex gap-2.5 items-start" style="background: var(--bg-card); border-radius: var(--app-radius, 8px); border: 1px solid var(--app-hairline, var(--border-default)); box-shadow: var(--app-shadow-1); padding: calc(16px * var(--app-space, 1))">
+                    <div class="flex-1 min-w-0">
+                      <div class="font-medium text-[var(--text-secondary)] text-xs">
+                        "Future value"
+                      <div class="flex gap-2 items-baseline min-w-0">
+                        <div class="font-semibold leading-tight text-2xl truncate" title="—">
+                          "—"

@@ -371,6 +371,15 @@ test('dataCacheKey matches the client format byte-for-byte', () => {
         'aggregate:t:{"aggregates":[{"fn":"count"}],"filter":null,"groupBy":"status","limit":null,"sort":null}',
     );
     assert.strictEqual(_test.dataCacheKey({ kind: 'formula', expr: '1' }), null);
+    // match and search join the key only when set (the same literals as resolveBinding.readExtras.test.ts).
+    assert.strictEqual(
+        _test.dataCacheKey({ kind: 'records', tableId: 't1', match: 'any', search: { value: 'ann', fields: ['a'] } }),
+        'records:t1:{"filter":null,"limit":null,"match":"any","search":{"fields":["a"],"value":"ann"},"sort":null}',
+    );
+    assert.strictEqual(
+        _test.dataCacheKey({ kind: 'aggregate', tableId: 't1', match: 'any', search: { value: 'x', fields: ['a'] } }),
+        'aggregate:t1:{"aggregates":null,"filter":null,"groupBy":null,"limit":null,"match":"any","sort":null}',
+    );
 });
 
 test('renderAppScreenshot never throws, even on garbage input', async () => {

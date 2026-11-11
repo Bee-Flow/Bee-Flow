@@ -1,4 +1,4 @@
-import { spaceSteps } from '../styleResolver';
+import { gridClasses, gridColumnStyle, spaceSteps } from '../styleResolver';
 import { fillRowTemplate, isFill } from '../styleResolver.helpers';
 import type { NodeStyle } from '../../inspector/appDefinition';
 import type { NodeProps } from './appNode.types';
@@ -19,9 +19,9 @@ export default function AppTab({ node, children }: NodeProps) {
     const fill = isFill(node);
     return (
         <div
-            className={`app-grid${fill ? ' app-fill h-full min-h-0' : ''}`}
+            className={`app-grid${gridClasses(node)}${fill ? ' app-fill h-full min-h-0' : ''} bfa-tab__root`}
             style={{
-                gridTemplateColumns: 'repeat(12, minmax(0, 1fr))',
+                ...gridColumnStyle(node.style),
                 gap: spaceSteps(gap),
                 padding: padding > 0 ? spaceSteps(padding) : undefined,
                 ...(fill ? { gridTemplateRows: fillRowTemplate(node) } : null),
