@@ -7,6 +7,7 @@ import type { EmptyTablesResult } from './recordsApi';
 import RowsTabJs from './RowsTab';
 import TableDetail, { NoTableSelected } from './TableDetail';
 import { ManagerTabBar, PeopleTab, TableList } from './TablesManagerParts';
+import { roleKeysOf } from './fieldAccess';
 import { tableSourceOf } from './tablesManagerModel';
 import type { DataModelState } from './useDataModel';
 import type { ModelTable } from './tablesManagerModel';
@@ -164,6 +165,7 @@ export default function TablesManager(props: TablesManagerProps) {
         return m;
     }, [savedTables]);
 
+    const roleKeys = useMemo(() => roleKeysOf(model?.roles), [model]);
     const selected = tables.find((tbl) => tbl.id === selectedId) || null;
     // Which of the two kinds is the selected table? Memoised because
     // tableSourceOf returns a NEW object: without this the effect below runs
@@ -191,7 +193,7 @@ export default function TablesManager(props: TablesManagerProps) {
     const designer = activeTab === 'rows' && selectedSaved ? (
         <RowsTab key={`${selectedSaved.id}:${rowsEpoch}`} appId={appId} table={selectedSaved} tables={savedTables} fieldsUnsaved={fieldsUnsaved} />
     ) : selected ? (
-        <TableDetail table={selected} tables={tables} savedTable={savedById.get(selected.id) || null} onChange={data.renameSelected}
+        <TableDetail table={selected} tables={tables} savedTable={savedById.get(selected.id) || null} onChange={data.renameSelected} roles={roleKeys}
             isSaved={savedIds.has(selected.id)} source={selectedSource} onGenerate={generate} onSave={save} saving={saving} dirty={dirty} />
     ) : <NoTableSelected onAdd={data.addTable} />;
 

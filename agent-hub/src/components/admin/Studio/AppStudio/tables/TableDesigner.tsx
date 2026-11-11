@@ -8,6 +8,8 @@ import { safeTargetTypes } from './fieldConversions';
 import FieldDisplayEditor from './FieldDisplayEditor';
 import { withTypeShape } from './fieldDisplay';
 import FieldRulesEditor from './FieldRulesEditor';
+import FieldAccessEditor from './FieldAccessEditor';
+import { withAccessForType } from './fieldAccess';
 import { withoutRules } from './fieldRules';
 import RelationDisplayField from './RelationDisplayField';
 import type { ModelField, ModelTable } from './tablesManagerModel';
@@ -104,6 +106,8 @@ interface FieldEditorProps {
     saved: boolean;
     /** The type the server has for a saved field: only safe conversions from it are offered. */
     savedType?: string;
+    /** The app's role keys; the column rights of the field are edited when they are given. */
+    roles?: string[] | null;
     disabled: boolean;
 }
 
@@ -115,7 +119,7 @@ function typeOptions(t: TranslateFn, field: ModelField, saved: boolean, savedTyp
     return all.filter((ft) => allowed.has(ft.value));
 }
 
-function FieldEditor({ field, update, tables, currentTableId, saved, savedType, disabled }: FieldEditorProps) {
+function FieldEditor({ field, update, tables, currentTableId, saved, savedType, roles, disabled }: FieldEditorProps) {
     const { t } = useTranslation();
     const set = (patch: Partial<ModelField>) => update({ ...field, ...patch });
     // While a key is still auto-derived (blank or matches the name's slug), keep
@@ -178,7 +182,7 @@ function FieldEditor({ field, update, tables, currentTableId, saved, savedType, 
                 <select
                     className={FIELD_CLS}
                     value={field.type || 'text'}
-                    onChange={(e) => update({ ...withTypeShape(withoutRules(field), e.target.value), ...typePatch(field, e.target.value) })}
+                    onChange={(e) => update(withAccessForType({ ...withTypeShape(withoutRules(field), e.target.value), ...typePatch(field, e.target.value) }))}
                     disabled={disabled}
                     aria-label={t('studio_apps_tables.designer.field_type', 'Field type')}
                 >
@@ -290,6 +294,7 @@ function FieldEditor({ field, update, tables, currentTableId, saved, savedType, 
 
             <FieldDisplayEditor field={field} update={update} disabled={disabled} />
             <FieldRulesEditor field={field} update={update} disabled={disabled} />
+            {roles ? <FieldAccessEditor field={field} update={update} roles={roles} disabled={disabled} /> : null}
         </div>
     );
 }
@@ -299,10 +304,12 @@ interface TableDesignerProps {
     tables?: ModelTable[] | null;
     savedTable?: ModelTable | null;
     onChange: (table: ModelTable) => void;
+    /** The app's role keys, for the column rights of a field. Left out for a linked table (its rights live on the Studio table). */
+    roles?: string[] | null;
     disabled?: boolean;
 }
 
-export default function TableDesigner({ table, tables, savedTable = null, onChange, disabled = false }: TableDesignerProps) {
+export default function TableDesigner({ table, tables, savedTable = null, onChange, roles = null, disabled = false }: TableDesignerProps) {
     const { t } = useTranslation();
     if (!table) return null;
     const set = (patch: Partial<ModelTable>) => onChange({ ...table, ...patch });
@@ -337,6 +344,7 @@ export default function TableDesigner({ table, tables, savedTable = null, onChan
                         currentTableId={table.id}
                         saved={savedTypeById.has(field.id)}
                         savedType={savedTypeById.get(field.id)}
+                        roles={table.source ? null : roles}
                         disabled={disabled}
                     />
                 )}
