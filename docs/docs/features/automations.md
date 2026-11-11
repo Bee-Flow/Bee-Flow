@@ -657,7 +657,7 @@ What comes back:
 | 404 | `Unknown webhook` | No webhook with this slug: never created, or deleted. |
 | 409 | `Automation is not active` | The automation is a draft or switched off. |
 | 413 | `Request body too large` | The body is over the server's JSON size limit. |
-| 429 | `Too many requests …` | More than 120 requests a minute to one webhook, or 300 a minute from one IP address (`AUTOMATION_WEBHOOK_RPM_PER_SLUG`, `AUTOMATION_WEBHOOK_RPM_PER_IP`). A `Retry-After` header says when to try again. |
+| 429 | `Too many requests …` | More than 120 requests a minute to one webhook, or 300 a minute from one IP address (the defaults of `AUTOMATION_WEBHOOK_RPM_PER_SLUG` and `AUTOMATION_WEBHOOK_RPM_PER_IP`; `0` switches a limit off). A `Retry-After` header says when to try again. |
 
 In the run, the JSON body is `trigger.output`, so a step reads the example's
 order number as `{{trigger.output.order}}`. A few request headers ride along

@@ -208,7 +208,21 @@ function spendLimiter({ env, fallback, name, windowMs = 60_000, keyFn, costFn, _
     return Object.assign(perUserRateLimit({ windowMs, max, name, keyFn, costFn }), { max });
 }
 
-module.exports = { perUserRateLimit, spendLimiter };
+/**
+ * A limiter whose size the operator sets, counted per process like every
+ * unnamed limiter: `max` 0 switches it off, anything else is the requests per
+ * window. The caller reads `max` from its own policy (unset or not a number:
+ * the default; 0: unlimited).
+ *
+ * @param {{ max: number, windowMs?: number, keyFn?: (req: any) => string }} opts
+ * @returns {(req: any, res: any, next: Next) => unknown}
+ */
+function limiterUnlessZero({ max, windowMs = 60_000, keyFn }) {
+    if (max === 0) return function rateLimitOff(_req, _res, next) { return next(); };
+    return perUserRateLimit({ windowMs, max, keyFn });
+}
+
+module.exports = { perUserRateLimit, spendLimiter, limiterUnlessZero };
 
 /** @typedef {{ session?: Partial<import('express').Request['session']>, ip?: string }} Req  the fields the limiter reads (also called outside Express with a bare carrier) */
 

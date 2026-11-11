@@ -19,7 +19,8 @@ const router = express.Router();
 const automationStore = require('../../stores/automationStore');
 const configStore = require('../../stores/configStore');
 const triggerBus = require('../../automation/triggerBus');
-const { perUserRateLimit } = require('../../utils/perUserRateLimit');
+const { limiterUnlessZero } = require('../../utils/perUserRateLimit');
+const { automationWebhookLimits } = require('../../stores/automationStore/webhookPolicy.mts');
 const { verifyConnectorSig } = require('../../auth/connectorSig');
 const { fallback, bestEffort } = require('../../utils/bestEffort');
 
@@ -28,29 +29,26 @@ const { fallback, bestEffort } = require('../../utils/bestEffort');
 // Rate limits for the unauthenticated trigger surface. Limiters are registered
 // BEFORE the body-parsing middleware so floods don't pay the JSON-parse cost.
 // In-memory sliding windows (perUserRateLimit) — fine single-instance; `trust
-// proxy` is configured in index.js so req.ip is the real client IP.
-const AUTOMATION_WEBHOOK_RPM_PER_SLUG = parseInt(process.env.AUTOMATION_WEBHOOK_RPM_PER_SLUG, 10) || 120;
-const AUTOMATION_WEBHOOK_RPM_PER_IP = parseInt(process.env.AUTOMATION_WEBHOOK_RPM_PER_IP, 10) || 300;
-const AUTOMATION_EVENTS_RPM_PER_IP = parseInt(process.env.AUTOMATION_EVENTS_RPM_PER_IP, 10) || 600;
+// proxy` is configured in index.js so req.ip is the real client IP. The sizes
+// are the operator's (stores/automationStore/webhookPolicy.mts): requests per
+// minute, 0 = no limit.
+const webhookRates = automationWebhookLimits();
 
-const webhookSlugLimiter = perUserRateLimit({
-    windowMs: 60_000,
-    max: AUTOMATION_WEBHOOK_RPM_PER_SLUG,
+const webhookSlugLimiter = limiterUnlessZero({
+    max: webhookRates.rpmPerSlug,
     keyFn: (/** @type {import('express').Request} */ req) => `whslug:${req.params.slug}`,
 });
-const webhookIpLimiter = perUserRateLimit({
-    windowMs: 60_000,
-    max: AUTOMATION_WEBHOOK_RPM_PER_IP,
-    keyFn: (req) => `whip:${req.ip || 'unknown'}`,
+const webhookIpLimiter = limiterUnlessZero({
+    max: webhookRates.rpmPerIp,
+    keyFn: (/** @type {import('express').Request} */ req) => `whip:${req.ip || 'unknown'}`,
 });
 // Shared across the /events/* provider push endpoints. 600/min/IP is
 // deliberately generous: MS Graph's validationToken handshake must never 429
 // (Graph drops the subscription if it does), and providers publish from small
 // shared IP pools where one busy tenant would otherwise starve the rest.
-const eventsLimiter = perUserRateLimit({
-    windowMs: 60_000,
-    max: AUTOMATION_EVENTS_RPM_PER_IP,
-    keyFn: (req) => `evt:${req.ip || 'unknown'}`,
+const eventsLimiter = limiterUnlessZero({
+    max: webhookRates.eventsRpmPerIp,
+    keyFn: (/** @type {import('express').Request} */ req) => `evt:${req.ip || 'unknown'}`,
 });
 
 /**

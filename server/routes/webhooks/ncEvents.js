@@ -45,7 +45,8 @@ const express = require('express');
 const router = express.Router();
 
 const { verifyConnectorSig } = require('../../auth/connectorSig');
-const { perUserRateLimit } = require('../../utils/perUserRateLimit');
+const { limiterUnlessZero } = require('../../utils/perUserRateLimit');
+const { automationWebhookLimits } = require('../../stores/automationStore/webhookPolicy.mts');
 const sync = require('../../services/ncUserGroupSync');
 const { badRequest } = require('../../core/http/errors');
 const { z, onUnknownKeys, typeError } = require('../../utils/zod');
@@ -75,10 +76,8 @@ const captureRaw = express.json({
 // (routes/automation/events.js): the connector forwards both from one IP.
 // Registered before the body parser so a flood does not pay the JSON parse.
 // A sync event lost to a 429 is picked up by jobs/ncSyncBackstop.js.
-const NC_USER_SYNC_RPM_PER_IP = parseInt(process.env.AUTOMATION_EVENTS_RPM_PER_IP, 10) || 600;
-const userSyncLimiter = perUserRateLimit({
-    windowMs: 60_000,
-    max: NC_USER_SYNC_RPM_PER_IP,
+const userSyncLimiter = limiterUnlessZero({
+    max: automationWebhookLimits().eventsRpmPerIp,
     keyFn: (req) => `ncsync:${req.ip || 'unknown'}`,
 });
 
