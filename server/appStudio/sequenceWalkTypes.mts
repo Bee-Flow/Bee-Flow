@@ -7,7 +7,26 @@
 export type Obj = Record<string, unknown>;
 export type Step = Obj & { kind?: string };
 
-export type StepResult = { ok: boolean; result?: unknown; error?: string; code?: string; retryable?: boolean; notes?: string[] };
+/**
+ * A step that has to wait: `{ ok: true, pause }` (build it with runPause.mts). The walk stops
+ * there, the host stores where it was, and a later resume completes the step with a result.
+ *
+ *   until          epoch ms: the wake job continues the run then
+ *   kind, ref      what the run waits for besides time ('approval' and the approval's id): a
+ *                  server-side resume has to name the same pair
+ *   tokenHash      sha256 (hex) of a resume token: over HTTP only its holder may resume
+ *   timeoutResult  the step's result when `until` passes without a resume. Left out on a pause
+ *                  with a `kind` or a `tokenHash`: the step then fails with `pause_expired`
+ */
+export type PauseRequest = { until?: number | null; kind?: string | null; ref?: string | null; tokenHash?: string | null; timeoutResult?: unknown };
+
+export type StepResult = { ok: boolean; result?: unknown; error?: string; code?: string; retryable?: boolean; notes?: string[]; pause?: PauseRequest };
+
+/** Where a walk paused: the step, what it asked for, and the walk state as JSON (sequenceWalkPause.mts). */
+export type PausedWalk = { path: string; kind: string; ordinal: number | null; ownerActionId: string; request: PauseRequest; state: Obj };
+
+/** How a paused step ends when its walk is resumed: with a result, or as a failure its onError / try can take. */
+export type ResumeOutcome = { result: unknown } | { error: string; code: string };
 export type Decision =
     | { run: true; step: Step; note?: string }
     | { run: false; status: 'skipped' | 'refused' | 'deferred'; reason: string; result?: unknown };
@@ -56,6 +75,12 @@ export type WalkState = {
     known: Map<string, string>;
     /** Remarks for the caller ("looped 200 of 450 rows"), each prefixed with its path. */
     notes: Set<string>;
+    /** What the containers being walked need to be entered again after a pause, by key (sequenceWalkPause.mts). */
+    frames?: Map<string, Obj>;
+    /** Set when a step paused the walk (with `stopped` and `truncated`): nothing after it ran. */
+    paused?: PausedWalk | null;
+    /** A resumed walk on its way back to the step it paused at; cleared when that step is completed. */
+    resume?: { path: string; frames: Record<string, Obj>; outcome: ResumeOutcome } | null;
 };
 
 export type WalkHost = {
@@ -73,6 +98,12 @@ export type WalkHost = {
     onStepEnd?(e: StepEndEvent): void | Promise<void>;
     onVar?(name: string, value: unknown): void;
     shouldStop?(w: WalkState): string | null;
+    /** Awaited before every step of a list, ahead of shouldStop: where a host looks something up (a cancel request). */
+    beforeStep?(w: WalkState): Promise<void>;
+    /** True: a step may pause this walk. Otherwise a step that asks to pause fails with `pause_unsupported`. */
+    canPause?: boolean;
+    /** Asked before a pause is taken: `{ error, code }` fails the step instead (a limit of the host). */
+    acceptPause?(request: PauseRequest, state: Obj, f: StepEvent): Promise<{ error: string; code: string } | null>;
     /** Set: the branches of a `parallel` step are walked one after another, and this text says so in a note (the dry run). */
     sequentialBranches?: string;
     resolveCallee?(actionId: string): Obj | null;

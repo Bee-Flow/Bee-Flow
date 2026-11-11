@@ -111,7 +111,7 @@ export function decodeCursor(raw: unknown): { startedAt: string; id: string } | 
 
 // ── Query ───────────────────────────────────────────────────────────────────
 
-export const RUN_STATUSES: readonly string[] = Object.freeze(['running', 'success', 'error', 'interrupted', 'cancelled', 'refused']);
+export const RUN_STATUSES: readonly string[] = Object.freeze(['running', 'success', 'error', 'interrupted', 'cancelled', 'refused', 'paused']);
 
 export type RunQuery = {
     actionId?: string; status?: string; origin?: string | string[]; user?: string; since?: string; cursor?: string; limit?: number;

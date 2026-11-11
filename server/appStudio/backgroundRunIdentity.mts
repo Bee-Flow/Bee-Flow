@@ -1,0 +1,174 @@
+/**
+ * Who and what a paused run continues as (backgroundRun.mts resumeBackgroundRun).
+ *
+ * A run on hold goes on unattended: nobody is at the page, and the resume may come from a timer
+ * hours or days later. So nothing the run does after the pause rests on what was true when it
+ * started. THE RULE, checked at every resume and read fresh from the database (never from the
+ * request, never from the stored state except the two values it is compared with):
+ *
+ *   1. The app exists and its owner's account is active (the owner pays for the run and its
+ *      steps act with the app's connections).
+ *   2. The run has a starter, and that account exists and is active. A run without a signed-in
+ *      starter (an anonymous visitor, an erased account) is never continued.
+ *   3. The starter may still open the app: they own it, or it is published and reaches them
+ *      through their organisation, a shared group or its project, exactly as the app gate of a
+ *      request decides (studioAppRunGate.loadVisibleApp).
+ *   4. The run continues on the definition it was started on: a draft run only for the owner,
+ *      on the current draft; any other run on the current PUBLISHED definition. An app that
+ *      was unpublished continues nothing.
+ *   5. The action, and every action it calls, is exactly what the run paused in (a fingerprint
+ *      of their content). A changed action ends the run: the stored position names a step of
+ *      the old one, and an author who changed a step does not expect the old one to still act.
+ *   6. The starter's role, resolved again (membership, group mapping, default), is the role the
+ *      run started with, and that role can still reach the action. The run goes on with that
+ *      identity and role and with the data model as it is now: a demoted, promoted or removed
+ *      member's run does not continue.
+ *
+ * A run that fails the rule ends as `refused` with a code and a sentence that names no person.
+ * The answer here is only read; the caller ends the row.
+ */
+
+import { createHash } from 'node:crypto';
+import { createRequire } from 'node:module';
+import { closeOverCalls, ownAction } from './actionCalls.mts';
+import { runsOnServer } from './backgroundRunPolicy.mts';
+import type { App, StartInput } from './backgroundRunParts.mts';
+import type { ActionRunRow } from '../stores/studioAppData/actionRuns.mts';
+
+const nodeRequire = createRequire(import.meta.url);
+
+type Obj = Record<string, unknown>;
+const isObject = (v: unknown): v is Obj => v !== null && typeof v === 'object' && !Array.isArray(v);
+
+/** What a pause keeps about the run beside the walk: compared at resume (fingerprint, role) or carried on (the rest). */
+export type RunMeta = {
+    fingerprint: string; role: string | null;
+    /** Milliseconds the run was really running before this pause (the run-time limit counts these). */
+    activeMs: number;
+    /** The names of the variables the run wrote so far. */
+    written: string[];
+};
+
+export type ResumeRefusal = { ok: false; code: string; error: string };
+export type ResumeContext = { ok: true; input: StartInput } | ResumeRefusal;
+
+type UserRow = Obj & { id: string; status?: string | null; organizationId?: string | null };
+type AppRow = App & {
+    isPublished?: boolean; definition?: Obj | null; publishedDefinition?: Obj | null; projectId?: string | null; sharedGroups?: unknown;
+};
+
+export type IdentityDeps = {
+    getApp: (appId: string) => Promise<AppRow | null>;
+    getUser: (userId: string) => Promise<UserRow | null>;
+    isActiveAccount: (user: unknown) => boolean;
+    /** The starter's groups and organisations, as the app gate reads them. */
+    audienceOf: (user: UserRow) => Promise<{ userGroups: string[]; orgIds: string[] }>;
+    canReadApp: (app: AppRow, userId: string, userGroups: string[], orgIds: string[]) => Promise<boolean>;
+    getModel: (app: AppRow) => Promise<unknown>;
+    resolveRole: (app: AppRow, userId: string, model: unknown, audience: { userGroups: string[] }) => Promise<string | null>;
+    roleAccess: (def: Obj, actionId: string, role: string | null) => { referenced: boolean; allowed: boolean };
+};
+
+const GONE = 'The app is no longer published, so the run that was waiting was ended.';
+const PERSON = 'Whoever started this run can no longer use this action, so the run that was waiting was ended.';
+const CHANGED = 'The action was changed while this run was waiting, so the run was ended.';
+const refuse = (code: string, error: string): ResumeRefusal => ({ ok: false, code, error });
+
+/** JSON with the keys of every object in order: two equal definitions give the same text. */
+function stableJson(value: unknown): string {
+    if (Array.isArray(value)) return `[${value.map(stableJson).join(',')}]`;
+    if (!isObject(value)) return JSON.stringify(value ?? null);
+    const keys = Object.keys(value).filter((k) => value[k] !== undefined).sort();
+    return `{${keys.map((k) => `${JSON.stringify(k)}:${stableJson(value[k])}`).join(',')}}`;
+}
+
+/**
+ * The fingerprint of an action and of every action it reaches through call_action: what a run
+ * of it can execute. Rule 5 compares the one taken at the pause with the one at the resume.
+ */
+export function actionFingerprint(actions: unknown, actionId: string): string {
+    const ids = [...closeOverCalls(actions, [actionId])].sort();
+    const hash = createHash('sha256');
+    for (const id of ids) hash.update(`${JSON.stringify(id)}:${stableJson(ownAction(actions, id))}\n`);
+    return hash.digest('hex');
+}
+
+/** The real stores, each loaded when first asked (a test that injects every reader loads none). */
+function defaultDeps(): IdentityDeps {
+    const users = () => nodeRequire('../stores/userStore') as { getUser: IdentityDeps['getUser']; getAllGroups: () => Promise<unknown[]> };
+    const apps = () => nodeRequire('../stores/studioAppStore') as { getStudioApp: IdentityDeps['getApp']; canReadStudioAppAsync: IdentityDeps['canReadApp'] };
+    return {
+        getApp: (appId) => apps().getStudioApp(appId),
+        getUser: (userId) => users().getUser(userId),
+        isActiveAccount: (user) => (nodeRequire('../auth/accountStatusGate') as { isActiveAccount: (u: unknown) => boolean }).isActiveAccount(user),
+        audienceOf: async (user) => {
+            const { resolveUserGroups } = nodeRequire('../auth/audience') as { resolveUserGroups: (id: string) => Promise<string[]> };
+            const { orgIdsForUser } = nodeRequire('../auth/orgMembership') as { orgIdsForUser: (u: unknown, groups: unknown[]) => Set<string> };
+            return { userGroups: await resolveUserGroups(user.id), orgIds: [...orgIdsForUser(user, await users().getAllGroups())] };
+        },
+        canReadApp: (app, userId, userGroups, orgIds) => apps().canReadStudioAppAsync(app, userId, userGroups, orgIds),
+        getModel: async (app) => {
+            const store = nodeRequire('../stores/studioAppDataStore') as { getDataModel: (appId: string, ownerId: string) => Promise<{ model?: unknown } | null> };
+            const meta = await store.getDataModel(app.id, app.userId);
+            return meta && meta.model ? meta.model : null;
+        },
+        resolveRole: async (app, userId, model, audience) => {
+            const gateway = nodeRequire('./rlsGateway') as { resolveViewerRole: (a: unknown, u: string, m: unknown, au: unknown) => Promise<string | null> };
+            return (await gateway.resolveViewerRole(app, userId, model, audience)) || null;
+        },
+        roleAccess: (def, actionId, role) => (nodeRequire('../routes/studioAppRunGate') as { actionRoleAccess: IdentityDeps['roleAccess'] }).actionRoleAccess(def, actionId, role),
+    };
+}
+
+/** Rules 1 to 3: the app, its owner, the starter and their way into the app. */
+async function whoContinues(row: ActionRunRow, deps: IdentityDeps): Promise<{ app: AppRow; starter: UserRow; userGroups: string[] } | ResumeRefusal> {
+    const app = await deps.getApp(row.appId);
+    if (!app) return refuse('app_gone', GONE);
+    if (!deps.isActiveAccount(await deps.getUser(app.userId))) return refuse('owner_inactive', 'The account that owns the app is not active, so the run that was waiting was ended.');
+    const starter = row.viewerUserId ? await deps.getUser(row.viewerUserId) : null;
+    if (!starter || !deps.isActiveAccount(starter)) return refuse('starter_gone', PERSON);
+    if (app.userId === starter.id) return { app, starter, userGroups: [] };
+    const { userGroups, orgIds } = await deps.audienceOf(starter);
+    if (!(await deps.canReadApp(app, starter.id, userGroups, orgIds))) return refuse(app.isPublished ? 'no_access' : 'unpublished', app.isPublished ? PERSON : GONE);
+    return { app, starter, userGroups };
+}
+
+/** Rules 4 and 5: the definition the run continues on, with the action unchanged. */
+function whatContinues(row: ActionRunRow, meta: RunMeta, app: AppRow, isOwner: boolean): { def: Obj } | ResumeRefusal {
+    if (row.draft && !isOwner) return refuse('no_access', PERSON);
+    if (!row.draft && !app.isPublished) return refuse('unpublished', GONE);
+    const def = row.draft ? app.definition : app.publishedDefinition;
+    if (!isObject(def)) return refuse('unpublished', GONE);
+    const action = ownAction(def.actions, row.actionId);
+    if (!action || !runsOnServer(action) || actionFingerprint(def.actions, row.actionId) !== meta.fingerprint) return refuse('definition_changed', CHANGED);
+    return { def };
+}
+
+/** The context a paused run continues with, or why it may not (the rule in the header). */
+export async function loadResumeContext(row: ActionRunRow, meta: RunMeta, given: Partial<IdentityDeps> = {}): Promise<ResumeContext> {
+    const deps = { ...defaultDeps(), ...given };
+    const who = await whoContinues(row, deps);
+    if ('ok' in who) return who;
+    const { app, starter, userGroups } = who;
+    const isOwner = app.userId === starter.id;
+    const what = whatContinues(row, meta, app, isOwner);
+    if ('ok' in what) return what;
+    // Rule 6: the role today is the role the run started with, and it still reaches the action.
+    const model = await deps.getModel(app);
+    const role = await deps.resolveRole(app, starter.id, model, { userGroups });
+    if (role !== meta.role) return refuse('role_changed', PERSON);
+    if (!isOwner && role !== 'owner') {
+        const access = deps.roleAccess(what.def, row.actionId, role);
+        if (access.referenced && !access.allowed) return refuse('role_denied', PERSON);
+    }
+    const text = (v: unknown): string | null => (typeof v === 'string' && v ? v : null);
+    return {
+        ok: true,
+        input: {
+            // The whole app row, as a request's start passes it: the executor reads more of it than the runner does.
+            app, def: what.def, model, actionId: row.actionId, role, isOwner, draft: row.draft, definitionVersion: row.definitionVersion,
+            viewer: { id: starter.id, name: text(starter.name) ?? text(starter.username), email: text(starter.email), organizationId: text(starter.organizationId) },
+            scope: {},
+        },
+    };
+}

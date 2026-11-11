@@ -247,6 +247,8 @@ function startSupportAndSyncJobs() {
         require('../jobs/datasetIngest').start();
         // Background actions: rows whose process died stop beating → interrupted.
         require('../jobs/studioAppActionRuns').start();
+        // Server runs on hold: the ones whose wake time passed go on (or end).
+        require('../jobs/studioAppRunWake').start({ wake: () => require('../appStudio/backgroundRun.mts').wakeDueRuns() });
     } catch (err) {
         log.warn('[Server] Studio app connector sync load failed:', err.message);
     }

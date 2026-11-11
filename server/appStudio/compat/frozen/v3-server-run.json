@@ -1,0 +1,296 @@
+{
+  "corpus": "v3-server-run",
+  "canonical": {
+    "sha256": "134317fdae0ad73bd241ffe83e9a27e86e4e91bf3882e9b6969f066c04524a22",
+    "bytes": 2921,
+    "inputIsCanonical": true,
+    "idempotent": true,
+    "keys": [
+      "schemaVersion",
+      "meta",
+      "theme",
+      "roles",
+      "variables",
+      "screens",
+      "actions",
+      "homeScreenId",
+      "publicAccess"
+    ],
+    "parts": {
+      "schemaVersion": "4e07408562bedb8b",
+      "meta": "87827b9da4161a22",
+      "theme": "87df6a9096a03b63",
+      "roles": "4f53cda18c2baa0c",
+      "variables": "609e134c1e14ad38",
+      "screens[0] scr_run00001": "f2d0e88a64125a79",
+      "actions.act_runseq01": "cc149898f262b68f",
+      "actions.act_runseq02": "20dfbba3fd64fc5e",
+      "actions.act_runseq03": "f0640cea2a2b5e86",
+      "actions.act_runseq04": "a11b64897918d8b5",
+      "homeScreenId": "edfcb56deef63633",
+      "publicAccess": "6f50af4de0b008b0"
+    }
+  },
+  "schemaVersion": {
+    "stored": 3,
+    "canonical": 3
+  },
+  "validation": {
+    "strict": {
+      "errors": [],
+      "warnings": []
+    },
+    "save": {
+      "errors": [],
+      "warnings": []
+    }
+  },
+  "ordinals": {
+    "stored": {
+      "act_runseq01": [
+        "0 confirm",
+        "1 set_variable",
+        "2 create_record",
+        "3 loop",
+        "4 update_record",
+        "5 refresh",
+        "6 toast",
+        "7 set_variable"
+      ],
+      "act_runseq02": [
+        "0 create_record",
+        "1 toast"
+      ],
+      "act_runseq03": [
+        "0 call_action",
+        "1 toast"
+      ],
+      "act_runseq04": [
+        "0 create_record"
+      ]
+    },
+    "canonical": "same as stored"
+  },
+  "publicDefinition": {
+    "actionIds": [
+      "act_runseq01",
+      "act_runseq02",
+      "act_runseq03"
+    ],
+    "sha256": "642f9a4798b776c297688175c169e8ad4014b52c72d40300e0e256ca8d1a7cfb",
+    "definition": {
+      "schemaVersion": 3,
+      "meta": {
+        "name": "Server run",
+        "description": "",
+        "icon": "Server"
+      },
+      "theme": {
+        "primary": "#1D4ED8",
+        "radius": "md",
+        "density": "comfortable",
+        "fontScale": "md",
+        "appearance": "auto"
+      },
+      "homeScreenId": "scr_run00001",
+      "roles": [],
+      "screens": [
+        {
+          "id": "scr_run00001",
+          "name": "Orders",
+          "icon": null,
+          "showInNav": true,
+          "maxWidth": "medium",
+          "sections": [
+            {
+              "id": "sec_run00001",
+              "style": {
+                "padding": 4,
+                "gap": 3,
+                "background": "none"
+              },
+              "children": [
+                {
+                  "id": "cmp_runhead1",
+                  "type": "heading",
+                  "props": {
+                    "text": "Orders",
+                    "level": 2,
+                    "accent": "none"
+                  },
+                  "style": {
+                    "span": 12
+                  },
+                  "visible": true
+                },
+                {
+                  "id": "cmp_runbtn01",
+                  "type": "button",
+                  "props": {
+                    "label": "Process",
+                    "variant": "primary",
+                    "iconLeft": null,
+                    "role": "button",
+                    "disabledWhen": null
+                  },
+                  "style": {
+                    "span": 4
+                  },
+                  "visible": true,
+                  "onClick": "act_runseq01"
+                },
+                {
+                  "id": "cmp_runbtn02",
+                  "type": "button",
+                  "props": {
+                    "label": "Process later",
+                    "variant": "primary",
+                    "iconLeft": null,
+                    "role": "button",
+                    "disabledWhen": null
+                  },
+                  "style": {
+                    "span": 4
+                  },
+                  "visible": true,
+                  "onClick": "act_runseq02"
+                },
+                {
+                  "id": "cmp_runbtn03",
+                  "type": "button",
+                  "props": {
+                    "label": "Process all",
+                    "variant": "primary",
+                    "iconLeft": null,
+                    "role": "button",
+                    "disabledWhen": null
+                  },
+                  "style": {
+                    "span": 4
+                  },
+                  "visible": true,
+                  "onClick": "act_runseq03"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "actions": {
+        "act_runseq01": {
+          "kind": "sequence",
+          "steps": [
+            {
+              "kind": "confirm",
+              "message": "Process this order?"
+            },
+            {
+              "kind": "set_variable",
+              "name": "status",
+              "value": {
+                "kind": "static",
+                "value": "Writing the log"
+              }
+            },
+            {
+              "kind": "create_record",
+              "resultVar": "entry"
+            },
+            {
+              "kind": "loop",
+              "source": {
+                "kind": "static",
+                "value": [
+                  {
+                    "id": "a"
+                  },
+                  {
+                    "id": "b"
+                  }
+                ]
+              },
+              "itemVar": "row",
+              "steps": [
+                {
+                  "kind": "update_record",
+                  "onError": {
+                    "steps": [
+                      {
+                        "kind": "set_variable",
+                        "name": "status",
+                        "value": {
+                          "kind": "formula",
+                          "expr": "error.message"
+                        }
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "refresh",
+              "tableId": "tbl_runlog01"
+            },
+            {
+              "kind": "toast",
+              "message": "Processed",
+              "tone": "success"
+            }
+          ]
+        },
+        "act_runseq02": {
+          "kind": "sequence",
+          "steps": [
+            {
+              "kind": "create_record"
+            },
+            {
+              "kind": "toast",
+              "message": "Queued",
+              "tone": "info"
+            }
+          ]
+        },
+        "act_runseq03": {
+          "kind": "sequence",
+          "steps": [
+            {
+              "kind": "call_action",
+              "actionId": "act_runseq04",
+              "params": {
+                "note": {
+                  "kind": "static",
+                  "value": "all"
+                }
+              }
+            },
+            {
+              "kind": "toast",
+              "message": "All processed",
+              "tone": "success"
+            }
+          ]
+        },
+        "act_runseq04": {
+          "kind": "sequence",
+          "steps": [
+            {
+              "kind": "create_record"
+            }
+          ]
+        }
+      },
+      "variables": [
+        {
+          "name": "status",
+          "label": "status",
+          "type": "text",
+          "default": "",
+          "description": ""
+        }
+      ]
+    }
+  },
+  "reads": []
+}

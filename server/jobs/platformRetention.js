@@ -12,7 +12,8 @@
  *      and lapsed dismissed/snoozed/opened feedback. Both stores documented a
  *      30-day retention that nothing enforced. Each DELETE is idempotent and
  *      cheap, so two pods running it at once is harmless: no lock.
- *   4. App Studio action runs (stores/studioAppData/actionRuns.mts pruneRuns): payloads
+ *   4. App Studio action runs (stores/studioAppData/actionRuns.mts pruneRuns): a run on hold
+ *      longer than the retention, or for a starter whose account is gone, is ended; payloads
  *      nulled after STUDIO_APP_RUN_RESULT_TTL_HOURS, rows deleted after
  *      STUDIO_APP_RUN_RETENTION_DAYS (stores/studioAppData/runPolicy.mts; 0 = keep). Run
  *      rows can carry customer values in their result, so this is a retention duty and
@@ -67,7 +68,7 @@ let _running = false;
  *   pruneSuggestionScans: () => ReturnType<typeof import('../stores/suggestionScanCache').pruneExpired>,
  *   pruneSuggestionFeedback: () => ReturnType<typeof import('../stores/suggestionFeedbackStore').pruneExpired>,
  *   pruneDocumentSuggestions: () => ReturnType<typeof import('../stores/documentSuggestionStore').purgeResolved>,
- *   pruneStudioActionRuns?: (opts: { resultTtlHours: number, retentionDays: number, batch?: number }) => Promise<{ nulled: number, deleted: number }>,
+ *   pruneStudioActionRuns?: (opts: { resultTtlHours: number, retentionDays: number, batch?: number }) => Promise<{ nulled: number, deleted: number, expired?: number }>,
  *   pruneStudioRunLog?: (opts: { maxPerApp: number, idleMs: number, staleMs: number, batch?: number }) => Promise<{ closed: number, overflow: number }>,
  *   log: typeof import('../telemetry/log'),
  * }} PlatformRetentionDeps
@@ -180,16 +181,17 @@ async function _pruneStudioActionRuns(d) {
 }
 
 /**
- * Under the action-run lock: payloads and old rows (when a knob is set), then the run log.
+ * Under the action-run lock: payloads, old rows and runs on hold that can never continue, then the run log.
  * @param {PlatformRetentionDeps} d
  * @param {{ resultTtlHours: number, retentionDays: number }} knobs
  * @param {PlatformRetentionDeps['pruneStudioRunLog'] | null} runLog
  * @param {typeof import('../stores/studioAppData/runPolicy.mts')} policy
  */
 async function _actionRunPasses(d, knobs, runLog, policy) {
-    if ((knobs.resultTtlHours || knobs.retentionDays) && d.pruneStudioActionRuns) {
-        const { nulled, deleted } = await d.pruneStudioActionRuns({ ...knobs, batch: 5000 });
-        if (nulled || deleted) d.log.info(`[platformRetention] action runs: ${nulled} payload(s) cleared, ${deleted} row(s) deleted`);
+    // Also with both knobs at 0: a run on hold whose starter's account is gone is ended whatever the retention.
+    if (d.pruneStudioActionRuns) {
+        const { nulled, deleted, expired = 0 } = await d.pruneStudioActionRuns({ ...knobs, batch: 5000 });
+        if (nulled || deleted || expired) d.log.info(`[platformRetention] action runs: ${nulled} payload(s) cleared, ${deleted} row(s) deleted, ${expired} run(s) on hold ended`);
     }
     if (runLog) await _pruneRunLog(d, runLog, policy);
 }

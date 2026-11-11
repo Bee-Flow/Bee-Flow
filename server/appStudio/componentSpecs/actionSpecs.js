@@ -380,6 +380,7 @@ withErrorEnvelope(Object.assign(STEP_SPECS, require('./stepRegistry').EXTENSION_
 
 require('./actionSpecsDynamic').extend(ACTION_SPECS, STEP_SPECS); // since-3 fields, appended at the end
 require('./actionSpecsServer').extend(STEP_SPECS); // since-3: guard on server steps, formula input mappings
+require('./actionSpecsDurable').extend(ACTION_SPECS); // since-3: runOn on a sequence
 module.exports = {
     ACTION_KINDS,
     ACTION_SPECS,

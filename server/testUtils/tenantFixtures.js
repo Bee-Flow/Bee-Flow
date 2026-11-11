@@ -159,6 +159,7 @@ const FIXTURES = [
         },
         routes: [
             'GET /api/studio-apps/:id/actions/jobs', 'GET /api/studio-apps/:id/actions/jobs/:jobId',
+            'POST /api/studio-apps/:id/actions/jobs/:jobId/cancel', 'POST /api/studio-apps/:id/actions/jobs/:jobId/resume',
             'POST /api/studio-apps/:id/actions/:actionId/background', 'POST /api/studio-apps/:id/actions/:actionId/run',
             'GET /api/studio-apps/:id/actions/runs/:runId', 'POST /api/studio-apps/:id/actions/:actionId/runs/end',
         ],

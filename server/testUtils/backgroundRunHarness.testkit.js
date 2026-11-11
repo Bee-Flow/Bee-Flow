@@ -15,6 +15,9 @@
  *   budgets   (kind) => the rate budgets of a step kind
  *   limits    backgroundLimits({}), a copy a test may change
  *   beats     the heartbeat callbacks setInterval was handed
+ *   context   what a resume continues as: (row, meta) => { ok: true, input } or a refusal. The
+ *             default answers the input of the last start (h.input), as if nothing changed
+ *             since; `metas` keeps what each resume asked with
  */
 
 const assert = require('node:assert/strict');
@@ -49,7 +52,9 @@ function resolveBinding(b, _ctx, scope) {
 function backgroundRunHarness({ before, after, beforeEach }) {
     const { pg, db } = pgliteDb();
     const store = makeActionRunStore(db);
-    const s = { clock: 0, executed: [], sleeps: [], execute: defaultExecute, budgets: () => [], limits: {}, beats: [] };
+    const s = { clock: 0, executed: [], sleeps: [], execute: defaultExecute, budgets: () => [], limits: {}, beats: [], context: null, metas: [], lastInput: null };
+    const sameAsStart = async () => (s.lastInput ? { ok: true, input: { ...s.lastInput, scope: {} } } : { ok: false, code: 'app_gone', error: 'No start to continue.' });
+    const tracked = (action, over) => { s.lastInput = input(action, over); return s.lastInput; };
 
     before(async () => {
         await pg.exec('CREATE TABLE studio_apps (id TEXT PRIMARY KEY, user_id TEXT NOT NULL)');
@@ -61,7 +66,7 @@ function backgroundRunHarness({ before, after, beforeEach }) {
     beforeEach(async () => {
         BG._resetForTests();
         await pg.query('DELETE FROM studio_app_action_runs');
-        Object.assign(s, { clock: 1_000_000, executed: [], sleeps: [], budgets: () => [], beats: [], limits: { ...backgroundLimits({}) }, execute: defaultExecute });
+        Object.assign(s, { clock: 1_000_000, executed: [], sleeps: [], budgets: () => [], beats: [], limits: { ...backgroundLimits({}) }, execute: defaultExecute, context: sameAsStart, metas: [], lastInput: null });
     });
 
     function deps(over = {}) {
@@ -82,18 +87,19 @@ function backgroundRunHarness({ before, after, beforeEach }) {
             instanceId: 'test',
             setInterval: (fn) => { s.beats.push(fn); return s.beats.length; },
             clearInterval: () => {},
+            loadResumeContext: async (row, meta) => { s.metas.push(meta); return s.context(row, meta); },
             ...over,
         };
     }
 
     async function startAndSettle(action, over = {}, d = deps()) {
-        const started = await BG.startBackgroundRun(input(action, over), d);
+        const started = await BG.startBackgroundRun(tracked(action, over), d);
         assert.equal(started.ok, true, JSON.stringify(started));
         await BG._settled(started.jobId);
         return store.getRun('app_1', started.jobId);
     }
 
-    return { s, pg, db, store, deps, input, startAndSettle, APP, status };
+    return { s, pg, db, store, deps, input: tracked, startAndSettle, APP, status };
 }
 
 module.exports = { backgroundRunHarness };

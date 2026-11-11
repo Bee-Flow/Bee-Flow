@@ -3035,6 +3035,7 @@ declare namespace DbRow {
         action_id: string;
         ai_calls: number;
         app_id: string;
+        cancel_requested: boolean;
         client: string | null;
         client_run_key: string | null;
         completion_tokens: number;
@@ -3059,9 +3060,13 @@ declare namespace DbRow {
         lock_key: string | null;
         origin: string;
         owner_user_id: string;
+        paused_at: Date | null;
+        paused_state: Json | null;
         progress: Json;
         prompt_tokens: number;
         result: Json | null;
+        resume_seq: number;
+        resume_token_hash: string | null;
         started_at: Date;
         status: string;
         step_count: number;
@@ -3070,6 +3075,9 @@ declare namespace DbRow {
         vars: Json | null;
         viewer_user_id: string | null;
         visitor_key: string | null;
+        wait_kind: string | null;
+        wait_ref: string | null;
+        wake_at: Date | null;
     }
     /** Row of `studio_app_action_tests`. */
     interface StudioAppActionTests {

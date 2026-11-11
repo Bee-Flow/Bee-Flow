@@ -13,13 +13,19 @@
  *   getRun / listRunsForViewer / isLockHeld
  *   markStaleInterrupted rows nobody beats any more (a crashed replica) → interrupted
  *   markInterrupted      this process's rows at shutdown → interrupted
- *   pruneRuns            payloads nulled after the TTL, rows deleted after the retention
+ *   pruneRuns            payloads nulled after the TTL, rows deleted after the retention; a
+ *                        pause that outlived the retention, or whose starter is gone, is ended
+ *
+ * A run on hold (pause, resume claim, wake, cancel): the queries of ./pausedRuns.mts, part of
+ * this store.
  *
  * Every read is keyed by the app id the caller has ALREADY authorised. Plain TypeScript; the
  * database arrives as `db` ({ query, tx }), the init as `ready`.
  */
 
 import { createRequire } from 'node:module';
+
+import { makePausedRunQueries } from './pausedRuns.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 
@@ -31,7 +37,7 @@ export interface RunDb extends Queryable {
     tx<T>(fn: (client: Queryable) => Promise<T>): Promise<T>;
 }
 
-export type RunStatus = 'running' | 'success' | 'error' | 'interrupted' | 'cancelled' | 'refused';
+export type RunStatus = 'running' | 'paused' | 'success' | 'error' | 'interrupted' | 'cancelled' | 'refused';
 
 export type ActionRunRow = {
     id: string; appId: string; ownerUserId: string; actionId: string; origin: string; draft: boolean;
@@ -40,6 +46,9 @@ export type ActionRunRow = {
     lockKey: string | null; progress: Record<string, unknown>; result: unknown; vars: Record<string, unknown> | null;
     effects: unknown[] | null; instanceId: string | null; stepCount: number;
     startedAt: string | null; lastActivityAt: string | null; endedAt: string | null; durationMs: number | null;
+    /** A run on hold: when it was paused, when the wake job continues it, what it waits for. Never the state itself. */
+    pausedAt: string | null; wakeAt: string | null; waitKind: string | null; waitRef: string | null;
+    resumeSeq: number; hasResumeToken: boolean; cancelRequested: boolean;
 };
 
 export type InsertRun = {
@@ -49,7 +58,7 @@ export type InsertRun = {
 };
 
 export type FinishRun = {
-    status: Exclude<RunStatus, 'running'>; result?: unknown; vars?: Record<string, unknown> | null; effects?: unknown[] | null;
+    status: Exclude<RunStatus, 'running' | 'paused'>; result?: unknown; vars?: Record<string, unknown> | null; effects?: unknown[] | null;
     error?: string | null; errorCode?: string | null; errorStep?: Record<string, unknown> | null; durationMs?: number | null;
     stepCount?: number; truncated?: boolean; endedBy?: string | null;
 };
@@ -78,14 +87,23 @@ function toRun(row: Record<string, unknown>): ActionRunRow {
         lockKey: text(row.lock_key), progress: asObj(row.progress) ?? {}, result: json(row.result) ?? null, vars: asObj(row.vars),
         effects: Array.isArray(effects) ? effects : null, instanceId: text(row.instance_id), stepCount: Number(row.step_count ?? 0),
         startedAt: iso(row.started_at), lastActivityAt: iso(row.last_activity_at), endedAt: iso(row.ended_at), durationMs: num(row.duration_ms),
+        pausedAt: iso(row.paused_at), wakeAt: iso(row.wake_at), waitKind: text(row.wait_kind), waitRef: text(row.wait_ref),
+        resumeSeq: Number(row.resume_seq ?? 0), hasResumeToken: typeof row.resume_token_hash === 'string' && row.resume_token_hash !== '',
+        cancelRequested: row.cancel_requested === true,
     };
 }
 
 /** A stale window in milliseconds as SQL: rows whose last_activity_at is older are dead. */
 const STALE = (param: string): string => `last_activity_at < NOW() - make_interval(secs => ${param}::double precision / 1000)`;
 const RECLAIMED = 'The run stopped answering (the server restarted or lost it) and was marked interrupted.';
+const PAUSE_OUTLIVED = 'The run waited longer than runs are kept and was ended.';
+const PAUSE_ORPHANED = 'The run was on hold for someone whose account no longer exists and was ended.';
+/** A row that holds its lockKey: running, or on hold. */
+const HOLDS_LOCK = `status IN ('running', 'paused')`;
 
 export function makeActionRunStore(db: RunDb, { ready = async () => {} }: { ready?: () => Promise<unknown> } = {}) {
+    const paused = makePausedRunQueries(db, ready, toRun);
+    const { endPauses: _endPauses, ...pausedQueries } = paused;
     /** Start a running row. A live holder of the same lockKey refuses it: `{ ok:false, holder }`. */
     async function insertRunningRun(r: InsertRun): Promise<{ ok: true } | { ok: false; holder: ActionRunRow | null }> {
         await ready();
@@ -106,7 +124,7 @@ export function makeActionRunStore(db: RunDb, { ready = async () => {} }: { read
             );
             if (ins.rows.length) return { ok: true as const };
             const { rows } = await client.query(
-                `SELECT * FROM studio_app_action_runs WHERE app_id = $1 AND lock_key = $2 AND status = 'running' LIMIT 1`,
+                `SELECT * FROM studio_app_action_runs WHERE app_id = $1 AND lock_key = $2 AND ${HOLDS_LOCK} LIMIT 1`,
                 [r.appId, r.lockKey],
             );
             return { ok: false as const, holder: rows[0] ? toRun(rows[0]) : null };
@@ -169,7 +187,7 @@ export function makeActionRunStore(db: RunDb, { ready = async () => {} }: { read
         const { rows } = await db.query(
             `SELECT * FROM studio_app_action_runs
               WHERE app_id = $1 AND viewer_user_id = $2 AND origin = 'background'
-                AND ($3::boolean IS NOT TRUE OR status = 'running')
+                AND ($3::boolean IS NOT TRUE OR ${HOLDS_LOCK})
                 AND ($4::text IS NULL OR action_id = $4)
               ORDER BY started_at DESC, id DESC LIMIT ${limit}`,
             [appId, viewerUserId, opts.activeOnly === true, opts.actionId ?? null],
@@ -182,7 +200,7 @@ export function makeActionRunStore(db: RunDb, { ready = async () => {} }: { read
         await ready();
         const { rows } = await db.query(
             `SELECT * FROM studio_app_action_runs
-              WHERE app_id = $1 AND lock_key = $2 AND status = 'running' AND NOT (${STALE('$3')}) LIMIT 1`,
+              WHERE app_id = $1 AND lock_key = $2 AND (status = 'paused' OR (status = 'running' AND NOT (${STALE('$3')}))) LIMIT 1`,
             [appId, lockKey, staleMs],
         );
         return rows[0] ? toRun(rows[0]) : null;
@@ -212,17 +230,21 @@ export function makeActionRunStore(db: RunDb, { ready = async () => {} }: { read
     }
 
     /** Payloads nulled after `resultTtlHours`, rows deleted after `retentionDays` (0 = keep), `batch` rows per statement. */
-    async function pruneRuns({ resultTtlHours, retentionDays, batch = 1000 }: { resultTtlHours: number; retentionDays: number; batch?: number }): Promise<{ nulled: number; deleted: number }> {
+    async function pruneRuns({ resultTtlHours, retentionDays, batch = 1000 }: { resultTtlHours: number; retentionDays: number; batch?: number }): Promise<{ nulled: number; deleted: number; expired: number }> {
         await ready();
         const size = Math.max(1, Math.floor(batch));
         let nulled = 0;
         let deleted = 0;
+        // A run on hold for a starter whose account was erased (viewer_user_id detached) can never
+        // be resumed: it ends here and its state goes. So does a pause older than the retention.
+        const expired = await paused.endPauses(`viewer_user_id IS NULL`, [], PAUSE_ORPHANED, size)
+            + (retentionDays > 0 ? await paused.endPauses(`started_at < NOW() - make_interval(days => $3::int)`, [retentionDays], PAUSE_OUTLIVED, size) : 0);
         if (resultTtlHours > 0) {
             nulled = changed(await db.query(
-                `UPDATE studio_app_action_runs SET result = NULL, vars = NULL, effects = NULL, progress = '{}'::jsonb
+                `UPDATE studio_app_action_runs SET result = NULL, vars = NULL, effects = NULL, progress = '{}'::jsonb, paused_state = NULL
                   WHERE id IN (SELECT id FROM studio_app_action_runs
-                                WHERE status <> 'running' AND ended_at < NOW() - make_interval(hours => $1::int)
-                                  AND (result IS NOT NULL OR vars IS NOT NULL OR effects IS NOT NULL OR progress <> '{}'::jsonb)
+                                WHERE status NOT IN ('running', 'paused') AND ended_at < NOW() - make_interval(hours => $1::int)
+                                  AND (result IS NOT NULL OR vars IS NOT NULL OR effects IS NOT NULL OR progress <> '{}'::jsonb OR paused_state IS NOT NULL)
                                 LIMIT $2)`,
                 [resultTtlHours, size],
             ));
@@ -231,16 +253,16 @@ export function makeActionRunStore(db: RunDb, { ready = async () => {} }: { read
             deleted = changed(await db.query(
                 `DELETE FROM studio_app_action_runs
                   WHERE id IN (SELECT id FROM studio_app_action_runs
-                                WHERE status <> 'running' AND started_at < NOW() - make_interval(days => $1::int) LIMIT $2)`,
+                                WHERE status NOT IN ('running', 'paused') AND started_at < NOW() - make_interval(days => $1::int) LIMIT $2)`,
                 [retentionDays, size],
             ));
         }
-        return { nulled, deleted };
+        return { nulled, deleted, expired };
     }
 
     return {
         insertRunningRun, countRunning, updateProgress, heartbeat, finishRun, getRun, listRunsForViewer, isLockHeld,
-        markStaleInterrupted, markInterrupted, pruneRuns,
+        markStaleInterrupted, markInterrupted, pruneRuns, ...pausedQueries,
     };
 }
 

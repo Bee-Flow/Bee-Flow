@@ -11,6 +11,7 @@ import type { BackgroundLimits } from './backgroundRunPolicy.mts';
 import type { ActionRunRow, ActionRunStore } from '../stores/studioAppData/actionRuns.mts';
 import type { RunLogStore } from '../stores/studioAppData/runLogStore.mts';
 import type { StepBudget } from '../routes/studioAppStepBudget.mts';
+import type { ResumeContext, RunMeta } from './backgroundRunIdentity.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 const isObject = (v: unknown): v is Obj => v !== null && typeof v === 'object' && !Array.isArray(v);
@@ -42,6 +43,11 @@ export type RunnerDeps = {
     sleep: (ms: number) => Promise<void>;
     limits: () => BackgroundLimits;
     instanceId: string;
+    /**
+     * Who and what a paused run continues as, read fresh from the database (backgroundRunIdentity.mts):
+     * the app, the definition, the starter and their role today, or why the run may not go on.
+     */
+    loadResumeContext: (row: ActionRunRow, meta: RunMeta) => Promise<ResumeContext>;
     /** Timers for the heartbeat (fake in tests). */
     setInterval: (fn: () => void, ms: number) => unknown;
     clearInterval: (handle: unknown) => void;
@@ -56,6 +62,8 @@ export type JobView = {
     progress: { stepIndex: number | null; kind: string | null; executed: number; message: string | null; loop: { index: number; count: number } | null; waiting: string | null };
     result?: unknown; vars?: Obj; effects?: unknown[];
     error: string | null; errorStep: Obj | null; startedAt: string | null; finishedAt: string | null; durationMs: number | null;
+    /** A run on hold only: when the server continues it by itself (null: when something resumes it) and what it waits for. */
+    wakeAt?: string | null; waitKind?: string | null;
 };
 
 function minutesAgo(iso: string | null, now: number): number {
@@ -99,6 +107,7 @@ export function toJobView(row: ActionRunRow): JobView {
         ...(row.status === 'success' ? { result: row.result ?? null } : {}),
         ...(row.vars ? { vars: row.vars } : {}),
         ...(row.effects ? { effects: row.effects } : {}),
+        ...(row.status === 'paused' ? { wakeAt: row.wakeAt, waitKind: row.waitKind } : {}),
         error: row.error, errorStep: row.errorStep, startedAt: row.startedAt, finishedAt: row.endedAt, durationMs: row.durationMs,
     };
 }
@@ -121,6 +130,8 @@ export function withDefaults(given: Partial<RunnerDeps>): RunnerDeps {
         now: given.now ?? (() => Date.now()),
         sleep: given.sleep ?? ((ms) => new Promise((resolve) => { const t = setTimeout(resolve, ms); t.unref?.(); })),
         limits: given.limits ?? (() => backgroundLimits()),
+        loadResumeContext: given.loadResumeContext
+            ?? ((row, meta) => (nodeRequire('./backgroundRunIdentity.mts') as { loadResumeContext: RunnerDeps['loadResumeContext'] }).loadResumeContext(row, meta)),
         instanceId: given.instanceId ?? `${process.pid}`,
         setInterval: given.setInterval ?? ((fn, ms) => { const t = setInterval(fn, ms); t.unref?.(); return t; }),
         clearInterval: given.clearInterval ?? ((h) => clearInterval(h as ReturnType<typeof setInterval>)),
