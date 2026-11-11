@@ -137,6 +137,12 @@ test('field service: the lookups and the rollups read back from the installed ro
         assert.equal(harbour.open_value, 680 + 290, 'open value sums the open jobs only');
         const techs = await read('tbl_fstech');
         assert.equal(techs.find((x) => x.name === 'Alex Morgan').open_jobs, 2, 'open jobs per lead technician');
+        // The crew is a many relation, seeded as [{ $ref }] and linked once every row exists.
+        const nameOf = new Map(techs.map((x) => [x.id, x.name]));
+        const crewOf = (title) => (jobs.find((j) => j.title === title).crew || []).map((id) => nameOf.get(id)).sort();
+        assert.deepEqual(crewOf('Annual boiler service'), ['Robin Patel', 'Sam Rivera'], 'a crew of two reads back as the technicians');
+        assert.deepEqual(crewOf('Replace fuse box'), ['Robin Patel']);
+        assert.ok(jobs.every((j) => Array.isArray(j.crew) && j.crew.length > 0), 'every sample job has a crew');
     } finally {
         await data.close();
     }

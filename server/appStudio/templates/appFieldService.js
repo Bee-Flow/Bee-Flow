@@ -24,8 +24,8 @@
  * and the summary's automation is left unset (`action.automation_unset`) like
  * every other template that hands work to an automation.
  *
- * The crew of the sample jobs is empty: a template seed fills single relations
- * ({ $ref }), not lists of them. Book a job to see a crew on the card.
+ * The sample jobs carry a crew: a many relation is seeded as a list of
+ * { $ref }, linked in a pass after every row exists (seedLinks.mts).
  */
 
 'use strict';
@@ -180,14 +180,14 @@ module.exports = {
             { $id: 'c4', name: 'Maple Bakery', address: 'Market Square 3', city: 'Haarlem', contact_email: 'hello@example.com' },
         ],
         tbl_fsjob: [
-            { title: 'Replace fuse box', customer: { $ref: 'c1' }, lead: { $ref: 't1' }, status: 'scheduled', priority: 'urgent', scheduled_on: '2026-11-12', due_on: '2026-11-13', hours: 4, price: 680, cost_price: 410, notes: 'Bring the new three-phase unit.' },
-            { title: 'Leaking pipe in the kitchen', customer: { $ref: 'c4' }, lead: { $ref: 't2' }, status: 'in_progress', priority: 'urgent', scheduled_on: '2026-11-10', due_on: '2026-11-10', hours: 2, price: 240, cost_price: 130 },
-            { title: 'Annual boiler service', customer: { $ref: 'c3' }, lead: { $ref: 't3' }, status: 'scheduled', priority: 'normal', scheduled_on: '2026-11-14', due_on: '2026-11-21', hours: 3, price: 320, cost_price: 190 },
-            { title: 'Classroom lights flicker', customer: { $ref: 'c2' }, lead: { $ref: 't1' }, status: 'new', priority: 'normal', due_on: '2026-11-08', hours: 2, price: 210, cost_price: 120, notes: 'Room 2.14 and the corridor.' },
-            { title: 'Install radiator valves', customer: { $ref: 'c3' }, lead: { $ref: 't3' }, status: 'new', priority: 'low', due_on: '2026-11-28', hours: 5, price: 560, cost_price: 340 },
-            { title: 'Check the emergency lighting', customer: { $ref: 'c1' }, lead: { $ref: 't4' }, status: 'scheduled', priority: 'normal', scheduled_on: '2026-11-17', due_on: '2026-11-20', hours: 3, price: 290, cost_price: 160 },
-            { title: 'Replace the bathroom tap', customer: { $ref: 'c2' }, lead: { $ref: 't2' }, status: 'done', priority: 'low', scheduled_on: '2026-11-04', due_on: '2026-11-07', hours: 1, price: 140, cost_price: 70 },
-            { title: 'Paint the stairwell', customer: { $ref: 'c4' }, lead: { $ref: 't4' }, status: 'done', priority: 'low', scheduled_on: '2026-11-03', due_on: '2026-11-06', hours: 6, price: 480, cost_price: 300 },
+            { title: 'Replace fuse box', customer: { $ref: 'c1' }, lead: { $ref: 't1' }, crew: [{ $ref: 't4' }], status: 'scheduled', priority: 'urgent', scheduled_on: '2026-11-12', due_on: '2026-11-13', hours: 4, price: 680, cost_price: 410, notes: 'Bring the new three-phase unit.' },
+            { title: 'Leaking pipe in the kitchen', customer: { $ref: 'c4' }, lead: { $ref: 't2' }, crew: [{ $ref: 't1' }], status: 'in_progress', priority: 'urgent', scheduled_on: '2026-11-10', due_on: '2026-11-10', hours: 2, price: 240, cost_price: 130 },
+            { title: 'Annual boiler service', customer: { $ref: 'c3' }, lead: { $ref: 't3' }, crew: [{ $ref: 't2' }, { $ref: 't4' }], status: 'scheduled', priority: 'normal', scheduled_on: '2026-11-14', due_on: '2026-11-21', hours: 3, price: 320, cost_price: 190 },
+            { title: 'Classroom lights flicker', customer: { $ref: 'c2' }, lead: { $ref: 't1' }, crew: [{ $ref: 't4' }], status: 'new', priority: 'normal', due_on: '2026-11-08', hours: 2, price: 210, cost_price: 120, notes: 'Room 2.14 and the corridor.' },
+            { title: 'Install radiator valves', customer: { $ref: 'c3' }, lead: { $ref: 't3' }, crew: [{ $ref: 't2' }], status: 'new', priority: 'low', due_on: '2026-11-28', hours: 5, price: 560, cost_price: 340 },
+            { title: 'Check the emergency lighting', customer: { $ref: 'c1' }, lead: { $ref: 't4' }, crew: [{ $ref: 't1' }], status: 'scheduled', priority: 'normal', scheduled_on: '2026-11-17', due_on: '2026-11-20', hours: 3, price: 290, cost_price: 160 },
+            { title: 'Replace the bathroom tap', customer: { $ref: 'c2' }, lead: { $ref: 't2' }, crew: [{ $ref: 't3' }], status: 'done', priority: 'low', scheduled_on: '2026-11-04', due_on: '2026-11-07', hours: 1, price: 140, cost_price: 70 },
+            { title: 'Paint the stairwell', customer: { $ref: 'c4' }, lead: { $ref: 't4' }, crew: [{ $ref: 't1' }, { $ref: 't3' }], status: 'done', priority: 'low', scheduled_on: '2026-11-03', due_on: '2026-11-06', hours: 6, price: 480, cost_price: 300 },
         ],
     },
     definition: {
