@@ -13,9 +13,9 @@
  * host theme is not modelled. Only a warning: the definition saves and publishes.
  */
 
-interface Finding { code: string; severity: string; path: string; message: string; hint: string }
+export interface Finding { code: string; severity: string; path: string; message: string; hint: string }
 type Push = (rec: Finding) => void;
-type Mode = 'light' | 'dark';
+export type Mode = 'light' | 'dark';
 type Obj = Record<string, unknown>;
 
 /** WCAG AA for body text. */
@@ -66,7 +66,7 @@ export function modesOf(theme: unknown): Mode[] {
 }
 
 /** The text colour on the node per theme mode, or null where it cannot be computed. */
-function textColour(color: unknown, mode: Mode, theme: unknown): string | null {
+export function textColour(color: unknown, mode: Mode, theme: unknown): string | null {
     if (color === undefined || color === null) return THEME_TEXT[mode].primary;
     if (isHexColor(color)) return color;
     if (color === 'neutral') return THEME_TEXT[mode].secondary;
@@ -77,45 +77,61 @@ function textColour(color: unknown, mode: Mode, theme: unknown): string | null {
     return typeof color === 'string' && Object.hasOwn(ROLE_HEX, color) ? ROLE_HEX[color] : null;
 }
 
-/** The worst text contrast on this node's hex fill, or null when there is nothing to check. */
-function worstContrast(node: Obj, theme: unknown): { ratio: number; modes: Mode[]; fill: string } | null {
-    const style = node.style;
-    if (!isObj(style) || !isHexColor(style.backgroundColor)) return null;
-    if (typeof node.type !== 'string' || NO_TEXT_TYPES.has(node.type)) return null;
-    if (node.type === 'card' && isObj(node.props) && CARD_FILL_LOOKS.has(String(node.props.look))) return null;
-    const fill = style.backgroundColor;
+/**
+ * Does the node paint its backgroundColor knob behind text of its own? Not for the types without
+ * text, nor for a card whose look or variant (outlined: transparent, AppCardVariants.css) paints
+ * its own surface over the knob.
+ */
+export function nodeShowsFill(node: Obj): boolean {
+    if (typeof node.type !== 'string' || NO_TEXT_TYPES.has(node.type)) return false;
+    if (node.type !== 'card' || !isObj(node.props)) return true;
+    return !CARD_FILL_LOOKS.has(String(node.props.look)) && node.props.variant !== 'outlined';
+}
+
+/** The worst contrast of the text `color` on `fill` over the theme modes, or null when every mode reads. */
+export function pairFailure(fill: string, color: unknown, theme: unknown): { ratio: number; modes: Mode[] } | null {
     let ratio = Infinity;
     const failing: Mode[] = [];
     for (const mode of modesOf(theme)) {
-        const text = textColour(style.color, mode, theme);
+        const text = textColour(color, mode, theme);
         if (!text) continue;
         const r = contrastRatio(fill, text);
         if (r < MIN_CONTRAST) failing.push(mode);
         ratio = Math.min(ratio, r);
     }
-    return failing.length ? { ratio, modes: failing, fill } : null;
+    return failing.length ? { ratio, modes: failing } : null;
+}
+
+const FILL_HINT = 'A hex fill stays the same in every theme while the text follows the theme. Use a role (a wash that follows the theme), pick a lighter or darker hex, set the text color knob where the type has one, or fix theme.appearance to light or dark.';
+
+/** The style.low_contrast warning for `fill` at `path`; `label` names the fill in the message. */
+export function lowContrastWarning(path: string, label: string, fill: string, failure: { ratio: number; modes: Mode[] }, hint: string = FILL_HINT): Finding {
+    const where = failure.modes.length === 2 ? 'in the light theme and in the dark one' : `in the ${failure.modes[0]} theme`;
+    return {
+        code: 'style.low_contrast',
+        severity: 'warning',
+        path,
+        message: `${label} ${fill} leaves the text on it at ${failure.ratio.toFixed(1)}:1 ${where}; body text needs ${MIN_CONTRAST}:1.`,
+        hint,
+    };
 }
 
 function warnNode(node: Obj, path: string, theme: unknown, pushW: Push): void {
-    const found = worstContrast(node, theme);
-    if (!found) return;
-    const where = found.modes.length === 2 ? 'in the light theme and in the dark one' : `in the ${found.modes[0]} theme`;
-    pushW({
-        code: 'style.low_contrast',
-        severity: 'warning',
-        path: `${path}.style.backgroundColor`,
-        message: `backgroundColor ${found.fill} leaves the text on it at ${found.ratio.toFixed(1)}:1 ${where}; body text needs ${MIN_CONTRAST}:1.`,
-        hint: 'A hex fill stays the same in every theme while the text follows the theme. Use a role (a wash that follows the theme), pick a lighter or darker hex, set the text color knob where the type has one, or fix theme.appearance to light or dark.',
-    });
+    const style = node.style;
+    if (!isObj(style) || !isHexColor(style.backgroundColor) || !nodeShowsFill(node)) return;
+    const failure = pairFailure(style.backgroundColor, style.color, theme);
+    if (failure) pushW(lowContrastWarning(`${path}.style.backgroundColor`, 'backgroundColor', style.backgroundColor, failure));
 }
 
-function walk(nodes: unknown, path: string, depth: number, theme: unknown, pushW: Push): void {
+type Visit = (node: Obj, path: string, theme: unknown) => void;
+
+function walk(nodes: unknown, path: string, depth: number, theme: unknown, visit: Visit): void {
     if (!Array.isArray(nodes) || depth > MAX_WALK_DEPTH) return;
     nodes.forEach((node, i) => {
         if (!isObj(node)) return;
         const p = `${path}[${i}]`;
-        warnNode(node, p, theme, pushW);
-        walk(node.children, `${p}.children`, depth + 1, theme, pushW);
+        visit(node, p, theme);
+        walk(node.children, `${p}.children`, depth + 1, theme, visit);
     });
 }
 
@@ -125,13 +141,18 @@ export function scopedTheme(theme: unknown, screen: Obj, section: Obj): unknown 
     return { ...(isObj(theme) ? theme : {}), ...(isObj(screen.theme) ? screen.theme : {}), ...(isObj(section.theme) ? section.theme : {}) };
 }
 
-/** Warn for every node whose hex backgroundColor leaves its text below the AA contrast. */
-export function checkBoxContrast(def: Obj, screens: unknown, pushW: Push): void {
+/** Call `visit` for every node of every section, with its path and the theme its section sees. */
+export function eachSectionNode(def: Obj, screens: unknown, visit: Visit): void {
     if (!Array.isArray(screens)) return;
     screens.forEach((screen, si) => {
         if (!isObj(screen) || !Array.isArray(screen.sections)) return;
         screen.sections.forEach((section, ci) => {
-            if (isObj(section)) walk(section.children, `screens[${si}].sections[${ci}].children`, 0, scopedTheme(def.theme, screen, section), pushW);
+            if (isObj(section)) walk(section.children, `screens[${si}].sections[${ci}].children`, 0, scopedTheme(def.theme, screen, section), visit);
         });
     });
+}
+
+/** Warn for every node whose hex backgroundColor leaves its text below the AA contrast. */
+export function checkBoxContrast(def: Obj, screens: unknown, pushW: Push): void {
+    eachSectionNode(def, screens, (node, path, theme) => warnNode(node, path, theme, pushW));
 }
