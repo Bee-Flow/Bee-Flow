@@ -102,18 +102,27 @@ export function resolveBlockTheme(host: HTMLElement | null): BlockTheme {
     }
 }
 
-/** The look as the frame's `--bf-<name>` variables (shared/blockTemplate/frame.mjs writes and filters them). */
+const FRAME_PREFIX = '--bf-';
+
+/**
+ * The custom properties the frame document sets from the look (shared/blockTemplate/frame.mjs
+ * writes them into the frame's `:root`), each with the key of the look it holds. A block's
+ * stylesheet reads these; the page's own variables do not reach the frame.
+ */
+export const FRAME_VARIABLES: ReadonlyArray<[Exclude<keyof BlockTheme, 'appearance'>, string]> = [
+    ['primary', '--bf-primary'],
+    ['primaryContrast', '--bf-primary-contrast'],
+    ['accent', '--bf-accent'],
+    ['background', '--bf-background'],
+    ['surface', '--bf-surface'],
+    ['text', '--bf-text'],
+    ['textMuted', '--bf-text-muted'],
+    ['border', '--bf-border'],
+    ['radius', '--bf-radius'],
+    ['font', '--bf-font'],
+];
+
+/** The look as the frame's `--bf-<name>` variables, by `<name>` (shared/blockTemplate/frame.mjs writes and filters them). */
 export function themeVariablesOf(theme: BlockTheme): Record<string, string> {
-    return {
-        primary: theme.primary,
-        'primary-contrast': theme.primaryContrast,
-        accent: theme.accent,
-        background: theme.background,
-        surface: theme.surface,
-        text: theme.text,
-        'text-muted': theme.textMuted,
-        border: theme.border,
-        radius: theme.radius,
-        font: theme.font,
-    };
+    return Object.fromEntries(FRAME_VARIABLES.map(([key, name]) => [name.slice(FRAME_PREFIX.length), theme[key]]));
 }

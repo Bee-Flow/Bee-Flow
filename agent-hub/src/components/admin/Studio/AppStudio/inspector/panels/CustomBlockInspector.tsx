@@ -11,6 +11,7 @@ import { registerInspector } from '../registry';
 import { updateNodeProps } from '../../state/definitionOps';
 import { BLOCK_CSS_MAX, sanitizeBlockCssClient } from '../../runtime/components/customBlock/blockCss';
 import { blockEntries, buildBlockFrame, type BlockFinding, type BlockValue } from '../../runtime/components/customBlock/blockPipeline';
+import { FRAME_VARIABLES } from '../../runtime/components/customBlock/blockTheme';
 import BindingField from './BindingField';
 import { INPUT_CLS } from './kit';
 import type { AppDefinition, AppNode, PanelProps } from '../appDefinition';
@@ -39,7 +40,7 @@ const ROW_BUTTON = 'inline-flex items-center gap-1 rounded border border-[var(--
 /** Code, not prose: shown as written in every language. */
 const TEMPLATE_EXAMPLE = '<ul>\n  <li data-each="rows as row">{{ row.name }}</li>\n</ul>';
 const CSS_EXAMPLE = '.card { padding: 12px; border: 1px solid var(--bf-border); }';
-const LOOK_VARIABLES = '--bf-primary --bf-primary-contrast --bf-accent --bf-background --bf-surface --bf-text --bf-text-muted --bf-border --bf-radius --bf-font';
+const LOOK_VARIABLES = FRAME_VARIABLES.map(([, name]) => name).join(' ');
 
 const textOf = (value: unknown): string => (typeof value === 'string' ? value : '');
 
@@ -79,7 +80,7 @@ function Findings({ findings, t }: { findings: BlockFinding[]; t: T }) {
     if (!findings.length) return null;
     return (
         <div role="status" data-custom-block-findings={findings.length} className="rounded-md border border-[var(--border-default)] px-2 py-1.5">
-            <p className="text-[11px] font-medium text-[var(--status-warning,#b45309)]">{t('studio_apps_block.findings_title', 'Left out when the block is saved:')}</p>
+            <p className="text-[11px] font-medium text-[var(--warning-ink)]">{t('studio_apps_block.findings_title', 'Left out when the block is saved:')}</p>
             <ul className="mt-1 flex flex-col gap-0.5 text-[11px] text-[var(--text-secondary)]">
                 {findings.slice(0, 20).map((finding, i) => (
                     <li key={`${finding.line}:${i}`}>
@@ -121,7 +122,7 @@ function TextTabs({ block, patch, disabled, findings, t }: { block: BlockValue; 
             />
             {tab === 'template' ? (
                 <div className="space-y-1">
-                    <label htmlFor={`${id}-template`} className="block text-[10px] uppercase tracking-wide text-[var(--text-tertiary)]">{t('studio_apps_block.template_label', 'HTML template')}</label>
+                    <label htmlFor={`${id}-template`} className="block text-[11px] uppercase tracking-wide text-[var(--text-secondary)]">{t('studio_apps_block.template_label', 'HTML template')}</label>
                     <textarea
                         id={`${id}-template`}
                         rows={12}
@@ -161,7 +162,7 @@ function Preview({ doc, problems, t }: { doc: string; problems: string[]; t: T }
                 className="block h-40 w-full rounded-md border border-[var(--border-default)] bg-[var(--bg-primary)]"
             />
             <p className={`mt-1 ${HINT}`}>{t('studio_apps_block.preview_hint', 'With the inputs that hold a fixed value. The canvas shows the block with the data of the app.')}</p>
-            {problems.length ? <p className="mt-1 break-words text-[11px] text-[var(--status-danger,#b91c1c)]" role="status">{problems[0]}</p> : null}
+            {problems.length ? <p className="mt-1 break-words text-[11px] text-[var(--error-ink)]" role="status">{problems[0]}</p> : null}
         </FormField>
     );
 }

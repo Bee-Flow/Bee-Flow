@@ -216,7 +216,7 @@ export default function AppCustomBlock({ node }: NodeProps<BlockProps>) {
             />
             {editing ? <div className="absolute inset-0" data-custom-block-shield="true" aria-hidden="true" /> : null}
             {editing && frame.problems.length > 0 ? (
-                <p className="relative mt-1 break-words text-xs text-[var(--status-danger,#b91c1c)]" role="status" data-custom-block-problem="true">
+                <p className="relative mt-1 break-words text-xs text-[var(--error-ink)]" role="status" data-custom-block-problem="true">
                     {frame.problems[0]}
                 </p>
             ) : null}
