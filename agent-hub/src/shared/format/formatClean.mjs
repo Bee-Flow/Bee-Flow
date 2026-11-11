@@ -19,6 +19,7 @@
  */
 
 import { isDatePattern, MAX_PATTERN_LEN } from './datePattern.mjs';
+import { sameJsonValue } from './sameJsonValue.mjs';
 
 export const FORMAT_LIMITS = Object.freeze({
     MAX_DECIMALS: 10,
@@ -190,7 +191,8 @@ export function shapeProblems(value, cleaner, path) {
     /** @type {{ path: string, message: string }[]} */
     const problems = [];
     const cleaned = cleaner(value, (_code, at, message) => problems.push({ path: at, message }), path);
-    if (!problems.length && JSON.stringify(cleaned) !== JSON.stringify(value)) {
+    // Key order is not form: a definition read back from JSONB carries its keys in another order.
+    if (!problems.length && !sameJsonValue(cleaned, value)) {
         problems.push({ path, message: `${path} is not in its canonical form — run the definition through canonicalize.` });
     }
     return problems;

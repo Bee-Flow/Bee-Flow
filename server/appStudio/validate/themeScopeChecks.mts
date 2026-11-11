@@ -16,6 +16,7 @@ import { createRequire } from 'node:module';
 import { contrastRatio, isHexColor, MIN_CONTRAST, modesOf, THEME_TEXT } from './boxContrast.mts';
 import { colourTokenNames, definitionStyles } from '../designTokens.mts';
 import { cleanScreenTheme, cleanSectionTheme } from '../canonicalize/scopeTheme.mts';
+import { sameJsonValue } from '../../shared/format/sameJsonValue.mjs';
 import type { Finding } from '../definitionKeyRegistry.mts';
 
 type Obj = Record<string, unknown>;
@@ -31,7 +32,7 @@ const isObj = (v: unknown): v is Obj => v !== null && typeof v === 'object' && !
 function checkOverrideForm(value: unknown, clean: Cleaner, path: string, pushE: PushFinding): void {
     const problems: { path: string; message: string }[] = [];
     const cleaned = clean(value, path, (_code, at, message) => problems.push({ path: at, message }));
-    if (!problems.length && JSON.stringify(cleaned) !== JSON.stringify(value)) problems.push({ path, message: `${path} is not in its canonical form.` });
+    if (!problems.length && !sameJsonValue(cleaned, value)) problems.push({ path, message: `${path} is not in its canonical form.` });
     for (const p of problems) {
         pushE({ code: 'theme_override.invalid', severity: 'error', path: p.path, message: p.message, hint: 'Name only theme keys with a legal value (#rrggbb for the colours); a section takes every key but canvas.' });
     }

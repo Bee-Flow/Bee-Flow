@@ -23,6 +23,7 @@
 
 import { randomBytes } from 'node:crypto';
 import { createRequire } from 'node:module';
+import { sameJsonValue } from '../shared/format/sameJsonValue.mjs';
 
 const nodeRequire = createRequire(import.meta.url);
 const { isAssetRef } = nodeRequire('./componentSpecs/valueTypes.js') as { isAssetRef: (v: unknown) => v is string };
@@ -213,5 +214,5 @@ export function checkNavShell(nav: unknown, screens: unknown[], pushE: PushFindi
         }
     }
     if (nav.footerText !== undefined && cleanText(nav.footerText, NAV_SHELL_LIMITS.MAX_FOOTER) !== nav.footerText) err('nav.value_invalid', 'nav.footerText', `nav.footerText must be text of at most ${NAV_SHELL_LIMITS.MAX_FOOTER} characters.`, 'Keep the footer to one short line.');
-    if (nav.brand !== undefined && JSON.stringify(cleanBrand(nav.brand, () => {})) !== JSON.stringify(nav.brand)) err('nav.brand_invalid', 'nav.brand', 'nav.brand must be { name?, logo?, showName? } in its stored form.', 'A logo is an https:// URL or asset:<id>.');
+    if (nav.brand !== undefined && !sameJsonValue(cleanBrand(nav.brand, () => {}), nav.brand)) err('nav.brand_invalid', 'nav.brand', 'nav.brand must be { name?, logo?, showName? } in its stored form.', 'A logo is an https:// URL or asset:<id>.');
 }
