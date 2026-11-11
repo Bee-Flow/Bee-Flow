@@ -19,6 +19,14 @@ runs:
         node-version-file: .nvmrc
         cache: npm
         cache-dependency-path: ${{ inputs.directory }}/package-lock.json
+    # Native modules build in parallel install scripts; with the headers already
+    # cached none of them downloads them, so they cannot read a half-written
+    # common.gypi (#627).
+    - name: Prefetch Node headers
+      shell: bash
+      env:
+        PACKAGE_DIR: ${{ inputs.directory }}
+      run: bash "$(git rev-parse --show-toplevel)/scripts/prefetch-node-headers.sh" "$PACKAGE_DIR"
     - name: Install dependencies
       shell: bash
       working-directory: ${{ inputs.directory }}
