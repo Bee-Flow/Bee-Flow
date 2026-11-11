@@ -83,6 +83,8 @@ const MOCKS = {
         hasPermission: async () => true,
         isSuperAdmin: (req) => !!(req.session?.isAdmin || req.session?.user?.role === 'admin'),
         resolveUserOrgIds: async () => new Set(['orgA']),
+        // No `?orgId` in these requests: the caller's own organisation.
+        resolveChosenOrgId: async (_req, own) => own,
         SYSTEM_PERMISSIONS: [],
         getOrgRolePermissions: () => fx.orgRolePermissions,
         OrgRoles: { ORG_ADMIN: 'org_admin' },

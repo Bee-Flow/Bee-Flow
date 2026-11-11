@@ -11,7 +11,7 @@ const { fallback } = require('../../utils/bestEffort');
 const router = express.Router();
 
 const userStore = require('../../stores/userStore');
-const { requireAuth } = require('../permissions');
+const { requireAuth, resolveChosenOrgId } = require('../permissions');
 const { perUserRateLimit } = require('../../utils/perUserRateLimit');
 const { isOrgAdminForOrg } = require('./orgAdminGuards');
 const { getOrgRolePermissions } = require('../permissions');
@@ -80,6 +80,17 @@ function _checkEmailInviteCooldown(email) {
     return true;
 }
 
+/**
+ * The organisation these routes work on: the caller's own (users.organizationId),
+ * or the one a platform admin names with `?orgId` in the admin dashboard
+ * (resolveChosenOrgId: unknown 404; anyone else may name only their own, 403).
+ * @param {import('express').Request} req @param {{ organizationId?: string | null }} user
+ * @returns {Promise<string | null>}
+ */
+async function invitationOrgId(req, user) {
+    return resolveChosenOrgId(req, user.organizationId || null);
+}
+
 // Create invitation + send email
 router.post('/invitations', requireAuth, invitationInviterLimiter, validate({ body: InvitationBody }), async (req, res) => {
     const { email, role } = req.body;
@@ -95,7 +106,7 @@ router.post('/invitations', requireAuth, invitationInviterLimiter, validate({ bo
     if (!user) return res.status(401).json({ error: 'Not authenticated' });
 
     // Must be org admin
-    const orgId = user.organizationId;
+    const orgId = await invitationOrgId(req, user);
     if (!orgId) return res.status(403).json({ error: 'You are not part of an organisation' });
     if (!(await isOrgAdminForOrg(req, orgId))) {
         return res.status(403).json({ error: 'Only organisation admins can send invitations' });
@@ -230,13 +241,14 @@ router.post('/invitations', requireAuth, invitationInviterLimiter, validate({ bo
 router.get('/invitations', requireAuth, async (req, res) => {
     const userId = req.session?.user?.id;
     const user = await userStore.getUser(userId);
-    if (!user?.organizationId) return res.json([]);
+    const orgId = user ? await invitationOrgId(req, user) : null;
+    if (!orgId) return res.json([]);
 
-    if (!(await isOrgAdminForOrg(req, user.organizationId))) {
+    if (!(await isOrgAdminForOrg(req, orgId))) {
         return res.status(403).json({ error: 'Only organisation admins can view invitations' });
     }
 
-    const invitations = await invitationStore.getInvitationsForOrg(user.organizationId);
+    const invitations = await invitationStore.getInvitationsForOrg(orgId);
 
     // Enrich with inviter display name
     const enriched = await Promise.all(invitations.map(async (inv) => {
@@ -251,15 +263,17 @@ router.get('/invitations', requireAuth, async (req, res) => {
 router.delete('/invitations/:id', requireAuth, async (req, res) => {
     const userId = req.session?.user?.id;
     const user = await userStore.getUser(userId);
-    if (!user?.organizationId) return res.status(403).json({ error: 'Not in an organisation' });
-    if (!(await isOrgAdminForOrg(req, user.organizationId))) {
+    const orgId = user ? await invitationOrgId(req, user) : null;
+    if (!user || !orgId) return res.status(403).json({ error: 'Not in an organisation' });
+    if (!(await isOrgAdminForOrg(req, orgId))) {
         return res.status(403).json({ error: 'Only organisation admins can revoke invitations' });
     }
 
     // Snapshot before destructive delete so the audit trail preserves the
-    // grant terms (role, groups, target email, issuer).
-    let prevInvite = null;
-    try { prevInvite = await invitationStore.getInvitationById(req.params.id); } catch (_) { prevInvite = null; }
+    // grant terms (role, groups, target email, issuer). Only an invitation of
+    // this organisation: any other id is the same 404 as a missing one.
+    const prevInvite = await invitationStore.getInvitationById(req.params.id);
+    if (!prevInvite || prevInvite.organization_id !== orgId) throw new HttpError(404, 'invitation_not_found', 'Invitation not found');
 
     const revoked = await invitationStore.deleteInvitation(req.params.id);
     if (revoked) {
@@ -268,15 +282,15 @@ router.delete('/invitations/:id', requireAuth, async (req, res) => {
             'invitation',
             /** @type {string} */ (req.params.id),
             userId || null,
-            prevInvite ? {
+            {
                 email: prevInvite.email,
                 orgRole: prevInvite.org_role || prevInvite.orgRole,
                 groups: prevInvite.groups,
                 invited_by: prevInvite.invited_by,
                 organization_id: prevInvite.organization_id,
-            } : null,
+            },
             null,
-            user.organizationId,
+            orgId,
         );
     }
     res.json({ success: revoked });

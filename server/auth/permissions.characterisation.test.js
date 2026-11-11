@@ -153,7 +153,7 @@ test('export keys are exactly the monolith\'s, in order', () => {
         // The gate of instance-wide settings (auth/requirePlatformAdmin.js).
         'hasPlatformAdminAccess', 'requirePlatformAdmin',
         // The admin dashboard's organisation (auth/adminOrg.mts).
-        'resolveAdminOrgId', 'requireAdminOrg',
+        'resolveAdminOrgId', 'requireAdminOrg', 'resolveChosenOrgId',
         // A permission in one organisation (auth/permissionGrants.mts).
         'resolvePermissionsByOrg', 'hasPermissionInOrg',
         // The organisations the caller administers (auth/permissionsOrgGates.js).
@@ -531,6 +531,60 @@ test('requirePrimaryOrgAdmin asks _evalOrgAdmin of the org it resolved', async (
     const admitted = { session: session({ id: 'a' }) };
     assert.equal((await run(gate, admitted)).status, 'next');
     assert.equal(admitted.primaryOrgId, 'other');
+});
+
+// `?orgId`, the organisation the admin dashboard chose: a platform admin names
+// any existing org; anyone else only their own (the 'all' permission is not a
+// platform admin). Refusals go to next(err) as HttpError.
+test('requirePrimaryOrgAdmin with ?orgId', async () => {
+    fx.orgs = { home: { id: 'home' }, b: { id: 'b' } };
+    fx.users.u = { id: 'u', orgRole: 'org_admin', organizationId: 'home', groups: [] };
+    fx.users.all = { id: 'all', orgRole: 'org_admin', organizationId: 'home', groups: ['g-all'] };
+    fx.groups = [{ id: 'g-all', organizationId: 'home', permissions: ['all'] }];
+    const gate = perms.requirePrimaryOrgAdmin();
+    /** @param {object} sess @param {Record<string, unknown>} query */
+    async function pass(sess, query) {
+        const req = { session: sess, query };
+        let err;
+        const res = mkRes();
+        let nexted = false;
+        await gate(req, res, (e) => { nexted = true; err = e; });
+        return { req, err, status: !nexted ? res.statusCode : (err ? err.status : 'next'), code: err?.code };
+    }
+    const platform = session({ id: 'p', role: 'admin', organizationId: 'home' });
+    const toB = await pass(platform, { orgId: 'b' });
+    assert.deepEqual([toB.status, toB.req.primaryOrgId], ['next', 'b']);
+    assert.deepEqual([(await pass({ ...platform, isAdmin: true, user: { id: 'p2' } }, { orgId: 'b' })).req.primaryOrgId], ['b']);
+    assert.deepEqual(await pass(platform, { orgId: 'nope' }).then((r) => [r.status, r.code]), [404, 'organization_not_found']);
+    assert.deepEqual(await pass(platform, { orgId: ['b', 'home'] }).then((r) => [r.status, r.code]), [400, 'invalid_org_id']);
+    assert.equal((await pass(platform, {})).req.primaryOrgId, 'home', 'no orgId: their own org, as before');
+    assert.equal((await pass(platform, { orgId: '' })).req.primaryOrgId, 'home');
+
+    const own = await pass(session({ id: 'u' }), { orgId: 'home' });
+    assert.deepEqual([own.status, own.req.primaryOrgId], ['next', 'home']);
+    assert.equal((await pass(session({ id: 'u' }), {})).req.primaryOrgId, 'home');
+    const other = await pass(session({ id: 'u' }), { orgId: 'b' });
+    assert.deepEqual([other.status, other.code, other.req.primaryOrgId], [403, 'org_admin_required', undefined]);
+    assert.equal((await pass(session({ id: 'u' }), { orgId: 'nope' })).status, 403, 'an unknown org is a 403, not an existence oracle');
+    assert.deepEqual(await pass(session({ id: 'u' }), { orgId: ['home', 'home'] }).then((r) => [r.status, r.code]), [400, 'invalid_org_id']);
+    assert.equal((await pass(session({ id: 'all' }), { orgId: 'b' })).status, 403, "the 'all' permission is not a platform admin");
+    fx.users.m = { id: 'm', orgRole: 'member', organizationId: 'home' };
+    assert.equal((await pass(session({ id: 'm' }), { orgId: 'home' })).status, 403);
+});
+
+test('resolveChosenOrgId', async () => {
+    fx.orgs = { home: { id: 'home' }, b: { id: 'b' } };
+    const choose = (sess, query, own) => perms.resolveChosenOrgId({ session: sess, query }, own);
+    const platform = session({ id: 'p', role: 'admin' });
+    assert.equal(await choose(platform, { orgId: 'b' }, null), 'b');
+    assert.equal(await choose(platform, {}, '__system__'), '__system__');
+    await assert.rejects(choose(platform, { orgId: 'nope' }, null), { status: 404 });
+    await assert.rejects(choose(platform, { orgId: ['b'] }, null), { status: 400 });
+    const member = session({ id: 'u' });
+    assert.equal(await choose(member, {}, 'home'), 'home');
+    assert.equal(await choose(member, { orgId: 'home' }, 'home'), 'home');
+    await assert.rejects(choose(member, { orgId: 'b' }, 'home'), { status: 403, code: 'org_not_accessible' });
+    await assert.rejects(choose(member, { orgId: 'b' }, null), { status: 403 });
 });
 
 // ── 7. Studio helpers ────────────────────────────────────────────────────────
