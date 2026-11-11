@@ -3,8 +3,8 @@
  * tool needs beyond what the loader checks: a name no other tool surface uses, never on the
  * small-model menu, a chat verb whose key is in the English dictionary with that wording and in
  * the Dutch file of its namespace, and a place in the web's generated lists. Needs no edit for a
- * new tool. The folder ships empty, so the same rules run over the test-only fixture tools as
- * well (without the dictionary checks: their namespace is not shipped), so this file is never
+ * new tool. The same rules also run over the test-only fixture tools
+ * (without the dictionary checks: their namespace is not shipped), so this file is never
  * an empty pass.
  * Run: node --test appStudio/builderTools/toolRegistry.contract.test.js
  */
@@ -35,10 +35,17 @@ async function reservedNames() {
     ]);
 }
 
-/** The rules that hold for any registry tool, as sentences (empty when it passes). */
+const MCP_ONLY = new Set(STUDIO_TOOLS.map((t) => t.name));
+
+/**
+ * The rules that hold for any registry tool, as sentences (empty when it passes). A tool with
+ * `mcp: false` may carry the name of an MCP-only tool: it is that tool's in-product counterpart,
+ * never listed over MCP, so the endpoint keeps answering with its own.
+ */
 function surfaceProblems(/** @type {any} */ tool, /** @type {Set<string>} */ reserved) {
     const out = [];
-    if (reserved.has(tool.name)) out.push(`${tool.name}: the name is already a tool of the builder, the MCP endpoint or the question card`);
+    const counterpart = tool.mcp === false && MCP_ONLY.has(tool.name);
+    if (reserved.has(tool.name) && !counterpart) out.push(`${tool.name}: the name is already a tool of the builder, the MCP endpoint or the question card`);
     if (APP_CORE_TOOL_NAMES.has(tool.name)) out.push(`${tool.name}: a registry tool is never on the small-model menu`);
     return out;
 }
@@ -49,6 +56,9 @@ test('the rules run over the fixture tools too, so they are never an empty pass'
     for (const tool of fixtures) assert.deepEqual(surfaceProblems(tool, reserved), [], tool.name);
     assert.equal(surfaceProblems({ name: 'app_update_screen' }, reserved).length, 1, 'a base name is caught');
     assert.equal(surfaceProblems({ name: 'app_run_action' }, reserved).length, 1, 'an MCP-only name is caught');
+    assert.equal(surfaceProblems({ name: 'app_run_action', mcp: true }, reserved).length, 1, 'an MCP-only name offered over MCP again is caught');
+    assert.equal(surfaceProblems({ name: 'app_run_action', mcp: false }, reserved).length, 0, 'the in-product counterpart of an MCP-only tool passes');
+    assert.equal(surfaceProblems({ name: 'app_update_screen', mcp: false }, reserved).length, 1, 'a base name stays caught, offered over MCP or not');
     assert.equal(surfaceProblems({ name: 'app_ask_questions' }, reserved).length, 1, 'the question card is caught');
     assert.equal(surfaceProblems({ name: 'app_finalize' }, reserved).length, 2, 'a core name is caught');
 });

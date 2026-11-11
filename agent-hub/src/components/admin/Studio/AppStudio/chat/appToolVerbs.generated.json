@@ -1,1 +1,22 @@
-{}
+{
+    "app_get_run": {
+        "key": "studio_apps_tab.act_get_run",
+        "en": "Read a run"
+    },
+    "app_list_runs": {
+        "key": "studio_apps_tab.act_list_runs",
+        "en": "Read the run log"
+    },
+    "app_run_action": {
+        "key": "studio_apps_tab.act_run_action",
+        "en": "Test-ran an action"
+    },
+    "app_run_tests": {
+        "key": "studio_apps_tab.act_run_tests",
+        "en": "Ran the tests"
+    },
+    "app_save_test": {
+        "key": "studio_apps_tab.act_save_test",
+        "en": "Saved a test"
+    }
+}

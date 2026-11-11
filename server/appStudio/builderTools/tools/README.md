@@ -35,6 +35,9 @@ What a file here gets without any other edit:
   tools it lists through, so a read-only registry tool is refused there too.
 - **MCP.** `mcp: true` lists it on the Studio MCP endpoint with `appId` spliced in and a write
   annotation from `mutating`; `mcp: false` keeps it out of the list and out of `tools/call`.
+  A tool with `mcp: false` may take the name of an MCP-only tool (`../../mcpStudioTools.js`) as
+  its in-product counterpart: `app_run_action` here is the builder's dry-run-only version, and the
+  endpoint keeps answering with its own.
 
 The file is new server code, so it carries `// @typecheck strict` (scripts/check-new-code-types.mjs);
 keep the logic in a `.mts` module next to it and let `apply` call that.
@@ -51,5 +54,5 @@ What the package that adds a tool still does:
 4. `node --test server/appStudio/builderTools/toolRegistry.contract.test.js` and
    `toolNames.mirror.test.js`; `npx vitest run …/chat/appToolCallDisplay.test.ts` in agent-hub.
 
-`toolRegistry.contract.test.js` holds every file here to these rules. The folder ships empty: the
-test-only tools in `../__tests__/registryFixtureTools/` prove the mechanism.
+`toolRegistry.contract.test.js` holds every file here to these rules; the test-only tools in
+`../__tests__/registryFixtureTools/` prove the mechanism on its own.
