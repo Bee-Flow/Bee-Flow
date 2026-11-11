@@ -1,0 +1,2096 @@
+{
+  "about": {
+    "source": "server/appStudio/templates.js template \"app-inbound-orders\" version 1",
+    "stored": "definition = canonicalizeAppDefinition(deep clone of template.definition).def (routes/studioApps/crud.js create-from-template, no name override); dataModel = canonicalizeDataModel(template.dataModel).model (templateInstall.js); datasets as the template declares them",
+    "captured": "2026-11-11",
+    "templateId": "app-inbound-orders"
+  },
+  "definition": {
+    "schemaVersion": 3,
+    "meta": {
+      "name": "Inbound orders",
+      "description": "Orders that arrive by webhook, checked and filed.",
+      "icon": "PackageCheck"
+    },
+    "theme": {
+      "primary": "#B45309",
+      "radius": "md",
+      "density": "comfortable",
+      "fontScale": "md",
+      "appearance": "auto"
+    },
+    "roles": [],
+    "variables": [
+      {
+        "name": "orderId",
+        "label": "Open order",
+        "type": "text",
+        "default": "",
+        "description": "The order the Order screen shows"
+      },
+      {
+        "name": "productId",
+        "label": "Its product",
+        "type": "text",
+        "default": "",
+        "description": "The product of the open order"
+      },
+      {
+        "name": "externalId",
+        "label": "Its order id",
+        "type": "text",
+        "default": "",
+        "description": "The order id the sender gave, for the delivery log"
+      },
+      {
+        "name": "normalised",
+        "label": "Normalised delivery",
+        "type": "any",
+        "default": null,
+        "description": "What the code step made of a webhook delivery"
+      }
+    ],
+    "screens": [
+      {
+        "id": "scr_ioorders",
+        "name": "Orders",
+        "icon": "ShoppingCart",
+        "showInNav": true,
+        "maxWidth": "wide",
+        "sections": [
+          {
+            "id": "sec_iohead",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_ioph",
+                "type": "page_header",
+                "props": {
+                  "title": "Orders",
+                  "subtitle": "Everything the connected systems sent, newest first.",
+                  "titleFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "subtitleFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "tagsFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "icon": "PackageCheck",
+                  "showDivider": false,
+                  "look": "plain"
+                },
+                "style": {
+                  "span": 12,
+                  "gap": 3,
+                  "padding": 0
+                },
+                "visible": true,
+                "children": []
+              },
+              {
+                "id": "cmp_iostnew",
+                "type": "stat",
+                "props": {
+                  "label": "To pick",
+                  "value": {
+                    "kind": "aggregate",
+                    "tableId": "tbl_ioord",
+                    "filter": [
+                      {
+                        "field": "status",
+                        "op": "eq",
+                        "value": "received"
+                      }
+                    ],
+                    "aggregates": [
+                      {
+                        "fn": "count",
+                        "as": "n"
+                      }
+                    ],
+                    "pick": {
+                      "row": "first",
+                      "column": "n"
+                    }
+                  },
+                  "caption": null,
+                  "captionSegments": [],
+                  "icon": "Inbox",
+                  "delta": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "deltaFormat": "number",
+                  "trend": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "positiveIsGood": true,
+                  "look": "tile"
+                },
+                "style": {
+                  "span": 4,
+                  "spanSm": 12
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_iostpck",
+                "type": "stat",
+                "props": {
+                  "label": "Being picked",
+                  "value": {
+                    "kind": "aggregate",
+                    "tableId": "tbl_ioord",
+                    "filter": [
+                      {
+                        "field": "status",
+                        "op": "eq",
+                        "value": "picking"
+                      }
+                    ],
+                    "aggregates": [
+                      {
+                        "fn": "count",
+                        "as": "n"
+                      }
+                    ],
+                    "pick": {
+                      "row": "first",
+                      "column": "n"
+                    }
+                  },
+                  "caption": null,
+                  "captionSegments": [],
+                  "icon": "PackageOpen",
+                  "delta": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "deltaFormat": "number",
+                  "trend": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "positiveIsGood": true,
+                  "look": "tile"
+                },
+                "style": {
+                  "span": 4,
+                  "spanSm": 12
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_iostshp",
+                "type": "stat",
+                "props": {
+                  "label": "Shipped",
+                  "value": {
+                    "kind": "aggregate",
+                    "tableId": "tbl_ioord",
+                    "filter": [
+                      {
+                        "field": "status",
+                        "op": "eq",
+                        "value": "shipped"
+                      }
+                    ],
+                    "aggregates": [
+                      {
+                        "fn": "count",
+                        "as": "n"
+                      }
+                    ],
+                    "pick": {
+                      "row": "first",
+                      "column": "n"
+                    }
+                  },
+                  "caption": null,
+                  "captionSegments": [],
+                  "icon": "Truck",
+                  "delta": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "deltaFormat": "number",
+                  "trend": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "positiveIsGood": true,
+                  "look": "tile"
+                },
+                "style": {
+                  "span": 4,
+                  "spanSm": 12
+                },
+                "visible": true
+              }
+            ]
+          },
+          {
+            "id": "sec_iogrid",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_iogrd",
+                "type": "data_grid",
+                "props": {
+                  "source": {
+                    "kind": "records",
+                    "tableId": "tbl_ioord",
+                    "sort": [
+                      {
+                        "field": "received_at",
+                        "dir": "desc"
+                      }
+                    ],
+                    "limit": 50
+                  },
+                  "columns": [
+                    {
+                      "key": "ref",
+                      "label": "#",
+                      "format": "number",
+                      "width": 56
+                    },
+                    {
+                      "key": "external_id",
+                      "label": "Order id",
+                      "format": "text"
+                    },
+                    {
+                      "key": "customer_name",
+                      "label": "Customer",
+                      "format": "text"
+                    },
+                    {
+                      "key": "product_name",
+                      "label": "Product",
+                      "format": "text"
+                    },
+                    {
+                      "key": "quantity",
+                      "label": "Qty",
+                      "format": "number",
+                      "align": "right"
+                    },
+                    {
+                      "key": "total",
+                      "label": "Total",
+                      "format": "currency",
+                      "align": "right"
+                    },
+                    {
+                      "key": "status",
+                      "label": "Status",
+                      "format": "badge",
+                      "toneMap": [
+                        {
+                          "value": "received",
+                          "label": "Received",
+                          "tone": "info"
+                        },
+                        {
+                          "value": "picking",
+                          "label": "Picking",
+                          "tone": "warning"
+                        },
+                        {
+                          "value": "shipped",
+                          "label": "Shipped",
+                          "tone": "success"
+                        },
+                        {
+                          "value": "cancelled",
+                          "label": "Cancelled",
+                          "tone": "neutral"
+                        }
+                      ]
+                    },
+                    {
+                      "key": "received_at",
+                      "label": "Received",
+                      "format": "relative"
+                    }
+                  ],
+                  "pageSize": 25,
+                  "selectable": "none",
+                  "searchable": true,
+                  "rowActions": [],
+                  "toolbarActions": [],
+                  "addRowLabel": null,
+                  "addRowActionId": null,
+                  "bulkActions": [],
+                  "density": "comfortable",
+                  "clamp": "off",
+                  "rowTone": [],
+                  "groupBy": null,
+                  "groupOrder": [],
+                  "activeWhen": null,
+                  "zebra": false,
+                  "emptyText": "No orders yet. Publish the app and connect a system to start.",
+                  "look": "default",
+                  "pagination": "loadMore"
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true,
+                "onRowClick": "act_ioopen"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "scr_ioorder",
+        "name": "Order",
+        "icon": "Receipt",
+        "showInNav": false,
+        "maxWidth": "medium",
+        "sections": [
+          {
+            "id": "sec_ioorder",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_ioback",
+                "type": "button",
+                "props": {
+                  "label": "All orders",
+                  "variant": "ghost",
+                  "iconLeft": "ArrowLeft",
+                  "role": "button",
+                  "disabledWhen": null
+                },
+                "style": {
+                  "span": 3,
+                  "spanSm": 12
+                },
+                "visible": true,
+                "onClick": "act_ioback"
+              },
+              {
+                "id": "cmp_iopick",
+                "type": "button",
+                "props": {
+                  "label": "Start picking",
+                  "variant": "soft",
+                  "iconLeft": "PackageOpen",
+                  "role": "button",
+                  "disabledWhen": null
+                },
+                "style": {
+                  "span": 3,
+                  "spanSm": 6
+                },
+                "visible": true,
+                "onClick": "act_iopicking"
+              },
+              {
+                "id": "cmp_ioship",
+                "type": "button",
+                "props": {
+                  "label": "Mark shipped",
+                  "variant": "primary",
+                  "iconLeft": "Truck",
+                  "role": "button",
+                  "disabledWhen": null
+                },
+                "style": {
+                  "span": 3,
+                  "spanSm": 6
+                },
+                "visible": true,
+                "onClick": "act_ioshipped"
+              },
+              {
+                "id": "cmp_iotabs",
+                "type": "tabs",
+                "props": {
+                  "look": "underline"
+                },
+                "style": {
+                  "span": 12,
+                  "gap": 3,
+                  "padding": 0
+                },
+                "visible": true,
+                "children": [
+                  {
+                    "id": "cmp_iotabo",
+                    "type": "tab",
+                    "props": {
+                      "label": "Order",
+                      "icon": "Receipt",
+                      "badge": null,
+                      "badgeTone": "neutral"
+                    },
+                    "style": {
+                      "gap": 3,
+                      "padding": 0
+                    },
+                    "visible": true,
+                    "children": [
+                      {
+                        "id": "cmp_iostep",
+                        "type": "repeater",
+                        "props": {
+                          "source": {
+                            "kind": "records",
+                            "tableId": "tbl_ioord",
+                            "filter": [
+                              {
+                                "field": "id",
+                                "op": "eq",
+                                "value": {
+                                  "kind": "formula",
+                                  "expr": "vars.orderId"
+                                }
+                              }
+                            ],
+                            "limit": 1
+                          },
+                          "itemActions": [],
+                          "emptyText": "Pick an order."
+                        },
+                        "style": {
+                          "span": 12,
+                          "gap": 3,
+                          "padding": 0
+                        },
+                        "visible": true,
+                        "children": [
+                          {
+                            "id": "cmp_iostpr",
+                            "type": "stepper",
+                            "props": {
+                              "value": {
+                                "kind": "formula",
+                                "expr": "item.status"
+                              },
+                              "steps": [
+                                {
+                                  "value": "received",
+                                  "label": "Received",
+                                  "icon": "Inbox"
+                                },
+                                {
+                                  "value": "picking",
+                                  "label": "Picking",
+                                  "icon": "PackageOpen"
+                                },
+                                {
+                                  "value": "shipped",
+                                  "label": "Shipped",
+                                  "icon": "Truck"
+                                }
+                              ],
+                              "orientation": "horizontal",
+                              "tone": "primary",
+                              "showLabels": true
+                            },
+                            "style": {
+                              "span": 12
+                            },
+                            "visible": true
+                          }
+                        ]
+                      },
+                      {
+                        "id": "cmp_ioodet",
+                        "type": "record_detail",
+                        "props": {
+                          "source": {
+                            "kind": "record",
+                            "tableId": "tbl_ioord",
+                            "filter": [
+                              {
+                                "field": "id",
+                                "op": "eq",
+                                "value": {
+                                  "kind": "formula",
+                                  "expr": "vars.orderId"
+                                }
+                              }
+                            ]
+                          },
+                          "fields": [
+                            {
+                              "key": "external_id",
+                              "label": "Order id",
+                              "format": "text"
+                            },
+                            {
+                              "key": "status",
+                              "label": "Status",
+                              "format": "badge"
+                            },
+                            {
+                              "key": "customer_name",
+                              "label": "Customer",
+                              "format": "text"
+                            },
+                            {
+                              "key": "customer_email",
+                              "label": "E-mail",
+                              "format": "link"
+                            },
+                            {
+                              "key": "product_name",
+                              "label": "Product",
+                              "format": "text"
+                            },
+                            {
+                              "key": "sku",
+                              "label": "SKU",
+                              "format": "text"
+                            },
+                            {
+                              "key": "quantity",
+                              "label": "Quantity",
+                              "format": "number"
+                            },
+                            {
+                              "key": "total",
+                              "label": "Total",
+                              "format": "number"
+                            },
+                            {
+                              "key": "note",
+                              "label": "Note",
+                              "format": "text"
+                            },
+                            {
+                              "key": "received_at",
+                              "label": "Received",
+                              "format": "datetime"
+                            }
+                          ],
+                          "columns": 2,
+                          "emptyText": "No record selected.",
+                          "layout": "stacked"
+                        },
+                        "style": {
+                          "span": 12
+                        },
+                        "visible": true
+                      }
+                    ]
+                  },
+                  {
+                    "id": "cmp_iotabp",
+                    "type": "tab",
+                    "props": {
+                      "label": "Product",
+                      "icon": "Package",
+                      "badge": null,
+                      "badgeTone": "neutral"
+                    },
+                    "style": {
+                      "gap": 3,
+                      "padding": 0
+                    },
+                    "visible": true,
+                    "children": [
+                      {
+                        "id": "cmp_ioprep",
+                        "type": "repeater",
+                        "props": {
+                          "source": {
+                            "kind": "records",
+                            "tableId": "tbl_ioprod",
+                            "filter": [
+                              {
+                                "field": "id",
+                                "op": "eq",
+                                "value": {
+                                  "kind": "formula",
+                                  "expr": "vars.productId"
+                                }
+                              }
+                            ],
+                            "limit": 1
+                          },
+                          "itemActions": [],
+                          "emptyText": "This order names no product."
+                        },
+                        "style": {
+                          "span": 12,
+                          "gap": 3,
+                          "padding": 0
+                        },
+                        "visible": true,
+                        "children": [
+                          {
+                            "id": "cmp_iocar",
+                            "type": "carousel",
+                            "props": {
+                              "loop": true,
+                              "showDots": true
+                            },
+                            "style": {
+                              "span": 7,
+                              "gap": 3,
+                              "padding": 0,
+                              "spanMd": 12
+                            },
+                            "visible": true,
+                            "children": [
+                              {
+                                "id": "cmp_ioimg1",
+                                "type": "image",
+                                "props": {
+                                  "src": null,
+                                  "alt": "Product picture 1",
+                                  "fit": "contain",
+                                  "srcFrom": {
+                                    "kind": "formula",
+                                    "expr": "item.image_1"
+                                  }
+                                },
+                                "style": {
+                                  "span": 12,
+                                  "height": "lg",
+                                  "radius": "md"
+                                },
+                                "visible": true
+                              },
+                              {
+                                "id": "cmp_ioimg2",
+                                "type": "image",
+                                "props": {
+                                  "src": null,
+                                  "alt": "Product picture 2",
+                                  "fit": "contain",
+                                  "srcFrom": {
+                                    "kind": "formula",
+                                    "expr": "item.image_2"
+                                  }
+                                },
+                                "style": {
+                                  "span": 12,
+                                  "height": "lg",
+                                  "radius": "md"
+                                },
+                                "visible": true
+                              },
+                              {
+                                "id": "cmp_ioimg3",
+                                "type": "image",
+                                "props": {
+                                  "src": null,
+                                  "alt": "Product picture 3",
+                                  "fit": "contain",
+                                  "srcFrom": {
+                                    "kind": "formula",
+                                    "expr": "item.image_3"
+                                  }
+                                },
+                                "style": {
+                                  "span": 12,
+                                  "height": "lg",
+                                  "radius": "md"
+                                },
+                                "visible": true
+                              }
+                            ]
+                          },
+                          {
+                            "id": "cmp_iopinfo",
+                            "type": "container",
+                            "props": {
+                              "look": "plain"
+                            },
+                            "style": {
+                              "span": 5,
+                              "gap": 2,
+                              "spanMd": 12
+                            },
+                            "visible": true,
+                            "children": [
+                              {
+                                "id": "cmp_iopnm",
+                                "type": "heading",
+                                "props": {
+                                  "text": "Product",
+                                  "level": 2,
+                                  "accent": "none"
+                                },
+                                "style": {
+                                  "span": 12
+                                },
+                                "visible": true,
+                                "computed": {
+                                  "text": {
+                                    "kind": "formula",
+                                    "expr": "item.name"
+                                  }
+                                }
+                              },
+                              {
+                                "id": "cmp_iopsku",
+                                "type": "text",
+                                "props": {
+                                  "text": "SKU",
+                                  "muted": true
+                                },
+                                "style": {
+                                  "span": 12,
+                                  "font": "mono"
+                                },
+                                "visible": true,
+                                "computed": {
+                                  "text": {
+                                    "kind": "formula",
+                                    "expr": "item.sku"
+                                  }
+                                }
+                              },
+                              {
+                                "id": "cmp_iopdsc",
+                                "type": "text",
+                                "props": {
+                                  "text": "Description",
+                                  "muted": false
+                                },
+                                "style": {
+                                  "span": 12
+                                },
+                                "visible": true,
+                                "computed": {
+                                  "text": {
+                                    "kind": "formula",
+                                    "expr": "item.description ?? ''"
+                                  }
+                                }
+                              },
+                              {
+                                "id": "cmp_iopstk",
+                                "type": "text",
+                                "props": {
+                                  "text": "Stock",
+                                  "muted": false
+                                },
+                                "style": {
+                                  "span": 12,
+                                  "weight": "semibold"
+                                },
+                                "visible": true,
+                                "computed": {
+                                  "text": {
+                                    "kind": "formula",
+                                    "expr": "item.stock > 0 ? item.stock + ' in stock' : 'Out of stock'"
+                                  }
+                                },
+                                "styleWhen": [
+                                  {
+                                    "when": {
+                                      "kind": "formula",
+                                      "expr": "item.stock <= 0"
+                                    },
+                                    "style": {
+                                      "color": "danger"
+                                    }
+                                  },
+                                  {
+                                    "when": {
+                                      "kind": "formula",
+                                      "expr": "item.stock > 0 && item.stock < 5"
+                                    },
+                                    "style": {
+                                      "color": "warning"
+                                    }
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "id": "cmp_iotabd",
+                    "type": "tab",
+                    "props": {
+                      "label": "Delivery",
+                      "icon": "History",
+                      "badge": null,
+                      "badgeTone": "neutral"
+                    },
+                    "style": {
+                      "gap": 3,
+                      "padding": 0
+                    },
+                    "visible": true,
+                    "children": [
+                      {
+                        "id": "cmp_iodlog",
+                        "type": "table",
+                        "props": {
+                          "source": {
+                            "kind": "records",
+                            "tableId": "tbl_iolog",
+                            "filter": [
+                              {
+                                "field": "external_id",
+                                "op": "eq",
+                                "value": {
+                                  "kind": "formula",
+                                  "expr": "vars.externalId"
+                                }
+                              }
+                            ],
+                            "sort": [
+                              {
+                                "field": "received_at",
+                                "dir": "desc"
+                              }
+                            ]
+                          },
+                          "columns": [
+                            {
+                              "key": "received_at",
+                              "label": "Received",
+                              "format": "datetime"
+                            },
+                            {
+                              "key": "delivery_id",
+                              "label": "Delivery",
+                              "format": "text"
+                            },
+                            {
+                              "key": "outcome",
+                              "label": "Outcome",
+                              "format": "badge",
+                              "toneMap": [
+                                {
+                                  "value": "accepted",
+                                  "label": "Accepted",
+                                  "tone": "success"
+                                },
+                                {
+                                  "value": "rejected",
+                                  "label": "Rejected",
+                                  "tone": "danger"
+                                }
+                              ]
+                            },
+                            {
+                              "key": "reason",
+                              "label": "Reason",
+                              "format": "text"
+                            }
+                          ],
+                          "emptyText": "No deliveries for this order.",
+                          "rowLimit": 25,
+                          "look": "default"
+                        },
+                        "style": {
+                          "span": 12
+                        },
+                        "visible": true
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "scr_ioprods",
+        "name": "Products",
+        "icon": "Package",
+        "showInNav": true,
+        "maxWidth": "wide",
+        "sections": [
+          {
+            "id": "sec_ioprods",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_ioprh",
+                "type": "page_header",
+                "props": {
+                  "title": "Products",
+                  "subtitle": "An order is filed only when its SKU is one of these.",
+                  "titleFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "subtitleFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "tagsFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "icon": "Package",
+                  "showDivider": false,
+                  "look": "plain"
+                },
+                "style": {
+                  "span": 12,
+                  "gap": 3,
+                  "padding": 0
+                },
+                "visible": true,
+                "children": [
+                  {
+                    "id": "cmp_ioaddp",
+                    "type": "button",
+                    "props": {
+                      "label": "Add a product",
+                      "variant": "primary",
+                      "iconLeft": "Plus",
+                      "role": "button",
+                      "disabledWhen": null
+                    },
+                    "style": {
+                      "span": 3
+                    },
+                    "visible": true,
+                    "onClick": "act_ioaddopen"
+                  }
+                ]
+              },
+              {
+                "id": "cmp_ioprgrd",
+                "type": "data_grid",
+                "props": {
+                  "source": {
+                    "kind": "records",
+                    "tableId": "tbl_ioprod",
+                    "sort": [
+                      {
+                        "field": "sku",
+                        "dir": "asc"
+                      }
+                    ]
+                  },
+                  "columns": [
+                    {
+                      "key": "sku",
+                      "label": "SKU",
+                      "format": "text"
+                    },
+                    {
+                      "key": "name",
+                      "label": "Product",
+                      "format": "text"
+                    },
+                    {
+                      "key": "price",
+                      "label": "Price",
+                      "format": "currency",
+                      "align": "right"
+                    },
+                    {
+                      "key": "stock",
+                      "label": "In stock",
+                      "format": "number",
+                      "align": "right",
+                      "cellStyle": [
+                        {
+                          "when": {
+                            "kind": "formula",
+                            "expr": "value <= 0"
+                          },
+                          "style": {
+                            "color": "danger",
+                            "weight": "bold"
+                          }
+                        },
+                        {
+                          "when": {
+                            "kind": "formula",
+                            "expr": "value > 0 && value < 5"
+                          },
+                          "style": {
+                            "color": "warning",
+                            "weight": "semibold"
+                          }
+                        }
+                      ]
+                    }
+                  ],
+                  "pageSize": 25,
+                  "selectable": "none",
+                  "searchable": false,
+                  "rowActions": [],
+                  "toolbarActions": [],
+                  "addRowLabel": null,
+                  "addRowActionId": null,
+                  "bulkActions": [],
+                  "density": "comfortable",
+                  "clamp": "off",
+                  "rowTone": [],
+                  "groupBy": null,
+                  "groupOrder": [],
+                  "activeWhen": null,
+                  "zebra": false,
+                  "emptyText": "No products yet.",
+                  "look": "minimal"
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_ioaddm",
+                "type": "modal",
+                "props": {
+                  "title": "Add a product",
+                  "size": "md",
+                  "placement": "right",
+                  "triggerLabel": null
+                },
+                "style": {
+                  "gap": 3,
+                  "padding": 4
+                },
+                "visible": true,
+                "children": [
+                  {
+                    "id": "cmp_ioaddf",
+                    "type": "form",
+                    "props": {
+                      "name": "product",
+                      "submitLabel": "Add the product",
+                      "showReset": false,
+                      "showSubmit": true,
+                      "resetKey": null,
+                      "validateOn": "blur"
+                    },
+                    "style": {
+                      "span": 12,
+                      "gap": 3,
+                      "padding": 0
+                    },
+                    "visible": true,
+                    "onSubmit": "act_ioaddsave",
+                    "children": [
+                      {
+                        "id": "cmp_ioafsku",
+                        "type": "input_text",
+                        "props": {
+                          "name": "sku",
+                          "label": "SKU",
+                          "placeholder": "TL-2040",
+                          "required": true,
+                          "defaultValue": null,
+                          "inputType": "text",
+                          "valueFrom": {
+                            "kind": "static",
+                            "value": null
+                          }
+                        },
+                        "style": {
+                          "span": 6
+                        },
+                        "visible": true
+                      },
+                      {
+                        "id": "cmp_ioafprc",
+                        "type": "input_number",
+                        "props": {
+                          "name": "price",
+                          "label": "Price (EUR)",
+                          "min": 0,
+                          "max": null,
+                          "step": 0.5,
+                          "required": false,
+                          "defaultValue": null,
+                          "valueFrom": {
+                            "kind": "static",
+                            "value": null
+                          }
+                        },
+                        "style": {
+                          "span": 6
+                        },
+                        "visible": true
+                      },
+                      {
+                        "id": "cmp_ioafnam",
+                        "type": "input_text",
+                        "props": {
+                          "name": "name",
+                          "label": "Name",
+                          "placeholder": null,
+                          "required": true,
+                          "defaultValue": null,
+                          "inputType": "text",
+                          "valueFrom": {
+                            "kind": "static",
+                            "value": null
+                          }
+                        },
+                        "style": {
+                          "span": 12
+                        },
+                        "visible": true
+                      },
+                      {
+                        "id": "cmp_ioafstk",
+                        "type": "input_number",
+                        "props": {
+                          "name": "stock",
+                          "label": "In stock",
+                          "min": 0,
+                          "max": null,
+                          "step": 1,
+                          "required": false,
+                          "defaultValue": 0,
+                          "valueFrom": {
+                            "kind": "static",
+                            "value": null
+                          }
+                        },
+                        "style": {
+                          "span": 6
+                        },
+                        "visible": true
+                      },
+                      {
+                        "id": "cmp_ioafdsc",
+                        "type": "input_textarea",
+                        "props": {
+                          "name": "description",
+                          "label": "Description",
+                          "placeholder": null,
+                          "required": false,
+                          "rows": 3,
+                          "valueFrom": {
+                            "kind": "static",
+                            "value": null
+                          },
+                          "snippets": {
+                            "kind": "static",
+                            "value": null
+                          },
+                          "snippetKey": "shortcut",
+                          "snippetBody": "body",
+                          "snippetLabel": "title"
+                        },
+                        "style": {
+                          "span": 12
+                        },
+                        "visible": true
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "scr_iolog",
+        "name": "Delivery log",
+        "icon": "History",
+        "showInNav": false,
+        "maxWidth": "wide",
+        "sections": [
+          {
+            "id": "sec_iolog",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_iologh",
+                "type": "heading",
+                "props": {
+                  "text": "Every delivery, filed or not",
+                  "level": 1,
+                  "accent": "bar"
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_iologg",
+                "type": "data_grid",
+                "props": {
+                  "source": {
+                    "kind": "records",
+                    "tableId": "tbl_iolog",
+                    "sort": [
+                      {
+                        "field": "received_at",
+                        "dir": "desc"
+                      }
+                    ],
+                    "limit": 100
+                  },
+                  "columns": [
+                    {
+                      "key": "received_at",
+                      "label": "Received",
+                      "format": "datetime"
+                    },
+                    {
+                      "key": "external_id",
+                      "label": "Order id",
+                      "format": "text"
+                    },
+                    {
+                      "key": "outcome",
+                      "label": "Outcome",
+                      "format": "badge",
+                      "toneMap": [
+                        {
+                          "value": "accepted",
+                          "label": "Accepted",
+                          "tone": "success"
+                        },
+                        {
+                          "value": "rejected",
+                          "label": "Rejected",
+                          "tone": "danger"
+                        }
+                      ]
+                    },
+                    {
+                      "key": "reason",
+                      "label": "Reason",
+                      "format": "text"
+                    },
+                    {
+                      "key": "delivery_id",
+                      "label": "Delivery",
+                      "format": "text"
+                    }
+                  ],
+                  "pageSize": 25,
+                  "selectable": "none",
+                  "searchable": false,
+                  "rowActions": [],
+                  "toolbarActions": [],
+                  "addRowLabel": null,
+                  "addRowActionId": null,
+                  "bulkActions": [],
+                  "density": "comfortable",
+                  "clamp": "off",
+                  "rowTone": [
+                    {
+                      "field": "outcome",
+                      "value": "rejected",
+                      "tone": "danger"
+                    }
+                  ],
+                  "groupBy": null,
+                  "groupOrder": [],
+                  "activeWhen": null,
+                  "zebra": false,
+                  "emptyText": "Nothing delivered yet.",
+                  "look": "default"
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "scr_iohelp",
+        "name": "Connect a system",
+        "icon": "Plug",
+        "showInNav": false,
+        "maxWidth": "medium",
+        "sections": [
+          {
+            "id": "sec_iohelp",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_iohelpmd",
+                "type": "markdown",
+                "props": {
+                  "content": "## Connect a shop or a marketplace\n\nPublish the app first. The **Triggers** panel then shows the address of the `order_in` webhook and its signing secret. Give both to the system that sends the orders: it signs each delivery with the secret, and an unsigned or wrongly signed delivery is refused before the app sees it.\n\n### What a delivery looks like\n\n```json\n{\n  \"orderId\": \"WEB-10421\",\n  \"customer\": { \"name\": \"Casey Brooks\", \"email\": \"casey@example.com\" },\n  \"sku\": \"TL-2040\",\n  \"quantity\": 2,\n  \"note\": \"Leave at the side door\"\n}\n```\n\n| Field | Also accepted as | Rule |\n| --- | --- | --- |\n| `orderId` | `order_id`, `id`, `reference` | Required, unique per order |\n| `customer.name` | `customerName`, `customer_name` | Required |\n| `customer.email` | `email`, `customerEmail` | An e-mail address |\n| `sku` | `productSku`, `product_sku` | A product of this app |\n| `quantity` | `qty`, `amount` | 1 to 999, 1 when left out |\n\n> The same order sent twice is filed once: the second delivery is logged as rejected.",
+                  "contentFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "rich": true
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "actions": {
+      "act_ioback": {
+        "kind": "navigate",
+        "screenId": "scr_ioorders"
+      },
+      "act_ioopen": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "set_variable",
+            "name": "orderId",
+            "value": {
+              "kind": "formula",
+              "expr": "item.id"
+            }
+          },
+          {
+            "kind": "set_variable",
+            "name": "productId",
+            "value": {
+              "kind": "formula",
+              "expr": "item.product ?? ''"
+            }
+          },
+          {
+            "kind": "set_variable",
+            "name": "externalId",
+            "value": {
+              "kind": "formula",
+              "expr": "item.external_id"
+            }
+          },
+          {
+            "kind": "navigate",
+            "screenId": "scr_ioorder"
+          }
+        ]
+      },
+      "act_iopicking": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "update_record",
+            "tableId": "tbl_ioord",
+            "recordId": {
+              "kind": "formula",
+              "expr": "vars.orderId"
+            },
+            "values": {
+              "status": {
+                "kind": "static",
+                "value": "picking"
+              }
+            }
+          },
+          {
+            "kind": "toast",
+            "message": "Picking started.",
+            "tone": "success"
+          },
+          {
+            "kind": "refresh",
+            "tableId": "tbl_ioord"
+          }
+        ]
+      },
+      "act_ioshipped": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "update_record",
+            "tableId": "tbl_ioord",
+            "recordId": {
+              "kind": "formula",
+              "expr": "vars.orderId"
+            },
+            "values": {
+              "status": {
+                "kind": "static",
+                "value": "shipped"
+              }
+            }
+          },
+          {
+            "kind": "toast",
+            "message": "Order shipped.",
+            "tone": "success"
+          },
+          {
+            "kind": "refresh",
+            "tableId": "tbl_ioord"
+          }
+        ]
+      },
+      "act_ioaddopen": {
+        "kind": "open_modal",
+        "modalId": "cmp_ioaddm"
+      },
+      "act_ioaddsave": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "create_record",
+            "tableId": "tbl_ioprod",
+            "values": {
+              "sku": {
+                "kind": "formula",
+                "expr": "upper(trim(form.sku))"
+              },
+              "name": {
+                "kind": "formula",
+                "expr": "form.name"
+              },
+              "price": {
+                "kind": "formula",
+                "expr": "form.price"
+              },
+              "stock": {
+                "kind": "formula",
+                "expr": "form.stock"
+              },
+              "description": {
+                "kind": "formula",
+                "expr": "form.description"
+              }
+            }
+          },
+          {
+            "kind": "close_modal",
+            "modalId": "cmp_ioaddm"
+          },
+          {
+            "kind": "toast",
+            "message": "Product added.",
+            "tone": "success"
+          },
+          {
+            "kind": "refresh",
+            "tableId": "tbl_ioprod"
+          }
+        ]
+      },
+      "act_ioin": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "code",
+            "code": "function main(inputs, ctx) {\n  const body = inputs.body && typeof inputs.body === \"object\" && !Array.isArray(inputs.body) ? inputs.body : {};\n  const pick = (...keys) => { for (const k of keys) { if (body[k] !== undefined && body[k] !== null && body[k] !== \"\") return body[k]; } return undefined; };\n  const text = (v, max) => (v === undefined ? \"\" : String(v).trim().slice(0, max));\n  const customer = body.customer && typeof body.customer === \"object\" ? body.customer : {};\n  const order = {\n    external_id: text(pick(\"orderId\", \"order_id\", \"id\", \"reference\"), 64),\n    customer_name: text(pick(\"customerName\", \"customer_name\") ?? customer.name, 120),\n    customer_email: text(pick(\"email\", \"customerEmail\", \"customer_email\") ?? customer.email, 200).toLowerCase(),\n    sku: text(pick(\"sku\", \"productSku\", \"product_sku\"), 20).toUpperCase(),\n    quantity: Math.trunc(Number(pick(\"quantity\", \"qty\", \"amount\") ?? 1)),\n    note: text(pick(\"note\", \"comment\", \"remarks\"), 500),\n  };\n  const reject = (reason) => { ctx.log(\"rejected: \" + reason); return { ok: false, reason, order }; };\n  if (!order.external_id) return reject(\"The delivery has no order id.\");\n  if (!order.customer_name) return reject(\"The delivery has no customer name.\");\n  if (!Number.isFinite(order.quantity) || order.quantity < 1 || order.quantity > 999) return reject(\"The quantity is not a number from 1 to 999.\");\n  const products = Array.isArray(inputs.products) ? inputs.products : [];\n  const product = products.find((p) => String(p.sku || \"\").toUpperCase() === order.sku);\n  if (!product) return reject(\"No product has the SKU \" + (order.sku || \"(empty)\") + \".\");\n  order.product = product.id;\n  order.unit_price = Number(product.price) || 0;\n  return { ok: true, reason: \"\", order };\n}",
+            "inputs": {
+              "body": {
+                "kind": "formula",
+                "expr": "trigger.webhook.body"
+              },
+              "products": {
+                "kind": "records",
+                "tableId": "tbl_ioprod",
+                "limit": 200,
+                "fields": [
+                  "sku",
+                  "price"
+                ]
+              }
+            },
+            "resultVar": "normalised",
+            "timeoutMs": 2000
+          },
+          {
+            "kind": "condition",
+            "expr": "vars.normalised.ok == true",
+            "then": [
+              {
+                "kind": "try",
+                "steps": [
+                  {
+                    "kind": "create_record",
+                    "tableId": "tbl_ioord",
+                    "values": {
+                      "external_id": {
+                        "kind": "formula",
+                        "expr": "vars.normalised.order.external_id"
+                      },
+                      "customer_name": {
+                        "kind": "formula",
+                        "expr": "vars.normalised.order.customer_name"
+                      },
+                      "customer_email": {
+                        "kind": "formula",
+                        "expr": "vars.normalised.order.customer_email"
+                      },
+                      "product": {
+                        "kind": "formula",
+                        "expr": "vars.normalised.order.product"
+                      },
+                      "sku": {
+                        "kind": "formula",
+                        "expr": "vars.normalised.order.sku"
+                      },
+                      "quantity": {
+                        "kind": "formula",
+                        "expr": "vars.normalised.order.quantity"
+                      },
+                      "unit_price": {
+                        "kind": "formula",
+                        "expr": "vars.normalised.order.unit_price"
+                      },
+                      "note": {
+                        "kind": "formula",
+                        "expr": "vars.normalised.order.note"
+                      },
+                      "status": {
+                        "kind": "static",
+                        "value": "received"
+                      },
+                      "delivery_id": {
+                        "kind": "formula",
+                        "expr": "trigger.webhook.deliveryId"
+                      }
+                    }
+                  },
+                  {
+                    "kind": "call_action",
+                    "actionId": "act_iolog",
+                    "params": {
+                      "outcome": {
+                        "kind": "static",
+                        "value": "accepted"
+                      },
+                      "reason": {
+                        "kind": "static",
+                        "value": ""
+                      }
+                    }
+                  }
+                ],
+                "catch": [
+                  {
+                    "kind": "call_action",
+                    "actionId": "act_iolog",
+                    "params": {
+                      "outcome": {
+                        "kind": "static",
+                        "value": "rejected"
+                      },
+                      "reason": {
+                        "kind": "formula",
+                        "expr": "'Not filed: ' + (error.message ?? 'the order broke a rule of the table')"
+                      }
+                    }
+                  }
+                ]
+              }
+            ],
+            "else": [
+              {
+                "kind": "call_action",
+                "actionId": "act_iolog",
+                "params": {
+                  "outcome": {
+                    "kind": "static",
+                    "value": "rejected"
+                  },
+                  "reason": {
+                    "kind": "formula",
+                    "expr": "vars.normalised.reason"
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "act_iolog": {
+        "kind": "sequence",
+        "steps": [
+          {
+            "kind": "create_record",
+            "tableId": "tbl_iolog",
+            "values": {
+              "delivery_id": {
+                "kind": "formula",
+                "expr": "trigger.webhook.deliveryId"
+              },
+              "external_id": {
+                "kind": "formula",
+                "expr": "vars.normalised.order.external_id ?? ''"
+              },
+              "outcome": {
+                "kind": "formula",
+                "expr": "params.outcome"
+              },
+              "reason": {
+                "kind": "formula",
+                "expr": "substring(params.reason ?? '', 0, 300)"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "design": {
+      "preset": "custom",
+      "font": "satoshi",
+      "surface": "hairline",
+      "motion": "subtle",
+      "chartPalette": "brand",
+      "accentEdge": "none",
+      "logoUrl": null,
+      "radiusPx": 10
+    },
+    "nav": {
+      "style": "sidebar",
+      "items": [
+        {
+          "id": "nvi_iohelp",
+          "label": "Connect a system",
+          "icon": "Plug",
+          "screenId": "scr_iohelp"
+        },
+        {
+          "id": "nvi_iolog",
+          "label": "Delivery log",
+          "icon": "History",
+          "screenId": "scr_iolog"
+        }
+      ],
+      "footerText": "Orders arrive through a signed webhook. Unsigned deliveries are refused.",
+      "brand": {
+        "name": "Order desk",
+        "showName": true
+      }
+    },
+    "homeScreenId": "scr_ioorders",
+    "format": {
+      "currency": "EUR",
+      "currencyDecimals": 2,
+      "dateFormat": "d MMM yyyy",
+      "timeZone": "Europe/Amsterdam"
+    },
+    "triggers": [
+      {
+        "id": "order_in",
+        "kind": "webhook",
+        "actionId": "act_ioin",
+        "auth": "hmac"
+      }
+    ]
+  },
+  "dataModel": {
+    "modelVersion": 1,
+    "tables": [
+      {
+        "id": "tbl_ioprod",
+        "key": "products",
+        "name": "Products",
+        "icon": "Package",
+        "fields": [
+          {
+            "id": "fld_iopsku",
+            "key": "sku",
+            "name": "SKU",
+            "type": "text",
+            "required": true,
+            "unique": true,
+            "validation": {
+              "pattern": "^[A-Z]{2,4}-[0-9]{3,5}$",
+              "message": "An SKU is 2 to 4 capitals, a dash and 3 to 5 digits, like TL-2040."
+            }
+          },
+          {
+            "id": "fld_iopnam",
+            "key": "name",
+            "name": "Name",
+            "type": "text",
+            "required": true,
+            "validation": {
+              "minLength": 2,
+              "maxLength": 120
+            },
+            "unique": false
+          },
+          {
+            "id": "fld_iopprc",
+            "key": "price",
+            "name": "Price",
+            "type": "number",
+            "display": {
+              "currency": "EUR",
+              "decimals": 2
+            },
+            "validation": {
+              "min": 0,
+              "max": 100000
+            },
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_iopstk",
+            "key": "stock",
+            "name": "In stock",
+            "type": "number",
+            "validation": {
+              "min": 0,
+              "max": 100000
+            },
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_iopdsc",
+            "key": "description",
+            "name": "Description",
+            "type": "text",
+            "validation": {
+              "maxLength": 1000
+            },
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_iopim1",
+            "key": "image_1",
+            "name": "Picture 1",
+            "type": "text",
+            "validation": {
+              "maxLength": 200
+            },
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_iopim2",
+            "key": "image_2",
+            "name": "Picture 2",
+            "type": "text",
+            "validation": {
+              "maxLength": 200
+            },
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_iopim3",
+            "key": "image_3",
+            "name": "Picture 3",
+            "type": "text",
+            "validation": {
+              "maxLength": 200
+            },
+            "required": false,
+            "unique": false
+          }
+        ],
+        "access": {
+          "default": "app",
+          "roles": {},
+          "rowFilters": {}
+        }
+      },
+      {
+        "id": "tbl_ioord",
+        "key": "orders",
+        "name": "Orders",
+        "icon": "ShoppingCart",
+        "fields": [
+          {
+            "id": "fld_ioref",
+            "key": "ref",
+            "name": "Number",
+            "type": "autonumber",
+            "unique": true,
+            "required": false
+          },
+          {
+            "id": "fld_ioext",
+            "key": "external_id",
+            "name": "Order id",
+            "type": "text",
+            "required": true,
+            "unique": true,
+            "validation": {
+              "maxLength": 64
+            }
+          },
+          {
+            "id": "fld_iocnm",
+            "key": "customer_name",
+            "name": "Customer",
+            "type": "text",
+            "required": true,
+            "validation": {
+              "maxLength": 120
+            },
+            "unique": false
+          },
+          {
+            "id": "fld_iocml",
+            "key": "customer_email",
+            "name": "E-mail",
+            "type": "text",
+            "format": "email",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_ioprd",
+            "key": "product",
+            "name": "Product",
+            "type": "relation",
+            "relation": {
+              "table": "tbl_ioprod",
+              "displayField": "name",
+              "onDelete": "restrict"
+            },
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_iopnm",
+            "key": "product_name",
+            "name": "Product name",
+            "type": "lookup",
+            "lookup": {
+              "relation": "product",
+              "field": "name"
+            },
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_iosku",
+            "key": "sku",
+            "name": "SKU",
+            "type": "text",
+            "validation": {
+              "pattern": "^[A-Z]{2,4}-[0-9]{3,5}$"
+            },
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_ioqty",
+            "key": "quantity",
+            "name": "Quantity",
+            "type": "number",
+            "required": true,
+            "validation": {
+              "min": 1,
+              "max": 999,
+              "message": "Order 1 to 999 pieces."
+            },
+            "unique": false
+          },
+          {
+            "id": "fld_ioup",
+            "key": "unit_price",
+            "name": "Unit price",
+            "type": "number",
+            "display": {
+              "currency": "EUR",
+              "decimals": 2
+            },
+            "validation": {
+              "min": 0
+            },
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_iotot",
+            "key": "total",
+            "name": "Total",
+            "type": "computed",
+            "computed": {
+              "expr": "quantity * unit_price"
+            },
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_iosts",
+            "key": "status",
+            "name": "Status",
+            "type": "select",
+            "options": [
+              {
+                "value": "received",
+                "label": "Received"
+              },
+              {
+                "value": "picking",
+                "label": "Picking"
+              },
+              {
+                "value": "shipped",
+                "label": "Shipped"
+              },
+              {
+                "value": "cancelled",
+                "label": "Cancelled"
+              }
+            ],
+            "validation": {
+              "enforceOptions": true
+            },
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_ionote",
+            "key": "note",
+            "name": "Note",
+            "type": "text",
+            "validation": {
+              "maxLength": 500
+            },
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_iodlv",
+            "key": "delivery_id",
+            "name": "Delivery",
+            "type": "text",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_ioat",
+            "key": "received_at",
+            "name": "Received",
+            "type": "datetime",
+            "dynamicDefault": "now",
+            "required": false,
+            "unique": false
+          }
+        ],
+        "indexes": [
+          {
+            "fields": [
+              "status"
+            ]
+          }
+        ],
+        "access": {
+          "default": "app",
+          "roles": {},
+          "rowFilters": {}
+        }
+      },
+      {
+        "id": "tbl_iolog",
+        "key": "deliveries",
+        "name": "Deliveries",
+        "icon": "History",
+        "fields": [
+          {
+            "id": "fld_iolid",
+            "key": "delivery_id",
+            "name": "Delivery",
+            "type": "text",
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_iolext",
+            "key": "external_id",
+            "name": "Order id",
+            "type": "text",
+            "validation": {
+              "maxLength": 64
+            },
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_iolout",
+            "key": "outcome",
+            "name": "Outcome",
+            "type": "select",
+            "options": [
+              {
+                "value": "accepted",
+                "label": "Accepted"
+              },
+              {
+                "value": "rejected",
+                "label": "Rejected"
+              }
+            ],
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_iolrsn",
+            "key": "reason",
+            "name": "Reason",
+            "type": "text",
+            "validation": {
+              "maxLength": 300
+            },
+            "required": false,
+            "unique": false
+          },
+          {
+            "id": "fld_iolat",
+            "key": "received_at",
+            "name": "Received",
+            "type": "datetime",
+            "dynamicDefault": "now",
+            "required": false,
+            "unique": false
+          }
+        ],
+        "access": {
+          "default": "app",
+          "roles": {},
+          "rowFilters": {}
+        }
+      }
+    ],
+    "roles": [],
+    "roleMapping": {
+      "default": "app",
+      "byGroup": {}
+    }
+  }
+}

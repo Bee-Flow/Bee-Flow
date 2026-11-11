@@ -1,0 +1,756 @@
+{
+  "corpus": "template-request-approval",
+  "canonical": {
+    "sha256": "ed3f31cdc46b24812db2904800bce2c16fcdede2b756b8bc66e7808617018968",
+    "bytes": 18118,
+    "inputIsCanonical": true,
+    "idempotent": true,
+    "keys": [
+      "schemaVersion",
+      "meta",
+      "theme",
+      "roles",
+      "variables",
+      "screens",
+      "actions",
+      "design",
+      "homeScreenId",
+      "publicAccess",
+      "format",
+      "triggers"
+    ],
+    "parts": {
+      "schemaVersion": "4e07408562bedb8b",
+      "meta": "95f27293dc4deb4f",
+      "theme": "0879d2bcbac8f002",
+      "roles": "94e9d4c374c491b1",
+      "variables": "a42150e898d1e527",
+      "screens[0] scr_raform": "7281c8db446835b4",
+      "screens[1] scr_rathanks": "ef50aae67d3da4db",
+      "screens[2] scr_rareview": "94361565e5fe331b",
+      "screens[3] scr_rahelp": "df2c0c600ba6af07",
+      "actions.act_rasubmit": "df53dbafd1993c56",
+      "actions.act_raagain": "f3e4fe7ea45f5d44",
+      "actions.act_rapick": "c35996fbcef0279c",
+      "actions.act_ratriage": "7462a5f8df174408",
+      "actions.act_rasend": "70abda6e456dab2b",
+      "design": "3a08308b78c97916",
+      "homeScreenId": "d02622706ea109d1",
+      "publicAccess": "2ec1f1523e0402c3",
+      "format": "985872f7033e0721",
+      "triggers": "6480b9258789e77a"
+    }
+  },
+  "schemaVersion": {
+    "stored": 3,
+    "canonical": 3
+  },
+  "validation": {
+    "strict": {
+      "errors": [],
+      "warnings": []
+    },
+    "save": {
+      "errors": [],
+      "warnings": []
+    }
+  },
+  "ordinals": {
+    "stored": {
+      "act_rasubmit": [
+        "0 create_record",
+        "1 navigate"
+      ],
+      "act_raagain": [
+        "0 navigate"
+      ],
+      "act_rapick": [
+        "0 set_variable",
+        "1 set_variable"
+      ],
+      "act_ratriage": [
+        "0 create_record"
+      ],
+      "act_rasend": [
+        "0 set_variable",
+        "1 set_variable",
+        "2 update_record",
+        "3 await_approval",
+        "4 condition",
+        "5 update_record",
+        "6 set_variable",
+        "7 wait",
+        "8 update_record",
+        "9 set_variable",
+        "10 update_record",
+        "11 set_variable"
+      ]
+    },
+    "canonical": "same as stored"
+  },
+  "installHash": {
+    "stored": "634360ca15da87f15289f4d2397c9281e30685c275ce133aa25d9c590649e2e4",
+    "afterResave": "634360ca15da87f15289f4d2397c9281e30685c275ce133aa25d9c590649e2e4"
+  },
+  "publicDefinition": {
+    "actionIds": [
+      "act_raagain",
+      "act_rasubmit"
+    ],
+    "sha256": "d30f24f766e92edb7b57d15574d217575ac47005284fb7679866607f6c55e9cb",
+    "definition": {
+      "schemaVersion": 3,
+      "meta": {
+        "name": "Send a request",
+        "description": "",
+        "icon": "Inbox"
+      },
+      "theme": {
+        "primary": "#4338CA",
+        "radius": "md",
+        "density": "comfortable",
+        "fontScale": "md",
+        "appearance": "auto"
+      },
+      "homeScreenId": "scr_raform",
+      "roles": [],
+      "screens": [
+        {
+          "id": "scr_raform",
+          "name": "Send a request",
+          "icon": "Send",
+          "showInNav": false,
+          "maxWidth": "narrow",
+          "sections": [
+            {
+              "id": "sec_raform",
+              "style": {
+                "padding": 6,
+                "gap": 3,
+                "background": "none"
+              },
+              "children": [
+                {
+                  "id": "cmp_raphero",
+                  "type": "page_header",
+                  "props": {
+                    "title": "Ask for what you need",
+                    "subtitle": "Tell us what it is, what it costs and when you need it. We get back to you within two working days.",
+                    "titleFrom": {
+                      "kind": "static",
+                      "value": null
+                    },
+                    "subtitleFrom": {
+                      "kind": "static",
+                      "value": null
+                    },
+                    "tagsFrom": {
+                      "kind": "static",
+                      "value": null
+                    },
+                    "icon": "Inbox",
+                    "showDivider": false,
+                    "look": "banner"
+                  },
+                  "style": {
+                    "span": 12,
+                    "gap": 3,
+                    "padding": 0
+                  },
+                  "visible": true,
+                  "children": []
+                },
+                {
+                  "id": "cmp_rafrm",
+                  "type": "form",
+                  "props": {
+                    "name": "request",
+                    "submitLabel": "Send my request",
+                    "showReset": false,
+                    "showSubmit": true,
+                    "resetKey": null,
+                    "validateOn": "blur"
+                  },
+                  "style": {
+                    "span": 12,
+                    "gap": 3,
+                    "padding": 0
+                  },
+                  "visible": true,
+                  "onSubmit": "act_rasubmit",
+                  "children": [
+                    {
+                      "id": "cmp_rafttl",
+                      "type": "input_text",
+                      "props": {
+                        "name": "title",
+                        "label": "What do you need?",
+                        "placeholder": "A second monitor",
+                        "required": true,
+                        "defaultValue": null,
+                        "inputType": "text",
+                        "valueFrom": {
+                          "kind": "static",
+                          "value": null
+                        }
+                      },
+                      "style": {
+                        "span": 12
+                      },
+                      "visible": true
+                    },
+                    {
+                      "id": "cmp_rafcat",
+                      "type": "radio",
+                      "props": {
+                        "name": "category",
+                        "label": "What kind of request is it?",
+                        "options": [
+                          {
+                            "value": "equipment",
+                            "label": "Equipment"
+                          },
+                          {
+                            "value": "software",
+                            "label": "Software"
+                          },
+                          {
+                            "value": "training",
+                            "label": "Training"
+                          },
+                          {
+                            "value": "travel",
+                            "label": "Travel"
+                          },
+                          {
+                            "value": "other",
+                            "label": "Something else"
+                          }
+                        ],
+                        "required": true,
+                        "defaultValue": "equipment",
+                        "valueFrom": {
+                          "kind": "static",
+                          "value": null
+                        }
+                      },
+                      "style": {
+                        "span": 12
+                      },
+                      "visible": true
+                    },
+                    {
+                      "id": "cmp_rafamt",
+                      "type": "input_number",
+                      "props": {
+                        "name": "amount",
+                        "label": "Amount (EUR)",
+                        "min": 0,
+                        "max": 100000,
+                        "step": 10,
+                        "required": false,
+                        "defaultValue": 0,
+                        "valueFrom": {
+                          "kind": "static",
+                          "value": null
+                        }
+                      },
+                      "style": {
+                        "span": 6,
+                        "spanSm": 12
+                      },
+                      "visible": true
+                    },
+                    {
+                      "id": "cmp_rafneed",
+                      "type": "input_date",
+                      "props": {
+                        "name": "needed_by",
+                        "label": "Needed by",
+                        "required": false,
+                        "defaultValue": null,
+                        "valueFrom": {
+                          "kind": "static",
+                          "value": null
+                        }
+                      },
+                      "style": {
+                        "span": 6,
+                        "spanSm": 12
+                      },
+                      "visible": true
+                    },
+                    {
+                      "id": "cmp_rafdet",
+                      "type": "input_textarea",
+                      "props": {
+                        "name": "details",
+                        "label": "Anything we should know",
+                        "placeholder": null,
+                        "required": false,
+                        "rows": 4,
+                        "valueFrom": {
+                          "kind": "static",
+                          "value": null
+                        },
+                        "snippets": {
+                          "kind": "static",
+                          "value": null
+                        },
+                        "snippetKey": "shortcut",
+                        "snippetBody": "body",
+                        "snippetLabel": "title"
+                      },
+                      "style": {
+                        "span": 12
+                      },
+                      "visible": true
+                    },
+                    {
+                      "id": "cmp_rafnam",
+                      "type": "input_text",
+                      "props": {
+                        "name": "requester_name",
+                        "label": "Your name",
+                        "placeholder": null,
+                        "required": true,
+                        "defaultValue": null,
+                        "inputType": "text",
+                        "valueFrom": {
+                          "kind": "static",
+                          "value": null
+                        }
+                      },
+                      "style": {
+                        "span": 6,
+                        "spanSm": 12
+                      },
+                      "visible": true
+                    },
+                    {
+                      "id": "cmp_rafml",
+                      "type": "input_text",
+                      "props": {
+                        "name": "requester_email",
+                        "label": "Your e-mail address",
+                        "placeholder": null,
+                        "required": true,
+                        "defaultValue": null,
+                        "inputType": "email",
+                        "valueFrom": {
+                          "kind": "static",
+                          "value": null
+                        }
+                      },
+                      "style": {
+                        "span": 6,
+                        "spanSm": 12
+                      },
+                      "visible": true
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "scr_rathanks",
+          "name": "Thank you",
+          "icon": "CheckCircle2",
+          "showInNav": false,
+          "maxWidth": "narrow",
+          "sections": [
+            {
+              "id": "sec_rathx",
+              "style": {
+                "padding": 6,
+                "gap": 3,
+                "background": "none"
+              },
+              "children": [
+                {
+                  "id": "cmp_rathh",
+                  "type": "heading",
+                  "props": {
+                    "text": "Thank you, your request is in",
+                    "level": 1,
+                    "accent": "tinted"
+                  },
+                  "style": {
+                    "span": 12
+                  },
+                  "visible": true
+                },
+                {
+                  "id": "cmp_rathtx",
+                  "type": "callout",
+                  "props": {
+                    "title": "What happens now",
+                    "text": "Your request has been sorted already. A reviewer looks at it within two working days and you hear from us by e-mail.",
+                    "textFrom": {
+                      "kind": "static",
+                      "value": null
+                    },
+                    "tone": "success",
+                    "toneFrom": {
+                      "kind": "static",
+                      "value": null
+                    },
+                    "meta": null,
+                    "metaFrom": {
+                      "kind": "static",
+                      "value": null
+                    },
+                    "collapsible": false,
+                    "variant": "soft"
+                  },
+                  "style": {
+                    "span": 12
+                  },
+                  "visible": true
+                },
+                {
+                  "id": "cmp_rafaqh",
+                  "type": "heading",
+                  "props": {
+                    "text": "Questions people ask",
+                    "level": 2,
+                    "accent": "none"
+                  },
+                  "style": {
+                    "span": 12
+                  },
+                  "visible": true
+                },
+                {
+                  "id": "cmp_rafaq",
+                  "type": "accordion",
+                  "props": {
+                    "items": [
+                      {
+                        "title": "What happens to my request?"
+                      },
+                      {
+                        "title": "Will I hear back?"
+                      },
+                      {
+                        "title": "Can I change what I sent?"
+                      },
+                      {
+                        "title": "Who can see my request?"
+                      }
+                    ],
+                    "multiple": false
+                  },
+                  "style": {
+                    "span": 12,
+                    "gap": 3,
+                    "padding": 0
+                  },
+                  "visible": true,
+                  "children": [
+                    {
+                      "id": "cmp_rafaqa1",
+                      "type": "text",
+                      "props": {
+                        "text": "It is checked and sorted straight away, and a reviewer looks at it within two working days.",
+                        "muted": false
+                      },
+                      "style": {
+                        "span": 12
+                      },
+                      "visible": true
+                    },
+                    {
+                      "id": "cmp_rafaqa2",
+                      "type": "text",
+                      "props": {
+                        "text": "Yes. You hear from the team at the e-mail address you gave, whatever the decision.",
+                        "muted": false
+                      },
+                      "style": {
+                        "span": 12
+                      },
+                      "visible": true
+                    },
+                    {
+                      "id": "cmp_rafaqa3",
+                      "type": "text",
+                      "props": {
+                        "text": "Send a new request that names the first one. The team keeps the two together.",
+                        "muted": false
+                      },
+                      "style": {
+                        "span": 12
+                      },
+                      "visible": true
+                    },
+                    {
+                      "id": "cmp_rafaqa4",
+                      "type": "text",
+                      "props": {
+                        "text": "Only the reviewers of this app. Nobody who opens this page sees anything that others have sent.",
+                        "muted": false
+                      },
+                      "style": {
+                        "span": 12
+                      },
+                      "visible": true
+                    }
+                  ]
+                },
+                {
+                  "id": "cmp_raagain",
+                  "type": "button",
+                  "props": {
+                    "label": "Send another request",
+                    "variant": "outline",
+                    "iconLeft": "Plus",
+                    "role": "button",
+                    "disabledWhen": null
+                  },
+                  "style": {
+                    "span": 4,
+                    "spanSm": 12
+                  },
+                  "visible": true,
+                  "onClick": "act_raagain"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "actions": {
+        "act_rasubmit": {
+          "kind": "sequence",
+          "steps": [
+            {
+              "kind": "create_record"
+            },
+            {
+              "kind": "navigate",
+              "screenId": "scr_rathanks"
+            }
+          ]
+        },
+        "act_raagain": {
+          "kind": "navigate",
+          "screenId": "scr_raform"
+        }
+      },
+      "design": {
+        "preset": "atlas",
+        "font": "general-sans",
+        "surface": "soft",
+        "motion": "subtle",
+        "chartPalette": "brand",
+        "accentEdge": "bar",
+        "logoUrl": null
+      },
+      "variables": [
+        {
+          "name": "requestId",
+          "label": "Picked request",
+          "type": "text",
+          "default": "",
+          "description": "The request the review screen shows",
+          "scope": "screen"
+        },
+        {
+          "name": "request",
+          "label": "Request being decided",
+          "type": "record",
+          "default": {},
+          "description": "The request the approval run reads"
+        },
+        {
+          "name": "decision",
+          "label": "Decision",
+          "type": "any",
+          "default": null,
+          "description": "What the approver decided"
+        },
+        {
+          "name": "runStatus",
+          "label": "Approval run",
+          "type": "text",
+          "default": "",
+          "description": "What the approval run is doing"
+        }
+      ],
+      "format": {
+        "currency": "EUR",
+        "currencyDecimals": 0,
+        "dateFormat": "d MMM yyyy"
+      }
+    }
+  },
+  "reads": [
+    {
+      "at": "cmp_rarvbad.source",
+      "kind": "aggregate",
+      "table": "tbl_rarq",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT \"status\" AS \"status\", COUNT(*) AS \"count\" FROM \"requests\" WHERE (1=1) GROUP BY \"status\" LIMIT ?",
+          "params": [
+            50
+          ]
+        },
+        "reviewer": {
+          "sql": "SELECT \"status\" AS \"status\", COUNT(*) AS \"count\" FROM \"requests\" WHERE (1=1) GROUP BY \"status\" LIMIT ?",
+          "params": [
+            50
+          ]
+        },
+        "public": {
+          "note": "no read access for this role"
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT \"status\" AS \"status\", COUNT(*) AS \"count\" FROM \"requests\" WHERE (1=1) GROUP BY \"status\" LIMIT ?",
+          "params": [
+            50
+          ]
+        },
+        "reviewer": {
+          "sql": "SELECT \"status\" AS \"status\", COUNT(*) AS \"count\" FROM \"requests\" WHERE (1=1) GROUP BY \"status\" LIMIT ?",
+          "params": [
+            50
+          ]
+        },
+        "public": {
+          "note": "no read access for this role"
+        }
+      }
+    },
+    {
+      "at": "cmp_rarvgrd.source",
+      "kind": "records",
+      "table": "tbl_rarq",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"requests\" WHERE (1=1) ORDER BY \"submitted_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "reviewer": {
+          "sql": "SELECT * FROM \"requests\" WHERE (1=1) ORDER BY \"submitted_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "public": {
+          "note": "no read access for this role"
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"requests\" WHERE (1=1) ORDER BY \"submitted_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "reviewer": {
+          "sql": "SELECT * FROM \"requests\" WHERE (1=1) ORDER BY \"submitted_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            51
+          ]
+        },
+        "public": {
+          "note": "no read access for this role"
+        }
+      }
+    },
+    {
+      "at": "cmp_rarvdet.source",
+      "kind": "record",
+      "table": "tbl_rarq",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"requests\" WHERE (1=1) AND \"id\" = ? ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "",
+            51
+          ]
+        },
+        "reviewer": {
+          "sql": "SELECT * FROM \"requests\" WHERE (1=1) AND \"id\" = ? ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "",
+            51
+          ]
+        },
+        "public": {
+          "note": "no read access for this role"
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"requests\" WHERE (1=1) AND \"id\" = ? ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "",
+            51
+          ]
+        },
+        "reviewer": {
+          "sql": "SELECT * FROM \"requests\" WHERE (1=1) AND \"id\" = ? ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "",
+            51
+          ]
+        },
+        "public": {
+          "note": "no read access for this role"
+        }
+      }
+    },
+    {
+      "at": "cmp_rarvtri.source",
+      "kind": "records",
+      "table": "tbl_ratri",
+      "sqlite": {
+        "owner": {
+          "sql": "SELECT * FROM \"triage\" WHERE (1=1) AND \"request\" = ? ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "",
+            51
+          ]
+        },
+        "reviewer": {
+          "sql": "SELECT * FROM \"triage\" WHERE (1=1) AND \"request\" = ? ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "",
+            51
+          ]
+        },
+        "public": {
+          "note": "no read access for this role"
+        }
+      },
+      "pg": {
+        "owner": {
+          "sql": "SELECT * FROM \"triage\" WHERE (1=1) AND \"request\" = ? ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "",
+            51
+          ]
+        },
+        "reviewer": {
+          "sql": "SELECT * FROM \"triage\" WHERE (1=1) AND \"request\" = ? ORDER BY \"created_at\" DESC, \"id\" DESC LIMIT ?",
+          "params": [
+            "",
+            51
+          ]
+        },
+        "public": {
+          "note": "no read access for this role"
+        }
+      }
+    }
+  ]
+}
