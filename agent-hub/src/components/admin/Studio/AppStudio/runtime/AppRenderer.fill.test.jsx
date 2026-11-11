@@ -1,9 +1,9 @@
 import { render } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
+import { withoutPartClasses } from '@/test/appPartClasses';
 import AppRenderer from './AppRenderer';
 import EditorNodeWrapper from '../editor/EditorNodeWrapper';
 import { AppEditorProvider } from '../state/AppEditorContext';
-import { withoutPartClasses } from '@/test/appPartClasses';
 
 /**
  * The height chain, tested as a CHAIN.
