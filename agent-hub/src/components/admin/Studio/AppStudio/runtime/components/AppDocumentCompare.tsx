@@ -1,5 +1,5 @@
 import { FileDiff, Loader2 } from 'lucide-react';
-import { Suspense, useCallback, useMemo, useRef, useState, type ReactNode } from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useAppDocumentCompare, useAppDocumentVersions, type AppDocumentCompare as CompareData, type AppDocumentVersion, type DocumentRef } from '@/api/queries/studioAppDocuments';
 import useTranslation from '@/hooks/useTranslation';
 import { resolveBinding } from '../resolveBinding';
@@ -13,11 +13,14 @@ import { DocMessage, DocShell, documentErrorText, useDocumentScope } from './doc
 import SheetDiffView from './documentCompare/SheetDiffView';
 import { hasChanges, summaryText, type TFn } from './documentCompare/summary';
 import { lazy } from '@/utils/lazyWithReload';
+import { logger } from '@/utils/logger';
 import type { StepFn } from './documentCompare/useStepper';
 
 // The text diff brings the editor's diff engine (and yjs) along; it is drawn only once a
-// text comparison has come back, so it loads then instead of with every app runtime.
-const TextDiffView = lazy(() => import('./documentCompare/TextDiffView'));
+// text comparison has come back, so it is its own chunk instead of part of every app
+// runtime. The component starts fetching it on mount, beside the comparison itself.
+const loadTextDiff = () => import('./documentCompare/TextDiffView');
+const TextDiffView = lazy(loadTextDiff);
 
 /**
  * App Studio runtime — 'document_compare'. Spec: server/appStudio/componentSpecs/documentSpecs.js.
@@ -131,6 +134,8 @@ export default function AppDocumentCompare({ node }: NodeProps<Props>) {
     const docScope = useDocumentScope(node);
     const sides = useSides(leftRef, rightRef, docScope);
     const compare = useAppDocumentCompare(docScope, sides.sides[0], sides.sides[1]);
+    // A failed prefetch is not an error yet: the lazy view retries (and reloads after a redeploy) when it is drawn.
+    useEffect(() => { loadTextDiff().catch((err: unknown) => logger.debug('[AppDocumentCompare] text diff prefetch failed', err)); }, []);
     const labels = {
         left: props.leftLabel || t('studio_app_documents.before', 'Before'),
         right: props.rightLabel || t('studio_app_documents.after', 'After'),
