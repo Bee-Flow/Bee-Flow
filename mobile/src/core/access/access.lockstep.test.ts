@@ -135,7 +135,9 @@ describe('the web logic this ports', () => {
     it('LicenseContext.hasFeature delegates to the entitlements', () => {
         const src = read('agent-hub/src/components/licensing/LicenseContext.tsx');
         expect(contains(src, 'const hasFeature = useCallback((name: string) => entCan(name), [entCan]);')).toBe(true);
-        expect(contains(src, "export const TIER_HIERARCHY = ['community', 'enterprise', 'full'];")).toBe(true);
+        // The tier order lives in licenseTiers.ts since the dashboard's tab gates read it too.
+        const tiers = read('agent-hub/src/components/licensing/licenseTiers.ts');
+        expect(contains(tiers, "export const TIER_HIERARCHY = ['community', 'enterprise', 'full'];")).toBe(true);
     });
 
     it('studioApps: makeCanUse and the lock hint keys', () => {
