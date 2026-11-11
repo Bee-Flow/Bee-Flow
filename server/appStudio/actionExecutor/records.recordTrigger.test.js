@@ -36,7 +36,9 @@ const tableOf = (name) => ({
 });
 const ORDERS = tableOf('orders');
 const PLAIN = tableOf('plain');
-const MODEL = { modelVersion: 1, roles: [], tables: [ORDERS, PLAIN] };
+// A table whose `margin` only the manager reads and writes (column rights).
+const PRICED = { ...tableOf('priced'), fields: [...tableOf('priced').fields, { id: 'fld_priced_m', key: 'margin', name: 'Margin', type: 'number', access: { read: ['manager'] } }] };
+const MODEL = { modelVersion: 1, roles: [], tables: [ORDERS, PLAIN, PRICED] };
 for (const t of MODEL.tables) db.exec(dataModel.ddlForTable(t, { tableKeyById: new Map(), dialect: 'sqlite' }));
 
 const USER = { kind: 'user' };
@@ -48,13 +50,16 @@ const lit = (value) => ({ kind: 'static', value });
 let recorded;
 let reads;
 test.beforeEach(() => {
-    db.exec('DELETE FROM "orders"; DELETE FROM "plain";');
+    db.exec('DELETE FROM "orders"; DELETE FROM "plain"; DELETE FROM "priced";');
     executed.length = 0;
     recorded = [];
     reads = 0;
     _setOutboxDeps({
         store: () => ({
-            armedRecordTriggers: async () => { reads += 1; return [{ appId: app.id, triggerId: 'on_orders', config: { tableId: ORDERS.id, on: ['create', 'update', 'delete'] } }]; },
+            armedRecordTriggers: async () => {
+                reads += 1;
+                return [ORDERS, PRICED].map((armed) => ({ appId: app.id, triggerId: `on_${armed.name}`, config: { tableId: armed.id, on: ['create', 'update', 'delete'] } }));
+            },
             add: async (list) => { recorded.push(...list); return { written: list.length, dropped: [] }; },
             noteSkip: async () => {},
         }),
@@ -76,6 +81,17 @@ test('the record API path (writeRecord / eraseRecord with an origin) records cre
     assert.equal(recorded[0].after.qty, 1);
     assert.deepEqual([recorded[0].writerKind, recorded[0].depth, recorded[0].causeTriggerId], ['owner', 0, null]);
     assert.equal(db.prepare('SELECT COUNT(*) AS n FROM "orders"').get().n, 0);
+});
+
+test('a table with column rights and an armed trigger: a role that does not read a field still writes its rows, and the change is recorded as the owner reads it', async () => {
+    const agent = { id: 'u-agent', role: 'agent' };
+    const { id } = await writeRecord(app, MODEL, PRICED, { title: 'A', margin: 12 }, { viewer: { id: 'u-boss', role: 'manager' }, source: USER });
+    const out = await writeRecord(app, MODEL, PRICED, { title: 'B' }, { viewer: agent, recordId: id, source: USER });
+    assert.equal(out.changes, 1);
+    assert.deepEqual(recorded.map((d) => [d.event, d.writerKind, d.before && d.before.margin, d.after && d.after.title, d.after && d.after.margin]),
+        [['create', 'member', null, 'A', 12], ['update', 'member', 12, 'B', 12]]);
+    await assert.rejects(() => writeRecord(app, MODEL, PRICED, { margin: 99 }, { viewer: agent, recordId: id, source: USER }), { code: 'field_not_writable' });
+    assert.equal(recorded.length, 2, 'a refused write records nothing');
 });
 
 test('an update that matches no row answers 0 changes and records nothing; a compare-and-set that loses does the same', async () => {

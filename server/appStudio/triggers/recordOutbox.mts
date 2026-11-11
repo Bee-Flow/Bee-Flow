@@ -60,8 +60,9 @@ function defaultDeps(): OutboxDeps {
         limits: () => recordTriggerLimits(),
         log: nodeRequire('../../telemetry/log') as OutboxDeps['log'],
         compileRead: (table, id) => {
-            const compiler = nodeRequire('../queryCompiler') as { compileGetById: (t: unknown, id: string, f: { where: string; params: unknown[] }) => Statement };
-            const { sql, params } = compiler.compileGetById(table, id, { where: '1=1', params: [] });
+            // As the owner: every row and every column, also of a table whose fields carry column rights.
+            const compiler = nodeRequire('../queryCompiler') as { OWNER_ACCESS: unknown; compileGetById: (t: unknown, id: string, f: unknown) => Statement };
+            const { sql, params } = compiler.compileGetById(table, id, compiler.OWNER_ACCESS);
             return { sql, params };
         },
     };
