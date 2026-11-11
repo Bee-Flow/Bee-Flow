@@ -3,6 +3,7 @@ import React, { useCallback, useEffect, useRef, useState, type Dispatch, type Se
 import { filePreview, saveJsonFile } from './importExport';
 import ImportPanel from './ImportPanel';
 import TemplateGallery from './TemplateGallery';
+import { templateTexts } from './templateText';
 import type { OpenOptions, StudioApp, StudioTemplate } from './types';
 import useImportFile from './useImportFile';
 import useTranslation, { type TranslateFn } from '@/hooks/useTranslation';
@@ -178,7 +179,8 @@ function NewAppModal({ open, onClose, onCreated }: NewAppModalProps) {
     const handleRemixTemplate = (tpl: StudioTemplate) => {
         if (busy) return;
         const trimmed = name.trim();
-        const prompt = t('studio_apps_bi.list.remix_prompt', 'Help me remix the "{title}" template. {description} I want to adapt it to my needs — suggest what to change and build it with me.', { title: tpl.title, description: tpl.description || '' });
+        const text = templateTexts(tpl, t);
+        const prompt = t('studio_apps_bi.list.remix_prompt', 'Help me remix the "{title}" template. {description} I want to adapt it to my needs — suggest what to change and build it with me.', { title: text.title, description: text.description });
         create(
             trimmed ? { templateId: tpl.id, name: trimmed } : { templateId: tpl.id },
             (b: boolean) => setRemixingTemplateId(b ? tpl.id : null),
