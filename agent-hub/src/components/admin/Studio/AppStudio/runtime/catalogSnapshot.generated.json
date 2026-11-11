@@ -2554,6 +2554,23 @@
                 "dot"
             ]
         },
+        "custom_block": {
+            "label": "Custom block",
+            "category": "Content",
+            "defaultProps": {},
+            "defaultStyle": {
+                "span": 12
+            },
+            "since": 3,
+            "mobile": {
+                "reason": "A custom block is drawn in a sealed browser frame; the phone has none."
+            },
+            "parts": [
+                "root",
+                "frame",
+                "notice"
+            ]
+        },
         "gauge": {
             "label": "Gauge",
             "category": "Data",
@@ -3071,6 +3088,10 @@
             "span",
             "gap",
             "padding"
+        ],
+        "custom_block": [
+            "span",
+            "height"
         ],
         "gauge": [
             "span",

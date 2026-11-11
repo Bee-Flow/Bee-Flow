@@ -1,0 +1,45 @@
+# zz-custom-block
+## screen scr_team0001 (Team)
+<div class="app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(15, 118, 110, 0.1); --app-accent: #0F766E; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(15, 118, 110, 0.1); --app-primary: #0F766E; --app-radius: 8px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-size: 15px; min-height: 100vh">
+  <main class="flex flex-1 flex-col min-h-0">
+    <div class="app-runtime app-screen-enter w-full" data-app-appearance="auto" data-app-screen="scr_team0001" data-app-screen-kind="page" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(15, 118, 110, 0.1); --app-accent: #0F766E; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(15, 118, 110, 0.1); --app-primary: #0F766E; --app-radius: 8px; --app-space: 1; color: var(--text-primary); font-size: 15px">
+      <div class="flex flex-col w-full" style="margin: 0px auto; max-width: 1280px">
+        <section class="app-grid" data-section-id="sec_team0001" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="heading" data-node-id="cmp_head0001" style="grid-column: span 12 / span 12">
+            <h2 class="break-words font-semibold text-xl">
+              "Team"
+          <div class="app-node app-span-8 min-w-0" data-app-type="custom_block" data-node-id="cmp_block001" style="grid-column: span 8 / span 8">
+            <div class="min-w-0 relative w-full" data-app-custom-block="drawn">
+              <iframe class="bg-transparent block border-0 h-24 w-full" allow="" referrerpolicy="no-referrer" sandbox="allow-same-origin" srcdoc="<!doctype html><html lang="en" data-appearance="light"><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:; style-src 'unsafe-inline'; form-action 'none'; base-uri 'none'"><meta name="referrer" content="no-referrer"><style>:root{color-scheme:light;--bf-primary:#0F766E;--bf-primary-contrast:#ffffff;--bf-accent:#0F766E;--bf-background:#ffffff;--bf-surface:#ffffff;--bf-text:#111827;--bf-text-muted:#6b7280;--bf-border:#e5e7eb;--bf-radius:8px;--bf-font:depends on user agent;}html,body{margin:0;padding:0;background:transparent}body{display:flow-root;color:var(--bf-text,#111827);font-family:var(--bf-font,system-ui,sans-serif);font-size:14px;line-height:1.5;overflow-wrap:anywhere}[hidden]{display:none!important}</style><style>.team{padding:12px;border:1px solid var(--bf-border);border-radius:var(--bf-radius);background:var(--bf-surface)}
+.team--compact{padding:4px}
+.people{list-style:none;margin:0;padding:0}
+.people li{display:flex;gap:8px;align-items:center;padding:4px 0}
+.empty{color:var(--bf-text-muted)}
+html[data-appearance="dark"] .team{border-color:var(--bf-text-muted)}
+@media (max-width: 400px){.people li{flex-direction:column}}</style></head><body><section class="team" aria-label="People">
+  <h3>People</h3>
+  <p class="empty">Nobody here yet.</p>
+  <ul class="people">
+    
+  </ul>
+  <details><summary>How it is counted</summary><p>One bar per person, as wide as the name is long.</p></details>
+  <svg viewbox="0 0 100 6" width="200" role="img" aria-label="Name lengths">
+    
+  </svg>
+  <table><thead><tr><th scope="col">Name</th><th scope="col">Team</th></tr></thead>
+    <tbody></tbody></table>
+  <a>Later</a>
+</section></body></html>" title="Custom block" style="height: 24px">
+          <div class="app-node app-span-4 min-w-0" data-app-type="custom_block" data-node-id="cmp_fixed001" style="grid-column: span 4 / span 4; height: 200px; overflow: auto">
+            <div class="h-full min-h-0 min-w-0 relative w-full" data-app-custom-block="drawn">
+              <iframe class="bg-transparent block border-0 h-full w-full" allow="" referrerpolicy="no-referrer" sandbox="allow-same-origin" srcdoc="<!doctype html><html lang="en" data-appearance="light"><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:; style-src 'unsafe-inline'; form-action 'none'; base-uri 'none'"><meta name="referrer" content="no-referrer"><style>:root{color-scheme:light;--bf-primary:#0F766E;--bf-primary-contrast:#ffffff;--bf-accent:#0F766E;--bf-background:#ffffff;--bf-surface:#ffffff;--bf-text:#111827;--bf-text-muted:#6b7280;--bf-border:#e5e7eb;--bf-radius:8px;--bf-font:depends on user agent;}html,body{margin:0;padding:0;background:transparent}body{display:flow-root;color:var(--bf-text,#111827);font-family:var(--bf-font,system-ui,sans-serif);font-size:14px;line-height:1.5;overflow-wrap:anywhere}[hidden]{display:none!important}</style><style></style></head><body><p class="note">Picked: <strong></strong></p></body></html>" title="Custom block">
+          <div class="app-node app-span-12 min-w-0" data-app-type="custom_block" data-node-id="cmp_empty001" style="grid-column: span 12 / span 12">
+## screen scr_hello001 (Welcome)
+<div class="app-shell flex flex-col w-full" data-app-appearance="auto" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(15, 118, 110, 0.1); --app-accent: #0F766E; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(15, 118, 110, 0.1); --app-primary: #0F766E; --app-radius: 8px; --app-space: 1; background: var(--app-canvas, var(--bg-primary)); color: var(--text-primary); font-size: 15px; min-height: 100vh">
+  <main class="flex flex-1 flex-col min-h-0">
+    <div class="app-runtime app-screen-enter w-full" data-app-appearance="auto" data-app-screen="scr_hello001" data-app-screen-kind="page" style="--app-accent-contrast: #ffffff; --app-accent-soft: rgba(15, 118, 110, 0.1); --app-accent: #0F766E; --app-primary-contrast: #ffffff; --app-primary-soft: rgba(15, 118, 110, 0.1); --app-primary: #0F766E; --app-radius: 8px; --app-space: 1; color: var(--text-primary); font-size: 15px">
+      <div class="flex flex-col w-full" style="margin: 0px auto; max-width: 640px">
+        <section class="app-grid" data-section-id="sec_hello001" style="gap: calc(12px * var(--app-space, 1)); grid-template-columns: repeat(12, minmax(0, 1fr)); padding: calc(16px * var(--app-space, 1))">
+          <div class="app-node app-span-12 min-w-0" data-app-type="custom_block" data-node-id="cmp_block002" style="grid-column: span 12 / span 12">
+            <div class="min-w-0 relative w-full" data-app-custom-block="drawn">
+              <iframe class="bg-transparent block border-0 h-24 w-full" allow="" referrerpolicy="no-referrer" sandbox="allow-same-origin" srcdoc="<!doctype html><html lang="en" data-appearance="light"><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:; style-src 'unsafe-inline'; form-action 'none'; base-uri 'none'"><meta name="referrer" content="no-referrer"><style>:root{color-scheme:light;--bf-primary:#0F766E;--bf-primary-contrast:#ffffff;--bf-accent:#0F766E;--bf-background:#ffffff;--bf-surface:#ffffff;--bf-text:#111827;--bf-text-muted:#6b7280;--bf-border:#e5e7eb;--bf-radius:8px;--bf-font:depends on user agent;}html,body{margin:0;padding:0;background:transparent}body{display:flow-root;color:var(--bf-text,#111827);font-family:var(--bf-font,system-ui,sans-serif);font-size:14px;line-height:1.5;overflow-wrap:anywhere}[hidden]{display:none!important}</style><style>.hello{text-align:center}</style></head><body><div class="hello"><h2>Welcome</h2><p>This page is open to everyone.</p><button type="button" data-bf-emit="0">Say hello</button></div></body></html>" title="Custom block" style="height: 24px">
