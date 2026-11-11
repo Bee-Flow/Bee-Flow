@@ -36,11 +36,13 @@ beforeEach(() => {
 
 function renderDashboard({ user = platformAdmin as object, seg1 = 'security', seg2 = 'users', seg3 = '', license = {} as Partial<LicenseValue> } = {}) {
     const value = { tier: 'community', deploymentMode: 'self-hosted', serverOverride: false, hasTier: () => false, hasFeature: () => false, ...license } as LicenseValue;
+    const onNavigate = vi.fn();
     render(withQueryClient(
         <LicenseContext.Provider value={value}>
-            <AdminDashboard user={user as never} onBack={vi.fn()} onNavigate={vi.fn()} adminPath={{ seg1, seg2, seg3 }} />
+            <AdminDashboard user={user as never} onBack={vi.fn()} onNavigate={onNavigate} adminPath={{ seg1, seg2, seg3 }} />
         </LicenseContext.Provider>,
     ));
+    return { onNavigate };
 }
 
 const bar = () => screen.getByTestId('admin-scope-bar');
@@ -172,5 +174,16 @@ describe('the rail', () => {
         const drawer = within(await screen.findByRole('dialog', { name: 'Admin sections' }));
         expect(drawer.getByTestId('admin-rail-section-org')).toBeInTheDocument();
         expect(drawer.getByTestId('admin-rail-section-instance')).toBeInTheDocument();
+    });
+
+    it('keeps the Organisation sections as rows in the phone drawer, each going to its own address', async () => {
+        const user = userEvent.setup();
+        const { onNavigate } = renderDashboard({ seg1: 'organisation', seg2: 'encryption' });
+        await user.click(screen.getByRole('button', { name: 'Admin sections: Encryption' }));
+        const drawer = within(await screen.findByRole('dialog', { name: 'Admin sections' }));
+        expect(drawer.getByRole('link', { name: 'Encryption' })).toHaveAttribute('aria-current', 'page');
+        await user.click(drawer.getByRole('link', { name: 'MCP Access' }));
+        expect(onNavigate).toHaveBeenCalledWith('admin/organisation/mcp-access');
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });
 });

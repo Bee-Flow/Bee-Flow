@@ -2,7 +2,8 @@
 //   area  the panel fills the pane and owns its layout (the hubs with their
 //         own section sidebar, Monitoring, Compliance, Support, ...);
 //   page  a single settings page: the pane scrolls and gives the page the
-//         same padding a StudioShell section gets (p-6, md:p-8).
+//         same padding a StudioShell section gets (p-6, md:p-8). The
+//         Organisation tab is one: its sections are rows of the rail.
 // Either way edge to edge: no tab sits in an extra framed inset any more.
 
 import type { ReactNode } from 'react';
@@ -46,7 +47,7 @@ type Panel = { render: (p: AdminTabContentProps) => ReactNode; page?: boolean };
 /** The panel of each tab; a tab without one renders nothing here (product-website escapes the chrome). */
 const PANELS: Record<string, Panel> = {
     agents: { render: (p) => <AgentConfigHub user={p.user} hasPermission={p.hasPermission} activeSection={p.agentSection} onNavigate={p.onNavigate} /> },
-    organisation: { render: (p) => <OrganisationHub user={p.user} activeSection={p.adminPath.seg2} onNavigate={p.onNavigate} /> },
+    organisation: { render: (p) => <OrganisationHub user={p.user} activeSection={p.adminPath.seg2} />, page: true },
     'ai-config': { render: (p) => <AIConfigPanel activeSection={p.adminPath.seg2} activeProvider={p.adminPath.seg3} onNavigate={p.onNavigate} /> },
     security: { render: (p) => <SecurityHub user={p.user} activeSection={p.adminPath.seg2} userSection={p.adminPath.seg3} onNavigate={p.onNavigate} /> },
     integrations: { render: (p) => <IntegrationsAdminPanel activeSection={p.adminPath.seg2} onNavigate={p.onNavigate} /> },

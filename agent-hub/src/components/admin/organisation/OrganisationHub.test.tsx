@@ -1,6 +1,7 @@
 // The admin dashboard's Organisation tab, rendered in the dashboard: which
 // organisation its sections work on (the scope bar's choice for a platform
-// admin, the home organisation for anyone else), what they send, and its nav.
+// admin, the home organisation for anyone else), what they send, and its
+// sections as rows of the dashboard rail (no menu of its own).
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -10,7 +11,9 @@ let asked: string[];
 beforeEach(() => { asked = stubOrgApi(); });
 
 const policyReads = () => asked.filter(u => u.includes('/api/org/mcp-access')).map(u => u.slice(u.indexOf('/api/org/mcp-access')));
-const nav = () => within(screen.getByRole('navigation', { name: 'Organisation' }));
+const nav = () => within(screen.getByTestId('admin-rail-section-org'));
+/** The rows under one eyebrow of the rail's organisation block. */
+const groupRows = (eyebrow: string) => within(nav().getByText(eyebrow).parentElement as HTMLElement).getAllByRole('link');
 const picker = () => screen.queryByRole('combobox', { name: 'Organisation' });
 
 describe('the Organisation tab for a platform admin', () => {
@@ -52,26 +55,47 @@ describe('the Organisation tab for a platform admin', () => {
         expect(await screen.findByTestId('admin-home-org-only')).toBeInTheDocument();
     });
 
-    it('on a self-hosted install: no License & Usage, and the Azure setup last under "Whole server", marked', async () => {
+    it('on a self-hosted install: no License & Usage, and the Azure setup last in Connections, marked server-wide', async () => {
         renderOrgTab({ section: 'info', search: '?org=org-a', deploymentMode: 'self-hosted' });
         await screen.findByDisplayValue('Org A');
-        expect(nav().queryByRole('button', { name: 'License & Usage' })).not.toBeInTheDocument();
-        const rows = nav().getAllByRole('button');
+        expect(nav().queryByRole('link', { name: 'License & Usage' })).not.toBeInTheDocument();
+        const rows = groupRows('Connections');
         const azure = rows[rows.length - 1];
         expect(azure).toHaveAccessibleName('Azure Configuration Whole server');
         expect(within(azure).getByTestId('server-wide-mark')).toBeInTheDocument();
+        expect(nav().getAllByTestId('server-wide-mark')).toHaveLength(1);
     });
 
-    it('groups the sections under the Settings topics, and navigates by section', async () => {
+    it('puts the sections in the rail groups, links each to its address, and draws no menu of its own', async () => {
         const user = userEvent.setup();
         const { onNavigate } = renderOrgTab({ section: 'info', search: '?org=org-a', plan: entitlements(['learning_center'], ['meeting_notes']) });
         await screen.findByDisplayValue('Org A');
-        for (const eyebrow of ['Organisation', 'People', 'Privacy & security', 'AI & data', 'Connections']) {
-            expect(nav().getByText(eyebrow)).toBeInTheDocument();
-        }
-        expect(nav().getByRole('button', { name: 'Organisation Info' })).toHaveAttribute('aria-current', 'page');
-        await user.click(nav().getByRole('button', { name: 'Academy' }));
+        const group = (eyebrow: string) => groupRows(eyebrow).map(a => a.textContent);
+        expect(group('Workspace')).toEqual(['Organisation Info', 'Sign-in Method', 'License & Usage', 'Academy']);
+        expect(group('AI & agents')).toEqual(['Agents', 'AI & Collaboration', 'Answer Reuse', 'Meeting Templates']);
+        expect(group('Security & access')).toEqual(['Security', 'Access', 'Encryption']);
+        expect(group('Connections')).toEqual(['Integrations', 'MCP Library', 'MCP Access', 'Nextcloud Sync']);
+        expect(group('Operations')).toEqual(['Monitoring']);
+        expect(nav().queryByRole('link', { name: 'Organisation' })).not.toBeInTheDocument();
+        expect(nav().getByRole('link', { name: 'Organisation Info' })).toHaveAttribute('aria-current', 'page');
+        expect(nav().getByRole('link', { name: 'Encryption' })).toHaveAttribute('href', expect.stringContaining('/admin/organisation/encryption'));
+        expect(screen.queryByRole('navigation', { name: 'Organisation' })).not.toBeInTheDocument();
+        expect(screen.getAllByRole('navigation')).toHaveLength(1);
+        await user.click(nav().getByRole('link', { name: 'Academy' }));
         expect(onNavigate).toHaveBeenCalledWith('admin/organisation/academy');
+    });
+
+    it('marks the row of the open section', async () => {
+        renderOrgTab({ section: 'encryption', search: '?org=org-a' });
+        expect(await nav().findByRole('link', { name: 'Encryption' })).toHaveAttribute('aria-current', 'page');
+        expect(await screen.findByTestId('org-section-body-encryption')).toBeInTheDocument();
+    });
+
+    it('admin/organisation without a section opens the first visible section, named in the narrow top bar', async () => {
+        renderOrgTab({ section: '', search: '?org=org-a' });
+        expect(await screen.findByTestId('org-section-body-info')).toBeInTheDocument();
+        expect(nav().getByRole('link', { name: 'Organisation Info' })).toHaveAttribute('aria-current', 'page');
+        expect(screen.getByRole('button', { name: 'Admin sections: Organisation Info' })).toBeInTheDocument();
     });
 });
 
@@ -87,8 +111,9 @@ describe('the Organisation tab for an organisation admin by role', () => {
 
     it('gets the organisation\'s own group sync instead of the Azure setup on self-hosted, unmarked', async () => {
         renderOrgTab({ user: ORG_ADMIN_BY_ROLE, section: 'info', deploymentMode: 'self-hosted' });
-        expect(await nav().findByRole('button', { name: 'Group sync' })).toBeInTheDocument();
-        expect(nav().queryByRole('button', { name: /Azure Configuration/ })).not.toBeInTheDocument();
+        expect(await nav().findByRole('link', { name: 'Group sync' })).toBeInTheDocument();
+        expect(nav().queryByRole('link', { name: /Azure Configuration/ })).not.toBeInTheDocument();
         expect(nav().queryByTestId('server-wide-mark')).not.toBeInTheDocument();
+        expect(screen.queryByTestId('admin-rail-section-instance')).not.toBeInTheDocument();
     });
 });

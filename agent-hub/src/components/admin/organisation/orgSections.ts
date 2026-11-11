@@ -2,40 +2,35 @@
 // pure, so every rule can be tested without rendering a panel. The rules are the
 // ones the Settings > Organisation menu had (its rows moved here); the ids are
 // the old Settings URL segments (authedApp/settingsRoutes SETTINGS_ORG_ID_TO_URL),
-// so an old address maps onto a section by name.
+// so an old address maps onto a section by name. Each section is a row of the
+// dashboard rail itself, in the rail group `group` names (dashboard/adminRailRows).
 
 import {
     Brain, Cloud, CreditCard, DatabaseZap, FileText, FolderGit2, GraduationCap, Info, KeyRound, Link2,
     Lock, Plug, RefreshCw, ShieldCheck,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import type { AdminTabGroupId } from '@/components/admin/dashboard/adminTabs';
 import { isOrgAdminRole, isPlatformAdmin } from '@/utils/adminAccess';
 
-export type OrgHubGroupId = 'details' | 'people' | 'privacy' | 'ai' | 'connections';
+/** The rail groups the sections sit in (adminTabs ADMIN_TAB_GROUPS). */
+type OrgRailGroupId = Extract<AdminTabGroupId, 'organisation' | 'ai' | 'security' | 'connections'>;
 
 export interface OrgHubSection {
     id: string;
     labelKey: string;
     icon: LucideIcon;
-    group: OrgHubGroupId;
+    /** The rail group the section's row sits in. */
+    group: OrgRailGroupId;
 }
 
-/** The groups in nav order, each with its eyebrow. */
-export const ORG_HUB_GROUPS: readonly { id: OrgHubGroupId; labelKey: string; labelFallback: string }[] = [
-    { id: 'details', labelKey: 'settings.organisation', labelFallback: 'Organisation' },
-    { id: 'people', labelKey: 'admin.org_hub_group_people', labelFallback: 'People' },
-    { id: 'privacy', labelKey: 'admin.org_hub_group_privacy', labelFallback: 'Privacy & security' },
-    { id: 'ai', labelKey: 'admin.org_hub_group_ai', labelFallback: 'AI & data' },
-    { id: 'connections', labelKey: 'admin.org_hub_group_connections', labelFallback: 'Connections' },
-];
-
-/** Every section in nav order; the labels are the Settings rows'. */
+/** Every section in nav order (the order inside its rail group); the labels are the Settings rows'. */
 export const ORG_HUB_SECTIONS: readonly OrgHubSection[] = [
-    { id: 'info', labelKey: 'settings.org_info', icon: Info, group: 'details' },
-    { id: 'auth', labelKey: 'settings.signin_method', icon: KeyRound, group: 'details' },
-    { id: 'license', labelKey: 'settings.license_usage', icon: CreditCard, group: 'details' },
-    { id: 'academy', labelKey: 'settings.academy', icon: GraduationCap, group: 'people' },
-    { id: 'encryption', labelKey: 'settings.encryption', icon: Lock, group: 'privacy' },
+    { id: 'info', labelKey: 'settings.org_info', icon: Info, group: 'organisation' },
+    { id: 'auth', labelKey: 'settings.signin_method', icon: KeyRound, group: 'organisation' },
+    { id: 'license', labelKey: 'settings.license_usage', icon: CreditCard, group: 'organisation' },
+    { id: 'academy', labelKey: 'settings.academy', icon: GraduationCap, group: 'organisation' },
+    { id: 'encryption', labelKey: 'settings.encryption', icon: Lock, group: 'security' },
     { id: 'ai-context', labelKey: 'settings.ai_context', icon: Brain, group: 'ai' },
     { id: 'integration-cache', labelKey: 'settings.integration_cache', icon: DatabaseZap, group: 'ai' },
     { id: 'meeting-templates', labelKey: 'settings.meeting_templates', icon: FileText, group: 'ai' },
@@ -168,4 +163,9 @@ export function visibleOrgSections(f: OrgSectionFacts): OrgHubSection[] {
     return ORG_HUB_SECTIONS
         .filter(s => isOrgSectionVisible(s.id, f))
         .map(s => (s.id === 'azure' && orgAzureSection(f) === 'group-sync' ? GROUP_SYNC_SECTION : s));
+}
+
+/** The section a request for `requested` opens: that one when this viewer has it, else the first one (none: ''). */
+export function activeOrgSection(sections: readonly Pick<OrgHubSection, 'id'>[], requested: string | undefined): string {
+    return sections.some(s => s.id === requested) ? requested as string : (sections[0]?.id ?? '');
 }
