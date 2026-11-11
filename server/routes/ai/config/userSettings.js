@@ -48,6 +48,7 @@ const { SUBDOMAIN_RE: NMBRS_SUBDOMAIN_RE, TOKEN_RE: NMBRS_TOKEN_RE, EMAIL_RE: NM
 const NMBRS_CLIENT_ID_RE = /^[\x21-\x7E]{4,256}$/; // printable ASCII, no whitespace/CRLF
 const { API_KEY_RE: VPLAN_API_KEY_RE, API_ENV_RE: VPLAN_API_ENV_RE } = require('../../../integrations/vplanTools');
 const { firebirdFields } = require('./firebirdFields');
+const { frappeCrmFields } = require('./frappeCrmFields.mts');
 const { SECRETS } = require('../../../stores/user/userSecretKeys.mts');
 const { SECRET_KEY_RE: SCALEWAY_SECRET_KEY_RE, ORG_ID_RE: SCALEWAY_ORG_ID_RE } = require('../../../integrations/scalewayBillingTools');
 const { sanitizeLearningProgress, mergeLearningProgress } = require('../../../learning/progressValidation');
@@ -145,9 +146,8 @@ const UserSettingsBody = z.object({
     // X-Api-Env), so the shape check is the header-injection guard.
     vplanApiKey: shaped(VPLAN_API_KEY_RE, 'vPlan API key is invalid — paste the key from vPlan → Settings → Developers, with no spaces.'),
     vplanApiEnv: shaped(VPLAN_API_ENV_RE, 'vPlan environment is invalid — paste the API env shown next to the key in vPlan, with no spaces.'),
-    // Firebird database (read-only SQL). Shapes live in firebirdFields.js,
-    // shared with the connection test.
-    ...firebirdFields,
+    // Firebird database (read-only SQL) and Frappe CRM: the shapes live in firebirdFields.js and frappeCrmFields.mts, shared with their connection tests.
+    ...firebirdFields, ...frappeCrmFields,
     // Scaleway Billing (read-only). The secret key travels in X-Auth-Token and
     // the organization id in a query string; both are UUIDs.
     // nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret -- the string is a validation message, not a key
@@ -325,6 +325,7 @@ router.get('/user-settings', requireAuth, async (req, res) => {
         hasVplanConfig: !!(await configStore.getSecret(`vplan_api_key_user_${userId}`)) && !!(await configStore.getSecret(`vplan_api_env_user_${userId}`)),
         hasFirebirdConfig: !!(await configStore.getSecret(`firebird_host_user_${userId}`)) && !!(await configStore.getSecret(`firebird_database_user_${userId}`))
             && !!(await configStore.getSecret(`firebird_user_user_${userId}`)) && !!(await configStore.getSecret(`firebird_password_user_${userId}`)),
+        hasFrappeCrmConfig: !!(await configStore.getSecret(`frappe_crm_url_user_${userId}`)) && !!(await configStore.getSecret(`frappe_crm_api_key_user_${userId}`)) && !!(await configStore.getSecret(`frappe_crm_api_secret_user_${userId}`)),
         hasScalewayBillingConfig: !!(await configStore.getSecret(`scaleway_billing_secret_key_user_${userId}`)),
         // Non-secret NMBRS fields so the settings form can pre-fill (the token is never returned).
         nmbrsApiMode: (await configStore.getSecret(`nmbrs_api_mode_user_${userId}`)) || 'soap',

@@ -123,3 +123,14 @@ test('empty body returns null', async () => {
         assert.strictEqual(await jsonApiRequest('https://api.example.com/x'), null);
     } finally { restore(); }
 });
+
+test('redirect is passed to fetch only when set', async () => {
+    const inits = [];
+    const restore = stubFetch(async (_url, init) => { inits.push(init); return jsonResponse('{}', { ok: true, status: 200 }); });
+    try {
+        await jsonApiRequest('https://api.example.com/x');
+        await jsonApiRequest('https://api.example.com/x', { redirect: 'manual' });
+        assert.ok(!('redirect' in inits[0]));
+        assert.strictEqual(inits[1].redirect, 'manual');
+    } finally { restore(); }
+});

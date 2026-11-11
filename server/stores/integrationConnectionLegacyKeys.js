@@ -31,6 +31,9 @@ const LEGACY_KEY_MAP = {
     'firebird_user':         { provider: 'firebird',    field: 'user',         kind: 'basic'   },
     'firebird_password':     { provider: 'firebird',    field: 'password',     kind: 'basic'   },
     'firebird_charset':      { provider: 'firebird',    field: 'charset',      kind: 'basic'   },
+    'frappe_crm_url':        { provider: 'frappe-crm',  field: 'url',          kind: 'basic'   },
+    'frappe_crm_api_key':    { provider: 'frappe-crm',  field: 'api_key',      kind: 'basic'   },
+    'frappe_crm_api_secret': { provider: 'frappe-crm',  field: 'api_secret',   kind: 'basic'   },
     'scaleway_billing_secret_key': { provider: 'scaleway-billing', field: 'secret_key',      kind: 'basic' },
     'scaleway_billing_org_id':     { provider: 'scaleway-billing', field: 'organization_id', kind: 'basic' },
 };

@@ -9,7 +9,7 @@ toc_max_heading_level: 2
 
 # `/ai`
 
-129 routes, 58 with a request schema. Back to the [endpoint reference](../reference.md).
+130 routes, 59 with a request schema. Back to the [endpoint reference](../reference.md).
 
 ## `agent-search`
 
@@ -656,6 +656,20 @@ No request schema.
 | `firebirdPassword` | string or null |  |  |
 | `firebirdCharset` | string or null |  |  |
 
+## `frappe-crm`
+
+### `POST /ai/frappe-crm/test`
+
+**Access:** Signed-in user
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `frappeCrmUrl` | string or null |  |  |
+| `frappeCrmApiKey` | string or null |  |  |
+| `frappeCrmApiSecret` | string or null |  |  |
+
 ## `generate-regex`
 
 ### `POST /ai/generate-regex`
@@ -1295,6 +1309,9 @@ No request schema.
 | `firebirdUser` | string or null |  |  |
 | `firebirdPassword` | string or null |  |  |
 | `firebirdCharset` | string or null |  |  |
+| `frappeCrmUrl` | string or null |  |  |
+| `frappeCrmApiKey` | string or null |  |  |
+| `frappeCrmApiSecret` | string or null |  |  |
 | `scalewayBillingSecretKey` | string or null |  |  |
 | `scalewayBillingOrgId` | string or null |  |  |
 | `enabledApps` | array of string or null |  |  |
