@@ -15,6 +15,7 @@
  */
 
 import type { CSSProperties } from 'react';
+import { fontRoleProps } from './fonts/fontRoles';
 
 // ── Mirrors (server/appStudio/appDesignSpec.js is authoritative) ────────────
 export const DESIGN_ENUMS = {
@@ -85,6 +86,10 @@ export function appDesignProps(definition?: { design?: AppDesign; [key: string]:
         else if (d.motion === 'full') classes.push('app-motion--full');
         const stack = FONT_STACKS[d.font];
         if (stack) style.fontFamily = stack;
+        // design.fonts (schema 3, fonts/fontRoles.ts): nothing unless a role is set; a body role wins over design.font.
+        const roles = fontRoleProps(d);
+        classes.push(...roles.classes);
+        Object.assign(style, roles.style);
     }
     return { className: classes.join(' '), style };
 }

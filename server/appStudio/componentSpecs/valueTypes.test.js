@@ -159,7 +159,7 @@ function groupDir(source) {
 }
 
 test('a knob group file may declare value-typed knobs', () => {
-    assert.deepEqual([...EXTENSION_KNOB_TYPES], ['enum', 'int', 'colorOrRole', 'asset', 'css']);
+    assert.deepEqual([...EXTENSION_KNOB_TYPES], ['enum', 'int', 'colorOrRole', 'asset', 'css', 'shaped']);
     const ctx = { styleKnobs: STYLE_KNOBS, baseGroupNames: [] };
     const group = (knob) => `module.exports = { since: 3, grantedBy: 'span', knobs: { backdrop: ${knob} } };\n`;
     const [loaded] = loadKnobGroupExtensions(groupDir(group("{ type: 'asset', default: null, since: 3 }")), ctx);

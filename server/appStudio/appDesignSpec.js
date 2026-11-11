@@ -31,6 +31,7 @@ const crypto = require('crypto');
 const { valueTypeOf, isAssetRef } = require('./componentSpecs/valueTypes');
 const { LIMITS } = require('./componentSpecs/limits');
 const { cleanAppCss, appCssRepairNote } = require('./appCss.mts');
+const fontRoles = require('./appFontRoles');
 
 // Font PAIRING ids, not raw family names: the closed vocabulary keeps the
 // builder/editor honest and every family on the CMS DESIGN_FONTS allowlist.
@@ -53,7 +54,9 @@ const FONT_FAMILIES = Object.freeze({
  * before the key existed keeps its bytes. A base key is always written (its default when
  * absent). A key added later is optional and may use a value type of
  * componentSpecs/valueTypes.js as its `type`.
- * @typedef {{ type: 'enum', values: string[], default: string, optional?: boolean, valuesSince?: Record<string, number>, description?: string } | { type: 'url', default: string | null, maxLen: number, optional?: boolean } | DesignCssEntry} DesignSpecEntry
+ * @typedef {{ type: 'enum', values: string[], default: string, optional?: boolean, valuesSince?: Record<string, number>, description?: string } | { type: 'url', default: string | null, maxLen: number, optional?: boolean } | DesignCssEntry | DesignShapedEntry} DesignSpecEntry
+ * @typedef {{ type: 'shaped', optional: true, since: number, shape: string, clean: (value: unknown) => unknown, repairNote?: (value: unknown) => string | null, toolSchema: Record<string, unknown>, description: string }} DesignShapedEntry
+ *   A key whose value its own clean() keeps (designTokens.mts).
  * @typedef {{ type: 'css', optional: true, since: number, maxLen: number, sanitize: (text: string) => string, repairNote: (text: unknown) => string | null, description: string }} DesignCssEntry
  *   A stylesheet key: stored as `sanitize` returns it; `repairNote` says what saving took out.
  */
@@ -100,6 +103,15 @@ const DESIGN_SPEC = Object.freeze(/** @satisfies {Record<string, DesignSpecEntry
             + 'Selectors that are a contract: [data-app-screen="<screen id>"] (one screen), [data-section-id="<section id>"] (one section), [data-node-id="<node id>"] (the cell of one component), [data-app-type="<type>"] (every component of a type, e.g. [data-app-type="button"]), .u-<name> (every component whose cssClass is <name>), and inside a component the part classes .bfa-<type>__<part> where the type lists parts. Any other class name of the product can change without notice. '
             + 'Colours: prefer the variables var(--app-primary), var(--app-accent), var(--app-canvas), var(--text-primary), var(--bg-card) and var(--border-default) over fixed values. Dark mode: the app root carries data-app-dark="true" or "false", so write :scope[data-app-dark="true"] .u-hero { … } for the dark variant (:scope is the app root, and a selector without it only matches inside the root). Under the high-contrast theme the stylesheet is not applied at all, so nothing may depend on it to be readable. '
             + 'Allowed at-rules: @media, @supports, @container. Comments are not kept. Removed when saved, and named in the repair hints: every other at-rule (@import, @font-face, @keyframes, …), position: fixed, and a url() that is not data:image/… or asset:<id> (an uploaded file of this app). Write it with app_set_theme { customCss: "<the whole stylesheet>" } (the text replaces what was there), and pass null to remove it.',
+    },
+    // Package LK17 (appFontRoles.js): a typeface per role, self-hosted or an uploaded WOFF2.
+    fonts: {
+        type: 'shaped', optional: true, since: 3,
+        shape: fontRoles.FONT_ROLES_SHAPE,
+        clean: fontRoles.cleanFontRoles,
+        repairNote: fontRoles.fontRolesRepairNote,
+        toolSchema: fontRoles.FONT_ROLES_TOOL_SCHEMA,
+        description: fontRoles.FONT_ROLES_DESCRIPTION,
     },
 }));
 

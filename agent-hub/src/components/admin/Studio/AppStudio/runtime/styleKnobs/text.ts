@@ -7,7 +7,8 @@
  */
 
 import './text.css';
-import type { StyleKnobHandler } from '../styleKnobHandlers';
+import { fontKnobFamily } from '../fonts/fontRoles';
+import type { StyleKnobContext, StyleKnobHandler } from '../styleKnobHandlers';
 import type { InlineStyle, StyleKnobs } from '../styleResolver.types';
 
 /** Tailwind's type scale in rem; md is the body size. */
@@ -34,10 +35,25 @@ type TextKnobs = StyleKnobs & { font?: string; textSize?: string; lineHeight?: s
 const has = <V,>(table: Record<string, V>, key: string | undefined): key is string =>
     typeof key === 'string' && Object.hasOwn(table, key);
 
-function resolveText(s: StyleKnobs, style: InlineStyle): string {
+/**
+ * The font knob. In an app whose design sets font roles (design.fonts, fonts/fontRoles.ts) a
+ * role follows the design's variable and the cell keeps its font for the headings and code
+ * inside it (.app-tk-font); in any other app it writes what it always wrote.
+ */
+function applyFont(k: TextKnobs, style: InlineStyle, classes: string[], context?: StyleKnobContext): void {
+    const followed = typeof k.font === 'string' ? fontKnobFamily(k.font, context?.design) : null;
+    if (followed) {
+        style.fontFamily = followed;
+        classes.push('app-tk-font');
+    } else if (has(FONT_STACK, k.font)) {
+        style.fontFamily = FONT_STACK[k.font];
+    }
+}
+
+function resolveText(s: StyleKnobs, style: InlineStyle, context?: StyleKnobContext): string {
     const k = s as TextKnobs;
     const classes: string[] = [];
-    if (has(FONT_STACK, k.font)) style.fontFamily = FONT_STACK[k.font];
+    applyFont(k, style, classes, context);
     if (has(TEXT_SIZE, k.textSize)) {
         style.fontSize = TEXT_SIZE[k.textSize];
         style.lineHeight = SIZE_LEADING[k.textSize];

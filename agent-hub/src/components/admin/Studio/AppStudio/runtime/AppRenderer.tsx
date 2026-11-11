@@ -299,7 +299,7 @@ function RenderNode({ node, scope, NodeWrapper, mode }: RenderNodeProps) {
         return nodeScope === runtime.scope ? bare : <ScopeProvider scope={nodeScope}>{bare}</ScopeProvider>;
     }
 
-    const { className, style } = resolveNodeStyle(node);
+    const { className, style } = resolveNodeStyle(node, { design: runtime.appDesign });
     const cellStyle = hidden ? { ...style, opacity: 0.4 } : style;
 
     const interactive = tileClickProps(node, mode, runtime.runAction, enabled.disabled);

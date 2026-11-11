@@ -445,6 +445,66 @@ exports[`compat corpus: what the phone plans for every stored app dataset-params
 }
 `;
 
+exports[`compat corpus: what the phone plans for every stored app design-font-roles 1`] = `
+{
+  "defaultScreen": "scr_fontrl01",
+  "navigable": [
+    "scr_fontrl01",
+  ],
+  "screens": [
+    {
+      "id": "scr_fontrl01",
+      "plans": [
+        {
+          "plan": {
+            "blocks": [
+              {
+                "divider": true,
+                "id": "cmp_fontrl01",
+                "kind": "page_header",
+                "subtitle": "Headings in the heading font",
+                "title": "Annual report",
+              },
+              {
+                "id": "cmp_fontrl02",
+                "kind": "heading",
+                "level": 2,
+                "text": "Overview",
+              },
+              {
+                "id": "cmp_fontrl03",
+                "kind": "text",
+                "muted": false,
+                "text": "Body text in the body font.",
+              },
+              {
+                "id": "cmp_fontrl04",
+                "kind": "text",
+                "muted": false,
+                "text": "INV-2026-0042",
+              },
+              {
+                "id": "cmp_fontrl05",
+                "kind": "heading",
+                "level": 3,
+                "text": "A heading in the body font",
+              },
+            ],
+            "screen": "scr_fontrl01",
+            "unsupported": [
+              "markdown",
+            ],
+          },
+          "roles": [
+            "(no role)",
+          ],
+        },
+      ],
+    },
+  ],
+}
+`;
+
 exports[`compat corpus: what the phone plans for every stored app design-preset-ember 1`] = `
 {
   "defaultScreen": "scr_p1yp7d",

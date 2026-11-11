@@ -3,6 +3,7 @@ import { APP_CSS_DARK_ATTR, APP_CSS_ROOT_ATTR, resolveCssAssets, sanitizeAppCssC
 import { useAppCssOff } from './appCssSwitch';
 import { useAssetTransport } from './assets/assetTransport';
 import { useEditorChrome } from '../editor/EditorChromeContext';
+import AppFontFaces from './fonts/AppFontFaces';
 
 /**
  * The place where an app's own stylesheet (`design.customCss`) is mounted.
@@ -17,6 +18,9 @@ import { useEditorChrome } from '../editor/EditorChromeContext';
  * An app without a stylesheet renders nothing here and gets no attribute. The stylesheet is
  * not applied under the high-contrast host theme (accessibility beats app branding, as in
  * app-tokens.css), nor while the editor's "CSS off" switch is on for this app.
+ *
+ * The uploaded fonts of the design's font roles are registered here too (fonts/AppFontFaces.tsx),
+ * under the high-contrast theme as well: a font is not branding that hides content.
  *
  * `appId` / `publicToken` say where an `asset:<id>` in the text is fetched from (a public
  * page's token also arrives through AssetTransportProvider); without either such an image is
@@ -87,6 +91,7 @@ export default function AppCustomCss({ definition, appId, publicToken }: Props) 
         if (typeof raw !== 'string' || !raw) return '';
         return wrapAppCss(resolveCssAssets(sanitizeAppCssClient(raw).css, { appId: address, publicToken: token }));
     }, [raw, address, token]);
+    const fontTransport = useMemo(() => ({ appId: address, publicToken: token }), [address, token]);
     const applied = !!text && !off && hostTheme !== HIGH_CONTRAST;
     const ref = useRef<HTMLStyleElement>(null);
 
@@ -101,6 +106,8 @@ export default function AppCustomCss({ definition, appId, publicToken }: Props) 
         };
     }, [applied, appearance, hostTheme]);
 
-    if (!applied) return null;
-    return <style ref={ref} data-app-custom-css="">{text}</style>;
+    // The uploaded fonts of the design's font roles load by the same address (fonts/AppFontFaces.tsx).
+    const fonts = <AppFontFaces definition={definition} transport={fontTransport} />;
+    if (!applied) return fonts;
+    return <>{fonts}<style ref={ref} data-app-custom-css="">{text}</style></>;
 }
