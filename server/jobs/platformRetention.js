@@ -78,6 +78,12 @@ let _running = false;
  */
 /** @type {PlatformRetentionDeps | null} */
 let _deps = null;
+/**
+ * What boot hands in from above this layer (boot/startupJobs.js): withdrawing the approval request
+ * of a run on hold that the pass ends is App Studio's (appStudio/approvalWaits.mts releaseWait).
+ * @type {{ releaseStudioWait: PlatformRetentionDeps['releaseStudioWait'] | null }}
+ */
+const wired = { releaseStudioWait: null };
 function deps() {
     if (!_deps) {
         _deps = {
@@ -89,7 +95,6 @@ function deps() {
             pruneSuggestionFeedback: () => require('../stores/suggestionFeedbackStore').pruneExpired(),
             pruneDocumentSuggestions: () => require('../stores/documentSuggestionStore').purgeResolved(DOCUMENT_SUGGESTION_RETENTION_DAYS),
             pruneStudioActionRuns: (opts) => require('../stores/studioAppData/actionRuns.mts').actionRunStore().pruneRuns(opts),
-            releaseStudioWait: (appId, waitKind, waitRef, reason) => require('../appStudio/approvalWaits.mts').releaseWait(appId, waitKind, waitRef, reason),
             pruneStudioRunLog: async (opts) => {
                 const store = require('../stores/studioAppData/runLogStore.mts').runLogStore();
                 const closed = await store.closeIdleRuns({ idleMs: opts.idleMs, staleMs: opts.staleMs, limit: opts.batch });
@@ -195,7 +200,7 @@ async function _actionRunPasses(d, knobs, runLog, policy) {
     // Also with both knobs at 0: a run on hold whose starter's account is gone is ended whatever the retention.
     if (d.pruneStudioActionRuns) {
         // A run on hold that this ends will not wait any more: an approval request it asked is withdrawn, as a cancel does.
-        const release = d.releaseStudioWait;
+        const release = d.releaseStudioWait || wired.releaseStudioWait;
         const onEndedWait = release
             ? (/** @type {{ appId: string, waitKind: string | null, waitRef: string | null }} */ w) => release(w.appId, w.waitKind, w.waitRef, ENDED_WAIT_REASON)
             : undefined;
@@ -237,7 +242,9 @@ async function runOnce() {
     }
 }
 
-function start() {
+/** @param {{ releaseStudioWait?: PlatformRetentionDeps['releaseStudioWait'] }} [opts] */
+function start(opts = {}) {
+    if (opts.releaseStudioWait) wired.releaseStudioWait = opts.releaseStudioWait;
     if (_timer) return;
     _bootTimer = setTimeout(() => {
         _bootTimer = null;

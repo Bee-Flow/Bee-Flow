@@ -41,7 +41,8 @@ function startRetentionAndComplianceJobs() {
         log.warn('[Server] App Studio run log not enabled:', err.message);
     }
     try {
-        require('../jobs/platformRetention').start();
+        // A run on hold the retention pass ends withdraws the approval request it asked.
+        require('../jobs/platformRetention').start({ releaseStudioWait: (appId, kind, ref, reason) => require('../appStudio/approvalWaits.mts').releaseWait(appId, kind, ref, reason) });
     } catch (err) {
         log.warn('[Server] Platform retention job load failed:', err.message);
     }

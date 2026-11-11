@@ -108,12 +108,10 @@ function makeSettingsHandlers(d) {
     async function switchApp(ctx, shape, { publishing, sharedGroups }) {
         if (publishing && !shape.publishedDefinition) throw notDeployed();
         const out = await d.setAppAudience({
-            app: shape, publishing, sharedGroups, organizationId: ctx.stage.organizationId || null, actorId: ctx.userId,
-            deps: d.appAudienceDeps,
+            app: shape, publishing, sharedGroups, organizationId: ctx.stage.organizationId || null, actorId: ctx.userId, deps: d.appAudienceDeps,
         });
         if (!out.ok) throw new HttpError(out.status, (out.body && out.body.code) || 'audience_refused', (out.body && out.body.error) || 'The audience could not be changed.', out.body);
-        // The server triggers follow the publish state as on PATCH /:id/publish (it never throws; the switch stands).
-        await d.syncAppTriggers(shape.id);
+        await d.syncAppTriggers(shape.id); // the server triggers follow it, as on PATCH /:id/publish (never throws)
         return { isPublished: out.isPublished, sharedGroups: out.sharedGroups };
     }
 
