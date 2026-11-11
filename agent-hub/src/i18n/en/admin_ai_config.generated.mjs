@@ -73,6 +73,7 @@ export default {
     "admin_ai_config.download": "Download",
     "admin_ai_config.embed_azure_hint": "For Azure, enter the deployment name of your embedding model (not the base model name).",
     "admin_ai_config.embed_azure_placeholder": "Your Azure deployment name, e.g. text-embedding-3-small",
+    "admin_ai_config.embed_dims_no_index": "This model returns vectors of {dims} dimensions, more than the 2000 the fast vector index takes. Searches on this model cannot use the fast index, so knowledge-base search gets slower as your knowledge bases grow.",
     "admin_ai_config.embed_loading": "Loading settings...",
     "admin_ai_config.embed_mistral_hint": "For Mistral, \"mistral-embed\" is recommended.",
     "admin_ai_config.embed_model": "Embedding Model",

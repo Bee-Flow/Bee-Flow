@@ -77,9 +77,11 @@ function emitToolResultEvents(turn, toolResults, { streamed }) {
             send('workspace_update', { content: restoreTokens(toolResult._revertContent || '', _convMapForWs) });
             turn._nbStreamLastLen = 0;
         }
-        // Emit kb_sources SSE event
+        // Emit kb_sources SSE event, and keep the cards for the assistant row
+        // (next to the injected passages' cards, a passage once).
         if (toolResult._action === 'kb_sources' && toolResult._sources?.length > 0) {
             send('kb_sources', { sources: toolResult._sources });
+            require('../../../core/kb/citation').addCitations(turn.kbSources, toolResult._sources);
         }
         // Track audio URLs for persistence
         if (toolResult.audioUrl) {

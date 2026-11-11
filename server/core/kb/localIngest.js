@@ -98,10 +98,11 @@ async function ingestLocally(tenantId, kbId, docId, content, options = {}) {
                     : 'The configured embedding model did not answer';
                 throw new Error(`${cause}; the fallback embedder's ${reconcile.mismatch.vectorDim}-dimension vectors cannot be stored next to the existing ${reconcile.mismatch.currentDim}-dimension ones. Try again later.`);
             }
-            // Track cost only when we actually used a paid provider/Azure path.
+            // Track cost only when we actually used a paid provider/Azure path,
+            // priced by the provider that answered (legacy Azure: no target).
             if (embedSource === 'provider' || embedSource === 'azure') {
                 const totalTokens = chunkTexts.reduce((sum, t) => sum + estimateTokens(t), 0);
-                trackEmbeddingTokens(totalTokens);
+                void trackEmbeddingTokens(totalTokens, embedSource === 'provider' ? result.target || null : null);
             }
         } else {
             log.warn('[LocalKBIngest] No embeddings produced — falling back to keyword search only for this doc.');

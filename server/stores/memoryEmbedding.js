@@ -24,7 +24,7 @@ const { validateDim } = require('./memoryVectors');
 const { dep } = require('./memoryDeps');
 const { bestEffort } = require('../utils/bestEffort');
 const memoryIndex = dep('memoryIndex');
-const { resolveEmbedTarget } = dep('embedTarget');
+const { resolveEmbedTarget, reduceVector } = dep('embedTarget');
 const { resolveWriteContext, sealEmbedding, hydrateRows, PLAINTEXT_WRITE } = dep('memoryCrypto');
 
 /** The store's schema-init memo, installed by stores/memoryStore (read per call). */
@@ -75,7 +75,8 @@ async function getEmbedding(text, opts = {}) {
             if (res.ok) {
                 const data = /** @type {{ data?: Array<{ embedding?: number[] }> }} */ (await res.json());
                 const vec = data?.data?.[0]?.embedding;
-                if (Array.isArray(vec)) return vec;
+                // Shortened as the KB dispatcher does it (core/embed/outputDimensions.mts).
+                if (Array.isArray(vec)) return target.dimensions ? reduceVector(vec, target.dimensions) : vec;
             }
         }
     } catch (err) { bestEffort('stores/memoryEmbedding:providerEmbed', err); /* try next tier */ }

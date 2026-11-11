@@ -280,27 +280,73 @@ async function listGeneratingAutomations(orgId) {
     return out;
 }
 
-/** Title lookup for the register list — {kind:{id: title}} — org-scoped, titles only. */
-async function titlesFor(orgId, targets) {
+/**
+ * Title and state of each register target — `{kind: {id: {title, state}}}`,
+ * org-scoped, titles only. `state` is what the register shows next to a row:
+ *   live    — the target exists and can run
+ *   trashed — an automation in the trash (soft delete, automationStore/lifecycle.js);
+ *             it keeps its title
+ *   gone    — not found in the org: removed for good (the trash purge, a deleted
+ *             agent: agents are deleted outright) — no title
+ * Agents are never `trashed`. The same rule decides what the counts leave out
+ * (stores/aiActAssessmentStore.js LIVE_TARGET_SQL). A failed read throws: an
+ * empty answer would mark every target `gone`.
+ *
+ * @param {string} orgId
+ * @param {Array<{ target_kind?: string, target_id?: unknown } | null | undefined>} targets
+ * @returns {Promise<Record<'automation' | 'agent', Record<string, TargetInfo>>>}
+ */
+async function targetsFor(orgId, targets) {
+    const byKind = _idsByKind(targets);
+    const automations = byKind.automation.size ? await getAll(
+        `SELECT a.id, a.title, a.deleted_at FROM automations a JOIN users u ON u.id = a.user_id
+          WHERE ${AUTOMATION_ORG_WHERE} AND a.id = ANY($2::text[])`,
+        [orgId, [...byKind.automation]],
+    ) : [];
+    const agents = byKind.agent.size ? await getAll(
+        `SELECT id, name FROM agents WHERE organization_id = $1 AND id = ANY($2::text[])`,
+        [orgId, [...byKind.agent]],
+    ) : [];
+    /** @type {Record<'automation' | 'agent', Map<string, TargetInfo>>} */
+    const found = {
+        automation: new Map((automations || []).map((r) => [String(r.id), { title: r.title || null, state: r.deleted_at ? 'trashed' : 'live' }])),
+        agent: new Map((agents || []).map((r) => [String(r.id), { title: r.name || null, state: 'live' }])),
+    };
+    /** @type {TargetInfo} */
+    const gone = { title: null, state: 'gone' };
+    return {
+        automation: Object.fromEntries([...byKind.automation].map((id) => [id, found.automation.get(id) || { ...gone }])),
+        agent: Object.fromEntries([...byKind.agent].map((id) => [id, found.agent.get(id) || { ...gone }])),
+    };
+}
+
+/**
+ * The register targets' ids per kind; anything that is not an automation or an agent is left out.
+ * @param {Array<{ target_kind?: string, target_id?: unknown } | null | undefined>} targets
+ */
+function _idsByKind(targets) {
+    /** @type {Record<'automation' | 'agent', Set<string>>} */
     const byKind = { automation: new Set(), agent: new Set() };
     for (const t of Array.isArray(targets) ? targets : []) {
-        if (t && byKind[t.target_kind] && t.target_id != null) byKind[t.target_kind].add(String(t.target_id));
+        const kind = t?.target_kind;
+        if ((kind === 'automation' || kind === 'agent') && t?.target_id != null) byKind[kind].add(String(t.target_id));
     }
+    return byKind;
+}
+
+/**
+ * Title lookup — `{kind: {id: title}}` — org-scoped, titles only. A failed
+ * read answers no titles (titles are a nicety where this is used).
+ * @param {string} orgId
+ * @param {Array<{ target_kind?: string, target_id?: unknown } | null | undefined>} targets
+ */
+async function titlesFor(orgId, targets) {
+    /** @type {Record<'automation' | 'agent', Record<string, string | null>>} */
     const out = { automation: {}, agent: {} };
-    if (byKind.automation.size) {
-        const rows = await getAll(
-            `SELECT a.id, a.title FROM automations a JOIN users u ON u.id = a.user_id
-              WHERE ${AUTOMATION_ORG_WHERE} AND a.id = ANY($2::text[])`,
-            [orgId, [...byKind.automation]],
-        ).catch((e) => fallback('compliance/aiAct/signals:titlesFor', e, []));
-        for (const r of rows || []) out.automation[String(r.id)] = r.title || null;
-    }
-    if (byKind.agent.size) {
-        const rows = await getAll(
-            `SELECT id, name FROM agents WHERE organization_id = $1 AND id = ANY($2::text[])`,
-            [orgId, [...byKind.agent]],
-        ).catch((e) => fallback('compliance/aiAct/signals:titlesFor#2', e, []));
-        for (const r of rows || []) out.agent[String(r.id)] = r.name || null;
+    const found = await targetsFor(orgId, targets).catch((e) => fallback('compliance/aiAct/signals:titlesFor', e, null));
+    if (!found) return out;
+    for (const kind of /** @type {const} */ (['automation', 'agent'])) {
+        for (const [id, info] of Object.entries(found[kind])) if (info.state !== 'gone') out[kind][id] = info.title;
     }
     return out;
 }
@@ -317,6 +363,7 @@ module.exports = {
     signalsForAutomation,
     signalsForAgent,
     listGeneratingAutomations,
+    targetsFor,
     titlesFor,
 };
 
@@ -324,4 +371,5 @@ module.exports = {
  * @typedef {{ title?: unknown, description?: unknown, liveFormPages?: unknown, markingEnabled?: unknown }} SignalMeta
  * @typedef {{ id: string | null, label: string, signal: string, aiStepIds: string[], path?: string }} GeneratingStep
  * @typedef {{ id: string, title: string | null, is_active: boolean, is_draft: boolean, generating: GeneratingStep[], aiStepIds: string[] }} GeneratingAutomation
+ * @typedef {{ title: string | null, state: 'live' | 'trashed' | 'gone' }} TargetInfo
  */

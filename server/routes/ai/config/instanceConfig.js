@@ -23,6 +23,7 @@ const { safeFetch } = require('../../../utils/ssrfGuard');
 const { VALID_PII_ACTIONS } = require('../../../core/privacy/signupShield');
 const { validate } = require('../../../core/http/validate');
 const { HttpError } = require('../../../core/http/errors');
+const { embeddingChoice, savedDimensions } = require('../../../core/embed/embeddingChoice.mts');
 const { z, worded, bodyOf, flag } = require('../../../core/http/schemaParts');
 
 // ── What POST /config accepts ────────────────────────────────────────
@@ -126,6 +127,7 @@ router.get('/config', requireAuth, async (req, res) => {
         piiDetectionAction: config.piiDetectionAction || 'block',
         embeddingModel: config.embeddingModel || null,
         embeddingProviderId: config.embeddingProviderId || null,
+        embeddingDimensions: savedDimensions(await configStore.getConfig('ai')), // null: the model's own length
         allowedModelsByAgentType: await configStore.getConfig('allowedModelsByAgentType') || {},
         directChatRegexGuardrails: await configStore.getConfig('direct_chat_regex_guardrails') || null,
         // Tool-call rounds limit for chat surfaces (direct/notebook/webpage/native loop). null -> per-surface defaults.
@@ -477,6 +479,8 @@ router.post('/config', requireAuth, requireAdmin, validate({ body: ConfigBody })
         await configStore.setConfig('subscription_notify_email', (subscriptionNotifyEmail || '').trim());
     }
 
+    // The vector length is decided only when the embedding model changes (core/embed/embeddingChoice.mts).
+    const embedding = await embeddingChoice(existing, { embeddingModel, embeddingProviderId });
     const success = await saveAIConfig({
         url: url !== undefined ? url : existing.url,
         model: model !== undefined ? model : existing.model,
@@ -500,15 +504,15 @@ router.post('/config', requireAuth, requireAdmin, validate({ body: ConfigBody })
         piiDetectionConfidenceThreshold: piiDetectionConfidenceThreshold !== undefined ? piiDetectionConfidenceThreshold : existing.piiDetectionConfidenceThreshold,
         piiDetectionScope: piiDetectionScope !== undefined ? piiDetectionScope : existing.piiDetectionScope,
         piiDetectionAction: piiDetectionAction !== undefined ? piiDetectionAction : existing.piiDetectionAction,
-        embeddingModel: embeddingModel !== undefined ? embeddingModel : existing.embeddingModel,
-        embeddingProviderId: embeddingProviderId !== undefined ? embeddingProviderId : existing.embeddingProviderId,
+        embeddingModel: embedding.modelId,
+        embeddingProviderId: embedding.providerId,
+        embeddingOutput: embedding.output,
     });
 
     if (success) {
         // A new embedding model re-embeds the stored knowledge in the
         // background; the admin does not have to know the column exists.
-        const embeddingChanged = (embeddingModel !== undefined && embeddingModel !== existing.embeddingModel)
-            || (embeddingProviderId !== undefined && embeddingProviderId !== existing.embeddingProviderId);
+        const embeddingChanged = embedding.changed;
         if (embeddingChanged) {
             require('../../../core/kb/embeddingMigration').ensureKbEmbeddingsCurrent({ reason: 'config' });
         }

@@ -214,7 +214,6 @@
     "core/providers/mistral.js": 707,
     "core/providers/mistralModels.js": 448,
     "core/providers/openai.js": 940,
-    "core/providers/openaiModels.js": 610,
     "core/providers/scalewayModels.js": 481,
     "core/providers/usageNormalizer.js": 480,
     "core/swarms/swarmRuntime.js": 468,

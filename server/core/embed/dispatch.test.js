@@ -165,6 +165,58 @@ test('non-Azure providers keep their own /v1/embeddings route and Bearer auth', 
     assert.deepStrictEqual(calls[0].body, { model: 'text-embedding-3-small', input: ['x'] });
 });
 
+// ── The vector length (core/embed/outputDimensions.mts) ───────────────────────
+// A target that carries a length (a Matryoshka model over the 2000-dimension index
+// limit, configured after the decision existed) gets the native vector cut to that
+// length and L2-normalised. No `dimensions` field is ever sent: not every host of
+// a model supports one. The chain from the decision to the target is in
+// outputDimensions.test.js.
+
+/** Answers every input with a native vector of `dim` values. */
+function nativeFetch(dim) {
+    calls = [];
+    global.fetch = async (url, init) => {
+        const body = JSON.parse(init.body);
+        calls.push({ url: String(url), init, body });
+        const data = body.input.map((_, index) => ({ index, embedding: Array.from({ length: dim }, (__, i) => (i + index + 1) / dim) }));
+        return new Response(JSON.stringify({ data }), { status: 200 });
+    };
+}
+const l2 = (v) => Math.sqrt(v.reduce((s, x) => s + x * x, 0));
+const SCALEWAY = { providerType: 'scaleway', endpoint: 'https://api.scaleway.ai/v1', apiKey: 'k', modelId: 'qwen3-embedding-8b' };
+
+test('a NEW Matryoshka target: no dimensions in the request, every vector cut to 1536 and unit length', async () => {
+    nativeFetch(4096);
+    target = { ...SCALEWAY, dimensions: 1536 };
+    const { vectors } = await dispatchEmbedTexts(Array.from({ length: 20 }, (_, i) => `t${i}`));
+    assert.strictEqual(calls.length, 2);
+    for (const c of calls) assert.ok(!('dimensions' in c.body), 'the native vector is requested');
+    assert.strictEqual(vectors.length, 20);
+    for (const v of vectors) {
+        assert.strictEqual(v.length, 1536);
+        assert.ok(Math.abs(l2(v) - 1) < 1e-9, 'unit norm');
+    }
+});
+
+test('an EXISTING target of the same model (no stored length) is unchanged: native request, native vectors', async () => {
+    nativeFetch(4096);
+    target = { ...SCALEWAY, dimensions: null };
+    const { vectors } = await dispatchEmbedTexts(['x']);
+    assert.deepStrictEqual(calls[0].body, { model: 'qwen3-embedding-8b', input: ['x'] });
+    assert.strictEqual(vectors[0].length, 4096);
+    assert.strictEqual(vectors[0][0], 1 / 4096, 'not normalised');
+});
+
+test('a non-Matryoshka or small model, whose target has no length, keeps its vectors as returned', async () => {
+    for (const [modelId, dim] of [['bge-multilingual-gemma2', 3584], ['mistral-embed', 1024]]) {
+        nativeFetch(dim);
+        target = { ...SCALEWAY, modelId };
+        const { vectors } = await dispatchEmbedTexts(['x']);
+        assert.ok(!('dimensions' in calls[0].body), modelId);
+        assert.strictEqual(vectors[0].length, dim, modelId);
+    }
+});
+
 // ── Temporary provider failures are waited out ───────────────────────────────
 // A 975-page PDF is hundreds of batches; a per-minute quota answers 429 halfway.
 // That one batch used to throw the whole document over to the CPU embedder

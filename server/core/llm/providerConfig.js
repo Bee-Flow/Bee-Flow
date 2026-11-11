@@ -187,20 +187,22 @@ async function saveAIConfig(aiConfig) {
         }
 
         const ai = await configStore.getConfig('ai') || {};
-
+        // A field left out keeps what is stored (boot-init saves only Azure fields, #660); '' or null still clears.
+        const given = (/** @type {string} */ key) => aiConfig[key] !== undefined ? aiConfig[key] : ai[key];
         const updatedAi = {
             ...ai,
-            url: aiConfig.url || DEFAULT_CONFIG.url,
-            model: aiConfig.model || DEFAULT_CONFIG.model,
-            lakeraApiKey: aiConfig.lakeraApiKey || '',
-            regexGuardrails: aiConfig.regexGuardrails || null,
+            url: given('url') || DEFAULT_CONFIG.url,
+            model: given('model') || DEFAULT_CONFIG.model,
+            lakeraApiKey: given('lakeraApiKey') || '',
+            regexGuardrails: given('regexGuardrails') || null,
             piiDetectionEnabled: aiConfig.piiDetectionEnabled !== undefined ? aiConfig.piiDetectionEnabled : ai.piiDetectionEnabled || false,
             piiDetectionCategories: aiConfig.piiDetectionCategories !== undefined ? aiConfig.piiDetectionCategories : ai.piiDetectionCategories || null,
             piiDetectionConfidenceThreshold: aiConfig.piiDetectionConfidenceThreshold ?? ai.piiDetectionConfidenceThreshold ?? 0.7,
             piiDetectionAction: aiConfig.piiDetectionAction !== undefined ? aiConfig.piiDetectionAction : ai.piiDetectionAction || 'block',
             piiDetectionScope: aiConfig.piiDetectionScope !== undefined ? aiConfig.piiDetectionScope : ai.piiDetectionScope || { userInput: true, agentOutput: false },
-            embeddingModel: aiConfig.embeddingModel || null,
-            embeddingProviderId: aiConfig.embeddingProviderId || null
+            embeddingModel: given('embeddingModel') || null,
+            embeddingProviderId: given('embeddingProviderId') || null,
+            ...(aiConfig.embeddingOutput !== undefined ? { embeddingOutput: aiConfig.embeddingOutput } : {}), // set only when the model is chosen (embeddingChoice.mts)
         };
 
         await configStore.setConfig('ai', updatedAi);

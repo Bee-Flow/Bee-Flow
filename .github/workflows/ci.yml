@@ -313,6 +313,7 @@ jobs:
               - 'nextcloud-connector/src/{appApiClient,config,taskProcessing}.js'
               - '.github/workflows/ci.yml'
               - '.github/actions/npm-install/**'
+              - 'scripts/prefetch-node-headers.sh'
             # The server side of the agent-hub tests is their transitive
             # require graph, not only the files they name: a whole directory
             # where the tests list it or load most of it, single files where
@@ -358,6 +359,7 @@ jobs:
               - 'server/utils/{buildInfo,engineFlag}.js'
               - '.github/workflows/ci.yml'
               - '.github/actions/npm-install/**'
+              - 'scripts/prefetch-node-headers.sh'
             # Plus mobile_server above.
             mobile:
               # mobile/** (minus Markdown) is the mobile_src step above.
@@ -375,6 +377,7 @@ jobs:
               - 'scripts/{coverage-ratchet,count-ratchet}.mjs'
               - '.github/workflows/ci.yml'
               - '.github/actions/npm-install/**'
+              - 'scripts/prefetch-node-headers.sh'
               - '.github/workflows/android-release.yml'
               # agent-hub's meeting-notes logic, which the Insights and meeting
               # rules lockstep tests read as text (loadWebModule)
@@ -542,12 +545,14 @@ jobs:
               - 'scripts/eslint/**'
               - '.github/workflows/ci.yml'
               - '.github/actions/npm-install/**'
+              - 'scripts/prefetch-node-headers.sh'
             # The Docusaurus site: its build fails on a broken link or anchor.
             docs:
               - 'docs/**'
               - '.nvmrc'
               - '.github/workflows/ci.yml'
               - '.github/actions/npm-install/**'
+              - 'scripts/prefetch-node-headers.sh'
             hub-module-sdk:
               - 'hub-module-sdk/**'
               - '.nvmrc'
@@ -578,6 +583,7 @@ jobs:
               - '.nvmrc'
               - '.github/workflows/ci.yml'
               - '.github/actions/npm-install/**'
+              - 'scripts/prefetch-node-headers.sh'
             # The desktop client (lint, typecheck, unit tests, build). The
             # release workflow is here because desktop/src/main/
             # releaseWorkflow.test.ts parses its packaging-path list, so an
@@ -589,6 +595,7 @@ jobs:
               - '.github/workflows/ci.yml'
               - '.github/workflows/desktop-release.yml'
               - '.github/actions/npm-install/**'
+              - 'scripts/prefetch-node-headers.sh'
       # mobile/** minus docs. A negation cannot sit in the main filter (dorny
       # would read `!x` there as "every path except x"), so it gets its own
       # step with `predicate-quantifier: every`: a file counts when it matches
@@ -1075,6 +1082,9 @@ jobs:
             server/package-lock.json
       - name: Install dependencies
         run: npm ci
+      - name: Prefetch Node headers
+        working-directory: .
+        run: bash scripts/prefetch-node-headers.sh server
       - name: Install server dependencies
         working-directory: server
         run: npm ci

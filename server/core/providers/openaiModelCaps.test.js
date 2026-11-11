@@ -160,6 +160,21 @@ t('an unknown future id follows its generation, not gpt-5', () => {
     assert.strictEqual(clampEffort('gpt-7-nova', 'minimal'), 'low');
     assert.strictEqual(supportsTemperature('gpt-7-nova'), false);
 });
+t('gpt-6-luna and the gpt-6.1 line follow the gpt-6 rules, by catalog card and by the generation fallback', () => {
+    const tools = [{ type: 'function', function: { name: 'x' } }];
+    // The cards, the alias, a dated snapshot pin, and an id no card lists yet
+    // (which must reach the gpt-6 branch of the matcher, not gpt-5's).
+    for (const id of ['gpt-6-luna', 'gpt-6.1-sol', 'gpt-6.1-terra', 'gpt-6.1', 'gpt-6.1-terra-2026-11-01', 'gpt-6.1-nova']) {
+        assert.strictEqual(clampEffort(id, 'none'), 'low', `${id}: none`);
+        assert.strictEqual(clampEffort(id, 'minimal'), 'low', `${id}: minimal`);
+        assert.strictEqual(clampEffort(id, 'max'), 'max', `${id}: max`);
+        assert.strictEqual(supportsTemperature(id), false, `${id}: temperature`);
+        assert.strictEqual(supportsVerbosity(id), false, `${id}: verbosity`);
+        assert.strictEqual(isReasoningModel(id), true, `${id}: reasoning`);
+        assert.strictEqual(requiresResponsesApi(id, { tools }), true, `${id}: tools need Responses`);
+        assert.deepStrictEqual(cacheTtlParams(id), { prompt_cache_options: { ttl: '30m' } }, `${id}: cache ttl`);
+    }
+});
 
 // ─── temperature / reasoning detection ─────────────────────────────────────
 console.log('temperature + reasoning detection');

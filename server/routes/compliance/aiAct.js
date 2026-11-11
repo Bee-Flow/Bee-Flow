@@ -2,7 +2,8 @@
 /**
  * Compliance — EU AI Act classification register.
  *
- *   GET /ai-act/assessments                 newest attestation per target (+ title)
+ *   GET /ai-act/assessments                 newest attestation per target (+ title,
+ *                                           target_state live | trashed | gone)
  *   GET /ai-act/assessments/:kind/:id       stored snapshot + history (404 outside the org)
  *   GET /ai-act/assessments/:kind/:id/signals   signals recomputed live
  *   PUT /ai-act/assessments/:kind/:id       { answers } → new row, evidence, event
@@ -115,19 +116,35 @@ const AssessmentBody = z.preprocess((v) => (v === undefined || v === null ? {} :
 router.get('/ai-act/assessments', ...guard, async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const orgId = await requireOrgId(req, res);
     if (!orgId) return;
-    const rows = await aiActAssessmentStore.listForOrg(orgId);
-    const titles = await signals.titlesFor(orgId, rows);
-    res.json(rows.map(r => ({
+    // Every assessed target, removed ones included: the register offers them
+    // behind its "Removed" filter. `target_state` (live | trashed | gone) says
+    // which; a gone target has no title, and the client never shows its id.
+    const rows = await aiActAssessmentStore.listForOrg(orgId, { includeRemoved: true });
+    const targets = await signals.targetsFor(orgId, rows);
+    res.json(rows.map(r => {
+        const info = (targets[/** @type {'automation' | 'agent'} */ (r.target_kind)] || {})[String(r.target_id)];
+        return _registerRow(r, info);
+    }));
+});
+
+/**
+ * One row of the register list — allow-listed.
+ * @param {Record<string, any>} r
+ * @param {{ title: string | null, state: string } | undefined} info
+ */
+function _registerRow(r, info) {
+    return {
         target_kind: r.target_kind,
         target_id: r.target_id,
-        title: (titles[r.target_kind] || {})[String(r.target_id)] ?? null,
+        title: info?.title ?? null,
+        target_state: info?.state ?? 'gone',
         outcome: r.outcome,
         attested_by: r.attested_by || null,
         attested_at: r.attested_at,
         expires_at: r.expires_at || null,
         current: aiActAssessmentStore.isCurrent(r),
-    })));
-});
+    };
+}
 
 router.get('/ai-act/assessments/:kind/:id/signals', ...guard, async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const orgId = await requireOrgId(req, res);

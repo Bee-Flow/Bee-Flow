@@ -2,7 +2,8 @@
 // @typecheck strict
 /**
  * Dutch for the outcome of a background meeting import (Teams, Google Meet):
- * the progress line and one sentence per stable failure code on the import job.
+ * the progress line and one sentence per stable failure code on the import job,
+ * and the reconnect state a Google Meet import or listing ends in.
  *
  * Idempotent: only fills keys that are missing. Auto-runs from server boot
  * (boot/bootMigrations.js). Manual usage:
@@ -22,6 +23,10 @@ const NL_TRANSLATIONS = Object.freeze({
     'meetings.import_error_provider_not_allowed': 'Die transcriptie-engine is niet ingeschakeld voor deze werkruimte.',
     'meetings.import_error_timeout': 'De import duurde te lang. Bekijk de vergadernotities later, of probeer het opnieuw.',
     'meetings.import_error_too_large': 'De opname is te groot om te importeren.',
+    // 2026-11: the reconnect state of the Google Meet import panel and the Upcoming list.
+    'meetings.gmeet_expired_title': 'Je Google-koppeling is verlopen',
+    'meetings.gmeet_expired_desc': 'Koppel opnieuw om je Meet-opnamen weer te zien en te importeren. Je instellingen blijven bewaard.',
+    'meetings.upcoming_gmeet_expired': 'Je Google-koppeling is verlopen, dus je Meet-vergaderingen kunnen niet worden getoond. Koppel opnieuw om verder te gaan.',
     // 2026-11: Teams failures with their own cause. Only missing keys are filled, so a re-run keeps own wording.
     'meetings.import_error_access_policy': 'Het Teams-toepassingstoegangsbeleid van je organisatie staat Bee Flow niet toe voor dit account.',
     'meetings.import_error_calendar_forbidden': 'Microsoft weigert de toegang tot je agenda.',

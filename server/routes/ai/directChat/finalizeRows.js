@@ -299,7 +299,7 @@ function attachSessionSkills(assistantSave, { bootstrappedSessionSkills, session
  * @returns {Record<string, unknown>}
  */
 function buildAssistantRow(t) {
-    const { fullContent, modelId, resolvedTier, modelTier, tokenisationInfo, memoryUsed } = t;
+    const { fullContent, modelId, resolvedTier, modelTier, tokenisationInfo, memoryUsed, kbSources } = t;
     /** @type {Record<string, unknown>} */
     const assistantSave = { role: 'assistant', content: fullContent, timestamp: new Date().toISOString() };
     // Persist the concrete model + tier so the "How I got this answer" panel
@@ -319,6 +319,9 @@ function buildAssistantRow(t) {
     // Memories injected into this turn (ids and types only, never their
     // text), so the "used memory" chip survives a reload.
     if (Array.isArray(memoryUsed) && memoryUsed.length > 0) assistantSave.memoryUsed = persistedMemoryUsed(memoryUsed);
+    // The source cards, under the name the agent runtime stores them
+    // (core/agentRuntime/finalizeTurn.js) and both clients read back.
+    if (Array.isArray(kbSources) && kbSources.length > 0) assistantSave.kbSources = kbSources;
     return assistantSave;
 }
 

@@ -14,7 +14,10 @@
  * Now a switch re-embeds what is stored, by itself:
  *
  *   1. The model whose vectors are in the column is remembered as a
- *      fingerprint (`kb_embedding_fingerprint`: provider id + model id).
+ *      fingerprint (`kb_embedding_fingerprint`: provider id + model id, plus
+ *      the requested vector length when one is asked for, see
+ *      core/embed/outputDimensions.mts). A configuration that asks for no
+ *      length keeps the fingerprint it always had.
  *   2. When the configured model differs, every chunk is embedded again
  *      from `kb_chunks.content` into a side column of the new dimension,
  *      batch by batch, and the columns are swapped in one transaction.
@@ -69,12 +72,26 @@ function defaultDeps() {
         resolveTarget: () => require('../embed/resolveTarget').resolveEmbedTarget(),
         embed: (/** @type {string[]} */ texts) => require('../embed/dispatch').dispatchEmbedTexts(texts, { kind: 'passage', strict: true }),
         usesLocalIngest: () => require('./ingestMode').usesLocalIngest(),
-        trackCost: (/** @type {string[]} */ texts) => require('./embeddingCost').trackEmbeddingCost(texts),
+        trackCost: (/** @type {string[]} */ texts, /** @type {import('./embeddingCost').EmbedTarget | null} */ target) => require('./embeddingCost').trackEmbeddingCost(texts, target),
         retryFailed: retryDimensionFailures,
     };
 }
 
-const fingerprintOf = (/** @type {{ providerId: string, modelId: string }} */ target) => `${target.providerId}:${target.modelId}`;
+const fingerprintOf = (/** @type {{ providerId: string, modelId: string, dimensions?: number | null }} */ target) =>
+    (target.dimensions ? `${target.providerId}:${target.modelId}:${target.dimensions}` : `${target.providerId}:${target.modelId}`);
+
+/**
+ * Do the stored knowledge-base vectors come from this provider and model at
+ * the model's own length (the fingerprint without a requested length)? Then
+ * choosing that model again must not ask it for shorter vectors
+ * (core/embed/outputDimensions.mts): the stored ones stay valid as they are.
+ * @param {string} providerId
+ * @param {string} modelId
+ */
+async function storesNativeVectorsOf(providerId, modelId) {
+    const configStore = require('../../stores/configStore');
+    return (await configStore.getConfig(FINGERPRINT_KEY)) === fingerprintOf({ providerId, modelId });
+}
 
 /**
  * The declared dimension of a vector column, or null when it does not exist.
@@ -115,8 +132,9 @@ async function embedExactly(deps, texts, dim) {
  * Fill `embedding_next` for every chunk that has none yet. Resumable.
  * @param {MigrationDeps} deps
  * @param {number} dim
+ * @param {import('./embeddingCost').EmbedTarget | null} [target]  the model embedding them, which the cost is priced by
  */
-async function fillNextColumn(deps, dim) {
+async function fillNextColumn(deps, dim, target = null) {
     let lastId = 0;
     let done = 0;
     for (;;) {
@@ -127,7 +145,7 @@ async function fillNextColumn(deps, dim) {
         if (!rows || rows.length === 0) return done;
         const texts = rows.map((r) => r.content || '');
         const vectors = await embedExactly(deps, texts, dim);
-        try { deps.trackCost(texts); } catch (err) { bestEffort('core/kb/embeddingMigration:fillNextColumn', err); /* cost logging never blocks the migration */ }
+        try { void deps.trackCost(texts, target); } catch (err) { bestEffort('core/kb/embeddingMigration:fillNextColumn', err); /* cost logging never blocks the migration */ }
         await deps.run(
             `UPDATE kb_chunks SET embedding_next = v.e::vector
              FROM unnest($1::bigint[], $2::text[]) AS v(id, e)
@@ -213,7 +231,7 @@ async function migrate(deps, { reason }) {
             const nextDim = await columnDim(deps, 'embedding_next');
             if (nextDim != null && nextDim !== targetDim) await deps.exec('ALTER TABLE kb_chunks DROP COLUMN embedding_next');
             if (nextDim !== targetDim) await deps.exec(`ALTER TABLE kb_chunks ADD COLUMN embedding_next VECTOR(${targetDim})`);
-            const done = await fillNextColumn(deps, targetDim);
+            const done = await fillNextColumn(deps, targetDim, { providerType: target.providerType, modelId: target.modelId });
             await swapColumns(deps);
             log.info(`[KBEmbedMigration] re-embedded ${done} chunk(s) with ${target.modelId}`);
         }
@@ -301,4 +319,4 @@ function ensureKbEmbeddingsCurrent({ reason = 'check', deps } = {}) {
     return running;
 }
 
-module.exports = { ensureKbEmbeddingsCurrent, setSourceSync, FINGERPRINT_KEY, _test: { migrate, fingerprintOf } };
+module.exports = { ensureKbEmbeddingsCurrent, storesNativeVectorsOf, setSourceSync, FINGERPRINT_KEY, _test: { migrate, fingerprintOf } };

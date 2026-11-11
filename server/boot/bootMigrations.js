@@ -267,6 +267,7 @@ const NL_TRANSLATIONS = [
     'add-nl-app-studio-documents-2026-10-translations', // App Studio: Studio documents in an app (document viewer, picker, compare)
     'add-nl-nc-trigger-scope-2026-10-translations', // Automations: the Nextcloud trigger switch "also react to events of colleagues"
     'add-nl-automation-testing-translations', // Automations: testing in the builder (dry run, live test, run phases, toasts, the test form and approval overlay)
+    'add-nl-automation-testing-cases-translations', // Automations: the code-step test cases (Tests tab, test editor, checks, failure reasons, save as test case, line changes)
     'add-nl-handover-translations',            // Automations: the assistant column in plain words (the card after a save, the preview of a change, the vocabulary)
     'update-nl-memory-2026-10',                // Memory: Dutch for the memory manager, chat controls, org Memory admin page and Settings lines; "Conversation memory" becomes "Context in lange gesprekken" (old shipped text only)
     'add-nl-kb-query-log-translations-2026-11', // Knowledge base search log: Studio tab and enable form, Compliance Center pages, App Studio and automation steps
@@ -278,6 +279,7 @@ const NL_TRANSLATIONS = [
     'add-nl-web-fixes-2026-11-translations', // Web fixes: a policy text that could not be loaded, a vault entry that could not be forgotten, the read-only default language
     'add-nl-billing-status-2026-11-translations', // Subscriptions: the label of the status manual_action_required (payment failed until the dunning cap)
     'add-nl-mail-trigger-2026-11-translations', // New-email trigger: the Cowork option and its settings, the agent's mail trigger dialog
+    'add-nl-ai-act-register-2026-11-translations', // AI Act register: the Current / Removed filter and the names of removed automations and agents
     'add-nl-teams-setup-2026-11-translations', 'add-nl-frappe-crm-translations', // Teams meeting notes setup (guide, diagnostics, consent link, members overview, organisation-wide import); then the Frappe CRM integration card
     'add-nl-fix-english-2026-10-translations', // Corrects keys an earlier catalogue shipped as English: after every catalogue above, so its Dutch wins.
     // Settings menu clean-up: "Instellingen → Integraties" becomes "Instellingen → Koppelingen", "Organisatie-instellingen → …" the real menu path, and the relabelled rows (old shipped text only). After the memory catalogue, whose "Context in lange gesprekken" it rewords.

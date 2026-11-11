@@ -91,7 +91,7 @@ const STRICT_PROVIDERS = new Set(['scaleway', 'ionos']);
 //
 // Consulted only AFTER the community database, so a price cut upstream still
 // wins over our snapshot.
-const { listPricedModels } = require('../providers/openaiModels');
+const { listPricedModels, normalizeOpenAIModelId } = require('../providers/openaiModels');
 // Anthropic was missing here entirely, so a Claude model the community database
 // had not picked up yet — a freshly released flagship, exactly when it gets
 // used — had no price at all and was only estimated.
@@ -236,7 +236,10 @@ function getModelPricingDetail(modelId, providerType) {
 /**
  * Our own snapshot of a model's list price, for ids the community database has
  * not picked up yet. Case-insensitive because model ids arrive from admin
- * config and provider listings alike.
+ * config and provider listings alike. An OpenAI alias (`gpt-6.1`) or dated
+ * snapshot pin (`gpt-6.1-sol-2026-11-01`) is priced as the card it resolves
+ * to; an id with a routing prefix is not, so a host's own key never falls to
+ * OpenAI's list price.
  */
 function _staticFallback(modelId) {
     const direct = FALLBACK_PRICING[modelId];
@@ -244,6 +247,10 @@ function _staticFallback(modelId) {
     const lower = String(modelId).toLowerCase();
     for (const [key, val] of Object.entries(FALLBACK_PRICING)) {
         if (key.toLowerCase() === lower) return val;
+    }
+    if (!lower.includes('/')) {
+        const canonical = normalizeOpenAIModelId(lower);
+        if (canonical !== lower && FALLBACK_PRICING[canonical]) return FALLBACK_PRICING[canonical];
     }
     return null;
 }

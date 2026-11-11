@@ -398,6 +398,47 @@ test('BFSF-354 a title that carries a blocked value is stripped from the Source 
     assert.ok(text.includes('PROJECT KNOWLEDGE BASE') && text.includes('ATTACHED KNOWLEDGE BASES'), 'both sites ran');
 });
 
+// ═══ Source cards (kb_sources) ═══════════════════════════════════
+// The passages went into the prompt and nothing told the client, so the answer
+// showed no sources. promptContext.kbSources.test.js pins the cards themselves.
+
+test('an attached base with a matching document sends one kb_sources event with that document, kept for the stored answer', async () => {
+    reset();
+    fx.allowed = ['kb-ok'];
+    fx.chunks = [{ content: 'refunds within 30 days', title: 'Refund policy.pdf', document_id: 'doc-refunds', chunk_id: 'c-7', kb_id: 'kb-ok' }];
+    const events = [];
+    const state = await runTurn({ requestedKbIds: ['kb-ok'], send: (type, data) => events.push([type, data]) });
+
+    const kb = events.filter(([t]) => t === 'kb_sources');
+    assert.strictEqual(kb.length, 1, 'exactly one kb_sources event');
+    const { sources } = kb[0][1];
+    assert.deepStrictEqual(sources.map(s => [s.title, s.documentId, s.chunkId, s.content]),
+        [['Refund policy.pdf', 'doc-refunds', 'c-7', 'refunds within 30 days']]);
+    assert.ok(promptText(state).includes('refunds within 30 days'), 'the card points at text the model got');
+    assert.deepStrictEqual(state.kbSources, sources, 'the turn hands the same cards to finalize');
+});
+
+test('no passage, no kb_sources event', async () => {
+    reset();
+    fx.allowed = ['kb-ok'];
+    fx.chunks = [];
+    const events = [];
+    const state = await runTurn({ requestedKbIds: ['kb-ok'], send: (type, data) => events.push([type, data]) });
+    assert.ok(!events.some(([t]) => t === 'kb_sources'));
+    assert.deepStrictEqual(state.kbSources, []);
+});
+
+test('a card shows the passage as the prompt got it: what the own-server list blocks is gone there too', async () => {
+    reset();
+    fx.allowed = ['kb-ok'];
+    fx.shield = OWN_SERVER_EMAIL;
+    fx.chunks = [{ content: `refunds: write to ${SYNTH_EMAIL}`, title: 'Policy', chunk_id: 'c-1' }];
+    const events = [];
+    await runTurn({ requestedKbIds: ['kb-ok'], send: (type, data) => events.push([type, data]) });
+    const [[, { sources }]] = events.filter(([t]) => t === 'kb_sources');
+    assert.strictEqual(sources[0].content, 'refunds: write to [blocked:email]');
+});
+
 // ═══ Side-panel document ═════════════════════════════════════════
 
 test('an open side-panel document is announced in the prompt, resolved for the asker', async () => {

@@ -69,7 +69,7 @@ let embedTarget = null;
 const resolveTargetPath = require.resolve('../core/embed/resolveTarget');
 require.cache[resolveTargetPath] = {
     id: resolveTargetPath, filename: resolveTargetPath, loaded: true,
-    exports: { async resolveEmbedTarget() { return embedTarget; } },
+    exports: { async resolveEmbedTarget() { return embedTarget; }, reduceVector: require('../core/embed/outputDimensions.mts').reduceVector },
 };
 
 const { selectWithinBudget, formatMemoriesForPrompt, getEmbedding } = require('./memoryStore');
@@ -249,6 +249,24 @@ test('Azure target: v1 embeddings URL, deployment in the body, api-key header', 
         assert.ok(!calls[0].url.includes('api-version'));
         assert.deepStrictEqual(calls[0].body, { model: 'emb-deploy', input: ['hallo'] });
         assert.strictEqual(calls[0].init.headers['api-key'], 'k');
+    } finally {
+        global.fetch = realFetch;
+    }
+});
+
+test('a target with a stored length: the native vector is requested, then cut to that length and normalised', async () => {
+    const realFetch = global.fetch;
+    const bodies = [];
+    global.fetch = async (_url, init) => {
+        bodies.push(JSON.parse(init.body));
+        return new Response(JSON.stringify({ data: [{ index: 0, embedding: Array.from({ length: 4096 }, (_, i) => (i % 5) + 1) }] }), { status: 200 });
+    };
+    try {
+        embedTarget = { providerType: 'scaleway', endpoint: 'https://api.scaleway.ai/v1', apiKey: 'k', modelId: 'qwen3-embedding-8b', dimensions: 1536 };
+        const vec = await getEmbedding('hallo');
+        assert.deepStrictEqual(bodies[0], { model: 'qwen3-embedding-8b', input: ['hallo'] });
+        assert.strictEqual(vec.length, 1536);
+        assert.ok(Math.abs(Math.hypot(...vec) - 1) < 1e-9, 'unit norm');
     } finally {
         global.fetch = realFetch;
     }

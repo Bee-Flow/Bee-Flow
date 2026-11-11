@@ -157,6 +157,22 @@ test('saveAIConfig keeps the PII settings it was not handed', async () => {
     assert.deepStrictEqual(ai().piiDetectionCategories, ['email']);
 });
 
+test('saveAIConfig keeps the model, the embedding choice and the Lakera key when a save leaves them out (#660)', async () => {
+    const stored = { url: 'https://llm.example/v1', model: 'm1', lakeraApiKey: 'lk', regexGuardrails: { rules: [] }, embeddingModel: 'e1', embeddingProviderId: 'p-e' };
+    store.config.set('ai', { ...stored });
+    // boot-init with AZURE_* env vars saves only these two.
+    await saveAIConfig({ azureEndpoint: 'https://az.example', azureApiKey: 'ak' });
+    for (const [key, value] of Object.entries(stored)) assert.deepStrictEqual(ai()[key], value, key);
+});
+
+test('saveAIConfig still clears an embedding choice or Lakera key it is handed empty', async () => {
+    store.config.set('ai', { embeddingModel: 'e1', embeddingProviderId: 'p-e', lakeraApiKey: 'lk' });
+    await saveAIConfig({ embeddingModel: null, embeddingProviderId: '', lakeraApiKey: '' });
+    assert.strictEqual(ai().embeddingModel, null);
+    assert.strictEqual(ai().embeddingProviderId, null);
+    assert.strictEqual(ai().lakeraApiKey, '');
+});
+
 test('saveAIConfig re-saves an existing vendor row\'s key rather than adding a second row', async () => {
     store.config.set('ai', {
         providers: [{ id: 'openai-default', name: 'OpenAI', type: 'openai', url: 'https://api.openai.com/v1', model: 'gpt-4o', apiKey: 'old' }],

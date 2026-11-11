@@ -70,4 +70,14 @@ describe('useMeetingSources', () => {
         expect(result.current.talk).toBe(false);
         expect(result.current.gmeet).toBe(true);
     });
+
+    it('an expired Google grant (needsReauth) still counts, so Upcoming mounts with its reconnect banner', async () => {
+        mockEndpoints({
+            talk: resp(200, { nextcloudConnected: false }),
+            gmeet: resp(200, { connection: { googleConnected: false, meetScopesGranted: true, needsReauth: true } }),
+        });
+        const { result } = renderHook(() => useMeetingSources());
+        await waitFor(() => expect(result.current.loading).toBe(false));
+        expect(result.current.gmeet).toBe(true);
+    });
 });

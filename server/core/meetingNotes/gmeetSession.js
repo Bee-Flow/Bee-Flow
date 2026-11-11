@@ -69,12 +69,12 @@ async function resolveGmeetSession(req) {
 async function requireMeetAccess(req) {
     const { session, connection } = await resolveGmeetSession(req);
     if (!session) {
-        throw gmeetError(
-            connection.needsReauth
-                ? 'Google access expired — reconnect your Google account'
-                : 'Google is not connected for this account',
-            connection.needsReauth ? 'needs_reauth' : 'not_connected',
-        );
+        // needs_reauth is a 409, not a 401: the web client reloads the whole
+        // page on any 401 from /api (a lost login session).
+        if (connection.needsReauth) {
+            throw Object.assign(gmeetError('Google access expired — reconnect your Google account', 'needs_reauth'), { status: 409 });
+        }
+        throw gmeetError('Google is not connected for this account', 'not_connected');
     }
     if (!connection.meetScopesGranted) {
         throw gmeetError('Google Meet access has not been granted — reconnect Google to add the Meet scopes', 'needs_meet_scopes');

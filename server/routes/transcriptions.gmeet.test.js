@@ -84,6 +84,7 @@ function resetFx() {
     fx.codeLookups = [];
     fx.deletedNotes = new Set();
     fx.recentlyEndedThrows = false;
+    fx.upcomingThrows = null;
     require('../core/meetingNotes/manualImportRunner')._resetForTests();
 }
 resetFx();
@@ -199,8 +200,17 @@ stub('../core/meetingNotes/gmeetCalendar', {
         const m = s.match(/meet\.google\.com\/([a-z]{3}-[a-z]{4}-[a-z]{3})/);
         return m ? m[1] : null;
     },
-    listUpcomingMeetMeetings: async ({ session }) => { fx.upcomingCalls++; fx.lastUpcomingSession = session; return fx.upcoming; },
-    listRecentlyEndedMeetMeetings: async () => { if (fx.recentlyEndedThrows) throw new Error('calendar 503'); return fx.recentlyEnded; },
+    listUpcomingMeetMeetings: async ({ session }) => {
+        fx.upcomingCalls++; fx.lastUpcomingSession = session;
+        if (fx.upcomingThrows) throw fx.upcomingThrows;
+        return fx.upcoming;
+    },
+    // `true` is an outage; an Error object is thrown as it is (an auth failure).
+    listRecentlyEndedMeetMeetings: async () => {
+        if (fx.recentlyEndedThrows instanceof Error) throw fx.recentlyEndedThrows;
+        if (fx.recentlyEndedThrows) throw new Error('calendar 503');
+        return fx.recentlyEnded;
+    },
 });
 stub('../core/meetingNotes/gmeetArtifacts', {
     getSpaceByMeetingCode: async (session, code) => fx.spaceByCode[code] || null,
@@ -571,7 +581,7 @@ test('gmeet-recordings: not connected → empty items with connection block', as
 
 // ═══ POST /from-gmeet ════════════════════════════════════════════════════════
 
-test('from-gmeet: not connected → 400 not_connected; expired vault → 401 needs_reauth', async () => {
+test('from-gmeet: not connected → 400 not_connected; expired vault → 409 needs_reauth (a 401 would reload the SPA)', async () => {
     resetFx();
     let res = await dispatch({ method: 'POST', url: '/from-gmeet', body: { meet_link: 'https://meet.google.com/abc-defg-hij' } });
     assert.strictEqual(res.statusCode, 400);
@@ -580,7 +590,7 @@ test('from-gmeet: not connected → 400 not_connected; expired vault → 401 nee
     resetFx();
     fx.cred = { status: 'needs_reauth', scope: MEET_SCOPES };
     res = await dispatch({ method: 'POST', url: '/from-gmeet', body: { meet_link: 'https://meet.google.com/abc-defg-hij' } });
-    assert.strictEqual(res.statusCode, 401);
+    assert.strictEqual(res.statusCode, 409);
     assert.strictEqual(res.body.code, 'needs_reauth');
     assert.strictEqual(fx.inlineCalls.length, 0, 'no ingest attempted');
 });
@@ -847,4 +857,56 @@ test('PATCH gmeet-meetings: a click overridden by a series opt-out does not arm 
     assert.strictEqual(res.body.overridden, true);
     assert.strictEqual(res.body.autoRecordingConfig, 'overridden');
     assert.strictEqual(fx.autoRecordCalls.length, 0);
+});
+
+// ═══ A refused Google refresh is a reconnect state, not a 400 ════════════════
+
+/** What googleapis throws when Google refuses the refresh token. */
+function invalidGrant() {
+    return Object.assign(new Error('invalid_grant'), { status: 400, response: { status: 400, data: { error: 'invalid_grant' } } });
+}
+
+test('gmeet-meetings: a refused refresh (invalid_grant) answers 200 with needsReauth and no meetings', async () => {
+    resetFx();
+    fx.cred = { status: 'active', scope: MEET_SCOPES };
+    fx.upcomingThrows = invalidGrant();
+    const res = await dispatch({ url: '/gmeet-meetings', session: liveSession() });
+    assert.strictEqual(res.statusCode, 200);
+    assert.strictEqual(res.body.connection.needsReauth, true);
+    assert.strictEqual(res.body.connection.meetScopesGranted, true, 'the rest of the connection block is kept');
+    assert.deepStrictEqual(res.body.meetings, []);
+    assert.strictEqual(res.body.count, 0);
+    assert.ok(!JSON.stringify(res.body).includes('invalid_grant'), 'no raw Google error');
+});
+
+test('gmeet-meetings: a 401 from Google is a reconnect state too; any other failure still throws', async () => {
+    resetFx();
+    fx.cred = { status: 'active', scope: MEET_SCOPES };
+    fx.upcomingThrows = Object.assign(new Error('Request had invalid authentication credentials.'), { status: 401 });
+    const res = await dispatch({ url: '/gmeet-meetings', session: liveSession() });
+    assert.strictEqual(res.statusCode, 200);
+    assert.strictEqual(res.body.connection.needsReauth, true);
+
+    fx.upcomingThrows = Object.assign(new Error('backend error'), { status: 503 });
+    await assert.rejects(dispatch({ url: '/gmeet-meetings', session: liveSession() }), /backend error/);
+});
+
+test('gmeet-recordings: a refused refresh (invalid_grant) answers 200 with needsReauth and no items', async () => {
+    resetFx();
+    fx.cred = { status: 'active', scope: MEET_SCOPES };
+    fx.recentlyEndedThrows = invalidGrant();
+    const res = await dispatch({ url: '/gmeet-recordings', session: liveSession() });
+    assert.strictEqual(res.statusCode, 200);
+    assert.strictEqual(res.body.connection.needsReauth, true);
+    assert.deepStrictEqual(res.body.items, []);
+});
+
+test('from-gmeet: a refused refresh while reading the calendar is a 409 needs_reauth, not an outage', async () => {
+    resetFx();
+    fx.cred = { status: 'active', scope: MEET_SCOPES };
+    fx.recentlyEndedThrows = invalidGrant();
+    const res = await dispatch({ method: 'POST', url: '/from-gmeet', session: liveSession(), body: { event_id: 'ev1' } });
+    assert.strictEqual(res.statusCode, 409);
+    assert.strictEqual(res.body.code, 'needs_reauth');
+    assert.strictEqual(fx.seeded.length, 0, 'no job seeded');
 });

@@ -10,13 +10,18 @@
  *   3. In-process CPU embedder (Xenova/multilingual-e5-small, 384-dim).
  *
  * Returns { vectors, source, model } where vectors is [][] aligned with input
- * order. `source` is one of 'provider' | 'azure' | 'cpu' | null.
+ * order. `source` is one of 'provider' | 'azure' | 'cpu' | null. With
+ * 'provider' it also carries `target`: the resolved embedding target that
+ * answered (`providerId`, `providerType`, `modelId`; never its key), so the
+ * caller can price the call by what actually did the work
+ * (core/kb/embeddingCost.js).
  */
 
 const configStore = require('../../stores/configStore');
 const { recordEmbedCall } = require('../../telemetry/metrics');
 const log = require('../../telemetry/log');
 const { toV1BaseUrl } = require('../../utils/azureUrl');
+const { reduceVector } = require('./outputDimensions.mts');
 
 /**
  * One embedding request, retried while the failure is temporary.
@@ -234,12 +239,16 @@ async function dispatchEmbedTexts(texts, options = {}) {
                     };
                 const body = JSON.stringify({ model: target.modelId, input: batch });
                 const data = await postEmbedBatch(url, { method: 'POST', headers, body }, target.providerName || target.providerType || 'provider');
-                const sorted = (data.data || []).sort((a, b) => a.index - b.index).map(e => e.embedding);
+                // A stored length (./outputDimensions.mts) shortens the native vector here.
+                const sorted = (data.data || []).sort((a, b) => a.index - b.index).map(e => reduceVector(e.embedding, target.dimensions));
                 out.push(...sorted);
             }
             log.info(`[Embed] Embeddings via ${target.providerName || target.providerType} / ${target.modelId} (dim=${out[0]?.length})`);
             recordEmbedCall({ source: 'provider', status: 'ok' });
-            return { vectors: out, source: 'provider', model: target.modelId };
+            return {
+                vectors: out, source: 'provider', model: target.modelId,
+                target: { providerId: target.providerId, providerType: target.providerType, modelId: target.modelId },
+            };
         }
     } catch (err) {
         if (strict) throw err;

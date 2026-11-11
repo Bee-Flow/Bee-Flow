@@ -81,6 +81,16 @@ default effort rather than the request failing.
 Reasoning traces are shown in the thinking panel, whether the model returns them as a
 separate field or inline in `<think>` tags.
 
+### Embeddings
+
+The vector index Bee Flow searches knowledge bases with takes vectors of at most 2000
+dimensions. `qwen3-embedding-8b` returns 4096, but it is a Matryoshka model: the first
+part of its vector is an embedding on its own. So when you choose it as the embedding model,
+Bee Flow keeps the first 1536 values of every vector (normalised again). A configuration
+that already used it before this existed keeps its full-length vectors, and nothing is
+re-indexed. `bge-multilingual-gemma2` always returns 3584 dimensions: it works, but
+searches cannot use the fast index, and **Admin → AI Config → Embeddings** says so.
+
 ## Costs
 
 Usage is billed at Scaleway's published per-token rates and shows up in

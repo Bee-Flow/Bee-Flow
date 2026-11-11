@@ -51,6 +51,7 @@
     "admin_ai_config.download": "Downloaden",
     "admin_ai_config.embed_azure_hint": "Voer voor Azure de deploymentnaam van je embeddingmodel in (niet de naam van het basismodel).",
     "admin_ai_config.embed_azure_placeholder": "Je Azure-deploymentnaam, bijv. text-embedding-3-small",
+    "admin_ai_config.embed_dims_no_index": "Dit model levert vectoren van {dims} dimensies, meer dan de 2000 die de snelle vectorindex aankan. Zoekopdrachten met dit model kunnen de snelle index niet gebruiken, dus zoeken in je kennisbanken wordt trager naarmate ze groeien.",
     "admin_ai_config.embed_loading": "Instellingen laden...",
     "admin_ai_config.embed_mistral_hint": "Voor Mistral wordt \"mistral-embed\" aanbevolen.",
     "admin_ai_config.embed_model": "Embedding-model",

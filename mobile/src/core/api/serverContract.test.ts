@@ -407,10 +407,10 @@ describe('persisted chat turns (finalizeTurn.js, direct chat and agent runtime)'
     // Read back by readMessage in src/features/chat/api/readers.ts UNDER THESE NAMES.
     // It used to read `tools` and `sources`, names the server never saved, so
     // a reopened chat lost its tool steps and citations with no error anywhere.
-    it('the direct chat still saves toolHistory, thinking and images on the answer', () => {
+    it('the direct chat still saves kbSources, toolHistory, thinking and images on the answer', () => {
         // finalizeTurn.js builds the saved rows in finalizeRows.js.
         const source = read('routes/ai/directChat/finalizeRows.js');
-        expect(missingOutput(source, ['toolHistory', 'thinking', 'images'], 'assistantSave')).toEqual([]);
+        expect(missingOutput(source, ['kbSources', 'toolHistory', 'thinking', 'images'], 'assistantSave')).toEqual([]);
         // The parts of `thinking`, an image's `url`, and the turn's date.
         expect(absentTokens(source, ['text', 'redacted', 'url', 'mimeType', 'timestamp'])).toEqual([]);
     });

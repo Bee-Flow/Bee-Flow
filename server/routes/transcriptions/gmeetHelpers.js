@@ -2,8 +2,8 @@
 /**
  * Helpers of the Google Meet routes (routes/transcriptions/gmeet.js): which
  * note belongs to one occurrence of a meeting, whether an import job's note
- * still exists, and Meet's own auto-recording setting following the user's
- * effective choice.
+ * still exists, Meet's own auto-recording setting following the user's
+ * effective choice, and a Google grant that has stopped working.
  */
 
 const log = require('../../telemetry/log');
@@ -120,4 +120,29 @@ async function configureMeetAutoRecording(req, { userId, eventId, meetingCode, r
     }
 }
 
-module.exports = { occurrenceNoteId, noteStillExists, isSeriesOccurrence, configureMeetAutoRecording };
+/**
+ * A Google failure that means the grant does not work any more (401,
+ * invalid_grant): a reconnect for the user, not an error.
+ * @param {unknown} err
+ */
+function isGrantGone(err) {
+    return require('../../core/meetingNotes/gmeetDiscovery').isAuthFailure(err);
+}
+
+/**
+ * Run a Google read; `null` when Google refuses the grant, so a list route can
+ * answer the reconnect state (`connection.needsReauth`) instead of an error.
+ * @template T
+ * @param {() => Promise<T>} read
+ * @returns {Promise<T | null>}
+ */
+async function unlessGrantGone(read) {
+    try {
+        return await read();
+    } catch (err) {
+        if (isGrantGone(err)) return null;
+        throw err;
+    }
+}
+
+module.exports = { occurrenceNoteId, noteStillExists, isSeriesOccurrence, configureMeetAutoRecording, isGrantGone, unlessGrantGone };

@@ -8,6 +8,28 @@
 
 const { graphFetch, isMicrosoftConnected } = require('./msGraphClient');
 const { MS_CALENDAR_TOOLS } = require('./msCalendarToolsMsCalendarTools');
+const { assertGraphId } = require('./graphIds');
+
+const EVENT_ID_TEXT = 'That is not an Outlook calendar event id.';
+
+/**
+ * The event id as it goes into a Graph path (`/me/events/<id>`): one opaque
+ * Graph id, refused before any request when it is anything else.
+ * @param {unknown} eventId
+ */
+function eventIdOf(eventId) {
+    return assertGraphId(/** @type {string} */ (eventId), EVENT_ID_TEXT);
+}
+
+/**
+ * A `$filter` value: the text as an OData string literal (a single quote
+ * doubled), the whole expression URL-encoded, as teamsArtifacts does it.
+ * @param {string} field
+ * @param {unknown} text
+ */
+function containsFilter(field, text) {
+    return encodeURIComponent(`contains(${field},'${String(text).replaceAll("'", "''")}')`);
+}
 
 /**
  * A Graph calendar event, as far as this file reads or writes it.
@@ -90,7 +112,7 @@ async function executeMsCalendarTool(toolName, args, session) {
 
         // Use calendarView with $filter for subject search
         const data = await graphFetch(
-            `/me/calendarView?startDateTime=${now.toISOString()}&endDateTime=${end.toISOString()}&$filter=contains(subject,'${query.replace(/'/g, "''")}')&$top=20&$select=id,subject,start,end,location,organizer,attendees,isOnlineMeeting,onlineMeeting,body`,
+            `/me/calendarView?startDateTime=${now.toISOString()}&endDateTime=${end.toISOString()}&$filter=${containsFilter('subject', query)}&$top=20&$select=id,subject,start,end,location,organizer,attendees,isOnlineMeeting,onlineMeeting,body`,
             session
         );
 
@@ -129,6 +151,7 @@ async function executeMsCalendarTool(toolName, args, session) {
     } else if (toolName === 'ms_calendar_update_event') {
         const { eventId, subject, startTime, endTime, location, body, timeZone } = args;
         if (!eventId) throw new Error('eventId is required');
+        eventIdOf(eventId);
 
         /** @type {{ title?: string, startTime?: string, endTime?: string, timeZone?: string, location?: string, description?: string }} */
         const changes = {};
@@ -153,6 +176,7 @@ async function executeMsCalendarTool(toolName, args, session) {
     } else if (toolName === 'ms_calendar_delete_event') {
         const { eventId, subject } = args;
         if (!eventId) throw new Error('eventId is required');
+        eventIdOf(eventId);
 
         return {
             _action: 'calendar_draft',
@@ -231,7 +255,8 @@ async function executeMsCalendarAction(action, draft, session) {
         };
 
     } else if (action === 'update') {
-        const { eventId, ...changes } = draft;
+        const { eventId: rawEventId, ...changes } = draft;
+        const eventId = eventIdOf(rawEventId);
         /** @type {GraphEvent} */
         const patch = {};
 
@@ -300,7 +325,8 @@ async function executeMsCalendarAction(action, draft, session) {
         };
 
     } else if (action === 'delete') {
-        await graphFetch(`/me/events/${draft.eventId}`, session, {
+        const eventId = eventIdOf(draft.eventId);
+        await graphFetch(`/me/events/${eventId}`, session, {
             method: 'DELETE',
         });
 

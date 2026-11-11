@@ -2,11 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { Video, Loader2, RefreshCw, Download, Check, Clock } from 'lucide-react';
 import useTranslation from '@/hooks/useTranslation';
 import CaptureControls from './CaptureControls';
+import ReconnectCard from './ReconnectCard';
 import { useRecorder } from '../hooks/RecorderContext';
 import useGoogleMeetConnected from '../hooks/useGoogleMeetConnected';
 import { listGoogleMeetRecordings } from '@/api/transcriptionsApi';
 import { openGoogleConsentPopup } from '@/api/oauthPopupLaunchers';
-import { errorMessage } from '@/utils/caughtError';
+import { errorCode, errorMessage } from '@/utils/caughtError';
 
 interface MeetRecording {
     eventId: string;
@@ -19,6 +20,9 @@ interface MeetRecording {
 }
 
 interface ImportOutcome { ok?: boolean; pending?: boolean }
+
+/** The connection block of GET /gmeet-recordings; only the reconnect state is read here. */
+interface MeetConnection { needsReauth?: boolean }
 
 /**
  * Meet keeps its green, but as the THEME's green — the token the source chip
@@ -95,6 +99,7 @@ export default function GoogleMeetImportPanel({ onComplete }: { onComplete?: () 
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<unknown>(null);
     const [items, setItems] = useState<MeetRecording[]>([]);
+    const [connection, setConnection] = useState<MeetConnection | null>(null);
     const [busyKey, setBusyKey] = useState<string | null | undefined>(null);
     // Imports the server parked as awaiting_artifacts: the job keeps polling
     // server-side, so the row says so instead of offering Transcribe again.
@@ -109,6 +114,7 @@ export default function GoogleMeetImportPanel({ onComplete }: { onComplete?: () 
         try {
             const data = await listGoogleMeetRecordings();
             setItems(Array.isArray(data?.items) ? data.items : []);
+            setConnection(data?.connection && typeof data.connection === 'object' ? data.connection : null);
         } catch (err) {
             setError(err);
         } finally {
@@ -138,6 +144,7 @@ export default function GoogleMeetImportPanel({ onComplete }: { onComplete?: () 
             const result = await openGoogleConsentPopup();
             if (result?.success) {
                 setReauthorized(true);
+                clearError();
                 load();
             }
         } catch (err) {
@@ -147,32 +154,31 @@ export default function GoogleMeetImportPanel({ onComplete }: { onComplete?: () 
         }
     };
 
+    // The grant expired or was revoked: the server answers the list with
+    // needsReauth (and no items), and an import with a 409 needs_reauth.
+    // Either way the only way on is a reconnect, so offer that, not the list.
+    if (connection?.needsReauth === true || errorCode(uploadError) === 'needs_reauth') {
+        return (
+            <ReconnectCard
+                testId="gmeet-reauth" tile="gmeet" reauthError={reauthError} reauthBusy={reauthBusy} onReauthorize={handleReauthorize}
+                buttonLabel={t('meetings.gmeet_reauthorize', 'Re-authorize Google')}
+                title={t('meetings.gmeet_expired_title', 'Your Google connection has expired')}
+                description={t('meetings.gmeet_expired_desc', 'Reconnect to list and import your Meet recordings again. Your settings are kept.')}
+            />
+        );
+    }
+
     // Connected before the Meet scopes existed — every recordings request
     // would fail, so show the re-consent explainer instead of the list until
     // the popup succeeds.
     if (needsReconsent && !reauthorized) {
         return (
-            <div className="flex flex-col items-center gap-3 px-4 py-10 rounded-xl border text-center bg-[var(--bg-secondary)] border-[var(--border-default)]">
-                <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: `color-mix(in srgb, ${MEET_GREEN} 12%, transparent)`, color: MEET_GREEN }}>
-                    <Video className="w-6 h-6" />
-                </div>
-                <div className="text-sm font-semibold text-[var(--text-primary)]">{t('meetings.gmeet_reconsent_title', 'Google Meet needs additional access')}</div>
-                <div className="text-xs max-w-sm text-[var(--text-muted)]">
-                    {t('meetings.gmeet_reconsent_desc', 'Your Google account was connected before Meet recordings were supported. Re-authorize to let Bee Flow list and import your Meet recordings — your other Google integrations keep working.')}
-                </div>
-                {Boolean(reauthError) && (
-                    <div className="text-xs text-[var(--error)]">{errorMessage(reauthError)}</div>
-                )}
-                <button
-                    type="button"
-                    onClick={handleReauthorize}
-                    disabled={reauthBusy}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium disabled:opacity-50 bg-[var(--accent-primary)] text-[var(--accent-primary-fg)]"
-                >
-                    {reauthBusy && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                    {t('meetings.gmeet_reauthorize', 'Re-authorize Google')}
-                </button>
-            </div>
+            <ReconnectCard
+                tile="gmeet" reauthError={reauthError} reauthBusy={reauthBusy} onReauthorize={handleReauthorize}
+                buttonLabel={t('meetings.gmeet_reauthorize', 'Re-authorize Google')}
+                title={t('meetings.gmeet_reconsent_title', 'Google Meet needs additional access')}
+                description={t('meetings.gmeet_reconsent_desc', 'Your Google account was connected before Meet recordings were supported. Re-authorize to let Bee Flow list and import your Meet recordings — your other Google integrations keep working.')}
+            />
         );
     }
 

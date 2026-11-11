@@ -296,7 +296,7 @@ async function _buildRopa(orgId) {
         // assessments already ride on their activity row above). Allow-listed:
         // kind, id, title, outcome, stamps. No prompts, no run content.
         const automationAssessments = Object.values(assessments.automation || {});
-        /** @type {Record<string, Record<string, string>>} */
+        /** @type {Record<string, Record<string, string | null>>} */
         let titles = { automation: {}, agent: {} };
         if (automationAssessments.length) {
             try {

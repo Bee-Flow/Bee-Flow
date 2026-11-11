@@ -132,6 +132,8 @@ for (const name of withTable) {
 // files. Newer catalogues must join this list; older ones overlap on purpose
 // or by history (project_collab.prefs.* is seeded twice, identically).
 const SOLE_OWNER = [
+    'add-nl-ai-act-register-2026-11-translations',
+    'add-nl-automation-testing-cases-translations',
     'add-nl-automation-testing-translations',
     'add-nl-builder-fixes-2026-10',
     'add-nl-builder-handoff5-translations',
