@@ -102,3 +102,12 @@ test('a template column is kept, stamps version 3 and must compile', () => {
     const missing = validateAppDefinition(canon([{ ...tableWith({ format: 'template' }), type: 'data_grid' }]));
     assert.ok(codes(missing.warnings).includes('column.template_missing @ screens[0].sections[0].children[0].props.columns[0].template'));
 });
+
+test('a gauge is a schema 3 type with a range to draw in', () => {
+    const def = canon([{ id: 'cmp_gauge001', type: 'gauge', props: { value: { kind: 'static', value: 3 }, thresholds: [{ from: 50, tone: 'warning' }] } }]);
+    assert.equal(def.schemaVersion, 3);
+    assert.deepEqual(firstNode(def).props.thresholds, [{ from: 50, tone: 'warning' }]);
+    assert.deepEqual(validateAppDefinition(def).errors, []);
+    const flat = validateAppDefinition(canon([{ id: 'cmp_gauge001', type: 'gauge', props: { min: 10, max: 10 } }]));
+    assert.ok(codes(flat.warnings).includes('gauge.range_invalid @ screens[0].sections[0].children[0].props.max'));
+});

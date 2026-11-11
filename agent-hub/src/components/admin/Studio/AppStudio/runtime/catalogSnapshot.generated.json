@@ -2441,6 +2441,38 @@
                 "option",
                 "error"
             ]
+        },
+        "gauge": {
+            "label": "Gauge",
+            "category": "Data",
+            "defaultProps": {
+                "value": {
+                    "kind": "static",
+                    "value": 0
+                },
+                "label": null,
+                "min": 0,
+                "max": 100,
+                "unit": null,
+                "thresholds": [],
+                "showRange": true
+            },
+            "defaultStyle": {
+                "span": 4
+            },
+            "since": 3,
+            "mobile": {
+                "reason": "The phone draws the base display types only; a gauge stays in the browser."
+            },
+            "parts": [
+                "root",
+                "meter",
+                "track",
+                "fill",
+                "value",
+                "label",
+                "range"
+            ]
         }
     },
     "typeStyleKnobs": {
@@ -2714,6 +2746,10 @@
             "radius"
         ],
         "input_document": [
+            "span",
+            "size"
+        ],
+        "gauge": [
             "span",
             "size"
         ]

@@ -4,6 +4,7 @@
  *
  *   columns[].template   a table or data_grid column with `format: 'template'` writes a formula
  *                        per row: it must be there and compile.
+ *   gauge min / max      a gauge draws in min..max: max must be above min.
  *
  * One walk over every node of every screen. A definition without this vocabulary gets no
  * finding from here.
@@ -45,8 +46,17 @@ function checkColumnTemplates(node: Bag, props: Bag, path: string, { pushE, push
     });
 }
 
+/** A gauge needs a range to draw in: max above min. */
+function checkGaugeRange(node: Bag, props: Bag, path: string, { pushW }: LookPush): void {
+    if (node.type !== 'gauge') return;
+    const min = typeof props.min === 'number' ? props.min : 0;
+    const max = typeof props.max === 'number' ? props.max : 100;
+    if (max > min) return;
+    pushW({ code: 'gauge.range_invalid', severity: 'warning', path: `${path}.props.max`, message: `The gauge's max (${max}) is not above its min (${min}), so its arc stays empty.`, hint: 'Set max above min.' });
+}
+
 /** The checks per node, in the order their findings appear. */
-const NODE_CHECKS: readonly NodeCheck[] = [checkColumnTemplates];
+const NODE_CHECKS: readonly NodeCheck[] = [checkColumnTemplates, checkGaugeRange];
 
 function walkNode(node: unknown, path: string, push: LookPush): void {
     if (!isObject(node)) return;

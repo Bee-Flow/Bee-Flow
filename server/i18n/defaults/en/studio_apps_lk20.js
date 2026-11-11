@@ -5,6 +5,7 @@
 // Dutch: ../nl/studio_apps_lk20.json. Runtime and editor texts of the App Studio repeater layout, item templates,
 // the gauge, the chart kinds, the wizard, the tree and the tooltip key.
 module.exports = {
+    'studio_apps_lk20.gauge.label': 'Gauge',
     'studio_apps_lk20.repeater.row_label': 'Items, scroll sideways for more',
     'studio_apps_lk20.template.card_label': 'Design the card yourself',
     'studio_apps_lk20.template.off_hint': 'Draw each item with your own components instead of the built-in layout.',

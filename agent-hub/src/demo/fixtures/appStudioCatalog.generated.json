@@ -1510,8 +1510,12 @@
                                 "user",
                                 "breakdown",
                                 "cad",
-                                "document"
+                                "document",
+                                "template"
                             ],
+                            "valuesSince": {
+                                "template": 3
+                            },
                             "default": "text"
                         },
                         "align": {
@@ -1578,6 +1582,12 @@
                             "objectShape": "formatOptions",
                             "since": 3,
                             "description": "How this column writes its numbers, amounts and dates. An object { currency?: \"USD\", decimals?: 0..10, pattern?: \"dd-MM-yyyy\", compact?: true, percentScale?: \"whole\"|\"fraction\" }, every key optional, set only what should differ. It applies to the number, currency, percent, progress, date, datetime and relative formats of the column. currency (ISO 4217) and decimals win over the app-level `format`. compact writes 1.2K / 3.4M. percentScale \"fraction\" reads 0.25 as 25% (the default \"whole\" reads 25 as 25%). pattern is a date pattern from yyyy yy MMMM MMM MM M dd d EEEE EEE HH H hh h mm ss a, literal letters in single quotes. Absent keeps the default way of writing the value."
+                        },
+                        "template": {
+                            "type": "string",
+                            "maxLen": 500,
+                            "since": 3,
+                            "description": "For format template: a formula whose result is the cell text. item is the row and value the cell's own value, e.g. item.first + \" \" + item.last or concat(item.city, \", \", item.country). The result is plain text, never markup. Sorting and filtering still use the value under key."
                         }
                     }
                 },
@@ -1681,8 +1691,12 @@
                                 "user",
                                 "breakdown",
                                 "cad",
-                                "document"
+                                "document",
+                                "template"
                             ],
+                            "valuesSince": {
+                                "template": 3
+                            },
                             "default": "text"
                         },
                         "width": {
@@ -1807,6 +1821,12 @@
                             "objectShape": "formatOptions",
                             "since": 3,
                             "description": "How this column writes its numbers, amounts and dates. An object { currency?: \"USD\", decimals?: 0..10, pattern?: \"dd-MM-yyyy\", compact?: true, percentScale?: \"whole\"|\"fraction\" }, every key optional, set only what should differ. It applies to the number, currency, percent, progress, date, datetime and relative formats of the column. currency (ISO 4217) and decimals win over the app-level `format`. compact writes 1.2K / 3.4M. percentScale \"fraction\" reads 0.25 as 25% (the default \"whole\" reads 25 as 25%). pattern is a date pattern from yyyy yy MMMM MMM MM M dd d EEEE EEE HH H hh h mm ss a, literal letters in single quotes. Absent keeps the default way of writing the value."
+                        },
+                        "template": {
+                            "type": "string",
+                            "maxLen": 500,
+                            "since": 3,
+                            "description": "For format template: a formula whose result is the cell text. item is the row and value the cell's own value, e.g. item.first + \" \" + item.last or concat(item.city, \", \", item.country). The result is plain text, never markup. Sorting and filtering still use the value under key."
                         }
                     }
                 },
@@ -2226,7 +2246,7 @@
             "container": true,
             "slotContainer": true,
             "childrenSince": 3,
-            "childrenDescription": "Child components drawn per row in place of the built-in row body. Inside them item is the row's record and index its position, as in a repeater: bind with computed or formulas such as item.title. The row keeps its click and behaviour, so keep buttons out of a clickable row. No children means the built-in body (titleKey and the other keys). The phone draws the built-in body.",
+            "childrenDescription": "Child components drawn per row in place of the built-in row body. Inside them item is the row's record and index its position, as in a repeater: bind with computed or formulas such as item.title. The row keeps its click behaviour, so keep buttons out of a clickable row. No children means the built-in body (titleKey and the other keys). The phone draws the built-in body.",
             "description": "A card list over an array of objects — a friendlier alternative to a table, and the natural sidebar picker. badgeToneMap colours a status pill the way sideMap does for a message thread; timestampKey shows a short relative time; unreadKey bolds the row; tagsKey shows a tags field (e.g. mail categories) as chips.",
             "props": {
                 "source": {

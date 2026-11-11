@@ -1,5 +1,6 @@
 {
   "translations": {
+    "studio_apps_lk20.gauge.label": "Meter",
     "studio_apps_lk20.repeater.row_label": "Items, scroll opzij voor meer",
     "studio_apps_lk20.template.card_label": "De kaart zelf ontwerpen",
     "studio_apps_lk20.template.off_hint": "Teken elk item met je eigen componenten in plaats van de standaardindeling.",
