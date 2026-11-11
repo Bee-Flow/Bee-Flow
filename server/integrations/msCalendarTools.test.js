@@ -158,3 +158,44 @@ test('update: a change-nothing draft errors instead of reporting success', async
     );
     assert.strictEqual(calls.filter(c => c.method === 'PATCH').length, 0, 'no empty PATCH is sent');
 });
+
+// ═══ Event ids and the search filter ═════════════════════════════════
+
+const BAD_EVENT_IDS = ['AAA/../../users/someone@example.com/events/BBB', 'AAA?$select=body', 'AAA#x', '../AAA', 'AA A', ''.padEnd(600, 'A')];
+
+test('a malformed eventId is refused by the update and delete tools, before any Graph call', async () => {
+    for (const eventId of BAD_EVENT_IDS) {
+        for (const tool of ['ms_calendar_update_event', 'ms_calendar_delete_event']) {
+            reset();
+            await assert.rejects(executeMsCalendarTool(tool, { eventId, subject: 'x' }, SESSION), /not an Outlook calendar event id/, `${tool} ${eventId}`);
+            assert.strictEqual(calls.length, 0, `${tool}: no Graph call for ${eventId}`);
+        }
+    }
+});
+
+test('a malformed eventId in a confirmed draft is refused before any Graph call (update and delete)', async () => {
+    for (const eventId of BAD_EVENT_IDS) {
+        reset();
+        await assert.rejects(executeMsCalendarAction('update', { eventId, startTime: '2026-09-01T14:00:00' }, SESSION), /not an Outlook calendar event id/);
+        await assert.rejects(executeMsCalendarAction('delete', { eventId, title: 'x' }, SESSION), /not an Outlook calendar event id/);
+        assert.strictEqual(calls.length, 0, `no Graph call for ${eventId}`);
+    }
+});
+
+test('a real Graph event id still reaches its own path', async () => {
+    reset();
+    const id = 'AAMkAGI2TG93AAA_-x=';
+    await executeMsCalendarAction('delete', { eventId: id, title: 'x' }, SESSION);
+    assert.deepStrictEqual(calls.map(c => [c.method, c.path]), [['DELETE', `/me/events/${id}`]]);
+});
+
+test('search: the $filter value arrives URL-encoded, with quotes doubled inside the OData literal', async () => {
+    reset({ value: [] });
+    await executeMsCalendarTool('ms_calendar_search_events', { query: "O'Brien & co #1" }, SESSION);
+    const { path } = calls[0];
+    const filter = new URL(`https://graph.example${path}`).searchParams.get('$filter');
+    assert.strictEqual(filter, "contains(subject,'O''Brien & co #1')");
+    assert.ok(!path.includes('& co'), 'no raw & from the query');
+    assert.ok(!path.includes('#'), 'no raw # from the query');
+    assert.ok(path.includes('&$top=20'), 'the query string itself is intact');
+});
