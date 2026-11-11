@@ -6,7 +6,7 @@
  * wake time and no process holds it. This job continues the runs whose time passed, on
  * whichever replica takes the tick: the wait is over (the run goes on), or nothing resumed it in
  * time (its step fails with `pause_expired`). A run that may no longer go on (the app was
- * unpublished, its starter lost access, the action changed) is ended as `refused` here.
+ * unpublished, its starter lost access, its action was removed) is ended as `refused` here.
  *
  * Safe on several replicas twice over: the tick sits behind a Postgres advisory lock (one
  * replica per pass), and every resume is a compare-and-set on the row, so a pass that races a
