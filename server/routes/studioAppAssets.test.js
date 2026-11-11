@@ -129,6 +129,19 @@ test('a WOFF2 font is accepted and served as font/woff2', async () => {
     assert.equal(got.headers.get('content-type'), 'font/woff2');
 });
 
+test('a font over STUDIO_APP_FONT_MAX_BYTES is refused; an image of the same size is not', async () => {
+    process.env.STUDIO_APP_FONT_MAX_BYTES = '100';
+    try {
+        const over = await call('POST', `/api/studio-apps/${appId}/assets`, { file: woff2(128), type: 'font/woff2', name: 'big.woff2' });
+        assert.equal(over.status, 413);
+        assert.equal(over.json.code, 'font_too_large');
+        const image = Buffer.concat([PNG, Buffer.alloc(128)]);
+        assert.equal((await call('POST', `/api/studio-apps/${appId}/assets`, { file: image, type: 'image/png' })).status, 201);
+    } finally {
+        delete process.env.STUDIO_APP_FONT_MAX_BYTES;
+    }
+});
+
 test('SVG, a type outside the list and bytes that contradict the declared type are refused', async () => {
     const svg = Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>');
     assert.equal((await call('POST', `/api/studio-apps/${appId}/assets`, { file: svg, type: 'image/svg+xml', name: 'x.svg' })).status, 415);

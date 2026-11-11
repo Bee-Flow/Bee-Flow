@@ -58,6 +58,7 @@
     "app_run_tests",
     "app_save_test",
     "app_set_record_trigger",
+    "app_set_shell",
     "app_set_trigger",
     "app_update_step"
 ]

@@ -4,7 +4,9 @@ import type { ReactNode } from 'react';
 import AppIcon from '@/components/icons/AppIcon';
 import Modal from '@/components/shared/Modal';
 import { usePortalDocument } from '@/components/shared/portalRoot';
+import NavLinks from './NavLinks';
 import type { NavModel, NavScreen } from './navModel';
+import type { ShellItem } from './shellOptions';
 import type { NavigateFn } from '../actionRunner/runnerContext';
 
 /**
@@ -32,9 +34,20 @@ interface MobileNavProps {
     onNavigate?: NavigateFn | null;
     variant?: 'inline' | 'bar';
     brand?: ReactNode;
+    /** The app's own links (nav.items, schema 3), listed under the screens. */
+    items?: ShellItem[];
+    /** Inline only: show the trigger at every width (the corner of a hidden bar), not just on phones. */
+    always?: boolean;
 }
 
-export default function MobileNav({ model, activeScreen, onNavigate, variant = 'inline', brand = null }: MobileNavProps) {
+const NO_ITEMS: ShellItem[] = [];
+/** The inline trigger shows on phones only, or at every width as the corner of a hidden bar. */
+const INLINE_CLASS: Record<string, string | undefined> = { false: 'sm:hidden', true: undefined };
+
+/** Whether the menu has anything to open: another screen, or a link of the app. */
+const hasMenu = (model: NavModel, items: ShellItem[]): boolean => model.flat.length > 1 || items.length > 0;
+
+export default function MobileNav({ model, activeScreen, onNavigate, variant = 'inline', brand = null, items = NO_ITEMS, always = false }: MobileNavProps) {
     const [open, setOpen] = useState(false);
     const doc = usePortalDocument();
 
@@ -127,6 +140,7 @@ export default function MobileNav({ model, activeScreen, onNavigate, variant = '
                             {group.screens.map(renderRow)}
                         </div>
                     ))}
+                    <NavLinks variant="drawer" items={items} screenId={activeScreen?.id} onNavigate={onNavigate} onPicked={() => setOpen(false)} />
                 </div>
             </div>
         </Modal>
@@ -135,7 +149,7 @@ export default function MobileNav({ model, activeScreen, onNavigate, variant = '
     if (variant === 'bar') {
         // With a single nav screen the trigger has nothing to offer — the bar
         // still renders for the brand (the sidebar is hidden on mobile).
-        const hasNav = model.flat.length > 1;
+        const hasNav = hasMenu(model, items);
         return (
             <div
                 className="sm:hidden flex items-center gap-3 border-b px-4 shrink-0 [border-color:var(--border-default)]! [background:var(--bg-card)]"
@@ -148,7 +162,7 @@ export default function MobileNav({ model, activeScreen, onNavigate, variant = '
     }
 
     return (
-        <div className="sm:hidden">
+        <div className={INLINE_CLASS[String(always)]}>
             {trigger}
             {drawer}
         </div>

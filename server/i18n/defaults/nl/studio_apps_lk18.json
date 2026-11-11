@@ -1,0 +1,28 @@
+{
+  "translations": {
+    "studio_apps_lk18.act_set_shell": "De schil van de app gewijzigd",
+    "studio_apps_lk18.brand_logo": "Logo in de schil",
+    "studio_apps_lk18.brand_logo_hint": "Leeg toont het logo van het ontwerp, of het app-pictogram.",
+    "studio_apps_lk18.brand_name": "Naam in de schil",
+    "studio_apps_lk18.brand_name_hint": "Leeg toont de naam van de app.",
+    "studio_apps_lk18.brand_show_name": "Toon de naam naast het logo",
+    "studio_apps_lk18.footer": "Voettekst",
+    "studio_apps_lk18.footer_hint": "Platte tekst onder elk scherm, hoogstens 120 tekens.",
+    "studio_apps_lk18.header_hidden": "Verberg de bovenbalk",
+    "studio_apps_lk18.header_hidden_hint": "Het scherm begint bovenaan. Een kleine hoek houdt het schermmenu en het gebruikersmenu.",
+    "studio_apps_lk18.item_add": "Voeg een link toe",
+    "studio_apps_lk18.item_label": "Linktekst",
+    "studio_apps_lk18.item_remove": "Verwijder link",
+    "studio_apps_lk18.item_target": "Opent",
+    "studio_apps_lk18.item_url": "Webadres",
+    "studio_apps_lk18.item_web": "Een webadres",
+    "studio_apps_lk18.items_hint": "Getoond na de schermen. Een webadres opent in een nieuw tabblad.",
+    "studio_apps_lk18.nav_none": "Geen",
+    "studio_apps_lk18.opens_new_tab": "Opent in een nieuw tabblad",
+    "studio_apps_lk18.public_note": "Een openbare pagina toont hier niets van: die heeft geen eigen navigatie.",
+    "studio_apps_lk18.title": "Schil"
+  },
+  "sameAsEnglish": [
+    "studio_apps_lk18.items"
+  ]
+}

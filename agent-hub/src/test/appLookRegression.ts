@@ -18,6 +18,10 @@
 //     as part classes, and adding a class is not a change in how an app looks,
 //   - the inside of an <svg> is left out (an icon is named by its class; a lucide
 //     upgrade that redraws a path is not an app change).
+//
+// A corpus app whose `about.lookChrome` is true is drawn inside the real AppShell (the
+// screenshot mode `chrome`, appRuntimeScreenshot.tsx), for vocabulary that lives in the shell
+// (nav.*). Every other app is drawn without it, as it always was.
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -59,10 +63,15 @@ export function shardNames(names: readonly string[], index: number, count: numbe
     return names.filter((_, i) => i % count === index);
 }
 
+type CorpusFile = { about?: { lookChrome?: unknown }; definition: CorpusDefinition };
+
+function loadCorpusFile(name: string): CorpusFile {
+    return JSON.parse(fs.readFileSync(path.join(CORPUS_DIR, `${name}.json`), 'utf8')) as CorpusFile;
+}
+
 /** One corpus app's stored definition. */
 export function loadDefinition(name: string): CorpusDefinition {
-    const file = JSON.parse(fs.readFileSync(path.join(CORPUS_DIR, `${name}.json`), 'utf8')) as { definition: CorpusDefinition };
-    return file.definition;
+    return loadCorpusFile(name).definition;
 }
 
 /**
@@ -175,7 +184,7 @@ export function emptyDataState(definition: CorpusDefinition, screen: CorpusScree
 }
 
 /** Mount one screen through the headless entry and let lazy parts and effects settle. */
-export async function renderScreen(definition: CorpusDefinition, screen: CorpusScreen) {
+export async function renderScreen(definition: CorpusDefinition, screen: CorpusScreen, { chrome = false }: { chrome?: boolean } = {}) {
     const container = document.createElement('div');
     document.body.appendChild(container);
     let handle: { unmount: () => void } | null = null;
@@ -186,6 +195,7 @@ export async function renderScreen(definition: CorpusDefinition, screen: CorpusS
             dataState: emptyDataState(definition, screen),
             currentUser: VIEWER,
             previewRole: null,
+            ...(chrome ? { screenshot: { chrome: true } } : {}),
         });
     });
     // Two more turns for React.lazy parts (icons outside the registry) to resolve.
@@ -330,11 +340,13 @@ function strayBodyNodes(container: Element): Element[] {
 
 /** The snapshot text for one corpus app: every screen in definition order. */
 export async function describeApp(name: string): Promise<{ text: string; crashed: string[] }> {
-    const definition = loadDefinition(name);
+    const file = loadCorpusFile(name);
+    const definition = file.definition;
+    const chrome = file.about?.lookChrome === true;
     const parts: string[] = [`# ${name}`];
     const crashed: string[] = [];
     for (const screen of definition.screens || []) {
-        const { container, unmount } = await renderScreen(definition, screen);
+        const { container, unmount } = await renderScreen(definition, screen, { chrome });
         try {
             const broken = crashedNodes(container);
             for (const type of broken) crashed.push(`${screen.id}: ${type}`);

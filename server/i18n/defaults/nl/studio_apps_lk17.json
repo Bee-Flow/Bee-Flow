@@ -1,0 +1,16 @@
+{
+  "translations": {
+    "studio_apps_lk17.as_today": "Zoals nu",
+    "studio_apps_lk17.choose_uploaded": "Kies een geüpload lettertype",
+    "studio_apps_lk17.role_body": "Lopende tekst",
+    "studio_apps_lk17.role_body_hint": "Alle overige tekst. Komt in de plaats van het lettertype hierboven.",
+    "studio_apps_lk17.role_heading": "Koppen",
+    "studio_apps_lk17.role_heading_hint": "Elke kop van de app, en componenten die op het koplettertype staan.",
+    "studio_apps_lk17.role_mono": "Code en cijfers",
+    "studio_apps_lk17.role_mono_hint": "Code, en componenten die op het monolettertype staan.",
+    "studio_apps_lk17.self_hosted": "Elk lettertype wordt door Bee Flow zelf geleverd. Een geüpload lettertype is een WOFF2-bestand van deze app.",
+    "studio_apps_lk17.title": "Lettertypen per rol",
+    "studio_apps_lk17.uploaded": "Geüpload lettertype"
+  },
+  "sameAsEnglish": []
+}

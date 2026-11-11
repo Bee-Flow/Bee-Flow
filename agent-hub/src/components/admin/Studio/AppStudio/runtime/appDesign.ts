@@ -17,6 +17,7 @@
 import { tokenVars } from './designTokens';
 import { darkPaletteVars } from './themeScope';
 import type { CSSProperties } from 'react';
+import { fontRoleProps } from './fonts/fontRoles';
 
 // ── Mirrors (server/appStudio/appDesignSpec.js is authoritative) ────────────
 export const DESIGN_ENUMS = {
@@ -38,7 +39,7 @@ export const DESIGN_DEFAULTS = {
     logoUrl: null,
 };
 
-export const NAV_STYLES: Array<string | undefined> = ['tabs', 'sidebar', 'mega', 'rail'];
+export const NAV_STYLES: Array<string | undefined> = ['tabs', 'sidebar', 'mega', 'rail', 'none'];
 export const NAV_DEFAULT_STYLE = 'tabs';
 
 // Pairing id → CSS stack. `system` is identity (no fontFamily emitted). The
@@ -93,6 +94,10 @@ export function appDesignProps(definition?: { design?: AppDesign; [key: string]:
         const stack = FONT_STACKS[d.font];
         if (stack) style.fontFamily = stack;
         addDesignExtensions(d, theme, scopeOverride, classes, style);
+        // design.fonts (schema 3, fonts/fontRoles.ts): nothing unless a role is set; a body role wins over design.font.
+        const roles = fontRoleProps(d);
+        classes.push(...roles.classes);
+        Object.assign(style, roles.style);
     }
     return { className: classes.join(' '), style };
 }

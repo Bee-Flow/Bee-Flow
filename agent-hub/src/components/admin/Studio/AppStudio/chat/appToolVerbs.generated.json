@@ -43,6 +43,10 @@
         "key": "studio_apps_h4.act_set_record_trigger",
         "en": "Set a record trigger"
     },
+    "app_set_shell": {
+        "key": "studio_apps_lk18.act_set_shell",
+        "en": "Changed the app shell"
+    },
     "app_set_trigger": {
         "key": "studio_apps_schedule.act_set_trigger",
         "en": "Set a trigger"

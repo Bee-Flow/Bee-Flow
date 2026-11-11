@@ -1,0 +1,156 @@
+{
+  "about": {
+    "source": "hand-made for package LK17 (font roles): design.fonts with a self-hosted heading and body family and an uploaded mono font, beside design.font, and the font knob on a heading and a text",
+    "captured": "2026-11-11"
+  },
+  "definition": {
+    "schemaVersion": 3,
+    "meta": {
+      "name": "Brand type",
+      "description": "Font roles: a serif for headings, a sans for body text, an uploaded font for code.",
+      "icon": "Type"
+    },
+    "theme": {
+      "primary": "#0F766E",
+      "radius": "md",
+      "density": "comfortable",
+      "fontScale": "md",
+      "appearance": "auto"
+    },
+    "roles": [],
+    "screens": [
+      {
+        "id": "scr_fontrl01",
+        "name": "Type",
+        "icon": null,
+        "showInNav": true,
+        "maxWidth": "medium",
+        "sections": [
+          {
+            "id": "sec_fontrl01",
+            "style": {
+              "padding": 4,
+              "gap": 3,
+              "background": "none"
+            },
+            "children": [
+              {
+                "id": "cmp_fontrl01",
+                "type": "page_header",
+                "props": {
+                  "title": "Annual report",
+                  "subtitle": "Headings in the heading font",
+                  "titleFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "subtitleFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "tagsFrom": {
+                    "kind": "static",
+                    "value": null
+                  },
+                  "icon": null,
+                  "showDivider": true,
+                  "look": "plain"
+                },
+                "style": {
+                  "span": 12,
+                  "gap": 3,
+                  "padding": 0
+                },
+                "visible": true,
+                "children": []
+              },
+              {
+                "id": "cmp_fontrl02",
+                "type": "heading",
+                "props": {
+                  "text": "Overview",
+                  "level": 2,
+                  "accent": "none"
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_fontrl03",
+                "type": "text",
+                "props": {
+                  "text": "Body text in the body font.",
+                  "muted": false
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_fontrl04",
+                "type": "text",
+                "props": {
+                  "text": "INV-2026-0042",
+                  "muted": false
+                },
+                "style": {
+                  "span": 6,
+                  "font": "mono"
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_fontrl05",
+                "type": "heading",
+                "props": {
+                  "text": "A heading in the body font",
+                  "level": 3,
+                  "accent": "none"
+                },
+                "style": {
+                  "span": 6,
+                  "font": "body"
+                },
+                "visible": true
+              },
+              {
+                "id": "cmp_fontrl06",
+                "type": "markdown",
+                "props": {
+                  "content": "### Notes\n\nRun `npm test` before you ship.",
+                  "contentFrom": {
+                    "kind": "static",
+                    "value": null
+                  }
+                },
+                "style": {
+                  "span": 12
+                },
+                "visible": true
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "actions": {},
+    "design": {
+      "preset": "custom",
+      "font": "satoshi",
+      "surface": "hairline",
+      "motion": "subtle",
+      "chartPalette": "classic",
+      "accentEdge": "bar",
+      "logoUrl": null,
+      "fonts": {
+        "heading": "fraunces",
+        "body": "inter",
+        "mono": "asset:brandmono01"
+      }
+    },
+    "homeScreenId": "scr_fontrl01"
+  }
+}

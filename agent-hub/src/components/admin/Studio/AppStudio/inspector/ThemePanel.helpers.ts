@@ -44,6 +44,7 @@ export const navStyleLabels = (t: (key: string | undefined, fallbackOrParams?: s
     sidebar: t('studio_apps_insp.theme.nav_sidebar', 'Sidebar'),
     mega: t('studio_apps_insp.theme.nav_mega', 'Mega'),
     rail: t('studio_apps_insp.theme.nav_rail', 'Rail'),
+    none: t('studio_apps_lk18.nav_none', 'None'),
 });
 
 export function options(t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string, values: string[]) {

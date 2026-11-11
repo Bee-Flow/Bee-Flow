@@ -1,7 +1,9 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import Brand from './Brand';
+import NavLinks from './NavLinks';
 import type { NavModel, NavScreen } from './navModel';
+import type { ShellItem } from './shellOptions';
 import UserMenu from './UserMenu';
 import type { UserMenuViewer } from './UserMenu';
 import useTranslation from '@/hooks/useTranslation';
@@ -46,9 +48,13 @@ interface NavSidebarProps {
     appId?: string | null;
     onExit?: (() => void) | null;
     railed?: boolean;
+    /** The app's own links (nav.items, schema 3), under the screens. */
+    items?: ShellItem[];
 }
 
-export default function NavSidebar({ definition, model, screenId, onNavigate, viewer, appId = null, onExit = null, railed = false }: NavSidebarProps) {
+const NO_ITEMS: ShellItem[] = [];
+
+export default function NavSidebar({ definition, model, screenId, onNavigate, viewer, appId = null, onExit = null, railed = false, items = NO_ITEMS }: NavSidebarProps) {
     const { t } = useTranslation();
     const storageKey = (appId && !railed) ? `appStudio.nav.collapsed.${appId}` : null;
     const [userCollapsed, setCollapsed] = useState(() => readCollapsed(storageKey));
@@ -149,6 +155,7 @@ export default function NavSidebar({ definition, model, screenId, onNavigate, vi
                         {group.screens.map(renderItem)}
                     </div>
                 ))}
+                <NavLinks variant="list" items={items} screenId={screenId} onNavigate={onNavigate} />
             </nav>
 
             <div className="shrink-0 border-t px-2 py-2 flex flex-col gap-1 [border-color:var(--border-subtle)]!">

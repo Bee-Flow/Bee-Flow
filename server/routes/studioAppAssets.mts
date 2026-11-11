@@ -44,6 +44,7 @@ const { uploadGuard } = nodeRequire('../middleware/uploadGuard.js') as { uploadG
 const { perUserRateLimit } = nodeRequire('../utils/perUserRateLimit.js') as { perUserRateLimit: (o: Record<string, unknown>) => Handler };
 const { sendStream } = nodeRequire('../core/http/sendStream.js') as { sendStream: (s: unknown, res: Response, onError: (e: Error) => void) => void };
 const { HttpError } = nodeRequire('../core/http/errors.js') as { HttpError: new (status: number, code: string, message: string) => Error };
+const { fontMaxBytes } = nodeRequire('../appStudio/appFontRoles.js') as { fontMaxBytes: () => number };
 const studioAppStore = nodeRequire('../stores/studioAppStore.js') as {
     getStudioApp: (id: string) => Promise<StudioApp | null>;
     canReadStudioAppAsync: (app: StudioApp, userId: string, groups: string[], orgIds: string[]) => Promise<boolean>;
@@ -124,6 +125,9 @@ async function upload(req: Request, res: Response): Promise<void> {
     if (!file) throw new HttpError(400, 'no_file', 'No file uploaded');
     const mime = sniffAssetMime(file.buffer);
     if (!mime) throw new HttpError(415, 'type_not_allowed', 'An asset is a PNG, JPEG, WebP or GIF image or a WOFF2 font.');
+    // A font has an operator limit of its own (STUDIO_APP_FONT_MAX_BYTES, appFontRoles.js).
+    const fontMax = fontMaxBytes();
+    if (mime === 'font/woff2' && file.buffer.length > fontMax) throw new HttpError(413, 'font_too_large', `A font may be at most ${fontMax} bytes.`);
     res.status(201).json({ asset: await storeAsset(app, file.buffer, mime) });
 }
 

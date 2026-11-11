@@ -14,6 +14,7 @@ const { isAssetRef, valueTypeOf, isCleanValue } = require('../componentSpecs/val
 const { checkBoxContrast } = require('./boxContrast.mts');
 const { checkBackdropContrast } = require('./backdropContrast.mts');
 const { checkThemeScope } = require('./themeScopeChecks.mts');
+const { checkNavShell } = require('../navShell.mts');
 
 /**
  * A design key of a later value type (componentSpecs/valueTypes.js): null when `value` is what
@@ -66,6 +67,8 @@ function checkDesignAndNav(def, screens, pushE, pushW) {
         if (!isObject(def.nav)) {
             pushE({ code: 'nav.invalid', severity: 'error', path: 'nav', message: 'nav must be an object.', hint: 'Use { style, groups? }.' });
         } else {
+            // The shell keys (schema 3): header, items, footerText, brand.
+            checkNavShell(def.nav, screens, pushE);
             if (!NAV_STYLES.includes(def.nav.style)) {
                 pushE({ code: 'nav.value_invalid', severity: 'error', path: 'nav.style', message: `nav.style must be one of ${NAV_STYLES.join(', ')}.`, hint: `Got ${JSON.stringify(def.nav.style)}.` });
             }
