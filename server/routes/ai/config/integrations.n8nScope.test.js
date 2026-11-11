@@ -29,6 +29,7 @@ const Module = require('module');
 const fx = {
     users: {},
     groups: [],
+    orgs: { orgA: { id: 'orgA' }, orgB: { id: 'orgB' } },
     userThrows: false,
 };
 const written = [];   // every configStore write the routes performed
@@ -39,6 +40,8 @@ const userStoreStub = {
         return fx.users[id] || null;
     },
     getAllGroups: async () => fx.groups,
+    getOrganization: async (id) => fx.orgs[id] || null,
+    getAllUsers: async () => [],
 };
 
 const MOCKS = {
@@ -174,4 +177,31 @@ test('an unreadable identity refuses the read too', async () => {
     fx.userThrows = true;
     const r = await call('GET', '/ai/n8n/config', { user: 'u-home' });
     assert.notStrictEqual(r.status, 200);
+});
+
+// ── `?orgId`: the organisation chosen in the admin dashboard ────────
+
+test('a platform admin writes and reads the connection of the org named by ?orgId', async () => {
+    const put = await call('PUT', '/ai/n8n/config?orgId=orgB', { user: 'u-super', body: { n8nUrl: 'https://n8n.example' } });
+    assert.strictEqual(put.status, 200);
+    assert.deepStrictEqual(written, [['n8n_url_org_orgB', 'https://n8n.example']]);
+    assert.strictEqual((await call('GET', '/ai/n8n/config?orgId=orgB', { user: 'u-super' })).status, 200);
+    assert.strictEqual((await call('GET', '/ai/n8n/permissions?orgId=orgB', { user: 'u-super' })).status, 200);
+});
+
+test('a platform admin naming an unknown org gets a 404 and writes nothing', async () => {
+    const r = await call('PUT', '/ai/n8n/config?orgId=nope', { user: 'u-super', body: { n8nUrl: 'https://n8n.example' } });
+    assert.strictEqual(r.status, 404);
+    assert.deepStrictEqual(written, []);
+});
+
+test('an org admin may name only their own org', async () => {
+    const other = await call('PUT', '/ai/n8n/config?orgId=orgB', { user: 'u-home', body: { n8nUrl: 'https://n8n.example' } });
+    assert.strictEqual(other.status, 403);
+    assert.deepStrictEqual(written, []);
+    assert.strictEqual((await call('GET', '/ai/n8n/config?orgId=orgB', { user: 'u-home' })).status, 403);
+    const own = await call('PUT', '/ai/n8n/config?orgId=orgA', { user: 'u-home', body: { n8nUrl: 'https://n8n.example' } });
+    assert.strictEqual(own.status, 200);
+    assert.deepStrictEqual(written, [['n8n_url_org_orgA', 'https://n8n.example']]);
+    assert.strictEqual((await call('GET', '/ai/n8n/config?orgId=orgA&orgId=orgA', { user: 'u-home' })).status, 400, 'a repeated orgId is refused');
 });

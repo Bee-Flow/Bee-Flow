@@ -375,14 +375,22 @@ router.put('/:orgId', requireAuth, platformConfigGate, validate({ body: ConfigBo
 // ── Azure AD Group Sync Endpoints ─────────────────────────
 // ═══════════════════════════════════════════════════════════
 
-// POST /:orgId/sync-groups — trigger a sync
-router.post('/:orgId/sync-groups', requireAuth, /** @param {import('express').Request<{ orgId: string }>} req @param {import('express').Response} _res @param {import('express').NextFunction} next */ async (req, _res, next) => { await assertSyncBinding(req.params.orgId); next(); }, validate({ body: NoBody }), /** @param {import('express').Request<{ orgId: string }>} req */ async (req, res) => {
-    const { orgId } = req.params;
-    const admin = await isOrgAdmin(req, orgId);
-    if (!admin) {
-        return res.status(403).json({ error: 'Only organization admins can trigger group sync' });
-    }
+/**
+ * The strict org-admin check of the organisation in the path (a platform admin
+ * passes for any), BEFORE the directory binding is looked at: a caller who
+ * administers nothing here learns nothing about which organisation it is bound to.
+ * @param {string} message
+ */
+const syncAdmin = (message) => tagGate(/** @param {import('express').Request<{ orgId: string }>} req @param {import('express').Response} res @param {import('express').NextFunction} next */ async (req, res, next) => {
+    if (await isOrgAdmin(req, req.params.orgId)) return next();
+    return res.status(403).json({ error: message });
+}, { axis: 'scope', kind: 'orgAdminOfParam', param: 'orgId', paramDependent: true });
+/** @param {import('express').Request<{ orgId: string }>} req @param {import('express').Response} _res @param {import('express').NextFunction} next */
+const boundOrg = async (req, _res, next) => { await assertSyncBinding(req.params.orgId); next(); };
 
+// POST /:orgId/sync-groups — trigger a sync
+router.post('/:orgId/sync-groups', requireAuth, syncAdmin('Only organization admins can trigger group sync'), boundOrg, validate({ body: NoBody }), /** @param {import('express').Request<{ orgId: string }>} req */ async (req, res) => {
+    const { orgId } = req.params;
     log.info(`[AzureGroupSync] Sync triggered for org ${orgId} by ${req.session.user?.id}`);
     const result = await syncAzureGroupsToOrg(orgId);
     res.json(result);
@@ -390,13 +398,8 @@ router.post('/:orgId/sync-groups', requireAuth, /** @param {import('express').Re
 
 // GET /:orgId/sync-groups/status — the last run, the settings and whether a
 // directory is connected for this org; no configuration value (orgAzureSyncView.js).
-router.get('/:orgId/sync-groups/status', requireAuth, /** @param {import('express').Request<{ orgId: string }>} req */ async (req, res) => {
+router.get('/:orgId/sync-groups/status', requireAuth, syncAdmin('Only organization admins can view sync status'), /** @param {import('express').Request<{ orgId: string }>} req */ async (req, res) => {
     const { orgId } = req.params;
-    const admin = await isOrgAdmin(req, orgId);
-    if (!admin) {
-        return res.status(403).json({ error: 'Only organization admins can view sync status' });
-    }
-
     const microsoft = (await loadConfig()).providers?.microsoft;
     res.json(groupSyncView({
         orgId, status: await getSyncStatus(orgId), settings: await getSyncSettings(orgId), binding: await getSyncBinding(), microsoft,
@@ -404,13 +407,8 @@ router.get('/:orgId/sync-groups/status', requireAuth, /** @param {import('expres
 });
 
 // PUT /:orgId/sync-groups/settings — update sync settings
-router.put('/:orgId/sync-groups/settings', requireAuth, /** @param {import('express').Request<{ orgId: string }>} req @param {import('express').Response} _res @param {import('express').NextFunction} next */ async (req, _res, next) => { await assertSyncBinding(req.params.orgId); next(); }, validate({ body: SyncSettingsBody }), /** @param {import('express').Request<{ orgId: string }>} req */ async (req, res) => {
+router.put('/:orgId/sync-groups/settings', requireAuth, syncAdmin('Only organization admins can manage sync settings'), boundOrg, validate({ body: SyncSettingsBody }), /** @param {import('express').Request<{ orgId: string }>} req */ async (req, res) => {
     const { orgId } = req.params;
-    const admin = await isOrgAdmin(req, orgId);
-    if (!admin) {
-        return res.status(403).json({ error: 'Only organization admins can manage sync settings' });
-    }
-
     // Only the keys that were sent: the schema adds no absent ones, and
     // setSyncSettings merges over what is stored.
     const updates = { ...req.body };

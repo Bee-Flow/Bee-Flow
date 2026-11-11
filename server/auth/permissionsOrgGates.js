@@ -12,6 +12,9 @@ const { dep } = require('./permissionsDeps');
 /** @type {typeof import('../stores/userStore')} */
 const userStore = dep('userStore');
 const { tagGate } = require('./gateMeta');
+const { HttpError } = require('../shared/httpErrors');
+// `?orgId` as one value or null; a repeated one throws the 400 (auth/adminOrg.mts).
+const { namedOrgIdOf } = require('./adminOrg.mts');
 /** @type {typeof import('./orgScope').orgScope} */
 const orgScope = dep('orgScope');
 const log = require('../telemetry/log');
@@ -317,40 +320,67 @@ async function resolvePrimaryOrgId(req) {
     return scope.isSuperAdmin ? null : scope.orgId;
 }
 
+const ORG_ADMIN_REQUIRED = 'Organization admin access required';
+
 /**
- * Param-less variant of requireOrgAdmin for routes that always operate on the
- * CALLER's own org (no :id in the path): the caller must be an org admin (or
- * super admin) and belong to an organization. Resolves that org and attaches
- * it as `req.primaryOrgId` for the handler. Super admins act on their own
- * primary org too — there is deliberately no cross-org override here.
+ * Param-less variant of requireOrgAdmin for routes that operate on ONE org
+ * without an :id in the path. Resolves that org and attaches it as
+ * `req.primaryOrgId` for the handler.
  *
- * For anyone else the resolved org must also pass _evalOrgAdmin: the primary
- * org can be the org of the first group when the account has no own org, and
- * an admin orgRole plus membership of an ordinary group there administers
- * nothing.
+ *   - a platform admin (isSuperAdmin: the session flag or users.role 'admin';
+ *     the 'all' permission is not one) may name any existing org with
+ *     `?orgId` (the organisation chosen in the admin dashboard). An unknown
+ *     org is a 404. Without `?orgId` they act on their own org, or get a 400
+ *     when they have none.
+ *   - anyone else must be an org admin of their primary org: an admin orgRole,
+ *     and the primary org must also pass _evalOrgAdmin (it can be the org of
+ *     the first group when the account has no own org, and an admin orgRole
+ *     plus an ordinary group there administers nothing). A `?orgId` naming any
+ *     other org is a 403; naming their own changes nothing.
+ * A repeated `?orgId` is a 400 for everyone. The 400/403/404 of `?orgId` go
+ * to `next(err)` as HttpError (same `error` text as the 403 below).
  */
 function requirePrimaryOrgAdmin() {
     return tagGate(async (req, res, next) => {
         if (!req.session?.user) return res.status(401).json({ error: 'Unauthorized' });
-        const userId = req.session.user.id;
-        const isSuperAdmin = req.session.isAdmin || req.session.user?.role === 'admin';
-        let user = null;
-        if (!isSuperAdmin) {
-            user = await userStore.getUser(userId);
-            if (!user || !isOrgAdminRole(user.orgRole)) {
-                return res.status(403).json({ error: 'Organization admin access required' });
+        /** @type {string | null} */
+        let named;
+        try { named = namedOrgIdOf(req); } catch (err) { return next(err); }
+        if (named && isSuperAdmin(req)) {
+            if (!(await userStore.getOrganization(named))) {
+                return next(new HttpError(404, 'organization_not_found', 'Organization not found'));
             }
+            req.primaryOrgId = named;
+            return next();
         }
-        const orgId = await resolvePrimaryOrgId(req)
-            || req.session.user.organizationId
-            || null;
-        if (!orgId) return res.status(400).json({ error: 'No organization for this account' });
-        if (user && !_evalOrgAdmin(user, await userStore.getAllGroups(), orgId)) {
-            return res.status(403).json({ error: 'Organization admin access required' });
-        }
-        req.primaryOrgId = orgId;
+        const own = await ownAdminOrg(req);
+        if ('refused' in own) return res.status(own.refused.status).json({ error: own.refused.error });
+        if (named && named !== own.orgId) return next(new HttpError(403, 'org_admin_required', ORG_ADMIN_REQUIRED));
+        req.primaryOrgId = own.orgId;
         next();
     }, { axis: 'scope', kind: 'orgAdminOfOwnOrg' });
+}
+
+/**
+ * The caller's own org for requirePrimaryOrgAdmin: their primary org (or the
+ * session's org), when they administer it; a platform admin needs no admin
+ * right there. Otherwise the refusal (status and `error` text) to answer.
+ * @param {import('express').Request} req  a request with a session user
+ * @returns {Promise<{ orgId: string } | { refused: { status: number, error: string } }>}
+ */
+async function ownAdminOrg(req) {
+    const sessionUser = req.session.user;
+    let user = null;
+    if (!isSuperAdmin(req)) {
+        user = await userStore.getUser(sessionUser.id);
+        if (!user || !isOrgAdminRole(user.orgRole)) return { refused: { status: 403, error: ORG_ADMIN_REQUIRED } };
+    }
+    const orgId = await resolvePrimaryOrgId(req) || sessionUser.organizationId || null;
+    if (!orgId) return { refused: { status: 400, error: 'No organization for this account' } };
+    if (user && !_evalOrgAdmin(user, await userStore.getAllGroups(), orgId)) {
+        return { refused: { status: 403, error: ORG_ADMIN_REQUIRED } };
+    }
+    return { orgId };
 }
 
 module.exports = {

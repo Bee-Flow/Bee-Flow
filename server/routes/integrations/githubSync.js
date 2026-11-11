@@ -5,8 +5,8 @@
  * All routes require manage_agents permission.
  *
  * Only POST /configure takes input. /status, /details, DELETE /configure and
- * the two push routes read nothing but the caller's org and user id, so none
- * of them carries a schema.
+ * the two push routes read nothing but the caller's org (or `?orgId`, see
+ * getOrgId) and user id, so none of them carries a body schema.
  */
 
 const express = require('express');
@@ -53,12 +53,16 @@ const ConfigureBody = z.object({
     autoSync: z.boolean({ error: typeError({ invalid: 'autoSync is true or false.' }) }).optional(),
 }).strict();
 
-// Helper: resolve the user's first org ID
+// The sync configuration is the organisation's (the pushes use the caller's own
+// GitHub token): the caller's first org, or the org a platform admin names with
+// `?orgId` in the admin dashboard (resolveChosenOrgId: 404 unknown; anyone
+// else may name only their own org, 403).
 /** @param {import('express').Request} req */
 async function getOrgId(req) {
     const orgIds = await resolveUserOrgIds(req);
-    if (!orgIds || orgIds.size === 0) return null;
-    return Array.from(orgIds)[0];
+    const own = orgIds && orgIds.size > 0 ? Array.from(orgIds)[0] : null;
+    if (req.query?.orgId === undefined) return own;
+    return require('../../auth/permissions').resolveChosenOrgId(req, own);
 }
 
 // ─── Status ──────────────────────────────────────────────────────

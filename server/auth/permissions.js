@@ -127,6 +127,8 @@ module.exports = {
     // The admin dashboard's organisation (auth/adminOrg.mts): sets req.adminOrgId.
     resolveAdminOrgId: adminOrg.resolveAdminOrgId,
     requireAdminOrg: adminOrg.requireAdminOrg,
+    // A route on the caller's own org, on the org the dashboard chose (`?orgId`).
+    resolveChosenOrgId: adminOrg.resolveChosenOrgId,
     // A permission IN one organisation (auth/permissionGrants.mts), for a
     // decision about a resource that lives in that organisation.
     resolvePermissionsByOrg: resolve.resolvePermissionsByOrg,

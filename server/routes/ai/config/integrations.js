@@ -12,7 +12,6 @@ const router = express.Router();
 const configStore = require('../../../stores/configStore');
 const { resolveOrgAllowListWithSource } = require('../../../core/integrations/enabledIntegrations');
 const { requireAuth, requireSuperAdmin } = require('../../../auth/permissions');
-const { orgScope } = require('../../../auth/orgScope');
 const { validate } = require('../../../core/http/validate');
 const { z, worded, bodyOf, queryOf, closedObject, choice, typeError } = require('../../../core/http/schemaParts');
 const { isAdminUser } = require('./shared');
@@ -87,40 +86,9 @@ const RegistryQuery = queryOf({
 
 const { listActiveWebhookWorkflows, fetchWorkflowById } = require('../../../integrations/n8nTools');
 
-// Helper: get org ID from session; super admins without an org fall back to '__system__'
-//
-// `strict`, because this id is the KEY the n8n url and api key are stored
-// under: a read that merely failed would look like "no org" and quietly send a
-// tenant's connection into the shared '__system__' scope.
-async function getOrgId(req) {
-    const { orgId, isSuperAdmin } = await orgScope(req, { strict: true });
-    if (!orgId && isSuperAdmin) return '__system__';
-    return orgId;
-}
-
-// Helper: check if user is org admin
-/**
- * @param {NextFunction} next
- */
-async function requireOrgAdminForN8n(req, res, next) {
-    const userId = req.session.user?.id;
-    if (!userId) return res.status(401).json({ error: 'Not authenticated' });
-    const { orgId, homeOrgId, isSuperAdmin } = await orgScope(req, { strict: true });
-    // Super admins (global) can always manage n8n config; fall back to '__system__' scope if not in any org
-    if (isSuperAdmin) {
-        req.orgId = orgId || '__system__';
-        return next();
-    }
-    // The HOME org, never the one a group grants: an org-admin role belongs to
-    // the account's own org, and honouring it elsewhere would hand a member
-    // admin rights in an org that never made them one.
-    if (!homeOrgId) return res.status(403).json({ error: 'No organization' });
-    const userStore = require('../../../stores/userStore');
-    const user = await userStore.getUser(userId);
-    if (user?.orgRole !== 'admin' && user?.orgRole !== 'org_admin') return res.status(403).json({ error: 'Org admin required' });
-    req.orgId = homeOrgId;
-    next();
-}
+// The organisation an n8n route works on (the caller's, or a platform admin's
+// `?orgId`) and the org-admin gate of the admin routes: ./n8nOrg.mts.
+const { getN8nOrgId: getOrgId, requireOrgAdminForN8n } = require('./n8nOrg.mts');
 
 // GET /ai/n8n/config — get org's n8n connection config
 router.get('/n8n/config', requireAuth, async (req, res) => {
