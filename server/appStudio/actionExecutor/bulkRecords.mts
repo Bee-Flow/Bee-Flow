@@ -14,6 +14,12 @@
  * value resolves to nothing BLOCKS the write (nothing changes, a note says which field): an empty
  * value never widens the filter to every row.
  *
+ * RECORD TRIGGERS. On the app's own storage a write that names its origin (`by.source`,
+ * triggers/recordTriggerRule.mts rule 1) is recorded for the table's armed record triggers, one
+ * change per row it changed (triggers/recordCapture.mts): the picked rows are read before and
+ * after, in one batch with the statement. A table without such a trigger, a write without an
+ * origin and a linked table run the one statement they always ran.
+ *
  * The one-row path (recordId) stays in records.js, unchanged.
  */
 
@@ -22,6 +28,7 @@ import { resolveWriteTarget, resolveStrictFilters, matchIds, countMatching, Writ
 import type { Filter, WriteTarget } from './writeTarget.mts';
 import { applyFieldRules } from '../../core/dataEngine/fieldRules.mts';
 import { assertNoDeleteRules } from './cascadeDelete.mts';
+import { planCapture } from '../triggers/recordCapture.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 
@@ -56,8 +63,19 @@ export type BulkOutcome = { matched: number; changed: number; remaining: number;
 /** The note a blocked filter leaves; the field name is the author's, never a value. */
 export const blockedNote = (field: string): string => `The filter value for "${field}" was empty, so no rows were changed.`;
 
+/** Who a filter-scoped write is by, for the record triggers of its table: the app, the write's origin and the writer. */
+export type BulkBy = { app: App; source?: unknown; viewer?: unknown };
+
+/** The one statement that changes the picked `ids`: recorded for record triggers (see the header), or the `exec` it always was. */
+async function execOnIds(target: WriteTarget, event: Op, ids: string[], c: { sql: string; params: unknown[] }, by?: BulkBy): Promise<number> {
+    const capture = by && target.kind === 'app' ? await planCapture(by.app, [{ statements: [c], rows: { table: target.table, event, ids } }], by) : null;
+    if (!capture) return target.exec(c.sql, c.params);
+    const [result] = await capture.run((statements) => target.batch(statements));
+    return Number(result && result.changes) || 0;
+}
+
 /** Delete the first `limit` rows matching `filters` on `target`. */
-export async function eraseMatching(target: WriteTarget, filters: Filter[], limit: number): Promise<BulkOutcome> {
+export async function eraseMatching(target: WriteTarget, filters: Filter[], limit: number, by?: BulkBy): Promise<BulkOutcome> {
     const { matched, ids } = await matchIds(target, filters, limit);
     if (!ids.length) return { matched, changed: 0, remaining: matched, ids: [] };
     let changed = 0;
@@ -66,14 +84,14 @@ export async function eraseMatching(target: WriteTarget, filters: Filter[], limi
         for (const id of ids) changed += (await w.deleteRow(records.mirrorCtx(target.bound), id)).changes || 0;
     } else {
         const c = bulk.compileDeleteIds(target.tableMeta, ids, filters, target.access, { dialect: target.dialect });
-        changed = await target.exec(c.sql, c.params);
+        changed = await execOnIds(target, 'delete', ids, c, by);
     }
     if (changed) await target.bump(0 - changed);
     return { matched, changed, remaining: Math.max(0, matched - ids.length), ids };
 }
 
 /** Update the first `limit` rows matching `filters` on `target` with the resolved `values`. */
-export async function updateMatching(app: App, target: WriteTarget, filters: Filter[], values: Obj, limit: number): Promise<BulkOutcome> {
+export async function updateMatching(app: App, target: WriteTarget, filters: Filter[], values: Obj, limit: number, by?: BulkBy): Promise<BulkOutcome> {
     const { matched, ids } = await matchIds(target, filters, limit);
     if (!ids.length) return { matched, changed: 0, remaining: matched, ids: [] };
     let changed = 0;
@@ -84,7 +102,7 @@ export async function updateMatching(app: App, target: WriteTarget, filters: Fil
         // Updates need byte headroom on the app's own storage, as a one-row update does.
         if (target.kind === 'app') await (nodeRequire('../studioAppQuota') as { assertDbByteQuota(a: App): Promise<void> }).assertDbByteQuota(app);
         const c = bulk.compileUpdateIds(target.tableMeta, ids, values, filters, target.access, { dialect: target.dialect });
-        changed = await target.exec(c.sql, c.params);
+        changed = await execOnIds(target, 'update', ids, c, by);
     }
     if (changed) await target.bump(0);
     return { matched, changed, remaining: Math.max(0, matched - ids.length), ids };
@@ -131,9 +149,10 @@ async function runBulk(app: App, model: unknown, step: Obj, ctx: Obj, op: Op): P
     try {
         const p = await prepare(app, model, step, ctx, op);
         if ('result' in p) return p.result;
+        const by: BulkBy = { app, source: ctx.writeSource, viewer: shared.writeViewer(ctx) };
         const out = op === 'update'
-            ? await updateMatching(app, p.target, p.filters, applyFieldRules(p.target.table, shared.resolveValues(step.values, ctx, p.scope), { op: 'update', role: shared.writeViewer(ctx).role ?? null }), p.limit)
-            : await eraseMatching(p.target, p.filters, p.limit);
+            ? await updateMatching(app, p.target, p.filters, applyFieldRules(p.target.table, shared.resolveValues(step.values, ctx, p.scope), { op: 'update', role: shared.writeViewer(ctx).role ?? null }), p.limit, by)
+            : await eraseMatching(p.target, p.filters, p.limit, by);
         // Counts only: no values, no ids (they are customer data in someone's table).
         log.info('[ActionExecutor] bulk record write', { appId: app.id, table: p.target.table.key, op, matched: out.matched, changed: out.changed, remaining: out.remaining });
         return bulkResult(op, out, p.limit);

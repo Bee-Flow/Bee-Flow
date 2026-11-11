@@ -5,7 +5,8 @@
  *
  * What it pins: WHICH write path records a change for a record trigger and which does not
  * (triggers/recordTriggerRule.mts rule 1), that the recorded rows are the real ones, and that a
- * table without an armed trigger runs exactly the statement it ran before.
+ * table without an armed trigger runs exactly the statement it ran before. The writes of several
+ * rows (batch, filter, transaction, replace, delete rules) are in records.recordTriggerRows.test.js.
  *
  * Run: cd server && node --test appStudio/actionExecutor/records.recordTrigger.test.js
  */
@@ -113,16 +114,16 @@ test('the three record steps record when the host says where the write comes fro
     assert.deepEqual(recorded.map((d) => [d.writerKind, d.depth, d.causeTriggerId]), [['owner', 0, null], ['trigger', 2, 'on_other'], ['trigger', 2, 'on_other']]);
 });
 
-test('matrix: the write paths that do NOT fire a record trigger, on an armed table', async () => {
+test('matrix: a write that names no origin fires no record trigger on an armed table, whatever its path', async () => {
     const { id } = await writeRecord(app, MODEL, ORDERS, { title: 'seed' }, { viewer });
     const paths = {
         'writeRecord without an origin (seeding, sync, builder tools, hooks, imports)': () => writeRecord(app, MODEL, ORDERS, { title: 'x' }, { viewer }),
         'writeRecord update without an origin': () => writeRecord(app, MODEL, ORDERS, { title: 'y' }, { viewer, recordId: id }),
-        'writeRecordBatch (ai_extract rows, connector sync)': () => writeRecordBatch(app, MODEL, ORDERS, [{ title: 'b1' }, { title: 'b2' }], { viewer }),
+        'writeRecordBatch without an origin (connector sync, ai_extract in a host that names none)': () => writeRecordBatch(app, MODEL, ORDERS, [{ title: 'b1' }, { title: 'b2' }], { viewer }),
         'a record step in a host that names no origin (MCP runs and tests, the mailbox hook)': () => executeDataStep(app, MODEL, { kind: 'create_record', tableId: ORDERS.id, values: { title: lit('m') } }, stepCtx()),
-        'update_record with a filter (bulk)': () => executeDataStep(app, MODEL, { kind: 'update_record', tableId: ORDERS.id, filter: [{ field: 'title', op: 'eq', value: lit('seed') }], values: { qty: lit(5) } }, stepCtx({ writeSource: USER })),
-        'delete_record with a filter (bulk)': () => executeDataStep(app, MODEL, { kind: 'delete_record', tableId: ORDERS.id, filter: [{ field: 'title', op: 'eq', value: lit('b1') }] }, stepCtx({ writeSource: USER })),
-        'a transaction step': () => executeDataStep(app, MODEL, { kind: 'transaction', steps: [{ kind: 'create_record', tableId: ORDERS.id, values: { title: lit('tx') } }] }, stepCtx({ writeSource: USER })),
+        'update_record with a filter, no origin': () => executeDataStep(app, MODEL, { kind: 'update_record', tableId: ORDERS.id, filter: [{ field: 'title', op: 'eq', value: lit('seed') }], values: { qty: lit(5) } }, stepCtx()),
+        'delete_record with a filter, no origin': () => executeDataStep(app, MODEL, { kind: 'delete_record', tableId: ORDERS.id, filter: [{ field: 'title', op: 'eq', value: lit('b1') }] }, stepCtx()),
+        'a transaction step, no origin': () => executeDataStep(app, MODEL, { kind: 'transaction', steps: [{ kind: 'create_record', tableId: ORDERS.id, values: { title: lit('tx') } }] }, stepCtx()),
         'eraseRecord without an origin': () => eraseRecord(app, MODEL, ORDERS, id, { viewer }),
     };
     for (const [label, run] of Object.entries(paths)) {

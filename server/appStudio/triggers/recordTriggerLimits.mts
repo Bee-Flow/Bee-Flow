@@ -5,6 +5,8 @@
  *   STUDIO_APP_RECORD_TRIGGER_MAX_DEPTH        3        the longest chain of trigger runs that start each other through record changes
  *   STUDIO_APP_RECORD_TRIGGER_WRITER_BURST     30       runs one writer may start in one app per minute
  *   STUDIO_APP_RECORD_TRIGGER_MAX_PENDING      1000     changes of one app that may wait for their run; a change beyond it is dropped
+ *   STUDIO_APP_RECORD_TRIGGER_MAX_ROWS_PER_WRITE 1000   rows that one write of several rows may record (recordCapture.mts); a write about to
+ *                                                       change more records none of them, and its triggers say so
  *   STUDIO_APP_RECORD_TRIGGER_EVENT_TTL_MS     86400000 a change that waited this long for its run is dropped
  *   STUDIO_APP_RECORD_TRIGGER_RETENTION_MS     86400000 how long a delivered or skipped change is kept (its row values included, for a fired one)
  *   STUDIO_APP_RECORD_TRIGGER_ARMED_REFRESH_MS 10000    how long a replica trusts its list of armed record triggers before reading it again
@@ -15,6 +17,7 @@ export const RECORD_TRIGGER_ENV = Object.freeze({
     maxDepth: { env: 'STUDIO_APP_RECORD_TRIGGER_MAX_DEPTH', fallback: 3 },
     writerBurst: { env: 'STUDIO_APP_RECORD_TRIGGER_WRITER_BURST', fallback: 30 },
     maxPending: { env: 'STUDIO_APP_RECORD_TRIGGER_MAX_PENDING', fallback: 1000 },
+    maxRowsPerWrite: { env: 'STUDIO_APP_RECORD_TRIGGER_MAX_ROWS_PER_WRITE', fallback: 1000 },
     eventTtlMs: { env: 'STUDIO_APP_RECORD_TRIGGER_EVENT_TTL_MS', fallback: 86_400_000 },
     retentionMs: { env: 'STUDIO_APP_RECORD_TRIGGER_RETENTION_MS', fallback: 86_400_000 },
     armedRefreshMs: { env: 'STUDIO_APP_RECORD_TRIGGER_ARMED_REFRESH_MS', fallback: 10_000 },

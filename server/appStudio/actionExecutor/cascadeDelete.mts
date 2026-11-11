@@ -23,11 +23,18 @@
  * table, and the record itself must change one row, so a child written between the walk and the
  * commit makes the whole batch roll back (422 record_changed) instead of leaving it dangling.
  *
+ * RECORD TRIGGERS. A delete that names its origin (`source`, triggers/recordTriggerRule.mts) is
+ * recorded for the armed record triggers of every table it touches: each emptied child as an
+ * `update` of its table, each deleted child as a `delete` of its table, the record itself last,
+ * all by the writer and at the chain depth of the delete itself (triggers/recordCapture.mts).
+ *
  * The filter-scoped deletes (bulk delete_record, a transaction child, replace) do not walk:
  * assertNoDeleteRules refuses them on a table such a rule points at.
  */
 
 import { createRequire } from 'node:module';
+import { execSegments } from './recordWriteExec.mts';
+import type { Segment } from './recordWriteExec.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 
@@ -38,7 +45,8 @@ type Statement = { sql: string; params: unknown[]; expectChanges?: boolean };
 type App = { id: string; userId: string; organizationId?: string | null };
 type Rule = { child: Table; fk: string; rule: 'restrict' | 'setNull' | 'cascade' };
 type Work = { table: Table; ids: string[] };
-type Walk = { app: App; model: unknown; role: unknown; viewer: Obj; max: number; total: number; updates: Statement[]; updated: Set<string>; deletes: Work[]; seen: Map<string, Set<string>> };
+/** `updates`: per setNull rule the child rows it empties and their statements. */
+type Walk = { app: App; model: unknown; role: unknown; viewer: Obj; max: number; total: number; updates: Array<Work & { statements: Statement[] }>; updated: Set<string>; deletes: Work[]; seen: Map<string, Set<string>> };
 
 const linked = nodeRequire('../../core/dataEngine/dataModel/linkedFields') as {
     onDeleteOf(f: unknown): 'restrict' | 'setNull' | 'cascade' | null;
@@ -172,7 +180,7 @@ async function walk(w: Walk, work: Work, depth: number): Promise<void> {
     for (const rule of rulesOnto(w.model, work.table)) {
         const kids = await childrenOf(w, rule, work.ids);
         if (!kids.length) continue;
-        if (rule.rule === 'setNull') { w.updates.push(...setNullStatements(w, rule, kids)); w.updated.add(rule.child.key as string); continue; }
+        if (rule.rule === 'setNull') { w.updates.push({ table: rule.child, ids: kids, statements: setNullStatements(w, rule, kids) }); w.updated.add(rule.child.key as string); continue; }
         if (depth + 1 > linked.MAX_CASCADE_DEPTH) throw new HttpError(422, 'cascade_too_deep', `Deleting this record would follow more than ${linked.MAX_CASCADE_DEPTH} relations.`);
         await walk(w, { table: rule.child, ids: kids }, depth + 1);
         w.deletes.push({ table: rule.child, ids: kids });
@@ -210,7 +218,7 @@ async function bookkeep(w: Walk, plan: Statement[][], results: Array<{ changes?:
  * `{ id, deleted, changes }` of the record itself: 0 changes when it is missing or outside the
  * viewer's delete rule (one uniform answer).
  */
-export async function eraseWithRules(app: App, model: unknown, table: Table, recordId: string, viewer: Obj): Promise<{ id: string; deleted: boolean; changes: number }> {
+export async function eraseWithRules(app: App, model: unknown, table: Table, recordId: string, viewer: Obj, source?: unknown): Promise<{ id: string; deleted: boolean; changes: number }> {
     const role = viewer.role ?? null;
     rls.assertCanWrite(table, role, 'delete');
     const w: Walk = { app, model, role, viewer, max: linked.cascadeMaxRows(), total: 0, updates: [], updated: new Set(), deletes: [], seen: new Map() };
@@ -220,14 +228,19 @@ export async function eraseWithRules(app: App, model: unknown, table: Table, rec
     await walk(w, { table, ids: own }, 0);
     w.deletes.push({ table, ids: own });
     const plan = w.deletes.map((work, i) => deleteStatements(w, work, i === w.deletes.length - 1));
+    // The emptied children are an `update` of their table, the deleted ones a `delete` of theirs, the record itself last.
+    const segments: Segment[] = [
+        ...w.updates.map((u) => ({ statements: u.statements, rows: { table: u.table, event: 'update' as const, ids: u.ids } })),
+        ...w.deletes.map((work, i) => ({ statements: plan[i], rows: { table: work.table, event: 'delete' as const, ids: work.ids } })),
+    ];
     let results: Array<{ changes?: number }>;
     try {
-        results = await store().batch(app.userId, app.id, [...w.updates, ...plan.flat()]);
+        results = await execSegments(store(), app, segments, { source, viewer });
     } catch (e) {
         if (e && (e as Obj).code === 'batch_no_rows') throw new HttpError(422, 'record_changed', 'Records linked to this one changed while it was being deleted. Try again.');
         throw e;
     }
-    await bookkeep(w, plan, results.slice(w.updates.length));
+    await bookkeep(w, plan, results.slice(w.updates.reduce((n, u) => n + u.statements.length, 0)));
     const changes = Number(results[results.length - 1] && results[results.length - 1].changes) || 0;
     return { id: recordId, deleted: changes > 0, changes };
 }

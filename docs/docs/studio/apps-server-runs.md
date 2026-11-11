@@ -131,20 +131,39 @@ optionally an *Only if* formula over `trigger.record`.
 The action reads `trigger.record.event`, `.tableId`, `.id`, `.row` (for a delete the row as it was), `.before`, `.changed`,
 `.by` (`member`, `owner`, `public`, `trigger` or `webhook`) and `.depth`.
 
-**What starts one.** A change of one row that a person makes in the app: an edit in a grid or a
-form, or an add, change or delete step that works on one row by id. Also such a step in the action of another trigger.
+**What starts one.** Every row that a person changes in the app, one change per row:
+
+- an edit in a grid or a form;
+- an add, change or delete step, whether it works on one row by id or on all rows matching a filter;
+- the add, change and delete steps by id inside *All or nothing*, once the whole step is saved (if
+  it is rolled back, nothing starts);
+- the rows that *Read a document* and a *Query a dataset* write-back write, also when they update
+  or add by key or replace rows (the replaced rows count as deleted);
+- a delete that follows a delete rule onto related records: each related row that is deleted with
+  it counts as deleted, and each one whose link is emptied counts as changed.
+
+The same steps in the action of another trigger start one too.
 
 **What does not start one:**
 
 - rows the AI builder writes, whether through the builder tools or over MCP, and test runs
   (`app_seed_records`, `app_update_records`, `app_run_action`, `app_run_tests`);
 - imports, template installs and connector sync;
-- the mailbox hook, *Read a document*, file intake and a *Query a dataset* write-back;
-- a step that adds many rows at once, *All or nothing*, a replace or an update-or-add by key;
-- a change or delete step that works on rows matching a filter;
-- a delete that follows a delete rule onto related records;
+- the mailbox hook (and every step of the action it runs) and file intake;
+- a change or delete step with a filter inside *All or nothing*: the rows are chosen while the step
+  is being saved, so they cannot be recorded one by one;
 - the log row of a sent e-mail and an approval's own record update;
 - a table linked to a Studio datatable, which cannot be a trigger table at all.
+
+**Many rows at once.** A step that changes 200 rows records 200 changes, and the trigger handles
+them one at a time. The limits below decide how many runs that gives, and what is left over is
+skipped and shown on the trigger. One write that is about to change more than 1,000 rows of tables
+with a record trigger records none of them (`STUDIO_APP_RECORD_TRIGGER_MAX_ROWS_PER_WRITE`, 0 for no
+limit), and the trigger shows *Skipped: too many rows in one write*: it never starts for only a part
+of such a write. At most 1,000 changes of one app wait for their run
+(`STUDIO_APP_RECORD_TRIGGER_MAX_PENDING`); changes beyond that are dropped. If someone else changes
+the same rows while a write of several rows is being saved, that write records nothing and the
+trigger says so.
 
 **Visitors of a public page.** If visitors can write the table, a record trigger needs **Also start
 on changes by visitors of a public page** (`allowPublicWrites`), and then its action may hold no
@@ -155,7 +174,8 @@ way for every writer.
 **Loops end by themselves.** A trigger never starts on a row its own run wrote. A chain of trigger
 runs that start each other stops after 3 (`STUDIO_APP_RECORD_TRIGGER_MAX_DEPTH`). One writer starts
 at most 30 runs of one app a minute (`STUDIO_APP_RECORD_TRIGGER_WRITER_BURST`); all visitors of a
-public page count as one writer. Beyond a limit the change is skipped and the trigger shows why.
+public page count as one writer. The limit counts runs, so rows: a step that changes many rows
+starts no more runs than this. Beyond a limit the change is skipped and the trigger shows why.
 
 **A chain keeps the rules of what started it.** A run started by a visitor's write, or by a
 trigger that allows visitor writes, writes as a visitor again, so the next trigger in the chain

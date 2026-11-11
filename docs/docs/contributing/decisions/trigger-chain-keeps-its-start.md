@@ -9,10 +9,13 @@ description: Why a record trigger fires only on declared writes, why a write by 
 [0023](./unattended-runs-act-as-the-owner.md). **Code:**
 `server/appStudio/triggers/recordTriggerRule.mts` (the rule, one file read by the validator, the
 arming, the write path and the fire), `server/appStudio/triggers/runTriggerCtx.mts` (what the server
-hands a run: its chain), `recordOutbox.mts` and `recordDrain.mts` (the writes and the fire),
-`kinds/` (what each trigger kind refuses), `recordTriggerLimits.mts`. **Enforced by:**
+hands a run: its chain), `recordOutbox.mts`, `recordCapture.mts` and `recordDrain.mts` (the writes
+of one row, of several rows, and the fire), `kinds/` (what each trigger kind refuses),
+`recordTriggerLimits.mts`. **Enforced by:**
 `server/appStudio/triggers/recordTriggers.test.js` (which writes fire and which do not, the public
 table rule, the depth guard, the burst count, the origin kept down a chain),
+`server/appStudio/actionExecutor/records.recordTrigger.test.js` and
+`records.recordTriggerRows.test.js` (each write path on real SQL),
 `httpRequestTrigger.test.js` (a run that a webhook started cannot call out, nor can the runs its
 writes start), `triggerSpec.test.js` and `unattendedIdentity.test.js`.
 
@@ -26,9 +29,15 @@ trigger could be the way around any limit the first has.
 ## Decision
 
 - **Only declared writes fire.** A write fires only when it says where it comes from: a person using
-  the app (the record API and the one-row add, change and delete steps) or a trigger run. Writes by
-  the AI builder and MCP tools, imports, template installs, connector sync, the mailbox hook, file
-  intake, batch and filter writes, delete rules and retention sweeps name no origin and never fire.
+  the app (the record API and the record writes of the steps of a click or a run a person started)
+  or a trigger run. That covers one row and several: a step with a filter, the by-id steps of a
+  transaction once it commits, the rows *Read a document* and a dataset write-back write, and the
+  related rows a delete rule deletes or empties, one change per changed row
+  (`recordCapture.mts`). Writes by the AI builder and MCP tools, imports, template installs,
+  connector sync, the mailbox hook, file intake and retention sweeps name no origin and never fire;
+  nor does a filter step inside a transaction, whose rows cannot be read one by one. A write of
+  more rows than `STUDIO_APP_RECORD_TRIGGER_MAX_ROWS_PER_WRITE` records none of them rather than a
+  part.
 - **The public-table rule.** A write by an anonymous visitor, or any write into a table the public
   role may write, fires a trigger only when the trigger says `allowPublicWrites` and its action (and
   every action that one calls) holds none of send e-mail, run an automation, request an approval,
@@ -47,7 +56,8 @@ trigger could be the way around any limit the first has.
 
 - A trigger on a table with public writes is possible, with a smaller set of steps. That is the
   trade the permission names.
-- Some changes that look like "a row changed" do not start anything (a filter update, a batch
-  create). The panel and the documentation list them so nobody relies on them.
+- Some changes that look like "a row changed" do not start anything (file intake, a filter step
+  inside a transaction, a write over the row cap). The panel and the documentation list them so
+  nobody relies on them.
 - Rules 1 to 6 sit in one file with the reasons, so a new trigger kind or a new writer decides its
   place there rather than adding a check elsewhere.

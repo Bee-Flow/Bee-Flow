@@ -40,7 +40,9 @@ describe('<RecordTriggersPanel>', () => {
         mount(DEF([HOURLY]));
         expect(screen.getByTestId('record-triggers-runs-as').textContent).toContain('runs as the owner of this app, whoever changed the row');
         const fires = screen.getByTestId('record-triggers-fires-on').textContent ?? '';
-        expect(fires).toContain('a change someone makes in the app');
+        expect(fires).toContain('every row someone changes in the app');
+        expect(fires).toContain('all rows that match a filter');
+        expect(fires).toContain('a step with a filter inside All or nothing');
         expect(fires).toContain('does not start on imports');
         expect(fires).toContain('never starts on a row its own run changed');
         expect(api.list).not.toHaveBeenCalled();

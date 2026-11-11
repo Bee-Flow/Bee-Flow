@@ -1,7 +1,7 @@
 /**
  * THE RULE of record triggers: which write may start an owner-level run, and how far a chain
  * of such runs may go. One file, read by the validator and the kind (kinds/record.mts), the
- * arming (triggerSync.mts through the kind), the write path (recordOutbox.mts) and the fire
+ * arming (triggerSync.mts through the kind), the write path (recordOutbox.mts, recordCapture.mts) and the fire
  * (recordDrain.mts). Pure: no I/O.
  *
  * A record trigger runs its action AS THE APP OWNER (unattendedIdentity.mts) when a row of its
@@ -10,21 +10,32 @@
  *
  * 1. WHICH WRITES COUNT. Only a write that says where it comes from can fire, and only two
  *    origins exist (WriteSource):
- *      user     a person using the app: the record API (grid and form edits) and the
- *               create_record / update_record / delete_record steps of a click or of a
- *               server run a person started;
- *      trigger  the same three steps in a run a trigger started.
+ *      user     a person using the app: the record API (grid and form edits) and the record
+ *               writes of the steps of a click or of a server run a person started;
+ *      trigger  the same steps in a run a trigger started.
+ *    The writes that hand their origin on, and so fire, ONE CHANGE PER CHANGED ROW:
+ *      - the record API, and create_record / update_record / delete_record by id;
+ *      - update_record / delete_record with a filter (bulkRecords.mts);
+ *      - the creates, updates and deletes BY ID of a transaction step, once it commits;
+ *      - the rows ai_extract and dataset_query write through writeTo: a batch create, an
+ *        update-or-add by key (upsert) and a replace, the replaced rows included;
+ *      - a delete that follows delete rules onto linked records (cascadeDelete.mts): each
+ *        deleted child is a `delete` of its table and each emptied one an `update`, written by
+ *        the writer of the delete and at its depth.
+ *    One row goes through recordOutbox.mts, several through recordCapture.mts, which also says
+ *    when a write of several rows records NOTHING: it is about to change more rows than
+ *    STUDIO_APP_RECORD_TRIGGER_MAX_ROWS_PER_WRITE (never a part of them), or someone else
+ *    changed its rows meanwhile. The triggers concerned then show why.
  *    Every other write names no origin and NEVER fires: the AI builder and MCP tools
  *    (app_seed_records, app_update_records, app_run_action, app_run_tests), dry runs (they do
- *    not write), template and Blueprint installs, imports, connector sync, the mailbox hook,
- *    file intake, ai_extract's rows, dataset_query's write-back, the log row of send_email and
- *    the approval hook. So do, in this version, the writes that are not one row through the
- *    choke point: a filter update or delete (bulkRecords.mts), a transaction step, replace and
- *    upsert targets, a batch create, a delete that follows delete rules onto linked records
- *    (cascadeDelete.mts), and a retention sweep. A one-row create or update that also sets
- *    many-relation links fires as one change (the links are not part of `changed`). A table linked to a Studio datatable is refused as
- *    a trigger table altogether (rows change there without this app seeing it, and two apps
- *    sharing one could start each other without end).
+ *    not write), template and Blueprint installs, imports, connector sync, the mailbox hook
+ *    (and every step of its run), file intake, the log row of send_email, the approval hook and
+ *    a retention sweep. Nor does an update or delete WITH A FILTER inside a transaction step:
+ *    its rows are picked by the statement itself inside the transaction, so they cannot be read
+ *    by id before and after it. A one-row create or update that also sets many-relation links
+ *    fires as one change (the links are not part of `changed`). A table linked to a Studio
+ *    datatable is refused as a trigger table altogether (rows change there without this app
+ *    seeing it, and two apps sharing one could start each other without end).
  *
  * 2. WHO WROTE IT (WriterKind), decided here from the viewer the write path was handed, never
  *    from what a caller claims:
@@ -60,7 +71,10 @@
  *
  * 5. BURST. One writer starts at most STUDIO_APP_RECORD_TRIGGER_WRITER_BURST runs of one app
  *    per minute (default 30); beyond it the event is skipped and the trigger shows why. The
- *    per-app limits of every trigger (triggerLimits.mts) hold on top. Visitors of public pages
+ *    per-app limits of every trigger (triggerLimits.mts) hold on top. The count is of runs, so
+ *    of ROWS: one write that changes 500 rows is 500 changes waiting (at most
+ *    STUDIO_APP_RECORD_TRIGGER_MAX_PENDING per app; the rest is dropped at the write and shown),
+ *    of which that writer starts no more runs than this limit. Visitors of public pages
  *    count as ONE writer per app: a visitor's id is made anew for every visit, so it is
  *    nothing a limit may rest on.
  *

@@ -41,6 +41,8 @@ import { PUBLIC_REFUSED_KINDS, RECORD_EVENTS, needsPublicOptIn } from '../record
 
 const nodeRequire = createRequire(import.meta.url);
 const { LIMITS } = nodeRequire('../../componentSpecs/limits.js') as { LIMITS: { MAX_FORMULA_LEN: number } };
+/** Which writes fire a record trigger, said once for the AI builder (recordFiresText.js). */
+const { RECORD_TRIGGER_WRITES } = nodeRequire('../recordFiresText.js') as { RECORD_TRIGGER_WRITES: string };
 type Compiled = { refs: string[] };
 const compile = (expr: string): Compiled => (nodeRequire('../../../shared/expr/index.mjs') as { compile: (e: string) => Compiled }).compile(expr);
 
@@ -183,9 +185,7 @@ const record: TriggerKind = {
         + 'The action reads the change under trigger.record (and trigger.kind is "record"): trigger.record.event, trigger.record.tableId, trigger.record.id, '
         + 'trigger.record.row (the row after the change; for a delete the row as it was), trigger.record.before (update and delete), trigger.record.changed (the changed fields), '
         + 'trigger.record.by ("member", "owner", "public", "trigger" or "webhook") and trigger.record.depth. '
-        + 'It fires on a change a person makes in the app (a grid or form edit, a create_record / update_record / delete_record step by id) and on such a step of another trigger run. '
-        + 'It does NOT fire on rows written by the builder tools (app_seed_records, app_update_records, app_run_action, app_run_tests), imports, template installs, connector sync, '
-        + 'the mailbox hook, ai_extract, file_intake, a transaction step, or an update_record / delete_record with a filter. '
+        + RECORD_TRIGGER_WRITES
         + 'If visitors of a public page can write the table, the trigger needs allowPublicWrites: true and its action may then hold no send_email, run_automation, request_approval, delete_record or http_request step. '
         + 'The same holds further down a chain: a row written by a run that a visitor\'s write could start counts as a visitor\'s row for the next record trigger, '
         + 'and a record trigger that fires on a row a webhook run wrote runs no http_request. '

@@ -7,7 +7,9 @@
  * and how far a chain of trigger runs goes.
  *
  * The app's own rows live in a small in-memory table here; the write path's real SQL is covered
- * by actionExecutor/records.recordTrigger.test.js.
+ * by actionExecutor/records.recordTrigger.test.js and, for the writes of several rows,
+ * actionExecutor/records.recordTriggerRows.test.js. Here such a write is the segments its path
+ * hands recordCapture.mts.
  *
  * Run: cd server && node --test appStudio/triggers/recordTriggers.test.js
  */
@@ -19,6 +21,7 @@ const { triggerHarness } = require('../../testUtils/triggerHarness.testkit');
 const { studioRunTableDdl } = require('../../testUtils/studioRunTables');
 const { makeRecordEventStore } = require('../../stores/studioAppData/recordEvents.mts');
 const { writeThrough, _setOutboxDeps, changedFields } = require('./recordOutbox.mts');
+const { planCapture } = require('./recordCapture.mts');
 const { recordEventPass, resumeScope } = require('./recordDrain.mts');
 const { recordTriggerLimits } = require('./recordTriggerLimits.mts');
 const {
@@ -41,6 +44,7 @@ const TABLES = {
     orders: table('orders'),
     log: table('log'),
     intake: table('intake', { public: { create: true } }),
+    open: table('open', { public: { create: true, update: 'all', delete: 'all' } }),
     linked: { ...table('linked'), source: { kind: 'datatable', datatableId: 'dt_1', mode: 'write' } },
 };
 const MODEL = { tables: Object.values(TABLES) };
@@ -54,8 +58,11 @@ let rl;
 /** The app's own rows: table key -> id -> row. */
 let data;
 const appDb = {
-    batch: async (_owner, _app, statements) => statements.map((st) => {
+    batch: async (_owner, _app, statements) => statements.map((st, i) => {
         const rowsOf = data[st.table] || (data[st.table] = new Map());
+        if (st.op === 'readMany') return { rows: st.ids.filter((id) => rowsOf.has(id)).map((id) => ({ ...rowsOf.get(id) })) };
+        if (st.op === 'noop') return { changes: 0 };
+        if (st.op === 'fail') throw Object.assign(new Error('no rows'), { code: 'batch_no_rows', statementIndex: i });
         if (st.op === 'read') return { rows: rowsOf.has(st.id) ? [{ ...rowsOf.get(st.id) }] : [] };
         if (st.op === 'create') { rowsOf.set(st.id, { id: st.id, ...st.values }); return { changes: 1 }; }
         if (!rowsOf.has(st.id)) return { changes: 0 };
@@ -74,6 +81,23 @@ async function write(tableDef, event, opts = {}) {
     const statement = { op: event, table: tableDef.key, id: rowId, values };
     if (!through) { await appDb.batch('owner', 'app_1', [statement]); return { rowId, through: false }; }
     return { rowId, through: true, changes: await through.exec(event, rowId, statement) };
+}
+
+const stmt = (op, tb, id, values = {}) => ({ op, table: tb.key, id, values });
+/** One segment: `op` on each of `ids` of `tb`, as a write path names the rows it changes. */
+const seg = (op, tb, ids, values) => ({ statements: ids.map((id) => stmt(op, tb, id, values)), rows: { table: tb, event: op, ids } });
+/** Rows that are simply there (written without an origin). */
+function lay(tb, ids) {
+    const rowsOf = data[tb.key] || (data[tb.key] = new Map());
+    for (const id of ids) rowsOf.set(id, { id, status: 'old' });
+}
+/** A write of several rows, as its path runs it: through the capture when there is one, else the statements alone. */
+async function writeRows(segments, opts = {}) {
+    const { viewer = MEMBER } = opts;
+    const source = Object.hasOwn(opts, 'source') ? opts.source : USER;
+    const capture = await planCapture(h.APP, segments, { source, viewer });
+    const run = (statements) => appDb.batch('owner', 'app_1', statements);
+    return { captured: !!capture, results: await (capture ? capture.run(run) : run(segments.flatMap((x) => x.statements))) };
 }
 
 const outbox = async () => (await h.pg.query('SELECT * FROM studio_app_record_events ORDER BY seq')).rows;
@@ -110,7 +134,11 @@ beforeEach(async () => {
     rl = { ...recordTriggerLimits({}) };
     data = {};
     nextId = 0;
-    _setOutboxDeps({ store: () => events, now: () => s.clock, limits: () => rl, log: quiet, compileRead: (tb, id) => ({ op: 'read', table: tb.key, id }) });
+    _setOutboxDeps({
+        store: () => events, now: () => s.clock, limits: () => rl, log: quiet,
+        compileRead: (tb, id) => ({ op: 'read', table: tb.key, id }),
+        compileReadMany: (tb, ids) => ({ op: 'readMany', table: tb.key, ids }),
+    });
 });
 after(() => _setOutboxDeps({}));
 
@@ -422,6 +450,147 @@ test('back-pressure: a change beyond the pending limit of the app is dropped and
     assert.match((await row('on_orders')).lastError, /STUDIO_APP_TRIGGER_FIRES_PER_HOUR=1/);
 });
 
+// ── Writes of several rows (recordCapture.mts) ──────────────────────────────
+
+/** Per write path: what it does on `tb`, and how many rows of `tb` it changes. */
+const PATHS = {
+    'one row': async (tb, by) => { await write(tb, 'create', by); return 1; },
+    'upsert (a create, then an update of that row)': async (tb, by) => {
+        const { rowId } = await write(tb, 'create', by);
+        await write(tb, 'update', { ...by, id: rowId, values: { status: 'new' } });
+        return 2;
+    },
+    'batch create': async (tb, by) => { await writeRows([seg('create', tb, ['n1', 'n2', 'n3'])], by); return 3; },
+    'update by filter': async (tb, by) => { lay(tb, ['a', 'b']); await writeRows([seg('update', tb, ['a', 'b'], { status: 'new' })], by); return 2; },
+    'delete by filter': async (tb, by) => { lay(tb, ['a', 'b']); await writeRows([seg('delete', tb, ['a', 'b'])], by); return 2; },
+    'transaction (by id, with a filter child that names no rows)': async (tb, by) => {
+        lay(tb, ['a', 'b']);
+        await writeRows([seg('create', tb, ['n1']), seg('update', tb, ['a'], { status: 'new' }), { statements: [stmt('update', tb, 'b', { status: 'held' })] }, seg('delete', tb, ['a'])], by);
+        return 3;
+    },
+    'replace': async (tb, by) => { lay(tb, ['a']); await writeRows([seg('delete', tb, ['a']), seg('create', tb, ['n1', 'n2'])], by); return 3; },
+    'cascade delete (the children)': async (tb, by) => { lay(tb, ['a', 'b']); lay(TABLES.log, ['root']); await writeRows([seg('delete', tb, ['a', 'b']), seg('delete', TABLES.log, ['root'])], by); return 2; },
+    'set-null (the children)': async (tb, by) => { lay(tb, ['a', 'b']); lay(TABLES.log, ['root']); await writeRows([seg('update', tb, ['a', 'b'], { status: null }), seg('delete', TABLES.log, ['root'])], by); return 2; },
+};
+
+test('matrix: writer x write path x table open to visitors or not x opt-in: which rows are recorded and start a run', async () => {
+    assert.deepEqual(publicWritableEvents(TABLES.open), ['create', 'update', 'delete']);
+    const WRITERS = {
+        member: { viewer: MEMBER, kind: 'member' },
+        owner: { viewer: OWNER, kind: 'owner' },
+        visitor: { viewer: VISITOR, kind: 'public' },
+        'a run that a visitor\'s write started': { viewer: OWNER, source: { kind: 'trigger', depth: 1, triggerId: 'on_other', origin: 'public' }, kind: 'public' },
+    };
+    for (const key of ['orders', 'open']) {
+        for (const optIn of [false, true]) {
+            await publish(def([onRecord('on_it', `tbl_${key}`, optIn ? { allowPublicWrites: true } : {})]));
+            for (const [who, { viewer, source = USER, kind }] of Object.entries(WRITERS)) {
+                for (const [path, run] of Object.entries(PATHS)) {
+                    await h.pg.query('DELETE FROM studio_app_record_events');
+                    await h.pg.query('DELETE FROM studio_app_action_runs');
+                    await h.pg.query('UPDATE studio_app_triggers SET last_status = NULL, last_error = NULL');
+                    data = {};
+                    s.clock += 2 * 3_600_000;
+                    const label = `${path} / ${who} / ${key} / allowPublicWrites=${optIn}`;
+                    const rows = await run(TABLES[key], { viewer, source });
+                    const fires = optIn || (key === 'orders' && kind !== 'public');
+                    const got = await outbox();
+                    assert.equal(got.length, fires ? rows : 0, `${label}: recorded`);
+                    assert.ok(got.every((e) => e.table_id === `tbl_${key}` && e.writer_kind === kind), `${label}: by whom`);
+                    if (!fires) assert.match((await row('on_it')).lastError || '', /allowPublicWrites/, `${label}: the trigger says why`);
+                    assert.equal((await drain()).fired, fires ? 1 : 0, `${label}: fired, one change at a time`);
+                    for (const r of await runs()) await settle(r.id);
+                }
+            }
+            await unpublish();
+        }
+    }
+});
+
+test('a write of several rows records nothing without an origin, on a table without a trigger, or for an event no trigger listens to', async () => {
+    await publish(def([onRecord('on_orders', 'tbl_orders', { on: ['create'] })]));
+    for (const source of [undefined, null, {}, { kind: 'seed' }]) {
+        assert.equal((await writeRows([seg('create', TABLES.orders, ['x'])], { source })).captured, false, JSON.stringify(source));
+    }
+    assert.equal((await writeRows([seg('create', TABLES.log, ['x'])])).captured, false);
+    assert.equal((await writeRows([seg('update', TABLES.orders, ['x'], { status: 'y' })])).captured, false, 'the trigger listens to creates only');
+    assert.equal((await writeRows([seg('create', TABLES.linked, ['x'])])).captured, false);
+    assert.deepEqual(await outbox(), []);
+    assert.equal(data.orders.get('x').status, 'y', 'the statements ran all the same');
+});
+
+test('the rows of one write keep their order, and a run\'s rows carry its chain: its own trigger never fires on them', async () => {
+    await publish(def([onRecord('on_orders', 'tbl_orders'), onRecord('on_other', 'tbl_orders')]));
+    lay(TABLES.orders, ['a']);
+    await writeRows([seg('create', TABLES.orders, ['n1', 'n2']), seg('update', TABLES.orders, ['a'], { status: 'new' }), seg('delete', TABLES.orders, ['n1'])],
+        { viewer: OWNER, source: { kind: 'trigger', depth: 2, triggerId: 'on_other' } });
+    const got = (await outbox()).map((e) => [e.trigger_id, e.event, e.row_id, e.writer_kind, e.depth, e.cause_trigger_id]);
+    assert.deepEqual(got, [['create', 'n1'], ['create', 'n2'], ['update', 'a'], ['delete', 'n1']].map(([event, id]) => ['on_orders', event, id, 'trigger', 2, 'on_other']));
+    rl.maxDepth = 2;
+    await writeRows([seg('create', TABLES.orders, ['n3'])], { viewer: OWNER, source: { kind: 'trigger', depth: 2, triggerId: 'on_third' } });
+    assert.equal((await outbox()).length, 4, 'at the depth limit nothing more is recorded');
+    assert.match((await row('on_orders')).lastError, /STUDIO_APP_RECORD_TRIGGER_MAX_DEPTH=2/);
+});
+
+test('the cap: a write of more rows than a trigger takes from one write records none of them, and the trigger says so', async () => {
+    rl.maxRowsPerWrite = 2;
+    await publish(def([onRecord('on_orders', 'tbl_orders')]));
+    assert.equal((await writeRows([seg('create', TABLES.orders, ['n1', 'n2', 'n3'])])).captured, false);
+    assert.deepEqual(await outbox(), [], 'never a part of the rows');
+    assert.equal(data.orders.size, 3, 'the write itself ran');
+    const armed = await row('on_orders');
+    assert.equal(armed.lastStatus, 'skipped');
+    assert.match(armed.lastError, /^Skipped: too many rows in one write\. It changed 3 rows.*STUDIO_APP_RECORD_TRIGGER_MAX_ROWS_PER_WRITE=2/);
+    // The rows of every segment count together; at the cap the write records.
+    assert.equal((await writeRows([seg('create', TABLES.orders, ['n4']), seg('delete', TABLES.orders, ['n1', 'n2'])])).captured, false);
+    assert.equal((await writeRows([seg('create', TABLES.orders, ['n5', 'n6'])])).captured, true);
+    assert.equal((await outbox()).length, 2);
+    // Without a row cap, a write whose reads no longer fit one batch of the app's database (500 statements) records nothing either.
+    rl.maxRowsPerWrite = 0;
+    const many = Array.from({ length: 499 }, (_, i) => `m${i}`);
+    assert.equal((await writeRows([seg('create', TABLES.orders, many)])).captured, false);
+    assert.match((await row('on_orders')).lastError, /^Skipped: too many rows in one write\. It changed 499 rows, more than one write can record/);
+    assert.equal((await outbox()).length, 2);
+});
+
+test('one write of many rows starts no more runs than the limits allow: the pending cap at the write, the writer\'s burst at the fire, and the rest is skipped and shown', async () => {
+    Object.assign(rl, { maxRowsPerWrite: 0, maxPending: 5, writerBurst: 2 });
+    await publish(def([onRecord('on_orders', 'tbl_orders', { on: ['update'] })]));
+    const ids = Array.from({ length: 8 }, (_, i) => `r${i}`);
+    lay(TABLES.orders, ids);
+    await writeRows([seg('update', TABLES.orders, ids, { status: 'new' })]);
+    assert.deepEqual((await outbox()).map((e) => e.row_id), ids.slice(0, 5), 'the first five wait; three were dropped at the write');
+    assert.match((await row('on_orders')).lastError, /STUDIO_APP_RECORD_TRIGGER_MAX_PENDING=5/);
+    for (let i = 0; i < 8; i += 1) {
+        await tick();
+        for (const r of await runs()) await settle(r.id);
+        s.clock += 1000;
+    }
+    assert.deepEqual((await outbox()).map((e) => [e.state, e.outcome_code]), [['fired', null], ['fired', null], ['skipped', 'writer_burst'], ['skipped', 'writer_burst'], ['skipped', 'writer_burst']]);
+    assert.equal((await runs()).length, 2, 'eight changed rows, two owner runs');
+    const armed = await row('on_orders');
+    assert.equal(armed.lastStatus, 'skipped');
+    assert.match(armed.lastError, /STUDIO_APP_RECORD_TRIGGER_WRITER_BURST=2/);
+});
+
+test('rows that changed fewer than were read cannot be told apart: that write records nothing and says so', async () => {
+    await publish(def([onRecord('on_orders', 'tbl_orders')]));
+    lay(TABLES.orders, ['a', 'b']);
+    const racing = { statements: [stmt('update', TABLES.orders, 'a', { status: 'new' }), stmt('noop', TABLES.orders, 'b')], rows: { table: TABLES.orders, event: 'update', ids: ['a', 'b'] } };
+    assert.equal((await writeRows([racing])).captured, true);
+    assert.deepEqual(await outbox(), [], 'an event is lost, never invented');
+    assert.match((await row('on_orders')).lastError, /changed by someone else while a write of several rows ran/);
+    await writeRows([seg('delete', TABLES.orders, ['a', 'gone'])]);
+    assert.deepEqual((await outbox()).map((e) => [e.event, e.row_id]), [['delete', 'a']], 'a row that was not there before the write is no change');
+});
+
+test('a batch that fails records nothing, and the failure names the caller\'s own statement', async () => {
+    await publish(def([onRecord('on_orders', 'tbl_orders')]));
+    const segments = [seg('create', TABLES.orders, ['n1']), { statements: [stmt('fail', TABLES.orders, 'x')] }];
+    await assert.rejects(() => writeRows(segments), (e) => e.code === 'batch_no_rows' && e.statementIndex === 1);
+    assert.deepEqual(await outbox(), []);
+});
+
 // ── Control 2: the depth guard ──────────────────────────────────────────────
 
 /** The run's steps write through the same write-through, with the source the server runner gave them. */
@@ -544,4 +713,17 @@ test('app_set_record_trigger writes a record trigger into the draft and refuses 
     const erasing = draft([{ kind: 'delete_record', tableId: 'log', recordId: { kind: 'static', value: 'r1' } }]);
     assert.equal(tool.apply(erasing, { actionId: 'act_job1', tableId: 'tbl_orders', on: ['create'] }).ok, true, 'without the opt-in a delete step is allowed');
     assert.match(tool.apply(draft(erasing.def.actions.act_job1.steps), { actionId: 'act_job1', tableId: 'tbl_intake', on: ['create'], allowPublicWrites: true }).error, /delete_record step/);
+});
+
+test('which writes fire is said once to the AI builder: the kind, the triggers key and the tool carry one text, and it names what does not fire', () => {
+    const { RECORD_TRIGGER_WRITES } = require('./recordFiresText');
+    const texts = {
+        kind: require('./kinds/record.mts').default.description,
+        key: require('../definitionKeys/triggers.js').description,
+        tool: require('../builderTools/tools/app_set_record_trigger.js').description,
+    };
+    for (const [where, text] of Object.entries(texts)) assert.ok(String(text).includes(RECORD_TRIGGER_WRITES), where);
+    for (const named of ['with a filter', 'inside a transaction step', 'ai_extract', 'dataset_query', 'delete rule', 'file_intake', 'the mailbox hook', 'connector sync', 'app_seed_records']) {
+        assert.ok(RECORD_TRIGGER_WRITES.includes(named), named);
+    }
 });
