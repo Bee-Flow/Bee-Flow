@@ -33,7 +33,7 @@ const { queryWithComputed } = require('../core/dataEngine/computedRead.mts');
 const rlsGateway = require('../appStudio/rlsGateway');
 const { relatedForAggregate } = require('../core/dataEngine/aggregateRelated.mts');
 const { relationRead, finishRecords } = require('../core/dataEngine/relationRead.mts');
-const { seedVariableDefaults } = require('../appStudio/componentSpecs');
+const { initialVariableValues } = require('../shared/appDefinition/variableScopes.mjs');
 const { ROLE_PROBE_VIEWER_ID } = require('../appStudio/appDryRun');
 const { RENDER_PLAN, planShape, planFilters, planParams } = require('../shared/appDefinition/bindingPlan.mjs');
 const { fallback, bestEffort } = require('../utils/bestEffort');
@@ -178,16 +178,13 @@ function findModelTable(model, ref) {
  */
 function buildRenderScope(currentUser, variables, screen, view = null) {
     const now = Date.now();
-    // A view's state lands on the seeded defaults exactly as the page lays it (mergeRecord in
-    // agent-hub appRuntimeScreenshot.tsx), so both sides key a filtered binding the same way.
-    return {
-        currentUser,
-        vars: { ...seedVariableDefaults(variables), ...((view && view.vars) || {}) },
-        forms: (view && view.forms) || {},
-        screen: { params: (view && view.screenParams) || {}, id: screen.id, name: screen.name },
-        now,
-        today: new Date(now).toISOString().slice(0, 10),
-    };
+    const today = new Date(now).toISOString().slice(0, 10);
+    // A view's state lands on the seeded defaults exactly as the page lays it (mergeRecord in agent-hub
+    // appRuntimeScreenshot.tsx); derived variables (schema 3) follow over the same screen-level roots.
+    const forms = (view && view.forms) || {};
+    const screenRoot = { params: (view && view.screenParams) || {}, id: screen.id, name: screen.name };
+    const vars = initialVariableValues(variables, { currentUser, vars: (view && view.vars) || {}, forms, screen: screenRoot, today });
+    return { currentUser, vars, forms, screen: screenRoot, now, today };
 }
 
 function entryBase(overrides) {
@@ -596,7 +593,7 @@ module.exports = {
 
 /** @typedef {{ id?: string, name?: string, [k: string]: unknown }} Screen */
 
-/** @typedef {{ screens?: Screen[], homeScreenId?: string, variables?: Parameters<typeof seedVariableDefaults>[0], design?: Record<string, unknown>, [k: string]: unknown }} AppDefinition */
+/** @typedef {{ screens?: Screen[], homeScreenId?: string, variables?: Array<{ name?: unknown, type?: unknown, default?: unknown }>, design?: Record<string, unknown>, [k: string]: unknown }} AppDefinition */
 
 /** @typedef {{ id: string, userId: string }} StudioApp */
 

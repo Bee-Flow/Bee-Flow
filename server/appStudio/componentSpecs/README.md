@@ -40,6 +40,7 @@ three things, and nothing else has to be edited for them:
 | a node key beside props and style (a logic key, a new event name) | `keys/node/<key>.js` | `since: 3`, `shape`, `description` | `nodeKeys` · `node.<key>` |
 | a nav key, a nav group key | `keys/nav/<key>.js`, `keys/navGroup/<key>.js` | `since: 3`, `shape`, `description` | `navKeys` · `nav.<key>`, `nav.groups[].<key>` |
 | a nav style | `NAV_STYLES` (append) + `keys/nav/style.js` | `valuesSince: { <style>: 3 }` | `enumValues` · `nav.style=<style>` |
+| a key of a declared variable (`scope`, `persist`, `derived`) | `keys/variable/<key>.js` | `since: 3`, `shape`, `description` | `variableKeys` · `variables[].<key>` |
 | a field type, a filter operator, an aggregate function, a date bucket | the list in `core/dataEngine/dataModel/vocabulary.js` (append) | an entry in `DATA_VOCABULARY_MARKS` (`vocabularySince.js`): `{ since: 3, description }` | `data` · `fieldType.<t>`, `filterOp.<op>`, `aggFn.<fn>`, `dateBucket.<b>` |
 | a key of a field declaration (a field option) | the data model code | `DATA_VOCABULARY_MARKS.fieldOptions`: `{ since: 3, shape, description }` | `data` · `fieldOption.<key>` |
 | a word of a row rule (a `viewer.<attribute>`, a form such as `in` or the rule per operation) | `ROW_RULE_WORDS` in `vocabulary.js` (append; an attribute goes in `VIEWER_ATTRIBUTES`) | `DATA_VOCABULARY_MARKS.rowRule`: `{ since: 3, description }` | `data` · `rowRule.<word>` |

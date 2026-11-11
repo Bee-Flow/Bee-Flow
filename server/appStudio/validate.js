@@ -552,6 +552,8 @@ function validateAppDefinition(def, opts = {}) {
     const ctx = buildValidationContext(def, opts, { pushE, pushW, actionIds, screenIds, roleIds, knownVars });
 
     walkScreens(screens, ctx);
+    // Schema 3 variable keys: before the unused check, so a derived formula's reads count.
+    require('./validate/variableChecks.mts').checkVariableBehaviour(def, declaredVars, varWrites.names, ctx);
 
     checkActionsAndVariables(actionsObj, screens, declaredVars, varWrites, ctx);
     checkMailboxHooks(opts.dataModel, actionsObj, pushE);

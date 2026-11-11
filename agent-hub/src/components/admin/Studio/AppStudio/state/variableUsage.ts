@@ -180,6 +180,8 @@ export function collectVariableUsage(def: AppDefinition | null | undefined): Var
         });
     }
 
+    addDerivedReads(def, addReads);
+
     const declared = new Set(
         (Array.isArray(def?.variables) ? def.variables : [])
             .map((v) => v?.name)
@@ -195,6 +197,14 @@ export function collectVariableUsage(def: AppDefinition | null | undefined): Var
     const countOf = (name: string) => (reads.get(name)?.length || 0) + (writes.get(name)?.length || 0);
 
     return { reads, writes, unknown, countOf };
+}
+
+/** Derived variables (schema 3): the formula of each one reads other variables. */
+function addDerivedReads(def: AppDefinition | null | undefined, addReads: (expr: unknown, site: UsageSite) => void): void {
+    for (const variable of Array.isArray(def?.variables) ? def.variables : []) {
+        const expr = isObject(variable?.derived) ? variable.derived.expr : undefined;
+        if (typeof expr === 'string') addReads(expr, { kind: 'derived', label: `the formula of ${variable.name}`, nodeId: null });
+    }
 }
 
 function describeStep(step: Record<string, unknown>): string {

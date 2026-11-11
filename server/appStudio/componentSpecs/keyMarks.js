@@ -21,6 +21,7 @@
  *   node          a key of a component node beside id, type, props, style and children
  *   nav           a key of definition.nav
  *   navGroup      a key of one entry of definition.nav.groups
+ *   variable      a key of one entry of definition.variables
  *   binding       a key a record, records, aggregate or dataset binding newly takes
  *   queryShape    a form the value under a binding key newly takes (file <key>.<name>.js)
  *
@@ -59,6 +60,8 @@ const KEY_MARK_FAMILIES = Object.freeze({
     ]),
     nav: Object.freeze(['style', 'groups']),
     navGroup: Object.freeze(['id', 'label', 'icon', 'screens']),
+    // One entry of definition.variables (cleaned by canonicalize/variables.js).
+    variable: Object.freeze(['name', 'label', 'type', 'default', 'description']),
     // The base keys of a binding differ per kind, and a query shape is not a key: queryMarks.js holds both.
     binding: Object.freeze([]),
     queryShape: Object.freeze([]),

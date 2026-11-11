@@ -45,6 +45,7 @@ const KEY_MARK_NAMES: Readonly<Record<string, { family: ExtensionFamily; prefix:
     node: { family: 'nodeKeys', prefix: 'node.' },
     nav: { family: 'navKeys', prefix: 'nav.' },
     navGroup: { family: 'navKeys', prefix: 'nav.groups[].' },
+    variable: { family: 'variableKeys', prefix: 'variables[].' },
     binding: { family: 'data', prefix: 'binding.' },
     queryShape: { family: 'data', prefix: '' }, // the file name is the whole name: <key>.<name>
 });

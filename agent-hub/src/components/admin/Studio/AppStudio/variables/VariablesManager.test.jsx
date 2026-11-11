@@ -220,3 +220,42 @@ describe('VariablesManager — the unknown-variable banner', () => {
         expect(container.querySelector('[data-unknown-vars]')).toBeNull();
     });
 });
+
+describe('VariablesManager — where a value lives (schema 3)', () => {
+    it('a plain variable writes none of the schema 3 keys', () => {
+        renderManager(baseDef([decl('page')]));
+        expect(screen.getByLabelText('Kind of page').value).toBe('app');
+        expect(screen.getByLabelText('Remember page after a reload').value).toBe('none');
+    });
+
+    it('per screen sets scope and clears persist; back to the app clears scope', async () => {
+        const user = userEvent.setup();
+        const { last } = renderManager(baseDef([decl('tab', { persist: 'local' })]));
+        await user.selectOptions(screen.getByLabelText('Kind of tab'), 'screen');
+        expect(last().variables[0]).toMatchObject({ scope: 'screen', persist: undefined });
+        expect(screen.queryByLabelText('Remember tab after a reload')).toBeNull();
+        await user.selectOptions(screen.getByLabelText('Kind of tab'), 'app');
+        expect(last().variables[0].scope).toBeUndefined();
+    });
+
+    it('remember after a reload writes persist', async () => {
+        const user = userEvent.setup();
+        const { last } = renderManager(baseDef([decl('page')]));
+        await user.selectOptions(screen.getByLabelText('Remember page after a reload'), 'session');
+        expect(last().variables[0].persist).toBe('session');
+        await user.selectOptions(screen.getByLabelText('Remember page after a reload'), 'none');
+        expect(last().variables[0].persist).toBeUndefined();
+    });
+
+    it('a formula variable takes its formula on blur', async () => {
+        const user = userEvent.setup();
+        const { last } = renderManager(baseDef([decl('total', { type: 'number', default: 0 })]));
+        await user.selectOptions(screen.getByLabelText('Kind of total'), 'derived');
+        expect(last().variables[0].derived).toEqual({ expr: 'null' });
+        const formula = screen.getByLabelText('Formula of total');
+        await user.clear(formula);
+        await user.type(formula, 'vars.price * 2');
+        await user.tab();
+        expect(last().variables[0].derived).toEqual({ expr: 'vars.price * 2' });
+    });
+});
