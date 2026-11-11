@@ -65,8 +65,8 @@ const KEEPS_STORED_ORDER_V3 = new Set([
     'paged-record-lists', 'rich-markdown-motion', 'template-field-service', 'template-inbound-orders',
     'template-request-approval', 'template-sales-dashboard', 'typography-text-knobs', 'v3-code-step-quote',
     'v3-ui-steps', 'v3-watchers-and-triggers', 'value-format', 'vocab-style-when', 'vocab-theme-scope',
-    'web-service-step', 'wide-server-scope', 'widget-item-templates', 'widgets-advanced', 'zz-record-triggers',
-    'zz-schedule-triggers', 'zz-webhook-trigger',
+    'web-service-step', 'wide-server-scope', 'widget-item-templates', 'widgets-advanced', 'zz-custom-block',
+    'zz-record-triggers', 'zz-schedule-triggers', 'zz-webhook-trigger',
 ]);
 
 const NOW = 1_000_000;

@@ -55,7 +55,7 @@ async function writeVersionSnapshot(client, { appId, ownerId, definition, summar
     const defPayload = typeof definition === 'string' ? definition : JSON.stringify(definition ?? {});
     if (skipIfSameAsNewest) {
         const newest = await client.query(
-            `SELECT definition = $2::jsonb AS same FROM studio_app_versions
+            `SELECT $2::jsonb = definition AS same FROM studio_app_versions
              WHERE app_id = $1 ORDER BY created_at DESC, id LIMIT 1`,
             [appId, defPayload]
         );

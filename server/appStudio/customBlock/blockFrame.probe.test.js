@@ -191,6 +191,22 @@ async function bundlePipeline() {
     return result.outputFiles[0].text.split('</script').join('<\\/script');
 }
 
+/** Every host label under the test zone that any string value of the parsed network log names. */
+function hostsNamedIn(value, named = new Set()) {
+    if (typeof value === 'string') {
+        let at = value.indexOf(`.${ZONE}`);
+        while (at !== -1) {
+            let start = at;
+            while (start > 0 && 'abcdefghijklmnopqrstuvwxyz0123456789-'.includes(value[start - 1])) start -= 1;
+            named.add(value.slice(start, at));
+            at = value.indexOf(`.${ZONE}`, at + 1);
+        }
+    } else if (value && typeof value === 'object') {
+        for (const item of Object.values(value)) hostsNamedIn(item, named);
+    }
+    return named;
+}
+
 function listen() {
     const hits = [];
     const pages = new Map();
@@ -273,17 +289,10 @@ test('nothing a custom block holds reaches the network, on any surface', { skip:
     assert.equal(net.packets(), 0, 'no UDP packet arrives');
 
     // Chrome's own network log names no hostile host: no lookup, no preconnect, no socket, no request.
-    const log = fs.readFileSync(netlog, 'utf8');
+    const netEvents = JSON.parse(fs.readFileSync(netlog, 'utf8'));
     fs.rmSync(dir, { recursive: true, force: true });
-    assert.ok(log.includes(`control.${ZONE}`), 'the network log holds the control request');
-    const named = new Set();
-    let at = log.indexOf(`.${ZONE}`);
-    while (at !== -1) {
-        let start = at;
-        while (start > 0 && 'abcdefghijklmnopqrstuvwxyz0123456789-'.includes(log[start - 1])) start -= 1;
-        named.add(log.slice(start, at));
-        at = log.indexOf(`.${ZONE}`, at + 1);
-    }
+    const named = hostsNamedIn(netEvents);
+    assert.ok(named.has('control'), 'the network log holds the control request');
     assert.deepEqual([...named].filter((name) => name.startsWith('v-')), [], 'the network log names no host of a hostile template');
 
     for (const [where, result] of Object.entries(seen)) {

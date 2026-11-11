@@ -15,8 +15,10 @@
  * (server/shared/blockTemplate), the stylesheet goes through blockCss.mts; each thing that is
  * left out is one repair, with the template line it was on.
  *
- * A binding is kept as it is written (the validator checks it, validate/customBlockChecks.mts),
- * like the bindings inside the base list props.
+ * A binding keeps what is written (the validator checks it, validate/customBlockChecks.mts), like
+ * the bindings inside the base list props. Unlike those (schema 2), the block writes its inputs and
+ * events by name and the keys inside a binding in one fixed order (`kind` first, the rest by name),
+ * so a definition read back from JSONB canonicalizes to the same bytes.
  */
 
 import { BLOCK_LIMITS, RESERVED_NAMES, canonicalTemplate, isBlockName } from '../../shared/blockTemplate/index.mjs';
@@ -49,7 +51,8 @@ function cleanMap<V>(raw: unknown, what: string, max: number, path: string, push
     if (!isObject(raw)) { push('block.invalid', path, `${what} is an object of name: value entries; it was left out.`); return undefined; }
     const out: Record<string, V> = {};
     let kept = 0;
-    for (const [name, entry] of Object.entries(raw)) {
+    // By name, so the stored bytes do not depend on the order the keys were read back in.
+    for (const [name, entry] of Object.entries(raw).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))) {
         const at = `${path}.${name.slice(0, 40)}`;
         if (!isBlockName(name) || RESERVED_NAMES.includes(name)) {
             push('block.name_invalid', at, `${JSON.stringify(name.slice(0, 40))} is not a name ${what} can use (a letter, then letters, digits or "_"; not ${RESERVED_NAMES.slice(0, 2).join(' or ')}); the entry was left out.`);
@@ -64,7 +67,15 @@ function cleanMap<V>(raw: unknown, what: string, max: number, path: string, push
     return kept ? out : undefined;
 }
 
-const asBinding = (v: unknown): unknown => (isObject(v) && typeof v.kind === 'string' ? plainCopy(v) : undefined);
+/** A copy with the keys of every object in one fixed order: `kind` first, the rest by name. */
+function inKeyOrder(value: unknown): unknown {
+    if (Array.isArray(value)) return value.map(inKeyOrder);
+    if (!isObject(value)) return value;
+    const keys = Object.keys(value).sort((a, b) => (a === 'kind' ? -1 : b === 'kind' ? 1 : a < b ? -1 : a > b ? 1 : 0));
+    return Object.fromEntries(keys.map((k) => [k, inKeyOrder(value[k])]));
+}
+
+const asBinding = (v: unknown): unknown => (isObject(v) && typeof v.kind === 'string' ? inKeyOrder(plainCopy(v)) : undefined);
 const asActionId = (v: unknown): string | null | undefined => {
     if (v === null || v === '') return null;
     return typeof v === 'string' && v.length <= MAX_ACTION_ID_LEN ? v : undefined;

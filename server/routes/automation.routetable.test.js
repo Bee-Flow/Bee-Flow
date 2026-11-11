@@ -36,7 +36,7 @@ mock(path.join(SERVER, 'automation/sideEffectMap'), {});
 mock(path.join(SERVER, 'automation/outputSchemas'), {});
 mock(path.join(SERVER, 'automation/triggerBus'), {});
 mock(path.join(SERVER, 'core/integrations/integrationToolMap'), {});
-mock(path.join(SERVER, 'utils/perUserRateLimit'), { perUserRateLimit: () => noopMw() });
+mock(path.join(SERVER, 'utils/perUserRateLimit'), { perUserRateLimit: () => noopMw(), limiterUnlessZero: () => noopMw() });
 mock(path.join(SERVER, 'automation/portability'), {});
 mock(path.join(SERVER, 'core/entitlements/betaFeatures'), { requireBetaFeature: () => noopMw() });
 // approvals.js builds its Enterprise `approvals` gate at module load

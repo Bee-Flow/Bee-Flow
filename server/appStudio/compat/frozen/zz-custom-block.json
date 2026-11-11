@@ -1,9 +1,9 @@
 {
   "corpus": "zz-custom-block",
   "canonical": {
-    "sha256": "b800e8d2c60bc43f4b7f4519009f03778bdb3a4edb65ae34df0c496b2b8d7683",
+    "sha256": "7d45c6688034cedf3991ddaa4ce99e2382b91315c02ce575282686599feaa9f2",
     "bytes": 4119,
-    "inputIsCanonical": true,
+    "inputIsCanonical": false,
     "idempotent": true,
     "keys": [
       "schemaVersion",
@@ -22,8 +22,8 @@
       "theme": "5d7eeb0111b89897",
       "roles": "4f53cda18c2baa0c",
       "variables": "64eec1aee6bc037d",
-      "screens[0] scr_team0001": "d7d9acbfbc5710a0",
-      "screens[1] scr_hello001": "8517f394d7095f87",
+      "screens[0] scr_team0001": "860eddff0f379c03",
+      "screens[1] scr_hello001": "bfc80798cf797ee9",
       "actions.act_pick0001": "9eadd1a3401e6cea",
       "actions.act_hello001": "369666c97cb72eef",
       "actions.act_secret01": "fc92d70ab478089e",
